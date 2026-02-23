@@ -37,7 +37,11 @@ async function loadMCCSharedCalendar() {
         }
 
         if (typeof loadSharedContentCalendar !== 'function') {
-            container.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-secondary);"><i class="fas fa-calendar"></i><p style="margin-top: 0.5rem;">Calendar loading...</p></div>';
+            container.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-secondary);">' +
+                '<i class="fas fa-calendar-times" style="font-size: 2rem; margin-bottom: 1rem; color: var(--warning);"></i>' +
+                '<p>Calendar system loading...</p>' +
+                '<button class="btn btn-sm btn-primary" onclick="loadMCCSharedCalendar()" style="margin-top: 1rem;"><i class="fas fa-sync"></i> Retry</button>' +
+                '</div>';
             return;
         }
         const result = await loadSharedContentCalendar(params) || { success: false, error: 'No response' };
@@ -47,19 +51,25 @@ async function loadMCCSharedCalendar() {
             renderMCCCalendarEntries(mccCalendarEntries);
             updateMCCCalendarStats(mccCalendarEntries);
         } else {
-            container.innerHTML = `
-                <div style="text-align: center; padding: 2rem; color: var(--danger);">
-                    <i class="fas fa-exclamation-triangle"></i> Error loading calendar: ${result.error || 'Unknown error'}
-                </div>
-            `;
+            container.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-secondary);">' +
+                '<i class="fas fa-calendar-times" style="font-size: 2rem; margin-bottom: 1rem; color: var(--warning);"></i>' +
+                '<p style="margin-bottom: 0.5rem;">Could not load calendar entries.</p>' +
+                '<p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 1rem;">' + (result.error || 'The calendar may not have entries yet.') + '</p>' +
+                '<div style="display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap;">' +
+                    '<button class="btn btn-sm btn-primary" onclick="loadMCCSharedCalendar()"><i class="fas fa-sync"></i> Retry</button>' +
+                    '<button class="btn btn-sm btn-secondary" onclick="openSharedContentEntryModal()"><i class="fas fa-plus"></i> Add Entry</button>' +
+                    '<button class="btn btn-sm" onclick="import52WeekTemplate()" style="background: linear-gradient(135deg, var(--gold), var(--secondary)); color: #000;"><i class="fas fa-file-import"></i> Import Template</button>' +
+                '</div>' +
+                '</div>';
         }
     } catch (error) {
         console.error('Error loading MCC shared calendar:', error);
-        container.innerHTML = `
-            <div style="text-align: center; padding: 2rem; color: var(--danger);">
-                <i class="fas fa-exclamation-triangle"></i> Error: ${error.message}
-            </div>
-        `;
+        container.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-secondary);">' +
+            '<i class="fas fa-calendar-times" style="font-size: 2rem; margin-bottom: 1rem; color: var(--warning);"></i>' +
+            '<p style="margin-bottom: 0.5rem;">Calendar connection error.</p>' +
+            '<p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 1rem;">' + error.message + '</p>' +
+            '<button class="btn btn-sm btn-primary" onclick="loadMCCSharedCalendar()"><i class="fas fa-sync"></i> Retry</button>' +
+            '</div>';
     }
 }
 

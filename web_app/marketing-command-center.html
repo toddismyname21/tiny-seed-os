@@ -9971,12 +9971,17 @@
             </div>
 
             <!-- Marketing Campaigns Section -->
-            <div class="card">
+            <div class="card" style="margin-top: 1.5rem;">
                 <div class="card-header">
                     <h3><i class="fas fa-flag"></i> Marketing Campaigns</h3>
-                    <button class="btn btn-primary" onclick="openCampaignModal()">
-                        <i class="fas fa-plus"></i> New Campaign
-                    </button>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button class="btn btn-sm" onclick="openSMSModal()" style="background: linear-gradient(135deg, var(--success), var(--teal)); color: #fff;" title="Send SMS Blast">
+                            <i class="fas fa-sms"></i> SMS Blast
+                        </button>
+                        <button class="btn btn-primary" onclick="openCampaignModal()">
+                            <i class="fas fa-plus"></i> New Campaign
+                        </button>
+                    </div>
                 </div>
                 <div class="card-body">
                     <div class="campaign-list" id="campaignList">
@@ -14679,63 +14684,89 @@
 
     <!-- CAMPAIGN MODAL -->
     <div class="modal-overlay" id="campaignModal">
-        <div class="modal">
-            <div class="modal-header">
-                <h2>Create Campaign</h2>
+        <div class="modal" style="max-width: 600px;">
+            <div class="modal-header" style="background: linear-gradient(135deg, var(--primary) 0%, var(--purple) 100%);">
+                <h2><i class="fas fa-flag"></i> <span id="campaignModalTitle">Create Campaign</span></h2>
                 <button class="modal-close" onclick="closeCampaignModal()">&times;</button>
             </div>
             <div class="modal-body">
+                <input type="hidden" id="campaignId">
                 <div class="form-group">
-                    <label class="form-label">Campaign Name</label>
-                    <input type="text" class="form-input" placeholder="e.g., Spring CSA Launch">
+                    <label class="form-label">Campaign Name *</label>
+                    <input type="text" class="form-input" id="campaignName" placeholder="e.g., Spring CSA Launch 2026">
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label class="form-label">Campaign Type *</label>
+                        <select class="form-input" id="campaignType">
+                            <option value="csa_recruitment">CSA Recruitment</option>
+                            <option value="seasonal_promotion">Seasonal Promotion</option>
+                            <option value="market_day">Market Day Push</option>
+                            <option value="product_launch">New Product Launch</option>
+                            <option value="event">Event / Workshop</option>
+                            <option value="awareness">Brand Awareness</option>
+                            <option value="holiday">Holiday Campaign</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Status</label>
+                        <select class="form-input" id="campaignStatus">
+                            <option value="draft">Draft</option>
+                            <option value="scheduled">Scheduled</option>
+                            <option value="active">Active</option>
+                            <option value="completed">Completed</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Campaign Type</label>
-                    <select class="form-input">
-                        <option>Product Launch</option>
-                        <option>Flash Sale</option>
-                        <option>Seasonal Promotion</option>
-                        <option>CSA Recruitment</option>
-                        <option>Event</option>
-                    </select>
+                    <label class="form-label">Goal / Objective</label>
+                    <input type="text" class="form-input" id="campaignGoal" placeholder="e.g., Sign up 50 new CSA members, hit 500 followers">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Start Date</label>
-                    <input type="date" class="form-input">
+                    <label class="form-label">Description / Notes</label>
+                    <textarea class="form-input" id="campaignDescription" rows="2" style="resize: vertical;" placeholder="Campaign strategy, target audience, key messages..."></textarea>
                 </div>
-                <div class="form-group">
-                    <label class="form-label">End Date</label>
-                    <input type="date" class="form-input">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Budget</label>
-                    <input type="number" class="form-input" placeholder="$0.00">
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label class="form-label">Start Date *</label>
+                        <input type="date" class="form-input" id="campaignStartDate">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">End Date *</label>
+                        <input type="date" class="form-input" id="campaignEndDate">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Budget ($)</label>
+                        <input type="number" class="form-input" id="campaignBudget" placeholder="0" min="0" step="1">
+                    </div>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Channels</label>
-                    <div class="platform-toggles">
-                        <div class="platform-toggle active">
-                            <i class="fab fa-instagram" style="color: var(--instagram);"></i>
-                            <span>Instagram</span>
-                        </div>
-                        <div class="platform-toggle active">
-                            <i class="fab fa-facebook" style="color: var(--facebook);"></i>
-                            <span>Facebook</span>
-                        </div>
-                        <div class="platform-toggle">
-                            <i class="fas fa-envelope" style="color: var(--info);"></i>
-                            <span>Email</span>
-                        </div>
-                        <div class="platform-toggle">
-                            <i class="fas fa-sms" style="color: var(--success);"></i>
-                            <span>SMS</span>
-                        </div>
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <label style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; background: rgba(225, 48, 108, 0.2); border-radius: 8px; cursor: pointer;">
+                            <input type="checkbox" id="campaignChInstagram" checked>
+                            <i class="fab fa-instagram" style="color: var(--instagram);"></i> Instagram
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; background: rgba(66, 103, 178, 0.2); border-radius: 8px; cursor: pointer;">
+                            <input type="checkbox" id="campaignChFacebook" checked>
+                            <i class="fab fa-facebook" style="color: var(--facebook);"></i> Facebook
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; background: rgba(67, 97, 238, 0.2); border-radius: 8px; cursor: pointer;">
+                            <input type="checkbox" id="campaignChEmail">
+                            <i class="fas fa-envelope" style="color: var(--info);"></i> Email
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; background: rgba(34, 197, 94, 0.2); border-radius: 8px; cursor: pointer;">
+                            <input type="checkbox" id="campaignChSMS">
+                            <i class="fas fa-sms" style="color: var(--success);"></i> SMS
+                        </label>
                     </div>
                 </div>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeCampaignModal()">Cancel</button>
-                <button class="btn btn-primary" onclick="createCampaign()">Create Campaign</button>
+                <button class="btn btn-primary" id="campaignSaveBtn" onclick="createCampaign()" style="background: linear-gradient(135deg, var(--primary) 0%, var(--purple) 100%);">
+                    <i class="fas fa-save"></i> Create Campaign
+                </button>
             </div>
         </div>
     </div>
@@ -14778,7 +14809,39 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label">Season</label>
-                    <input type="text" class="form-input" id="marketSeason" placeholder="e.g., May - October">
+                    <div style="display: grid; grid-template-columns: 1fr auto 1fr; gap: 0.5rem; align-items: center;">
+                        <select class="form-input" id="marketSeasonStart">
+                            <option value="">Start...</option>
+                            <option value="January">January</option>
+                            <option value="February">February</option>
+                            <option value="March">March</option>
+                            <option value="April">April</option>
+                            <option value="May">May</option>
+                            <option value="June">June</option>
+                            <option value="July">July</option>
+                            <option value="August">August</option>
+                            <option value="September">September</option>
+                            <option value="October">October</option>
+                            <option value="November">November</option>
+                            <option value="December">December</option>
+                        </select>
+                        <span style="color: var(--text-secondary);">to</span>
+                        <select class="form-input" id="marketSeasonEnd">
+                            <option value="">End...</option>
+                            <option value="January">January</option>
+                            <option value="February">February</option>
+                            <option value="March">March</option>
+                            <option value="April">April</option>
+                            <option value="May">May</option>
+                            <option value="June">June</option>
+                            <option value="July">July</option>
+                            <option value="August">August</option>
+                            <option value="September">September</option>
+                            <option value="October">October</option>
+                            <option value="November">November</option>
+                            <option value="December">December</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Location Address</label>
@@ -21525,43 +21588,89 @@ From our farm to your table with love. Every bite tells a story of dedication, h
 
         function renderCampaigns() {
             const list = document.getElementById('campaignList');
-            if (!campaignsData || campaignsData.length === 0) {
-                list.innerHTML = '<div class="text-center py-4 text-muted"><i class="fas fa-bullhorn fa-2x mb-2 opacity-50"></i><p>No active campaigns. Create your first campaign!</p></div>';
+            // Merge API data with localStorage data
+            var localCampaigns = JSON.parse(localStorage.getItem('tinySeedCampaigns') || '[]');
+            var allCampaigns = campaignsData && campaignsData.length > 0 ? campaignsData : localCampaigns;
+
+            if (!allCampaigns || allCampaigns.length === 0) {
+                list.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-secondary);"><i class="fas fa-bullhorn" style="font-size: 2rem; margin-bottom: 1rem; opacity: 0.5;"></i><p>No campaigns yet. Create your first campaign to start tracking!</p></div>';
                 return;
             }
-            list.innerHTML = campaignsData.map(campaign => `
-                <div class="campaign-item">
-                    <div class="campaign-info">
-                        <div class="campaign-icon ${campaign.status}">
-                            <i class="fas fa-${campaign.status === 'active' ? 'play' : campaign.status === 'scheduled' ? 'clock' : campaign.status === 'completed' ? 'check' : 'file'}"></i>
-                        </div>
-                        <div class="campaign-details">
-                            <h4>${campaign.name}</h4>
-                            <div class="campaign-meta">
-                                <span>${campaign.type}</span>
-                                <span>${campaign.startDate} - ${campaign.endDate}</span>
-                                <span>$${campaign.spent}/$${campaign.budget}</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="campaign-stats">
-                        <div class="campaign-stat">
-                            <div class="campaign-stat-value">${campaign.reach.toLocaleString()}</div>
-                            <div class="campaign-stat-label">Reach</div>
-                        </div>
-                        <div class="campaign-stat">
-                            <div class="campaign-stat-value">${campaign.conversions}</div>
-                            <div class="campaign-stat-label">Conversions</div>
-                        </div>
-                        <button class="btn btn-sm btn-secondary">
-                            <i class="fas fa-ellipsis-h"></i>
-                        </button>
-                    </div>
-                </div>
-            `).join('');
+
+            var typeLabels = { csa_recruitment: 'CSA Recruitment', seasonal_promotion: 'Seasonal Promo', market_day: 'Market Day', product_launch: 'Product Launch', event: 'Event', awareness: 'Brand Awareness', holiday: 'Holiday' };
+            var statusIcons = { active: 'play', scheduled: 'clock', completed: 'check', draft: 'file' };
+
+            list.innerHTML = allCampaigns.map(function(campaign) {
+                var typeLabel = typeLabels[campaign.type] || campaign.type || 'Campaign';
+                var statusIcon = statusIcons[campaign.status] || 'file';
+                var channels = campaign.channels || [];
+                var channelIcons = channels.map(function(ch) {
+                    if (ch === 'instagram') return '<i class="fab fa-instagram" style="color: var(--instagram);" title="Instagram"></i>';
+                    if (ch === 'facebook') return '<i class="fab fa-facebook" style="color: var(--facebook);" title="Facebook"></i>';
+                    if (ch === 'email') return '<i class="fas fa-envelope" style="color: var(--info);" title="Email"></i>';
+                    if (ch === 'sms') return '<i class="fas fa-sms" style="color: var(--success);" title="SMS"></i>';
+                    return '';
+                }).join(' ');
+
+                return '<div class="campaign-item">' +
+                    '<div class="campaign-info">' +
+                        '<div class="campaign-icon ' + (campaign.status || 'draft') + '">' +
+                            '<i class="fas fa-' + statusIcon + '"></i>' +
+                        '</div>' +
+                        '<div class="campaign-details">' +
+                            '<h4>' + safeHTML(campaign.name) + '</h4>' +
+                            '<div class="campaign-meta">' +
+                                '<span>' + typeLabel + '</span>' +
+                                '<span>' + (campaign.startDate || '--') + ' - ' + (campaign.endDate || '--') + '</span>' +
+                                (campaign.budget ? '<span>$' + Number(campaign.budget).toLocaleString() + '</span>' : '') +
+                            '</div>' +
+                            (campaign.goal ? '<div style="font-size: 0.8rem; color: var(--gold); margin-top: 0.25rem;"><i class="fas fa-bullseye"></i> ' + safeHTML(campaign.goal) + '</div>' : '') +
+                            (channelIcons ? '<div style="margin-top: 0.25rem; display: flex; gap: 0.5rem;">' + channelIcons + '</div>' : '') +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="campaign-stats">' +
+                        '<span class="market-status-badge ' + (campaign.status || 'draft') + '" style="font-size: 0.7rem;">' + (campaign.status || 'draft').toUpperCase() + '</span>' +
+                        '<button class="btn btn-sm btn-secondary" onclick="editCampaign(\'' + campaign.id + '\')" title="Edit"><i class="fas fa-edit"></i></button>' +
+                        '<button class="btn btn-sm btn-secondary" onclick="deleteCampaign(\'' + campaign.id + '\')" title="Delete" style="color: var(--danger);"><i class="fas fa-trash"></i></button>' +
+                    '</div>' +
+                '</div>';
+            }).join('');
         }
 
-        function openCampaignModal() {
+        function openCampaignModal(campaignData) {
+            document.getElementById('campaignModalTitle').textContent = campaignData ? 'Edit Campaign' : 'Create Campaign';
+            document.getElementById('campaignSaveBtn').innerHTML = campaignData ? '<i class="fas fa-save"></i> Save Changes' : '<i class="fas fa-save"></i> Create Campaign';
+
+            if (campaignData) {
+                document.getElementById('campaignId').value = campaignData.id || '';
+                document.getElementById('campaignName').value = campaignData.name || '';
+                document.getElementById('campaignType').value = campaignData.type || 'csa_recruitment';
+                document.getElementById('campaignStatus').value = campaignData.status || 'draft';
+                document.getElementById('campaignGoal').value = campaignData.goal || '';
+                document.getElementById('campaignDescription').value = campaignData.description || '';
+                document.getElementById('campaignStartDate').value = campaignData.startDateRaw || '';
+                document.getElementById('campaignEndDate').value = campaignData.endDateRaw || '';
+                document.getElementById('campaignBudget').value = campaignData.budget || '';
+                var channels = campaignData.channels || [];
+                document.getElementById('campaignChInstagram').checked = channels.indexOf('instagram') !== -1;
+                document.getElementById('campaignChFacebook').checked = channels.indexOf('facebook') !== -1;
+                document.getElementById('campaignChEmail').checked = channels.indexOf('email') !== -1;
+                document.getElementById('campaignChSMS').checked = channels.indexOf('sms') !== -1;
+            } else {
+                document.getElementById('campaignId').value = '';
+                document.getElementById('campaignName').value = '';
+                document.getElementById('campaignType').value = 'csa_recruitment';
+                document.getElementById('campaignStatus').value = 'draft';
+                document.getElementById('campaignGoal').value = '';
+                document.getElementById('campaignDescription').value = '';
+                document.getElementById('campaignStartDate').value = '';
+                document.getElementById('campaignEndDate').value = '';
+                document.getElementById('campaignBudget').value = '';
+                document.getElementById('campaignChInstagram').checked = true;
+                document.getElementById('campaignChFacebook').checked = true;
+                document.getElementById('campaignChEmail').checked = false;
+                document.getElementById('campaignChSMS').checked = false;
+            }
             document.getElementById('campaignModal').classList.add('active');
         }
 
@@ -21570,8 +21679,90 @@ From our farm to your table with love. Every bite tells a story of dedication, h
         }
 
         function createCampaign() {
-            showToast('Campaign created!', 'success');
+            var name = document.getElementById('campaignName').value.trim();
+            var type = document.getElementById('campaignType').value;
+            var status = document.getElementById('campaignStatus').value;
+            var goal = document.getElementById('campaignGoal').value.trim();
+            var description = document.getElementById('campaignDescription').value.trim();
+            var startDate = document.getElementById('campaignStartDate').value;
+            var endDate = document.getElementById('campaignEndDate').value;
+            var budget = parseFloat(document.getElementById('campaignBudget').value) || 0;
+            var existingId = document.getElementById('campaignId').value;
+
+            if (!name) { showToast('Campaign name is required', 'error'); return; }
+            if (!startDate) { showToast('Start date is required', 'error'); return; }
+            if (!endDate) { showToast('End date is required', 'error'); return; }
+            if (endDate < startDate) { showToast('End date must be after start date', 'error'); return; }
+
+            var channels = [];
+            if (document.getElementById('campaignChInstagram').checked) channels.push('instagram');
+            if (document.getElementById('campaignChFacebook').checked) channels.push('facebook');
+            if (document.getElementById('campaignChEmail').checked) channels.push('email');
+            if (document.getElementById('campaignChSMS').checked) channels.push('sms');
+
+            var campaign = {
+                id: existingId || 'campaign_' + Date.now(),
+                name: name,
+                type: type,
+                status: status,
+                goal: goal,
+                description: description,
+                startDateRaw: startDate,
+                endDateRaw: endDate,
+                startDate: new Date(startDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                endDate: new Date(endDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                budget: budget,
+                spent: 0,
+                reach: 0,
+                conversions: 0,
+                channels: channels,
+                createdAt: existingId ? undefined : new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+
+            // Save to localStorage
+            var campaigns = JSON.parse(localStorage.getItem('tinySeedCampaigns') || '[]');
+            if (existingId) {
+                var idx = campaigns.findIndex(function(c) { return c.id === existingId; });
+                if (idx !== -1) {
+                    campaign.spent = campaigns[idx].spent || 0;
+                    campaign.reach = campaigns[idx].reach || 0;
+                    campaign.conversions = campaigns[idx].conversions || 0;
+                    campaign.createdAt = campaigns[idx].createdAt;
+                    campaigns[idx] = campaign;
+                } else {
+                    campaigns.push(campaign);
+                }
+            } else {
+                campaigns.push(campaign);
+            }
+            localStorage.setItem('tinySeedCampaigns', JSON.stringify(campaigns));
+
             closeCampaignModal();
+            campaignsData = campaigns;
+            renderCampaigns();
+            showToast(existingId ? 'Campaign updated!' : 'Campaign created!', 'success');
+        }
+
+        function editCampaign(campaignId) {
+            var campaigns = JSON.parse(localStorage.getItem('tinySeedCampaigns') || '[]');
+            var campaign = campaigns.find(function(c) { return c.id === campaignId; });
+            if (campaign) openCampaignModal(campaign);
+        }
+
+        function deleteCampaign(campaignId) {
+            if (!confirm('Delete this campaign?')) return;
+            var campaigns = JSON.parse(localStorage.getItem('tinySeedCampaigns') || '[]');
+            campaigns = campaigns.filter(function(c) { return c.id !== campaignId; });
+            localStorage.setItem('tinySeedCampaigns', JSON.stringify(campaigns));
+            campaignsData = campaigns;
+            renderCampaigns();
+            showToast('Campaign deleted', 'success');
+        }
+
+        function openSMSModal() {
+            var modal = document.getElementById('smsModal');
+            if (modal) modal.classList.add('active');
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
@@ -24896,7 +25087,7 @@ Would you like to test posting to Threads?`;
             try {
                 const response = await fetch(`${API_URL}?action=getMarketingCampaigns`);
                 const result = await response.json();
-                if (result.success && result.campaigns) {
+                if (result.success && result.campaigns && result.campaigns.length > 0) {
                     campaignsData = result.campaigns.map(c => ({
                         id: c.Campaign_ID || c.id,
                         name: c.Name || c.name || 'Untitled Campaign',
@@ -24904,16 +25095,26 @@ Would you like to test posting to Threads?`;
                         status: (c.Status || c.status || 'draft').toLowerCase(),
                         startDate: formatShortDate(c.Start_Date || c.startDate),
                         endDate: formatShortDate(c.End_Date || c.endDate),
+                        startDateRaw: c.Start_Date || c.startDate || '',
+                        endDateRaw: c.End_Date || c.endDate || '',
                         budget: parseFloat(c.Budget || c.budget) || 0,
                         spent: parseFloat(c.Spent || c.spent) || 0,
                         reach: parseInt(c.Reach || c.reach) || 0,
-                        conversions: parseInt(c.Conversions || c.conversions) || 0
+                        conversions: parseInt(c.Conversions || c.conversions) || 0,
+                        goal: c.Goal || c.goal || '',
+                        description: c.Description || c.description || '',
+                        channels: c.Channels || c.channels || []
                     }));
+                } else {
+                    // Fall back to localStorage campaigns
+                    campaignsData = JSON.parse(localStorage.getItem('tinySeedCampaigns') || '[]');
                 }
                 renderCampaigns();
             } catch (error) {
                 console.error('Error loading campaigns:', error);
-                renderCampaigns(); // Render empty state
+                // Fall back to localStorage campaigns
+                campaignsData = JSON.parse(localStorage.getItem('tinySeedCampaigns') || '[]');
+                renderCampaigns();
             }
         }
 
@@ -26339,12 +26540,15 @@ Would you like to test posting to Threads?`;
         }
 
         function openPostComposer() {
-            showToast('Post composer coming soon! Use Buffer or Publer for now.', 'info');
-            // Future: Open a modal to compose cross-platform posts
+            // Route to the Create tab's post composer
+            switchTab('create');
+            showToast('Create your post here!', 'info');
         }
 
         function schedulePost(time) {
-            showToast(`Scheduling post for ${time}. Use Buffer or Publer for now.`, 'info');
+            // Route to Create tab with time context
+            switchTab('create');
+            showToast('Optimal post time: ' + time + ' — compose your post below!', 'info');
         }
 
         function refreshGrowthData() {
@@ -35656,19 +35860,30 @@ Would you like to test posting to Threads?`;
 
             const nextMarket = getNextMarketDay(activeMarkets);
             if (nextMarket) {
-                nameEl.textContent = `Next: ${nextMarket.market.name}`;
-                detailsEl.textContent = `${nextMarket.market.day} ${formatMarketTime(nextMarket.market.startTime)} - ${formatMarketTime(nextMarket.market.endTime)}`;
-
                 if (nextMarket.daysUntil === 0) {
-                    countdownNumberEl.textContent = 'TODAY';
+                    nameEl.textContent = nextMarket.market.name;
+                    detailsEl.textContent = `${formatMarketTime(nextMarket.market.startTime)} - ${formatMarketTime(nextMarket.market.endTime)} | ${nextMarket.market.location || ''}`;
+                    countdownNumberEl.textContent = 'TODAY!';
                     countdownNumberEl.style.fontSize = '1.5rem';
-                    countdownLabelEl.textContent = '';
+                    countdownLabelEl.textContent = "Let's go!";
                     banner.style.background = 'linear-gradient(135deg, var(--instagram) 0%, var(--accent) 100%)';
+                    banner.style.animation = 'pulse 2s ease-in-out infinite';
+                } else if (nextMarket.daysUntil === 1) {
+                    nameEl.textContent = `Tomorrow: ${nextMarket.market.name}`;
+                    detailsEl.textContent = `${nextMarket.market.day} ${formatMarketTime(nextMarket.market.startTime)} - ${formatMarketTime(nextMarket.market.endTime)}`;
+                    countdownNumberEl.textContent = '1';
+                    countdownNumberEl.style.fontSize = '2rem';
+                    countdownLabelEl.textContent = 'day';
+                    banner.style.background = 'linear-gradient(135deg, var(--gold) 0%, var(--secondary) 100%)';
+                    banner.style.animation = '';
                 } else {
+                    nameEl.textContent = `Next: ${nextMarket.market.name}`;
+                    detailsEl.textContent = `${nextMarket.market.day} ${formatMarketTime(nextMarket.market.startTime)} - ${formatMarketTime(nextMarket.market.endTime)}`;
                     countdownNumberEl.textContent = nextMarket.daysUntil;
                     countdownNumberEl.style.fontSize = '2rem';
-                    countdownLabelEl.textContent = nextMarket.daysUntil === 1 ? 'day' : 'days';
+                    countdownLabelEl.textContent = 'days';
                     banner.style.background = 'linear-gradient(135deg, var(--success) 0%, var(--teal) 100%)';
+                    banner.style.animation = '';
                 }
             }
         }
@@ -35704,7 +35919,8 @@ Would you like to test posting to Threads?`;
             document.getElementById('marketDay').value = '';
             document.getElementById('marketStartTime').value = '09:00';
             document.getElementById('marketEndTime').value = '13:00';
-            document.getElementById('marketSeason').value = '';
+            document.getElementById('marketSeasonStart').value = 'May';
+            document.getElementById('marketSeasonEnd').value = 'October';
             document.getElementById('marketLocation').value = '';
             document.getElementById('marketStatus').value = 'active';
             document.getElementById('marketModal').classList.add('active');
@@ -35727,7 +35943,10 @@ Would you like to test posting to Threads?`;
             document.getElementById('marketDay').value = market.day;
             document.getElementById('marketStartTime').value = market.startTime;
             document.getElementById('marketEndTime').value = market.endTime;
-            document.getElementById('marketSeason').value = market.season || '';
+            // Parse season string "May - October" into start/end dropdowns
+            var seasonParts = (market.season || '').split(/\s*-\s*/);
+            document.getElementById('marketSeasonStart').value = seasonParts[0] || '';
+            document.getElementById('marketSeasonEnd').value = seasonParts[1] || '';
             document.getElementById('marketLocation').value = market.location || '';
             document.getElementById('marketStatus').value = market.status;
             document.getElementById('marketModal').classList.add('active');
@@ -35740,7 +35959,9 @@ Would you like to test posting to Threads?`;
             const day = document.getElementById('marketDay').value;
             const startTime = document.getElementById('marketStartTime').value;
             const endTime = document.getElementById('marketEndTime').value;
-            const season = document.getElementById('marketSeason').value.trim();
+            const seasonStart = document.getElementById('marketSeasonStart').value;
+            const seasonEnd = document.getElementById('marketSeasonEnd').value;
+            const season = seasonStart && seasonEnd ? seasonStart + ' - ' + seasonEnd : '';
             const location = document.getElementById('marketLocation').value.trim();
             const status = document.getElementById('marketStatus').value;
 
