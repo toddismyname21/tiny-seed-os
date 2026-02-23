@@ -7354,112 +7354,14 @@
                     <i class="fas fa-chart-bar" style="color: #8B5CF6;"></i>
                     <span id="showMoreMetricsText">Show More Metrics</span>
                     <i id="showMoreMetricsArrow" class="fas fa-chevron-down" style="color: #8B5CF6; transition: transform 0.3s;"></i>
-                    <span style="background: rgba(139, 92, 246, 0.3); padding: 0.2rem 0.5rem; border-radius: 10px; font-size: 0.7rem; color: #8B5CF6;">2 panels</span>
+                    <span style="background: rgba(139, 92, 246, 0.3); padding: 0.2rem 0.5rem; border-radius: 10px; font-size: 0.7rem; color: #8B5CF6;">1 panel</span>
                 </button>
             </div>
 
             <!-- ADDITIONAL METRICS SECTION (Hidden by default) -->
             <div id="additionalMetricsSection" style="display: none;">
 
-            <!-- AEO (ANSWER ENGINE OPTIMIZATION) PANEL - CRITICAL FOR 2026 - NOW COLLAPSIBLE -->
-            <div class="card" id="aeoCard" style="margin-top: 1.5rem; background: linear-gradient(135deg, rgba(26, 188, 156, 0.15) 0%, rgba(52, 152, 219, 0.1) 100%); border: 2px solid rgba(26, 188, 156, 0.4);">
-                <div class="card-header" style="flex-wrap: wrap; gap: 0.5rem; cursor: pointer; justify-content: space-between; align-items: center;" onclick="toggleAEOCard()">
-                    <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-                        <h3 style="display: flex; align-items: center; gap: 0.5rem; margin: 0;">
-                            <i class="fas fa-robot" style="color: #1abc9c;"></i> AEO Visibility
-                            <span class="badge" style="background: linear-gradient(135deg, #e74c3c, #c0392b); font-size: 0.65rem; padding: 0.2rem 0.5rem;">2026 CRITICAL</span>
-                            <span id="aeoNewMentionsBadge" class="badge" style="background: var(--success); font-size: 0.65rem; padding: 0.2rem 0.5rem; display: none;">NEW MENTIONS</span>
-                        </h3>
-                    </div>
-                    <div style="display: flex; gap: 0.5rem; align-items: center;">
-                        <span id="aeoMiniScore" style="font-weight: 700; color: #1abc9c; font-size: 1rem;">--</span>
-                        <i id="aeoToggleIcon" class="fas fa-chevron-down" style="color: #1abc9c; transition: transform 0.3s; font-size: 1.2rem;"></i>
-                    </div>
-                </div>
-                <div id="aeoCardBody" class="card-body" style="display: none;">
-                    <!-- AEO Score Overview -->
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
-                        <!-- AEO Score -->
-                        <div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 12px; text-align: center; border-left: 4px solid #1abc9c;">
-                            <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.25rem;">
-                                <i class="fas fa-chart-line"></i> AEO SCORE
-                            </div>
-                            <div id="mccAeoScore" style="font-size: 2rem; font-weight: 700; color: #1abc9c;">--</div>
-                            <div id="mccAeoTrend" style="font-size: 0.7rem; color: var(--text-secondary);">Loading...</div>
-                        </div>
-                        <!-- Appearance Rate -->
-                        <div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 12px; text-align: center; border-left: 4px solid #3498db;">
-                            <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.25rem;">
-                                <i class="fas fa-eye"></i> APPEARANCE RATE
-                            </div>
-                            <div id="mccAppearanceRate" style="font-size: 2rem; font-weight: 700; color: #3498db;">--%</div>
-                            <div id="mccAppearanceStats" style="font-size: 0.7rem; color: var(--text-secondary);">--/-- checks</div>
-                        </div>
-                        <!-- Recent Mentions -->
-                        <div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 12px; text-align: center; border-left: 4px solid var(--gold);">
-                            <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.25rem;">
-                                <i class="fas fa-bell"></i> RECENT MENTIONS
-                            </div>
-                            <div id="mccRecentMentions" style="font-size: 2rem; font-weight: 700; color: var(--gold);">0</div>
-                            <div style="font-size: 0.7rem; color: var(--text-secondary);">Last 7 days</div>
-                        </div>
-                    </div>
-
-                    <!-- AI Platform Grid (Mini) -->
-                    <div id="mccAiPlatformsGrid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin-bottom: 1.5rem;">
-                        <div style="background: rgba(16, 163, 127, 0.15); padding: 0.75rem; border-radius: 8px; text-align: center; border-bottom: 3px solid #10a37f;">
-                            <div style="font-size: 0.7rem; color: var(--text-secondary);">ChatGPT</div>
-                            <div id="mccChatgptRate" style="font-size: 1.25rem; font-weight: 700; color: #10a37f;">--</div>
-                        </div>
-                        <div style="background: rgba(31, 184, 205, 0.15); padding: 0.75rem; border-radius: 8px; text-align: center; border-bottom: 3px solid #1fb8cd;">
-                            <div style="font-size: 0.7rem; color: var(--text-secondary);">Perplexity</div>
-                            <div id="mccPerplexityRate" style="font-size: 1.25rem; font-weight: 700; color: #1fb8cd;">--</div>
-                        </div>
-                        <div style="background: rgba(66, 133, 244, 0.15); padding: 0.75rem; border-radius: 8px; text-align: center; border-bottom: 3px solid #4285f4;">
-                            <div style="font-size: 0.7rem; color: var(--text-secondary);">Gemini</div>
-                            <div id="mccGeminiRate" style="font-size: 1.25rem; font-weight: 700; color: #4285f4;">--</div>
-                        </div>
-                        <div style="background: rgba(234, 67, 53, 0.15); padding: 0.75rem; border-radius: 8px; text-align: center; border-bottom: 3px solid #ea4335;">
-                            <div style="font-size: 0.7rem; color: var(--text-secondary);">AI Overview</div>
-                            <div id="mccAiOverviewRate" style="font-size: 1.25rem; font-weight: 700; color: #ea4335;">--</div>
-                        </div>
-                    </div>
-
-                    <!-- Brand Mention Alerts -->
-                    <div id="mccBrandMentionAlerts" style="margin-bottom: 1rem; display: none;">
-                        <div style="font-size: 0.9rem; font-weight: 600; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
-                            <i class="fas fa-bell" style="color: var(--success);"></i> Brand Mention Alerts
-                        </div>
-                        <div id="mccMentionAlertsList" style="max-height: 150px; overflow-y: auto;"></div>
-                    </div>
-
-                    <!-- Cited Content Recommendations -->
-                    <div id="mccCitedContentSection" style="margin-bottom: 1rem; display: none;">
-                        <div style="font-size: 0.9rem; font-weight: 600; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
-                            <i class="fas fa-share-alt" style="color: var(--instagram);"></i> Content Being Cited - Promote These!
-                        </div>
-                        <div id="mccCitedContentList" style="display: grid; gap: 0.5rem;"></div>
-                    </div>
-
-                    <!-- AEO Recommendations -->
-                    <div id="mccAeoRecommendations" style="display: none;">
-                        <div style="font-size: 0.9rem; font-weight: 600; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
-                            <i class="fas fa-lightbulb" style="color: var(--warning);"></i> AEO Recommendations
-                        </div>
-                        <div id="mccAeoRecommendationsList" style="display: grid; gap: 0.5rem;"></div>
-                    </div>
-
-                    <!-- Quick Action: Log AI Check -->
-                    <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
-                        <div style="font-size: 0.8rem; color: var(--text-secondary);">
-                            <i class="fas fa-info-circle"></i> 60%+ of searches now go to AI answers
-                        </div>
-                        <button onclick="openMCCAICheckModal()" class="btn btn-sm" style="background: linear-gradient(135deg, #1abc9c, #16a085); color: white;">
-                            <i class="fas fa-plus"></i> Log AI Check
-                        </button>
-                    </div>
-                </div>
-            </div>
+            <!-- AEO Panel moved to Analytics tab (2026-02-22) -->
 
             <!-- Algorithm Intelligence Panel - COLLAPSIBLE - NOW WITH REAL DATA -->
             <div class="card" style="margin-top: 1.5rem; background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(139, 92, 246, 0.1) 100%); border: 1px solid rgba(139, 92, 246, 0.3);">
@@ -11129,6 +11031,9 @@
                     <button class="analytics-section-btn" onclick="showAnalyticsSection('gbp')" data-section="gbp">
                         <i class="fab fa-google" style="color: var(--gbp);"></i> Google Business
                     </button>
+                    <button class="analytics-section-btn" onclick="showAnalyticsSection('aeo')" data-section="aeo">
+                        <i class="fas fa-robot" style="color: #1abc9c;"></i> AEO Visibility
+                    </button>
                 </div>
             </div>
 
@@ -11945,13 +11850,154 @@
                 </div>
             </div>
 
+            <!-- AEO (ANSWER ENGINE OPTIMIZATION) SECTION - Moved from Brain tab 2026-02-22 -->
+            <div id="analyticsSection-aeo" class="analytics-section" style="display: none;">
+
+                <!-- AEO Score KPIs -->
+                <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 1.5rem;">
+                    <div class="stat-card" style="border-left: 4px solid #1abc9c; background: linear-gradient(135deg, rgba(26, 188, 156, 0.15) 0%, var(--bg-card) 100%);">
+                        <div class="stat-card-header">
+                            <div class="stat-icon" style="background: rgba(26, 188, 156, 0.2);">
+                                <i class="fas fa-chart-line" style="color: #1abc9c;"></i>
+                            </div>
+                        </div>
+                        <div class="stat-value" id="mccAeoScore" style="color: #1abc9c;">--</div>
+                        <div class="stat-label">AEO Score</div>
+                        <div class="stat-change neutral" id="mccAeoTrend">Loading...</div>
+                    </div>
+                    <div class="stat-card" style="border-left: 4px solid #3498db; background: linear-gradient(135deg, rgba(52, 152, 219, 0.15) 0%, var(--bg-card) 100%);">
+                        <div class="stat-card-header">
+                            <div class="stat-icon" style="background: rgba(52, 152, 219, 0.2);">
+                                <i class="fas fa-eye" style="color: #3498db;"></i>
+                            </div>
+                        </div>
+                        <div class="stat-value" id="mccAppearanceRate" style="color: #3498db;">--%</div>
+                        <div class="stat-label">Appearance Rate</div>
+                        <div class="stat-change neutral" id="mccAppearanceStats">--/-- checks</div>
+                    </div>
+                    <div class="stat-card" style="border-left: 4px solid var(--gold); background: linear-gradient(135deg, rgba(255, 215, 0, 0.15) 0%, var(--bg-card) 100%);">
+                        <div class="stat-card-header">
+                            <div class="stat-icon" style="background: rgba(255, 215, 0, 0.2);">
+                                <i class="fas fa-bell" style="color: var(--gold);"></i>
+                            </div>
+                        </div>
+                        <div class="stat-value" id="mccRecentMentions" style="color: var(--gold);">0</div>
+                        <div class="stat-label">Recent Mentions</div>
+                        <div class="stat-change neutral">Last 7 days</div>
+                    </div>
+                </div>
+
+                <!-- AI Platform Grid -->
+                <div class="card" style="border: 2px solid rgba(26, 188, 156, 0.4); margin-bottom: 1.5rem;">
+                    <div class="card-header" style="background: linear-gradient(135deg, rgba(26, 188, 156, 0.2) 0%, rgba(52, 152, 219, 0.15) 100%);">
+                        <h3 style="display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fas fa-robot" style="color: #1abc9c;"></i> AI Platform Visibility
+                            <span class="badge" style="background: linear-gradient(135deg, #e74c3c, #c0392b); font-size: 0.65rem; padding: 0.2rem 0.5rem;">2026 CRITICAL</span>
+                            <span id="aeoNewMentionsBadge" class="badge" style="background: var(--success); font-size: 0.65rem; padding: 0.2rem 0.5rem; display: none;">NEW MENTIONS</span>
+                        </h3>
+                        <button onclick="loadAEOVisibilityData()" class="btn btn-sm" style="background: linear-gradient(135deg, #1abc9c, #16a085); color: white;">
+                            <i class="fas fa-sync"></i> Refresh
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">
+                            <i class="fas fa-info-circle" style="color: #1abc9c;"></i> 60%+ of searches now go to AI answers. Track how Tiny Seed Farm appears across AI platforms.
+                        </p>
+                        <div id="mccAiPlatformsGrid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin-bottom: 1.5rem;">
+                            <div style="background: rgba(16, 163, 127, 0.15); padding: 1rem; border-radius: 8px; text-align: center; border-bottom: 3px solid #10a37f;">
+                                <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.25rem;">ChatGPT</div>
+                                <div id="mccChatgptRate" style="font-size: 1.5rem; font-weight: 700; color: #10a37f;">--</div>
+                            </div>
+                            <div style="background: rgba(31, 184, 205, 0.15); padding: 1rem; border-radius: 8px; text-align: center; border-bottom: 3px solid #1fb8cd;">
+                                <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.25rem;">Perplexity</div>
+                                <div id="mccPerplexityRate" style="font-size: 1.5rem; font-weight: 700; color: #1fb8cd;">--</div>
+                            </div>
+                            <div style="background: rgba(66, 133, 244, 0.15); padding: 1rem; border-radius: 8px; text-align: center; border-bottom: 3px solid #4285f4;">
+                                <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.25rem;">Gemini</div>
+                                <div id="mccGeminiRate" style="font-size: 1.5rem; font-weight: 700; color: #4285f4;">--</div>
+                            </div>
+                            <div style="background: rgba(234, 67, 53, 0.15); padding: 1rem; border-radius: 8px; text-align: center; border-bottom: 3px solid #ea4335;">
+                                <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.25rem;">AI Overview</div>
+                                <div id="mccAiOverviewRate" style="font-size: 1.5rem; font-weight: 700; color: #ea4335;">--</div>
+                            </div>
+                        </div>
+
+                        <!-- Brand Mention Alerts -->
+                        <div id="mccBrandMentionAlerts" style="margin-bottom: 1rem; display: none;">
+                            <div style="font-size: 0.9rem; font-weight: 600; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="fas fa-bell" style="color: var(--success);"></i> Brand Mention Alerts
+                            </div>
+                            <div id="mccMentionAlertsList" style="max-height: 200px; overflow-y: auto;"></div>
+                        </div>
+
+                        <!-- Cited Content Recommendations -->
+                        <div id="mccCitedContentSection" style="margin-bottom: 1rem; display: none;">
+                            <div style="font-size: 0.9rem; font-weight: 600; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="fas fa-share-alt" style="color: var(--instagram);"></i> Content Being Cited - Promote These!
+                            </div>
+                            <div id="mccCitedContentList" style="display: grid; gap: 0.5rem;"></div>
+                        </div>
+
+                        <!-- AEO Recommendations -->
+                        <div id="mccAeoRecommendations" style="display: none;">
+                            <div style="font-size: 0.9rem; font-weight: 600; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="fas fa-lightbulb" style="color: var(--warning);"></i> AEO Recommendations
+                            </div>
+                            <div id="mccAeoRecommendationsList" style="display: grid; gap: 0.5rem;"></div>
+                        </div>
+
+                        <!-- Quick Action: Log AI Check -->
+                        <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                            <button onclick="openMCCAICheckModal()" class="btn btn-sm" style="background: linear-gradient(135deg, #1abc9c, #16a085); color: white;">
+                                <i class="fas fa-plus"></i> Log AI Check
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AEO Strategy Card -->
+                <div class="card" style="border: 1px solid rgba(26, 188, 156, 0.3);">
+                    <div class="card-header">
+                        <h3><i class="fas fa-lightbulb" style="color: #1abc9c;"></i> AEO Strategy Guide</h3>
+                    </div>
+                    <div class="card-body">
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                            <div style="padding: 1rem; background: var(--bg-light); border-radius: 8px;">
+                                <h5 style="color: #1abc9c; margin-bottom: 0.5rem;"><i class="fas fa-question-circle"></i> FAQ-Style Content</h5>
+                                <ul style="font-size: 0.85rem; color: var(--text-secondary); margin-left: 1rem;">
+                                    <li>Answer "What is CSA?" questions</li>
+                                    <li>Create FAQ pages on your site</li>
+                                    <li>Use question-based blog titles</li>
+                                </ul>
+                            </div>
+                            <div style="padding: 1rem; background: var(--bg-light); border-radius: 8px;">
+                                <h5 style="color: #3498db; margin-bottom: 0.5rem;"><i class="fas fa-map-marker-alt"></i> Local Authority</h5>
+                                <ul style="font-size: 0.85rem; color: var(--text-secondary); margin-left: 1rem;">
+                                    <li>Mention "Pittsburgh" in content</li>
+                                    <li>Reference local landmarks</li>
+                                    <li>Tag local businesses</li>
+                                </ul>
+                            </div>
+                            <div style="padding: 1rem; background: var(--bg-light); border-radius: 8px;">
+                                <h5 style="color: var(--gold); margin-bottom: 0.5rem;"><i class="fas fa-star"></i> Citation Signals</h5>
+                                <ul style="font-size: 0.85rem; color: var(--text-secondary); margin-left: 1rem;">
+                                    <li>Get listed on local directories</li>
+                                    <li>Encourage Google reviews</li>
+                                    <li>Build backlinks from local press</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Analytics Hub Guide - Always shown at bottom -->
             <div class="card" style="background: linear-gradient(135deg, rgba(155, 89, 182, 0.1) 0%, rgba(225, 48, 108, 0.1) 100%); margin-top: 1.5rem;">
                 <div class="card-header">
                     <h3><i class="fas fa-info-circle"></i> Analytics Hub Guide</h3>
                 </div>
                 <div class="card-body">
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1.5rem;">
                         <div style="text-align: center; padding: 1rem;">
                             <div style="font-size: 2rem; margin-bottom: 0.5rem; color: var(--success);">
                                 <i class="fas fa-chart-line"></i>
@@ -11979,6 +12025,13 @@
                             </div>
                             <h4 style="margin-bottom: 0.5rem;">Insights</h4>
                             <p style="font-size: 0.85rem; color: var(--text-secondary);">Customer segmentation and AI recommendations for growth</p>
+                        </div>
+                        <div style="text-align: center; padding: 1rem;">
+                            <div style="font-size: 2rem; margin-bottom: 0.5rem; color: #1abc9c;">
+                                <i class="fas fa-robot"></i>
+                            </div>
+                            <h4 style="margin-bottom: 0.5rem;">AEO</h4>
+                            <p style="font-size: 0.85rem; color: var(--text-secondary);">Track visibility across AI search engines like ChatGPT, Perplexity, and Gemini</p>
                         </div>
                     </div>
                 </div>
@@ -16316,34 +16369,9 @@
             }
         }
 
-        // ═══════════════════════════════════════════════════════════════════════════
-        // AEO VISIBILITY CARD TOGGLE - COLLAPSIBLE BY DEFAULT
-        // Added 2026-02-13: Make AEO card collapsible to reduce vertical space
-        // ═══════════════════════════════════════════════════════════════════════════
-        let aeoCardExpanded = false;
-
-        function toggleAEOCard() {
-            aeoCardExpanded = !aeoCardExpanded;
-            const body = document.getElementById('aeoCardBody');
-            const icon = document.getElementById('aeoToggleIcon');
-
-            if (body) body.style.display = aeoCardExpanded ? 'block' : 'none';
-            if (icon) icon.style.transform = aeoCardExpanded ? 'rotate(180deg)' : 'rotate(0)';
-
-            // Save preference to localStorage
-            localStorage.setItem('aeoCardExpanded', aeoCardExpanded);
-        }
-
-        function initAEOCard() {
-            // Restore saved preference, defaults to collapsed (false)
-            const saved = localStorage.getItem('aeoCardExpanded');
-            aeoCardExpanded = saved === 'true';
-            const body = document.getElementById('aeoCardBody');
-            const icon = document.getElementById('aeoToggleIcon');
-
-            if (body) body.style.display = aeoCardExpanded ? 'block' : 'none';
-            if (icon) icon.style.transform = aeoCardExpanded ? 'rotate(180deg)' : 'rotate(0)';
-        }
+        // AEO card toggle removed — AEO now lives in Analytics tab as its own section (2026-02-22)
+        function toggleAEOCard() { }
+        function initAEOCard() { }
 
         // ═══════════════════════════════════════════════════════════════════════════
         // SHOW MORE METRICS TOGGLE (UX: Progressive Disclosure - 5 KPI Max Rule)
@@ -16492,6 +16520,8 @@
                 loadInsightsHubData();
             } else if (sectionId === 'gbp') {
                 loadGBPAnalytics();
+            } else if (sectionId === 'aeo') {
+                if (typeof loadAEOVisibilityData === 'function') loadAEOVisibilityData();
             }
         }
 
@@ -31032,17 +31062,10 @@ Would you like to test posting to Threads?`;
             // AEO Score
             const scoreEl = document.getElementById('mccAeoScore');
             const trendEl = document.getElementById('mccAeoTrend');
-            const miniScoreEl = document.getElementById('aeoMiniScore');
             if (scoreEl) {
                 const score = aeoData.aeoScore || 0;
                 scoreEl.textContent = score + '%';
                 scoreEl.style.color = score >= 50 ? '#1abc9c' : score >= 30 ? '#f1c40f' : '#e74c3c';
-
-                // Also update mini score in collapsed header
-                if (miniScoreEl) {
-                    miniScoreEl.textContent = score + '%';
-                    miniScoreEl.style.color = score >= 50 ? '#1abc9c' : score >= 30 ? '#f1c40f' : '#e74c3c';
-                }
             }
             if (trendEl) {
                 const totalChecks = aeoData.totalChecks || 0;
@@ -31168,17 +31191,11 @@ Would you like to test posting to Threads?`;
             const rateEl = document.getElementById('mccAppearanceRate');
             const statsEl = document.getElementById('mccAppearanceStats');
             const mentionsEl = document.getElementById('mccRecentMentions');
-            const miniScoreEl = document.getElementById('aeoMiniScore');
 
             // Show actionable empty state
             if (scoreEl) {
                 scoreEl.textContent = '0%';
                 scoreEl.style.color = '#e74c3c';
-            }
-            // Also update mini score in collapsed header
-            if (miniScoreEl) {
-                miniScoreEl.textContent = '0%';
-                miniScoreEl.style.color = '#e74c3c';
             }
             if (trendEl) trendEl.innerHTML = '<a href="#" onclick="event.preventDefault(); openMCCAICheckModal();" style="color: #1abc9c;">Run first check →</a>';
             if (rateEl) {
