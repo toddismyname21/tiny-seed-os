@@ -67498,10 +67498,42 @@ function getSocialStats(params) {
                     ).getContentText());
 
                     if (!result.error) {
+                        var followerCount = result.followers_count || 0;
+                        var engagementRate = 0;
+                        var totalLikes = 0;
+                        var totalComments = 0;
+                        var mediaFetched = 0;
+
+                        // Fetch last 25 posts to calculate engagement rate
+                        try {
+                            var mediaResult = JSON.parse(UrlFetchApp.fetch(
+                                'https://graph.facebook.com/v24.0/' + account.igUserId + '/media?fields=like_count,comments_count,timestamp&limit=25&access_token=' + accessToken,
+                                { muteHttpExceptions: true }
+                            ).getContentText());
+
+                            if (mediaResult.data && mediaResult.data.length > 0) {
+                                mediaFetched = mediaResult.data.length;
+                                for (var mi = 0; mi < mediaResult.data.length; mi++) {
+                                    totalLikes += (mediaResult.data[mi].like_count || 0);
+                                    totalComments += (mediaResult.data[mi].comments_count || 0);
+                                }
+                                if (followerCount > 0 && mediaFetched > 0) {
+                                    engagementRate = ((totalLikes + totalComments) / mediaFetched / followerCount * 100);
+                                    engagementRate = Math.round(engagementRate * 100) / 100; // 2 decimal places
+                                }
+                            }
+                        } catch (mediaError) {
+                            Logger.log('Media engagement fetch error for ' + account.name + ': ' + mediaError.toString());
+                        }
+
                         stats.instagram[account.name || result.username] = {
-                            followers: result.followers_count || 0,
+                            followers: followerCount,
                             posts: result.media_count || 0,
-                            handle: result.username || account.name
+                            handle: result.username || account.name,
+                            engagementRate: engagementRate,
+                            avgLikes: mediaFetched > 0 ? Math.round(totalLikes / mediaFetched) : 0,
+                            avgComments: mediaFetched > 0 ? Math.round(totalComments / mediaFetched) : 0,
+                            mediaAnalyzed: mediaFetched
                         };
                     }
                 } catch (apiError) {
@@ -67527,7 +67559,8 @@ function getSocialStats(params) {
             if (!loggedToday[logKey]) {
                 statsSheet.appendRow([
                     new Date().toISOString(), 'instagram', acct.handle || name,
-                    acct.followers || 0, 0, acct.posts || 0, 0, 0, 0, 0
+                    acct.followers || 0, 0, acct.posts || 0,
+                    acct.engagementRate || 0, 0, 0, 0
                 ]);
             }
         });

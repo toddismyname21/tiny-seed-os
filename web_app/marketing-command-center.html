@@ -26406,14 +26406,14 @@ Would you like to test posting to Threads?`;
 
         // Follower goals
         const FOLLOWER_GOALS = {
-            igFarm: { current: 0, goal: 10000, posts: 0, handle: '@tinyseedfarm' },
-            igFleurs: { current: 0, goal: 10000, posts: 0, handle: '@tinyseedfleurs' },
-            igFungi: { current: 0, goal: 5000, posts: 0, handle: '@tinyseedfungi' },
-            facebook: { current: 0, goal: 5000, posts: 0, handle: 'Tiny Seed Farm' },
-            tiktok: { current: 0, goal: 10000, posts: 0, handle: '@tinyseedfarm' },
-            pinterest: { current: 0, goal: 1000, posts: 0, handle: 'Tiny Seed' },
-            youtube: { current: 0, goal: 1000, posts: 0, handle: 'Tiny Seed Farm' },
-            threads: { current: 0, goal: 5000, posts: 0, handle: '@tinyseedfarm' }
+            igFarm: { current: 0, goal: 10000, posts: 0, engagementRate: 0, avgLikes: 0, avgComments: 0, handle: '@tinyseedfarm' },
+            igFleurs: { current: 0, goal: 10000, posts: 0, engagementRate: 0, avgLikes: 0, avgComments: 0, handle: '@tinyseedfleurs' },
+            igFungi: { current: 0, goal: 5000, posts: 0, engagementRate: 0, avgLikes: 0, avgComments: 0, handle: '@tinyseedfungi' },
+            facebook: { current: 0, goal: 5000, posts: 0, engagementRate: 0, handle: 'Tiny Seed Farm' },
+            tiktok: { current: 0, goal: 10000, posts: 0, engagementRate: 0, handle: '@tinyseedfarm' },
+            pinterest: { current: 0, goal: 1000, posts: 0, engagementRate: 0, handle: 'Tiny Seed' },
+            youtube: { current: 0, goal: 1000, posts: 0, engagementRate: 0, handle: 'Tiny Seed Farm' },
+            threads: { current: 0, goal: 5000, posts: 0, engagementRate: 0, handle: '@tinyseedfarm' }
         };
 
         // Weekly checklist progress stored in localStorage
@@ -26475,16 +26475,28 @@ Would you like to test posting to Threads?`;
                             const acct = data.stats.instagram[key];
                             const followers = acct.followers || 0;
                             const posts = acct.posts || 0;
+                            const engRate = acct.engagementRate || 0;
+                            const avgLikes = acct.avgLikes || 0;
+                            const avgComments = acct.avgComments || 0;
                             const matchStr = (key + ' ' + (acct.handle || '')).toLowerCase();
                             if (matchStr.includes('farm') && !matchStr.includes('fleur') && !matchStr.includes('fungi')) {
                                 FOLLOWER_GOALS.igFarm.current = followers;
                                 FOLLOWER_GOALS.igFarm.posts = posts;
+                                FOLLOWER_GOALS.igFarm.engagementRate = engRate;
+                                FOLLOWER_GOALS.igFarm.avgLikes = avgLikes;
+                                FOLLOWER_GOALS.igFarm.avgComments = avgComments;
                             } else if (matchStr.includes('fleur')) {
                                 FOLLOWER_GOALS.igFleurs.current = followers;
                                 FOLLOWER_GOALS.igFleurs.posts = posts;
+                                FOLLOWER_GOALS.igFleurs.engagementRate = engRate;
+                                FOLLOWER_GOALS.igFleurs.avgLikes = avgLikes;
+                                FOLLOWER_GOALS.igFleurs.avgComments = avgComments;
                             } else if (matchStr.includes('fungi')) {
                                 FOLLOWER_GOALS.igFungi.current = followers;
                                 FOLLOWER_GOALS.igFungi.posts = posts;
+                                FOLLOWER_GOALS.igFungi.engagementRate = engRate;
+                                FOLLOWER_GOALS.igFungi.avgLikes = avgLikes;
+                                FOLLOWER_GOALS.igFungi.avgComments = avgComments;
                             }
                         });
                     }
@@ -26560,25 +26572,31 @@ Would you like to test posting to Threads?`;
                 return '--';
             }
 
+            // Format engagement rate for display
+            function fmtEngagement(rate) {
+                if (!rate || rate === 0) return '--';
+                return rate.toFixed(2) + '%';
+            }
+
             // Instagram @tinyseedfarm - Connected Platforms card
             setGrowthEl('igFarmFollowersGrowth', igFarm.current > 0 ? igFarm.current.toLocaleString() : '0');
-            setGrowthEl('igFarmEngagementGrowth', getGrowthRate('farm'));
+            setGrowthEl('igFarmEngagementGrowth', fmtEngagement(igFarm.engagementRate));
             setGrowthEl('igFarmPostsGrowth', (igFarm.posts || 0).toLocaleString());
 
             // Instagram @tinyseedfleurs - Connected Platforms card
             setGrowthEl('igFleursFollowersGrowth', igFleurs.current > 0 ? igFleurs.current.toLocaleString() : '0');
-            setGrowthEl('igFleursEngagementGrowth', getGrowthRate('fleur'));
+            setGrowthEl('igFleursEngagementGrowth', fmtEngagement(igFleurs.engagementRate));
             setGrowthEl('igFleursPostsGrowth', (igFleurs.posts || 0).toLocaleString());
 
             // Instagram @tinyseedfungi - Connected Platforms card
             setGrowthEl('igFungiFollowersGrowth', igFungi.current > 0 ? igFungi.current.toLocaleString() : '0');
-            setGrowthEl('igFungiEngagementGrowth', getGrowthRate('fungi'));
+            setGrowthEl('igFungiEngagementGrowth', fmtEngagement(igFungi.engagementRate));
             setGrowthEl('igFungiPostsGrowth', (igFungi.posts || 0).toLocaleString());
 
             // Facebook - Connected Platforms card
             const fb = FOLLOWER_GOALS.facebook;
             setGrowthEl('fbFollowersGrowth', fb.current > 0 ? fb.current.toLocaleString() : '0');
-            setGrowthEl('fbEngagementGrowth', getGrowthRate('facebook'));
+            setGrowthEl('fbEngagementGrowth', fmtEngagement(fb.engagementRate));
             setGrowthEl('fbPostsGrowth', (fb.posts || 0).toLocaleString());
 
             // TikTok - Connected Platforms card
