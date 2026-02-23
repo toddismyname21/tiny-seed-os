@@ -9837,7 +9837,7 @@
                             <option value="GBP">Google Business</option>
                             <option value="EMAIL">Email</option>
                         </select>
-                        <button class="btn btn-sm btn-secondary" onclick="openAddCalendarEntryModal()"><i class="fas fa-plus"></i> Add</button>
+                        <button class="btn btn-sm btn-secondary" onclick="openSharedContentEntryModal()"><i class="fas fa-plus"></i> Add</button>
                         <button class="btn btn-sm btn-primary" onclick="loadSharedContentCalendar()"><i class="fas fa-sync-alt"></i></button>
                     </div>
                 </div>
@@ -14765,12 +14765,12 @@
                 <input type="hidden" id="campaignId">
                 <div class="form-group">
                     <label class="form-label">Campaign Name *</label>
-                    <input type="text" class="form-input" id="campaignName" placeholder="e.g., Spring CSA Launch 2026">
+                    <input type="text" class="form-input" id="campaignName" placeholder="e.g., Spring CSA Launch 2026" required>
                 </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                     <div class="form-group">
                         <label class="form-label">Campaign Type *</label>
-                        <select class="form-input" id="campaignType">
+                        <select class="form-input" id="campaignType" required>
                             <option value="csa_recruitment">CSA Recruitment</option>
                             <option value="seasonal_promotion">Seasonal Promotion</option>
                             <option value="market_day">Market Day Push</option>
@@ -14969,12 +14969,13 @@
                 <div style="background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 8px;">
                     <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
                         <i class="fas fa-clock" style="color: var(--info);"></i>
-                        <strong>Auto-Schedule Time:</strong>
+                        <strong>Schedule Time:</strong>
                     </div>
                     <p id="reminderScheduleTime" style="color: var(--text-secondary); font-size: 0.9rem;"></p>
-                    <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.5rem;">
-                        <i class="fas fa-info-circle"></i> Reminder will be scheduled for the evening before market day.
-                    </p>
+                    <div style="margin-top: 0.75rem;">
+                        <label class="form-label" style="font-size: 0.85rem;">Reminder Time (evening before market day)</label>
+                        <input type="time" class="form-input" id="reminderTimeInput" value="18:00" style="max-width: 150px;">
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
@@ -15062,11 +15063,11 @@
                     <label class="form-label">Send Options</label>
                     <div style="display: flex; gap: 1rem;">
                         <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                            <input type="radio" name="smsTiming" value="now" checked>
+                            <input type="radio" name="smsTiming" id="smsSendNow" value="now" checked>
                             <span>Send Now</span>
                         </label>
                         <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                            <input type="radio" name="smsTiming" value="schedule">
+                            <input type="radio" name="smsTiming" id="smsScheduleLater" value="schedule">
                             <span>Schedule</span>
                         </label>
                     </div>
@@ -21646,7 +21647,18 @@ From our farm to your table with love. Every bite tells a story of dedication, h
             var allCampaigns = campaignsData && campaignsData.length > 0 ? campaignsData : localCampaigns;
 
             if (!allCampaigns || allCampaigns.length === 0) {
-                list.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-secondary);"><i class="fas fa-bullhorn" style="font-size: 2rem; margin-bottom: 1rem; opacity: 0.5;"></i><p>No campaigns yet. Create your first campaign to start tracking!</p></div>';
+                list.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-secondary);">' +
+                    '<i class="fas fa-bullhorn" style="font-size: 2rem; margin-bottom: 1rem; opacity: 0.5;"></i>' +
+                    '<p style="margin-bottom: 1rem;">No campaigns yet.</p>' +
+                    '<p style="font-size: 0.85rem; margin-bottom: 1rem;">Quick start with a template:</p>' +
+                    '<div style="display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: center; margin-bottom: 1rem;">' +
+                        '<button class="btn btn-sm btn-secondary" onclick="quickStartCampaign(\'csa_recruitment\')"><i class="fas fa-users"></i> CSA Recruitment</button>' +
+                        '<button class="btn btn-sm btn-secondary" onclick="quickStartCampaign(\'market_day\')"><i class="fas fa-store"></i> Market Day</button>' +
+                        '<button class="btn btn-sm btn-secondary" onclick="quickStartCampaign(\'seasonal_promotion\')"><i class="fas fa-leaf"></i> Seasonal Promo</button>' +
+                        '<button class="btn btn-sm btn-secondary" onclick="quickStartCampaign(\'product_launch\')"><i class="fas fa-rocket"></i> Product Launch</button>' +
+                    '</div>' +
+                    '<button class="btn btn-sm btn-primary" onclick="openCampaignModal()"><i class="fas fa-plus"></i> Create Custom Campaign</button>' +
+                '</div>';
                 return;
             }
 
@@ -21729,6 +21741,29 @@ From our farm to your table with love. Every bite tells a story of dedication, h
 
         function closeCampaignModal() {
             document.getElementById('campaignModal').classList.remove('active');
+        }
+
+        function quickStartCampaign(type) {
+            var templates = {
+                csa_recruitment: { name: 'Spring CSA Recruitment 2026', goal: 'Sign up 50 new CSA members', description: 'Drive CSA signups through social media and email outreach', channels: ['instagram', 'facebook', 'email'] },
+                market_day: { name: 'Farmers Market Push', goal: 'Increase market foot traffic', description: 'Weekly promotion for upcoming farmers market days', channels: ['instagram', 'sms'] },
+                seasonal_promotion: { name: 'Spring Season Launch', goal: 'Announce new season availability', description: 'Seasonal content highlighting fresh produce and flowers', channels: ['instagram', 'facebook'] },
+                product_launch: { name: 'New Product Launch', goal: 'Introduce new offerings', description: 'Promote new products to existing customers and followers', channels: ['instagram', 'facebook', 'email'] }
+            };
+            var tpl = templates[type] || templates.csa_recruitment;
+
+            openCampaignModal();
+            setTimeout(function() {
+                document.getElementById('campaignName').value = tpl.name;
+                document.getElementById('campaignType').value = type;
+                document.getElementById('campaignGoal').value = tpl.goal;
+                document.getElementById('campaignDescription').value = tpl.description;
+                document.getElementById('campaignStatus').value = 'draft';
+                tpl.channels.forEach(function(ch) {
+                    var el = document.getElementById('campaignCh' + ch.charAt(0).toUpperCase() + ch.slice(1));
+                    if (el) el.checked = true;
+                });
+            }, 100);
         }
 
         function createCampaign() {
@@ -21814,8 +21849,7 @@ From our farm to your table with love. Every bite tells a story of dedication, h
         }
 
         function openSMSModal() {
-            var modal = document.getElementById('smsModal');
-            if (modal) modal.classList.add('active');
+            sendSMSBlast();
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
@@ -35441,7 +35475,7 @@ Would you like to test posting to Threads?`;
                 }
             } catch (error) {
                 console.error('Error loading auto-pilot status:', error);
-                showNotification('Failed to load Auto-Pilot status', 'error');
+                showToast('Failed to load Auto-Pilot status', 'error');
             }
         }
 
@@ -35539,7 +35573,7 @@ Would you like to test posting to Threads?`;
             const mediaUrl = document.getElementById('queueMediaUrl').value;
 
             if (!content) {
-                showNotification('Please enter content or generate AI content first', 'error');
+                showToast('Please enter content or generate AI content first', 'error');
                 return;
             }
 
@@ -35561,15 +35595,15 @@ Would you like to test posting to Threads?`;
                 const result = await response.json();
 
                 if (result.success) {
-                    showNotification('Added to queue! ' + (result.message || ''), 'success');
+                    showToast('Added to queue! ' + (result.message || ''), 'success');
                     document.getElementById('queueContent').value = '';
                     loadAutoPilotStatus();
                 } else {
-                    showNotification('Failed to add: ' + (result.error || 'Unknown error'), 'error');
+                    showToast('Failed to add: ' + (result.error || 'Unknown error'), 'error');
                 }
             } catch (error) {
                 console.error('Error adding to queue:', error);
-                showNotification('Error adding to queue', 'error');
+                showToast('Error adding to queue', 'error');
             }
         }
 
@@ -35577,7 +35611,7 @@ Would you like to test posting to Threads?`;
             const platform = document.getElementById('queuePlatform').value;
             const contentType = document.getElementById('queueContentType').value;
 
-            showNotification('Generating AI content...', 'info');
+            showToast('Generating AI content...', 'info');
 
             try {
                 const response = await fetch(`${API_URL}?action=generateMarketingContent&platform=${platform}&contentType=${contentType}`);
@@ -35585,13 +35619,13 @@ Would you like to test posting to Threads?`;
 
                 if (result.success && result.content) {
                     document.getElementById('queueContent').value = result.content;
-                    showNotification('AI content generated!', 'success');
+                    showToast('AI content generated!', 'success');
                 } else {
-                    showNotification('Failed to generate: ' + (result.error || 'Unknown error'), 'error');
+                    showToast('Failed to generate: ' + (result.error || 'Unknown error'), 'error');
                 }
             } catch (error) {
                 console.error('Error generating content:', error);
-                showNotification('Error generating content', 'error');
+                showToast('Error generating content', 'error');
             }
         }
 
@@ -35601,13 +35635,13 @@ Would you like to test posting to Threads?`;
             const mediaUrl = document.getElementById('queueMediaUrl').value;
 
             if (!content) {
-                showNotification('Please enter content first', 'error');
+                showToast('Please enter content first', 'error');
                 return;
             }
 
             if (!confirm('Post immediately to ' + platform + '?')) return;
 
-            showNotification('Posting...', 'info');
+            showToast('Posting...', 'info');
 
             try {
                 const response = await fetch(`${API_URL}?action=postNow`, {
@@ -35624,22 +35658,22 @@ Would you like to test posting to Threads?`;
                 const result = await response.json();
 
                 if (result.success) {
-                    showNotification('Posted successfully!', 'success');
+                    showToast('Posted successfully!', 'success');
                     document.getElementById('queueContent').value = '';
                     loadAutoPilotStatus();
                 } else {
-                    showNotification('Failed to post: ' + (result.error || 'Unknown error'), 'error');
+                    showToast('Failed to post: ' + (result.error || 'Unknown error'), 'error');
                 }
             } catch (error) {
                 console.error('Error posting:', error);
-                showNotification('Error posting', 'error');
+                showToast('Error posting', 'error');
             }
         }
 
         async function generateWeekContent() {
             if (!confirm('Generate a week of content using AI? This will add 7+ posts to your queue.')) return;
 
-            showNotification('Generating content for the week... this may take a minute', 'info');
+            showToast('Generating content for the week... this may take a minute', 'info');
 
             try {
                 const response = await fetch(`${API_URL}?action=generateWeeklyMarketingContent`, {
@@ -35655,21 +35689,21 @@ Would you like to test posting to Threads?`;
                 const result = await response.json();
 
                 if (result.success) {
-                    showNotification(`Generated ${result.results?.generated || 0} posts, queued ${result.results?.queued || 0}!`, 'success');
+                    showToast(`Generated ${result.results?.generated || 0} posts, queued ${result.results?.queued || 0}!`, 'success');
                     loadAutoPilotStatus();
                 } else {
-                    showNotification('Failed: ' + (result.error || 'Unknown error'), 'error');
+                    showToast('Failed: ' + (result.error || 'Unknown error'), 'error');
                 }
             } catch (error) {
                 console.error('Error generating week:', error);
-                showNotification('Error generating content', 'error');
+                showToast('Error generating content', 'error');
             }
         }
 
         async function processQueueNow() {
             if (!confirm('Process all scheduled posts in the queue now?')) return;
 
-            showNotification('Processing queue...', 'info');
+            showToast('Processing queue...', 'info');
 
             try {
                 const response = await fetch(`${API_URL}?action=processMarketingQueue`, {
@@ -35681,14 +35715,14 @@ Would you like to test posting to Threads?`;
                 const result = await response.json();
 
                 if (result.success) {
-                    showNotification(result.message || 'Queue processed!', 'success');
+                    showToast(result.message || 'Queue processed!', 'success');
                     loadAutoPilotStatus();
                 } else {
-                    showNotification('Failed: ' + (result.error || 'Unknown error'), 'error');
+                    showToast('Failed: ' + (result.error || 'Unknown error'), 'error');
                 }
             } catch (error) {
                 console.error('Error processing queue:', error);
-                showNotification('Error processing queue', 'error');
+                showToast('Error processing queue', 'error');
             }
         }
 
@@ -35705,14 +35739,14 @@ Would you like to test posting to Threads?`;
                 const result = await response.json();
 
                 if (result.success) {
-                    showNotification('Automation triggers activated!', 'success');
+                    showToast('Automation triggers activated!', 'success');
                     loadAutoPilotStatus();
                 } else {
-                    showNotification('Failed: ' + (result.error || 'Unknown error'), 'error');
+                    showToast('Failed: ' + (result.error || 'Unknown error'), 'error');
                 }
             } catch (error) {
                 console.error('Error setting up triggers:', error);
-                showNotification('Error setting up triggers', 'error');
+                showToast('Error setting up triggers', 'error');
             }
         }
 
@@ -35727,20 +35761,20 @@ Would you like to test posting to Threads?`;
                 const result = await response.json();
 
                 if (result.success) {
-                    showNotification('Queue sheet initialized!', 'success');
+                    showToast('Queue sheet initialized!', 'success');
                 } else {
-                    showNotification('Failed: ' + (result.error || 'Unknown error'), 'error');
+                    showToast('Failed: ' + (result.error || 'Unknown error'), 'error');
                 }
             } catch (error) {
                 console.error('Error initializing queue:', error);
-                showNotification('Error initializing queue', 'error');
+                showToast('Error initializing queue', 'error');
             }
         }
 
         async function postQueueItemNow(queueId) {
             if (!confirm('Post this item immediately?')) return;
 
-            showNotification('Posting...', 'info');
+            showToast('Posting...', 'info');
 
             try {
                 const response = await fetch(`${API_URL}?action=postNow`, {
@@ -35755,14 +35789,14 @@ Would you like to test posting to Threads?`;
                 const result = await response.json();
 
                 if (result.success) {
-                    showNotification('Posted!', 'success');
+                    showToast('Posted!', 'success');
                     loadAutoPilotStatus();
                 } else {
-                    showNotification('Failed: ' + (result.error || 'Unknown error'), 'error');
+                    showToast('Failed: ' + (result.error || 'Unknown error'), 'error');
                 }
             } catch (error) {
                 console.error('Error posting:', error);
-                showNotification('Error posting', 'error');
+                showToast('Error posting', 'error');
             }
         }
 
@@ -35862,11 +35896,12 @@ Would you like to test posting to Threads?`;
                 const startTimeFormatted = formatMarketTime(market.startTime);
                 const endTimeFormatted = formatMarketTime(market.endTime);
 
+                var marketIcon = dayClass === 'saturday' ? 'fa-sun' : (dayClass === 'tuesday' ? 'fa-leaf' : 'fa-store');
                 return `
                     <div class="market-item ${market.status === 'inactive' ? 'inactive' : ''}" data-market-id="${market.id}">
                         <div class="market-info">
                             <div class="market-icon ${dayClass}">
-                                <i class="fas fa-store"></i>
+                                <i class="fas ${marketIcon}"></i>
                             </div>
                             <div class="market-details">
                                 <h4>${market.name}</h4>
@@ -35926,6 +35961,26 @@ Would you like to test posting to Threads?`;
             }
 
             const nextMarket = getNextMarketDay(activeMarkets);
+            if (!nextMarket) {
+                // All active markets are off-season
+                const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+                let earliestStart = 12;
+                activeMarkets.forEach(m => {
+                    if (m.season) {
+                        const startName = m.season.split(/\s*-\s*/)[0];
+                        const monthMap = { 'January': 0, 'February': 1, 'March': 2, 'April': 3, 'May': 4, 'June': 5, 'July': 6, 'August': 7, 'September': 8, 'October': 9, 'November': 10, 'December': 11 };
+                        if (monthMap[startName] !== undefined && monthMap[startName] < earliestStart) earliestStart = monthMap[startName];
+                    }
+                });
+                nameEl.textContent = 'Off Season';
+                detailsEl.textContent = earliestStart < 12 ? 'Markets open in ' + monthNames[earliestStart] : 'Check back for season dates';
+                countdownNumberEl.textContent = '❄️';
+                countdownNumberEl.style.fontSize = '2rem';
+                countdownLabelEl.textContent = '';
+                banner.style.background = 'linear-gradient(135deg, rgba(100,116,139,0.8), rgba(71,85,105,0.8))';
+                banner.style.animation = '';
+                return;
+            }
             if (nextMarket) {
                 if (nextMarket.daysUntil === 0) {
                     nameEl.textContent = nextMarket.market.name;
@@ -35958,13 +36013,31 @@ Would you like to test posting to Threads?`;
         // Calculate next market day
         function getNextMarketDay(markets) {
             const dayMap = { 'Sunday': 0, 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3, 'Thursday': 4, 'Friday': 5, 'Saturday': 6 };
+            const monthMap = { 'January': 0, 'February': 1, 'March': 2, 'April': 3, 'May': 4, 'June': 5, 'July': 6, 'August': 7, 'September': 8, 'October': 9, 'November': 10, 'December': 11 };
             const today = new Date();
             const todayDayNum = today.getDay();
+            const currentMonth = today.getMonth();
 
             let closest = null;
             let closestDays = 8;
 
             markets.forEach(market => {
+                // Check if market is in season
+                if (market.season) {
+                    const seasonParts = market.season.split(/\s*-\s*/);
+                    const startMonth = monthMap[seasonParts[0]];
+                    const endMonth = monthMap[seasonParts[1]];
+                    if (startMonth !== undefined && endMonth !== undefined) {
+                        if (startMonth <= endMonth) {
+                            // Normal range: May-October
+                            if (currentMonth < startMonth || currentMonth > endMonth) return;
+                        } else {
+                            // Wrap range: November-March
+                            if (currentMonth < startMonth && currentMonth > endMonth) return;
+                        }
+                    }
+                }
+
                 const marketDayNum = dayMap[market.day];
                 let daysUntil = marketDayNum - todayDayNum;
                 if (daysUntil < 0) daysUntil += 7;
@@ -36034,15 +36107,15 @@ Would you like to test posting to Threads?`;
 
             // Validation
             if (!name) {
-                showNotification('Please enter a market name', 'error');
+                showToast('Please enter a market name', 'error');
                 return;
             }
             if (!day) {
-                showNotification('Please select a day of week', 'error');
+                showToast('Please select a day of week', 'error');
                 return;
             }
             if (!startTime || !endTime) {
-                showNotification('Please enter start and end times', 'error');
+                showToast('Please enter start and end times', 'error');
                 return;
             }
 
@@ -36075,7 +36148,7 @@ Would you like to test posting to Threads?`;
             localStorage.setItem('tinySeedMarkets', JSON.stringify(markets));
             closeMarketModal();
             loadMarketSchedule();
-            showNotification(id ? 'Market updated!' : 'Market added!', 'success');
+            showToast(id ? 'Market updated!' : 'Market added!', 'success');
         }
 
         // Delete Market
@@ -36086,7 +36159,7 @@ Would you like to test posting to Threads?`;
             markets = markets.filter(m => m.id !== marketId);
             localStorage.setItem('tinySeedMarkets', JSON.stringify(markets));
             loadMarketSchedule();
-            showNotification('Market deleted', 'success');
+            showToast('Market deleted', 'success');
         }
 
         // Open Schedule Reminder Modal
@@ -36130,12 +36203,12 @@ Would you like to test posting to Threads?`;
             const facebook = document.getElementById('reminderFacebook').checked;
 
             if (!caption.trim()) {
-                showNotification('Please enter a caption', 'error');
+                showToast('Please enter a caption', 'error');
                 return;
             }
 
             if (!instagram && !facebook) {
-                showNotification('Please select at least one platform', 'error');
+                showToast('Please select at least one platform', 'error');
                 return;
             }
 
@@ -36152,13 +36225,18 @@ Would you like to test posting to Threads?`;
             let daysUntilMarket = marketDayNum - todayDayNum;
             if (daysUntilMarket <= 0) daysUntilMarket += 7;
 
-            // Reminder is day before at 6 PM
+            // Reminder is day before at user-selected time (default 6 PM)
             let daysUntilReminder = daysUntilMarket - 1;
             if (daysUntilReminder < 0) daysUntilReminder += 7;
 
+            const timeInput = document.getElementById('reminderTimeInput');
+            const timeParts = (timeInput ? timeInput.value : '18:00').split(':');
+            const reminderHour = parseInt(timeParts[0]) || 18;
+            const reminderMinute = parseInt(timeParts[1]) || 0;
+
             const reminderDate = new Date(today);
             reminderDate.setDate(today.getDate() + daysUntilReminder);
-            reminderDate.setHours(18, 0, 0, 0);
+            reminderDate.setHours(reminderHour, reminderMinute, 0, 0);
 
             // Create scheduled post data
             const platforms = [];
@@ -36193,7 +36271,8 @@ Would you like to test posting to Threads?`;
             loadMarketSchedule();
 
             const dateString = reminderDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
-            showNotification(`Reminder scheduled for ${dateString} at 6:00 PM!`, 'success');
+            const timeString = reminderDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+            showToast(`Reminder scheduled for ${dateString} at ${timeString}!`, 'success');
         }
 
         // Schedule market reminder (called from market list)
@@ -36226,7 +36305,7 @@ Would you like to test posting to Threads?`;
             btn.innerHTML = isFieldMode ? '🌙' : '☀️';
 
             // Show notification
-            showNotification(isFieldMode ? 'Field Mode ON - High contrast for sunlight' : 'Field Mode OFF - Normal display', 'info');
+            showToast(isFieldMode ? 'Field Mode ON - High contrast for sunlight' : 'Field Mode OFF - Normal display', 'info');
         }
 
         // Initialize Field Mode from saved preference
@@ -36280,7 +36359,7 @@ Would you like to test posting to Threads?`;
             // Online/offline event listeners
             window.addEventListener('online', () => {
                 offlineIndicator.classList.remove('visible');
-                showNotification('Back online! Syncing pending posts...', 'success');
+                showToast('Back online! Syncing pending posts...', 'success');
                 syncPendingPosts();
             });
 
@@ -36301,7 +36380,7 @@ Would you like to test posting to Threads?`;
             });
             localStorage.setItem('pendingPostsQueue', JSON.stringify(pendingPostsQueue));
             updateQueueIndicator();
-            showNotification('Post saved to queue - will sync when online', 'info');
+            showToast('Post saved to queue - will sync when online', 'info');
         }
 
         function updateQueueIndicator() {
@@ -36345,7 +36424,7 @@ Would you like to test posting to Threads?`;
             updateQueueIndicator();
 
             if (successCount > 0) {
-                showNotification('Synced ' + successCount + ' posts successfully!', 'success');
+                showToast('Synced ' + successCount + ' posts successfully!', 'success');
             }
         }
 
@@ -39546,7 +39625,7 @@ Would you like to test posting to Threads?`;
             const btn = document.getElementById('fieldCaptureVoiceBtn');
 
             if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-                showNotification('Voice input not supported in this browser', 'error');
+                showToast('Voice input not supported in this browser', 'error');
                 return;
             }
 
@@ -39599,7 +39678,7 @@ Would you like to test posting to Threads?`;
                     fieldCaptureState.isRecording = false;
 
                     if (event.error === 'not-allowed') {
-                        showNotification('Microphone access denied', 'error');
+                        showToast('Microphone access denied', 'error');
                     }
                 };
 
@@ -39613,7 +39692,7 @@ Would you like to test posting to Threads?`;
                            document.getElementById('fieldCaptureCaption').placeholder;
 
             if (!fieldCaptureState.imageData) {
-                showNotification('Please take a photo first', 'error');
+                showToast('Please take a photo first', 'error');
                 return;
             }
 
@@ -39803,7 +39882,7 @@ Would you like to test posting to Threads?`;
             }
 
             if (!fieldCaptureState.lastQueuedPost) {
-                showNotification('Nothing to undo', 'info');
+                showToast('Nothing to undo', 'info');
                 return;
             }
 
@@ -39837,7 +39916,7 @@ Would you like to test posting to Threads?`;
                 navigator.vibrate(50);
             }
 
-            showNotification('Post removed from queue', 'info');
+            showToast('Post removed from queue', 'info');
             updatePendingFieldCaptureIndicator();
         }
 
@@ -39877,7 +39956,7 @@ Would you like to test posting to Threads?`;
                 updatePendingFieldCaptureIndicator();
 
                 if (remaining.length === 0) {
-                    showNotification('All pending posts synced!', 'success');
+                    showToast('All pending posts synced!', 'success');
                 }
             }
         }

@@ -50,7 +50,9 @@ async function loadMCCSharedCalendar() {
             mccCalendarEntries = result.entries || [];
             renderMCCCalendarEntries(mccCalendarEntries);
             updateMCCCalendarStats(mccCalendarEntries);
+            setCalendarFiltersEnabled(true);
         } else {
+            setCalendarFiltersEnabled(false);
             container.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-secondary);">' +
                 '<i class="fas fa-calendar-times" style="font-size: 2rem; margin-bottom: 1rem; color: var(--warning);"></i>' +
                 '<p style="margin-bottom: 0.5rem;">Could not load calendar entries.</p>' +
@@ -64,6 +66,7 @@ async function loadMCCSharedCalendar() {
         }
     } catch (error) {
         console.error('Error loading MCC shared calendar:', error);
+        setCalendarFiltersEnabled(false);
         container.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-secondary);">' +
             '<i class="fas fa-calendar-times" style="font-size: 2rem; margin-bottom: 1rem; color: var(--warning);"></i>' +
             '<p style="margin-bottom: 0.5rem;">Calendar connection error.</p>' +
@@ -273,6 +276,16 @@ async function getSharedCalendar(params) {
         return await loadSharedContentCalendar(params || {});
     }
     return { success: false, error: 'loadSharedContentCalendar not available' };
+}
+
+/**
+ * Enable/disable calendar filter dropdowns based on load state
+ */
+function setCalendarFiltersEnabled(enabled) {
+    var weekFilter = document.getElementById('sharedCalendarWeekFilter');
+    var typeFilter = document.getElementById('sharedCalendarTypeFilter');
+    if (weekFilter) { weekFilter.disabled = !enabled; weekFilter.style.opacity = enabled ? '1' : '0.5'; }
+    if (typeFilter) { typeFilter.disabled = !enabled; typeFilter.style.opacity = enabled ? '1' : '0.5'; }
 }
 
 // Initialize calendar when page loads
