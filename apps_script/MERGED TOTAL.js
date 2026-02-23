@@ -138636,14 +138636,16 @@ function fetchHashtagMentions(params) {
 
 /**
  * Scan all branded UGC hashtags in batch
- * Returns posts from #TinySeedChef, #TinySeedCSA, #TinySeedMarket
+ * Returns posts from #TinySeedChef, #TinySeedCSA, #TinySeedMarket, #tinyseedfleurs, #tinyseedfungi
  */
 function scanBrandHashtags(params) {
   try {
     var hashtags = [
       { tag: 'TinySeedChef', label: 'Chef Posts', icon: 'utensils' },
       { tag: 'TinySeedCSA', label: 'CSA Customer Posts', icon: 'box-open' },
-      { tag: 'TinySeedMarket', label: 'Market Customer Posts', icon: 'store' }
+      { tag: 'TinySeedMarket', label: 'Market Customer Posts', icon: 'store' },
+      { tag: 'tinyseedfleurs', label: 'Flower Posts', icon: 'seedling' },
+      { tag: 'tinyseedfungi', label: 'Mushroom Posts', icon: 'spa' }
     ];
     // Allow filtering to a single hashtag
     if (params && params.hashtag) {

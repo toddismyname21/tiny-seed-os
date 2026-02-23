@@ -9729,7 +9729,7 @@
                 </div>
                 <div class="card-body">
                     <!-- Brand Hashtag Campaign Cards -->
-                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; margin-bottom: 1rem;">
+                    <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.75rem; margin-bottom: 1rem;">
                         <div onclick="filterUGCByHashtag('TinySeedChef')" style="cursor: pointer; background: linear-gradient(135deg, rgba(239,68,68,0.15), rgba(239,68,68,0.05)); border: 1px solid rgba(239,68,68,0.3); padding: 0.75rem; border-radius: 10px; text-align: center; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
                             <i class="fas fa-utensils" style="font-size: 1.25rem; color: #ef4444; margin-bottom: 0.25rem;"></i>
                             <div style="font-weight: 700; font-size: 0.85rem; color: var(--instagram);">#TinySeedChef</div>
@@ -9748,6 +9748,18 @@
                             <div style="font-size: 0.7rem; color: var(--text-secondary);">Market Customers</div>
                             <div style="font-size: 1.1rem; font-weight: 700; margin-top: 0.25rem;" id="ugcCountMarket">--</div>
                         </div>
+                        <div onclick="filterUGCByHashtag('tinyseedfleurs')" style="cursor: pointer; background: linear-gradient(135deg, rgba(244,114,182,0.15), rgba(244,114,182,0.05)); border: 1px solid rgba(244,114,182,0.3); padding: 0.75rem; border-radius: 10px; text-align: center; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
+                            <i class="fas fa-seedling" style="font-size: 1.25rem; color: #f472b6; margin-bottom: 0.25rem;"></i>
+                            <div style="font-weight: 700; font-size: 0.85rem; color: #f472b6;">#tinyseedfleurs</div>
+                            <div style="font-size: 0.7rem; color: var(--text-secondary);">Flower Lovers</div>
+                            <div style="font-size: 1.1rem; font-weight: 700; margin-top: 0.25rem;" id="ugcCountFleurs">--</div>
+                        </div>
+                        <div onclick="filterUGCByHashtag('tinyseedfungi')" style="cursor: pointer; background: linear-gradient(135deg, rgba(168,85,247,0.15), rgba(168,85,247,0.05)); border: 1px solid rgba(168,85,247,0.3); padding: 0.75rem; border-radius: 10px; text-align: center; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
+                            <i class="fas fa-mushroom" style="font-size: 1.25rem; color: #a855f7; margin-bottom: 0.25rem;"></i>
+                            <div style="font-weight: 700; font-size: 0.85rem; color: #a855f7;">#tinyseedfungi</div>
+                            <div style="font-size: 0.7rem; color: var(--text-secondary);">Mushroom Fans</div>
+                            <div style="font-size: 1.1rem; font-weight: 700; margin-top: 0.25rem;" id="ugcCountFungi">--</div>
+                        </div>
                     </div>
 
                     <!-- Hashtag filter pills -->
@@ -9756,6 +9768,8 @@
                         <button class="filter-btn" onclick="filterUGCByHashtag('TinySeedChef', this)" id="ugcFilterChef"><i class="fas fa-utensils" style="font-size: 0.7rem;"></i> Chef</button>
                         <button class="filter-btn" onclick="filterUGCByHashtag('TinySeedCSA', this)" id="ugcFilterCSA"><i class="fas fa-box-open" style="font-size: 0.7rem;"></i> CSA</button>
                         <button class="filter-btn" onclick="filterUGCByHashtag('TinySeedMarket', this)" id="ugcFilterMarket"><i class="fas fa-store" style="font-size: 0.7rem;"></i> Market</button>
+                        <button class="filter-btn" onclick="filterUGCByHashtag('tinyseedfleurs', this)" id="ugcFilterFleurs"><i class="fas fa-seedling" style="font-size: 0.7rem;"></i> Fleurs</button>
+                        <button class="filter-btn" onclick="filterUGCByHashtag('tinyseedfungi', this)" id="ugcFilterFungi"><i class="fas fa-spa" style="font-size: 0.7rem;"></i> Fungi</button>
                         <button class="filter-btn" onclick="filterUGCByHashtag('imported', this)" id="ugcFilterImported"><i class="fas fa-check-circle" style="font-size: 0.7rem;"></i> Imported</button>
                         <span style="margin-left: auto; font-size: 0.75rem; color: var(--text-secondary); display: flex; align-items: center; gap: 0.25rem;" id="ugcLastScan"><i class="fas fa-clock"></i> Not scanned yet</span>
                     </div>
@@ -9765,7 +9779,7 @@
                         <i class="fab fa-instagram" style="font-size: 1.5rem; color: var(--instagram);"></i>
                         <div style="flex: 1;">
                             <div style="font-weight: 600; font-size: 0.85rem;">Tell your community to tag their posts!</div>
-                            <div style="font-size: 0.75rem; color: var(--text-secondary);">Chefs: <b>#TinySeedChef</b> &nbsp; CSA Members: <b>#TinySeedCSA</b> &nbsp; Market Shoppers: <b>#TinySeedMarket</b></div>
+                            <div style="font-size: 0.75rem; color: var(--text-secondary);">Chefs: <b>#TinySeedChef</b> &nbsp; CSA: <b>#TinySeedCSA</b> &nbsp; Market: <b>#TinySeedMarket</b> &nbsp; Flowers: <b>#tinyseedfleurs</b> &nbsp; Mushrooms: <b>#tinyseedfungi</b></div>
                         </div>
                     </div>
 
@@ -21236,7 +21250,7 @@ From our farm to your table with love. Every bite tells a story of dedication, h
             if (!container) return;
 
             if (scanBtn) { scanBtn.disabled = true; scanBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Scanning...'; }
-            container.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-secondary);"><i class="fas fa-spinner fa-spin" style="font-size: 1.5rem;"></i><p style="margin-top: 0.5rem;">Scanning #TinySeedChef, #TinySeedCSA, #TinySeedMarket...</p></div>';
+            container.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-secondary);"><i class="fas fa-spinner fa-spin" style="font-size: 1.5rem;"></i><p style="margin-top: 0.5rem;">Scanning #TinySeedChef, #TinySeedCSA, #TinySeedMarket, #tinyseedfleurs, #tinyseedfungi...</p></div>';
 
             try {
                 var response = await fetch(API_URL + '?action=scanBrandHashtags');
@@ -21271,9 +21285,13 @@ From our farm to your table with love. Every bite tells a story of dedication, h
             var chefEl = document.getElementById('ugcCountChef');
             var csaEl = document.getElementById('ugcCountCSA');
             var marketEl = document.getElementById('ugcCountMarket');
+            var fleursEl = document.getElementById('ugcCountFleurs');
+            var fungiEl = document.getElementById('ugcCountFungi');
             if (chefEl) chefEl.textContent = (byHashtag.TinySeedChef || {}).count || 0;
             if (csaEl) csaEl.textContent = (byHashtag.TinySeedCSA || {}).count || 0;
             if (marketEl) marketEl.textContent = (byHashtag.TinySeedMarket || {}).count || 0;
+            if (fleursEl) fleursEl.textContent = (byHashtag.tinyseedfleurs || {}).count || 0;
+            if (fungiEl) fungiEl.textContent = (byHashtag.tinyseedfungi || {}).count || 0;
         }
 
         /**
@@ -21319,8 +21337,8 @@ From our farm to your table with love. Every bite tells a story of dedication, h
                 return;
             }
 
-            var hashtagColors = { 'TinySeedChef': '#ef4444', 'TinySeedCSA': '#22c55e', 'TinySeedMarket': '#3b82f6' };
-            var hashtagIcons = { 'TinySeedChef': 'utensils', 'TinySeedCSA': 'box-open', 'TinySeedMarket': 'store' };
+            var hashtagColors = { 'TinySeedChef': '#ef4444', 'TinySeedCSA': '#22c55e', 'TinySeedMarket': '#3b82f6', 'tinyseedfleurs': '#f472b6', 'tinyseedfungi': '#a855f7' };
+            var hashtagIcons = { 'TinySeedChef': 'utensils', 'TinySeedCSA': 'box-open', 'TinySeedMarket': 'store', 'tinyseedfleurs': 'seedling', 'tinyseedfungi': 'spa' };
 
             var html = '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem;">';
 
