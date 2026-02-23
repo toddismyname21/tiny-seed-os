@@ -40673,129 +40673,322 @@ Would you like to test posting to Threads?`;
                     });
                     csaCanvas.add(img);
 
-                    // Add a subtle circle border around the photo
-                    var border = new fabric.Circle({
+                    // Thick visible ring around the photo — stands out on burlap
+                    csaCanvas.add(new fabric.Circle({
                         left: centerX * scale,
                         top: centerY * scale,
-                        radius: (radius + 2) * scale,
+                        radius: (radius + 5) * scale,
                         fill: 'transparent',
-                        stroke: 'rgba(255,255,255,0.3)',
-                        strokeWidth: 2 * scale,
+                        stroke: 'rgba(255,255,255,0.7)',
+                        strokeWidth: 4 * scale,
+                        originX: 'center',
+                        originY: 'center',
+                        selectable: false,
+                        shadow: new fabric.Shadow({
+                            color: 'rgba(0,0,0,0.4)', blur: 10 * scale, offsetX: 0, offsetY: 3 * scale
+                        })
+                    }));
+                    // Inner thin accent ring
+                    csaCanvas.add(new fabric.Circle({
+                        left: centerX * scale,
+                        top: centerY * scale,
+                        radius: (radius + 1) * scale,
+                        fill: 'transparent',
+                        stroke: 'rgba(0,0,0,0.15)',
+                        strokeWidth: 1.5 * scale,
                         originX: 'center',
                         originY: 'center',
                         selectable: false
-                    });
-                    csaCanvas.add(border);
+                    }));
 
                     resolve(img);
                 }, { crossOrigin: 'anonymous' });
             });
         }
 
-        // Draw burlap woven texture on canvas (procedural — no image dependency)
+        // Draw burlap woven texture on canvas using native 2D for realistic fabric look
         function drawBurlapTexture(canvas, W, H, S) {
-            var burlapBase = '#c4a35a';
-            canvas.backgroundColor = burlapBase;
+            // We draw burlap onto an offscreen canvas, then add as a fabric.Image
+            var offW = Math.round(W * S);
+            var offH = Math.round(H * S);
+            var off = document.createElement('canvas');
+            off.width = offW;
+            off.height = offH;
+            var ctx = off.getContext('2d');
 
-            // Horizontal weave threads
-            for (var y = 0; y < H; y += 8) {
-                var shade = (y % 16 === 0) ? 'rgba(160,128,64,0.15)' : 'rgba(100,80,40,0.08)';
-                canvas.add(new fabric.Line(
-                    [0, y * S, W * S, y * S],
-                    { stroke: shade, strokeWidth: 2 * S, selectable: false }
-                ));
+            // Base burlap color
+            ctx.fillStyle = '#b8993e';
+            ctx.fillRect(0, 0, offW, offH);
+
+            // Fiber parameters — must be thick enough to see at display scale
+            var fiberH = Math.max(4, Math.round(6 * S));   // horizontal fiber height
+            var fiberV = Math.max(3, Math.round(5 * S));    // vertical fiber width
+            var gapH = Math.max(2, Math.round(3 * S));      // gap between horizontal fibers
+            var gapV = Math.max(2, Math.round(3 * S));      // gap between vertical fibers
+            var stepH = fiberH + gapH;
+            var stepV = fiberV + gapV;
+
+            // Horizontal weft fibers — thick visible strands
+            for (var y = 0; y < offH; y += stepH) {
+                // Each fiber has slight color variation
+                var r = 155 + Math.floor(Math.random() * 40);
+                var g = 125 + Math.floor(Math.random() * 35);
+                var b = 50 + Math.floor(Math.random() * 30);
+                ctx.fillStyle = 'rgb(' + r + ',' + g + ',' + b + ')';
+                // Slight waviness
+                for (var x = 0; x < offW; x += 2) {
+                    var wobble = Math.sin(x * 0.03 + y * 0.1) * 1.5;
+                    ctx.fillRect(x, y + wobble, 3, fiberH);
+                }
+                // Highlight on top edge of fiber
+                ctx.fillStyle = 'rgba(255,230,170,0.15)';
+                ctx.fillRect(0, y, offW, 1);
+                // Shadow on bottom edge
+                ctx.fillStyle = 'rgba(80,60,20,0.2)';
+                ctx.fillRect(0, y + fiberH - 1, offW, 1);
             }
-            // Vertical weave threads
-            for (var x = 0; x < W; x += 8) {
-                var shade2 = (x % 16 === 0) ? 'rgba(180,140,60,0.12)' : 'rgba(90,70,35,0.06)';
-                canvas.add(new fabric.Line(
-                    [x * S, 0, x * S, H * S],
-                    { stroke: shade2, strokeWidth: 1.5 * S, selectable: false }
-                ));
+
+            // Vertical warp fibers — crossing pattern for weave
+            for (var x = 0; x < offW; x += stepV) {
+                var r2 = 145 + Math.floor(Math.random() * 35);
+                var g2 = 115 + Math.floor(Math.random() * 30);
+                var b2 = 40 + Math.floor(Math.random() * 25);
+                // Over-under weave: alternate visibility per row
+                for (var y2 = 0; y2 < offH; y2 += stepH) {
+                    var isOver = ((Math.floor(x / stepV) + Math.floor(y2 / stepH)) % 2 === 0);
+                    if (isOver) {
+                        ctx.fillStyle = 'rgb(' + r2 + ',' + g2 + ',' + b2 + ')';
+                        var wobble2 = Math.sin(y2 * 0.04 + x * 0.08) * 1;
+                        ctx.fillRect(x + wobble2, y2, fiberV, fiberH);
+                        // Tiny highlight
+                        ctx.fillStyle = 'rgba(255,240,190,0.12)';
+                        ctx.fillRect(x + wobble2, y2, fiberV, 1);
+                    }
+                }
             }
-            // Subtle grain noise — scattered tiny dots
-            for (var n = 0; n < 200; n++) {
-                var nx = Math.random() * W;
-                var ny = Math.random() * H;
-                canvas.add(new fabric.Circle({
-                    left: nx * S, top: ny * S,
-                    radius: (0.5 + Math.random()) * S,
-                    fill: Math.random() > 0.5 ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.04)',
-                    selectable: false
-                }));
+
+            // Gap shadows — dark lines in the gaps to create depth
+            ctx.fillStyle = 'rgba(60,40,10,0.25)';
+            for (var yg = 0; yg < offH; yg += stepH) {
+                ctx.fillRect(0, yg + fiberH, offW, gapH);
             }
+            for (var xg = 0; xg < offW; xg += stepV) {
+                for (var yg2 = 0; yg2 < offH; yg2 += stepH) {
+                    var isUnder = ((Math.floor(xg / stepV) + Math.floor(yg2 / stepH)) % 2 === 1);
+                    if (isUnder) {
+                        ctx.fillStyle = 'rgba(50,35,10,0.15)';
+                        ctx.fillRect(xg, yg2, gapV, fiberH);
+                    }
+                }
+            }
+
+            // Grain noise — random speckles for organic feel
+            for (var n = 0; n < Math.round(offW * offH * 0.003); n++) {
+                var nx = Math.floor(Math.random() * offW);
+                var ny = Math.floor(Math.random() * offH);
+                ctx.fillStyle = Math.random() > 0.5
+                    ? 'rgba(0,0,0,' + (0.05 + Math.random() * 0.08) + ')'
+                    : 'rgba(255,230,160,' + (0.04 + Math.random() * 0.06) + ')';
+                ctx.fillRect(nx, ny, 1, 1);
+            }
+
+            // Overall vignette — slightly darker edges for depth
+            var vGrad = ctx.createRadialGradient(offW / 2, offH / 2, offW * 0.3, offW / 2, offH / 2, offW * 0.8);
+            vGrad.addColorStop(0, 'rgba(0,0,0,0)');
+            vGrad.addColorStop(1, 'rgba(40,25,5,0.25)');
+            ctx.fillStyle = vGrad;
+            ctx.fillRect(0, 0, offW, offH);
+
+            // Convert to fabric image and add
+            var dataUrl = off.toDataURL('image/png');
+            canvas.backgroundColor = '#b8993e';
+            return new Promise(function(resolve) {
+                fabric.Image.fromURL(dataUrl, function(img) {
+                    img.set({ left: 0, top: 0, selectable: false, evented: false });
+                    canvas.add(img);
+                    canvas.sendToBack(img);
+                    resolve();
+                });
+            });
         }
 
-        // Draw wood grain texture
+        // Draw wood grain texture using native 2D canvas for realism
         function drawWoodTexture(canvas, W, H, S) {
-            canvas.backgroundColor = '#8b4513';
-            for (var li = 0; li < 60; li++) {
-                var yOff = li * 23;
-                var wobble = Math.sin(li * 0.7) * 15;
-                canvas.add(new fabric.Line(
-                    [0, (yOff + wobble) * S, W * S, (yOff - wobble + 5) * S],
-                    { stroke: 'rgba(0,0,0,0.04)', strokeWidth: (1 + Math.random()) * S, selectable: false }
-                ));
+            var offW = Math.round(W * S);
+            var offH = Math.round(H * S);
+            var off = document.createElement('canvas');
+            off.width = offW;
+            off.height = offH;
+            var ctx = off.getContext('2d');
+
+            // Base dark wood
+            ctx.fillStyle = '#5a2d0c';
+            ctx.fillRect(0, 0, offW, offH);
+
+            // Wood grain lines — flowing curves with color variation
+            for (var i = 0; i < 120; i++) {
+                var yBase = i * (offH / 100);
+                var r = 90 + Math.floor(Math.random() * 50);
+                var g = 50 + Math.floor(Math.random() * 30);
+                var b = 10 + Math.floor(Math.random() * 20);
+                var alpha = 0.08 + Math.random() * 0.15;
+                ctx.strokeStyle = 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
+                ctx.lineWidth = 1 + Math.random() * 3;
+                ctx.beginPath();
+                ctx.moveTo(0, yBase);
+                for (var x = 0; x < offW; x += 20) {
+                    var wobble = Math.sin(x * 0.005 + i * 0.3) * (8 + Math.random() * 12);
+                    ctx.lineTo(x, yBase + wobble);
+                }
+                ctx.stroke();
             }
+
+            // Knot holes (2-3 dark spots)
+            for (var k = 0; k < 2; k++) {
+                var kx = offW * 0.2 + Math.random() * offW * 0.6;
+                var ky = offH * 0.2 + Math.random() * offH * 0.6;
+                var kGrad = ctx.createRadialGradient(kx, ky, 0, kx, ky, 15 + Math.random() * 10);
+                kGrad.addColorStop(0, 'rgba(30,15,0,0.4)');
+                kGrad.addColorStop(1, 'rgba(30,15,0,0)');
+                ctx.fillStyle = kGrad;
+                ctx.fillRect(kx - 30, ky - 30, 60, 60);
+            }
+
+            // Highlight for polish
+            var hGrad = ctx.createLinearGradient(0, 0, 0, offH);
+            hGrad.addColorStop(0, 'rgba(255,200,120,0.06)');
+            hGrad.addColorStop(0.5, 'rgba(255,200,120,0.02)');
+            hGrad.addColorStop(1, 'rgba(0,0,0,0.08)');
+            ctx.fillStyle = hGrad;
+            ctx.fillRect(0, 0, offW, offH);
+
+            var dataUrl = off.toDataURL('image/png');
+            canvas.backgroundColor = '#5a2d0c';
+            return new Promise(function(resolve) {
+                fabric.Image.fromURL(dataUrl, function(img) {
+                    img.set({ left: 0, top: 0, selectable: false, evented: false });
+                    canvas.add(img);
+                    canvas.sendToBack(img);
+                    resolve();
+                });
+            });
         }
 
-        // Draw a chalkboard label (dark rounded rect with chalk-style text)
+        // Draw a realistic mini chalkboard label with wood frame and chalk text
         function drawChalkboardLabel(canvas, text, centerX, centerY, S) {
             var displayName = text.charAt(0).toUpperCase() + text.slice(1);
-            var padX = 24;
-            var padY = 10;
-            var fontSize = 24;
-            var labelW = Math.max(displayName.length * 14 + padX * 2, 120);
-            var labelH = fontSize + padY * 2 + 4;
+            var padX = 30;
+            var padY = 14;
+            var fontSize = 28;
+            var labelW = Math.max(displayName.length * 16 + padX * 2, 140);
+            var labelH = fontSize + padY * 2 + 10;
+            var frameWidth = 5;
 
-            // Dark chalkboard background
+            // Wood frame (outer border) — warm brown wood
             canvas.add(new fabric.Rect({
                 left: centerX * S,
                 top: centerY * S,
-                width: labelW * S,
-                height: labelH * S,
-                rx: 8 * S,
-                ry: 8 * S,
-                fill: '#2c3e2d',
+                width: (labelW + frameWidth * 2) * S,
+                height: (labelH + frameWidth * 2) * S,
+                rx: 6 * S,
+                ry: 6 * S,
+                fill: '#6b4226',
                 originX: 'center',
                 originY: 'center',
                 selectable: false,
                 shadow: new fabric.Shadow({
-                    color: 'rgba(0,0,0,0.35)', blur: 8 * S, offsetX: 0, offsetY: 3 * S
+                    color: 'rgba(0,0,0,0.5)', blur: 12 * S, offsetX: 2 * S, offsetY: 4 * S
                 })
             }));
 
-            // Thin chalk border
+            // Wood grain highlight on frame
             canvas.add(new fabric.Rect({
                 left: centerX * S,
-                top: centerY * S,
-                width: (labelW - 8) * S,
-                height: (labelH - 8) * S,
+                top: (centerY - 1) * S,
+                width: (labelW + frameWidth * 2 - 2) * S,
+                height: (labelH + frameWidth * 2 - 2) * S,
                 rx: 5 * S,
                 ry: 5 * S,
                 fill: 'transparent',
-                stroke: 'rgba(255,255,255,0.25)',
-                strokeWidth: 1 * S,
+                stroke: 'rgba(180,130,70,0.4)',
+                strokeWidth: 1.5 * S,
                 originX: 'center',
                 originY: 'center',
                 selectable: false
             }));
 
-            // Chalk-white handwritten text
-            canvas.add(new fabric.Text(displayName, {
+            // Dark green chalkboard surface
+            canvas.add(new fabric.Rect({
                 left: centerX * S,
                 top: centerY * S,
+                width: labelW * S,
+                height: labelH * S,
+                rx: 3 * S,
+                ry: 3 * S,
+                fill: '#1a2e1a',
+                originX: 'center',
+                originY: 'center',
+                selectable: false
+            }));
+
+            // Chalkboard surface texture — slight green variation
+            canvas.add(new fabric.Rect({
+                left: centerX * S,
+                top: centerY * S,
+                width: labelW * S,
+                height: labelH * S,
+                rx: 3 * S,
+                ry: 3 * S,
+                fill: 'rgba(40,70,40,0.3)',
+                originX: 'center',
+                originY: 'center',
+                selectable: false
+            }));
+
+            // Chalk dust specks for realism
+            for (var d = 0; d < 8; d++) {
+                var dx = centerX + (Math.random() - 0.5) * labelW * 0.7;
+                var dy = centerY + (Math.random() - 0.5) * labelH * 0.5;
+                canvas.add(new fabric.Circle({
+                    left: dx * S,
+                    top: dy * S,
+                    radius: (0.5 + Math.random() * 1.5) * S,
+                    fill: 'rgba(255,255,255,' + (0.03 + Math.random() * 0.06) + ')',
+                    originX: 'center',
+                    originY: 'center',
+                    selectable: false
+                }));
+            }
+
+            // Chalk text — slightly rough white with glow
+            canvas.add(new fabric.Text(displayName, {
+                left: centerX * S,
+                top: (centerY + 1) * S,
                 fontSize: fontSize * S,
-                fontFamily: "'Caveat', 'Segoe Script', 'Comic Sans MS', cursive",
+                fontFamily: "'Caveat', cursive",
                 fontWeight: '700',
-                fill: '#f0ece4',
+                fill: 'rgba(245,240,230,0.92)',
                 textAlign: 'center',
                 originX: 'center',
                 originY: 'center',
                 selectable: false,
                 shadow: new fabric.Shadow({
-                    color: 'rgba(255,255,255,0.15)', blur: 2 * S, offsetX: 0, offsetY: 0
+                    color: 'rgba(255,255,255,0.3)', blur: 4 * S, offsetX: 0, offsetY: 0
                 })
+            }));
+
+            // Second pass — slight offset for chalk texture effect
+            canvas.add(new fabric.Text(displayName, {
+                left: (centerX + 0.3) * S,
+                top: (centerY + 0.5) * S,
+                fontSize: fontSize * S,
+                fontFamily: "'Caveat', cursive",
+                fontWeight: '700',
+                fill: 'rgba(255,255,255,0.08)',
+                textAlign: 'center',
+                originX: 'center',
+                originY: 'center',
+                selectable: false
             }));
         }
 
@@ -40828,9 +41021,9 @@ Would you like to test posting to Threads?`;
 
                 // --- BACKGROUND TEXTURE ---
                 if (bgKey === 'burlap') {
-                    drawBurlapTexture(csaCanvas, W, H, S);
+                    await drawBurlapTexture(csaCanvas, W, H, S);
                 } else if (bgKey === 'wooden_rustic') {
-                    drawWoodTexture(csaCanvas, W, H, S);
+                    await drawWoodTexture(csaCanvas, W, H, S);
                 } else {
                     csaCanvas.backgroundColor = BACKGROUNDS[bgKey].color;
                 }
@@ -40943,48 +41136,105 @@ Would you like to test posting to Threads?`;
                     var photoSrc = item.processedPhoto || item.rawPhoto;
 
                     if (photoSrc) {
-                        // User's actual photo with background removed, circular clip
+                        // User's actual photo — circular clip with thick visible border
                         await addCircularPhotoToCanvas(photoSrc, cellCenterX, cellCenterY, circleRadius, S);
                     } else {
-                        // Placeholder: colored circle with produce initial on burlap
+                        // Produce placeholder — solid visible circle with cream fill, strong border, emoji
+                        // Outer ring shadow
+                        csaCanvas.add(new fabric.Circle({
+                            left: cellCenterX * S,
+                            top: cellCenterY * S,
+                            radius: (circleRadius + 4) * S,
+                            fill: 'transparent',
+                            stroke: 'rgba(0,0,0,0.2)',
+                            strokeWidth: 2 * S,
+                            originX: 'center',
+                            originY: 'center',
+                            selectable: false
+                        }));
+
+                        // Main circle — cream/parchment fill so produce stands out
                         csaCanvas.add(new fabric.Circle({
                             left: cellCenterX * S,
                             top: cellCenterY * S,
                             radius: circleRadius * S,
-                            fill: itemData.color + '30',
-                            stroke: itemData.color + '88',
-                            strokeWidth: 3 * S,
-                            strokeDashArray: [8 * S, 4 * S],
+                            fill: 'rgba(250,245,230,0.85)',
+                            stroke: itemData.color,
+                            strokeWidth: 4 * S,
                             originX: 'center',
                             originY: 'center',
                             selectable: false,
                             shadow: new fabric.Shadow({
-                                color: 'rgba(0,0,0,0.15)', blur: 10 * S, offsetX: 0, offsetY: 4 * S
+                                color: 'rgba(0,0,0,0.3)', blur: 12 * S, offsetX: 0, offsetY: 5 * S
                             })
                         }));
-                        // Placeholder initial
-                        csaCanvas.add(new fabric.Text(item.name.charAt(0).toUpperCase(), {
+
+                        // Inner decorative ring
+                        csaCanvas.add(new fabric.Circle({
                             left: cellCenterX * S,
-                            top: (cellCenterY - 5) * S,
-                            fontSize: (circleRadius * 0.7) * S,
-                            fontFamily: "'Caveat', cursive",
-                            fontWeight: '700',
-                            fill: itemData.color + 'cc',
+                            top: cellCenterY * S,
+                            radius: (circleRadius - 8) * S,
+                            fill: 'transparent',
+                            stroke: itemData.color + '40',
+                            strokeWidth: 1.5 * S,
                             originX: 'center',
                             originY: 'center',
                             selectable: false
                         }));
-                        // "upload photo" hint
-                        csaCanvas.add(new fabric.Text('\u2191 tap camera to add photo', {
-                            left: cellCenterX * S,
-                            top: (cellCenterY + circleRadius * 0.45) * S,
-                            fontSize: 12 * S,
-                            fontFamily: 'Arial, sans-serif',
-                            fill: itemData.color + '99',
-                            textAlign: 'center',
-                            originX: 'center',
-                            selectable: false
-                        }));
+
+                        // Large emoji from PRODUCE_LIBRARY (loaded as image)
+                        if (itemData.url) {
+                            try {
+                                await new Promise(function(resolve) {
+                                    fabric.Image.fromURL(itemData.url, function(emojiImg) {
+                                        if (emojiImg) {
+                                            var emojiSize = circleRadius * 1.1 * (itemData.scale || 1.0);
+                                            var emojiScale = (emojiSize * S) / Math.max(emojiImg.width, emojiImg.height);
+                                            emojiImg.set({
+                                                left: cellCenterX * S,
+                                                top: (cellCenterY - 8) * S,
+                                                scaleX: emojiScale,
+                                                scaleY: emojiScale,
+                                                originX: 'center',
+                                                originY: 'center',
+                                                selectable: false,
+                                                shadow: new fabric.Shadow({
+                                                    color: 'rgba(0,0,0,0.15)', blur: 6 * S, offsetX: 0, offsetY: 3 * S
+                                                })
+                                            });
+                                            csaCanvas.add(emojiImg);
+                                        }
+                                        resolve();
+                                    }, { crossOrigin: 'anonymous' });
+                                });
+                            } catch(e) {
+                                // Fallback: large letter if emoji fails
+                                csaCanvas.add(new fabric.Text(item.name.charAt(0).toUpperCase(), {
+                                    left: cellCenterX * S,
+                                    top: (cellCenterY - 8) * S,
+                                    fontSize: (circleRadius * 0.8) * S,
+                                    fontFamily: "'Caveat', cursive",
+                                    fontWeight: '700',
+                                    fill: itemData.color,
+                                    originX: 'center',
+                                    originY: 'center',
+                                    selectable: false
+                                }));
+                            }
+                        } else {
+                            // No emoji URL — show large initial letter
+                            csaCanvas.add(new fabric.Text(item.name.charAt(0).toUpperCase(), {
+                                left: cellCenterX * S,
+                                top: (cellCenterY - 8) * S,
+                                fontSize: (circleRadius * 0.8) * S,
+                                fontFamily: "'Caveat', cursive",
+                                fontWeight: '700',
+                                fill: itemData.color,
+                                originX: 'center',
+                                originY: 'center',
+                                selectable: false
+                            }));
+                        }
                     }
 
                     // Chalkboard label beneath the circle
