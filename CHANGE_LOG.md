@@ -38,6 +38,40 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-02-22 — Seasonal Auto-Fill: Smart, Actionable, SEO-Integrated
+**Role:** Desktop_Claude
+
+### Files Modified
+- `web_app/marketing-command-center.html` — Complete rebuild of seasonal suggestions system
+- `apps_script/MERGED TOTAL.js` — Date-aware event filtering in generateSeasonalCalendar
+
+### Functions Added
+- `filterPastDateSuggestions(calendar)` — Removes past-date entries (no Valentine's after Feb 14)
+- `pillarToSEOCategory(pillar)` — Maps content pillar to SEO keyword category
+- `enrichSuggestionsWithSEO(calendar)` — Replaces hardcoded hashtags with KeywordHashtagLibrary data
+- `toggleAllSeasonal(checked)` — Select/deselect all suggestions
+- `updateSeasonalCounter()` — Updates "X of Y selected" counter
+- `addSelectedSeasonalToQueue(btn)` — Adds checked suggestions to MARKETING_Queue
+
+### Functions Rebuilt
+- `displaySeasonalCalendarSuggestions(result)` — Was: "Got It!" dismiss modal. Now: cherry-pick UI with checkboxes, editable content, SEO hashtags, "Add Selected to Calendar" button
+
+### Backend Fixed
+- `generateSeasonalCalendar()` (MERGED TOTAL.js line ~138343) — Events now only show if date >= today
+
+### What Changed
+1. Auto-Fill Seasonal now shows ONLY future content (no stale Valentine's/holiday suggestions)
+2. Each suggestion has a checkbox — uncheck to skip, keep to schedule
+3. Content is editable in the modal before adding to calendar
+4. Hashtags come from KeywordHashtagLibrary (40+ SEO keywords) instead of hardcoded #CSA2026
+5. "Add Selected to Calendar" actually writes to MARKETING_Queue — posts appear on calendar immediately
+6. Import 52-Week also uses the same cherry-pick modal
+
+### Duplicate Check
+- [x] No duplicates created — rebuilt existing function
+
+---
+
 ## 2026-02-22 — Calendar Tab Production-Ready
 **Role:** Desktop_Claude
 

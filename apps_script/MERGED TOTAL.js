@@ -14630,6 +14630,10 @@ function doGet(e) {
       case 'getContentCalendar':
         return jsonResponse(generateContentCalendar(e.parameter));
 
+      // ============ FEATURE FLAGS SYSTEM (GET) ============
+      case 'getFeatureFlags':
+        return jsonResponse(getFeatureFlags());
+
       // ============ SEASONAL AUTO-CALENDAR SYSTEM (GET) ============
       case 'getSeasonalContentThemes':
         return jsonResponse(getSeasonalContentThemes(e.parameter));
@@ -15799,11 +15803,54 @@ function doGet(e) {
         return jsonResponse(generateAssetSchedule());
       // case 'generateBalanceSheet' - handled below with params support
 
-      // ============ SMART FINANCIAL SYSTEM - INVESTMENTS ============
+      // ============ SMART FINANCIAL SYSTEM - INVESTMENTS (ALPACA) ============
       case 'getAlpacaConfig':
         return jsonResponse(getAlpacaConfig());
-      case 'saveAlpacaConfig':
-        return jsonResponse(saveAlpacaConfig(e.parameter));
+      // saveAlpacaConfig removed from GET routes (security: credentials must use POST only)
+      case 'getAlpacaAccount':
+        return jsonResponse(getAlpacaAccount());
+      case 'getAlpacaPositions':
+        return jsonResponse(getAlpacaPositions());
+      case 'getAlpacaPortfolioHistory':
+        return jsonResponse(getAlpacaPortfolioHistory(e.parameter));
+      case 'getAlpacaDashboard':
+        return jsonResponse(getAlpacaDashboard());
+      case 'getAlpacaMarketClock':
+        return jsonResponse(getAlpacaMarketClock());
+      case 'getAlpacaAsset':
+        return jsonResponse(getAlpacaAsset(e.parameter));
+      case 'searchAlpacaAssets':
+        return jsonResponse(searchAlpacaAssets(e.parameter));
+      case 'getAlpacaOrders':
+        return jsonResponse(getAlpacaOrders(e.parameter));
+      case 'getAlpacaActivities':
+        return jsonResponse(getAlpacaActivities(e.parameter));
+      case 'getAlpacaWatchlists':
+        return jsonResponse(getAlpacaWatchlists());
+      case 'getAlpacaStockSnapshot':
+        return jsonResponse(getAlpacaStockSnapshot(e.parameter));
+      case 'getAlpacaStockBars':
+        return jsonResponse(getAlpacaStockBars(e.parameter));
+      case 'getAlpacaCorporateActions':
+        return jsonResponse(getAlpacaCorporateActions(e.parameter));
+      case 'alpacaPortfolioQuery':
+        return jsonResponse(alpacaPortfolioQuery(e.parameter));
+      case 'alpacaQueryDividends':
+        return jsonResponse(alpacaQueryDividends(e.parameter));
+      case 'alpacaTaxLossHarvesting':
+        return jsonResponse(alpacaTaxLossHarvesting());
+      case 'alpacaBenchmarkComparison':
+        return jsonResponse(alpacaBenchmarkComparison(e.parameter));
+      case 'alpacaRiskAnalysis':
+        return jsonResponse(alpacaRiskAnalysis());
+      case 'getAlpacaCryptoAssets':
+        return jsonResponse(getAlpacaCryptoAssets(e.parameter));
+      case 'getAggregatedPortfolio':
+        return jsonResponse(getAggregatedPortfolio());
+      case 'alpacaWeeklySummary':
+        return jsonResponse(alpacaWeeklySummary());
+      case 'alpacaRebalanceAnalysis':
+        return jsonResponse(alpacaRebalanceAnalysis(e.parameter));
       case 'getRoundUpPool':
         return jsonResponse(getRoundUpPool());
       case 'calculateRoundUpsFromOrders':
@@ -17936,6 +17983,36 @@ function doPost(e) {
       case 'sendChefMagicLink':
         return jsonResponse(sendChefMagicLink(data.customerId));
       // NOTE: bulkInviteChefs already handled at line ~14072
+
+      // ============ FEATURE FLAGS SYSTEM (POST) ============
+      case 'updateFeatureFlag':
+        return jsonResponse(updateFeatureFlag(data));
+      case 'createFeatureFlag':
+        return jsonResponse(createFeatureFlag(data));
+      case 'deleteFeatureFlag':
+        return jsonResponse(deleteFeatureFlag(data));
+
+      // ============ ALPACA TRADING (POST) ============
+      case 'saveAlpacaCredentials':
+        return jsonResponse(saveAlpacaCredentials(data));
+      case 'deleteAlpacaCredentials':
+        return jsonResponse(deleteAlpacaCredentials());
+      case 'placeAlpacaOrder':
+        return jsonResponse(placeAlpacaOrder(data));
+      case 'cancelAlpacaOrder':
+        return jsonResponse(cancelAlpacaOrder(data));
+      case 'closeAlpacaPosition':
+        return jsonResponse(closeAlpacaPosition(data));
+      case 'createAlpacaWatchlist':
+        return jsonResponse(createAlpacaWatchlist(data));
+      case 'updateAlpacaWatchlist':
+        return jsonResponse(updateAlpacaWatchlist(data));
+      case 'deleteAlpacaWatchlist':
+        return jsonResponse(deleteAlpacaWatchlist(data));
+      case 'saveAlpacaAutoInvestConfig':
+        return jsonResponse(saveAlpacaAutoInvestConfig(data));
+      case 'executeAlpacaAutoInvest':
+        return jsonResponse(executeAlpacaAutoInvest());
 
       // ============ FINANCIAL MODULE - ROUND-UPS ============
       case 'saveRoundUp':
@@ -61489,6 +61566,1697 @@ function testPlaidConnection() {
     }
 
     return linkResult;
+}
+
+// =============================================================================
+// ALPACA TRADING INTEGRATION - Investment Account Connection
+// =============================================================================
+// Connect Alpaca brokerage for live portfolio data (paper or live trading)
+// Phase 1: Read-only account data, positions, portfolio history
+// Phase 2 (future): Auto-invest, round-up investing, order placement
+
+const ALPACA_CONFIG = {
+    get API_KEY() { return getAlpacaCredentials().apiKey || ''; },
+    get SECRET_KEY() { return getAlpacaCredentials().secretKey || ''; },
+    get ENVIRONMENT() { return getAlpacaCredentials().environment || 'paper'; },
+    get BASE_URL() { return this.ENVIRONMENT === 'live' ? 'https://api.alpaca.markets' : 'https://paper-api.alpaca.markets'; },
+    get DATA_URL() { return 'https://data.alpaca.markets'; },
+    get ENABLED() { return !!this.API_KEY && !!this.SECRET_KEY; }
+};
+
+/**
+ * Get Alpaca credentials from Script Properties
+ */
+function getAlpacaCredentials() {
+    try {
+        var stored = PropertiesService.getScriptProperties().getProperty('ALPACA_CREDENTIALS');
+        if (stored) {
+            return JSON.parse(stored);
+        }
+    } catch (e) {
+        Logger.log('Error reading Alpaca credentials: ' + e);
+    }
+    return {};
+}
+
+/**
+ * Save Alpaca credentials to Script Properties (secure server-side storage)
+ * Returns masked key for UI confirmation - never returns full keys
+ */
+function saveAlpacaCredentials(data) {
+    try {
+        if (!data.apiKey || !data.secretKey) {
+            return { success: false, error: 'API Key and Secret Key are required' };
+        }
+        var credentials = {
+            apiKey: data.apiKey,
+            secretKey: data.secretKey,
+            environment: data.environment || 'paper',
+            savedAt: new Date().toISOString()
+        };
+        PropertiesService.getScriptProperties().setProperty('ALPACA_CREDENTIALS', JSON.stringify(credentials));
+
+        // Verify keys by calling /v2/account
+        var verifyResult = alpacaApiCall('/v2/account');
+        if (!verifyResult.success) {
+            // Keys invalid - remove them
+            PropertiesService.getScriptProperties().deleteProperty('ALPACA_CREDENTIALS');
+            logIntegration('Alpaca', 'SaveCredentials', 'FAILED', 'Key verification failed: ' + verifyResult.error);
+            return {
+                success: false,
+                error: 'API keys failed verification. ' + (verifyResult.error || 'Could not connect to Alpaca.'),
+                hint: 'Check that your API key and secret are correct and match your environment (paper/live).'
+            };
+        }
+
+        logIntegration('Alpaca', 'SaveCredentials', 'SUCCESS', 'Credentials saved and verified (' + credentials.environment + ' mode)');
+        return {
+            success: true,
+            message: 'Alpaca credentials saved and verified',
+            environment: credentials.environment,
+            maskedKey: data.apiKey.substring(0, 4) + '****' + data.apiKey.slice(-4),
+            accountStatus: verifyResult.data ? verifyResult.data.status : 'unknown'
+        };
+    } catch (error) {
+        logIntegration('Alpaca', 'SaveCredentials', 'ERROR', error.toString());
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Get Alpaca config status (for frontend - never exposes full keys)
+ */
+function getAlpacaConfig() {
+    var creds = getAlpacaCredentials();
+    return {
+        success: true,
+        connected: !!creds.apiKey && !!creds.secretKey,
+        environment: creds.environment || 'paper',
+        maskedKey: creds.apiKey ? creds.apiKey.substring(0, 4) + '****' + creds.apiKey.slice(-4) : null,
+        savedAt: creds.savedAt || null
+    };
+}
+
+/**
+ * Save Alpaca config - wrapper for route handler compatibility
+ */
+function saveAlpacaConfig(params) {
+    return saveAlpacaCredentials(params);
+}
+
+/**
+ * Authenticated Alpaca API call wrapper
+ * Handles auth headers, rate limiting, retry on 5xx, and logging
+ */
+function alpacaApiCall(endpoint, method, payload) {
+    if (!ALPACA_CONFIG.ENABLED) {
+        return { success: false, error: 'Alpaca integration not configured. Add API keys via Financial Dashboard.' };
+    }
+
+    // Rate limiting: 200 req/min limit, we cap at 190 with buffer
+    var cache = CacheService.getScriptCache();
+    var rateKey = 'ALPACA_RATE_' + Math.floor(Date.now() / 60000);
+    var count = parseInt(cache.get(rateKey) || '0');
+    if (count >= 190) {
+        return { success: false, error: 'Rate limit approaching (190/200 per minute). Try again shortly.', httpCode: 429 };
+    }
+    cache.put(rateKey, String(count + 1), 120);
+
+    method = method || 'GET';
+    var baseUrl = endpoint.startsWith('/v1beta') || endpoint.startsWith('/v2/stocks') ? ALPACA_CONFIG.DATA_URL : ALPACA_CONFIG.BASE_URL;
+    var url = baseUrl + endpoint;
+
+    var options = {
+        method: method.toLowerCase(),
+        headers: {
+            'APCA-API-KEY-ID': ALPACA_CONFIG.API_KEY,
+            'APCA-API-SECRET-KEY': ALPACA_CONFIG.SECRET_KEY,
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        },
+        muteHttpExceptions: true
+    };
+
+    if (payload && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
+        options.payload = JSON.stringify(payload);
+    }
+
+    var maxRetries = 1;
+    for (var attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+            var response = UrlFetchApp.fetch(url, options);
+            var responseCode = response.getResponseCode();
+            var responseText = response.getContentText();
+
+            if (responseCode >= 200 && responseCode < 300) {
+                logIntegration('Alpaca', endpoint, 'SUCCESS', method + ' request successful');
+                if (!responseText || responseCode === 204) return { success: true, data: null };
+                return { success: true, data: JSON.parse(responseText) };
+            } else if (responseCode === 401 || responseCode === 403) {
+                logIntegration('Alpaca', endpoint, 'FAILED', 'Authentication failed (HTTP ' + responseCode + ')');
+                return { success: false, error: 'Authentication failed. Check your API keys.', httpCode: responseCode };
+            } else if (responseCode === 429) {
+                logIntegration('Alpaca', endpoint, 'FAILED', 'Rate limited by Alpaca (HTTP 429)');
+                return { success: false, error: 'Rate limited by Alpaca. Try again in a moment.', httpCode: 429 };
+            } else if (responseCode >= 500 && attempt < maxRetries) {
+                Utilities.sleep(1000);
+                continue;
+            } else {
+                logIntegration('Alpaca', endpoint, 'FAILED', 'HTTP ' + responseCode + ': ' + responseText);
+                return { success: false, error: 'HTTP ' + responseCode, details: responseText };
+            }
+        } catch (error) {
+            if (attempt < maxRetries) {
+                Utilities.sleep(1000);
+                continue;
+            }
+            logIntegration('Alpaca', endpoint, 'ERROR', error.toString());
+            return { success: false, error: error.toString() };
+        }
+    }
+}
+
+/**
+ * Get Alpaca account info - equity, buying power, cash, status
+ */
+function getAlpacaAccount() {
+    var result = alpacaApiCall('/v2/account');
+    if (!result.success) return result;
+
+    var acct = result.data;
+    return {
+        success: true,
+        account: {
+            id: acct.id,
+            status: acct.status,
+            currency: acct.currency,
+            equity: parseFloat(acct.equity) || 0,
+            cash: parseFloat(acct.cash) || 0,
+            buyingPower: parseFloat(acct.buying_power) || 0,
+            portfolioValue: parseFloat(acct.portfolio_value) || 0,
+            lastEquity: parseFloat(acct.last_equity) || 0,
+            dayPL: (parseFloat(acct.equity) || 0) - (parseFloat(acct.last_equity) || 0),
+            dayPLPercent: parseFloat(acct.last_equity) > 0
+                ? (((parseFloat(acct.equity) - parseFloat(acct.last_equity)) / parseFloat(acct.last_equity)) * 100)
+                : 0,
+            longMarketValue: parseFloat(acct.long_market_value) || 0,
+            shortMarketValue: parseFloat(acct.short_market_value) || 0,
+            patternDayTrader: acct.pattern_day_trader || false,
+            tradingBlocked: acct.trading_blocked || false,
+            accountBlocked: acct.account_blocked || false,
+            createdAt: acct.created_at
+        }
+    };
+}
+
+/**
+ * Get Alpaca positions - current holdings with P&L
+ */
+function getAlpacaPositions() {
+    var result = alpacaApiCall('/v2/positions');
+    if (!result.success) return result;
+
+    var positions = (result.data || []).map(function(pos) {
+        return {
+            symbol: pos.symbol,
+            name: pos.symbol,
+            qty: parseFloat(pos.qty) || 0,
+            side: pos.side,
+            marketValue: parseFloat(pos.market_value) || 0,
+            costBasis: parseFloat(pos.cost_basis) || 0,
+            currentPrice: parseFloat(pos.current_price) || 0,
+            avgEntryPrice: parseFloat(pos.avg_entry_price) || 0,
+            unrealizedPL: parseFloat(pos.unrealized_pl) || 0,
+            unrealizedPLPercent: parseFloat(pos.unrealized_plpc) * 100 || 0,
+            changeToday: parseFloat(pos.change_today) * 100 || 0,
+            assetClass: pos.asset_class || 'us_equity',
+            exchange: pos.exchange
+        };
+    });
+
+    return {
+        success: true,
+        positions: positions,
+        totalValue: positions.reduce(function(sum, p) { return sum + p.marketValue; }, 0),
+        totalCost: positions.reduce(function(sum, p) { return sum + p.costBasis; }, 0),
+        totalPL: positions.reduce(function(sum, p) { return sum + p.unrealizedPL; }, 0)
+    };
+}
+
+/**
+ * Get Alpaca portfolio history - equity over time for charting
+ * @param {Object} params - period (1D, 1W, 1M, 3M, 1A, all), timeframe (1Min, 5Min, 15Min, 1H, 1D)
+ */
+function getAlpacaPortfolioHistory(params) {
+    params = params || {};
+    var period = params.period || '1M';
+    var timeframe = params.timeframe || '1D';
+
+    var endpoint = '/v2/account/portfolio/history?period=' + period + '&timeframe=' + timeframe + '&extended_hours=true';
+
+    var result = alpacaApiCall(endpoint);
+    if (!result.success) return result;
+
+    var history = result.data;
+    var dataPoints = [];
+
+    if (history.timestamp && history.equity) {
+        for (var i = 0; i < history.timestamp.length; i++) {
+            dataPoints.push({
+                timestamp: history.timestamp[i] * 1000,
+                date: new Date(history.timestamp[i] * 1000).toISOString().split('T')[0],
+                equity: history.equity[i],
+                profitLoss: history.profit_loss ? history.profit_loss[i] : 0,
+                profitLossPct: history.profit_loss_pct ? history.profit_loss_pct[i] * 100 : 0
+            });
+        }
+    }
+
+    return {
+        success: true,
+        period: period,
+        timeframe: timeframe,
+        baseValue: history.base_value || 0,
+        dataPoints: dataPoints,
+        latestEquity: dataPoints.length > 0 ? dataPoints[dataPoints.length - 1].equity : 0,
+        totalReturn: history.base_value > 0
+            ? (((dataPoints.length > 0 ? dataPoints[dataPoints.length - 1].equity : 0) - history.base_value) / history.base_value * 100)
+            : 0
+    };
+}
+
+/**
+ * Get full Alpaca dashboard data - single endpoint for frontend efficiency
+ * Returns account + positions + recent history in one call
+ */
+function getAlpacaDashboard() {
+    try {
+        // Check if configured
+        if (!ALPACA_CONFIG.ENABLED) {
+            return {
+                success: true,
+                connected: false,
+                message: 'Alpaca not configured. Add API keys in Settings.',
+                account: null,
+                positions: [],
+                history: null
+            };
+        }
+
+        // Fetch account
+        var accountResult = getAlpacaAccount();
+        if (!accountResult.success) {
+            return {
+                success: false,
+                connected: false,
+                error: accountResult.error,
+                account: null,
+                positions: [],
+                history: null
+            };
+        }
+
+        // Fetch positions
+        var positionsResult = getAlpacaPositions();
+        var positions = positionsResult.success ? positionsResult.positions : [];
+
+        // Fetch 1-month history for chart
+        var historyResult = getAlpacaPortfolioHistory({ period: '1M', timeframe: '1D' });
+        var history = historyResult.success ? historyResult : null;
+
+        // Build allocation breakdown from positions
+        var totalValue = accountResult.account.equity;
+        var cashPct = totalValue > 0 ? (accountResult.account.cash / totalValue * 100) : 100;
+        var investedPct = 100 - cashPct;
+
+        return {
+            success: true,
+            connected: true,
+            environment: ALPACA_CONFIG.ENVIRONMENT,
+            account: accountResult.account,
+            positions: positions,
+            positionsSummary: {
+                count: positions.length,
+                totalValue: positionsResult.success ? positionsResult.totalValue : 0,
+                totalCost: positionsResult.success ? positionsResult.totalCost : 0,
+                totalPL: positionsResult.success ? positionsResult.totalPL : 0
+            },
+            allocation: {
+                cash: accountResult.account.cash,
+                cashPct: cashPct,
+                invested: totalValue - accountResult.account.cash,
+                investedPct: investedPct
+            },
+            history: history,
+            lastUpdated: new Date().toISOString()
+        };
+    } catch (error) {
+        logIntegration('Alpaca', 'Dashboard', 'ERROR', error.toString());
+        return { success: false, error: error.toString() };
+    }
+}
+
+// =============================================================================
+// ALPACA PHASE 1: Production Hardening
+// =============================================================================
+
+/**
+ * Delete Alpaca credentials from Script Properties
+ */
+function deleteAlpacaCredentials() {
+    try {
+        PropertiesService.getScriptProperties().deleteProperty('ALPACA_CREDENTIALS');
+        // Also clear any auto-invest config
+        PropertiesService.getScriptProperties().deleteProperty('ALPACA_AUTO_INVEST_CONFIG');
+        logIntegration('Alpaca', 'DeleteCredentials', 'SUCCESS', 'Credentials removed');
+        return { success: true, message: 'Alpaca credentials deleted. Integration disconnected.' };
+    } catch (error) {
+        logIntegration('Alpaca', 'DeleteCredentials', 'ERROR', error.toString());
+        return { success: false, error: error.toString() };
+    }
+}
+
+// =============================================================================
+// ALPACA PHASE 2: Core Trading
+// =============================================================================
+
+/**
+ * Get market clock - is market open, next open/close times
+ */
+function getAlpacaMarketClock() {
+    var result = alpacaApiCall('/v2/clock');
+    if (!result.success) return result;
+
+    var clock = result.data;
+    return {
+        success: true,
+        clock: {
+            isOpen: clock.is_open,
+            timestamp: clock.timestamp,
+            nextOpen: clock.next_open,
+            nextClose: clock.next_close
+        }
+    };
+}
+
+/**
+ * Get details for a specific asset by symbol or ID
+ * @param {Object} params - symbol (required)
+ */
+function getAlpacaAsset(params) {
+    params = params || {};
+    if (!params.symbol) {
+        return { success: false, error: 'Symbol is required' };
+    }
+    var result = alpacaApiCall('/v2/assets/' + encodeURIComponent(params.symbol.toUpperCase()));
+    if (!result.success) return result;
+
+    var asset = result.data;
+    return {
+        success: true,
+        asset: {
+            id: asset.id,
+            symbol: asset.symbol,
+            name: asset.name,
+            exchange: asset.exchange,
+            assetClass: asset.class,
+            status: asset.status,
+            tradable: asset.tradable,
+            fractionable: asset.fractionable,
+            shortable: asset.shortable,
+            marginable: asset.marginable,
+            maintenanceMarginRequirement: asset.maintenance_margin_requirement
+        }
+    };
+}
+
+/**
+ * Search assets by query, status, class
+ * @param {Object} params - query, status (active), asset_class (us_equity), limit
+ */
+function searchAlpacaAssets(params) {
+    params = params || {};
+    var qs = '?status=' + (params.status || 'active') + '&asset_class=' + (params.asset_class || 'us_equity');
+
+    var result = alpacaApiCall('/v2/assets' + qs);
+    if (!result.success) return result;
+
+    var assets = result.data || [];
+    // Filter by query if provided
+    if (params.query) {
+        var q = params.query.toUpperCase();
+        assets = assets.filter(function(a) {
+            return a.symbol.indexOf(q) !== -1 || (a.name && a.name.toUpperCase().indexOf(q) !== -1);
+        });
+    }
+
+    var limit = parseInt(params.limit) || 50;
+    assets = assets.slice(0, limit);
+
+    return {
+        success: true,
+        assets: assets.map(function(a) {
+            return {
+                symbol: a.symbol,
+                name: a.name,
+                exchange: a.exchange,
+                tradable: a.tradable,
+                fractionable: a.fractionable,
+                status: a.status
+            };
+        }),
+        total: assets.length
+    };
+}
+
+/**
+ * Get order history
+ * @param {Object} params - status (all|open|closed), limit, after, until, direction (desc|asc)
+ */
+function getAlpacaOrders(params) {
+    params = params || {};
+    var qs = '?status=' + (params.status || 'all') +
+        '&limit=' + (parseInt(params.limit) || 50) +
+        '&direction=' + (params.direction || 'desc');
+    if (params.after) qs += '&after=' + params.after;
+    if (params.until) qs += '&until=' + params.until;
+
+    var result = alpacaApiCall('/v2/orders' + qs);
+    if (!result.success) return result;
+
+    return {
+        success: true,
+        orders: (result.data || []).map(function(o) {
+            return {
+                id: o.id,
+                clientOrderId: o.client_order_id,
+                symbol: o.symbol,
+                side: o.side,
+                type: o.type,
+                qty: o.qty,
+                filledQty: o.filled_qty,
+                filledAvgPrice: o.filled_avg_price ? parseFloat(o.filled_avg_price) : null,
+                status: o.status,
+                timeInForce: o.time_in_force,
+                limitPrice: o.limit_price ? parseFloat(o.limit_price) : null,
+                stopPrice: o.stop_price ? parseFloat(o.stop_price) : null,
+                createdAt: o.created_at,
+                filledAt: o.filled_at,
+                canceledAt: o.canceled_at,
+                assetClass: o.asset_class
+            };
+        })
+    };
+}
+
+/**
+ * Place a new order
+ * @param {Object} data - symbol, qty OR notional, side (buy|sell), type (market|limit|stop|stop_limit), time_in_force, limit_price, stop_price
+ * SAFETY: Live mode requires confirmLive=true
+ */
+function placeAlpacaOrder(data) {
+    try {
+        if (!data || !data.symbol || !data.side) {
+            return { success: false, error: 'symbol and side are required' };
+        }
+        if (!data.qty && !data.notional) {
+            return { success: false, error: 'Either qty or notional amount is required' };
+        }
+
+        // Safety: require explicit confirmation for live trading
+        if (ALPACA_CONFIG.ENVIRONMENT === 'live' && !data.confirmLive) {
+            return {
+                success: false,
+                error: 'Live trading requires explicit confirmation. Set confirmLive: true to proceed.',
+                disclaimer: 'INVESTMENT DISCLAIMER: Trading involves risk. Past performance does not guarantee future results.'
+            };
+        }
+
+        var orderPayload = {
+            symbol: data.symbol.toUpperCase(),
+            side: data.side,
+            type: data.type || 'market',
+            time_in_force: data.time_in_force || 'day'
+        };
+
+        if (data.qty) orderPayload.qty = String(data.qty);
+        if (data.notional) orderPayload.notional = String(data.notional);
+        if (data.limit_price) orderPayload.limit_price = String(data.limit_price);
+        if (data.stop_price) orderPayload.stop_price = String(data.stop_price);
+
+        logIntegration('Alpaca', 'PlaceOrder', 'ATTEMPT', JSON.stringify(orderPayload));
+
+        var result = alpacaApiCall('/v2/orders', 'POST', orderPayload);
+        if (!result.success) return result;
+
+        var order = result.data;
+        logIntegration('Alpaca', 'PlaceOrder', 'SUCCESS', order.id + ' ' + order.side + ' ' + order.symbol);
+        return {
+            success: true,
+            order: {
+                id: order.id,
+                symbol: order.symbol,
+                side: order.side,
+                type: order.type,
+                qty: order.qty,
+                status: order.status,
+                createdAt: order.created_at
+            },
+            environment: ALPACA_CONFIG.ENVIRONMENT
+        };
+    } catch (error) {
+        logIntegration('Alpaca', 'PlaceOrder', 'ERROR', error.toString());
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Cancel an open order
+ * @param {Object} data - orderId (required)
+ */
+function cancelAlpacaOrder(data) {
+    if (!data || !data.orderId) {
+        return { success: false, error: 'orderId is required' };
+    }
+    var result = alpacaApiCall('/v2/orders/' + data.orderId, 'DELETE');
+    if (!result.success) return result;
+
+    logIntegration('Alpaca', 'CancelOrder', 'SUCCESS', 'Cancelled order ' + data.orderId);
+    return { success: true, message: 'Order cancelled', orderId: data.orderId };
+}
+
+/**
+ * Close a position (liquidate)
+ * @param {Object} data - symbol (required), qty (optional, partial close)
+ */
+function closeAlpacaPosition(data) {
+    if (!data || !data.symbol) {
+        return { success: false, error: 'symbol is required' };
+    }
+
+    // Safety: require confirmation for live trading
+    if (ALPACA_CONFIG.ENVIRONMENT === 'live' && !data.confirmLive) {
+        return {
+            success: false,
+            error: 'Closing positions in live mode requires confirmLive: true'
+        };
+    }
+
+    var endpoint = '/v2/positions/' + encodeURIComponent(data.symbol.toUpperCase());
+    if (data.qty) endpoint += '?qty=' + data.qty;
+
+    var result = alpacaApiCall(endpoint, 'DELETE');
+    if (!result.success) return result;
+
+    logIntegration('Alpaca', 'ClosePosition', 'SUCCESS', 'Closed ' + data.symbol);
+    return { success: true, message: 'Position closed', symbol: data.symbol };
+}
+
+// =============================================================================
+// ALPACA PHASE 3: Market Data & Visualization
+// =============================================================================
+
+/**
+ * Get account activities (fills, dividends, etc.)
+ * @param {Object} params - activity_types (FILL,DIV,etc), direction (desc), limit
+ */
+function getAlpacaActivities(params) {
+    params = params || {};
+    var qs = '?direction=' + (params.direction || 'desc') +
+        '&page_size=' + (parseInt(params.limit) || 50);
+    if (params.activity_types) qs += '&activity_types=' + params.activity_types;
+    if (params.after) qs += '&after=' + params.after;
+    if (params.until) qs += '&until=' + params.until;
+
+    var result = alpacaApiCall('/v2/account/activities' + qs);
+    if (!result.success) return result;
+
+    return {
+        success: true,
+        activities: (result.data || []).map(function(a) {
+            return {
+                id: a.id,
+                activityType: a.activity_type,
+                symbol: a.symbol || null,
+                side: a.side || null,
+                qty: a.qty ? parseFloat(a.qty) : null,
+                price: a.price ? parseFloat(a.price) : null,
+                netAmount: a.net_amount ? parseFloat(a.net_amount) : null,
+                perShareAmount: a.per_share_amount ? parseFloat(a.per_share_amount) : null,
+                description: a.description || null,
+                date: a.date || a.transaction_time || null,
+                status: a.status || null
+            };
+        })
+    };
+}
+
+/**
+ * Get stock snapshot - latest trade, quote, minute/daily bar
+ * @param {Object} params - symbol (required)
+ */
+function getAlpacaStockSnapshot(params) {
+    params = params || {};
+    if (!params.symbol) {
+        return { success: false, error: 'symbol is required' };
+    }
+    var result = alpacaApiCall('/v2/stocks/' + encodeURIComponent(params.symbol.toUpperCase()) + '/snapshot');
+    if (!result.success) return result;
+
+    var snap = result.data;
+    return {
+        success: true,
+        snapshot: {
+            symbol: params.symbol.toUpperCase(),
+            latestTrade: snap.latestTrade ? {
+                price: parseFloat(snap.latestTrade.p),
+                size: snap.latestTrade.s,
+                timestamp: snap.latestTrade.t
+            } : null,
+            latestQuote: snap.latestQuote ? {
+                bidPrice: parseFloat(snap.latestQuote.bp),
+                askPrice: parseFloat(snap.latestQuote.ap),
+                bidSize: snap.latestQuote.bs,
+                askSize: snap.latestQuote.as,
+                timestamp: snap.latestQuote.t
+            } : null,
+            minuteBar: snap.minuteBar ? {
+                open: parseFloat(snap.minuteBar.o),
+                high: parseFloat(snap.minuteBar.h),
+                low: parseFloat(snap.minuteBar.l),
+                close: parseFloat(snap.minuteBar.c),
+                volume: snap.minuteBar.v,
+                timestamp: snap.minuteBar.t
+            } : null,
+            dailyBar: snap.dailyBar ? {
+                open: parseFloat(snap.dailyBar.o),
+                high: parseFloat(snap.dailyBar.h),
+                low: parseFloat(snap.dailyBar.l),
+                close: parseFloat(snap.dailyBar.c),
+                volume: snap.dailyBar.v,
+                timestamp: snap.dailyBar.t
+            } : null,
+            prevDailyBar: snap.prevDailyBar ? {
+                open: parseFloat(snap.prevDailyBar.o),
+                high: parseFloat(snap.prevDailyBar.h),
+                low: parseFloat(snap.prevDailyBar.l),
+                close: parseFloat(snap.prevDailyBar.c),
+                volume: snap.prevDailyBar.v,
+                timestamp: snap.prevDailyBar.t
+            } : null
+        }
+    };
+}
+
+/**
+ * Get historical stock bars (OHLCV candlesticks)
+ * @param {Object} params - symbol, timeframe (1Day|1Hour|1Min), start, end, limit
+ */
+function getAlpacaStockBars(params) {
+    params = params || {};
+    if (!params.symbol) {
+        return { success: false, error: 'symbol is required' };
+    }
+    var qs = '?timeframe=' + (params.timeframe || '1Day') +
+        '&limit=' + (parseInt(params.limit) || 30) +
+        '&adjustment=split&feed=iex';
+    if (params.start) qs += '&start=' + params.start;
+    if (params.end) qs += '&end=' + params.end;
+
+    var result = alpacaApiCall('/v2/stocks/' + encodeURIComponent(params.symbol.toUpperCase()) + '/bars' + qs);
+    if (!result.success) return result;
+
+    var bars = result.data.bars || [];
+    return {
+        success: true,
+        symbol: params.symbol.toUpperCase(),
+        bars: bars.map(function(b) {
+            return {
+                timestamp: b.t,
+                open: parseFloat(b.o),
+                high: parseFloat(b.h),
+                low: parseFloat(b.l),
+                close: parseFloat(b.c),
+                volume: b.v,
+                vwap: b.vw ? parseFloat(b.vw) : null,
+                tradeCount: b.n || null
+            };
+        }),
+        count: bars.length
+    };
+}
+
+/**
+ * Get corporate actions (dividends, splits, mergers, etc.)
+ * @param {Object} params - symbols, types (dividend,merger,spinoff,split), ca_id
+ */
+function getAlpacaCorporateActions(params) {
+    params = params || {};
+    var qs = '';
+    var qsParts = [];
+    if (params.symbols) qsParts.push('symbols=' + params.symbols);
+    if (params.types) qsParts.push('types=' + params.types);
+    if (params.ca_id) qsParts.push('ca_id=' + params.ca_id);
+    if (params.since) qsParts.push('since=' + params.since);
+    if (params.until) qsParts.push('until=' + params.until);
+    if (params.limit) qsParts.push('limit=' + params.limit);
+    if (qsParts.length > 0) qs = '?' + qsParts.join('&');
+
+    var result = alpacaApiCall('/v1beta1/corporate-actions' + qs);
+    if (!result.success) return result;
+
+    return {
+        success: true,
+        corporateActions: result.data
+    };
+}
+
+// =============================================================================
+// ALPACA PHASE 3: Watchlists
+// =============================================================================
+
+/**
+ * Get all watchlists
+ */
+function getAlpacaWatchlists() {
+    var result = alpacaApiCall('/v2/watchlists');
+    if (!result.success) return result;
+
+    return {
+        success: true,
+        watchlists: (result.data || []).map(function(w) {
+            return {
+                id: w.id,
+                name: w.name,
+                accountId: w.account_id,
+                createdAt: w.created_at,
+                updatedAt: w.updated_at,
+                assets: (w.assets || []).map(function(a) {
+                    return { symbol: a.symbol, name: a.name, exchange: a.exchange };
+                })
+            };
+        })
+    };
+}
+
+/**
+ * Create a new watchlist
+ * @param {Object} data - name (required), symbols (array of ticker strings)
+ */
+function createAlpacaWatchlist(data) {
+    if (!data || !data.name) {
+        return { success: false, error: 'name is required' };
+    }
+    var payload = { name: data.name };
+    if (data.symbols && data.symbols.length) payload.symbols = data.symbols;
+
+    var result = alpacaApiCall('/v2/watchlists', 'POST', payload);
+    if (!result.success) return result;
+
+    logIntegration('Alpaca', 'CreateWatchlist', 'SUCCESS', data.name);
+    return {
+        success: true,
+        watchlist: {
+            id: result.data.id,
+            name: result.data.name,
+            assets: (result.data.assets || []).map(function(a) { return a.symbol; })
+        }
+    };
+}
+
+/**
+ * Update a watchlist (replace name and/or symbols)
+ * @param {Object} data - watchlistId (required), name, symbols (array)
+ */
+function updateAlpacaWatchlist(data) {
+    if (!data || !data.watchlistId) {
+        return { success: false, error: 'watchlistId is required' };
+    }
+    var payload = {};
+    if (data.name) payload.name = data.name;
+    if (data.symbols) payload.symbols = data.symbols;
+
+    var result = alpacaApiCall('/v2/watchlists/' + data.watchlistId, 'PUT', payload);
+    if (!result.success) return result;
+
+    logIntegration('Alpaca', 'UpdateWatchlist', 'SUCCESS', data.watchlistId);
+    return { success: true, watchlist: result.data };
+}
+
+/**
+ * Delete a watchlist
+ * @param {Object} data - watchlistId (required)
+ */
+function deleteAlpacaWatchlist(data) {
+    if (!data || !data.watchlistId) {
+        return { success: false, error: 'watchlistId is required' };
+    }
+    var result = alpacaApiCall('/v2/watchlists/' + data.watchlistId, 'DELETE');
+    if (!result.success) return result;
+
+    logIntegration('Alpaca', 'DeleteWatchlist', 'SUCCESS', data.watchlistId);
+    return { success: true, message: 'Watchlist deleted' };
+}
+
+// =============================================================================
+// ALPACA PHASE 4: DCA Auto-Invest
+// =============================================================================
+
+/**
+ * Save auto-invest configuration to Script Properties
+ * @param {Object} data - enabled, amount, frequency, dayOfWeek, allocations[], seasonalMultipliers, minCashBuffer
+ */
+function saveAlpacaAutoInvestConfig(data) {
+    try {
+        if (!data) return { success: false, error: 'Configuration data is required' };
+
+        // Validate allocations sum to ~100%
+        if (data.allocations && data.allocations.length) {
+            var totalPct = data.allocations.reduce(function(sum, a) { return sum + (a.percent || 0); }, 0);
+            if (Math.abs(totalPct - 100) > 1) {
+                return { success: false, error: 'Allocations must sum to 100% (currently ' + totalPct + '%)' };
+            }
+        }
+
+        // Farm seasonal multipliers (default: Oct-Dec 1.5x, Jan-Mar 0.5x, Apr-May 0x, Jun-Sep 1.0x)
+        var defaultSeasonalMultipliers = {
+            '1': 0.5, '2': 0.5, '3': 0.5,
+            '4': 0, '5': 0,
+            '6': 1.0, '7': 1.0, '8': 1.0, '9': 1.0,
+            '10': 1.5, '11': 1.5, '12': 1.5
+        };
+
+        var config = {
+            enabled: data.enabled !== false,
+            amount: parseFloat(data.amount) || 100,
+            frequency: data.frequency || 'weekly',
+            dayOfWeek: parseInt(data.dayOfWeek) || 1,
+            allocations: data.allocations || [
+                { symbol: 'VOO', percent: 50 },
+                { symbol: 'VTI', percent: 25 },
+                { symbol: 'VXUS', percent: 25 }
+            ],
+            seasonalMultipliers: data.seasonalMultipliers || defaultSeasonalMultipliers,
+            minCashBuffer: parseFloat(data.minCashBuffer) || 500,
+            updatedAt: new Date().toISOString()
+        };
+
+        PropertiesService.getScriptProperties().setProperty('ALPACA_AUTO_INVEST_CONFIG', JSON.stringify(config));
+        logIntegration('Alpaca', 'SaveAutoInvestConfig', 'SUCCESS', '$' + config.amount + ' ' + config.frequency);
+        return { success: true, config: config };
+    } catch (error) {
+        logIntegration('Alpaca', 'SaveAutoInvestConfig', 'ERROR', error.toString());
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Execute auto-invest based on saved configuration
+ * Checks schedule, applies seasonal multiplier, places fractional orders
+ * Should be called by a time-driven trigger (weekly)
+ */
+function executeAlpacaAutoInvest() {
+    try {
+        if (!ALPACA_CONFIG.ENABLED) {
+            return { success: false, error: 'Alpaca not configured' };
+        }
+
+        // Load config
+        var configStr = PropertiesService.getScriptProperties().getProperty('ALPACA_AUTO_INVEST_CONFIG');
+        if (!configStr) {
+            return { success: false, error: 'No auto-invest configuration found. Save one first.' };
+        }
+        var config = JSON.parse(configStr);
+        if (!config.enabled) {
+            return { success: false, error: 'Auto-invest is disabled in configuration' };
+        }
+
+        // Check market clock
+        var clockResult = getAlpacaMarketClock();
+        if (clockResult.success && !clockResult.clock.isOpen) {
+            return { success: false, error: 'Market is closed. Auto-invest runs during market hours.', nextOpen: clockResult.clock.nextOpen };
+        }
+
+        // Apply seasonal multiplier
+        var month = new Date().getMonth() + 1;
+        var seasonalMultiplier = config.seasonalMultipliers ? (config.seasonalMultipliers[String(month)] || 1.0) : 1.0;
+        if (seasonalMultiplier === 0) {
+            logIntegration('Alpaca', 'AutoInvest', 'SKIPPED', 'Seasonal multiplier is 0 for month ' + month);
+            return { success: true, message: 'Skipped: seasonal multiplier is 0 for this month (farm busy season)', month: month };
+        }
+
+        var investAmount = config.amount * seasonalMultiplier;
+
+        // Check account cash
+        var accountResult = getAlpacaAccount();
+        if (!accountResult.success) return accountResult;
+        var availableCash = accountResult.account.cash;
+        var cashAfterInvest = availableCash - investAmount;
+
+        if (cashAfterInvest < config.minCashBuffer) {
+            logIntegration('Alpaca', 'AutoInvest', 'SKIPPED', 'Insufficient cash. Available: $' + availableCash + ', need: $' + (investAmount + config.minCashBuffer));
+            return {
+                success: false,
+                error: 'Insufficient cash after maintaining $' + config.minCashBuffer + ' buffer',
+                availableCash: availableCash,
+                neededAmount: investAmount + config.minCashBuffer
+            };
+        }
+
+        // Place fractional orders for each allocation
+        var orders = [];
+        var errors = [];
+
+        for (var i = 0; i < config.allocations.length; i++) {
+            var alloc = config.allocations[i];
+            var notional = (investAmount * alloc.percent / 100).toFixed(2);
+            if (parseFloat(notional) < 1) continue;
+
+            var orderResult = placeAlpacaOrder({
+                symbol: alloc.symbol,
+                notional: notional,
+                side: 'buy',
+                type: 'market',
+                time_in_force: 'day',
+                confirmLive: true
+            });
+
+            if (orderResult.success) {
+                orders.push({ symbol: alloc.symbol, notional: notional, orderId: orderResult.order.id });
+            } else {
+                errors.push({ symbol: alloc.symbol, error: orderResult.error });
+            }
+        }
+
+        // Update last executed timestamp
+        config.lastExecuted = new Date().toISOString();
+        PropertiesService.getScriptProperties().setProperty('ALPACA_AUTO_INVEST_CONFIG', JSON.stringify(config));
+
+        logIntegration('Alpaca', 'AutoInvest', 'SUCCESS', orders.length + ' orders placed, $' + investAmount + ' invested (x' + seasonalMultiplier + ' seasonal)');
+
+        return {
+            success: true,
+            message: orders.length + ' auto-invest orders placed',
+            totalInvested: investAmount,
+            seasonalMultiplier: seasonalMultiplier,
+            month: month,
+            orders: orders,
+            errors: errors.length > 0 ? errors : undefined,
+            environment: ALPACA_CONFIG.ENVIRONMENT
+        };
+    } catch (error) {
+        logIntegration('Alpaca', 'AutoInvest', 'ERROR', error.toString());
+        return { success: false, error: error.toString() };
+    }
+}
+
+// =============================================================================
+// ALPACA PHASE 5: Natural Language Portfolio Queries (MCP-style)
+// =============================================================================
+// Server-side portfolio intelligence endpoints that power natural language
+// investment queries. These work standalone without the MCP server npm package.
+
+/**
+ * Natural language portfolio query handler
+ * Processes questions like "How is my portfolio doing?" or "What are my top holdings?"
+ * @param {Object} params - query (string)
+ */
+function alpacaPortfolioQuery(params) {
+    try {
+        if (!ALPACA_CONFIG.ENABLED) {
+            return { success: false, error: 'Alpaca not connected' };
+        }
+        var query = (params.query || '').toLowerCase();
+
+        // Route query to appropriate handler
+        if (query.match(/portfolio|how.*doing|performance|return|total/)) {
+            return alpacaQueryPerformance();
+        } else if (query.match(/position|holding|stock|what.*own|allocation/)) {
+            return alpacaQueryPositions();
+        } else if (query.match(/dividend|income|yield/)) {
+            return alpacaQueryDividends({ period: '1A' });
+        } else if (query.match(/order|trade|bought|sold|recent/)) {
+            return getAlpacaOrders({ status: 'all', limit: 10 });
+        } else if (query.match(/risk|volatil|drawdown|sharp/)) {
+            return alpacaRiskAnalysis();
+        } else if (query.match(/tax|harvest|loss/)) {
+            return alpacaTaxLossHarvesting();
+        } else if (query.match(/benchmark|compare|spy|s&p|index/)) {
+            return alpacaBenchmarkComparison({ benchmark: 'SPY', period: '1A' });
+        } else if (query.match(/market|open|close|clock/)) {
+            return getAlpacaMarketClock();
+        } else if (query.match(/summary|weekly|report|brief/)) {
+            return alpacaWeeklySummary();
+        } else {
+            // Default: return dashboard overview
+            return getAlpacaDashboard();
+        }
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Portfolio performance analysis with period comparisons
+ */
+function alpacaQueryPerformance() {
+    try {
+        var account = getAlpacaAccount();
+        if (!account.success) return account;
+
+        var periods = ['1D', '1W', '1M', '3M', '1A'];
+        var periodReturns = {};
+
+        for (var i = 0; i < periods.length; i++) {
+            var hist = getAlpacaPortfolioHistory({ period: periods[i], timeframe: '1D' });
+            if (hist.success) {
+                periodReturns[periods[i]] = {
+                    returnPct: hist.totalReturn,
+                    baseValue: hist.baseValue,
+                    currentValue: hist.latestEquity
+                };
+            }
+        }
+
+        return {
+            success: true,
+            type: 'performance',
+            account: account.account,
+            periodReturns: periodReturns,
+            summary: 'Portfolio equity: $' + account.account.equity.toLocaleString() +
+                ', Day P&L: ' + (account.account.dayPL >= 0 ? '+' : '') + '$' + account.account.dayPL.toFixed(2)
+        };
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Detailed positions query with sorting options
+ */
+function alpacaQueryPositions() {
+    try {
+        var positions = getAlpacaPositions();
+        if (!positions.success) return positions;
+
+        // Sort by market value descending
+        var sorted = (positions.positions || []).slice().sort(function(a, b) {
+            return b.marketValue - a.marketValue;
+        });
+
+        // Calculate concentration risk
+        var totalValue = positions.totalValue || 0;
+        var topHolding = sorted.length > 0 ? sorted[0] : null;
+        var concentrationRisk = topHolding && totalValue > 0
+            ? (topHolding.marketValue / totalValue * 100).toFixed(1)
+            : 0;
+
+        return {
+            success: true,
+            type: 'positions',
+            positions: sorted,
+            totalValue: positions.totalValue,
+            totalPL: positions.totalPL,
+            positionCount: sorted.length,
+            topHolding: topHolding ? topHolding.symbol : 'None',
+            concentrationRisk: concentrationRisk + '%',
+            summary: sorted.length + ' positions worth $' + (positions.totalValue || 0).toLocaleString() +
+                ', Total P&L: ' + (positions.totalPL >= 0 ? '+' : '') + '$' + (positions.totalPL || 0).toFixed(2)
+        };
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Weekly investment summary - combines key metrics into a briefing
+ */
+function alpacaWeeklySummary() {
+    try {
+        var account = getAlpacaAccount();
+        if (!account.success) return account;
+
+        var positions = getAlpacaPositions();
+        var weekHistory = getAlpacaPortfolioHistory({ period: '1W', timeframe: '1D' });
+        var monthHistory = getAlpacaPortfolioHistory({ period: '1M', timeframe: '1D' });
+
+        // Get recent orders
+        var orders = getAlpacaOrders({ status: 'all', limit: 10 });
+        var recentFills = orders.success ? (orders.orders || []).filter(function(o) { return o.status === 'filled'; }) : [];
+
+        // Get dividends this month
+        var divs = alpacaQueryDividends({ period: '1M' });
+
+        // Auto-invest status
+        var autoInvestConfig = null;
+        try {
+            var configStr = PropertiesService.getScriptProperties().getProperty('ALPACA_AUTO_INVEST_CONFIG');
+            if (configStr) autoInvestConfig = JSON.parse(configStr);
+        } catch (e) {}
+
+        var month = new Date().getMonth() + 1;
+        var seasonLabels = { 1: 'Winter (0.5x)', 2: 'Winter (0.5x)', 3: 'Winter (0.5x)',
+            4: 'Planting (0x)', 5: 'Planting (0x)',
+            6: 'Growing (1x)', 7: 'Growing (1x)', 8: 'Growing (1x)', 9: 'Growing (1x)',
+            10: 'Harvest (1.5x)', 11: 'Harvest (1.5x)', 12: 'Harvest (1.5x)' };
+
+        return {
+            success: true,
+            type: 'weekly_summary',
+            date: new Date().toISOString().split('T')[0],
+            equity: account.account.equity,
+            cash: account.account.cash,
+            dayPL: account.account.dayPL,
+            weekReturn: weekHistory.success ? weekHistory.totalReturn : null,
+            monthReturn: monthHistory.success ? monthHistory.totalReturn : null,
+            positionCount: positions.success ? positions.positions.length : 0,
+            totalPL: positions.success ? positions.totalPL : 0,
+            recentTradeCount: recentFills.length,
+            dividendsThisMonth: divs.success ? divs.totalDividends : 0,
+            autoInvest: autoInvestConfig ? {
+                enabled: autoInvestConfig.enabled,
+                amount: autoInvestConfig.amount,
+                frequency: autoInvestConfig.frequency,
+                lastExecuted: autoInvestConfig.lastExecuted
+            } : null,
+            currentSeason: seasonLabels[month] || 'Unknown',
+            environment: ALPACA_CONFIG.ENVIRONMENT
+        };
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+// =============================================================================
+// ALPACA PHASE 6: Advanced Features
+// =============================================================================
+
+/**
+ * Dividend tracking and income analysis
+ * @param {Object} params - period (1M, 3M, 1A)
+ */
+function alpacaQueryDividends(params) {
+    try {
+        params = params || {};
+        var result = getAlpacaActivities({
+            activity_types: 'DIV',
+            limit: 100,
+            direction: 'desc'
+        });
+        if (!result.success) return result;
+
+        var activities = result.activities || [];
+        var totalDividends = 0;
+        var bySymbol = {};
+
+        // Filter by period
+        var now = new Date();
+        var periodDays = { '1M': 30, '3M': 90, '6M': 180, '1A': 365 };
+        var days = periodDays[params.period] || 365;
+        var cutoff = new Date(now.getTime() - days * 86400000);
+
+        activities.forEach(function(a) {
+            var actDate = a.date ? new Date(a.date) : null;
+            if (actDate && actDate < cutoff) return;
+
+            var amount = Math.abs(a.netAmount || 0);
+            totalDividends += amount;
+
+            var sym = a.symbol || 'Unknown';
+            if (!bySymbol[sym]) bySymbol[sym] = { symbol: sym, total: 0, count: 0, payments: [] };
+            bySymbol[sym].total += amount;
+            bySymbol[sym].count++;
+            bySymbol[sym].payments.push({ date: a.date, amount: amount, perShare: a.perShareAmount });
+        });
+
+        // Calculate projected annual yield
+        var account = getAlpacaAccount();
+        var equity = account.success ? account.account.equity : 0;
+        var annualizedDividends = totalDividends * (365 / days);
+        var yieldPct = equity > 0 ? (annualizedDividends / equity * 100) : 0;
+
+        return {
+            success: true,
+            type: 'dividends',
+            period: params.period || '1A',
+            totalDividends: totalDividends,
+            annualizedDividends: annualizedDividends,
+            portfolioYield: yieldPct,
+            bySymbol: Object.keys(bySymbol).map(function(k) { return bySymbol[k]; }).sort(function(a, b) { return b.total - a.total; }),
+            paymentCount: activities.length,
+            summary: '$' + totalDividends.toFixed(2) + ' in dividends (' + params.period + '), projected annual yield: ' + yieldPct.toFixed(2) + '%'
+        };
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Tax-loss harvesting scanner
+ * Identifies positions with unrealized losses that could be harvested
+ */
+function alpacaTaxLossHarvesting() {
+    try {
+        var positions = getAlpacaPositions();
+        if (!positions.success) return positions;
+
+        var harvestable = [];
+        var totalHarvestable = 0;
+        var gains = [];
+        var totalGains = 0;
+
+        (positions.positions || []).forEach(function(pos) {
+            if (pos.unrealizedPL < 0) {
+                harvestable.push({
+                    symbol: pos.symbol,
+                    shares: pos.qty,
+                    costBasis: pos.costBasis,
+                    currentValue: pos.marketValue,
+                    unrealizedLoss: pos.unrealizedPL,
+                    lossPct: pos.unrealizedPLPercent,
+                    potentialTaxSaving: Math.abs(pos.unrealizedPL) * 0.22 // Estimate at 22% tax rate
+                });
+                totalHarvestable += Math.abs(pos.unrealizedPL);
+            } else if (pos.unrealizedPL > 0) {
+                gains.push({
+                    symbol: pos.symbol,
+                    unrealizedGain: pos.unrealizedPL,
+                    gainPct: pos.unrealizedPLPercent
+                });
+                totalGains += pos.unrealizedPL;
+            }
+        });
+
+        // Sort by largest loss first
+        harvestable.sort(function(a, b) { return a.unrealizedLoss - b.unrealizedLoss; });
+
+        var netPosition = totalGains - totalHarvestable;
+        var estimatedTaxSaving = totalHarvestable * 0.22;
+
+        return {
+            success: true,
+            type: 'tax_loss_harvesting',
+            harvestable: harvestable,
+            gains: gains,
+            totalHarvestableLosses: totalHarvestable,
+            totalUnrealizedGains: totalGains,
+            netPosition: netPosition,
+            estimatedTaxSaving: estimatedTaxSaving,
+            positionsWithLosses: harvestable.length,
+            positionsWithGains: gains.length,
+            recommendation: harvestable.length > 0
+                ? 'Consider harvesting $' + totalHarvestable.toFixed(2) + ' in losses (est. $' + estimatedTaxSaving.toFixed(2) + ' tax savings). Watch 30-day wash sale rule.'
+                : 'No tax-loss harvesting opportunities. All positions are in profit.',
+            washSaleWarning: 'WARNING: If you sell and repurchase the same or substantially identical security within 30 days, the loss will be disallowed under the wash sale rule.'
+        };
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Portfolio benchmarking - compare against SPY or other index
+ * @param {Object} params - benchmark (SPY default), period (1M, 3M, 1A)
+ */
+function alpacaBenchmarkComparison(params) {
+    try {
+        params = params || {};
+        var benchmark = params.benchmark || 'SPY';
+        var period = params.period || '1A';
+
+        // Get portfolio history
+        var portfolioHist = getAlpacaPortfolioHistory({ period: period, timeframe: '1D' });
+        if (!portfolioHist.success) return portfolioHist;
+
+        // Get benchmark bars for same period
+        var endDate = new Date().toISOString().split('T')[0];
+        var periodDays = { '1D': 1, '1W': 7, '1M': 30, '3M': 90, '1A': 365, 'all': 1825 };
+        var days = periodDays[period] || 365;
+        var startDate = new Date(Date.now() - days * 86400000).toISOString().split('T')[0];
+
+        var benchBars = getAlpacaStockBars({
+            symbol: benchmark,
+            timeframe: '1Day',
+            start: startDate,
+            end: endDate,
+            limit: 400
+        });
+
+        var benchmarkReturn = 0;
+        if (benchBars.success && benchBars.bars && benchBars.bars.length >= 2) {
+            var firstClose = benchBars.bars[0].close;
+            var lastClose = benchBars.bars[benchBars.bars.length - 1].close;
+            benchmarkReturn = ((lastClose - firstClose) / firstClose) * 100;
+        }
+
+        var portfolioReturn = portfolioHist.totalReturn || 0;
+        var alpha = portfolioReturn - benchmarkReturn;
+
+        // Build comparison data points
+        var comparisonData = [];
+        if (benchBars.success && benchBars.bars && portfolioHist.dataPoints) {
+            var benchFirst = benchBars.bars[0].close;
+            var portFirst = portfolioHist.dataPoints[0] ? portfolioHist.dataPoints[0].equity : 0;
+
+            // Normalize both to percentage change from start
+            var maxLen = Math.min(benchBars.bars.length, portfolioHist.dataPoints.length);
+            for (var i = 0; i < maxLen; i++) {
+                comparisonData.push({
+                    date: benchBars.bars[i].timestamp || portfolioHist.dataPoints[i].date,
+                    portfolioPct: portFirst > 0 ? ((portfolioHist.dataPoints[i].equity - portFirst) / portFirst * 100) : 0,
+                    benchmarkPct: benchFirst > 0 ? ((benchBars.bars[i].close - benchFirst) / benchFirst * 100) : 0
+                });
+            }
+        }
+
+        return {
+            success: true,
+            type: 'benchmark',
+            period: period,
+            benchmark: benchmark,
+            portfolioReturn: portfolioReturn,
+            benchmarkReturn: benchmarkReturn,
+            alpha: alpha,
+            outperforming: alpha > 0,
+            comparisonData: comparisonData,
+            summary: 'Portfolio: ' + (portfolioReturn >= 0 ? '+' : '') + portfolioReturn.toFixed(2) + '% vs ' +
+                benchmark + ': ' + (benchmarkReturn >= 0 ? '+' : '') + benchmarkReturn.toFixed(2) + '% (' +
+                (alpha >= 0 ? 'outperforming by +' : 'underperforming by ') + Math.abs(alpha).toFixed(2) + '%)'
+        };
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Portfolio risk analysis - volatility, Sharpe ratio, max drawdown
+ */
+function alpacaRiskAnalysis() {
+    try {
+        // Get 1-year daily history for risk calculations
+        var hist = getAlpacaPortfolioHistory({ period: '1A', timeframe: '1D' });
+        if (!hist.success || !hist.dataPoints || hist.dataPoints.length < 5) {
+            return { success: false, error: 'Insufficient history for risk analysis. Need at least 5 data points.' };
+        }
+
+        var equities = hist.dataPoints.map(function(dp) { return dp.equity; });
+
+        // Daily returns
+        var returns = [];
+        for (var i = 1; i < equities.length; i++) {
+            if (equities[i - 1] > 0) {
+                returns.push((equities[i] - equities[i - 1]) / equities[i - 1]);
+            }
+        }
+
+        if (returns.length === 0) {
+            return { success: false, error: 'Could not calculate returns from history' };
+        }
+
+        // Mean daily return
+        var meanReturn = returns.reduce(function(s, r) { return s + r; }, 0) / returns.length;
+
+        // Standard deviation of daily returns
+        var variance = returns.reduce(function(s, r) { return s + Math.pow(r - meanReturn, 2); }, 0) / returns.length;
+        var dailyStdDev = Math.sqrt(variance);
+
+        // Annualized metrics
+        var annualizedReturn = meanReturn * 252;
+        var annualizedVolatility = dailyStdDev * Math.sqrt(252);
+
+        // Sharpe ratio (assuming 5% risk-free rate)
+        var riskFreeRate = 0.05;
+        var sharpeRatio = annualizedVolatility > 0
+            ? (annualizedReturn - riskFreeRate) / annualizedVolatility
+            : 0;
+
+        // Max drawdown
+        var maxDrawdown = 0;
+        var peak = equities[0];
+        var drawdownStart = 0;
+        var drawdownEnd = 0;
+        var maxDDStart = 0;
+        var maxDDEnd = 0;
+
+        for (var j = 0; j < equities.length; j++) {
+            if (equities[j] > peak) {
+                peak = equities[j];
+                drawdownStart = j;
+            }
+            var dd = (peak - equities[j]) / peak;
+            if (dd > maxDrawdown) {
+                maxDrawdown = dd;
+                maxDDStart = drawdownStart;
+                maxDDEnd = j;
+            }
+        }
+
+        // Sortino ratio (downside deviation only)
+        var downsideReturns = returns.filter(function(r) { return r < 0; });
+        var downsideVariance = downsideReturns.length > 0
+            ? downsideReturns.reduce(function(s, r) { return s + Math.pow(r, 2); }, 0) / downsideReturns.length
+            : 0;
+        var downsideDeviation = Math.sqrt(downsideVariance) * Math.sqrt(252);
+        var sortinoRatio = downsideDeviation > 0
+            ? (annualizedReturn - riskFreeRate) / downsideDeviation
+            : 0;
+
+        // Win rate
+        var positiveReturns = returns.filter(function(r) { return r > 0; });
+        var winRate = returns.length > 0 ? (positiveReturns.length / returns.length * 100) : 0;
+
+        // Risk grade
+        var riskGrade = 'Low';
+        if (annualizedVolatility > 0.25) riskGrade = 'High';
+        else if (annualizedVolatility > 0.15) riskGrade = 'Moderate';
+
+        return {
+            success: true,
+            type: 'risk_analysis',
+            period: '1A',
+            dataPoints: equities.length,
+            annualizedReturn: (annualizedReturn * 100),
+            annualizedVolatility: (annualizedVolatility * 100),
+            sharpeRatio: sharpeRatio,
+            sortinoRatio: sortinoRatio,
+            maxDrawdown: (maxDrawdown * 100),
+            maxDrawdownDates: {
+                start: hist.dataPoints[maxDDStart] ? hist.dataPoints[maxDDStart].date : null,
+                end: hist.dataPoints[maxDDEnd] ? hist.dataPoints[maxDDEnd].date : null
+            },
+            winRate: winRate,
+            riskGrade: riskGrade,
+            dailyVaR95: (meanReturn - 1.645 * dailyStdDev) * 100, // 95% VaR
+            summary: 'Risk Grade: ' + riskGrade + ' | Sharpe: ' + sharpeRatio.toFixed(2) +
+                ' | Volatility: ' + (annualizedVolatility * 100).toFixed(1) + '% | Max Drawdown: -' + (maxDrawdown * 100).toFixed(1) + '%'
+        };
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Get crypto positions and assets from Alpaca (crypto trading)
+ * Alpaca supports BTC/USD, ETH/USD, and other crypto pairs
+ */
+function getAlpacaCryptoAssets(params) {
+    params = params || {};
+    var result = alpacaApiCall('/v2/assets?asset_class=crypto&status=active');
+    if (!result.success) return result;
+
+    var assets = result.data || [];
+
+    // Filter by query if provided
+    if (params.query) {
+        var q = params.query.toUpperCase();
+        assets = assets.filter(function(a) {
+            return a.symbol.indexOf(q) !== -1 || (a.name && a.name.toUpperCase().indexOf(q) !== -1);
+        });
+    }
+
+    return {
+        success: true,
+        type: 'crypto_assets',
+        assets: assets.slice(0, parseInt(params.limit) || 50).map(function(a) {
+            return {
+                symbol: a.symbol,
+                name: a.name,
+                exchange: a.exchange,
+                tradable: a.tradable,
+                fractionable: a.fractionable,
+                minOrderSize: a.min_order_size,
+                minTradeIncrement: a.min_trade_increment,
+                priceIncrement: a.price_increment
+            };
+        }),
+        total: assets.length
+    };
+}
+
+/**
+ * Multi-account portfolio aggregation
+ * Combines Alpaca + Plaid investment data into unified view
+ */
+function getAggregatedPortfolio() {
+    try {
+        var result = {
+            success: true,
+            type: 'aggregated_portfolio',
+            accounts: [],
+            totalEquity: 0,
+            totalCash: 0,
+            totalInvested: 0,
+            allPositions: []
+        };
+
+        // Alpaca account
+        if (ALPACA_CONFIG.ENABLED) {
+            var alpacaDash = getAlpacaDashboard();
+            if (alpacaDash.success && alpacaDash.connected) {
+                result.accounts.push({
+                    source: 'Alpaca',
+                    type: alpacaDash.environment === 'live' ? 'Brokerage (Live)' : 'Brokerage (Paper)',
+                    equity: alpacaDash.account.equity,
+                    cash: alpacaDash.account.cash,
+                    invested: alpacaDash.account.equity - alpacaDash.account.cash,
+                    positionCount: alpacaDash.positions.length
+                });
+                result.totalEquity += alpacaDash.account.equity;
+                result.totalCash += alpacaDash.account.cash;
+                result.totalInvested += (alpacaDash.account.equity - alpacaDash.account.cash);
+
+                (alpacaDash.positions || []).forEach(function(p) {
+                    result.allPositions.push({
+                        source: 'Alpaca',
+                        symbol: p.symbol,
+                        qty: p.qty,
+                        marketValue: p.marketValue,
+                        costBasis: p.costBasis,
+                        unrealizedPL: p.unrealizedPL,
+                        unrealizedPLPercent: p.unrealizedPLPercent
+                    });
+                });
+            }
+        }
+
+        // Plaid investment accounts (if connected)
+        try {
+            var plaidAccounts = getPlaidInvestmentAccounts();
+            if (plaidAccounts && plaidAccounts.success && plaidAccounts.accounts) {
+                plaidAccounts.accounts.forEach(function(acct) {
+                    result.accounts.push({
+                        source: 'Plaid',
+                        type: acct.subtype || acct.type || 'Investment',
+                        name: acct.name,
+                        equity: acct.balances ? (acct.balances.current || 0) : 0,
+                        cash: 0,
+                        invested: acct.balances ? (acct.balances.current || 0) : 0,
+                        institution: acct.institution || 'Unknown'
+                    });
+                    var acctValue = acct.balances ? (acct.balances.current || 0) : 0;
+                    result.totalEquity += acctValue;
+                    result.totalInvested += acctValue;
+                });
+            }
+        } catch (e) {
+            // Plaid investments not connected - that's fine
+        }
+
+        // Sort positions by market value
+        result.allPositions.sort(function(a, b) { return b.marketValue - a.marketValue; });
+
+        result.summary = result.accounts.length + ' accounts, $' + result.totalEquity.toLocaleString() + ' total equity';
+        return result;
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Rebalancing analysis - compare current allocation vs target
+ * @param {Object} params - optional target allocations override
+ */
+function alpacaRebalanceAnalysis(params) {
+    try {
+        var positions = getAlpacaPositions();
+        if (!positions.success) return positions;
+        var account = getAlpacaAccount();
+        if (!account.success) return account;
+
+        var totalValue = account.account.equity;
+        if (totalValue <= 0) return { success: false, error: 'No portfolio value to analyze' };
+
+        // Default target allocation (from auto-invest config or 75/25 strategy)
+        var targets = {};
+        try {
+            var configStr = PropertiesService.getScriptProperties().getProperty('ALPACA_AUTO_INVEST_CONFIG');
+            if (configStr) {
+                var config = JSON.parse(configStr);
+                (config.allocations || []).forEach(function(a) {
+                    targets[a.symbol] = a.percent;
+                });
+            }
+        } catch (e) {}
+
+        // If no config, use passed params or default
+        if (Object.keys(targets).length === 0 && params && params.targets) {
+            targets = params.targets;
+        }
+        if (Object.keys(targets).length === 0) {
+            targets = { 'VOO': 50, 'VTI': 25, 'VXUS': 25 };
+        }
+
+        // Build current allocation
+        var currentAlloc = {};
+        var cashPct = (account.account.cash / totalValue) * 100;
+        currentAlloc['CASH'] = cashPct;
+
+        (positions.positions || []).forEach(function(pos) {
+            currentAlloc[pos.symbol] = (pos.marketValue / totalValue) * 100;
+        });
+
+        // Calculate drift and recommended trades
+        var drifts = [];
+        var allSymbols = {};
+        Object.keys(targets).forEach(function(s) { allSymbols[s] = true; });
+        Object.keys(currentAlloc).forEach(function(s) { if (s !== 'CASH') allSymbols[s] = true; });
+
+        Object.keys(allSymbols).forEach(function(sym) {
+            var current = currentAlloc[sym] || 0;
+            var target = targets[sym] || 0;
+            var drift = current - target;
+            var driftDollars = (drift / 100) * totalValue;
+
+            drifts.push({
+                symbol: sym,
+                currentPct: current,
+                targetPct: target,
+                driftPct: drift,
+                driftDollars: driftDollars,
+                action: Math.abs(drift) < 2 ? 'HOLD' : (drift > 0 ? 'SELL' : 'BUY'),
+                tradeAmount: Math.abs(driftDollars)
+            });
+        });
+
+        // Sort by absolute drift
+        drifts.sort(function(a, b) { return Math.abs(b.driftPct) - Math.abs(a.driftPct); });
+
+        var needsRebalance = drifts.some(function(d) { return Math.abs(d.driftPct) >= 5; });
+
+        return {
+            success: true,
+            type: 'rebalance',
+            totalValue: totalValue,
+            cashPct: cashPct,
+            drifts: drifts,
+            needsRebalance: needsRebalance,
+            recommendation: needsRebalance
+                ? 'Portfolio has drifted >5% from targets. Consider rebalancing.'
+                : 'Portfolio is within acceptable drift tolerance (<5%).'
+        };
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
 }
 
 // =============================================================================
@@ -136298,6 +138066,205 @@ function processProduceImage(imageBase64, options) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
+// FEATURE FLAGS SYSTEM
+// Google Sheets-backed feature toggles for runtime configuration
+// Built per FEATURE_FLAGS.md research - February 2026
+// ═══════════════════════════════════════════════════════════════════════════
+
+var FEATURE_FLAGS_SHEET = 'Config_Features';
+
+/**
+ * Ensures Config_Features sheet exists with proper headers.
+ * Creates it with default flags if missing.
+ */
+function ensureFeatureFlagsSheet() {
+  var ss = SpreadsheetApp.openById('128O56X_FN9_U-s0ENHBBRyLpae_yvWHPYbBheVlR3Vc');
+  var sheet = ss.getSheetByName(FEATURE_FLAGS_SHEET);
+  if (sheet) return sheet;
+
+  sheet = ss.insertSheet(FEATURE_FLAGS_SHEET);
+  var headers = ['feature_key', 'enabled', 'roles', 'description', 'category', 'created', 'updated'];
+  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+  sheet.setFrozenRows(1);
+  sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold').setBackground('#8b5cf6').setFontColor('white');
+
+  // Seed with default flags
+  var now = new Date().toISOString().split('T')[0];
+  var defaults = [
+    ['weather_intel', true, 'all', 'Weather intelligence panel in MCC Create tab', 'marketing', now, now],
+    ['aeo_tracking', true, 'all', 'AEO/AI visibility tracking in SEO dashboard', 'seo', now, now],
+    ['seasonal_calendar', true, 'all', 'Seasonal auto-calendar content suggestions', 'marketing', now, now],
+    ['ai_captions', true, 'all', 'AI-generated captions in MCC', 'marketing', now, now],
+    ['alpaca_investments', true, 'admin', 'Alpaca trading integration', 'finance', now, now],
+    ['quickbooks_sync', true, 'admin,manager', 'QuickBooks accounting sync', 'finance', now, now],
+    ['employee_portal', true, 'admin,manager', 'Employee management and time clock', 'operations', now, now],
+    ['chef_portal', true, 'all', 'Chef ordering and wholesale portal', 'sales', now, now],
+    ['csa_portal', true, 'all', 'CSA customer portal', 'sales', now, now],
+    ['satellite_imagery', false, 'admin', 'Satellite crop monitoring (not yet active)', 'operations', now, now],
+    ['offline_mode', true, 'all', 'PWA offline support', 'system', now, now],
+    ['auto_invest', false, 'admin', 'Alpaca auto-invest DCA execution', 'finance', now, now]
+  ];
+  sheet.getRange(2, 1, defaults.length, headers.length).setValues(defaults);
+
+  // Auto-size columns
+  for (var c = 1; c <= headers.length; c++) {
+    sheet.autoResizeColumn(c);
+  }
+
+  return sheet;
+}
+
+/**
+ * getFeatureFlags - Returns all feature flags with caching.
+ * Cached for 5 minutes in CacheService to avoid repeated sheet reads.
+ */
+function getFeatureFlags() {
+  try {
+    var cache = CacheService.getScriptCache();
+    var cached = cache.get('feature_flags_v1');
+    if (cached) {
+      return { success: true, flags: JSON.parse(cached), source: 'cache' };
+    }
+
+    var sheet = ensureFeatureFlagsSheet();
+    var data = sheet.getDataRange().getValues();
+    var headers = data[0];
+    var flags = {};
+
+    for (var i = 1; i < data.length; i++) {
+      var row = data[i];
+      if (!row[0]) continue;
+      flags[row[0]] = {
+        enabled: row[1] === true || row[1] === 'TRUE' || row[1] === true,
+        roles: row[2] ? String(row[2]).split(',').map(function(r) { return r.trim(); }) : ['all'],
+        description: row[3] || '',
+        category: row[4] || 'general',
+        created: row[5] || '',
+        updated: row[6] || ''
+      };
+    }
+
+    cache.put('feature_flags_v1', JSON.stringify(flags), 300);
+    return { success: true, flags: flags, source: 'sheet', count: Object.keys(flags).length };
+
+  } catch (error) {
+    Logger.log('getFeatureFlags error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * updateFeatureFlag - Toggle a flag on/off or update its properties.
+ * @param {Object} data - { key: string, enabled?: boolean, roles?: string, description?: string, category?: string }
+ */
+function updateFeatureFlag(data) {
+  try {
+    if (!data || !data.key) return { success: false, error: 'Missing flag key' };
+
+    var sheet = ensureFeatureFlagsSheet();
+    var allData = sheet.getDataRange().getValues();
+    var rowIndex = -1;
+
+    for (var i = 1; i < allData.length; i++) {
+      if (allData[i][0] === data.key) {
+        rowIndex = i + 1;
+        break;
+      }
+    }
+
+    if (rowIndex === -1) return { success: false, error: 'Flag not found: ' + data.key };
+
+    if (data.hasOwnProperty('enabled')) {
+      sheet.getRange(rowIndex, 2).setValue(data.enabled === true || data.enabled === 'true');
+    }
+    if (data.roles) {
+      sheet.getRange(rowIndex, 3).setValue(data.roles);
+    }
+    if (data.description) {
+      sheet.getRange(rowIndex, 4).setValue(data.description);
+    }
+    if (data.category) {
+      sheet.getRange(rowIndex, 5).setValue(data.category);
+    }
+    sheet.getRange(rowIndex, 7).setValue(new Date().toISOString().split('T')[0]);
+
+    // Invalidate cache
+    CacheService.getScriptCache().remove('feature_flags_v1');
+
+    return { success: true, key: data.key, updated: true };
+
+  } catch (error) {
+    Logger.log('updateFeatureFlag error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * createFeatureFlag - Add a new feature flag.
+ * @param {Object} data - { key: string, enabled: boolean, roles: string, description: string, category: string }
+ */
+function createFeatureFlag(data) {
+  try {
+    if (!data || !data.key) return { success: false, error: 'Missing flag key' };
+
+    var sheet = ensureFeatureFlagsSheet();
+    var allData = sheet.getDataRange().getValues();
+
+    // Check for duplicate
+    for (var i = 1; i < allData.length; i++) {
+      if (allData[i][0] === data.key) return { success: false, error: 'Flag already exists: ' + data.key };
+    }
+
+    var now = new Date().toISOString().split('T')[0];
+    sheet.appendRow([
+      data.key,
+      data.enabled === true || data.enabled === 'true',
+      data.roles || 'all',
+      data.description || '',
+      data.category || 'general',
+      now,
+      now
+    ]);
+
+    CacheService.getScriptCache().remove('feature_flags_v1');
+    return { success: true, key: data.key, created: true };
+
+  } catch (error) {
+    Logger.log('createFeatureFlag error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * deleteFeatureFlag - Remove a feature flag.
+ * @param {Object} data - { key: string }
+ */
+function deleteFeatureFlag(data) {
+  try {
+    if (!data || !data.key) return { success: false, error: 'Missing flag key' };
+
+    var sheet = ensureFeatureFlagsSheet();
+    var allData = sheet.getDataRange().getValues();
+
+    for (var i = 1; i < allData.length; i++) {
+      if (allData[i][0] === data.key) {
+        sheet.deleteRow(i + 1);
+        CacheService.getScriptCache().remove('feature_flags_v1');
+        return { success: true, key: data.key, deleted: true };
+      }
+    }
+
+    return { success: false, error: 'Flag not found: ' + data.key };
+
+  } catch (error) {
+    Logger.log('deleteFeatureFlag error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+
 // SEASONAL AUTO-CALENDAR SYSTEM
 // Generates content suggestions based on seasonal farm themes and crop lifecycle
 // Built per SEASONAL_CALENDAR_RESEARCH.md - February 2026
@@ -136373,7 +138340,9 @@ function generateSeasonalCalendar(params) {
       while (usedIdeas.includes(contentIdea) && usedIdeas.length < themes.contentIdeas.length) contentIdea = themes.contentIdeas[(usedIdeas.length + i) % themes.contentIdeas.length];
       usedIdeas.push(contentIdea);
       const dateStr = String(month).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
-      const event = themes.events.find(e => e.date === dateStr);
+      const rawEvent = themes.events.find(e => e.date === dateStr);
+      // Only use event if the date is today or in the future (no Valentine's posts after Feb 14)
+      const event = (rawEvent && date >= new Date(now.getFullYear(), now.getMonth(), now.getDate())) ? rawEvent : null;
       const bestTime = dayOfWeek === 0 || dayOfWeek === 6 ? '9:00 AM' : '11:30 AM';
       calendar.push({ date: date.toISOString().split('T')[0], dayName: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][dayOfWeek], pillar: pillarInfo.pillar, pillarName: pillarInfo.name, seasonalTheme: themes.primaryTheme, contentIdea: event ? event.contentTheme : contentIdea, isEvent: !!event, eventName: event ? event.name : null, hashtags: themes.hashtags.slice(0, 3), bestTime: bestTime, platform: 'instagram', status: 'suggested' });
     }

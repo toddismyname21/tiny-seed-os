@@ -15647,13 +15647,13 @@
                 const result = await response.json();
 
                 if (result.success) {
-                    const modal = btn.closest('.modal-overlay');
-                    modal.remove();
-                    showToast('Calendar content generated! ' + (result.calendar ? result.calendar.length + ' days of content' : ''), 'success');
+                    const importModal = btn.closest('.modal-overlay');
+                    importModal.remove();
                     if (result.calendar && result.calendar.length > 0) {
                         displaySeasonalCalendarSuggestions(result);
+                    } else {
+                        showToast('No content generated. Try different settings.', 'info');
                     }
-                    await loadContentCalendar();
                 } else {
                     showToast('Error: ' + (result.error || 'Could not generate calendar'), 'error');
                     btn.disabled = false;
@@ -22889,65 +22889,253 @@ From our farm to your table with love. Every bite tells a story of dedication, h
             }
         }
 
+        // ═══════════════════════════════════════════════════════════════════════════
+        // SEASONAL CONTENT: Date Filtering + SEO Enrichment + Cherry-Pick Modal
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        /**
+         * Filter out past-date suggestions (no Valentine's after Feb 14)
+         */
+        function filterPastDateSuggestions(calendar) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            return calendar.filter(function(day) {
+                const dayDate = new Date(day.date);
+                dayDate.setHours(0, 0, 0, 0);
+
+                // Keep all future dates
+                if (dayDate >= today) return true;
+
+                // Drop past dates entirely
+                return false;
+            });
+        }
+
+        /**
+         * Map content pillar to SEO keyword category
+         */
+        function pillarToSEOCategory(pillar) {
+            const map = {
+                'product': 'farmers_market',
+                'market': 'farmers_market',
+                'education': 'farm',
+                'bts': 'farm',
+                'community': 'core_csa',
+                'reflection': 'core_csa',
+                'promotional': 'core_csa',
+                'recipe': 'farm_to_table'
+            };
+            return map[pillar] || 'farm';
+        }
+
+        /**
+         * Enrich suggestions with SEO keywords + hashtags from KeywordHashtagLibrary
+         */
+        function enrichSuggestionsWithSEO(calendar) {
+            const hasLibrary = typeof KeywordHashtagLibrary !== 'undefined';
+            if (!hasLibrary) return calendar;
+
+            const theme = KeywordHashtagLibrary.getCurrentContentTheme();
+            const season = KeywordHashtagLibrary.getCurrentSeason();
+
+            return calendar.map(function(day) {
+                const category = pillarToSEOCategory(day.pillar);
+                const seoHashtags = KeywordHashtagLibrary.buildHashtagString(category, {
+                    maxHashtags: 5,
+                    includeSeasonal: true,
+                    includePittsburgh: true
+                });
+
+                // Replace hardcoded hashtags with SEO-optimized ones
+                if (seoHashtags) {
+                    day.hashtags = seoHashtags.split(' ').filter(function(h) { return h; });
+                }
+
+                // Add monthly SEO focus keyword
+                if (theme && theme.focusKeyword) {
+                    day.seoKeyword = theme.focusKeyword;
+                }
+
+                return day;
+            });
+        }
+
+        /**
+         * Store for seasonal suggestions being reviewed
+         */
+        let pendingSeasonalSuggestions = [];
+
+        /**
+         * Display seasonal calendar suggestions with cherry-pick UI
+         */
         function displaySeasonalCalendarSuggestions(result) {
-            // Create a modal or panel to show the generated suggestions
+            // Filter out past dates and enrich with SEO
+            let calendar = result.calendar || [];
+            calendar = filterPastDateSuggestions(calendar);
+            calendar = enrichSuggestionsWithSEO(calendar);
+
+            if (calendar.length === 0) {
+                showToast('No upcoming content suggestions — all dates are in the past. Try generating for next week.', 'info');
+                return;
+            }
+
+            pendingSeasonalSuggestions = calendar;
+
             const modal = document.createElement('div');
             modal.className = 'modal-overlay active';
-            modal.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; align-items: center; justify-content: center;';
+            modal.id = 'seasonalSuggestionsModal';
+            modal.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 1rem;';
 
-            const content = `
-                <div style="background: var(--bg-card); border-radius: 16px; padding: 2rem; max-width: 800px; max-height: 80vh; overflow-y: auto; border: 1px solid var(--border);">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                        <h3 style="margin: 0;"><i class="fas fa-seedling" style="color: var(--success);"></i> Seasonal Content Generated for ${result.monthName}</h3>
-                        <button onclick="this.closest('.modal-overlay').remove()" style="background: none; border: none; color: var(--text-secondary); font-size: 1.5rem; cursor: pointer;">&times;</button>
-                    </div>
-                    <div style="background: rgba(34, 197, 94, 0.1); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
-                        <div style="font-weight: 600; color: var(--success);">${result.theme}</div>
-                        <div style="font-size: 0.85rem; color: var(--text-secondary);">${result.focus || ''}</div>
-                    </div>
-                    <div style="display: grid; gap: 0.75rem;">
-                        ${result.calendar.map(day => `
-                            <div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 8px; display: flex; justify-content: space-between; align-items: flex-start; border-left: 3px solid ${day.isEvent ? 'var(--gold)' : 'var(--success)'};">
-                                <div>
-                                    <div style="font-weight: 600; margin-bottom: 0.25rem;">${day.dayName} - ${day.date}</div>
-                                    <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.25rem;">${day.pillarName}</div>
-                                    <div style="color: var(--text-primary);">${day.contentIdea}</div>
-                                    ${day.isEvent ? `<div style="color: var(--gold); font-size: 0.8rem; margin-top: 0.25rem;"><i class="fas fa-star"></i> ${day.eventName}</div>` : ''}
-                                </div>
-                                <div style="text-align: right;">
-                                    <div style="font-size: 0.75rem; color: var(--text-secondary);">${day.bestTime}</div>
-                                    <div style="font-size: 0.7rem; margin-top: 0.25rem;">${day.hashtags.join(' ')}</div>
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                    ${result.cropReminders && result.cropReminders.length > 0 ? `
-                        <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border);">
-                            <h4 style="margin-bottom: 0.75rem;"><i class="fas fa-leaf" style="color: var(--purple);"></i> Crop Lifecycle Reminders</h4>
-                            <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
-                                ${result.cropReminders.map(r => `
-                                    <span style="background: rgba(139, 92, 246, 0.2); padding: 0.3rem 0.6rem; border-radius: 8px; font-size: 0.8rem; color: var(--purple);">
-                                        ${r.type === 'seasonal' ? r.reminder : `${r.crop}: ${r.stage} in ${r.daysUntil} days`}
-                                    </span>
-                                `).join('')}
-                            </div>
-                        </div>
-                    ` : ''}
-                    <div style="margin-top: 1.5rem; text-align: center;">
-                        <button onclick="this.closest('.modal-overlay').remove()" class="btn btn-primary" style="padding: 0.75rem 2rem;">
-                            <i class="fas fa-check"></i> Got It!
-                        </button>
-                    </div>
-                </div>
-            `;
+            let cardsHtml = calendar.map(function(day, idx) {
+                const hashtagStr = (day.hashtags || []).join(' ');
+                return '<div class="seasonal-suggestion-card" data-idx="' + idx + '" style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 10px; border-left: 4px solid ' + (day.isEvent ? 'var(--gold)' : 'var(--success)') + ';">' +
+                    '<div style="display: flex; gap: 0.75rem; align-items: flex-start;">' +
+                        '<label style="display: flex; align-items: center; cursor: pointer; padding-top: 0.25rem;">' +
+                            '<input type="checkbox" checked class="seasonal-cb" data-idx="' + idx + '" onchange="updateSeasonalCounter()" style="width: 18px; height: 18px; accent-color: var(--success); cursor: pointer;">' +
+                        '</label>' +
+                        '<div style="flex: 1; min-width: 0;">' +
+                            '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">' +
+                                '<div style="font-weight: 600; font-size: 0.9rem;">' + safeHTML(day.dayName) + ' — ' + safeHTML(day.date) + '</div>' +
+                                '<div style="display: flex; gap: 0.4rem; align-items: center;">' +
+                                    '<span style="font-size: 0.7rem; padding: 0.2rem 0.5rem; border-radius: 12px; background: rgba(34, 197, 94, 0.2); color: var(--success);">' + safeHTML(day.pillarName) + '</span>' +
+                                    '<span style="font-size: 0.7rem; color: var(--text-secondary);"><i class="fas fa-clock"></i> ' + safeHTML(day.bestTime) + '</span>' +
+                                '</div>' +
+                            '</div>' +
+                            '<textarea class="seasonal-content-edit" data-idx="' + idx + '" rows="2" style="width: 100%; padding: 0.5rem; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-primary); color: var(--text-primary); font-size: 0.85rem; resize: vertical; font-family: inherit;">' + safeHTML(day.contentIdea) + '</textarea>' +
+                            '<div style="display: flex; gap: 0.5rem; margin-top: 0.4rem; align-items: center; flex-wrap: wrap;">' +
+                                '<div style="font-size: 0.7rem; color: var(--success); flex: 1;">' + safeHTML(hashtagStr) + '</div>' +
+                                (day.seoKeyword ? '<span style="font-size: 0.65rem; padding: 0.15rem 0.4rem; border-radius: 4px; background: rgba(67, 97, 238, 0.2); color: var(--info);"><i class="fas fa-search"></i> ' + safeHTML(day.seoKeyword) + '</span>' : '') +
+                                (day.isEvent ? '<span style="font-size: 0.65rem; padding: 0.15rem 0.4rem; border-radius: 4px; background: rgba(245, 158, 11, 0.2); color: var(--gold);"><i class="fas fa-star"></i> ' + safeHTML(day.eventName || '') + '</span>' : '') +
+                            '</div>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>';
+            }).join('');
 
-            modal.innerHTML = content;
+            modal.innerHTML =
+                '<div style="background: var(--bg-card); border-radius: 16px; padding: 2rem; max-width: 750px; width: 100%; max-height: 85vh; overflow-y: auto; border: 1px solid var(--border);">' +
+                    '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">' +
+                        '<h3 style="margin: 0;"><i class="fas fa-seedling" style="color: var(--success);"></i> Seasonal Content for ' + safeHTML(result.monthName || 'This Month') + '</h3>' +
+                        '<button onclick="this.closest(\'#seasonalSuggestionsModal\').remove()" style="background: none; border: none; color: var(--text-secondary); font-size: 1.5rem; cursor: pointer;">&times;</button>' +
+                    '</div>' +
+                    '<div style="background: rgba(34, 197, 94, 0.1); padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">' +
+                        '<div>' +
+                            '<div style="font-weight: 600; color: var(--success);">' + safeHTML(result.theme || '') + '</div>' +
+                            '<div style="font-size: 0.8rem; color: var(--text-secondary);">' + safeHTML(result.focus || '') + '</div>' +
+                        '</div>' +
+                        '<div style="text-align: right;">' +
+                            '<div style="font-size: 0.8rem; color: var(--text-secondary);">SEO-optimized hashtags</div>' +
+                            '<div style="font-size: 0.7rem; color: var(--info);"><i class="fas fa-check-circle"></i> KeywordHashtagLibrary</div>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">' +
+                        '<button onclick="toggleAllSeasonal(true)" class="btn btn-sm btn-secondary"><i class="fas fa-check-double"></i> Select All</button>' +
+                        '<button onclick="toggleAllSeasonal(false)" class="btn btn-sm btn-secondary"><i class="fas fa-times"></i> Deselect All</button>' +
+                        '<span id="seasonalCounter" style="margin-left: auto; font-size: 0.85rem; color: var(--text-secondary); align-self: center;">' + calendar.length + ' of ' + calendar.length + ' selected</span>' +
+                    '</div>' +
+                    '<div style="display: grid; gap: 0.75rem;">' + cardsHtml + '</div>' +
+                    (result.cropReminders && result.cropReminders.length > 0 ?
+                        '<div style="margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--border);">' +
+                            '<div style="font-size: 0.85rem; font-weight: 600; color: var(--purple); margin-bottom: 0.5rem;"><i class="fas fa-leaf"></i> Crop Reminders</div>' +
+                            '<div style="display: flex; flex-wrap: wrap; gap: 0.4rem;">' +
+                                result.cropReminders.map(function(r) {
+                                    return '<span style="background: rgba(139, 92, 246, 0.15); padding: 0.25rem 0.5rem; border-radius: 6px; font-size: 0.75rem; color: var(--purple);">' +
+                                        (r.type === 'seasonal' ? safeHTML(r.reminder) : safeHTML(r.crop + ': ' + r.stage + ' in ' + r.daysUntil + ' days')) +
+                                    '</span>';
+                                }).join('') +
+                            '</div>' +
+                        '</div>'
+                    : '') +
+                    '<div style="display: flex; gap: 0.75rem; margin-top: 1.5rem; justify-content: flex-end;">' +
+                        '<button onclick="this.closest(\'#seasonalSuggestionsModal\').remove()" class="btn btn-secondary">Skip All</button>' +
+                        '<button onclick="addSelectedSeasonalToQueue(this)" class="btn btn-primary" style="background: linear-gradient(135deg, var(--success), var(--info));">' +
+                            '<i class="fas fa-calendar-plus"></i> Add Selected to Calendar' +
+                        '</button>' +
+                    '</div>' +
+                '</div>';
+
             document.body.appendChild(modal);
+            modal.addEventListener('click', function(e) { if (e.target === modal) modal.remove(); });
+        }
 
-            // Close on outside click
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) modal.remove();
-            });
+        function toggleAllSeasonal(checked) {
+            document.querySelectorAll('.seasonal-cb').forEach(function(cb) { cb.checked = checked; });
+            updateSeasonalCounter();
+        }
+
+        function updateSeasonalCounter() {
+            const total = document.querySelectorAll('.seasonal-cb').length;
+            const selected = document.querySelectorAll('.seasonal-cb:checked').length;
+            const counter = document.getElementById('seasonalCounter');
+            if (counter) counter.textContent = selected + ' of ' + total + ' selected';
+        }
+
+        async function addSelectedSeasonalToQueue(btn) {
+            const checkboxes = document.querySelectorAll('.seasonal-cb:checked');
+            if (checkboxes.length === 0) {
+                showToast('No suggestions selected. Check the ones you want to add.', 'warning');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding 0 of ' + checkboxes.length + '...';
+
+            let added = 0;
+            let errors = 0;
+
+            for (let i = 0; i < checkboxes.length; i++) {
+                const idx = parseInt(checkboxes[i].dataset.idx);
+                const day = pendingSeasonalSuggestions[idx];
+                if (!day) continue;
+
+                // Get edited content from textarea
+                const textarea = document.querySelector('.seasonal-content-edit[data-idx="' + idx + '"]');
+                const editedContent = textarea ? textarea.value.trim() : day.contentIdea;
+
+                // Build full content with hashtags
+                const hashtagStr = (day.hashtags || []).join(' ');
+                const fullContent = editedContent + (hashtagStr ? '\n\n' + hashtagStr : '');
+
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding ' + (i + 1) + ' of ' + checkboxes.length + '...';
+
+                try {
+                    const response = await fetch(API_URL + '?action=addToMarketingQueue', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain' },
+                        body: JSON.stringify({
+                            action: 'addToMarketingQueue',
+                            platform: day.platform || 'instagram',
+                            content: fullContent,
+                            scheduled_date: day.date + 'T' + (day.bestTime ? day.bestTime.replace(' AM', ':00').replace(' PM', ':00').replace(/^(\d):/, '0$1:') : '10:00:00'),
+                            status: 'scheduled',
+                            content_type: day.pillar || 'seasonal',
+                            source: 'seasonal_autofill'
+                        })
+                    });
+                    const result = await response.json();
+                    if (result.success) {
+                        added++;
+                    } else {
+                        errors++;
+                        console.error('Failed to add seasonal post:', result.error);
+                    }
+                } catch (err) {
+                    errors++;
+                    console.error('Error adding seasonal post:', err);
+                }
+            }
+
+            // Close modal and refresh
+            const modal = document.getElementById('seasonalSuggestionsModal');
+            if (modal) modal.remove();
+
+            if (added > 0) {
+                showToast('Added ' + added + ' posts to your content calendar!' + (errors > 0 ? ' (' + errors + ' failed)' : ''), 'success');
+                await loadContentCalendar();
+            } else {
+                showToast('Could not add posts. Check console for errors.', 'error');
+            }
         }
 
         async function generateContentForGaps() {
