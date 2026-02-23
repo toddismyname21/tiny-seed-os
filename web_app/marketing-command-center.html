@@ -40688,24 +40688,34 @@ Would you like to test posting to Threads?`;
                 );
 
                 if (!response.ok) {
-                    console.warn('[NanoBanana] Background API error:', response.status);
+                    var errText = await response.text().catch(function() { return ''; });
+                    console.warn('[NanoBanana] Background API error:', response.status, errText.substring(0, 200));
+                    showToast('AI background unavailable (API ' + response.status + ') — using enhanced texture', 'warning');
                     return null;
                 }
 
                 var data = await response.json();
-                if (!data.candidates || !data.candidates[0]) return null;
+                if (!data.candidates || !data.candidates[0]) {
+                    console.warn('[NanoBanana] Background: no candidates returned', JSON.stringify(data).substring(0, 200));
+                    showToast('AI background: no image returned — using enhanced texture', 'warning');
+                    return null;
+                }
 
                 var parts = data.candidates[0].content.parts;
                 for (var i = 0; i < parts.length; i++) {
                     if (parts[i].inlineData && parts[i].inlineData.data) {
                         var dataUrl = 'data:' + (parts[i].inlineData.mimeType || 'image/png') + ';base64,' + parts[i].inlineData.data;
                         aiBackgroundCache[bgStyle] = dataUrl;
+                        console.log('[NanoBanana] Background generated successfully for:', bgStyle);
                         return dataUrl;
                     }
                 }
+                console.warn('[NanoBanana] Background: response had no image data');
+                showToast('AI background: text-only response — using enhanced texture', 'warning');
                 return null;
             } catch(e) {
                 console.warn('[NanoBanana] Background generation failed:', e.message);
+                showToast('AI background error — using enhanced texture', 'warning');
                 return null;
             }
         }
@@ -41133,6 +41143,124 @@ Would you like to test posting to Threads?`;
             });
         }
 
+        // Draw beautiful warm background — replaces ugly tile textures
+        // Professional quality: warm gradients, subtle grain, vignette
+        function drawWarmBackground(canvas, W, H, S, bgStyle) {
+            var offW = Math.round(W * S);
+            var offH = Math.round(H * S);
+            var off = document.createElement('canvas');
+            off.width = offW;
+            off.height = offH;
+            var ctx = off.getContext('2d');
+
+            // Background colors per style
+            var colors = {
+                'burlap': { base: '#c4a35a', warm: '#d4b06a', dark: '#8a7035', grain: '#b8933e' },
+                'wooden_rustic': { base: '#6b3a1f', warm: '#8b5a3a', dark: '#3d1f0d', grain: '#7a4528' },
+                'linen_cream': { base: '#f0e8d8', warm: '#f5efe2', dark: '#d8ccb8', grain: '#e8dcc8' },
+                'marble_white': { base: '#f0f0f0', warm: '#f8f8f8', dark: '#d8d8d8', grain: '#e8e8e8' },
+                'slate_dark': { base: '#4a5568', warm: '#5a6578', dark: '#2d3748', grain: '#4a5060' }
+            };
+            var c = colors[bgStyle] || colors['burlap'];
+
+            // Rich gradient base — warm center, darker edges
+            var grad = ctx.createRadialGradient(offW * 0.5, offH * 0.45, offW * 0.15, offW * 0.5, offH * 0.5, offW * 0.9);
+            grad.addColorStop(0, c.warm);
+            grad.addColorStop(0.4, c.base);
+            grad.addColorStop(1, c.dark);
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, offW, offH);
+
+            // Subtle vertical gradient for depth (lighter top, warmer bottom)
+            var vGrad = ctx.createLinearGradient(0, 0, 0, offH);
+            vGrad.addColorStop(0, 'rgba(255,240,210,0.12)');
+            vGrad.addColorStop(0.4, 'rgba(255,240,210,0.04)');
+            vGrad.addColorStop(1, 'rgba(0,0,0,0.08)');
+            ctx.fillStyle = vGrad;
+            ctx.fillRect(0, 0, offW, offH);
+
+            // Organic grain noise — thousands of tiny specks for texture
+            var noiseCount = Math.round(offW * offH * 0.015);
+            for (var n = 0; n < noiseCount; n++) {
+                var nx = Math.random() * offW;
+                var ny = Math.random() * offH;
+                var nSize = 0.5 + Math.random() * 1.5;
+                if (Math.random() > 0.5) {
+                    ctx.fillStyle = 'rgba(255,255,255,' + (0.02 + Math.random() * 0.05) + ')';
+                } else {
+                    ctx.fillStyle = 'rgba(0,0,0,' + (0.02 + Math.random() * 0.06) + ')';
+                }
+                ctx.fillRect(nx, ny, nSize, nSize);
+            }
+
+            // Style-specific details
+            if (bgStyle === 'burlap') {
+                // Subtle horizontal fiber lines for burlap feel
+                for (var y = 0; y < offH; y += 3) {
+                    if (Math.random() > 0.4) {
+                        ctx.fillStyle = 'rgba(160,130,60,' + (0.03 + Math.random() * 0.06) + ')';
+                        ctx.fillRect(0, y, offW, 1);
+                    }
+                }
+                // Vertical fiber hints
+                for (var x = 0; x < offW; x += 4) {
+                    if (Math.random() > 0.5) {
+                        ctx.fillStyle = 'rgba(140,110,40,' + (0.02 + Math.random() * 0.04) + ')';
+                        ctx.fillRect(x, 0, 1, offH);
+                    }
+                }
+            } else if (bgStyle === 'wooden_rustic') {
+                // Flowing wood grain lines
+                for (var i = 0; i < 60; i++) {
+                    var yBase = (i / 60) * offH;
+                    var alpha = 0.04 + Math.random() * 0.08;
+                    ctx.strokeStyle = 'rgba(0,0,0,' + alpha + ')';
+                    ctx.lineWidth = 0.5 + Math.random() * 1.5;
+                    ctx.beginPath();
+                    ctx.moveTo(0, yBase);
+                    for (var gx = 0; gx < offW; gx += 15) {
+                        var wy = yBase + Math.sin(gx * 0.008 + i * 0.5) * (3 + Math.random() * 5);
+                        ctx.lineTo(gx, wy);
+                    }
+                    ctx.stroke();
+                }
+            } else if (bgStyle === 'linen_cream') {
+                // Subtle cross-hatch for linen
+                for (var ly = 0; ly < offH; ly += 5) {
+                    if (Math.random() > 0.3) {
+                        ctx.fillStyle = 'rgba(200,180,150,' + (0.03 + Math.random() * 0.05) + ')';
+                        ctx.fillRect(0, ly, offW, 1);
+                    }
+                }
+            }
+
+            // Strong vignette — darker edges for professional look
+            var vig = ctx.createRadialGradient(offW / 2, offH / 2, offW * 0.25, offW / 2, offH / 2, offW * 0.85);
+            vig.addColorStop(0, 'rgba(0,0,0,0)');
+            vig.addColorStop(0.6, 'rgba(0,0,0,0.05)');
+            vig.addColorStop(1, 'rgba(0,0,0,0.25)');
+            ctx.fillStyle = vig;
+            ctx.fillRect(0, 0, offW, offH);
+
+            // Warm light spot from top-left (studio lighting feel)
+            var light = ctx.createRadialGradient(offW * 0.3, offH * 0.2, 0, offW * 0.3, offH * 0.2, offW * 0.5);
+            light.addColorStop(0, 'rgba(255,240,200,0.08)');
+            light.addColorStop(1, 'rgba(255,240,200,0)');
+            ctx.fillStyle = light;
+            ctx.fillRect(0, 0, offW, offH);
+
+            var dataUrl = off.toDataURL('image/jpeg', 0.92);
+            canvas.backgroundColor = c.base;
+            return new Promise(function(resolve) {
+                fabric.Image.fromURL(dataUrl, function(img) {
+                    img.set({ left: 0, top: 0, selectable: false, evented: false });
+                    canvas.add(img);
+                    canvas.sendToBack(img);
+                    resolve();
+                });
+            });
+        }
+
         // Draw burlap woven texture on canvas using native 2D for realistic fabric look
         function drawBurlapTexture(canvas, W, H, S) {
             // We draw burlap onto an offscreen canvas, then add as a fabric.Image
@@ -41503,22 +41631,25 @@ Would you like to test posting to Threads?`;
                 var palette = SEASON_PALETTES[seasonKey];
 
                 // ═══════════════════════════════════════════
-                // BACKGROUND — AI-generated or procedural fallback
+                // BACKGROUND — AI-generated or warm procedural
                 // ═══════════════════════════════════════════
                 var aiBg = null;
                 if (isNanoBananaConfigured()) {
                     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating rustic background...';
-                    aiBg = await generateAIBackground(bgKey);
+                    try {
+                        aiBg = await generateAIBackground(bgKey);
+                    } catch(bgErr) {
+                        console.warn('[CSA] AI background error:', bgErr);
+                    }
                 }
 
                 if (aiBg) {
                     await addBgImageToCanvas(csaCanvas, aiBg, W, H, S);
-                } else if (bgKey === 'burlap') {
-                    await drawBurlapTexture(csaCanvas, W, H, S);
-                } else if (bgKey === 'wooden_rustic') {
-                    await drawWoodTexture(csaCanvas, W, H, S);
+                    console.log('[CSA] AI background applied for:', bgKey);
                 } else {
-                    csaCanvas.backgroundColor = BACKGROUNDS[bgKey].color;
+                    // Warm procedural background — beautiful without AI
+                    console.log('[CSA] Using procedural background for:', bgKey);
+                    await drawWarmBackground(csaCanvas, W, H, S, bgKey);
                 }
 
                 // ═══════════════════════════════════════════
