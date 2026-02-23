@@ -40551,8 +40551,7 @@ Would you like to test posting to Threads?`;
                         body: JSON.stringify({
                             contents: [{ parts: [{ text: prompt }] }],
                             generationConfig: {
-                                responseModalities: ['IMAGE', 'TEXT'],
-                                imageMimeType: 'image/png'
+                                responseModalities: ['IMAGE', 'TEXT']
                             }
                         })
                     }
@@ -40648,28 +40647,45 @@ Would you like to test posting to Threads?`;
         }
 
         // ═══════════════════════════════════════════════════════════════
-        // AI BACKGROUND GENERATION — Rustic farm surface via Gemini
-        // Session-cached (not localStorage — too large for base64)
+        // AI BACKGROUND GENERATION — Beautiful farm scene via Gemini
+        // Cached in localStorage (compressed JPEG) — generates only once
+        // Uses same API pattern as produce photos (which work)
         // ═══════════════════════════════════════════════════════════════
         var aiBackgroundCache = {};
 
         async function generateAIBackground(bgStyle) {
+            // Check in-memory cache first
             if (aiBackgroundCache[bgStyle]) return aiBackgroundCache[bgStyle];
+
+            // Check localStorage cache
+            var cacheKey = 'ai_bg_v3_' + bgStyle;
+            var cached = localStorage.getItem(cacheKey);
+            if (cached) {
+                aiBackgroundCache[bgStyle] = cached;
+                return cached;
+            }
 
             var apiKey = (typeof TINY_SEED_API !== 'undefined' && TINY_SEED_API.GEMINI_API_KEY)
                 ? TINY_SEED_API.GEMINI_API_KEY
                 : localStorage.getItem('tinyseed_gemini_key');
-            if (!apiKey) return null;
+            if (!apiKey) {
+                console.warn('[NanoBanana BG] No API key');
+                return null;
+            }
 
+            // Scene-based prompts that reliably generate images
+            // (asking for a "scene" works better than asking for just a "surface")
             var prompts = {
-                'burlap': 'Top-down flat lay photograph of a rustic burlap sack fabric surface at a farmers market, natural jute weave texture, warm golden-brown earthy tones, soft natural lighting from a window, the kind of surface you would display farm produce on, no objects on it, just the beautiful textured surface, high resolution, warm and inviting',
-                'wooden_rustic': 'Top-down flat lay photograph of weathered rustic barn wood planks, natural aged grain pattern with character marks and nail holes, warm brown tones, the kind of beautiful old wood surface at a country farm stand, no objects, just the aged wood surface, high resolution, warm lighting',
-                'linen_cream': 'Top-down flat lay photograph of natural cream linen fabric surface with gentle wrinkles, soft off-white texture like a farmhouse tablecloth, warm tones, no objects, just the beautiful fabric surface, high resolution',
-                'marble_white': 'Top-down photograph of clean white marble surface with subtle grey veining, elegant kitchen counter style, no objects, just the surface, high resolution',
-                'slate_dark': 'Top-down photograph of natural dark slate stone surface with texture variation, grey-charcoal farmhouse tones, no objects, just the stone surface, high resolution'
+                'burlap': 'Generate an image of a beautiful food photography flat-lay scene: a rustic burlap fabric draped over a weathered wooden farm table, seen from directly above. Warm golden hour lighting casting soft shadows. Small decorative touches at the edges like dried wheat stalks, a sprig of rosemary, and scattered dried lavender. Large empty center area. Cozy warm inviting farm kitchen feel. Vertical portrait orientation.',
+                'wooden_rustic': 'Generate an image of a beautiful food photography flat-lay scene: old weathered barn wood planks seen from above, with a red and white checkered cloth peeking in from one corner. Warm natural lighting. Small rustic touches like a wooden spoon at the edge and some scattered herbs. Large empty center area for food. Country farmhouse aesthetic. Vertical portrait orientation.',
+                'linen_cream': 'Generate an image of a beautiful food photography flat-lay scene: a natural cream linen tablecloth on a light wood table, seen from above. Soft morning light. Delicate touches at the edges like a few wildflowers and a vintage fork. Large empty center area. Clean, bright, farmhouse style. Vertical portrait orientation.',
+                'marble_white': 'Generate an image of a beautiful food photography flat-lay scene: a clean white marble countertop seen from above. Bright soft lighting. Minimalist with just a small olive branch at one edge. Large empty center area. Elegant and clean. Vertical portrait orientation.',
+                'slate_dark': 'Generate an image of a beautiful food photography flat-lay scene: a dark natural slate surface seen from above. Moody warm lighting from the side. A few scattered herbs and peppercorns at the edges. Large empty center area. Dark and dramatic food photography style. Vertical portrait orientation.'
             };
 
             var prompt = prompts[bgStyle] || prompts['burlap'];
+
+            console.log('[NanoBanana BG] Generating background for:', bgStyle);
 
             try {
                 var response = await fetch(
@@ -40680,42 +40696,85 @@ Would you like to test posting to Threads?`;
                         body: JSON.stringify({
                             contents: [{ parts: [{ text: prompt }] }],
                             generationConfig: {
-                                responseModalities: ['IMAGE', 'TEXT'],
-                                imageMimeType: 'image/png'
+                                responseModalities: ['IMAGE', 'TEXT']
                             }
                         })
                     }
                 );
 
+                console.log('[NanoBanana BG] Response status:', response.status);
+
                 if (!response.ok) {
-                    var errText = await response.text().catch(function() { return ''; });
-                    console.warn('[NanoBanana] Background API error:', response.status, errText.substring(0, 200));
-                    showToast('AI background unavailable (API ' + response.status + ') — using enhanced texture', 'warning');
+                    var errBody = '';
+                    try { errBody = await response.text(); } catch(e) {}
+                    console.error('[NanoBanana BG] API ERROR ' + response.status + ':', errBody.substring(0, 500));
+                    showToast('AI background: API error ' + response.status, 'error');
                     return null;
                 }
 
                 var data = await response.json();
+                console.log('[NanoBanana BG] Response keys:', Object.keys(data).join(', '));
+
                 if (!data.candidates || !data.candidates[0]) {
-                    console.warn('[NanoBanana] Background: no candidates returned', JSON.stringify(data).substring(0, 200));
-                    showToast('AI background: no image returned — using enhanced texture', 'warning');
+                    console.error('[NanoBanana BG] No candidates. Full response:', JSON.stringify(data).substring(0, 500));
+                    showToast('AI background: empty response from Gemini', 'error');
                     return null;
                 }
 
-                var parts = data.candidates[0].content.parts;
+                var candidate = data.candidates[0];
+                if (candidate.finishReason && candidate.finishReason !== 'STOP') {
+                    console.warn('[NanoBanana BG] Finish reason:', candidate.finishReason);
+                }
+
+                if (!candidate.content || !candidate.content.parts) {
+                    console.error('[NanoBanana BG] No content parts in candidate');
+                    showToast('AI background: no content in response', 'error');
+                    return null;
+                }
+
+                var parts = candidate.content.parts;
+                var imagePart = null;
                 for (var i = 0; i < parts.length; i++) {
+                    console.log('[NanoBanana BG] Part ' + i + ' type:', parts[i].text ? 'text' : parts[i].inlineData ? 'image' : 'unknown');
                     if (parts[i].inlineData && parts[i].inlineData.data) {
-                        var dataUrl = 'data:' + (parts[i].inlineData.mimeType || 'image/png') + ';base64,' + parts[i].inlineData.data;
-                        aiBackgroundCache[bgStyle] = dataUrl;
-                        console.log('[NanoBanana] Background generated successfully for:', bgStyle);
-                        return dataUrl;
+                        imagePart = parts[i].inlineData;
+                        break;
                     }
                 }
-                console.warn('[NanoBanana] Background: response had no image data');
-                showToast('AI background: text-only response — using enhanced texture', 'warning');
-                return null;
+
+                if (!imagePart) {
+                    // Log what we DID get
+                    var textParts = parts.filter(function(p) { return p.text; }).map(function(p) { return p.text.substring(0, 100); });
+                    console.error('[NanoBanana BG] No image in response. Got text:', textParts.join(' | '));
+                    showToast('AI background: Gemini returned text instead of image', 'warning');
+                    return null;
+                }
+
+                var rawUrl = 'data:' + (imagePart.mimeType || 'image/png') + ';base64,' + imagePart.data;
+
+                // Compress for localStorage (JPEG 0.7, max 800px)
+                var compressed = await compressForCache(rawUrl, 800, 0.7);
+
+                // Cache in memory
+                aiBackgroundCache[bgStyle] = compressed;
+
+                // Cache in localStorage
+                try {
+                    localStorage.setItem(cacheKey, compressed);
+                    console.log('[NanoBanana BG] Cached in localStorage:', cacheKey);
+                } catch(e) {
+                    clearOldAIProduceCache();
+                    try { localStorage.setItem(cacheKey, compressed); } catch(e2) {
+                        console.warn('[NanoBanana BG] localStorage full, using memory cache only');
+                    }
+                }
+
+                console.log('[NanoBanana BG] SUCCESS! Background ready for:', bgStyle);
+                return compressed;
+
             } catch(e) {
-                console.warn('[NanoBanana] Background generation failed:', e.message);
-                showToast('AI background error — using enhanced texture', 'warning');
+                console.error('[NanoBanana BG] FAILED:', e.message, e.stack);
+                showToast('AI background failed: ' + e.message, 'error');
                 return null;
             }
         }
