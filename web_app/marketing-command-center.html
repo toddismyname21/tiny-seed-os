@@ -12187,12 +12187,17 @@
                 <div>
                     <h2 style="margin: 0; font-size: 1.25rem;"><i class="fas fa-rocket" style="color: var(--instagram);"></i> Growth Command Center</h2>
                     <p style="margin: 0.25rem 0 0 0; color: var(--text-secondary); font-size: 0.85rem;">
-                        All platforms, followers, and growth tracking in one place
+                        Total across all platforms: <strong id="totalFollowersAll" style="color: var(--gold);">--</strong> followers
                     </p>
                 </div>
-                <button class="btn btn-primary" onclick="openFollowerCountModal()">
-                    <i class="fas fa-edit"></i> Update Counts
-                </button>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button class="btn btn-secondary" onclick="refreshGrowthData()">
+                        <i class="fas fa-sync"></i> Refresh
+                    </button>
+                    <button class="btn btn-primary" onclick="openFollowerCountModal()">
+                        <i class="fas fa-edit"></i> Update Counts
+                    </button>
+                </div>
             </div>
 
             <!-- Connected Platforms Section (from Connections tab) -->
@@ -12458,7 +12463,7 @@
                     </div>
                     <div class="stat-value" id="fbFollowers">--</div>
                     <div class="stat-label">Page Followers</div>
-                    <div class="stat-change neutral" id="fbGrowth">
+                    <div class="stat-change neutral" id="fbGrowth" onclick="switchTab('settings')" style="cursor: pointer;" title="Go to Settings to connect Facebook">
                         <i class="fas fa-sync"></i> Connect to track
                     </div>
                 </div>
@@ -12475,8 +12480,8 @@
                     </div>
                     <div class="stat-value" id="tiktokFollowers">--</div>
                     <div class="stat-label">#FarmTok potential</div>
-                    <div class="stat-change positive">
-                        <i class="fas fa-fire"></i> 5B+ views on #FarmTok
+                    <div class="stat-change positive" onclick="connectTikTok()" style="cursor: pointer;">
+                        <i class="fas fa-plug"></i> Connect TikTok
                     </div>
                 </div>
                 <div class="stat-card" style="border-left: 4px solid var(--pinterest);">
@@ -12488,8 +12493,8 @@
                     </div>
                     <div class="stat-value" id="pinterestFollowers">--</div>
                     <div class="stat-label">Monthly Views</div>
-                    <div class="stat-change positive">
-                        <i class="fas fa-search"></i> SEO Traffic Engine
+                    <div class="stat-change positive" onclick="openFollowerCountModal()" style="cursor: pointer;">
+                        <i class="fas fa-edit"></i> Update count
                     </div>
                 </div>
                 <div class="stat-card" style="border-left: 4px solid var(--youtube);">
@@ -12501,8 +12506,8 @@
                     </div>
                     <div class="stat-value" id="youtubeSubscribers">--</div>
                     <div class="stat-label">Subscribers</div>
-                    <div class="stat-change neutral">
-                        <i class="fas fa-video"></i> Shorts + Long-form
+                    <div class="stat-change neutral" onclick="openFollowerCountModal()" style="cursor: pointer;">
+                        <i class="fas fa-edit"></i> Update count
                     </div>
                 </div>
                 <div class="stat-card" style="border-left: 4px solid #000;">
@@ -12514,7 +12519,7 @@
                     </div>
                     <div class="stat-value" id="threadsFollowers">--</div>
                     <div class="stat-label">Followers</div>
-                    <div class="stat-change positive">
+                    <div class="stat-change positive" onclick="openFollowerCountModal()" style="cursor: pointer;">
                         <i class="fab fa-instagram"></i> Auto-synced from IG
                     </div>
                 </div>
@@ -24392,30 +24397,34 @@ From our farm to your table with love. Every bite tells a story of dedication, h
         }
 
         async function loadCurrentFollowerCounts() {
+            // Pre-fill from FOLLOWER_GOALS (already loaded from API)
+            var fcIg = document.getElementById('fcInstagram');
+            var fcFb = document.getElementById('fcFacebook');
+            var fcTk = document.getElementById('fcTiktok');
+            var fcYt = document.getElementById('fcYoutube');
+            var fcPi = document.getElementById('fcPinterest');
+            if (fcIg && FOLLOWER_GOALS.igFarm.current > 0) fcIg.value = FOLLOWER_GOALS.igFarm.current;
+            if (fcFb && FOLLOWER_GOALS.facebook.current > 0) fcFb.value = FOLLOWER_GOALS.facebook.current;
+            if (fcTk && FOLLOWER_GOALS.tiktok.current > 0) fcTk.value = FOLLOWER_GOALS.tiktok.current;
+            if (fcYt && FOLLOWER_GOALS.youtube.current > 0) fcYt.value = FOLLOWER_GOALS.youtube.current;
+            if (fcPi && FOLLOWER_GOALS.pinterest.current > 0) fcPi.value = FOLLOWER_GOALS.pinterest.current;
+
+            // Also try API for any additional data
             try {
-                const response = await fetch(`${API_URL}?action=getSocialConnections`);
-                const result = await response.json();
-
+                var response = await fetch(API_URL + '?action=getSocialConnections');
+                var result = await response.json();
                 if (result.success && result.connections) {
-                    result.connections.forEach(conn => {
-                        const platform = conn.Platform.toLowerCase();
-                        const followers = conn.Followers || 0;
-
-                        const inputId = {
-                            'instagram': 'fcInstagram',
-                            'facebook': 'fcFacebook',
-                            'tiktok': 'fcTiktok',
-                            'youtube': 'fcYoutube',
-                            'pinterest': 'fcPinterest'
-                        }[platform];
-
+                    result.connections.forEach(function(conn) {
+                        var platform = (conn.Platform || '').toLowerCase();
+                        var followers = conn.Followers || 0;
+                        var inputId = { 'instagram': 'fcInstagram', 'facebook': 'fcFacebook', 'tiktok': 'fcTiktok', 'youtube': 'fcYoutube', 'pinterest': 'fcPinterest' }[platform];
                         if (inputId && followers > 0) {
                             document.getElementById(inputId).value = followers;
                         }
                     });
                 }
             } catch (error) {
-                console.log('Could not load current counts:', error);
+                console.log('Could not load current counts from API:', error);
             }
         }
 
@@ -26537,6 +26546,11 @@ Would you like to test posting to Threads?`;
             if (tiktok.current > 0) connectedCount++;
             const countEl = document.getElementById('connectedPlatformsCount');
             if (countEl) countEl.textContent = connectedCount + ' Active';
+
+            // Total followers across all platforms
+            var totalAll = igFarm.current + igFleurs.current + igFungi.current + fb.current + tiktok.current + FOLLOWER_GOALS.pinterest.current + FOLLOWER_GOALS.youtube.current + FOLLOWER_GOALS.threads.current;
+            var totalEl = document.getElementById('totalFollowersAll');
+            if (totalEl) totalEl.textContent = totalAll > 0 ? totalAll.toLocaleString() : '--';
         }
 
         function openPostComposer() {
