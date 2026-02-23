@@ -67510,34 +67510,72 @@ function getSocialStats(params) {
             }
         }
 
-        // Get historical data from sheet for growth calculation
-        const data = statsSheet.getDataRange().getValues();
-        const latestByPlatform = {};
-        const weekAgoByPlatform = {};
-        const weekAgo = new Date();
+        // Auto-log current stats (max once per day per account)
+        var today = new Date().toISOString().split('T')[0];
+        var existingData = statsSheet.getDataRange().getValues();
+        var loggedToday = {};
+        for (var li = 1; li < existingData.length; li++) {
+            var logTs = existingData[li][0] ? new Date(existingData[li][0]).toISOString().split('T')[0] : '';
+            if (logTs === today) {
+                loggedToday[existingData[li][1] + '_' + existingData[li][2]] = true;
+            }
+        }
+        // Log each Instagram account if not already logged today
+        Object.keys(stats.instagram).forEach(function(name) {
+            var acct = stats.instagram[name];
+            var logKey = 'instagram_' + (acct.handle || name);
+            if (!loggedToday[logKey]) {
+                statsSheet.appendRow([
+                    new Date().toISOString(), 'instagram', acct.handle || name,
+                    acct.followers || 0, 0, acct.posts || 0, 0, 0, 0, 0
+                ]);
+            }
+        });
+
+        // Get historical data from sheet for growth calculation + time series
+        var data = statsSheet.getDataRange().getValues();
+        var latestByPlatform = {};
+        var weekAgoByPlatform = {};
+        var weekAgo = new Date();
         weekAgo.setDate(weekAgo.getDate() - 7);
 
-        for (let i = 1; i < data.length; i++) {
-            const row = data[i];
-            const timestamp = new Date(row[0]);
-            const platform = row[1];
-            const handle = row[2];
-            const followers = row[3];
-            const key = `${platform}_${handle}`;
+        // Build full history grouped by account
+        var history = {};
+
+        for (var i = 1; i < data.length; i++) {
+            var row = data[i];
+            var timestamp = new Date(row[0]);
+            var platform = row[1];
+            var handle = row[2];
+            var followers = row[3];
+            var key = platform + '_' + handle;
+
+            // Time series history
+            if (!history[key]) history[key] = [];
+            history[key].push({
+                date: timestamp.toISOString().split('T')[0],
+                followers: followers,
+                posts: row[5] || 0
+            });
 
             if (!latestByPlatform[key] || timestamp > latestByPlatform[key].timestamp) {
-                latestByPlatform[key] = { timestamp, followers, platform, handle };
+                latestByPlatform[key] = { timestamp: timestamp, followers: followers, platform: platform, handle: handle };
             }
             if (timestamp <= weekAgo && (!weekAgoByPlatform[key] || timestamp > weekAgoByPlatform[key].timestamp)) {
-                weekAgoByPlatform[key] = { timestamp, followers, platform, handle };
+                weekAgoByPlatform[key] = { timestamp: timestamp, followers: followers, platform: platform, handle: handle };
             }
         }
 
+        // Sort each history array by date
+        Object.keys(history).forEach(function(key) {
+            history[key].sort(function(a, b) { return a.date < b.date ? -1 : 1; });
+        });
+
         // Calculate growth rates
-        const growth = {};
-        Object.keys(latestByPlatform).forEach(key => {
-            const latest = latestByPlatform[key];
-            const weekAgoData = weekAgoByPlatform[key];
+        var growth = {};
+        Object.keys(latestByPlatform).forEach(function(key) {
+            var latest = latestByPlatform[key];
+            var weekAgoData = weekAgoByPlatform[key];
             if (weekAgoData && weekAgoData.followers > 0) {
                 growth[key] = {
                     current: latest.followers,
@@ -67553,7 +67591,8 @@ function getSocialStats(params) {
             timestamp: new Date().toISOString(),
             stats: stats,
             growth: growth,
-            message: accounts.length > 0 ? `Found ${accounts.length} configured Instagram accounts` : 'No Instagram accounts configured. Add accounts in Connections tab.'
+            history: history,
+            message: accounts.length > 0 ? 'Found ' + accounts.length + ' configured Instagram accounts' : 'No Instagram accounts configured. Add accounts in Connections tab.'
         };
     } catch (error) {
         Logger.log('Error getting social stats: ' + error.toString());

@@ -26196,8 +26196,8 @@ Would you like to test posting to Threads?`;
             updateWeeklyProgress();
         }
 
-        // Store full social stats for Connected Platforms cards
-        let socialStatsData = { instagram: {}, growth: {} };
+        // Store full social stats for Connected Platforms cards + history for chart
+        let socialStatsData = { instagram: {}, growth: {}, history: {} };
 
         async function loadSocialGrowthData() {
             // Try to load from API if connected
@@ -26206,9 +26206,10 @@ Would you like to test posting to Threads?`;
                 const data = await response.json();
 
                 if (data.success && data.stats) {
-                    // Store full stats + growth for Connected Platforms cards
+                    // Store full stats + growth + history for charts
                     socialStatsData.instagram = data.stats.instagram || {};
                     socialStatsData.growth = data.growth || {};
+                    socialStatsData.history = data.history || {};
 
                     // Update Instagram accounts (case-insensitive matching)
                     if (data.stats.instagram) {
@@ -26362,98 +26363,230 @@ Would you like to test posting to Threads?`;
                 growthChart.destroy();
             }
 
-            // Calculate projection data
-            const months = ['Now', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            // Build actual historical data from API history
+            const history = socialStatsData.history || {};
+            const datasets = [];
 
-            // Assuming 5% monthly growth (good benchmark)
-            const growthRate = 0.05;
-
-            const igFarmData = [FOLLOWER_GOALS.igFarm.current || 500];
-            const igFleursData = [FOLLOWER_GOALS.igFleurs.current || 300];
-            const igFungiData = [FOLLOWER_GOALS.igFungi.current || 100];
-
-            for (let i = 1; i < 12; i++) {
-                igFarmData.push(Math.round(igFarmData[i-1] * (1 + growthRate)));
-                igFleursData.push(Math.round(igFleursData[i-1] * (1 + growthRate)));
-                igFungiData.push(Math.round(igFungiData[i-1] * (1 + growthRate)));
+            // Helper: find history for an account by substring match
+            function findHistory(substr) {
+                const keys = Object.keys(history);
+                for (let i = 0; i < keys.length; i++) {
+                    if (keys[i].toLowerCase().includes(substr)) return history[keys[i]];
+                }
+                return [];
             }
 
-            growthChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: months,
-                    datasets: [
-                        {
-                            label: '@tinyseedfarm (Goal: 10K)',
-                            data: igFarmData,
-                            borderColor: '#E1306C',
-                            backgroundColor: 'rgba(225, 48, 108, 0.1)',
-                            fill: true,
-                            tension: 0.4
-                        },
-                        {
-                            label: '@tinyseedfleurs (Goal: 10K)',
-                            data: igFleursData,
-                            borderColor: '#F77737',
-                            backgroundColor: 'rgba(247, 119, 55, 0.1)',
-                            fill: true,
-                            tension: 0.4
-                        },
-                        {
-                            label: '@tinyseedfungi (Goal: 5K)',
-                            data: igFungiData,
-                            borderColor: '#833AB4',
-                            backgroundColor: 'rgba(131, 58, 180, 0.1)',
-                            fill: true,
-                            tension: 0.4
-                        },
-                        {
-                            label: '10K Goal Line',
-                            data: Array(12).fill(10000),
-                            borderColor: 'rgba(255, 215, 0, 0.5)',
-                            borderDash: [5, 5],
-                            pointRadius: 0,
-                            fill: false
-                        },
-                        {
-                            label: '5K Goal Line',
-                            data: Array(12).fill(5000),
-                            borderColor: 'rgba(255, 215, 0, 0.3)',
-                            borderDash: [5, 5],
-                            pointRadius: 0,
-                            fill: false
+            const farmHistory = findHistory('farm');
+            const fleursHistory = findHistory('fleur');
+            const fungiHistory = findHistory('fungi');
+
+            // Collect all unique dates across all accounts for x-axis
+            const allDates = new Set();
+            [farmHistory, fleursHistory, fungiHistory].forEach(function(h) {
+                h.forEach(function(pt) { allDates.add(pt.date); });
+            });
+
+            // If we have real historical data, build actual + projection chart
+            const hasHistory = allDates.size > 0;
+
+            if (hasHistory) {
+                // Sort dates chronologically
+                const sortedDates = Array.from(allDates).sort();
+
+                // Build projection: 12 months from today at 5% monthly growth
+                const projectionMonths = 12;
+                const growthRate = 0.05;
+                const today = new Date();
+                const projDates = [];
+                for (let m = 0; m < projectionMonths; m++) {
+                    const d = new Date(today.getFullYear(), today.getMonth() + m, 1);
+                    projDates.push(d.toISOString().split('T')[0].substring(0, 7)); // YYYY-MM
+                }
+
+                // Combine: actual dates + future projection dates
+                // Format actual dates as YYYY-MM for grouping by month
+                const actualMonths = {};
+                sortedDates.forEach(function(d) {
+                    const month = d.substring(0, 7);
+                    if (!actualMonths[month]) actualMonths[month] = d; // keep first
+                });
+
+                // All labels: actual months + future months (no duplicates)
+                const allMonths = Object.keys(actualMonths).sort();
+                const futureMonths = projDates.filter(function(m) { return allMonths.indexOf(m) === -1; });
+                const chartLabels = allMonths.concat(futureMonths);
+                const formattedLabels = chartLabels.map(function(m) {
+                    const parts = m.split('-');
+                    const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                    return monthNames[parseInt(parts[1]) - 1] + ' ' + parts[0].substring(2);
+                });
+
+                // Helper: get followers for a month from history (latest entry in that month)
+                function getMonthlyFollowers(histArr, month) {
+                    let latest = null;
+                    histArr.forEach(function(pt) {
+                        if (pt.date.substring(0, 7) === month) {
+                            if (!latest || pt.date > latest.date) latest = pt;
                         }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            labels: { color: '#8d99ae' }
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    return context.dataset.label + ': ' + context.raw.toLocaleString();
+                    });
+                    return latest ? latest.followers : null;
+                }
+
+                // Build each account's actual + projected data
+                const accountConfigs = [
+                    { history: farmHistory, label: '@tinyseedfarm', color: '#E1306C', bg: 'rgba(225, 48, 108, 0.15)', current: FOLLOWER_GOALS.igFarm.current, goal: 10000 },
+                    { history: fleursHistory, label: '@tinyseedfleurs', color: '#F77737', bg: 'rgba(247, 119, 55, 0.15)', current: FOLLOWER_GOALS.igFleurs.current, goal: 10000 },
+                    { history: fungiHistory, label: '@tinyseedfungi', color: '#833AB4', bg: 'rgba(131, 58, 180, 0.15)', current: FOLLOWER_GOALS.igFungi.current, goal: 5000 }
+                ];
+
+                accountConfigs.forEach(function(acct) {
+                    // Actual data line (solid, thick)
+                    const actualData = [];
+                    let lastKnown = null;
+                    allMonths.forEach(function(month) {
+                        const val = getMonthlyFollowers(acct.history, month);
+                        if (val !== null) lastKnown = val;
+                        actualData.push(val);
+                    });
+
+                    datasets.push({
+                        label: acct.label + ' (Actual)',
+                        data: actualData.concat(Array(futureMonths.length).fill(null)),
+                        borderColor: acct.color,
+                        backgroundColor: acct.bg,
+                        fill: true,
+                        tension: 0.3,
+                        borderWidth: 3,
+                        pointRadius: 4,
+                        pointBackgroundColor: acct.color
+                    });
+
+                    // Projection line (dashed, from current value forward)
+                    var projStart = lastKnown || acct.current || 100;
+                    var projData = Array(allMonths.length).fill(null);
+                    // Set last actual month as start of projection to connect the lines
+                    projData[projData.length - 1] = projStart;
+                    for (var p = 0; p < futureMonths.length; p++) {
+                        projStart = Math.round(projStart * (1 + growthRate));
+                        projData.push(projStart);
+                    }
+
+                    datasets.push({
+                        label: acct.label + ' (Projected 5%/mo)',
+                        data: projData,
+                        borderColor: acct.color,
+                        borderDash: [8, 4],
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        fill: false,
+                        tension: 0.3
+                    });
+                });
+
+                // Goal lines
+                var totalLen = chartLabels.length;
+                datasets.push({
+                    label: '10K Goal',
+                    data: Array(totalLen).fill(10000),
+                    borderColor: 'rgba(255, 215, 0, 0.5)',
+                    borderDash: [5, 5],
+                    pointRadius: 0,
+                    borderWidth: 1,
+                    fill: false
+                });
+                datasets.push({
+                    label: '5K Goal',
+                    data: Array(totalLen).fill(5000),
+                    borderColor: 'rgba(255, 215, 0, 0.3)',
+                    borderDash: [5, 5],
+                    pointRadius: 0,
+                    borderWidth: 1,
+                    fill: false
+                });
+
+                // Find max value for y-axis
+                var maxVal = 12000;
+                datasets.forEach(function(ds) {
+                    ds.data.forEach(function(v) { if (v && v > maxVal) maxVal = v; });
+                });
+
+                growthChart = new Chart(ctx, {
+                    type: 'line',
+                    data: { labels: formattedLabels, datasets: datasets },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                labels: { color: '#8d99ae', font: { size: 11 } }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        if (context.raw === null) return null;
+                                        return context.dataset.label + ': ' + context.raw.toLocaleString();
+                                    }
                                 }
                             }
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            max: 12000,
-                            grid: { color: 'rgba(255,255,255,0.1)' },
-                            ticks: { color: '#8d99ae' }
                         },
-                        x: {
-                            grid: { color: 'rgba(255,255,255,0.05)' },
-                            ticks: { color: '#8d99ae' }
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: Math.ceil(maxVal * 1.1 / 1000) * 1000,
+                                grid: { color: 'rgba(255,255,255,0.1)' },
+                                ticks: {
+                                    color: '#8d99ae',
+                                    callback: function(v) { return v >= 1000 ? (v/1000) + 'K' : v; }
+                                }
+                            },
+                            x: {
+                                grid: { color: 'rgba(255,255,255,0.05)' },
+                                ticks: { color: '#8d99ae', maxRotation: 45 }
+                            }
                         }
                     }
+                });
+            } else {
+                // No history yet — show projection-only chart from current values
+                const months = ['Now', '+1mo', '+2mo', '+3mo', '+4mo', '+5mo', '+6mo', '+7mo', '+8mo', '+9mo', '+10mo', '+11mo'];
+                const growthRate = 0.05;
+
+                const igFarmData = [FOLLOWER_GOALS.igFarm.current || 500];
+                const igFleursData = [FOLLOWER_GOALS.igFleurs.current || 300];
+                const igFungiData = [FOLLOWER_GOALS.igFungi.current || 100];
+
+                for (let i = 1; i < 12; i++) {
+                    igFarmData.push(Math.round(igFarmData[i-1] * (1 + growthRate)));
+                    igFleursData.push(Math.round(igFleursData[i-1] * (1 + growthRate)));
+                    igFungiData.push(Math.round(igFungiData[i-1] * (1 + growthRate)));
                 }
-            });
+
+                growthChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: months,
+                        datasets: [
+                            { label: '@tinyseedfarm (Projected)', data: igFarmData, borderColor: '#E1306C', backgroundColor: 'rgba(225, 48, 108, 0.1)', fill: true, tension: 0.4, borderDash: [8, 4] },
+                            { label: '@tinyseedfleurs (Projected)', data: igFleursData, borderColor: '#F77737', backgroundColor: 'rgba(247, 119, 55, 0.1)', fill: true, tension: 0.4, borderDash: [8, 4] },
+                            { label: '@tinyseedfungi (Projected)', data: igFungiData, borderColor: '#833AB4', backgroundColor: 'rgba(131, 58, 180, 0.1)', fill: true, tension: 0.4, borderDash: [8, 4] },
+                            { label: '10K Goal', data: Array(12).fill(10000), borderColor: 'rgba(255, 215, 0, 0.5)', borderDash: [5, 5], pointRadius: 0, fill: false },
+                            { label: '5K Goal', data: Array(12).fill(5000), borderColor: 'rgba(255, 215, 0, 0.3)', borderDash: [5, 5], pointRadius: 0, fill: false }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { labels: { color: '#8d99ae' } },
+                            tooltip: { callbacks: { label: function(ctx) { return ctx.dataset.label + ': ' + ctx.raw.toLocaleString(); } } }
+                        },
+                        scales: {
+                            y: { beginAtZero: true, max: 12000, grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#8d99ae', callback: function(v) { return v >= 1000 ? (v/1000) + 'K' : v; } } },
+                            x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#8d99ae' } }
+                        }
+                    }
+                });
+            }
         }
 
         function updateFollowerCount(platform, count) {
