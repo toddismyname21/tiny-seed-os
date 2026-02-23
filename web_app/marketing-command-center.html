@@ -26208,19 +26208,20 @@ Would you like to test posting to Threads?`;
                     socialStatsData.instagram = data.stats.instagram || {};
                     socialStatsData.growth = data.growth || {};
 
-                    // Update Instagram accounts
+                    // Update Instagram accounts (case-insensitive matching)
                     if (data.stats.instagram) {
-                        Object.keys(data.stats.instagram).forEach(handle => {
-                            const acct = data.stats.instagram[handle];
+                        Object.keys(data.stats.instagram).forEach(key => {
+                            const acct = data.stats.instagram[key];
                             const followers = acct.followers || 0;
                             const posts = acct.posts || 0;
-                            if (handle.includes('farm')) {
+                            const matchStr = (key + ' ' + (acct.handle || '')).toLowerCase();
+                            if (matchStr.includes('farm') && !matchStr.includes('fleur') && !matchStr.includes('fungi')) {
                                 FOLLOWER_GOALS.igFarm.current = followers;
                                 FOLLOWER_GOALS.igFarm.posts = posts;
-                            } else if (handle.includes('fleur')) {
+                            } else if (matchStr.includes('fleur')) {
                                 FOLLOWER_GOALS.igFleurs.current = followers;
                                 FOLLOWER_GOALS.igFleurs.posts = posts;
-                            } else if (handle.includes('fungi')) {
+                            } else if (matchStr.includes('fungi')) {
                                 FOLLOWER_GOALS.igFungi.current = followers;
                                 FOLLOWER_GOALS.igFungi.posts = posts;
                             }
@@ -26299,39 +26300,29 @@ Would you like to test posting to Threads?`;
             }
 
             // Instagram @tinyseedfarm - Connected Platforms card
-            if (igFarm.current > 0) {
-                setGrowthEl('igFarmFollowersGrowth', igFarm.current.toLocaleString());
-                setGrowthEl('igFarmEngagementGrowth', getGrowthRate('farm'));
-                setGrowthEl('igFarmPostsGrowth', (igFarm.posts || 0).toLocaleString());
-            }
+            setGrowthEl('igFarmFollowersGrowth', igFarm.current > 0 ? igFarm.current.toLocaleString() : '0');
+            setGrowthEl('igFarmEngagementGrowth', getGrowthRate('farm'));
+            setGrowthEl('igFarmPostsGrowth', (igFarm.posts || 0).toLocaleString());
 
             // Instagram @tinyseedfleurs - Connected Platforms card
-            if (igFleurs.current > 0) {
-                setGrowthEl('igFleursFollowersGrowth', igFleurs.current.toLocaleString());
-                setGrowthEl('igFleursEngagementGrowth', getGrowthRate('fleur'));
-                setGrowthEl('igFleursPostsGrowth', (igFleurs.posts || 0).toLocaleString());
-            }
+            setGrowthEl('igFleursFollowersGrowth', igFleurs.current > 0 ? igFleurs.current.toLocaleString() : '0');
+            setGrowthEl('igFleursEngagementGrowth', getGrowthRate('fleur'));
+            setGrowthEl('igFleursPostsGrowth', (igFleurs.posts || 0).toLocaleString());
 
             // Instagram @tinyseedfungi - Connected Platforms card
-            if (igFungi.current > 0) {
-                setGrowthEl('igFungiFollowersGrowth', igFungi.current.toLocaleString());
-                setGrowthEl('igFungiEngagementGrowth', getGrowthRate('fungi'));
-                setGrowthEl('igFungiPostsGrowth', (igFungi.posts || 0).toLocaleString());
-            }
+            setGrowthEl('igFungiFollowersGrowth', igFungi.current > 0 ? igFungi.current.toLocaleString() : '0');
+            setGrowthEl('igFungiEngagementGrowth', getGrowthRate('fungi'));
+            setGrowthEl('igFungiPostsGrowth', (igFungi.posts || 0).toLocaleString());
 
             // Facebook - Connected Platforms card
             const fb = FOLLOWER_GOALS.facebook;
-            if (fb.current > 0) {
-                setGrowthEl('fbFollowersGrowth', fb.current.toLocaleString());
-                setGrowthEl('fbEngagementGrowth', getGrowthRate('facebook'));
-                setGrowthEl('fbPostsGrowth', (fb.posts || 0).toLocaleString());
-            }
+            setGrowthEl('fbFollowersGrowth', fb.current > 0 ? fb.current.toLocaleString() : '0');
+            setGrowthEl('fbEngagementGrowth', getGrowthRate('facebook'));
+            setGrowthEl('fbPostsGrowth', (fb.posts || 0).toLocaleString());
 
             // TikTok - Connected Platforms card
             const tiktok = FOLLOWER_GOALS.tiktok;
-            if (tiktok.current > 0) {
-                setGrowthEl('tiktokFollowersGrowth', tiktok.current.toLocaleString());
-            }
+            setGrowthEl('tiktokFollowersGrowth', tiktok.current > 0 ? tiktok.current.toLocaleString() : '0');
 
             // Update connected platforms count
             let connectedCount = 0;
