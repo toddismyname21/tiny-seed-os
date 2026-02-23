@@ -16055,6 +16055,8 @@
                 refreshAnalyticsHub();
             } else if (tabId === 'growth') {
                 loadSocialGrowthData();
+                // Init chart AFTER tab is visible (Chart.js needs visible canvas)
+                setTimeout(function() { initGrowthChart(); }, 100);
             } else if (tabId === 'settings') {
                 if (typeof checkAllAPIs === 'function') checkAllAPIs();
                 if (typeof runTokenHealthCheck === 'function') runTokenHealthCheck();
@@ -26495,7 +26497,7 @@ Would you like to test posting to Threads?`;
             initCharts();
             checkForDraft();
             loadWeeklyChecklist();
-            initGrowthChart();
+            // initGrowthChart() moved to switchTab('growth') - Chart.js needs visible canvas
             initAIIntelligence();
             initAEOCard(); // Initialize AEO card as collapsed by default
             if (typeof updateCalendarWeekDisplay === 'function') {
