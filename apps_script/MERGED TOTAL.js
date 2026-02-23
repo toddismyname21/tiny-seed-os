@@ -14710,6 +14710,8 @@ function doGet(e) {
         return jsonResponse(fetchHashtagMentions(e.parameter));
       case 'fetchBrandMentions':
         return jsonResponse(fetchBrandMentions(e.parameter));
+      case 'scanBrandHashtags':
+        return jsonResponse(scanBrandHashtags(e.parameter));
       case 'getHashtagAnalytics':
         return jsonResponse(getHashtagAnalytics(e.parameter));
       case 'getCompetitorSocialActivity':
@@ -18037,6 +18039,10 @@ function doPost(e) {
         return jsonResponse(submitFarmPic(data));
       case 'approveFarmPic':
         return jsonResponse(approveFarmPic(data));
+      case 'importUGCPhoto':
+        return jsonResponse(importUGCPhoto(data));
+      case 'scanBrandHashtags':
+        return jsonResponse(scanBrandHashtags(data));
       case 'publishToSocial':
         return jsonResponse(publishToSocial(data));
       case 'schedulePost':
@@ -138552,11 +138558,11 @@ function generateSimulatedHashtagData(hashtag) {
   const now = Date.now();
   return {
     posts: [
-      { id: 'sim_' + now + '_1', author: 'local_foodie_pgh', authorHandle: '@local_foodie_pgh', caption: 'Best morning at the farmers market! Fresh tomatoes and greens from @tinyseedfarm #' + hashtag + ' #eatlocal', sentiment: 0.85, likes: 47, comments: 5, timestamp: new Date(now - 3600000).toISOString(), type: 'customer_post', platform: 'instagram' },
-      { id: 'sim_' + now + '_2', author: 'pittsburgh_eats', authorHandle: '@pittsburgh_eats', caption: 'Supporting local farms this weekend! Check out the beautiful produce #' + hashtag + ' #supportlocal', sentiment: 0.78, likes: 112, comments: 8, timestamp: new Date(now - 7200000).toISOString(), type: 'influencer_mention', platform: 'instagram' },
-      { id: 'sim_' + now + '_3', author: 'chef_sarah_412', authorHandle: '@chef_sarah_412', caption: 'Just got my CSA box delivery! Cannot wait to create with these gorgeous veggies #' + hashtag + ' #csalife', sentiment: 0.92, likes: 89, comments: 12, timestamp: new Date(now - 14400000).toISOString(), type: 'customer_post', platform: 'instagram' },
-      { id: 'sim_' + now + '_4', author: 'healthy_pgh_mom', authorHandle: '@healthy_pgh_mom', caption: 'The kids actually ate their vegetables tonight! Thanks to the fresh produce from the market #' + hashtag, sentiment: 0.88, likes: 63, comments: 7, timestamp: new Date(now - 21600000).toISOString(), type: 'customer_post', platform: 'instagram' },
-      { id: 'sim_' + now + '_5', author: 'pgh_food_blog', authorHandle: '@pgh_food_blog', caption: 'Farm-to-table dinner featuring local organic vegetables #' + hashtag + ' #farmtotable #pittsburgh', sentiment: 0.82, likes: 156, comments: 15, timestamp: new Date(now - 28800000).toISOString(), type: 'influencer_mention', platform: 'instagram' }
+      { id: 'sim_' + now + '_1', username: 'local_foodie_pgh', author: 'local_foodie_pgh', authorHandle: '@local_foodie_pgh', caption: 'Best morning at the farmers market! Fresh tomatoes and greens from @tinyseedfarm #' + hashtag + ' #eatlocal', mediaUrl: '', mediaType: 'IMAGE', sentiment: 0.85, likes: 47, comments: 5, timestamp: new Date(now - 3600000).toISOString(), type: 'customer_post', platform: 'instagram' },
+      { id: 'sim_' + now + '_2', username: 'pittsburgh_eats', author: 'pittsburgh_eats', authorHandle: '@pittsburgh_eats', caption: 'Supporting local farms this weekend! Check out the beautiful produce #' + hashtag + ' #supportlocal', mediaUrl: '', mediaType: 'IMAGE', sentiment: 0.78, likes: 112, comments: 8, timestamp: new Date(now - 7200000).toISOString(), type: 'influencer_mention', platform: 'instagram' },
+      { id: 'sim_' + now + '_3', username: 'chef_sarah_412', author: 'chef_sarah_412', authorHandle: '@chef_sarah_412', caption: 'Just got my CSA box delivery! Cannot wait to create with these gorgeous veggies #' + hashtag + ' #csalife', mediaUrl: '', mediaType: 'IMAGE', sentiment: 0.92, likes: 89, comments: 12, timestamp: new Date(now - 14400000).toISOString(), type: 'customer_post', platform: 'instagram' },
+      { id: 'sim_' + now + '_4', username: 'healthy_pgh_mom', author: 'healthy_pgh_mom', authorHandle: '@healthy_pgh_mom', caption: 'The kids actually ate their vegetables tonight! Thanks to the fresh produce from the market #' + hashtag, mediaUrl: '', mediaType: 'IMAGE', sentiment: 0.88, likes: 63, comments: 7, timestamp: new Date(now - 21600000).toISOString(), type: 'customer_post', platform: 'instagram' },
+      { id: 'sim_' + now + '_5', username: 'pgh_food_blog', author: 'pgh_food_blog', authorHandle: '@pgh_food_blog', caption: 'Farm-to-table dinner featuring local organic vegetables #' + hashtag + ' #farmtotable #pittsburgh', mediaUrl: '', mediaType: 'IMAGE', sentiment: 0.82, likes: 156, comments: 15, timestamp: new Date(now - 28800000).toISOString(), type: 'influencer_mention', platform: 'instagram' }
     ],
     count: 5, isSimulated: true, message: 'Demo data shown. Connect Instagram for live monitoring.'
   };
@@ -138579,14 +138585,183 @@ function fetchHashtagMentions(params) {
       if (hashtagData.error) return { success: true, hashtag: '#' + cleanHashtag, posts: generateSimulatedHashtagData(cleanHashtag).posts, count: 5, isSimulated: true, apiNote: 'Hashtag search requires special permissions. Showing demo data.' };
       if (!hashtagData.data || hashtagData.data.length === 0) return { success: true, hashtag: '#' + cleanHashtag, posts: [], count: 0, message: 'No hashtag found' };
       const hashtagId = hashtagData.data[0].id;
-      const mediaUrl = 'https://graph.facebook.com/v24.0/' + hashtagId + '/recent_media?user_id=' + igUserId + '&fields=id,caption,media_type,permalink,timestamp,like_count,comments_count&access_token=' + accessToken;
+      const mediaUrl = 'https://graph.facebook.com/v24.0/' + hashtagId + '/recent_media?user_id=' + igUserId + '&fields=id,caption,media_type,media_url,permalink,timestamp,like_count,comments_count,username&access_token=' + accessToken;
       const mediaResponse = UrlFetchApp.fetch(mediaUrl, { muteHttpExceptions: true });
       const mediaData = JSON.parse(mediaResponse.getContentText());
       if (mediaData.error) return { success: true, hashtag: '#' + cleanHashtag, posts: generateSimulatedHashtagData(cleanHashtag).posts, count: 5, isSimulated: true };
-      const posts = (mediaData.data || []).map(function(post) { return { id: post.id, caption: post.caption || '', mediaType: post.media_type, permalink: post.permalink, timestamp: post.timestamp, likes: post.like_count || 0, comments: post.comments_count || 0, hashtag: '#' + cleanHashtag, sentiment: analyzeSentimentQuick(post.caption || ''), platform: 'instagram' }; });
+      const posts = (mediaData.data || []).map(function(post) { return { id: post.id, caption: post.caption || '', mediaType: post.media_type, mediaUrl: post.media_url || '', permalink: post.permalink, timestamp: post.timestamp, likes: post.like_count || 0, comments: post.comments_count || 0, username: post.username || '', hashtag: '#' + cleanHashtag, sentiment: analyzeSentimentQuick(post.caption || ''), platform: 'instagram' }; });
       return { success: true, hashtag: '#' + cleanHashtag, hashtagId: hashtagId, posts: posts, count: posts.length, fetchedAt: new Date().toISOString() };
     } catch (apiError) { return { success: true, hashtag: '#' + cleanHashtag, posts: generateSimulatedHashtagData(cleanHashtag).posts, count: 5, isSimulated: true, error: apiError.toString() }; }
   } catch (error) { Logger.log('fetchHashtagMentions error: ' + error.toString()); return { success: false, error: error.toString() }; }
+}
+
+/**
+ * Scan all branded UGC hashtags in batch
+ * Returns posts from #TinySeedChef, #TinySeedCSA, #TinySeedMarket
+ */
+function scanBrandHashtags(params) {
+  try {
+    var hashtags = [
+      { tag: 'TinySeedChef', label: 'Chef Posts', icon: 'utensils' },
+      { tag: 'TinySeedCSA', label: 'CSA Customer Posts', icon: 'box-open' },
+      { tag: 'TinySeedMarket', label: 'Market Customer Posts', icon: 'store' }
+    ];
+    // Allow filtering to a single hashtag
+    if (params && params.hashtag) {
+      var cleanTag = params.hashtag.replace('#', '');
+      hashtags = hashtags.filter(function(h) { return h.tag.toLowerCase() === cleanTag.toLowerCase(); });
+    }
+
+    var allPosts = [];
+    var results = {};
+    var isSimulated = false;
+
+    for (var i = 0; i < hashtags.length; i++) {
+      var result = fetchHashtagMentions({ hashtag: '#' + hashtags[i].tag });
+      if (result.isSimulated) isSimulated = true;
+      var posts = (result.posts || []).map(function(post) {
+        post.brandHashtag = '#' + hashtags[i].tag;
+        post.hashtagLabel = hashtags[i].label;
+        post.hashtagIcon = hashtags[i].icon;
+        return post;
+      });
+      results[hashtags[i].tag] = { posts: posts, count: posts.length };
+      allPosts = allPosts.concat(posts);
+    }
+
+    // Sort all posts by timestamp descending
+    allPosts.sort(function(a, b) { return new Date(b.timestamp) - new Date(a.timestamp); });
+
+    // Check which posts are already imported to Farm Pics
+    var importedIds = getImportedUGCIds_();
+    allPosts.forEach(function(post) {
+      post.alreadyImported = importedIds.indexOf(post.id) !== -1;
+    });
+
+    return {
+      success: true,
+      posts: allPosts,
+      byHashtag: results,
+      totalCount: allPosts.length,
+      isSimulated: isSimulated,
+      scannedAt: new Date().toISOString()
+    };
+  } catch (error) {
+    Logger.log('scanBrandHashtags error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get list of already-imported UGC post IDs from MARKETING_FarmPics
+ */
+function getImportedUGCIds_() {
+  try {
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheet = ss.getSheetByName(MARKETING_SHEETS.FARM_PICS);
+    if (!sheet) return [];
+    var data = sheet.getDataRange().getValues();
+    if (data.length <= 1) return [];
+    var headers = data[0];
+    var notesCol = headers.indexOf('Notes');
+    if (notesCol === -1) return [];
+    var ids = [];
+    for (var i = 1; i < data.length; i++) {
+      var notes = String(data[i][notesCol] || '');
+      var match = notes.match(/ig_post_id:(\S+)/);
+      if (match) ids.push(match[1]);
+    }
+    return ids;
+  } catch (e) { return []; }
+}
+
+/**
+ * Import a UGC photo from Instagram into the Farm Pics library
+ * Saves the image from media_url to Google Drive + records in MARKETING_FarmPics
+ */
+function importUGCPhoto(data) {
+  try {
+    if (!data.postId) return { success: false, error: 'Missing postId' };
+
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheet = ss.getSheetByName(MARKETING_SHEETS.FARM_PICS);
+    if (!sheet) {
+      sheet = ss.insertSheet(MARKETING_SHEETS.FARM_PICS);
+      sheet.appendRow(['Pic_ID', 'Employee_ID', 'Employee_Name', 'Category', 'Caption', 'Image_URL', 'Thumbnail_URL', 'Status', 'Submitted_At', 'Approved_At', 'Approved_By', 'Used_In_Post', 'Notes']);
+    }
+
+    // Check if already imported
+    var importedIds = getImportedUGCIds_();
+    if (importedIds.indexOf(data.postId) !== -1) {
+      return { success: false, error: 'This photo has already been imported' };
+    }
+
+    var picId = 'UGC_' + Date.now();
+    var imageUrl = data.mediaUrl || '';
+    var thumbnailUrl = '';
+
+    // Try to download and save to Google Drive if we have a media URL
+    if (imageUrl && imageUrl.startsWith('http')) {
+      try {
+        var response = UrlFetchApp.fetch(imageUrl, { muteHttpExceptions: true });
+        if (response.getResponseCode() === 200) {
+          var blob = response.getBlob();
+          blob.setName(picId + '.jpg');
+          var folders = DriveApp.getFoldersByName('TinySeed_Social_Media_Images');
+          var folder = folders.hasNext() ? folders.next() : DriveApp.createFolder('TinySeed_Social_Media_Images');
+          var file = folder.createFile(blob);
+          file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+          imageUrl = 'https://drive.google.com/uc?id=' + file.getId();
+          thumbnailUrl = 'https://drive.google.com/thumbnail?id=' + file.getId() + '&sz=w400';
+        }
+      } catch (dlErr) {
+        Logger.log('UGC image download error: ' + dlErr.toString());
+        // Keep original URL as fallback
+      }
+    }
+
+    // Map hashtag to category
+    var category = 'ugc';
+    var brandHashtag = (data.brandHashtag || '').toLowerCase();
+    if (brandHashtag.indexOf('chef') !== -1) category = 'ugc_chef';
+    else if (brandHashtag.indexOf('csa') !== -1) category = 'ugc_csa';
+    else if (brandHashtag.indexOf('market') !== -1) category = 'ugc_market';
+
+    var caption = data.caption || '';
+    var username = data.username || data.authorHandle || 'unknown';
+    if (username.startsWith('@')) username = username;
+    else username = '@' + username;
+
+    // Build notes with metadata for tracking
+    var notes = 'ig_post_id:' + data.postId + ' | source:ugc_hashtag | hashtag:' + (data.brandHashtag || '') + ' | handle:' + username + ' | permalink:' + (data.permalink || '') + ' | permission:pending';
+
+    sheet.appendRow([
+      picId,
+      '',
+      username,
+      category,
+      caption.substring(0, 500),
+      imageUrl,
+      thumbnailUrl,
+      'new',
+      new Date().toISOString(),
+      '',
+      '',
+      '',
+      notes
+    ]);
+
+    return {
+      success: true,
+      picId: picId,
+      message: 'Photo from ' + username + ' imported to library!',
+      imageUrl: imageUrl,
+      category: category
+    };
+  } catch (error) {
+    Logger.log('importUGCPhoto error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
 }
 
 function generateSimulatedBrandMentions() {

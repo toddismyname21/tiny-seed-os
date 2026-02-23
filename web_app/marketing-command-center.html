@@ -9812,29 +9812,71 @@
                 </div>
             </div>
 
-            <!-- Customer Photos (UGC) - Manual Curation -->
+            <!-- Community Photos (UGC) - Hashtag Discovery + Import -->
             <div class="card ugc-section">
                 <div class="card-header">
-                    <h3><i class="fas fa-heart" style="color: var(--instagram);"></i> Customer Photos</h3>
-                    <div style="display: flex; gap: 0.5rem;">
+                    <h3><i class="fas fa-users" style="color: var(--instagram);"></i> Community Photos</h3>
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <button class="btn btn-sm btn-secondary" onclick="scanCommunityPhotos()" id="ugcScanBtn">
+                            <i class="fas fa-sync-alt"></i> Scan Hashtags
+                        </button>
                         <button class="btn btn-sm btn-primary" onclick="openAddCustomerPhotoModal()">
-                            <i class="fas fa-plus"></i> Add Customer Photo
+                            <i class="fas fa-plus"></i> Add Manually
                         </button>
                     </div>
                 </div>
                 <div class="card-body">
-                    <!-- Brand Hashtags -->
-                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; padding: 0.75rem; background: var(--bg-dark); border-radius: 8px;">
-                        <span style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 600; display: flex; align-items: center; gap: 0.25rem;"><i class="fab fa-instagram" style="color: var(--instagram);"></i> Your Hashtags:</span>
-                        <span style="background: rgba(225,48,108,0.15); color: var(--instagram); padding: 0.2rem 0.6rem; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">#TinySeedFarm</span>
-                        <span style="background: rgba(225,48,108,0.15); color: var(--instagram); padding: 0.2rem 0.6rem; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">#TinySeedFleurs</span>
-                        <span style="background: rgba(225,48,108,0.15); color: var(--instagram); padding: 0.2rem 0.6rem; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">#TinySeedFungi</span>
-                        <span style="background: rgba(225,48,108,0.15); color: var(--instagram); padding: 0.2rem 0.6rem; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">#PittsburghFarm</span>
+                    <!-- Brand Hashtag Campaign Cards -->
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; margin-bottom: 1rem;">
+                        <div onclick="filterUGCByHashtag('TinySeedChef')" style="cursor: pointer; background: linear-gradient(135deg, rgba(239,68,68,0.15), rgba(239,68,68,0.05)); border: 1px solid rgba(239,68,68,0.3); padding: 0.75rem; border-radius: 10px; text-align: center; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
+                            <i class="fas fa-utensils" style="font-size: 1.25rem; color: #ef4444; margin-bottom: 0.25rem;"></i>
+                            <div style="font-weight: 700; font-size: 0.85rem; color: var(--instagram);">#TinySeedChef</div>
+                            <div style="font-size: 0.7rem; color: var(--text-secondary);">Restaurant Partners</div>
+                            <div style="font-size: 1.1rem; font-weight: 700; margin-top: 0.25rem;" id="ugcCountChef">--</div>
+                        </div>
+                        <div onclick="filterUGCByHashtag('TinySeedCSA')" style="cursor: pointer; background: linear-gradient(135deg, rgba(34,197,94,0.15), rgba(34,197,94,0.05)); border: 1px solid rgba(34,197,94,0.3); padding: 0.75rem; border-radius: 10px; text-align: center; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
+                            <i class="fas fa-box-open" style="font-size: 1.25rem; color: #22c55e; margin-bottom: 0.25rem;"></i>
+                            <div style="font-weight: 700; font-size: 0.85rem; color: #22c55e;">#TinySeedCSA</div>
+                            <div style="font-size: 0.7rem; color: var(--text-secondary);">CSA Members</div>
+                            <div style="font-size: 1.1rem; font-weight: 700; margin-top: 0.25rem;" id="ugcCountCSA">--</div>
+                        </div>
+                        <div onclick="filterUGCByHashtag('TinySeedMarket')" style="cursor: pointer; background: linear-gradient(135deg, rgba(59,130,246,0.15), rgba(59,130,246,0.05)); border: 1px solid rgba(59,130,246,0.3); padding: 0.75rem; border-radius: 10px; text-align: center; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
+                            <i class="fas fa-store" style="font-size: 1.25rem; color: #3b82f6; margin-bottom: 0.25rem;"></i>
+                            <div style="font-weight: 700; font-size: 0.85rem; color: #3b82f6;">#TinySeedMarket</div>
+                            <div style="font-size: 0.7rem; color: var(--text-secondary);">Market Customers</div>
+                            <div style="font-size: 1.1rem; font-weight: 700; margin-top: 0.25rem;" id="ugcCountMarket">--</div>
+                        </div>
                     </div>
 
-                    <!-- UGC Gallery -->
+                    <!-- Hashtag filter pills -->
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem;">
+                        <button class="filter-btn active" onclick="filterUGCByHashtag('all', this)" id="ugcFilterAll">All</button>
+                        <button class="filter-btn" onclick="filterUGCByHashtag('TinySeedChef', this)" id="ugcFilterChef"><i class="fas fa-utensils" style="font-size: 0.7rem;"></i> Chef</button>
+                        <button class="filter-btn" onclick="filterUGCByHashtag('TinySeedCSA', this)" id="ugcFilterCSA"><i class="fas fa-box-open" style="font-size: 0.7rem;"></i> CSA</button>
+                        <button class="filter-btn" onclick="filterUGCByHashtag('TinySeedMarket', this)" id="ugcFilterMarket"><i class="fas fa-store" style="font-size: 0.7rem;"></i> Market</button>
+                        <button class="filter-btn" onclick="filterUGCByHashtag('imported', this)" id="ugcFilterImported"><i class="fas fa-check-circle" style="font-size: 0.7rem;"></i> Imported</button>
+                        <span style="margin-left: auto; font-size: 0.75rem; color: var(--text-secondary); display: flex; align-items: center; gap: 0.25rem;" id="ugcLastScan"><i class="fas fa-clock"></i> Not scanned yet</span>
+                    </div>
+
+                    <!-- Pro tip banner -->
+                    <div style="background: linear-gradient(135deg, rgba(225,48,108,0.1), rgba(139,92,246,0.1)); border: 1px solid rgba(225,48,108,0.2); border-radius: 8px; padding: 0.75rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.75rem;">
+                        <i class="fab fa-instagram" style="font-size: 1.5rem; color: var(--instagram);"></i>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; font-size: 0.85rem;">Tell your community to tag their posts!</div>
+                            <div style="font-size: 0.75rem; color: var(--text-secondary);">Chefs: <b>#TinySeedChef</b> &nbsp; CSA Members: <b>#TinySeedCSA</b> &nbsp; Market Shoppers: <b>#TinySeedMarket</b></div>
+                        </div>
+                    </div>
+
+                    <!-- UGC Discovery Feed -->
                     <div id="ugcGallery">
-                        <div id="ugcContent"></div>
+                        <div id="ugcContent">
+                            <div style="text-align: center; padding: 2.5rem; color: var(--text-secondary);">
+                                <i class="fas fa-hashtag" style="font-size: 2.5rem; opacity: 0.3; color: var(--instagram); margin-bottom: 1rem;"></i>
+                                <p style="font-weight: 600; font-size: 1rem; margin-bottom: 0.5rem;">Scan for community photos</p>
+                                <p style="font-size: 0.85rem; opacity: 0.7; margin-bottom: 1rem; max-width: 400px; margin-left: auto; margin-right: auto;">Click "Scan Hashtags" to find photos from chefs, CSA members, and market customers using your branded hashtags.</p>
+                                <button class="btn btn-sm btn-primary" onclick="scanCommunityPhotos()"><i class="fas fa-search"></i> Scan Now</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -11408,6 +11450,8 @@
                             <i class="fas fa-shopping-bag"></i> From social
                         </div>
                     </div>
+                </div><!-- End stats-grid -->
+            </div><!-- End analyticsSection-revenue -->
 
             <!-- ════════════════════════════════════════════════════════════════════════ -->
             <!-- COMPETITORS SECTION - INDUSTRY-LEADING COMPETITOR INTELLIGENCE -->
@@ -12479,7 +12523,7 @@
                         <i class="fas fa-plus"></i> Create Post
                     </button>
                 </div>
-                <div class="card-content">
+                <div class="card-body">
                     <div class="posting-timeline" id="todaySchedule">
                         <div class="timeline-slot optimal">
                             <div class="time-badge">4:00 PM</div>
@@ -12521,7 +12565,7 @@
                         <h3><i class="fas fa-tasks"></i> Weekly Content Checklist</h3>
                         <span class="badge" id="weeklyProgress">0/7</span>
                     </div>
-                    <div class="card-content">
+                    <div class="card-body">
                         <div class="content-checklist" id="weeklyChecklist">
                             <div class="checklist-item" data-type="reel">
                                 <input type="checkbox" id="reel1" onchange="updateWeeklyProgress()">
@@ -12589,7 +12633,7 @@
                         <h3><i class="fas fa-lightbulb"></i> Algorithm Coach</h3>
                         <span class="badge" style="background: var(--gold); color: #000;">TIPS</span>
                     </div>
-                    <div class="card-content" id="algorithmTips">
+                    <div class="card-body" id="algorithmTips">
                         <div class="tip-card instagram">
                             <div class="tip-header">
                                 <i class="fab fa-instagram"></i> Instagram 2025-2026
@@ -12640,7 +12684,7 @@
                         </button>
                     </div>
                 </div>
-                <div class="card-content">
+                <div class="card-body">
                     <canvas id="growthProjectionChart" height="250"></canvas>
                 </div>
             </div>
@@ -21077,56 +21121,294 @@ From our farm to your table with love. Every bite tells a story of dedication, h
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
-        // CUSTOMER PHOTOS (UGC) - Manual Curation Workflow
+        // COMMUNITY PHOTOS (UGC) - Hashtag Discovery + Import Workflow
         // ═══════════════════════════════════════════════════════════════════════════
 
-        var customerPhotosData = JSON.parse(localStorage.getItem('mcc_customer_photos') || '[]');
+        var ugcDiscoveryData = [];
+        var ugcCurrentFilter = 'all';
 
-        function renderCustomerPhotos() {
+        /**
+         * Scan branded hashtags for community photos
+         */
+        async function scanCommunityPhotos() {
             var container = document.getElementById('ugcContent');
+            var scanBtn = document.getElementById('ugcScanBtn');
             if (!container) return;
 
-            if (customerPhotosData.length === 0) {
-                container.innerHTML = '<div style="text-align: center; padding: 2.5rem; color: var(--text-secondary);">' +
-                    '<i class="fas fa-heart" style="font-size: 2.5rem; opacity: 0.3; color: var(--instagram); margin-bottom: 1rem;"></i>' +
-                    '<p style="font-weight: 600; font-size: 1rem; margin-bottom: 0.5rem;">No customer photos saved yet</p>' +
-                    '<p style="font-size: 0.85rem; opacity: 0.7; margin-bottom: 1rem; max-width: 400px; margin-left: auto; margin-right: auto;">When customers tag you on Instagram or share their farm haul, save their photos here for reposting (with credit!).</p>' +
-                    '<div style="display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap;">' +
-                        '<button class="btn btn-sm btn-primary" onclick="openAddCustomerPhotoModal()"><i class="fas fa-plus"></i> Add Customer Photo</button>' +
-                    '</div>' +
-                    '<div style="margin-top: 1.5rem; padding: 1rem; background: var(--bg-dark); border-radius: 8px; text-align: left; max-width: 400px; margin-left: auto; margin-right: auto;">' +
-                        '<div style="font-size: 0.8rem; font-weight: 600; margin-bottom: 0.5rem;"><i class="fas fa-lightbulb" style="color: var(--gold);"></i> How it works:</div>' +
-                        '<div style="font-size: 0.75rem; line-height: 1.6;">' +
-                            '1. Screenshot or save a customer\'s Instagram post<br>' +
-                            '2. Click "Add Customer Photo" above<br>' +
-                            '3. Upload the photo + add their @handle for credit<br>' +
-                            '4. Click "Use in Post" to repost with attribution' +
-                        '</div>' +
-                    '</div>' +
-                '</div>';
+            if (scanBtn) { scanBtn.disabled = true; scanBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Scanning...'; }
+            container.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-secondary);"><i class="fas fa-spinner fa-spin" style="font-size: 1.5rem;"></i><p style="margin-top: 0.5rem;">Scanning #TinySeedChef, #TinySeedCSA, #TinySeedMarket...</p></div>';
+
+            try {
+                var response = await fetch(API_URL + '?action=scanBrandHashtags');
+                var result = await response.json();
+
+                if (result.success) {
+                    ugcDiscoveryData = result.posts || [];
+                    updateUGCStats(result.byHashtag || {});
+                    renderUGCDiscoveryFeed(ugcDiscoveryData);
+                    var scanTime = document.getElementById('ugcLastScan');
+                    if (scanTime) scanTime.innerHTML = '<i class="fas fa-clock"></i> Scanned ' + new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+                    if (result.isSimulated) {
+                        showToast('Showing demo data. Connect Instagram in Settings for live hashtag scanning.', 'info');
+                    } else {
+                        showToast('Found ' + ugcDiscoveryData.length + ' community photos!', 'success');
+                    }
+                } else {
+                    container.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--danger);"><i class="fas fa-exclamation-triangle"></i> Error: ' + safeHTML(result.error || 'Unknown error') + '</div>';
+                }
+            } catch (error) {
+                console.error('scanCommunityPhotos error:', error);
+                container.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--danger);"><i class="fas fa-exclamation-triangle"></i> Error scanning hashtags: ' + safeHTML(error.message) + '</div>';
+            }
+
+            if (scanBtn) { scanBtn.disabled = false; scanBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Scan Hashtags'; }
+        }
+
+        /**
+         * Update UGC hashtag count stats
+         */
+        function updateUGCStats(byHashtag) {
+            var chefEl = document.getElementById('ugcCountChef');
+            var csaEl = document.getElementById('ugcCountCSA');
+            var marketEl = document.getElementById('ugcCountMarket');
+            if (chefEl) chefEl.textContent = (byHashtag.TinySeedChef || {}).count || 0;
+            if (csaEl) csaEl.textContent = (byHashtag.TinySeedCSA || {}).count || 0;
+            if (marketEl) marketEl.textContent = (byHashtag.TinySeedMarket || {}).count || 0;
+        }
+
+        /**
+         * Filter UGC discovery feed by hashtag
+         */
+        function filterUGCByHashtag(hashtag, btn) {
+            ugcCurrentFilter = hashtag;
+            // Update active filter button
+            var filterBtns = document.querySelectorAll('.ugc-section .filter-btn');
+            filterBtns.forEach(function(b) { b.classList.remove('active'); });
+            if (btn) btn.classList.add('active');
+            else {
+                var id = hashtag === 'all' ? 'ugcFilterAll' : hashtag === 'imported' ? 'ugcFilterImported' : 'ugcFilter' + hashtag.replace('TinySeed', '');
+                var target = document.getElementById(id);
+                if (target) target.classList.add('active');
+            }
+
+            if (ugcDiscoveryData.length === 0) {
+                scanCommunityPhotos();
                 return;
             }
 
-            container.innerHTML = '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem;">' +
-                customerPhotosData.map(function(photo) {
-                    return '<div style="background: var(--bg-light); border-radius: 12px; overflow: hidden; border: 1px solid var(--border);">' +
-                        '<div style="position: relative; aspect-ratio: 1;">' +
-                            '<img src="' + photo.imageData + '" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src=\'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22200%22%3E%3Crect fill=%22%23222%22 width=%22200%22 height=%22200%22/%3E%3Ctext fill=%22%23555%22 x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 font-size=%2212%22%3EImage error%3C/text%3E%3C/svg%3E\';">' +
-                            '<div style="position: absolute; top: 0.5rem; left: 0.5rem; background: rgba(0,0,0,0.7); padding: 0.2rem 0.5rem; border-radius: 6px; font-size: 0.7rem; display: flex; align-items: center; gap: 0.25rem;"><i class="fab fa-instagram" style="color: var(--instagram);"></i> ' + safeHTML(photo.handle || 'Unknown') + '</div>' +
-                        '</div>' +
-                        '<div style="padding: 0.75rem;">' +
-                            (photo.caption ? '<div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem; line-height: 1.4;">' + safeHTML(photo.caption).substring(0, 100) + '</div>' : '') +
-                            '<div style="font-size: 0.7rem; color: var(--text-secondary); margin-bottom: 0.5rem;"><i class="fas fa-calendar"></i> ' + (photo.addedDate || 'Recently') + '</div>' +
-                            '<div style="display: flex; gap: 0.5rem;">' +
-                                '<button class="btn btn-sm btn-primary" onclick="useCustomerPhotoInPost(\'' + photo.id + '\')" style="flex: 1; font-size: 0.75rem;"><i class="fas fa-share"></i> Use in Post</button>' +
-                                '<button class="btn btn-sm btn-secondary" onclick="deleteCustomerPhoto(\'' + photo.id + '\')" style="font-size: 0.75rem;" title="Remove"><i class="fas fa-trash"></i></button>' +
-                            '</div>' +
-                        '</div>' +
-                    '</div>';
-                }).join('') +
-            '</div>';
+            var filtered = ugcDiscoveryData;
+            if (hashtag === 'imported') {
+                filtered = ugcDiscoveryData.filter(function(p) { return p.alreadyImported; });
+            } else if (hashtag !== 'all') {
+                filtered = ugcDiscoveryData.filter(function(p) { return (p.brandHashtag || '').toLowerCase().indexOf(hashtag.toLowerCase()) !== -1; });
+            }
+            renderUGCDiscoveryFeed(filtered);
         }
 
+        /**
+         * Render UGC discovery feed with import buttons
+         */
+        function renderUGCDiscoveryFeed(posts) {
+            var container = document.getElementById('ugcContent');
+            if (!container) return;
+
+            if (!posts || posts.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-secondary);">' +
+                    '<i class="fas fa-hashtag" style="font-size: 2rem; opacity: 0.3; margin-bottom: 0.5rem;"></i>' +
+                    '<p>No photos found for this filter.</p></div>';
+                return;
+            }
+
+            var hashtagColors = { 'TinySeedChef': '#ef4444', 'TinySeedCSA': '#22c55e', 'TinySeedMarket': '#3b82f6' };
+            var hashtagIcons = { 'TinySeedChef': 'utensils', 'TinySeedCSA': 'box-open', 'TinySeedMarket': 'store' };
+
+            var html = '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem;">';
+
+            posts.forEach(function(post) {
+                var tagName = (post.brandHashtag || '#TinySeed').replace('#', '');
+                var color = hashtagColors[tagName] || 'var(--instagram)';
+                var icon = hashtagIcons[tagName] || 'hashtag';
+                var handle = safeHTML(post.username || post.authorHandle || post.author || 'unknown');
+                var displayHandle = handle.startsWith('@') ? handle : '@' + handle;
+                var caption = safeHTML((post.caption || '').substring(0, 120));
+                var timeAgo = getTimeAgo(post.timestamp);
+                var hasImage = post.mediaUrl && post.mediaUrl.startsWith('http');
+
+                html += '<div style="background: var(--bg-light); border-radius: 12px; overflow: hidden; border: 1px solid var(--border); border-top: 3px solid ' + color + ';">';
+
+                // Image area
+                if (hasImage) {
+                    html += '<div style="position: relative; aspect-ratio: 1; background: var(--bg-dark);">' +
+                        '<img src="' + safeHTML(post.mediaUrl) + '" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.parentElement.innerHTML=\'<div style=\\\'display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-secondary)\\\'><i class=\\\'fab fa-instagram\\\' style=\\\'font-size:2rem;opacity:0.3\\\'></i></div>\'">';
+                } else {
+                    html += '<div style="position: relative; aspect-ratio: 1; background: var(--bg-dark); display: flex; align-items: center; justify-content: center;">' +
+                        '<div style="text-align: center; color: var(--text-secondary);"><i class="fab fa-instagram" style="font-size: 2rem; opacity: 0.3;"></i><div style="font-size: 0.7rem; margin-top: 0.25rem;">Photo on Instagram</div></div>';
+                }
+
+                // Overlay badges
+                html += '<div style="position: absolute; top: 0.5rem; left: 0.5rem; display: flex; gap: 0.25rem; flex-wrap: wrap;">' +
+                    '<span style="background: rgba(0,0,0,0.75); backdrop-filter: blur(4px); padding: 0.2rem 0.5rem; border-radius: 6px; font-size: 0.7rem; display: flex; align-items: center; gap: 0.25rem; color: #fff;"><i class="fab fa-instagram" style="color: var(--instagram);"></i> ' + displayHandle + '</span>' +
+                    '</div>';
+
+                if (post.alreadyImported) {
+                    html += '<div style="position: absolute; top: 0.5rem; right: 0.5rem; background: rgba(34,197,94,0.9); padding: 0.2rem 0.5rem; border-radius: 6px; font-size: 0.65rem; color: #fff; font-weight: 600;"><i class="fas fa-check"></i> Imported</div>';
+                }
+
+                html += '</div>'; // close image area
+
+                // Info area
+                html += '<div style="padding: 0.75rem;">';
+
+                // Hashtag badge
+                html += '<div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">' +
+                    '<span style="background: ' + color + '20; color: ' + color + '; padding: 0.15rem 0.5rem; border-radius: 6px; font-size: 0.7rem; font-weight: 600;"><i class="fas fa-' + icon + '" style="margin-right: 0.25rem;"></i>#' + safeHTML(tagName) + '</span>' +
+                    '<span style="font-size: 0.7rem; color: var(--text-secondary);">' + timeAgo + '</span>' +
+                    '</div>';
+
+                // Caption
+                if (caption) {
+                    html += '<div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem; line-height: 1.4;">' + caption + (post.caption && post.caption.length > 120 ? '...' : '') + '</div>';
+                }
+
+                // Engagement stats
+                html += '<div style="display: flex; gap: 0.75rem; margin-bottom: 0.5rem; font-size: 0.75rem; color: var(--text-secondary);">' +
+                    '<span><i class="fas fa-heart" style="color: var(--instagram);"></i> ' + (post.likes || 0) + '</span>' +
+                    '<span><i class="fas fa-comment"></i> ' + (post.comments || 0) + '</span>' +
+                    '</div>';
+
+                // Action buttons
+                if (post.alreadyImported) {
+                    html += '<div style="display: flex; gap: 0.5rem;">' +
+                        '<button class="btn btn-sm btn-primary" onclick="useUGCInPost(\'' + safeHTML(post.id) + '\')" style="flex: 1; font-size: 0.75rem;"><i class="fas fa-share"></i> Use in Post</button>';
+                } else {
+                    html += '<div style="display: flex; gap: 0.5rem;">' +
+                        '<button class="btn btn-sm btn-primary" onclick="importUGCToLibrary(\'' + safeHTML(post.id) + '\')" style="flex: 1; font-size: 0.75rem;" id="ugcImportBtn_' + safeHTML(post.id) + '"><i class="fas fa-download"></i> Import to Library</button>';
+                }
+
+                if (post.permalink) {
+                    html += '<a href="' + safeHTML(post.permalink) + '" target="_blank" rel="noopener" class="btn btn-sm btn-secondary" style="font-size: 0.75rem;" title="View on Instagram"><i class="fab fa-instagram"></i></a>';
+                }
+                html += '</div>'; // close action buttons
+
+                html += '</div>'; // close info area
+                html += '</div>'; // close card
+            });
+
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        /**
+         * Import a UGC photo to the Farm Pics library
+         */
+        async function importUGCToLibrary(postId) {
+            var post = ugcDiscoveryData.find(function(p) { return p.id === postId; });
+            if (!post) { showToast('Photo not found', 'error'); return; }
+
+            var btn = document.getElementById('ugcImportBtn_' + postId);
+            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Importing...'; }
+
+            try {
+                var response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({
+                        action: 'importUGCPhoto',
+                        postId: post.id,
+                        mediaUrl: post.mediaUrl || '',
+                        caption: post.caption || '',
+                        username: post.username || post.authorHandle || post.author || '',
+                        permalink: post.permalink || '',
+                        brandHashtag: post.brandHashtag || '',
+                        likes: post.likes || 0,
+                        comments: post.comments || 0
+                    })
+                });
+                var result = await response.json();
+
+                if (result.success) {
+                    post.alreadyImported = true;
+                    showToast(result.message || 'Photo imported to library!', 'success');
+                    renderUGCDiscoveryFeed(getFilteredUGCPosts());
+                    // Refresh farm pics gallery too
+                    if (typeof loadFarmPics === 'function') setTimeout(loadFarmPics, 500);
+                } else {
+                    showToast(result.error || 'Import failed', 'error');
+                    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-download"></i> Import to Library'; }
+                }
+            } catch (error) {
+                console.error('importUGCToLibrary error:', error);
+                showToast('Error importing photo: ' + error.message, 'error');
+                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-download"></i> Import to Library'; }
+            }
+        }
+
+        /**
+         * Use an imported UGC photo in a new post (switches to Create tab)
+         */
+        function useUGCInPost(postId) {
+            var post = ugcDiscoveryData.find(function(p) { return p.id === postId; });
+            if (!post) return;
+
+            var handle = post.username || post.authorHandle || post.author || 'customer';
+            if (!handle.startsWith('@')) handle = '@' + handle;
+
+            switchTab('fieldmode');
+
+            // If we have a media URL, set it as the preview image
+            if (post.mediaUrl) {
+                var preview = document.getElementById('uploadPreview');
+                if (preview) { preview.src = post.mediaUrl; preview.classList.add('visible'); }
+                var uploadZoneUGC = document.getElementById('uploadZone');
+                if (uploadZoneUGC) uploadZoneUGC.classList.add('has-image');
+                var uploadIcon = document.getElementById('uploadIcon');
+                if (uploadIcon) uploadIcon.style.display = 'none';
+                var uploadText = document.getElementById('uploadText');
+                if (uploadText) uploadText.textContent = 'Community photo from ' + handle;
+                if (typeof showClearButton === 'function') showClearButton();
+            }
+
+            // Pre-fill caption with attribution
+            var captionInput = document.getElementById('captionInput');
+            if (captionInput && !captionInput.value.trim()) {
+                captionInput.value = 'Photo credit: ' + handle + ' - Thank you for sharing! ' + (post.brandHashtag || '');
+                if (typeof updateCharCount === 'function') updateCharCount();
+            }
+
+            showToast('Community photo loaded with credit to ' + handle, 'success');
+        }
+
+        /**
+         * Get filtered UGC posts based on current filter
+         */
+        function getFilteredUGCPosts() {
+            if (ugcCurrentFilter === 'all') return ugcDiscoveryData;
+            if (ugcCurrentFilter === 'imported') return ugcDiscoveryData.filter(function(p) { return p.alreadyImported; });
+            return ugcDiscoveryData.filter(function(p) { return (p.brandHashtag || '').toLowerCase().indexOf(ugcCurrentFilter.toLowerCase()) !== -1; });
+        }
+
+        /**
+         * Get human-readable time ago string
+         */
+        function getTimeAgo(timestamp) {
+            if (!timestamp) return '';
+            try {
+                var now = new Date();
+                var then = new Date(timestamp);
+                var diffMs = now - then;
+                var diffMins = Math.floor(diffMs / 60000);
+                if (diffMins < 60) return diffMins + 'm ago';
+                var diffHours = Math.floor(diffMins / 60);
+                if (diffHours < 24) return diffHours + 'h ago';
+                var diffDays = Math.floor(diffHours / 24);
+                if (diffDays < 7) return diffDays + 'd ago';
+                return then.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            } catch (e) { return ''; }
+        }
+
+        /**
+         * Manual add customer photo modal (kept for manual imports)
+         */
         function openAddCustomerPhotoModal() {
             var overlay = document.getElementById('addCustomerPhotoModal');
             if (!overlay) {
@@ -21135,11 +21417,20 @@ From our farm to your table with love. Every bite tells a story of dedication, h
                 overlay.className = 'modal-overlay';
                 overlay.onclick = function(e) { if (e.target === overlay) overlay.classList.remove('active'); };
                 overlay.innerHTML = '<div class="modal" style="max-width: 500px; width: 95%;">' +
-                    '<div class="modal-header"><h3><i class="fas fa-heart" style="color: var(--instagram);"></i> Add Customer Photo</h3><button class="modal-close" onclick="document.getElementById(\'addCustomerPhotoModal\').classList.remove(\'active\')">&times;</button></div>' +
+                    '<div class="modal-header"><h3><i class="fas fa-heart" style="color: var(--instagram);"></i> Add Customer Photo Manually</h3><button class="modal-close" onclick="document.getElementById(\'addCustomerPhotoModal\').classList.remove(\'active\')">&times;</button></div>' +
                     '<div class="modal-body" style="padding: 1.5rem;">' +
                         '<div style="margin-bottom: 1rem;">' +
                             '<label style="font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem; display: block;">Customer\'s Instagram Handle</label>' +
                             '<input type="text" id="ugcCustomerHandle" placeholder="@customer_name" style="width: 100%; background: var(--bg-dark); border: 1px solid var(--border); border-radius: 8px; padding: 0.6rem 0.75rem; color: var(--text-primary); font-size: 0.9rem;">' +
+                        '</div>' +
+                        '<div style="margin-bottom: 1rem;">' +
+                            '<label style="font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem; display: block;">Category</label>' +
+                            '<select id="ugcManualCategory" style="width: 100%; background: var(--bg-dark); border: 1px solid var(--border); border-radius: 8px; padding: 0.6rem 0.75rem; color: var(--text-primary); font-size: 0.9rem;">' +
+                                '<option value="ugc_chef">Chef / Restaurant</option>' +
+                                '<option value="ugc_csa">CSA Member</option>' +
+                                '<option value="ugc_market">Market Customer</option>' +
+                                '<option value="ugc">Other</option>' +
+                            '</select>' +
                         '</div>' +
                         '<div style="margin-bottom: 1rem;">' +
                             '<label style="font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem; display: block;">Photo</label>' +
@@ -21152,7 +21443,7 @@ From our farm to your table with love. Every bite tells a story of dedication, h
                             '<label style="font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem; display: block;">Caption / Context (optional)</label>' +
                             '<textarea id="ugcCaption" placeholder="What did the customer say? Any context..." style="width: 100%; background: var(--bg-dark); border: 1px solid var(--border); border-radius: 8px; padding: 0.6rem 0.75rem; color: var(--text-primary); font-size: 0.85rem; min-height: 60px; resize: vertical;"></textarea>' +
                         '</div>' +
-                        '<button class="btn btn-primary" onclick="saveCustomerPhoto()" style="width: 100%;"><i class="fas fa-save"></i> Save Customer Photo</button>' +
+                        '<button class="btn btn-primary" onclick="saveManualCustomerPhoto(this)" style="width: 100%;"><i class="fas fa-save"></i> Save to Library</button>' +
                     '</div>' +
                 '</div>';
                 document.body.appendChild(overlay);
@@ -21180,71 +21471,47 @@ From our farm to your table with love. Every bite tells a story of dedication, h
             reader.readAsDataURL(file);
         }
 
-        function saveCustomerPhoto() {
+        /**
+         * Save manually uploaded customer photo to Farm Pics library via API
+         */
+        async function saveManualCustomerPhoto(btn) {
             var handle = (document.getElementById('ugcCustomerHandle').value || '').trim();
             var caption = (document.getElementById('ugcCaption').value || '').trim();
+            var category = (document.getElementById('ugcManualCategory') || {}).value || 'ugc';
             var imageData = window._ugcPhotoData;
 
-            if (!imageData) {
-                showToast('Please upload a photo first', 'error');
-                return;
-            }
-            if (!handle) {
-                showToast('Please enter the customer\'s Instagram handle', 'error');
-                return;
-            }
+            if (!imageData) { showToast('Please upload a photo first', 'error'); return; }
+            if (!handle) { showToast('Please enter the customer\'s Instagram handle', 'error'); return; }
             if (!handle.startsWith('@')) handle = '@' + handle;
 
-            var photo = {
-                id: 'ugc_' + Date.now(),
-                handle: handle,
-                caption: caption,
-                imageData: imageData,
-                addedDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-                status: 'saved'
-            };
+            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...'; }
 
-            customerPhotosData.unshift(photo);
-            localStorage.setItem('mcc_customer_photos', JSON.stringify(customerPhotosData));
-            renderCustomerPhotos();
-            document.getElementById('addCustomerPhotoModal').classList.remove('active');
-            showToast('Customer photo saved! Use "Use in Post" to repost with credit.', 'success');
-        }
+            try {
+                var response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({
+                        action: 'submitFarmPic',
+                        imageData: imageData,
+                        employeeName: handle,
+                        category: category,
+                        caption: caption + ' | Manual UGC import from ' + handle
+                    })
+                });
+                var result = await response.json();
 
-        function useCustomerPhotoInPost(id) {
-            var photo = customerPhotosData.find(function(p) { return p.id === id; });
-            if (!photo) return;
-
-            // Switch to Create tab
-            switchTab('fieldmode');
-
-            // Load photo into upload preview
-            var preview = document.getElementById('uploadPreview');
-            if (preview) { preview.src = photo.imageData; preview.classList.add('visible'); }
-            var uploadZoneUGC = document.getElementById('uploadZone');
-            if (uploadZoneUGC) uploadZoneUGC.classList.add('has-image');
-            var uploadIcon = document.getElementById('uploadIcon');
-            if (uploadIcon) uploadIcon.style.display = 'none';
-            var uploadText = document.getElementById('uploadText');
-            if (uploadText) uploadText.textContent = 'Customer photo from ' + photo.handle;
-            showClearButton();
-
-            // Pre-fill caption with attribution
-            var captionInput = document.getElementById('captionInput');
-            if (captionInput && !captionInput.value.trim()) {
-                captionInput.value = (photo.caption ? photo.caption + '\n\n' : '') + 'Photo credit: ' + photo.handle + ' - Thank you for sharing!';
-                if (typeof updateCharCount === 'function') updateCharCount();
+                if (result.success) {
+                    showToast('Customer photo saved to library!', 'success');
+                    document.getElementById('addCustomerPhotoModal').classList.remove('active');
+                    if (typeof loadFarmPics === 'function') setTimeout(loadFarmPics, 500);
+                } else {
+                    showToast(result.error || 'Save failed', 'error');
+                }
+            } catch (error) {
+                showToast('Error saving photo: ' + error.message, 'error');
             }
 
-            showToast('Customer photo loaded with credit to ' + photo.handle, 'success');
-        }
-
-        function deleteCustomerPhoto(id) {
-            if (!confirm('Remove this customer photo?')) return;
-            customerPhotosData = customerPhotosData.filter(function(p) { return p.id !== id; });
-            localStorage.setItem('mcc_customer_photos', JSON.stringify(customerPhotosData));
-            renderCustomerPhotos();
-            showToast('Customer photo removed', 'success');
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> Save to Library'; }
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
@@ -24528,8 +24795,6 @@ Would you like to test posting to Threads?`;
                 }
                 renderFarmPics();
                 updateNewPicsBadge();
-                // Also render customer photos section
-                renderCustomerPhotos();
             } catch (error) {
                 console.error('Error loading farm pics:', error);
                 if (gallery) gallery.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: var(--danger);"><i class="fas fa-exclamation-triangle" style="font-size: 2rem;"></i><p style="margin-top: 1rem;">Error loading photos</p><button class="btn btn-sm btn-primary" style="margin-top: 1rem;" onclick="loadFarmPics()"><i class="fas fa-redo"></i> Retry</button></div>';
@@ -24569,7 +24834,7 @@ Would you like to test posting to Threads?`;
                         method: 'POST',
                         headers: { 'Content-Type': 'text/plain' },
                         body: JSON.stringify({
-                            action: 'uploadFarmPic',
+                            action: 'submitFarmPic',
                             imageData: base64,
                             fileName: file.name,
                             employeeName: 'Admin Upload',

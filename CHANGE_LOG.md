@@ -38,6 +38,72 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-02-22 — Growth Tab: Fix Black Page (Nesting Bug + CSS Fix)
+**Role:** Desktop_Claude
+
+### Files Modified
+- `web_app/marketing-command-center.html` — Fixed critical nesting bug + card-content CSS class
+
+### Bug Fixes
+1. **BLACK PAGE BUG (Critical):** `analyticsSection-revenue` div (line 11423) was missing 2 closing `</div>` tags. This caused the competitors section, insights section, GBP section, AND the entire Growth tab to be nested inside `analyticsSection-revenue` which has `display: none`. The Growth tab was invisible no matter what because its parent was permanently hidden. Fixed by adding the 2 missing closing tags after the revenue stats grid.
+2. **card-content → card-body (4 instances):** Growth tab used `class="card-content"` which has NO CSS definition. Changed to `class="card-body"` (which has `padding: 1.5rem`). Affected sections: Today's Posting Schedule, Weekly Content Checklist, Algorithm Coach, Growth Projection Chart.
+
+### Audit Results
+- All 13 Growth tab functions: WORKING
+- All 25 element IDs: VERIFIED
+- All 25 CSS classes: DEFINED
+- All 3 backend API actions (getSocialStats, getSocialConnections, updateFollowerCounts): EXIST
+- All 7 onclick handlers: PROPERLY WIRED
+
+---
+
+## 2026-02-22 — Community Photos: Hashtag Discovery + UGC Import System
+**Role:** Desktop_Claude
+
+### Files Modified
+- `web_app/marketing-command-center.html` — Rebuilt Customer Photos into Community Photos with Instagram hashtag discovery
+- `apps_script/MERGED TOTAL.js` — Added UGC backend: scanBrandHashtags, importUGCPhoto, fixed fetchHashtagMentions
+
+### Functions Added (Backend)
+- `scanBrandHashtags()` in `MERGED TOTAL.js` — Batch scan #TinySeedChef/#TinySeedCSA/#TinySeedMarket, returns merged posts with import status
+- `importUGCPhoto()` in `MERGED TOTAL.js` — Import Instagram photo to MARKETING_FarmPics library (downloads to Google Drive, tracks source metadata)
+- `getImportedUGCIds_()` in `MERGED TOTAL.js` — Helper to check which IG posts are already imported
+
+### Functions Modified (Backend)
+- `fetchHashtagMentions()` in `MERGED TOTAL.js` — Added `media_url`, `username` fields to API request + post mapping
+- `generateSimulatedHashtagData()` in `MERGED TOTAL.js` — Added `mediaUrl`, `username`, `mediaType` to demo data
+
+### Functions Added (Frontend)
+- `scanCommunityPhotos()` — Calls scanBrandHashtags API, renders discovery feed
+- `renderUGCDiscoveryFeed()` — Grid of community photo cards with import buttons, hashtag badges, engagement stats
+- `filterUGCByHashtag()` — Filter by #TinySeedChef/#TinySeedCSA/#TinySeedMarket/imported/all
+- `importUGCToLibrary()` — Import single UGC photo to Farm Pics library via importUGCPhoto API
+- `useUGCInPost()` — Load imported UGC photo into Create tab with attribution
+- `saveManualCustomerPhoto()` — Manual upload to Farm Pics library via submitFarmPic API (replaces localStorage)
+- `updateUGCStats()` — Update per-hashtag count displays
+- `getFilteredUGCPosts()` — Get posts matching current filter
+- `getTimeAgo()` — Human-readable relative timestamps
+
+### Functions Removed (Frontend)
+- `renderCustomerPhotos()` — Replaced by renderUGCDiscoveryFeed (was localStorage-only)
+- `saveCustomerPhoto()` — Replaced by saveManualCustomerPhoto (now saves to API, not localStorage)
+- `useCustomerPhotoInPost()` — Replaced by useUGCInPost
+- `deleteCustomerPhoto()` — No longer needed (photos managed in Farm Pics library)
+
+### Bug Fixes
+- Fixed `handlePhotosTabUpload()` calling `action: 'uploadFarmPic'` (doesn't exist) → changed to `submitFarmPic`
+- Route entries added for `scanBrandHashtags` (GET+POST) and `importUGCPhoto` (POST)
+
+### Reason
+Todd wants chefs (#TinySeedChef), CSA customers (#TinySeedCSA), and market customers (#TinySeedMarket) to use branded hashtags. Photos using these hashtags auto-discover into the MCC Photos tab and can be imported to the library for social media campaigns. Replaces the old manual screenshot-based localStorage system.
+
+### Duplicate Check
+- [x] No existing hashtag discovery system in MCC
+- [x] Reuses existing submitFarmPic and MARKETING_FarmPics infrastructure
+- [x] Reuses existing fetchHashtagMentions (enhanced, not duplicated)
+
+---
+
 ## 2026-02-22 — Seasonal Auto-Fill: Smart, Actionable, SEO-Integrated
 **Role:** Desktop_Claude
 
