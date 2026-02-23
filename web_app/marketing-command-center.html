@@ -26146,14 +26146,14 @@ Would you like to test posting to Threads?`;
 
         // Follower goals
         const FOLLOWER_GOALS = {
-            igFarm: { current: 0, goal: 10000, handle: '@tinyseedfarm' },
-            igFleurs: { current: 0, goal: 10000, handle: '@tinyseedfleurs' },
-            igFungi: { current: 0, goal: 5000, handle: '@tinyseedfungi' },
-            facebook: { current: 0, goal: 5000, handle: 'Tiny Seed Farm' },
-            tiktok: { current: 0, goal: 10000, handle: '@tinyseedfarm' },
-            pinterest: { current: 0, goal: 1000, handle: 'Tiny Seed' },
-            youtube: { current: 0, goal: 1000, handle: 'Tiny Seed Farm' },
-            threads: { current: 0, goal: 5000, handle: '@tinyseedfarm' }
+            igFarm: { current: 0, goal: 10000, posts: 0, handle: '@tinyseedfarm' },
+            igFleurs: { current: 0, goal: 10000, posts: 0, handle: '@tinyseedfleurs' },
+            igFungi: { current: 0, goal: 5000, posts: 0, handle: '@tinyseedfungi' },
+            facebook: { current: 0, goal: 5000, posts: 0, handle: 'Tiny Seed Farm' },
+            tiktok: { current: 0, goal: 10000, posts: 0, handle: '@tinyseedfarm' },
+            pinterest: { current: 0, goal: 1000, posts: 0, handle: 'Tiny Seed' },
+            youtube: { current: 0, goal: 1000, posts: 0, handle: 'Tiny Seed Farm' },
+            threads: { current: 0, goal: 5000, posts: 0, handle: '@tinyseedfarm' }
         };
 
         // Weekly checklist progress stored in localStorage
@@ -26194,6 +26194,9 @@ Would you like to test posting to Threads?`;
             updateWeeklyProgress();
         }
 
+        // Store full social stats for Connected Platforms cards
+        let socialStatsData = { instagram: {}, growth: {} };
+
         async function loadSocialGrowthData() {
             // Try to load from API if connected
             try {
@@ -26201,19 +26204,36 @@ Would you like to test posting to Threads?`;
                 const data = await response.json();
 
                 if (data.success && data.stats) {
+                    // Store full stats + growth for Connected Platforms cards
+                    socialStatsData.instagram = data.stats.instagram || {};
+                    socialStatsData.growth = data.growth || {};
+
                     // Update Instagram accounts
                     if (data.stats.instagram) {
                         Object.keys(data.stats.instagram).forEach(handle => {
-                            const followers = data.stats.instagram[handle].followers || 0;
+                            const acct = data.stats.instagram[handle];
+                            const followers = acct.followers || 0;
+                            const posts = acct.posts || 0;
                             if (handle.includes('farm')) {
                                 FOLLOWER_GOALS.igFarm.current = followers;
+                                FOLLOWER_GOALS.igFarm.posts = posts;
                             } else if (handle.includes('fleur')) {
                                 FOLLOWER_GOALS.igFleurs.current = followers;
+                                FOLLOWER_GOALS.igFleurs.posts = posts;
                             } else if (handle.includes('fungi')) {
                                 FOLLOWER_GOALS.igFungi.current = followers;
+                                FOLLOWER_GOALS.igFungi.posts = posts;
                             }
                         });
                     }
+
+                    // Update Facebook if available
+                    if (data.stats.facebook && Object.keys(data.stats.facebook).length > 0) {
+                        const fbKey = Object.keys(data.stats.facebook)[0];
+                        FOLLOWER_GOALS.facebook.current = data.stats.facebook[fbKey].followers || 0;
+                        FOLLOWER_GOALS.facebook.posts = data.stats.facebook[fbKey].posts || 0;
+                    }
+
                     updateGrowthDisplays();
                 }
             } catch (error) {
@@ -26259,6 +26279,69 @@ Would you like to test posting to Threads?`;
             document.getElementById('pinterestFollowers').textContent = FOLLOWER_GOALS.pinterest.current.toLocaleString() || '--';
             document.getElementById('youtubeSubscribers').textContent = FOLLOWER_GOALS.youtube.current.toLocaleString() || '--';
             document.getElementById('threadsFollowers').textContent = FOLLOWER_GOALS.threads.current.toLocaleString() || '--';
+
+            // === Connected Platforms Cards (Growth Tab) ===
+            // Helper to safely set text
+            function setGrowthEl(id, value) {
+                const el = document.getElementById(id);
+                if (el) el.textContent = value;
+            }
+
+            // Find growth rate for a handle
+            function getGrowthRate(handleSubstr) {
+                const keys = Object.keys(socialStatsData.growth || {});
+                for (let i = 0; i < keys.length; i++) {
+                    if (keys[i].toLowerCase().includes(handleSubstr)) {
+                        return socialStatsData.growth[keys[i]].growthRate || '--';
+                    }
+                }
+                return '--';
+            }
+
+            // Instagram @tinyseedfarm - Connected Platforms card
+            if (igFarm.current > 0) {
+                setGrowthEl('igFarmFollowersGrowth', igFarm.current.toLocaleString());
+                setGrowthEl('igFarmEngagementGrowth', getGrowthRate('farm'));
+                setGrowthEl('igFarmPostsGrowth', (igFarm.posts || 0).toLocaleString());
+            }
+
+            // Instagram @tinyseedfleurs - Connected Platforms card
+            if (igFleurs.current > 0) {
+                setGrowthEl('igFleursFollowersGrowth', igFleurs.current.toLocaleString());
+                setGrowthEl('igFleursEngagementGrowth', getGrowthRate('fleur'));
+                setGrowthEl('igFleursPostsGrowth', (igFleurs.posts || 0).toLocaleString());
+            }
+
+            // Instagram @tinyseedfungi - Connected Platforms card
+            if (igFungi.current > 0) {
+                setGrowthEl('igFungiFollowersGrowth', igFungi.current.toLocaleString());
+                setGrowthEl('igFungiEngagementGrowth', getGrowthRate('fungi'));
+                setGrowthEl('igFungiPostsGrowth', (igFungi.posts || 0).toLocaleString());
+            }
+
+            // Facebook - Connected Platforms card
+            const fb = FOLLOWER_GOALS.facebook;
+            if (fb.current > 0) {
+                setGrowthEl('fbFollowersGrowth', fb.current.toLocaleString());
+                setGrowthEl('fbEngagementGrowth', getGrowthRate('facebook'));
+                setGrowthEl('fbPostsGrowth', (fb.posts || 0).toLocaleString());
+            }
+
+            // TikTok - Connected Platforms card
+            const tiktok = FOLLOWER_GOALS.tiktok;
+            if (tiktok.current > 0) {
+                setGrowthEl('tiktokFollowersGrowth', tiktok.current.toLocaleString());
+            }
+
+            // Update connected platforms count
+            let connectedCount = 0;
+            if (igFarm.current > 0) connectedCount++;
+            if (igFleurs.current > 0) connectedCount++;
+            if (igFungi.current > 0) connectedCount++;
+            if (fb.current > 0) connectedCount++;
+            if (tiktok.current > 0) connectedCount++;
+            const countEl = document.getElementById('connectedPlatformsCount');
+            if (countEl) countEl.textContent = connectedCount + ' Active';
         }
 
         function openPostComposer() {
