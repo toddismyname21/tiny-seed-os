@@ -1754,6 +1754,205 @@
             cursor: not-allowed;
         }
 
+        /* ========================================
+           YIELD LOGGING
+           ======================================== */
+        .yield-variance {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 16px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            margin-top: 8px;
+        }
+
+        .yield-variance.good {
+            background: var(--success-bg);
+            color: var(--success);
+        }
+
+        .yield-variance.warning {
+            background: var(--warning-bg);
+            color: var(--warning);
+        }
+
+        .yield-variance.danger {
+            background: var(--danger-bg);
+            color: var(--danger);
+        }
+
+        .yield-planned-info {
+            background: var(--bg-elevated);
+            border-radius: 10px;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .yield-planned-info .planned-value {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .yield-grade-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .yield-grade-grid .form-group {
+            margin-bottom: 0;
+        }
+
+        .yield-grade-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .yield-grade-label .grade-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .grade-dot.grade-a { background: var(--success); }
+        .grade-dot.grade-b { background: var(--info); }
+        .grade-dot.grade-c { background: var(--warning); }
+        .grade-dot.grade-cull { background: var(--danger); }
+
+        .yield-sum-warning {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            border-radius: 10px;
+            background: var(--warning-bg);
+            color: var(--warning);
+            font-size: 0.85rem;
+            margin-top: 8px;
+        }
+
+        .yield-sum-warning.visible {
+            display: flex;
+        }
+
+        .yield-sum-match {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            border-radius: 10px;
+            background: var(--success-bg);
+            color: var(--success);
+            font-size: 0.85rem;
+            margin-top: 8px;
+        }
+
+        .yield-sum-match.visible {
+            display: flex;
+        }
+
+        /* ========================================
+           DIRECT SOW CONFIRMATION
+           ======================================== */
+        .soil-condition-btns {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .soil-btn {
+            flex: 1;
+            min-width: 70px;
+            height: var(--touch-min);
+            border-radius: 10px;
+            border: 2px solid var(--border);
+            background: var(--bg-dark);
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+
+        .soil-btn.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        .soil-btn:active {
+            transform: scale(0.97);
+        }
+
+        .sow-success-animation {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 9999;
+            background: rgba(0, 0, 0, 0.7);
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+
+        .sow-success-animation.visible {
+            display: flex;
+        }
+
+        .sow-success-check {
+            width: 100px;
+            height: 100px;
+            background: var(--success);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: sowSuccessPop 0.5s ease-out;
+        }
+
+        .sow-success-check i {
+            font-size: 48px;
+            color: white;
+        }
+
+        .sow-success-text {
+            color: white;
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-top: 16px;
+            animation: sowSuccessFadeIn 0.5s ease-out 0.3s both;
+        }
+
+        @keyframes sowSuccessPop {
+            0% { transform: scale(0); opacity: 0; }
+            70% { transform: scale(1.2); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes sowSuccessFadeIn {
+            0% { opacity: 0; transform: translateY(10px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
         .recent-harvests {
             margin-top: 20px;
         }
@@ -10066,6 +10265,28 @@
                         <i class="fas fa-chevron-right"></i>
                     </div>
 
+                    <div class="more-item" onclick="openYieldLog()">
+                        <div class="more-item-icon" style="background: linear-gradient(135deg, #16a34a, #15803d);">
+                            <i class="fas fa-weight-scale"></i>
+                        </div>
+                        <div class="more-item-text">
+                            <h3>Yield Logging</h3>
+                            <p>Record actual yield vs planned per batch</p>
+                        </div>
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+
+                    <div class="more-item" onclick="openDirectSow()">
+                        <div class="more-item-icon" style="background: linear-gradient(135deg, #b45309, #92400e);">
+                            <i class="fas fa-seedling"></i>
+                        </div>
+                        <div class="more-item-text">
+                            <h3>Log Direct Sow</h3>
+                            <p>Confirm direct seeding in the field</p>
+                        </div>
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+
                     <div class="more-item" onclick="openFieldCapture()">
                         <div class="more-item-icon fieldcapture">
                             <i class="fas fa-map-marker-alt"></i>
@@ -11004,6 +11225,241 @@
                     </div>
                 </div>
             </div>
+
+            <!-- ============================== -->
+            <!-- YIELD LOGGING TAB              -->
+            <!-- ============================== -->
+            <div id="yieldLogTab" class="tab-panel">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <i class="fas fa-weight-scale"></i>
+                        <span>Yield Logging</span>
+                    </h2>
+                    <button class="back-btn" onclick="switchTab('more')">
+                        <i class="fas fa-arrow-left"></i>
+                    </button>
+                </div>
+
+                <div class="form-card">
+                    <div class="form-card-header">
+                        <i class="fas fa-weight-scale"></i>
+                        <span>Record Actual Yield</span>
+                    </div>
+
+                    <!-- Batch Selector -->
+                    <div class="form-group">
+                        <label class="form-label">Batch</label>
+                        <select class="form-input" id="yieldBatchSelect" onchange="onYieldBatchChange()">
+                            <option value="">Select harvestable batch...</option>
+                        </select>
+                    </div>
+
+                    <!-- Planned vs Actual Info -->
+                    <div class="yield-planned-info" id="yieldPlannedInfo" style="display: none;">
+                        <span id="yieldPlannedText">Planned: -- lbs</span>
+                        <span class="planned-value" id="yieldPlannedCalc"></span>
+                    </div>
+
+                    <!-- Total Weight -->
+                    <div class="form-group">
+                        <label class="form-label">Total Weight (lbs)</label>
+                        <input type="number" class="form-input" id="yieldTotalWeight"
+                               inputmode="decimal" placeholder="0.0" step="0.1"
+                               oninput="updateYieldVariance(); validateYieldGrades();">
+                    </div>
+
+                    <!-- Variance Display -->
+                    <div id="yieldVarianceDisplay" style="display: none;"></div>
+
+                    <!-- Quality Breakdown -->
+                    <div class="form-group">
+                        <label class="form-label">Quality Breakdown (lbs)</label>
+                        <div class="yield-grade-grid">
+                            <div class="form-group">
+                                <label class="yield-grade-label">
+                                    <span class="grade-dot grade-a"></span> Grade A
+                                </label>
+                                <input type="number" class="form-input" id="yieldGradeA"
+                                       inputmode="decimal" placeholder="0" step="0.1"
+                                       oninput="validateYieldGrades()">
+                            </div>
+                            <div class="form-group">
+                                <label class="yield-grade-label">
+                                    <span class="grade-dot grade-b"></span> Grade B
+                                </label>
+                                <input type="number" class="form-input" id="yieldGradeB"
+                                       inputmode="decimal" placeholder="0" step="0.1"
+                                       oninput="validateYieldGrades()">
+                            </div>
+                            <div class="form-group">
+                                <label class="yield-grade-label">
+                                    <span class="grade-dot grade-c"></span> Grade C
+                                </label>
+                                <input type="number" class="form-input" id="yieldGradeC"
+                                       inputmode="decimal" placeholder="0" step="0.1"
+                                       oninput="validateYieldGrades()">
+                            </div>
+                            <div class="form-group">
+                                <label class="yield-grade-label">
+                                    <span class="grade-dot grade-cull"></span> Cull
+                                </label>
+                                <input type="number" class="form-input" id="yieldGradeCull"
+                                       inputmode="decimal" placeholder="0" step="0.1"
+                                       oninput="validateYieldGrades()">
+                            </div>
+                        </div>
+
+                        <!-- Sum validation -->
+                        <div class="yield-sum-warning" id="yieldSumWarning">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <span id="yieldSumWarningText">Grade breakdown doesn't match total weight</span>
+                        </div>
+                        <div class="yield-sum-match" id="yieldSumMatch">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Grade breakdown matches total weight</span>
+                        </div>
+                    </div>
+
+                    <!-- Notes -->
+                    <div class="form-group">
+                        <label class="form-label">Quality Notes</label>
+                        <div class="voice-input-wrapper">
+                            <textarea class="form-input" id="yieldNotes" rows="2"
+                                      placeholder="Quality observations, pest damage, etc."></textarea>
+                            <button class="voice-btn" onclick="startVoice('yieldNotes')">
+                                <i class="fas fa-microphone"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Submit -->
+                    <button class="btn-primary" onclick="submitYieldLog()" id="yieldSubmitBtn">
+                        <i class="fas fa-check"></i>
+                        <span>Record Yield</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- ============================== -->
+            <!-- DIRECT SOW CONFIRMATION TAB    -->
+            <!-- ============================== -->
+            <div id="directSowTab" class="tab-panel">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <i class="fas fa-seedling"></i>
+                        <span>Log Direct Sow</span>
+                    </h2>
+                    <button class="back-btn" onclick="switchTab('more')">
+                        <i class="fas fa-arrow-left"></i>
+                    </button>
+                </div>
+
+                <div class="form-card">
+                    <div class="form-card-header">
+                        <i class="fas fa-seedling"></i>
+                        <span>Direct Sow Confirmation</span>
+                    </div>
+
+                    <!-- Batch/Planting Selector -->
+                    <div class="form-group">
+                        <label class="form-label">Planting / Batch</label>
+                        <select class="form-input" id="sowBatchSelect" onchange="onSowBatchChange()">
+                            <option value="">Select a direct seed planting...</option>
+                        </select>
+                    </div>
+
+                    <!-- Bed Confirmation -->
+                    <div class="form-group">
+                        <label class="form-label">Bed</label>
+                        <input type="text" class="form-input" id="sowBedId"
+                               placeholder="e.g. BED-A1 (auto-filled from plan)">
+                    </div>
+
+                    <!-- Feet Sown -->
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Feet Sown</label>
+                            <input type="number" class="form-input" id="sowFeet"
+                                   inputmode="decimal" placeholder="0" step="1">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Rows</label>
+                            <input type="number" class="form-input" id="sowRows"
+                                   inputmode="numeric" placeholder="0">
+                        </div>
+                    </div>
+
+                    <!-- Seed Lot -->
+                    <div class="form-group">
+                        <label class="form-label">Seed Lot</label>
+                        <select class="form-input" id="sowSeedLot">
+                            <option value="">Select seed lot...</option>
+                        </select>
+                    </div>
+
+                    <!-- Photo Capture -->
+                    <div class="form-group">
+                        <label class="form-label">Field Photo</label>
+                        <div class="photo-capture-btn" onclick="capturePhoto('directSow')">
+                            <i class="fas fa-camera"></i>
+                            <span>Take Field Photo</span>
+                        </div>
+                        <div class="photo-preview" id="directSowPhotoPreview" style="display: none;"></div>
+                    </div>
+
+                    <!-- GPS Auto-capture indicator -->
+                    <div style="display: flex; align-items: center; gap: 8px; padding: 8px 0; color: var(--text-secondary); font-size: 0.85rem;">
+                        <i class="fas fa-location-dot" id="sowGpsIcon" style="color: var(--text-muted);"></i>
+                        <span id="sowGpsStatus">GPS will auto-capture on submit</span>
+                    </div>
+
+                    <!-- Soil Conditions -->
+                    <div class="form-group">
+                        <label class="form-label">Soil Moisture</label>
+                        <div class="soil-condition-btns">
+                            <button class="soil-btn" onclick="setSoilCondition('dry')" data-soil="dry">
+                                <i class="fas fa-sun"></i> Dry
+                            </button>
+                            <button class="soil-btn" onclick="setSoilCondition('moist')" data-soil="moist">
+                                <i class="fas fa-droplet"></i> Moist
+                            </button>
+                            <button class="soil-btn" onclick="setSoilCondition('wet')" data-soil="wet">
+                                <i class="fas fa-cloud-rain"></i> Wet
+                            </button>
+                            <button class="soil-btn" onclick="setSoilCondition('saturated')" data-soil="saturated">
+                                <i class="fas fa-water"></i> Saturated
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Notes -->
+                    <div class="form-group">
+                        <label class="form-label">Notes</label>
+                        <div class="voice-input-wrapper">
+                            <textarea class="form-input" id="sowNotes" rows="2"
+                                      placeholder="Soil conditions, spacing notes..."></textarea>
+                            <button class="voice-btn" onclick="startVoice('sowNotes')">
+                                <i class="fas fa-microphone"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Submit -->
+                    <button class="btn-primary" onclick="submitDirectSow()" id="sowSubmitBtn">
+                        <i class="fas fa-check"></i>
+                        <span>Confirm Sowing</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Direct Sow Success Animation Overlay -->
+            <div class="sow-success-animation" id="sowSuccessOverlay">
+                <div class="sow-success-check">
+                    <i class="fas fa-seedling"></i>
+                </div>
+                <div class="sow-success-text">Sowing Logged!</div>
+            </div>
+
         </main>
 
         <!-- Bottom Tab Bar - MODE AWARE -->
@@ -14038,7 +14494,8 @@
                 const postActions = [
                     'recordTransaction', 'adjustInventory', 'saveProduct',
                     'logHarvestWithDetails', 'saveScoutingReport', 'completeTaskWithTimeLog',
-                    'createChainTask', 'logLaborCost', 'logInventoryCount'
+                    'createChainTask', 'logLaborCost', 'logInventoryCount',
+                    'recordActualYield', 'recordSeedingDate', 'logDirectSowConfirmation'
                 ];
 
                 if (postActions.includes(action)) {
@@ -20876,8 +21333,17 @@
         }
 
         function confirmPhoto() {
-            const previewId = AppState.currentPhotoTarget === 'harvest' ? 'harvestPhotoPreview' : 'scoutPhotoPreview';
+            const targetMap = {
+                'harvest': 'harvestPhotoPreview',
+                'scout': 'scoutPhotoPreview',
+                'directSow': 'directSowPhotoPreview'
+            };
+            const previewId = targetMap[AppState.currentPhotoTarget] || 'scoutPhotoPreview';
             const preview = document.getElementById(previewId);
+
+            if (AppState.currentPhotoTarget === 'directSow') {
+                DirectSowState.capturedPhoto = AppState.capturedPhoto;
+            }
 
             preview.innerHTML = `
                 <img src="${AppState.capturedPhoto}" alt="Captured">
@@ -20892,7 +21358,15 @@
 
         function removePhoto(target) {
             AppState.capturedPhoto = null;
-            const previewId = target === 'harvest' ? 'harvestPhotoPreview' : 'scoutPhotoPreview';
+            if (target === 'directSow') {
+                DirectSowState.capturedPhoto = null;
+            }
+            const targetMap = {
+                'harvest': 'harvestPhotoPreview',
+                'scout': 'scoutPhotoPreview',
+                'directSow': 'directSowPhotoPreview'
+            };
+            const previewId = targetMap[target] || 'scoutPhotoPreview';
             document.getElementById(previewId).style.display = 'none';
         }
 
@@ -26210,6 +26684,517 @@
     // VOICE COMMAND SYSTEM
     // Hands-free operation for field workers
     // ============================================
+
+    // ============================================
+    // YIELD LOGGING FEATURE
+    // ============================================
+
+    const YieldState = {
+        batches: [],
+        selectedBatch: null,
+        plannedYield: null
+    };
+
+    function openYieldLog() {
+        switchTab('yieldLog');
+        loadYieldBatches();
+    }
+
+    async function loadYieldBatches() {
+        const select = document.getElementById('yieldBatchSelect');
+        select.innerHTML = '<option value="">Loading batches...</option>';
+
+        try {
+            const response = await fetch(`${CONFIG.API_URL}?action=getPlanning`);
+            const data = await response.json();
+
+            if (data.success && data.data) {
+                // Filter for harvestable/recently-harvested batches
+                YieldState.batches = data.data.filter(batch => {
+                    const status = (batch.Status || '').toLowerCase();
+                    const hasTransplant = batch.Act_Transplant || batch.Act_Field_Sow;
+                    return status.includes('harvest') || status.includes('field') || hasTransplant;
+                });
+
+                select.innerHTML = '<option value="">Select harvestable batch...</option>';
+                YieldState.batches.forEach(batch => {
+                    const batchId = batch.Batch_ID || batch.batch_id || batch.ID || '';
+                    const crop = batch.Crop || batch.crop || '';
+                    const variety = batch.Variety || batch.variety || '';
+                    const label = `${batchId} - ${crop}${variety ? ' (' + variety + ')' : ''}`;
+                    select.innerHTML += `<option value="${batchId}" data-index="${YieldState.batches.indexOf(batch)}">${label}</option>`;
+                });
+            } else {
+                select.innerHTML = '<option value="">No batches found</option>';
+            }
+        } catch (error) {
+            console.error('Error loading batches:', error);
+            select.innerHTML = '<option value="">Error loading batches</option>';
+        }
+    }
+
+    function onYieldBatchChange() {
+        const select = document.getElementById('yieldBatchSelect');
+        const selectedOption = select.options[select.selectedIndex];
+        const idx = selectedOption?.dataset?.index;
+        const infoDiv = document.getElementById('yieldPlannedInfo');
+        const varianceDiv = document.getElementById('yieldVarianceDisplay');
+
+        if (!idx && idx !== '0') {
+            YieldState.selectedBatch = null;
+            YieldState.plannedYield = null;
+            infoDiv.style.display = 'none';
+            varianceDiv.style.display = 'none';
+            return;
+        }
+
+        const batch = YieldState.batches[parseInt(idx)];
+        YieldState.selectedBatch = batch;
+
+        const bedFeet = parseFloat(batch.Bed_Feet || batch.bed_feet || 0);
+        const yieldPerFt = parseFloat(batch.Yield_Per_Ft || batch.yield_per_ft || batch.Est_Yield_Per_BF || 0);
+        const plannedYield = bedFeet * yieldPerFt;
+
+        if (plannedYield > 0) {
+            YieldState.plannedYield = plannedYield;
+            document.getElementById('yieldPlannedText').textContent = `Planned: ${plannedYield.toFixed(1)} lbs`;
+            document.getElementById('yieldPlannedCalc').textContent = `(${bedFeet} bed-ft × ${yieldPerFt} lbs/ft)`;
+            infoDiv.style.display = 'flex';
+        } else {
+            YieldState.plannedYield = null;
+            infoDiv.style.display = 'none';
+        }
+
+        updateYieldVariance();
+    }
+
+    function updateYieldVariance() {
+        const varianceDiv = document.getElementById('yieldVarianceDisplay');
+        const actual = parseFloat(document.getElementById('yieldTotalWeight').value);
+
+        if (!YieldState.plannedYield || !actual || actual <= 0) {
+            varianceDiv.style.display = 'none';
+            return;
+        }
+
+        const planned = YieldState.plannedYield;
+        const variance = ((actual - planned) / planned) * 100;
+        const absVariance = Math.abs(variance);
+        const sign = variance >= 0 ? '+' : '';
+
+        let colorClass = 'good';
+        let icon = 'fa-check-circle';
+        if (absVariance > 30) {
+            colorClass = 'danger';
+            icon = 'fa-exclamation-circle';
+        } else if (absVariance > 15) {
+            colorClass = 'warning';
+            icon = 'fa-exclamation-triangle';
+        }
+
+        varianceDiv.innerHTML = `
+            <div class="yield-variance ${colorClass}">
+                <i class="fas ${icon}"></i>
+                <span>Actual: ${actual.toFixed(1)} lbs | Variance: ${sign}${variance.toFixed(1)}%</span>
+            </div>
+        `;
+        varianceDiv.style.display = 'block';
+    }
+
+    function validateYieldGrades() {
+        const total = parseFloat(document.getElementById('yieldTotalWeight').value) || 0;
+        const gradeA = parseFloat(document.getElementById('yieldGradeA').value) || 0;
+        const gradeB = parseFloat(document.getElementById('yieldGradeB').value) || 0;
+        const gradeC = parseFloat(document.getElementById('yieldGradeC').value) || 0;
+        const cull = parseFloat(document.getElementById('yieldGradeCull').value) || 0;
+        const gradeSum = gradeA + gradeB + gradeC + cull;
+
+        const warningEl = document.getElementById('yieldSumWarning');
+        const matchEl = document.getElementById('yieldSumMatch');
+
+        if (total <= 0 || gradeSum <= 0) {
+            warningEl.classList.remove('visible');
+            matchEl.classList.remove('visible');
+            return;
+        }
+
+        const diff = Math.abs(gradeSum - total);
+        if (diff < 0.1) {
+            warningEl.classList.remove('visible');
+            matchEl.classList.add('visible');
+        } else {
+            document.getElementById('yieldSumWarningText').textContent =
+                `Grades sum to ${gradeSum.toFixed(1)} lbs, but total is ${total.toFixed(1)} lbs (diff: ${diff.toFixed(1)})`;
+            warningEl.classList.add('visible');
+            matchEl.classList.remove('visible');
+        }
+    }
+
+    async function submitYieldLog() {
+        const batchId = document.getElementById('yieldBatchSelect').value;
+        const totalWeight = parseFloat(document.getElementById('yieldTotalWeight').value);
+        const gradeA = parseFloat(document.getElementById('yieldGradeA').value) || 0;
+        const gradeB = parseFloat(document.getElementById('yieldGradeB').value) || 0;
+        const gradeC = parseFloat(document.getElementById('yieldGradeC').value) || 0;
+        const cull = parseFloat(document.getElementById('yieldGradeCull').value) || 0;
+        const notes = document.getElementById('yieldNotes').value;
+
+        if (!batchId) {
+            showToast('Please select a batch', 'error');
+            return;
+        }
+        if (!totalWeight || totalWeight <= 0) {
+            showToast('Please enter total weight', 'error');
+            return;
+        }
+
+        showLoading();
+        try {
+            const gps = await captureGPS();
+
+            const yieldData = {
+                action: 'recordActualYield',
+                batchId: batchId,
+                actualYieldLbs: totalWeight,
+                unit: 'lbs',
+                qualityBreakdown: {
+                    gradeA: gradeA,
+                    gradeB: gradeB,
+                    gradeC: gradeC,
+                    cull: cull
+                },
+                notes: notes,
+                employeeId: AppState.employee?.Employee_ID || '',
+                gpsLat: gps.lat || '',
+                gpsLng: gps.lng || ''
+            };
+
+            if (AppState.isOnline) {
+                const response = await fetch(CONFIG.API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify(yieldData)
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast('Yield recorded successfully!', 'success');
+                    resetYieldForm();
+                } else {
+                    showToast(data.error || 'Error recording yield', 'error');
+                }
+            } else {
+                await OfflineDB.queueOperation('recordActualYield', yieldData);
+                showToast('Yield queued for sync', 'success');
+                resetYieldForm();
+            }
+        } catch (error) {
+            console.error('Yield submit error:', error);
+            try {
+                await OfflineDB.queueOperation('recordActualYield', {
+                    batchId: batchId,
+                    actualYieldLbs: totalWeight,
+                    unit: 'lbs',
+                    qualityBreakdown: { gradeA, gradeB, gradeC, cull },
+                    notes: notes,
+                    employeeId: AppState.employee?.Employee_ID || ''
+                });
+                showToast('Yield queued for sync', 'success');
+                resetYieldForm();
+            } catch (queueError) {
+                showToast('Error recording yield', 'error');
+            }
+        }
+        hideLoading();
+    }
+
+    function resetYieldForm() {
+        document.getElementById('yieldBatchSelect').value = '';
+        document.getElementById('yieldTotalWeight').value = '';
+        document.getElementById('yieldGradeA').value = '';
+        document.getElementById('yieldGradeB').value = '';
+        document.getElementById('yieldGradeC').value = '';
+        document.getElementById('yieldGradeCull').value = '';
+        document.getElementById('yieldNotes').value = '';
+        document.getElementById('yieldPlannedInfo').style.display = 'none';
+        document.getElementById('yieldVarianceDisplay').style.display = 'none';
+        document.getElementById('yieldSumWarning').classList.remove('visible');
+        document.getElementById('yieldSumMatch').classList.remove('visible');
+        YieldState.selectedBatch = null;
+        YieldState.plannedYield = null;
+    }
+
+    // ============================================
+    // DIRECT SOW CONFIRMATION FEATURE
+    // ============================================
+
+    const DirectSowState = {
+        batches: [],
+        selectedBatch: null,
+        soilCondition: null,
+        capturedPhoto: null,
+        seedInventory: []
+    };
+
+    function openDirectSow() {
+        switchTab('directSow');
+        loadDirectSowBatches();
+    }
+
+    async function loadDirectSowBatches() {
+        const select = document.getElementById('sowBatchSelect');
+        select.innerHTML = '<option value="">Loading plantings...</option>';
+
+        try {
+            let data;
+            // Try dedicated endpoint first
+            try {
+                const response = await fetch(`${CONFIG.API_URL}?action=getDirectSeedTasks`);
+                data = await response.json();
+            } catch (e) {
+                // Fallback to getPlanning and filter locally
+                const response = await fetch(`${CONFIG.API_URL}?action=getPlanning`);
+                data = await response.json();
+            }
+
+            if (data.success && data.data) {
+                // Filter for direct seed plantings that haven't been completed
+                DirectSowState.batches = data.data.filter(batch => {
+                    const method = (batch.Sowing_Method || batch.sowing_method || batch.Method || '').toLowerCase();
+                    const actSow = batch.Act_Field_Sow || batch.act_field_sow;
+                    // Direct seed entries that haven't been marked as sown
+                    return (method.includes('direct') || method.includes('field sow')) && !actSow;
+                });
+
+                select.innerHTML = '<option value="">Select a direct seed planting...</option>';
+                DirectSowState.batches.forEach((batch, i) => {
+                    const batchId = batch.Batch_ID || batch.batch_id || batch.ID || '';
+                    const crop = batch.Crop || batch.crop || '';
+                    const variety = batch.Variety || batch.variety || '';
+                    const bed = batch.Bed || batch.bed || '';
+                    const label = `${batchId} - ${crop}${variety ? ' (' + variety + ')' : ''}${bed ? ' [' + bed + ']' : ''}`;
+                    select.innerHTML += `<option value="${batchId}" data-index="${i}">${label}</option>`;
+                });
+
+                if (DirectSowState.batches.length === 0) {
+                    select.innerHTML = '<option value="">No pending direct sow tasks</option>';
+                }
+            } else {
+                select.innerHTML = '<option value="">No plantings found</option>';
+            }
+        } catch (error) {
+            console.error('Error loading direct sow batches:', error);
+            select.innerHTML = '<option value="">Error loading plantings</option>';
+        }
+    }
+
+    function onSowBatchChange() {
+        const select = document.getElementById('sowBatchSelect');
+        const selectedOption = select.options[select.selectedIndex];
+        const idx = selectedOption?.dataset?.index;
+
+        if (!idx && idx !== '0') {
+            DirectSowState.selectedBatch = null;
+            document.getElementById('sowBedId').value = '';
+            document.getElementById('sowFeet').value = '';
+            document.getElementById('sowRows').value = '';
+            document.getElementById('sowSeedLot').innerHTML = '<option value="">Select seed lot...</option>';
+            return;
+        }
+
+        const batch = DirectSowState.batches[parseInt(idx)];
+        DirectSowState.selectedBatch = batch;
+
+        // Pre-fill bed from plan
+        const bed = batch.Bed || batch.bed || batch.Bed_ID || '';
+        document.getElementById('sowBedId').value = bed;
+
+        // Pre-fill feet from plan
+        const feet = batch.Bed_Feet || batch.bed_feet || batch.Feet || '';
+        document.getElementById('sowFeet').value = feet;
+
+        // Pre-fill rows if available
+        const rows = batch.Rows || batch.rows || '';
+        if (rows) document.getElementById('sowRows').value = rows;
+
+        // Load seed inventory for this crop
+        const crop = batch.Crop || batch.crop || '';
+        loadSeedInventoryForCrop(crop);
+    }
+
+    async function loadSeedInventoryForCrop(crop) {
+        const select = document.getElementById('sowSeedLot');
+        select.innerHTML = '<option value="">Loading seed lots...</option>';
+
+        try {
+            const response = await fetch(`${CONFIG.API_URL}?action=getSeedInventory&crop=${encodeURIComponent(crop)}`);
+            const data = await response.json();
+
+            select.innerHTML = '<option value="">Select seed lot...</option>';
+
+            if (data.success && data.data) {
+                DirectSowState.seedInventory = data.data;
+                data.data.forEach(seed => {
+                    const lotId = seed.Lot_ID || seed.lot_id || seed.ID || '';
+                    const seedName = seed.Variety || seed.variety || seed.Name || crop;
+                    const qty = seed.Quantity || seed.qty || '';
+                    const label = `${lotId} - ${seedName}${qty ? ' (' + qty + ' remaining)' : ''}`;
+                    select.innerHTML += `<option value="${lotId}">${label}</option>`;
+                });
+            }
+
+            if (select.options.length <= 1) {
+                select.innerHTML += '<option value="_manual">Enter manually...</option>';
+            }
+        } catch (error) {
+            console.error('Error loading seed inventory:', error);
+            select.innerHTML = '<option value="">Select seed lot...</option><option value="_manual">Enter manually...</option>';
+        }
+    }
+
+    function setSoilCondition(condition) {
+        DirectSowState.soilCondition = condition;
+        document.querySelectorAll('.soil-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.soil === condition);
+        });
+    }
+
+    async function submitDirectSow() {
+        const batchId = document.getElementById('sowBatchSelect').value;
+        const bedId = document.getElementById('sowBedId').value;
+        const feetSown = parseFloat(document.getElementById('sowFeet').value);
+        const rowsSown = parseInt(document.getElementById('sowRows').value);
+        const seedLotId = document.getElementById('sowSeedLot').value;
+        const notes = document.getElementById('sowNotes').value;
+
+        if (!batchId) {
+            showToast('Please select a planting', 'error');
+            return;
+        }
+        if (!feetSown || feetSown <= 0) {
+            showToast('Please enter feet sown', 'error');
+            return;
+        }
+
+        showLoading();
+        try {
+            const gps = await captureGPS();
+            const today = new Date().toISOString().split('T')[0];
+
+            // Update GPS status indicator
+            if (gps.lat) {
+                document.getElementById('sowGpsIcon').style.color = 'var(--success)';
+                document.getElementById('sowGpsStatus').textContent = `GPS: ${gps.lat.toFixed(4)}, ${gps.lng.toFixed(4)}`;
+            }
+
+            const sowData = {
+                batchId: batchId,
+                bedId: bedId,
+                feetSown: feetSown,
+                rowsSown: rowsSown || 0,
+                seedLotId: seedLotId || '',
+                photo: DirectSowState.capturedPhoto || '',
+                gpsLat: gps.lat || '',
+                gpsLng: gps.lng || '',
+                soilCondition: DirectSowState.soilCondition || '',
+                notes: notes,
+                employeeId: AppState.employee?.Employee_ID || '',
+                actualDate: today
+            };
+
+            if (AppState.isOnline) {
+                // First: record the seeding date
+                const dateResponse = await fetch(CONFIG.API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({
+                        action: 'recordSeedingDate',
+                        batchId: batchId,
+                        type: 'field_sow',
+                        actualDate: today
+                    })
+                });
+                const dateData = await dateResponse.json();
+
+                // Second: log the confirmation details
+                const confirmResponse = await fetch(CONFIG.API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({
+                        action: 'logDirectSowConfirmation',
+                        ...sowData
+                    })
+                });
+                const confirmData = await confirmResponse.json();
+
+                if (dateData.success || confirmData.success) {
+                    showSowSuccessAnimation();
+                    resetDirectSowForm();
+                } else {
+                    showToast(confirmData.error || dateData.error || 'Error logging sow', 'error');
+                }
+            } else {
+                // Offline: queue both operations
+                await OfflineDB.queueOperation('recordSeedingDate', {
+                    batchId: batchId,
+                    type: 'field_sow',
+                    actualDate: today
+                });
+                await OfflineDB.queueOperation('logDirectSowConfirmation', sowData);
+                showSowSuccessAnimation();
+                resetDirectSowForm();
+            }
+        } catch (error) {
+            console.error('Direct sow submit error:', error);
+            try {
+                const today = new Date().toISOString().split('T')[0];
+                await OfflineDB.queueOperation('recordSeedingDate', {
+                    batchId: batchId,
+                    type: 'field_sow',
+                    actualDate: today
+                });
+                await OfflineDB.queueOperation('logDirectSowConfirmation', {
+                    batchId: batchId,
+                    bedId: bedId,
+                    feetSown: feetSown,
+                    rowsSown: rowsSown || 0,
+                    soilCondition: DirectSowState.soilCondition || '',
+                    notes: notes,
+                    employeeId: AppState.employee?.Employee_ID || ''
+                });
+                showSowSuccessAnimation();
+                resetDirectSowForm();
+            } catch (queueError) {
+                showToast('Error logging sow', 'error');
+            }
+        }
+        hideLoading();
+    }
+
+    function showSowSuccessAnimation() {
+        const overlay = document.getElementById('sowSuccessOverlay');
+        overlay.classList.add('visible');
+        setTimeout(() => {
+            overlay.classList.remove('visible');
+            showToast('Direct sow logged!', 'success');
+        }, 2000);
+    }
+
+    function resetDirectSowForm() {
+        document.getElementById('sowBatchSelect').value = '';
+        document.getElementById('sowBedId').value = '';
+        document.getElementById('sowFeet').value = '';
+        document.getElementById('sowRows').value = '';
+        document.getElementById('sowSeedLot').innerHTML = '<option value="">Select seed lot...</option>';
+        document.getElementById('sowNotes').value = '';
+        document.getElementById('directSowPhotoPreview').style.display = 'none';
+        document.getElementById('sowGpsIcon').style.color = 'var(--text-muted)';
+        document.getElementById('sowGpsStatus').textContent = 'GPS will auto-capture on submit';
+        DirectSowState.selectedBatch = null;
+        DirectSowState.soilCondition = null;
+        DirectSowState.capturedPhoto = null;
+        document.querySelectorAll('.soil-btn').forEach(btn => btn.classList.remove('active'));
+    }
 
     const VoiceCommand = {
         recognition: null,

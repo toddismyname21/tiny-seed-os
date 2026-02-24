@@ -526,6 +526,262 @@
         }
 
         /* ═══════════════════════════════════════════════════════════════════════════
+           SEED LABELS - Screen Styles
+           ═══════════════════════════════════════════════════════════════════════════ */
+
+        .seed-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: flex-end;
+        }
+
+        .seed-table-container {
+            overflow-x: auto;
+            margin-bottom: 20px;
+        }
+
+        .seed-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .seed-table th,
+        .seed-table td {
+            padding: 10px 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .seed-table th {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+            background: var(--bg-dark);
+            position: sticky;
+            top: 0;
+        }
+
+        .seed-table tr:hover {
+            background: rgba(34, 197, 94, 0.05);
+        }
+
+        .seed-table tr.selected {
+            background: rgba(34, 197, 94, 0.1);
+        }
+
+        .seed-table input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+
+        .organic-badge {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            font-size: 10px;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 4px;
+            text-transform: uppercase;
+        }
+
+        .status-badge {
+            display: inline-block;
+            font-size: 11px;
+            font-weight: 500;
+            padding: 3px 8px;
+            border-radius: 4px;
+        }
+
+        .status-badge.active { background: rgba(34, 197, 94, 0.15); color: #22c55e; }
+        .status-badge.low { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+        .status-badge.expired { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+        .status-badge.ordered { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
+
+        /* Seed Label Preview Grid (screen) */
+        .seed-labels-preview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .seed-label-preview {
+            background: white;
+            border-radius: 6px;
+            padding: 10px;
+            color: #1a1a1a;
+            display: flex;
+            gap: 10px;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+            min-height: 80px;
+        }
+
+        .seed-label-preview:hover {
+            border-color: var(--primary);
+        }
+
+        .seed-label-preview .qr {
+            width: 70px;
+            height: 70px;
+            flex-shrink: 0;
+        }
+
+        .seed-label-preview .qr img {
+            width: 100%;
+            height: 100%;
+        }
+
+        .seed-label-preview .info {
+            overflow: hidden;
+            font-size: 11px;
+            line-height: 1.4;
+        }
+
+        .seed-label-preview .info .seed-lot-id {
+            font-size: 9px;
+            color: #888;
+            font-family: monospace;
+        }
+
+        .seed-label-preview .info .crop-name {
+            font-weight: 700;
+            font-size: 13px;
+        }
+
+        .seed-label-preview .info .variety-name {
+            font-style: italic;
+            color: #555;
+        }
+
+        .seed-label-preview .info .organic-tag {
+            display: inline-block;
+            background: #22c55e;
+            color: white;
+            font-size: 8px;
+            font-weight: 700;
+            padding: 1px 4px;
+            border-radius: 3px;
+            text-transform: uppercase;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════════════════
+           FIELD/BED LABELS - Screen Styles
+           ═══════════════════════════════════════════════════════════════════════════ */
+
+        .field-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            align-items: flex-end;
+        }
+
+        /* Bed Marker Preview (screen) */
+        .bed-markers-preview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 16px;
+            margin-top: 20px;
+        }
+
+        .bed-marker-preview {
+            background: white;
+            border-radius: 8px;
+            padding: 16px;
+            color: #1a1a1a;
+            text-align: center;
+            border: 2px solid #333;
+            transition: all 0.2s;
+        }
+
+        .bed-marker-preview:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .bed-marker-preview .field-name {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .bed-marker-preview .bed-number {
+            font-size: 48px;
+            font-weight: 700;
+            line-height: 1;
+            margin: 8px 0;
+        }
+
+        .bed-marker-preview .crop-info {
+            font-size: 11px;
+            color: #555;
+            margin-bottom: 8px;
+        }
+
+        .bed-marker-preview .qr {
+            width: 80px;
+            height: 80px;
+            margin: 8px auto 0;
+        }
+
+        .bed-marker-preview .qr img {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Row Marker Preview (screen) */
+        .row-markers-preview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .row-marker-preview {
+            background: white;
+            border-radius: 6px;
+            padding: 12px;
+            color: #1a1a1a;
+            border: 2px solid #666;
+            text-align: center;
+        }
+
+        .row-marker-preview .crop-name { font-weight: 700; font-size: 14px; }
+        .row-marker-preview .variety-name { font-style: italic; color: #555; font-size: 12px; }
+        .row-marker-preview .dates { font-size: 10px; color: #777; margin-top: 6px; }
+        .row-marker-preview .row-num { font-size: 11px; font-weight: 600; margin-top: 4px; }
+
+        /* Plant Tag Preview (screen) */
+        .plant-tags-preview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 8px;
+            margin-top: 20px;
+        }
+
+        .plant-tag-preview {
+            background: white;
+            border-radius: 4px;
+            padding: 8px;
+            color: #1a1a1a;
+            border: 1px solid #999;
+            text-align: center;
+            font-size: 10px;
+        }
+
+        .plant-tag-preview .variety-name { font-weight: 700; font-size: 11px; }
+        .plant-tag-preview .plant-date { color: #666; }
+
+        /* ═══════════════════════════════════════════════════════════════════════════
            PRINT STYLES - MARKET SIGNS (6 per letter page)
            Matching the Tiny Seed Farm design with category-based footer colors
            ═══════════════════════════════════════════════════════════════════════════ */
@@ -792,6 +1048,238 @@
                 justify-content: space-between;
             }
 
+            /* ═══════════════════════════════════════════════════════════════
+               SEED LABELS PRINT - 2" x 1" (10 per page: 5 rows x 2 cols)
+               ═══════════════════════════════════════════════════════════════ */
+
+            .print-seed-labels {
+                display: block !important;
+                width: 8in;
+                margin: 0;
+                padding: 0;
+            }
+
+            .seed-labels-page {
+                display: flex;
+                flex-wrap: wrap;
+                width: 8in;
+                gap: 0;
+                page-break-after: always;
+            }
+
+            .seed-labels-page:last-child {
+                page-break-after: auto;
+            }
+
+            .seed-label {
+                width: 2in;
+                height: 1in;
+                border: 1px dashed #ccc;
+                padding: 4px;
+                font-size: 8pt;
+                page-break-inside: avoid;
+                display: inline-block;
+                box-sizing: border-box;
+                overflow: hidden;
+                margin: 0 calc((4in - 2in) / 2);
+            }
+
+            .seed-label .qr {
+                width: 0.7in;
+                height: 0.7in;
+                float: left;
+                margin-right: 4px;
+            }
+
+            .seed-label .qr img {
+                width: 100%;
+                height: 100%;
+            }
+
+            .seed-label .info {
+                overflow: hidden;
+                line-height: 1.3;
+            }
+
+            .seed-label .info .seed-lot-id {
+                font-size: 6pt;
+                color: #888;
+                font-family: monospace;
+            }
+
+            .seed-label .info .crop-name {
+                font-weight: 700;
+                font-size: 9pt;
+            }
+
+            .seed-label .info .variety-name {
+                font-style: italic;
+                font-size: 7pt;
+                color: #555;
+            }
+
+            .seed-label .info .detail-line {
+                font-size: 7pt;
+                color: #333;
+            }
+
+            .seed-label .info .organic-tag {
+                display: inline-block;
+                border: 1px solid #333;
+                font-size: 6pt;
+                font-weight: 700;
+                padding: 0 3px;
+                border-radius: 2px;
+                text-transform: uppercase;
+            }
+
+            /* ═══════════════════════════════════════════════════════════════
+               FIELD/BED LABELS PRINT
+               ═══════════════════════════════════════════════════════════════ */
+
+            /* Bed Markers - 4" x 6" (1 per page) */
+            .print-field-labels {
+                display: block !important;
+            }
+
+            .bed-marker {
+                width: 4in;
+                height: 6in;
+                border: 2px solid #333;
+                padding: 0.25in;
+                page-break-inside: avoid;
+                page-break-after: always;
+                text-align: center;
+                box-sizing: border-box;
+                margin: 0 auto;
+            }
+
+            .bed-marker:last-child {
+                page-break-after: auto;
+            }
+
+            .bed-marker .field-name {
+                font-size: 14pt;
+                font-weight: bold;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+            }
+
+            .bed-marker .bed-number {
+                font-size: 48pt;
+                font-weight: bold;
+                margin: 0.3in 0;
+                line-height: 1;
+            }
+
+            .bed-marker .crop-info {
+                font-size: 12pt;
+                margin-bottom: 0.15in;
+            }
+
+            .bed-marker .crop-info .crop-name {
+                font-weight: 600;
+            }
+
+            .bed-marker .planting-date {
+                font-size: 10pt;
+                color: #555;
+                margin-bottom: 0.15in;
+            }
+
+            .bed-marker .qr {
+                width: 1.5in;
+                height: 1.5in;
+                margin: 0.2in auto;
+            }
+
+            .bed-marker .qr img {
+                width: 100%;
+                height: 100%;
+            }
+
+            /* Row Markers - 2" x 4" (2 per page side by side) */
+            .row-markers-page {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 0;
+                width: 8in;
+                page-break-after: always;
+            }
+
+            .row-markers-page:last-child {
+                page-break-after: auto;
+            }
+
+            .row-marker {
+                width: 4in;
+                height: 2in;
+                border: 1px dashed #999;
+                padding: 0.15in;
+                page-break-inside: avoid;
+                text-align: center;
+                box-sizing: border-box;
+            }
+
+            .row-marker .crop-name {
+                font-size: 14pt;
+                font-weight: 700;
+            }
+
+            .row-marker .variety-name {
+                font-size: 11pt;
+                font-style: italic;
+                color: #555;
+            }
+
+            .row-marker .dates {
+                font-size: 9pt;
+                color: #666;
+                margin-top: 0.08in;
+            }
+
+            .row-marker .row-num {
+                font-size: 10pt;
+                font-weight: 600;
+                margin-top: 0.05in;
+            }
+
+            /* Plant Tags - 1" x 2" (many per page) */
+            .plant-tags-page {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 0;
+                width: 8in;
+                page-break-after: always;
+            }
+
+            .plant-tags-page:last-child {
+                page-break-after: auto;
+            }
+
+            .plant-tag {
+                width: 2in;
+                height: 1in;
+                border: 1px dashed #aaa;
+                padding: 0.08in;
+                page-break-inside: avoid;
+                text-align: center;
+                box-sizing: border-box;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+            }
+
+            .plant-tag .variety-name {
+                font-size: 10pt;
+                font-weight: 700;
+            }
+
+            .plant-tag .plant-date {
+                font-size: 8pt;
+                color: #666;
+            }
+
             /* Page breaks */
             .page-break {
                 page-break-after: always;
@@ -843,6 +1331,12 @@
                 </button>
                 <button class="tab" data-tab="wholesale" onclick="switchTab('wholesale')">
                     Wholesale Labels
+                </button>
+                <button class="tab" data-tab="seed" onclick="switchTab('seed')">
+                    Seed Labels
+                </button>
+                <button class="tab" data-tab="field" onclick="switchTab('field')">
+                    Field/Bed Labels
                 </button>
             </div>
 
@@ -958,6 +1452,135 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Seed Labels Tab -->
+            <div id="seedTab" class="tab-content" style="display: none;">
+                <!-- Seed Filters -->
+                <div class="controls-panel seed-controls">
+                    <div class="control-group">
+                        <label>Filter by Crop</label>
+                        <select id="seedCropFilter" onchange="filterSeedInventory()">
+                            <option value="">All Crops</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label>Status</label>
+                        <select id="seedStatusFilter" onchange="filterSeedInventory()">
+                            <option value="">All Statuses</option>
+                            <option value="Active">Active</option>
+                            <option value="Low">Low Stock</option>
+                            <option value="Ordered">Ordered</option>
+                            <option value="Expired">Expired</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label>&nbsp;</label>
+                        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px; color: var(--text-primary); text-transform: none; letter-spacing: 0;">
+                            <input type="checkbox" id="seedOrganicOnly" onchange="filterSeedInventory()" style="width: 16px; height: 16px;">
+                            Organic Only
+                        </label>
+                    </div>
+                    <div style="margin-left: auto; display: flex; gap: 8px;">
+                        <button class="btn btn-secondary" onclick="loadSeedInventory()">Refresh</button>
+                        <button class="btn btn-primary" onclick="generateAllSeedQRCodes()">Generate All QR Codes</button>
+                    </div>
+                </div>
+
+                <!-- Seed Inventory Table -->
+                <div class="labels-preview">
+                    <div class="preview-header">
+                        <span class="preview-title">Seed Inventory</span>
+                        <div class="select-all-container">
+                            <input type="checkbox" id="selectAllSeed" onchange="toggleSelectAll('seed')">
+                            <label for="selectAllSeed">Select All</label>
+                        </div>
+                    </div>
+                    <div class="seed-table-container">
+                        <table class="seed-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 40px;"></th>
+                                    <th>Seed Lot ID</th>
+                                    <th>Crop</th>
+                                    <th>Variety</th>
+                                    <th>Supplier</th>
+                                    <th>Germ%</th>
+                                    <th>Qty Remaining</th>
+                                    <th>Organic</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="seedTableBody">
+                                <tr><td colspan="9" style="text-align: center; padding: 40px; color: var(--text-secondary);">Loading seed inventory...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Seed Label Preview -->
+                <div class="labels-preview" style="margin-top: 24px;">
+                    <div class="preview-header">
+                        <span class="preview-title">Label Preview</span>
+                        <button class="btn btn-primary" onclick="printSelected()">Print Selected Labels</button>
+                    </div>
+                    <div id="seedLabelsPreviewGrid" class="seed-labels-preview-grid">
+                        <div class="empty-state">
+                            <div class="empty-state-icon">🌱</div>
+                            <p>Select seeds from the table above to preview labels</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Field/Bed Labels Tab -->
+            <div id="fieldTab" class="tab-content" style="display: none;">
+                <!-- Field Controls -->
+                <div class="controls-panel field-controls">
+                    <div class="control-group">
+                        <label>Field</label>
+                        <select id="fieldSelector" onchange="onFieldSelected()">
+                            <option value="">Select a Field</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label>Bed Range</label>
+                        <div style="display: flex; gap: 6px; align-items: center;">
+                            <input type="number" id="bedRangeStart" placeholder="1" min="1" style="width: 70px;">
+                            <span style="color: var(--text-secondary);">to</span>
+                            <input type="number" id="bedRangeEnd" placeholder="--" min="1" style="width: 70px;">
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <label>Label Type</label>
+                        <select id="fieldLabelType" onchange="onFieldLabelTypeChanged()">
+                            <option value="bed-marker">Bed Markers (4" x 6")</option>
+                            <option value="row-marker">Row Markers (2" x 4")</option>
+                            <option value="plant-tag">Plant Tags (1" x 2")</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label>Copies Each</label>
+                        <input type="number" id="fieldLabelCopies" value="1" min="1" max="20" style="width: 70px;">
+                    </div>
+                    <div style="margin-left: auto;">
+                        <button class="btn btn-primary" onclick="generateFieldLabels()">Generate Labels</button>
+                    </div>
+                </div>
+
+                <!-- Field Label Preview -->
+                <div class="labels-preview">
+                    <div class="preview-header">
+                        <span class="preview-title">Field/Bed Label Preview</span>
+                        <button class="btn btn-primary" onclick="printSelected()">Print Labels</button>
+                    </div>
+                    <div id="fieldLabelsPreviewGrid">
+                        <div class="empty-state">
+                            <div class="empty-state-icon">🌿</div>
+                            <p>Select a field and click "Generate Labels" to preview</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -973,6 +1596,12 @@
 
     <!-- Wholesale Labels Print Container -->
     <div id="printWholesaleLabels" class="print-container print-wholesale-labels"></div>
+
+    <!-- Seed Labels Print Container -->
+    <div id="printSeedLabels" class="print-container print-seed-labels"></div>
+
+    <!-- Field/Bed Labels Print Container -->
+    <div id="printFieldLabels" class="print-container print-field-labels"></div>
 
     <!-- API Configuration - Single Source of Truth -->
     <script src="api-config.js"></script>
@@ -994,9 +1623,17 @@
             marketSigns: [],
             csaLabels: [],
             wholesaleLabels: [],
+            seedInventory: [],         // Full seed inventory from API
+            seedInventoryFiltered: [], // Filtered view
+            seedLabelData: {},         // Cached label data keyed by seedLotId
+            fieldsList: [],            // Fields from getFieldsDashboard
+            bedsList: [],              // Beds from getBedsWithStatus
+            fieldLabels: [],           // Generated field/bed labels for preview
             selectedMarket: new Set(),
             selectedCSA: new Set(),
             selectedWholesale: new Set(),
+            selectedSeed: new Set(),
+            selectedField: new Set(),
             deliveryDate: null
         };
 
@@ -1026,12 +1663,23 @@
             });
 
             // Show/hide tab content
-            document.getElementById('marketTab').style.display = tab === 'market' ? 'block' : 'none';
-            document.getElementById('csaTab').style.display = tab === 'csa' ? 'block' : 'none';
-            document.getElementById('wholesaleTab').style.display = tab === 'wholesale' ? 'block' : 'none';
+            const tabs = ['market', 'csa', 'wholesale', 'seed', 'field'];
+            tabs.forEach(t => {
+                const el = document.getElementById(t + 'Tab');
+                if (el) el.style.display = t === tab ? 'block' : 'none';
+            });
 
-            // Show/hide customer type filter for non-market tabs
-            document.getElementById('customerTypeControl').style.display = tab !== 'market' ? 'block' : 'none';
+            // Show/hide customer type filter for CSA/wholesale tabs only
+            document.getElementById('customerTypeControl').style.display =
+                (tab === 'csa' || tab === 'wholesale') ? 'block' : 'none';
+
+            // Load data for seed/field tabs on first switch
+            if (tab === 'seed' && AppState.seedInventory.length === 0) {
+                loadSeedInventory();
+            }
+            if (tab === 'field' && AppState.fieldsList.length === 0) {
+                loadFieldsData();
+            }
 
             updateStats();
         }
@@ -1307,7 +1955,9 @@
         function toggleSelection(type, idx) {
             const selectedSet = type === 'market' ? AppState.selectedMarket :
                                type === 'csa' ? AppState.selectedCSA :
-                               AppState.selectedWholesale;
+                               type === 'wholesale' ? AppState.selectedWholesale :
+                               type === 'seed' ? AppState.selectedSeed :
+                               AppState.selectedField;
 
             if (selectedSet.has(idx)) {
                 selectedSet.delete(idx);
@@ -1318,21 +1968,29 @@
             // Re-render to update selection state
             if (type === 'market') renderMarketSigns();
             else if (type === 'csa') renderCSALabels();
-            else renderWholesaleLabels();
+            else if (type === 'wholesale') renderWholesaleLabels();
+            else if (type === 'seed') { renderSeedTable(); renderSeedLabelsPreview(); }
+            else if (type === 'field') renderFieldLabelsPreview();
 
             updateStats();
         }
 
         function toggleSelectAll(type) {
-            const checkbox = document.getElementById(`selectAll${type.charAt(0).toUpperCase() + type.slice(1)}`);
+            // Map the type to the correct checkbox ID capitalization
+            const capMap = { market: 'Market', csa: 'CSA', wholesale: 'Wholesale', seed: 'Seed', field: 'Field' };
+            const checkbox = document.getElementById(`selectAll${capMap[type] || type}`);
             const items = type === 'market' ? AppState.marketSigns :
                          type === 'csa' ? AppState.csaLabels :
-                         AppState.wholesaleLabels;
+                         type === 'wholesale' ? AppState.wholesaleLabels :
+                         type === 'seed' ? AppState.seedInventoryFiltered :
+                         AppState.fieldLabels;
             const selectedSet = type === 'market' ? AppState.selectedMarket :
                                type === 'csa' ? AppState.selectedCSA :
-                               AppState.selectedWholesale;
+                               type === 'wholesale' ? AppState.selectedWholesale :
+                               type === 'seed' ? AppState.selectedSeed :
+                               AppState.selectedField;
 
-            if (checkbox.checked) {
+            if (checkbox && checkbox.checked) {
                 items.forEach((_, idx) => selectedSet.add(idx));
             } else {
                 selectedSet.clear();
@@ -1340,7 +1998,9 @@
 
             if (type === 'market') renderMarketSigns();
             else if (type === 'csa') renderCSALabels();
-            else renderWholesaleLabels();
+            else if (type === 'wholesale') renderWholesaleLabels();
+            else if (type === 'seed') { renderSeedTable(); renderSeedLabelsPreview(); }
+            else if (type === 'field') renderFieldLabelsPreview();
 
             updateStats();
         }
@@ -1349,17 +2009,21 @@
             const totalMap = {
                 market: AppState.marketSigns.length,
                 csa: AppState.csaLabels.length,
-                wholesale: AppState.wholesaleLabels.length
+                wholesale: AppState.wholesaleLabels.length,
+                seed: AppState.seedInventoryFiltered.length,
+                field: AppState.fieldLabels.length
             };
 
             const selectedMap = {
                 market: AppState.selectedMarket.size,
                 csa: AppState.selectedCSA.size,
-                wholesale: AppState.selectedWholesale.size
+                wholesale: AppState.selectedWholesale.size,
+                seed: AppState.selectedSeed.size,
+                field: AppState.selectedField.size
             };
 
-            document.getElementById('totalLabels').textContent = totalMap[AppState.currentTab];
-            document.getElementById('selectedLabels').textContent = selectedMap[AppState.currentTab];
+            document.getElementById('totalLabels').textContent = totalMap[AppState.currentTab] || 0;
+            document.getElementById('selectedLabels').textContent = selectedMap[AppState.currentTab] || 0;
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
@@ -1469,8 +2133,12 @@
                 printMarketSigns();
             } else if (tab === 'csa') {
                 printCSALabels();
-            } else {
+            } else if (tab === 'wholesale') {
                 printWholesaleLabels();
+            } else if (tab === 'seed') {
+                printSeedLabels();
+            } else if (tab === 'field') {
+                printFieldLabels();
             }
         }
 
@@ -1619,6 +2287,543 @@
             // For now, re-render with current data
             if (AppState.currentTab === 'csa') renderCSALabels();
             else if (AppState.currentTab === 'wholesale') renderWholesaleLabels();
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // SEED LABELS - Data Loading & Rendering
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        async function loadSeedInventory() {
+            const tbody = document.getElementById('seedTableBody');
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 40px;"><div class="spinner" style="margin: 0 auto;"></div></td></tr>';
+
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+                const response = await fetch(`${API_URL}?action=getSeedInventory`, {
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+
+                const data = await response.json();
+
+                if (data.success && data.seeds && data.seeds.length > 0) {
+                    AppState.seedInventory = data.seeds;
+                    console.log('Loaded', data.seeds.length, 'seeds from API');
+                } else if (data.success && data.inventory && data.inventory.length > 0) {
+                    AppState.seedInventory = data.inventory;
+                    console.log('Loaded', data.inventory.length, 'seeds from API (inventory key)');
+                } else {
+                    AppState.seedInventory = getSampleSeedData();
+                    console.log('No seed data from API, using sample data');
+                }
+            } catch (error) {
+                console.error('Error loading seed inventory:', error);
+                AppState.seedInventory = getSampleSeedData();
+            }
+
+            // Populate crop filter dropdown
+            populateSeedCropFilter();
+
+            // Apply filters and render
+            filterSeedInventory();
+        }
+
+        function getSampleSeedData() {
+            return [
+                { Seed_Lot_ID: 'S-TOM-250115-001', Crop: 'Tomato', Variety: 'Cherokee Purple', Supplier: 'Johnny\'s Seeds', Organic_Certified: true, Germination_Rate: 92, Expiration_Date: '2027-01-15', Quantity_Remaining: 500, Status: 'Active' },
+                { Seed_Lot_ID: 'S-TOM-250115-002', Crop: 'Tomato', Variety: 'Brandywine', Supplier: 'Seed Savers', Organic_Certified: true, Germination_Rate: 88, Expiration_Date: '2027-02-20', Quantity_Remaining: 300, Status: 'Active' },
+                { Seed_Lot_ID: 'S-LET-250201-001', Crop: 'Lettuce', Variety: 'Buttercrunch', Supplier: 'High Mowing', Organic_Certified: true, Germination_Rate: 95, Expiration_Date: '2026-12-01', Quantity_Remaining: 1200, Status: 'Active' },
+                { Seed_Lot_ID: 'S-KAL-250201-001', Crop: 'Kale', Variety: 'Lacinato', Supplier: 'Johnny\'s Seeds', Organic_Certified: true, Germination_Rate: 90, Expiration_Date: '2027-03-15', Quantity_Remaining: 800, Status: 'Active' },
+                { Seed_Lot_ID: 'S-CAR-250110-001', Crop: 'Carrot', Variety: 'Nantes', Supplier: 'Fedco Seeds', Organic_Certified: false, Germination_Rate: 85, Expiration_Date: '2026-06-10', Quantity_Remaining: 50, Status: 'Low' },
+                { Seed_Lot_ID: 'S-PEP-250115-001', Crop: 'Pepper', Variety: 'Jimmy Nardello', Supplier: 'Seed Savers', Organic_Certified: true, Germination_Rate: 80, Expiration_Date: '2027-01-30', Quantity_Remaining: 200, Status: 'Active' },
+                { Seed_Lot_ID: 'S-ZIN-250201-001', Crop: 'Zinnia', Variety: 'Benary Giant Mix', Supplier: 'Johnny\'s Seeds', Organic_Certified: false, Germination_Rate: 91, Expiration_Date: '2027-04-01', Quantity_Remaining: 600, Status: 'Active' },
+                { Seed_Lot_ID: 'S-BAS-250110-001', Crop: 'Basil', Variety: 'Genovese', Supplier: 'High Mowing', Organic_Certified: true, Germination_Rate: 78, Expiration_Date: '2025-12-01', Quantity_Remaining: 0, Status: 'Expired' }
+            ];
+        }
+
+        function populateSeedCropFilter() {
+            const select = document.getElementById('seedCropFilter');
+            const crops = [...new Set(AppState.seedInventory.map(s => s.Crop))].sort();
+            // Keep the "All Crops" option, replace the rest
+            select.innerHTML = '<option value="">All Crops</option>' +
+                crops.map(c => `<option value="${c}">${c}</option>`).join('');
+        }
+
+        function filterSeedInventory() {
+            const cropFilter = document.getElementById('seedCropFilter').value;
+            const statusFilter = document.getElementById('seedStatusFilter').value;
+            const organicOnly = document.getElementById('seedOrganicOnly').checked;
+
+            AppState.seedInventoryFiltered = AppState.seedInventory.filter(seed => {
+                if (cropFilter && seed.Crop !== cropFilter) return false;
+                if (statusFilter && seed.Status !== statusFilter) return false;
+                if (organicOnly && !seed.Organic_Certified) return false;
+                return true;
+            });
+
+            // Clear selection when filter changes
+            AppState.selectedSeed.clear();
+
+            renderSeedTable();
+            renderSeedLabelsPreview();
+            updateStats();
+        }
+
+        function renderSeedTable() {
+            const tbody = document.getElementById('seedTableBody');
+
+            if (AppState.seedInventoryFiltered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 40px; color: var(--text-secondary);">No seeds match the current filters.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = AppState.seedInventoryFiltered.map((seed, idx) => {
+                const isSelected = AppState.selectedSeed.has(idx);
+                const statusClass = (seed.Status || '').toLowerCase();
+                const germPct = seed.Germination_Rate || seed.germRate || 0;
+                const expDate = seed.Expiration_Date || seed.expDate || '';
+                const formattedExp = expDate ? new Date(expDate).toLocaleDateString() : '--';
+
+                return `
+                    <tr class="${isSelected ? 'selected' : ''}" onclick="toggleSelection('seed', ${idx})" style="cursor: pointer;">
+                        <td><input type="checkbox" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation(); toggleSelection('seed', ${idx})"></td>
+                        <td style="font-family: monospace; font-size: 12px;">${seed.Seed_Lot_ID || seed.seedLotId || '--'}</td>
+                        <td><strong>${seed.Crop || seed.crop || '--'}</strong></td>
+                        <td>${seed.Variety || seed.variety || '--'}</td>
+                        <td>${seed.Supplier || seed.supplier || '--'}</td>
+                        <td>${germPct}%</td>
+                        <td>${seed.Quantity_Remaining || seed.qtyRemaining || 0}</td>
+                        <td>${seed.Organic_Certified || seed.organic ? '<span class="organic-badge">Organic</span>' : '--'}</td>
+                        <td><span class="status-badge ${statusClass}">${seed.Status || seed.status || '--'}</span></td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function getSeedQRCodeUrl(seedLotId) {
+            const trackUrl = `https://toddismyname21.github.io/tiny-seed-os/seed_track.html?id=${encodeURIComponent(seedLotId)}`;
+            return `https://quickchart.io/chart?cht=qr&chs=150x150&chl=${encodeURIComponent(trackUrl)}`;
+        }
+
+        function renderSeedLabelsPreview() {
+            const grid = document.getElementById('seedLabelsPreviewGrid');
+
+            if (AppState.selectedSeed.size === 0) {
+                grid.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🌱</div>
+                        <p>Select seeds from the table above to preview labels</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const selectedSeeds = [...AppState.selectedSeed].map(idx => AppState.seedInventoryFiltered[idx]).filter(Boolean);
+
+            grid.innerHTML = selectedSeeds.map(seed => {
+                const seedLotId = seed.Seed_Lot_ID || seed.seedLotId || '';
+                const qrUrl = getSeedQRCodeUrl(seedLotId);
+                const germPct = seed.Germination_Rate || seed.germRate || 0;
+                const expDate = seed.Expiration_Date || seed.expDate || '';
+                const formattedExp = expDate ? new Date(expDate).toLocaleDateString() : '--';
+                const isOrganic = seed.Organic_Certified || seed.organic;
+
+                return `
+                    <div class="seed-label-preview">
+                        <div class="qr"><img src="${qrUrl}" alt="QR Code" loading="lazy"></div>
+                        <div class="info">
+                            <div class="seed-lot-id">${seedLotId}</div>
+                            <div class="crop-name">${seed.Crop || seed.crop || '--'}</div>
+                            <div class="variety-name">${seed.Variety || seed.variety || ''}</div>
+                            <div>${seed.Supplier || seed.supplier || ''}</div>
+                            <div>Germ: ${germPct}% | Exp: ${formattedExp}</div>
+                            ${isOrganic ? '<span class="organic-tag">Organic</span>' : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function generateAllSeedQRCodes() {
+            // Select all active seeds
+            AppState.seedInventoryFiltered.forEach((seed, idx) => {
+                const status = (seed.Status || seed.status || '').toLowerCase();
+                if (status === 'active' || status === 'low') {
+                    AppState.selectedSeed.add(idx);
+                }
+            });
+
+            renderSeedTable();
+            renderSeedLabelsPreview();
+            updateStats();
+        }
+
+        function printSeedLabels() {
+            const selected = AppState.selectedSeed.size > 0
+                ? [...AppState.selectedSeed].map(idx => AppState.seedInventoryFiltered[idx]).filter(Boolean)
+                : AppState.seedInventoryFiltered;
+
+            if (selected.length === 0) {
+                alert('No seed labels to print.');
+                return;
+            }
+
+            const container = document.getElementById('printSeedLabels');
+            const labelsPerPage = 10; // 5 rows x 2 cols
+
+            let html = '';
+            for (let i = 0; i < selected.length; i += labelsPerPage) {
+                const pageSeeds = selected.slice(i, i + labelsPerPage);
+                html += '<div class="seed-labels-page">';
+
+                html += pageSeeds.map(seed => {
+                    const seedLotId = seed.Seed_Lot_ID || seed.seedLotId || '';
+                    const qrUrl = getSeedQRCodeUrl(seedLotId);
+                    const germPct = seed.Germination_Rate || seed.germRate || 0;
+                    const expDate = seed.Expiration_Date || seed.expDate || '';
+                    const formattedExp = expDate ? new Date(expDate).toLocaleDateString() : '--';
+                    const isOrganic = seed.Organic_Certified || seed.organic;
+
+                    return `
+                        <div class="seed-label">
+                            <div class="qr"><img src="${qrUrl}" alt="QR"></div>
+                            <div class="info">
+                                <div class="seed-lot-id">${seedLotId}</div>
+                                <div class="crop-name">${seed.Crop || seed.crop || ''}</div>
+                                <div class="variety-name">${seed.Variety || seed.variety || ''}</div>
+                                <div class="detail-line">${seed.Supplier || seed.supplier || ''}</div>
+                                <div class="detail-line">Germ: ${germPct}% | Exp: ${formattedExp}</div>
+                                ${isOrganic ? '<span class="organic-tag">Organic</span>' : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                html += '</div>';
+            }
+
+            container.innerHTML = html;
+            window.print();
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // FIELD/BED LABELS - Data Loading & Rendering
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        async function loadFieldsData() {
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+                const response = await fetch(`${API_URL}?action=getFieldsDashboard`, {
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+
+                const data = await response.json();
+
+                if (data.success && data.fields && data.fields.length > 0) {
+                    AppState.fieldsList = data.fields;
+                    console.log('Loaded', data.fields.length, 'fields from API');
+                } else {
+                    AppState.fieldsList = getSampleFieldsData();
+                    console.log('No fields from API, using sample data');
+                }
+            } catch (error) {
+                console.error('Error loading fields:', error);
+                AppState.fieldsList = getSampleFieldsData();
+            }
+
+            populateFieldSelector();
+
+            // Also load beds
+            await loadBedsData();
+        }
+
+        async function loadBedsData() {
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+                const response = await fetch(`${API_URL}?action=getBedsWithStatus`, {
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+
+                const data = await response.json();
+
+                if (data.success && data.beds && data.beds.length > 0) {
+                    AppState.bedsList = data.beds;
+                    console.log('Loaded', data.beds.length, 'beds from API');
+                } else {
+                    AppState.bedsList = getSampleBedsData();
+                    console.log('No beds from API, using sample data');
+                }
+            } catch (error) {
+                console.error('Error loading beds:', error);
+                AppState.bedsList = getSampleBedsData();
+            }
+        }
+
+        function getSampleFieldsData() {
+            return [
+                { fieldId: 'F001', name: 'Main Field', bedCount: 20, area: '0.5 acres' },
+                { fieldId: 'F002', name: 'Greenhouse 1', bedCount: 8, area: '30x96 ft' },
+                { fieldId: 'F003', name: 'Greenhouse 2', bedCount: 6, area: '20x48 ft' },
+                { fieldId: 'F004', name: 'Flower Field', bedCount: 12, area: '0.25 acres' },
+                { fieldId: 'F005', name: 'New Expansion', bedCount: 15, area: '0.3 acres' }
+            ];
+        }
+
+        function getSampleBedsData() {
+            return [
+                { bedId: 'B001', field: 'Main Field', fieldId: 'F001', bedNumber: 1, crop: 'Tomato', variety: 'Cherokee Purple', plantDate: '2026-03-15', expectedHarvest: '2026-06-20', status: 'Planted' },
+                { bedId: 'B002', field: 'Main Field', fieldId: 'F001', bedNumber: 2, crop: 'Lettuce', variety: 'Buttercrunch', plantDate: '2026-02-10', expectedHarvest: '2026-04-15', status: 'Growing' },
+                { bedId: 'B003', field: 'Main Field', fieldId: 'F001', bedNumber: 3, crop: 'Kale', variety: 'Lacinato', plantDate: '2026-02-01', expectedHarvest: '2026-04-20', status: 'Growing' },
+                { bedId: 'B004', field: 'Main Field', fieldId: 'F001', bedNumber: 4, crop: '', variety: '', plantDate: '', expectedHarvest: '', status: 'Empty' },
+                { bedId: 'B005', field: 'Main Field', fieldId: 'F001', bedNumber: 5, crop: 'Carrot', variety: 'Nantes', plantDate: '2026-02-20', expectedHarvest: '2026-05-25', status: 'Seeded' },
+                { bedId: 'B006', field: 'Greenhouse 1', fieldId: 'F002', bedNumber: 1, crop: 'Pepper', variety: 'Jimmy Nardello', plantDate: '2026-03-01', expectedHarvest: '2026-06-15', status: 'Transplanted' },
+                { bedId: 'B007', field: 'Greenhouse 1', fieldId: 'F002', bedNumber: 2, crop: 'Basil', variety: 'Genovese', plantDate: '2026-02-15', expectedHarvest: '2026-04-10', status: 'Growing' },
+                { bedId: 'B008', field: 'Flower Field', fieldId: 'F004', bedNumber: 1, crop: 'Zinnia', variety: 'Benary Giant Mix', plantDate: '2026-03-20', expectedHarvest: '2026-06-01', status: 'Seeded' },
+                { bedId: 'B009', field: 'Flower Field', fieldId: 'F004', bedNumber: 2, crop: 'Sunflower', variety: 'Pro Cut', plantDate: '2026-03-25', expectedHarvest: '2026-06-10', status: 'Seeded' }
+            ];
+        }
+
+        function populateFieldSelector() {
+            const select = document.getElementById('fieldSelector');
+            select.innerHTML = '<option value="">Select a Field</option>' +
+                AppState.fieldsList.map(f =>
+                    `<option value="${f.fieldId || f.name}">${f.name || f.fieldName || f.fieldId} (${f.bedCount || 0} beds)</option>`
+                ).join('');
+        }
+
+        function onFieldSelected() {
+            const fieldValue = document.getElementById('fieldSelector').value;
+            if (!fieldValue) {
+                document.getElementById('bedRangeEnd').placeholder = '--';
+                return;
+            }
+
+            const field = AppState.fieldsList.find(f => (f.fieldId || f.name) === fieldValue);
+            if (field) {
+                document.getElementById('bedRangeStart').value = 1;
+                document.getElementById('bedRangeEnd').value = field.bedCount || 1;
+                document.getElementById('bedRangeEnd').placeholder = field.bedCount || '--';
+            }
+        }
+
+        function onFieldLabelTypeChanged() {
+            // Clear the preview when label type changes
+            AppState.fieldLabels = [];
+            AppState.selectedField.clear();
+            const grid = document.getElementById('fieldLabelsPreviewGrid');
+            grid.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">🌿</div>
+                    <p>Select a field and click "Generate Labels" to preview</p>
+                </div>
+            `;
+            updateStats();
+        }
+
+        function getBedQRCodeUrl(bedId) {
+            const detailUrl = `https://toddismyname21.github.io/tiny-seed-os/web_app/greenhouse-dashboard.html?bed=${encodeURIComponent(bedId)}`;
+            return `https://quickchart.io/chart?cht=qr&chs=150x150&chl=${encodeURIComponent(detailUrl)}`;
+        }
+
+        function generateFieldLabels() {
+            const fieldValue = document.getElementById('fieldSelector').value;
+            if (!fieldValue) {
+                alert('Please select a field first.');
+                return;
+            }
+
+            const bedStart = parseInt(document.getElementById('bedRangeStart').value) || 1;
+            const bedEnd = parseInt(document.getElementById('bedRangeEnd').value) || bedStart;
+            const labelType = document.getElementById('fieldLabelType').value;
+            const copies = parseInt(document.getElementById('fieldLabelCopies').value) || 1;
+
+            // Find the field
+            const field = AppState.fieldsList.find(f => (f.fieldId || f.name) === fieldValue);
+            const fieldName = field ? (field.name || field.fieldName || fieldValue) : fieldValue;
+
+            // Get beds for this field in the selected range
+            const fieldBeds = AppState.bedsList.filter(b => {
+                const bField = b.fieldId || b.field || '';
+                const bNum = b.bedNumber || b.bed_number || 0;
+                return (bField === fieldValue || b.field === fieldName) && bNum >= bedStart && bNum <= bedEnd;
+            });
+
+            // If no beds found from API, generate placeholder beds for the range
+            const labels = [];
+            for (let num = bedStart; num <= bedEnd; num++) {
+                const bed = fieldBeds.find(b => (b.bedNumber || b.bed_number) === num);
+                for (let copy = 0; copy < copies; copy++) {
+                    labels.push({
+                        fieldName: fieldName,
+                        fieldId: fieldValue,
+                        bedNumber: num,
+                        bedId: bed ? (bed.bedId || bed.bed_id || `${fieldValue}-B${num}`) : `${fieldValue}-B${num}`,
+                        crop: bed ? (bed.crop || '') : '',
+                        variety: bed ? (bed.variety || '') : '',
+                        plantDate: bed ? (bed.plantDate || bed.plant_date || '') : '',
+                        expectedHarvest: bed ? (bed.expectedHarvest || bed.expected_harvest || '') : '',
+                        status: bed ? (bed.status || '') : 'Empty',
+                        labelType: labelType
+                    });
+                }
+            }
+
+            AppState.fieldLabels = labels;
+            AppState.selectedField.clear();
+            // Select all by default
+            labels.forEach((_, idx) => AppState.selectedField.add(idx));
+
+            renderFieldLabelsPreview();
+            updateStats();
+        }
+
+        function renderFieldLabelsPreview() {
+            const grid = document.getElementById('fieldLabelsPreviewGrid');
+
+            if (AppState.fieldLabels.length === 0) {
+                grid.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🌿</div>
+                        <p>Select a field and click "Generate Labels" to preview</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const labelType = AppState.fieldLabels[0]?.labelType || 'bed-marker';
+
+            if (labelType === 'bed-marker') {
+                grid.className = 'bed-markers-preview-grid';
+                grid.innerHTML = AppState.fieldLabels.map((label, idx) => {
+                    const qrUrl = getBedQRCodeUrl(label.bedId);
+                    const plantDateFormatted = label.plantDate ? new Date(label.plantDate).toLocaleDateString() : '';
+                    return `
+                        <div class="bed-marker-preview" onclick="toggleSelection('field', ${idx})"
+                             style="cursor: pointer; ${AppState.selectedField.has(idx) ? 'border-color: var(--primary); box-shadow: 0 0 0 3px rgba(34,197,94,0.3);' : ''}">
+                            <div class="field-name">${label.fieldName}</div>
+                            <div class="bed-number">${label.bedNumber}</div>
+                            <div class="crop-info">
+                                ${label.crop ? `<strong>${label.crop}</strong>` : '<em style="color: #aaa;">Empty</em>'}
+                                ${label.variety ? ` - ${label.variety}` : ''}
+                            </div>
+                            ${plantDateFormatted ? `<div style="font-size: 10px; color: #888;">Planted: ${plantDateFormatted}</div>` : ''}
+                            <div class="qr"><img src="${qrUrl}" alt="QR" loading="lazy"></div>
+                        </div>
+                    `;
+                }).join('');
+            } else if (labelType === 'row-marker') {
+                grid.className = 'row-markers-preview-grid';
+                grid.innerHTML = AppState.fieldLabels.map((label, idx) => {
+                    const plantDateFormatted = label.plantDate ? new Date(label.plantDate).toLocaleDateString() : '--';
+                    const harvestFormatted = label.expectedHarvest ? new Date(label.expectedHarvest).toLocaleDateString() : '--';
+                    return `
+                        <div class="row-marker-preview" onclick="toggleSelection('field', ${idx})"
+                             style="cursor: pointer; ${AppState.selectedField.has(idx) ? 'border-color: var(--primary); box-shadow: 0 0 0 3px rgba(34,197,94,0.3);' : ''}">
+                            <div class="crop-name">${label.crop || 'Empty'}</div>
+                            <div class="variety-name">${label.variety || ''}</div>
+                            <div class="dates">Plant: ${plantDateFormatted}<br>Harvest: ${harvestFormatted}</div>
+                            <div class="row-num">Row ${label.bedNumber} - ${label.fieldName}</div>
+                        </div>
+                    `;
+                }).join('');
+            } else if (labelType === 'plant-tag') {
+                grid.className = 'plant-tags-preview-grid';
+                grid.innerHTML = AppState.fieldLabels.map((label, idx) => {
+                    const plantDateFormatted = label.plantDate ? new Date(label.plantDate).toLocaleDateString() : '--';
+                    return `
+                        <div class="plant-tag-preview" onclick="toggleSelection('field', ${idx})"
+                             style="cursor: pointer; ${AppState.selectedField.has(idx) ? 'border-color: var(--primary); box-shadow: 0 0 0 3px rgba(34,197,94,0.3);' : ''}">
+                            <div class="variety-name">${label.variety || label.crop || 'Empty'}</div>
+                            <div class="plant-date">${plantDateFormatted}</div>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        function printFieldLabels() {
+            const selected = AppState.selectedField.size > 0
+                ? [...AppState.selectedField].map(idx => AppState.fieldLabels[idx]).filter(Boolean)
+                : AppState.fieldLabels;
+
+            if (selected.length === 0) {
+                alert('No field/bed labels to print. Generate labels first.');
+                return;
+            }
+
+            const container = document.getElementById('printFieldLabels');
+            const labelType = selected[0]?.labelType || 'bed-marker';
+
+            if (labelType === 'bed-marker') {
+                // 1 per page
+                container.innerHTML = selected.map(label => {
+                    const qrUrl = getBedQRCodeUrl(label.bedId);
+                    const plantDateFormatted = label.plantDate ? new Date(label.plantDate).toLocaleDateString() : '';
+                    return `
+                        <div class="bed-marker">
+                            <div class="field-name">${label.fieldName}</div>
+                            <div class="bed-number">${label.bedNumber}</div>
+                            <div class="crop-info">
+                                ${label.crop ? `<span class="crop-name">${label.crop}</span>` : '<em>Empty</em>'}
+                                ${label.variety ? ` - ${label.variety}` : ''}
+                            </div>
+                            ${plantDateFormatted ? `<div class="planting-date">Planted: ${plantDateFormatted}</div>` : ''}
+                            <div class="qr"><img src="${qrUrl}" alt="QR"></div>
+                        </div>
+                    `;
+                }).join('');
+            } else if (labelType === 'row-marker') {
+                // 2 per page side by side (4in x 2in each, 2 across on 8.5" page)
+                let html = '';
+                const perPage = 4; // 2 cols x 2 rows roughly
+                for (let i = 0; i < selected.length; i += perPage) {
+                    const pageLabels = selected.slice(i, i + perPage);
+                    html += '<div class="row-markers-page">';
+                    html += pageLabels.map(label => {
+                        const plantDateFormatted = label.plantDate ? new Date(label.plantDate).toLocaleDateString() : '--';
+                        const harvestFormatted = label.expectedHarvest ? new Date(label.expectedHarvest).toLocaleDateString() : '--';
+                        return `
+                            <div class="row-marker">
+                                <div class="crop-name">${label.crop || 'Empty'}</div>
+                                <div class="variety-name">${label.variety || ''}</div>
+                                <div class="dates">Planted: ${plantDateFormatted} | Harvest: ${harvestFormatted}</div>
+                                <div class="row-num">Row ${label.bedNumber} - ${label.fieldName}</div>
+                            </div>
+                        `;
+                    }).join('');
+                    html += '</div>';
+                }
+                container.innerHTML = html;
+            } else if (labelType === 'plant-tag') {
+                // Many per page (2in x 1in = 4 across, ~10 rows)
+                let html = '';
+                const perPage = 40; // 4 cols x 10 rows
+                for (let i = 0; i < selected.length; i += perPage) {
+                    const pageLabels = selected.slice(i, i + perPage);
+                    html += '<div class="plant-tags-page">';
+                    html += pageLabels.map(label => {
+                        const plantDateFormatted = label.plantDate ? new Date(label.plantDate).toLocaleDateString() : '--';
+                        return `
+                            <div class="plant-tag">
+                                <div class="variety-name">${label.variety || label.crop || 'Empty'}</div>
+                                <div class="plant-date">${plantDateFormatted}</div>
+                            </div>
+                        `;
+                    }).join('');
+                    html += '</div>';
+                }
+                container.innerHTML = html;
+            }
+
+            window.print();
         }
     </script>
 </body>

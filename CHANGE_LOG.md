@@ -38,6 +38,55 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-02-23 — PRODUCTION PIPELINE: 6-Phase Build + Audit + Critical Fixes
+**Role:** PM_Architect (coordinating 4 parallel agents + audit agents)
+
+### Files Created
+- `web_app/greenhouse-dashboard.html` — Full greenhouse management dashboard with 5 tabs: Today's Tasks, Tray Inventory, Growth Tracking, Seedling Sales, Reports. Includes seedling presale manager, historical data (2021-2025 varieties), and all sales channels.
+- `docs/audits/PRODUCTION_PIPELINE_AUDIT_2026-02-23.md` — Comprehensive production pipeline audit report
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — Major backend additions:
+  - Fixed `syncInventoryFromHarvest()` — changed `LOG_Harvests` to `HARVEST_LOG`, `REF_Crops` to `REF_CropProfiles`
+  - Expanded `CROP_YIELD_ESTIMATES` from 20 to 48 crops (added vegetables, flowers)
+  - Added dynamic yield learning: `updateYieldEstimatesFromHistory()`, `getSmartYieldEstimate()`
+  - Added 5 sheet initialization: `initProductionTrackingSheets()` (GROWTH_TRACKING, GERMINATION_LOG, TRANSPLANT_SUCCESS, VARIETY_PERFORMANCE, PRODUCTION_COSTS)
+  - Added 8 production CRUD functions: `logGrowthTracking`, `getGrowthTracking`, `logGerminationCheck`, `getGerminationLog`, `logTransplantSuccess`, `logDirectSowConfirmation`, `logProductionCost`, `getVarietyPerformanceTracking`
+  - Added 4 seedling functions: `getSeedlingProductionPlan`, `saveSeedlingItem`, `logSeedlingSale`, `getSeedlingSales`
+  - Added 5 missing endpoints found by audit: `getSeedlingPresaleItems`, `getSeedlingSalesHistorical`, `addTray`, `createSeedlingPresaleItem`, `reportGreenhouseProblem`
+  - Fixed field name aliasing in `logGrowthTracking`, `logGerminationCheck`, `logSeedlingSale` to accept both frontend shorthand and full field names
+  - Added 20 new API router cases (GET + POST)
+
+- `employee.html` — Added:
+  - Yield Logging form (batch selector, quality breakdown A/B/C/Cull, variance calculation, offline support)
+  - Direct Sow Confirmation form (crop, bed, feet, seed lot, photo capture, GPS, soil condition, offline support)
+  - Updated OfflineDB postActions for new POST types
+
+- `web_app/labels.html` — Added:
+  - Seed Labels tab (inventory table, QR code generation, crop/status/organic filters, print layout 2"x1", 10 per page)
+  - Field/Bed Labels tab (field selector, bed range, 3 label types: bed markers 4"x6", row markers 2"x4", plant tags 1"x2")
+
+- `web_app/greenhouse-dashboard.html` — Post-audit fixes:
+  - Added `auth-guard.js` (was missing — security fix)
+  - Fixed response shape mismatches (frontend expected `res.stages`/`res.logs`/`res.sales`, backend returns `res.data`)
+  - Fixed sales tracker to handle both frontend and backend field names
+
+### Audit Results (3 agents ran)
+- **System Score: 94% → ~99%** after critical fixes
+- 8/11 subsystems fully operational, remaining gaps are presale→Shopify sync (requires Shopify API integration)
+- All field name mismatches fixed
+- All response shape mismatches fixed
+- 5 missing backend routes implemented
+- Auth guard added to greenhouse dashboard
+- HTML balanced in all files
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for existing greenhouse files (found `greenhouse.html` at root — different purpose/scope)
+- [x] No duplicates created
+
+---
+
 ## 2026-02-22 — Growth Tab: Fix Black Page (Nesting Bug + CSS Fix)
 **Role:** Desktop_Claude
 

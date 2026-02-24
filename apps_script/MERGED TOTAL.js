@@ -17484,6 +17484,24 @@ function doGet(e) {
       case 'recordMemoryStatsSnapshot':
         return jsonResponse(recordMemoryStatsSnapshot());
 
+      // ============ PRODUCTION TRACKING & YIELD LEARNING (GET) (2026-02-23) ============
+      case 'getGrowthTracking':
+        return jsonResponse(getGrowthTracking(e.parameter));
+      case 'getGerminationLog':
+        return jsonResponse(getGerminationLog(e.parameter));
+      case 'getVarietyPerformanceTracking':
+        return jsonResponse(getVarietyPerformanceTracking(e.parameter));
+      case 'getSmartYieldEstimate':
+        return jsonResponse(getSmartYieldEstimate(e.parameter.crop));
+      case 'getSeedlingProductionPlan':
+        return jsonResponse(getSeedlingProductionPlan(e.parameter));
+      case 'getSeedlingSales':
+        return jsonResponse(getSeedlingSales(e.parameter));
+      case 'getSeedlingPresaleItems':
+        return jsonResponse(getSeedlingPresaleItems(e.parameter));
+      case 'getSeedlingSalesHistorical':
+        return jsonResponse(getSeedlingSalesHistorical(e.parameter));
+
       default:
         return jsonResponse({error: 'Unknown action: ' + action}, 400);
     }
@@ -18820,6 +18838,34 @@ function doPost(e) {
         return jsonResponse(endWorkingMemorySession(data.sessionId, data.sessionInsights || data.insights));
       case 'logConsolidationRun':
         return jsonResponse(logConsolidationRun(data));
+
+      // ============ PRODUCTION TRACKING & YIELD LEARNING (POST) (2026-02-23) ============
+      case 'logGrowthTracking':
+        return jsonResponse(logGrowthTracking(data));
+      case 'logGerminationCheck':
+        return jsonResponse(logGerminationCheck(data));
+      case 'logTransplantSuccess':
+        return jsonResponse(logTransplantSuccess(data));
+      case 'logDirectSowConfirmation':
+        return jsonResponse(logDirectSowConfirmation(data));
+      case 'logProductionCost':
+        return jsonResponse(logProductionCost(data));
+      case 'updateYieldEstimates':
+        return jsonResponse(updateYieldEstimatesFromHistory());
+      case 'initProductionSheets':
+        return jsonResponse(initProductionTrackingSheets());
+
+      // ============ SEEDLING SALE MANAGEMENT (POST) (2026-02-23) ============
+      case 'saveSeedlingItem':
+        return jsonResponse(saveSeedlingItem(data));
+      case 'logSeedlingSale':
+        return jsonResponse(logSeedlingSale(data));
+      case 'addTray':
+        return jsonResponse(addTray(data));
+      case 'createSeedlingPresaleItem':
+        return jsonResponse(createSeedlingPresaleItem(data));
+      case 'reportGreenhouseProblem':
+        return jsonResponse(reportGreenhouseProblem(data));
 
       default:
         return jsonResponse({error: 'Unknown action: ' + action}, 400);
@@ -48427,8 +48473,8 @@ function logStockAdjustment(cropId, cropName, oldStock, newStock, adjustmentType
 function syncInventoryFromHarvest(data) {
   try {
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    const harvestSheet = ss.getSheetByName('LOG_Harvests');
-    const cropsSheet = ss.getSheetByName('REF_Crops');
+    const harvestSheet = ss.getSheetByName('HARVEST_LOG');
+    const cropsSheet = ss.getSheetByName('REF_CropProfiles');
 
     if (!harvestSheet || !cropsSheet) {
       return { success: false, error: 'Required sheets not found' };
@@ -129199,8 +129245,770 @@ const CROP_YIELD_ESTIMATES = {
   'Cabbage': { lbsPerFoot: 1.5, harvestWindowDays: 7, pricePerLb: 2.00 },
   'Basil': { lbsPerFoot: 0.25, harvestWindowDays: 21, pricePerLb: 12.00 },
   'Cilantro': { lbsPerFoot: 0.2, harvestWindowDays: 14, pricePerLb: 10.00 },
-  'Parsley': { lbsPerFoot: 0.2, harvestWindowDays: 28, pricePerLb: 8.00 }
+  'Parsley': { lbsPerFoot: 0.2, harvestWindowDays: 28, pricePerLb: 8.00 },
+
+  // --- Additional high-value crops (Western PA small organic farm) ---
+  'Tomato': { lbsPerFoot: 2.5, harvestWindowDays: 60, pricePerLb: 4.00 },
+  'Cherry Tomato': { lbsPerFoot: 1.5, harvestWindowDays: 45, pricePerLb: 6.00 },
+  'Pepper': { lbsPerFoot: 1.0, harvestWindowDays: 45, pricePerLb: 5.00 },
+  'Hot Pepper': { lbsPerFoot: 0.8, harvestWindowDays: 45, pricePerLb: 8.00 },
+  'Eggplant': { lbsPerFoot: 1.5, harvestWindowDays: 40, pricePerLb: 4.00 },
+  'Cucumber': { lbsPerFoot: 2.0, harvestWindowDays: 30, pricePerLb: 3.00 },
+  'Summer Squash': { lbsPerFoot: 2.5, harvestWindowDays: 35, pricePerLb: 2.50 },
+  'Winter Squash': { lbsPerFoot: 3.0, harvestWindowDays: 21, pricePerLb: 2.00 },
+  'Pumpkin': { lbsPerFoot: 4.0, harvestWindowDays: 14, pricePerLb: 1.50 },
+  'Brussels Sprouts': { lbsPerFoot: 0.5, harvestWindowDays: 21, pricePerLb: 7.00 },
+  'Celery': { lbsPerFoot: 1.0, harvestWindowDays: 14, pricePerLb: 4.00 },
+  'Onion': { lbsPerFoot: 1.0, harvestWindowDays: 14, pricePerLb: 2.50 },
+  'Garlic': { lbsPerFoot: 0.5, harvestWindowDays: 14, pricePerLb: 12.00 },
+  'Leek': { lbsPerFoot: 0.6, harvestWindowDays: 21, pricePerLb: 5.00 },
+  'Sweet Potato': { lbsPerFoot: 1.5, harvestWindowDays: 14, pricePerLb: 3.50 },
+  'Potato': { lbsPerFoot: 2.0, harvestWindowDays: 14, pricePerLb: 2.50 },
+  'Watermelon': { lbsPerFoot: 5.0, harvestWindowDays: 14, pricePerLb: 1.00 },
+  'Cantaloupe': { lbsPerFoot: 3.0, harvestWindowDays: 14, pricePerLb: 2.00 },
+
+  // --- Cut flowers ---
+  // NOTE: For flowers, "lbsPerFoot" represents stems per foot (divide by 10 for approximate bunch weight).
+  // Flowers are sold by the stem/bunch, not by weight, but we track this way for yield comparison.
+  'Sunflower': { lbsPerFoot: 0.3, harvestWindowDays: 7, pricePerLb: 10.00 },
+  'Zinnia': { lbsPerFoot: 0.2, harvestWindowDays: 30, pricePerLb: 12.00 },
+  'Dahlia': { lbsPerFoot: 0.3, harvestWindowDays: 45, pricePerLb: 15.00 },
+  'Snapdragon': { lbsPerFoot: 0.2, harvestWindowDays: 21, pricePerLb: 10.00 },
+  'Sweet Pea': { lbsPerFoot: 0.1, harvestWindowDays: 21, pricePerLb: 15.00 },
+  'Cosmos': { lbsPerFoot: 0.2, harvestWindowDays: 30, pricePerLb: 8.00 },
+  'Celosia': { lbsPerFoot: 0.2, harvestWindowDays: 21, pricePerLb: 10.00 },
+  'Lisianthus': { lbsPerFoot: 0.15, harvestWindowDays: 14, pricePerLb: 20.00 }
 };
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DYNAMIC YIELD LEARNING SYSTEM (2026-02-23)
+// Learns from actual farm harvest data to improve yield predictions over time
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Update yield estimates from actual farm harvest data
+ * Learns from HARVEST_LOG and PLANNING_2026 to improve predictions
+ * Called monthly or on-demand from admin dashboard
+ */
+function updateYieldEstimatesFromHistory() {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+  // Get harvest data
+  var harvestSheet = ss.getSheetByName('HARVEST_LOG');
+  if (!harvestSheet) return { success: false, error: 'HARVEST_LOG sheet not found' };
+
+  var planningSheet = ss.getSheetByName('PLANNING_2026');
+  if (!planningSheet) return { success: false, error: 'PLANNING_2026 sheet not found' };
+
+  var harvestData = harvestSheet.getDataRange().getValues();
+  var harvestHeaders = harvestData[0];
+  var planningData = planningSheet.getDataRange().getValues();
+  var planningHeaders = planningData[0];
+
+  // Build yield map: crop -> {totalLbs, totalBedFeet, harvests, records}
+  var yieldMap = {};
+
+  for (var i = 1; i < harvestData.length; i++) {
+    var row = harvestData[i];
+    var batchId = row[harvestHeaders.indexOf('Batch_ID')];
+    var crop = row[harvestHeaders.indexOf('Crop')];
+    var quantity = Number(row[harvestHeaders.indexOf('Quantity')]) || 0;
+    var unit = row[harvestHeaders.indexOf('Unit')] || 'lbs';
+    var timestamp = row[harvestHeaders.indexOf('Timestamp')];
+
+    if (!crop || !quantity) continue;
+
+    // Convert to lbs if needed
+    var lbs = quantity;
+    if (unit === 'bunches') lbs = quantity * 0.5;
+    if (unit === 'count' || unit === 'each') lbs = quantity * 0.3;
+
+    // Find bed feet from planning
+    var bedFeet = 0;
+    for (var j = 1; j < planningData.length; j++) {
+      if (planningData[j][planningHeaders.indexOf('Batch_ID')] === batchId) {
+        bedFeet = Number(planningData[j][planningHeaders.indexOf('Bed_Feet')]) || 0;
+        break;
+      }
+    }
+
+    if (!yieldMap[crop]) {
+      yieldMap[crop] = { totalLbs: 0, totalBedFeet: 0, harvests: 0, records: [] };
+    }
+    yieldMap[crop].totalLbs += lbs;
+    if (bedFeet > 0) yieldMap[crop].totalBedFeet += bedFeet;
+    yieldMap[crop].harvests++;
+    yieldMap[crop].records.push({ batchId: batchId, lbs: lbs, bedFeet: bedFeet, date: timestamp });
+  }
+
+  // Calculate learned yields
+  var learnedYields = {};
+  var updates = [];
+
+  var cropNames = Object.keys(yieldMap);
+  for (var c = 0; c < cropNames.length; c++) {
+    var cropName = cropNames[c];
+    var data = yieldMap[cropName];
+    if (data.totalBedFeet > 0 && data.harvests >= 2) {
+      var learnedLbsPerFoot = data.totalLbs / data.totalBedFeet;
+      learnedYields[cropName] = {
+        lbsPerFoot: Math.round(learnedLbsPerFoot * 100) / 100,
+        sampleSize: data.harvests,
+        totalLbsRecorded: Math.round(data.totalLbs * 10) / 10,
+        totalBedFeet: data.totalBedFeet,
+        confidence: Math.min(data.harvests / 10, 1.0)
+      };
+      updates.push(cropName + ': ' + learnedLbsPerFoot.toFixed(2) + ' lbs/ft (from ' + data.harvests + ' harvests)');
+    }
+  }
+
+  // Save to YIELD_LEARNED sheet
+  var learnedSheet = ss.getSheetByName('YIELD_LEARNED');
+  if (!learnedSheet) {
+    learnedSheet = ss.insertSheet('YIELD_LEARNED');
+    learnedSheet.appendRow(['Crop', 'Learned_Lbs_Per_Ft', 'Sample_Size', 'Total_Lbs', 'Total_Bed_Feet', 'Confidence', 'Last_Updated']);
+    learnedSheet.getRange(1, 1, 1, 7).setFontWeight('bold');
+    learnedSheet.setFrozenRows(1);
+  }
+
+  // Clear old data and write new
+  if (learnedSheet.getLastRow() > 1) {
+    learnedSheet.getRange(2, 1, learnedSheet.getLastRow() - 1, 7).clearContent();
+  }
+
+  var writeRow = 2;
+  var learnedCropNames = Object.keys(learnedYields);
+  for (var lc = 0; lc < learnedCropNames.length; lc++) {
+    var lcName = learnedCropNames[lc];
+    var lcData = learnedYields[lcName];
+    learnedSheet.getRange(writeRow, 1, 1, 7).setValues([[
+      lcName, lcData.lbsPerFoot, lcData.sampleSize, lcData.totalLbsRecorded,
+      lcData.totalBedFeet, lcData.confidence, new Date().toISOString()
+    ]]);
+    writeRow++;
+  }
+
+  return {
+    success: true,
+    cropsLearned: learnedCropNames.length,
+    updates: updates,
+    learnedYields: learnedYields
+  };
+}
+
+/**
+ * Get yield estimate for a crop — prefers learned data over static estimates
+ */
+function getSmartYieldEstimate(crop) {
+  // First check learned yields
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var learnedSheet = ss.getSheetByName('YIELD_LEARNED');
+
+  if (learnedSheet) {
+    var data = learnedSheet.getDataRange().getValues();
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][0] && data[i][0].toString().toLowerCase() === crop.toLowerCase()) {
+        return {
+          source: 'farm_learned',
+          lbsPerFoot: data[i][1],
+          confidence: data[i][5],
+          sampleSize: data[i][2]
+        };
+      }
+    }
+  }
+
+  // Fall back to static estimates
+  var staticEstimate = CROP_YIELD_ESTIMATES[crop];
+  if (staticEstimate) {
+    return {
+      source: 'static_estimate',
+      lbsPerFoot: staticEstimate.lbsPerFoot,
+      confidence: 0.3,
+      sampleSize: 0
+    };
+  }
+
+  // Default fallback
+  return {
+    source: 'default',
+    lbsPerFoot: 0.5,
+    confidence: 0.1,
+    sampleSize: 0
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PRODUCTION TRACKING SHEETS INITIALIZATION (2026-02-23)
+// Creates GROWTH_TRACKING, GERMINATION_LOG, TRANSPLANT_SUCCESS,
+// VARIETY_PERFORMANCE, and PRODUCTION_COSTS sheets
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Initialize all production tracking sheets
+ * Call once or on-demand — safe to call multiple times (checks if sheets exist)
+ */
+function initProductionTrackingSheets() {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var results = [];
+
+  // 1. GROWTH_TRACKING
+  results.push(initSheet(ss, 'GROWTH_TRACKING', [
+    'Tracking_ID', 'Batch_ID', 'Crop', 'Variety', 'Date_Observed', 'Growth_Stage',
+    'Plant_Height_In', 'Canopy_Width_In', 'Vigor_Score', 'Disease_Pct', 'Pest_Pct',
+    'Nutrient_Status', 'Plant_Color', 'Photo_URL', 'Employee_ID', 'GPS_Lat', 'GPS_Lng',
+    'Notes', 'Created_At'
+  ]));
+
+  // 2. GERMINATION_LOG
+  results.push(initSheet(ss, 'GERMINATION_LOG', [
+    'Log_ID', 'Batch_ID', 'Seed_Lot_ID', 'Crop', 'Variety', 'Seeds_Sown', 'Sow_Date',
+    'Check_Date', 'Plants_Emerged', 'Germination_Pct', 'Expected_Germ_Pct',
+    'Reseed_Needed', 'Reseed_Date', 'Photo_URL', 'Employee_ID', 'Notes', 'Created_At'
+  ]));
+
+  // 3. TRANSPLANT_SUCCESS
+  results.push(initSheet(ss, 'TRANSPLANT_SUCCESS', [
+    'Log_ID', 'Batch_ID', 'Crop', 'Variety', 'Transplant_Date', 'Plants_Transplanted',
+    'Bed_ID', 'Bed_Feet', 'Check_Date', 'Plants_Survived', 'Survival_Pct',
+    'Replant_Needed', 'Replant_Count', 'Failure_Reason', 'Employee_ID', 'Notes', 'Created_At'
+  ]));
+
+  // 4. VARIETY_PERFORMANCE
+  results.push(initSheet(ss, 'VARIETY_PERFORMANCE', [
+    'Record_ID', 'Crop', 'Variety', 'Year', 'Season', 'Plantings_Count', 'Total_Bed_Feet',
+    'Total_Yield_Lbs', 'Avg_Yield_Per_Ft', 'Grade_A_Pct', 'Grade_B_Pct', 'Grade_C_Pct',
+    'Cull_Pct', 'Avg_DTM', 'Disease_Pressure', 'Pest_Pressure', 'Germination_Avg_Pct',
+    'Transplant_Survival_Avg', 'Revenue_Total', 'Cost_Total', 'Profit_Per_Ft',
+    'Grow_Again', 'Notes', 'Last_Updated'
+  ]));
+
+  // 5. PRODUCTION_COSTS
+  results.push(initSheet(ss, 'PRODUCTION_COSTS', [
+    'Cost_ID', 'Batch_ID', 'Crop', 'Variety', 'Category', 'Item_Name', 'Quantity',
+    'Unit', 'Unit_Cost', 'Total_Cost', 'Applied_Date', 'Supplier', 'Receipt_URL',
+    'Employee_ID', 'Notes', 'Created_At'
+  ]));
+
+  return { success: true, sheets: results };
+}
+
+/**
+ * Helper: Initialize a single sheet with headers if it does not already exist
+ */
+function initSheet(ss, sheetName, headers) {
+  var sheet = ss.getSheetByName(sheetName);
+  if (sheet) {
+    return { name: sheetName, status: 'already_exists', rows: sheet.getLastRow() };
+  }
+  sheet = ss.insertSheet(sheetName);
+  sheet.appendRow(headers);
+  sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold');
+  sheet.setFrozenRows(1);
+  return { name: sheetName, status: 'created', rows: 1 };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PRODUCTION TRACKING API FUNCTIONS (2026-02-23)
+// Growth tracking, germination checks, transplant success, production costs
+// ═══════════════════════════════════════════════════════════════════════════
+
+function logGrowthTracking(params) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('GROWTH_TRACKING');
+  if (!sheet) {
+    initProductionTrackingSheets();
+    sheet = ss.getSheetByName('GROWTH_TRACKING');
+  }
+
+  var trackingId = 'GT-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
+  // Accept both frontend shorthand and full field names
+  var stage = params.growthStage || params.stage || '';
+  var height = params.plantHeight || params.height || '';
+  var vigor = params.vigorScore || params.vigor || '';
+  var disease = params.diseasePct || params.diseasePercent || 0;
+  var dateObs = params.dateObserved || params.date || new Date().toISOString().split('T')[0];
+
+  sheet.appendRow([
+    trackingId, params.batchId, params.crop, params.variety,
+    dateObs, stage, height, params.canopyWidth,
+    vigor, disease, params.pestPct,
+    params.nutrientStatus, params.plantColor, params.photoUrl,
+    params.employeeId, params.gpsLat, params.gpsLng,
+    params.notes, new Date().toISOString()
+  ]);
+
+  return { success: true, trackingId: trackingId };
+}
+
+function getGrowthTracking(params) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('GROWTH_TRACKING');
+  if (!sheet) return { success: true, data: [] };
+
+  var data = sheet.getDataRange().getValues();
+  var headers = data[0];
+  var records = [];
+
+  for (var i = 1; i < data.length; i++) {
+    var row = {};
+    for (var h = 0; h < headers.length; h++) {
+      row[headers[h]] = data[i][h];
+    }
+    if (params.batchId && row.Batch_ID !== params.batchId) continue;
+    records.push(row);
+  }
+
+  return { success: true, data: records };
+}
+
+function logGerminationCheck(params) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('GERMINATION_LOG');
+  if (!sheet) {
+    initProductionTrackingSheets();
+    sheet = ss.getSheetByName('GERMINATION_LOG');
+  }
+
+  var logId = 'GERM-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
+  // Accept both frontend shorthand and full field names
+  var seedsSown = Number(params.seedsSown) || Number(params.cellsChecked) || 0;
+  var emerged = Number(params.plantsEmerged) || Number(params.cellsGerminated) || Number(params.seedsEmerged) || 0;
+  var checkDate = params.checkDate || params.date || new Date().toISOString().split('T')[0];
+  var vigor = params.vigor || params.vigorScore || '';
+
+  var germPct = seedsSown > 0 ? Math.round((emerged / seedsSown) * 100) : 0;
+  var reseedNeeded = germPct < 70 ? 'Yes' : 'No';
+
+  sheet.appendRow([
+    logId, params.batchId, params.seedLotId, params.crop, params.variety,
+    seedsSown, params.sowDate, checkDate,
+    emerged, germPct, params.expectedGermPct || 85,
+    reseedNeeded, vigor, params.photoUrl, params.employeeId,
+    params.notes, new Date().toISOString()
+  ]);
+
+  return { success: true, logId: logId, germinationPct: germPct, reseedNeeded: reseedNeeded };
+}
+
+function getGerminationLog(params) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('GERMINATION_LOG');
+  if (!sheet) return { success: true, data: [] };
+
+  var data = sheet.getDataRange().getValues();
+  var headers = data[0];
+  var records = [];
+
+  for (var i = 1; i < data.length; i++) {
+    var row = {};
+    for (var h = 0; h < headers.length; h++) {
+      row[headers[h]] = data[i][h];
+    }
+    if (params.batchId && row.Batch_ID !== params.batchId) continue;
+    records.push(row);
+  }
+
+  return { success: true, data: records };
+}
+
+function logTransplantSuccess(params) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('TRANSPLANT_SUCCESS');
+  if (!sheet) {
+    initProductionTrackingSheets();
+    sheet = ss.getSheetByName('TRANSPLANT_SUCCESS');
+  }
+
+  var logId = 'TS-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
+  var survivalPct = params.plantsTransplanted > 0 ?
+    Math.round((params.plantsSurvived / params.plantsTransplanted) * 100) : 100;
+
+  sheet.appendRow([
+    logId, params.batchId, params.crop, params.variety,
+    params.transplantDate || new Date().toISOString().split('T')[0],
+    params.plantsTransplanted, params.bedId, params.bedFeet,
+    params.checkDate || '', params.plantsSurvived || params.plantsTransplanted,
+    survivalPct, survivalPct < 80 ? 'Yes' : 'No',
+    survivalPct < 80 ? Math.ceil(params.plantsTransplanted * (1 - survivalPct / 100)) : 0,
+    params.failureReason || '', params.employeeId,
+    params.notes, new Date().toISOString()
+  ]);
+
+  return { success: true, logId: logId, survivalPct: survivalPct };
+}
+
+function logDirectSowConfirmation(params) {
+  // Record the seeding date if recordSeedingDate exists
+  if (params.batchId && typeof recordSeedingDate === 'function') {
+    recordSeedingDate({ batchId: params.batchId, type: 'field_sow', actualDate: params.actualDate || new Date().toISOString().split('T')[0] });
+  }
+
+  // Also log detailed confirmation to GROWTH_TRACKING
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('GROWTH_TRACKING');
+  if (!sheet) {
+    initProductionTrackingSheets();
+    sheet = ss.getSheetByName('GROWTH_TRACKING');
+  }
+
+  var trackingId = 'DS-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
+  sheet.appendRow([
+    trackingId, params.batchId, params.crop || '', params.variety || '',
+    params.actualDate || new Date().toISOString().split('T')[0],
+    'Direct Sow Confirmation',
+    '', '', '', '', '',
+    'Soil: ' + (params.soilCondition || 'Unknown'),
+    '', params.photoUrl || '',
+    params.employeeId || '', params.gpsLat || '', params.gpsLng || '',
+    'Bed: ' + (params.bedId || '') + ' | Feet: ' + (params.feetSown || '') + ' | Rows: ' + (params.rowsSown || '') + ' | Seed Lot: ' + (params.seedLotId || ''),
+    new Date().toISOString()
+  ]);
+
+  return { success: true, trackingId: trackingId, message: 'Direct sow recorded' };
+}
+
+function logProductionCost(params) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('PRODUCTION_COSTS');
+  if (!sheet) {
+    initProductionTrackingSheets();
+    sheet = ss.getSheetByName('PRODUCTION_COSTS');
+  }
+
+  var costId = 'COST-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
+  var totalCost = (Number(params.quantity) || 0) * (Number(params.unitCost) || 0);
+
+  sheet.appendRow([
+    costId, params.batchId, params.crop, params.variety,
+    params.category, params.itemName, params.quantity,
+    params.unit, params.unitCost, totalCost,
+    params.appliedDate || new Date().toISOString().split('T')[0],
+    params.supplier, params.receiptUrl,
+    params.employeeId, params.notes, new Date().toISOString()
+  ]);
+
+  return { success: true, costId: costId, totalCost: totalCost };
+}
+
+/**
+ * Get variety performance tracking data from the VARIETY_PERFORMANCE sheet
+ * (Separate from the existing getVarietyPerformance which reads from SMART_INTEL)
+ */
+function getVarietyPerformanceTracking(params) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('VARIETY_PERFORMANCE');
+  if (!sheet) return { success: true, data: [] };
+
+  var data = sheet.getDataRange().getValues();
+  var headers = data[0];
+  var records = [];
+
+  for (var i = 1; i < data.length; i++) {
+    var row = {};
+    for (var h = 0; h < headers.length; h++) {
+      row[headers[h]] = data[i][h];
+    }
+    if (params.crop && row.Crop !== params.crop) continue;
+    if (params.variety && row.Variety !== params.variety) continue;
+    if (params.year && row.Year != params.year) continue;
+    records.push(row);
+  }
+
+  return { success: true, data: records };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SEEDLING SALE MANAGEMENT (2026-02-23)
+// Supports presale, market allocation, and sales tracking
+// ═══════════════════════════════════════════════════════════════════════════
+
+function getSeedlingProductionPlan(params) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('SEEDLING_PRODUCTION');
+  if (!sheet) {
+    sheet = ss.insertSheet('SEEDLING_PRODUCTION');
+    sheet.appendRow([
+      'Item_ID', 'Crop', 'Variety', 'Category', 'Pot_Size', 'Trays_Planned',
+      'Pots_Per_Tray', 'Total_Units', 'Seeding_Date', 'Ready_Date', 'Status',
+      'Price_Each', 'Presale_Qty', 'Market_Allocation', 'Sold_Total', 'Revenue',
+      'Shopify_Product_ID', 'Notes', 'Created_At'
+    ]);
+    sheet.getRange(1, 1, 1, 19).setFontWeight('bold');
+    sheet.setFrozenRows(1);
+  }
+
+  var data = sheet.getDataRange().getValues();
+  var headers = data[0];
+  var items = [];
+
+  for (var i = 1; i < data.length; i++) {
+    var row = {};
+    for (var h = 0; h < headers.length; h++) {
+      row[headers[h]] = data[i][h];
+    }
+    if (row.Item_ID) items.push(row);
+  }
+
+  return { success: true, data: items, count: items.length };
+}
+
+function saveSeedlingItem(params) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('SEEDLING_PRODUCTION');
+  if (!sheet) {
+    getSeedlingProductionPlan({}); // Initialize
+    sheet = ss.getSheetByName('SEEDLING_PRODUCTION');
+  }
+
+  var itemId = params.itemId || 'SDL-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
+  var totalUnits = (Number(params.traysPlanned) || 0) * (Number(params.potsPerTray) || 18);
+
+  if (params.itemId) {
+    // Update existing
+    var data = sheet.getDataRange().getValues();
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][0] === params.itemId) {
+        sheet.getRange(i + 1, 1, 1, 19).setValues([[
+          params.itemId, params.crop, params.variety, params.category, params.potSize,
+          params.traysPlanned, params.potsPerTray, totalUnits, params.seedingDate,
+          params.readyDate, params.status || 'Planned', params.priceEach,
+          params.presaleQty || 0, params.marketAllocation || '',
+          params.soldTotal || 0, (params.soldTotal || 0) * (params.priceEach || 0),
+          params.shopifyProductId || '', params.notes, data[i][18] || new Date().toISOString()
+        ]]);
+        return { success: true, itemId: params.itemId, action: 'updated' };
+      }
+    }
+  }
+
+  // Create new
+  sheet.appendRow([
+    itemId, params.crop, params.variety, params.category, params.potSize,
+    params.traysPlanned, params.potsPerTray, totalUnits, params.seedingDate,
+    params.readyDate, params.status || 'Planned', params.priceEach || 0,
+    params.presaleQty || 0, params.marketAllocation || '',
+    0, 0, '', params.notes || '', new Date().toISOString()
+  ]);
+
+  return { success: true, itemId: itemId, action: 'created', totalUnits: totalUnits };
+}
+
+function logSeedlingSale(params) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('SEEDLING_SALES');
+  if (!sheet) {
+    sheet = ss.insertSheet('SEEDLING_SALES');
+    sheet.appendRow([
+      'Sale_ID', 'Item_ID', 'Crop', 'Variety', 'Channel', 'Quantity_Sold',
+      'Price_Each', 'Revenue', 'Sale_Date', 'Customer_Name', 'Notes', 'Created_At'
+    ]);
+    sheet.getRange(1, 1, 1, 12).setFontWeight('bold');
+    sheet.setFrozenRows(1);
+  }
+
+  var saleId = 'SS-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
+  // Accept both frontend shorthand and full field names
+  var qtySold = Number(params.quantitySold) || Number(params.qty) || Number(params.quantity) || 0;
+  var priceEach = Number(params.priceEach) || Number(params.unitPrice) || Number(params.price) || 0;
+  var saleDate = params.saleDate || params.date || new Date().toISOString().split('T')[0];
+  var custName = params.customerName || params.customer || '';
+  var revenue = qtySold * priceEach;
+
+  sheet.appendRow([
+    saleId, params.itemId, params.crop, params.variety, params.channel,
+    qtySold, priceEach, revenue,
+    saleDate, custName, params.notes || '', new Date().toISOString()
+  ]);
+
+  // Update sold total on production item
+  if (params.itemId) {
+    var prodSheet = ss.getSheetByName('SEEDLING_PRODUCTION');
+    if (prodSheet) {
+      var prodData = prodSheet.getDataRange().getValues();
+      for (var i = 1; i < prodData.length; i++) {
+        if (prodData[i][0] === params.itemId) {
+          var currentSold = Number(prodData[i][14]) || 0;
+          prodSheet.getRange(i + 1, 15).setValue(currentSold + qtySold);
+          prodSheet.getRange(i + 1, 16).setValue((currentSold + qtySold) * Number(prodData[i][11]));
+          break;
+        }
+      }
+    }
+  }
+
+  return { success: true, saleId: saleId, revenue: revenue };
+}
+
+function getSeedlingSales(params) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('SEEDLING_SALES');
+  if (!sheet) return { success: true, data: [], totalRevenue: 0 };
+
+  var data = sheet.getDataRange().getValues();
+  var headers = data[0];
+  var sales = [];
+  var totalRevenue = 0;
+
+  for (var i = 1; i < data.length; i++) {
+    var row = {};
+    for (var h = 0; h < headers.length; h++) {
+      row[headers[h]] = data[i][h];
+    }
+    if (!row.Sale_ID) continue;
+    if (params.channel && row.Channel !== params.channel) continue;
+    if (params.crop && row.Crop !== params.crop) continue;
+    sales.push(row);
+    totalRevenue += Number(row.Revenue) || 0;
+  }
+
+  return { success: true, data: sales, count: sales.length, totalRevenue: totalRevenue };
+}
+
+// ============ ADDITIONAL GREENHOUSE & SEEDLING ENDPOINTS (2026-02-23 fix) ============
+
+function getSeedlingPresaleItems(params) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('SEEDLING_PRODUCTION');
+  if (!sheet) return { success: true, data: [] };
+
+  var data = sheet.getDataRange().getValues();
+  var headers = data[0];
+  var items = [];
+
+  for (var i = 1; i < data.length; i++) {
+    var row = {};
+    for (var h = 0; h < headers.length; h++) {
+      row[headers[h]] = data[i][h];
+    }
+    if (!row.Item_ID) continue;
+    // Filter to items with presale availability
+    var totalUnits = Number(row.Total_Units) || 0;
+    var soldUnits = Number(row.Units_Sold) || 0;
+    if (totalUnits - soldUnits <= 0) continue;
+    row.Available = totalUnits - soldUnits;
+    items.push(row);
+  }
+
+  return { success: true, data: items, count: items.length };
+}
+
+function getSeedlingSalesHistorical(params) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('SEEDLING_SALES');
+  if (!sheet) return { success: true, data: [], years: [] };
+
+  var data = sheet.getDataRange().getValues();
+  var headers = data[0];
+  var yearFilter = params.year || '';
+  var byYear = {};
+
+  for (var i = 1; i < data.length; i++) {
+    var row = {};
+    for (var h = 0; h < headers.length; h++) {
+      row[headers[h]] = data[i][h];
+    }
+    if (!row.Sale_ID) continue;
+    var saleDate = row.Sale_Date ? String(row.Sale_Date) : '';
+    var yr = saleDate.substring(0, 4) || 'Unknown';
+    if (yearFilter && yr !== yearFilter) continue;
+
+    if (!byYear[yr]) byYear[yr] = { year: yr, revenue: 0, units: 0, sales: [] };
+    byYear[yr].revenue += Number(row.Revenue) || 0;
+    byYear[yr].units += Number(row.Quantity_Sold) || 0;
+    byYear[yr].sales.push(row);
+  }
+
+  var years = Object.keys(byYear).sort().reverse();
+  var result = [];
+  for (var y = 0; y < years.length; y++) {
+    result.push(byYear[years[y]]);
+  }
+
+  return { success: true, data: result, years: years };
+}
+
+function addTray(params) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('SEEDLING_PRODUCTION');
+  if (!sheet) {
+    sheet = ss.insertSheet('SEEDLING_PRODUCTION');
+    sheet.appendRow([
+      'Item_ID', 'Year', 'Category', 'Crop', 'Variety', 'Bought_Seed',
+      'Seeding_Date', 'Num_Trays', 'Cell_Pack_Size', 'Pots_Per_Tray',
+      'Total_Units', 'Price_Each', 'Ready_Date', 'Status',
+      'Units_Sold', 'Revenue', 'Notes', 'Created_At'
+    ]);
+    sheet.getRange(1, 1, 1, 18).setFontWeight('bold');
+    sheet.setFrozenRows(1);
+  }
+
+  var itemId = 'SL-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
+  var trays = Number(params.trays) || Number(params.quantity) || 1;
+  var potsPerTray = Number(params.potsPerTray) || 18;
+  var totalUnits = trays * potsPerTray;
+
+  sheet.appendRow([
+    itemId, params.year || new Date().getFullYear(),
+    params.category || '', params.crop || params.variety || '',
+    params.variety || '', params.boughtSeed || 'Yes',
+    params.sowDate || new Date().toISOString().split('T')[0],
+    trays, params.cellSize || '3-inch', potsPerTray,
+    totalUnits, Number(params.price) || 4.00,
+    params.readyDate || '', 'growing',
+    0, 0, params.notes || '', new Date().toISOString()
+  ]);
+
+  return { success: true, itemId: itemId, totalUnits: totalUnits };
+}
+
+function createSeedlingPresaleItem(params) {
+  // Presale items are production items flagged for online sale
+  var result = addTray({
+    category: params.category,
+    crop: params.crop,
+    variety: params.variety,
+    trays: params.trays,
+    potsPerTray: params.potsPerTray,
+    price: params.price,
+    sowDate: params.sowDate,
+    readyDate: params.readyDate,
+    notes: 'PRESALE: ' + (params.description || params.notes || '')
+  });
+
+  return {
+    success: true,
+    itemId: result.itemId,
+    presale: true,
+    message: 'Presale item created. Ready for Shopify sync.'
+  };
+}
+
+function reportGreenhouseProblem(params) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('GREENHOUSE_ALERTS');
+  if (!sheet) {
+    sheet = ss.insertSheet('GREENHOUSE_ALERTS');
+    sheet.appendRow([
+      'Alert_ID', 'Problem_Type', 'Severity', 'Batch_ID', 'Location',
+      'Description', 'Photo_URL', 'Reported_By', 'Status', 'Resolution',
+      'Created_At', 'Resolved_At'
+    ]);
+    sheet.getRange(1, 1, 1, 12).setFontWeight('bold');
+    sheet.setFrozenRows(1);
+  }
+
+  var alertId = 'GH-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
+  sheet.appendRow([
+    alertId, params.problemType || params.type || 'general',
+    params.severity || 'medium', params.batchId || '',
+    params.location || '', params.description || params.notes || '',
+    params.photoUrl || '', params.reportedBy || params.employeeId || '',
+    'open', '', new Date().toISOString(), ''
+  ]);
+
+  return { success: true, alertId: alertId };
+}
 
 /**
  * Get ISO week date from week number - for Succession module

@@ -1,0 +1,1826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Greenhouse Manager - Tiny Seed Farm</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="auth-guard.js" data-required-role="Employee"></script>
+    <script src="api-config.js"></script>
+    <style>
+        :root {
+            --bg-dark: #0a0a0f;
+            --bg-card: #1a1a2e;
+            --bg-light: #16213e;
+            --primary: #4ade80;
+            --primary-dim: rgba(74,222,128,0.15);
+            --gold: #f59e0b;
+            --gold-dim: rgba(245,158,11,0.15);
+            --danger: #ef4444;
+            --danger-dim: rgba(239,68,68,0.15);
+            --info: #3b82f6;
+            --info-dim: rgba(59,130,246,0.15);
+            --purple: #a78bfa;
+            --purple-dim: rgba(167,139,250,0.15);
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --border: rgba(255,255,255,0.08);
+            --border-light: rgba(255,255,255,0.12);
+            --radius: 12px;
+            --radius-sm: 8px;
+            --shadow: 0 4px 24px rgba(0,0,0,0.3);
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            font-family:'Inter',system-ui,sans-serif;
+            background:var(--bg-dark);
+            color:var(--text-primary);
+            min-height:100vh;
+            overflow-x:hidden;
+        }
+        /* ── Header ── */
+        .gh-header {
+            position:fixed; top:0; left:0; right:0; z-index:100;
+            background:rgba(10,10,15,0.92); backdrop-filter:blur(16px);
+            border-bottom:1px solid var(--border);
+            padding:0.75rem 1.25rem;
+            display:flex; align-items:center; justify-content:space-between;
+        }
+        .gh-header-left { display:flex; align-items:center; gap:0.75rem; }
+        .gh-header-left a {
+            color:var(--text-secondary); text-decoration:none; font-size:1.1rem;
+            display:flex; align-items:center;
+        }
+        .gh-header-left a:hover { color:var(--primary); }
+        .gh-logo {
+            font-size:1.15rem; font-weight:700;
+            background:linear-gradient(135deg,var(--primary),#22d3ee);
+            -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+        }
+        .gh-header-right { display:flex; align-items:center; gap:0.5rem; }
+        .gh-header-right .sync-indicator {
+            font-size:0.75rem; color:var(--text-secondary);
+            display:flex; align-items:center; gap:0.35rem;
+        }
+        .gh-header-right .sync-indicator .dot {
+            width:6px; height:6px; border-radius:50%; background:var(--primary);
+        }
+        .gh-header-right .sync-indicator .dot.offline { background:var(--danger); }
+        /* ── Tabs ── */
+        .gh-tabs {
+            position:fixed; top:52px; left:0; right:0; z-index:99;
+            background:rgba(10,10,15,0.95); backdrop-filter:blur(12px);
+            border-bottom:1px solid var(--border);
+            display:flex; overflow-x:auto; padding:0 0.5rem;
+            -webkit-overflow-scrolling:touch;
+        }
+        .gh-tabs::-webkit-scrollbar { display:none; }
+        .gh-tab {
+            flex-shrink:0; padding:0.7rem 1rem; cursor:pointer;
+            font-size:0.8rem; font-weight:500; color:var(--text-secondary);
+            border-bottom:2px solid transparent;
+            transition:all 0.2s; white-space:nowrap;
+            display:flex; align-items:center; gap:0.4rem;
+        }
+        .gh-tab:hover { color:var(--text-primary); }
+        .gh-tab.active { color:var(--primary); border-bottom-color:var(--primary); }
+        .gh-tab i { font-size:0.85rem; }
+        /* ── Main ── */
+        .gh-main { padding:110px 1rem 2rem; max-width:1400px; margin:0 auto; }
+        .tab-panel { display:none; }
+        .tab-panel.active { display:block; }
+        /* ── Stat Cards ── */
+        .stat-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:0.75rem; margin-bottom:1.25rem; }
+        .stat-card {
+            background:var(--bg-card); border:1px solid var(--border);
+            border-radius:var(--radius); padding:1rem;
+        }
+        .stat-card .stat-label { font-size:0.7rem; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:0.35rem; }
+        .stat-card .stat-value { font-size:1.5rem; font-weight:700; }
+        .stat-card .stat-sub { font-size:0.7rem; color:var(--text-secondary); margin-top:0.2rem; }
+        .stat-card.green .stat-value { color:var(--primary); }
+        .stat-card.gold .stat-value { color:var(--gold); }
+        .stat-card.red .stat-value { color:var(--danger); }
+        .stat-card.blue .stat-value { color:var(--info); }
+        /* ── Section Headers ── */
+        .section-header {
+            display:flex; align-items:center; justify-content:space-between;
+            margin:1.5rem 0 0.75rem; padding-bottom:0.5rem;
+            border-bottom:1px solid var(--border);
+        }
+        .section-header h2 { font-size:1rem; font-weight:600; display:flex; align-items:center; gap:0.5rem; }
+        .section-header h2 i { color:var(--primary); font-size:0.9rem; }
+        .section-header .badge {
+            font-size:0.7rem; padding:0.15rem 0.5rem; border-radius:99px;
+            background:var(--primary-dim); color:var(--primary); font-weight:600;
+        }
+        /* ── Task Cards ── */
+        .task-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:0.75rem; }
+        .task-card {
+            background:var(--bg-card); border:1px solid var(--border);
+            border-radius:var(--radius); padding:1rem; position:relative;
+            transition:border-color 0.2s, transform 0.15s;
+        }
+        .task-card:hover { border-color:var(--border-light); transform:translateY(-1px); }
+        .task-card.overdue { border-left:3px solid var(--danger); }
+        .task-card.today { border-left:3px solid var(--gold); }
+        .task-card.upcoming { border-left:3px solid var(--primary); }
+        .task-card.completed { opacity:0.5; }
+        .task-card .crop-name { font-weight:700; font-size:0.95rem; margin-bottom:0.15rem; }
+        .task-card .variety { color:var(--text-secondary); font-size:0.8rem; margin-bottom:0.6rem; }
+        .task-card .task-details { display:flex; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.75rem; }
+        .task-card .detail-chip {
+            font-size:0.7rem; padding:0.2rem 0.5rem; border-radius:var(--radius-sm);
+            background:var(--bg-light); color:var(--text-secondary);
+            display:flex; align-items:center; gap:0.3rem;
+        }
+        .task-card .detail-chip i { font-size:0.65rem; }
+        .task-card .task-date { font-size:0.7rem; color:var(--text-secondary); margin-bottom:0.6rem; }
+        .task-card .task-date.overdue-text { color:var(--danger); font-weight:600; }
+        .task-card .task-date.today-text { color:var(--gold); font-weight:600; }
+        /* ── Buttons ── */
+        .btn {
+            display:inline-flex; align-items:center; gap:0.4rem;
+            padding:0.5rem 1rem; border-radius:var(--radius-sm);
+            font-size:0.8rem; font-weight:600; border:none; cursor:pointer;
+            transition:all 0.2s; font-family:inherit;
+        }
+        .btn-primary { background:var(--primary); color:#0a0a0f; }
+        .btn-primary:hover { background:#6ee7a0; }
+        .btn-primary:disabled { opacity:0.4; cursor:not-allowed; }
+        .btn-gold { background:var(--gold); color:#0a0a0f; }
+        .btn-gold:hover { background:#fbbf24; }
+        .btn-danger { background:var(--danger); color:#fff; }
+        .btn-danger:hover { background:#f87171; }
+        .btn-outline {
+            background:transparent; border:1px solid var(--border-light);
+            color:var(--text-primary);
+        }
+        .btn-outline:hover { background:var(--bg-light); border-color:var(--primary); color:var(--primary); }
+        .btn-sm { padding:0.35rem 0.65rem; font-size:0.72rem; }
+        .btn-block { width:100%; justify-content:center; }
+        /* ── Quick Actions ── */
+        .quick-actions { display:flex; flex-wrap:wrap; gap:0.5rem; margin-top:1rem; }
+        /* ── Tables ── */
+        .table-wrap {
+            background:var(--bg-card); border:1px solid var(--border);
+            border-radius:var(--radius); overflow:hidden;
+        }
+        .table-toolbar {
+            display:flex; flex-wrap:wrap; align-items:center; gap:0.5rem;
+            padding:0.75rem 1rem; border-bottom:1px solid var(--border);
+        }
+        .table-toolbar input, .table-toolbar select {
+            background:var(--bg-light); border:1px solid var(--border);
+            border-radius:var(--radius-sm); color:var(--text-primary);
+            padding:0.4rem 0.65rem; font-size:0.78rem; font-family:inherit;
+        }
+        .table-toolbar input:focus, .table-toolbar select:focus {
+            outline:none; border-color:var(--primary);
+        }
+        table { width:100%; border-collapse:collapse; }
+        th {
+            text-align:left; padding:0.65rem 1rem; font-size:0.7rem;
+            color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px;
+            background:var(--bg-light); border-bottom:1px solid var(--border);
+            white-space:nowrap;
+        }
+        td {
+            padding:0.6rem 1rem; font-size:0.8rem;
+            border-bottom:1px solid var(--border);
+        }
+        tr:last-child td { border-bottom:none; }
+        tr:hover td { background:rgba(255,255,255,0.02); }
+        /* ── Status Pills ── */
+        .pill {
+            display:inline-flex; align-items:center; gap:0.25rem;
+            font-size:0.68rem; font-weight:600; padding:0.2rem 0.55rem;
+            border-radius:99px;
+        }
+        .pill-green { background:var(--primary-dim); color:var(--primary); }
+        .pill-gold { background:var(--gold-dim); color:var(--gold); }
+        .pill-red { background:var(--danger-dim); color:var(--danger); }
+        .pill-blue { background:var(--info-dim); color:var(--info); }
+        .pill-purple { background:var(--purple-dim); color:var(--purple); }
+        /* ── Modals ── */
+        .modal-overlay {
+            display:none; position:fixed; inset:0; z-index:200;
+            background:rgba(0,0,0,0.7); backdrop-filter:blur(4px);
+            align-items:center; justify-content:center; padding:1rem;
+        }
+        .modal-overlay.open { display:flex; }
+        .modal {
+            background:var(--bg-card); border:1px solid var(--border);
+            border-radius:var(--radius); width:100%; max-width:560px;
+            max-height:85vh; overflow-y:auto;
+        }
+        .modal-head {
+            display:flex; align-items:center; justify-content:space-between;
+            padding:1rem 1.25rem; border-bottom:1px solid var(--border);
+        }
+        .modal-head h3 { font-size:1rem; font-weight:700; }
+        .modal-close {
+            background:none; border:none; color:var(--text-secondary);
+            cursor:pointer; font-size:1.1rem;
+        }
+        .modal-close:hover { color:var(--text-primary); }
+        .modal-body { padding:1.25rem; }
+        .modal-foot {
+            display:flex; justify-content:flex-end; gap:0.5rem;
+            padding:1rem 1.25rem; border-top:1px solid var(--border);
+        }
+        /* ── Form ── */
+        .form-group { margin-bottom:1rem; }
+        .form-group label {
+            display:block; font-size:0.75rem; font-weight:600;
+            color:var(--text-secondary); margin-bottom:0.3rem;
+        }
+        .form-group input, .form-group select, .form-group textarea {
+            width:100%; background:var(--bg-light); border:1px solid var(--border);
+            border-radius:var(--radius-sm); color:var(--text-primary);
+            padding:0.55rem 0.75rem; font-size:0.85rem; font-family:inherit;
+        }
+        .form-group textarea { resize:vertical; min-height:80px; }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline:none; border-color:var(--primary);
+        }
+        .form-row { display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; }
+        /* ── Loading / Empty ── */
+        .loading-spinner {
+            display:flex; flex-direction:column; align-items:center;
+            justify-content:center; padding:3rem; color:var(--text-secondary);
+        }
+        .loading-spinner i { font-size:1.5rem; margin-bottom:0.5rem; animation:spin 1s linear infinite; }
+        @keyframes spin { to { transform:rotate(360deg); } }
+        .empty-state {
+            text-align:center; padding:3rem 1.5rem; color:var(--text-secondary);
+        }
+        .empty-state i { font-size:2rem; margin-bottom:0.75rem; display:block; opacity:0.4; }
+        .empty-state p { font-size:0.85rem; margin-bottom:1rem; }
+        /* ── Toast ── */
+        .toast {
+            position:fixed; bottom:1.5rem; right:1.5rem; z-index:300;
+            padding:0.75rem 1.25rem; border-radius:var(--radius-sm);
+            font-size:0.8rem; font-weight:500; color:#fff;
+            transform:translateY(120%); opacity:0;
+            transition:all 0.3s ease;
+        }
+        .toast.show { transform:translateY(0); opacity:1; }
+        .toast.success { background:#16a34a; }
+        .toast.error { background:var(--danger); }
+        .toast.info { background:var(--info); }
+        /* ── Sub-tabs ── */
+        .sub-tabs {
+            display:flex; gap:0; margin-bottom:1rem;
+            background:var(--bg-card); border:1px solid var(--border);
+            border-radius:var(--radius); overflow:hidden;
+        }
+        .sub-tab {
+            flex:1; padding:0.6rem 0.75rem; text-align:center;
+            font-size:0.75rem; font-weight:500; cursor:pointer;
+            color:var(--text-secondary); border-right:1px solid var(--border);
+            transition:all 0.2s;
+        }
+        .sub-tab:last-child { border-right:none; }
+        .sub-tab:hover { color:var(--text-primary); background:var(--bg-light); }
+        .sub-tab.active { color:var(--primary); background:var(--bg-light); }
+        .sub-panel { display:none; }
+        .sub-panel.active { display:block; }
+        /* ── Timeline ── */
+        .timeline { position:relative; padding-left:2rem; margin:1.5rem 0; }
+        .timeline::before {
+            content:''; position:absolute; left:0.55rem; top:0; bottom:0;
+            width:2px; background:var(--border);
+        }
+        .timeline-item { position:relative; margin-bottom:1.25rem; }
+        .timeline-dot {
+            position:absolute; left:-1.65rem; top:0.1rem;
+            width:12px; height:12px; border-radius:50%;
+            background:var(--bg-light); border:2px solid var(--primary);
+        }
+        .timeline-dot.completed { background:var(--primary); }
+        .timeline-dot.current { background:var(--gold); border-color:var(--gold); }
+        .timeline-dot.pending { background:var(--bg-light); border-color:var(--text-secondary); }
+        .timeline-content { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-sm); padding:0.75rem 1rem; }
+        .timeline-content h4 { font-size:0.85rem; font-weight:600; margin-bottom:0.2rem; }
+        .timeline-content p { font-size:0.75rem; color:var(--text-secondary); }
+        /* ── Charts ── */
+        .chart-bar-row { display:flex; align-items:center; gap:0.5rem; margin-bottom:0.5rem; }
+        .chart-bar-label { width:100px; font-size:0.72rem; color:var(--text-secondary); text-align:right; flex-shrink:0; }
+        .chart-bar-track { flex:1; height:20px; background:var(--bg-light); border-radius:4px; overflow:hidden; }
+        .chart-bar-fill { height:100%; border-radius:4px; transition:width 0.5s ease; display:flex; align-items:center; justify-content:flex-end; padding-right:0.4rem; font-size:0.65rem; font-weight:600; color:#fff; }
+        /* ── Print ── */
+        @media print {
+            .gh-header, .gh-tabs, .toast, .btn, .quick-actions, .table-toolbar { display:none !important; }
+            .gh-main { padding:0 !important; }
+            body { background:#fff !important; color:#000 !important; }
+            .stat-card, .table-wrap, .task-card { border:1px solid #ccc !important; background:#fff !important; }
+            .stat-card .stat-value, th, td { color:#000 !important; }
+            .stat-card .stat-label, .stat-card .stat-sub { color:#666 !important; }
+        }
+        /* ── Responsive ── */
+        @media(max-width:768px) {
+            .gh-main { padding:105px 0.75rem 2rem; }
+            .stat-row { grid-template-columns:repeat(2,1fr); }
+            .task-grid { grid-template-columns:1fr; }
+            .form-row { grid-template-columns:1fr; }
+            .table-wrap { overflow-x:auto; }
+            table { min-width:600px; }
+            .sub-tab { font-size:0.68rem; padding:0.5rem 0.35rem; }
+        }
+        @media(max-width:480px) {
+            .stat-row { grid-template-columns:1fr 1fr; gap:0.5rem; }
+            .stat-card { padding:0.75rem; }
+            .stat-card .stat-value { font-size:1.2rem; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ═══ HEADER ═══ -->
+<header class="gh-header">
+    <div class="gh-header-left">
+        <a href="index.html" title="Back to Dashboard"><i class="fas fa-arrow-left"></i></a>
+        <span class="gh-logo"><i class="fas fa-leaf"></i> Greenhouse Manager</span>
+    </div>
+    <div class="gh-header-right">
+        <div class="sync-indicator">
+            <span class="dot" id="syncDot"></span>
+            <span id="syncLabel">Synced</span>
+        </div>
+    </div>
+</header>
+
+<!-- ═══ TABS ═══ -->
+<nav class="gh-tabs" id="mainTabs">
+    <div class="gh-tab active" data-tab="today" onclick="showTab('today')"><i class="fas fa-calendar-day"></i> Today's Tasks</div>
+    <div class="gh-tab" data-tab="trays" onclick="showTab('trays')"><i class="fas fa-th"></i> Tray Inventory</div>
+    <div class="gh-tab" data-tab="growth" onclick="showTab('growth')"><i class="fas fa-chart-line"></i> Growth Tracking</div>
+    <div class="gh-tab" data-tab="sales" onclick="showTab('sales')"><i class="fas fa-seedling"></i> Seedling Sales</div>
+    <div class="gh-tab" data-tab="reports" onclick="showTab('reports')"><i class="fas fa-file-alt"></i> Reports</div>
+</nav>
+
+<!-- ═══ MAIN CONTENT ═══ -->
+<main class="gh-main">
+
+<!-- ────────────── TAB 1: TODAY'S TASKS ────────────── -->
+<div class="tab-panel active" id="panel-today">
+    <div class="stat-row" id="todayStats">
+        <div class="stat-card gold"><div class="stat-label">Tasks Due Today</div><div class="stat-value" id="statTasksToday">--</div><div class="stat-sub" id="statTasksSub">Loading...</div></div>
+        <div class="stat-card green"><div class="stat-label">Trays Active</div><div class="stat-value" id="statTraysActive">--</div><div class="stat-sub">In greenhouse</div></div>
+        <div class="stat-card blue"><div class="stat-label">Ready to Transplant</div><div class="stat-value" id="statReadyTransplant">--</div><div class="stat-sub">This week</div></div>
+        <div class="stat-card red"><div class="stat-label">Germination Checks</div><div class="stat-value" id="statGermChecks">--</div><div class="stat-sub">Due today</div></div>
+    </div>
+
+    <div class="section-header">
+        <h2><i class="fas fa-seedling"></i> Sowing Tasks</h2>
+        <span class="badge" id="sowingCount">0</span>
+    </div>
+    <div class="task-grid" id="sowingTasks">
+        <div class="loading-spinner"><i class="fas fa-spinner"></i> Loading sowing tasks...</div>
+    </div>
+
+    <div class="section-header">
+        <h2><i class="fas fa-exchange-alt"></i> Transplant Tasks</h2>
+        <span class="badge" id="transplantCount">0</span>
+    </div>
+    <div class="task-grid" id="transplantTasks">
+        <div class="loading-spinner"><i class="fas fa-spinner"></i> Loading transplant tasks...</div>
+    </div>
+
+    <div class="quick-actions">
+        <button class="btn btn-outline" onclick="openModal('germCheckModal')"><i class="fas fa-search"></i> Log Germination Check</button>
+        <button class="btn btn-outline" onclick="openModal('growthStageModal')"><i class="fas fa-chart-bar"></i> Record Growth Stage</button>
+        <button class="btn btn-outline btn-danger" onclick="openModal('problemModal')"><i class="fas fa-exclamation-triangle"></i> Report Problem</button>
+    </div>
+</div>
+
+<!-- ────────────── TAB 2: TRAY INVENTORY ────────────── -->
+<div class="tab-panel" id="panel-trays">
+    <div class="stat-row" id="trayStats">
+        <div class="stat-card green"><div class="stat-label">Total Active Trays</div><div class="stat-value" id="statTotalTrays">--</div></div>
+        <div class="stat-card blue"><div class="stat-label">Germinating</div><div class="stat-value" id="statGerminating">--</div></div>
+        <div class="stat-card gold"><div class="stat-label">Growing</div><div class="stat-value" id="statGrowing">--</div></div>
+        <div class="stat-card green"><div class="stat-label">Ready</div><div class="stat-value" id="statReady">--</div></div>
+    </div>
+
+    <div class="table-wrap">
+        <div class="table-toolbar">
+            <input type="text" id="traySearch" placeholder="Search crop or variety..." oninput="filterTrays()">
+            <select id="trayStatusFilter" onchange="filterTrays()">
+                <option value="">All Statuses</option>
+                <option value="Seeded">Seeded</option>
+                <option value="Germinating">Germinating</option>
+                <option value="Growing">Growing</option>
+                <option value="Hardening">Hardening Off</option>
+                <option value="Ready">Ready</option>
+            </select>
+            <select id="trayCropFilter" onchange="filterTrays()">
+                <option value="">All Crops</option>
+            </select>
+            <button class="btn btn-primary btn-sm" onclick="openModal('addTrayModal')"><i class="fas fa-plus"></i> Add Tray</button>
+        </div>
+        <div style="overflow-x:auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Tray ID</th>
+                        <th>Crop</th>
+                        <th>Variety</th>
+                        <th>Sow Date</th>
+                        <th>Days</th>
+                        <th>Est. Ready</th>
+                        <th>Status</th>
+                        <th>Health</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="trayTableBody">
+                    <tr><td colspan="9"><div class="loading-spinner"><i class="fas fa-spinner"></i> Loading tray inventory...</div></td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ────────────── TAB 3: GROWTH TRACKING ────────────── -->
+<div class="tab-panel" id="panel-growth">
+    <div style="display:flex;flex-wrap:wrap;gap:0.75rem;align-items:flex-end;margin-bottom:1.25rem;">
+        <div class="form-group" style="margin:0;flex:1;min-width:200px;">
+            <label>Select Batch</label>
+            <select id="growthBatchSelect" onchange="loadGrowthData()">
+                <option value="">-- Select a batch --</option>
+            </select>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('growthObsModal')"><i class="fas fa-plus"></i> Log Observation</button>
+    </div>
+
+    <div id="growthTimeline">
+        <div class="empty-state">
+            <i class="fas fa-chart-line"></i>
+            <p>Select a batch above to view its growth timeline.</p>
+        </div>
+    </div>
+
+    <div class="section-header" style="margin-top:2rem;">
+        <h2><i class="fas fa-history"></i> Recent Observations</h2>
+    </div>
+    <div class="table-wrap">
+        <div style="overflow-x:auto;">
+            <table>
+                <thead>
+                    <tr><th>Date</th><th>Batch</th><th>Stage</th><th>Height</th><th>Vigor</th><th>Disease %</th><th>Notes</th></tr>
+                </thead>
+                <tbody id="growthObsTable">
+                    <tr><td colspan="7" class="empty-state">No observations logged yet.</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ────────────── TAB 4: SEEDLING SALES ────────────── -->
+<div class="tab-panel" id="panel-sales">
+    <div class="sub-tabs">
+        <div class="sub-tab active" onclick="showSubTab('sales','prodPlan')">Production Plan</div>
+        <div class="sub-tab" onclick="showSubTab('sales','presale')">Presale Manager</div>
+        <div class="sub-tab" onclick="showSubTab('sales','tracker')">Sales Tracker</div>
+        <div class="sub-tab" onclick="showSubTab('sales','historical')">Historical Data</div>
+    </div>
+
+    <!-- Sub-panel: Production Plan -->
+    <div class="sub-panel active" id="sales-prodPlan">
+        <div class="table-wrap">
+            <div class="table-toolbar">
+                <input type="text" id="prodPlanSearch" placeholder="Search variety..." oninput="filterProdPlan()">
+                <select id="prodPlanCat" onchange="filterProdPlan()">
+                    <option value="">All Categories</option>
+                    <option value="Tomatoes">Tomatoes</option>
+                    <option value="Peppers">Peppers</option>
+                    <option value="Cucurbits">Cucurbits</option>
+                    <option value="Herbs">Herbs</option>
+                </select>
+                <button class="btn btn-outline btn-sm" onclick="exportProdPlan()"><i class="fas fa-download"></i> Export</button>
+            </div>
+            <div style="overflow-x:auto;">
+                <table>
+                    <thead>
+                        <tr><th>Variety</th><th>Category</th><th>Trays</th><th>Cell Size</th><th>Seed Date</th><th>Ready Date</th><th>Total Units</th><th>Phipps</th><th>City Grown</th><th>Markets</th><th>Presale</th></tr>
+                    </thead>
+                    <tbody id="prodPlanBody">
+                        <tr><td colspan="11"><div class="loading-spinner"><i class="fas fa-spinner"></i> Loading production plan...</div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sub-panel: Presale Manager -->
+    <div class="sub-panel" id="sales-presale">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+            <h3 style="font-size:0.95rem;">Active Presale Items</h3>
+            <div style="display:flex;gap:0.5rem;">
+                <button class="btn btn-primary btn-sm" onclick="openModal('presaleModal')"><i class="fas fa-plus"></i> Create Presale Item</button>
+                <button class="btn btn-outline btn-sm" onclick="syncPresaleToShopify()"><i class="fab fa-shopify"></i> Sync to Shopify</button>
+            </div>
+        </div>
+        <div class="task-grid" id="presaleGrid">
+            <div class="loading-spinner"><i class="fas fa-spinner"></i> Loading presale items...</div>
+        </div>
+    </div>
+
+    <!-- Sub-panel: Sales Tracker -->
+    <div class="sub-panel" id="sales-tracker">
+        <div style="display:flex;flex-wrap:wrap;gap:0.75rem;align-items:flex-end;margin-bottom:1rem;">
+            <div class="form-group" style="margin:0;">
+                <label>Date</label>
+                <input type="date" id="saleDate" value="">
+            </div>
+            <div class="form-group" style="margin:0;">
+                <label>Channel</label>
+                <select id="saleChannel">
+                    <option value="Phipps">Phipps</option>
+                    <option value="City Grown">City Grown</option>
+                    <option value="Bloomfield">Bloomfield FM</option>
+                    <option value="Lawrenceville">Lawrenceville FM</option>
+                    <option value="Sewickley">Sewickley FM</option>
+                    <option value="Squirrel Hill">Squirrel Hill FM</option>
+                    <option value="Presale">Presale (Online)</option>
+                </select>
+            </div>
+            <button class="btn btn-primary" onclick="openModal('logSaleModal')"><i class="fas fa-plus"></i> Log Sale</button>
+        </div>
+        <div class="stat-row">
+            <div class="stat-card green"><div class="stat-label">Total Revenue</div><div class="stat-value" id="salesRevTotal">$0</div></div>
+            <div class="stat-card blue"><div class="stat-label">Units Sold</div><div class="stat-value" id="salesUnitsTotal">0</div></div>
+            <div class="stat-card gold"><div class="stat-label">Top Variety</div><div class="stat-value" id="salesTopVariety">--</div></div>
+            <div class="stat-card green"><div class="stat-label">Top Channel</div><div class="stat-value" id="salesTopChannel">--</div></div>
+        </div>
+        <div class="table-wrap">
+            <div style="overflow-x:auto;">
+                <table>
+                    <thead><tr><th>Date</th><th>Channel</th><th>Variety</th><th>Qty</th><th>Unit Price</th><th>Total</th></tr></thead>
+                    <tbody id="salesTrackerBody">
+                        <tr><td colspan="6"><div class="empty-state">No sales logged yet. Use the button above to log a sale.</div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sub-panel: Historical Data -->
+    <div class="sub-panel" id="sales-historical">
+        <div style="display:flex;gap:0.75rem;align-items:flex-end;margin-bottom:1rem;">
+            <div class="form-group" style="margin:0;">
+                <label>Compare Years</label>
+                <select id="histYear" onchange="loadHistoricalData()">
+                    <option value="all">All Years (2021-2025)</option>
+                    <option value="2025">2025</option>
+                    <option value="2024">2024</option>
+                    <option value="2023">2023</option>
+                    <option value="2022">2022</option>
+                    <option value="2021">2021</option>
+                </select>
+            </div>
+        </div>
+        <div id="historicalCharts">
+            <div class="section-header"><h2><i class="fas fa-chart-bar"></i> Revenue by Category</h2></div>
+            <div id="histRevChart" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:1rem;margin-bottom:1rem;"></div>
+            <div class="section-header"><h2><i class="fas fa-list"></i> Year-over-Year Data</h2></div>
+            <div class="table-wrap">
+                <div style="overflow-x:auto;">
+                    <table>
+                        <thead><tr><th>Variety</th><th>2021</th><th>2022</th><th>2023</th><th>2024</th><th>2025</th><th>Trend</th></tr></thead>
+                        <tbody id="histTableBody">
+                            <tr><td colspan="7"><div class="loading-spinner"><i class="fas fa-spinner"></i> Loading historical data...</div></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ────────────── TAB 5: REPORTS ────────────── -->
+<div class="tab-panel" id="panel-reports">
+    <div style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-bottom:1.25rem;">
+        <button class="btn btn-outline" onclick="showReport('germination')"><i class="fas fa-flask"></i> Germination Success</button>
+        <button class="btn btn-outline" onclick="showReport('transplant')"><i class="fas fa-exchange-alt"></i> Transplant Readiness</button>
+        <button class="btn btn-outline" onclick="showReport('utilization')"><i class="fas fa-warehouse"></i> Nursery Utilization</button>
+        <button class="btn btn-outline" onclick="showReport('revenue')"><i class="fas fa-dollar-sign"></i> Seedling Revenue</button>
+        <button class="btn btn-outline" onclick="window.print()"><i class="fas fa-print"></i> Print</button>
+    </div>
+    <div id="reportContent">
+        <div class="empty-state">
+            <i class="fas fa-file-alt"></i>
+            <p>Select a report above to view it.</p>
+        </div>
+    </div>
+</div>
+
+</main>
+
+<!-- ═══════════ MODALS ═══════════ -->
+
+<!-- Germination Check Modal -->
+<div class="modal-overlay" id="germCheckModal">
+    <div class="modal">
+        <div class="modal-head"><h3><i class="fas fa-search"></i> Log Germination Check</h3><button class="modal-close" onclick="closeModal('germCheckModal')">&times;</button></div>
+        <div class="modal-body">
+            <div class="form-group"><label>Batch</label><select id="germBatchSelect"><option value="">-- Select batch --</option></select></div>
+            <div class="form-row">
+                <div class="form-group"><label>Cells Checked</label><input type="number" id="germCellsChecked" min="1" placeholder="e.g. 72"></div>
+                <div class="form-group"><label>Cells Germinated</label><input type="number" id="germCellsGerm" min="0" placeholder="e.g. 68"></div>
+            </div>
+            <div class="form-group"><label>Germination Rate</label><input type="text" id="germRate" readonly placeholder="Auto-calculated"></div>
+            <div class="form-group"><label>Notes</label><textarea id="germNotes" placeholder="Vigor, uniformity, any issues..."></textarea></div>
+        </div>
+        <div class="modal-foot">
+            <button class="btn btn-outline" onclick="closeModal('germCheckModal')">Cancel</button>
+            <button class="btn btn-primary" onclick="submitGermCheck()"><i class="fas fa-check"></i> Log Check</button>
+        </div>
+    </div>
+</div>
+
+<!-- Growth Stage Modal -->
+<div class="modal-overlay" id="growthStageModal">
+    <div class="modal">
+        <div class="modal-head"><h3><i class="fas fa-chart-bar"></i> Record Growth Stage</h3><button class="modal-close" onclick="closeModal('growthStageModal')">&times;</button></div>
+        <div class="modal-body">
+            <div class="form-group"><label>Batch</label><select id="gstageBatch"><option value="">-- Select batch --</option></select></div>
+            <div class="form-group"><label>Growth Stage</label>
+                <select id="gstageStage">
+                    <option value="cotyledon">Cotyledon</option>
+                    <option value="first_true_leaves">First True Leaves</option>
+                    <option value="2-4_leaves">2-4 True Leaves</option>
+                    <option value="4-6_leaves">4-6 True Leaves</option>
+                    <option value="hardening_off">Hardening Off</option>
+                    <option value="transplant_ready">Transplant Ready</option>
+                </select>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>Avg Height (inches)</label><input type="number" id="gstageHeight" step="0.25" min="0" placeholder="e.g. 3.5"></div>
+                <div class="form-group"><label>Vigor (1-10)</label><input type="number" id="gstageVigor" min="1" max="10" placeholder="e.g. 8"></div>
+            </div>
+            <div class="form-group"><label>Notes</label><textarea id="gstageNotes" placeholder="Color, root development, etc."></textarea></div>
+        </div>
+        <div class="modal-foot">
+            <button class="btn btn-outline" onclick="closeModal('growthStageModal')">Cancel</button>
+            <button class="btn btn-primary" onclick="submitGrowthStage()"><i class="fas fa-check"></i> Record</button>
+        </div>
+    </div>
+</div>
+
+<!-- Problem Report Modal -->
+<div class="modal-overlay" id="problemModal">
+    <div class="modal">
+        <div class="modal-head"><h3><i class="fas fa-exclamation-triangle"></i> Report Problem</h3><button class="modal-close" onclick="closeModal('problemModal')">&times;</button></div>
+        <div class="modal-body">
+            <div class="form-group"><label>Batch (optional)</label><select id="problemBatch"><option value="">-- General / Select batch --</option></select></div>
+            <div class="form-group"><label>Problem Type</label>
+                <select id="problemType">
+                    <option value="disease">Disease / Pathogen</option>
+                    <option value="pest">Pest</option>
+                    <option value="environmental">Environmental (temp, humidity)</option>
+                    <option value="germination_failure">Germination Failure</option>
+                    <option value="equipment">Equipment Issue</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+            <div class="form-group"><label>Severity</label>
+                <select id="problemSeverity">
+                    <option value="low">Low - Cosmetic / Minor</option>
+                    <option value="medium">Medium - Needs Attention</option>
+                    <option value="high">High - Crop at Risk</option>
+                    <option value="critical">Critical - Immediate Action</option>
+                </select>
+            </div>
+            <div class="form-group"><label>Description</label><textarea id="problemDesc" placeholder="Describe the problem in detail..."></textarea></div>
+        </div>
+        <div class="modal-foot">
+            <button class="btn btn-outline" onclick="closeModal('problemModal')">Cancel</button>
+            <button class="btn btn-danger" onclick="submitProblem()"><i class="fas fa-exclamation-triangle"></i> Report</button>
+        </div>
+    </div>
+</div>
+
+<!-- Add Tray Modal -->
+<div class="modal-overlay" id="addTrayModal">
+    <div class="modal">
+        <div class="modal-head"><h3><i class="fas fa-plus"></i> Add Tray</h3><button class="modal-close" onclick="closeModal('addTrayModal')">&times;</button></div>
+        <div class="modal-body">
+            <div class="form-row">
+                <div class="form-group"><label>Crop</label><input type="text" id="newTrayCrop" placeholder="e.g. Tomato"></div>
+                <div class="form-group"><label>Variety</label><input type="text" id="newTrayVariety" placeholder="e.g. Brandywine"></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>Cell Size</label>
+                    <select id="newTrayCellSize">
+                        <option value="72">72 cell</option>
+                        <option value="50">50 cell</option>
+                        <option value="36">36 cell</option>
+                        <option value="18">18 cell</option>
+                        <option value="6">6 cell / 4" pot</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>Tray Count</label><input type="number" id="newTrayCount" min="1" value="1"></div>
+            </div>
+            <div class="form-group"><label>Sow Date</label><input type="date" id="newTraySowDate"></div>
+            <div class="form-group"><label>Seed Lot (optional)</label><input type="text" id="newTraySeedLot" placeholder="e.g. LOT-2026-001"></div>
+            <div class="form-group"><label>Notes</label><textarea id="newTrayNotes" placeholder="Any notes..."></textarea></div>
+        </div>
+        <div class="modal-foot">
+            <button class="btn btn-outline" onclick="closeModal('addTrayModal')">Cancel</button>
+            <button class="btn btn-primary" onclick="submitAddTray()"><i class="fas fa-plus"></i> Add Tray</button>
+        </div>
+    </div>
+</div>
+
+<!-- Growth Observation Modal -->
+<div class="modal-overlay" id="growthObsModal">
+    <div class="modal">
+        <div class="modal-head"><h3><i class="fas fa-plus"></i> Log Growth Observation</h3><button class="modal-close" onclick="closeModal('growthObsModal')">&times;</button></div>
+        <div class="modal-body">
+            <div class="form-group"><label>Batch</label><select id="obsBatch"><option value="">-- Select batch --</option></select></div>
+            <div class="form-group"><label>Growth Stage</label>
+                <select id="obsStage">
+                    <option value="cotyledon">Cotyledon</option>
+                    <option value="first_true_leaves">First True Leaves</option>
+                    <option value="2-4_leaves">2-4 True Leaves</option>
+                    <option value="4-6_leaves">4-6 True Leaves</option>
+                    <option value="hardening_off">Hardening Off</option>
+                    <option value="transplant_ready">Transplant Ready</option>
+                </select>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>Plant Height (in)</label><input type="number" id="obsHeight" step="0.25" min="0"></div>
+                <div class="form-group"><label>Vigor Score (1-10)</label><input type="number" id="obsVigor" min="1" max="10"></div>
+            </div>
+            <div class="form-group"><label>Disease %</label><input type="number" id="obsDisease" min="0" max="100" value="0"></div>
+            <div class="form-group"><label>Notes</label><textarea id="obsNotes" placeholder="Observations..."></textarea></div>
+        </div>
+        <div class="modal-foot">
+            <button class="btn btn-outline" onclick="closeModal('growthObsModal')">Cancel</button>
+            <button class="btn btn-primary" onclick="submitGrowthObs()"><i class="fas fa-check"></i> Log Observation</button>
+        </div>
+    </div>
+</div>
+
+<!-- Presale Item Modal -->
+<div class="modal-overlay" id="presaleModal">
+    <div class="modal">
+        <div class="modal-head"><h3><i class="fas fa-tag"></i> Create Presale Item</h3><button class="modal-close" onclick="closeModal('presaleModal')">&times;</button></div>
+        <div class="modal-body">
+            <div class="form-group"><label>Variety</label><select id="presaleVariety"><option value="">-- Select from production plan --</option></select></div>
+            <div class="form-row">
+                <div class="form-group"><label>Price per Unit ($)</label><input type="number" id="presalePrice" step="0.25" min="0" placeholder="e.g. 4.50"></div>
+                <div class="form-group"><label>Available Qty</label><input type="number" id="presaleQty" min="1" placeholder="e.g. 50"></div>
+            </div>
+            <div class="form-group"><label>Description</label><textarea id="presaleDesc" placeholder="Auto-generated or custom description..."></textarea></div>
+            <div class="form-group">
+                <label>Shopify Integration</label>
+                <div style="display:flex;align-items:center;gap:0.5rem;">
+                    <span class="pill pill-gold"><i class="fas fa-clock"></i> Not synced</span>
+                    <span style="font-size:0.75rem;color:var(--text-secondary);">Will sync when you click "Sync to Shopify"</span>
+                </div>
+            </div>
+        </div>
+        <div class="modal-foot">
+            <button class="btn btn-outline" onclick="closeModal('presaleModal')">Cancel</button>
+            <button class="btn btn-primary" onclick="submitPresaleItem()"><i class="fas fa-tag"></i> List for Presale</button>
+        </div>
+    </div>
+</div>
+
+<!-- Log Sale Modal -->
+<div class="modal-overlay" id="logSaleModal">
+    <div class="modal">
+        <div class="modal-head"><h3><i class="fas fa-cash-register"></i> Log Sale</h3><button class="modal-close" onclick="closeModal('logSaleModal')">&times;</button></div>
+        <div class="modal-body">
+            <div class="form-group"><label>Variety</label><select id="logSaleVariety"><option value="">-- Select variety --</option></select></div>
+            <div class="form-row">
+                <div class="form-group"><label>Quantity</label><input type="number" id="logSaleQty" min="1" placeholder="e.g. 12"></div>
+                <div class="form-group"><label>Unit Price ($)</label><input type="number" id="logSalePrice" step="0.25" min="0" placeholder="e.g. 4.50"></div>
+            </div>
+            <div class="form-group"><label>Channel</label><select id="logSaleChannel">
+                <option value="Phipps">Phipps</option><option value="City Grown">City Grown</option>
+                <option value="Bloomfield">Bloomfield FM</option><option value="Lawrenceville">Lawrenceville FM</option>
+                <option value="Sewickley">Sewickley FM</option><option value="Squirrel Hill">Squirrel Hill FM</option>
+                <option value="Presale">Presale (Online)</option>
+            </select></div>
+            <div class="form-group"><label>Date</label><input type="date" id="logSaleDateField"></div>
+            <div class="form-group"><label>Notes (optional)</label><input type="text" id="logSaleNotes" placeholder="e.g. Customer name"></div>
+        </div>
+        <div class="modal-foot">
+            <button class="btn btn-outline" onclick="closeModal('logSaleModal')">Cancel</button>
+            <button class="btn btn-primary" onclick="submitLogSale()"><i class="fas fa-check"></i> Log Sale</button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toastEl"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+// GLOBALS & STATE
+// ═══════════════════════════════════════════════════════════════════
+const API = TINY_SEED_API.MAIN_API;
+const api = new TinySeedAPI();
+
+const state = {
+    sowingTasks: [],
+    transplantTasks: [],
+    trays: [],
+    batches: [],
+    prodPlan: [],
+    presaleItems: [],
+    salesLog: [],
+    growthObs: [],
+    historicalData: {},
+    activeTab: 'today'
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+    setDefaultDates();
+    loadTodayTab();
+    startAutoRefresh();
+    setupGermCalc();
+});
+
+function setDefaultDates() {
+    const today = new Date().toISOString().split('T')[0];
+    const els = ['saleDate', 'logSaleDateField', 'newTraySowDate'];
+    els.forEach(id => { const el = document.getElementById(id); if (el) el.value = today; });
+}
+
+function startAutoRefresh() {
+    setInterval(() => { if (state.activeTab === 'today') loadTodayTab(); }, 60000);
+}
+
+function setupGermCalc() {
+    ['germCellsChecked','germCellsGerm'].forEach(id => {
+        document.getElementById(id).addEventListener('input', () => {
+            const checked = parseInt(document.getElementById('germCellsChecked').value) || 0;
+            const germ = parseInt(document.getElementById('germCellsGerm').value) || 0;
+            document.getElementById('germRate').value = checked > 0 ? ((germ / checked) * 100).toFixed(1) + '%' : '';
+        });
+    });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// TAB NAVIGATION
+// ═══════════════════════════════════════════════════════════════════
+function showTab(tab) {
+    state.activeTab = tab;
+    document.querySelectorAll('.gh-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + tab));
+    if (tab === 'today') loadTodayTab();
+    else if (tab === 'trays') loadTrayInventory();
+    else if (tab === 'growth') loadGrowthTab();
+    else if (tab === 'sales') loadSalesTab();
+    else if (tab === 'reports') { /* reports load on button click */ }
+}
+
+function showSubTab(parentTab, subId) {
+    const panel = document.getElementById('panel-' + parentTab);
+    panel.querySelectorAll('.sub-tab').forEach((t, i) => {
+        const panels = panel.querySelectorAll('.sub-panel');
+        const isActive = panels[i] && panels[i].id === parentTab + '-' + subId;
+        t.classList.toggle('active', isActive);
+        if (panels[i]) panels[i].classList.toggle('active', isActive);
+    });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// MODAL
+// ═══════════════════════════════════════════════════════════════════
+function openModal(id) {
+    document.getElementById(id).classList.add('open');
+    populateBatchSelects();
+}
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// Close modal on overlay click
+document.addEventListener('click', e => {
+    if (e.target.classList.contains('modal-overlay')) e.target.classList.remove('open');
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════════════════════════════
+function toast(msg, type = 'success') {
+    const el = document.getElementById('toastEl');
+    el.textContent = msg;
+    el.className = 'toast ' + type + ' show';
+    setTimeout(() => el.classList.remove('show'), 3500);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// DATE HELPERS
+// ═══════════════════════════════════════════════════════════════════
+function todayStr() { return new Date().toISOString().split('T')[0]; }
+function weekFromNow() {
+    const d = new Date(); d.setDate(d.getDate() + 7);
+    return d.toISOString().split('T')[0];
+}
+function weekAgo() {
+    const d = new Date(); d.setDate(d.getDate() - 7);
+    return d.toISOString().split('T')[0];
+}
+function formatDate(d) {
+    if (!d) return '--';
+    const dt = new Date(d);
+    return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+function daysBetween(d1, d2) {
+    return Math.round((new Date(d2) - new Date(d1)) / 86400000);
+}
+function urgencyClass(dateStr) {
+    if (!dateStr) return 'upcoming';
+    const diff = daysBetween(todayStr(), dateStr);
+    if (diff < 0) return 'overdue';
+    if (diff === 0) return 'today';
+    return 'upcoming';
+}
+function urgencyText(dateStr) {
+    if (!dateStr) return '';
+    const diff = daysBetween(todayStr(), dateStr);
+    if (diff < 0) return Math.abs(diff) + ' day' + (Math.abs(diff) !== 1 ? 's' : '') + ' overdue';
+    if (diff === 0) return 'Due today';
+    return 'In ' + diff + ' day' + (diff !== 1 ? 's' : '');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// TAB 1: TODAY'S TASKS
+// ═══════════════════════════════════════════════════════════════════
+async function loadTodayTab() {
+    try {
+        const [sowRes, transRes, trayRes] = await Promise.all([
+            api.get('getGreenhouseSowingTasks', { startDate: weekAgo(), endDate: weekFromNow(), category: 'veg-herb' }),
+            api.get('getTransplantTasks', { startDate: weekAgo(), endDate: weekFromNow() }),
+            api.get('getTrayInventory')
+        ]);
+
+        state.sowingTasks = (sowRes && sowRes.tasks) ? sowRes.tasks : [];
+        state.transplantTasks = (transRes && transRes.tasks) ? transRes.tasks : [];
+        state.trays = (trayRes && trayRes.trays) ? trayRes.trays : [];
+        state.batches = [...state.sowingTasks, ...state.transplantTasks];
+
+        renderTodayStats();
+        renderSowingTasks();
+        renderTransplantTasks();
+        updateSyncIndicator(true);
+    } catch (err) {
+        console.error('Failed to load today tab:', err);
+        updateSyncIndicator(false);
+        document.getElementById('sowingTasks').innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Failed to load sowing tasks. Check your connection and try again.</p><button class="btn btn-outline" onclick="loadTodayTab()"><i class="fas fa-redo"></i> Retry</button></div>';
+        document.getElementById('transplantTasks').innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Failed to load transplant tasks.</p></div>';
+    }
+}
+
+function renderTodayStats() {
+    const todaySow = state.sowingTasks.filter(t => !t.completed && urgencyClass(t.sowDate) !== 'upcoming').length;
+    const todayTrans = state.transplantTasks.filter(t => !t.completed && urgencyClass(t.transplantDate) !== 'upcoming').length;
+    document.getElementById('statTasksToday').textContent = todaySow + todayTrans;
+    document.getElementById('statTasksSub').textContent = todaySow + ' sowing, ' + todayTrans + ' transplant';
+    document.getElementById('statTraysActive').textContent = state.trays.length || '--';
+
+    const ready = state.transplantTasks.filter(t => !t.completed).length;
+    document.getElementById('statReadyTransplant').textContent = ready;
+
+    const germChecks = state.sowingTasks.filter(t => {
+        if (!t.sowDate) return false;
+        const days = daysBetween(t.sowDate, todayStr());
+        return days >= 3 && days <= 7 && !t.completed;
+    }).length;
+    document.getElementById('statGermChecks').textContent = germChecks;
+}
+
+function renderSowingTasks() {
+    const container = document.getElementById('sowingTasks');
+    const tasks = state.sowingTasks.filter(t => !t.completed).sort((a, b) => new Date(a.sowDate) - new Date(b.sowDate));
+    document.getElementById('sowingCount').textContent = tasks.length;
+
+    if (!tasks.length) {
+        container.innerHTML = '<div class="empty-state"><i class="fas fa-check-circle"></i><p>No sowing tasks pending. Great work!</p></div>';
+        return;
+    }
+
+    container.innerHTML = tasks.map(t => {
+        const urg = urgencyClass(t.sowDate);
+        return `<div class="task-card ${urg}">
+            <div class="crop-name">${esc(t.crop || 'Unknown Crop')}</div>
+            <div class="variety">${esc(t.variety || '')}</div>
+            <div class="task-date ${urg === 'overdue' ? 'overdue-text' : urg === 'today' ? 'today-text' : ''}">
+                <i class="far fa-calendar"></i> Sow: ${formatDate(t.sowDate)} &mdash; ${urgencyText(t.sowDate)}
+            </div>
+            <div class="task-details">
+                <span class="detail-chip"><i class="fas fa-th"></i> ${t.trays || '?'} trays</span>
+                <span class="detail-chip"><i class="fas fa-braille"></i> ${t.cellsPerTray || '?'}-cell</span>
+                ${t.seedsNeeded ? '<span class="detail-chip"><i class="fas fa-dot-circle"></i> ' + t.seedsNeeded + ' seeds</span>' : ''}
+            </div>
+            <button class="btn btn-primary btn-block btn-sm" onclick="markSown('${esc(t.batchId)}')">
+                <i class="fas fa-check"></i> Mark Sown
+            </button>
+        </div>`;
+    }).join('');
+}
+
+function renderTransplantTasks() {
+    const container = document.getElementById('transplantTasks');
+    const tasks = state.transplantTasks.filter(t => !t.completed).sort((a, b) => new Date(a.transplantDate) - new Date(b.transplantDate));
+    document.getElementById('transplantCount').textContent = tasks.length;
+
+    if (!tasks.length) {
+        container.innerHTML = '<div class="empty-state"><i class="fas fa-check-circle"></i><p>No transplant tasks pending.</p></div>';
+        return;
+    }
+
+    container.innerHTML = tasks.map(t => {
+        const urg = urgencyClass(t.transplantDate);
+        return `<div class="task-card ${urg}">
+            <div class="crop-name">${esc(t.crop || 'Unknown Crop')}</div>
+            <div class="variety">${esc(t.variety || '')}</div>
+            <div class="task-date ${urg === 'overdue' ? 'overdue-text' : urg === 'today' ? 'today-text' : ''}">
+                <i class="far fa-calendar"></i> Transplant: ${formatDate(t.transplantDate)} &mdash; ${urgencyText(t.transplantDate)}
+            </div>
+            <div class="task-details">
+                <span class="detail-chip"><i class="fas fa-seedling"></i> ${t.plantsNeeded || '?'} plants</span>
+                ${t.bed ? '<span class="detail-chip"><i class="fas fa-map-marker-alt"></i> Bed ' + esc(t.bed) + '</span>' : ''}
+            </div>
+            <button class="btn btn-gold btn-block btn-sm" onclick="markTransplanted('${esc(t.batchId)}')">
+                <i class="fas fa-check"></i> Mark Transplanted
+            </button>
+        </div>`;
+    }).join('');
+}
+
+async function markSown(batchId) {
+    try {
+        await api.post('recordSeedingDate', { batchId, type: 'gh_sow', actualDate: todayStr() });
+        await api.post('updateTaskCompletion', { batchId, taskType: 'gh_sow', completed: true });
+        toast('Sowing recorded for ' + batchId);
+        loadTodayTab();
+    } catch (err) {
+        console.error(err);
+        toast('Failed to record sowing: ' + err.message, 'error');
+    }
+}
+
+async function markTransplanted(batchId) {
+    try {
+        await api.post('recordSeedingDate', { batchId, type: 'transplant', actualDate: todayStr() });
+        await api.post('updateTaskCompletion', { batchId, taskType: 'transplant', completed: true });
+        toast('Transplant recorded for ' + batchId);
+        loadTodayTab();
+    } catch (err) {
+        console.error(err);
+        toast('Failed to record transplant: ' + err.message, 'error');
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// TAB 2: TRAY INVENTORY
+// ═══════════════════════════════════════════════════════════════════
+async function loadTrayInventory() {
+    try {
+        const res = await api.get('getTrayInventory');
+        state.trays = (res && res.trays) ? res.trays : [];
+        renderTrayStats();
+        renderTrayTable(state.trays);
+        populateTrayCropFilter();
+    } catch (err) {
+        console.error(err);
+        document.getElementById('trayTableBody').innerHTML = '<tr><td colspan="9"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Failed to load tray inventory.</p><button class="btn btn-outline" onclick="loadTrayInventory()"><i class="fas fa-redo"></i> Retry</button></div></td></tr>';
+    }
+}
+
+function renderTrayStats() {
+    const trays = state.trays;
+    document.getElementById('statTotalTrays').textContent = trays.length;
+    document.getElementById('statGerminating').textContent = trays.filter(t => (t.status || '').toLowerCase().includes('germinat')).length;
+    document.getElementById('statGrowing').textContent = trays.filter(t => (t.status || '').toLowerCase() === 'growing').length;
+    document.getElementById('statReady').textContent = trays.filter(t => (t.status || '').toLowerCase() === 'ready').length;
+}
+
+function renderTrayTable(trays) {
+    const tbody = document.getElementById('trayTableBody');
+    if (!trays.length) {
+        tbody.innerHTML = '<tr><td colspan="9"><div class="empty-state"><i class="fas fa-th"></i><p>No trays in inventory. Add a tray to get started.</p></div></td></tr>';
+        return;
+    }
+    tbody.innerHTML = trays.map(t => {
+        const days = t.sowDate ? daysBetween(t.sowDate, todayStr()) : '--';
+        const pillClass = statusPillClass(t.status);
+        const health = t.healthScore != null ? t.healthScore : '--';
+        const healthColor = health === '--' ? '' : health >= 8 ? 'color:var(--primary)' : health >= 5 ? 'color:var(--gold)' : 'color:var(--danger)';
+        return `<tr>
+            <td style="font-weight:600;font-size:0.75rem;">${esc(t.trayId || t.batchId || '--')}</td>
+            <td>${esc(t.crop || '--')}</td>
+            <td>${esc(t.variety || '--')}</td>
+            <td>${formatDate(t.sowDate)}</td>
+            <td>${days}</td>
+            <td>${formatDate(t.readyDate || t.estimatedReadyDate)}</td>
+            <td><span class="pill ${pillClass}">${esc(t.status || 'Unknown')}</span></td>
+            <td style="${healthColor};font-weight:600;">${health}</td>
+            <td><button class="btn btn-outline btn-sm" onclick="viewTrayDetail('${esc(t.trayId || t.batchId || '')}')"><i class="fas fa-eye"></i></button></td>
+        </tr>`;
+    }).join('');
+}
+
+function statusPillClass(status) {
+    if (!status) return 'pill-blue';
+    const s = status.toLowerCase();
+    if (s.includes('ready')) return 'pill-green';
+    if (s.includes('harden')) return 'pill-purple';
+    if (s.includes('grow')) return 'pill-gold';
+    if (s.includes('germinat')) return 'pill-blue';
+    if (s.includes('seed')) return 'pill-blue';
+    return 'pill-blue';
+}
+
+function populateTrayCropFilter() {
+    const crops = [...new Set(state.trays.map(t => t.crop).filter(Boolean))].sort();
+    const sel = document.getElementById('trayCropFilter');
+    sel.innerHTML = '<option value="">All Crops</option>' + crops.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+}
+
+function filterTrays() {
+    const search = document.getElementById('traySearch').value.toLowerCase();
+    const statusF = document.getElementById('trayStatusFilter').value.toLowerCase();
+    const cropF = document.getElementById('trayCropFilter').value.toLowerCase();
+    const filtered = state.trays.filter(t => {
+        const matchSearch = !search || (t.crop || '').toLowerCase().includes(search) || (t.variety || '').toLowerCase().includes(search);
+        const matchStatus = !statusF || (t.status || '').toLowerCase().includes(statusF);
+        const matchCrop = !cropF || (t.crop || '').toLowerCase() === cropF;
+        return matchSearch && matchStatus && matchCrop;
+    });
+    renderTrayTable(filtered);
+}
+
+function viewTrayDetail(trayId) {
+    const tray = state.trays.find(t => (t.trayId || t.batchId) === trayId);
+    if (!tray) { toast('Tray not found', 'error'); return; }
+    // Switch to growth tab with this batch selected
+    showTab('growth');
+    setTimeout(() => {
+        document.getElementById('growthBatchSelect').value = tray.batchId || trayId;
+        loadGrowthData();
+    }, 100);
+}
+
+async function submitAddTray() {
+    const crop = document.getElementById('newTrayCrop').value.trim();
+    const variety = document.getElementById('newTrayVariety').value.trim();
+    if (!crop) { toast('Crop is required', 'error'); return; }
+    try {
+        await api.post('addTray', {
+            crop, variety,
+            cellSize: document.getElementById('newTrayCellSize').value,
+            trayCount: parseInt(document.getElementById('newTrayCount').value) || 1,
+            sowDate: document.getElementById('newTraySowDate').value,
+            seedLot: document.getElementById('newTraySeedLot').value.trim(),
+            notes: document.getElementById('newTrayNotes').value.trim()
+        });
+        toast('Tray added successfully');
+        closeModal('addTrayModal');
+        loadTrayInventory();
+    } catch (err) {
+        toast('Failed to add tray: ' + err.message, 'error');
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// TAB 3: GROWTH TRACKING
+// ═══════════════════════════════════════════════════════════════════
+async function loadGrowthTab() {
+    await populateBatchSelects();
+    loadRecentObservations();
+}
+
+async function loadGrowthData() {
+    const batchId = document.getElementById('growthBatchSelect').value;
+    const container = document.getElementById('growthTimeline');
+    if (!batchId) {
+        container.innerHTML = '<div class="empty-state"><i class="fas fa-chart-line"></i><p>Select a batch above to view its growth timeline.</p></div>';
+        return;
+    }
+    container.innerHTML = '<div class="loading-spinner"><i class="fas fa-spinner"></i> Loading growth data...</div>';
+    try {
+        const res = await api.get('getGrowthTracking', { batchId });
+        const stages = (res && res.stages) ? res.stages : (res && res.data) ? res.data : [];
+        renderGrowthTimeline(stages, batchId);
+    } catch (err) {
+        console.error(err);
+        container.innerHTML = '<div class="empty-state"><i class="fas fa-info-circle"></i><p>No growth tracking data yet for this batch. Log an observation to start tracking.</p></div>';
+    }
+}
+
+function renderGrowthTimeline(stages, batchId) {
+    const container = document.getElementById('growthTimeline');
+    const allStages = [
+        { key: 'sow', label: 'Sow Date', icon: 'fa-seedling' },
+        { key: 'germination', label: 'Germination Check', icon: 'fa-search' },
+        { key: 'cotyledon', label: 'Cotyledon', icon: 'fa-leaf' },
+        { key: 'first_true_leaves', label: 'First True Leaves', icon: 'fa-leaf' },
+        { key: 'growing', label: 'Growing / Vegging', icon: 'fa-chart-line' },
+        { key: 'hardening_off', label: 'Hardening Off', icon: 'fa-sun' },
+        { key: 'transplant_ready', label: 'Transplant Ready', icon: 'fa-check-circle' }
+    ];
+
+    const completedKeys = new Set(stages.map(s => s.stage || s.key));
+    let currentFound = false;
+
+    container.innerHTML = '<div class="timeline">' + allStages.map(s => {
+        const completed = completedKeys.has(s.key);
+        let dotClass = 'pending';
+        if (completed) dotClass = 'completed';
+        else if (!currentFound) { dotClass = 'current'; currentFound = true; }
+        const stageData = stages.find(st => (st.stage || st.key) === s.key);
+        return `<div class="timeline-item">
+            <div class="timeline-dot ${dotClass}"></div>
+            <div class="timeline-content">
+                <h4><i class="fas ${s.icon}"></i> ${s.label}</h4>
+                <p>${stageData ? formatDate(stageData.date) + (stageData.notes ? ' &mdash; ' + esc(stageData.notes) : '') : 'Pending'}</p>
+            </div>
+        </div>`;
+    }).join('') + '</div>';
+}
+
+async function loadRecentObservations() {
+    try {
+        const res = await api.get('getGrowthTracking', { recent: true, limit: 20 });
+        state.growthObs = (res && res.observations) ? res.observations : (res && res.data) ? res.data : [];
+        renderObsTable();
+    } catch (err) {
+        // Silently handle - table keeps empty state
+    }
+}
+
+function renderObsTable() {
+    const tbody = document.getElementById('growthObsTable');
+    if (!state.growthObs.length) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text-secondary);">No observations logged yet.</td></tr>';
+        return;
+    }
+    tbody.innerHTML = state.growthObs.map(o => `<tr>
+        <td>${formatDate(o.date)}</td>
+        <td>${esc(o.batchId || '--')}</td>
+        <td><span class="pill pill-blue">${esc(o.stage || '--')}</span></td>
+        <td>${o.height ? o.height + '"' : '--'}</td>
+        <td style="font-weight:600;${o.vigor >= 7 ? 'color:var(--primary)' : o.vigor >= 4 ? 'color:var(--gold)' : 'color:var(--danger)'}">${o.vigor || '--'}</td>
+        <td>${o.diseasePercent != null ? o.diseasePercent + '%' : '--'}</td>
+        <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(o.notes || '')}</td>
+    </tr>`).join('');
+}
+
+async function submitGrowthObs() {
+    const batchId = document.getElementById('obsBatch').value;
+    if (!batchId) { toast('Please select a batch', 'error'); return; }
+    try {
+        await api.post('logGrowthTracking', {
+            batchId,
+            stage: document.getElementById('obsStage').value,
+            height: parseFloat(document.getElementById('obsHeight').value) || null,
+            vigor: parseInt(document.getElementById('obsVigor').value) || null,
+            diseasePercent: parseInt(document.getElementById('obsDisease').value) || 0,
+            notes: document.getElementById('obsNotes').value.trim(),
+            date: todayStr()
+        });
+        toast('Growth observation logged');
+        closeModal('growthObsModal');
+        loadGrowthData();
+        loadRecentObservations();
+    } catch (err) {
+        toast('Failed to log observation: ' + err.message, 'error');
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// TAB 4: SEEDLING SALES
+// ═══════════════════════════════════════════════════════════════════
+async function loadSalesTab() {
+    await Promise.all([loadProductionPlan(), loadPresaleItems(), loadSalesTracker(), loadHistoricalData()]);
+}
+
+async function loadProductionPlan() {
+    try {
+        const res = await api.get('getPlanning');
+        const rows = (res && res.data) ? res.data : (res && res.rows) ? res.rows : [];
+        // Filter for seedling-related entries
+        state.prodPlan = rows.filter(r => r.category === 'seedling' || r.type === 'seedling' || r.forSeedlingSale);
+        renderProdPlan(state.prodPlan);
+        populateVarietySelects();
+    } catch (err) {
+        console.error(err);
+        document.getElementById('prodPlanBody').innerHTML = '<tr><td colspan="11"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Failed to load production plan.</p></div></td></tr>';
+    }
+}
+
+function renderProdPlan(data) {
+    const tbody = document.getElementById('prodPlanBody');
+    if (!data.length) {
+        tbody.innerHTML = '<tr><td colspan="11"><div class="empty-state"><i class="fas fa-clipboard-list"></i><p>No seedling production plan entries found. Production plan data will appear here once configured in the PLANNING_2026 sheet.</p></div></td></tr>';
+        return;
+    }
+    tbody.innerHTML = data.map(r => `<tr>
+        <td style="font-weight:600;">${esc(r.variety || r.crop || '--')}</td>
+        <td>${esc(r.cropCategory || r.category || '--')}</td>
+        <td>${r.trays || '--'}</td>
+        <td>${r.cellSize || '--'}</td>
+        <td>${formatDate(r.seedDate || r.sowDate)}</td>
+        <td>${formatDate(r.readyDate || r.estimatedReadyDate)}</td>
+        <td style="font-weight:600;">${r.totalUnits || '--'}</td>
+        <td>${r.allocPhipps || '--'}</td>
+        <td>${r.allocCityGrown || '--'}</td>
+        <td>${r.allocMarkets || '--'}</td>
+        <td>${r.allocPresale || '--'}</td>
+    </tr>`).join('');
+}
+
+function filterProdPlan() {
+    const search = document.getElementById('prodPlanSearch').value.toLowerCase();
+    const cat = document.getElementById('prodPlanCat').value.toLowerCase();
+    const filtered = state.prodPlan.filter(r => {
+        const matchSearch = !search || (r.variety || '').toLowerCase().includes(search) || (r.crop || '').toLowerCase().includes(search);
+        const matchCat = !cat || (r.cropCategory || r.category || '').toLowerCase().includes(cat);
+        return matchSearch && matchCat;
+    });
+    renderProdPlan(filtered);
+}
+
+function exportProdPlan() {
+    if (!state.prodPlan.length) { toast('No data to export', 'error'); return; }
+    const headers = ['Variety','Category','Trays','Cell Size','Seed Date','Ready Date','Total Units','Phipps','City Grown','Markets','Presale'];
+    const rows = state.prodPlan.map(r => [r.variety||r.crop,r.cropCategory||r.category,r.trays,r.cellSize,r.seedDate||r.sowDate,r.readyDate,r.totalUnits,r.allocPhipps,r.allocCityGrown,r.allocMarkets,r.allocPresale]);
+    const csv = [headers, ...rows].map(r => r.map(c => '"' + (c||'') + '"').join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'seedling_production_plan_' + todayStr() + '.csv';
+    a.click();
+    toast('Production plan exported');
+}
+
+async function loadPresaleItems() {
+    try {
+        const res = await api.get('getSeedlingPresaleItems');
+        state.presaleItems = (res && res.items) ? res.items : [];
+        renderPresaleGrid();
+    } catch (err) {
+        state.presaleItems = [];
+        renderPresaleGrid();
+    }
+}
+
+function renderPresaleGrid() {
+    const container = document.getElementById('presaleGrid');
+    if (!state.presaleItems.length) {
+        container.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><i class="fas fa-tag"></i><p>No presale items yet. Create one from your production plan.</p><button class="btn btn-primary btn-sm" onclick="openModal(\'presaleModal\')"><i class="fas fa-plus"></i> Create Presale Item</button></div>';
+        return;
+    }
+    container.innerHTML = state.presaleItems.map(item => {
+        const syncPill = item.shopifyId ? '<span class="pill pill-green"><i class="fab fa-shopify"></i> Synced</span>' : '<span class="pill pill-gold"><i class="fas fa-clock"></i> Not synced</span>';
+        return `<div class="task-card">
+            <div style="display:flex;justify-content:space-between;align-items:start;">
+                <div>
+                    <div class="crop-name">${esc(item.variety || item.name)}</div>
+                    <div class="variety">${esc(item.description || '')}</div>
+                </div>
+                ${syncPill}
+            </div>
+            <div class="task-details" style="margin-top:0.5rem;">
+                <span class="detail-chip"><i class="fas fa-dollar-sign"></i> $${(item.price || 0).toFixed(2)}</span>
+                <span class="detail-chip"><i class="fas fa-cubes"></i> ${item.available || 0} avail</span>
+                <span class="detail-chip"><i class="fas fa-shopping-cart"></i> ${item.sold || 0} sold</span>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+async function submitPresaleItem() {
+    const variety = document.getElementById('presaleVariety').value;
+    const price = parseFloat(document.getElementById('presalePrice').value);
+    const qty = parseInt(document.getElementById('presaleQty').value);
+    if (!variety || !price || !qty) { toast('All fields required', 'error'); return; }
+    try {
+        await api.post('createSeedlingPresaleItem', {
+            variety, price, quantity: qty,
+            description: document.getElementById('presaleDesc').value.trim()
+        });
+        toast('Presale item created');
+        closeModal('presaleModal');
+        loadPresaleItems();
+    } catch (err) {
+        toast('Failed to create presale item: ' + err.message, 'error');
+    }
+}
+
+async function syncPresaleToShopify() {
+    toast('Syncing to Shopify...', 'info');
+    try {
+        await api.post('syncSeedlingPresaleToShopify');
+        toast('Shopify sync complete');
+        loadPresaleItems();
+    } catch (err) {
+        toast('Shopify sync failed: ' + err.message, 'error');
+    }
+}
+
+async function loadSalesTracker() {
+    try {
+        const res = await api.get('getSeedlingSales', { year: 2026 });
+        state.salesLog = (res && res.sales) ? res.sales : (res && res.data) ? res.data : [];
+        renderSalesTracker();
+    } catch (err) {
+        state.salesLog = [];
+        renderSalesTracker();
+    }
+}
+
+function renderSalesTracker() {
+    const tbody = document.getElementById('salesTrackerBody');
+    // Normalize field names: backend uses Quantity_Sold/Price_Each, frontend uses qty/unitPrice
+    const sales = state.salesLog.map(r => ({
+        date: r.date || r.Sale_Date || '',
+        channel: r.channel || r.Channel || '',
+        variety: r.variety || r.Variety || r.Crop || '',
+        qty: Number(r.qty) || Number(r.Quantity_Sold) || 0,
+        unitPrice: Number(r.unitPrice) || Number(r.Price_Each) || 0,
+        revenue: Number(r.Revenue) || 0
+    }));
+
+    // Stats
+    const totalRev = sales.reduce((s, r) => s + (r.revenue || r.qty * r.unitPrice), 0);
+    const totalUnits = sales.reduce((s, r) => s + r.qty, 0);
+    document.getElementById('salesRevTotal').textContent = '$' + totalRev.toFixed(2);
+    document.getElementById('salesUnitsTotal').textContent = totalUnits;
+
+    // Top variety
+    const byVariety = {};
+    sales.forEach(r => { byVariety[r.variety || 'Unknown'] = (byVariety[r.variety || 'Unknown'] || 0) + (r.revenue || r.qty * r.unitPrice); });
+    const topVar = Object.entries(byVariety).sort((a, b) => b[1] - a[1])[0];
+    document.getElementById('salesTopVariety').textContent = topVar ? topVar[0] : '--';
+
+    // Top channel
+    const byCh = {};
+    sales.forEach(r => { byCh[r.channel || 'Unknown'] = (byCh[r.channel || 'Unknown'] || 0) + (r.revenue || r.qty * r.unitPrice); });
+    const topCh = Object.entries(byCh).sort((a, b) => b[1] - a[1])[0];
+    document.getElementById('salesTopChannel').textContent = topCh ? topCh[0] : '--';
+
+    if (!sales.length) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--text-secondary);">No sales logged yet.</td></tr>';
+        return;
+    }
+    tbody.innerHTML = sales.sort((a, b) => new Date(b.date) - new Date(a.date)).map(r => `<tr>
+        <td>${formatDate(r.date)}</td>
+        <td>${esc(r.channel || '--')}</td>
+        <td style="font-weight:600;">${esc(r.variety || '--')}</td>
+        <td>${r.qty}</td>
+        <td>$${r.unitPrice.toFixed(2)}</td>
+        <td style="font-weight:600;color:var(--primary);">$${(r.revenue || r.qty * r.unitPrice).toFixed(2)}</td>
+    </tr>`).join('');
+}
+
+async function submitLogSale() {
+    const variety = document.getElementById('logSaleVariety').value;
+    const qty = parseInt(document.getElementById('logSaleQty').value);
+    const price = parseFloat(document.getElementById('logSalePrice').value);
+    if (!variety || !qty || !price) { toast('All fields required', 'error'); return; }
+    try {
+        await api.post('logSeedlingSale', {
+            variety, qty, unitPrice: price,
+            channel: document.getElementById('logSaleChannel').value,
+            date: document.getElementById('logSaleDateField').value || todayStr(),
+            notes: document.getElementById('logSaleNotes').value.trim()
+        });
+        toast('Sale logged: ' + qty + 'x ' + variety);
+        closeModal('logSaleModal');
+        loadSalesTracker();
+    } catch (err) {
+        toast('Failed to log sale: ' + err.message, 'error');
+    }
+}
+
+async function loadHistoricalData() {
+    try {
+        const year = document.getElementById('histYear').value;
+        const res = await api.get('getSeedlingSalesHistorical', { year });
+        state.historicalData = (res && res.data) ? res.data : {};
+        renderHistoricalCharts();
+        renderHistoricalTable();
+    } catch (err) {
+        state.historicalData = {};
+        document.getElementById('histRevChart').innerHTML = '<div class="empty-state"><p>Historical data not yet available. It will appear here once past seasons are imported.</p></div>';
+        document.getElementById('histTableBody').innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text-secondary);">No historical data available.</td></tr>';
+    }
+}
+
+function renderHistoricalCharts() {
+    const container = document.getElementById('histRevChart');
+    const cats = state.historicalData.categories || state.historicalData.byCategory || {};
+    const entries = Object.entries(cats);
+    if (!entries.length) {
+        container.innerHTML = '<div class="empty-state"><p>No category revenue data to display.</p></div>';
+        return;
+    }
+    const maxVal = Math.max(...entries.map(([, v]) => v));
+    const colors = { Tomatoes: 'var(--danger)', Peppers: 'var(--gold)', Cucurbits: 'var(--primary)', Herbs: 'var(--purple)' };
+    container.innerHTML = entries.map(([cat, val]) => {
+        const pct = maxVal > 0 ? (val / maxVal) * 100 : 0;
+        const color = colors[cat] || 'var(--info)';
+        return `<div class="chart-bar-row">
+            <div class="chart-bar-label">${esc(cat)}</div>
+            <div class="chart-bar-track"><div class="chart-bar-fill" style="width:${pct}%;background:${color};">$${val.toFixed(0)}</div></div>
+        </div>`;
+    }).join('');
+}
+
+function renderHistoricalTable() {
+    const tbody = document.getElementById('histTableBody');
+    const varieties = state.historicalData.varieties || state.historicalData.byVariety || {};
+    const entries = Object.entries(varieties);
+    if (!entries.length) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text-secondary);">No variety data to display.</td></tr>';
+        return;
+    }
+    tbody.innerHTML = entries.map(([variety, years]) => {
+        const y = years || {};
+        const vals = [y['2021']||0, y['2022']||0, y['2023']||0, y['2024']||0, y['2025']||0];
+        const trend = vals[4] > vals[3] ? '<span style="color:var(--primary);"><i class="fas fa-arrow-up"></i></span>' :
+                      vals[4] < vals[3] ? '<span style="color:var(--danger);"><i class="fas fa-arrow-down"></i></span>' :
+                      '<span style="color:var(--text-secondary);"><i class="fas fa-minus"></i></span>';
+        return `<tr>
+            <td style="font-weight:600;">${esc(variety)}</td>
+            ${vals.map(v => `<td>${v ? '$' + v.toFixed(0) : '--'}</td>`).join('')}
+            <td>${trend}</td>
+        </tr>`;
+    }).join('');
+}
+
+function populateVarietySelects() {
+    const seedlingVarieties = [
+        'Brandywine','Black Krim','Cherokee Purple','Cherokee Green','Mountain Pride','Mountain Princess',
+        'Great White','Black Cherry','White Cherry','Striped German','Green Zebra','Cuor di Bue',
+        'Sweet Pepper Mix','Lunchbox','Cayenne','Hot Pepper Mix','Bell Pepper','Habanero','Carmen',
+        'Banana','Poblano','Jalapeno','Shishito','Jimmy Nardello','Hot Rod Serrano','Trinidad Scorpion',
+        'Hungarian Wax','Ghost','Serrano','Carolina Reaper','Ace','Lipstick','Bastian Poblano',
+        'Cucumber','Zucchini','Yellow Squash','Pickles'
+    ];
+    const fromPlan = state.prodPlan.map(r => r.variety || r.crop).filter(Boolean);
+    const all = [...new Set([...seedlingVarieties, ...fromPlan])].sort();
+    const opts = all.map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join('');
+    ['presaleVariety', 'logSaleVariety'].forEach(id => {
+        const sel = document.getElementById(id);
+        if (sel) sel.innerHTML = '<option value="">-- Select variety --</option>' + opts;
+    });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// TAB 5: REPORTS
+// ═══════════════════════════════════════════════════════════════════
+async function showReport(type) {
+    const container = document.getElementById('reportContent');
+    container.innerHTML = '<div class="loading-spinner"><i class="fas fa-spinner"></i> Generating report...</div>';
+
+    try {
+        if (type === 'germination') await renderGerminationReport(container);
+        else if (type === 'transplant') await renderTransplantReport(container);
+        else if (type === 'utilization') await renderUtilizationReport(container);
+        else if (type === 'revenue') await renderRevenueReport(container);
+    } catch (err) {
+        container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Failed to generate report: ' + esc(err.message) + '</p></div>';
+    }
+}
+
+async function renderGerminationReport(container) {
+    const res = await api.get('getGerminationLog', { all: true });
+    const logs = (res && res.logs) ? res.logs : (res && res.data) ? res.data : [];
+    container.innerHTML = `
+        <h2 style="font-size:1.1rem;margin-bottom:1rem;"><i class="fas fa-flask" style="color:var(--primary);"></i> Germination Success Report</h2>
+        <div class="table-wrap"><div style="overflow-x:auto;"><table>
+            <thead><tr><th>Batch</th><th>Crop</th><th>Seed Lot</th><th>Expected %</th><th>Actual %</th><th>Status</th><th>Date</th></tr></thead>
+            <tbody>${!logs.length ? '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text-secondary);">No germination data available. Log germination checks from the Today\'s Tasks tab.</td></tr>' :
+            logs.map(l => {
+                const actual = l.actualRate || l.germRate || null;
+                const expected = l.expectedRate || 85;
+                const fail = actual != null && actual < expected * 0.7;
+                return `<tr>
+                    <td style="font-weight:600;">${esc(l.batchId || '--')}</td>
+                    <td>${esc(l.crop || '--')}</td>
+                    <td>${esc(l.seedLot || '--')}</td>
+                    <td>${expected}%</td>
+                    <td style="font-weight:600;${fail ? 'color:var(--danger)' : 'color:var(--primary)'}">${actual != null ? actual.toFixed(1) + '%' : '--'}</td>
+                    <td>${fail ? '<span class="pill pill-red"><i class="fas fa-exclamation-triangle"></i> Failed</span>' : actual != null ? '<span class="pill pill-green"><i class="fas fa-check"></i> Pass</span>' : '<span class="pill pill-blue">Pending</span>'}</td>
+                    <td>${formatDate(l.date)}</td>
+                </tr>`;
+            }).join('')}</tbody>
+        </table></div></div>`;
+}
+
+async function renderTransplantReport(container) {
+    const res = await api.get('getTransplantTasks', { startDate: todayStr(), endDate: (() => { const d = new Date(); d.setDate(d.getDate() + 30); return d.toISOString().split('T')[0]; })() });
+    const tasks = (res && res.tasks) ? res.tasks : [];
+    container.innerHTML = `
+        <h2 style="font-size:1.1rem;margin-bottom:1rem;"><i class="fas fa-exchange-alt" style="color:var(--gold);"></i> Transplant Readiness Report</h2>
+        <div class="table-wrap"><div style="overflow-x:auto;"><table>
+            <thead><tr><th>Batch</th><th>Crop</th><th>Variety</th><th>Target Date</th><th>Plants</th><th>Bed</th><th>Status</th></tr></thead>
+            <tbody>${!tasks.length ? '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text-secondary);">No upcoming transplant tasks in the next 30 days.</td></tr>' :
+            tasks.map(t => {
+                const daysOut = daysBetween(todayStr(), t.transplantDate);
+                const status = t.completed ? '<span class="pill pill-green">Done</span>' : daysOut <= 0 ? '<span class="pill pill-red">Overdue</span>' : daysOut <= 3 ? '<span class="pill pill-gold">Soon</span>' : '<span class="pill pill-blue">' + daysOut + ' days</span>';
+                return `<tr>
+                    <td style="font-weight:600;">${esc(t.batchId || '--')}</td>
+                    <td>${esc(t.crop || '--')}</td>
+                    <td>${esc(t.variety || '--')}</td>
+                    <td>${formatDate(t.transplantDate)}</td>
+                    <td>${t.plantsNeeded || '--'}</td>
+                    <td>${esc(t.bed || '--')}</td>
+                    <td>${status}</td>
+                </tr>`;
+            }).join('')}</tbody>
+        </table></div></div>`;
+}
+
+async function renderUtilizationReport(container) {
+    const res = await api.get('getTrayInventory');
+    const trays = (res && res.trays) ? res.trays : [];
+    const capacity = res && res.capacity ? res.capacity : 200;
+    const used = trays.length;
+    const pct = capacity > 0 ? ((used / capacity) * 100).toFixed(1) : 0;
+    const byStatus = {};
+    trays.forEach(t => { const s = t.status || 'Unknown'; byStatus[s] = (byStatus[s] || 0) + 1; });
+
+    container.innerHTML = `
+        <h2 style="font-size:1.1rem;margin-bottom:1rem;"><i class="fas fa-warehouse" style="color:var(--info);"></i> Nursery Utilization Report</h2>
+        <div class="stat-row">
+            <div class="stat-card blue"><div class="stat-label">Capacity</div><div class="stat-value">${capacity}</div><div class="stat-sub">tray slots</div></div>
+            <div class="stat-card green"><div class="stat-label">In Use</div><div class="stat-value">${used}</div><div class="stat-sub">${pct}% utilized</div></div>
+            <div class="stat-card gold"><div class="stat-label">Available</div><div class="stat-value">${capacity - used}</div><div class="stat-sub">open slots</div></div>
+        </div>
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:1rem;margin-top:1rem;">
+            <h3 style="font-size:0.9rem;margin-bottom:0.75rem;">Trays by Status</h3>
+            ${Object.entries(byStatus).map(([s, c]) => {
+                const sp = capacity > 0 ? (c / capacity) * 100 : 0;
+                return `<div class="chart-bar-row">
+                    <div class="chart-bar-label">${esc(s)}</div>
+                    <div class="chart-bar-track"><div class="chart-bar-fill" style="width:${sp}%;background:var(--info);">${c}</div></div>
+                </div>`;
+            }).join('')}
+        </div>`;
+}
+
+async function renderRevenueReport(container) {
+    try {
+        const res = await api.get('getSeedlingSales', { year: 2026 });
+        const sales = (res && res.sales) ? res.sales : (res && res.data) ? res.data : [];
+        const byVariety = {};
+        const byChannel = {};
+        const byWeek = {};
+        sales.forEach(r => {
+            const rev = (Number(r.qty) || Number(r.Quantity_Sold) || 0) * (Number(r.unitPrice) || Number(r.Price_Each) || 0);
+            byVariety[r.variety || 'Unknown'] = (byVariety[r.variety || 'Unknown'] || 0) + rev;
+            byChannel[r.channel || 'Unknown'] = (byChannel[r.channel || 'Unknown'] || 0) + rev;
+            const wk = r.date ? r.date.substring(0, 7) : 'Unknown';
+            byWeek[wk] = (byWeek[wk] || 0) + rev;
+        });
+        const totalRev = Object.values(byVariety).reduce((s, v) => s + v, 0);
+        const maxV = Math.max(...Object.values(byVariety), 1);
+        const maxC = Math.max(...Object.values(byChannel), 1);
+
+        container.innerHTML = `
+            <h2 style="font-size:1.1rem;margin-bottom:1rem;"><i class="fas fa-dollar-sign" style="color:var(--primary);"></i> Seedling Sale Revenue Report</h2>
+            <div class="stat-row">
+                <div class="stat-card green"><div class="stat-label">Total Revenue</div><div class="stat-value">$${totalRev.toFixed(2)}</div></div>
+                <div class="stat-card blue"><div class="stat-label">Varieties Sold</div><div class="stat-value">${Object.keys(byVariety).length}</div></div>
+                <div class="stat-card gold"><div class="stat-label">Channels Active</div><div class="stat-value">${Object.keys(byChannel).length}</div></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:1rem;">
+                <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:1rem;">
+                    <h3 style="font-size:0.9rem;margin-bottom:0.75rem;">Revenue by Variety</h3>
+                    ${Object.entries(byVariety).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([v,r]) =>
+                        `<div class="chart-bar-row"><div class="chart-bar-label">${esc(v)}</div><div class="chart-bar-track"><div class="chart-bar-fill" style="width:${(r/maxV)*100}%;background:var(--primary);">$${r.toFixed(0)}</div></div></div>`
+                    ).join('') || '<p style="color:var(--text-secondary);font-size:0.8rem;">No data</p>'}
+                </div>
+                <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:1rem;">
+                    <h3 style="font-size:0.9rem;margin-bottom:0.75rem;">Revenue by Channel</h3>
+                    ${Object.entries(byChannel).sort((a,b)=>b[1]-a[1]).map(([c,r]) =>
+                        `<div class="chart-bar-row"><div class="chart-bar-label">${esc(c)}</div><div class="chart-bar-track"><div class="chart-bar-fill" style="width:${(r/maxC)*100}%;background:var(--gold);">$${r.toFixed(0)}</div></div></div>`
+                    ).join('') || '<p style="color:var(--text-secondary);font-size:0.8rem;">No data</p>'}
+                </div>
+            </div>`;
+    } catch (err) {
+        container.innerHTML = '<div class="empty-state"><i class="fas fa-dollar-sign"></i><p>No seedling revenue data available yet for 2026.</p></div>';
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// QUICK ACTION MODALS
+// ═══════════════════════════════════════════════════════════════════
+async function submitGermCheck() {
+    const batchId = document.getElementById('germBatchSelect').value;
+    if (!batchId) { toast('Please select a batch', 'error'); return; }
+    const checked = parseInt(document.getElementById('germCellsChecked').value) || 0;
+    const germ = parseInt(document.getElementById('germCellsGerm').value) || 0;
+    if (!checked) { toast('Cells checked is required', 'error'); return; }
+    try {
+        await api.post('logGerminationCheck', {
+            batchId,
+            cellsChecked: checked,
+            cellsGerminated: germ,
+            germRate: checked > 0 ? (germ / checked) * 100 : 0,
+            notes: document.getElementById('germNotes').value.trim(),
+            date: todayStr()
+        });
+        toast('Germination check logged: ' + ((germ / checked) * 100).toFixed(1) + '%');
+        closeModal('germCheckModal');
+    } catch (err) {
+        toast('Failed to log germination check: ' + err.message, 'error');
+    }
+}
+
+async function submitGrowthStage() {
+    const batchId = document.getElementById('gstageBatch').value;
+    if (!batchId) { toast('Please select a batch', 'error'); return; }
+    try {
+        await api.post('logGrowthTracking', {
+            batchId,
+            stage: document.getElementById('gstageStage').value,
+            height: parseFloat(document.getElementById('gstageHeight').value) || null,
+            vigor: parseInt(document.getElementById('gstageVigor').value) || null,
+            notes: document.getElementById('gstageNotes').value.trim(),
+            date: todayStr()
+        });
+        toast('Growth stage recorded');
+        closeModal('growthStageModal');
+    } catch (err) {
+        toast('Failed to record growth stage: ' + err.message, 'error');
+    }
+}
+
+async function submitProblem() {
+    const desc = document.getElementById('problemDesc').value.trim();
+    if (!desc) { toast('Description is required', 'error'); return; }
+    try {
+        await api.post('reportGreenhouseProblem', {
+            batchId: document.getElementById('problemBatch').value || null,
+            problemType: document.getElementById('problemType').value,
+            severity: document.getElementById('problemSeverity').value,
+            description: desc,
+            date: todayStr()
+        });
+        toast('Problem reported');
+        closeModal('problemModal');
+    } catch (err) {
+        toast('Failed to report problem: ' + err.message, 'error');
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// SHARED HELPERS
+// ═══════════════════════════════════════════════════════════════════
+async function populateBatchSelects() {
+    let batches = state.batches;
+    if (!batches.length) {
+        try {
+            const res = await api.get('getGreenhouseSowingTasks', { startDate: '2026-01-01', endDate: '2026-12-31', category: 'veg-herb' });
+            batches = (res && res.tasks) ? res.tasks : [];
+            state.batches = batches;
+        } catch (e) { /* ignore */ }
+    }
+    const opts = batches.map(b => `<option value="${esc(b.batchId)}">${esc(b.crop || '')} - ${esc(b.variety || '')} (${esc(b.batchId)})</option>`).join('');
+    ['germBatchSelect','gstageBatch','problemBatch','growthBatchSelect','obsBatch'].forEach(id => {
+        const sel = document.getElementById(id);
+        if (sel) {
+            const first = sel.options[0] ? sel.options[0].outerHTML : '<option value="">-- Select --</option>';
+            sel.innerHTML = first + opts;
+        }
+    });
+}
+
+function updateSyncIndicator(online) {
+    const dot = document.getElementById('syncDot');
+    const label = document.getElementById('syncLabel');
+    if (online) {
+        dot.className = 'dot';
+        label.textContent = 'Synced ' + new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    } else {
+        dot.className = 'dot offline';
+        label.textContent = 'Offline';
+    }
+}
+
+function esc(str) {
+    if (!str) return '';
+    const d = document.createElement('div');
+    d.textContent = String(str);
+    return d.innerHTML;
+}
+</script>
+</body>
+</html>
