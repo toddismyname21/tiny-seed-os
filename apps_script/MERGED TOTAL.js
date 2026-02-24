@@ -3072,11 +3072,16 @@ function getTodaysTasks() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const dateIdx = headers.findIndex(h => h.includes('date') || h.includes('due'));
-    const taskIdx = headers.findIndex(h => h.includes('task') || h.includes('description'));
+    const dateIdx = headers.findIndex(h => h.includes('due') || (h.includes('date') && !h.includes('complete')));
+    // IMPORTANT: task_name must match BEFORE task_id. Use specific matching.
+    const taskNameIdx = headers.findIndex(h => h === 'task_name' || h === 'taskname' || h === 'description' || h === 'task_description');
+    const taskIdx = taskNameIdx >= 0 ? taskNameIdx : headers.findIndex(h => h.includes('task') && !h.includes('id'));
     const statusIdx = headers.findIndex(h => h.includes('status'));
     const assignedIdx = headers.findIndex(h => h.includes('assigned') || h.includes('employee'));
     const priorityIdx = headers.findIndex(h => h.includes('priority'));
+    const cropIdx = headers.findIndex(h => h === 'crop' || h.includes('crop'));
+    const categoryIdx = headers.findIndex(h => h === 'category' || h.includes('category'));
+    const taskIdIdx = headers.findIndex(h => h === 'task_id' || h === 'taskid');
 
     const tasks = [];
     for (let i = 1; i < data.length && tasks.length < 15; i++) {
@@ -3091,10 +3096,15 @@ function getTodaysTasks() {
           const status = statusIdx >= 0 ? String(row[statusIdx]).toLowerCase() : '';
           if (!status.includes('complete') && !status.includes('done')) {
             tasks.push({
+              taskId: taskIdIdx >= 0 ? row[taskIdIdx] : '',
               task: taskIdx >= 0 ? row[taskIdx] : row[1],
+              crop: cropIdx >= 0 ? row[cropIdx] : '',
+              type: categoryIdx >= 0 ? row[categoryIdx] : '',
               status: status || 'pending',
               assigned: assignedIdx >= 0 ? row[assignedIdx] : 'unassigned',
-              priority: priorityIdx >= 0 ? row[priorityIdx] : 'normal'
+              priority: priorityIdx >= 0 ? row[priorityIdx] : 'normal',
+              urgency: 'MUST DO',
+              overdue: false
             });
           }
         }
@@ -3138,7 +3148,7 @@ function getOverdueTasks() {
     const statusIdx = headers.findIndex(h => h.includes('status'));
 
     const overdue = [];
-    for (let i = 1; i < data.length && overdue.length < 10; i++) {
+    for (let i = 1; i < data.length && overdue.length < 200; i++) {
       const row = data[i];
       const rawDate = row[dateIdx];
       const status = statusIdx >= 0 ? String(row[statusIdx]).toLowerCase() : '';

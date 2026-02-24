@@ -7218,7 +7218,7 @@
             // Active plantings (case-insensitive status matching)
             const activeStatuses = ['sown', 'planted', 'harvesting', 'growing', 'scheduled', 'seeded', 'germinating'];
             const active = allPlantings.filter(p =>
-                activeStatuses.includes((p.STATUS || '').toLowerCase())
+                activeStatuses.includes((p.Status || '').toLowerCase())
             ).length;
 
             // Tasks this week (sowings + transplants in next 7 days)
@@ -7234,19 +7234,19 @@
             });
 
             // Harvest ready (case-insensitive)
-            const harvestReady = allPlantings.filter(p => (p.STATUS || '').toLowerCase() === 'harvesting').length;
+            const harvestReady = allPlantings.filter(p => (p.Status || '').toLowerCase() === 'harvesting').length;
 
             // Bed utilization
             const totalBeds = beds.length || 190;
             const activeBedStatuses = ['sown', 'planted', 'harvesting', 'growing'];
             const usedBeds = new Set(allPlantings.filter(p =>
-                activeBedStatuses.includes((p.STATUS || '').toLowerCase()) && p.Target_Bed_ID
+                activeBedStatuses.includes((p.Status || '').toLowerCase()) && p.Target_Bed_ID
             ).map(p => p.Target_Bed_ID)).size;
             const utilization = Math.round((usedBeds / totalBeds) * 100);
 
             // Show context when KPIs are 0 but data exists
             const upcoming = allPlantings.filter(p => {
-                const s = (p.STATUS || '').toLowerCase();
+                const s = (p.Status || '').toLowerCase();
                 return s === 'planned' || s === 'scheduled' || s === '';
             }).length;
             document.getElementById('statActive').textContent = active || (upcoming > 0 ? `0` : '0');
@@ -8978,7 +8978,7 @@
                 }
                 if (crop && p.Crop !== crop) return false;
                 if (variety && p.Variety !== variety) return false;
-                if (status && p.STATUS !== status) return false;
+                if (status && p.Status !== status) return false;
                 return true;
             });
 
@@ -9227,7 +9227,7 @@
             let html = '<div class="crop-grid">';
             crops.forEach(crop => {
                 const icon = cropIcons[crop.name] || '🌱';
-                const active = crop.plantings.filter(p => ['Sown', 'PLANTED', 'HARVESTING'].includes(p.STATUS)).length;
+                const active = crop.plantings.filter(p => ['Sown', 'Planted', 'Harvesting'].includes(p.Status)).length;
 
                 html += `
                     <div class="crop-card" onclick="window.location.href='calendar.html?crop=${encodeURIComponent(crop.name)}'">
@@ -9299,7 +9299,7 @@
 
             let html = '<div class="crop-grid">';
             fields.forEach(field => {
-                const active = field.plantings.filter(p => ['Sown', 'PLANTED', 'HARVESTING'].includes(p.STATUS)).length;
+                const active = field.plantings.filter(p => ['Sown', 'Planted', 'Harvesting'].includes(p.Status)).length;
 
                 html += `
                     <div class="crop-card" onclick="window.location.href='calendar.html?field=${encodeURIComponent(field.name)}'">
@@ -9518,10 +9518,14 @@
             const warnings = [];
 
             if (temp <= 32) {
-                warnings.push({ type: 'weather', icon: 'fa-snowflake', text: `Frost Warning: ${temp}°F - Protect tender plants!` });
+                warnings.push({ type: 'weather', icon: 'fa-snowflake', text: `FREEZING: ${temp}°F - Protect crops immediately!` });
+            } else if (temp <= 36) {
+                warnings.push({ type: 'weather', icon: 'fa-snowflake', text: `Frost Risk: ${temp}°F - Cover tender plants tonight` });
             }
             if (temp >= 95) {
-                warnings.push({ type: 'weather', icon: 'fa-temperature-high', text: `Heat Warning: ${temp}°F - Water plants early!` });
+                warnings.push({ type: 'weather', icon: 'fa-temperature-high', text: `Extreme Heat: ${temp}°F - Shade crops & water early!` });
+            } else if (temp >= 90) {
+                warnings.push({ type: 'weather', icon: 'fa-temperature-high', text: `Heat Stress: ${temp}°F - Water plants early!` });
             }
             if (wind >= 25) {
                 warnings.push({ type: 'weather', icon: 'fa-wind', text: `High Wind: ${wind} mph - Secure row covers!` });
@@ -9543,7 +9547,7 @@
             allPlantings.forEach(p => {
                 // Check for overdue GH sowings
                 const ghSow = parseDate(p.Plan_GH_Sow);
-                if (ghSow && ghSow < today && !p.Act_GH_Sow && p.STATUS === 'Planned') {
+                if (ghSow && ghSow < today && !p.Act_GH_Sow && (p.Status || '') === 'Planned') {
                     const daysLate = Math.floor((today - ghSow) / (1000 * 60 * 60 * 24));
                     if (daysLate > 0) {
                         warnings.push({
@@ -9557,7 +9561,7 @@
 
                 // Check for overdue transplants
                 const transplant = parseDate(p.Plan_Transplant);
-                if (transplant && transplant < today && !p.Act_Transplant && p.STATUS === 'Sown') {
+                if (transplant && transplant < today && !p.Act_Transplant && (p.Status || '') === 'Sown') {
                     const daysLate = Math.floor((today - transplant) / (1000 * 60 * 60 * 24));
                     if (daysLate > 0) {
                         warnings.push({
@@ -9612,7 +9616,7 @@
             const taskCount = activeWarnings.length - weatherCount;
             let summary = `${activeWarnings.length} alert${activeWarnings.length !== 1 ? 's' : ''}`;
             if (weatherCount > 0 && taskCount > 0) {
-                summary = `${taskCount} overdue task${taskCount !== 1 ? 's' : ''}, ${weatherCount} weather alert${weatherCount !== 1 ? 's' : ''}`;
+                summary = `${taskCount} overdue planting action${taskCount !== 1 ? 's' : ''}, ${weatherCount} weather alert${weatherCount !== 1 ? 's' : ''}`;
             }
             summaryText.textContent = summary;
 

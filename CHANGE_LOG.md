@@ -38,6 +38,58 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-02-24 — Data Contracts System + 6 Critical Dashboard Bug Fixes
+
+**Role:** PM_Architect
+
+### Files Created
+- `DATA_CONTRACTS.md` — Single source of truth for all metrics, API contracts, data flows, enum values, and property conventions. Inspired by Netflix Upper Metamodel, Airbnb Minerva, Uber D3.
+
+### Files Modified
+- `index.html` — Fixed 6 critical data integrity bugs:
+  - BUG-001: `p.STATUS` → `p.Status` (9 occurrences) — fixes 0 Active Plantings, 0 Harvest Ready, 0% Bed Utilization
+  - BUG-004: Frost thresholds standardized (WARNING at ≤36°F, ALERT at ≤32°F, heat tiers added)
+  - BUG-005: Alert banner relabeled from "overdue tasks" to "overdue planting actions" (was confusing 44 planting warnings with 8 task overdue)
+  - Also fixed crop/field active status values to PascalCase (`Sown`, `Planted`, `Harvesting`)
+- `apps_script/MERGED TOTAL.js` — 3 backend fixes:
+  - BUG-002: `getOverdueTasks()` hard cap raised from 10 to 200 (was silently truncating results)
+  - BUG-003: `getTodaysTasks()` now returns `crop`, `type`, `taskId`, `urgency`, `overdue` fields (frontend was getting undefined for all)
+  - Fixed `getTodaysTasks()` column matching: `task_name` now matches before `task_id` (was showing machine IDs in Top Priorities)
+
+### Research Completed
+- 3 parallel deep-dive agents researched: data contract patterns (Netflix/Uber/Airbnb/Spotify), system coherence mechanisms (event sourcing, metric stores, multi-agent), full dashboard data flow audit tracing every number to its sheet source
+
+### Reason
+UX audit scored dashboard 44/100. Root cause: no data contracts existed. Same word "overdue" computed 4 different ways from 4 different sheets. Created DATA_CONTRACTS.md as the architectural fix, then fixed the 6 identified bugs.
+
+### Duplicate Check
+- [x] No new dashboards created
+- [x] No duplicate functions
+
+---
+
+## 2026-02-24 — Calendar UX Round 2: Gantt Crop View Audit (12 fixes)
+
+**Role:** PM_Architect / Desktop_Claude
+
+### Files Modified
+- `calendar.html` — 12 UX fixes from Gantt Crop View audit (58/100 score)
+
+### Key Fixes
+- **Single today line**: Replaced 50+ per-row TODAY badges with one full-height vertical hairline
+- **Stats bar fix**: Broader status matching, shows "0" not "None in view", neutral styling for zeros
+- **Persistent save banner**: Floating amber "X unsaved changes — Save Now" at bottom when pending
+- **Unassigned visibility**: Amber warning styling, renamed to "Need Beds"
+- **Hover tooltips**: All planting bars show crop, bed, dates, DTM on hover (no click needed)
+- **Accessibility**: role=button, tabindex, keyboard handlers on bars, aria-live on stats
+- **Visual noise reduction**: Diagonal hatching → subtle solid tint
+- **Expanded docs**: Keyboard shortcuts + unassigned assignment workflow in How It Works
+
+### Duplicate Check
+- [x] Only modifies existing file
+
+---
+
 ## 2026-02-24 — Shopify Invoice + Pick/Pack Workflow for Seedling Pre-Orders
 
 **Role:** PM_Architect / Backend_Claude
