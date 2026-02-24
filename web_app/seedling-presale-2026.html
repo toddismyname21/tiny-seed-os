@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2026 Seedling Presale | Tomato & Pepper Plants | Tiny Seed Farm Pittsburgh</title>
+    <meta name="description" content="Pre-order heirloom tomato and pepper seedlings from Tiny Seed Farm. 12+ tomato varieties, 20+ peppers. Pickup at Pittsburgh area markets April-May 2026.">
+    <meta name="keywords" content="Pittsburgh seedling sale, tomato plants Pittsburgh, pepper starts Pennsylvania, vegetable seedlings near me, heirloom tomato plants Rochester PA">
+    <meta property="og:title" content="2026 Seedling Presale - Tiny Seed Farm Pittsburgh">
+    <meta property="og:description" content="Reserve your locally-grown tomato and pepper seedlings. 35+ varieties. Pickup at Pittsburgh-area markets.">
+    <meta property="og:type" content="website">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --green: #22c55e;
+            --green-dark: #16a34a;
+            --green-deep: #14532d;
+            --earth: #78350f;
+            --earth-light: #92400e;
+            --warm-bg: #fefce8;
+            --warm-cream: #fffbeb;
+            --warm-sand: #fef3c7;
+            --text-dark: #1c1917;
+            --text-body: #44403c;
+            --text-muted: #78716c;
+            --red-hot: #dc2626;
+            --orange-hot: #ea580c;
+            --yellow-mild: #ca8a04;
+            --pepper-sweet: #16a34a;
+            --tomato-red: #b91c1c;
+            --cucurbit-gold: #a16207;
+            --radius: 12px;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+            --shadow-md: 0 4px 16px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 40px rgba(0,0,0,0.12);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #fffdf7;
+            color: var(--text-body);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ═══════════════════════════════════════ */
+        /* HERO */
+        /* ═══════════════════════════════════════ */
+        .hero {
+            background: linear-gradient(135deg, var(--green-deep) 0%, #1e3a1e 50%, #2d4a2d 100%);
+            color: #fff;
+            padding: 80px 24px 60px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero::before {
+            content: '';
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+            opacity: 0.5;
+        }
+        .hero-content { position: relative; z-index: 1; max-width: 800px; margin: 0 auto; }
+        .hero-badge {
+            display: inline-flex; align-items: center; gap: 8px;
+            background: rgba(34,197,94,0.2); border: 1px solid rgba(34,197,94,0.4);
+            padding: 6px 16px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;
+            color: #86efac; margin-bottom: 20px; letter-spacing: 0.5px;
+        }
+        .hero h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(2.2rem, 5vw, 3.5rem);
+            font-weight: 900; line-height: 1.15; margin-bottom: 16px;
+        }
+        .hero h1 span { color: #86efac; }
+        .hero p { font-size: 1.15rem; color: rgba(255,255,255,0.85); max-width: 600px; margin: 0 auto 24px; }
+        .hero-dates {
+            display: flex; gap: 24px; justify-content: center; flex-wrap: wrap;
+            margin-bottom: 32px; font-size: 0.9rem;
+        }
+        .hero-dates span { display: flex; align-items: center; gap: 6px; color: rgba(255,255,255,0.7); }
+        .hero-dates strong { color: #fbbf24; }
+        .cta-btn {
+            display: inline-flex; align-items: center; gap: 10px;
+            background: var(--green); color: #000; padding: 16px 36px;
+            border-radius: 50px; font-size: 1.1rem; font-weight: 700;
+            text-decoration: none; transition: all 0.3s; border: none; cursor: pointer;
+            box-shadow: 0 4px 20px rgba(34,197,94,0.3);
+        }
+        .cta-btn:hover { background: #4ade80; transform: translateY(-2px); box-shadow: 0 6px 30px rgba(34,197,94,0.4); }
+        .hero-trust { margin-top: 24px; font-size: 0.8rem; color: rgba(255,255,255,0.5); }
+
+        /* ═══════════════════════════════════════ */
+        /* SECTIONS */
+        /* ═══════════════════════════════════════ */
+        section { padding: 60px 24px; }
+        .container { max-width: 1100px; margin: 0 auto; }
+        .section-title {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(1.5rem, 3vw, 2rem);
+            font-weight: 800; color: var(--text-dark); margin-bottom: 8px;
+        }
+        .section-subtitle { color: var(--text-muted); font-size: 1rem; margin-bottom: 32px; }
+
+        /* ═══════════════════════════════════════ */
+        /* WHY PRE-ORDER */
+        /* ═══════════════════════════════════════ */
+        .benefits { background: var(--warm-cream); }
+        .benefits-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; }
+        .benefit-card {
+            background: #fff; border-radius: var(--radius); padding: 24px;
+            box-shadow: var(--shadow-sm); text-align: center;
+        }
+        .benefit-card i { font-size: 2rem; margin-bottom: 12px; }
+        .benefit-card h3 { font-size: 1rem; font-weight: 700; color: var(--text-dark); margin-bottom: 6px; }
+        .benefit-card p { font-size: 0.85rem; color: var(--text-muted); }
+
+        /* ═══════════════════════════════════════ */
+        /* CATALOG */
+        /* ═══════════════════════════════════════ */
+        .catalog-nav {
+            display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap;
+        }
+        .catalog-tab {
+            padding: 10px 20px; border-radius: 30px; border: 2px solid #e5e7eb;
+            background: #fff; font-weight: 600; font-size: 0.9rem; cursor: pointer;
+            transition: all 0.2s; color: var(--text-muted); font-family: inherit;
+        }
+        .catalog-tab.active { background: var(--green-deep); color: #fff; border-color: var(--green-deep); }
+        .catalog-tab:hover:not(.active) { border-color: var(--green); color: var(--green-dark); }
+
+        .variety-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+        .variety-card {
+            background: #fff; border-radius: var(--radius); padding: 20px;
+            box-shadow: var(--shadow-sm); border: 1px solid #f3f4f6;
+            transition: all 0.2s; position: relative;
+        }
+        .variety-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+        .variety-card .variety-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+        .variety-card .variety-name { font-weight: 700; font-size: 1.05rem; color: var(--text-dark); }
+        .variety-card .variety-type {
+            font-size: 0.7rem; font-weight: 700; padding: 3px 10px;
+            border-radius: 20px; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .type-slicer { background: #fee2e2; color: var(--tomato-red); }
+        .type-paste { background: #fef3c7; color: var(--cucurbit-gold); }
+        .type-cherry { background: #dcfce7; color: var(--green-dark); }
+        .type-heirloom { background: #f3e8ff; color: #7c3aed; }
+        .type-sweet { background: #dcfce7; color: var(--pepper-sweet); }
+        .type-mild { background: #fef9c3; color: var(--yellow-mild); }
+        .type-medium { background: #ffedd5; color: var(--orange-hot); }
+        .type-hot { background: #fee2e2; color: var(--red-hot); }
+        .type-superhot { background: #fecaca; color: #991b1b; }
+        .type-summer { background: #fef3c7; color: var(--cucurbit-gold); }
+        .type-pickling { background: #d1fae5; color: #065f46; }
+
+        .variety-card .variety-desc { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 10px; line-height: 1.5; }
+        .variety-card .variety-meta { display: flex; gap: 12px; font-size: 0.78rem; color: var(--text-muted); flex-wrap: wrap; }
+        .variety-card .variety-meta span i { margin-right: 3px; }
+        .variety-card .variety-price {
+            position: absolute; top: 16px; right: 16px;
+            font-weight: 800; font-size: 1.1rem; color: var(--green-dark);
+        }
+
+        .heat-scale { display: flex; gap: 2px; align-items: center; }
+        .heat-dot { width: 8px; height: 8px; border-radius: 50%; background: #e5e7eb; }
+        .heat-dot.active { background: var(--red-hot); }
+
+        /* ═══════════════════════════════════════ */
+        /* PICKUP */
+        /* ═══════════════════════════════════════ */
+        .pickup { background: var(--warm-bg); }
+        .pickup-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+        .pickup-card {
+            background: #fff; border-radius: var(--radius); padding: 20px;
+            box-shadow: var(--shadow-sm); border-left: 4px solid var(--green);
+        }
+        .pickup-card h3 { font-size: 1rem; font-weight: 700; color: var(--text-dark); margin-bottom: 4px; }
+        .pickup-card .pickup-date { font-size: 0.85rem; color: var(--green-dark); font-weight: 600; margin-bottom: 6px; }
+        .pickup-card .pickup-details { font-size: 0.8rem; color: var(--text-muted); }
+
+        /* ═══════════════════════════════════════ */
+        /* ORDER FORM */
+        /* ═══════════════════════════════════════ */
+        .order-section { background: #fff; }
+        .order-form {
+            max-width: 700px; margin: 0 auto; background: #f9fafb;
+            border-radius: 16px; padding: 32px; box-shadow: var(--shadow-md);
+        }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 6px; color: var(--text-dark); }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%; padding: 12px 16px; border-radius: 8px;
+            border: 1px solid #d1d5db; font-family: inherit; font-size: 0.95rem;
+            transition: border-color 0.2s;
+        }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none; border-color: var(--green); box-shadow: 0 0 0 3px rgba(34,197,94,0.15);
+        }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+        .order-item-row {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 0; border-bottom: 1px solid #f3f4f6;
+        }
+        .order-item-name { font-weight: 500; font-size: 0.9rem; }
+        .order-item-price { color: var(--text-muted); font-size: 0.85rem; }
+        .qty-selector {
+            display: flex; align-items: center; gap: 8px;
+        }
+        .qty-btn {
+            width: 32px; height: 32px; border-radius: 50%; border: 1px solid #d1d5db;
+            background: #fff; cursor: pointer; font-size: 1rem; font-weight: 700;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.2s; color: var(--text-dark); font-family: inherit;
+        }
+        .qty-btn:hover { background: var(--green); color: #fff; border-color: var(--green); }
+        .qty-value { width: 40px; text-align: center; font-weight: 700; font-size: 1rem; }
+
+        .order-total {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 16px 0; margin-top: 16px; border-top: 2px solid var(--green);
+            font-size: 1.2rem; font-weight: 800; color: var(--text-dark);
+        }
+
+        .submit-order {
+            width: 100%; padding: 16px; border: none; border-radius: 12px;
+            background: var(--green); color: #000; font-size: 1.1rem; font-weight: 700;
+            cursor: pointer; transition: all 0.3s; margin-top: 20px; font-family: inherit;
+        }
+        .submit-order:hover { background: #4ade80; }
+        .submit-order:disabled { background: #d1d5db; cursor: not-allowed; }
+
+        /* ═══════════════════════════════════════ */
+        /* GROWING TIPS */
+        /* ═══════════════════════════════════════ */
+        .tips { background: var(--warm-cream); }
+        .tips-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        .tip-card {
+            background: #fff; border-radius: var(--radius); padding: 24px;
+            box-shadow: var(--shadow-sm);
+        }
+        .tip-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 8px; color: var(--text-dark); }
+        .tip-card p { font-size: 0.85rem; color: var(--text-muted); line-height: 1.6; }
+
+        /* ═══════════════════════════════════════ */
+        /* FAQ */
+        /* ═══════════════════════════════════════ */
+        .faq-list { max-width: 700px; margin: 0 auto; }
+        .faq-item { border-bottom: 1px solid #e5e7eb; }
+        .faq-question {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 16px 0; cursor: pointer; font-weight: 600; font-size: 0.95rem;
+            color: var(--text-dark); width: 100%; background: none; border: none;
+            text-align: left; font-family: inherit;
+        }
+        .faq-question i { transition: transform 0.3s; color: var(--text-muted); }
+        .faq-question.open i { transform: rotate(180deg); }
+        .faq-answer {
+            padding: 0 0 16px; font-size: 0.9rem; color: var(--text-muted);
+            display: none; line-height: 1.6;
+        }
+        .faq-answer.open { display: block; }
+
+        /* ═══════════════════════════════════════ */
+        /* FOOTER */
+        /* ═══════════════════════════════════════ */
+        .footer {
+            background: var(--green-deep); color: rgba(255,255,255,0.7);
+            padding: 40px 24px; text-align: center; font-size: 0.85rem;
+        }
+        .footer a { color: #86efac; text-decoration: none; }
+        .footer-links { display: flex; gap: 24px; justify-content: center; margin-bottom: 12px; flex-wrap: wrap; }
+
+        /* ═══════════════════════════════════════ */
+        /* RESPONSIVE */
+        /* ═══════════════════════════════════════ */
+        @media (max-width: 768px) {
+            .hero { padding: 60px 16px 40px; }
+            section { padding: 40px 16px; }
+            .form-row { grid-template-columns: 1fr; }
+            .variety-grid { grid-template-columns: 1fr; }
+            .order-form { padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- HERO -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section class="hero">
+    <div class="hero-content">
+        <div class="hero-badge"><i class="fas fa-seedling"></i> 2026 PRESALE NOW OPEN</div>
+        <h1>Pittsburgh's Favorite <span>Seedlings</span> Are Back</h1>
+        <p>Reserve your heirloom tomato, pepper, and cucurbit starts from Tiny Seed Farm. Grown in Rochester, PA — picked up at your nearest Pittsburgh market.</p>
+        <div class="hero-dates">
+            <span><i class="fas fa-calendar-check"></i> <strong>Order by April 15</strong></span>
+            <span><i class="fas fa-truck"></i> <strong>Pickup April 26 – May 17</strong></span>
+            <span><i class="fas fa-map-pin"></i> <strong>9 pickup locations</strong></span>
+        </div>
+        <a href="#order" class="cta-btn"><i class="fas fa-shopping-cart"></i> Reserve Your Seedlings</a>
+        <p class="hero-trust">Tiny Seed Farm — Serving Pittsburgh-area gardeners since 2021</p>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- WHY PRE-ORDER -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section class="benefits">
+    <div class="container">
+        <h2 class="section-title" style="text-align:center;">Why Pre-Order?</h2>
+        <p class="section-subtitle" style="text-align:center;">Last year's presale sold out — reserve yours today.</p>
+        <div class="benefits-grid">
+            <div class="benefit-card">
+                <i class="fas fa-check-circle" style="color: var(--green);"></i>
+                <h3>Guaranteed Availability</h3>
+                <p>Lock in rare varieties like Cherokee Purple and Ghost Pepper before they sell out at market.</p>
+            </div>
+            <div class="benefit-card">
+                <i class="fas fa-bolt" style="color: var(--cucurbit-gold);"></i>
+                <h3>Skip the Line</h3>
+                <p>Your order is pre-packed and labeled. Walk up, grab your box, and go — no browsing required.</p>
+            </div>
+            <div class="benefit-card">
+                <i class="fas fa-map-marker-alt" style="color: var(--tomato-red);"></i>
+                <h3>9 Pickup Locations</h3>
+                <p>Choose a market near you: Bloomfield, Lawrenceville, Sewickley, Squirrel Hill, and more.</p>
+            </div>
+            <div class="benefit-card">
+                <i class="fas fa-heart" style="color: #ec4899;"></i>
+                <h3>Support Local</h3>
+                <p>Every seedling is started by hand at our Rochester, PA farm — just 30 min from Pittsburgh.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- SEEDLING CATALOG -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section class="catalog" id="catalog">
+    <div class="container">
+        <h2 class="section-title">Seedling Varieties</h2>
+        <p class="section-subtitle">35+ varieties — all proven performers in Pittsburgh's Zone 6b climate.</p>
+
+        <div class="catalog-nav">
+            <button class="catalog-tab active" onclick="showCategory('tomatoes')"><i class="fas fa-apple-alt"></i> Tomatoes (12)</button>
+            <button class="catalog-tab" onclick="showCategory('peppers')"><i class="fas fa-pepper-hot"></i> Peppers (20+)</button>
+            <button class="catalog-tab" onclick="showCategory('cucurbits')"><i class="fas fa-lemon"></i> Cucurbits (4)</button>
+        </div>
+
+        <!-- TOMATOES -->
+        <div id="cat-tomatoes" class="variety-grid">
+            <div class="variety-card">
+                <span class="variety-price">$4</span>
+                <div class="variety-header"><span class="variety-name">Amish Paste</span><span class="variety-type type-paste">Paste</span></div>
+                <div class="variety-desc">A Lancaster County heirloom. Large, meaty fruits perfect for sauce and canning. Indeterminate.</div>
+                <div class="variety-meta"><span><i class="fas fa-clock"></i> 85 days</span><span><i class="fas fa-ruler-vertical"></i> 6-8 ft</span><span><i class="fas fa-seedling"></i> 3" pot</span></div>
+            </div>
+            <div class="variety-card">
+                <span class="variety-price">$4</span>
+                <div class="variety-header"><span class="variety-name">Beefsteak</span><span class="variety-type type-slicer">Slicer</span></div>
+                <div class="variety-desc">Classic big red slicer. The backyard standard — nothing beats a Beefsteak BLT.</div>
+                <div class="variety-meta"><span><i class="fas fa-clock"></i> 80 days</span><span><i class="fas fa-ruler-vertical"></i> 5-6 ft</span><span><i class="fas fa-seedling"></i> 3" pot</span></div>
+            </div>
+            <div class="variety-card">
+                <span class="variety-price">$4</span>
+                <div class="variety-header"><span class="variety-name">Brandywine</span><span class="variety-type type-heirloom">Heirloom</span></div>
+                <div class="variety-desc">The gold standard of heirloom tomatoes. Huge pink fruits with exceptional flavor.</div>
+                <div class="variety-meta"><span><i class="fas fa-clock"></i> 90 days</span><span><i class="fas fa-ruler-vertical"></i> 6-9 ft</span><span><i class="fas fa-seedling"></i> 3" pot</span></div>
+            </div>
+            <div class="variety-card">
+                <span class="variety-price">$4</span>
+                <div class="variety-header"><span class="variety-name">Celebrity</span><span class="variety-type type-slicer">Slicer</span></div>
+                <div class="variety-desc">Disease-resistant and reliable. Great for beginners — produces all season long.</div>
+                <div class="variety-meta"><span><i class="fas fa-clock"></i> 72 days</span><span><i class="fas fa-ruler-vertical"></i> 4-5 ft</span><span><i class="fas fa-seedling"></i> 3" pot</span></div>
+            </div>
+            <div class="variety-card">
+                <span class="variety-price">$4</span>
+                <div class="variety-header"><span class="variety-name">Cherokee Purple</span><span class="variety-type type-heirloom">Heirloom</span></div>
+                <div class="variety-desc">Dusky purple-brown beauty. Rich, smoky-sweet flavor. A farmers market favorite.</div>
+                <div class="variety-meta"><span><i class="fas fa-clock"></i> 85 days</span><span><i class="fas fa-ruler-vertical"></i> 6-8 ft</span><span><i class="fas fa-seedling"></i> 3" pot</span></div>
+            </div>
+            <div class="variety-card">
+                <span class="variety-price">$4</span>
+                <div class="variety-header"><span class="variety-name">Cherry Mix</span><span class="variety-type type-cherry">Cherry</span></div>
+                <div class="variety-desc">A colorful mix of red, yellow, and orange cherry tomatoes. Kids love them.</div>
+                <div class="variety-meta"><span><i class="fas fa-clock"></i> 65 days</span><span><i class="fas fa-ruler-vertical"></i> 4-6 ft</span><span><i class="fas fa-seedling"></i> 3" pot</span></div>
+            </div>
+            <div class="variety-card">
+                <span class="variety-price">$4</span>
+                <div class="variety-header"><span class="variety-name">Early Girl</span><span class="variety-type type-slicer">Slicer</span></div>
+                <div class="variety-desc">First ripe tomato of summer. Perfect for Pittsburgh's short growing season.</div>
+                <div class="variety-meta"><span><i class="fas fa-clock"></i> 57 days</span><span><i class="fas fa-ruler-vertical"></i> 4-6 ft</span><span><i class="fas fa-seedling"></i> 3" pot</span></div>
+            </div>
+            <div class="variety-card">
+                <span class="variety-price">$4</span>
+                <div class="variety-header"><span class="variety-name">Juliet</span><span class="variety-type type-cherry">Grape</span></div>
+                <div class="variety-desc">Crack-resistant grape tomato. Heavy producer with incredible sweetness.</div>
+                <div class="variety-meta"><span><i class="fas fa-clock"></i> 60 days</span><span><i class="fas fa-ruler-vertical"></i> 5-6 ft</span><span><i class="fas fa-seedling"></i> 3" pot</span></div>
+            </div>
+            <div class="variety-card">
+                <span class="variety-price">$4</span>
+                <div class="variety-header"><span class="variety-name">Roma</span><span class="variety-type type-paste">Paste</span></div>
+                <div class="variety-desc">The classic plum tomato. Dense and meaty — makes the best sauce.</div>
+                <div class="variety-meta"><span><i class="fas fa-clock"></i> 75 days</span><span><i class="fas fa-ruler-vertical"></i> 4-5 ft</span><span><i class="fas fa-seedling"></i> 3" pot</span></div>
+            </div>
+            <div class="variety-card">
+                <span class="variety-price">$4</span>
+                <div class="variety-header"><span class="variety-name">San Marzano</span><span class="variety-type type-paste">Paste</span></div>
+                <div class="variety-desc">The Italian standard. Long, pointed fruits with low seed count. Serious canning tomato.</div>
+                <div class="variety-meta"><span><i class="fas fa-clock"></i> 80 days</span><span><i class="fas fa-ruler-vertical"></i> 5-7 ft</span><span><i class="fas fa-seedling"></i> 3" pot</span></div>
+            </div>
+            <div class="variety-card">
+                <span class="variety-price">$4</span>
+                <div class="variety-header"><span class="variety-name">Sun Gold</span><span class="variety-type type-cherry">Cherry</span></div>
+                <div class="variety-desc">Orange cherry with insane sweetness. Our #1 seller — sells out every year.</div>
+                <div class="variety-meta"><span><i class="fas fa-clock"></i> 57 days</span><span><i class="fas fa-ruler-vertical"></i> 6-8 ft</span><span><i class="fas fa-seedling"></i> 3" pot</span></div>
+            </div>
+            <div class="variety-card">
+                <span class="variety-price">$4</span>
+                <div class="variety-header"><span class="variety-name">Yellow Pear</span><span class="variety-type type-cherry">Cherry</span></div>
+                <div class="variety-desc">Pear-shaped yellow cherries. Mild, sweet flavor. Beautiful in salads.</div>
+                <div class="variety-meta"><span><i class="fas fa-clock"></i> 70 days</span><span><i class="fas fa-ruler-vertical"></i> 6-8 ft</span><span><i class="fas fa-seedling"></i> 3" pot</span></div>
+            </div>
+        </div>
+
+        <!-- PEPPERS -->
+        <div id="cat-peppers" class="variety-grid" style="display:none;">
+            <div class="variety-card"><span class="variety-price">$4</span><div class="variety-header"><span class="variety-name">Carmen</span><span class="variety-type type-sweet">Sweet</span></div><div class="variety-desc">Italian sweet pepper. Ripens early to brilliant red. Incredible roasted.</div><div class="variety-meta"><span><i class="fas fa-clock"></i> 75 days</span><span><i class="fas fa-seedling"></i> 3" pot</span></div></div>
+            <div class="variety-card"><span class="variety-price">$4</span><div class="variety-header"><span class="variety-name">Jimmy Nardello</span><span class="variety-type type-sweet">Sweet</span></div><div class="variety-desc">Thin-skinned Italian frying pepper. Legendary flavor when charred.</div><div class="variety-meta"><span><i class="fas fa-clock"></i> 80 days</span><span><i class="fas fa-seedling"></i> 3" pot</span></div></div>
+            <div class="variety-card"><span class="variety-price">$4</span><div class="variety-header"><span class="variety-name">King of the North</span><span class="variety-type type-sweet">Sweet</span></div><div class="variety-desc">Thick-walled bell pepper bred for northern climates. Sets fruit in cool weather.</div><div class="variety-meta"><span><i class="fas fa-clock"></i> 68 days</span><span><i class="fas fa-seedling"></i> 3" pot</span></div></div>
+            <div class="variety-card"><span class="variety-price">$4</span><div class="variety-header"><span class="variety-name">Lunchbox</span><span class="variety-type type-sweet">Sweet</span></div><div class="variety-desc">Miniature sweet pepper. Red, orange, and yellow mix. Perfect for snacking.</div><div class="variety-meta"><span><i class="fas fa-clock"></i> 60 days</span><span><i class="fas fa-seedling"></i> 3" pot</span></div></div>
+            <div class="variety-card"><span class="variety-price">$4</span><div class="variety-header"><span class="variety-name">Marconi</span><span class="variety-type type-sweet">Sweet</span></div><div class="variety-desc">Long Italian roasting pepper. Sweet and productive. A market staple.</div><div class="variety-meta"><span><i class="fas fa-clock"></i> 72 days</span><span><i class="fas fa-seedling"></i> 3" pot</span></div></div>
+            <div class="variety-card"><span class="variety-price">$4</span><div class="variety-header"><span class="variety-name">Alma Paprika</span><span class="variety-type type-sweet">Sweet</span></div><div class="variety-desc">Hungarian paprika pepper. Thick walls, mild heat. Great fresh or dried.</div><div class="variety-meta"><span><i class="fas fa-clock"></i> 70 days</span><span><i class="fas fa-seedling"></i> 3" pot</span></div></div>
+            <div class="variety-card"><span class="variety-price">$4</span><div class="variety-header"><span class="variety-name">Shishito</span><span class="variety-type type-mild">Mild</span></div><div class="variety-desc">Japanese blistering pepper. Mild with an occasional spicy surprise. Restaurant favorite.</div><div class="variety-meta"><span><i class="fas fa-clock"></i> 60 days</span><span><i class="fas fa-seedling"></i> 3" pot</span></div></div>
+            <div class="variety-card"><span class="variety-price">$4</span><div class="variety-header"><span class="variety-name">Banana Pepper</span><span class="variety-type type-mild">Mild</span></div><div class="variety-desc">Classic mild pickling pepper. Tangy and crunchy. Great on sandwiches.</div><div class="variety-meta"><span><i class="fas fa-clock"></i> 72 days</span><span><i class="fas fa-seedling"></i> 3" pot</span></div></div>
+            <div class="variety-card"><span class="variety-price">$4</span><div class="variety-header"><span class="variety-name">Anaheim</span><span class="variety-type type-mild">Mild</span></div><div class="variety-desc">Versatile New Mexico chile. Mild heat, great for roasting and stuffing.</div><div class="variety-meta"><span><i class="fas fa-clock"></i> 77 days</span><span><i class="fas fa-seedling"></i> 3" pot</span></div></div>
+            <div class="variety-card"><span class="variety-price">$4</span><div class="variety-header"><span class="variety-name">Ancho Poblano</span><span class="variety-type type-mild">Mild</span></div><div class="variety-desc">Rich, earthy flavor. Essential for Mexican cooking. Stuff, roast, or dry.</div><div class="variety-meta"><span><i class="fas fa-clock"></i> 80 days</span><span><i class="fas fa-seedling"></i> 3" pot</span></div></div>
+            <div class="variety-card"><span class="variety-price">$4</span><div class="variety-header"><span class="variety-name">Hungarian Wax</span><span class="variety-type type-medium">Medium</span></div><div class="variety-desc">Waxy yellow pepper with medium kick. Prolific producer. Great pickled.</div><div class="variety-meta"><span><i class="fas fa-clock"></i> 65 days</span><span><i class="fas fa-seedling"></i> 3" pot</span></div></div>
+            <div class="variety-card"><span class="variety-price">$4</span><div class="variety-header"><span class="variety-name">Jalapeno</span><span class="variety-type type-medium">Medium</span></div><div class="variety-desc">America's favorite hot pepper. Versatile for salsa, poppers, and pickling.</div><div class="variety-meta"><span><i class="fas fa-clock"></i> 72 days</span><span><i class="fas fa-seedling"></i> 3" pot</span></div></div>
+            <div class="variety-card"><span class="variety-price">$4</span><div class="variety-header"><span class="variety-name">Fish Pepper</span><span class="variety-type type-medium">Medium</span></div><div class="variety-desc">African-American heirloom with stunning variegated foliage and striped fruit.</div><div class="variety-meta"><span><i class="fas fa-clock"></i> 80 days</span><span><i class="fas fa-seedling"></i> 3" pot</span></div></div>
+            <div class="variety-card"><span class="variety-price">$4</span><div class="variety-header"><span class="variety-name">Serrano</span><span class="variety-type type-hot">Hot</span></div><div class="variety-desc">Hotter than jalapeno with bright, clean heat. Essential for fresh salsa.</div><div class="variety-meta"><span><i class="fas fa-clock"></i> 75 days</span><span><i class="fas fa-seedling"></i> 3" pot</span></div></div>
+            <div class="variety-card"><span class="variety-price">$4</span><div class="variety-header"><span class="variety-name">Cayenne</span><span class="variety-type type-hot">Hot</span></div><div class="variety-desc">Long red drying pepper. Classic heat. Dry and grind for homemade cayenne.</div><div class="variety-meta"><span><i class="fas fa-clock"></i> 72 days</span><span><i class="fas fa-seedling"></i> 3" pot</span></div></div>
+            <div class="variety-card"><span class="variety-price">$4</span><div class="variety-header"><span class="variety-name">Thai Chili</span><span class="variety-type type-hot">Hot</span></div><div class="variety-desc">Tiny but fierce. Compact plants loaded with upward-pointing peppers.</div><div class="variety-meta"><span><i class="fas fa-clock"></i> 70 days</span><span><i class="fas fa-seedling"></i> 3" pot</span></div></div>
+            <div class="variety-card"><span class="variety-price">$4</span><div class="variety-header"><span class="variety-name">Habanero</span><span class="variety-type type-superhot">Super Hot</span></div><div class="variety-desc">Intense tropical heat with fruity undertones. Handle with respect.</div><div class="variety-meta"><span><i class="fas fa-clock"></i> 90 days</span><span><i class="fas fa-seedling"></i> 3" pot</span></div></div>
+            <div class="variety-card"><span class="variety-price">$4</span><div class="variety-header"><span class="variety-name">Ghost Pepper</span><span class="variety-type type-superhot">Super Hot</span></div><div class="variety-desc">Over 1 million Scoville units. For serious heat seekers only. Limited supply.</div><div class="variety-meta"><span><i class="fas fa-clock"></i> 100+ days</span><span><i class="fas fa-seedling"></i> 3" pot</span></div></div>
+        </div>
+
+        <!-- CUCURBITS -->
+        <div id="cat-cucurbits" class="variety-grid" style="display:none;">
+            <div class="variety-card"><span class="variety-price">$3.50</span><div class="variety-header"><span class="variety-name">Cucumber</span><span class="variety-type type-summer">Slicing</span></div><div class="variety-desc">Fresh slicing cucumber. Crisp and prolific. A summer garden essential.</div><div class="variety-meta"><span><i class="fas fa-clock"></i> 58 days</span><span><i class="fas fa-seedling"></i> 3" pot</span></div></div>
+            <div class="variety-card"><span class="variety-price">$3.50</span><div class="variety-header"><span class="variety-name">Pickles</span><span class="variety-type type-pickling">Pickling</span></div><div class="variety-desc">Compact pickling cucumber. Perfect size for whole dill pickles.</div><div class="variety-meta"><span><i class="fas fa-clock"></i> 55 days</span><span><i class="fas fa-seedling"></i> 3" pot</span></div></div>
+            <div class="variety-card"><span class="variety-price">$3.50</span><div class="variety-header"><span class="variety-name">Yellow Squash</span><span class="variety-type type-summer">Summer</span></div><div class="variety-desc">Classic yellow crookneck. Pick young for best flavor. Incredibly productive.</div><div class="variety-meta"><span><i class="fas fa-clock"></i> 50 days</span><span><i class="fas fa-seedling"></i> 3" pot</span></div></div>
+            <div class="variety-card"><span class="variety-price">$3.50</span><div class="variety-header"><span class="variety-name">Zucchini</span><span class="variety-type type-summer">Summer</span></div><div class="variety-desc">You'll have more zucchini than you know what to do with. Guaranteed.</div><div class="variety-meta"><span><i class="fas fa-clock"></i> 48 days</span><span><i class="fas fa-seedling"></i> 3" pot</span></div></div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- PICKUP LOCATIONS -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section class="pickup" id="pickup">
+    <div class="container">
+        <h2 class="section-title">Pickup Locations</h2>
+        <p class="section-subtitle">Choose the market or location most convenient for you.</p>
+        <div class="pickup-grid">
+            <div class="pickup-card">
+                <h3><i class="fas fa-store" style="color:var(--green);"></i> Bloomfield Market</h3>
+                <div class="pickup-date">Saturdays, May 3 & May 10</div>
+                <div class="pickup-details">Liberty Ave & Main St, Bloomfield — 9am–1pm</div>
+            </div>
+            <div class="pickup-card">
+                <h3><i class="fas fa-store" style="color:var(--green);"></i> Lawrenceville Market</h3>
+                <div class="pickup-date">Tuesdays, April 29 & May 6</div>
+                <div class="pickup-details">Arsenal Park, Lawrenceville — 3pm–7pm</div>
+            </div>
+            <div class="pickup-card">
+                <h3><i class="fas fa-store" style="color:var(--green);"></i> Sewickley Market</h3>
+                <div class="pickup-date">Saturdays, May 3 & May 10</div>
+                <div class="pickup-details">Sewickley Borough, Thorn & Broad — 8am–1pm</div>
+            </div>
+            <div class="pickup-card">
+                <h3><i class="fas fa-building" style="color:var(--green);"></i> Phipps Conservatory</h3>
+                <div class="pickup-date">Saturday, May 3</div>
+                <div class="pickup-details">One Schenley Park, Oakland — during plant sale hours</div>
+            </div>
+            <div class="pickup-card">
+                <h3><i class="fas fa-store" style="color:var(--green);"></i> Squirrel Hill</h3>
+                <div class="pickup-date">Saturday, May 10</div>
+                <div class="pickup-details">Forbes & Murray, Squirrel Hill — 10am–2pm</div>
+            </div>
+            <div class="pickup-card">
+                <h3><i class="fas fa-leaf" style="color:var(--green);"></i> City GROWN</h3>
+                <div class="pickup-date">By Appointment</div>
+                <div class="pickup-details">Contact us for bulk orders and special pickup</div>
+            </div>
+            <div class="pickup-card">
+                <h3><i class="fas fa-tractor" style="color:var(--green);"></i> Farm Pickup — Rochester, PA</h3>
+                <div class="pickup-date">Weekdays, April 28 – May 16</div>
+                <div class="pickup-details">257 Zeigler Rd, Rochester — by appointment, 2pm–6pm</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ORDER FORM -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section class="order-section" id="order">
+    <div class="container">
+        <h2 class="section-title" style="text-align:center;">Reserve Your Seedlings</h2>
+        <p class="section-subtitle" style="text-align:center;">$25 minimum order. Full payment reserves your plants.</p>
+        <div class="order-form">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>First Name</label>
+                    <input type="text" id="orderFirstName" placeholder="Your first name" required>
+                </div>
+                <div class="form-group">
+                    <label>Last Name</label>
+                    <input type="text" id="orderLastName" placeholder="Your last name" required>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="orderEmail" placeholder="you@email.com" required>
+                </div>
+                <div class="form-group">
+                    <label>Phone</label>
+                    <input type="tel" id="orderPhone" placeholder="(412) 555-1234">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Preferred Pickup Location</label>
+                <select id="orderPickup">
+                    <option value="">Choose your pickup spot...</option>
+                    <option value="Bloomfield">Bloomfield Market (Saturdays)</option>
+                    <option value="Lawrenceville">Lawrenceville Market (Tuesdays)</option>
+                    <option value="Sewickley">Sewickley Market (Saturdays)</option>
+                    <option value="Phipps">Phipps Conservatory</option>
+                    <option value="Squirrel Hill">Squirrel Hill</option>
+                    <option value="City GROWN">City GROWN</option>
+                    <option value="Farm">Farm Pickup — Rochester, PA</option>
+                </select>
+            </div>
+
+            <h3 style="font-size:1rem; margin: 24px 0 12px; color:var(--text-dark);">Your Seedling Order</h3>
+            <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:16px;">Use + and - to add plants. Scroll the catalog above to learn about each variety.</p>
+
+            <div id="orderItems">
+                <!-- Populated by JS -->
+            </div>
+
+            <div class="order-total">
+                <span>Total</span>
+                <span id="orderTotal">$0.00</span>
+            </div>
+
+            <div id="orderMinWarning" style="display:none; text-align:center; padding:8px; background:#fef2f2; border-radius:8px; color:var(--red-hot); font-size:0.85rem; font-weight:600; margin-top:12px;">
+                <i class="fas fa-info-circle"></i> Minimum order is $25.00
+            </div>
+
+            <button class="submit-order" id="submitOrderBtn" onclick="submitPresaleOrder()" disabled>
+                <i class="fas fa-lock"></i> Reserve & Pay — $0.00
+            </button>
+            <p style="text-align:center; font-size:0.75rem; color:var(--text-muted); margin-top:12px;">Confirmation email sent immediately. Full refund available until April 15.</p>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- GROWING TIPS -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section class="tips">
+    <div class="container">
+        <h2 class="section-title" style="text-align:center;">Growing Tips for Pittsburgh</h2>
+        <p class="section-subtitle" style="text-align:center;">Zone 6b, clay soil, unpredictable springs — we've got you covered.</p>
+        <div class="tips-grid">
+            <div class="tip-card">
+                <h3><i class="fas fa-calendar-alt" style="color:var(--green);"></i> When to Plant Out</h3>
+                <p>Pittsburgh's last frost is typically May 10-15. Wait until nighttime temps stay above 50°F before transplanting tomatoes and peppers. Cucurbits can go out after Memorial Day.</p>
+            </div>
+            <div class="tip-card">
+                <h3><i class="fas fa-sun" style="color:var(--cucurbit-gold);"></i> Hardening Off</h3>
+                <p>Your seedlings have been greenhouse-grown. Set them outside for 2-3 hours the first day, increasing daily. After 5-7 days, they're ready to transplant.</p>
+            </div>
+            <div class="tip-card">
+                <h3><i class="fas fa-boxes" style="color:var(--earth);"></i> Best for Containers</h3>
+                <p>Short on space? Celebrity, Lunchbox, Cherry Mix, and Shishito all do great in 5-gallon containers on a sunny patio or deck.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- FAQ -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section class="faq-section" id="faq">
+    <div class="container">
+        <h2 class="section-title" style="text-align:center;">Frequently Asked Questions</h2>
+        <div class="faq-list">
+            <div class="faq-item">
+                <button class="faq-question" onclick="toggleFaq(this)">What size are the seedlings at pickup? <i class="fas fa-chevron-down"></i></button>
+                <div class="faq-answer">All seedlings are grown in 3-inch pots and will be 6-10 inches tall at pickup, with strong root systems ready for transplanting. Tomatoes will typically have their first flowers or buds.</div>
+            </div>
+            <div class="faq-item">
+                <button class="faq-question" onclick="toggleFaq(this)">Can I cancel or modify my order? <i class="fas fa-chevron-down"></i></button>
+                <div class="faq-answer">Full refund available until April 15. After that, we'll issue store credit for future purchases. To modify varieties, email todd@tinyseedfarmpgh.com before April 15.</div>
+            </div>
+            <div class="faq-item">
+                <button class="faq-question" onclick="toggleFaq(this)">What if a variety sells out? <i class="fas fa-chevron-down"></i></button>
+                <div class="faq-answer">We'll contact you to choose a substitute or receive a refund for that item. Popular varieties (Sun Gold, Cherokee Purple, Ghost Pepper) sell out fastest — order early!</div>
+            </div>
+            <div class="faq-item">
+                <button class="faq-question" onclick="toggleFaq(this)">Are the seedlings organic? <i class="fas fa-chevron-down"></i></button>
+                <div class="faq-answer">We use organic seeds and growing practices. Our farm is transitioning to certified organic. All seedlings are grown without synthetic pesticides or fertilizers.</div>
+            </div>
+            <div class="faq-item">
+                <button class="faq-question" onclick="toggleFaq(this)">What if I can't make my pickup date? <i class="fas fa-chevron-down"></i></button>
+                <div class="faq-answer">Contact us and we'll arrange an alternative pickup at another market date or farm pickup in Rochester. We hold orders for up to 1 week after your scheduled date.</div>
+            </div>
+            <div class="faq-item">
+                <button class="faq-question" onclick="toggleFaq(this)">Do you offer bulk/wholesale pricing? <i class="fas fa-chevron-down"></i></button>
+                <div class="faq-answer">Yes! Orders of 50+ plants receive 15% off. Contact us at todd@tinyseedfarmpgh.com for wholesale pricing and custom grow requests.</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- FOOTER -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<footer class="footer">
+    <div class="footer-links">
+        <a href="mailto:todd@tinyseedfarmpgh.com"><i class="fas fa-envelope"></i> todd@tinyseedfarmpgh.com</a>
+        <a href="tel:7177255177"><i class="fas fa-phone"></i> (717) 725-5177</a>
+        <a href="https://www.instagram.com/tinyseedfarm" target="_blank"><i class="fab fa-instagram"></i> @tinyseedfarm</a>
+    </div>
+    <p>Tiny Seed Farm — 257 Zeigler Rd, Rochester, PA 15074</p>
+    <p style="margin-top:8px; font-size:0.75rem; color:rgba(255,255,255,0.4);">Locally grown with love for Pittsburgh gardeners.</p>
+</footer>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- JAVASCRIPT -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<script>
+// Variety data for order form
+var VARIETIES = [
+    { name: 'Amish Paste', category: 'Tomatoes', price: 4.00 },
+    { name: 'Beefsteak', category: 'Tomatoes', price: 4.00 },
+    { name: 'Brandywine', category: 'Tomatoes', price: 4.00 },
+    { name: 'Celebrity', category: 'Tomatoes', price: 4.00 },
+    { name: 'Cherokee Purple', category: 'Tomatoes', price: 4.00 },
+    { name: 'Cherry Mix', category: 'Tomatoes', price: 4.00 },
+    { name: 'Early Girl', category: 'Tomatoes', price: 4.00 },
+    { name: 'Juliet', category: 'Tomatoes', price: 4.00 },
+    { name: 'Roma', category: 'Tomatoes', price: 4.00 },
+    { name: 'San Marzano', category: 'Tomatoes', price: 4.00 },
+    { name: 'Sun Gold', category: 'Tomatoes', price: 4.00 },
+    { name: 'Yellow Pear', category: 'Tomatoes', price: 4.00 },
+    { name: 'Carmen', category: 'Peppers', price: 4.00 },
+    { name: 'Jimmy Nardello', category: 'Peppers', price: 4.00 },
+    { name: 'King of the North', category: 'Peppers', price: 4.00 },
+    { name: 'Lunchbox', category: 'Peppers', price: 4.00 },
+    { name: 'Marconi', category: 'Peppers', price: 4.00 },
+    { name: 'Alma Paprika', category: 'Peppers', price: 4.00 },
+    { name: 'Shishito', category: 'Peppers', price: 4.00 },
+    { name: 'Banana Pepper', category: 'Peppers', price: 4.00 },
+    { name: 'Anaheim', category: 'Peppers', price: 4.00 },
+    { name: 'Ancho Poblano', category: 'Peppers', price: 4.00 },
+    { name: 'Hungarian Wax', category: 'Peppers', price: 4.00 },
+    { name: 'Jalapeno', category: 'Peppers', price: 4.00 },
+    { name: 'Fish Pepper', category: 'Peppers', price: 4.00 },
+    { name: 'Serrano', category: 'Peppers', price: 4.00 },
+    { name: 'Cayenne', category: 'Peppers', price: 4.00 },
+    { name: 'Thai Chili', category: 'Peppers', price: 4.00 },
+    { name: 'Habanero', category: 'Peppers', price: 4.00 },
+    { name: 'Ghost Pepper', category: 'Peppers', price: 4.00 },
+    { name: 'Cucumber', category: 'Cucurbits', price: 3.50 },
+    { name: 'Pickles', category: 'Cucurbits', price: 3.50 },
+    { name: 'Yellow Squash', category: 'Cucurbits', price: 3.50 },
+    { name: 'Zucchini', category: 'Cucurbits', price: 3.50 }
+];
+
+var quantities = {};
+
+// Init order form
+document.addEventListener('DOMContentLoaded', function() {
+    renderOrderItems();
+});
+
+function renderOrderItems() {
+    var container = document.getElementById('orderItems');
+    var currentCat = '';
+    var html = '';
+    for (var i = 0; i < VARIETIES.length; i++) {
+        var v = VARIETIES[i];
+        if (v.category !== currentCat) {
+            currentCat = v.category;
+            html += '<div style="font-weight:700; font-size:0.85rem; color:var(--text-dark); margin:16px 0 8px; text-transform:uppercase; letter-spacing:0.5px;">' + currentCat + '</div>';
+        }
+        var qty = quantities[v.name] || 0;
+        html += '<div class="order-item-row">';
+        html += '  <div><span class="order-item-name">' + v.name + '</span> <span class="order-item-price">$' + v.price.toFixed(2) + '/ea</span></div>';
+        html += '  <div class="qty-selector">';
+        html += '    <button class="qty-btn" onclick="changeQty(\'' + v.name + '\', -1)">−</button>';
+        html += '    <span class="qty-value" id="qty-' + i + '">' + qty + '</span>';
+        html += '    <button class="qty-btn" onclick="changeQty(\'' + v.name + '\', 1)">+</button>';
+        html += '  </div>';
+        html += '</div>';
+    }
+    container.innerHTML = html;
+}
+
+function changeQty(name, delta) {
+    var current = quantities[name] || 0;
+    var newQty = Math.max(0, current + delta);
+    quantities[name] = newQty;
+    renderOrderItems();
+    updateTotal();
+}
+
+function updateTotal() {
+    var total = 0;
+    var itemCount = 0;
+    for (var i = 0; i < VARIETIES.length; i++) {
+        var qty = quantities[VARIETIES[i].name] || 0;
+        total += qty * VARIETIES[i].price;
+        itemCount += qty;
+    }
+    document.getElementById('orderTotal').textContent = '$' + total.toFixed(2);
+    var btn = document.getElementById('submitOrderBtn');
+    btn.textContent = 'Reserve & Pay — $' + total.toFixed(2);
+    btn.disabled = total < 25 || itemCount === 0;
+
+    var warning = document.getElementById('orderMinWarning');
+    if (itemCount > 0 && total < 25) {
+        warning.style.display = 'block';
+    } else {
+        warning.style.display = 'none';
+    }
+}
+
+// Category tabs
+function showCategory(cat) {
+    var cats = ['tomatoes', 'peppers', 'cucurbits'];
+    var tabs = document.querySelectorAll('.catalog-tab');
+    for (var i = 0; i < cats.length; i++) {
+        document.getElementById('cat-' + cats[i]).style.display = cats[i] === cat ? 'grid' : 'none';
+    }
+    for (var j = 0; j < tabs.length; j++) {
+        tabs[j].classList.remove('active');
+    }
+    event.target.closest('.catalog-tab').classList.add('active');
+}
+
+// FAQ accordion
+function toggleFaq(btn) {
+    btn.classList.toggle('open');
+    var answer = btn.nextElementSibling;
+    answer.classList.toggle('open');
+}
+
+// Order submission (placeholder — will connect to backend)
+function submitPresaleOrder() {
+    var firstName = document.getElementById('orderFirstName').value.trim();
+    var lastName = document.getElementById('orderLastName').value.trim();
+    var email = document.getElementById('orderEmail').value.trim();
+    var pickup = document.getElementById('orderPickup').value;
+
+    if (!firstName || !lastName || !email) {
+        alert('Please fill in your name and email.');
+        return;
+    }
+    if (!pickup) {
+        alert('Please choose a pickup location.');
+        return;
+    }
+
+    var items = [];
+    for (var i = 0; i < VARIETIES.length; i++) {
+        var qty = quantities[VARIETIES[i].name] || 0;
+        if (qty > 0) {
+            items.push({ variety: VARIETIES[i].name, qty: qty, price: VARIETIES[i].price });
+        }
+    }
+
+    if (items.length === 0) {
+        alert('Please add at least one seedling to your order.');
+        return;
+    }
+
+    // For now, show confirmation. Payment integration comes next.
+    var total = 0;
+    var summary = '';
+    for (var j = 0; j < items.length; j++) {
+        total += items[j].qty * items[j].price;
+        summary += items[j].qty + 'x ' + items[j].variety + '\n';
+    }
+
+    alert('Order Preview:\n\n' + summary + '\nTotal: $' + total.toFixed(2) + '\nPickup: ' + pickup + '\n\nPayment integration coming soon! Your order details have been noted.');
+}
+</script>
+</body>
+</html>
