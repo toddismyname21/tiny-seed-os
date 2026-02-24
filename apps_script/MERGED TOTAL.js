@@ -17501,6 +17501,8 @@ function doGet(e) {
         return jsonResponse(getSeedlingPresaleItems(e.parameter));
       case 'getSeedlingSalesHistorical':
         return jsonResponse(getSeedlingSalesHistorical(e.parameter));
+      case 'getSeedlingTimeline':
+        return jsonResponse(getSeedlingTimeline(e.parameter));
 
       default:
         return jsonResponse({error: 'Unknown action: ' + action}, 400);
@@ -18866,6 +18868,10 @@ function doPost(e) {
         return jsonResponse(createSeedlingPresaleItem(data));
       case 'reportGreenhouseProblem':
         return jsonResponse(reportGreenhouseProblem(data));
+      case 'bulkImportSeedlingData':
+        return jsonResponse(bulkImportSeedlingData(data));
+      case 'updateSeedlingStatus':
+        return jsonResponse(updateSeedlingStatus(data));
 
       default:
         return jsonResponse({error: 'Unknown action: ' + action}, 400);
@@ -129727,15 +129733,7 @@ function getSeedlingProductionPlan(params) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   var sheet = ss.getSheetByName('SEEDLING_PRODUCTION');
   if (!sheet) {
-    sheet = ss.insertSheet('SEEDLING_PRODUCTION');
-    sheet.appendRow([
-      'Item_ID', 'Crop', 'Variety', 'Category', 'Pot_Size', 'Trays_Planned',
-      'Pots_Per_Tray', 'Total_Units', 'Seeding_Date', 'Ready_Date', 'Status',
-      'Price_Each', 'Presale_Qty', 'Market_Allocation', 'Sold_Total', 'Revenue',
-      'Shopify_Product_ID', 'Notes', 'Created_At'
-    ]);
-    sheet.getRange(1, 1, 1, 19).setFontWeight('bold');
-    sheet.setFrozenRows(1);
+    sheet = ensureSeedlingProductionSheet_(ss);
   }
 
   var data = sheet.getDataRange().getValues();
@@ -129747,50 +129745,335 @@ function getSeedlingProductionPlan(params) {
     for (var h = 0; h < headers.length; h++) {
       row[headers[h]] = data[i][h];
     }
-    if (row.Item_ID) items.push(row);
+    if (!row.Item_ID) continue;
+    // Optional filters
+    if (params.category && row.Category !== params.category) continue;
+    if (params.year && String(row.Year) !== String(params.year)) continue;
+    if (params.status && row.Status !== params.status) continue;
+    items.push(row);
   }
 
   return { success: true, data: items, count: items.length };
+}
+
+// Shared helper: ensure SEEDLING_PRODUCTION sheet exists with unified schema
+function ensureSeedlingProductionSheet_(ss) {
+  var sheet = ss.getSheetByName('SEEDLING_PRODUCTION');
+  if (sheet) {
+    // Auto-migrate: add Seed_Lot_ID and Batch_ID if missing
+    var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    var newCols = ['Seed_Lot_ID', 'Batch_ID'];
+    for (var c = 0; c < newCols.length; c++) {
+      if (headers.indexOf(newCols[c]) === -1) {
+        var nextCol = sheet.getLastColumn() + 1;
+        sheet.getRange(1, nextCol).setValue(newCols[c]).setFontWeight('bold');
+      }
+    }
+    return sheet;
+  }
+  sheet = ss.insertSheet('SEEDLING_PRODUCTION');
+  sheet.appendRow([
+    'Item_ID', 'Year', 'Category', 'Crop', 'Variety', 'Bought_Seed',
+    'Seeding_Date', 'Num_Trays', 'Cell_Pack_Size', 'Pots_Per_Tray',
+    'Total_Units', 'Price_Each', 'Ready_Date', 'Status',
+    'Units_Sold', 'Revenue', 'Market_Allocation', 'Notes', 'Created_At',
+    'Seed_Lot_ID', 'Batch_ID'
+  ]);
+  sheet.getRange(1, 1, 1, 21).setFontWeight('bold');
+  sheet.setFrozenRows(1);
+  return sheet;
+}
+
+// ============ SEEDLING LIFECYCLE TRACKING (Seed to Sale) ============
+
+function ensureSeedlingLifecycleSheet_(ss) {
+  var sheet = ss.getSheetByName('SEEDLING_LIFECYCLE');
+  if (sheet) return sheet;
+  sheet = ss.insertSheet('SEEDLING_LIFECYCLE');
+  sheet.appendRow([
+    'Event_ID', 'Item_ID', 'Seed_Lot_ID', 'Batch_ID', 'Event_Type',
+    'From_Status', 'To_Status', 'Details', 'Recorded_By', 'Timestamp'
+  ]);
+  sheet.getRange(1, 1, 1, 10).setFontWeight('bold');
+  sheet.setFrozenRows(1);
+  return sheet;
+}
+
+function logSeedlingLifecycleEvent_(ss, itemId, seedLotId, batchId, eventType, fromStatus, toStatus, details, recordedBy) {
+  var sheet = ensureSeedlingLifecycleSheet_(ss);
+  var eventId = 'EVT-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
+  sheet.appendRow([
+    eventId, itemId || '', seedLotId || '', batchId || '', eventType,
+    fromStatus || '', toStatus || '', details || '', recordedBy || 'system',
+    new Date().toISOString()
+  ]);
+  return eventId;
+}
+
+function updateSeedlingStatus(params) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('SEEDLING_PRODUCTION');
+  if (!sheet) return { success: false, error: 'SEEDLING_PRODUCTION sheet not found' };
+
+  var itemId = params.itemId;
+  if (!itemId) return { success: false, error: 'itemId is required' };
+
+  var data = sheet.getDataRange().getValues();
+  var headers = data[0];
+  var statusCol = headers.indexOf('Status');
+  var seedLotCol = headers.indexOf('Seed_Lot_ID');
+  var batchCol = headers.indexOf('Batch_ID');
+
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][0] === itemId) {
+      var oldStatus = data[i][statusCol] || '';
+      var newStatus = params.status || oldStatus;
+      var seedLotId = seedLotCol >= 0 ? (data[i][seedLotCol] || '') : '';
+      var batchId = batchCol >= 0 ? (data[i][batchCol] || '') : '';
+
+      // Update status on production sheet
+      sheet.getRange(i + 1, statusCol + 1).setValue(newStatus);
+
+      // Log lifecycle event
+      logSeedlingLifecycleEvent_(ss, itemId, seedLotId, batchId,
+        'status_change', oldStatus, newStatus, params.notes || '', params.recordedBy || '');
+
+      // If transitioning to "Seeded" and we have a Seed_Lot_ID, deduct from seed inventory
+      if (newStatus.toLowerCase() === 'seeded' && seedLotId) {
+        try {
+          deductSeedInventoryForSeedling_(ss, seedLotId, data[i]);
+        } catch(e) { /* best-effort deduction */ }
+      }
+
+      return { success: true, itemId: itemId, oldStatus: oldStatus, newStatus: newStatus };
+    }
+  }
+
+  return { success: false, error: 'Item not found: ' + itemId };
+}
+
+function deductSeedInventoryForSeedling_(ss, seedLotId, productionRow) {
+  var invSheet = ss.getSheetByName('SEED_INVENTORY');
+  if (!invSheet) return;
+
+  var invData = invSheet.getDataRange().getValues();
+  var invHeaders = invData[0];
+  var lotIdCol = invHeaders.indexOf('Seed_Lot_ID');
+  var qtyRemCol = invHeaders.indexOf('Quantity_Remaining');
+  var lastUsedCol = invHeaders.indexOf('Last_Used');
+  var statusCol = invHeaders.indexOf('Status');
+
+  for (var i = 1; i < invData.length; i++) {
+    if (invData[i][lotIdCol] === seedLotId) {
+      var remaining = Number(invData[i][qtyRemCol]) || 0;
+      // Deduct 1 unit (packet/portion used for this sowing)
+      var newRemaining = Math.max(0, remaining - 1);
+      invSheet.getRange(i + 1, qtyRemCol + 1).setValue(newRemaining);
+      invSheet.getRange(i + 1, lastUsedCol + 1).setValue(new Date().toISOString());
+
+      if (newRemaining === 0 && statusCol >= 0) {
+        invSheet.getRange(i + 1, statusCol + 1).setValue('Empty');
+      } else if (newRemaining <= 2 && statusCol >= 0) {
+        invSheet.getRange(i + 1, statusCol + 1).setValue('Low');
+      }
+      break;
+    }
+  }
+}
+
+function getSeedlingTimeline(params) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var itemId = params.itemId;
+  var seedLotId = params.seedLotId;
+
+  if (!itemId && !seedLotId) {
+    return { success: false, error: 'itemId or seedLotId is required' };
+  }
+
+  var timeline = [];
+
+  // 1. Get production item details
+  var prodSheet = ss.getSheetByName('SEEDLING_PRODUCTION');
+  var prodItem = null;
+  if (prodSheet) {
+    var prodData = prodSheet.getDataRange().getValues();
+    var prodHeaders = prodData[0];
+    for (var i = 1; i < prodData.length; i++) {
+      var row = {};
+      for (var h = 0; h < prodHeaders.length; h++) row[prodHeaders[h]] = prodData[i][h];
+      if ((itemId && row.Item_ID === itemId) || (seedLotId && row.Seed_Lot_ID === seedLotId)) {
+        prodItem = row;
+        if (!itemId) itemId = row.Item_ID;
+        if (!seedLotId) seedLotId = row.Seed_Lot_ID;
+        break;
+      }
+    }
+  }
+
+  // 2. Get seed lot info if we have a Seed_Lot_ID
+  var seedLot = null;
+  if (seedLotId) {
+    var invSheet = ss.getSheetByName('SEED_INVENTORY');
+    if (invSheet) {
+      var invData = invSheet.getDataRange().getValues();
+      var invHeaders = invData[0];
+      for (var j = 1; j < invData.length; j++) {
+        var invRow = {};
+        for (var ih = 0; ih < invHeaders.length; ih++) invRow[invHeaders[ih]] = invData[j][ih];
+        if (invRow.Seed_Lot_ID === seedLotId) { seedLot = invRow; break; }
+      }
+    }
+
+    // Check seed orders too
+    if (seedLot && seedLot.Order_ID) {
+      timeline.push({
+        event: 'seed_ordered',
+        date: seedLot.Purchase_Date || seedLot.Created_At,
+        details: 'Seed ordered from ' + (seedLot.Supplier || 'Unknown'),
+        data: { orderId: seedLot.Order_ID, supplier: seedLot.Supplier }
+      });
+    }
+
+    // Seed received
+    if (seedLot) {
+      timeline.push({
+        event: 'seed_received',
+        date: seedLot.Purchase_Date || seedLot.Created_At,
+        details: seedLot.Crop + ' ' + seedLot.Variety + ' — ' + (seedLot.Quantity_Original || '?') + ' ' + (seedLot.Unit || 'units') + ' from ' + (seedLot.Supplier || 'Unknown'),
+        data: { seedLotId: seedLotId, qrCode: seedLot.QR_Code_URL, germRate: seedLot.Germination_Rate }
+      });
+    }
+  }
+
+  // 3. Production events
+  if (prodItem) {
+    if (prodItem.Seeding_Date) {
+      timeline.push({
+        event: 'seeded',
+        date: prodItem.Seeding_Date,
+        details: prodItem.Num_Trays + ' trays of ' + prodItem.Variety + ' (' + (prodItem.Cell_Pack_Size || '3-inch') + ', ' + prodItem.Total_Units + ' total units)',
+        data: { trays: prodItem.Num_Trays, totalUnits: prodItem.Total_Units }
+      });
+    }
+    if (prodItem.Ready_Date) {
+      timeline.push({
+        event: 'ready',
+        date: prodItem.Ready_Date,
+        details: prodItem.Total_Units + ' units ready for sale',
+        data: {}
+      });
+    }
+  }
+
+  // 4. Lifecycle events
+  var lifecycleSheet = ss.getSheetByName('SEEDLING_LIFECYCLE');
+  if (lifecycleSheet) {
+    var lcData = lifecycleSheet.getDataRange().getValues();
+    var lcHeaders = lcData[0];
+    for (var k = 1; k < lcData.length; k++) {
+      var lcRow = {};
+      for (var lh = 0; lh < lcHeaders.length; lh++) lcRow[lcHeaders[lh]] = lcData[k][lh];
+      if ((itemId && lcRow.Item_ID === itemId) || (seedLotId && lcRow.Seed_Lot_ID === seedLotId)) {
+        timeline.push({
+          event: lcRow.Event_Type,
+          date: lcRow.Timestamp,
+          details: lcRow.Details || (lcRow.From_Status + ' → ' + lcRow.To_Status),
+          data: { from: lcRow.From_Status, to: lcRow.To_Status, by: lcRow.Recorded_By }
+        });
+      }
+    }
+  }
+
+  // 5. Sales events
+  var salesSheet = ss.getSheetByName('SEEDLING_SALES');
+  if (salesSheet && itemId) {
+    var salesData = salesSheet.getDataRange().getValues();
+    var salesHeaders = salesData[0];
+    for (var s = 1; s < salesData.length; s++) {
+      var sRow = {};
+      for (var sh = 0; sh < salesHeaders.length; sh++) sRow[salesHeaders[sh]] = salesData[s][sh];
+      if (sRow.Item_ID === itemId) {
+        timeline.push({
+          event: 'sale',
+          date: sRow.Sale_Date || sRow.Created_At,
+          details: sRow.Quantity_Sold + ' sold at ' + sRow.Channel + ' — $' + (Number(sRow.Revenue) || 0).toFixed(2),
+          data: { channel: sRow.Channel, qty: sRow.Quantity_Sold, revenue: sRow.Revenue, customer: sRow.Customer_Name }
+        });
+      }
+    }
+  }
+
+  // Sort by date
+  timeline.sort(function(a, b) {
+    var da = new Date(a.date || 0);
+    var db = new Date(b.date || 0);
+    return da - db;
+  });
+
+  return {
+    success: true,
+    itemId: itemId,
+    seedLotId: seedLotId,
+    production: prodItem,
+    seedLot: seedLot,
+    timeline: timeline,
+    count: timeline.length
+  };
 }
 
 function saveSeedlingItem(params) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   var sheet = ss.getSheetByName('SEEDLING_PRODUCTION');
   if (!sheet) {
-    getSeedlingProductionPlan({}); // Initialize
-    sheet = ss.getSheetByName('SEEDLING_PRODUCTION');
+    sheet = ensureSeedlingProductionSheet_(ss);
   }
 
-  var itemId = params.itemId || 'SDL-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
-  var totalUnits = (Number(params.traysPlanned) || 0) * (Number(params.potsPerTray) || 18);
+  var itemId = params.itemId || 'SL-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
+  var trays = Number(params.numTrays) || Number(params.trays) || 0;
+  var potsPerTray = Number(params.potsPerTray) || 18;
+  var totalUnits = trays * potsPerTray;
+
+  var seedLotId = params.seedLotId || params.seed_lot_id || '';
+  var batchId = params.batchId || params.batch_id || '';
+
+  var rowData = [
+    itemId, params.year || new Date().getFullYear(),
+    params.category || '', params.crop || params.variety || '',
+    params.variety || '', params.boughtSeed || 'No',
+    params.seedingDate || params.sowDate || '',
+    trays, params.cellPackSize || params.cellSize || '3-inch', potsPerTray,
+    totalUnits, Number(params.priceEach) || Number(params.price) || 0,
+    params.readyDate || '', params.status || 'Planned',
+    Number(params.unitsSold) || 0, Number(params.revenue) || 0,
+    params.marketAllocation || '', params.notes || '', new Date().toISOString(),
+    seedLotId, batchId
+  ];
 
   if (params.itemId) {
-    // Update existing
+    // Update existing row
     var data = sheet.getDataRange().getValues();
     for (var i = 1; i < data.length; i++) {
       if (data[i][0] === params.itemId) {
-        sheet.getRange(i + 1, 1, 1, 19).setValues([[
-          params.itemId, params.crop, params.variety, params.category, params.potSize,
-          params.traysPlanned, params.potsPerTray, totalUnits, params.seedingDate,
-          params.readyDate, params.status || 'Planned', params.priceEach,
-          params.presaleQty || 0, params.marketAllocation || '',
-          params.soldTotal || 0, (params.soldTotal || 0) * (params.priceEach || 0),
-          params.shopifyProductId || '', params.notes, data[i][18] || new Date().toISOString()
-        ]]);
-        return { success: true, itemId: params.itemId, action: 'updated' };
+        var oldStatus = data[i][13] || '';
+        rowData[18] = data[i][18] || new Date().toISOString(); // preserve Created_At
+        // Preserve existing Seed_Lot_ID/Batch_ID if not provided
+        if (!seedLotId && data[i][19]) rowData[19] = data[i][19];
+        if (!batchId && data[i][20]) rowData[20] = data[i][20];
+        sheet.getRange(i + 1, 1, 1, 21).setValues([rowData]);
+        // Log lifecycle event if status changed
+        var newStatus = params.status || 'Planned';
+        if (oldStatus && oldStatus !== newStatus) {
+          logSeedlingLifecycleEvent_(ss, params.itemId, rowData[19], rowData[20], 'status_change', oldStatus, newStatus, 'Updated via saveSeedlingItem', params.recordedBy || 'dashboard');
+        }
+        return { success: true, itemId: params.itemId, action: 'updated', totalUnits: totalUnits };
       }
     }
   }
 
   // Create new
-  sheet.appendRow([
-    itemId, params.crop, params.variety, params.category, params.potSize,
-    params.traysPlanned, params.potsPerTray, totalUnits, params.seedingDate,
-    params.readyDate, params.status || 'Planned', params.priceEach || 0,
-    params.presaleQty || 0, params.marketAllocation || '',
-    0, 0, '', params.notes || '', new Date().toISOString()
-  ]);
-
+  sheet.appendRow(rowData);
+  // Log creation lifecycle event
+  logSeedlingLifecycleEvent_(ss, itemId, seedLotId, batchId, 'created', '', params.status || 'Planned', 'New seedling item: ' + (params.crop || params.variety || ''), params.recordedBy || 'dashboard');
   return { success: true, itemId: itemId, action: 'created', totalUnits: totalUnits };
 }
 
@@ -129821,7 +130104,9 @@ function logSeedlingSale(params) {
     saleDate, custName, params.notes || '', new Date().toISOString()
   ]);
 
-  // Update sold total on production item
+  // Update sold total on production item and log lifecycle
+  var seedLotId = '';
+  var batchId = '';
   if (params.itemId) {
     var prodSheet = ss.getSheetByName('SEEDLING_PRODUCTION');
     if (prodSheet) {
@@ -129829,13 +130114,25 @@ function logSeedlingSale(params) {
       for (var i = 1; i < prodData.length; i++) {
         if (prodData[i][0] === params.itemId) {
           var currentSold = Number(prodData[i][14]) || 0;
-          prodSheet.getRange(i + 1, 15).setValue(currentSold + qtySold);
-          prodSheet.getRange(i + 1, 16).setValue((currentSold + qtySold) * Number(prodData[i][11]));
+          var newSold = currentSold + qtySold;
+          prodSheet.getRange(i + 1, 15).setValue(newSold);
+          prodSheet.getRange(i + 1, 16).setValue(newSold * Number(prodData[i][11]));
+          seedLotId = prodData[i][19] || '';
+          batchId = prodData[i][20] || '';
+          // Auto-update status to sold_out if all units sold
+          var totalUnits = Number(prodData[i][10]) || 0;
+          if (totalUnits > 0 && newSold >= totalUnits) {
+            prodSheet.getRange(i + 1, 14).setValue('sold_out');
+            logSeedlingLifecycleEvent_(ss, params.itemId, seedLotId, batchId, 'status_change', prodData[i][13] || 'growing', 'sold_out', 'All units sold', 'system');
+          }
           break;
         }
       }
     }
   }
+
+  // Log sale lifecycle event
+  logSeedlingLifecycleEvent_(ss, params.itemId || '', seedLotId, batchId, 'sale', '', '', 'Sold ' + qtySold + ' via ' + (params.channel || 'unknown') + ' for $' + revenue.toFixed(2), params.recordedBy || 'dashboard');
 
   return { success: true, saleId: saleId, revenue: revenue };
 }
@@ -129882,7 +130179,9 @@ function getSeedlingPresaleItems(params) {
       row[headers[h]] = data[i][h];
     }
     if (!row.Item_ID) continue;
-    // Filter to items with presale availability
+    // Only include items with status allowing sales
+    var status = String(row.Status || '').toLowerCase();
+    if (status === 'cancelled' || status === 'failed') continue;
     var totalUnits = Number(row.Total_Units) || 0;
     var soldUnits = Number(row.Units_Sold) || 0;
     if (totalUnits - soldUnits <= 0) continue;
@@ -129932,21 +130231,15 @@ function addTray(params) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   var sheet = ss.getSheetByName('SEEDLING_PRODUCTION');
   if (!sheet) {
-    sheet = ss.insertSheet('SEEDLING_PRODUCTION');
-    sheet.appendRow([
-      'Item_ID', 'Year', 'Category', 'Crop', 'Variety', 'Bought_Seed',
-      'Seeding_Date', 'Num_Trays', 'Cell_Pack_Size', 'Pots_Per_Tray',
-      'Total_Units', 'Price_Each', 'Ready_Date', 'Status',
-      'Units_Sold', 'Revenue', 'Notes', 'Created_At'
-    ]);
-    sheet.getRange(1, 1, 1, 18).setFontWeight('bold');
-    sheet.setFrozenRows(1);
+    sheet = ensureSeedlingProductionSheet_(ss);
   }
 
   var itemId = 'SL-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
   var trays = Number(params.trays) || Number(params.quantity) || 1;
   var potsPerTray = Number(params.potsPerTray) || 18;
   var totalUnits = trays * potsPerTray;
+  var seedLotId = params.seedLotId || params.seed_lot_id || '';
+  var batchId = params.batchId || params.batch_id || '';
 
   sheet.appendRow([
     itemId, params.year || new Date().getFullYear(),
@@ -129956,10 +130249,24 @@ function addTray(params) {
     trays, params.cellSize || '3-inch', potsPerTray,
     totalUnits, Number(params.price) || 4.00,
     params.readyDate || '', 'growing',
-    0, 0, params.notes || '', new Date().toISOString()
+    0, 0, '', params.notes || '', new Date().toISOString(),
+    seedLotId, batchId
   ]);
 
-  return { success: true, itemId: itemId, totalUnits: totalUnits };
+  // Log lifecycle events
+  logSeedlingLifecycleEvent_(ss, itemId, seedLotId, batchId, 'created', '', 'growing', 'Tray added: ' + (params.crop || params.variety || '') + ' x' + trays, params.recordedBy || 'dashboard');
+  // If seed lot provided, auto-deduct from seed inventory
+  if (seedLotId) {
+    try {
+      deductSeedInventoryForSeedling_(ss, seedLotId, totalUnits);
+      logSeedlingLifecycleEvent_(ss, itemId, seedLotId, batchId, 'seed_deducted', '', '', 'Deducted ' + totalUnits + ' seeds from lot ' + seedLotId, 'system');
+    } catch(e) {
+      // Don't fail the tray add if deduction fails
+      logSeedlingLifecycleEvent_(ss, itemId, seedLotId, batchId, 'seed_deduction_failed', '', '', 'Failed to deduct: ' + e.message, 'system');
+    }
+  }
+
+  return { success: true, itemId: itemId, totalUnits: totalUnits, seedLotId: seedLotId, batchId: batchId };
 }
 
 function createSeedlingPresaleItem(params) {
@@ -129973,6 +130280,8 @@ function createSeedlingPresaleItem(params) {
     price: params.price,
     sowDate: params.sowDate,
     readyDate: params.readyDate,
+    seedLotId: params.seedLotId || '',
+    batchId: params.batchId || '',
     notes: 'PRESALE: ' + (params.description || params.notes || '')
   });
 
@@ -130008,6 +130317,41 @@ function reportGreenhouseProblem(params) {
   ]);
 
   return { success: true, alertId: alertId };
+}
+
+function bulkImportSeedlingData(params) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('SEEDLING_PRODUCTION');
+  if (!sheet) {
+    sheet = ensureSeedlingProductionSheet_(ss);
+  }
+
+  var items = params.items;
+  if (!items || !Array.isArray(items) || items.length === 0) {
+    return { success: false, error: 'No items provided. Send {items: [...]}' };
+  }
+
+  var imported = 0;
+  for (var i = 0; i < items.length; i++) {
+    var p = items[i];
+    var itemId = 'SL-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4) + i;
+    var trays = Number(p.numTrays) || Number(p.trays) || 0;
+    var potsPerTray = Number(p.potsPerTray) || 18;
+    var totalUnits = trays * potsPerTray;
+
+    sheet.appendRow([
+      itemId, p.year || new Date().getFullYear(),
+      p.category || '', p.crop || p.variety || '',
+      p.variety || '', p.boughtSeed || 'No',
+      p.seedingDate || '', trays, p.cellPackSize || p.cellSize || '',
+      potsPerTray, totalUnits, Number(p.priceEach) || 0,
+      p.readyDate || '', p.status || 'Planned',
+      0, 0, p.marketAllocation || '', p.notes || '', new Date().toISOString()
+    ]);
+    imported++;
+  }
+
+  return { success: true, imported: imported, message: imported + ' items imported to SEEDLING_PRODUCTION' };
 }
 
 /**

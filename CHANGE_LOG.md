@@ -38,6 +38,306 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-02-24 — Dynamic UX Audit System (Rule Engine + Checklist)
+
+**Role:** PM_Architect
+
+### Files Created
+- `config/ux_audit_rules.json` — Dynamic UX rule engine with 33 rules, 11 categories, 42 thresholds. Add/update/deprecate rules by editing JSON, no script changes needed.
+- `docs/UX_PREFLIGHT_CHECKLIST.md` — Comprehensive human-readable checklist synthesized from 14+ UX research documents. 12 sections covering cognitive load, design system, progressive disclosure, touch targets, mobile, performance, accessibility, content/copy, character design, dual-context, gamification, and final gate.
+
+### Files Modified
+- `scripts/ux-preflight-audit.sh` — Completely rewritten as dynamic rule engine. Reads all rules from `config/ux_audit_rules.json`. Supports `--stats`, `--validate`, `--thresholds`, `--add-rule` modes. Falls back to hardcoded checks if jq not installed.
+- `CLAUDE.md` — Added STEP 4D (mandatory UX preflight audit before UI work). Updated verification infrastructure table with new tools.
+
+### Why
+User requested formalizing ALL UX research into a reusable audit system. Key requirement: **DYNAMIC, not static** — "The world in which we live won't accept a static system. Things are changing too quickly."
+
+The rule engine approach means:
+- Any agent can add new rules by appending to the JSON
+- Thresholds are centralized (change once, all rules update)
+- Rules can be activated/deactivated without deleting
+- Evolution log tracks how the system grows over time
+- No script changes needed to add checks
+
+### Research Synthesized (14+ documents)
+- 7 files from `shared_research/ux_design_2026/` (Core Principles, Cognitive Load, Progressive Disclosure, Navigation, Speed, Character Design, Competitor Insights)
+- Visual Design Audit, MCC UX Analysis, SEO Dashboard Audit
+- Master UX Improvement Plan, Mobile Farm UX Research
+- Style Guide, UX Research 2026
+- Mobile UX Audit, Admin Audit, Unified Admin Design
+- PM Architect OUTBOX, Desktop Web OUTBOX
+
+---
+
+## 2026-02-24 — Dashboard (index.html) UX Cleanup
+
+**Role:** PM_Architect
+
+### Files Modified
+- `index.html` — Major UX improvements to the main dashboard
+
+### Changes Made
+1. **Overdue Tasks → Collapsible Dropdown**: Long overdue task list now hidden behind a click-to-expand header. Count badge always visible, but the list doesn't clutter the page. Auto-expands when clicking "Overdue" stat or using scrollToOverdue().
+
+2. **Morning Brief Priorities → Plain English**: Replaced code-style task types (`ghSow`, `MUST DO`) with human-readable labels: "Sow in greenhouse", "Must do today", "Transplant to field", etc. Priority urgency now color-coded (red=must do, amber=should do, green=scheduled).
+
+3. **Overdue Items → Cleaner Layout**: Removed AI priority score badges and technical score numbers. Items now show: Task name, plain-English type (Greenhouse Sow, Transplant, etc.), location, quantity, and days overdue. Grid simplified from 5 columns to 4.
+
+4. **Today's Work → Expanded Task Types**: Added support for harvest, maintenance, delivery, admin, and other task types (previously only ghSow/transplant/directSeed). Removed priority score badges from individual task items. Cleaner crop name + location + quantity display.
+
+5. **Stat Cards → Overdue links to dropdown**: The "Overdue" stat in the Morning Brief now scrolls to and expands the overdue dropdown (instead of navigating away to task-assignment.html).
+
+### Reason
+User reported: overdue list too long, Morning Brief showing code, priorities not readable, stat card overdue count inaccurate, Today's Work info wrong. All addressed with plain-language rendering and collapsible UI.
+
+---
+
+## 2026-02-24 — Seed-to-Sale Lifecycle Tracking Integration
+
+**Role:** PM_Architect
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — Seed-to-sale integration across all seedling functions
+- `web_app/greenhouse-dashboard.html` — Added "Seed to Sale" sub-tab with timeline visualization
+
+### Functions Modified
+- `saveSeedlingItem()` — Now accepts/stores `Seed_Lot_ID` and `Batch_ID`, logs lifecycle events on create/status change
+- `addTray()` — Now accepts/stores `Seed_Lot_ID` and `Batch_ID`, logs lifecycle events, auto-deducts seed inventory
+- `logSeedlingSale()` — Now logs sale lifecycle event, auto-updates status to `sold_out` when all units sold
+- `createSeedlingPresaleItem()` — Now passes through `seedLotId` and `batchId`
+
+### Frontend Added
+- **Seed to Sale sub-tab** in greenhouse dashboard Seedling Sales tab
+- `loadSeedToSaleList()` — Loads production items with seed lot indicators
+- `filterSeedToSale()` — Search/filter by variety, item ID, or category
+- `openSeedToSaleDetail()` — Fetches full timeline from `getSeedlingTimeline` API
+- `renderSeedToSaleDetail()` — Renders timeline visualization with status badges, event dots, seed lot details
+- `formatTimeAgo()` — Human-readable relative timestamps
+
+### Reason
+Connects the existing SEED_INVENTORY system (seed packets, QR codes, suppliers) through SEEDLING_PRODUCTION (sowing, growing) to SEEDLING_SALES, providing full seed-to-sale traceability. Every production item now carries `Seed_Lot_ID` linking it back to its seed source.
+
+### Deployed
+- Apps Script @665
+
+---
+
+## 2026-02-24 — Seedling Sale Management System: Dashboard + Presale API Connection
+**Role:** PM_Architect / Desktop_Claude
+
+### Context
+Todd's seedling production and sales data lived in a CSV spreadsheet with 95+ varieties across 13 categories and 8 sales channels. The greenhouse dashboard had HTML structure for a Seedling Sales tab but incomplete JavaScript. The customer presale page had 34 hardcoded varieties. Backend endpoints existed but had conflicting schemas.
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — Unified SEEDLING_PRODUCTION schema across all seedling functions. Added `ensureSeedlingProductionSheet_()` shared helper, `bulkImportSeedlingData()` endpoint. Fixed `getSeedlingProductionPlan()` to support category/year/status filters. Fixed `saveSeedlingItem()` to use unified column layout. Fixed `addTray()` to use shared helper.
+- `web_app/greenhouse-dashboard.html` — Completed all JavaScript for Seedling Sales tab (4 sub-panels): `loadProductionPlan()`, `filterProdPlan()`, `exportProdPlan()`, `loadPresaleItems()`, `loadSalesTracker()`, `loadHistoricalData()`, `submitLogSale()`, `submitPresaleItem()`, `openCsvImport()`, `submitCsvImport()`, `submitAddVariety()`. Added CSV Import modal, Add Variety modal. Expanded category filter from 4 to 13 categories. Expanded sales channels to 8. File grew from ~1827 to 2228 lines.
+- `web_app/seedling-presale-2026.html` — Replaced 34 hardcoded varieties with API fetch from `getSeedlingPresaleItems`. Dynamic category tabs (any number). Connected order submission to `logSeedlingSale` API. Added `showConfirmation()` success page, sold-out handling, availability caps. Added `api-config.js` import. File changed from 1041 to 1237 lines.
+
+### Files Created
+- `config/seedling_2025_reference.json` — 95 varieties across 13 categories parsed from 2025 CSV, ready for bulk import via dashboard.
+
+### Backend Schema (Unified)
+```
+SEEDLING_PRODUCTION: Item_ID | Year | Category | Crop | Variety | Bought_Seed |
+Seeding_Date | Num_Trays | Cell_Pack_Size | Pots_Per_Tray | Total_Units | Price_Each |
+Ready_Date | Status | Units_Sold | Revenue | Market_Allocation | Notes | Created_At
+```
+
+### Categories (13)
+Cucurbits, Peppers, Tomatoes (Heirloom), Tomatoes (Determinate), Tomatoes (Cherry), Eggplant, Celery/Peas/Beans, Kale/Chard/Cabbage, Lettuce, Herbs, Flowers, Mushroom Blocks, Misc
+
+### Sales Channels (8)
+Phipps, City GROWN, Farmer's Market, Presale, Bloomfield FM, Lawrenceville FM, Sewickley FM, Squirrel Hill FM
+
+### End-to-End Flow
+1. Manager adds varieties on greenhouse dashboard → saved to Google Sheets
+2. Presale page loads available varieties from API → customers order
+3. Orders POST to logSeedlingSale → appear in Sales Tracker on dashboard
+4. CSV import feature allows bulk data loading from spreadsheet exports
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md — no new files created that duplicate existing
+- [x] No new dashboards — enhanced existing greenhouse-dashboard.html
+- [x] No new endpoints that duplicate existing — only added bulkImportSeedlingData
+
+---
+
+## 2026-02-24 — Phase 3: Design System Token Migration — All Remaining Pages (59 files)
+**Role:** PM_Architect
+
+### Full Codebase Token Migration
+Migrated all remaining HTML pages to `var(--ts-*, #fallback)` pattern. Combined with Phase 2 (13 pages), the entire codebase is now tokenized.
+
+### Batch 1: 14 Root-Level HTML Files
+- `login.html`, `food-safety.html`, `farm-operations.html`, `labels.html`, `inventory_capture.html`, `calendar.html`, `succession.html`, `greenhouse.html`, `sowing-sheets.html`, `offline.html`, `flowers.html`, `planning.html`, `track.html`, `seed_inventory_PRODUCTION.html`
+- ~160 `:root` variable definitions migrated, ~15 standalone CSS hex values fixed
+
+### Batch 2: 13 web_app/ Tier-2 Pages
+- `labels.html`, `wholesale.html`, `market-sales.html`, `food-safety.html`, `seo_dashboard.html`, `satellite-map.html`, `wealth-builder.html`, `reports-dashboard.html`, `schedule.html`, `driver.html`, `admin.html`, `sales.html`, `farmers-market.html`
+- Full `:root` + standalone hex migration, 172 tool operations
+
+### Batch 3: 13 web_app/ Tier-3 Pages
+- `chef-order.html`, `task-assignment.html`, `claude-chat.html`, `garage.html`, `eula.html`, `privacy-policy.html`, `book-import.html`, `delivery-zone-checker.html`, `command-center.html`, `csa-location-widget.html`, `csa-location-finder.html`, `csa-unified-finder.html`, `quick-content.html`
+
+### Batch 4: 19 apps_script/ + tinypm/ Pages
+- 8 apps_script dashboards: `ReportsDashboard`, `IrrigationDashboard`, `IntelligentRoutingDashboard`, `FinancialDashboard`, `FieldManagementDashboard`, `FieldMobileCapture`, `ChiefOfStaffDashboard`, `DeliveryZoneChecker`
+- 6 tinypm: `web_dashboard`, `onboarding`, `auth`, `offline`, `avatar_builder`, `characters`
+- 5 tinypm_for_tinyseed_os: `web_dashboard`, `onboarding`, `auth`, `offline`, `characters`
+
+### Intentionally Unmigrated Hex Values (across all files)
+- Colors without clear token mappings (`#4361ee`, `#f4a261`, `#e76f51`, `#ffd700`, `#1abc9c`, etc.)
+- Social media brand colors, rgba() with specific opacities
+- Print-specific styles, light-theme-specific values, CSS mask techniques
+- TinyPM theme-specific magic/science character colors
+- All JavaScript and inline HTML `style=""` attributes
+
+### Reason
+Phase 3 completes the design system token migration across the entire codebase (~72 pages total across Phases 2+3). Every page now inherits from `tiny-seed-design-system.css` with hex fallbacks.
+
+### Production Impact
+CSS-only changes. All fallback values match originals — zero visual change. No JS or API modifications.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] No duplicates created
+
+---
+
+## 2026-02-24 — Phase 2: Design System Token Migration — Top 5 Pages + 8 Secondary Pages
+**Role:** PM_Architect
+
+### Design System Token Migration
+Migrated 13 HTML pages from hardcoded hex values to `var(--ts-*, #fallback)` pattern in `:root` blocks and throughout `<style>` blocks. All pages now inherit from `tiny-seed-design-system.css` when loaded, with hex fallbacks for standalone use.
+
+### Top 5 Pages (Fully Migrated)
+- `index.html` — Added `data-theme="dark"`, design system link, tokenized entire `:root` + 30+ inline hex replacements
+- `web_app/marketing-command-center.html` — `:root` tokenized (14 vars), 27 additional style block edits (preserved social media brand colors)
+- `web_app/financial-dashboard.html` — Completed partial `:root` tokenization, fixed body gradient
+- `web_app/manager-dashboard.html` — Full `:root` tokenization (24 variables), all standalone hex wrapped
+- `web_app/csa.html` — Light theme `:root` tokenized (stone palette, shadows, radii)
+
+### 8 Secondary Pages (`:root` Tokenized)
+- `employee.html` — Removed duplicate design system link, tokenized `:root` block
+- `web_app/greenhouse-dashboard.html` — `:root` fully tokenized
+- `web_app/chief-of-staff.html` — `:root` fully tokenized
+- `web_app/pm-dashboard.html` — `:root` fully tokenized
+- `web_app/accounting.html` — `:root` fully tokenized
+- `web_app/quickbooks-dashboard.html` — `:root` fully tokenized
+- `web_app/loan-readiness.html` — `:root` fully tokenized
+- `web_app/customer.html` — `:root` fully tokenized + inline hex cleanup
+
+### Token Pattern Used
+```css
+/* Before */
+--primary: #22c55e;
+/* After */
+--primary: var(--ts-green-500, #22c55e);
+```
+Local variable names preserved so all downstream `var(--primary)` references continue working unchanged.
+
+### Intentionally Preserved Hex Values
+- Social media brand colors (Instagram, Facebook, TikTok, YouTube, etc.)
+- `#000` for contrast text on colored backgrounds
+- CSS mask technique values (`#fff` in `-webkit-mask`)
+- Inline HTML `style=""` attributes (not in scope)
+
+### Remaining Unmigrated
+~40+ lower-priority pages (root-level farm pages, apps_script HTML, tinypm HTML, web_app utilities). These still work but use hardcoded hex instead of token references.
+
+### Reason
+Phase 2 of approved execution plan. Token migration enables future theme changes from a single file (`tiny-seed-design-system.css`) rather than editing every page individually.
+
+### Production Impact
+CSS-only changes. All fallback values match original hex values, so visual appearance is identical. No JS or API changes.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
+## 2026-02-24 — Phase 1: Agent Infrastructure — CLAUDE.md Slim + Agent Roles + System Docs
+**Role:** PM_Architect
+
+### CLAUDE.md Slimmed (942 → 256 lines, 73% reduction)
+- Extracted 5 verbose sections to standalone reference docs
+- Condensed all remaining sections (removed narratives, kept rules + tables)
+- Removed redundant enforcement checklist, violation warnings, closing statement
+- Added references to all extracted docs and new agent files
+
+### Files Created
+- `docs/system/EXTERNAL_SITE_RULES.md` — Shopify/external site approval rules (from CLAUDE.md lines 446-610)
+- `docs/system/SALES_PARSER.md` — Universal Sales Parser docs (from CLAUDE.md lines 841-942)
+- `docs/system/SESSION_CONTEXT.md` — Owner info, CSA stops, key files (from CLAUDE.md lines 793-837)
+- `docs/system/CHIEF_OF_STAFF_CONTEXT.md` — CoS backend connection context (from CLAUDE.md lines 669-694)
+- `docs/system/GOVERNOR_PROTOCOL.md` — Governor system tracking (from CLAUDE.md lines 308-331)
+- `.claude/agents/pm-coordinator.md` — PM_ARCHITECT agent definition
+- `.claude/agents/fullstack-builder.md` — Frontend + Backend merged agent definition
+- `.claude/agents/verifier.md` — QA/verification gate agent definition
+- `.claude/agents/ux-designer.md` — Design system architect agent definition
+- `.claude/agents/researcher.md` — Research specialist agent definition
+- `.claude/agents/file-organizer.md` — Codebase librarian agent definition
+
+### Files Modified
+- `CLAUDE.md` — Slimmed from 942 → 256 lines
+
+### Files Archived
+- `claude_sessions/AGENT_PROMPT_LIBRARY.md` → `claude_sessions/_archive/` (content migrated to `.claude/agents/`)
+- `claude_sessions/TERMINAL_QUICK_START_GUIDES.md` → `claude_sessions/_archive/`
+
+### Reason
+Phase 1 of approved execution plan. CLAUDE.md consumed ~50% of context window with verbose narratives and reference data that agents rarely need inline. Extracting to referenced docs frees ~700 lines of context for actual work. Agent definition files formalize the 7 roles from the Agent Prompt Library into standalone `.claude/agents/*.md` files.
+
+### Production Impact
+ZERO — all developer-side files. No HTML, CSS, JS, or API changes.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
+## 2026-02-24 — Phase 0: UX Research Application + Design System v2.0 + Visual Token Unification
+**Role:** PM_Architect
+
+### Design System Extension (v1.0 → v2.0, 1338 → 2080 lines)
+- `web_app/tiny-seed-design-system.css` — Major extension with UX research CSS:
+  - Warm earth palette tokens (`--ts-earth-*`, `--ts-gold-*`, `--ts-soil-*`)
+  - Enhanced dark/light theme variables
+  - Extended button patterns (loading, gradient, group, pill)
+  - Enhanced form components (field groups, input wrapper, search input, toggle switch)
+  - Premium stat cards with trend indicators
+  - Data tables, navigation, toasts, empty states
+  - Typography system and micro-interaction library (18 new keyframes)
+  - All 328 CSS braces balanced, no duplicate keyframes
+
+### Visual Token Unification (Phase 0A)
+**Unified primary green from 7 different values → `#22c55e` across 20+ pages:**
+- Root-level: `index.html`, `login.html`, `employee.html`, `greenhouse.html`, `food-safety.html`, `labels.html`, `calendar.html`, `track.html`, `planning.html`, `succession.html`, `sowing-sheets.html`, `farm-operations.html`, `offline.html`, `inventory_capture.html`, `seed_inventory_PRODUCTION.html`
+- web_app/: `manager-dashboard.html`, `reports-dashboard.html`, `schedule.html`, `satellite-map.html`
+- Also fixed: theme-color meta tags, inline style gradients, SVG fills, JS color defaults
+
+### Design System Link Added
+- `employee.html` — Added `<link>` to design system CSS
+- `web_app/greenhouse-dashboard.html` — Added design system CSS link + `data-theme="dark"`
+- `web_app/seedling-presale-2026.html` — Added design system CSS link
+
+### MCC CSS Verification
+- `web_app/marketing-command-center.html` — Verified Phase 1+2 UX polish already applied (no changes needed)
+
+### Reason
+Incorporating UX design research from world-class design audit and UX Claude's Phase 1+2 CSS polish into the actual codebase. Phase 0 of the approved execution plan.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] No duplicates created
+- [x] All edits are CSS token changes or CSS file extension only
+
+---
+
 ## 2026-02-23 — PRODUCTION PIPELINE: 6-Phase Build + Audit + Critical Fixes
 **Role:** PM_Architect (coordinating 4 parallel agents + audit agents)
 

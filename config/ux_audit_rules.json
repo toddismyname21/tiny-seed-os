@@ -1,0 +1,577 @@
+{
+  "_meta": {
+    "version": "1.0.0",
+    "last_updated": "2026-02-24",
+    "description": "Dynamic UX audit rules engine. Add/update/deprecate rules without touching the audit script. Any agent can add rules by appending to the 'rules' array.",
+    "sources": [
+      "shared_research/ux_design_2026/ (7 files)",
+      "docs/audits/VISUAL_DESIGN_AUDIT.md",
+      "docs/audits/MCC_UX_ANALYSIS.md",
+      "docs/SEO_DASHBOARD_UX_AUDIT.md",
+      "docs/MASTER_UX_IMPROVEMENT_PLAN.md",
+      "docs/MOBILE_FARM_UX_RESEARCH.md",
+      "docs/STYLE_GUIDE.md",
+      "docs/UX_RESEARCH_2026.md",
+      "claude_sessions/ux_design/ (6 files)"
+    ],
+    "how_to_add_rules": "Append to the 'rules' array. Each rule needs: id, category, severity, check_type, and either 'threshold', 'pattern', or 'manual_check'. Run ./scripts/ux-preflight-audit.sh --validate to verify rule syntax."
+  },
+
+  "categories": {
+    "cognitive_load": {
+      "name": "Cognitive Load",
+      "description": "Miller's Law, Hick's Law, information density",
+      "icon": "brain",
+      "weight": 10
+    },
+    "design_system": {
+      "name": "Design System Compliance",
+      "description": "Token usage, component reuse, visual consistency",
+      "icon": "palette",
+      "weight": 9
+    },
+    "progressive_disclosure": {
+      "name": "Progressive Disclosure",
+      "description": "Show 20%, hide 80%, reveal on demand",
+      "icon": "layers",
+      "weight": 9
+    },
+    "touch_targets": {
+      "name": "Touch & Interaction",
+      "description": "Sizing, spacing, feedback for all interactive elements",
+      "icon": "hand-pointer",
+      "weight": 8
+    },
+    "performance": {
+      "name": "Speed & Performance",
+      "description": "Load times, bundle sizes, perceived performance",
+      "icon": "bolt",
+      "weight": 10
+    },
+    "mobile": {
+      "name": "Mobile & Responsive",
+      "description": "Breakpoints, navigation, thumb zones",
+      "icon": "mobile",
+      "weight": 8
+    },
+    "accessibility": {
+      "name": "Accessibility",
+      "description": "ARIA, contrast, focus, keyboard, i18n",
+      "icon": "universal-access",
+      "weight": 7
+    },
+    "content": {
+      "name": "Content & Copy",
+      "description": "Plain language, microcopy, tone",
+      "icon": "pen",
+      "weight": 6
+    },
+    "dual_context": {
+      "name": "Dual-Context (Field/Office)",
+      "description": "Context-aware design for different environments",
+      "icon": "exchange-alt",
+      "weight": 7
+    },
+    "gamification": {
+      "name": "Engagement & Habit",
+      "description": "Streaks, celebrations, progress tracking",
+      "icon": "trophy",
+      "weight": 5
+    },
+    "character": {
+      "name": "AI Character & Personality",
+      "description": "Ambient presence, appropriate interaction",
+      "icon": "robot",
+      "weight": 4
+    }
+  },
+
+  "thresholds": {
+    "_comment": "Centralized thresholds referenced by rules. Update here, all rules update automatically.",
+    "nav_items_mobile_max": 5,
+    "nav_items_desktop_max": 7,
+    "tab_max": 5,
+    "dropdown_items_max": 7,
+    "form_fields_visible_max": 7,
+    "dashboard_visuals_max": 12,
+    "notifications_visible_max": 2,
+    "touch_target_min_px": 44,
+    "touch_target_primary_px": 48,
+    "touch_target_field_px": 60,
+    "touch_target_gloved_px": 72,
+    "touch_spacing_min_px": 8,
+    "touch_spacing_field_px": 16,
+    "input_font_min_px": 16,
+    "body_text_min_px": 16,
+    "body_text_field_min_px": 18,
+    "contrast_ratio_min": 4.5,
+    "contrast_ratio_field_min": 7,
+    "js_bundle_max_kb": 200,
+    "css_bundle_max_kb": 50,
+    "images_per_page_max_kb": 500,
+    "api_response_p95_ms": 200,
+    "page_load_max_s": 3,
+    "first_paint_max_s": 1,
+    "tti_max_s": 5,
+    "lcp_max_s": 2.5,
+    "fid_max_ms": 100,
+    "cls_max": 0.1,
+    "interaction_response_ms": 100,
+    "button_feedback_ms": 50,
+    "nudge_dismiss_s": 5,
+    "nudge_interval_min_s": 120,
+    "celebration_frequency_pct": 30,
+    "animation_micro_ms": 200,
+    "animation_transition_ms": 300,
+    "animation_complex_max_ms": 500,
+    "search_debounce_ms": 300,
+    "primary_green_hex": "#22c55e",
+    "time_to_answer_s": 30,
+    "time_to_first_value_s": 90,
+    "field_mode_max_taps": 2
+  },
+
+  "rules": [
+    {
+      "id": "CL-001",
+      "category": "cognitive_load",
+      "severity": "critical",
+      "check_type": "automated",
+      "name": "Tab count within limits",
+      "description": "Maximum 5 tabs visible at once (ideally 3-4). More causes decision paralysis.",
+      "pattern": "role=\"tab\"|data-tab|tab-btn|tabButton|tab-button",
+      "threshold_key": "tab_max",
+      "source": "Progressive Disclosure research, MCC UX Analysis (C+ grade, 11 tabs)",
+      "added": "2026-02-24",
+      "active": true
+    },
+    {
+      "id": "CL-002",
+      "category": "cognitive_load",
+      "severity": "high",
+      "check_type": "automated",
+      "name": "Nav items within limits",
+      "description": "Mobile: 3-5 items, Desktop: 5-7. Sidebar: 5-9 with grouping.",
+      "pattern": "nav-item|sidebar-item|bottom-nav",
+      "threshold_key": "nav_items_desktop_max",
+      "source": "Navigation Patterns research, Hick's Law",
+      "added": "2026-02-24",
+      "active": true
+    },
+    {
+      "id": "CL-003",
+      "category": "cognitive_load",
+      "severity": "high",
+      "check_type": "manual",
+      "name": "Clear visual hierarchy",
+      "description": "Can you identify the most important element in <3 seconds without reading text?",
+      "manual_check": "Look at the page. What's the first thing your eye goes to? Is it the primary action?",
+      "source": "Core UX Principles, Cognitive Load research",
+      "added": "2026-02-24",
+      "active": true
+    },
+    {
+      "id": "CL-004",
+      "category": "cognitive_load",
+      "severity": "medium",
+      "check_type": "manual",
+      "name": "Smart defaults reduce decisions",
+      "description": "Pre-fill fields, select most common option, auto-detect context. Every decision in field mode is a design failure.",
+      "manual_check": "Count the decisions a user must make to complete the primary action. Target: <5 decisions.",
+      "source": "Core UX Principles, Master UX Improvement Plan",
+      "added": "2026-02-24",
+      "active": true
+    },
+    {
+      "id": "CL-005",
+      "category": "cognitive_load",
+      "severity": "high",
+      "check_type": "manual",
+      "name": "One primary action per screen",
+      "description": "Visual hierarchy guides the eye to a single most important thing.",
+      "manual_check": "Squint at the page. Does one element stand out? If multiple compete, fix hierarchy.",
+      "source": "Master UX Improvement Plan, Cognitive Load research",
+      "added": "2026-02-24",
+      "active": true
+    },
+    {
+      "id": "DS-001",
+      "category": "design_system",
+      "severity": "critical",
+      "check_type": "automated",
+      "name": "Design system CSS linked",
+      "description": "Every web_app page must import tiny-seed-design-system.css",
+      "pattern": "tiny-seed-design-system|design-system\\.css",
+      "source": "Visual Design Audit (52% adoption)",
+      "added": "2026-02-24",
+      "active": true
+    },
+    {
+      "id": "DS-002",
+      "category": "design_system",
+      "severity": "critical",
+      "check_type": "automated",
+      "name": "No non-standard green hex values",
+      "description": "Primary green must be #22c55e or var(--ts-green-500). Not #4A7C43, #2d5a27, #3a8f35.",
+      "pattern": "#4A7C43|#2d5a27|#3a8f35|#28a745|#198754",
+      "negate": true,
+      "source": "Visual Design Audit (7 different greens across codebase)",
+      "added": "2026-02-24",
+      "active": true
+    },
+    {
+      "id": "DS-003",
+      "category": "design_system",
+      "severity": "high",
+      "check_type": "automated",
+      "name": "CSS variables used for colors",
+      "description": "Colors should use var(--token) references, not raw hex values outside :root.",
+      "pattern": "var\\(--",
+      "min_count": 1,
+      "source": "Visual Design Audit, Style Guide",
+      "added": "2026-02-24",
+      "active": true
+    },
+    {
+      "id": "DS-004",
+      "category": "design_system",
+      "severity": "high",
+      "check_type": "automated",
+      "name": "data-theme attribute set",
+      "description": "Every page must declare data-theme='dark' or 'light' on html or body element.",
+      "pattern": "data-theme=",
+      "source": "Visual Design Audit (customer.html uses wrong theme)",
+      "added": "2026-02-24",
+      "active": true
+    },
+    {
+      "id": "DS-005",
+      "category": "design_system",
+      "severity": "medium",
+      "check_type": "automated",
+      "name": "Excessive raw hex colors",
+      "description": "More than 20 raw hex values outside :root indicates poor token adoption.",
+      "check_logic": "count_hex_outside_root",
+      "threshold": 20,
+      "source": "Visual Design Audit (38/100 consistency score)",
+      "added": "2026-02-24",
+      "active": true
+    },
+    {
+      "id": "PD-001",
+      "category": "progressive_disclosure",
+      "severity": "high",
+      "check_type": "manual",
+      "name": "Advanced options hidden by default",
+      "description": "Optional/advanced features behind accordions, 'More options', or secondary tabs.",
+      "manual_check": "Count visible elements above the fold. If >12 interactive elements, hide the least-used behind a disclosure pattern.",
+      "source": "Progressive Disclosure research (4-level framework)",
+      "added": "2026-02-24",
+      "active": true
+    },
+    {
+      "id": "PD-002",
+      "category": "progressive_disclosure",
+      "severity": "high",
+      "check_type": "manual",
+      "name": "No more than 2 clicks for common tasks",
+      "description": "The most frequent user action should be achievable in 1-2 interactions.",
+      "manual_check": "Identify the #1 task users do on this page. Count clicks/taps from landing to completion.",
+      "source": "Progressive Disclosure research, Master UX Improvement Plan",
+      "added": "2026-02-24",
+      "active": true
+    },
+    {
+      "id": "PD-003",
+      "category": "progressive_disclosure",
+      "severity": "medium",
+      "check_type": "automated",
+      "name": "Empty states defined",
+      "description": "Every data section needs an encouraging empty state with a call-to-action.",
+      "pattern": "empty-state|no-data|no-results|emptyState|empty_state|No data|No results|Nothing to show",
+      "source": "Core UX Principles (no blank screens), Competitor Insights",
+      "added": "2026-02-24",
+      "active": true
+    },
+    {
+      "id": "TT-001",
+      "category": "touch_targets",
+      "severity": "critical",
+      "check_type": "automated",
+      "name": "No touch targets below 44px",
+      "description": "All interactive elements must be at least 44x44px (Apple HIG minimum).",
+      "check_logic": "check_min_heights",
+      "threshold_key": "touch_target_min_px",
+      "source": "Mobile Farm UX Research, Style Guide, Core UX Principles",
+      "added": "2026-02-24",
+      "active": true
+    },
+    {
+      "id": "TT-002",
+      "category": "touch_targets",
+      "severity": "medium",
+      "check_type": "automated",
+      "name": "Active state feedback",
+      "description": "All buttons must have :active CSS feedback (transform: scale(0.98) or similar).",
+      "pattern": ":active",
+      "source": "Speed & Performance research, Style Guide",
+      "added": "2026-02-24",
+      "active": true
+    },
+    {
+      "id": "TT-003",
+      "category": "touch_targets",
+      "severity": "medium",
+      "check_type": "automated",
+      "name": "touch-action CSS for mobile",
+      "description": "Add touch-action: manipulation to prevent 300ms tap delay on mobile.",
+      "pattern": "touch-action",
+      "source": "Mobile UX Audit",
+      "added": "2026-02-24",
+      "active": true
+    },
+    {
+      "id": "PF-001",
+      "category": "performance",
+      "severity": "high",
+      "check_type": "automated",
+      "name": "Skeleton screens over spinners",
+      "description": "Use skeleton loading (gray placeholders) instead of spinning indicators.",
+      "pattern": "skeleton|shimmer|placeholder-glow|loading-skeleton",
+      "prefer_over": "spinner|fa-spinner|fa-circle-notch",
+      "source": "Speed & Performance research (perceived speed)",
+      "added": "2026-02-24",
+      "active": true
+    },
+    {
+      "id": "PF-002",
+      "category": "performance",
+      "severity": "medium",
+      "check_type": "manual",
+      "name": "Optimistic UI updates",
+      "description": "UI should update immediately on user action, sync in background, rollback if fails.",
+      "manual_check": "For each form submission or state change: does the UI wait for the server response, or update immediately?",
+      "source": "Speed & Performance research (Linear's strategy)",
+      "added": "2026-02-24",
+      "active": true
+    },
+    {
+      "id": "MB-001",
+      "category": "mobile",
+      "severity": "critical",
+      "check_type": "automated",
+      "name": "Viewport meta tag present",
+      "description": "Every page must have <meta name='viewport' content='width=device-width, initial-scale=1'>",
+      "pattern": "name=\"viewport\"",
+      "source": "Mobile UX Audit",
+      "added": "2026-02-24",
+      "active": true
+    },
+    {
+      "id": "MB-002",
+      "category": "mobile",
+      "severity": "high",
+      "check_type": "automated",
+      "name": "Input font 16px+ (iOS zoom prevention)",
+      "description": "Input font-size below 16px causes iOS to auto-zoom on focus, breaking layout.",
+      "check_logic": "check_input_font_size",
+      "threshold_key": "input_font_min_px",
+      "source": "Mobile UX Audit, Mobile App Vision",
+      "added": "2026-02-24",
+      "active": true
+    },
+    {
+      "id": "MB-003",
+      "category": "mobile",
+      "severity": "high",
+      "check_type": "manual",
+      "name": "Bottom navigation on mobile",
+      "description": "Mobile should use bottom tab bar (4 items max), not hamburger menu as primary nav.",
+      "manual_check": "At 375px width, is navigation in the bottom thumb zone? Is it a tab bar with <=4 items?",
+      "source": "Navigation Patterns, Mobile Farm UX Research",
+      "added": "2026-02-24",
+      "active": true
+    },
+    {
+      "id": "MB-004",
+      "category": "mobile",
+      "severity": "medium",
+      "check_type": "automated",
+      "name": "Safe area insets for notched devices",
+      "description": "Fixed-position elements must use env(safe-area-inset-*) to avoid notch overlap.",
+      "pattern": "safe-area-inset|env\\(safe-area",
+      "source": "Mobile UX Audit, Style Guide",
+      "added": "2026-02-24",
+      "active": true
+    },
+    {
+      "id": "AC-001",
+      "category": "accessibility",
+      "severity": "high",
+      "check_type": "automated",
+      "name": "ARIA labels present",
+      "description": "Interactive elements (especially icon-only buttons) must have aria-label.",
+      "pattern": "aria-label|aria-labelledby|aria-describedby",
+      "source": "SEO Dashboard UX Audit, Mobile App Vision",
+      "added": "2026-02-24",
+      "active": true
+    },
+    {
+      "id": "AC-002",
+      "category": "accessibility",
+      "severity": "medium",
+      "check_type": "automated",
+      "name": "Images have alt attributes",
+      "description": "All <img> tags need alt text. Decorative images use alt=''.",
+      "check_logic": "check_img_alt",
+      "source": "Mobile App Vision (ADA 2026 compliance)",
+      "added": "2026-02-24",
+      "active": true
+    },
+    {
+      "id": "AC-003",
+      "category": "accessibility",
+      "severity": "medium",
+      "check_type": "automated",
+      "name": "Translation support (data-i18n)",
+      "description": "Translatable text should use data-i18n for bilingual workforce (English + Spanish).",
+      "pattern": "data-i18n",
+      "source": "Style Guide (bilingual workforce requirement)",
+      "added": "2026-02-24",
+      "active": true
+    },
+    {
+      "id": "CN-001",
+      "category": "content",
+      "severity": "high",
+      "check_type": "manual",
+      "name": "Plain English labels",
+      "description": "No code-style labels or jargon. 'Sow in greenhouse' not 'ghsow'. 'Export CSV' not 'Submit'.",
+      "manual_check": "Read every visible label. Would a farmer understand each one without technical knowledge?",
+      "source": "Core UX Principles (Explain Everything), index.html fix (typeLabels map)",
+      "added": "2026-02-24",
+      "active": true
+    },
+    {
+      "id": "CN-002",
+      "category": "content",
+      "severity": "medium",
+      "check_type": "manual",
+      "name": "Encouraging empty states",
+      "description": "Empty states should guide action: 'Ready to start? [Button]' not 'No data found.'",
+      "manual_check": "Find every empty state. Does it have: icon + encouraging text + action button?",
+      "source": "SEO Dashboard UX Audit, Competitor Insights (empty states matter)",
+      "added": "2026-02-24",
+      "active": true
+    },
+    {
+      "id": "CN-003",
+      "category": "content",
+      "severity": "medium",
+      "check_type": "manual",
+      "name": "Error messages are helpful",
+      "description": "'That didn't work. Try [alternative]?' not 'Error 500' or generic 'Failed'.",
+      "manual_check": "Trigger each error state. Does the message explain what happened AND what to do next?",
+      "source": "Character Design research (error tone guidelines)",
+      "added": "2026-02-24",
+      "active": true
+    },
+    {
+      "id": "DC-001",
+      "category": "dual_context",
+      "severity": "medium",
+      "check_type": "manual",
+      "name": "Field mode considerations",
+      "description": "If this page is used outdoors: 60px+ targets, 18px+ text, high contrast, max 2 taps.",
+      "manual_check": "Will this page be used in the field? If yes, verify field mode thresholds. If unknown, design for both.",
+      "source": "Master UX Improvement Plan, Mobile Farm UX Research",
+      "added": "2026-02-24",
+      "active": true
+    },
+    {
+      "id": "DC-002",
+      "category": "dual_context",
+      "severity": "low",
+      "check_type": "manual",
+      "name": "Office mode keyboard shortcuts",
+      "description": "Desktop pages should support Cmd+K (palette), keyboard navigation, and common shortcuts.",
+      "manual_check": "Can the primary action be completed without a mouse? Is there a command palette?",
+      "source": "Master UX Improvement Plan, Competitor Insights (Linear keyboard-first)",
+      "added": "2026-02-24",
+      "active": true
+    },
+    {
+      "id": "GM-001",
+      "category": "gamification",
+      "severity": "low",
+      "check_type": "manual",
+      "name": "Progress and celebration",
+      "description": "Show progress toward goals. Celebrate completions (30% of the time, not every time).",
+      "manual_check": "After completing the primary action, does the user see any positive feedback?",
+      "source": "SEO Dashboard UX Audit (40/100 habit formation), Core UX Principles",
+      "added": "2026-02-24",
+      "active": true
+    },
+    {
+      "id": "CH-001",
+      "category": "character",
+      "severity": "low",
+      "check_type": "manual",
+      "name": "AI character is ambient, not intrusive",
+      "description": "AI should be present when needed, quiet during focus. Max 2 nudges visible, 5s auto-dismiss.",
+      "manual_check": "Does any AI element block the primary task? Can all AI suggestions be dismissed with one action?",
+      "source": "Character Design research (Stanford CASA)",
+      "added": "2026-02-24",
+      "active": true
+    },
+    {
+      "id": "API-001",
+      "category": "design_system",
+      "severity": "critical",
+      "check_type": "automated",
+      "name": "No hardcoded API URLs",
+      "description": "All API calls must use api-config.js. No inline script.google.com URLs.",
+      "pattern": "script\\.google\\.com/macros/s/AKfycb",
+      "negate": true,
+      "source": "CLAUDE.md API rules, UX Audit Report",
+      "added": "2026-02-24",
+      "active": true
+    }
+  ],
+
+  "customer_segments": {
+    "_comment": "North star metrics per customer segment. Update as customer base evolves.",
+    "csa_members": {
+      "description": "35-55, $100K-$250K, iPhone dominant",
+      "north_star": "Check box contents in <10 seconds",
+      "signup_target": "Under 3 minutes",
+      "swap_target": "Under 3 taps"
+    },
+    "farmers_market": {
+      "description": "28-65, $60K-$200K",
+      "north_star": "100% know if farm is at market TODAY instantly"
+    },
+    "gardening_learners": {
+      "description": "30-50, $75K-$150K",
+      "north_star": "'I can do this' feeling within 30 seconds"
+    },
+    "flower_customers": {
+      "description": "35-60, $100K+, 75% women",
+      "north_star": "Subscribe in <2 minutes"
+    },
+    "wholesale_chefs": {
+      "description": "Farm-to-table restaurants, early AM/late PM",
+      "north_star": "Reorder in <60 seconds"
+    }
+  },
+
+  "evolution_log": [
+    {
+      "date": "2026-02-24",
+      "action": "created",
+      "description": "Initial rule engine created from synthesis of 14+ UX research documents",
+      "rules_added": 30,
+      "by": "PM_Architect"
+    }
+  ]
+}

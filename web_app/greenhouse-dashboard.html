@@ -1,32 +1,33 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Greenhouse Manager - Tiny Seed Farm</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="tiny-seed-design-system.css">
     <script src="auth-guard.js" data-required-role="Employee"></script>
     <script src="api-config.js"></script>
     <style>
         :root {
-            --bg-dark: #0a0a0f;
-            --bg-card: #1a1a2e;
-            --bg-light: #16213e;
-            --primary: #4ade80;
+            --bg-dark: var(--ts-bg-base, #0a0a0f);
+            --bg-card: var(--ts-bg-surface, #1a1a2e);
+            --bg-light: var(--ts-bg-elevated, #16213e);
+            --primary: var(--ts-green-400, #4ade80);
             --primary-dim: rgba(74,222,128,0.15);
-            --gold: #f59e0b;
+            --gold: var(--ts-amber-500, #f59e0b);
             --gold-dim: rgba(245,158,11,0.15);
-            --danger: #ef4444;
+            --danger: var(--ts-red-500, #ef4444);
             --danger-dim: rgba(239,68,68,0.15);
-            --info: #3b82f6;
+            --info: var(--ts-blue-500, #3b82f6);
             --info-dim: rgba(59,130,246,0.15);
-            --purple: #a78bfa;
+            --purple: var(--ts-purple-400, #a78bfa);
             --purple-dim: rgba(167,139,250,0.15);
-            --text-primary: #e2e8f0;
-            --text-secondary: #94a3b8;
-            --border: rgba(255,255,255,0.08);
-            --border-light: rgba(255,255,255,0.12);
+            --text-primary: var(--ts-text, #e2e8f0);
+            --text-secondary: var(--ts-text-secondary, #94a3b8);
+            --border: var(--ts-border, rgba(255,255,255,0.08));
+            --border-light: var(--ts-border-strong, rgba(255,255,255,0.12));
             --radius: 12px;
             --radius-sm: 8px;
             --shadow: 0 4px 24px rgba(0,0,0,0.3);
@@ -267,7 +268,7 @@
             transition:all 0.3s ease;
         }
         .toast.show { transform:translateY(0); opacity:1; }
-        .toast.success { background:#16a34a; }
+        .toast.success { background:var(--ts-green-600, #16a34a); }
         .toast.error { background:var(--danger); }
         .toast.info { background:var(--info); }
         /* ── Sub-tabs ── */
@@ -305,6 +306,52 @@
         .timeline-content { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-sm); padding:0.75rem 1rem; }
         .timeline-content h4 { font-size:0.85rem; font-weight:600; margin-bottom:0.2rem; }
         .timeline-content p { font-size:0.75rem; color:var(--text-secondary); }
+        /* ── Seed to Sale Timeline ── */
+        .s2s-card {
+            background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius);
+            padding:0.85rem 1rem; cursor:pointer; transition:all 0.2s;
+        }
+        .s2s-card:hover { border-color:var(--primary); transform:translateY(-1px); }
+        .s2s-card-title { font-weight:600; font-size:0.85rem; margin-bottom:0.25rem; }
+        .s2s-card-meta { font-size:0.72rem; color:var(--text-secondary); display:flex; gap:0.75rem; flex-wrap:wrap; }
+        .s2s-badge {
+            display:inline-flex; align-items:center; gap:0.3rem; padding:0.2rem 0.6rem;
+            border-radius:20px; font-size:0.7rem; font-weight:600;
+        }
+        .s2s-badge.seed { background:var(--info-dim); color:var(--info); }
+        .s2s-badge.growing { background:var(--primary-dim); color:var(--primary); }
+        .s2s-badge.ready { background:var(--gold-dim); color:var(--gold); }
+        .s2s-badge.sold { background:var(--purple-dim); color:var(--purple); }
+        .s2s-badge.sold_out { background:var(--danger-dim); color:var(--danger); }
+        .s2s-timeline {
+            position:relative; padding-left:2.5rem;
+        }
+        .s2s-timeline::before {
+            content:''; position:absolute; left:1rem; top:0; bottom:0;
+            width:3px; background:linear-gradient(to bottom, var(--info), var(--primary), var(--gold), var(--purple));
+            border-radius:2px;
+        }
+        .s2s-event {
+            position:relative; margin-bottom:1.5rem; padding-bottom:0.25rem;
+        }
+        .s2s-event-dot {
+            position:absolute; left:-2rem; top:0.2rem;
+            width:16px; height:16px; border-radius:50%;
+            display:flex; align-items:center; justify-content:center;
+            font-size:0.55rem; color:#fff;
+        }
+        .s2s-event-dot.created { background:var(--info); }
+        .s2s-event-dot.seed_deducted { background:var(--info); }
+        .s2s-event-dot.status_change { background:var(--gold); }
+        .s2s-event-dot.sale { background:var(--purple); }
+        .s2s-event-dot.seed_deduction_failed { background:var(--danger); }
+        .s2s-event-box {
+            background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-sm);
+            padding:0.6rem 0.85rem;
+        }
+        .s2s-event-box h4 { font-size:0.8rem; font-weight:600; margin-bottom:0.15rem; display:flex; align-items:center; gap:0.4rem; }
+        .s2s-event-box .s2s-time { font-size:0.68rem; color:var(--text-secondary); }
+        .s2s-event-box .s2s-details { font-size:0.75rem; color:var(--text-secondary); margin-top:0.3rem; }
         /* ── Charts ── */
         .chart-bar-row { display:flex; align-items:center; gap:0.5rem; margin-bottom:0.5rem; }
         .chart-bar-label { width:100px; font-size:0.72rem; color:var(--text-secondary); text-align:right; flex-shrink:0; }
@@ -487,6 +534,7 @@
         <div class="sub-tab" onclick="showSubTab('sales','presale')">Presale Manager</div>
         <div class="sub-tab" onclick="showSubTab('sales','tracker')">Sales Tracker</div>
         <div class="sub-tab" onclick="showSubTab('sales','historical')">Historical Data</div>
+        <div class="sub-tab" onclick="showSubTab('sales','seedToSale')"><i class="fas fa-route"></i> Seed to Sale</div>
     </div>
 
     <!-- Sub-panel: Production Plan -->
@@ -496,12 +544,23 @@
                 <input type="text" id="prodPlanSearch" placeholder="Search variety..." oninput="filterProdPlan()">
                 <select id="prodPlanCat" onchange="filterProdPlan()">
                     <option value="">All Categories</option>
-                    <option value="Tomatoes">Tomatoes</option>
-                    <option value="Peppers">Peppers</option>
                     <option value="Cucurbits">Cucurbits</option>
+                    <option value="Peppers">Peppers</option>
+                    <option value="Tomatoes (Heirloom)">Tomatoes (Heirloom)</option>
+                    <option value="Tomatoes (Determinate)">Tomatoes (Determinate)</option>
+                    <option value="Tomatoes (Cherry)">Tomatoes (Cherry)</option>
+                    <option value="Eggplant">Eggplant</option>
+                    <option value="Kale/Chard/Cabbage">Kale/Chard/Cabbage</option>
+                    <option value="Lettuce">Lettuce</option>
                     <option value="Herbs">Herbs</option>
+                    <option value="Flowers">Flowers</option>
+                    <option value="Mushroom Blocks">Mushroom Blocks</option>
+                    <option value="Celery/Peas/Beans">Celery/Peas/Beans</option>
+                    <option value="Misc">Misc</option>
                 </select>
+                <button class="btn btn-outline btn-sm" onclick="openCsvImport()"><i class="fas fa-upload"></i> Import CSV</button>
                 <button class="btn btn-outline btn-sm" onclick="exportProdPlan()"><i class="fas fa-download"></i> Export</button>
+                <button class="btn btn-primary btn-sm" onclick="openModal('addVarietyModal')"><i class="fas fa-plus"></i> Add Variety</button>
             </div>
             <div style="overflow-x:auto;">
                 <table>
@@ -541,12 +600,13 @@
                 <label>Channel</label>
                 <select id="saleChannel">
                     <option value="Phipps">Phipps</option>
-                    <option value="City Grown">City Grown</option>
-                    <option value="Bloomfield">Bloomfield FM</option>
-                    <option value="Lawrenceville">Lawrenceville FM</option>
-                    <option value="Sewickley">Sewickley FM</option>
-                    <option value="Squirrel Hill">Squirrel Hill FM</option>
-                    <option value="Presale">Presale (Online)</option>
+                    <option value="City GROWN">City GROWN</option>
+                    <option value="Farmer's Market">Farmer's Market</option>
+                    <option value="Presale">Presale</option>
+                    <option value="Bloomfield FM">Bloomfield FM</option>
+                    <option value="Lawrenceville FM">Lawrenceville FM</option>
+                    <option value="Sewickley FM">Sewickley FM</option>
+                    <option value="Squirrel Hill FM">Squirrel Hill FM</option>
                 </select>
             </div>
             <button class="btn btn-primary" onclick="openModal('logSaleModal')"><i class="fas fa-plus"></i> Log Sale</button>
@@ -575,7 +635,8 @@
             <div class="form-group" style="margin:0;">
                 <label>Compare Years</label>
                 <select id="histYear" onchange="loadHistoricalData()">
-                    <option value="all">All Years (2021-2025)</option>
+                    <option value="all">All Years (2021-2026)</option>
+                    <option value="2026">2026</option>
                     <option value="2025">2025</option>
                     <option value="2024">2024</option>
                     <option value="2023">2023</option>
@@ -591,12 +652,55 @@
             <div class="table-wrap">
                 <div style="overflow-x:auto;">
                     <table>
-                        <thead><tr><th>Variety</th><th>2021</th><th>2022</th><th>2023</th><th>2024</th><th>2025</th><th>Trend</th></tr></thead>
+                        <thead><tr><th>Variety</th><th>2021</th><th>2022</th><th>2023</th><th>2024</th><th>2025</th><th>2026</th><th>Trend</th></tr></thead>
                         <tbody id="histTableBody">
-                            <tr><td colspan="7"><div class="loading-spinner"><i class="fas fa-spinner"></i> Loading historical data...</div></td></tr>
+                            <tr><td colspan="8"><div class="loading-spinner"><i class="fas fa-spinner"></i> Loading historical data...</div></td></tr>
                         </tbody>
                     </table>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sub-panel: Seed to Sale Timeline -->
+    <div class="sub-panel" id="sales-seedToSale">
+        <div style="display:flex;flex-wrap:wrap;gap:0.75rem;align-items:flex-end;margin-bottom:1rem;">
+            <div class="form-group" style="margin:0;flex:1;min-width:180px;">
+                <label>Search by Variety or Item ID</label>
+                <input type="text" id="s2sSearch" placeholder="e.g. Brandywine or SL-..." oninput="filterSeedToSale()">
+            </div>
+            <div class="form-group" style="margin:0;">
+                <label>Category</label>
+                <select id="s2sCat" onchange="filterSeedToSale()">
+                    <option value="">All</option>
+                    <option value="Peppers">Peppers</option>
+                    <option value="Tomatoes (Heirloom)">Tomatoes (Heirloom)</option>
+                    <option value="Tomatoes (Cherry)">Tomatoes (Cherry)</option>
+                    <option value="Cucurbits">Cucurbits</option>
+                    <option value="Herbs">Herbs</option>
+                    <option value="Flowers">Flowers</option>
+                </select>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="loadSeedToSaleList()"><i class="fas fa-sync"></i> Refresh</button>
+        </div>
+        <!-- Item list -->
+        <div id="s2sList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:0.75rem;margin-bottom:1.25rem;">
+            <div class="empty-state"><p>Click Refresh to load production items with lifecycle tracking.</p></div>
+        </div>
+        <!-- Timeline detail panel (shown when an item is selected) -->
+        <div id="s2sDetail" style="display:none;">
+            <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1rem;">
+                <button class="btn btn-outline btn-sm" onclick="closeSeedToSaleDetail()"><i class="fas fa-arrow-left"></i> Back</button>
+                <h3 id="s2sDetailTitle" style="font-size:1rem;margin:0;"></h3>
+            </div>
+            <!-- Status badge row -->
+            <div id="s2sStatusBadges" style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-bottom:1rem;"></div>
+            <!-- Visual timeline -->
+            <div class="s2s-timeline" id="s2sTimeline"></div>
+            <!-- Seed lot info -->
+            <div id="s2sSeedInfo" style="display:none;margin-top:1rem;">
+                <div class="section-header"><h2><i class="fas fa-box-open"></i> Seed Lot Details</h2></div>
+                <div id="s2sSeedInfoContent" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:1rem;"></div>
             </div>
         </div>
     </div>
@@ -804,10 +908,14 @@
                 <div class="form-group"><label>Unit Price ($)</label><input type="number" id="logSalePrice" step="0.25" min="0" placeholder="e.g. 4.50"></div>
             </div>
             <div class="form-group"><label>Channel</label><select id="logSaleChannel">
-                <option value="Phipps">Phipps</option><option value="City Grown">City Grown</option>
-                <option value="Bloomfield">Bloomfield FM</option><option value="Lawrenceville">Lawrenceville FM</option>
-                <option value="Sewickley">Sewickley FM</option><option value="Squirrel Hill">Squirrel Hill FM</option>
-                <option value="Presale">Presale (Online)</option>
+                <option value="Phipps">Phipps</option>
+                <option value="City GROWN">City GROWN</option>
+                <option value="Farmer's Market">Farmer's Market</option>
+                <option value="Presale">Presale</option>
+                <option value="Bloomfield FM">Bloomfield FM</option>
+                <option value="Lawrenceville FM">Lawrenceville FM</option>
+                <option value="Sewickley FM">Sewickley FM</option>
+                <option value="Squirrel Hill FM">Squirrel Hill FM</option>
             </select></div>
             <div class="form-group"><label>Date</label><input type="date" id="logSaleDateField"></div>
             <div class="form-group"><label>Notes (optional)</label><input type="text" id="logSaleNotes" placeholder="e.g. Customer name"></div>
@@ -815,6 +923,107 @@
         <div class="modal-foot">
             <button class="btn btn-outline" onclick="closeModal('logSaleModal')">Cancel</button>
             <button class="btn btn-primary" onclick="submitLogSale()"><i class="fas fa-check"></i> Log Sale</button>
+        </div>
+    </div>
+</div>
+
+<!-- CSV Import Modal -->
+<div class="modal-overlay" id="csvImportModal">
+    <div class="modal" style="max-width:700px;">
+        <div class="modal-head"><h3><i class="fas fa-upload"></i> Import CSV - Production Plan</h3><button class="modal-close" onclick="closeModal('csvImportModal')">&times;</button></div>
+        <div class="modal-body">
+            <p style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:1rem;">Upload a CSV with columns: Crop, Bought Seed (TRUE/FALSE), Seeding Date, Quantity need, # Trays, Cell Pack size, pots/tray. The file will be parsed and previewed before importing.</p>
+            <div class="form-group">
+                <label>CSV File</label>
+                <input type="file" id="csvFileInput" accept=".csv" onchange="previewCsvImport()" style="padding:0.4rem;">
+            </div>
+            <div class="form-group">
+                <label>Default Category</label>
+                <select id="csvDefaultCategory">
+                    <option value="">-- Auto-detect --</option>
+                    <option value="Cucurbits">Cucurbits</option>
+                    <option value="Peppers">Peppers</option>
+                    <option value="Tomatoes (Heirloom)">Tomatoes (Heirloom)</option>
+                    <option value="Tomatoes (Determinate)">Tomatoes (Determinate)</option>
+                    <option value="Tomatoes (Cherry)">Tomatoes (Cherry)</option>
+                    <option value="Eggplant">Eggplant</option>
+                    <option value="Kale/Chard/Cabbage">Kale/Chard/Cabbage</option>
+                    <option value="Lettuce">Lettuce</option>
+                    <option value="Herbs">Herbs</option>
+                    <option value="Flowers">Flowers</option>
+                    <option value="Mushroom Blocks">Mushroom Blocks</option>
+                    <option value="Celery/Peas/Beans">Celery/Peas/Beans</option>
+                    <option value="Misc">Misc</option>
+                </select>
+            </div>
+            <div id="csvPreviewArea" style="display:none;">
+                <label style="font-size:0.75rem;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:0.3rem;">Preview (first 5 rows)</label>
+                <div class="table-wrap" style="margin-bottom:0.75rem;">
+                    <div style="overflow-x:auto;">
+                        <table>
+                            <thead id="csvPreviewHead"></thead>
+                            <tbody id="csvPreviewBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <p id="csvRowCount" style="font-size:0.78rem;color:var(--text-secondary);"></p>
+            </div>
+        </div>
+        <div class="modal-foot">
+            <button class="btn btn-outline" onclick="closeModal('csvImportModal')">Cancel</button>
+            <button class="btn btn-primary" id="csvImportBtn" onclick="submitCsvImport()" disabled><i class="fas fa-upload"></i> Import</button>
+        </div>
+    </div>
+</div>
+
+<!-- Add Variety Modal -->
+<div class="modal-overlay" id="addVarietyModal">
+    <div class="modal">
+        <div class="modal-head"><h3><i class="fas fa-plus"></i> Add Variety to Production Plan</h3><button class="modal-close" onclick="closeModal('addVarietyModal')">&times;</button></div>
+        <div class="modal-body">
+            <div class="form-group"><label>Category</label>
+                <select id="addVarCategory">
+                    <option value="Cucurbits">Cucurbits</option>
+                    <option value="Peppers">Peppers</option>
+                    <option value="Tomatoes (Heirloom)">Tomatoes (Heirloom)</option>
+                    <option value="Tomatoes (Determinate)">Tomatoes (Determinate)</option>
+                    <option value="Tomatoes (Cherry)">Tomatoes (Cherry)</option>
+                    <option value="Eggplant">Eggplant</option>
+                    <option value="Kale/Chard/Cabbage">Kale/Chard/Cabbage</option>
+                    <option value="Lettuce">Lettuce</option>
+                    <option value="Herbs">Herbs</option>
+                    <option value="Flowers">Flowers</option>
+                    <option value="Mushroom Blocks">Mushroom Blocks</option>
+                    <option value="Celery/Peas/Beans">Celery/Peas/Beans</option>
+                    <option value="Misc">Misc</option>
+                </select>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>Crop</label><input type="text" id="addVarCrop" placeholder="e.g. Tomato"></div>
+                <div class="form-group"><label>Variety</label><input type="text" id="addVarVariety" placeholder="e.g. Brandywine"></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label># Trays</label><input type="number" id="addVarTrays" min="1" placeholder="e.g. 3"></div>
+                <div class="form-group"><label>Cell Pack Size</label>
+                    <select id="addVarCellSize">
+                        <option value="72">72 cell</option>
+                        <option value="50">50 cell</option>
+                        <option value="36">36 cell</option>
+                        <option value="18">18 cell</option>
+                        <option value="6">6 cell / 4" pot</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>Pots per Tray</label><input type="number" id="addVarPotsPerTray" min="1" placeholder="e.g. 72"></div>
+                <div class="form-group"><label>Price Each ($)</label><input type="number" id="addVarPrice" step="0.25" min="0" placeholder="e.g. 4.50"></div>
+            </div>
+            <div class="form-group"><label>Seeding Date</label><input type="date" id="addVarSeedDate"></div>
+            <div class="form-group"><label>Notes (optional)</label><textarea id="addVarNotes" placeholder="Any notes about this variety..."></textarea></div>
+        </div>
+        <div class="modal-foot">
+            <button class="btn btn-outline" onclick="closeModal('addVarietyModal')">Cancel</button>
+            <button class="btn btn-primary" onclick="submitAddVariety()"><i class="fas fa-plus"></i> Add to Plan</button>
         </div>
     </div>
 </div>
@@ -1310,45 +1519,88 @@ async function loadSalesTab() {
 
 async function loadProductionPlan() {
     try {
-        const res = await api.get('getPlanning');
-        const rows = (res && res.data) ? res.data : (res && res.rows) ? res.rows : [];
-        // Filter for seedling-related entries
-        state.prodPlan = rows.filter(r => r.category === 'seedling' || r.type === 'seedling' || r.forSeedlingSale);
+        var cat = document.getElementById('prodPlanCat').value || '';
+        var params = { year: new Date().getFullYear() };
+        if (cat) params.category = cat;
+        var res = await api.get('getSeedlingProductionPlan', params);
+        var rows = (res && res.data) ? res.data : (res && res.rows) ? res.rows : (res && res.items) ? res.items : [];
+        state.prodPlan = rows;
         renderProdPlan(state.prodPlan);
         populateVarietySelects();
     } catch (err) {
-        console.error(err);
-        document.getElementById('prodPlanBody').innerHTML = '<tr><td colspan="11"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Failed to load production plan.</p></div></td></tr>';
+        console.error('loadProductionPlan error:', err);
+        document.getElementById('prodPlanBody').innerHTML = '<tr><td colspan="11"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Failed to load production plan.</p><button class="btn btn-outline btn-sm" onclick="loadProductionPlan()"><i class="fas fa-redo"></i> Retry</button></div></td></tr>';
     }
 }
 
 function renderProdPlan(data) {
-    const tbody = document.getElementById('prodPlanBody');
+    var tbody = document.getElementById('prodPlanBody');
     if (!data.length) {
-        tbody.innerHTML = '<tr><td colspan="11"><div class="empty-state"><i class="fas fa-clipboard-list"></i><p>No seedling production plan entries found. Production plan data will appear here once configured in the PLANNING_2026 sheet.</p></div></td></tr>';
+        tbody.innerHTML = '<tr><td colspan="11"><div class="empty-state"><i class="fas fa-clipboard-list"></i><p>No seedling production plan entries found. Use "Add Variety" or "Import CSV" to populate the plan.</p></div></td></tr>';
         return;
     }
-    tbody.innerHTML = data.map(r => `<tr>
-        <td style="font-weight:600;">${esc(r.variety || r.crop || '--')}</td>
-        <td>${esc(r.cropCategory || r.category || '--')}</td>
-        <td>${r.trays || '--'}</td>
-        <td>${r.cellSize || '--'}</td>
-        <td>${formatDate(r.seedDate || r.sowDate)}</td>
-        <td>${formatDate(r.readyDate || r.estimatedReadyDate)}</td>
-        <td style="font-weight:600;">${r.totalUnits || '--'}</td>
-        <td>${r.allocPhipps || '--'}</td>
-        <td>${r.allocCityGrown || '--'}</td>
-        <td>${r.allocMarkets || '--'}</td>
-        <td>${r.allocPresale || '--'}</td>
-    </tr>`).join('');
+    tbody.innerHTML = data.map(function(r) {
+        // Support both SEEDLING_PRODUCTION sheet columns and normalized field names
+        var variety = r.Variety || r.variety || r.Crop || r.crop || '--';
+        var category = r.Category || r.cropCategory || r.category || '--';
+        var trays = r.Num_Trays || r.trays || '--';
+        var cellSize = r.Cell_Pack_Size || r.cellSize || '--';
+        var seedDate = r.Seeding_Date || r.seedDate || r.sowDate || '';
+        var readyDate = r.Ready_Date || r.readyDate || r.estimatedReadyDate || '';
+        var totalUnits = r.Total_Units || r.totalUnits || '--';
+        var status = r.Status || r.status || '';
+        var unitsSold = r.Units_Sold || r.unitsSold || 0;
+        var allocation = r.Market_Allocation || r.marketAllocation || '';
+
+        // Parse allocation string if present (e.g. "Phipps:50,City GROWN:30,Markets:20")
+        var allocPhipps = r.allocPhipps || '--';
+        var allocCityGrown = r.allocCityGrown || '--';
+        var allocMarkets = r.allocMarkets || '--';
+        var allocPresale = r.allocPresale || '--';
+        if (allocation && typeof allocation === 'string') {
+            var parts = {};
+            allocation.split(',').forEach(function(p) {
+                var kv = p.split(':');
+                if (kv.length === 2) parts[kv[0].trim()] = kv[1].trim();
+            });
+            if (parts['Phipps']) allocPhipps = parts['Phipps'];
+            if (parts['City GROWN'] || parts['City Grown']) allocCityGrown = parts['City GROWN'] || parts['City Grown'];
+            if (parts['Markets'] || parts['Farmer\'s Market']) allocMarkets = parts['Markets'] || parts['Farmer\'s Market'];
+            if (parts['Presale']) allocPresale = parts['Presale'];
+        }
+
+        var statusPill = '';
+        if (status) {
+            var pc = status.toLowerCase().includes('ready') ? 'pill-green' :
+                     status.toLowerCase().includes('growing') ? 'pill-gold' :
+                     status.toLowerCase().includes('seed') ? 'pill-blue' : 'pill-blue';
+            statusPill = ' <span class="pill ' + pc + '" style="font-size:0.6rem;">' + esc(status) + '</span>';
+        }
+
+        return '<tr>' +
+            '<td style="font-weight:600;">' + esc(variety) + statusPill + '</td>' +
+            '<td>' + esc(category) + '</td>' +
+            '<td>' + trays + '</td>' +
+            '<td>' + cellSize + '</td>' +
+            '<td>' + formatDate(seedDate) + '</td>' +
+            '<td>' + formatDate(readyDate) + '</td>' +
+            '<td style="font-weight:600;">' + totalUnits + '</td>' +
+            '<td>' + allocPhipps + '</td>' +
+            '<td>' + allocCityGrown + '</td>' +
+            '<td>' + allocMarkets + '</td>' +
+            '<td>' + allocPresale + '</td>' +
+        '</tr>';
+    }).join('');
 }
 
 function filterProdPlan() {
-    const search = document.getElementById('prodPlanSearch').value.toLowerCase();
-    const cat = document.getElementById('prodPlanCat').value.toLowerCase();
-    const filtered = state.prodPlan.filter(r => {
-        const matchSearch = !search || (r.variety || '').toLowerCase().includes(search) || (r.crop || '').toLowerCase().includes(search);
-        const matchCat = !cat || (r.cropCategory || r.category || '').toLowerCase().includes(cat);
+    var search = document.getElementById('prodPlanSearch').value.toLowerCase();
+    var cat = document.getElementById('prodPlanCat').value.toLowerCase();
+    var filtered = state.prodPlan.filter(function(r) {
+        var varName = (r.Variety || r.variety || r.Crop || r.crop || '').toLowerCase();
+        var catName = (r.Category || r.cropCategory || r.category || '').toLowerCase();
+        var matchSearch = !search || varName.includes(search) || (r.Crop || r.crop || '').toLowerCase().includes(search);
+        var matchCat = !cat || catName.includes(cat);
         return matchSearch && matchCat;
     });
     renderProdPlan(filtered);
@@ -1356,11 +1608,30 @@ function filterProdPlan() {
 
 function exportProdPlan() {
     if (!state.prodPlan.length) { toast('No data to export', 'error'); return; }
-    const headers = ['Variety','Category','Trays','Cell Size','Seed Date','Ready Date','Total Units','Phipps','City Grown','Markets','Presale'];
-    const rows = state.prodPlan.map(r => [r.variety||r.crop,r.cropCategory||r.category,r.trays,r.cellSize,r.seedDate||r.sowDate,r.readyDate,r.totalUnits,r.allocPhipps,r.allocCityGrown,r.allocMarkets,r.allocPresale]);
-    const csv = [headers, ...rows].map(r => r.map(c => '"' + (c||'') + '"').join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const a = document.createElement('a');
+    var headers = ['Variety','Category','Crop','Trays','Cell Size','Pots/Tray','Seed Date','Ready Date','Total Units','Status','Units Sold','Revenue','Price Each','Notes'];
+    var rows = state.prodPlan.map(function(r) {
+        return [
+            r.Variety || r.variety || r.crop || '',
+            r.Category || r.cropCategory || r.category || '',
+            r.Crop || r.crop || '',
+            r.Num_Trays || r.trays || '',
+            r.Cell_Pack_Size || r.cellSize || '',
+            r.Pots_Per_Tray || r.potsPerTray || '',
+            r.Seeding_Date || r.seedDate || r.sowDate || '',
+            r.Ready_Date || r.readyDate || '',
+            r.Total_Units || r.totalUnits || '',
+            r.Status || r.status || '',
+            r.Units_Sold || r.unitsSold || '',
+            r.Revenue || r.revenue || '',
+            r.Price_Each || r.priceEach || '',
+            r.Notes || r.notes || ''
+        ];
+    });
+    var csv = [headers].concat(rows).map(function(r) {
+        return r.map(function(c) { return '"' + String(c || '').replace(/"/g, '""') + '"'; }).join(',');
+    }).join('\n');
+    var blob = new Blob([csv], { type: 'text/csv' });
+    var a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = 'seedling_production_plan_' + todayStr() + '.csv';
     a.click();
@@ -1434,10 +1705,14 @@ async function syncPresaleToShopify() {
 
 async function loadSalesTracker() {
     try {
-        const res = await api.get('getSeedlingSales', { year: 2026 });
+        var params = { year: new Date().getFullYear() };
+        var channelFilter = document.getElementById('saleChannel').value;
+        if (channelFilter) params.channel = channelFilter;
+        var res = await api.get('getSeedlingSales', params);
         state.salesLog = (res && res.sales) ? res.sales : (res && res.data) ? res.data : [];
         renderSalesTracker();
     } catch (err) {
+        console.error('loadSalesTracker error:', err);
         state.salesLog = [];
         renderSalesTracker();
     }
@@ -1488,15 +1763,19 @@ function renderSalesTracker() {
 }
 
 async function submitLogSale() {
-    const variety = document.getElementById('logSaleVariety').value;
-    const qty = parseInt(document.getElementById('logSaleQty').value);
-    const price = parseFloat(document.getElementById('logSalePrice').value);
+    var variety = document.getElementById('logSaleVariety').value;
+    var qty = parseInt(document.getElementById('logSaleQty').value);
+    var price = parseFloat(document.getElementById('logSalePrice').value);
     if (!variety || !qty || !price) { toast('All fields required', 'error'); return; }
     try {
         await api.post('logSeedlingSale', {
-            variety, qty, unitPrice: price,
             channel: document.getElementById('logSaleChannel').value,
-            date: document.getElementById('logSaleDateField').value || todayStr(),
+            crop: variety,
+            variety: variety,
+            qty: qty,
+            priceEach: price,
+            saleDate: document.getElementById('logSaleDateField').value || todayStr(),
+            customerName: '',
             notes: document.getElementById('logSaleNotes').value.trim()
         });
         toast('Sale logged: ' + qty + 'x ' + variety);
@@ -1517,7 +1796,7 @@ async function loadHistoricalData() {
     } catch (err) {
         state.historicalData = {};
         document.getElementById('histRevChart').innerHTML = '<div class="empty-state"><p>Historical data not yet available. It will appear here once past seasons are imported.</p></div>';
-        document.getElementById('histTableBody').innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text-secondary);">No historical data available.</td></tr>';
+        document.getElementById('histTableBody').innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--text-secondary);">No historical data available.</td></tr>';
     }
 }
 
@@ -1542,29 +1821,32 @@ function renderHistoricalCharts() {
 }
 
 function renderHistoricalTable() {
-    const tbody = document.getElementById('histTableBody');
-    const varieties = state.historicalData.varieties || state.historicalData.byVariety || {};
-    const entries = Object.entries(varieties);
+    var tbody = document.getElementById('histTableBody');
+    var varieties = state.historicalData.varieties || state.historicalData.byVariety || {};
+    var entries = Object.entries(varieties);
     if (!entries.length) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text-secondary);">No variety data to display.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--text-secondary);">No variety data to display.</td></tr>';
         return;
     }
-    tbody.innerHTML = entries.map(([variety, years]) => {
-        const y = years || {};
-        const vals = [y['2021']||0, y['2022']||0, y['2023']||0, y['2024']||0, y['2025']||0];
-        const trend = vals[4] > vals[3] ? '<span style="color:var(--primary);"><i class="fas fa-arrow-up"></i></span>' :
-                      vals[4] < vals[3] ? '<span style="color:var(--danger);"><i class="fas fa-arrow-down"></i></span>' :
-                      '<span style="color:var(--text-secondary);"><i class="fas fa-minus"></i></span>';
-        return `<tr>
-            <td style="font-weight:600;">${esc(variety)}</td>
-            ${vals.map(v => `<td>${v ? '$' + v.toFixed(0) : '--'}</td>`).join('')}
-            <td>${trend}</td>
-        </tr>`;
+    tbody.innerHTML = entries.map(function(entry) {
+        var variety = entry[0];
+        var years = entry[1] || {};
+        var vals = [years['2021']||0, years['2022']||0, years['2023']||0, years['2024']||0, years['2025']||0, years['2026']||0];
+        var latest = vals[5] || vals[4];
+        var prev = vals[5] ? vals[4] : vals[3];
+        var trend = latest > prev ? '<span style="color:var(--primary);"><i class="fas fa-arrow-up"></i></span>' :
+                    latest < prev ? '<span style="color:var(--danger);"><i class="fas fa-arrow-down"></i></span>' :
+                    '<span style="color:var(--text-secondary);"><i class="fas fa-minus"></i></span>';
+        return '<tr>' +
+            '<td style="font-weight:600;">' + esc(variety) + '</td>' +
+            vals.map(function(v) { return '<td>' + (v ? '$' + v.toFixed(0) : '--') + '</td>'; }).join('') +
+            '<td>' + trend + '</td>' +
+        '</tr>';
     }).join('');
 }
 
 function populateVarietySelects() {
-    const seedlingVarieties = [
+    var seedlingVarieties = [
         'Brandywine','Black Krim','Cherokee Purple','Cherokee Green','Mountain Pride','Mountain Princess',
         'Great White','Black Cherry','White Cherry','Striped German','Green Zebra','Cuor di Bue',
         'Sweet Pepper Mix','Lunchbox','Cayenne','Hot Pepper Mix','Bell Pepper','Habanero','Carmen',
@@ -1572,13 +1854,228 @@ function populateVarietySelects() {
         'Hungarian Wax','Ghost','Serrano','Carolina Reaper','Ace','Lipstick','Bastian Poblano',
         'Cucumber','Zucchini','Yellow Squash','Pickles'
     ];
-    const fromPlan = state.prodPlan.map(r => r.variety || r.crop).filter(Boolean);
-    const all = [...new Set([...seedlingVarieties, ...fromPlan])].sort();
-    const opts = all.map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join('');
-    ['presaleVariety', 'logSaleVariety'].forEach(id => {
-        const sel = document.getElementById(id);
+    var fromPlan = state.prodPlan.map(function(r) {
+        return r.Variety || r.variety || r.Crop || r.crop || '';
+    }).filter(Boolean);
+    var combined = seedlingVarieties.concat(fromPlan);
+    var unique = [];
+    var seen = {};
+    combined.forEach(function(v) {
+        if (!seen[v]) { seen[v] = true; unique.push(v); }
+    });
+    unique.sort();
+    var opts = unique.map(function(v) { return '<option value="' + esc(v) + '">' + esc(v) + '</option>'; }).join('');
+    ['presaleVariety', 'logSaleVariety'].forEach(function(id) {
+        var sel = document.getElementById(id);
         if (sel) sel.innerHTML = '<option value="">-- Select variety --</option>' + opts;
     });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// SEED TO SALE TIMELINE
+// ═══════════════════════════════════════════════════════════════════
+state.s2sItems = [];
+state.s2sFiltered = [];
+
+async function loadSeedToSaleList() {
+    var listEl = document.getElementById('s2sList');
+    listEl.innerHTML = '<div class="loading-spinner"><i class="fas fa-spinner"></i> Loading production items...</div>';
+    try {
+        var res = await api.get('getSeedlingProductionPlan', { year: new Date().getFullYear() });
+        var items = (res && res.data) ? res.data : (res && res.rows) ? res.rows : (res && res.items) ? res.items : [];
+        state.s2sItems = items;
+        filterSeedToSale();
+    } catch (err) {
+        listEl.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Failed to load items: ' + esc(err.message) + '</p></div>';
+    }
+}
+
+function filterSeedToSale() {
+    var search = (document.getElementById('s2sSearch').value || '').toLowerCase();
+    var cat = document.getElementById('s2sCat').value || '';
+    state.s2sFiltered = state.s2sItems.filter(function(item) {
+        var variety = (item.Variety || item.variety || item.Crop || item.crop || '').toLowerCase();
+        var itemId = (item.Item_ID || item.itemId || '').toLowerCase();
+        var itemCat = item.Category || item.category || '';
+        if (search && variety.indexOf(search) === -1 && itemId.indexOf(search) === -1) return false;
+        if (cat && itemCat !== cat) return false;
+        return true;
+    });
+    renderSeedToSaleList();
+}
+
+function renderSeedToSaleList() {
+    var listEl = document.getElementById('s2sList');
+    var items = state.s2sFiltered;
+    if (!items.length) {
+        listEl.innerHTML = '<div class="empty-state"><p>No matching items found.</p></div>';
+        return;
+    }
+    listEl.innerHTML = items.map(function(item) {
+        var id = item.Item_ID || item.itemId || '--';
+        var variety = item.Variety || item.variety || item.Crop || item.crop || '--';
+        var category = item.Category || item.category || '--';
+        var status = item.Status || item.status || 'Planned';
+        var seedLot = item.Seed_Lot_ID || item.seedLotId || '';
+        var trays = item.Num_Trays || item.trays || 0;
+        var sold = item.Units_Sold || item.unitsSold || 0;
+        var total = item.Total_Units || item.totalUnits || 0;
+        var statusClass = status.toLowerCase().replace(/\s+/g, '_');
+        if (['growing','seeded'].indexOf(statusClass) >= 0) statusClass = 'growing';
+        else if (statusClass === 'ready' || statusClass === 'ready_for_sale') statusClass = 'ready';
+        else if (statusClass === 'sold_out') statusClass = 'sold_out';
+        else if (statusClass === 'planned') statusClass = 'seed';
+        else statusClass = 'growing';
+        return '<div class="s2s-card" onclick="openSeedToSaleDetail(\'' + esc(id) + '\')">' +
+            '<div class="s2s-card-title">' + esc(variety) + '</div>' +
+            '<div class="s2s-card-meta">' +
+                '<span>' + esc(category) + '</span>' +
+                '<span><i class="fas fa-layer-group"></i> ' + trays + ' trays</span>' +
+                (seedLot ? '<span><i class="fas fa-barcode"></i> ' + esc(seedLot) + '</span>' : '') +
+                '<span>' + sold + '/' + total + ' sold</span>' +
+            '</div>' +
+            '<div style="margin-top:0.4rem;"><span class="s2s-badge ' + statusClass + '">' + esc(status) + '</span></div>' +
+        '</div>';
+    }).join('');
+}
+
+async function openSeedToSaleDetail(itemId) {
+    document.getElementById('s2sList').style.display = 'none';
+    var detailEl = document.getElementById('s2sDetail');
+    detailEl.style.display = 'block';
+    document.getElementById('s2sDetailTitle').textContent = 'Loading...';
+    document.getElementById('s2sStatusBadges').innerHTML = '';
+    document.getElementById('s2sTimeline').innerHTML = '<div class="loading-spinner"><i class="fas fa-spinner"></i> Loading timeline...</div>';
+    document.getElementById('s2sSeedInfo').style.display = 'none';
+
+    try {
+        var res = await api.get('getSeedlingTimeline', { itemId: itemId });
+        if (!res || !res.success) throw new Error(res && res.error ? res.error : 'Failed to load timeline');
+        renderSeedToSaleDetail(res);
+    } catch (err) {
+        document.getElementById('s2sDetailTitle').textContent = 'Item: ' + itemId;
+        document.getElementById('s2sTimeline').innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>' + esc(err.message) + '</p></div>';
+    }
+}
+
+function renderSeedToSaleDetail(data) {
+    var prod = data.production || {};
+    var seed = data.seedLot || null;
+    // Backend returns a unified timeline[] array with all events (lifecycle, sales, seed events)
+    var apiTimeline = data.timeline || [];
+
+    // Title
+    var title = (prod.Variety || prod.variety || prod.Crop || prod.crop || 'Unknown') + ' — ' + (prod.Category || prod.category || '');
+    document.getElementById('s2sDetailTitle').textContent = title;
+
+    // Status badges
+    var status = prod.Status || prod.status || 'Planned';
+    var seedLotId = data.seedLotId || prod.Seed_Lot_ID || prod.seedLotId || '';
+    var batchId = prod.Batch_ID || prod.batchId || '';
+    var totalUnits = Number(prod.Total_Units || prod.totalUnits) || 0;
+    var soldUnits = Number(prod.Units_Sold || prod.unitsSold) || 0;
+    var pctSold = totalUnits > 0 ? Math.round(soldUnits / totalUnits * 100) : 0;
+
+    var badgesHtml = '<span class="s2s-badge growing"><i class="fas fa-tag"></i> ' + esc(status) + '</span>';
+    if (seedLotId) badgesHtml += '<span class="s2s-badge seed"><i class="fas fa-barcode"></i> Lot: ' + esc(seedLotId) + '</span>';
+    if (batchId) badgesHtml += '<span class="s2s-badge seed"><i class="fas fa-box"></i> Batch: ' + esc(batchId) + '</span>';
+    badgesHtml += '<span class="s2s-badge sold"><i class="fas fa-shopping-cart"></i> ' + soldUnits + '/' + totalUnits + ' sold (' + pctSold + '%)</span>';
+    if (Number(prod.Revenue || prod.revenue) > 0) {
+        badgesHtml += '<span class="s2s-badge ready"><i class="fas fa-dollar-sign"></i> $' + Number(prod.Revenue || prod.revenue).toFixed(2) + '</span>';
+    }
+    document.getElementById('s2sStatusBadges').innerHTML = badgesHtml;
+
+    // Map API timeline events to display format
+    var iconMap = {
+        seed_ordered: 'fa-truck', seed_received: 'fa-box-open', seeded: 'fa-seedling',
+        ready: 'fa-check-circle', created: 'fa-plus-circle', seed_deducted: 'fa-minus-circle',
+        status_change: 'fa-exchange-alt', sale: 'fa-receipt',
+        seed_deduction_failed: 'fa-exclamation-triangle'
+    };
+    var dotClassMap = {
+        seed_ordered: 'created', seed_received: 'created', seeded: 'status_change',
+        ready: 'status_change', created: 'created', seed_deducted: 'seed_deducted',
+        status_change: 'status_change', sale: 'sale',
+        seed_deduction_failed: 'seed_deduction_failed'
+    };
+
+    var displayTimeline = apiTimeline.map(function(evt) {
+        var evtType = evt.event || 'status_change';
+        var evtTitle = evtType.replace(/_/g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); });
+        if (evt.data && evt.data.from && evt.data.to) {
+            evtTitle += ': ' + evt.data.from + ' → ' + evt.data.to;
+        }
+        return {
+            type: dotClassMap[evtType] || 'status_change',
+            icon: iconMap[evtType] || 'fa-circle',
+            title: evtTitle,
+            detail: evt.details || '',
+            time: evt.date || ''
+        };
+    });
+
+    // Render timeline
+    var timelineEl = document.getElementById('s2sTimeline');
+    if (!displayTimeline.length) {
+        timelineEl.innerHTML = '<div class="empty-state"><p>No lifecycle events recorded yet. Events will appear as this item progresses through production and sales.</p></div>';
+    } else {
+        timelineEl.innerHTML = displayTimeline.map(function(evt) {
+            var timeStr = evt.time ? formatTimeAgo(evt.time) : '';
+            return '<div class="s2s-event">' +
+                '<div class="s2s-event-dot ' + esc(evt.type) + '"><i class="fas ' + evt.icon + '"></i></div>' +
+                '<div class="s2s-event-box">' +
+                    '<h4>' + esc(evt.title) + '</h4>' +
+                    (timeStr ? '<div class="s2s-time">' + esc(timeStr) + '</div>' : '') +
+                    (evt.detail ? '<div class="s2s-details">' + esc(evt.detail) + '</div>' : '') +
+                '</div>' +
+            '</div>';
+        }).join('');
+    }
+
+    // Seed lot details card
+    if (seed && seed.Seed_Lot_ID) {
+        document.getElementById('s2sSeedInfo').style.display = 'block';
+        var infoHtml = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:0.75rem;">';
+        var fields = [
+            { label: 'Seed Lot', value: seed.Seed_Lot_ID },
+            { label: 'Crop', value: seed.Crop },
+            { label: 'Variety', value: seed.Variety },
+            { label: 'Supplier', value: seed.Supplier },
+            { label: 'Qty Remaining', value: seed.Quantity_Remaining },
+            { label: 'Germination Rate', value: seed.Germination_Rate ? seed.Germination_Rate + '%' : '--' },
+            { label: 'Expiration', value: seed.Expiration_Date || '--' },
+            { label: 'Storage', value: seed.Storage_Location || '--' }
+        ];
+        fields.forEach(function(f) {
+            if (f.value) {
+                infoHtml += '<div><div style="font-size:0.68rem;color:var(--text-secondary);margin-bottom:0.15rem;">' + f.label + '</div><div style="font-size:0.82rem;font-weight:600;">' + esc(String(f.value)) + '</div></div>';
+            }
+        });
+        infoHtml += '</div>';
+        if (seed.QR_Code_URL) {
+            infoHtml += '<div style="margin-top:0.75rem;"><a href="' + esc(seed.QR_Code_URL) + '" target="_blank" class="btn btn-outline btn-sm"><i class="fas fa-qrcode"></i> View QR Code</a></div>';
+        }
+        document.getElementById('s2sSeedInfoContent').innerHTML = infoHtml;
+    }
+}
+
+function formatTimeAgo(dateStr) {
+    try {
+        var d = new Date(dateStr);
+        if (isNaN(d.getTime())) return dateStr;
+        var now = new Date();
+        var diff = now - d;
+        if (diff < 60000) return 'Just now';
+        if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
+        if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
+        if (diff < 604800000) return Math.floor(diff / 86400000) + 'd ago';
+        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    } catch (e) { return dateStr; }
+}
+
+function closeSeedToSaleDetail() {
+    document.getElementById('s2sDetail').style.display = 'none';
+    document.getElementById('s2sList').style.display = 'grid';
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -1817,9 +2314,212 @@ function updateSyncIndicator(online) {
 
 function esc(str) {
     if (!str) return '';
-    const d = document.createElement('div');
+    var d = document.createElement('div');
     d.textContent = String(str);
     return d.innerHTML;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// CSV IMPORT
+// ═══════════════════════════════════════════════════════════════════
+var csvParsedRows = [];
+
+function openCsvImport() {
+    csvParsedRows = [];
+    document.getElementById('csvFileInput').value = '';
+    document.getElementById('csvPreviewArea').style.display = 'none';
+    document.getElementById('csvImportBtn').disabled = true;
+    openModal('csvImportModal');
+}
+
+function previewCsvImport() {
+    var fileInput = document.getElementById('csvFileInput');
+    var file = fileInput.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(e) {
+        var text = e.target.result;
+        var lines = text.split(/\r?\n/).filter(function(l) { return l.trim().length > 0; });
+        if (lines.length < 2) {
+            toast('CSV must have a header row and at least one data row', 'error');
+            return;
+        }
+        var headerLine = lines[0];
+        var headers = parseCsvLine(headerLine);
+
+        // Map CSV columns to our schema
+        var colMap = mapCsvColumns(headers);
+
+        csvParsedRows = [];
+        for (var i = 1; i < lines.length; i++) {
+            var cols = parseCsvLine(lines[i]);
+            if (cols.length < 2) continue;
+            var row = {
+                Crop: getCol(cols, colMap.crop),
+                Variety: getCol(cols, colMap.variety) || getCol(cols, colMap.crop),
+                Bought_Seed: getCol(cols, colMap.boughtSeed),
+                Seeding_Date: getCol(cols, colMap.seedingDate),
+                Total_Units: parseInt(getCol(cols, colMap.quantityNeed)) || 0,
+                Num_Trays: parseInt(getCol(cols, colMap.trays)) || 0,
+                Cell_Pack_Size: parseInt(getCol(cols, colMap.cellPackSize)) || 72,
+                Pots_Per_Tray: parseInt(getCol(cols, colMap.potsPerTray)) || 0,
+                Category: document.getElementById('csvDefaultCategory').value || 'Misc',
+                Year: new Date().getFullYear()
+            };
+            // Parse Bought_Seed to boolean string
+            if (row.Bought_Seed) {
+                row.Bought_Seed = (row.Bought_Seed.toLowerCase() === 'true' || row.Bought_Seed === '1') ? 'TRUE' : 'FALSE';
+            }
+            csvParsedRows.push(row);
+        }
+
+        // Render preview
+        var previewArea = document.getElementById('csvPreviewArea');
+        var thead = document.getElementById('csvPreviewHead');
+        var tbody = document.getElementById('csvPreviewBody');
+
+        thead.innerHTML = '<tr><th>Crop</th><th>Variety</th><th>Bought Seed</th><th>Seed Date</th><th>Qty</th><th>Trays</th><th>Cell Size</th><th>Pots/Tray</th></tr>';
+        var previewRows = csvParsedRows.slice(0, 5);
+        tbody.innerHTML = previewRows.map(function(r) {
+            return '<tr>' +
+                '<td>' + esc(r.Crop) + '</td>' +
+                '<td>' + esc(r.Variety) + '</td>' +
+                '<td>' + esc(r.Bought_Seed) + '</td>' +
+                '<td>' + esc(r.Seeding_Date) + '</td>' +
+                '<td>' + r.Total_Units + '</td>' +
+                '<td>' + r.Num_Trays + '</td>' +
+                '<td>' + r.Cell_Pack_Size + '</td>' +
+                '<td>' + r.Pots_Per_Tray + '</td>' +
+            '</tr>';
+        }).join('');
+
+        document.getElementById('csvRowCount').textContent = 'Total rows to import: ' + csvParsedRows.length;
+        previewArea.style.display = 'block';
+        document.getElementById('csvImportBtn').disabled = false;
+    };
+    reader.readAsText(file);
+}
+
+function parseCsvLine(line) {
+    var result = [];
+    var current = '';
+    var inQuotes = false;
+    for (var i = 0; i < line.length; i++) {
+        var ch = line[i];
+        if (inQuotes) {
+            if (ch === '"') {
+                if (i + 1 < line.length && line[i + 1] === '"') {
+                    current += '"';
+                    i++;
+                } else {
+                    inQuotes = false;
+                }
+            } else {
+                current += ch;
+            }
+        } else {
+            if (ch === '"') {
+                inQuotes = true;
+            } else if (ch === ',') {
+                result.push(current.trim());
+                current = '';
+            } else {
+                current += ch;
+            }
+        }
+    }
+    result.push(current.trim());
+    return result;
+}
+
+function mapCsvColumns(headers) {
+    var map = { crop: -1, variety: -1, boughtSeed: -1, seedingDate: -1, quantityNeed: -1, trays: -1, cellPackSize: -1, potsPerTray: -1 };
+    headers.forEach(function(h, i) {
+        var lower = h.toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (lower.includes('crop') && map.crop === -1) map.crop = i;
+        if ((lower.includes('variety') || lower.includes('cultivar')) && map.variety === -1) map.variety = i;
+        if ((lower.includes('bought') || lower.includes('purchased')) && map.boughtSeed === -1) map.boughtSeed = i;
+        if ((lower.includes('seed') && lower.includes('date')) || lower.includes('sowdate') || lower.includes('seedingdate')) map.seedingDate = i;
+        if ((lower.includes('quantity') || lower.includes('qty') || lower === 'quantityneed') && map.quantityNeed === -1) map.quantityNeed = i;
+        if ((lower.includes('tray') && !lower.includes('pots')) || lower === 'trays' || lower === 'numtrays') map.trays = i;
+        if (lower.includes('cell') && lower.includes('pack') || lower.includes('cellsize') || lower.includes('cellpacksize')) map.cellPackSize = i;
+        if (lower.includes('pots') && lower.includes('tray') || lower.includes('potspertray') || lower.includes('potstray')) map.potsPerTray = i;
+    });
+    // If no variety column found, fall back to crop
+    if (map.variety === -1) map.variety = map.crop;
+    return map;
+}
+
+function getCol(cols, idx) {
+    if (idx < 0 || idx >= cols.length) return '';
+    return cols[idx] || '';
+}
+
+async function submitCsvImport() {
+    if (!csvParsedRows.length) { toast('No data to import', 'error'); return; }
+    var btn = document.getElementById('csvImportBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Importing...';
+    try {
+        var defaultCat = document.getElementById('csvDefaultCategory').value || 'Misc';
+        var items = csvParsedRows.map(function(r) {
+            r.Category = r.Category || defaultCat;
+            return r;
+        });
+        await api.post('bulkImportSeedlingData', { items: items });
+        toast('Imported ' + items.length + ' items successfully');
+        closeModal('csvImportModal');
+        csvParsedRows = [];
+        loadProductionPlan();
+    } catch (err) {
+        toast('Import failed: ' + err.message, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-upload"></i> Import';
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ADD VARIETY
+// ═══════════════════════════════════════════════════════════════════
+async function submitAddVariety() {
+    var crop = document.getElementById('addVarCrop').value.trim();
+    var variety = document.getElementById('addVarVariety').value.trim();
+    if (!crop || !variety) { toast('Crop and Variety are required', 'error'); return; }
+    var trays = parseInt(document.getElementById('addVarTrays').value) || 1;
+    var cellSize = parseInt(document.getElementById('addVarCellSize').value) || 72;
+    var potsPerTray = parseInt(document.getElementById('addVarPotsPerTray').value) || cellSize;
+    var totalUnits = trays * potsPerTray;
+
+    try {
+        await api.post('saveSeedlingItem', {
+            Category: document.getElementById('addVarCategory').value,
+            Crop: crop,
+            Variety: variety,
+            Num_Trays: trays,
+            Cell_Pack_Size: cellSize,
+            Pots_Per_Tray: potsPerTray,
+            Total_Units: totalUnits,
+            Price_Each: parseFloat(document.getElementById('addVarPrice').value) || 0,
+            Seeding_Date: document.getElementById('addVarSeedDate').value || '',
+            Notes: document.getElementById('addVarNotes').value.trim(),
+            Year: new Date().getFullYear(),
+            Status: 'Planned'
+        });
+        toast('Variety "' + variety + '" added to production plan');
+        closeModal('addVarietyModal');
+        // Clear form
+        document.getElementById('addVarCrop').value = '';
+        document.getElementById('addVarVariety').value = '';
+        document.getElementById('addVarTrays').value = '';
+        document.getElementById('addVarPotsPerTray').value = '';
+        document.getElementById('addVarPrice').value = '';
+        document.getElementById('addVarSeedDate').value = '';
+        document.getElementById('addVarNotes').value = '';
+        loadProductionPlan();
+    } catch (err) {
+        toast('Failed to add variety: ' + err.message, 'error');
+    }
 }
 </script>
 </body>

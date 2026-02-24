@@ -13,6 +13,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="tiny-seed-design-system.css">
+    <script src="api-config.js"></script>
     <style>
         /* Skip link */
         .skip-link { position: absolute; top: -100px; left: 16px; background: var(--green-deep); color: #fff; padding: 12px 24px; border-radius: 0 0 8px 8px; font-weight: 700; z-index: 9999; transition: top 0.2s; text-decoration: none; }
@@ -412,104 +414,16 @@
         <h2 class="section-title" id="catalog-heading">Seedling Varieties</h2>
         <p class="section-subtitle">35+ varieties — $6 each or 4 for $20. All proven performers in Pittsburgh's Zone 6b climate.</p>
 
-        <div class="catalog-nav">
-            <button class="catalog-tab active" onclick="showCategory('tomatoes')"><i class="fas fa-apple-alt"></i> Tomatoes (12)</button>
-            <button class="catalog-tab" onclick="showCategory('peppers')"><i class="fas fa-pepper-hot"></i> Peppers (18)</button>
-            <button class="catalog-tab" onclick="showCategory('cucurbits')"><i class="fas fa-lemon"></i> Cucurbits (4)</button>
+        <div class="catalog-nav" id="catalogNav">
+            <!-- Tabs built dynamically by renderCatalogTabs() -->
         </div>
 
-        <!-- TOMATOES -->
-        <div id="cat-tomatoes" class="variety-grid">
-            <div class="variety-card">
-                <div class="variety-header"><span class="variety-name">Amish Paste</span><span class="variety-type type-paste">Paste</span><span class="variety-price">$6.00</span></div>
-                <div class="variety-desc">A Lancaster County heirloom. Large, meaty fruits perfect for sauce and canning. Indeterminate.</div>
-                <div class="variety-meta"><span><i class="fas fa-clock"></i> 85 days</span><span><i class="fas fa-ruler-vertical"></i> 6-8 ft</span><span><i class="fas fa-seedling"></i> 3" pot</span></div>
+        <div id="catalogContent">
+            <!-- Category grids built dynamically by renderCatalogCards() -->
+            <div style="text-align:center; padding:60px 20px; color:var(--text-muted);">
+                <i class="fas fa-spinner fa-spin" style="font-size:2rem; color:var(--green); margin-bottom:12px; display:block;"></i>
+                Loading seedling varieties...
             </div>
-            <div class="variety-card">
-                <div class="variety-header"><span class="variety-name">Beefsteak</span><span class="variety-type type-slicer">Slicer</span><span class="variety-price">$6.00</span></div>
-                <div class="variety-desc">Classic big red slicer. The backyard standard — nothing beats a Beefsteak BLT.</div>
-                <div class="variety-meta"><span><i class="fas fa-clock"></i> 80 days</span><span><i class="fas fa-ruler-vertical"></i> 5-6 ft</span><span><i class="fas fa-seedling"></i> 3" pot</span></div>
-            </div>
-            <div class="variety-card">
-                <div class="variety-header"><span class="variety-name">Brandywine</span><span class="variety-type type-heirloom">Heirloom</span><span class="variety-price">$6.00</span></div>
-                <div class="variety-desc">The gold standard of heirloom tomatoes. Huge pink fruits with exceptional flavor.</div>
-                <div class="variety-meta"><span><i class="fas fa-clock"></i> 90 days</span><span><i class="fas fa-ruler-vertical"></i> 6-9 ft</span><span><i class="fas fa-seedling"></i> 3" pot</span></div>
-            </div>
-            <div class="variety-card">
-                <div class="variety-header"><span class="variety-name">Celebrity</span><span class="variety-type type-slicer">Slicer</span><span class="variety-price">$6.00</span></div>
-                <div class="variety-desc">Disease-resistant and reliable. Great for beginners — produces all season long.</div>
-                <div class="variety-meta"><span><i class="fas fa-clock"></i> 72 days</span><span><i class="fas fa-ruler-vertical"></i> 4-5 ft</span><span><i class="fas fa-seedling"></i> 3" pot</span></div>
-            </div>
-            <div class="variety-card">
-                <div class="variety-header"><span class="variety-name">Cherokee Purple</span><span class="variety-type type-heirloom">Heirloom</span><span class="variety-price">$6.00</span></div>
-                <div class="variety-desc">Dusky purple-brown beauty. Rich, smoky-sweet flavor. A farmers market favorite.</div>
-                <div class="variety-meta"><span><i class="fas fa-clock"></i> 85 days</span><span><i class="fas fa-ruler-vertical"></i> 6-8 ft</span><span><i class="fas fa-seedling"></i> 3" pot</span></div>
-            </div>
-            <div class="variety-card">
-                <div class="variety-header"><span class="variety-name">Cherry Mix</span><span class="variety-type type-cherry">Cherry</span><span class="variety-price">$6.00</span></div>
-                <div class="variety-desc">A colorful mix of red, yellow, and orange cherry tomatoes. Kids love them.</div>
-                <div class="variety-meta"><span><i class="fas fa-clock"></i> 65 days</span><span><i class="fas fa-ruler-vertical"></i> 4-6 ft</span><span><i class="fas fa-seedling"></i> 3" pot</span></div>
-            </div>
-            <div class="variety-card">
-                <div class="variety-header"><span class="variety-name">Early Girl</span><span class="variety-type type-slicer">Slicer</span><span class="variety-price">$6.00</span></div>
-                <div class="variety-desc">First ripe tomato of summer. Perfect for Pittsburgh's short growing season.</div>
-                <div class="variety-meta"><span><i class="fas fa-clock"></i> 57 days</span><span><i class="fas fa-ruler-vertical"></i> 4-6 ft</span><span><i class="fas fa-seedling"></i> 3" pot</span></div>
-            </div>
-            <div class="variety-card">
-                <div class="variety-header"><span class="variety-name">Juliet</span><span class="variety-type type-cherry">Grape</span><span class="variety-price">$6.00</span></div>
-                <div class="variety-desc">Crack-resistant grape tomato. Heavy producer with incredible sweetness.</div>
-                <div class="variety-meta"><span><i class="fas fa-clock"></i> 60 days</span><span><i class="fas fa-ruler-vertical"></i> 5-6 ft</span><span><i class="fas fa-seedling"></i> 3" pot</span></div>
-            </div>
-            <div class="variety-card">
-                <div class="variety-header"><span class="variety-name">Roma</span><span class="variety-type type-paste">Paste</span><span class="variety-price">$6.00</span></div>
-                <div class="variety-desc">The classic plum tomato. Dense and meaty — makes the best sauce.</div>
-                <div class="variety-meta"><span><i class="fas fa-clock"></i> 75 days</span><span><i class="fas fa-ruler-vertical"></i> 4-5 ft</span><span><i class="fas fa-seedling"></i> 3" pot</span></div>
-            </div>
-            <div class="variety-card">
-                <div class="variety-header"><span class="variety-name">San Marzano</span><span class="variety-type type-paste">Paste</span><span class="variety-price">$6.00</span></div>
-                <div class="variety-desc">The Italian standard. Long, pointed fruits with low seed count. Serious canning tomato.</div>
-                <div class="variety-meta"><span><i class="fas fa-clock"></i> 80 days</span><span><i class="fas fa-ruler-vertical"></i> 5-7 ft</span><span><i class="fas fa-seedling"></i> 3" pot</span></div>
-            </div>
-            <div class="variety-card">
-                <div class="variety-header"><span class="variety-name">Sun Gold</span><span class="variety-type type-cherry">Cherry</span><span class="variety-price">$6.00</span></div>
-                <div class="variety-desc">Orange cherry with insane sweetness. Our #1 seller — sells out every year.</div>
-                <div class="variety-meta"><span><i class="fas fa-clock"></i> 57 days</span><span><i class="fas fa-ruler-vertical"></i> 6-8 ft</span><span><i class="fas fa-seedling"></i> 3" pot</span></div>
-            </div>
-            <div class="variety-card">
-                <div class="variety-header"><span class="variety-name">Yellow Pear</span><span class="variety-type type-cherry">Cherry</span><span class="variety-price">$6.00</span></div>
-                <div class="variety-desc">Pear-shaped yellow cherries. Mild, sweet flavor. Beautiful in salads.</div>
-                <div class="variety-meta"><span><i class="fas fa-clock"></i> 70 days</span><span><i class="fas fa-ruler-vertical"></i> 6-8 ft</span><span><i class="fas fa-seedling"></i> 3" pot</span></div>
-            </div>
-        </div>
-
-        <!-- PEPPERS -->
-        <div id="cat-peppers" class="variety-grid" style="display:none;">
-            <div class="variety-card"><div class="variety-header"><span class="variety-name">Carmen</span><span class="variety-type type-sweet">Sweet</span><span class="variety-price">$6.00</span></div><div class="variety-desc">Italian sweet pepper. Ripens early to brilliant red. Incredible roasted.</div><div class="variety-meta"><span><i class="fas fa-clock"></i> 75 days</span><span><i class="fas fa-seedling"></i> 3" pot</span></div></div>
-            <div class="variety-card"><div class="variety-header"><span class="variety-name">Jimmy Nardello</span><span class="variety-type type-sweet">Sweet</span><span class="variety-price">$6.00</span></div><div class="variety-desc">Thin-skinned Italian frying pepper. Legendary flavor when charred.</div><div class="variety-meta"><span><i class="fas fa-clock"></i> 80 days</span><span><i class="fas fa-seedling"></i> 3" pot</span></div></div>
-            <div class="variety-card"><div class="variety-header"><span class="variety-name">King of the North</span><span class="variety-type type-sweet">Sweet</span><span class="variety-price">$6.00</span></div><div class="variety-desc">Thick-walled bell pepper bred for northern climates. Sets fruit in cool weather.</div><div class="variety-meta"><span><i class="fas fa-clock"></i> 68 days</span><span><i class="fas fa-seedling"></i> 3" pot</span></div></div>
-            <div class="variety-card"><div class="variety-header"><span class="variety-name">Lunchbox</span><span class="variety-type type-sweet">Sweet</span><span class="variety-price">$6.00</span></div><div class="variety-desc">Miniature sweet pepper. Red, orange, and yellow mix. Perfect for snacking.</div><div class="variety-meta"><span><i class="fas fa-clock"></i> 60 days</span><span><i class="fas fa-seedling"></i> 3" pot</span></div></div>
-            <div class="variety-card"><div class="variety-header"><span class="variety-name">Marconi</span><span class="variety-type type-sweet">Sweet</span><span class="variety-price">$6.00</span></div><div class="variety-desc">Long Italian roasting pepper. Sweet and productive. A market staple.</div><div class="variety-meta"><span><i class="fas fa-clock"></i> 72 days</span><span><i class="fas fa-seedling"></i> 3" pot</span></div></div>
-            <div class="variety-card"><div class="variety-header"><span class="variety-name">Alma Paprika</span><span class="variety-type type-sweet">Sweet</span><span class="variety-price">$6.00</span></div><div class="variety-desc">Hungarian paprika pepper. Thick walls, mild heat. Great fresh or dried.</div><div class="variety-meta"><span><i class="fas fa-clock"></i> 70 days</span><span><i class="fas fa-seedling"></i> 3" pot</span></div></div>
-            <div class="variety-card"><div class="variety-header"><span class="variety-name">Shishito</span><span class="variety-type type-mild">Mild</span><span class="variety-price">$6.00</span></div><div class="variety-desc">Japanese blistering pepper. Mild with an occasional spicy surprise. Restaurant favorite.</div><div class="variety-meta"><span><i class="fas fa-clock"></i> 60 days</span><span><i class="fas fa-seedling"></i> 3" pot</span></div></div>
-            <div class="variety-card"><div class="variety-header"><span class="variety-name">Banana Pepper</span><span class="variety-type type-mild">Mild</span><span class="variety-price">$6.00</span></div><div class="variety-desc">Classic mild pickling pepper. Tangy and crunchy. Great on sandwiches.</div><div class="variety-meta"><span><i class="fas fa-clock"></i> 72 days</span><span><i class="fas fa-seedling"></i> 3" pot</span></div></div>
-            <div class="variety-card"><div class="variety-header"><span class="variety-name">Anaheim</span><span class="variety-type type-mild">Mild</span><span class="variety-price">$6.00</span></div><div class="variety-desc">Versatile New Mexico chile. Mild heat, great for roasting and stuffing.</div><div class="variety-meta"><span><i class="fas fa-clock"></i> 77 days</span><span><i class="fas fa-seedling"></i> 3" pot</span></div></div>
-            <div class="variety-card"><div class="variety-header"><span class="variety-name">Ancho Poblano</span><span class="variety-type type-mild">Mild</span><span class="variety-price">$6.00</span></div><div class="variety-desc">Rich, earthy flavor. Essential for Mexican cooking. Stuff, roast, or dry.</div><div class="variety-meta"><span><i class="fas fa-clock"></i> 80 days</span><span><i class="fas fa-seedling"></i> 3" pot</span></div></div>
-            <div class="variety-card"><div class="variety-header"><span class="variety-name">Hungarian Wax</span><span class="variety-type type-medium">Medium</span><span class="variety-price">$6.00</span></div><div class="variety-desc">Waxy yellow pepper with medium kick. Prolific producer. Great pickled.</div><div class="variety-meta"><span><i class="fas fa-clock"></i> 65 days</span><span><i class="fas fa-seedling"></i> 3" pot</span></div></div>
-            <div class="variety-card"><div class="variety-header"><span class="variety-name">Jalapeno</span><span class="variety-type type-medium">Medium</span><span class="variety-price">$6.00</span></div><div class="variety-desc">America's favorite hot pepper. Versatile for salsa, poppers, and pickling.</div><div class="variety-meta"><span><i class="fas fa-clock"></i> 72 days</span><span><i class="fas fa-seedling"></i> 3" pot</span></div></div>
-            <div class="variety-card"><div class="variety-header"><span class="variety-name">Fish Pepper</span><span class="variety-type type-medium">Medium</span><span class="variety-price">$6.00</span></div><div class="variety-desc">African-American heirloom with stunning variegated foliage and striped fruit.</div><div class="variety-meta"><span><i class="fas fa-clock"></i> 80 days</span><span><i class="fas fa-seedling"></i> 3" pot</span></div></div>
-            <div class="variety-card"><div class="variety-header"><span class="variety-name">Serrano</span><span class="variety-type type-hot">Hot</span><span class="variety-price">$6.00</span></div><div class="variety-desc">Hotter than jalapeno with bright, clean heat. Essential for fresh salsa.</div><div class="variety-meta"><span><i class="fas fa-clock"></i> 75 days</span><span><i class="fas fa-seedling"></i> 3" pot</span></div></div>
-            <div class="variety-card"><div class="variety-header"><span class="variety-name">Cayenne</span><span class="variety-type type-hot">Hot</span><span class="variety-price">$6.00</span></div><div class="variety-desc">Long red drying pepper. Classic heat. Dry and grind for homemade cayenne.</div><div class="variety-meta"><span><i class="fas fa-clock"></i> 72 days</span><span><i class="fas fa-seedling"></i> 3" pot</span></div></div>
-            <div class="variety-card"><div class="variety-header"><span class="variety-name">Thai Chili</span><span class="variety-type type-hot">Hot</span><span class="variety-price">$6.00</span></div><div class="variety-desc">Tiny but fierce. Compact plants loaded with upward-pointing peppers.</div><div class="variety-meta"><span><i class="fas fa-clock"></i> 70 days</span><span><i class="fas fa-seedling"></i> 3" pot</span></div></div>
-            <div class="variety-card"><div class="variety-header"><span class="variety-name">Habanero</span><span class="variety-type type-superhot">Super Hot</span><span class="variety-price">$6.00</span></div><div class="variety-desc">Intense tropical heat with fruity undertones. Handle with respect.</div><div class="variety-meta"><span><i class="fas fa-clock"></i> 90 days</span><span><i class="fas fa-seedling"></i> 3" pot</span></div></div>
-            <div class="variety-card"><div class="variety-header"><span class="variety-name">Ghost Pepper</span><span class="variety-type type-superhot">Super Hot</span><span class="variety-price">$6.00</span></div><div class="variety-desc">Over 1 million Scoville units. For serious heat seekers only. Limited supply.</div><div class="variety-meta"><span><i class="fas fa-clock"></i> 100+ days</span><span><i class="fas fa-seedling"></i> 3" pot</span></div></div>
-        </div>
-
-        <!-- CUCURBITS -->
-        <div id="cat-cucurbits" class="variety-grid" style="display:none;">
-            <div class="variety-card"><div class="variety-header"><span class="variety-name">Cucumber</span><span class="variety-type type-summer">Slicing</span><span class="variety-price">$6.00</span></div><div class="variety-desc">Fresh slicing cucumber. Crisp and prolific. A summer garden essential.</div><div class="variety-meta"><span><i class="fas fa-clock"></i> 58 days</span><span><i class="fas fa-seedling"></i> 3" pot</span></div></div>
-            <div class="variety-card"><div class="variety-header"><span class="variety-name">Pickles</span><span class="variety-type type-pickling">Pickling</span><span class="variety-price">$6.00</span></div><div class="variety-desc">Compact pickling cucumber. Perfect size for whole dill pickles.</div><div class="variety-meta"><span><i class="fas fa-clock"></i> 55 days</span><span><i class="fas fa-seedling"></i> 3" pot</span></div></div>
-            <div class="variety-card"><div class="variety-header"><span class="variety-name">Yellow Squash</span><span class="variety-type type-summer">Summer</span><span class="variety-price">$6.00</span></div><div class="variety-desc">Classic yellow crookneck. Pick young for best flavor. Incredibly productive.</div><div class="variety-meta"><span><i class="fas fa-clock"></i> 50 days</span><span><i class="fas fa-seedling"></i> 3" pot</span></div></div>
-            <div class="variety-card"><div class="variety-header"><span class="variety-name">Zucchini</span><span class="variety-type type-summer">Summer</span><span class="variety-price">$6.00</span></div><div class="variety-desc">You'll have more zucchini than you know what to do with. Guaranteed.</div><div class="variety-meta"><span><i class="fas fa-clock"></i> 48 days</span><span><i class="fas fa-seedling"></i> 3" pot</span></div></div>
         </div>
     </div>
 </section>
@@ -732,61 +646,202 @@
 <!-- ═══════════════════════════════════════════════════════════ -->
 <script>
 // ═══════════════════════════════════════
-// VARIETY DATA
+// VARIETY DATA (loaded from API)
 // ═══════════════════════════════════════
-var VARIETIES = [
-    { name: 'Amish Paste', category: 'Tomatoes', price: 6.00 },
-    { name: 'Beefsteak', category: 'Tomatoes', price: 6.00 },
-    { name: 'Brandywine', category: 'Tomatoes', price: 6.00 },
-    { name: 'Celebrity', category: 'Tomatoes', price: 6.00 },
-    { name: 'Cherokee Purple', category: 'Tomatoes', price: 6.00 },
-    { name: 'Cherry Mix', category: 'Tomatoes', price: 6.00 },
-    { name: 'Early Girl', category: 'Tomatoes', price: 6.00 },
-    { name: 'Juliet', category: 'Tomatoes', price: 6.00 },
-    { name: 'Roma', category: 'Tomatoes', price: 6.00 },
-    { name: 'San Marzano', category: 'Tomatoes', price: 6.00 },
-    { name: 'Sun Gold', category: 'Tomatoes', price: 6.00 },
-    { name: 'Yellow Pear', category: 'Tomatoes', price: 6.00 },
-    { name: 'Carmen', category: 'Peppers', price: 6.00 },
-    { name: 'Jimmy Nardello', category: 'Peppers', price: 6.00 },
-    { name: 'King of the North', category: 'Peppers', price: 6.00 },
-    { name: 'Lunchbox', category: 'Peppers', price: 6.00 },
-    { name: 'Marconi', category: 'Peppers', price: 6.00 },
-    { name: 'Alma Paprika', category: 'Peppers', price: 6.00 },
-    { name: 'Shishito', category: 'Peppers', price: 6.00 },
-    { name: 'Banana Pepper', category: 'Peppers', price: 6.00 },
-    { name: 'Anaheim', category: 'Peppers', price: 6.00 },
-    { name: 'Ancho Poblano', category: 'Peppers', price: 6.00 },
-    { name: 'Hungarian Wax', category: 'Peppers', price: 6.00 },
-    { name: 'Jalapeno', category: 'Peppers', price: 6.00 },
-    { name: 'Fish Pepper', category: 'Peppers', price: 6.00 },
-    { name: 'Serrano', category: 'Peppers', price: 6.00 },
-    { name: 'Cayenne', category: 'Peppers', price: 6.00 },
-    { name: 'Thai Chili', category: 'Peppers', price: 6.00 },
-    { name: 'Habanero', category: 'Peppers', price: 6.00 },
-    { name: 'Ghost Pepper', category: 'Peppers', price: 6.00 },
-    { name: 'Cucumber', category: 'Cucurbits', price: 6.00 },
-    { name: 'Pickles', category: 'Cucurbits', price: 6.00 },
-    { name: 'Yellow Squash', category: 'Cucurbits', price: 6.00 },
-    { name: 'Zucchini', category: 'Cucurbits', price: 6.00 }
-];
-
+var VARIETIES = [];
+var CATEGORIES = []; // unique category names, derived from VARIETIES
+var activeCategory = ''; // slug of the currently shown catalog tab
 var quantities = {};
 var collapsedCategories = {};
+
+// ═══════════════════════════════════════
+// CATEGORY ICONS — maps category names
+// to FontAwesome icons for tabs
+// ═══════════════════════════════════════
+var CATEGORY_ICONS = {
+    'Tomatoes': 'fa-apple-alt',
+    'Peppers': 'fa-pepper-hot',
+    'Cucurbits': 'fa-lemon',
+    'Herbs': 'fa-leaf',
+    'Greens': 'fa-seedling',
+    'Flowers': 'fa-spa'
+};
+
+// ═══════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════
+function catSlug(categoryName) {
+    return categoryName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+}
+
+function escapeHtml(str) {
+    var div = document.createElement('div');
+    div.appendChild(document.createTextNode(str));
+    return div.innerHTML;
+}
 
 // ═══════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════
 document.addEventListener('DOMContentLoaded', function() {
-    renderOrderItems();
+    loadPresaleItems();
     setupInlineValidation();
 });
+
+// ═══════════════════════════════════════
+// LOAD PRESALE ITEMS FROM API
+// ═══════════════════════════════════════
+function loadPresaleItems() {
+    var catalogContent = document.getElementById('catalogContent');
+    var catalogNav = document.getElementById('catalogNav');
+
+    // Show loading state
+    catalogContent.innerHTML = '<div style="text-align:center; padding:60px 20px; color:var(--text-muted);">' +
+        '<i class="fas fa-spinner fa-spin" style="font-size:2rem; color:var(--green); margin-bottom:12px; display:block;"></i>' +
+        'Loading seedling varieties...</div>';
+    catalogNav.innerHTML = '';
+
+    fetch(TINY_SEED_API.MAIN_API + '?action=getSeedlingPresaleItems')
+        .then(function(response) {
+            if (!response.ok) { throw new Error('Network response was not ok'); }
+            return response.json();
+        })
+        .then(function(result) {
+            if (!result.success || !result.data || result.data.length === 0) {
+                throw new Error(result.error || 'No seedling items returned from the server.');
+            }
+
+            // Map API data to VARIETIES format
+            VARIETIES = [];
+            for (var i = 0; i < result.data.length; i++) {
+                var row = result.data[i];
+                VARIETIES.push({
+                    name: row.Variety || row.Crop || 'Unknown',
+                    category: row.Category || 'Other',
+                    price: Number(row.Price_Each) || 6.00,
+                    itemId: row.Item_ID || '',
+                    available: row.Available != null ? Number(row.Available) : null,
+                    crop: row.Crop || ''
+                });
+            }
+
+            // Derive unique categories in the order they appear
+            CATEGORIES = [];
+            var seenCats = {};
+            for (var j = 0; j < VARIETIES.length; j++) {
+                var cat = VARIETIES[j].category;
+                if (!seenCats[cat]) {
+                    seenCats[cat] = true;
+                    CATEGORIES.push(cat);
+                }
+            }
+
+            // Update the subtitle count
+            var subtitleEl = document.querySelector('#catalog .section-subtitle');
+            if (subtitleEl) {
+                subtitleEl.textContent = VARIETIES.length + '+ varieties \u2014 $6 each or 4 for $20. All proven performers in Pittsburgh\u2019s Zone 6b climate.';
+            }
+
+            // Set active category to first
+            activeCategory = CATEGORIES.length > 0 ? catSlug(CATEGORIES[0]) : '';
+
+            // Build UI
+            renderCatalogTabs();
+            renderCatalogCards();
+            renderOrderItems();
+            updateTotal();
+        })
+        .catch(function(err) {
+            console.error('Failed to load presale items:', err);
+            catalogContent.innerHTML = '<div style="text-align:center; padding:60px 20px;">' +
+                '<i class="fas fa-exclamation-triangle" style="font-size:2rem; color:var(--red-hot); margin-bottom:12px; display:block;"></i>' +
+                '<p style="color:var(--text-dark); font-weight:700; margin-bottom:8px;">Unable to load seedling varieties</p>' +
+                '<p style="color:var(--text-muted); font-size:0.9rem; max-width:400px; margin:0 auto 16px;">' + escapeHtml(err.message) + '</p>' +
+                '<button onclick="loadPresaleItems()" style="background:var(--green); color:#000; border:none; padding:10px 24px; border-radius:50px; font-weight:700; cursor:pointer; font-family:inherit;">' +
+                '<i class="fas fa-redo"></i> Try Again</button></div>';
+            catalogNav.innerHTML = '';
+        });
+}
+
+// ═══════════════════════════════════════
+// DYNAMIC CATALOG TABS
+// ═══════════════════════════════════════
+function renderCatalogTabs() {
+    var nav = document.getElementById('catalogNav');
+    var html = '';
+
+    for (var i = 0; i < CATEGORIES.length; i++) {
+        var cat = CATEGORIES[i];
+        var slug = catSlug(cat);
+        var isActive = slug === activeCategory;
+        var icon = CATEGORY_ICONS[cat] || 'fa-leaf';
+        var count = 0;
+        for (var j = 0; j < VARIETIES.length; j++) {
+            if (VARIETIES[j].category === cat) count++;
+        }
+        html += '<button class="catalog-tab' + (isActive ? ' active' : '') + '" onclick="showCategory(\'' + slug + '\', this)">';
+        html += '<i class="fas ' + icon + '"></i> ' + escapeHtml(cat) + ' (' + count + ')';
+        html += '</button>';
+    }
+
+    nav.innerHTML = html;
+}
+
+// ═══════════════════════════════════════
+// DYNAMIC CATALOG CARDS
+// ═══════════════════════════════════════
+function renderCatalogCards() {
+    var container = document.getElementById('catalogContent');
+    var html = '';
+
+    for (var i = 0; i < CATEGORIES.length; i++) {
+        var cat = CATEGORIES[i];
+        var slug = catSlug(cat);
+        var isVisible = slug === activeCategory;
+
+        html += '<div id="cat-' + slug + '" class="variety-grid"' + (isVisible ? '' : ' style="display:none;"') + '>';
+
+        for (var j = 0; j < VARIETIES.length; j++) {
+            var v = VARIETIES[j];
+            if (v.category !== cat) continue;
+
+            var priceStr = '$' + v.price.toFixed(2);
+            var availStr = '';
+            if (v.available != null && v.available <= 10 && v.available > 0) {
+                availStr = '<span style="color:var(--red-hot); font-weight:600; font-size:0.78rem;"><i class="fas fa-fire"></i> Only ' + v.available + ' left</span>';
+            } else if (v.available != null && v.available <= 0) {
+                availStr = '<span style="color:var(--text-muted); font-weight:600; font-size:0.78rem;"><i class="fas fa-times-circle"></i> Sold Out</span>';
+            }
+
+            html += '<div class="variety-card">';
+            html += '<div class="variety-header">';
+            html += '<span class="variety-name">' + escapeHtml(v.name) + '</span>';
+            html += '<span class="variety-price">' + priceStr + '</span>';
+            html += '</div>';
+            if (availStr) {
+                html += '<div style="margin-bottom:8px;">' + availStr + '</div>';
+            }
+            html += '<div class="variety-meta"><span><i class="fas fa-seedling"></i> 3" pot</span></div>';
+            html += '</div>';
+        }
+
+        html += '</div>';
+    }
+
+    container.innerHTML = html;
+}
 
 // ═══════════════════════════════════════
 // ORDER FORM RENDERING
 // ═══════════════════════════════════════
 function renderOrderItems() {
     var container = document.getElementById('orderItems');
+    if (!container) return;
+    if (VARIETIES.length === 0) {
+        container.innerHTML = '<p style="text-align:center; color:var(--text-muted); padding:20px 0;">Loading order items...</p>';
+        return;
+    }
+
     var currentCat = '';
     var html = '';
     var catIndex = 0;
@@ -798,25 +853,38 @@ function renderOrderItems() {
             currentCat = v.category;
             catIndex++;
             var isCollapsed = collapsedCategories[currentCat] || false;
-            var catCount = VARIETIES.filter(function(x) { return x.category === currentCat; }).length;
+            var catCount = 0;
             var catSelected = 0;
             for (var k = 0; k < VARIETIES.length; k++) {
-                if (VARIETIES[k].category === currentCat && (quantities[VARIETIES[k].name] || 0) > 0) catSelected++;
+                if (VARIETIES[k].category === currentCat) {
+                    catCount++;
+                    if ((quantities[VARIETIES[k].name] || 0) > 0) catSelected++;
+                }
             }
-            html += '<div class="order-category-header' + (isCollapsed ? ' collapsed' : '') + '" onclick="toggleCategory(\'' + currentCat + '\')">';
-            html += '<span>' + currentCat + ' (' + catCount + ')' + (catSelected > 0 ? ' · <span style="color:var(--green-dark);">' + catSelected + ' selected</span>' : '') + '</span>';
+            var escapedCat = currentCat.replace(/'/g, "\\'");
+            html += '<div class="order-category-header' + (isCollapsed ? ' collapsed' : '') + '" onclick="toggleCategory(\'' + escapedCat + '\')">';
+            html += '<span>' + escapeHtml(currentCat) + ' (' + catCount + ')' + (catSelected > 0 ? ' \u00b7 <span style="color:var(--green-dark);">' + catSelected + ' selected</span>' : '') + '</span>';
             html += '<i class="fas fa-chevron-down"></i>';
             html += '</div>';
             html += '<div class="order-category-items' + (isCollapsed ? ' collapsed' : '') + '" id="order-cat-' + catIndex + '" style="max-height:2000px;">';
         }
         var qty = quantities[v.name] || 0;
         var escapedName = v.name.replace(/'/g, "\\'");
-        html += '<div class="order-item-row"' + (qty > 0 ? ' style="background:rgba(34,197,94,0.05);"' : '') + '>';
-        html += '  <div><span class="order-item-name">' + v.name + '</span> <span class="order-item-price">$6.00 ea · 4/$20</span></div>';
+        var soldOut = v.available != null && v.available <= 0;
+        html += '<div class="order-item-row"' + (qty > 0 ? ' style="background:rgba(34,197,94,0.05);"' : '') + (soldOut ? ' style="opacity:0.5;"' : '') + '>';
+        html += '  <div><span class="order-item-name">' + escapeHtml(v.name) + '</span> <span class="order-item-price">$' + v.price.toFixed(2) + ' ea \u00b7 4/$20</span>';
+        if (soldOut) html += ' <span style="color:var(--red-hot); font-size:0.75rem; font-weight:600;">SOLD OUT</span>';
+        html += '</div>';
         html += '  <div class="qty-selector">';
-        html += '    <button type="button" class="qty-btn" onclick="changeQty(\'' + escapedName + '\', -1)" aria-label="Decrease ' + v.name + ' quantity"' + (qty === 0 ? ' disabled style="opacity:0.3;cursor:default;"' : '') + '>−</button>';
-        html += '    <span class="qty-value" id="qty-' + i + '">' + qty + '</span>';
-        html += '    <button type="button" class="qty-btn" onclick="changeQty(\'' + escapedName + '\', 1)" aria-label="Increase ' + v.name + ' quantity">+</button>';
+        if (soldOut) {
+            html += '    <button type="button" class="qty-btn" disabled style="opacity:0.3;cursor:default;">&#8722;</button>';
+            html += '    <span class="qty-value">0</span>';
+            html += '    <button type="button" class="qty-btn" disabled style="opacity:0.3;cursor:default;">+</button>';
+        } else {
+            html += '    <button type="button" class="qty-btn" onclick="changeQty(\'' + escapedName + '\', -1)" aria-label="Decrease ' + escapeHtml(v.name) + ' quantity"' + (qty === 0 ? ' disabled style="opacity:0.3;cursor:default;"' : '') + '>&#8722;</button>';
+            html += '    <span class="qty-value" id="qty-' + i + '">' + qty + '</span>';
+            html += '    <button type="button" class="qty-btn" onclick="changeQty(\'' + escapedName + '\', 1)" aria-label="Increase ' + escapeHtml(v.name) + ' quantity">+</button>';
+        }
         html += '  </div>';
         html += '</div>';
     }
@@ -831,8 +899,19 @@ function toggleCategory(cat) {
 }
 
 function changeQty(name, delta) {
+    // Find the variety to check availability
+    var variety = null;
+    for (var i = 0; i < VARIETIES.length; i++) {
+        if (VARIETIES[i].name === name) { variety = VARIETIES[i]; break; }
+    }
     var current = quantities[name] || 0;
     var newQty = Math.max(0, current + delta);
+
+    // Cap at available quantity if known
+    if (variety && variety.available != null && newQty > variety.available) {
+        newQty = variety.available;
+    }
+
     quantities[name] = newQty;
     renderOrderItems();
     updateTotal();
@@ -878,7 +957,7 @@ function updateTotal() {
     }
 
     // Submit button
-    btn.innerHTML = '<i class="fas fa-lock"></i> Reserve & Pay — $' + order.total.toFixed(2);
+    btn.innerHTML = '<i class="fas fa-lock"></i> Reserve & Pay \u2014 $' + order.total.toFixed(2);
     btn.disabled = order.totalPlants === 0;
 
     // Clear button visibility
@@ -913,21 +992,28 @@ function updateTotal() {
 // ═══════════════════════════════════════
 // CATALOG TABS — sync with order form
 // ═══════════════════════════════════════
-function showCategory(cat) {
-    var cats = ['tomatoes', 'peppers', 'cucurbits'];
-    var tabs = document.querySelectorAll('.catalog-tab');
-    for (var i = 0; i < cats.length; i++) {
-        document.getElementById('cat-' + cats[i]).style.display = cats[i] === cat ? 'grid' : 'none';
+function showCategory(slug, btnEl) {
+    activeCategory = slug;
+
+    // Toggle grid visibility
+    for (var i = 0; i < CATEGORIES.length; i++) {
+        var s = catSlug(CATEGORIES[i]);
+        var grid = document.getElementById('cat-' + s);
+        if (grid) grid.style.display = s === slug ? 'grid' : 'none';
     }
+
+    // Update tab active state
+    var tabs = document.querySelectorAll('.catalog-tab');
     for (var j = 0; j < tabs.length; j++) {
         tabs[j].classList.remove('active');
     }
-    event.target.closest('.catalog-tab').classList.add('active');
+    if (btnEl) {
+        btnEl.classList.add('active');
+    }
 
     // Sync: expand the matching category in order form, collapse others
-    var catMap = { tomatoes: 'Tomatoes', peppers: 'Peppers', cucurbits: 'Cucurbits' };
-    for (var c in catMap) {
-        collapsedCategories[catMap[c]] = (c !== cat);
+    for (var k = 0; k < CATEGORIES.length; k++) {
+        collapsedCategories[CATEGORIES[k]] = catSlug(CATEGORIES[k]) !== slug;
     }
     renderOrderItems();
 }
@@ -1005,7 +1091,7 @@ function validateForm() {
 }
 
 // ═══════════════════════════════════════
-// ORDER SUBMISSION
+// ORDER SUBMISSION (API-connected)
 // ═══════════════════════════════════════
 function submitPresaleOrder(e) {
     if (e) e.preventDefault();
@@ -1015,7 +1101,14 @@ function submitPresaleOrder(e) {
     for (var i = 0; i < VARIETIES.length; i++) {
         var qty = quantities[VARIETIES[i].name] || 0;
         if (qty > 0) {
-            items.push({ variety: VARIETIES[i].name, qty: qty, price: VARIETIES[i].price });
+            items.push({
+                variety: VARIETIES[i].name,
+                category: VARIETIES[i].category,
+                qty: qty,
+                price: VARIETIES[i].price,
+                itemId: VARIETIES[i].itemId,
+                crop: VARIETIES[i].crop || VARIETIES[i].name
+            });
         }
     }
 
@@ -1024,16 +1117,120 @@ function submitPresaleOrder(e) {
         return;
     }
 
-    var order = calculateOrder();
-    var summary = '';
-    for (var j = 0; j < items.length; j++) {
-        summary += items[j].qty + 'x ' + items[j].variety + '\n';
+    var orderCalc = calculateOrder();
+    var firstName = document.getElementById('orderFirstName').value.trim();
+    var lastName = document.getElementById('orderLastName').value.trim();
+    var email = document.getElementById('orderEmail').value.trim();
+    var phone = document.getElementById('orderPhone').value.trim();
+    var pickup = document.getElementById('orderPickup').value;
+    var customerName = firstName + ' ' + lastName;
+
+    // Disable submit button and show loading
+    var btn = document.getElementById('submitOrderBtn');
+    var originalBtnHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting your order...';
+
+    // Submit each line item to the API
+    var saleDate = new Date().toISOString().split('T')[0];
+    var completed = 0;
+    var failed = 0;
+    var totalItems = items.length;
+
+    function onAllDone() {
+        if (completed + failed < totalItems) return; // still waiting
+
+        if (failed > 0 && completed === 0) {
+            // Total failure
+            btn.disabled = false;
+            btn.innerHTML = originalBtnHtml;
+            alert('We were unable to submit your order. Please try again or contact todd@tinyseedfarmpgh.com for help.');
+        } else if (failed > 0) {
+            // Partial failure
+            showConfirmation(customerName, email, pickup, orderCalc, true);
+        } else {
+            // Full success
+            showConfirmation(customerName, email, pickup, orderCalc, false);
+        }
     }
 
-    var priceLine = order.totalPlants + ' plants — $' + order.total.toFixed(2);
-    if (order.discount > 0) priceLine += ' (15% bulk discount: -$' + order.discount.toFixed(2) + ')';
+    for (var j = 0; j < items.length; j++) {
+        (function(item) {
+            var payload = {
+                action: 'logSeedlingSale',
+                itemId: item.itemId,
+                crop: item.crop,
+                variety: item.variety,
+                channel: 'Presale',
+                quantitySold: item.qty,
+                priceEach: item.price,
+                saleDate: saleDate,
+                customerName: customerName,
+                notes: 'Email: ' + email + (phone ? ' | Phone: ' + phone : '') + ' | Pickup: ' + pickup
+            };
 
-    alert('Order Preview:\n\n' + summary + '\n' + priceLine + '\nPickup: ' + document.getElementById('orderPickup').value + '\n\nPayment integration coming soon! Your order details have been noted.');
+            fetch(TINY_SEED_API.MAIN_API, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            .then(function(response) { return response.json(); })
+            .then(function(result) {
+                if (result.success) {
+                    completed++;
+                } else {
+                    console.error('Failed to log sale for ' + item.variety + ':', result.error);
+                    failed++;
+                }
+                onAllDone();
+            })
+            .catch(function(err) {
+                console.error('Network error logging sale for ' + item.variety + ':', err);
+                failed++;
+                onAllDone();
+            });
+        })(items[j]);
+    }
+}
+
+function showConfirmation(customerName, email, pickup, orderCalc, hadPartialFailure) {
+    var form = document.getElementById('presaleForm');
+    var html = '';
+    html += '<div style="text-align:center; padding:40px 20px;">';
+    html += '<div style="width:80px; height:80px; border-radius:50%; background:#f0fdf4; display:flex; align-items:center; justify-content:center; margin:0 auto 20px;">';
+    html += '<i class="fas fa-check-circle" style="font-size:3rem; color:var(--green);"></i>';
+    html += '</div>';
+    html += '<h3 style="font-family:\'Playfair Display\',serif; font-size:1.5rem; color:var(--text-dark); margin-bottom:8px;">Order Received!</h3>';
+    html += '<p style="color:var(--text-muted); margin-bottom:20px; max-width:450px; margin-left:auto; margin-right:auto;">';
+    html += 'Thank you, <strong>' + escapeHtml(customerName) + '</strong>! Your presale order for <strong>' + orderCalc.totalPlants + ' seedling' + (orderCalc.totalPlants !== 1 ? 's' : '') + '</strong> ($' + orderCalc.total.toFixed(2) + ') has been submitted.';
+    html += '</p>';
+    if (hadPartialFailure) {
+        html += '<p style="color:var(--orange-hot); font-size:0.85rem; margin-bottom:16px;"><i class="fas fa-exclamation-triangle"></i> Some items may not have been recorded. We will verify and contact you at <strong>' + escapeHtml(email) + '</strong>.</p>';
+    }
+    html += '<div style="background:#f9fafb; border-radius:12px; padding:20px; max-width:400px; margin:0 auto 20px; text-align:left;">';
+    html += '<p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:8px;"><strong>Pickup:</strong> ' + escapeHtml(pickup) + '</p>';
+    html += '<p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:8px;"><strong>Confirmation sent to:</strong> ' + escapeHtml(email) + '</p>';
+    html += '<p style="font-size:0.85rem; color:var(--text-muted);"><strong>Total:</strong> $' + orderCalc.total.toFixed(2);
+    if (orderCalc.discount > 0) html += ' <span style="color:var(--green-dark);">(saved $' + orderCalc.discount.toFixed(2) + ')</span>';
+    html += '</p>';
+    html += '</div>';
+    html += '<p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:20px;">Questions? Email <a href="mailto:todd@tinyseedfarmpgh.com" style="color:var(--green-dark);">todd@tinyseedfarmpgh.com</a> or call <a href="tel:7177255177" style="color:var(--green-dark);">(717) 725-5177</a>.</p>';
+    html += '<button onclick="resetOrderForm()" style="background:var(--green); color:#000; border:none; padding:12px 28px; border-radius:50px; font-weight:700; cursor:pointer; font-family:inherit; font-size:0.95rem;">';
+    html += '<i class="fas fa-plus"></i> Place Another Order</button>';
+    html += '</div>';
+    form.innerHTML = html;
+
+    // Hide sticky cart
+    var stickyCart = document.getElementById('stickyCart');
+    if (stickyCart) stickyCart.classList.remove('visible');
+
+    // Scroll to confirmation
+    form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function resetOrderForm() {
+    // Reload the page to start fresh
+    window.location.reload();
 }
 </script>
 </body>
