@@ -22,7 +22,7 @@
             --bg-card: var(--ts-bg-surface, #16213e);
             --bg-light: var(--ts-bg-elevated, #0f3460);
             --text-primary: var(--ts-text, #edf2f4);
-            --text-secondary: var(--ts-text-secondary, #8d99ae);
+            --text-secondary: var(--ts-text-secondary, #9eb4c8);
             --border: var(--ts-border, rgba(255,255,255,0.1));
         }
 
@@ -227,6 +227,60 @@
             padding: 1.5rem;
             overflow-y: auto;
             z-index: 100;
+            transition: width 0.3s ease, padding 0.3s ease;
+        }
+
+        .sidebar-collapse-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 101;
+            transition: all 0.2s;
+        }
+        .sidebar-collapse-btn:hover {
+            background: var(--primary);
+            color: white;
+        }
+        .sidebar.collapsed {
+            width: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+        .sidebar.collapsed ~ .gantt-container {
+            margin-left: 0;
+        }
+        .sidebar-expand-btn {
+            position: fixed;
+            top: 90px;
+            left: 8px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            width: 36px;
+            height: 36px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 101;
+        }
+        .sidebar-expand-btn:hover {
+            background: var(--primary);
+            color: white;
+        }
+        .sidebar.collapsed ~ .sidebar-expand-btn {
+            display: flex;
         }
 
         .sidebar-section {
@@ -290,7 +344,8 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            padding: 6px 8px;
+            padding: 8px 8px;
+            min-height: 40px;
             border-radius: 6px;
             cursor: pointer;
             transition: background 0.2s;
@@ -303,8 +358,20 @@
 
         .variety-checkbox input {
             accent-color: var(--primary);
-            width: 16px;
-            height: 16px;
+            width: 18px;
+            height: 18px;
+        }
+
+        .skip-link:focus { top: 0; }
+
+        /* Focus indicators (Fix #34) */
+        .variety-checkbox input:focus-visible,
+        .zoom-btn:focus-visible,
+        .nav-btn:focus-visible,
+        .checkbox-filter input:focus-visible,
+        .btn:focus-visible {
+            outline: 2px solid #4fc3f7;
+            outline-offset: 2px;
         }
 
         .variety-checkbox .count {
@@ -804,6 +871,7 @@
         .gantt-row {
             position: relative;
             border-bottom: 1px solid var(--border);
+            min-height: 40px;
         }
 
         .gantt-row:nth-child(even) {
@@ -1463,11 +1531,14 @@
             border: 1px solid var(--border);
             border-radius: 8px;
             padding: 8px 12px;
+            min-width: 44px;
+            min-height: 44px;
             color: var(--text-primary);
             cursor: pointer;
             transition: all 0.2s;
             display: flex;
             align-items: center;
+            justify-content: center;
             gap: 2px;
         }
 
@@ -1732,6 +1803,57 @@
         .toast.error i { color: var(--danger); }
         .toast.warning i { color: var(--warning); }
 
+        /* Undo toast */
+        .undo-toast {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: var(--bg-card);
+            border: 1px solid var(--warning);
+            border-radius: 12px;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+            z-index: 2001;
+            transition: transform 0.3s ease;
+            font-size: 0.9rem;
+        }
+        .undo-toast.show {
+            transform: translateX(-50%) translateY(0);
+        }
+        .undo-toast .undo-btn {
+            background: var(--warning);
+            color: var(--bg-dark);
+            border: none;
+            padding: 6px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.85rem;
+            min-height: 36px;
+        }
+        .undo-toast .undo-btn:hover {
+            opacity: 0.9;
+        }
+        .undo-toast .undo-timer {
+            width: 100%;
+            height: 3px;
+            background: rgba(255,255,255,0.1);
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            border-radius: 0 0 12px 12px;
+            overflow: hidden;
+        }
+        .undo-toast .undo-timer-bar {
+            height: 100%;
+            background: var(--warning);
+            transition: width linear;
+        }
+
         /* Loading */
         .loading {
             display: flex;
@@ -1754,6 +1876,57 @@
 
         @keyframes spin {
             to { transform: rotate(360deg); }
+        }
+
+        /* Skeleton loader for calendar */
+        .skeleton-loader {
+            padding: 1rem;
+            width: 100%;
+        }
+        .skeleton-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 6px;
+            align-items: center;
+        }
+        .skeleton-label {
+            width: 120px;
+            height: 32px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 6px;
+            flex-shrink: 0;
+        }
+        .skeleton-bar {
+            height: 28px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 6px;
+            animation: skeleton-pulse 1.5s ease-in-out infinite;
+        }
+        @keyframes skeleton-pulse {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 0.8; }
+        }
+        .loading-progress {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+        }
+        .loading-error {
+            text-align: center;
+            padding: 3rem;
+        }
+        .loading-error i {
+            font-size: 3rem;
+            color: var(--danger);
+            margin-bottom: 1rem;
+            display: block;
+        }
+        .loading-error p {
+            margin-bottom: 1rem;
+            color: var(--text-secondary);
+        }
+        .loading-error .btn {
+            margin-top: 0.5rem;
         }
 
         /* Mobile */
@@ -2306,7 +2479,8 @@
     </style>
 </head>
 <body>
-    <header class="header">
+    <a href="#ganttChart" class="skip-link" style="position:absolute;top:-40px;left:0;background:var(--primary);color:white;padding:8px 16px;z-index:10000;transition:top 0.3s;">Skip to calendar</a>
+    <header class="header" role="banner">
         <div class="header-left">
             <a href="index.html" class="back-btn">
                 <i class="fas fa-arrow-left"></i>
@@ -2318,9 +2492,10 @@
             </h1>
         </div>
         <div class="header-controls">
-            <div class="sync-indicator synced" id="syncIndicator">
+            <div class="sync-indicator synced" id="syncIndicator" title="Data sync status with Google Sheets">
                 <span class="sync-dot"></span>
                 <span id="syncText">Synced</span>
+                <span id="syncTime" style="font-size:0.75rem;color:var(--text-secondary);"></span>
             </div>
             <button class="submit-changes-btn" id="submitChangesBtn" onclick="saveToGoogleSheets()">
                 <i class="fas fa-cloud-upload-alt"></i>
@@ -2330,21 +2505,21 @@
             <button class="discard-btn" id="discardBtn" onclick="discardChanges()">
                 <i class="fas fa-times"></i> Discard
             </button>
-            <div class="zoom-controls">
-                <button class="zoom-btn active" onclick="setViewMode('field')" id="view-field">By Field</button>
-                <button class="zoom-btn" onclick="setViewMode('bed')" id="view-bed">By Bed</button>
-                <button class="zoom-btn" onclick="setViewMode('crop')" id="view-crop">By Crop</button>
-                <button class="zoom-btn" onclick="setViewMode('variety')" id="view-variety">By Variety</button>
+            <div class="zoom-controls" role="tablist" aria-label="Group by">
+                <button class="zoom-btn active" onclick="setViewMode('field')" id="view-field" role="tab" title="Group by Field"><i class="fas fa-th-large" style="margin-right:4px;font-size:0.7rem;"></i>Field</button>
+                <button class="zoom-btn" onclick="setViewMode('bed')" id="view-bed" role="tab" title="Group by Bed"><i class="fas fa-th" style="margin-right:4px;font-size:0.7rem;"></i>Bed</button>
+                <button class="zoom-btn" onclick="setViewMode('crop')" id="view-crop" role="tab" title="Group by Crop"><i class="fas fa-leaf" style="margin-right:4px;font-size:0.7rem;"></i>Crop</button>
+                <button class="zoom-btn" onclick="setViewMode('variety')" id="view-variety" role="tab" title="Group by Variety"><i class="fas fa-seedling" style="margin-right:4px;font-size:0.7rem;"></i>Variety</button>
             </div>
-            <div class="zoom-controls">
-                <button class="zoom-btn" onclick="setZoom('day')" id="zoom-day">Day</button>
-                <button class="zoom-btn active" onclick="setZoom('week')" id="zoom-week">Week</button>
-                <button class="zoom-btn" onclick="setZoom('month')" id="zoom-month">Month</button>
-                <button class="zoom-btn" onclick="setZoom('quarter')" id="zoom-quarter">Quarter</button>
-                <button class="zoom-btn" onclick="setZoom('year')" id="zoom-year">Full Year</button>
+            <div class="zoom-controls" role="tablist" aria-label="Time scale">
+                <button class="zoom-btn" onclick="setZoom('day')" id="zoom-day" role="tab">Day</button>
+                <button class="zoom-btn active" onclick="setZoom('week')" id="zoom-week" role="tab">Week</button>
+                <button class="zoom-btn" onclick="setZoom('month')" id="zoom-month" role="tab">Month</button>
+                <button class="zoom-btn" onclick="setZoom('quarter')" id="zoom-quarter" role="tab">Qtr</button>
+                <button class="zoom-btn" onclick="setZoom('year')" id="zoom-year" role="tab">Year</button>
             </div>
-            <button class="btn btn-secondary" onclick="showFullYear()">
-                <i class="fas fa-expand"></i> Full Year
+            <button class="btn btn-secondary" onclick="showFullYear()" title="Fullscreen year view" aria-label="Fullscreen year view">
+                <i class="fas fa-expand"></i>
             </button>
             <button class="btn btn-primary" onclick="window.location.href='succession.html'">
                 <i class="fas fa-plus"></i> Add Planting
@@ -2354,15 +2529,16 @@
 
     <!-- Timeline Navigation Bar -->
     <div class="timeline-nav" id="timelineNav">
-        <button class="nav-btn" onclick="navigateTimeline(-30)" title="Previous Month">
+        <button class="nav-btn" onclick="navigateTimeline(-30)" title="Jump back 1 month" aria-label="Previous month">
             <i class="fas fa-chevron-left"></i><i class="fas fa-chevron-left"></i>
         </button>
-        <button class="nav-btn" onclick="navigateTimeline(-7)" title="Previous Week">
+        <button class="nav-btn" onclick="navigateTimeline(-7)" title="Jump back 1 week" aria-label="Previous week">
             <i class="fas fa-chevron-left"></i>
         </button>
         <div class="timeline-slider-container">
             <input type="range" id="timelineSlider" class="timeline-slider"
                    min="0" max="365" value="0"
+                   aria-label="Timeline zoom and pan"
                    oninput="onSliderChange(this.value)">
             <div class="timeline-months">
                 <span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span>
@@ -2370,19 +2546,22 @@
                 <span>Sep</span><span>Oct</span><span>Nov</span><span>Dec</span>
             </div>
         </div>
-        <button class="nav-btn" onclick="navigateTimeline(7)" title="Next Week">
+        <button class="nav-btn" onclick="navigateTimeline(7)" title="Jump forward 1 week" aria-label="Next week">
             <i class="fas fa-chevron-right"></i>
         </button>
-        <button class="nav-btn" onclick="navigateTimeline(30)" title="Next Month">
+        <button class="nav-btn" onclick="navigateTimeline(30)" title="Jump forward 1 month" aria-label="Next month">
             <i class="fas fa-chevron-right"></i><i class="fas fa-chevron-right"></i>
         </button>
-        <button class="nav-btn today-btn" onclick="goToToday()" title="Go to Today">
+        <button class="nav-btn today-btn" onclick="goToToday()" title="Center calendar on today's date" aria-label="Go to today">
             Today
         </button>
         <div class="current-range" id="currentRange">Jan 1 - Dec 31, 2026</div>
     </div>
 
     <aside class="sidebar" id="sidebar">
+        <button class="sidebar-collapse-btn" onclick="toggleCalendarSidebar()" title="Collapse sidebar" aria-label="Collapse sidebar">
+            <i class="fas fa-chevron-left"></i>
+        </button>
         <div class="sidebar-section">
             <h3 class="sidebar-title">Filters</h3>
 
@@ -2425,6 +2604,7 @@
 
             <div class="filter-group" id="varietyFilterGroup">
                 <label>Varieties <span id="varietySelectedCount" style="color: var(--text-secondary); font-size: 0.8rem;"></span></label>
+                <input type="text" class="filter-control" id="varietySearch" placeholder="Filter varieties..." oninput="filterVarietyList(this.value)" style="margin-bottom:6px; font-size:0.85rem;">
                 <div class="variety-filter-container" id="varietyFilter"></div>
             </div>
 
@@ -2437,55 +2617,43 @@
         </div>
 
         <div class="sidebar-section">
-            <h3 class="sidebar-title">Status</h3>
+            <h3 class="sidebar-title">Phases & Status</h3>
             <div class="checkbox-filters">
                 <label class="checkbox-filter">
                     <input type="checkbox" checked onchange="applyFilters()" data-status="seeding">
-                    <span class="status-dot seeding"></span>
+                    <div class="legend-color" style="background: linear-gradient(135deg, #8e44ad 0%, #9b59b6 100%); width:12px; height:12px; border-radius:3px; flex-shrink:0;"></div>
                     <span>Seeding</span>
                 </label>
                 <label class="checkbox-filter">
                     <input type="checkbox" checked onchange="applyFilters()" data-status="growing">
-                    <span class="status-dot growing"></span>
+                    <div class="legend-color" style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%); width:12px; height:12px; border-radius:3px; flex-shrink:0;"></div>
                     <span>Growing</span>
                 </label>
                 <label class="checkbox-filter">
                     <input type="checkbox" checked onchange="applyFilters()" data-status="harvest">
-                    <span class="status-dot harvest"></span>
+                    <div class="legend-color" style="background: linear-gradient(135deg, var(--secondary) 0%, var(--accent) 100%); width:12px; height:12px; border-radius:3px; flex-shrink:0;"></div>
                     <span>Harvest Ready</span>
                 </label>
                 <label class="checkbox-filter">
                     <input type="checkbox" onchange="applyFilters()" data-status="completed">
-                    <span class="status-dot completed"></span>
+                    <div class="legend-color" style="background: var(--text-secondary); width:12px; height:12px; border-radius:3px; flex-shrink:0;"></div>
                     <span>Completed</span>
                 </label>
             </div>
-        </div>
-
-        <div class="sidebar-section">
-            <h3 class="sidebar-title">Legend</h3>
-            <div class="legend">
-                <div class="legend-item">
-                    <div class="legend-color" style="background: linear-gradient(135deg, #8e44ad 0%, #9b59b6 100%);"></div>
-                    <span>Seeding Phase</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);"></div>
-                    <span>Growing Phase</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background: linear-gradient(135deg, var(--secondary) 0%, var(--accent) 100%);"></div>
-                    <span>Harvest Window</span>
-                </div>
+            <div style="font-size:0.75rem; color:var(--text-secondary); margin-top:8px; padding-top:8px; border-top:1px solid var(--border);">
+                <span title="Greenhouse sowing">🏠 = Greenhouse</span> &nbsp;
+                <span title="Transplant to field">↔ = Transplant</span> &nbsp;
+                <span title="Harvest window">✂ = Harvest</span>
             </div>
         </div>
 
-        <div class="sidebar-section">
-            <h3 class="sidebar-title">Instructions</h3>
+        <div class="sidebar-section" style="background:rgba(233,196,106,0.08); border-radius:8px; padding:12px; border-left:3px solid var(--warning);">
+            <h3 class="sidebar-title" style="margin-bottom:0.5rem;">How It Works</h3>
             <div style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.6;">
                 <p><strong>Drag</strong> bars to move between fields</p>
-                <p><strong>Resize</strong> by dragging edges to adjust duration</p>
-                <p>Changes sync to Google Sheets automatically</p>
+                <p><strong>Resize</strong> edges to adjust duration</p>
+                <p><strong>Click</strong> a bar to edit details</p>
+                <p style="color:var(--warning); font-weight:600; margin-top:4px;"><i class="fas fa-info-circle"></i> Changes are queued — click "Submit Changes" to save to Google Sheets</p>
             </div>
         </div>
 
@@ -2498,33 +2666,47 @@
             </button>
         </div>
     </aside>
+    <button class="sidebar-expand-btn" id="sidebarExpandBtn" onclick="toggleCalendarSidebar()" title="Show sidebar" aria-label="Show sidebar">
+        <i class="fas fa-chevron-right"></i>
+    </button>
 
     <main class="main-container">
         <div class="gantt-container">
             <div class="gantt-wrapper">
-                <div class="stats-bar">
-                    <div class="stat-item">
+                <div class="stats-bar" role="status" aria-label="Calendar statistics">
+                    <div class="stat-item" title="Total plantings matching current filters">
                         <span class="stat-value" id="totalPlantings">--</span>
                         <span class="stat-label">Plantings</span>
                     </div>
-                    <div class="stat-item">
+                    <div class="stat-item" title="Plantings currently in growing phase">
                         <span class="stat-value" id="activePlantings">--</span>
                         <span class="stat-label">Active</span>
                     </div>
-                    <div class="stat-item">
+                    <div class="stat-item" title="Plantings ready for harvest">
                         <span class="stat-value" id="harvestReady">--</span>
                         <span class="stat-label">Harvest Ready</span>
                     </div>
-                    <div class="stat-item">
+                    <div class="stat-item" title="Total bed feet allocated">
                         <span class="stat-value" id="totalBedFeet">--</span>
                         <span class="stat-label">Bed Feet</span>
                     </div>
                 </div>
 
                 <div class="gantt-chart" id="ganttChart">
-                    <div class="loading">
+                    <div class="loading" id="calendarLoading">
                         <div class="spinner"></div>
-                        <p>Loading calendar...</p>
+                        <p id="loadingText">Loading calendar...</p>
+                        <p class="loading-progress" id="loadingProgress"></p>
+                        <div class="skeleton-loader">
+                            <div class="skeleton-row"><div class="skeleton-label"></div><div class="skeleton-bar" style="width:65%"></div></div>
+                            <div class="skeleton-row"><div class="skeleton-label"></div><div class="skeleton-bar" style="width:45%"></div></div>
+                            <div class="skeleton-row"><div class="skeleton-label"></div><div class="skeleton-bar" style="width:80%"></div></div>
+                            <div class="skeleton-row"><div class="skeleton-label"></div><div class="skeleton-bar" style="width:55%"></div></div>
+                            <div class="skeleton-row"><div class="skeleton-label"></div><div class="skeleton-bar" style="width:70%"></div></div>
+                            <div class="skeleton-row"><div class="skeleton-label"></div><div class="skeleton-bar" style="width:40%"></div></div>
+                            <div class="skeleton-row"><div class="skeleton-label"></div><div class="skeleton-bar" style="width:60%"></div></div>
+                            <div class="skeleton-row"><div class="skeleton-label"></div><div class="skeleton-bar" style="width:50%"></div></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -2532,7 +2714,7 @@
     </main>
 
     <!-- Unassigned Plantings Panel - Right Sidebar -->
-    <button class="unassigned-toggle" id="unassignedToggle" onclick="toggleUnassignedPanel()">
+    <button class="unassigned-toggle" id="unassignedToggle" onclick="toggleUnassignedPanel()" aria-label="Show unassigned plantings panel">
         <span class="badge" id="unassignedBadge">0</span>
         Unassigned
     </button>
@@ -2872,6 +3054,14 @@
         <span id="toastMessage">Action completed!</span>
     </div>
 
+    <!-- Undo toast for drag/resize operations -->
+    <div class="undo-toast" id="undoToast">
+        <i class="fas fa-undo" style="color:var(--warning);"></i>
+        <span id="undoMessage">Moved planting</span>
+        <button class="undo-btn" onclick="undoLastAction()">Undo</button>
+        <div class="undo-timer"><div class="undo-timer-bar" id="undoTimerBar"></div></div>
+    </div>
+
     <!-- Real-time drag date tooltip -->
     <div class="drag-tooltip" id="dragTooltip">
         <div class="drag-tooltip-crop" id="dragCrop">Lettuce</div>
@@ -2986,6 +3176,7 @@
         let timelineEnd = new Date('2026-12-31');
         let pendingUpdates = new Map();
         let saveTimeout = null;
+        let undoStack = []; // Stack of { id, oldState, newState } for undo
 
         // Ghost tracking for moved plantings (shows original position until submitted)
         let originalPositions = new Map(); // id -> { field, bed, fieldStartDate, left, top, rowGroup }
@@ -3054,9 +3245,24 @@
 
         // Initialize
         document.addEventListener('DOMContentLoaded', async function() {
+            // Restore sidebar state
+            if (localStorage.getItem('calendarSidebarCollapsed') === 'true') {
+                const sidebar = document.getElementById('sidebar');
+                if (sidebar) { sidebar.classList.add('collapsed'); }
+                const header = document.querySelector('.header');
+                if (header) header.style.paddingLeft = '1rem';
+            }
+
             await loadFields();    // Load field config first
             loadCropProfiles();    // Load colors
             loadPlantings();       // Then load plantings
+
+            // Restore saved view preferences (Fix #29)
+            const savedView = localStorage.getItem('calendarViewMode');
+            const savedZoom = localStorage.getItem('calendarZoomLevel');
+            if (savedView) setViewMode(savedView);
+            else setViewMode('crop'); // Default to By Crop (Fix #27)
+            if (savedZoom) setZoom(savedZoom);
         });
 
         // Load field configuration from API
@@ -3116,31 +3322,35 @@
             }
         }
 
-        // Load Plantings from API
+        // Load Plantings from API with timeout and progress
         async function loadPlantings() {
             setSyncStatus('syncing', 'Loading...');
+            const progressEl = document.getElementById('loadingProgress');
+            const loadingText = document.getElementById('loadingText');
+            if (progressEl) progressEl.textContent = 'Connecting to Google Sheets...';
 
             try {
-                // Use getPlanningData (matches your existing Apps Script)
-                let response = await fetch(`${API_URL}?action=getPlanningData`);
+                // Timeout after 15 seconds
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+                if (loadingText) loadingText.textContent = 'Fetching plantings...';
+                let response = await fetch(`${API_URL}?action=getPlanningData`, { signal: controller.signal });
+                clearTimeout(timeoutId);
+
+                if (progressEl) progressEl.textContent = 'Processing data...';
                 let data = await response.json();
 
-
                 if (data.success && data.data && data.data.length > 0) {
-
                     const rawCount = data.data.length;
+                    if (progressEl) progressEl.textContent = `Normalizing ${rawCount} plantings...`;
                     plantings = normalizeData(data.data);
 
                     if (plantings.length > 0) {
                         setSyncStatus('synced', `Live: ${plantings.length} plantings`);
                         showToast(`Loaded ${plantings.length} plantings from Google Sheets`, 'success');
                     } else {
-                        console.warn('All plantings filtered out - check date fields in your data', {
-                            Plan_GH_Sow: data.data[0]?.Plan_GH_Sow,
-                            Plan_Transplant: data.data[0]?.Plan_Transplant,
-                            Plan_Field_Sow: data.data[0]?.Plan_Field_Sow,
-                            Last_Harvest: data.data[0]?.Last_Harvest
-                        });
+                        console.warn('All plantings filtered out - check date fields in your data');
                         plantings = getDemoPlantings();
                         setSyncStatus('synced', 'Demo (no valid dates)');
                     }
@@ -3150,13 +3360,39 @@
                 }
             } catch (error) {
                 console.error('Error loading plantings:', error);
+                if (error.name === 'AbortError') {
+                    // Show error state with retry
+                    const container = document.getElementById('ganttChart');
+                    container.innerHTML = `
+                        <div class="loading-error">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <p>Couldn't load calendar data — the request timed out after 15 seconds.</p>
+                            <p style="font-size:0.8rem;">Check your internet connection or try again.</p>
+                            <button class="btn btn-primary" onclick="loadPlantings()">
+                                <i class="fas fa-redo"></i> Retry
+                            </button>
+                            <button class="btn btn-secondary" style="margin-left:8px;" onclick="loadDemoMode()">
+                                Use Demo Data
+                            </button>
+                        </div>`;
+                    setSyncStatus('error', 'Timed out');
+                    return;
+                }
                 plantings = getDemoPlantings();
                 setSyncStatus('error', 'Offline - Demo');
             }
 
             extractFieldsAndCrops();
             applyFilters();
-            populateUnassignedPanel(); // Populate unassigned plantings sidebar
+            populateUnassignedPanel();
+        }
+
+        function loadDemoMode() {
+            plantings = getDemoPlantings();
+            setSyncStatus('synced', 'Demo Mode');
+            extractFieldsAndCrops();
+            applyFilters();
+            populateUnassignedPanel();
         }
 
         function normalizeData(data) {
@@ -3486,9 +3722,34 @@
         // Select/deselect all varieties
         function selectAllVarieties(selectAll) {
             const checkboxes = document.querySelectorAll('#varietyFilter input[type="checkbox"]');
+            if (!selectAll && checkboxes.length > 10) {
+                if (!confirm(`Clear all ${checkboxes.length} varieties?`)) return;
+            }
             checkboxes.forEach(cb => cb.checked = selectAll);
             updateVarietyCount();
             applyFilters();
+        }
+
+        // Variety search/filter (Fix #20)
+        function filterVarietyList(query) {
+            const items = document.querySelectorAll('#varietyFilter .variety-checkbox');
+            const q = query.toLowerCase();
+            items.forEach(item => {
+                const label = item.textContent.toLowerCase();
+                item.style.display = label.includes(q) ? 'flex' : 'none';
+            });
+        }
+
+        // Sidebar collapse toggle (Fix #8)
+        function toggleCalendarSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('collapsed');
+            const isCollapsed = sidebar.classList.contains('collapsed');
+            localStorage.setItem('calendarSidebarCollapsed', isCollapsed);
+
+            // Adjust header padding
+            const header = document.querySelector('.header');
+            if (header) header.style.paddingLeft = isCollapsed ? '1rem' : '300px';
         }
 
         // Update selected variety count display
@@ -3641,15 +3902,25 @@
         }
 
         function updateStats() {
-            document.getElementById('totalPlantings').textContent = filteredPlantings.length;
-            document.getElementById('activePlantings').textContent = filteredPlantings.filter(p => p.status === 'growing').length;
-            document.getElementById('harvestReady').textContent = filteredPlantings.filter(p => p.status === 'harvest').length;
-            document.getElementById('totalBedFeet').textContent = filteredPlantings.reduce((sum, p) => sum + (p.bedFeet || 0), 0);
+            const total = filteredPlantings.length;
+            const active = filteredPlantings.filter(p => p.status === 'growing').length;
+            const harvest = filteredPlantings.filter(p => p.status === 'harvest').length;
+            const bedFeet = filteredPlantings.reduce((sum, p) => sum + (p.bedFeet || 0), 0);
+
+            document.getElementById('totalPlantings').textContent = total;
+            document.getElementById('activePlantings').textContent = active || 'None in view';
+            document.getElementById('harvestReady').textContent = harvest || 'None in view';
+            document.getElementById('totalBedFeet').textContent = bedFeet.toLocaleString();
+
+            // Update stats bar aria
+            const statsBar = document.querySelector('.stats-bar');
+            if (statsBar) statsBar.setAttribute('aria-label', `${total} plantings, ${active} active, ${harvest} harvest ready, ${bedFeet.toLocaleString()} bed feet`);
         }
 
         // Set Zoom Level
         function setZoom(level) {
             zoomLevel = level;
+            localStorage.setItem('calendarZoomLevel', level);
             // dayWidth values: day=30, week=20, month=8, quarter=4, year=2
             const widths = { day: 30, week: 20, month: 8, quarter: 4, year: 2 };
             dayWidth = widths[level] || 20;
@@ -3670,19 +3941,20 @@
         // Set View Mode (field, crop, variety)
         function setViewMode(mode) {
             viewMode = mode;
+            localStorage.setItem('calendarViewMode', mode);
 
             // Update button states
             document.querySelectorAll('#view-field, #view-bed, #view-crop, #view-variety').forEach(btn => btn.classList.remove('active'));
             document.getElementById(`view-${mode}`).classList.add('active');
 
-            // Update page title
-            const titles = {
-                'field': 'Field Calendar',
-                'bed': 'Bed Calendar',
-                'crop': 'Crop Calendar',
-                'variety': 'Variety Calendar'
+            // Update page subtitle (keep consistent title)
+            const subtitles = {
+                'field': 'by Field',
+                'bed': 'by Bed',
+                'crop': 'by Crop',
+                'variety': 'by Variety'
             };
-            document.querySelector('.page-title').innerHTML = `<i class="fas fa-calendar-alt"></i> ${titles[mode] || 'Calendar'}`;
+            document.querySelector('.page-title').innerHTML = `<i class="fas fa-calendar-alt"></i> Crop Calendar <span style="font-size:0.8rem;font-weight:400;color:var(--text-secondary);margin-left:4px;">${subtitles[mode] || ''}</span>`;
 
             // Hide unassigned sidebar in crop/variety view (shows ALL plantings including unassigned)
             const unassignedToggle = document.getElementById('unassignedToggle');
@@ -4852,6 +5124,24 @@
             const planting = plantings.find(p => p.id === id);
             if (!planting) return;
 
+            // Save old state for undo
+            const oldState = JSON.parse(JSON.stringify({
+                planGHSow: planting.planGHSow,
+                fieldStartDate: planting.fieldStartDate,
+                seedDate: planting.seedDate,
+                planFieldSow: planting.planFieldSow,
+                planTransplant: planting.planTransplant,
+                firstHarvest: planting.firstHarvest,
+                harvestDate: planting.harvestDate,
+                lastHarvest: planting.lastHarvest,
+                dtm: planting.dtm,
+                daysFieldToHarvest: planting.daysFieldToHarvest,
+                field: planting.field,
+                bed: planting.bed,
+                bedNum: planting.bedNum,
+                status: planting.status
+            }));
+
             // Check if locked
             if (planting.isLocked) {
                 showToast(`Cannot move: ${planting.lockReason}`, 'error');
@@ -4937,13 +5227,11 @@
             // Queue for sync to Google Sheets
             queueUpdate(planting);
 
-            // NO re-render - bar is already visually positioned correctly!
-            // applyFilters(); // REMOVED - prevents scroll reset
+            // Push to undo stack and show undo toast
+            undoStack.push({ id: planting.id, oldState, crop: planting.crop });
+            showUndoToast(`Moved ${planting.crop} — ${planting.bed || planting.field}`);
 
-            // Show confirmation with all dates
-            const ghSowInfo = planting.planGHSow ? `GH: ${formatDisplayDate(planting.planGHSow)} → ` : '';
-            const bedInfo = planting.bed ? ` | ${planting.bed}` : '';
-            showToast(`${planting.crop}: ${ghSowInfo}Field: ${formatDisplayDate(planting.fieldStartDate)} → Harvest: ${formatDisplayDate(planting.harvestDate)}${bedInfo}`, 'success');
+            // NO re-render - bar is already visually positioned correctly!
         }
 
         // Queue updates for batch saving
@@ -4985,6 +5273,68 @@
                 showToast('Changes discarded', 'info');
             }
         }
+
+        // Undo system
+        let undoToastTimeout = null;
+        function showUndoToast(message) {
+            const toast = document.getElementById('undoToast');
+            const msgEl = document.getElementById('undoMessage');
+            const timerBar = document.getElementById('undoTimerBar');
+            if (!toast) return;
+
+            msgEl.textContent = message;
+            timerBar.style.transition = 'none';
+            timerBar.style.width = '100%';
+            toast.classList.add('show');
+
+            // Animate timer bar
+            requestAnimationFrame(() => {
+                timerBar.style.transition = 'width 5s linear';
+                timerBar.style.width = '0%';
+            });
+
+            clearTimeout(undoToastTimeout);
+            undoToastTimeout = setTimeout(() => {
+                toast.classList.remove('show');
+            }, 5000);
+        }
+
+        function undoLastAction() {
+            if (undoStack.length === 0) return;
+            const action = undoStack.pop();
+            const planting = plantings.find(p => p.id === action.id);
+            if (!planting) return;
+
+            // Restore old state
+            Object.assign(planting, action.oldState);
+
+            // Remove from pending updates
+            pendingUpdates.delete(action.id);
+            updatePendingDisplay();
+
+            // Clear ghost for this planting
+            const ghost = ghostElements.get(action.id);
+            if (ghost) { ghost.remove(); ghostElements.delete(action.id); }
+            originalPositions.delete(action.id);
+
+            // Re-render to show restored position
+            applyFilters();
+
+            // Hide undo toast
+            clearTimeout(undoToastTimeout);
+            document.getElementById('undoToast').classList.remove('show');
+            showToast(`Undid move for ${action.crop}`, 'success');
+        }
+
+        // Keyboard shortcut: Ctrl/Cmd+Z for undo
+        document.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+                if (undoStack.length > 0) {
+                    e.preventDefault();
+                    undoLastAction();
+                }
+            }
+        });
 
         // Save to Google Sheets - CASCADE ALL DATES
         async function saveToGoogleSheets() {
@@ -5062,9 +5412,15 @@
         function setSyncStatus(status, text) {
             const indicator = document.getElementById('syncIndicator');
             const textEl = document.getElementById('syncText');
+            const timeEl = document.getElementById('syncTime');
 
             indicator.className = `sync-indicator ${status}`;
             textEl.textContent = text;
+            if (timeEl && status === 'synced') {
+                const now = new Date();
+                timeEl.textContent = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+                indicator.title = `Last synced at ${timeEl.textContent}`;
+            }
         }
 
         // Edit Modal Functions
@@ -5344,7 +5700,7 @@
 
             document.getElementById('tooltipStart').textContent = formatDisplayDate(planting.fieldStartDate || planting.seedDate);
             document.getElementById('tooltipEnd').textContent = formatDisplayDate(planting.harvestDate);
-            document.getElementById('tooltipDuration').textContent = `${planting.dtm} days`;
+            document.getElementById('tooltipDuration').textContent = `${planting.dtm} days to maturity`;
             document.getElementById('tooltipBedFeet').textContent = `${planting.bedFeet} ft`;
             document.getElementById('tooltipStatus').textContent = planting.status.charAt(0).toUpperCase() + planting.status.slice(1);
 
