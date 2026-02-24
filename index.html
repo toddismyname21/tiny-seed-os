@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -24,26 +24,29 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" media="print" onload="this.media='all'">
     <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
 
+    <!-- Design System -->
+    <link rel="stylesheet" href="web_app/tiny-seed-design-system.css">
+
     <!-- Auth guard must load early -->
     <script src="web_app/auth-guard.js" data-required-role="Employee"></script>
 
     <style>
         /* CRITICAL CSS - Required for above-the-fold rendering */
         :root {
-            --primary: #2d5a27;
-            --primary-light: #4a7c43;
-            --primary-dark: #1e3d1a;
-            --secondary: #f4a261;
-            --accent: #e76f51;
-            --success: #2a9d8f;
-            --warning: #e9c46a;
-            --danger: #e63946;
-            --bg-dark: #1a1a2e;
-            --bg-card: #16213e;
-            --bg-light: #0f3460;
-            --text-primary: #edf2f4;
-            --text-secondary: #8d99ae;
-            --border: rgba(255,255,255,0.1);
+            --primary: var(--ts-green-500, #22c55e);
+            --primary-light: var(--ts-green-400, #4ade80);
+            --primary-dark: var(--ts-green-600, #16a34a);
+            --secondary: var(--ts-gold-400, #f4a261);
+            --accent: var(--ts-red-400, #e76f51);
+            --success: var(--ts-teal-500, #2a9d8f);
+            --warning: var(--ts-gold-300, #e9c46a);
+            --danger: var(--ts-red-500, #e63946);
+            --bg-dark: var(--ts-bg-base, #1a1a2e);
+            --bg-card: var(--ts-bg-surface, #16213e);
+            --bg-light: var(--ts-bg-elevated, #0f3460);
+            --text-primary: var(--ts-text, #edf2f4);
+            --text-secondary: var(--ts-text-secondary, #8d99ae);
+            --border: var(--ts-border, rgba(255,255,255,0.1));
             --sidebar-width: 260px;
         }
 
@@ -51,7 +54,7 @@
 
         body {
             font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, var(--bg-dark) 0%, #0f0f1a 100%);
+            background: linear-gradient(135deg, var(--bg-dark) 0%, var(--ts-slate-950, #0f0f1a) 100%);
             color: var(--text-primary);
             min-height: 100vh;
             display: flex;
@@ -74,6 +77,53 @@
         .sidebar-header {
             padding: 1.5rem;
             border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        /* Collapsed sidebar */
+        .sidebar.collapsed {
+            width: 68px;
+        }
+
+        .sidebar.collapsed .logo-text,
+        .sidebar.collapsed .nav-section-title,
+        .sidebar.collapsed .nav-item span,
+        .sidebar.collapsed .nav-item .badge,
+        .sidebar.collapsed .sidebar-footer span {
+            display: none;
+        }
+
+        .sidebar.collapsed .nav-item {
+            padding: 0.85rem;
+            justify-content: center;
+        }
+
+        .sidebar.collapsed .nav-item i {
+            width: auto;
+            font-size: 1.1rem;
+        }
+
+        .sidebar.collapsed .sidebar-header {
+            padding: 1rem;
+            justify-content: center;
+        }
+
+        .sidebar.collapsed .sidebar-collapse-btn {
+            display: none;
+        }
+
+        .sidebar.collapsed .logo {
+            justify-content: center;
+        }
+
+        .sidebar.collapsed + .main-content {
+            margin-left: 68px;
+        }
+
+        body.sidebar-collapsed .main-content {
+            margin-left: 68px;
         }
 
         .logo {
@@ -170,7 +220,7 @@
 
         .nav-item .badge.warning {
             background: var(--warning);
-            color: #1a1a2e;
+            color: var(--bg-dark);
         }
 
         .nav-item.legacy {
@@ -228,7 +278,8 @@
 
         /* Filter Chips */
         .filter-chip {
-            padding: 6px 14px;
+            padding: 10px 16px;
+            min-height: 44px;
             background: transparent;
             border: 1px solid var(--border);
             border-radius: 20px;
@@ -237,6 +288,8 @@
             font-weight: 500;
             cursor: pointer;
             transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
         }
 
         .filter-chip:hover {
@@ -530,7 +583,7 @@
 
         .forecast-alert.frost {
             background: rgba(52, 152, 219, 0.15);
-            color: #3498db;
+            color: var(--ts-blue-500, #3498db);
         }
 
         .forecast-alert.heat {
@@ -550,10 +603,68 @@
             display: block;
         }
 
+        .warnings-bar-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+
+        .warnings-bar-header .warnings-summary-text {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #fff;
+            cursor: pointer;
+        }
+
+        .warnings-bar-header .warnings-summary-text i.chevron {
+            transition: transform 0.2s;
+        }
+
+        .warnings-bar.collapsed .warnings-bar-header .warnings-summary-text i.chevron {
+            transform: rotate(-90deg);
+        }
+
+        .warnings-bar-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .warnings-bar-actions button {
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #fff;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            min-height: 44px;
+            min-width: 44px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: background 0.2s;
+        }
+
+        .warnings-bar-actions button:hover {
+            background: rgba(255,255,255,0.25);
+        }
+
         .warnings-list {
             display: flex;
             flex-wrap: wrap;
-            gap: 1rem;
+            gap: 0.5rem;
+            transition: max-height 0.3s ease, opacity 0.3s ease;
+            overflow: hidden;
+        }
+
+        .warnings-bar.collapsed .warnings-list {
+            max-height: 0;
+            opacity: 0;
+            margin: 0;
         }
 
         .warning-item {
@@ -561,25 +672,53 @@
             align-items: center;
             gap: 8px;
             background: rgba(230, 57, 70, 0.2);
-            padding: 6px 12px;
+            padding: 8px 14px;
             border-radius: 8px;
             font-size: 0.85rem;
-            color: var(--danger);
+            color: #ffffff;
             cursor: pointer;
             transition: all 0.2s;
+            min-height: 44px;
         }
 
         .warning-item:hover {
-            background: rgba(230, 57, 70, 0.3);
+            background: rgba(230, 57, 70, 0.35);
         }
 
         .warning-item.weather {
             background: rgba(233, 196, 106, 0.2);
-            color: var(--warning);
+            color: #fff;
+        }
+
+        .warning-item .warning-count-badge {
+            background: rgba(255,255,255,0.25);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
         }
 
         .warning-item i {
             font-size: 0.9rem;
+        }
+
+        .warnings-show-more {
+            background: rgba(255,255,255,0.1);
+            border: 1px dashed rgba(255,255,255,0.3);
+            color: #fff;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: background 0.2s;
+        }
+
+        .warnings-show-more:hover {
+            background: rgba(255,255,255,0.2);
         }
 
         /* Modal Base Styles */
@@ -1501,8 +1640,8 @@
 
         .stat-icon.green { background: rgba(42, 157, 143, 0.2); color: var(--success); }
         .stat-icon.orange { background: rgba(244, 162, 97, 0.2); color: var(--secondary); }
-        .stat-icon.blue { background: rgba(52, 152, 219, 0.2); color: #3498db; }
-        .stat-icon.purple { background: rgba(155, 89, 182, 0.2); color: #9b59b6; }
+        .stat-icon.blue { background: rgba(52, 152, 219, 0.2); color: var(--ts-blue-500, #3498db); }
+        .stat-icon.purple { background: rgba(155, 89, 182, 0.2); color: var(--ts-purple-500, #9b59b6); }
 
         .stat-info {
             flex: 1;
@@ -1644,7 +1783,6 @@
             background: linear-gradient(135deg, rgba(230, 57, 70, 0.1), rgba(230, 57, 70, 0.05));
             border-radius: 16px;
             border: 2px solid rgba(230, 57, 70, 0.3);
-            padding: 1.5rem;
             margin-bottom: 1.5rem;
             display: none;
         }
@@ -1657,7 +1795,15 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 1rem;
+            padding: 1rem 1.5rem;
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.2s;
+            border-radius: 16px;
+        }
+
+        .overdue-tasks-header:hover {
+            background: rgba(230, 57, 70, 0.08);
         }
 
         .overdue-tasks-header h3 {
@@ -1674,6 +1820,12 @@
             font-size: 1.1rem;
         }
 
+        .overdue-header-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
         .overdue-count-badge {
             background: var(--danger);
             color: white;
@@ -1681,6 +1833,25 @@
             border-radius: 20px;
             font-size: 0.85rem;
             font-weight: 700;
+        }
+
+        .overdue-chevron {
+            color: var(--danger);
+            font-size: 0.9rem;
+            transition: transform 0.3s ease;
+        }
+
+        .overdue-tasks.expanded .overdue-chevron {
+            transform: rotate(180deg);
+        }
+
+        .overdue-body {
+            display: none;
+            padding: 0 1.5rem 1.5rem;
+        }
+
+        .overdue-tasks.expanded .overdue-body {
+            display: block;
         }
 
         .overdue-action-bar {
@@ -1738,7 +1909,7 @@
         }
 
         .overdue-complete-btn:hover:not(:disabled) {
-            background: #c92a36;
+            background: var(--ts-red-600, #c92a36);
         }
 
         .overdue-complete-btn:disabled {
@@ -1749,9 +1920,9 @@
         .overdue-delete-btn {
             padding: 10px 16px;
             border-radius: 10px;
-            border: 2px solid #ef4444;
+            border: 2px solid var(--danger);
             background: transparent;
-            color: #ef4444;
+            color: var(--danger);
             font-size: 0.9rem;
             font-weight: 600;
             cursor: pointer;
@@ -1761,7 +1932,7 @@
         }
 
         .overdue-delete-btn:hover:not(:disabled) {
-            background: #ef4444;
+            background: var(--danger);
             color: white;
         }
 
@@ -1773,9 +1944,9 @@
         .overdue-delegate-btn {
             padding: 10px 16px;
             border-radius: 10px;
-            border: 2px solid #60a5fa;
+            border: 2px solid var(--ts-blue-400, #60a5fa);
             background: transparent;
-            color: #60a5fa;
+            color: var(--ts-blue-400, #60a5fa);
             font-size: 0.9rem;
             font-weight: 600;
             cursor: pointer;
@@ -1785,7 +1956,7 @@
         }
 
         .overdue-delegate-btn:hover:not(:disabled) {
-            background: #60a5fa;
+            background: var(--ts-blue-400, #60a5fa);
             color: white;
         }
 
@@ -1798,13 +1969,14 @@
             display: flex;
             flex-direction: column;
             gap: 8px;
-            max-height: 300px;
+            max-height: 400px;
             overflow-y: auto;
+            scrollbar-width: thin;
         }
 
         .overdue-item {
             display: grid;
-            grid-template-columns: 44px 1fr auto auto auto;
+            grid-template-columns: 44px 1fr auto auto;
             gap: 12px;
             align-items: center;
             padding: 12px 14px;
@@ -1893,17 +2065,24 @@
         }
 
         .overdue-action-btn {
-            width: 36px;
-            height: 36px;
+            min-width: 44px;
+            min-height: 44px;
+            padding: 6px 10px;
             border-radius: 8px;
             border: none;
             color: white;
-            font-size: 0.9rem;
+            font-size: 0.8rem;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
+            gap: 4px;
             transition: all 0.2s;
+        }
+
+        .overdue-action-btn .btn-label {
+            font-size: 0.75rem;
+            font-weight: 500;
         }
 
         .overdue-action-btn.done {
@@ -1911,7 +2090,7 @@
         }
 
         .overdue-action-btn.done:hover {
-            background: #1a9f6b;
+            background: var(--ts-green-600, #1a9f6b);
             transform: scale(1.05);
         }
 
@@ -1920,7 +2099,7 @@
         }
 
         .overdue-action-btn.delegate:hover {
-            background: #d97706;
+            background: var(--ts-amber-600, #d97706);
             transform: scale(1.05);
         }
 
@@ -1929,7 +2108,7 @@
         }
 
         .overdue-action-btn.delete:hover {
-            background: #c92a36;
+            background: var(--ts-red-600, #c92a36);
             transform: scale(1.05);
         }
 
@@ -1949,7 +2128,7 @@
         }
 
         .overdue-complete-single:hover {
-            background: #c92a36;
+            background: var(--ts-red-600, #c92a36);
             transform: scale(1.05);
         }
 
@@ -2080,9 +2259,9 @@
         .bulk-delete-btn {
             padding: 12px 20px;
             border-radius: 10px;
-            border: 2px solid #ef4444;
+            border: 2px solid var(--danger);
             background: transparent;
-            color: #ef4444;
+            color: var(--danger);
             font-size: 0.95rem;
             font-weight: 600;
             cursor: pointer;
@@ -2093,7 +2272,7 @@
         }
 
         .bulk-delete-btn:hover:not(:disabled) {
-            background: #ef4444;
+            background: var(--danger);
             color: white;
         }
 
@@ -2105,9 +2284,9 @@
         .bulk-delegate-btn {
             padding: 12px 20px;
             border-radius: 10px;
-            border: 2px solid #60a5fa;
+            border: 2px solid var(--ts-blue-400, #60a5fa);
             background: transparent;
-            color: #60a5fa;
+            color: var(--ts-blue-400, #60a5fa);
             font-size: 0.95rem;
             font-weight: 600;
             cursor: pointer;
@@ -2118,7 +2297,7 @@
         }
 
         .bulk-delegate-btn:hover:not(:disabled) {
-            background: #60a5fa;
+            background: var(--ts-blue-400, #60a5fa);
             color: white;
         }
 
@@ -2163,7 +2342,7 @@
         }
 
         .bulk-delegate-content h3 i {
-            color: #60a5fa;
+            color: var(--ts-blue-400, #60a5fa);
         }
 
         .bulk-delegate-content select {
@@ -2212,13 +2391,13 @@
         }
 
         .bulk-delegate-actions .btn-confirm {
-            background: #60a5fa;
+            background: var(--ts-blue-400, #60a5fa);
             border: none;
             color: white;
         }
 
         .bulk-delegate-actions .btn-confirm:hover {
-            background: #3b82f6;
+            background: var(--ts-blue-500, #3b82f6);
         }
 
         /* Task Groups */
@@ -2452,19 +2631,19 @@
 
         .priority-badge.critical {
             background: rgba(239, 68, 68, 0.2);
-            color: #ef4444;
+            color: var(--danger);
             border: 1px solid rgba(239, 68, 68, 0.3);
         }
 
         .priority-badge.high {
             background: rgba(245, 158, 11, 0.2);
-            color: #f59e0b;
+            color: var(--warning);
             border: 1px solid rgba(245, 158, 11, 0.3);
         }
 
         .priority-badge.normal {
             background: rgba(34, 197, 94, 0.2);
-            color: #22c55e;
+            color: var(--primary);
             border: 1px solid rgba(34, 197, 94, 0.3);
         }
 
@@ -2483,7 +2662,7 @@
             border: 1px solid rgba(239, 68, 68, 0.3);
             border-radius: 6px;
             font-size: 0.7rem;
-            color: #ef4444;
+            color: var(--danger);
             margin-top: 4px;
         }
 
@@ -2533,7 +2712,7 @@
             background: rgba(239, 68, 68, 0.1);
             border: 1px solid rgba(239, 68, 68, 0.2);
             border-radius: 12px;
-            color: #ef4444;
+            color: var(--danger);
         }
 
         .api-error i {
@@ -2543,7 +2722,7 @@
         .api-error .retry-btn {
             margin-top: 8px;
             padding: 8px 16px;
-            background: #ef4444;
+            background: var(--danger);
             color: white;
             border: none;
             border-radius: 8px;
@@ -2552,7 +2731,7 @@
         }
 
         .api-error .retry-btn:hover {
-            background: #dc2626;
+            background: var(--ts-red-600, #dc2626);
         }
 
         .no-tasks-message {
@@ -2584,7 +2763,7 @@
             bottom: 100px;
             left: 50%;
             transform: translateX(-50%) translateY(100px);
-            background: #333;
+            background: var(--ts-slate-700, #333);
             color: white;
             padding: 14px 20px;
             border-radius: 12px;
@@ -2930,11 +3109,11 @@
         }
 
         .status-badge.planned { background: rgba(45, 90, 39, 0.2); color: var(--primary-light); }
-        .status-badge.sown { background: rgba(142, 68, 173, 0.2); color: #9b59b6; }
+        .status-badge.sown { background: rgba(142, 68, 173, 0.2); color: var(--ts-purple-500, #9b59b6); }
         .status-badge.ready { background: rgba(244, 162, 97, 0.2); color: var(--secondary); }
-        .status-badge.transplanted { background: rgba(52, 152, 219, 0.2); color: #3498db; }
-        .status-badge.gh-sow { background: rgba(142, 68, 173, 0.2); color: #9b59b6; }
-        .status-badge.transplant { background: rgba(52, 152, 219, 0.2); color: #3498db; }
+        .status-badge.transplanted { background: rgba(52, 152, 219, 0.2); color: var(--ts-blue-500, #3498db); }
+        .status-badge.gh-sow { background: rgba(142, 68, 173, 0.2); color: var(--ts-purple-500, #9b59b6); }
+        .status-badge.transplant { background: rgba(52, 152, 219, 0.2); color: var(--ts-blue-500, #3498db); }
         .status-badge.direct-seed { background: rgba(46, 204, 113, 0.2); color: #2ecc71; }
 
         .nursery-actions {
@@ -3115,10 +3294,10 @@
             align-items: flex-start;
         }
 
-        .satellite-alert-popup.ndvi-drop { border-left-color: #e63946; }
-        .satellite-alert-popup.water-stress { border-left-color: #3b82f6; }
-        .satellite-alert-popup.rapid-decline { border-left-color: #dc2626; }
-        .satellite-alert-popup.low-ndvi { border-left-color: #f97316; }
+        .satellite-alert-popup.ndvi-drop { border-left-color: var(--danger); }
+        .satellite-alert-popup.water-stress { border-left-color: var(--ts-blue-500, #3b82f6); }
+        .satellite-alert-popup.rapid-decline { border-left-color: var(--ts-red-600, #dc2626); }
+        .satellite-alert-popup.low-ndvi { border-left-color: var(--ts-amber-500, #f97316); }
 
         .satellite-alert-popup .alert-icon {
             font-size: 1.5rem;
@@ -3298,7 +3477,7 @@
 
         .push-permission-prompt .btn-enable {
             background: var(--warning);
-            color: #1a1a2e;
+            color: var(--bg-dark);
             border: none;
             padding: 8px 16px;
             border-radius: 6px;
@@ -3307,7 +3486,7 @@
         }
 
         .push-permission-prompt .btn-enable:hover {
-            background: #d97706;
+            background: var(--ts-amber-600, #d97706);
         }
 
         /* Mobile responsive for satellite alerts */
@@ -3359,11 +3538,11 @@
         .brief-header h2 {
             margin: 0;
             font-size: 1.5rem;
-            color: #fff;
+            color: var(--text-primary);
         }
 
         .brief-time {
-            color: #888;
+            color: var(--text-secondary);
             font-size: 0.9rem;
         }
 
@@ -3386,18 +3565,18 @@
         .brief-weather .weather-temp {
             font-size: 2.5rem;
             font-weight: bold;
-            color: #fff;
+            color: var(--text-primary);
         }
 
         .weather-condition {
-            color: #aaa;
+            color: var(--ts-text-muted, #aaa);
             font-size: 1.1rem;
         }
 
         .brief-weather .weather-details {
             display: flex;
             gap: 16px;
-            color: #888;
+            color: var(--text-secondary);
         }
 
         .brief-alerts {
@@ -3415,17 +3594,17 @@
 
         .alert-card.critical {
             background: rgba(239, 68, 68, 0.2);
-            border-left: 4px solid #ef4444;
+            border-left: 4px solid var(--danger);
         }
 
         .alert-card.high {
             background: rgba(249, 115, 22, 0.2);
-            border-left: 4px solid #f97316;
+            border-left: 4px solid var(--ts-amber-500, #f97316);
         }
 
         .alert-card.medium {
             background: rgba(234, 179, 8, 0.2);
-            border-left: 4px solid #eab308;
+            border-left: 4px solid var(--warning);
         }
 
         .alert-icon {
@@ -3434,20 +3613,20 @@
 
         .alert-content h4 {
             margin: 0 0 4px 0;
-            color: #fff;
+            color: var(--text-primary);
             font-size: 1rem;
         }
 
         .alert-content p {
             margin: 0;
-            color: #aaa;
+            color: var(--ts-text-muted, #aaa);
             font-size: 0.9rem;
         }
 
         .alert-action {
             margin-top: 6px;
             font-size: 0.85rem;
-            color: #60a5fa;
+            color: var(--ts-blue-400, #60a5fa);
             font-weight: 500;
         }
 
@@ -3461,7 +3640,7 @@
         .brief-priorities h3,
         .brief-harvest h3,
         .brief-recommendations h3 {
-            color: #fff;
+            color: var(--text-primary);
             font-size: 1.1rem;
             margin: 0;
         }
@@ -3481,7 +3660,7 @@
 
         .brief-view-all:hover {
             background: rgba(74, 124, 67, 0.25);
-            color: #6fcf6f;
+            color: var(--primary-light);
             transform: translateX(2px);
         }
 
@@ -3510,15 +3689,15 @@
         }
 
         .priority-item.overdue {
-            border-left: 3px solid #ef4444;
+            border-left: 3px solid var(--danger);
         }
 
         .priority-item .task-name {
-            color: #fff;
+            color: var(--text-primary);
         }
 
         .priority-item .task-meta {
-            color: #888;
+            color: var(--text-secondary);
             font-size: 0.85rem;
         }
 
@@ -3533,12 +3712,12 @@
         }
 
         .harvest-item .crop-name {
-            color: #fff;
+            color: var(--text-primary);
             font-weight: 500;
         }
 
         .harvest-item .harvest-days {
-            color: #22c55e;
+            color: var(--primary);
             font-size: 0.9rem;
         }
 
@@ -3550,20 +3729,20 @@
         }
 
         .recommendation-item .rec-title {
-            color: #fff;
+            color: var(--text-primary);
             font-weight: 500;
             margin-bottom: 4px;
         }
 
         .recommendation-item .rec-reason {
-            color: #888;
+            color: var(--text-secondary);
             font-size: 0.85rem;
         }
 
         .brief-loading {
             text-align: center;
             padding: 40px;
-            color: #888;
+            color: var(--text-secondary);
         }
 
         .brief-stats {
@@ -3595,12 +3774,12 @@
         .stat-item .stat-value {
             font-size: 1.5rem;
             font-weight: bold;
-            color: #fff;
+            color: var(--text-primary);
         }
 
         .stat-item .stat-label {
             font-size: 0.75rem;
-            color: #888;
+            color: var(--text-secondary);
             margin-top: 4px;
         }
 
@@ -3646,12 +3825,12 @@
         .task-detail-header .task-title {
             font-size: 1.2rem;
             font-weight: 600;
-            color: #fff;
+            color: var(--text-primary);
             margin-bottom: 8px;
         }
 
         .task-detail-header .task-subtitle {
-            color: #888;
+            color: var(--text-secondary);
             font-size: 0.9rem;
         }
 
@@ -3666,17 +3845,17 @@
 
         .task-detail-header .task-urgency.must-do {
             background: rgba(239, 68, 68, 0.2);
-            color: #ef4444;
+            color: var(--danger);
         }
 
         .task-detail-header .task-urgency.should-do {
             background: rgba(245, 158, 11, 0.2);
-            color: #f59e0b;
+            color: var(--warning);
         }
 
         .task-detail-header .task-urgency.normal {
             background: rgba(34, 197, 94, 0.2);
-            color: #22c55e;
+            color: var(--primary);
         }
 
         .task-actions-grid {
@@ -3716,17 +3895,17 @@
             font-weight: 500;
         }
 
-        .task-action-btn.do-now i { color: #22c55e; }
-        .task-action-btn.delegate i { color: #60a5fa; }
-        .task-action-btn.reschedule i { color: #f59e0b; }
+        .task-action-btn.do-now i { color: var(--primary); }
+        .task-action-btn.delegate i { color: var(--ts-blue-400, #60a5fa); }
+        .task-action-btn.reschedule i { color: var(--warning); }
         .task-action-btn.complete i { color: #8b5cf6; }
-        .task-action-btn.dismiss i { color: #ef4444; }
+        .task-action-btn.dismiss i { color: var(--danger); }
 
-        .task-action-btn.do-now:hover { border-color: #22c55e; background: rgba(34, 197, 94, 0.1); }
-        .task-action-btn.delegate:hover { border-color: #60a5fa; background: rgba(96, 165, 250, 0.1); }
-        .task-action-btn.reschedule:hover { border-color: #f59e0b; background: rgba(245, 158, 11, 0.1); }
+        .task-action-btn.do-now:hover { border-color: var(--primary); background: rgba(34, 197, 94, 0.1); }
+        .task-action-btn.delegate:hover { border-color: var(--ts-blue-400, #60a5fa); background: rgba(96, 165, 250, 0.1); }
+        .task-action-btn.reschedule:hover { border-color: var(--warning); background: rgba(245, 158, 11, 0.1); }
         .task-action-btn.complete:hover { border-color: #8b5cf6; background: rgba(139, 92, 246, 0.1); }
-        .task-action-btn.dismiss:hover { border-color: #ef4444; background: rgba(239, 68, 68, 0.1); }
+        .task-action-btn.dismiss:hover { border-color: var(--danger); background: rgba(239, 68, 68, 0.1); }
 
         /* Delegate Panel */
         .delegate-panel {
@@ -3744,7 +3923,7 @@
 
         .delegate-panel h4 {
             margin-bottom: 12px;
-            color: #60a5fa;
+            color: var(--ts-blue-400, #60a5fa);
         }
 
         .employee-select {
@@ -3792,7 +3971,7 @@
 
         .reschedule-panel h4 {
             margin-bottom: 12px;
-            color: #f59e0b;
+            color: var(--warning);
         }
 
         .date-input {
@@ -3825,8 +4004,8 @@
 
         .quick-date-btn:hover {
             background: rgba(245, 158, 11, 0.2);
-            border-color: #f59e0b;
-            color: #f59e0b;
+            border-color: var(--warning);
+            color: var(--warning);
         }
 
         /* ========================================
@@ -3887,9 +4066,9 @@
         .nlp-field input:focus, .nlp-field select:focus { outline: none; border-color: var(--primary-light); }
         .nlp-field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
         .nlp-confidence { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: rgba(42, 157, 143, 0.1); border-radius: 8px; font-size: 0.9rem; margin-top: 0.5rem; }
-        .nlp-confidence.high { background: rgba(34, 197, 94, 0.15); color: #22c55e; }
-        .nlp-confidence.medium { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
-        .nlp-confidence.low { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+        .nlp-confidence.high { background: rgba(34, 197, 94, 0.15); color: var(--primary); }
+        .nlp-confidence.medium { background: rgba(245, 158, 11, 0.15); color: var(--warning); }
+        .nlp-confidence.low { background: rgba(239, 68, 68, 0.15); color: var(--danger); }
         .nlp-confidence i { font-size: 1rem; }
         .nlp-confirm-footer { padding: 1rem 1.5rem; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 12px; }
         .nlp-confirm-footer .btn { padding: 12px 24px; border-radius: 10px; font-weight: 600; font-size: 0.95rem; cursor: pointer; transition: all 0.2s; }
@@ -4273,17 +4452,17 @@
 
         .time-result-value.deviation.excellent {
             background: rgba(34, 197, 94, 0.2);
-            color: #22c55e;
+            color: var(--primary);
         }
 
         .time-result-value.deviation.good {
             background: rgba(245, 158, 11, 0.2);
-            color: #f59e0b;
+            color: var(--warning);
         }
 
         .time-result-value.deviation.over {
             background: rgba(239, 68, 68, 0.2);
-            color: #ef4444;
+            color: var(--danger);
         }
 
         /* Efficiency Badge on Completed Tasks */
@@ -4299,17 +4478,17 @@
 
         .efficiency-badge.excellent {
             background: rgba(34, 197, 94, 0.2);
-            color: #22c55e;
+            color: var(--primary);
         }
 
         .efficiency-badge.good {
             background: rgba(245, 158, 11, 0.2);
-            color: #f59e0b;
+            color: var(--warning);
         }
 
         .efficiency-badge.over {
             background: rgba(239, 68, 68, 0.2);
-            color: #ef4444;
+            color: var(--danger);
         }
 
         /* Time Taken Display */
@@ -4391,15 +4570,15 @@
         }
 
         .efficiency-stat-value.excellent {
-            color: #22c55e;
+            color: var(--primary);
         }
 
         .efficiency-stat-value.good {
-            color: #f59e0b;
+            color: var(--warning);
         }
 
         .efficiency-stat-value.over {
-            color: #ef4444;
+            color: var(--danger);
         }
 
         .efficiency-stat-value.neutral {
@@ -4424,11 +4603,11 @@
         }
 
         .efficiency-trend.up {
-            color: #22c55e;
+            color: var(--primary);
         }
 
         .efficiency-trend.down {
-            color: #ef4444;
+            color: var(--danger);
         }
 
         .efficiency-trend.stable {
@@ -4481,6 +4660,9 @@
         })();
     </script>
 
+    <!-- Skip Navigation -->
+    <a href="#main-content" class="skip-link" style="position:absolute;top:-40px;left:0;background:var(--primary);color:#fff;padding:8px 16px;z-index:1000;transition:top 0.2s;font-size:0.9rem;border-radius:0 0 8px 0;" onfocus="this.style.top='0'" onblur="this.style.top='-40px'">Skip to main content</a>
+
     <!-- Left Sidebar -->
     <aside class="sidebar">
         <div class="sidebar-header">
@@ -4488,6 +4670,9 @@
                 <div class="logo-icon"><i class="fas fa-seedling"></i></div>
                 <span class="logo-text">Tiny Seed OS</span>
             </div>
+            <button class="sidebar-collapse-btn" onclick="toggleSidebar()" aria-label="Toggle sidebar" title="Collapse sidebar" style="background:none;border:none;color:var(--text-secondary);cursor:pointer;padding:8px;min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center;border-radius:8px;transition:all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='none'">
+                <i class="fas fa-angles-left" id="sidebarCollapseIcon"></i>
+            </button>
         </div>
 
         <nav class="sidebar-nav">
@@ -4636,6 +4821,20 @@
                     <span>Farmers Market</span>
                     <span class="badge success">NEW</span>
                 </a>
+                <a class="nav-item" href="web_app/seedling-presale-2026.html">
+                    <i class="fas fa-seedling"></i>
+                    <span>Seedling Presale</span>
+                    <span class="badge success">NEW</span>
+                </a>
+                <a class="nav-item" href="web_app/seedling-wholesale-2026.html">
+                    <i class="fas fa-boxes-stacked"></i>
+                    <span>Wholesale Seedlings</span>
+                    <span class="badge success">NEW</span>
+                </a>
+                <a class="nav-item" href="web_app/wholesale.html">
+                    <i class="fas fa-handshake"></i>
+                    <span>Wholesale Portal</span>
+                </a>
             </div>
 
             <div class="nav-section">
@@ -4731,7 +4930,7 @@
     </aside>
 
     <!-- Main Content -->
-    <main class="main-content">
+    <main class="main-content" id="main-content">
         <div class="top-bar">
             <div class="page-title">
                 <div>
@@ -4747,9 +4946,9 @@
                     <button class="filter-chip" onclick="setFilter('greenhouse')" data-filter="greenhouse">In GH</button>
                     <button class="filter-chip" onclick="setFilter('field')" data-filter="field">In Field</button>
                 </div>
-                <button class="btn btn-secondary" onclick="refreshData()">
-                    <i class="fas fa-sync-alt"></i>
-                    Refresh
+                <button class="btn btn-secondary" id="refreshBtn" onclick="refreshDataWithFeedback()" aria-label="Refresh dashboard data" style="min-height:44px;">
+                    <i class="fas fa-sync-alt" id="refreshIcon"></i>
+                    <span id="refreshLabel">Refresh</span>
                 </button>
             </div>
         </div>
@@ -4794,6 +4993,21 @@
 
         <!-- Warnings Bar -->
         <div class="warnings-bar" id="warningsBar">
+            <div class="warnings-bar-header">
+                <div class="warnings-summary-text" onclick="toggleWarningsCollapse()">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span id="warningsSummaryText">0 alerts</span>
+                    <i class="fas fa-chevron-down chevron"></i>
+                </div>
+                <div class="warnings-bar-actions">
+                    <button onclick="snoozeWarnings()" aria-label="Snooze alerts until tomorrow">
+                        <i class="fas fa-clock"></i> Snooze
+                    </button>
+                    <button onclick="dismissAllWarnings()" aria-label="Dismiss all alerts">
+                        <i class="fas fa-check-double"></i> Dismiss All
+                    </button>
+                </div>
+            </div>
             <div class="warnings-list" id="warningsList">
                 <!-- Warnings populated dynamically -->
             </div>
@@ -4942,26 +5156,31 @@
 
             <!-- Overdue Tasks - Warning Section -->
             <div class="overdue-tasks" id="overdueTasks">
-                <div class="overdue-tasks-header">
+                <div class="overdue-tasks-header" onclick="toggleOverdueDropdown()">
                     <h3><i class="fas fa-exclamation-triangle"></i> Overdue Tasks</h3>
-                    <span class="overdue-count-badge" id="overdueCountBadge">0 tasks</span>
+                    <div class="overdue-header-right">
+                        <span class="overdue-count-badge" id="overdueCountBadge">0 tasks</span>
+                        <i class="fas fa-chevron-down overdue-chevron" id="overdueChevron"></i>
+                    </div>
                 </div>
-                <div class="overdue-action-bar">
-                    <button class="overdue-select-all" id="overdueSelectAll" onclick="toggleOverdueSelectAll()">
-                        <i class="far fa-square"></i> Select All
-                    </button>
-                    <span class="overdue-selected-count" id="overdueSelectedCount"><strong>0</strong> selected</span>
-                    <button class="overdue-complete-btn" id="overdueCompleteBtn" onclick="completeSelectedOverdue()" disabled>
-                        <i class="fas fa-check-double"></i> Complete Selected
-                    </button>
-                    <button class="overdue-delegate-btn" id="overdueDelegateBtn" onclick="openOverdueDelegateModal()" disabled>
-                        <i class="fas fa-user-plus"></i> Delegate
-                    </button>
-                    <button class="overdue-delete-btn" id="overdueDeleteBtn" onclick="deleteSelectedOverdue()" disabled>
-                        <i class="fas fa-trash"></i> Delete
-                    </button>
+                <div class="overdue-body" id="overdueBody">
+                    <div class="overdue-action-bar">
+                        <button class="overdue-select-all" id="overdueSelectAll" onclick="toggleOverdueSelectAll()">
+                            <i class="far fa-square"></i> Select All
+                        </button>
+                        <span class="overdue-selected-count" id="overdueSelectedCount"><strong>0</strong> selected</span>
+                        <button class="overdue-complete-btn" id="overdueCompleteBtn" onclick="completeSelectedOverdue()" disabled>
+                            <i class="fas fa-check-double"></i> Complete Selected
+                        </button>
+                        <button class="overdue-delegate-btn" id="overdueDelegateBtn" onclick="openOverdueDelegateModal()" disabled>
+                            <i class="fas fa-user-plus"></i> Delegate
+                        </button>
+                        <button class="overdue-delete-btn" id="overdueDeleteBtn" onclick="deleteSelectedOverdue()" disabled>
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </div>
+                    <div class="overdue-list" id="overdueList"></div>
                 </div>
-                <div class="overdue-list" id="overdueList"></div>
             </div>
 
             <!-- Today's Work - Frictionless Task Completion -->
@@ -5825,7 +6044,7 @@
     </div>
 
     <!-- Voice/NLP Task Creation Button -->
-    <button class="voice-fab" id="voiceFab" data-hint="Speak or type a task" onclick="toggleVoiceInput()">
+    <button class="voice-fab" id="voiceFab" data-hint="Speak or type a task" onclick="toggleVoiceInput()" aria-label="Voice command — speak or type a task">
         <span class="voice-icon"><i class="fas fa-microphone"></i></span>
     </button>
 
@@ -6295,6 +6514,21 @@
             }
         }
 
+        async function refreshDataWithFeedback() {
+            const icon = document.getElementById('refreshIcon');
+            const label = document.getElementById('refreshLabel');
+            const btn = document.getElementById('refreshBtn');
+            if (icon) icon.classList.add('fa-spin');
+            if (label) label.textContent = 'Refreshing...';
+            if (btn) btn.disabled = true;
+            await refreshData();
+            if (icon) icon.classList.remove('fa-spin');
+            const now = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+            if (label) label.textContent = `Updated ${now}`;
+            if (btn) btn.disabled = false;
+            setTimeout(() => { if (label) label.textContent = 'Refresh'; }, 5000);
+        }
+
         async function refreshData() {
             showToast('Refreshing...', 'info');
             // Invalidate caches on manual refresh
@@ -6356,7 +6590,7 @@
                         </div>
                     `).join('');
                 } else {
-                    alertsContainer.innerHTML = '<div style="color: #22c55e; padding: 12px;">✓ No critical alerts today</div>';
+                    alertsContainer.innerHTML = '<div style="color: var(--primary); padding: 12px;">✓ No critical alerts today</div>';
                 }
 
                 // Render priorities from API format
@@ -6378,23 +6612,65 @@
 
                 if (allTasks.length > 0) {
                     const topTasks = allTasks.slice(0, 5);
-                    prioritiesContainer.innerHTML = topTasks.map((task, index) => `
+                    prioritiesContainer.innerHTML = topTasks.map((task, index) => {
+                        // Build a clear, plain-English task description
+                        const taskName = task.task || task.name || task.crop || 'Task';
+                        const taskType = (task.type || '').toLowerCase();
+                        const crop = task.crop || '';
+                        const category = task.category || '';
+
+                        // Convert code types to plain language
+                        const typeLabels = {
+                            'ghsow': 'Sow in greenhouse',
+                            'gh_sow': 'Sow in greenhouse',
+                            'sow': 'Sow in greenhouse',
+                            'transplant': 'Transplant to field',
+                            'directseed': 'Direct seed in field',
+                            'direct_seed': 'Direct seed in field',
+                            'harvest': 'Harvest',
+                            'maintenance': 'Maintenance',
+                            'spray': 'Spray treatment',
+                            'irrigate': 'Irrigation',
+                            'weed': 'Weeding',
+                            'scout': 'Field scouting',
+                            'admin': 'Admin task',
+                            'delivery': 'Delivery'
+                        };
+                        const readableType = typeLabels[taskType] || taskType || '';
+
+                        // Build the description line
+                        let description = '';
+                        if (readableType && crop && !taskName.toLowerCase().includes(crop.toLowerCase())) {
+                            description = readableType + ': ' + crop + (category ? ' (' + category + ')' : '');
+                        } else if (readableType) {
+                            description = readableType + (category ? ' — ' + category : '');
+                        } else if (crop) {
+                            description = crop + (category ? ' (' + category + ')' : '');
+                        }
+
+                        // Urgency label in plain language
+                        const urgencyLabel = task.urgency === 'MUST DO' ? 'Must do today' :
+                                             task.urgency === 'SHOULD DO' ? 'Should do today' :
+                                             task.overdue ? 'Overdue' : 'Scheduled';
+                        const urgencyColor = task.urgency === 'MUST DO' || task.overdue ? '#ef4444' : task.urgency === 'SHOULD DO' ? '#f59e0b' : '#22c55e';
+
+                        return `
                         <div class="priority-item clickable ${task.urgency === 'MUST DO' || task.overdue ? 'overdue' : ''}"
                              onclick="openTaskActionModal(${index})"
                              data-task-index="${index}">
                             <div>
-                                <div class="task-name">${task.task || task.name || task.crop || 'Task'}</div>
-                                <div class="task-meta">${task.crop || ''} ${task.category ? '- ' + task.category : ''} ${task.type || ''}</div>
+                                <div class="task-name">${taskName}</div>
+                                ${description ? `<div class="task-meta">${description}</div>` : ''}
                                 <div class="task-click-hint">Click to take action</div>
                             </div>
                             <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
-                                <div class="task-meta">${task.urgency || task.type || ''}</div>
+                                <div class="task-meta" style="color: ${urgencyColor}; font-weight: 600;">${urgencyLabel}</div>
                                 <i class="fas fa-chevron-right" style="color: #666; font-size: 0.8rem;"></i>
                             </div>
-                        </div>
-                    `).join('');
+                        </div>`;
+                    }).join('');
                 } else {
-                    prioritiesContainer.innerHTML = '<div style="color: #888; padding: 12px;">No tasks scheduled for today</div>';
+                    prioritiesContainer.innerHTML = '<div style="color: var(--text-secondary); padding: 12px;">No tasks scheduled for today</div>';
                 }
 
                 // Render harvest ready (new format: sections.harvests)
@@ -6491,7 +6767,16 @@
                 const statsHtml = `
                     <div class="brief-stats">
                         ${createStatItem(totalTasks, 'Tasks', 'web_app/task-assignment.html')}
-                        ${createStatItem(actualOverdueCount, 'Overdue', 'web_app/task-assignment.html?filter=overdue', actualOverdueCount > 0 ? '#ef4444' : '#22c55e')}
+                        ${actualOverdueCount > 0 ?
+                            `<a class="stat-item stat-link" style="text-decoration: none; color: inherit; cursor: pointer;" title="Click to see overdue tasks" onclick="scrollToOverdue(); return false;" href="#">
+                                <div class="stat-value" style="color: #ef4444">${actualOverdueCount}</div>
+                                <div class="stat-label">Overdue</div>
+                            </a>` :
+                            `<div class="stat-item" style="cursor: default;">
+                                <div class="stat-value" style="color: #22c55e">0</div>
+                                <div class="stat-label">Overdue</div>
+                            </div>`
+                        }
                         ${createStatItem(harvestCount, 'Harvest Ready', 'web_app/field-planner.html#harvest', '#22c55e')}
                         ${createStatItem(ordersCount, 'Orders', 'web_app/sales.html')}
                     </div>
@@ -6529,6 +6814,8 @@
         function scrollToOverdue() {
             const overdueSection = document.getElementById('overdueTasks');
             if (overdueSection) {
+                // Expand the dropdown when scrolling to it
+                overdueSection.classList.add('expanded');
                 overdueSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 // Add brief highlight effect
                 overdueSection.style.boxShadow = '0 0 20px rgba(239, 68, 68, 0.5)';
@@ -6905,7 +7192,7 @@
                     </div>
                 `).join('');
             } else {
-                prioritiesContainer.innerHTML = '<div style="color: #888; padding: 12px;">No tasks scheduled for today</div>';
+                prioritiesContainer.innerHTML = '<div style="color: var(--text-secondary); padding: 12px;">No tasks scheduled for today</div>';
             }
 
             showToast('Task dismissed from brief', 'info');
@@ -6928,9 +7215,10 @@
             const weekFromNow = new Date(today);
             weekFromNow.setDate(today.getDate() + 7);
 
-            // Active plantings (Sown or PLANTED status)
+            // Active plantings (case-insensitive status matching)
+            const activeStatuses = ['sown', 'planted', 'harvesting', 'growing', 'scheduled', 'seeded', 'germinating'];
             const active = allPlantings.filter(p =>
-                ['Sown', 'PLANTED', 'HARVESTING', 'Growing'].includes(p.STATUS)
+                activeStatuses.includes((p.STATUS || '').toLowerCase())
             ).length;
 
             // Tasks this week (sowings + transplants in next 7 days)
@@ -6945,17 +7233,26 @@
                 if (transplant && transplant >= today && transplant <= weekFromNow && !p.Act_Transplant) tasksThisWeek++;
             });
 
-            // Harvest ready
-            const harvestReady = allPlantings.filter(p => p.STATUS === 'HARVESTING').length;
+            // Harvest ready (case-insensitive)
+            const harvestReady = allPlantings.filter(p => (p.STATUS || '').toLowerCase() === 'harvesting').length;
 
             // Bed utilization
             const totalBeds = beds.length || 190;
+            const activeBedStatuses = ['sown', 'planted', 'harvesting', 'growing'];
             const usedBeds = new Set(allPlantings.filter(p =>
-                ['Sown', 'PLANTED', 'HARVESTING'].includes(p.STATUS) && p.Target_Bed_ID
+                activeBedStatuses.includes((p.STATUS || '').toLowerCase()) && p.Target_Bed_ID
             ).map(p => p.Target_Bed_ID)).size;
             const utilization = Math.round((usedBeds / totalBeds) * 100);
 
-            document.getElementById('statActive').textContent = active;
+            // Show context when KPIs are 0 but data exists
+            const upcoming = allPlantings.filter(p => {
+                const s = (p.STATUS || '').toLowerCase();
+                return s === 'planned' || s === 'scheduled' || s === '';
+            }).length;
+            document.getElementById('statActive').textContent = active || (upcoming > 0 ? `0` : '0');
+            if (active === 0 && upcoming > 0) {
+                document.getElementById('statActive').title = `${upcoming} upcoming plantings not yet started`;
+            }
             document.getElementById('statTasks').textContent = tasksThisWeek;
             document.getElementById('statHarvest').textContent = harvestReady;
             document.getElementById('statUtilization').textContent = utilization + '%';
@@ -7239,6 +7536,11 @@
             }
         }
 
+        function toggleOverdueDropdown() {
+            const container = document.getElementById('overdueTasks');
+            container.classList.toggle('expanded');
+        }
+
         function renderOverdueTasks() {
             const container = document.getElementById('overdueTasks');
             const listContainer = document.getElementById('overdueList');
@@ -7257,12 +7559,21 @@
 
             listContainer.innerHTML = overdueTasks.map(task => {
                 const isSelected = selectedOverdueTasks.has(task.id);
-                const typeLabel = task.type === 'ghSow' ? 'GH Sow' :
-                                  task.type === 'transplant' ? 'Transplant' : 'Direct Seed';
+                // Plain language type labels
+                const typeLabels = {
+                    'ghSow': 'Greenhouse Sow', 'transplant': 'Transplant',
+                    'directSeed': 'Direct Seed', 'harvest': 'Harvest',
+                    'maintenance': 'Maintenance', 'admin': 'Admin',
+                    'delivery': 'Delivery', 'spray': 'Spray', 'weed': 'Weeding',
+                    'scout': 'Field Scout', 'irrigate': 'Irrigation'
+                };
+                const typeLabel = typeLabels[task.type] || task.type || 'Task';
                 const daysText = task.daysOverdue === 1 ? '1 day' : `${task.daysOverdue} days`;
-                const priorityClass = getPriorityClass(task.priorityScore);
-                const priorityIcon = getPriorityIcon(task.priorityScore);
                 const taskIdForComplete = task.taskId || task.id;
+
+                // Build a clear task name
+                const taskDisplayName = task.taskName || (task.crop + (task.variety ? ' — ' + task.variety : ''));
+                const locationText = task.location && task.location !== 'Farm' ? ' in ' + task.location : '';
 
                 return `
                     <div class="overdue-item ${isSelected ? 'selected' : ''}"
@@ -7272,31 +7583,20 @@
                         <div class="overdue-checkbox">
                             <i class="fas fa-check"></i>
                         </div>
-                        <div class="priority-badge ${priorityClass}" title="AI Priority: ${task.priorityScore || 50}" style="margin-right: 8px;">
-                            <span>${priorityIcon}</span>
-                            <span class="score">${task.priorityScore || 50}</span>
-                        </div>
                         <div class="overdue-info">
-                            <div class="overdue-crop">${task.taskName || (task.crop + (task.variety ? ' - ' + task.variety : ''))}</div>
-                            <div class="overdue-details">${task.source === 'tasks_sheet' ? (task.type || 'Task') : typeLabel} • ${task.location}</div>
-                            ${task.atRisk && task.atRiskReason ? `
-                                <div class="at-risk-badge">
-                                    <i class="fas fa-exclamation-triangle"></i>
-                                    <span>${task.atRiskReason}</span>
-                                </div>
-                            ` : ''}
+                            <div class="overdue-crop">${taskDisplayName}</div>
+                            <div class="overdue-details">${typeLabel}${locationText}${task.quantity ? ' — ' + task.quantity : ''}</div>
                         </div>
                         <div class="overdue-days-badge">${daysText} overdue</div>
-                        <div class="overdue-quantity">${task.quantity}</div>
                         <div class="overdue-actions">
-                            <button class="overdue-action-btn done" onclick="completeOverdueTask('${task.batchId}', '${task.type}', event, '${taskIdForComplete}')" title="Mark Done">
-                                <i class="fas fa-check"></i>
+                            <button class="overdue-action-btn done" onclick="completeOverdueTask('${task.batchId}', '${task.type}', event, '${taskIdForComplete}')" title="Mark Done" aria-label="Mark Done">
+                                <i class="fas fa-check"></i> <span class="btn-label">Done</span>
                             </button>
-                            <button class="overdue-action-btn delegate" onclick="delegateOverdueTask('${task.batchId}', '${task.type}', event, '${taskIdForComplete}')" title="Delegate">
-                                <i class="fas fa-user-plus"></i>
+                            <button class="overdue-action-btn delegate" onclick="delegateOverdueTask('${task.batchId}', '${task.type}', event, '${taskIdForComplete}')" title="Delegate" aria-label="Delegate">
+                                <i class="fas fa-user-plus"></i> <span class="btn-label">Delegate</span>
                             </button>
-                            <button class="overdue-action-btn delete" onclick="deleteOverdueTask('${task.batchId}', '${task.type}', event, '${taskIdForComplete}')" title="Delete">
-                                <i class="fas fa-trash"></i>
+                            <button class="overdue-action-btn delete" onclick="confirmDeleteOverdueTask('${task.batchId}', '${task.type}', event, '${taskIdForComplete}')" title="Delete" aria-label="Delete">
+                                <i class="fas fa-trash"></i> <span class="btn-label">Delete</span>
                             </button>
                         </div>
                     </div>
@@ -7723,6 +8023,16 @@
             }
         }
 
+        function confirmDeleteOverdueTask(batchId, taskType, event, unifiedTaskId = null) {
+            if (event) event.stopPropagation();
+            const task = overdueTasks.find(t => t.batchId === batchId && t.type === taskType);
+            if (!task) return;
+            const name = task.variety ? `${task.crop} - ${task.variety}` : task.crop;
+            if (confirm(`Delete "${name}" (${task.type})? This cannot be undone.`)) {
+                deleteOverdueTask(batchId, taskType, null, unifiedTaskId);
+            }
+        }
+
         async function deleteOverdueTask(batchId, taskType, event, unifiedTaskId = null) {
             if (event) event.stopPropagation();
 
@@ -7803,13 +8113,25 @@
             }
 
             if (todaysTasks.length === 0) {
-                container.innerHTML = `
-                    <div class="no-tasks-message">
-                        <i class="fas fa-check-circle"></i>
-                        <p>No tasks scheduled for today!</p>
-                        <p class="subtext">Enjoy your day or plan ahead</p>
-                    </div>
-                `;
+                const overdueCount = overdueTasks ? overdueTasks.length : 0;
+                if (overdueCount > 0) {
+                    container.innerHTML = `
+                        <div class="no-tasks-message">
+                            <i class="fas fa-exclamation-circle" style="color: var(--warning);"></i>
+                            <p>No new tasks scheduled for today</p>
+                            <p class="subtext">But you have <strong>${overdueCount} overdue item${overdueCount !== 1 ? 's' : ''}</strong> that need attention.
+                            <a href="#overdueTasks" style="color: var(--primary-light); text-decoration: underline;">View overdue tasks</a></p>
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML = `
+                        <div class="no-tasks-message">
+                            <i class="fas fa-check-circle"></i>
+                            <p>All caught up!</p>
+                            <p class="subtext">No tasks scheduled for today.</p>
+                        </div>
+                    `;
+                }
                 return;
             }
 
@@ -7825,16 +8147,23 @@
                 return;
             }
 
-            // Group tasks by type
+            // Group tasks by type — include all possible types
             const groups = {
                 ghSow: { title: 'Greenhouse Sowing', icon: 'fa-seedling', class: 'gh-sow', tasks: [] },
                 transplant: { title: 'Transplanting', icon: 'fa-exchange-alt', class: 'transplant', tasks: [] },
-                directSeed: { title: 'Direct Seeding', icon: 'fa-tractor', class: 'direct-seed', tasks: [] }
+                directSeed: { title: 'Direct Seeding', icon: 'fa-tractor', class: 'direct-seed', tasks: [] },
+                harvest: { title: 'Harvest', icon: 'fa-basket-shopping', class: 'gh-sow', tasks: [] },
+                maintenance: { title: 'Maintenance', icon: 'fa-wrench', class: 'direct-seed', tasks: [] },
+                delivery: { title: 'Delivery', icon: 'fa-truck', class: 'transplant', tasks: [] },
+                admin: { title: 'Admin', icon: 'fa-clipboard', class: 'direct-seed', tasks: [] },
+                other: { title: 'Other Tasks', icon: 'fa-tasks', class: 'direct-seed', tasks: [] }
             };
 
             incompleteTasks.forEach(task => {
                 if (groups[task.type]) {
                     groups[task.type].tasks.push(task);
+                } else {
+                    groups.other.tasks.push(task);
                 }
             });
 
@@ -7868,10 +8197,12 @@
 
         function renderTaskItem(task) {
             const isSelected = selectedTasks.has(task.id);
-            const priorityClass = getPriorityClass(task.priorityScore);
-            const priorityIcon = getPriorityIcon(task.priorityScore);
-            const hasAtRisk = task.atRisk && task.atRiskReason;
-            const taskIdForComplete = task.taskId || task.id; // Use unified Task_ID if available
+            const taskIdForComplete = task.taskId || task.id;
+
+            // Build clear task description
+            const cropName = task.crop + (task.variety ? ' — ' + task.variety : '');
+            const locationText = task.location && task.location !== 'Farm' ? task.location : '';
+            const quantityText = task.quantity || '';
 
             return `
                 <div class="task-item with-priority ${isSelected ? 'selected' : ''} ${task.completed ? 'completed' : ''}"
@@ -7883,31 +8214,18 @@
                     <div class="task-checkbox ${isSelected ? 'checked' : ''}" onclick="toggleTaskSelection('${task.id}', event)">
                         <i class="fas fa-check"></i>
                     </div>
-                    <div class="priority-badge ${priorityClass}" title="AI Priority Score: ${task.priorityScore || 50}">
-                        <span>${priorityIcon}</span>
-                        <span class="score">${task.priorityScore || 50}</span>
-                    </div>
                     <div class="task-info">
-                        <div class="task-crop">
-                            ${task.crop}${task.variety ? ' - ' + task.variety : ''}
-                            ${task.source === 'unified' ? '<span class="task-source">AI</span>' : ''}
-                        </div>
+                        <div class="task-crop">${cropName}</div>
                         <div class="task-details">
-                            <i class="fas fa-map-marker-alt"></i> ${task.location}
+                            ${locationText ? `<i class="fas fa-map-marker-alt"></i> ${locationText}` : ''}
+                            ${quantityText ? `<span style="${locationText ? 'margin-left: 8px;' : ''}"><i class="fas fa-layer-group"></i> ${quantityText}</span>` : ''}
                             ${task.assignee ? `<span style="margin-left: 8px;"><i class="fas fa-user"></i> ${task.assignee}</span>` : ''}
                         </div>
-                        ${hasAtRisk ? `
-                            <div class="at-risk-badge">
-                                <i class="fas fa-exclamation-triangle"></i>
-                                <span>${task.atRiskReason}</span>
-                            </div>
-                        ` : ''}
                     </div>
-                    <div class="task-quantity">${task.quantity}</div>
                     <button class="task-complete-btn ${task.completed ? 'done' : ''}"
                             onclick="completeTask('${task.batchId}', '${task.type}', event, '${taskIdForComplete}')"
                             ${task.completed ? 'disabled' : ''}>
-                        <i class="fas ${task.completed ? 'fa-check' : 'fa-check'}"></i>
+                        <i class="fas fa-check"></i>
                     </button>
                 </div>
             `;
@@ -8393,11 +8711,31 @@
         }
 
         function updateEfficiencyWidget(data) {
+            const widget = document.getElementById('efficiencySummaryWidget');
             const tasksEl = document.getElementById('efficiencyTasksCompleted');
             const avgEl = document.getElementById('efficiencyAvgScore');
             const trendEl = document.getElementById('efficiencyTrend');
             const onTargetEl = document.getElementById('efficiencyOnTarget');
             const overTimeEl = document.getElementById('efficiencyOverTime');
+
+            // Hide widget if no data
+            const hasData = data.tasksCompleted > 0 || data.avgEfficiency > 0;
+            if (!hasData && widget) {
+                widget.innerHTML = `
+                    <div class="efficiency-summary-header">
+                        <div class="efficiency-summary-title">
+                            <i class="fas fa-chart-line"></i>
+                            <h3>Weekly Efficiency</h3>
+                        </div>
+                        <span class="efficiency-summary-period">Last 7 days</span>
+                    </div>
+                    <div style="text-align:center;padding:1.5rem;color:var(--text-secondary);font-size:0.9rem;">
+                        <i class="fas fa-clipboard-check" style="font-size:1.5rem;margin-bottom:0.5rem;display:block;opacity:0.5;"></i>
+                        Complete tasks to see your weekly efficiency stats
+                    </div>`;
+                return;
+            }
+
             if (tasksEl && data.tasksCompleted !== undefined) tasksEl.textContent = data.tasksCompleted;
             if (avgEl && data.avgEfficiency !== undefined) {
                 const avgPct = Math.round(data.avgEfficiency);
@@ -8691,6 +9029,20 @@
         // ========================================
         // NURSERY VIEW
         // ========================================
+        let nurserySortField = 'date';
+        let nurserySortAsc = true;
+
+        function sortUpcomingSowings(field) {
+            if (nurserySortField === field) {
+                nurserySortAsc = !nurserySortAsc;
+            } else {
+                nurserySortField = field;
+                nurserySortAsc = true;
+            }
+            const container = document.getElementById('viewContainer');
+            if (container) renderNurseryView(container);
+        }
+
         function renderNurseryView(container) {
             const today = new Date();
             today.setHours(0, 0, 0, 0);
@@ -8741,7 +9093,18 @@
             });
 
             // Sort by date (overdue first, then by date)
-            nurseryPlantings.sort((a, b) => a.actionDate - b.actionDate);
+            // Apply sort
+            const sortDir = nurserySortAsc ? 1 : -1;
+            nurseryPlantings.sort((a, b) => {
+                switch (nurserySortField) {
+                    case 'date': return sortDir * (a.actionDate - b.actionDate);
+                    case 'crop': return sortDir * (a.Crop || '').localeCompare(b.Crop || '');
+                    case 'location': return sortDir * (a.Target_Bed_ID || '').localeCompare(b.Target_Bed_ID || '');
+                    case 'trays': return sortDir * ((a.Trays_Needed || 0) - (b.Trays_Needed || 0));
+                    case 'type': return sortDir * (a.actionType || '').localeCompare(b.actionType || '');
+                    default: return sortDir * (a.actionDate - b.actionDate);
+                }
+            });
 
             document.getElementById('viewTitle').innerHTML = '<i class="fas fa-seedling"></i> Upcoming Sowings & Transplants';
             document.getElementById('viewCount').textContent = `${nurseryPlantings.length} plantings`;
@@ -8757,15 +9120,15 @@
                 return;
             }
 
-            // Header row
+            // Header row with sortable columns
             let html = `
                 <div class="nursery-header">
-                    <span>Date</span>
-                    <span>Crop / Variety</span>
-                    <span>Location</span>
+                    <span class="sortable" onclick="sortUpcomingSowings('date')" aria-label="Sort by date" style="cursor:pointer;">Date <i class="fas fa-sort" style="font-size:0.6rem;opacity:0.5;"></i></span>
+                    <span class="sortable" onclick="sortUpcomingSowings('crop')" aria-label="Sort by crop" style="cursor:pointer;">Crop / Variety <i class="fas fa-sort" style="font-size:0.6rem;opacity:0.5;"></i></span>
+                    <span class="sortable" onclick="sortUpcomingSowings('location')" aria-label="Sort by location" style="cursor:pointer;">Location <i class="fas fa-sort" style="font-size:0.6rem;opacity:0.5;"></i></span>
                     <span>Tray Size</span>
-                    <span>Trays</span>
-                    <span>Task Type</span>
+                    <span class="sortable" onclick="sortUpcomingSowings('trays')" aria-label="Sort by trays" style="cursor:pointer;">Trays <i class="fas fa-sort" style="font-size:0.6rem;opacity:0.5;"></i></span>
+                    <span class="sortable" onclick="sortUpcomingSowings('type')" aria-label="Sort by task type" style="cursor:pointer;">Task Type <i class="fas fa-sort" style="font-size:0.6rem;opacity:0.5;"></i></span>
                     <span></span>
                 </div>
                 <div class="nursery-list">`;
@@ -8783,7 +9146,7 @@
                 else if (p.actionType === 'directSeed') statusClass = 'direct-seed';
 
                 // Tray size (cell count)
-                const traySize = p.Tray_Cell_Count || p.traySize || '--';
+                const traySize = p.Tray_Cell_Count || p.traySize || 'Unset';
 
                 html += `
                     <div class="nursery-item ${isOverdue ? 'overdue' : ''}" onclick="openEditPlanting('${p.Batch_ID}')" style="cursor: pointer;">
@@ -8808,7 +9171,7 @@
                             <div class="label">cells</div>
                         </div>
                         <div class="nursery-trays">
-                            <div class="count">${p.Trays_Needed || '--'}</div>
+                            <div class="count">${p.Trays_Needed || 'Unset'}</div>
                             <div class="label">trays</div>
                         </div>
                         <div class="nursery-status">
@@ -9215,19 +9578,151 @@
             const allWarnings = [...(window.weatherWarnings || []), ...(window.taskWarnings || [])];
             const warningsBar = document.getElementById('warningsBar');
             const warningsList = document.getElementById('warningsList');
+            const summaryText = document.getElementById('warningsSummaryText');
 
-            if (allWarnings.length === 0) {
+            // Check snooze state
+            const snoozeUntil = localStorage.getItem('warningsSnoozeUntil');
+            if (snoozeUntil && new Date(snoozeUntil) > new Date()) {
+                warningsBar.classList.remove('visible');
+                return;
+            }
+
+            // Check dismissed warnings
+            const dismissed = JSON.parse(localStorage.getItem('dismissedWarnings') || '[]');
+            const today = new Date().toDateString();
+            const activeWarnings = allWarnings.filter(w => {
+                const key = (w.text || '').substring(0, 50);
+                return !dismissed.includes(today + ':' + key);
+            });
+
+            if (activeWarnings.length === 0) {
                 warningsBar.classList.remove('visible');
                 return;
             }
 
             warningsBar.classList.add('visible');
-            warningsList.innerHTML = allWarnings.map(w => `
-                <div class="warning-item ${w.type}" ${w.batchId ? `onclick="openEditPlanting('${w.batchId}')"` : ''}>
+
+            // Restore collapsed state
+            if (localStorage.getItem('warningsCollapsed') === 'true') {
+                warningsBar.classList.add('collapsed');
+            }
+
+            // Update summary text
+            const weatherCount = activeWarnings.filter(w => w.type === 'weather').length;
+            const taskCount = activeWarnings.length - weatherCount;
+            let summary = `${activeWarnings.length} alert${activeWarnings.length !== 1 ? 's' : ''}`;
+            if (weatherCount > 0 && taskCount > 0) {
+                summary = `${taskCount} overdue task${taskCount !== 1 ? 's' : ''}, ${weatherCount} weather alert${weatherCount !== 1 ? 's' : ''}`;
+            }
+            summaryText.textContent = summary;
+
+            // Group task warnings by crop name
+            const grouped = {};
+            const weatherItems = [];
+            activeWarnings.forEach(w => {
+                if (w.type === 'weather') {
+                    weatherItems.push(w);
+                    return;
+                }
+                // Extract crop name from warning text
+                const cropMatch = (w.text || '').match(/^(?:Overdue|Late|Sow|Transplant|Harvest)?\s*[-:]?\s*(.+?)(?:\s*[-–]\s*(?:overdue|late|sow|transplant|harvest|days?).*)?$/i);
+                const key = cropMatch ? cropMatch[1].trim() : w.text;
+                if (!grouped[key]) {
+                    grouped[key] = { items: [], icon: w.icon, type: w.type, firstBatchId: w.batchId };
+                }
+                grouped[key].items.push(w);
+            });
+
+            // Build grouped warning pills
+            const MAX_VISIBLE = 5;
+            let html = '';
+            let visibleCount = 0;
+            let hiddenCount = 0;
+
+            // Weather first
+            weatherItems.forEach(w => {
+                if (visibleCount < MAX_VISIBLE) {
+                    html += `<div class="warning-item weather" ${w.batchId ? `onclick="openEditPlanting('${w.batchId}')"` : ''}>
+                        <i class="fas ${w.icon}"></i>
+                        <span>${w.text}</span>
+                    </div>`;
+                    visibleCount++;
+                } else {
+                    hiddenCount++;
+                }
+            });
+
+            // Task warnings (grouped)
+            Object.entries(grouped).forEach(([crop, group]) => {
+                if (visibleCount < MAX_VISIBLE) {
+                    const count = group.items.length;
+                    const badge = count > 1 ? `<span class="warning-count-badge">&times;${count}</span>` : '';
+                    html += `<div class="warning-item ${group.type}" ${group.firstBatchId ? `onclick="openEditPlanting('${group.firstBatchId}')"` : ''}>
+                        <i class="fas ${group.icon}"></i>
+                        <span>${crop}</span>
+                        ${badge}
+                    </div>`;
+                    visibleCount++;
+                } else {
+                    hiddenCount += group.items.length;
+                }
+            });
+
+            // Show more button
+            if (hiddenCount > 0) {
+                html += `<div class="warnings-show-more" onclick="expandAllWarnings()">
+                    <i class="fas fa-plus-circle"></i>
+                    <span>+${hiddenCount} more</span>
+                </div>`;
+            }
+
+            warningsList.innerHTML = html;
+            window._allGroupedWarnings = { grouped, weatherItems, allWarnings: activeWarnings };
+        }
+
+        function toggleWarningsCollapse() {
+            const bar = document.getElementById('warningsBar');
+            bar.classList.toggle('collapsed');
+            localStorage.setItem('warningsCollapsed', bar.classList.contains('collapsed'));
+        }
+
+        function dismissAllWarnings() {
+            const today = new Date().toDateString();
+            const allWarnings = [...(window.weatherWarnings || []), ...(window.taskWarnings || [])];
+            const dismissed = allWarnings.map(w => today + ':' + (w.text || '').substring(0, 50));
+            localStorage.setItem('dismissedWarnings', JSON.stringify(dismissed));
+            document.getElementById('warningsBar').classList.remove('visible');
+        }
+
+        function snoozeWarnings() {
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            tomorrow.setHours(6, 0, 0, 0);
+            localStorage.setItem('warningsSnoozeUntil', tomorrow.toISOString());
+            document.getElementById('warningsBar').classList.remove('visible');
+        }
+
+        function expandAllWarnings() {
+            const data = window._allGroupedWarnings;
+            if (!data) return;
+            const warningsList = document.getElementById('warningsList');
+            let html = '';
+            data.weatherItems.forEach(w => {
+                html += `<div class="warning-item weather" ${w.batchId ? `onclick="openEditPlanting('${w.batchId}')"` : ''}>
                     <i class="fas ${w.icon}"></i>
                     <span>${w.text}</span>
-                </div>
-            `).join('');
+                </div>`;
+            });
+            Object.entries(data.grouped).forEach(([crop, group]) => {
+                const count = group.items.length;
+                const badge = count > 1 ? `<span class="warning-count-badge">&times;${count}</span>` : '';
+                html += `<div class="warning-item ${group.type}" ${group.firstBatchId ? `onclick="openEditPlanting('${group.firstBatchId}')"` : ''}>
+                    <i class="fas ${group.icon}"></i>
+                    <span>${crop}</span>
+                    ${badge}
+                </div>`;
+            });
+            warningsList.innerHTML = html;
         }
 
         // ========================================
@@ -10333,6 +10828,28 @@
             loadEmployeesForNlp();
         }
 
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            const icon = document.getElementById('sidebarCollapseIcon');
+            sidebar.classList.toggle('collapsed');
+            document.body.classList.toggle('sidebar-collapsed');
+            if (sidebar.classList.contains('collapsed')) {
+                if (icon) icon.className = 'fas fa-angles-right';
+                localStorage.setItem('sidebarCollapsed', 'true');
+            } else {
+                if (icon) icon.className = 'fas fa-angles-left';
+                localStorage.setItem('sidebarCollapsed', 'false');
+            }
+        }
+
+        // Restore sidebar state
+        if (localStorage.getItem('sidebarCollapsed') === 'true') {
+            document.querySelector('.sidebar')?.classList.add('collapsed');
+            document.body.classList.add('sidebar-collapsed');
+            const icon = document.getElementById('sidebarCollapseIcon');
+            if (icon) icon.className = 'fas fa-angles-right';
+        }
+
         function toggleVoiceInput() {
             const nlpContainer = document.getElementById('nlpInputContainer');
             const nlpInput = document.getElementById('nlpTextInput');
@@ -11020,7 +11537,7 @@
                 'LOW_NDVI': '<i class="fas fa-leaf" style="color: #f97316;"></i>',
                 'WATER_STRESS': '<i class="fas fa-tint-slash" style="color: #3b82f6;"></i>',
                 'RAPID_DECLINE': '<i class="fas fa-exclamation-triangle" style="color: #dc2626;"></i>',
-                'default': '<i class="fas fa-satellite" style="color: #f59e0b;"></i>'
+                'default': '<i class="fas fa-satellite" style="color: var(--warning);"></i>'
             };
             return icons[type] || icons['default'];
         }

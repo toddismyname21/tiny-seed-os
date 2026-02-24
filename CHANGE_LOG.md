@@ -38,6 +38,49 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-02-24 — Dashboard UX Overhaul + Wholesale Seedling Page + Presale Visual Fixes
+
+**Role:** PM_Architect / Desktop_Claude
+
+### Files Created
+- `web_app/seedling-wholesale-2026.html` — B2B wholesale seedling pre-order page. Tray-based ordering, tiered pricing (Standard/Volume/Bulk), business info form, dynamic catalog from API. 1,209 lines.
+
+### Files Modified
+- `index.html` — **20 UX audit fixes** (score 41/100 → significantly improved):
+  - Warnings bar: collapsible with grouping by crop, cap at 5 visible, Dismiss All + Snooze buttons, localStorage persistence
+  - KPIs: case-insensitive status matching, expanded active statuses (scheduled, seeded, germinating)
+  - Weekly Efficiency: shows meaningful empty state instead of "--"
+  - Overdue task buttons: visible text labels (Done/Delegate/Delete) + aria-labels + 44px touch targets
+  - Delete confirmation dialog before removing overdue tasks
+  - Today's Work: context-aware empty state linking to overdue items
+  - Warning text color: #ffffff for WCAG contrast on red background
+  - Skip navigation link + semantic header element
+  - Voice FAB: aria-label added
+  - Refresh button: spinner + "Updated X:XX PM" feedback
+  - TRAYS column: "--" → "Unset" for clarity
+  - Sortable table headers on Upcoming Sowings (date, crop, location, trays, type)
+  - Sidebar collapse toggle with localStorage persistence
+  - Added nav links: Seedling Presale (NEW), Wholesale Seedlings (NEW), Wholesale Portal
+
+- `web_app/seedling-presale-2026.html` — **7 visual fixes** (score 6.2/10 → improved):
+  - Badge colors: 2-color system (Forest Green for origin, Harvest Amber for type)
+  - Section heading alignment: all centered consistently
+  - Amish Paste card: fixed price wrapping with nowrap flex
+  - Hero logistics: unified pill container with dividers
+  - SVG wave divider between hero and content
+  - Benefit card icons: consistent #166534 green
+  - Disabled CTA: "Add seedlings above to reserve" instead of "$0.00"
+
+### Why
+User requested wholesale seedling pre-order page for B2B customers + comprehensive dashboard UX overhaul based on professional audit (41/100 score, 20 issues) + presale visual polish.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md — existing wholesale portal is different scope (authenticated portal vs public pre-order)
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
 ## 2026-02-24 — Dynamic UX Audit System (Rule Engine + Checklist)
 
 **Role:** PM_Architect

@@ -86,10 +86,13 @@
         .hero h1 span { color: #86efac; }
         .hero p { font-size: 1.15rem; color: rgba(255,255,255,0.85); max-width: 600px; margin: 0 auto 24px; }
         .hero-dates {
-            display: flex; gap: 24px; justify-content: center; flex-wrap: wrap;
+            display: inline-flex; gap: 16px; justify-content: center; flex-wrap: wrap;
             margin-bottom: 32px; font-size: 0.9rem;
+            background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25);
+            border-radius: 12px; padding: 12px 24px; align-items: center;
         }
         .hero-dates span { display: flex; align-items: center; gap: 6px; color: rgba(255,255,255,0.9); }
+        .hero-dates span + span { border-left: 1px solid rgba(255,255,255,0.25); padding-left: 16px; }
         .hero-dates strong { color: #fbbf24; }
         .cta-btn {
             display: inline-flex; align-items: center; gap: 10px;
@@ -147,23 +150,23 @@
             transition: all 0.2s;
         }
         .variety-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
-        .variety-card .variety-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; gap: 8px; flex-wrap: wrap; }
-        .variety-card .variety-name { font-weight: 700; font-size: 1.05rem; color: var(--text-dark); }
+        .variety-card .variety-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; gap: 8px; flex-wrap: nowrap; }
+        .variety-card .variety-name { font-weight: 700; font-size: 1.05rem; color: var(--text-dark); min-width: 0; }
         .variety-card .variety-type {
             font-size: 0.7rem; font-weight: 700; padding: 3px 10px;
             border-radius: 20px; text-transform: uppercase; letter-spacing: 0.5px;
         }
-        .type-slicer { background: #fee2e2; color: var(--tomato-red); }
-        .type-paste { background: #fef3c7; color: #854d0e; }
-        .type-cherry { background: #dcfce7; color: var(--green-dark); }
-        .type-heirloom { background: #f3e8ff; color: #7c3aed; }
-        .type-sweet { background: #dcfce7; color: var(--pepper-sweet); }
-        .type-mild { background: #fef9c3; color: var(--yellow-mild); }
-        .type-medium { background: #ffedd5; color: var(--orange-hot); }
-        .type-hot { background: #fee2e2; color: var(--red-hot); }
-        .type-superhot { background: #fecaca; color: #991b1b; }
-        .type-summer { background: #fef3c7; color: var(--cucurbit-gold); }
-        .type-pickling { background: #d1fae5; color: #065f46; }
+        /* 2-color badge system:
+           - Forest Green for origin/quality markers (HEIRLOOM, ORGANIC)
+           - Harvest Amber for type descriptors (PASTE, SLICER, CHERRY, etc.) */
+        .type-slicer, .type-paste, .type-cherry, .type-sweet,
+        .type-mild, .type-medium, .type-hot, .type-superhot,
+        .type-summer, .type-pickling, .type-grape {
+            background: #fef3c7; color: #b45309;
+        }
+        .type-heirloom, .type-organic {
+            background: #dcfce7; color: #166534;
+        }
 
         .variety-card .variety-desc { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 10px; line-height: 1.5; }
         .variety-card .variety-meta { display: flex; gap: 12px; font-size: 0.78rem; color: var(--text-muted); flex-wrap: wrap; }
@@ -341,6 +344,8 @@
         /* ═══════════════════════════════════════ */
         @media (max-width: 768px) {
             .hero { padding: 60px 16px 40px; }
+            .hero-dates { flex-direction: column; gap: 8px; padding: 12px 20px; }
+            .hero-dates span + span { border-left: none; padding-left: 0; border-top: 1px solid rgba(255,255,255,0.15); padding-top: 8px; }
             section { padding: 40px 16px; }
             .form-row { grid-template-columns: 1fr; }
             .variety-grid { grid-template-columns: 1fr; }
@@ -372,6 +377,14 @@
     </div>
 </header>
 
+<!-- SVG Wave Divider: hero (dark green) → cream section -->
+<div style="background: linear-gradient(135deg, var(--green-deep) 0%, #1e3a1e 50%, #2d4a2d 100%); margin-top: -1px; line-height: 0;">
+    <svg viewBox="0 0 1440 60" preserveAspectRatio="none" style="display:block; width:100%; height:60px;" xmlns="http://www.w3.org/2000/svg">
+        <path d="M0,0 C360,50 720,60 1080,30 C1260,15 1380,5 1440,0 L1440,60 L0,60 Z" fill="#fffbeb"/>
+        <path d="M0,20 C240,55 600,60 960,35 C1200,18 1380,10 1440,15 L1440,60 L0,60 Z" fill="#fffbeb" opacity="0.5"/>
+    </svg>
+</div>
+
 <main id="main-content" role="main">
 
 <!-- ═══════════════════════════════════════════════════════════ -->
@@ -383,22 +396,22 @@
         <p class="section-subtitle" style="text-align:center;">Last year's presale sold out — reserve yours today.</p>
         <div class="benefits-grid">
             <div class="benefit-card">
-                <i class="fas fa-check-circle" style="color: var(--green);"></i>
+                <i class="fas fa-check-circle" style="color: #166534;"></i>
                 <h3>Guaranteed Availability</h3>
                 <p>Lock in rare varieties like Cherokee Purple and Ghost Pepper before they sell out at market.</p>
             </div>
             <div class="benefit-card">
-                <i class="fas fa-bolt" style="color: var(--cucurbit-gold);"></i>
+                <i class="fas fa-bolt" style="color: #166534;"></i>
                 <h3>Skip the Line</h3>
                 <p>Your order is pre-packed and labeled. Walk up, grab your box, and go — no browsing required.</p>
             </div>
             <div class="benefit-card">
-                <i class="fas fa-map-marker-alt" style="color: var(--tomato-red);"></i>
+                <i class="fas fa-map-marker-alt" style="color: #166534;"></i>
                 <h3>7 Pickup Locations</h3>
                 <p>Choose a market near you: Bloomfield, Lawrenceville, Sewickley, Squirrel Hill, and more.</p>
             </div>
             <div class="benefit-card">
-                <i class="fas fa-heart" style="color: #ec4899;"></i>
+                <i class="fas fa-heart" style="color: #166534;"></i>
                 <h3>Support Local</h3>
                 <p>Every seedling is started by hand at our Rochester, PA farm — just 30 min from Pittsburgh.</p>
             </div>
@@ -433,8 +446,8 @@
 <!-- ═══════════════════════════════════════════════════════════ -->
 <section class="pickup" id="pickup" aria-labelledby="pickup-heading">
     <div class="container">
-        <h2 class="section-title" id="pickup-heading">Pickup Locations</h2>
-        <p class="section-subtitle">Choose the market or location most convenient for you.</p>
+        <h2 class="section-title" id="pickup-heading" style="text-align:center;">Pickup Locations</h2>
+        <p class="section-subtitle" style="text-align:center;">Choose the market or location most convenient for you.</p>
         <div class="pickup-grid">
             <div class="pickup-card">
                 <h3><i class="fas fa-store" style="color:var(--green);"></i> Bloomfield Market</h3>
@@ -542,7 +555,7 @@
             </div>
 
             <button type="submit" class="submit-order" id="submitOrderBtn" disabled>
-                <i class="fas fa-lock"></i> Reserve & Pay — $0.00
+                <i class="fas fa-seedling"></i> Add seedlings above to reserve
             </button>
             <div class="payment-badges">
                 <i class="fab fa-cc-visa"></i>
@@ -957,8 +970,13 @@ function updateTotal() {
     }
 
     // Submit button
-    btn.innerHTML = '<i class="fas fa-lock"></i> Reserve & Pay \u2014 $' + order.total.toFixed(2);
-    btn.disabled = order.totalPlants === 0;
+    if (order.totalPlants === 0) {
+        btn.innerHTML = '<i class="fas fa-seedling"></i> Add seedlings above to reserve';
+        btn.disabled = true;
+    } else {
+        btn.innerHTML = '<i class="fas fa-lock"></i> Reserve & Pay \u2014 $' + order.total.toFixed(2);
+        btn.disabled = false;
+    }
 
     // Clear button visibility
     if (clearBtn) clearBtn.style.display = order.totalPlants > 0 ? 'inline-flex' : 'none';
