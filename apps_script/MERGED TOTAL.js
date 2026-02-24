@@ -130331,6 +130331,14 @@ function bulkImportSeedlingData(params) {
     return { success: false, error: 'No items provided. Send {items: [...]}' };
   }
 
+  // Clear existing data if requested (keeps header row)
+  if (params.clearFirst) {
+    var lastRow = sheet.getLastRow();
+    if (lastRow > 1) {
+      sheet.deleteRows(2, lastRow - 1);
+    }
+  }
+
   var imported = 0;
   for (var i = 0; i < items.length; i++) {
     var p = items[i];
@@ -130351,7 +130359,7 @@ function bulkImportSeedlingData(params) {
     imported++;
   }
 
-  return { success: true, imported: imported, message: imported + ' items imported to SEEDLING_PRODUCTION' };
+  return { success: true, imported: imported, cleared: !!params.clearFirst, message: imported + ' items imported to SEEDLING_PRODUCTION' };
 }
 
 /**
