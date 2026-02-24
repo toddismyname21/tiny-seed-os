@@ -1120,12 +1120,11 @@ function submitPresaleOrder(e) {
         var qty = quantities[VARIETIES[i].name] || 0;
         if (qty > 0) {
             items.push({
+                name: VARIETIES[i].crop || VARIETIES[i].name,
                 variety: VARIETIES[i].name,
-                category: VARIETIES[i].category,
-                qty: qty,
+                quantity: qty,
                 price: VARIETIES[i].price,
-                itemId: VARIETIES[i].itemId,
-                crop: VARIETIES[i].crop || VARIETIES[i].name
+                itemId: VARIETIES[i].itemId
             });
         }
     }
@@ -1149,79 +1148,76 @@ function submitPresaleOrder(e) {
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting your order...';
 
-    // Submit each line item to the API
-    var saleDate = new Date().toISOString().split('T')[0];
-    var completed = 0;
-    var failed = 0;
-    var totalItems = items.length;
+    // Single API call — records sales, creates Shopify invoice, generates fulfillment tasks
+    var payload = {
+        action: 'submitSeedlingOrder',
+        customerName: customerName,
+        email: email,
+        phone: phone,
+        items: items,
+        pickupLocation: pickup,
+        pickupDate: '',
+        notes: 'Pickup: ' + pickup,
+        channel: 'Presale'
+    };
 
-    function onAllDone() {
-        if (completed + failed < totalItems) return; // still waiting
-
-        if (failed > 0 && completed === 0) {
-            // Total failure
+    fetch(TINY_SEED_API.MAIN_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    })
+    .then(function(response) { return response.json(); })
+    .then(function(result) {
+        if (result.success) {
+            showConfirmation(customerName, email, pickup, orderCalc, false, result);
+        } else {
             btn.disabled = false;
             btn.innerHTML = originalBtnHtml;
             alert('We were unable to submit your order. Please try again or contact todd@tinyseedfarmpgh.com for help.');
-        } else if (failed > 0) {
-            // Partial failure
-            showConfirmation(customerName, email, pickup, orderCalc, true);
-        } else {
-            // Full success
-            showConfirmation(customerName, email, pickup, orderCalc, false);
+            console.error('Order submission failed:', result.error);
         }
-    }
-
-    for (var j = 0; j < items.length; j++) {
-        (function(item) {
-            var payload = {
-                action: 'logSeedlingSale',
-                itemId: item.itemId,
-                crop: item.crop,
-                variety: item.variety,
-                channel: 'Presale',
-                quantitySold: item.qty,
-                priceEach: item.price,
-                saleDate: saleDate,
-                customerName: customerName,
-                notes: 'Email: ' + email + (phone ? ' | Phone: ' + phone : '') + ' | Pickup: ' + pickup
-            };
-
-            fetch(TINY_SEED_API.MAIN_API, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            })
-            .then(function(response) { return response.json(); })
-            .then(function(result) {
-                if (result.success) {
-                    completed++;
-                } else {
-                    console.error('Failed to log sale for ' + item.variety + ':', result.error);
-                    failed++;
-                }
-                onAllDone();
-            })
-            .catch(function(err) {
-                console.error('Network error logging sale for ' + item.variety + ':', err);
-                failed++;
-                onAllDone();
-            });
-        })(items[j]);
-    }
+    })
+    .catch(function(err) {
+        btn.disabled = false;
+        btn.innerHTML = originalBtnHtml;
+        alert('Network error. Please check your connection and try again.');
+        console.error('Network error:', err);
+    });
 }
 
-function showConfirmation(customerName, email, pickup, orderCalc, hadPartialFailure) {
+function showConfirmation(customerName, email, pickup, orderCalc, hadPartialFailure, apiResult) {
     var form = document.getElementById('presaleForm');
+    var orderId = (apiResult && apiResult.orderId) || '';
+    var invoiceUrl = (apiResult && apiResult.invoiceUrl) || '';
+    var hasInvoice = !!invoiceUrl;
+    var warnings = (apiResult && apiResult.errors && apiResult.errors.length > 0);
+
     var html = '';
     html += '<div style="text-align:center; padding:40px 20px;">';
     html += '<div style="width:80px; height:80px; border-radius:50%; background:#f0fdf4; display:flex; align-items:center; justify-content:center; margin:0 auto 20px;">';
     html += '<i class="fas fa-check-circle" style="font-size:3rem; color:var(--green);"></i>';
     html += '</div>';
-    html += '<h3 style="font-family:\'Playfair Display\',serif; font-size:1.5rem; color:var(--text-dark); margin-bottom:8px;">Order Received!</h3>';
+    html += '<h3 style="font-family:\'Playfair Display\',serif; font-size:1.5rem; color:var(--text-dark); margin-bottom:8px;">Order Confirmed!</h3>';
+    if (orderId) {
+        html += '<p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:4px;">Order #<strong>' + escapeHtml(orderId) + '</strong></p>';
+    }
     html += '<p style="color:var(--text-muted); margin-bottom:20px; max-width:450px; margin-left:auto; margin-right:auto;">';
     html += 'Thank you, <strong>' + escapeHtml(customerName) + '</strong>! Your presale order for <strong>' + orderCalc.totalPlants + ' seedling' + (orderCalc.totalPlants !== 1 ? 's' : '') + '</strong> ($' + orderCalc.total.toFixed(2) + ') has been submitted.';
     html += '</p>';
+
+    // Invoice info
+    if (hasInvoice) {
+        html += '<div style="background:#f0fdf4; border:1px solid var(--green); border-radius:12px; padding:16px; max-width:400px; margin:0 auto 16px;">';
+        html += '<p style="font-size:0.9rem; color:var(--green-dark); margin-bottom:8px;"><i class="fas fa-file-invoice-dollar"></i> <strong>Invoice sent to ' + escapeHtml(email) + '</strong></p>';
+        html += '<a href="' + escapeHtml(invoiceUrl) + '" target="_blank" style="display:inline-block; background:var(--green); color:#000; padding:10px 24px; border-radius:50px; font-weight:700; text-decoration:none; font-size:0.9rem;">';
+        html += '<i class="fas fa-credit-card"></i> Pay Now</a>';
+        html += '</div>';
+    } else if (warnings) {
+        html += '<div style="background:#fffbeb; border:1px solid #f59e0b; border-radius:12px; padding:16px; max-width:400px; margin:0 auto 16px;">';
+        html += '<p style="font-size:0.85rem; color:#92400e;"><i class="fas fa-info-circle"></i> Your order was recorded. We\'ll send payment instructions to <strong>' + escapeHtml(email) + '</strong> shortly.</p>';
+        html += '</div>';
+    }
+
     if (hadPartialFailure) {
         html += '<p style="color:var(--orange-hot); font-size:0.85rem; margin-bottom:16px;"><i class="fas fa-exclamation-triangle"></i> Some items may not have been recorded. We will verify and contact you at <strong>' + escapeHtml(email) + '</strong>.</p>';
     }

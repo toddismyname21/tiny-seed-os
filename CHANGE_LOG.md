@@ -38,6 +38,40 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-02-24 — Shopify Invoice + Pick/Pack Workflow for Seedling Pre-Orders
+
+**Role:** PM_Architect / Backend_Claude
+
+### Functions Added
+- `submitSeedlingOrder()` in `MERGED TOTAL.js` — Main orchestrator: records sales, creates Shopify Draft Order, sends invoice, generates fulfillment tasks
+- `logSeedlingSale_()` in `MERGED TOTAL.js` — Private refactored helper with Order_ID support
+- `createSeedlingDraftOrder_()` in `MERGED TOTAL.js` — Creates Shopify Draft Order via API
+- `sendSeedlingDraftInvoice_()` in `MERGED TOTAL.js` — Sends Shopify invoice email to customer
+- `generateSeedlingFulfillmentTasks_()` in `MERGED TOTAL.js` — Creates pick/pack/prep tasks in TASKS_2026 + SALES_PickPack
+- `getOrCreateSeedlingOrdersSheet_()` in `MERGED TOTAL.js` — Creates SEEDLING_ORDERS sheet with sequential Order_ID
+
+### Functions Modified
+- `doPost` router in `MERGED TOTAL.js` — Added `submitSeedlingOrder` action
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — 6 new functions, 1 new doPost route
+- `web_app/seedling-presale-2026.html` — Replaced per-item POST loop with single `submitSeedlingOrder` call, updated confirmation with invoice link + order ID
+- `web_app/seedling-wholesale-2026.html` — Same: single API call, invoice confirmation UI with Pay Now button
+
+### New Sheets (auto-created on first order)
+- `SEEDLING_ORDERS` — Order-level tracking with Shopify draft order ID, invoice URL, pick/pack status
+- `SEEDLING_SALES` — Added `Order_ID` column (auto-migrated)
+
+### Reason
+Enable Shopify invoicing for seedling pre-orders so customers receive a payment link, and auto-generate fulfillment tasks (pick, pack, prep) so the farm team has a workflow for order fulfillment.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] No duplicate functions — Shopify Draft Orders API is new, uses existing `shopifyApiCall()` wrapper
+- [x] Reuses existing `generatePickListForOrder()` for pick list items
+
+---
+
 ## 2026-02-24 — Dashboard UX Overhaul + Wholesale Seedling Page + Presale Visual Fixes
 
 **Role:** PM_Architect / Desktop_Claude

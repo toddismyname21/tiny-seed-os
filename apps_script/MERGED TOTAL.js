@@ -18862,6 +18862,8 @@ function doPost(e) {
         return jsonResponse(saveSeedlingItem(data));
       case 'logSeedlingSale':
         return jsonResponse(logSeedlingSale(data));
+      case 'submitSeedlingOrder':
+        return jsonResponse(submitSeedlingOrder(data));
       case 'addTray':
         return jsonResponse(addTray(data));
       case 'createSeedlingPresaleItem':
@@ -130135,6 +130137,428 @@ function logSeedlingSale(params) {
   logSeedlingLifecycleEvent_(ss, params.itemId || '', seedLotId, batchId, 'sale', '', '', 'Sold ' + qtySold + ' via ' + (params.channel || 'unknown') + ' for $' + revenue.toFixed(2), params.recordedBy || 'dashboard');
 
   return { success: true, saleId: saleId, revenue: revenue };
+}
+
+// ============ SEEDLING ORDER ORCHESTRATOR — Shopify Invoice + Pick/Pack (2026-02-24) ============
+
+/**
+ * Private helper: log a single seedling sale line item with an Order_ID.
+ * Wraps the same logic as logSeedlingSale but accepts an orderId param.
+ */
+function logSeedlingSale_(params, orderId) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('SEEDLING_SALES');
+  if (!sheet) {
+    sheet = ss.insertSheet('SEEDLING_SALES');
+    sheet.appendRow([
+      'Sale_ID', 'Order_ID', 'Item_ID', 'Crop', 'Variety', 'Channel', 'Quantity_Sold',
+      'Price_Each', 'Revenue', 'Sale_Date', 'Customer_Name', 'Notes', 'Created_At'
+    ]);
+    sheet.getRange(1, 1, 1, 13).setFontWeight('bold');
+    sheet.setFrozenRows(1);
+  }
+
+  // Ensure Order_ID column exists (migration for existing sheets)
+  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  if (headers.indexOf('Order_ID') === -1) {
+    // Insert Order_ID as column 2 (after Sale_ID)
+    sheet.insertColumnAfter(1);
+    sheet.getRange(1, 2).setValue('Order_ID').setFontWeight('bold');
+  }
+
+  var saleId = 'SS-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
+  var qtySold = Number(params.quantitySold) || Number(params.qty) || Number(params.quantity) || 0;
+  var priceEach = Number(params.priceEach) || Number(params.unitPrice) || Number(params.price) || 0;
+  var saleDate = params.saleDate || params.date || new Date().toISOString().split('T')[0];
+  var custName = params.customerName || params.customer || '';
+  var revenue = qtySold * priceEach;
+
+  // Build row with Order_ID in position 2
+  var row = [
+    saleId, orderId || '', params.itemId || '', params.crop || '', params.variety || '',
+    params.channel || '', qtySold, priceEach, revenue,
+    saleDate, custName, params.notes || '', new Date().toISOString()
+  ];
+  sheet.appendRow(row);
+
+  // Update sold total on production item
+  if (params.itemId) {
+    var prodSheet = ss.getSheetByName('SEEDLING_PRODUCTION');
+    if (prodSheet) {
+      var prodData = prodSheet.getDataRange().getValues();
+      for (var i = 1; i < prodData.length; i++) {
+        if (prodData[i][0] === params.itemId) {
+          var currentSold = Number(prodData[i][14]) || 0;
+          var newSold = currentSold + qtySold;
+          prodSheet.getRange(i + 1, 15).setValue(newSold);
+          prodSheet.getRange(i + 1, 16).setValue(newSold * Number(prodData[i][11]));
+          var seedLotId = prodData[i][19] || '';
+          var batchId = prodData[i][20] || '';
+          var totalUnits = Number(prodData[i][10]) || 0;
+          if (totalUnits > 0 && newSold >= totalUnits) {
+            prodSheet.getRange(i + 1, 14).setValue('sold_out');
+            logSeedlingLifecycleEvent_(ss, params.itemId, seedLotId, batchId, 'status_change', prodData[i][13] || 'growing', 'sold_out', 'All units sold', 'system');
+          }
+          break;
+        }
+      }
+    }
+  }
+
+  return { success: true, saleId: saleId, revenue: revenue };
+}
+
+/**
+ * Create a Shopify Draft Order from seedling order data.
+ * Uses the existing shopifyApiCall() wrapper with circuit breaker.
+ */
+function createSeedlingDraftOrder_(orderData) {
+  try {
+    // Build line items — group by name+variety for cleaner invoice
+    var lineItems = (orderData.items || []).map(function(item) {
+      var title = (item.name || item.crop || 'Seedling');
+      if (item.variety) title += ' - ' + item.variety;
+      if (item.quantity > 1) title += ' x' + item.quantity;
+      return {
+        title: title,
+        quantity: 1,
+        price: String((Number(item.price) || 0) * (Number(item.quantity) || 1))
+      };
+    });
+
+    // Build customer info
+    var nameParts = (orderData.customerName || '').split(' ');
+    var firstName = nameParts[0] || '';
+    var lastName = nameParts.slice(1).join(' ') || '';
+
+    var noteText = 'Seedling Pre-Order ' + orderData.orderId;
+    if (orderData.pickupLocation) noteText += ' | Pickup: ' + orderData.pickupLocation;
+    if (orderData.pickupDate) noteText += ' ' + orderData.pickupDate;
+    if (orderData.businessName) noteText += ' | Business: ' + orderData.businessName;
+
+    var draftOrderPayload = {
+      draft_order: {
+        line_items: lineItems,
+        customer: {
+          first_name: firstName,
+          last_name: lastName,
+          email: orderData.email || ''
+        },
+        note: noteText,
+        tags: 'seedling-presale,2026,' + (orderData.channel || 'presale').toLowerCase().replace(/\s+/g, '-')
+      }
+    };
+
+    var result = shopifyApiCall('draft_orders.json', 'POST', draftOrderPayload);
+
+    if (result.success && result.data && result.data.draft_order) {
+      var draftOrder = result.data.draft_order;
+      return {
+        success: true,
+        draftOrderId: draftOrder.id,
+        invoiceUrl: draftOrder.invoice_url || ''
+      };
+    } else {
+      return { success: false, error: result.error || 'Failed to create draft order', details: result.details || '' };
+    }
+  } catch (error) {
+    Logger.log('createSeedlingDraftOrder_ error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Send a Shopify invoice email for a draft order.
+ */
+function sendSeedlingDraftInvoice_(draftOrderId, customerEmail) {
+  try {
+    var invoicePayload = {
+      draft_order_invoice: {
+        to: customerEmail,
+        subject: 'Your Tiny Seed Farm Seedling Pre-Order Invoice',
+        custom_message: 'Thanks for pre-ordering! Pay when you\'re ready — your seedlings are reserved.'
+      }
+    };
+
+    var result = shopifyApiCall('draft_orders/' + draftOrderId + '/send_invoice.json', 'POST', invoicePayload);
+
+    if (result.success) {
+      return { success: true };
+    } else {
+      return { success: false, error: result.error || 'Failed to send invoice' };
+    }
+  } catch (error) {
+    Logger.log('sendSeedlingDraftInvoice_ error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Generate pick, pack, and prep tasks for a seedling order.
+ * Creates 3 tasks in TASKS_2026 and detailed pick list items in SALES_PickPack.
+ */
+function generateSeedlingFulfillmentTasks_(orderId, items, pickupDate, pickupLocation, customerName) {
+  var tasksCreated = [];
+  try {
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var tasksSheet = ss.getSheetByName('TASKS_2026');
+    if (!tasksSheet) {
+      tasksSheet = ss.insertSheet('TASKS_2026');
+      tasksSheet.appendRow([
+        'Task_ID', 'Batch_ID', 'Crop', 'Task_Name', 'Category', 'Due_Date', 'Duration_Min',
+        'Status', 'Assigned_To', 'Bed_ID', 'Completed_Date', 'Completed_By', 'Notes', 'Auto_Generated', 'Created_At'
+      ]);
+    }
+
+    var now = new Date().toISOString();
+    var pickup = pickupDate ? new Date(pickupDate) : new Date();
+
+    // Pick task: 2 days before pickup
+    var pickDate = new Date(pickup);
+    pickDate.setDate(pickDate.getDate() - 2);
+
+    // Pack task: 1 day before pickup
+    var packDate = new Date(pickup);
+    packDate.setDate(packDate.getDate() - 1);
+
+    // Build crop summary
+    var cropSummary = (items || []).map(function(i) {
+      return (i.name || i.crop || '') + (i.variety ? ' (' + i.variety + ')' : '') + ' x' + (i.quantity || 1);
+    }).join(', ');
+
+    var tasks = [
+      {
+        id: 'TASK-PICK-' + orderId,
+        name: 'Pick seedlings for ' + orderId,
+        category: 'Fulfillment',
+        dueDate: pickDate,
+        duration: 30,
+        notes: 'Items: ' + cropSummary + ' | Customer: ' + (customerName || '')
+      },
+      {
+        id: 'TASK-PACK-' + orderId,
+        name: 'Pack order ' + orderId,
+        category: 'Fulfillment',
+        dueDate: packDate,
+        duration: 20,
+        notes: 'Pack and label for ' + (customerName || '') + ' | Pickup: ' + (pickupLocation || 'TBD')
+      },
+      {
+        id: 'TASK-PREP-' + orderId,
+        name: 'Prep for pickup ' + orderId + ' @ ' + (pickupLocation || 'TBD'),
+        category: 'Fulfillment',
+        dueDate: pickup,
+        duration: 15,
+        notes: 'Have ready for customer pickup. ' + (items || []).length + ' line items.'
+      }
+    ];
+
+    tasks.forEach(function(t) {
+      tasksSheet.appendRow([
+        t.id, orderId, '', t.name, t.category, t.dueDate, t.duration,
+        'Pending', '', '', '', '', t.notes, 'Yes', now
+      ]);
+      tasksCreated.push(t.id);
+    });
+
+    // Also generate detailed pick list items using existing system
+    var pickListResult = generatePickListForOrder(orderId, {
+      deliveryDate: pickupDate || new Date().toISOString().split('T')[0],
+      customerName: customerName || '',
+      customerType: 'Seedling Presale',
+      items: (items || []).map(function(i) {
+        return {
+          productName: (i.name || i.crop || '') + (i.variety ? ' - ' + i.variety : ''),
+          quantity: i.quantity || 1,
+          unit: 'plants',
+          notes: ''
+        };
+      })
+    });
+
+    return { success: true, tasksCreated: tasksCreated, pickListGenerated: pickListResult.success };
+  } catch (error) {
+    Logger.log('generateSeedlingFulfillmentTasks_ error: ' + error.toString());
+    return { success: false, error: error.toString(), tasksCreated: tasksCreated };
+  }
+}
+
+/**
+ * Get or create the SEEDLING_ORDERS sheet and return the next Order_ID.
+ */
+function getOrCreateSeedlingOrdersSheet_(ss) {
+  var sheet = ss.getSheetByName('SEEDLING_ORDERS');
+  if (!sheet) {
+    sheet = ss.insertSheet('SEEDLING_ORDERS');
+    sheet.appendRow([
+      'Order_ID', 'Date', 'Customer_Name', 'Email', 'Phone', 'Channel', 'Business_Name',
+      'Total_Items', 'Total_Amount', 'Shopify_Draft_Order_ID', 'Invoice_URL',
+      'Invoice_Status', 'Pick_Status', 'Pack_Status', 'Pickup_Location', 'Pickup_Date', 'Notes'
+    ]);
+    sheet.getRange(1, 1, 1, 17).setFontWeight('bold');
+    sheet.setFrozenRows(1);
+  }
+
+  // Generate next sequential Order_ID
+  var data = sheet.getDataRange().getValues();
+  var maxNum = 0;
+  for (var i = 1; i < data.length; i++) {
+    var id = String(data[i][0] || '');
+    var match = id.match(/SEED-2026-(\d+)/);
+    if (match) {
+      var num = parseInt(match[1], 10);
+      if (num > maxNum) maxNum = num;
+    }
+  }
+  var nextId = 'SEED-2026-' + String(maxNum + 1).padStart(4, '0');
+
+  return { sheet: sheet, nextOrderId: nextId };
+}
+
+/**
+ * Main orchestrator: Submit a seedling order.
+ * Records sales, creates Shopify draft order + invoice, generates fulfillment tasks.
+ * Sales always recorded even if Shopify fails — graceful degradation.
+ */
+function submitSeedlingOrder(params) {
+  var errors = [];
+  var result = {
+    success: true,
+    orderId: '',
+    invoiceUrl: '',
+    shopifyDraftOrderId: '',
+    tasksCreated: [],
+    totalRevenue: 0,
+    errors: []
+  };
+
+  try {
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+    // Step 1: Generate Order_ID
+    var orderSheet = getOrCreateSeedlingOrdersSheet_(ss);
+    var orderId = orderSheet.nextOrderId;
+    result.orderId = orderId;
+
+    // Step 2: Record each line item sale (always runs first — most critical)
+    var items = params.items || [];
+    var totalRevenue = 0;
+    var saleIds = [];
+
+    for (var i = 0; i < items.length; i++) {
+      try {
+        var saleResult = logSeedlingSale_({
+          itemId: items[i].itemId || '',
+          crop: items[i].name || items[i].crop || '',
+          variety: items[i].variety || '',
+          channel: params.channel || 'Presale',
+          quantity: items[i].quantity || 1,
+          price: items[i].price || 0,
+          customerName: params.customerName || '',
+          notes: params.notes || ''
+        }, orderId);
+
+        if (saleResult.success) {
+          saleIds.push(saleResult.saleId);
+          totalRevenue += saleResult.revenue || 0;
+        }
+      } catch (saleErr) {
+        errors.push('Sale item ' + i + ': ' + saleErr.toString());
+      }
+    }
+    result.totalRevenue = totalRevenue;
+
+    // Step 3: Create Shopify Draft Order
+    var shopifyResult = { success: false };
+    try {
+      shopifyResult = createSeedlingDraftOrder_({
+        orderId: orderId,
+        customerName: params.customerName || '',
+        email: params.email || '',
+        items: items,
+        pickupLocation: params.pickupLocation || '',
+        pickupDate: params.pickupDate || '',
+        businessName: params.businessName || '',
+        channel: params.channel || 'Presale'
+      });
+
+      if (shopifyResult.success) {
+        result.shopifyDraftOrderId = shopifyResult.draftOrderId;
+        result.invoiceUrl = shopifyResult.invoiceUrl;
+      } else {
+        errors.push('Shopify draft order: ' + (shopifyResult.error || 'unknown error'));
+      }
+    } catch (shopErr) {
+      errors.push('Shopify draft order: ' + shopErr.toString());
+    }
+
+    // Step 4: Send invoice email (only if draft order succeeded)
+    if (shopifyResult.success && shopifyResult.draftOrderId && params.email) {
+      try {
+        var invoiceResult = sendSeedlingDraftInvoice_(shopifyResult.draftOrderId, params.email);
+        if (!invoiceResult.success) {
+          errors.push('Invoice email: ' + (invoiceResult.error || 'failed to send'));
+        }
+      } catch (invErr) {
+        errors.push('Invoice email: ' + invErr.toString());
+      }
+    }
+
+    // Step 5: Generate fulfillment tasks
+    try {
+      var taskResult = generateSeedlingFulfillmentTasks_(
+        orderId, items, params.pickupDate, params.pickupLocation, params.customerName
+      );
+      if (taskResult.success) {
+        result.tasksCreated = taskResult.tasksCreated || [];
+      } else {
+        errors.push('Fulfillment tasks: ' + (taskResult.error || 'unknown error'));
+      }
+    } catch (taskErr) {
+      errors.push('Fulfillment tasks: ' + taskErr.toString());
+    }
+
+    // Step 6: Log order summary to SEEDLING_ORDERS sheet
+    try {
+      orderSheet.sheet.appendRow([
+        orderId,
+        new Date().toISOString(),
+        params.customerName || '',
+        params.email || '',
+        params.phone || '',
+        params.channel || 'Presale',
+        params.businessName || '',
+        items.length,
+        totalRevenue,
+        result.shopifyDraftOrderId || '',
+        result.invoiceUrl || '',
+        result.shopifyDraftOrderId ? 'Pending' : 'No Invoice',
+        'Not Started',
+        'Not Started',
+        params.pickupLocation || '',
+        params.pickupDate || '',
+        params.notes || ''
+      ]);
+    } catch (logErr) {
+      errors.push('Order log: ' + logErr.toString());
+    }
+
+    result.errors = errors;
+    if (errors.length > 0) {
+      result.warnings = errors.length + ' non-critical error(s) occurred. Sales were recorded successfully.';
+    }
+
+    return result;
+
+  } catch (error) {
+    Logger.log('submitSeedlingOrder FATAL error: ' + error.toString());
+    return {
+      success: false,
+      orderId: result.orderId || '',
+      error: error.toString(),
+      errors: errors
+    };
+  }
 }
 
 function getSeedlingSales(params) {
