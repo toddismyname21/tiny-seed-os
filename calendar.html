@@ -174,11 +174,52 @@
 
         .submit-changes-btn.visible {
             display: flex;
+            animation: pulse-glow 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.4); }
+            50% { box-shadow: 0 0 12px 4px rgba(46, 204, 113, 0.3); }
         }
 
         .submit-changes-btn:hover {
             background: var(--accent);
             transform: translateY(-2px);
+            animation: none;
+        }
+
+        /* Persistent floating save banner — appears at bottom when changes pending */
+        .pending-save-banner {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #f59e0b;
+            color: #000;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            z-index: 1000;
+            box-shadow: 0 4px 20px rgba(245, 158, 11, 0.4);
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            animation: slide-up 0.3s ease;
+        }
+
+        .pending-save-banner.visible {
+            display: flex;
+        }
+
+        .pending-save-banner:hover {
+            background: #d97706;
+        }
+
+        @keyframes slide-up {
+            from { transform: translateX(-50%) translateY(20px); opacity: 0; }
+            to { transform: translateX(-50%) translateY(0); opacity: 1; }
         }
 
         .submit-changes-btn .badge {
@@ -432,23 +473,24 @@
             top: 50%;
             right: 0;
             transform: translateY(-50%);
-            background: var(--primary);
-            color: white;
+            background: #f59e0b;
+            color: #000;
             border: none;
-            padding: 15px 8px;
+            padding: 15px 10px;
             border-radius: 8px 0 0 8px;
             cursor: pointer;
             z-index: 101;
             writing-mode: vertical-rl;
             text-orientation: mixed;
-            font-size: 0.8rem;
-            font-weight: 600;
+            font-size: 0.85rem;
+            font-weight: 700;
             transition: all 0.3s;
+            box-shadow: -2px 0 12px rgba(245, 158, 11, 0.3);
         }
 
         .unassigned-toggle:hover {
-            background: var(--primary-light);
-            padding-right: 12px;
+            background: #d97706;
+            padding-right: 14px;
         }
 
         .unassigned-toggle.open {
@@ -882,19 +924,13 @@
             position: relative;
         }
 
-        /* Gap indicator styles for empty field space */
+        /* Gap indicator styles for empty field space — subtle solid tint instead of hatching */
         .field-gap {
             position: absolute;
             height: calc(100% - 16px);
             top: 8px;
-            background: repeating-linear-gradient(
-                45deg,
-                transparent,
-                transparent 8px,
-                rgba(46, 204, 113, 0.08) 8px,
-                rgba(46, 204, 113, 0.08) 16px
-            );
-            border: 1px dashed rgba(46, 204, 113, 0.3);
+            background: rgba(46, 204, 113, 0.04);
+            border: 1px dashed rgba(46, 204, 113, 0.2);
             border-radius: 6px;
             cursor: pointer;
             transition: all 0.2s ease;
@@ -902,15 +938,9 @@
         }
 
         .field-gap:hover {
-            background: repeating-linear-gradient(
-                45deg,
-                transparent,
-                transparent 8px,
-                rgba(46, 204, 113, 0.2) 8px,
-                rgba(46, 204, 113, 0.2) 16px
-            );
-            border-color: rgba(46, 204, 113, 0.6);
-            box-shadow: 0 0 15px rgba(46, 204, 113, 0.2);
+            background: rgba(46, 204, 113, 0.12);
+            border-color: rgba(46, 204, 113, 0.5);
+            box-shadow: 0 0 10px rgba(46, 204, 113, 0.15);
         }
 
         .field-gap::after {
@@ -1303,7 +1333,7 @@
             border-right-color: rgba(255,255,255,0.08);
         }
 
-        /* Today Line */
+        /* Today Line — single full-height vertical hairline across entire grid */
         .today-line {
             position: absolute;
             top: 0;
@@ -1312,20 +1342,22 @@
             background: var(--danger);
             z-index: 25;
             pointer-events: none;
+            opacity: 0.7;
         }
 
         .today-marker {
-            position: absolute;
-            top: -24px;
+            position: sticky;
+            top: 0;
             left: 50%;
             transform: translateX(-50%);
             background: var(--danger);
             color: white;
             padding: 2px 8px;
-            border-radius: 4px;
+            border-radius: 0 0 4px 4px;
             font-size: 0.65rem;
             font-weight: 700;
             white-space: nowrap;
+            z-index: 26;
         }
 
         /* Crop Bars */
@@ -1418,11 +1450,12 @@
         }
 
         .gantt-label.empty-bed {
-            opacity: 0.5;
+            opacity: 0.7;
         }
 
         .gantt-label.empty-bed .field-meta {
             font-style: italic;
+            color: #8a9bb0;
         }
 
         .crop-bar.resizing {
@@ -2556,6 +2589,7 @@
             Today
         </button>
         <div class="current-range" id="currentRange">Jan 1 - Dec 31, 2026</div>
+        <div id="zoomSpanReadout" style="font-size:0.7rem;color:var(--text-secondary);margin-left:4px;white-space:nowrap;" aria-live="polite"></div>
     </div>
 
     <aside class="sidebar" id="sidebar">
@@ -2650,16 +2684,38 @@
         <div class="sidebar-section" style="background:rgba(233,196,106,0.08); border-radius:8px; padding:12px; border-left:3px solid var(--warning);">
             <h3 class="sidebar-title" style="margin-bottom:0.5rem;">How It Works</h3>
             <div style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.6;">
-                <p><strong>Drag</strong> bars to move between fields</p>
-                <p><strong>Resize</strong> edges to adjust duration</p>
-                <p><strong>Click</strong> a bar to edit details</p>
-                <p style="color:var(--warning); font-weight:600; margin-top:4px;"><i class="fas fa-info-circle"></i> Changes are queued — click "Submit Changes" to save to Google Sheets</p>
+                <p><strong>Drag</strong> bars to move plantings between beds</p>
+                <p><strong>Resize</strong> bar edges to adjust planting duration</p>
+                <p><strong>Click</strong> a bar to see details, <strong>double-click</strong> to edit</p>
+                <p><strong>Hover</strong> a bar to see crop, dates, and maturity</p>
+                <p style="color:var(--warning); font-weight:600; margin-top:8px;"><i class="fas fa-exclamation-circle"></i> Changes are NOT auto-saved! Click "Submit Changes" (or use the floating Save bar) to save to Google Sheets.</p>
+                <p><strong>Ctrl+Z</strong> to undo the last change</p>
+                <details style="margin-top:8px;">
+                    <summary style="cursor:pointer;font-weight:600;color:var(--text-primary);">Keyboard Shortcuts</summary>
+                    <div style="margin-top:4px;">
+                        <p><kbd style="background:var(--bg-dark);padding:1px 6px;border-radius:3px;font-size:0.75rem;">←→</kbd> Navigate weeks</p>
+                        <p><kbd style="background:var(--bg-dark);padding:1px 6px;border-radius:3px;font-size:0.75rem;">T</kbd> Jump to today</p>
+                        <p><kbd style="background:var(--bg-dark);padding:1px 6px;border-radius:3px;font-size:0.75rem;">U</kbd> Toggle unassigned panel</p>
+                        <p><kbd style="background:var(--bg-dark);padding:1px 6px;border-radius:3px;font-size:0.75rem;">N</kbd> Add planting</p>
+                        <p><kbd style="background:var(--bg-dark);padding:1px 6px;border-radius:3px;font-size:0.75rem;">R</kbd> Refresh data</p>
+                        <p><kbd style="background:var(--bg-dark);padding:1px 6px;border-radius:3px;font-size:0.75rem;">?</kbd> Show all shortcuts</p>
+                    </div>
+                </details>
+                <details style="margin-top:4px;">
+                    <summary style="cursor:pointer;font-weight:600;color:var(--text-primary);">Assigning Unassigned Plantings</summary>
+                    <div style="margin-top:4px;">
+                        <p>1. Click the amber "Need Beds" tab on the right edge (or press <kbd style="background:var(--bg-dark);padding:1px 6px;border-radius:3px;font-size:0.75rem;">U</kbd>)</p>
+                        <p>2. Expand a crop to see its varieties</p>
+                        <p>3. Drag a variety from the panel onto an empty bed in the calendar</p>
+                        <p>4. Click "Submit Changes" to save</p>
+                    </div>
+                </details>
             </div>
         </div>
 
         <div class="sidebar-section">
-            <button class="btn btn-primary" style="width: 100%; margin-bottom: 10px;" onclick="openAddPlantingModal()">
-                <i class="fas fa-plus"></i> Add Planting
+            <button class="btn btn-secondary" style="width: 100%; margin-bottom: 10px; background: #f59e0b; color: #000; border-color: #f59e0b;" onclick="toggleUnassignedPanel()">
+                <i class="fas fa-exclamation-triangle"></i> Plan Unassigned
             </button>
             <button class="btn btn-secondary" style="width: 100%;" onclick="refreshData()">
                 <i class="fas fa-sync-alt"></i> Refresh Data
@@ -2673,7 +2729,7 @@
     <main class="main-container">
         <div class="gantt-container">
             <div class="gantt-wrapper">
-                <div class="stats-bar" role="status" aria-label="Calendar statistics">
+                <div class="stats-bar" role="status" aria-live="polite" aria-label="Calendar statistics">
                     <div class="stat-item" title="Total plantings matching current filters">
                         <span class="stat-value" id="totalPlantings">--</span>
                         <span class="stat-label">Plantings</span>
@@ -2714,9 +2770,16 @@
     </main>
 
     <!-- Unassigned Plantings Panel - Right Sidebar -->
-    <button class="unassigned-toggle" id="unassignedToggle" onclick="toggleUnassignedPanel()" aria-label="Show unassigned plantings panel">
+    <!-- Persistent floating save banner — visible when changes are pending -->
+    <div class="pending-save-banner" id="pendingSaveBanner" onclick="saveToGoogleSheets()">
+        <i class="fas fa-exclamation-circle"></i>
+        <span id="pendingSaveBannerText">1 unsaved change</span>
+        <span style="background:#000;color:#f59e0b;padding:4px 12px;border-radius:8px;font-size:0.8rem;">Save Now</span>
+    </div>
+
+    <button class="unassigned-toggle" id="unassignedToggle" onclick="toggleUnassignedPanel()" aria-label="Show unassigned plantings that need bed assignment">
         <span class="badge" id="unassignedBadge">0</span>
-        Unassigned
+        Need Beds
     </button>
 
     <aside class="unassigned-panel" id="unassignedPanel">
@@ -3903,14 +3966,43 @@
 
         function updateStats() {
             const total = filteredPlantings.length;
-            const active = filteredPlantings.filter(p => p.status === 'growing').length;
-            const harvest = filteredPlantings.filter(p => p.status === 'harvest').length;
+            const today = new Date();
+            // Broader status matching — case-insensitive, includes all growing/active states
+            const active = filteredPlantings.filter(p => {
+                const s = (p.status || '').toLowerCase();
+                return ['growing', 'planted', 'sown', 'seeded', 'transplanted', 'active'].includes(s);
+            }).length;
+            const harvest = filteredPlantings.filter(p => {
+                const s = (p.status || '').toLowerCase();
+                if (s === 'harvest' || s === 'harvesting' || s === 'harvest_ready') return true;
+                // Also check if harvest date is within 14 days
+                if (p.harvestDate) {
+                    const hDate = new Date(p.harvestDate);
+                    const diff = (hDate - today) / (1000 * 60 * 60 * 24);
+                    if (diff >= -7 && diff <= 14 && s !== 'completed') return true;
+                }
+                return false;
+            }).length;
             const bedFeet = filteredPlantings.reduce((sum, p) => sum + (p.bedFeet || 0), 0);
 
-            document.getElementById('totalPlantings').textContent = total;
-            document.getElementById('activePlantings').textContent = active || 'None in view';
-            document.getElementById('harvestReady').textContent = harvest || 'None in view';
-            document.getElementById('totalBedFeet').textContent = bedFeet.toLocaleString();
+            const totalEl = document.getElementById('totalPlantings');
+            const activeEl = document.getElementById('activePlantings');
+            const harvestEl = document.getElementById('harvestReady');
+            const bedFeetEl = document.getElementById('totalBedFeet');
+
+            totalEl.textContent = total;
+            // Show 0 as "0" not "None in view" — use neutral styling for zero
+            activeEl.textContent = active;
+            harvestEl.textContent = harvest;
+            bedFeetEl.textContent = bedFeet.toLocaleString();
+
+            // Style zero-state in neutral gray instead of green
+            activeEl.style.color = active > 0 ? '' : 'var(--text-muted)';
+            harvestEl.style.color = harvest > 0 ? '' : 'var(--text-muted)';
+
+            // Add info tooltip for zero states
+            activeEl.title = active > 0 ? `${active} plantings in growing phase` : 'No plantings with growing/sown/planted status match current filters';
+            harvestEl.title = harvest > 0 ? `${harvest} plantings at or near harvest` : 'No plantings near harvest date match current filters';
 
             // Update stats bar aria
             const statsBar = document.querySelector('.stats-bar');
@@ -4034,6 +4126,14 @@
             const startStr = timelineStart.toLocaleDateString('en-US', options);
             const endStr = timelineEnd.toLocaleDateString('en-US', options);
             document.getElementById('currentRange').textContent = `${startStr} - ${endStr}, 2026`;
+
+            // Show zoom span readout
+            const spanDays = Math.ceil((timelineEnd - timelineStart) / (24 * 60 * 60 * 1000));
+            const spanMonths = Math.round(spanDays / 30);
+            const spanEl = document.getElementById('zoomSpanReadout');
+            if (spanEl) {
+                spanEl.textContent = spanDays <= 60 ? `${spanDays} days` : `${spanMonths} months`;
+            }
         }
 
         // Handle date range selector change
@@ -4291,7 +4391,6 @@
                             ${generateGridLines(totalDays)}
                         </div>
                         ${isEmpty ? '' : renderGaps(groupPlantings, getGroupName(group))}
-                        ${renderTodayLine(totalDays)}
                         ${renderCropBars(stackedPlantings.plantings, group)}
                     </div>
                 `;
@@ -4323,8 +4422,9 @@
 
                 <!-- Main content area -->
                 <div class="gantt-content-scroll" id="contentScroll">
-                    <div class="gantt-content-inner" style="width: ${timelineWidth}px;">
+                    <div class="gantt-content-inner" style="width: ${timelineWidth}px; position: relative;">
                         ${rowsHtml}
+                        ${renderTodayLine(totalDays)}
                     </div>
                 </div>
             `;
@@ -4513,9 +4613,21 @@
                 // Add opacity for completed status
                 const completedStyle = planting.status === 'completed' ? 'opacity: 0.6;' : '';
 
+                // Build hover tooltip text (shows on native title — no click needed)
+                const startStr = formatDisplayDate ? formatDisplayDate(planting.fieldStartDate || planting.seedDate) : (planting.fieldStartDate || planting.seedDate);
+                const endStr = formatDisplayDate ? formatDisplayDate(planting.harvestDate) : planting.harvestDate;
+                const hoverTitle = `${planting.crop} - ${planting.variety}\nBed: ${planting.bed || 'Unassigned'}\nIn field: ${startStr}\nHarvest: ${endStr}\n${planting.dtm} days to maturity${planting.isUnassigned ? '\n⚠ No bed assigned — click to assign' : ''}`;
+
+                // aria-label for screen readers
+                const ariaLabel = `${planting.crop} ${planting.variety} in ${planting.bed || 'unassigned'}, ${startStr} to ${endStr}, ${planting.dtm} days`;
+
                 html += `
                     <div class="crop-bar ${lockedClass} ${unassignedClass}"
                          id="bar-${planting.id}"
+                         role="button"
+                         tabindex="0"
+                         aria-label="${ariaLabel}"
+                         title="${hoverTitle}"
                          data-id="${planting.id}"
                          data-field="${planting.field}"
                          data-crop="${planting.crop}"
@@ -4524,12 +4636,13 @@
                          data-end="${planting.harvestDate}"
                          style="left: ${left}px; width: ${width}px; top: ${top}px; ${barStyle} ${completedStyle} ${unassignedStyle} cursor: pointer;"
                          ondblclick="openEditModal('${planting.id}')"
-                         onclick="toggleTooltip(event, '${planting.id}')">
+                         onclick="toggleTooltip(event, '${planting.id}')"
+                         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleTooltip(event,'${planting.id}');}">
                         <div class="resize-handle resize-handle-left" data-edge="left"></div>
                         <span class="crop-bar-icon">${unassignedIcon}${lockIcon}${icon}</span>
                         <div class="crop-bar-content">
                             <div class="crop-bar-name">${displayText}</div>
-                            <div class="crop-bar-dates">${planting.variety ? planting.variety.substring(0, 15) : ''} ${planting.dtm}d</div>
+                            <div class="crop-bar-dates">${planting.variety ? planting.variety.substring(0, 15) : ''} ${planting.dtm} days</div>
                         </div>
                         <div class="resize-handle resize-handle-right" data-edge="right"></div>
                     </div>
@@ -5248,16 +5361,25 @@
             const submitBtn = document.getElementById('submitChangesBtn');
             const discardBtn = document.getElementById('discardBtn');
             const pendingCountEl = document.getElementById('pendingCount');
+            const saveBanner = document.getElementById('pendingSaveBanner');
+            const saveBannerText = document.getElementById('pendingSaveBannerText');
 
             if (count > 0) {
                 submitBtn.classList.add('visible');
                 discardBtn.classList.add('visible');
                 pendingCountEl.textContent = count;
                 setSyncStatus('pending', `${count} pending`);
+                // Show floating save banner
+                if (saveBanner) {
+                    saveBanner.classList.add('visible');
+                    saveBannerText.textContent = count + ' unsaved change' + (count !== 1 ? 's' : '');
+                }
             } else {
                 submitBtn.classList.remove('visible');
                 discardBtn.classList.remove('visible');
                 setSyncStatus('synced', 'Synced');
+                // Hide floating save banner
+                if (saveBanner) saveBanner.classList.remove('visible');
             }
         }
 
