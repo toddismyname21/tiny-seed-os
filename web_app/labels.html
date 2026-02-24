@@ -21,13 +21,13 @@
             --primary-dark: var(--ts-green-600, #16a34a);
             --bg-dark: var(--ts-bg-base, #0f172a);
             --bg-card: var(--ts-bg-surface, #1e293b);
-            --bg-elevated: #334155;
+            --bg-elevated: var(--ts-bg-elevated, #334155);
             --text-primary: var(--ts-text, #f8fafc);
             --text-secondary: var(--ts-text-secondary, #94a3b8);
             --border: var(--ts-border, #334155);
-            --danger: #ef4444;
-            --warning: #f59e0b;
-            --info: #3b82f6;
+            --danger: var(--ts-red-500, #ef4444);
+            --warning: var(--ts-amber-500, #f59e0b);
+            --info: var(--ts-blue-500, #3b82f6);
         }
 
         body {
@@ -385,7 +385,7 @@
             justify-content: space-between;
             align-items: center;
             padding: 0 6%;
-            background: #16a34a;
+            background: var(--ts-green-600, #16a34a);
         }
 
         .market-sign-preview.category-floral .sign-footer {
@@ -598,10 +598,10 @@
             border-radius: 4px;
         }
 
-        .status-badge.active { background: rgba(34, 197, 94, 0.15); color: #22c55e; }
-        .status-badge.low { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
-        .status-badge.expired { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
-        .status-badge.ordered { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
+        .status-badge.active { background: rgba(34, 197, 94, 0.15); color: var(--ts-green-500, #22c55e); }
+        .status-badge.low { background: rgba(245, 158, 11, 0.15); color: var(--ts-amber-500, #f59e0b); }
+        .status-badge.expired { background: rgba(239, 68, 68, 0.15); color: var(--ts-red-500, #ef4444); }
+        .status-badge.ordered { background: rgba(59, 130, 246, 0.15); color: var(--ts-blue-500, #3b82f6); }
 
         /* Seed Label Preview Grid (screen) */
         .seed-labels-preview-grid {
@@ -662,7 +662,7 @@
 
         .seed-label-preview .info .organic-tag {
             display: inline-block;
-            background: #22c55e;
+            background: var(--ts-green-500, #22c55e);
             color: white;
             font-size: 8px;
             font-weight: 700;
@@ -935,7 +935,7 @@
                 justify-content: space-between;
                 align-items: center;
                 padding: 0 6%;
-                background: #16a34a;
+                background: var(--ts-green-600, #16a34a);
             }
 
             /* Pink footer for floral */

@@ -13,23 +13,23 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
-            --primary: #22c55e;
-            --primary-light: #4ade80;
-            --primary-dark: #16a34a;
+            --primary: var(--ts-green-500, #22c55e);
+            --primary-light: var(--ts-green-400, #4ade80);
+            --primary-dark: var(--ts-green-600, #16a34a);
             --secondary: #f4a261;
             --accent: #e76f51;
-            --success: #2a9d8f;
-            --warning: #e9c46a;
-            --danger: #e63946;
+            --success: var(--ts-teal-500, #2a9d8f);
+            --warning: var(--ts-amber-400, #e9c46a);
+            --danger: var(--ts-red-500, #e63946);
             --info: #4361ee;
-            --bg-dark: #1a1a2e;
-            --bg-card: #16213e;
-            --bg-light: #0f3460;
-            --text-primary: #edf2f4;
-            --text-secondary: #8d99ae;
-            --border: rgba(255,255,255,0.1);
+            --bg-dark: var(--ts-bg-base, #1a1a2e);
+            --bg-card: var(--ts-bg-surface, #16213e);
+            --bg-light: var(--ts-bg-elevated, #0f3460);
+            --text-primary: var(--ts-text, #edf2f4);
+            --text-secondary: var(--ts-text-secondary, #8d99ae);
+            --border: var(--ts-border, rgba(255,255,255,0.1));
             --gold: #ffd700;
-            --purple: #9b59b6;
+            --purple: var(--ts-purple-500, #9b59b6);
             --teal: #1abc9c;
             --gbp: #4285F4;
             /* Mobile-first touch targets */
@@ -48,7 +48,7 @@
 
         body {
             font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, var(--bg-dark) 0%, #0f0f1a 100%);
+            background: linear-gradient(135deg, var(--bg-dark) 0%, var(--ts-bg-subtle, #0f0f1a) 100%);
             color: var(--text-primary);
             min-height: 100vh;
         }

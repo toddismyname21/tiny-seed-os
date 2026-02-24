@@ -17,23 +17,23 @@
            ═══════════════════════════════════════════════════════════════ */
 
         :root {
-            --bg-dark: #0a0a0f;
-            --bg-card: #12121a;
-            --bg-elevated: #1a1a24;
-            --bg-hover: #22222e;
-            --border: #2a2a3a;
-            --border-active: #4a4a6a;
-            --text-primary: #ffffff;
-            --text-secondary: #8888aa;
-            --text-muted: #555566;
+            --bg-dark: var(--ts-bg-base, #0a0a0f);
+            --bg-card: var(--ts-bg-subtle, #12121a);
+            --bg-elevated: var(--ts-bg-surface, #1a1a24);
+            --bg-hover: var(--ts-bg-elevated, #22222e);
+            --border: var(--ts-border, #2a2a3a);
+            --border-active: var(--ts-border-strong, #4a4a6a);
+            --text-primary: var(--ts-text, #ffffff);
+            --text-secondary: var(--ts-text-secondary, #8888aa);
+            --text-muted: var(--ts-text-muted, #555566);
             --accent-primary: #6366f1;
-            --accent-secondary: #8b5cf6;
-            --accent-success: #22c55e;
-            --accent-warning: #f59e0b;
-            --accent-danger: #ef4444;
-            --accent-info: #3b82f6;
-            --gradient-primary: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-            --gradient-success: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+            --accent-secondary: var(--ts-purple-500, #8b5cf6);
+            --accent-success: var(--ts-green-500, #22c55e);
+            --accent-warning: var(--ts-amber-500, #f59e0b);
+            --accent-danger: var(--ts-red-500, #ef4444);
+            --accent-info: var(--ts-blue-500, #3b82f6);
+            --gradient-primary: linear-gradient(135deg, #6366f1 0%, var(--ts-purple-500, #8b5cf6) 100%);
+            --gradient-success: linear-gradient(135deg, var(--ts-green-500, #22c55e) 0%, var(--ts-green-600, #16a34a) 100%);
             --shadow-glow: 0 0 40px rgba(99, 102, 241, 0.15);
         }
 
@@ -617,8 +617,8 @@
         }
 
         .session-agent-avatar.pm { background: var(--gradient-primary); }
-        .session-agent-avatar.research { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
-        .session-agent-avatar.build { background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); }
+        .session-agent-avatar.research { background: linear-gradient(135deg, var(--ts-amber-500, #f59e0b) 0%, #d97706 100%); }
+        .session-agent-avatar.build { background: linear-gradient(135deg, var(--ts-green-500, #22c55e) 0%, var(--ts-green-600, #16a34a) 100%); }
         .session-agent-avatar.cos { background: linear-gradient(135deg, #ec4899 0%, #db2777 100%); }
 
         .session-agent-info {
@@ -780,7 +780,7 @@
         }
 
         .approval-btn.approve:hover {
-            background: #16a34a;
+            background: var(--ts-green-600, #16a34a);
         }
 
         .approval-btn.edit {

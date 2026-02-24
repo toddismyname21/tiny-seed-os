@@ -5,24 +5,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="theme-color" content="#2d5a27">
+  <meta name="theme-color" content="#22c55e">
   <title>Tiny Seed Farm - Offline</title>
   <link rel="manifest" href="/manifest.json">
   <link rel="icon" type="image/svg+xml" href="/icons/icon.svg">
   <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192.png">
   <style>
     :root {
-      --primary: #2d5a27;
-      --primary-light: #4a7c43;
-      --bg-dark: #0f172a;
-      --bg-card: #1e293b;
-      --bg-elevated: #334155;
-      --border: rgba(255, 255, 255, 0.1);
-      --text-primary: #f8fafc;
-      --text-secondary: #94a3b8;
-      --text-muted: #64748b;
-      --success: #22c55e;
-      --warning: #f59e0b;
+      --primary: var(--ts-green-500, #22c55e);
+      --primary-light: var(--ts-green-400, #4ade80);
+      --bg-dark: var(--ts-bg-base, #0f172a);
+      --bg-card: var(--ts-bg-surface, #1e293b);
+      --bg-elevated: var(--ts-bg-elevated, #334155);
+      --border: var(--ts-border, rgba(255, 255, 255, 0.1));
+      --text-primary: var(--ts-text, #f8fafc);
+      --text-secondary: var(--ts-text-secondary, #94a3b8);
+      --text-muted: var(--ts-text-muted, #64748b);
+      --success: var(--ts-green-500, #22c55e);
+      --warning: var(--ts-amber-500, #f59e0b);
       --radius: 16px;
     }
 

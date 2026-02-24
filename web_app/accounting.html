@@ -19,8 +19,8 @@
       --warning: var(--ts-amber-500, #f59e0b);
       --danger: var(--ts-red-500, #ef4444);
       --bg-dark: var(--ts-slate-900, #1a1a2e);
-      --bg-card: #16213e;
-      --bg-hover: #1e3a5f;
+      --bg-card: var(--ts-bg-surface, #16213e);
+      --bg-hover: var(--ts-bg-elevated, #1e3a5f);
       --text: var(--ts-slate-200, #e2e8f0);
       --text-muted: var(--ts-slate-400, #94a3b8);
       --border: var(--ts-slate-700, #334155);
@@ -302,22 +302,22 @@
 
     .badge-success {
       background: rgba(16, 185, 129, 0.2);
-      color: #34d399;
+      color: var(--ts-green-300, #34d399);
     }
 
     .badge-warning {
       background: rgba(245, 158, 11, 0.2);
-      color: #fbbf24;
+      color: var(--ts-amber-400, #fbbf24);
     }
 
     .badge-danger {
       background: rgba(239, 68, 68, 0.2);
-      color: #f87171;
+      color: var(--ts-red-400, #f87171);
     }
 
     .badge-info {
       background: rgba(59, 130, 246, 0.2);
-      color: #60a5fa;
+      color: var(--ts-blue-400, #60a5fa);
     }
 
     /* Modal */

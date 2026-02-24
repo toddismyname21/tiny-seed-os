@@ -20,29 +20,29 @@
             /* Brand Colors */
             --primary: var(--ts-green-500, #22c55e);
             --primary-dark: var(--ts-green-600, #16a34a);
-            --primary-light: #4ade80;
+            --primary-light: var(--ts-green-400, #4ade80);
 
             /* Status Colors */
-            --success: #22c55e;
+            --success: var(--ts-green-500, #22c55e);
             --success-bg: rgba(34, 197, 94, 0.1);
-            --warning: #f59e0b;
+            --warning: var(--ts-amber-500, #f59e0b);
             --warning-bg: rgba(245, 158, 11, 0.1);
-            --danger: #ef4444;
+            --danger: var(--ts-red-500, #ef4444);
             --danger-bg: rgba(239, 68, 68, 0.1);
-            --info: #3b82f6;
+            --info: var(--ts-blue-500, #3b82f6);
             --info-bg: rgba(59, 130, 246, 0.1);
 
             /* Background Colors */
             --bg-dark: var(--ts-bg-base, #0f172a);
             --bg-card: var(--ts-bg-surface, #1e293b);
-            --bg-elevated: #334155;
+            --bg-elevated: var(--ts-bg-elevated, #334155);
             --bg-input: #1e293b;
             --bg-hover: #2d3a4f;
 
             /* Text Colors */
             --text-primary: var(--ts-text, #f8fafc);
             --text-secondary: var(--ts-text-secondary, #94a3b8);
-            --text-muted: #64748b;
+            --text-muted: var(--ts-text-muted, #64748b);
 
             /* Borders */
             --border: var(--ts-border, #334155);
@@ -455,7 +455,7 @@
         }
 
         .btn-danger:hover {
-            background: #dc2626;
+            background: var(--ts-red-600, #dc2626);
         }
 
         .btn-success {
@@ -902,7 +902,7 @@
         .role-badge.manager { background: var(--info-bg); color: var(--info); }
         .role-badge.field_lead { background: var(--warning-bg); color: var(--warning); }
         .role-badge.employee { background: var(--success-bg); color: var(--success); }
-        .role-badge.driver { background: #8b5cf6; color: white; background: rgba(139, 92, 246, 0.2); color: #a78bfa; }
+        .role-badge.driver { background: var(--ts-purple-500, #8b5cf6); color: white; background: rgba(139, 92, 246, 0.2); color: var(--ts-purple-400, #a78bfa); }
 
         /* ════════════════════════════════════════════════════════════════════════════
            RESPONSIVE
@@ -4369,7 +4369,7 @@
             width: 64px;
             height: 64px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #2d5a27, #4a7c43);
+            background: linear-gradient(135deg, var(--ts-green-700, #2d5a27), #4a7c43);
             border: none;
             cursor: pointer;
             box-shadow: 0 4px 20px rgba(45, 90, 39, 0.4);
@@ -4434,7 +4434,7 @@
         }
 
         .cos-chat-header {
-            background: linear-gradient(135deg, #2d5a27, #1e3d1a);
+            background: linear-gradient(135deg, var(--ts-green-700, #2d5a27), #1e3d1a);
             padding: 16px 20px;
             display: flex;
             align-items: center;
@@ -4466,7 +4466,7 @@
         .cos-status-dot {
             width: 8px;
             height: 8px;
-            background: #22c55e;
+            background: var(--ts-green-500, #22c55e);
             border-radius: 50%;
             display: inline-block;
             margin-right: 6px;

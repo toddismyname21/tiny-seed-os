@@ -19,16 +19,16 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     :root {
-      --primary: #22c55e;
-      --primary-light: #4ade80;
-      --primary-dark: #16a34a;
+      --primary: var(--ts-green-500, #22c55e);
+      --primary-light: var(--ts-green-400, #4ade80);
+      --primary-dark: var(--ts-green-600, #16a34a);
       --bg-light: #f8faf7;
-      --bg-white: #ffffff;
+      --bg-white: var(--ts-white, #ffffff);
       --text-dark: #1a1a1a;
       --text-muted: #666666;
-      --success: #22c55e;
-      --warning: #f59e0b;
-      --danger: #ef4444;
+      --success: var(--ts-green-500, #22c55e);
+      --warning: var(--ts-amber-500, #f59e0b);
+      --danger: var(--ts-red-500, #ef4444);
       --border: #e5e7eb;
       --touch-min: 48px;
       --touch-comfortable: 56px;
@@ -291,7 +291,7 @@
     }
 
     .copy-btn.copied {
-      background: #22c55e;
+      background: var(--ts-green-500, #22c55e);
       color: white;
     }
 

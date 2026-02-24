@@ -7,26 +7,26 @@
     <script src="web_app/auth-guard.js" data-required-role="Manager"></script>
     <style>
         :root {
-            --primary: #2d5a27;
-            --primary-light: #4a7c43;
+            --primary: var(--ts-green-500, #22c55e);
+            --primary-light: var(--ts-green-400, #4ade80);
             --secondary: #f4a261;
             --accent: #e76f51;
-            --success: #2a9d8f;
-            --warning: #e9c46a;
-            --danger: #e63946;
-            --bg-dark: #1a1a2e;
-            --bg-card: #16213e;
-            --bg-light: #0f3460;
-            --text-primary: #edf2f4;
-            --text-secondary: #8d99ae;
-            --border: rgba(255,255,255,0.1);
+            --success: var(--ts-teal-500, #2a9d8f);
+            --warning: var(--ts-amber-400, #e9c46a);
+            --danger: var(--ts-red-500, #e63946);
+            --bg-dark: var(--ts-bg-base, #1a1a2e);
+            --bg-card: var(--ts-bg-surface, #16213e);
+            --bg-light: var(--ts-bg-elevated, #0f3460);
+            --text-primary: var(--ts-text, #edf2f4);
+            --text-secondary: var(--ts-text-secondary, #8d99ae);
+            --border: var(--ts-border, rgba(255,255,255,0.1));
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: linear-gradient(135deg, var(--bg-dark) 0%, #0f0f1a 100%);
+            background: linear-gradient(135deg, var(--bg-dark) 0%, var(--ts-bg-subtle, #0f0f1a) 100%);
             color: var(--text-primary);
             display: flex;
             flex-direction: column;
@@ -407,16 +407,16 @@
         }
 
         .btn-qr {
-            background: linear-gradient(135deg, #6366f1, #4f46e5);
+            background: linear-gradient(135deg, var(--ts-purple-500, #6366f1), #4f46e5);
             color: white;
         }
 
         .btn-qr:hover {
-            background: linear-gradient(135deg, #7c7ff7, #6366f1);
+            background: linear-gradient(135deg, #7c7ff7, var(--ts-purple-500, #6366f1));
         }
 
         .scan-btn {
-            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            background: linear-gradient(135deg, var(--ts-purple-500, #8b5cf6), #7c3aed);
             color: white;
             display: flex;
             align-items: center;
@@ -2139,7 +2139,7 @@
                     </div>
                     <div style="display: flex; gap: 10px; margin-top: 14px;">
                         <button onclick="cancelEdit()" style="flex: 1; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 8px; color: var(--text-secondary); font-weight: 600; cursor: pointer;">Cancel</button>
-                        <button onclick="saveEdit()" style="flex: 1; padding: 10px; background: linear-gradient(135deg, #2d5a27, #4a7c43); border: none; border-radius: 8px; color: white; font-weight: 600; cursor: pointer;"><i class="fas fa-save"></i> Save Changes</button>
+                        <button onclick="saveEdit()" style="flex: 1; padding: 10px; background: linear-gradient(135deg, #22c55e, #4ade80); border: none; border-radius: 8px; color: white; font-weight: 600; cursor: pointer;"><i class="fas fa-save"></i> Save Changes</button>
                     </div>
                 </div>
             `;

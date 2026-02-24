@@ -18,22 +18,22 @@
         }
 
         :root {
-            --primary: #2d5a27;
-            --primary-light: #4a7c43;
-            --primary-dark: #1e3d1a;
-            --bg-dark: #0f172a;
-            --bg-card: #1e293b;
-            --bg-input: #334155;
-            --text-primary: #f8fafc;
-            --text-secondary: #94a3b8;
+            --primary: var(--ts-green-500, #22c55e);
+            --primary-light: var(--ts-green-400, #4ade80);
+            --primary-dark: var(--ts-green-600, #16a34a);
+            --bg-dark: var(--ts-bg-base, #0f172a);
+            --bg-card: var(--ts-bg-surface, #1e293b);
+            --bg-input: var(--ts-bg-elevated, #334155);
+            --text-primary: var(--ts-text, #f8fafc);
+            --text-secondary: var(--ts-text-secondary, #94a3b8);
             --border: #475569;
-            --danger: #ef4444;
-            --success: #22c55e;
+            --danger: var(--ts-red-500, #ef4444);
+            --success: var(--ts-green-500, #22c55e);
         }
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: linear-gradient(135deg, var(--bg-dark) 0%, #1a1a2e 100%);
+            background: linear-gradient(135deg, var(--bg-dark) 0%, var(--ts-bg-base, #1a1a2e) 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;

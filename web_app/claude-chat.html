@@ -15,15 +15,15 @@
     <script src="auth-guard.js" data-required-role="Admin"></script>
     <style>
         :root {
-            --bg-primary: #0f172a;
-            --bg-secondary: #1e293b;
-            --bg-card: #334155;
-            --text-primary: #f8fafc;
-            --text-secondary: #94a3b8;
-            --accent-blue: #3b82f6;
-            --accent-green: #22c55e;
+            --bg-primary: var(--ts-bg-base, #0f172a);
+            --bg-secondary: var(--ts-bg-surface, #1e293b);
+            --bg-card: var(--ts-bg-elevated, #334155);
+            --text-primary: var(--ts-text, #f8fafc);
+            --text-secondary: var(--ts-text-secondary, #94a3b8);
+            --accent-blue: var(--ts-blue-500, #3b82f6);
+            --accent-green: var(--ts-green-500, #22c55e);
             --accent-yellow: #eab308;
-            --accent-red: #ef4444;
+            --accent-red: var(--ts-red-500, #ef4444);
             --accent-purple: #a855f7;
             --claude-orange: #da7756;
             --safe-top: env(safe-area-inset-top, 0px);

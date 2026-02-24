@@ -13,9 +13,9 @@
   <style>
     :root {
       /* Match Chief of Staff dark theme */
-      --bg-primary: #0f172a;
-      --bg-secondary: #1e293b;
-      --bg-card: #1e293b;
+      --bg-primary: var(--ts-bg-base, #0f172a);
+      --bg-secondary: var(--ts-bg-surface, #1e293b);
+      --bg-card: var(--ts-bg-surface, #1e293b);
       --bg-card-hover: #283555;
       --bg-input: #0f1629;
       --bg-elevated: #243354;
@@ -32,18 +32,18 @@
       --border-focus: #5b8def;
 
       /* Status colors - Traffic light system */
-      --status-green: #22C55E;
+      --status-green: var(--ts-green-500, #22C55E);
       --status-green-bg: rgba(34, 197, 94, 0.15);
       --status-yellow: #EAB308;
       --status-yellow-bg: rgba(234, 179, 8, 0.15);
-      --status-red: #EF4444;
+      --status-red: var(--ts-red-500, #EF4444);
       --status-red-bg: rgba(239, 68, 68, 0.15);
 
       /* Accent colors */
-      --accent-green: #22c55e;
-      --accent-green-dim: #16a34a;
-      --accent-blue: #60a5fa;
-      --accent-purple: #a78bfa;
+      --accent-green: var(--ts-green-500, #22c55e);
+      --accent-green-dim: var(--ts-green-600, #16a34a);
+      --accent-blue: var(--ts-blue-400, #60a5fa);
+      --accent-purple: var(--ts-purple-400, #a78bfa);
       --accent-amber: #fbbf24;
       --accent-teal: #2dd4bf;
 

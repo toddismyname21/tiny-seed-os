@@ -10,21 +10,21 @@
     <script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
     <style>
         :root {
-            --primary: #2d5a27;
+            --primary: var(--ts-green-700, #2d5a27);
             --primary-light: #4a7c43;
             --primary-dark: #1e3d1a;
             --secondary: #f4a261;
             --accent: #e76f51;
-            --success: #2a9d8f;
+            --success: var(--ts-teal-500, #2a9d8f);
             --warning: #e9c46a;
-            --danger: #e63946;
+            --danger: var(--ts-red-500, #e63946);
             --info: #4361ee;
-            --bg-dark: #1a1a2e;
-            --bg-card: #16213e;
-            --bg-light: #0f3460;
-            --text-primary: #edf2f4;
-            --text-secondary: #8d99ae;
-            --border: rgba(255,255,255,0.1);
+            --bg-dark: var(--ts-bg-base, #1a1a2e);
+            --bg-card: var(--ts-bg-surface, #16213e);
+            --bg-light: var(--ts-bg-elevated, #0f3460);
+            --text-primary: var(--ts-text, #edf2f4);
+            --text-secondary: var(--ts-text-secondary, #8d99ae);
+            --border: var(--ts-border, rgba(255,255,255,0.1));
             --gold: #ffd700;
             --purple: #9b59b6;
             --teal: #1abc9c;

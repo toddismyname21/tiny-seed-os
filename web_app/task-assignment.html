@@ -11,24 +11,24 @@
     <script src="auth-guard.js" data-required-role="Admin,Manager"></script>
     <style>
         :root {
-            --bg-primary: #0f172a;
-            --bg-secondary: #1e293b;
-            --bg-card: #1e293b;
-            --bg-hover: #334155;
-            --bg-input: #1e293b;
-            --text-primary: #f8fafc;
-            --text-secondary: #94a3b8;
-            --text-muted: #64748b;
-            --border-color: #334155;
-            --accent-green: #22c55e;
-            --accent-blue: #3b82f6;
-            --accent-purple: #8b5cf6;
-            --accent-amber: #f59e0b;
-            --accent-red: #ef4444;
-            --priority-critical: #ef4444;
+            --bg-primary: var(--ts-bg-base, #0f172a);
+            --bg-secondary: var(--ts-bg-surface, #1e293b);
+            --bg-card: var(--ts-bg-surface, #1e293b);
+            --bg-hover: var(--ts-bg-elevated, #334155);
+            --bg-input: var(--ts-bg-surface, #1e293b);
+            --text-primary: var(--ts-text, #f8fafc);
+            --text-secondary: var(--ts-text-secondary, #94a3b8);
+            --text-muted: var(--ts-text-muted, #64748b);
+            --border-color: var(--ts-bg-elevated, #334155);
+            --accent-green: var(--ts-green-500, #22c55e);
+            --accent-blue: var(--ts-blue-500, #3b82f6);
+            --accent-purple: var(--ts-purple-500, #8b5cf6);
+            --accent-amber: var(--ts-amber-500, #f59e0b);
+            --accent-red: var(--ts-red-500, #ef4444);
+            --priority-critical: var(--ts-red-500, #ef4444);
             --priority-high: #f97316;
             --priority-medium: #eab308;
-            --priority-low: #22c55e;
+            --priority-low: var(--ts-green-500, #22c55e);
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }

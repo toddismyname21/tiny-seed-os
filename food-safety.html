@@ -18,37 +18,37 @@
            State-of-the-Art Food Safety Intelligence
            ======================================== */
         :root {
-            --primary: #2d5a27;
-            --primary-light: #4a7c43;
-            --primary-dark: #1e3d1a;
+            --primary: var(--ts-green-500, #22c55e);
+            --primary-light: var(--ts-green-400, #4ade80);
+            --primary-dark: var(--ts-green-600, #16a34a);
             --secondary: #f4a261;
-            --success: #22c55e;
+            --success: var(--ts-green-500, #22c55e);
             --success-bg: rgba(34, 197, 94, 0.15);
-            --warning: #f59e0b;
+            --warning: var(--ts-amber-500, #f59e0b);
             --warning-bg: rgba(245, 158, 11, 0.15);
-            --danger: #ef4444;
+            --danger: var(--ts-red-500, #ef4444);
             --danger-bg: rgba(239, 68, 68, 0.15);
-            --info: #3b82f6;
+            --info: var(--ts-blue-500, #3b82f6);
             --info-bg: rgba(59, 130, 246, 0.15);
             --purple: #9333ea;
             --purple-bg: rgba(147, 51, 234, 0.15);
             --cyan: #06b6d4;
             --cyan-bg: rgba(6, 182, 212, 0.15);
-            --bg-dark: #0f172a;
-            --bg-card: #1e293b;
-            --bg-elevated: #334155;
-            --bg-input: #1e293b;
-            --text-primary: #f8fafc;
-            --text-secondary: #94a3b8;
-            --text-muted: #64748b;
-            --border: rgba(255, 255, 255, 0.1);
+            --bg-dark: var(--ts-bg-base, #0f172a);
+            --bg-card: var(--ts-bg-surface, #1e293b);
+            --bg-elevated: var(--ts-bg-elevated, #334155);
+            --bg-input: var(--ts-bg-surface, #1e293b);
+            --text-primary: var(--ts-text, #f8fafc);
+            --text-secondary: var(--ts-text-secondary, #94a3b8);
+            --text-muted: var(--ts-text-muted, #64748b);
+            --border: var(--ts-border, rgba(255, 255, 255, 0.1));
             --border-active: rgba(74, 124, 67, 0.5);
-            --water: #3b82f6;
-            --training: #22c55e;
+            --water: var(--ts-blue-500, #3b82f6);
+            --training: var(--ts-green-500, #22c55e);
             --cleaning: #06b6d4;
             --temperature: #f97316;
             --preharvest: #eab308;
-            --corrective: #ef4444;
+            --corrective: var(--ts-red-500, #ef4444);
         }
 
         * {
@@ -2794,8 +2794,8 @@
     <title>Compliance Report - Tiny Seed Farm</title>
     <style>
         body { font-family: Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; }
-        h1 { color: #2d5a27; }
-        h2 { color: #333; border-bottom: 2px solid #2d5a27; padding-bottom: 8px; margin-top: 30px; }
+        h1 { color: #22c55e; }
+        h2 { color: #333; border-bottom: 2px solid #22c55e; padding-bottom: 8px; margin-top: 30px; }
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
         .badge { display: inline-block; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; }
         .pass { background: #d1fae5; color: #065f46; }
@@ -2805,7 +2805,7 @@
         th { background: #f3f4f6; }
         .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 20px 0; }
         .stat { background: #f3f4f6; padding: 16px; border-radius: 8px; text-align: center; }
-        .stat-value { font-size: 24px; font-weight: bold; color: #2d5a27; }
+        .stat-value { font-size: 24px; font-weight: bold; color: #22c55e; }
         .stat-label { font-size: 12px; color: #666; }
         @media print { .no-print { display: none; } }
     </style>
@@ -2876,7 +2876,7 @@
         `).join('') || '<tr><td colspan="4">No open actions</td></tr>'}
     </table>
 
-    <button class="no-print" onclick="window.print()" style="margin-top: 30px; padding: 12px 24px; background: #2d5a27; color: white; border: none; border-radius: 8px; cursor: pointer;">
+    <button class="no-print" onclick="window.print()" style="margin-top: 30px; padding: 12px 24px; background: #22c55e; color: white; border: none; border-radius: 8px; cursor: pointer;">
         Print Report
     </button>
 </body>

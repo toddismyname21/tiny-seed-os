@@ -8,23 +8,23 @@
   <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAL2-2Y_LmMrKuDLIlTkkPZkH9e-FV3ZF0&libraries=drawing,geometry"></script>
   <style>
     :root {
-      --bg-primary: #0f0f0f;
-      --bg-secondary: #1a1a1a;
-      --bg-card: #242424;
+      --bg-primary: var(--ts-bg-base, #0f0f0f);
+      --bg-secondary: var(--ts-bg-surface, #1a1a1a);
+      --bg-card: var(--ts-bg-elevated, #242424);
       --bg-hover: #2d2d2d;
-      --text-primary: #ffffff;
-      --text-secondary: #a0a0a0;
-      --text-muted: #666666;
-      --border-color: #333333;
-      --accent-green: #22c55e;
-      --accent-blue: #3b82f6;
-      --accent-purple: #8b5cf6;
-      --accent-amber: #f59e0b;
-      --accent-red: #ef4444;
-      --veg-color: #22c55e;
+      --text-primary: var(--ts-text, #ffffff);
+      --text-secondary: var(--ts-text-secondary, #a0a0a0);
+      --text-muted: var(--ts-text-muted, #666666);
+      --border-color: var(--ts-border, #333333);
+      --accent-green: var(--ts-green-500, #22c55e);
+      --accent-blue: var(--ts-blue-500, #3b82f6);
+      --accent-purple: var(--ts-purple-500, #8b5cf6);
+      --accent-amber: var(--ts-amber-500, #f59e0b);
+      --accent-red: var(--ts-red-500, #ef4444);
+      --veg-color: var(--ts-green-500, #22c55e);
       --floral-color: #c084fc;
       --perennial-color: #38bdf8;
-      --cover-color: #fbbf24;
+      --cover-color: var(--ts-amber-400, #fbbf24);
     }
 
     * {
@@ -83,7 +83,7 @@
     }
 
     .btn-primary:hover {
-      background: #16a34a;
+      background: var(--ts-green-600, #16a34a);
     }
 
     .btn-secondary {
@@ -102,7 +102,7 @@
     }
 
     .btn-danger:hover {
-      background: #dc2626;
+      background: var(--ts-red-600, #dc2626);
     }
 
     .btn-sm {

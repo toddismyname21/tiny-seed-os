@@ -16,41 +16,41 @@
   <style>
     :root {
       /* Modern color palette - better contrast */
-      --bg-primary: #1a1a2e;
-      --bg-secondary: #16213e;
-      --bg-card: #1f2a48;
+      --bg-primary: var(--ts-bg-base, #1a1a2e);
+      --bg-secondary: var(--ts-bg-surface, #16213e);
+      --bg-card: var(--ts-bg-elevated, #1f2a48);
       --bg-card-hover: #283555;
       --bg-input: #0f1629;
-      --bg-elevated: #243354;
+      --bg-elevated: var(--ts-bg-overlay, #243354);
 
       /* High contrast text */
-      --text-primary: #f5f5f5;
-      --text-secondary: #b8c5d6;
-      --text-muted: #8899a8;
+      --text-primary: var(--ts-text, #f5f5f5);
+      --text-secondary: var(--ts-text-secondary, #b8c5d6);
+      --text-muted: var(--ts-text-muted, #8899a8);
       --text-dim: #667788;
 
       /* Borders */
-      --border-color: #2a3f5f;
-      --border-light: #344968;
+      --border-color: var(--ts-border, #2a3f5f);
+      --border-light: var(--ts-border-strong, #344968);
       --border-focus: #5b8def;
 
       /* Vibrant accents */
-      --accent-green: #4ade80;
-      --accent-green-dim: #22c55e;
-      --accent-blue: #60a5fa;
-      --accent-purple: #a78bfa;
-      --accent-amber: #fbbf24;
-      --accent-red: #f87171;
-      --accent-teal: #2dd4bf;
+      --accent-green: var(--ts-green-400, #4ade80);
+      --accent-green-dim: var(--ts-green-500, #22c55e);
+      --accent-blue: var(--ts-blue-400, #60a5fa);
+      --accent-purple: var(--ts-purple-400, #a78bfa);
+      --accent-amber: var(--ts-amber-400, #fbbf24);
+      --accent-red: var(--ts-red-400, #f87171);
+      --accent-teal: var(--ts-teal-400, #2dd4bf);
 
       /* Priority colors */
-      --critical: #f87171;
+      --critical: var(--ts-red-400, #f87171);
       --critical-bg: rgba(248, 113, 113, 0.15);
       --high: #fb923c;
       --high-bg: rgba(251, 146, 60, 0.15);
-      --medium: #fbbf24;
+      --medium: var(--ts-amber-400, #fbbf24);
       --medium-bg: rgba(251, 191, 36, 0.15);
-      --low: #4ade80;
+      --low: var(--ts-green-400, #4ade80);
       --low-bg: rgba(74, 222, 128, 0.15);
 
       /* Shadows */

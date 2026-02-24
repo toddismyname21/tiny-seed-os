@@ -17,21 +17,21 @@
     <style>
         :root {
             --primary: var(--ts-green-500, #2a9d8f);
-            --primary-light: #3fb5a6;
-            --secondary: #f4a261;
-            --success: #2a9d8f;
-            --warning: #f4a261;
+            --primary-light: var(--ts-green-400, #3fb5a6);
+            --secondary: var(--ts-amber-500, #f4a261);
+            --success: var(--ts-teal-500, #2a9d8f);
+            --warning: var(--ts-amber-500, #f4a261);
             --danger: var(--ts-red-500, #e76f51);
-            --info: #4361ee;
-            --teal: #2a9d8f;
-            --gold: #f4a261;
-            --purple: #9b59b6;
-            --bg: #0a0e27;
-            --bg-light: #1a1f3a;
-            --bg-lighter: #252a4a;
-            --text: #e0e6ed;
-            --text-secondary: #9ca3af;
-            --border: #2a2f4a;
+            --info: var(--ts-blue-500, #4361ee);
+            --teal: var(--ts-teal-500, #2a9d8f);
+            --gold: var(--ts-amber-500, #f4a261);
+            --purple: var(--ts-purple-500, #9b59b6);
+            --bg: var(--ts-bg-base, #0a0e27);
+            --bg-light: var(--ts-bg-surface, #1a1f3a);
+            --bg-lighter: var(--ts-bg-elevated, #252a4a);
+            --text: var(--ts-text, #e0e6ed);
+            --text-secondary: var(--ts-text-secondary, #9ca3af);
+            --border: var(--ts-border, #2a2f4a);
             --horizon-blue: #1e40af;
             --usda-green: #166534;
             --pa-gold: #ca8a04;
@@ -234,11 +234,11 @@
             gap: 1rem;
         }
 
-        .lender-header.horizon { background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); }
-        .lender-header.usda { background: linear-gradient(135deg, #166534 0%, #22c55e 100%); }
-        .lender-header.pa { background: linear-gradient(135deg, #ca8a04 0%, #fbbf24 100%); }
-        .lender-header.beginning { background: linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%); }
-        .lender-header.custom { background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); }
+        .lender-header.horizon { background: linear-gradient(135deg, #1e40af 0%, var(--ts-blue-500, #3b82f6) 100%); }
+        .lender-header.usda { background: linear-gradient(135deg, #166534 0%, var(--ts-green-500, #22c55e) 100%); }
+        .lender-header.pa { background: linear-gradient(135deg, #ca8a04 0%, var(--ts-amber-400, #fbbf24) 100%); }
+        .lender-header.beginning { background: linear-gradient(135deg, #7c3aed 0%, var(--ts-purple-400, #a78bfa) 100%); }
+        .lender-header.custom { background: linear-gradient(135deg, #6366f1 0%, var(--ts-purple-500, #8b5cf6) 100%); }
 
         .lender-logo {
             width: 50px;
@@ -1430,10 +1430,10 @@
             background: linear-gradient(135deg, var(--gold), var(--pa-gold));
         }
 
-        .grant-header.federal { background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); }
-        .grant-header.state { background: linear-gradient(135deg, #ca8a04 0%, #fbbf24 100%); }
-        .grant-header.foundation { background: linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%); }
-        .grant-header.local { background: linear-gradient(135deg, #166534 0%, #22c55e 100%); }
+        .grant-header.federal { background: linear-gradient(135deg, #1e40af 0%, var(--ts-blue-500, #3b82f6) 100%); }
+        .grant-header.state { background: linear-gradient(135deg, #ca8a04 0%, var(--ts-amber-400, #fbbf24) 100%); }
+        .grant-header.foundation { background: linear-gradient(135deg, #7c3aed 0%, var(--ts-purple-400, #a78bfa) 100%); }
+        .grant-header.local { background: linear-gradient(135deg, #166534 0%, var(--ts-green-500, #22c55e) 100%); }
 
         .grant-logo {
             width: 50px;
@@ -1663,10 +1663,10 @@
             display: block;
         }
 
-        .discovery-card.federal i { color: #3b82f6; }
-        .discovery-card.state i { color: #fbbf24; }
-        .discovery-card.foundation i { color: #a78bfa; }
-        .discovery-card.local i { color: #22c55e; }
+        .discovery-card.federal i { color: var(--ts-blue-500, #3b82f6); }
+        .discovery-card.state i { color: var(--ts-amber-400, #fbbf24); }
+        .discovery-card.foundation i { color: var(--ts-purple-400, #a78bfa); }
+        .discovery-card.local i { color: var(--ts-green-500, #22c55e); }
 
         .add-grant-form {
             background: var(--bg-lighter);

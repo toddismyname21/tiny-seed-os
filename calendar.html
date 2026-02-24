@@ -10,27 +10,27 @@
     <script src="web_app/auth-guard.js" data-required-role="Employee"></script>
     <style>
         :root {
-            --primary: #2d5a27;
-            --primary-light: #4a7c43;
-            --primary-dark: #1e3d1a;
+            --primary: var(--ts-green-500, #22c55e);
+            --primary-light: var(--ts-green-400, #4ade80);
+            --primary-dark: var(--ts-green-600, #16a34a);
             --secondary: #f4a261;
             --accent: #e76f51;
-            --success: #2a9d8f;
-            --warning: #e9c46a;
-            --danger: #e63946;
-            --bg-dark: #1a1a2e;
-            --bg-card: #16213e;
-            --bg-light: #0f3460;
-            --text-primary: #edf2f4;
-            --text-secondary: #8d99ae;
-            --border: rgba(255,255,255,0.1);
+            --success: var(--ts-teal-500, #2a9d8f);
+            --warning: var(--ts-amber-400, #e9c46a);
+            --danger: var(--ts-red-500, #e63946);
+            --bg-dark: var(--ts-bg-base, #1a1a2e);
+            --bg-card: var(--ts-bg-surface, #16213e);
+            --bg-light: var(--ts-bg-elevated, #0f3460);
+            --text-primary: var(--ts-text, #edf2f4);
+            --text-secondary: var(--ts-text-secondary, #8d99ae);
+            --border: var(--ts-border, rgba(255,255,255,0.1));
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, var(--bg-dark) 0%, #0f0f1a 100%);
+            background: linear-gradient(135deg, var(--bg-dark) 0%, var(--ts-bg-subtle, #0f0f1a) 100%);
             color: var(--text-primary);
             min-height: 100vh;
             overflow-x: hidden;
@@ -797,7 +797,7 @@
         }
 
         .gantt-label:nth-child(even) {
-            background: #1a1a2e;
+            background: var(--ts-bg-base, #1a1a2e);
         }
 
         /* Timeline row in the content area */
@@ -1196,7 +1196,7 @@
         }
 
         .field-row:nth-child(even) .field-label {
-            background: #1a1a2e;
+            background: var(--ts-bg-base, #1a1a2e);
         }
 
         .field-name {
@@ -1379,7 +1379,7 @@
         }
 
         .crop-bar.locked {
-            border: 2px solid #e63946;
+            border: 2px solid var(--danger);
             cursor: not-allowed;
         }
 
@@ -4436,7 +4436,7 @@
                 return cropColors[cropName];
             }
             // Default fallback
-            return '#2d5a27';
+            return '#22c55e';
         }
 
         // Lighten a hex color by a percentage
@@ -5558,7 +5558,7 @@
                     </div>
                     <div class="unassigned-item-timeline">
                         <div class="unassigned-item-bar ${urgentClass}"
-                             style="left: ${barLeft}%; width: ${barWidth}%; background: ${cropColor || '#2d5a27'};"
+                             style="left: ${barLeft}%; width: ${barWidth}%; background: ${cropColor || '#22c55e'};"
                              title="${p.variety} - ${dateLabel}${p.bedFeet ? ' | ' + p.bedFeet + ' ft' : ''}">
                             <span class="bar-label">${dateLabel}</span>
                         </div>

@@ -14,30 +14,30 @@
            DESIGN SYSTEM - Matching Tiny Seed OS
            ═══════════════════════════════════════════════════════════════════════════ */
         :root {
-            --primary: #4A7C43;
-            --primary-light: #5c9e52;
-            --primary-dark: #3a6235;
-            --bg-primary: #0f172a;
-            --bg-secondary: #1e293b;
-            --bg-card: #1e293b;
-            --bg-hover: #334155;
-            --bg-input: #1e293b;
-            --text-primary: #f8fafc;
-            --text-secondary: #94a3b8;
-            --text-muted: #64748b;
-            --border-color: #334155;
-            --accent-green: #22c55e;
-            --accent-blue: #3b82f6;
-            --accent-purple: #8b5cf6;
-            --accent-amber: #f59e0b;
-            --accent-red: #ef4444;
-            --danger: #e63946;
-            --warning: #f59e0b;
-            --success: #22c55e;
-            --priority-critical: #ef4444;
-            --priority-high: #f97316;
-            --priority-medium: #eab308;
-            --priority-low: #22c55e;
+            --primary: var(--ts-green-500, #22c55e);
+            --primary-light: var(--ts-green-400, #4ade80);
+            --primary-dark: var(--ts-green-600, #16a34a);
+            --bg-primary: var(--ts-bg-base, #0f172a);
+            --bg-secondary: var(--ts-bg-surface, #1e293b);
+            --bg-card: var(--ts-bg-surface, #1e293b);
+            --bg-hover: var(--ts-border, #334155);
+            --bg-input: var(--ts-bg-surface, #1e293b);
+            --text-primary: var(--ts-text, #f8fafc);
+            --text-secondary: var(--ts-text-secondary, #94a3b8);
+            --text-muted: var(--ts-text-muted, #64748b);
+            --border-color: var(--ts-border, #334155);
+            --accent-green: var(--ts-green-500, #22c55e);
+            --accent-blue: var(--ts-blue-500, #3b82f6);
+            --accent-purple: var(--ts-purple-500, #8b5cf6);
+            --accent-amber: var(--ts-amber-500, #f59e0b);
+            --accent-red: var(--ts-red-500, #ef4444);
+            --danger: var(--ts-red-600, #e63946);
+            --warning: var(--ts-amber-500, #f59e0b);
+            --success: var(--ts-green-500, #22c55e);
+            --priority-critical: var(--ts-red-500, #ef4444);
+            --priority-high: var(--ts-amber-500, #f97316);
+            --priority-medium: var(--ts-amber-500, #eab308);
+            --priority-low: var(--ts-green-500, #22c55e);
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -972,6 +972,155 @@
             font-size: 13px;
         }
 
+        /* Feature Flags Panel */
+        .feature-flags-panel {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 12px;
+        }
+
+        .ff-header-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .ff-category-filter {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+
+        .ff-category-chip {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 500;
+            cursor: pointer;
+            border: 1px solid var(--border-color);
+            background: var(--bg-primary);
+            color: var(--text-secondary);
+            transition: all 0.2s;
+        }
+
+        .ff-category-chip.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .ff-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 320px;
+            overflow-y: auto;
+        }
+
+        .ff-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            background: var(--bg-primary);
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        .ff-item:hover {
+            background: var(--bg-hover);
+        }
+
+        .ff-toggle {
+            position: relative;
+            width: 40px;
+            height: 22px;
+            flex-shrink: 0;
+        }
+
+        .ff-toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .ff-toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--bg-hover);
+            border-radius: 22px;
+            transition: 0.3s;
+        }
+
+        .ff-toggle-slider:before {
+            content: '';
+            position: absolute;
+            height: 16px;
+            width: 16px;
+            left: 3px;
+            bottom: 3px;
+            background: white;
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+
+        .ff-toggle input:checked + .ff-toggle-slider {
+            background: var(--accent-green);
+        }
+
+        .ff-toggle input:checked + .ff-toggle-slider:before {
+            transform: translateX(18px);
+        }
+
+        .ff-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .ff-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .ff-desc {
+            font-size: 11px;
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .ff-badge {
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-weight: 500;
+            flex-shrink: 0;
+        }
+
+        .ff-badge.core { background: rgba(59,130,246,0.15); color: var(--accent-blue); }
+        .ff-badge.integration { background: rgba(139,92,246,0.15); color: var(--accent-purple); }
+        .ff-badge.experimental { background: rgba(245,158,11,0.15); color: var(--accent-amber); }
+        .ff-badge.premium { background: rgba(34,197,94,0.15); color: var(--accent-green); }
+
+        .ff-empty {
+            text-align: center;
+            padding: 20px;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        .ff-count {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
         /* ═══════════════════════════════════════════════════════════════════════════
            MODALS
            ═══════════════════════════════════════════════════════════════════════════ */
@@ -1421,6 +1570,19 @@
                         <div class="skeleton" style="height: 50px;"></div>
                         <div class="skeleton" style="height: 50px;"></div>
                         <div class="skeleton" style="height: 50px;"></div>
+                    </div>
+                </div>
+
+                <!-- Feature Flags Panel -->
+                <div class="feature-flags-panel">
+                    <div class="panel-header" style="padding: 0 0 12px 0; border: none;">
+                        <h2 class="panel-title"><i class="fas fa-toggle-on"></i> Feature Flags <span class="ff-count" id="ff-count"></span></h2>
+                    </div>
+                    <div class="ff-category-filter" id="ff-category-filter"></div>
+                    <div class="ff-list" id="ff-list">
+                        <div class="skeleton" style="height: 44px;"></div>
+                        <div class="skeleton" style="height: 44px;"></div>
+                        <div class="skeleton" style="height: 44px;"></div>
                     </div>
                 </div>
 
@@ -2744,6 +2906,101 @@
             toast.className = 'toast ' + type + ' show';
             setTimeout(() => toast.classList.remove('show'), 3000);
         }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // FEATURE FLAGS
+        // ═══════════════════════════════════════════════════════════════════════════
+        let featureFlags = [];
+        let ffActiveCategory = 'all';
+
+        async function loadFeatureFlags() {
+            try {
+                const resp = await fetch(`${API_URL}?action=getFeatureFlags`);
+                const result = await resp.json();
+                if (result.success && result.flags) {
+                    featureFlags = result.flags;
+                    renderFFCategories();
+                    renderFeatureFlags();
+                } else {
+                    document.getElementById('ff-list').innerHTML = '<div class="ff-empty">Could not load feature flags</div>';
+                }
+            } catch (err) {
+                console.error('Feature flags load error:', err);
+                document.getElementById('ff-list').innerHTML = '<div class="ff-empty">Error loading flags</div>';
+            }
+        }
+
+        function renderFFCategories() {
+            const cats = new Set(['all']);
+            featureFlags.forEach(f => { if (f.category) cats.add(f.category); });
+            const container = document.getElementById('ff-category-filter');
+            container.innerHTML = Array.from(cats).map(c =>
+                `<span class="ff-category-chip ${c === ffActiveCategory ? 'active' : ''}" onclick="filterFFCategory('${c}')">${c === 'all' ? 'All' : c.charAt(0).toUpperCase() + c.slice(1)}</span>`
+            ).join('');
+        }
+
+        function filterFFCategory(cat) {
+            ffActiveCategory = cat;
+            renderFFCategories();
+            renderFeatureFlags();
+        }
+
+        function renderFeatureFlags() {
+            const filtered = ffActiveCategory === 'all'
+                ? featureFlags
+                : featureFlags.filter(f => f.category === ffActiveCategory);
+
+            const container = document.getElementById('ff-list');
+            const countEl = document.getElementById('ff-count');
+            const enabledCount = featureFlags.filter(f => f.enabled).length;
+            countEl.textContent = `(${enabledCount}/${featureFlags.length} on)`;
+
+            if (filtered.length === 0) {
+                container.innerHTML = '<div class="ff-empty">No flags in this category</div>';
+                return;
+            }
+
+            container.innerHTML = filtered.map(flag => `
+                <div class="ff-item">
+                    <label class="ff-toggle">
+                        <input type="checkbox" ${flag.enabled ? 'checked' : ''} onchange="toggleFeatureFlag('${flag.key}', this.checked)">
+                        <span class="ff-toggle-slider"></span>
+                    </label>
+                    <div class="ff-info">
+                        <div class="ff-name">${flag.key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</div>
+                        <div class="ff-desc">${flag.description || ''}</div>
+                    </div>
+                    ${flag.category ? `<span class="ff-badge ${flag.category}">${flag.category}</span>` : ''}
+                </div>
+            `).join('');
+        }
+
+        async function toggleFeatureFlag(key, enabled) {
+            try {
+                const resp = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({ action: 'updateFeatureFlag', key, enabled })
+                });
+                const result = await resp.json();
+                if (result.success) {
+                    const flag = featureFlags.find(f => f.key === key);
+                    if (flag) flag.enabled = enabled;
+                    renderFeatureFlags();
+                    showToast(`${key.replace(/_/g, ' ')} ${enabled ? 'enabled' : 'disabled'}`, 'success');
+                } else {
+                    showToast(result.error || 'Failed to update flag', 'error');
+                    loadFeatureFlags();
+                }
+            } catch (err) {
+                console.error('Toggle flag error:', err);
+                showToast('Failed to update flag', 'error');
+                loadFeatureFlags();
+            }
+        }
+
+        // Load feature flags on startup
+        loadFeatureFlags();
 
         // Debounce helper
         function debounce(func, wait) {

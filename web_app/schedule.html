@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#2d5a27">
+    <meta name="theme-color" content="#22c55e">
     <title>Employee Scheduling & HR | Tiny Seed Farm</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -12,23 +12,23 @@
     <script src="auth-guard.js" data-required-role="Manager"></script>
     <style>
         :root {
-            --primary: #2d5a27;
-            --primary-light: #4a7c43;
-            --primary-dark: #1e3d1a;
+            --primary: var(--ts-green-500, #22c55e);
+            --primary-light: var(--ts-green-400, #4ade80);
+            --primary-dark: var(--ts-green-600, #16a34a);
             --secondary: #f4a261;
-            --success: #22c55e;
-            --warning: #f59e0b;
-            --danger: #ef4444;
-            --info: #3b82f6;
-            --purple: #8b5cf6;
+            --success: var(--ts-green-500, #22c55e);
+            --warning: var(--ts-amber-500, #f59e0b);
+            --danger: var(--ts-red-500, #ef4444);
+            --info: var(--ts-blue-500, #3b82f6);
+            --purple: var(--ts-purple-500, #8b5cf6);
             --pink: #ec4899;
-            --bg-dark: #0f172a;
-            --bg-card: #1e293b;
-            --bg-elevated: #334155;
-            --text-primary: #f8fafc;
-            --text-secondary: #94a3b8;
-            --text-muted: #64748b;
-            --border: rgba(255,255,255,0.1);
+            --bg-dark: var(--ts-bg-base, #0f172a);
+            --bg-card: var(--ts-bg-surface, #1e293b);
+            --bg-elevated: var(--ts-bg-elevated, #334155);
+            --text-primary: var(--ts-text, #f8fafc);
+            --text-secondary: var(--ts-text-secondary, #94a3b8);
+            --text-muted: var(--ts-text-muted, #64748b);
+            --border: var(--ts-border, rgba(255,255,255,0.1));
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }

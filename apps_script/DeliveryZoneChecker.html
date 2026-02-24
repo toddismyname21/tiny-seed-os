@@ -11,16 +11,16 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     :root {
-      --primary: #2d5a27;
+      --primary: var(--ts-green-700, #2d5a27);
       --primary-light: #4a7c43;
       --primary-dark: #1e3d1a;
       --bg-light: #f8faf7;
       --bg-white: #ffffff;
       --text-dark: #1a1a1a;
-      --text-muted: #666666;
-      --success: #22c55e;
-      --warning: #f59e0b;
-      --danger: #ef4444;
+      --text-muted: var(--ts-text-muted, #666666);
+      --success: var(--ts-green-500, #22c55e);
+      --warning: var(--ts-amber-500, #f59e0b);
+      --danger: var(--ts-red-500, #ef4444);
       --border: #e5e7eb;
     }
     body {
@@ -40,7 +40,7 @@
     .header p { font-size: 0.9rem; opacity: 0.9; }
     .how-it-works {
       background: #fff8e6;
-      border: 2px solid #f59e0b;
+      border: 2px solid var(--ts-amber-500, #f59e0b);
       border-radius: 12px;
       padding: 16px 20px;
       margin: 16px auto;
@@ -91,13 +91,13 @@
     .btn-secondary { background: var(--bg-light); color: var(--text-dark); border: 2px solid var(--border); }
     .btn-secondary:hover { background: var(--border); }
     .result-accepted {
-      background: linear-gradient(135deg, #22c55e, #16a34a); color: white;
+      background: linear-gradient(135deg, var(--ts-green-500, #22c55e), var(--ts-green-600, #16a34a)); color: white;
       border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 16px;
     }
     .result-accepted i { font-size: 2.5rem; margin-bottom: 8px; }
     .result-accepted h2 { font-size: 1.2rem; margin-bottom: 6px; }
     .result-rejected {
-      background: linear-gradient(135deg, #f59e0b, #d97706); color: white;
+      background: linear-gradient(135deg, var(--ts-amber-500, #f59e0b), #d97706); color: white;
       border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 16px;
     }
     .result-rejected i { font-size: 2.5rem; margin-bottom: 8px; }
@@ -115,7 +115,7 @@
       background: white; color: var(--primary); border: none; border-radius: 8px;
       padding: 10px 16px; font-size: 0.9rem; font-weight: 600; cursor: pointer; margin-top: 8px;
     }
-    .copy-btn.copied { background: #22c55e; color: white; }
+    .copy-btn.copied { background: var(--ts-green-500, #22c55e); color: white; }
     .details-card { background: var(--bg-light); border-radius: 10px; padding: 14px; }
     .detail-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); }
     .detail-row:last-child { border-bottom: none; }
@@ -148,7 +148,7 @@
     .popup-buttons { display: flex; gap: 12px; margin-top: 20px; }
     .popup-buttons .btn { flex: 1; }
     .success-message {
-      background: linear-gradient(135deg, #22c55e, #16a34a); color: white;
+      background: linear-gradient(135deg, var(--ts-green-500, #22c55e), var(--ts-green-600, #16a34a)); color: white;
       border-radius: 12px; padding: 20px; text-align: center;
     }
     .success-message i { font-size: 3rem; margin-bottom: 12px; }

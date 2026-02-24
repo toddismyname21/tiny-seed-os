@@ -18,16 +18,16 @@
             /* Farm Green Theme - Consistent across all chef-facing pages */
             --primary: var(--ts-green-500, #22c55e);
             --primary-dark: var(--ts-green-600, #16a34a);
-            --primary-light: #4ade80;
-            --success: #22c55e;
-            --warning: #f59e0b;
-            --danger: #ef4444;
+            --primary-light: var(--ts-green-400, #4ade80);
+            --success: var(--ts-green-500, #22c55e);
+            --warning: var(--ts-amber-500, #f59e0b);
+            --danger: var(--ts-red-500, #ef4444);
             --bg-main: var(--ts-bg-base, #f8fafc);
             --bg-card: var(--ts-bg-surface, #ffffff);
             --bg-elevated: #f1f5f9;
             --text-primary: var(--ts-text, #1e293b);
             --text-secondary: var(--ts-text-secondary, #64748b);
-            --text-muted: #94a3b8;
+            --text-muted: var(--ts-text-secondary, #94a3b8);
             --border-color: var(--ts-border, #e2e8f0);
             --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
             --shadow-md: 0 4px 6px rgba(0,0,0,0.07);
@@ -56,7 +56,7 @@
             align-items: center;
             justify-content: center;
             padding: 20px;
-            background: linear-gradient(135deg, #1a1a2e 0%, #0f172a 100%);
+            background: linear-gradient(135deg, var(--ts-bg-base, #1a1a2e) 0%, var(--ts-bg-base, #0f172a) 100%);
         }
 
         .login-card {
@@ -653,7 +653,7 @@
         }
 
         .checkout-btn:hover {
-            background: #16a34a;
+            background: var(--ts-green-600, #16a34a);
         }
 
         .checkout-btn:disabled {

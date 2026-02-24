@@ -11,18 +11,18 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     :root {
-      --primary: #22c55e;
-      --primary-dark: #16a34a;
-      --primary-light: #4ade80;
+      --primary: var(--ts-green-500, #22c55e);
+      --primary-dark: var(--ts-green-600, #16a34a);
+      --primary-light: var(--ts-green-400, #4ade80);
       --bg-light: #f8faf7;
-      --bg-white: #ffffff;
+      --bg-white: var(--ts-white, #ffffff);
       --text-dark: #1a1a1a;
       --text-muted: #666666;
-      --success: #22c55e;
-      --warning: #f59e0b;
-      --info: #3b82f6;
+      --success: var(--ts-green-500, #22c55e);
+      --warning: var(--ts-amber-500, #f59e0b);
+      --info: var(--ts-blue-500, #3b82f6);
       --border: #e5e7eb;
-      --farm-green: #2d5a27;
+      --farm-green: var(--ts-green-700, #2d5a27);
     }
 
     body {
@@ -207,7 +207,7 @@
     }
 
     .location-icon.farm { background: #ea580c; }
-    .location-icon.community { background: #8b5cf6; }
+    .location-icon.community { background: var(--ts-purple-500, #8b5cf6); }
     .location-icon.market { background: #2563eb; }
 
     .location-info {

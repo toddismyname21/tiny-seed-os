@@ -12,21 +12,21 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     :root {
-      --primary: #2d5a27;
+      --primary: var(--ts-green-700, #2d5a27);
       --primary-light: #4a7c43;
       --primary-dark: #1e3d1a;
-      --bg-dark: #0f172a;
-      --bg-card: #1e293b;
-      --bg-card-hover: #334155;
-      --text-white: #f8fafc;
-      --text-muted: #94a3b8;
-      --accent-blue: #3b82f6;
-      --accent-green: #22c55e;
-      --accent-yellow: #eab308;
+      --bg-dark: var(--ts-bg-base, #0f172a);
+      --bg-card: var(--ts-bg-surface, #1e293b);
+      --bg-card-hover: var(--ts-bg-elevated, #334155);
+      --text-white: var(--ts-text, #f8fafc);
+      --text-muted: var(--ts-text-secondary, #94a3b8);
+      --accent-blue: var(--ts-blue-500, #3b82f6);
+      --accent-green: var(--ts-green-500, #22c55e);
+      --accent-yellow: var(--ts-amber-500, #eab308);
       --accent-orange: #f97316;
-      --accent-red: #ef4444;
-      --accent-purple: #a855f7;
-      --border: #334155;
+      --accent-red: var(--ts-red-500, #ef4444);
+      --accent-purple: var(--ts-purple-400, #a855f7);
+      --border: var(--ts-bg-elevated, #334155);
     }
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -167,9 +167,9 @@
     .zone-indicator {
       width: 12px; height: 40px; border-radius: 6px;
     }
-    .zone-indicator.expand { background: linear-gradient(to bottom, var(--accent-green), #16a34a); }
+    .zone-indicator.expand { background: linear-gradient(to bottom, var(--accent-green), var(--ts-green-600, #16a34a)); }
     .zone-indicator.maintain { background: linear-gradient(to bottom, var(--accent-yellow), #ca8a04); }
-    .zone-indicator.contract { background: linear-gradient(to bottom, var(--accent-red), #dc2626); }
+    .zone-indicator.contract { background: linear-gradient(to bottom, var(--accent-red), var(--ts-red-600, #dc2626)); }
     .zone-info { flex: 1; }
     .zone-name { font-weight: 600; font-size: 0.9rem; }
     .zone-stats { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
@@ -400,7 +400,7 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
   <script>
-    const API_BASE = 'https://script.google.com/macros/s/AKfycbyayQD18LoTXiE16bcG90zEMZlGZGtAgNeWco_528QIrZ_3pCgB5tmleR7NglI1q3No/exec';
+    const API_BASE = 'https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec';
 
     let map, routeLayer, heatmapLayer, zonesLayer, churnLayer;
     let demandChart;

@@ -10,20 +10,20 @@
     <script src="web_app/auth-guard.js" data-required-role="Field_Lead"></script>
     <style>
         :root {
-            --primary: #9c4f96;
+            --primary: var(--ts-purple-500, #9c4f96);
             --primary-light: #c77dbe;
             --primary-dark: #6d2868;
             --secondary: #f4a261;
             --accent: #e76f51;
-            --success: #2a9d8f;
-            --warning: #e9c46a;
-            --danger: #e63946;
-            --bg-dark: #1a1a2e;
-            --bg-card: #16213e;
-            --bg-light: #0f3460;
-            --text-primary: #edf2f4;
-            --text-secondary: #8d99ae;
-            --border: rgba(255,255,255,0.1);
+            --success: var(--ts-teal-500, #2a9d8f);
+            --warning: var(--ts-amber-400, #e9c46a);
+            --danger: var(--ts-red-500, #e63946);
+            --bg-dark: var(--ts-bg-base, #1a1a2e);
+            --bg-card: var(--ts-bg-surface, #16213e);
+            --bg-light: var(--ts-bg-elevated, #0f3460);
+            --text-primary: var(--ts-text, #edf2f4);
+            --text-secondary: var(--ts-text-secondary, #8d99ae);
+            --border: var(--ts-border, rgba(255,255,255,0.1));
             --flower-pink: #f8b4d9;
             --flower-purple: #c084fc;
             --flower-yellow: #fcd34d;
@@ -300,9 +300,9 @@
             font-weight: 600;
         }
 
-        .flower-type.focal { background: var(--flower-pink); color: #1a1a2e; }
+        .flower-type.focal { background: var(--flower-pink); color: var(--bg-dark); }
         .flower-type.auxiliary { background: var(--flower-purple); color: white; }
-        .flower-type.filler { background: var(--flower-yellow); color: #1a1a2e; }
+        .flower-type.filler { background: var(--flower-yellow); color: var(--bg-dark); }
         .flower-type.texture { background: var(--flower-orange); color: white; }
 
         .caution-badge {
@@ -393,7 +393,7 @@
         }
 
         .task-priority.critical { background: var(--danger); color: white; }
-        .task-priority.high { background: var(--warning); color: #1a1a2e; }
+        .task-priority.high { background: var(--warning); color: var(--bg-dark); }
         .task-priority.normal { background: var(--success); color: white; }
 
         /* Priority Score Badge - Unified Task API */

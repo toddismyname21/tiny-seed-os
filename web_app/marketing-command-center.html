@@ -22,23 +22,23 @@
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600;700&family=Pacifico&family=Caveat:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #22c55e;
-            --primary-light: #4ade80;
-            --primary-dark: #16a34a;
-            --secondary: #f4a261;
+            --primary: var(--ts-green-500, #22c55e);
+            --primary-light: var(--ts-green-400, #4ade80);
+            --primary-dark: var(--ts-green-600, #16a34a);
+            --secondary: var(--ts-gold-400, #f4a261);
             --accent: #e76f51;
-            --success: #2a9d8f;
+            --success: var(--ts-teal-500, #2a9d8f);
             --warning: #e9c46a;
-            --danger: #e63946;
+            --danger: var(--ts-red-500, #e63946);
             --info: #4361ee;
-            --bg-dark: #1a1a2e;
-            --bg-card: #16213e;
-            --bg-light: #0f3460;
-            --text-primary: #edf2f4;
-            --text-secondary: #8d99ae;
-            --border: rgba(255,255,255,0.1);
+            --bg-dark: var(--ts-bg-base, #1a1a2e);
+            --bg-card: var(--ts-bg-surface, #16213e);
+            --bg-light: var(--ts-bg-elevated, #0f3460);
+            --text-primary: var(--ts-text, #edf2f4);
+            --text-secondary: var(--ts-text-secondary, #8d99ae);
+            --border: var(--ts-border, rgba(255,255,255,0.1));
             --gold: #ffd700;
-            --purple: #9b59b6;
+            --purple: var(--ts-purple-500, #9b59b6);
             --teal: #1abc9c;
             --instagram: #E1306C;
             --facebook: #4267B2;
@@ -64,7 +64,7 @@
 
         body {
             font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, var(--bg-dark) 0%, #0f0f1a 100%);
+            background: linear-gradient(135deg, var(--bg-dark) 0%, var(--ts-bg-base, #0f0f1a) 100%);
             color: var(--text-primary);
             min-height: 100vh;
         }
@@ -1568,7 +1568,7 @@
 
         .calendar-day-status.gray {
             background: rgba(128, 128, 128, 0.2);
-            color: #888;
+            color: var(--ts-text-muted, #888);
         }
 
         /* Pillar badge on post items */
@@ -1990,7 +1990,7 @@
 
         .account-mix-tab.active {
             background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(99, 102, 241, 0.3));
-            border-color: #8B5CF6;
+            border-color: var(--ts-purple-500, #8B5CF6);
             color: white;
         }
 
@@ -2561,7 +2561,7 @@
         .location-item .location-address { font-size: 0.7rem; color: var(--text-secondary); }
         .hashtag-group-card { padding: 0.6rem 0.75rem; background: rgba(20, 184, 166, 0.1); border: 1px solid rgba(20, 184, 166, 0.25); border-radius: 8px; cursor: pointer; transition: all 0.2s; }
         .hashtag-group-card:hover { background: rgba(20, 184, 166, 0.2); transform: translateY(-1px); }
-        .hashtag-group-card .group-name { font-size: 0.85rem; font-weight: 600; color: #14b8a6; display: flex; align-items: center; justify-content: space-between; }
+        .hashtag-group-card .group-name { font-size: 0.85rem; font-weight: 600; color: var(--ts-teal-500, #14b8a6); display: flex; align-items: center; justify-content: space-between; }
         .hashtag-group-card .group-tags { font-size: 0.7rem; color: var(--text-secondary); margin-top: 0.25rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .hashtag-group-card .group-count { font-size: 0.65rem; background: rgba(20,184,166,0.3); padding: 0.1rem 0.4rem; border-radius: 10px; }
 
@@ -2818,7 +2818,7 @@
         .sunday-planning-title h1 {
             font-size: 1.75rem;
             font-weight: 700;
-            background: linear-gradient(135deg, #8B5CF6, #EC4899);
+            background: linear-gradient(135deg, var(--ts-purple-500, #8B5CF6), #EC4899);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             margin: 0;
@@ -3555,7 +3555,7 @@
 
         /* Canvas Area */
         .design-canvas-area {
-            background: #1a1a1a;
+            background: var(--ts-bg-base, #1a1a1a);
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -3567,7 +3567,7 @@
 
         .canvas-wrapper {
             position: relative;
-            background: #2a2a2a;
+            background: var(--ts-bg-surface, #2a2a2a);
             box-shadow: 0 10px 40px rgba(0,0,0,0.5);
             border-radius: 4px;
             overflow: hidden;
@@ -4283,8 +4283,8 @@
 
         /* High contrast text for outdoor visibility */
         body.field-mode-active {
-            --text-primary: #ffffff;
-            --text-secondary: #d1d5db;
+            --text-primary: var(--ts-text, #ffffff);
+            --text-secondary: var(--ts-text-secondary, #d1d5db);
         }
 
         body.field-mode-active .card {
@@ -4878,7 +4878,7 @@
         }
 
         .btn-post-now {
-            background: linear-gradient(135deg, var(--success), #059669);
+            background: linear-gradient(135deg, var(--success), var(--ts-green-600, #059669));
             color: white;
             padding: 1rem 1.5rem;
             border-radius: 12px;
@@ -4895,7 +4895,7 @@
         }
 
         .btn-schedule {
-            background: linear-gradient(135deg, var(--info), #0284c7);
+            background: linear-gradient(135deg, var(--info), var(--ts-blue-500, #0284c7));
             color: white;
             padding: 1rem 1.5rem;
             border-radius: 12px;
@@ -5139,7 +5139,7 @@
             border-radius: 8px;
             font-weight: 600;
             transition: all 0.2s ease;
-            background: linear-gradient(135deg, var(--success), #10b981);
+            background: linear-gradient(135deg, var(--success), var(--ts-teal-500, #10b981));
         }
 
         #createTab .caption-option-card .use-btn:hover {
@@ -5361,11 +5361,11 @@
         #mentionDropdown .mention-item:hover,
         #mentionDropdown .mention-item.selected {
             background: rgba(59, 130, 246, 0.15);
-            border-left-color: #3b82f6;
+            border-left-color: var(--ts-blue-500, #3b82f6);
         }
 
         #mentionDropdown .mention-item .mention-handle {
-            color: #3b82f6;
+            color: var(--ts-blue-500, #3b82f6);
             font-weight: 600;
             font-size: 0.85rem;
         }
@@ -5378,13 +5378,13 @@
 
         /* --- @Mention in Caption: Blue Highlight --- */
         .mention-highlight {
-            color: #3b82f6;
+            color: var(--ts-blue-500, #3b82f6);
             font-weight: 500;
         }
 
         /* --- Hashtag in Caption: Teal Highlight --- */
         .hashtag-highlight {
-            color: #14b8a6;
+            color: var(--ts-teal-500, #14b8a6);
         }
 
         /* --- Location Dropdown: Consistent Glass --- */
@@ -5511,13 +5511,13 @@
 
         .hashtag-group-card .group-name {
             font-weight: 600;
-            color: #14b8a6;
+            color: var(--ts-teal-500, #14b8a6);
             font-size: 0.85rem;
         }
 
         .hashtag-group-card .group-count {
             background: rgba(20, 184, 166, 0.2);
-            color: #14b8a6;
+            color: var(--ts-teal-500, #14b8a6);
             padding: 0.15rem 0.5rem;
             border-radius: 12px;
             font-size: 0.7rem;
@@ -5546,7 +5546,7 @@
         }
 
         .hashtag-group-card .group-actions button:hover {
-            color: #14b8a6;
+            color: var(--ts-teal-500, #14b8a6);
         }
 
         /* --- First Comment Textarea: Dashed Premium (teal/IG accent) --- */
@@ -5650,7 +5650,7 @@
 
         #hashtagGroupBtn.active {
             background: rgba(20, 184, 166, 0.3) !important;
-            border-color: #14b8a6 !important;
+            border-color: var(--ts-teal-500, #14b8a6) !important;
         }
 
         /* --- Mobile Optimizations for Tagging --- */
@@ -6406,8 +6406,8 @@
             font-weight: 600 !important;
             font-size: 0.82rem !important;
             background: rgba(99, 102, 241, 0.12) !important;
-            color: #a5b4fc !important;
-            border-bottom: 2px solid #6366F1 !important;
+            color: var(--ts-purple-500, #a5b4fc) !important;
+            border-bottom: 2px solid var(--ts-purple-500, #6366F1) !important;
             box-shadow: none !important;
         }
 
@@ -6432,7 +6432,7 @@
         }
 
         .btn-post-now, #blastBtn {
-            background: linear-gradient(135deg, #22c55e 0%, #16a34a 50%, #15803d 100%) !important;
+            background: linear-gradient(135deg, var(--ts-green-500, #22c55e) 0%, var(--ts-green-600, #16a34a) 50%, #15803d 100%) !important;
             font-size: 1.1rem !important;
             font-weight: 800 !important;
             letter-spacing: 0.03em;
@@ -6456,7 +6456,7 @@
         .btn-schedule, #scheduleBtn {
             background: rgba(59, 130, 246, 0.12) !important;
             border: 1.5px solid rgba(59, 130, 246, 0.4) !important;
-            color: #60a5fa !important;
+            color: var(--ts-blue-400, #60a5fa) !important;
             font-weight: 600 !important;
             font-size: 0.95rem !important;
             box-shadow: none !important;
@@ -6493,7 +6493,7 @@
 
         #csaCanvasPlaceholder i.fa-box-open {
             font-size: 4.5rem !important;
-            background: linear-gradient(135deg, #4a7c59, #ff8c00);
+            background: linear-gradient(135deg, var(--ts-green-600, #4a7c59), var(--ts-amber-500, #ff8c00));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -6542,7 +6542,7 @@
         #csaSelectedItems > *:hover button,
         #csaSelectedItems > *:hover [onclick*="remove"] {
             opacity: 1;
-            color: #ef4444;
+            color: var(--ts-red-500, #ef4444);
         }
 
         #csaCanvasWrapper { transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
@@ -6550,19 +6550,19 @@
 
         /* --- P2-4: BUTTON CONSISTENCY --- */
         #csaGenerateBtn {
-            background: linear-gradient(135deg, #4a7c59 0%, #ff8c00 100%) !important;
+            background: linear-gradient(135deg, var(--ts-green-600, #4a7c59) 0%, var(--ts-amber-500, #ff8c00) 100%) !important;
             box-shadow: 0 4px 15px rgba(74, 124, 89, 0.4) !important;
         }
 
         #templateBuilderGenerateBtn,
         button[onclick="generateUnifiedStudioContent()"] {
-            background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%) !important;
+            background: linear-gradient(135deg, var(--ts-purple-500, #6366F1) 0%, var(--ts-purple-500, #8B5CF6) 100%) !important;
             box-shadow: 0 4px 14px rgba(99, 102, 241, 0.3) !important;
         }
 
         #repurposeMode .btn[onclick*="generateBlogToSocial"],
         #repurposeMode .btn[onclick*="generateSocialToBlog"] {
-            background: linear-gradient(135deg, #3498DB 0%, #2980B9 100%) !important;
+            background: linear-gradient(135deg, var(--ts-blue-500, #3498DB) 0%, var(--ts-blue-500, #2980B9) 100%) !important;
             box-shadow: 0 4px 14px rgba(52, 152, 219, 0.3) !important;
         }
 
@@ -6591,7 +6591,7 @@
             padding: 0.5rem 2rem 0.5rem 0.85rem !important;
             font-size: 0.88rem !important;
             font-weight: 600 !important;
-            color: #4ade80 !important;
+            color: var(--ts-green-400, #4ade80) !important;
             min-height: 42px !important;
             cursor: pointer !important;
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%234ade80' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") !important;
@@ -6607,7 +6607,7 @@
         }
 
         #quickPostTone:focus {
-            border-color: #4ade80 !important;
+            border-color: var(--ts-green-400, #4ade80) !important;
             box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.15) !important;
             outline: none !important;
         }
@@ -6647,7 +6647,7 @@
 
         .draft-btn.has-draft {
             border-color: rgba(34, 197, 94, 0.4) !important;
-            color: #4ade80 !important;
+            color: var(--ts-green-400, #4ade80) !important;
         }
 
         .draft-btn.has-draft::before {
@@ -6657,7 +6657,7 @@
             right: -2px;
             width: 8px;
             height: 8px;
-            background: #22c55e;
+            background: var(--ts-green-500, #22c55e);
             border-radius: 50%;
             box-shadow: 0 0 6px rgba(34, 197, 94, 0.6);
         }
@@ -6688,11 +6688,11 @@
 
         .intel-drawer-toggle i {
             font-size: 0.85rem;
-            color: #a78bfa;
+            color: var(--ts-purple-500, #a78bfa);
             transition: all 0.3s ease;
         }
 
-        .intel-drawer-toggle:hover i { color: #c4b5fd; }
+        .intel-drawer-toggle:hover i { color: var(--ts-purple-500, #c4b5fd); }
 
         @media (max-width: 1200px) {
             .intel-drawer {
@@ -6806,7 +6806,7 @@
             position: absolute;
             top: 0; left: 0; right: 0;
             height: 3px;
-            background: linear-gradient(90deg, #4a7c59, #ff8c00, #E1306C);
+            background: linear-gradient(90deg, var(--ts-green-600, #4a7c59), var(--ts-amber-500, #ff8c00), #E1306C);
         }
         .onboarding-card h4 { font-size: 1rem; font-weight: 700; margin-bottom: 0.75rem; }
         .onboarding-steps { display: flex; gap: 1rem; align-items: center; }
@@ -6816,7 +6816,7 @@
         }
         .onboarding-step .step-number {
             width: 28px; height: 28px; border-radius: 50%;
-            background: linear-gradient(135deg, #4a7c59, #22c55e);
+            background: linear-gradient(135deg, var(--ts-green-600, #4a7c59), var(--ts-green-500, #22c55e));
             color: white; display: flex; align-items: center; justify-content: center;
             font-size: 0.75rem; font-weight: 700; flex-shrink: 0;
         }

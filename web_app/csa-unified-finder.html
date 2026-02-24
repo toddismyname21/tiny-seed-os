@@ -12,15 +12,15 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     :root {
-      --primary: #22c55e;
-      --primary-dark: #16a34a;
-      --primary-light: #4ade80;
-      --delivery: #3b82f6;
+      --primary: var(--ts-green-500, #22c55e);
+      --primary-dark: var(--ts-green-600, #16a34a);
+      --primary-light: var(--ts-green-400, #4ade80);
+      --delivery: var(--ts-blue-500, #3b82f6);
       --delivery-dark: #2563eb;
-      --community: #8b5cf6;
+      --community: var(--ts-purple-500, #8b5cf6);
       --farm: #ea580c;
       --bg-light: #f8faf7;
-      --bg-white: #ffffff;
+      --bg-white: var(--ts-white, #ffffff);
       --text-dark: #1a1a1a;
       --text-muted: #666666;
       --border: #e5e7eb;
@@ -252,7 +252,7 @@
 
     .location-icon.farm { background: var(--farm); }
     .location-icon.market { background: var(--delivery); }
-    .location-icon.church { background: #8b5cf6; }
+    .location-icon.church { background: var(--ts-purple-500, #8b5cf6); }
     .location-icon.community { background: var(--community); }
 
     .location-info {
