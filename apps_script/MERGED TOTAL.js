@@ -3136,6 +3136,17 @@ function getOverdueTasks() {
     // FIXED 2026-02-05: Only show tasks overdue within last 30 days (not ancient test data)
     const maxOverdueDays = 30;
 
+    // FIXED 2026-02-24: Filter out orphaned fulfillment tasks for deleted orders
+    const validOrderIds = new Set();
+    const seedlingSheet = ss.getSheetByName('SEEDLING_ORDERS');
+    if (seedlingSheet) {
+      const seedlingData = seedlingSheet.getDataRange().getValues();
+      for (let si = 1; si < seedlingData.length; si++) {
+        const oid = String(seedlingData[si][0] || '').trim();
+        if (oid) validOrderIds.add(oid);
+      }
+    }
+
     // Find all relevant column indices - check multiple possible column names
     const dateIdx = headers.findIndex(h => h === 'due_date' || h.includes('date') || h.includes('due'));
     const taskIdIdx = headers.findIndex(h => h === 'task_id' || h === 'taskid' || h === 'task id');
@@ -3152,6 +3163,13 @@ function getOverdueTasks() {
       const row = data[i];
       const rawDate = row[dateIdx];
       const status = statusIdx >= 0 ? String(row[statusIdx]).toLowerCase() : '';
+
+      // FIXED 2026-02-24: Skip orphaned fulfillment tasks for deleted orders
+      if (taskIdIdx >= 0) {
+        const tid = String(row[taskIdIdx] || '');
+        const fulfillMatch = tid.match(/^TASK-(PICK|PACK|PREP)-(.+)$/);
+        if (fulfillMatch && !validOrderIds.has(fulfillMatch[2])) continue;
+      }
 
       // Parse date - handle both Date objects and string dates
       let taskDate = null;
@@ -3434,6 +3452,31 @@ function clearOrphanTasks() {
       if (batchId) validBatches.add(String(batchId).trim());
     }
 
+    // Also get valid seedling order IDs from SEEDLING_ORDERS
+    const validOrderIds = new Set();
+    const seedlingSheet = ss.getSheetByName('SEEDLING_ORDERS');
+    if (seedlingSheet) {
+      const seedlingData = seedlingSheet.getDataRange().getValues();
+      for (let i = 1; i < seedlingData.length; i++) {
+        const orderId = String(seedlingData[i][0] || '').trim();
+        if (orderId) validOrderIds.add(orderId);
+      }
+    }
+
+    // Also get valid sales order IDs from SALES_Orders
+    const salesSheet = ss.getSheetByName('SALES_Orders');
+    if (salesSheet) {
+      const salesData = salesSheet.getDataRange().getValues();
+      const salesHeaders = salesData[0];
+      const salesOrderCol = salesHeaders.indexOf('Order_ID');
+      if (salesOrderCol >= 0) {
+        for (let i = 1; i < salesData.length; i++) {
+          const orderId = String(salesData[i][salesOrderCol] || '').trim();
+          if (orderId) validOrderIds.add(orderId);
+        }
+      }
+    }
+
     // Check TASKS_2026 for orphan tasks
     const tasksData = tasksSheet.getDataRange().getValues();
     if (tasksData.length <= 1) {
@@ -3444,16 +3487,26 @@ function clearOrphanTasks() {
     const taskIdCol = tasksHeaders.indexOf('Task_ID');
     const batchIdCol = tasksHeaders.indexOf('Batch_ID');
 
-    // Find rows to delete (orphan tasks whose batch doesn't exist in PLANNING)
+    // Find rows to delete (orphan tasks)
     const rowsToDelete = [];
     const orphanTasks = [];
 
     for (let i = tasksData.length - 1; i >= 1; i--) {
-      const taskId = tasksData[i][taskIdCol] || '';
-      const batchId = tasksData[i][batchIdCol] || '';
+      const taskId = String(tasksData[i][taskIdCol] || '');
+      const batchId = String(tasksData[i][batchIdCol] || '');
 
-      // Extract batch ID from task ID if batch column is empty
-      // Task ID format: TASK-26-CEN-2969-1 -> batch is 26-CEN-2969
+      // Check if this is a seedling fulfillment task (TASK-PICK-SEED-*, TASK-PACK-SEED-*, TASK-PREP-SEED-*)
+      const isFulfillmentTask = taskId.match(/^TASK-(PICK|PACK|PREP)-(.+)$/);
+      if (isFulfillmentTask) {
+        const orderId = isFulfillmentTask[2]; // e.g., SEED-2026-0001
+        if (!validOrderIds.has(orderId)) {
+          rowsToDelete.push(i + 1);
+          orphanTasks.push({ taskId, batchId: orderId, reason: 'seedling_order_deleted' });
+        }
+        continue; // Don't also check against PLANNING batches
+      }
+
+      // For planning-based tasks: extract batch ID
       let checkBatch = batchId;
       if (!checkBatch && taskId) {
         const parts = taskId.split('-');
@@ -3462,9 +3515,9 @@ function clearOrphanTasks() {
         }
       }
 
-      if (checkBatch && !validBatches.has(checkBatch)) {
+      if (checkBatch && !validBatches.has(checkBatch) && !validOrderIds.has(checkBatch)) {
         rowsToDelete.push(i + 1);
-        orphanTasks.push({ taskId, batchId: checkBatch });
+        orphanTasks.push({ taskId, batchId: checkBatch, reason: 'batch_not_found' });
       }
     }
 
@@ -3472,6 +3525,10 @@ function clearOrphanTasks() {
     rowsToDelete.forEach(row => {
       tasksSheet.deleteRow(row);
     });
+
+    Logger.log('[clearOrphanTasks] Cleared ' + rowsToDelete.length + ' orphan tasks (planning: ' +
+      orphanTasks.filter(t => t.reason === 'batch_not_found').length + ', fulfillment: ' +
+      orphanTasks.filter(t => t.reason === 'seedling_order_deleted').length + ')');
 
     return {
       success: true,
@@ -39093,7 +39150,30 @@ function deleteOrder(data) {
       if (ordersData[i][orderIdIdx] === data.orderId) {
         ordersSheet.deleteRow(i + 1);
         Logger.log(`[deleteOrder] Deleted order ${data.orderId}`);
-        return { success: true, message: 'Order deleted successfully' };
+
+        // CASCADE: Delete associated tasks from TASKS_2026
+        try {
+          const tasksSheet = ss.getSheetByName('TASKS_2026');
+          if (tasksSheet) {
+            const tasksData = tasksSheet.getDataRange().getValues();
+            const taskRowsToDelete = [];
+            for (let t = tasksData.length - 1; t >= 1; t--) {
+              const taskId = String(tasksData[t][0] || '');
+              const batchId = String(tasksData[t][1] || '');
+              if (taskId.indexOf(data.orderId) !== -1 || batchId === data.orderId) {
+                taskRowsToDelete.push(t + 1);
+              }
+            }
+            taskRowsToDelete.forEach(row => tasksSheet.deleteRow(row));
+            if (taskRowsToDelete.length > 0) {
+              Logger.log(`[deleteOrder] Cascade deleted ${taskRowsToDelete.length} tasks from TASKS_2026`);
+            }
+          }
+        } catch (taskErr) {
+          Logger.log('[deleteOrder] Task cascade error: ' + taskErr.toString());
+        }
+
+        return { success: true, message: 'Order deleted successfully', tasksCascaded: true };
       }
     }
 
@@ -130530,6 +130610,96 @@ function cleanupTestSeedlingOrders(params) {
       salesRowsToDelete.sort(function(a, b) { return b - a; });
       for (var sr = 0; sr < salesRowsToDelete.length; sr++) {
         salesSheet.deleteRow(salesRowsToDelete[sr]);
+      }
+    }
+
+    // --- CASCADE: Clean TASKS_2026 fulfillment tasks (PICK/PACK/PREP) for deleted orders ---
+    var deletedOrderIds = deleted.filter(function(d) { return d.source === 'SEEDLING_ORDERS'; }).map(function(d) { return d.orderId; });
+    if (deletedOrderIds.length > 0) {
+      try {
+        var tasksSheet = ss.getSheetByName('TASKS_2026');
+        if (tasksSheet) {
+          var tasksData = tasksSheet.getDataRange().getValues();
+          var taskRowsToDelete = [];
+          for (var t = 1; t < tasksData.length; t++) {
+            var taskId = String(tasksData[t][0] || '');
+            // Match TASK-PICK-{orderId}, TASK-PACK-{orderId}, TASK-PREP-{orderId}
+            for (var oi = 0; oi < deletedOrderIds.length; oi++) {
+              if (taskId.indexOf(deletedOrderIds[oi]) !== -1) {
+                taskRowsToDelete.push(t + 1);
+                deleted.push({ orderId: deletedOrderIds[oi], taskId: taskId, source: 'TASKS_2026' });
+                break;
+              }
+            }
+          }
+          taskRowsToDelete.sort(function(a, b) { return b - a; });
+          for (var tr = 0; tr < taskRowsToDelete.length; tr++) {
+            tasksSheet.deleteRow(taskRowsToDelete[tr]);
+          }
+          Logger.log('[cleanupTestSeedlingOrders] Cascade deleted ' + taskRowsToDelete.length + ' fulfillment tasks from TASKS_2026');
+        }
+      } catch (taskErr) {
+        errors.push('TASKS_2026 cascade: ' + taskErr.toString());
+      }
+
+      // --- CASCADE: Clean SALES_PickPack rows for deleted orders ---
+      try {
+        var pickPackSheet = ss.getSheetByName('SALES_PickPack');
+        if (pickPackSheet) {
+          var ppData = pickPackSheet.getDataRange().getValues();
+          var ppHeaders = ppData[0] || [];
+          var ppOrderCol = -1;
+          for (var ph = 0; ph < ppHeaders.length; ph++) {
+            if (String(ppHeaders[ph]).toLowerCase().indexOf('order_id') !== -1) { ppOrderCol = ph; break; }
+          }
+          if (ppOrderCol >= 0) {
+            var ppRowsToDelete = [];
+            for (var pp = 1; pp < ppData.length; pp++) {
+              var ppOrderId = String(ppData[pp][ppOrderCol] || '');
+              if (deletedOrderIds.indexOf(ppOrderId) !== -1) {
+                ppRowsToDelete.push(pp + 1);
+              }
+            }
+            ppRowsToDelete.sort(function(a, b) { return b - a; });
+            for (var ppr = 0; ppr < ppRowsToDelete.length; ppr++) {
+              pickPackSheet.deleteRow(ppRowsToDelete[ppr]);
+            }
+            Logger.log('[cleanupTestSeedlingOrders] Cascade deleted ' + ppRowsToDelete.length + ' pick/pack rows');
+          }
+        }
+      } catch (ppErr) {
+        errors.push('SALES_PickPack cascade: ' + ppErr.toString());
+      }
+
+      // --- CASCADE: Clean UNIFIED_TASKS for deleted orders ---
+      try {
+        var unifiedSheet = ss.getSheetByName('UNIFIED_TASKS');
+        if (unifiedSheet) {
+          var uData = unifiedSheet.getDataRange().getValues();
+          var uHeaders = uData[0] || [];
+          var uTitleCol = -1, uStatusCol = -1;
+          for (var uh = 0; uh < uHeaders.length; uh++) {
+            var colName = String(uHeaders[uh]).toLowerCase();
+            if (colName === 'title') uTitleCol = uh;
+            if (colName === 'status') uStatusCol = uh;
+          }
+          if (uTitleCol >= 0 && uStatusCol >= 0) {
+            var cancelled = 0;
+            for (var ur = 1; ur < uData.length; ur++) {
+              var uTitle = String(uData[ur][uTitleCol] || '');
+              for (var ui = 0; ui < deletedOrderIds.length; ui++) {
+                if (uTitle.indexOf(deletedOrderIds[ui]) !== -1) {
+                  unifiedSheet.getRange(ur + 1, uStatusCol + 1).setValue('CANCELLED');
+                  cancelled++;
+                  break;
+                }
+              }
+            }
+            if (cancelled > 0) Logger.log('[cleanupTestSeedlingOrders] Cancelled ' + cancelled + ' unified tasks');
+          }
+        }
+      } catch (uErr) {
+        errors.push('UNIFIED_TASKS cascade: ' + uErr.toString());
       }
     }
 
