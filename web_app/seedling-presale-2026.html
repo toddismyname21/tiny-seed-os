@@ -71,30 +71,14 @@
             justify-content: center;
         }
         .hero-logo { display: none; }
-        .page-logo-wrap {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 24px;
-            margin-bottom: 32px;
-        }
-        .page-logo-wrap .estd-text {
-            font-family: 'Georgia', serif;
-            font-size: 1.4rem;
-            font-weight: 700;
-            letter-spacing: 0.15em;
-            color: rgba(255,255,255,0.85);
-            text-shadow: 0 2px 8px rgba(0,0,0,0.4);
-        }
         .page-logo {
-            width: 400px;
-            max-width: 60vw;
-            filter: drop-shadow(0 4px 24px rgba(0,0,0,0.5));
+            width: 480px;
+            max-width: 85vw;
+            margin-bottom: 24px;
+            filter: drop-shadow(0 4px 20px rgba(0,0,0,0.4));
         }
         @media (max-width: 768px) {
-            .page-logo { width: 280px; }
-            .page-logo-wrap { gap: 14px; }
-            .page-logo-wrap .estd-text { font-size: 1rem; }
+            .page-logo { width: 340px; margin-bottom: 16px; }
         }
         .hero-content { position: relative; z-index: 1; max-width: 800px; margin: 0 auto; }
         .hero-badge {
@@ -389,11 +373,7 @@
 <!-- ═══════════════════════════════════════════════════════════ -->
 <header class="hero" role="banner">
     <div class="hero-content">
-        <div class="page-logo-wrap">
-            <span class="estd-text">ESTD</span>
-            <img src="images/tiny-seed-farm-logo.png?v=2" alt="Tiny Seed Farm" class="page-logo">
-            <span class="estd-text">2017</span>
-        </div>
+        <img src="images/tiny-seed-farm-logo.png?v=3" alt="Tiny Seed Farm and Fleurs — Estd 2017" class="page-logo">
         <img src="assets/logo.png" alt="Tiny Seed Farm" class="hero-logo">
         <div class="hero-badge"><i class="fas fa-seedling"></i> 2026 PRESALE NOW OPEN</div>
         <h1>Pittsburgh's Favorite <span>Seedlings</span> Are Back</h1>
@@ -589,11 +569,8 @@
                 <i class="fas fa-seedling"></i> Add seedlings above to reserve
             </button>
             <div class="payment-badges">
-                <i class="fab fa-cc-visa"></i>
-                <i class="fab fa-cc-mastercard"></i>
-                <i class="fab fa-cc-amex"></i>
-                <i class="fab fa-shopify"></i>
-                <span>Secure checkout via Shopify</span>
+                <i class="fas fa-lock"></i>
+                <span>Secure checkout</span>
             </div>
             <p style="text-align:center; font-size:0.75rem; color:var(--text-muted); margin-top:8px;">$6 each · 4 for $20 · 15% off 10+ plants. Confirmation email sent immediately. Full refund available until April 15.</p>
         </form>
