@@ -110,6 +110,90 @@
         .stat-card.needs-attention .stat-value { color: var(--orange); }
         .stat-card.good .stat-value { color: var(--green-dark); }
 
+        /* Page Settings Panel */
+        .page-settings-panel {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            margin-bottom: 24px;
+            overflow: hidden;
+        }
+        .page-settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .page-settings-header:hover { background: #f9fafb; }
+        .page-settings-header h3 {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .page-settings-header h3 i { color: var(--blue); }
+        .page-settings-toggle { color: var(--text-muted); transition: transform 0.3s; }
+        .page-settings-toggle.open { transform: rotate(180deg); }
+        .page-settings-body { padding: 0 20px 20px; }
+        .page-settings-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        @media (max-width: 768px) {
+            .page-settings-grid { grid-template-columns: 1fr; }
+        }
+        .page-setting-card label {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--text-dark);
+            display: block;
+            margin-bottom: 4px;
+        }
+        .page-setting-card .form-help {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+        .setting-input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .setting-input:focus { border-color: var(--green); }
+        .setting-image-preview {
+            width: 100%;
+            height: 120px;
+            border-radius: 8px;
+            border: 1px dashed var(--border);
+            margin-bottom: 8px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f9fafb;
+            position: relative;
+        }
+        .setting-image-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .setting-image-preview .no-image {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            text-align: center;
+        }
+
         /* Toolbar */
         .toolbar {
             display: flex;
@@ -583,6 +667,53 @@
         </div>
     </div>
 
+    <!-- Page Settings (Hero image, farmer photo, etc.) -->
+    <div class="page-settings-panel" id="pageSettingsPanel">
+        <div class="page-settings-header" onclick="togglePageSettings()">
+            <h3><i class="fas fa-image"></i> Page Photos &amp; Settings</h3>
+            <span class="page-settings-toggle" id="settingsToggleIcon"><i class="fas fa-chevron-down"></i></span>
+        </div>
+        <div class="page-settings-body" id="pageSettingsBody" style="display:none;">
+            <div class="page-settings-grid">
+                <div class="page-setting-card">
+                    <label>Hero Background Image</label>
+                    <p class="form-help">The large banner photo behind the presale page header. Recommended: 1600x900px landscape.</p>
+                    <div class="setting-image-preview" id="heroPreview"></div>
+                    <input type="url" id="settingHeroImage" placeholder="https://images.unsplash.com/..." class="setting-input">
+                </div>
+                <div class="page-setting-card">
+                    <label>Farmer Photo</label>
+                    <p class="form-help">Photo of Todd for the "Meet Your Farmer" section. Recommended: 400x400px square.</p>
+                    <div class="setting-image-preview" id="farmerPreview"></div>
+                    <input type="url" id="settingFarmerPhoto" placeholder="https://..." class="setting-input">
+                </div>
+            </div>
+            <div class="page-settings-grid" style="margin-top:16px;">
+                <div class="page-setting-card">
+                    <label>Farmer Name</label>
+                    <input type="text" id="settingFarmerName" placeholder="Todd Wilson" class="setting-input">
+                </div>
+                <div class="page-setting-card">
+                    <label>Farmer Tagline</label>
+                    <input type="text" id="settingFarmerTagline" placeholder="Tiny Seed Farm — Rochester, PA..." class="setting-input">
+                </div>
+            </div>
+            <div class="page-setting-card" style="margin-top:16px;">
+                <label>Farmer Bio</label>
+                <textarea id="settingFarmerBio" rows="3" placeholder="I started Tiny Seed Farm in 2017..." class="setting-input" style="resize:vertical;"></textarea>
+            </div>
+            <div style="margin-top:16px; display:flex; gap:12px; align-items:center;">
+                <button class="btn btn-primary" onclick="savePageSettings()">
+                    <i class="fas fa-save"></i> Save Page Settings
+                </button>
+                <button class="btn btn-secondary" onclick="previewPresale()" title="Open presale page in new tab">
+                    <i class="fas fa-external-link-alt"></i> Preview Live
+                </button>
+                <span id="pageSettingsStatus" style="font-size:0.85rem; color:var(--text-muted);"></span>
+            </div>
+        </div>
+    </div>
+
     <!-- Toolbar -->
     <div class="toolbar">
         <div class="toolbar-left">
@@ -939,6 +1070,7 @@ var filteredVarieties = [];
 // ═══════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', function() {
     loadVarieties();
+    loadPageSettings();
 });
 
 // ═══════════════════════════════════════════════════
@@ -1539,6 +1671,115 @@ function exportData() {
     a.click();
     URL.revokeObjectURL(url);
 }
+
+// ═══════════════════════════════════════════════════
+// PAGE SETTINGS (hero image, farmer photo, etc.)
+// ═══════════════════════════════════════════════════
+function togglePageSettings() {
+    var body = document.getElementById('pageSettingsBody');
+    var icon = document.getElementById('settingsToggleIcon');
+    if (body.style.display === 'none') {
+        body.style.display = 'block';
+        icon.classList.add('open');
+    } else {
+        body.style.display = 'none';
+        icon.classList.remove('open');
+    }
+}
+
+function loadPageSettings() {
+    fetch(TINY_SEED_API.MAIN_API + '?action=getPresalePageConfig')
+        .then(function(res) { return res.json(); })
+        .then(function(result) {
+            if (result.success && result.config) {
+                var c = result.config;
+                if (c.heroImageUrl) {
+                    document.getElementById('settingHeroImage').value = c.heroImageUrl;
+                    document.getElementById('heroPreview').innerHTML = '<img src="' + escapeHtml(c.heroImageUrl) + '" alt="Hero">';
+                } else {
+                    document.getElementById('heroPreview').innerHTML = '<span class="no-image"><i class="fas fa-mountain"></i><br>No hero image set</span>';
+                }
+                if (c.farmerPhotoUrl) {
+                    document.getElementById('settingFarmerPhoto').value = c.farmerPhotoUrl;
+                    document.getElementById('farmerPreview').innerHTML = '<img src="' + escapeHtml(c.farmerPhotoUrl) + '" alt="Farmer" style="object-fit:cover;">';
+                } else {
+                    document.getElementById('farmerPreview').innerHTML = '<span class="no-image"><i class="fas fa-user"></i><br>No farmer photo set</span>';
+                }
+                if (c.farmerName) document.getElementById('settingFarmerName').value = c.farmerName;
+                if (c.farmerTagline) document.getElementById('settingFarmerTagline').value = c.farmerTagline;
+                if (c.farmerBio) document.getElementById('settingFarmerBio').value = c.farmerBio;
+            }
+        })
+        .catch(function(err) {
+            console.log('Could not load page settings:', err);
+            document.getElementById('heroPreview').innerHTML = '<span class="no-image"><i class="fas fa-mountain"></i><br>No hero image set</span>';
+            document.getElementById('farmerPreview').innerHTML = '<span class="no-image"><i class="fas fa-user"></i><br>No farmer photo set</span>';
+        });
+}
+
+function savePageSettings() {
+    var payload = {
+        action: 'savePresalePageConfig',
+        heroImageUrl: document.getElementById('settingHeroImage').value.trim(),
+        farmerPhotoUrl: document.getElementById('settingFarmerPhoto').value.trim(),
+        farmerName: document.getElementById('settingFarmerName').value.trim(),
+        farmerTagline: document.getElementById('settingFarmerTagline').value.trim(),
+        farmerBio: document.getElementById('settingFarmerBio').value.trim()
+    };
+
+    var status = document.getElementById('pageSettingsStatus');
+    status.textContent = 'Saving...';
+    status.style.color = 'var(--text-muted)';
+
+    fetch(TINY_SEED_API.MAIN_API, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify(payload)
+    })
+    .then(function() {
+        showToast('Page settings saved');
+        status.textContent = 'Saved!';
+        status.style.color = 'var(--green-dark)';
+        // Update previews
+        var heroUrl = document.getElementById('settingHeroImage').value.trim();
+        var farmerUrl = document.getElementById('settingFarmerPhoto').value.trim();
+        if (heroUrl) {
+            document.getElementById('heroPreview').innerHTML = '<img src="' + escapeHtml(heroUrl) + '" alt="Hero">';
+        }
+        if (farmerUrl) {
+            document.getElementById('farmerPreview').innerHTML = '<img src="' + escapeHtml(farmerUrl) + '" alt="Farmer" style="object-fit:cover;">';
+        }
+        setTimeout(function() { status.textContent = ''; }, 3000);
+    })
+    .catch(function(err) {
+        showToast('Network error: ' + err.message);
+        status.textContent = 'Error saving';
+        status.style.color = 'var(--red)';
+    });
+}
+
+function previewPresale() {
+    window.open('seedling-presale-2026.html', '_blank');
+}
+
+// Live preview on URL input change
+document.getElementById('settingHeroImage').addEventListener('change', function() {
+    var url = this.value.trim();
+    if (url) {
+        document.getElementById('heroPreview').innerHTML = '<img src="' + escapeHtml(url) + '" alt="Hero">';
+    } else {
+        document.getElementById('heroPreview').innerHTML = '<span class="no-image"><i class="fas fa-mountain"></i><br>No hero image set</span>';
+    }
+});
+document.getElementById('settingFarmerPhoto').addEventListener('change', function() {
+    var url = this.value.trim();
+    if (url) {
+        document.getElementById('farmerPreview').innerHTML = '<img src="' + escapeHtml(url) + '" alt="Farmer" style="object-fit:cover;">';
+    } else {
+        document.getElementById('farmerPreview').innerHTML = '<span class="no-image"><i class="fas fa-user"></i><br>No farmer photo set</span>';
+    }
+});
 
 // ═══════════════════════════════════════════════════
 // UTILITIES

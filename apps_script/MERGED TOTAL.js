@@ -17588,6 +17588,8 @@ function doGet(e) {
         return jsonResponse(validateSeedlingAvailability(e.parameter));
       case 'getSeedlingBundles':
         return jsonResponse(getSeedlingBundles());
+      case 'getPresalePageConfig':
+        return jsonResponse(getPresalePageConfig());
 
       default:
         return jsonResponse({error: 'Unknown action: ' + action}, 400);
@@ -18971,6 +18973,8 @@ function doPost(e) {
         return jsonResponse(addSeedlingItem(data));
       case 'deleteSeedlingItem':
         return jsonResponse(deleteSeedlingItem(data));
+      case 'savePresalePageConfig':
+        return jsonResponse(savePresalePageConfig(data));
 
       default:
         return jsonResponse({error: 'Unknown action: ' + action}, 400);
@@ -131614,6 +131618,45 @@ function deleteSeedlingItem(params) {
   }
 
   return { success: false, error: 'Item not found: ' + itemId };
+}
+
+// ═══════════════════════════════════════════════════
+// PRESALE PAGE CONFIG (hero image, farmer photo, etc.)
+// Uses ScriptProperties for simple key-value storage
+// ═══════════════════════════════════════════════════
+
+function getPresalePageConfig() {
+  var props = PropertiesService.getScriptProperties();
+  var config = props.getProperty('PRESALE_PAGE_CONFIG');
+  if (config) {
+    try {
+      return { success: true, config: JSON.parse(config) };
+    } catch(e) {
+      return { success: true, config: {} };
+    }
+  }
+  return { success: true, config: {} };
+}
+
+function savePresalePageConfig(params) {
+  var props = PropertiesService.getScriptProperties();
+  var existing = {};
+  var raw = props.getProperty('PRESALE_PAGE_CONFIG');
+  if (raw) {
+    try { existing = JSON.parse(raw); } catch(e) {}
+  }
+
+  // Merge new values into existing config
+  var fields = ['heroImageUrl', 'farmerPhotoUrl', 'logoUrl', 'farmerName', 'farmerBio', 'farmerTagline', 'presaleTitle', 'presaleSubtitle'];
+  for (var i = 0; i < fields.length; i++) {
+    var key = fields[i];
+    if (params[key] !== undefined && params[key] !== null) {
+      existing[key] = params[key];
+    }
+  }
+
+  props.setProperty('PRESALE_PAGE_CONFIG', JSON.stringify(existing));
+  return { success: true, config: existing, message: 'Page settings saved' };
 }
 
 /**

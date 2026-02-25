@@ -2047,6 +2047,7 @@ function escapeHtml(str) {
 // ═══════════════════════════════════════
 document.addEventListener('DOMContentLoaded', function() {
     loadPresaleItems();
+    loadPageConfig();
     setupInlineValidation();
     setupHeaderScroll();
     initCountdown();
@@ -2059,6 +2060,71 @@ document.addEventListener('DOMContentLoaded', function() {
         }, { passive: true });
     }
 });
+
+// ═══════════════════════════════════════
+// LOAD PAGE CONFIG (admin-managed photos)
+// ═══════════════════════════════════════
+function loadPageConfig() {
+    fetch(TINY_SEED_API.MAIN_API + '?action=getPresalePageConfig')
+        .then(function(res) { return res.json(); })
+        .then(function(result) {
+            if (!result.success || !result.config) return;
+            var c = result.config;
+
+            // Hero background image
+            if (c.heroImageUrl) {
+                var hero = document.querySelector('.hero');
+                if (hero) {
+                    hero.style.background = 'linear-gradient(180deg, rgba(22, 101, 52, 0.7), rgba(22, 101, 52, 0.85)), url(\'' + c.heroImageUrl + '\') center/cover no-repeat';
+                }
+            }
+
+            // Farmer photo — replace initials avatar with actual photo
+            if (c.farmerPhotoUrl) {
+                var avatar = document.querySelector('.farmer-avatar');
+                if (avatar) {
+                    avatar.textContent = '';
+                    avatar.style.background = 'none';
+                    avatar.style.overflow = 'hidden';
+                    var img = document.createElement('img');
+                    img.src = c.farmerPhotoUrl;
+                    img.alt = c.farmerName || 'Farmer Todd';
+                    img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%;';
+                    avatar.appendChild(img);
+                }
+            }
+
+            // Farmer name
+            if (c.farmerName) {
+                var nameEl = document.querySelector('.farmer-content p[style*="Playfair"]');
+                if (nameEl) nameEl.textContent = c.farmerName;
+                var sigEl = document.querySelector('.farmer-signature');
+                if (sigEl) sigEl.textContent = '— ' + c.farmerName.split(' ')[0];
+            }
+
+            // Farmer tagline
+            if (c.farmerTagline) {
+                var tagline = document.querySelector('.farmer-tagline');
+                if (tagline) tagline.textContent = c.farmerTagline;
+            }
+
+            // Farmer bio
+            if (c.farmerBio) {
+                var bioParas = document.querySelectorAll('.farmer-content > p');
+                // The bio paragraph is the one after tagline (3rd p in farmer-content)
+                for (var i = 0; i < bioParas.length; i++) {
+                    var p = bioParas[i];
+                    if (!p.classList.contains('farmer-tagline') && !p.classList.contains('farmer-signature') && !p.style.fontFamily) {
+                        p.textContent = c.farmerBio;
+                        break;
+                    }
+                }
+            }
+        })
+        .catch(function(err) {
+            console.log('Page config not loaded (using defaults):', err.message);
+        });
+}
 
 // ═══════════════════════════════════════
 // HEADER SCROLL BEHAVIOR
