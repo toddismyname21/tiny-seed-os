@@ -21,49 +21,145 @@
         .skip-link:focus { top: 0; }
 
         /* ═══════════════════════════════════════ */
-        /* SITE HEADER - Knee High Inspired       */
-        /* Ultra-thin, single CTA, transparent    */
+        /* ANNOUNCEMENT BAR — Kneehigh-inspired   */
+        /* Slim countdown bar at very top          */
         /* ═══════════════════════════════════════ */
-        .site-header {
+        .announcement-bar {
+            background: var(--green-deep);
+            color: rgba(255,255,255,0.9);
+            text-align: center;
+            padding: 8px 24px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            letter-spacing: 0.3px;
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
-            display: flex;
-            justify-content: flex-end;
-            align-items: center;
-            padding: 16px 24px;
-            background: transparent;
-            z-index: 1000;
-            transition: background 0.3s ease, padding 0.3s ease;
+            z-index: 1001;
         }
+        .announcement-bar .countdown-inline {
+            color: #86efac;
+            font-weight: 800;
+        }
+        .announcement-bar i { margin-right: 4px; }
 
-        /* Scrolled state - forest green glass */
-        .site-header.scrolled {
-            background: rgba(22, 101, 52, 0.95);
+        /* ═══════════════════════════════════════ */
+        /* SITE HEADER — Kneehigh-inspired nav    */
+        /* Logo left, links center, socials right  */
+        /* ═══════════════════════════════════════ */
+        .site-header {
+            position: fixed;
+            top: 33px; /* below announcement bar */
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 24px;
+            background: rgba(255,255,255,0.95);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
-            padding: 10px 24px;
+            z-index: 1000;
+            transition: all 0.3s ease;
+            box-shadow: 0 1px 8px rgba(0,0,0,0.06);
+        }
+        .site-header.scrolled {
+            padding: 8px 24px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+        }
+
+        .header-logo img {
+            height: 40px;
+            width: auto;
+        }
+
+        .header-nav {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        .header-nav a {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-body);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        .header-nav a:hover {
+            color: var(--green-dark);
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        /* Cute Instagram links — small pills with icons */
+        .header-socials {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+        .header-social-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+            border: 1px solid #e5e7eb;
+            color: var(--text-muted);
+            background: #fafafa;
+        }
+        .header-social-link:hover {
+            border-color: #e1306c;
+            color: #e1306c;
+            background: #fdf2f8;
+        }
+        .header-social-link i {
+            font-size: 0.8rem;
+            color: #e1306c;
         }
 
         .header-cta {
             background: var(--green);
             color: #fff;
-            padding: 12px 28px;
+            padding: 9px 22px;
             border-radius: 50px;
             font-weight: 700;
-            font-size: 0.95rem;
+            font-size: 0.85rem;
             text-decoration: none;
             transition: all 0.2s ease;
-            box-shadow: 0 4px 15px rgba(22, 101, 52, 0.3);
+            box-shadow: 0 2px 10px rgba(22, 101, 52, 0.2);
             display: inline-flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
+            white-space: nowrap;
         }
         .header-cta:hover {
             background: var(--green-dark);
             transform: translateY(-1px);
-            box-shadow: 0 6px 20px rgba(22, 101, 52, 0.4);
+            box-shadow: 0 4px 16px rgba(22, 101, 52, 0.3);
+        }
+
+        /* Mobile header */
+        @media (max-width: 768px) {
+            .header-nav { display: none; }
+            .header-social-link span { display: none; }
+            .header-social-link { padding: 6px; border-radius: 50%; }
+            .header-cta { padding: 8px 16px; font-size: 0.8rem; }
+            .header-cta span { display: none; }
+        }
+        @media (max-width: 480px) {
+            .header-socials { gap: 4px; }
+            .header-social-link { padding: 5px; }
+            .header-social-link i { font-size: 0.75rem; }
+            .header-cta { padding: 7px 14px; font-size: 0.78rem; }
         }
 
         /* ═══════════════════════════════════════ */
@@ -93,18 +189,8 @@
             opacity: 0.95;
         }
 
-        /* Mobile adjustments */
+        /* Mobile adjustments — logo overlay */
         @media (max-width: 768px) {
-            .site-header {
-                padding: 12px 16px;
-            }
-            .site-header.scrolled {
-                padding: 8px 16px;
-            }
-            .header-cta {
-                padding: 10px 20px;
-                font-size: 0.85rem;
-            }
             .hero-logo-overlay {
                 top: 32px;
                 left: 32px;
@@ -176,7 +262,7 @@
             background: linear-gradient(180deg, rgba(22, 101, 52, 0.7), rgba(22, 101, 52, 0.85)),
                         url('https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=1600&q=80') center/cover no-repeat;
             color: #fff;
-            padding: 100px 24px 60px;
+            padding: 120px 24px 60px;
             text-align: center;
             position: relative;
             overflow: hidden;
@@ -1315,10 +1401,38 @@
 <a href="#order" class="skip-link">Skip to order form</a>
 
 <!-- ═══════════════════════════════════════════════════════════ -->
-<!-- SITE HEADER - Single CTA, Knee High Style                   -->
+<!-- ANNOUNCEMENT BAR — Countdown                                  -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="announcement-bar" id="announcementBar">
+    <i class="fas fa-clock"></i> Presale closes April 15 — <span class="countdown-inline" id="countdownInline">loading...</span>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- SITE HEADER — Kneehigh-inspired nav                          -->
 <!-- ═══════════════════════════════════════════════════════════ -->
 <nav class="site-header" id="siteHeader" role="navigation" aria-label="Main navigation">
-    <a href="#order" class="header-cta">Reserve Your Seedlings</a>
+    <a href="/" class="header-logo" aria-label="Tiny Seed Farm Home">
+        <img src="images/tiny-seed-farm-logo-final.png?v=7" alt="Tiny Seed Farm">
+    </a>
+    <div class="header-nav">
+        <a href="#catalog">Varieties</a>
+        <a href="#pickup">Pickup</a>
+        <a href="#faq">FAQ</a>
+    </div>
+    <div class="header-right">
+        <div class="header-socials">
+            <a href="https://www.instagram.com/tinyseedfarm" target="_blank" rel="noopener noreferrer" class="header-social-link" title="@tinyseedfarm">
+                <i class="fab fa-instagram"></i><span>Farm</span>
+            </a>
+            <a href="https://www.instagram.com/tinyseedfleurs" target="_blank" rel="noopener noreferrer" class="header-social-link" title="@tinyseedfleurs">
+                <i class="fab fa-instagram"></i><span>Fleurs</span>
+            </a>
+            <a href="https://www.instagram.com/tinyseedfungi" target="_blank" rel="noopener noreferrer" class="header-social-link" title="@tinyseedfungi">
+                <i class="fab fa-instagram"></i><span>Fungi</span>
+            </a>
+        </div>
+        <a href="#order" class="header-cta"><i class="fas fa-seedling"></i> <span>Reserve</span></a>
+    </div>
 </nav>
 
 <!-- ═══════════════════════════════════════════════════════════ -->
@@ -1928,6 +2042,7 @@ document.addEventListener('DOMContentLoaded', function() {
     loadPresaleItems();
     setupInlineValidation();
     setupHeaderScroll();
+    initCountdown();
     setupMobileCartSwipe();
 });
 
@@ -2826,6 +2941,37 @@ function showConfirmation(customerName, email, pickup, orderCalc, hadPartialFail
 function resetOrderForm() {
     // Reload the page to start fresh
     window.location.reload();
+}
+
+// ═══════════════════════════════════════
+// COUNTDOWN TIMER (announcement bar)
+// ═══════════════════════════════════════
+function initCountdown() {
+    updateCountdown();
+    setInterval(updateCountdown, 60000);
+}
+
+function updateCountdown() {
+    var el = document.getElementById('countdownInline');
+    if (!el) return;
+
+    var deadline = new Date('2026-04-15T23:59:59').getTime();
+    var now = new Date().getTime();
+    var diff = deadline - now;
+
+    if (diff <= 0) {
+        el.textContent = 'Presale has ended';
+        return;
+    }
+
+    var days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    var hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+
+    if (days > 0) {
+        el.textContent = days + ' day' + (days !== 1 ? 's' : '') + ', ' + hours + ' hr' + (hours !== 1 ? 's' : '') + ' left';
+    } else {
+        el.textContent = hours + ' hour' + (hours !== 1 ? 's' : '') + ' left!';
+    }
 }
 
 // ═══════════════════════════════════════
