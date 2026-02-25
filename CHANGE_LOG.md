@@ -38,6 +38,72 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-02-24 — Dashboard UX Audit #3 Fixes (79→90+) + Task Architecture Cascade Deletion
+
+**Role:** PM_Architect
+
+### Files Modified
+- `index.html` — 11 UX audit fixes:
+  - Fix 1: Task rows show variety + batch ID for differentiation
+  - Fix 3: Frost warning consolidated (current temp + tonight's low in one message)
+  - Fix 4: Two stats rows merged into one 6-tile row (Today's Tasks, Overdue, This Week, Plantings, Harvest Ready, Bed Utilization)
+  - Fix 5: Days-overdue color badges on Top Priority rows (amber 1-3d, red 4-7d, deep-red 7d+)
+  - Fix 6: Dismiss All warnings now has confirm() dialog
+  - Fix 8: Overdue header pulses when collapsed with tasks (urgentPulse CSS animation)
+  - Fix 9: Invite buttons have "Team" label
+  - Fix 10: Weekly Efficiency empty state collapsed to single line
+  - Fix 15: Overdue chevron has aria-expanded, aria-controls, keyboard handler (WCAG 2.2)
+  - CRITICAL: loadTodaysTasks() now merges overdue GH sow/transplant/direct seed from PLANNING_2026 (allPlantings), deduplicating by batch ID — 44+ overdue sowings now show on dashboard
+  - Stats grid sync functions: syncStatsGridOverdue(), syncStatsGridTodaysTasks()
+  - loadPendingChefs() function written (was called but body missing)
+  - approveChefFromDashboard() / rejectChefFromDashboard() handlers
+  - switchInviteTab() / sendBulkInvite() for bulk chef invitations
+  - Bulk invite modal UI (Single/Bulk tab toggle, CSV textarea, progress display)
+
+- `apps_script/MERGED TOTAL.js` — Task architecture fixes:
+  - cleanupTestSeedlingOrders() — cascade to TASKS_2026, SALES_PickPack, UNIFIED_TASKS
+  - deleteOrder() — cascade to TASKS_2026 fulfillment tasks
+  - clearOrphanTasks() — expanded to check SEEDLING_ORDERS and SALES_Orders
+  - getOverdueTasks() — filters orphaned fulfillment tasks whose orders don't exist
+  - getTaskPriorities() — excludes non-farm types (CREATE_POST, SOCIAL_MEDIA, CONTENT_CREATION)
+  - NEW: cleanupUnifiedTasksByType() — bulk cancellation by task type
+  - doGet route added for cleanupUnifiedTasksByType
+
+### Functions Added
+- `loadPendingChefs()` in `index.html` — Fetches and renders pending chef approvals
+- `approveChefFromDashboard()` in `index.html` — Approve chef with confirmation dialog
+- `rejectChefFromDashboard()` in `index.html` — Reject chef with confirmation dialog
+- `switchInviteTab()` / `sendBulkInvite()` in `index.html` — Bulk chef invitation UI
+- `syncStatsGridOverdue()` / `syncStatsGridTodaysTasks()` in `index.html` — Stats tile sync
+- `cleanupUnifiedTasksByType()` in `MERGED TOTAL.js` — Bulk task cancellation by type
+
+### Functions Modified
+- `cleanupTestSeedlingOrders()` — Added cascade deletion to 3 sheets
+- `deleteOrder()` — Added cascade deletion to TASKS_2026
+- `clearOrphanTasks()` — Now validates against SEEDLING_ORDERS and SALES_Orders
+- `getOverdueTasks()` — Orphan filtering added
+- `getTaskPriorities()` — Non-farm task type filter added
+- `loadTodaysTasks()` — Merges PLANNING_2026 overdue data
+- `checkWeatherWarnings()` — Consolidated frost display
+
+### Cleanup Performed
+- Ran clearOrphanTasks: deleted 17 ghost tasks (12 fulfillment + 5 stale batches)
+- Cancelled 19 CREATE_POST social media tasks from UNIFIED_TASKS
+
+### Reason
+User UX audit scored dashboard 79/100 with 15 issues (3 critical). Ghost tasks from deleted test orders were polluting Top Priorities. 44+ overdue GH sowings were invisible because primary API queried wrong sheet. Social media tasks were mixed in with farm operations. All three root causes fixed.
+
+### Deployment
+- GitHub Pages: pushed (commit d2ae941)
+- Apps Script: v679
+
+### Duplicate Check
+- [x] No new dashboards created
+- [x] No duplicate functions
+- [x] Enhanced existing functions only
+
+---
+
 ## 2026-02-24 — Data Contracts System + 6 Critical Dashboard Bug Fixes
 
 **Role:** PM_Architect

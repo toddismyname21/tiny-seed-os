@@ -583,7 +583,8 @@
 
         .forecast-alert.frost {
             background: rgba(52, 152, 219, 0.15);
-            color: var(--ts-blue-500, #3498db);
+            color: var(--ts-blue-300, #93c5fd);
+            font-weight: 500;
         }
 
         .forecast-alert.heat {
@@ -2138,6 +2139,29 @@
         .overdue-action-btn.delete:hover {
             background: var(--ts-red-600, #c92a36);
             transform: scale(1.05);
+        }
+
+        /* Audit Fix 2: Category group headers */
+        .overdue-category-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            margin-top: 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border);
+        }
+        .overdue-category-header:first-child { margin-top: 0; }
+        .overdue-category-header i { font-size: 0.7rem; }
+        .overdue-cat-count {
+            background: rgba(255,255,255,0.1);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.7rem;
         }
 
         .overdue-complete-single {
@@ -7181,8 +7205,25 @@
                 showToast('Task marked as in progress - Go get it done!', 'success');
                 closeTaskActionModal();
 
-                // Refresh the morning brief
-                loadMorningBrief();
+                // Audit Fix 7: Navigate to relevant page for the task type
+                const taskType = (task.type || '').toLowerCase();
+                const navMap = {
+                    'ghsow': 'web_app/greenhouse.html',
+                    'transplant': 'web_app/greenhouse.html',
+                    'directseed': 'calendar.html',
+                    'harvest': 'web_app/employee.html',
+                    'pick': 'web_app/wholesale-seedlings.html',
+                    'pack': 'web_app/wholesale-seedlings.html',
+                    'prep': 'web_app/wholesale-seedlings.html',
+                    'fulfillment': 'web_app/wholesale-seedlings.html',
+                    'delivery': 'web_app/wholesale-seedlings.html'
+                };
+                const targetPage = navMap[taskType];
+                if (targetPage) {
+                    setTimeout(() => { window.location.href = targetPage; }, 600);
+                } else {
+                    loadMorningBrief();
+                }
             } catch (error) {
                 console.error('Error updating task:', error);
                 showToast('Task started - tracking may not have saved', 'info');
@@ -7919,9 +7960,15 @@
             if (headerEl) headerEl.classList.add('has-tasks');
             countBadge.textContent = `${overdueTasks.length} task${overdueTasks.length !== 1 ? 's' : ''}`;
 
-            listContainer.innerHTML = overdueTasks.map(task => {
+            // Audit Fix 2: Group overdue tasks by category
+            const growingTypes = new Set(['ghSow', 'transplant', 'directSeed', 'harvest', 'scout', 'irrigate', 'weed', 'spray', 'maintenance']);
+            const fulfillmentTypes = new Set(['fulfillment', 'pick', 'pack', 'prep', 'delivery']);
+            const growingTasks = overdueTasks.filter(t => growingTypes.has(t.type) || (!fulfillmentTypes.has(t.type) && !t.type));
+            const fulfillmentTasks = overdueTasks.filter(t => fulfillmentTypes.has(t.type));
+            const otherTasks = overdueTasks.filter(t => t.type && !growingTypes.has(t.type) && !fulfillmentTypes.has(t.type));
+
+            function renderTaskRow(task) {
                 const isSelected = selectedOverdueTasks.has(task.id);
-                // Plain language type labels
                 const typeLabels = {
                     'ghSow': 'Greenhouse Sow', 'transplant': 'Transplant',
                     'directSeed': 'Direct Seed', 'harvest': 'Harvest',
@@ -7934,8 +7981,6 @@
                 const typeLabel = typeLabels[task.type] || task.type || 'Task';
                 const daysText = task.daysOverdue === 1 ? '1 day' : `${task.daysOverdue} days`;
                 const taskIdForComplete = task.taskId || task.id;
-
-                // Audit Fix 1: Build task name with variety and batch ID for differentiation
                 const taskDisplayName = task.taskName || (task.crop + (task.variety ? ' \u00b7 ' + task.variety : ''));
                 const locationText = task.location && task.location !== 'Farm' ? ' in ' + task.location : '';
                 const batchSuffix = task.batchId ? ` <span style="color:var(--text-secondary);font-size:0.7rem;">[${task.batchId}]</span>` : '';
@@ -7964,10 +8009,24 @@
                                 <i class="fas fa-trash"></i> <span class="btn-label">Delete</span>
                             </button>
                         </div>
-                    </div>
-                `;
-            }).join('');
+                    </div>`;
+            }
 
+            let html = '';
+            if (growingTasks.length > 0) {
+                html += `<div class="overdue-category-header"><i class="fas fa-seedling"></i> Growing Operations <span class="overdue-cat-count">${growingTasks.length}</span></div>`;
+                html += growingTasks.map(renderTaskRow).join('');
+            }
+            if (fulfillmentTasks.length > 0) {
+                html += `<div class="overdue-category-header"><i class="fas fa-box"></i> Order Fulfillment <span class="overdue-cat-count">${fulfillmentTasks.length}</span></div>`;
+                html += fulfillmentTasks.map(renderTaskRow).join('');
+            }
+            if (otherTasks.length > 0) {
+                html += `<div class="overdue-category-header"><i class="fas fa-tasks"></i> Other <span class="overdue-cat-count">${otherTasks.length}</span></div>`;
+                html += otherTasks.map(renderTaskRow).join('');
+            }
+
+            listContainer.innerHTML = html;
             updateOverdueSelectionUI();
         }
 
