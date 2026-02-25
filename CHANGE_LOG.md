@@ -38,6 +38,22 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-02-25 — Wire Image_URL to Seedling Presale Cards
+
+**Role:** PM_Architect
+
+### Files Modified
+- `web_app/seedling-presale-2026.html` — Added `imageUrl: row.Image_URL` and `description: row.Description` to the variety data mapping (line 1195-1196). The card renderer already had `<img>` display code and the backend already returned `Image_URL` — the mapping was the missing link.
+
+### Reason
+Photos uploaded via seedling-admin.html were being saved to the sheet but never displayed on the customer-facing presale page because the frontend data mapping skipped the `Image_URL` field.
+
+### Duplicate Check
+- [x] No new files created
+- [x] No duplicate functions
+
+---
+
 ## 2026-02-24 — Calendar UX Audit (32 of 47 items) + Presale Logo + Dashboard Dedup Fix
 
 **Role:** PM_Architect

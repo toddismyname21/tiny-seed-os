@@ -1191,7 +1191,9 @@ function loadPresaleItems() {
                     itemId: row.Item_ID || '',
                     available: row.Available != null ? Number(row.Available) : null,
                     waitlist: !!row.Waitlist,
-                    crop: row.Crop || ''
+                    crop: row.Crop || '',
+                    imageUrl: row.Image_URL || '',
+                    description: row.Description || row.Notes || ''
                 });
             }
 
