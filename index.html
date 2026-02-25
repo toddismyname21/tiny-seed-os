@@ -1969,9 +1969,6 @@
             display: flex;
             flex-direction: column;
             gap: 8px;
-            max-height: 400px;
-            overflow-y: auto;
-            scrollbar-width: thin;
         }
 
         .overdue-item {
@@ -5016,7 +5013,7 @@
         <!-- Morning Brief Section -->
         <div class="morning-brief-section" id="morningBrief">
             <div class="brief-header">
-                <h2>Morning Brief</h2>
+                <h2 id="briefHeading">Morning Brief</h2>
                 <span class="brief-time" id="briefTime">Loading...</span>
             </div>
 
@@ -5065,7 +5062,7 @@
                     </div>
                     <div class="stat-info">
                         <div class="stat-value" id="statActive">--</div>
-                        <div class="stat-label">Active Plantings</div>
+                        <div class="stat-label">Plantings</div>
                     </div>
                 </a>
                 <a href="web_app/task-assignment.html" class="stat-card" style="text-decoration: none; color: inherit; cursor: pointer;">
@@ -5097,28 +5094,19 @@
                 </a>
             </div>
 
-            <!-- Invite Team Members Section -->
-            <div class="invite-section" data-role="Admin">
-                <div class="invite-card">
-                    <div class="invite-header">
-                        <div class="invite-icon">
-                            <i class="fas fa-user-plus"></i>
-                        </div>
-                        <div class="invite-title">
-                            <h3>Invite Team Members</h3>
-                            <p>Add employees or wholesale customers</p>
-                        </div>
-                    </div>
-                    <div class="invite-buttons">
-                        <button class="invite-btn employee" onclick="openInviteEmployee()">
-                            <i class="fas fa-hard-hat"></i>
-                            <span>Invite Employee</span>
-                        </button>
-                        <button class="invite-btn chef" onclick="openInviteChef()">
-                            <i class="fas fa-utensils"></i>
-                            <span>Invite Chef</span>
-                        </button>
-                    </div>
+            <!-- Pending Chef Approvals (loads dynamically) -->
+            <div id="pendingChefsSection" data-role="Admin" style="display:none;">
+            </div>
+
+            <!-- Invite Team Members — compact inline -->
+            <div class="invite-section" data-role="Admin" style="margin:0;">
+                <div style="display:flex; gap:8px; justify-content:flex-end; padding:4px 0;">
+                    <button class="invite-btn employee" onclick="openInviteEmployee()" style="padding:6px 14px; font-size:0.78rem; border-radius:6px;">
+                        <i class="fas fa-hard-hat"></i> Invite Employee
+                    </button>
+                    <button class="invite-btn chef" onclick="openInviteChef()" style="padding:6px 14px; font-size:0.78rem; border-radius:6px;">
+                        <i class="fas fa-utensils"></i> Invite Chef
+                    </button>
                 </div>
             </div>
 
@@ -6006,27 +5994,54 @@
                 <button class="modal-close" onclick="closeInviteChef()">&times;</button>
             </div>
             <div class="modal-body">
-                <div class="form-group">
-                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Restaurant Name *</label>
-                    <input type="text" id="inviteChefCompany" placeholder="The French Kitchen" style="width: 100%; padding: 0.75rem; background: var(--bg-light); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 16px;">
+                <!-- Tab Toggle -->
+                <div style="display:flex;gap:0;margin-bottom:1rem;border:1px solid var(--border,#e5e7eb);border-radius:8px;overflow:hidden;">
+                    <button id="tabSingleInvite" onclick="switchInviteTab('single')" style="flex:1;padding:8px;border:none;background:var(--primary,#2d6a4f);color:#fff;cursor:pointer;font-size:0.85rem;font-weight:600;">
+                        <i class="fas fa-user"></i> Single
+                    </button>
+                    <button id="tabBulkInvite" onclick="switchInviteTab('bulk')" style="flex:1;padding:8px;border:none;background:var(--bg-light,#f9fafb);color:var(--text-secondary,#6b7280);cursor:pointer;font-size:0.85rem;font-weight:600;">
+                        <i class="fas fa-users"></i> Bulk Invite
+                    </button>
                 </div>
-                <div class="form-group" style="margin-top: 1rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Contact Name *</label>
-                    <input type="text" id="inviteChefName" placeholder="Chef Maria" style="width: 100%; padding: 0.75rem; background: var(--bg-light); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 16px;">
+
+                <!-- Single Invite Form -->
+                <div id="singleInviteForm">
+                    <div class="form-group">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Restaurant Name *</label>
+                        <input type="text" id="inviteChefCompany" placeholder="The French Kitchen" style="width: 100%; padding: 0.75rem; background: var(--bg-light); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 16px;">
+                    </div>
+                    <div class="form-group" style="margin-top: 1rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Contact Name *</label>
+                        <input type="text" id="inviteChefName" placeholder="Chef Maria" style="width: 100%; padding: 0.75rem; background: var(--bg-light); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 16px;">
+                    </div>
+                    <div class="form-group" style="margin-top: 1rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Email *</label>
+                        <input type="email" id="inviteChefEmail" placeholder="chef@restaurant.com" style="width: 100%; padding: 0.75rem; background: var(--bg-light); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 16px;">
+                    </div>
+                    <div class="form-group" style="margin-top: 1rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Phone</label>
+                        <input type="tel" id="inviteChefPhone" placeholder="(412) 555-1234" style="width: 100%; padding: 0.75rem; background: var(--bg-light); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 16px;">
+                    </div>
                 </div>
-                <div class="form-group" style="margin-top: 1rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Email *</label>
-                    <input type="email" id="inviteChefEmail" placeholder="chef@restaurant.com" style="width: 100%; padding: 0.75rem; background: var(--bg-light); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 16px;">
+
+                <!-- Bulk Invite Form -->
+                <div id="bulkInviteForm" style="display:none;">
+                    <div class="form-group">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Paste Chef List</label>
+                        <div style="font-size:0.8rem;color:var(--text-secondary,#6b7280);margin-bottom:0.5rem;">One per line: <code>email, company name, contact name, phone</code></div>
+                        <textarea id="bulkChefList" rows="6" placeholder="chef@restaurant.com, The French Kitchen, Chef Maria, 412-555-1234&#10;john@bistro.com, John's Bistro, John Smith&#10;orders@cafe.com, Main St Cafe, Sarah Lee, 412-555-5678" style="width:100%;padding:0.75rem;background:var(--bg-light);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:14px;font-family:monospace;resize:vertical;"></textarea>
+                    </div>
+                    <div id="bulkInviteResults" style="display:none;margin-top:0.75rem;padding:0.75rem;background:var(--bg-light,#f9fafb);border-radius:8px;font-size:0.85rem;"></div>
                 </div>
-                <div class="form-group" style="margin-top: 1rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Phone</label>
-                    <input type="tel" id="inviteChefPhone" placeholder="(412) 555-1234" style="width: 100%; padding: 0.75rem; background: var(--bg-light); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 16px;">
-                </div>
+
                 <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(244, 162, 97, 0.1); border-radius: 8px; border: 1px solid rgba(244, 162, 97, 0.3);">
                     <div style="font-weight: 600; margin-bottom: 0.5rem; color: var(--secondary);">They'll receive:</div>
                     <div style="font-size: 0.9rem; color: var(--text-secondary);">
                         <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-                            <i class="fas fa-check" style="color: var(--secondary);"></i> Email invitation to order portal
+                            <i class="fas fa-check" style="color: var(--secondary);"></i> Email invitation with 10% welcome discount
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                            <i class="fas fa-check" style="color: var(--secondary);"></i> Magic link to wholesale portal
                         </div>
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <i class="fas fa-check" style="color: var(--secondary);"></i> SMS with quick link
@@ -6038,6 +6053,9 @@
                 <button class="btn btn-secondary" onclick="closeInviteChef()">Cancel</button>
                 <button class="btn btn-primary" id="sendChefInviteBtn" onclick="sendChefInvite()" style="background: var(--secondary);">
                     <i class="fas fa-paper-plane"></i> Send Invite
+                </button>
+                <button class="btn btn-primary" id="sendBulkInviteBtn" onclick="sendBulkInvite()" style="background: var(--secondary); display:none;">
+                    <i class="fas fa-paper-plane"></i> Send All Invitations
                 </button>
             </div>
         </div>
@@ -6428,6 +6446,164 @@
             }
         }
 
+        function switchInviteTab(tab) {
+            const singleBtn = document.getElementById('tabSingleInvite');
+            const bulkBtn = document.getElementById('tabBulkInvite');
+            const singleForm = document.getElementById('singleInviteForm');
+            const bulkForm = document.getElementById('bulkInviteForm');
+            const sendSingleBtn = document.getElementById('sendChefInviteBtn');
+            const sendBulkBtn = document.getElementById('sendBulkInviteBtn');
+            if (tab === 'single') {
+                singleBtn.style.background = 'var(--primary,#2d6a4f)'; singleBtn.style.color = '#fff';
+                bulkBtn.style.background = 'var(--bg-light,#f9fafb)'; bulkBtn.style.color = 'var(--text-secondary,#6b7280)';
+                singleForm.style.display = 'block'; bulkForm.style.display = 'none';
+                sendSingleBtn.style.display = ''; sendBulkBtn.style.display = 'none';
+            } else {
+                bulkBtn.style.background = 'var(--primary,#2d6a4f)'; bulkBtn.style.color = '#fff';
+                singleBtn.style.background = 'var(--bg-light,#f9fafb)'; singleBtn.style.color = 'var(--text-secondary,#6b7280)';
+                singleForm.style.display = 'none'; bulkForm.style.display = 'block';
+                sendSingleBtn.style.display = 'none'; sendBulkBtn.style.display = '';
+            }
+        }
+
+        async function sendBulkInvite() {
+            const textarea = document.getElementById('bulkChefList');
+            const lines = textarea.value.trim().split('\n').filter(l => l.trim());
+            if (lines.length === 0) { showToast('Please paste at least one chef entry', 'error'); return; }
+
+            const chefs = lines.map(line => {
+                const parts = line.split(',').map(p => p.trim());
+                return { email: parts[0] || '', company_name: parts[1] || '', contact_name: parts[2] || '', phone: parts[3] || '' };
+            }).filter(c => c.email);
+
+            if (chefs.length === 0) { showToast('No valid entries found. Format: email, company, contact, phone', 'error'); return; }
+
+            const btn = document.getElementById('sendBulkInviteBtn');
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Sending ${chefs.length}...`;
+            const results = document.getElementById('bulkInviteResults');
+            results.style.display = 'block';
+            results.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending invitations...';
+
+            let sent = 0, failed = 0, errors = [];
+            for (const chef of chefs) {
+                try {
+                    const params = new URLSearchParams({ action: 'inviteChef', ...chef });
+                    const response = await fetch(`${API_URL}?${params.toString()}`);
+                    const data = await response.json();
+                    if (data.success) { sent++; } else { failed++; errors.push(`${chef.email}: ${data.error}`); }
+                } catch (e) { failed++; errors.push(`${chef.email}: ${e.message}`); }
+                results.innerHTML = `Sent: ${sent} | Failed: ${failed} | Remaining: ${chefs.length - sent - failed}`;
+            }
+
+            results.innerHTML = `<div style="color:var(--primary,#2d6a4f);font-weight:600;">${sent} sent successfully</div>` +
+                (failed > 0 ? `<div style="color:#ef4444;margin-top:4px;">${failed} failed:</div><div style="font-size:0.8rem;margin-top:2px;">${errors.join('<br>')}</div>` : '');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-paper-plane"></i> Send All Invitations';
+            if (sent > 0) { showToast(`${sent} chef invitations sent!`, 'success'); loadPendingChefs(); }
+        }
+
+        // ========================================
+        // PENDING CHEF APPROVALS
+        // ========================================
+        async function loadPendingChefs() {
+            try {
+                const response = await fetch(`${API_URL}?action=getPendingChefs`);
+                const data = await response.json();
+                const section = document.getElementById('pendingChefsSection');
+                if (!section) return;
+
+                const chefs = (data.success && data.chefs) ? data.chefs.filter(c => c.Status === 'Pending Approval' || c.Status === 'Invited') : [];
+                if (chefs.length === 0) {
+                    section.style.display = 'none';
+                    return;
+                }
+
+                section.style.display = 'block';
+                section.innerHTML = `
+                    <div style="background:var(--bg-card,#fff);border-radius:12px;padding:1rem 1.25rem;margin-bottom:1rem;border:1px solid var(--border-color,#e5e7eb);">
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;">
+                            <h3 style="margin:0;font-size:1rem;"><i class="fas fa-user-clock" style="color:var(--primary,#2d6a4f);margin-right:6px;"></i>Pending Chef Approvals (${chefs.length})</h3>
+                        </div>
+                        <div id="pendingChefsList">
+                            ${chefs.map(chef => `
+                                <div class="pending-chef-card" data-email="${chef.Email || ''}" style="display:flex;align-items:center;justify-content:space-between;padding:0.6rem 0;border-bottom:1px solid var(--border-color,#f0f0f0);">
+                                    <div style="flex:1;min-width:0;">
+                                        <div style="font-weight:600;font-size:0.9rem;">${chef.Company_Name || chef.company_name || 'Unknown'}</div>
+                                        <div style="font-size:0.8rem;color:var(--text-secondary,#6b7280);">
+                                            ${chef.Contact_Name || chef.contact_name || ''} &middot; ${chef.Email || chef.email || ''}
+                                            ${chef.Status === 'Invited' ? ' <span style="color:#f59e0b;font-weight:500;">(Invited, not yet registered)</span>' : ''}
+                                        </div>
+                                    </div>
+                                    <div style="display:flex;gap:6px;flex-shrink:0;">
+                                        ${chef.Status === 'Pending Approval' ? `
+                                            <button onclick="approveChefFromDashboard('${(chef.Email || chef.email || '').replace(/'/g, "\\'")}', this)" style="padding:5px 12px;border:none;background:var(--primary,#2d6a4f);color:#fff;border-radius:6px;cursor:pointer;font-size:0.8rem;">
+                                                <i class="fas fa-check"></i> Approve
+                                            </button>
+                                            <button onclick="rejectChefFromDashboard('${(chef.Email || chef.email || '').replace(/'/g, "\\'")}', this)" style="padding:5px 12px;border:none;background:#ef4444;color:#fff;border-radius:6px;cursor:pointer;font-size:0.8rem;">
+                                                <i class="fas fa-times"></i> Reject
+                                            </button>
+                                        ` : `
+                                            <span style="font-size:0.78rem;color:#f59e0b;"><i class="fas fa-hourglass-half"></i> Awaiting registration</span>
+                                        `}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>`;
+            } catch (error) {
+                console.log('Could not load pending chefs:', error);
+            }
+        }
+
+        async function approveChefFromDashboard(email, btn) {
+            if (!confirm('Approve this chef? They will receive a welcome email with their 10% discount code.')) return;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            try {
+                const params = new URLSearchParams({ action: 'approveChef', email: email });
+                const response = await fetch(`${API_URL}?${params.toString()}`);
+                const data = await response.json();
+                if (data.success) {
+                    showToast(`Chef approved! Discount code: ${data.discountCode || 'WELCOME10'}`, 'success');
+                    const card = btn.closest('.pending-chef-card');
+                    if (card) card.style.display = 'none';
+                    // Refresh count
+                    loadPendingChefs();
+                } else {
+                    throw new Error(data.error || 'Approval failed');
+                }
+            } catch (error) {
+                showToast(error.message || 'Failed to approve chef', 'error');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-check"></i> Approve';
+            }
+        }
+
+        async function rejectChefFromDashboard(email, btn) {
+            const reason = prompt('Rejection reason (optional):');
+            if (reason === null) return; // Cancelled
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            try {
+                const params = new URLSearchParams({ action: 'rejectChef', email: email, reason: reason || '' });
+                const response = await fetch(`${API_URL}?${params.toString()}`);
+                const data = await response.json();
+                if (data.success) {
+                    showToast('Chef rejected', 'success');
+                    const card = btn.closest('.pending-chef-card');
+                    if (card) card.style.display = 'none';
+                    loadPendingChefs();
+                } else {
+                    throw new Error(data.error || 'Rejection failed');
+                }
+            } catch (error) {
+                showToast(error.message || 'Failed to reject chef', 'error');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-times"></i> Reject';
+            }
+        }
+
         // ========================================
         // INITIALIZATION - PERFORMANCE OPTIMIZED (2026-02-03)
         // Staged loading: Critical first, then secondary, then deferred
@@ -6443,7 +6619,8 @@
             Promise.all([
                 checkConnection(),
                 loadAllData(),
-                loadMorningBrief()
+                loadMorningBrief(),
+                loadPendingChefs()
             ]).then(() => {
                 // Data loaded - update UI
                 console.log('[Performance] Primary data loaded');
@@ -6545,6 +6722,13 @@
             const briefSection = document.getElementById('morningBrief');
             if (!briefSection) return;
 
+            // Time-aware heading
+            const hour = new Date().getHours();
+            const heading = document.getElementById('briefHeading');
+            if (heading) {
+                heading.textContent = hour < 12 ? 'Morning Brief' : hour < 17 ? 'Afternoon Brief' : 'Evening Brief';
+            }
+
             try {
                 const response = await fetch(`${API_URL}?action=getMorningBrief`);
                 const rawData = await response.json();
@@ -6634,11 +6818,17 @@
                             'weed': 'Weeding',
                             'scout': 'Field scouting',
                             'admin': 'Admin task',
-                            'delivery': 'Delivery'
+                            'delivery': 'Delivery',
+                            'fulfillment': 'Order Fulfillment',
+                            'pick': 'Order Picking',
+                            'pack': 'Order Packing',
+                            'prep': 'Pickup Prep'
                         };
                         const readableType = typeLabels[taskType] || taskType || '';
 
-                        // Build the description line
+                        // Build the description line with location for differentiation
+                        const location = task.location || task.bed || task.Target_Bed_ID || '';
+                        const locationText = location && location !== 'Farm' ? location : '';
                         let description = '';
                         if (readableType && crop && !taskName.toLowerCase().includes(crop.toLowerCase())) {
                             description = readableType + ': ' + crop + (category ? ' (' + category + ')' : '');
@@ -6647,11 +6837,15 @@
                         } else if (crop) {
                             description = crop + (category ? ' (' + category + ')' : '');
                         }
+                        if (locationText) {
+                            description += (description ? ' · ' : '') + locationText;
+                        }
 
                         // Urgency label in plain language
-                        const urgencyLabel = task.urgency === 'MUST DO' ? 'Must do today' :
-                                             task.urgency === 'SHOULD DO' ? 'Should do today' :
-                                             task.overdue ? 'Overdue' : 'Scheduled';
+                        const daysOverdue = task.daysOverdue || 0;
+                        const urgencyLabel = task.overdue && daysOverdue > 0 ? daysOverdue + 'd overdue' :
+                                             task.urgency === 'MUST DO' ? 'Must do today' :
+                                             task.urgency === 'SHOULD DO' ? 'Should do today' : 'Scheduled';
                         const urgencyColor = task.urgency === 'MUST DO' || task.overdue ? '#ef4444' : task.urgency === 'SHOULD DO' ? '#f59e0b' : '#22c55e';
 
                         return `
@@ -6661,7 +6855,6 @@
                             <div>
                                 <div class="task-name">${taskName}</div>
                                 ${description ? `<div class="task-meta">${description}</div>` : ''}
-                                <div class="task-click-hint">Click to take action</div>
                             </div>
                             <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
                                 <div class="task-meta" style="color: ${urgencyColor}; font-weight: 600;">${urgencyLabel}</div>
@@ -7176,21 +7369,29 @@
             const prioritiesContainer = document.getElementById('briefPriorities');
             if (window.morningBriefTasks.length > 0) {
                 const topTasks = window.morningBriefTasks.slice(0, 5);
-                prioritiesContainer.innerHTML = topTasks.map((t, index) => `
+                prioritiesContainer.innerHTML = topTasks.map((t, index) => {
+                    const loc = t.location || t.bed || t.Target_Bed_ID || '';
+                    const locText = loc && loc !== 'Farm' ? ' · ' + loc : '';
+                    const metaText = (t.crop || '') + (t.category ? ' - ' + t.category : '') + locText;
+                    const daysOv = t.daysOverdue || 0;
+                    const urgLabel = t.overdue && daysOv > 0 ? daysOv + 'd overdue' :
+                                     t.urgency === 'MUST DO' ? 'Must do today' :
+                                     t.urgency === 'SHOULD DO' ? 'Should do today' : t.type || '';
+                    const urgColor = t.urgency === 'MUST DO' || t.overdue ? '#ef4444' : t.urgency === 'SHOULD DO' ? '#f59e0b' : '#22c55e';
+                    return `
                     <div class="priority-item clickable ${t.urgency === 'MUST DO' || t.overdue ? 'overdue' : ''}"
                          onclick="openTaskActionModal(${index})"
                          data-task-index="${index}">
                         <div>
                             <div class="task-name">${t.task || t.name || t.crop || 'Task'}</div>
-                            <div class="task-meta">${t.crop || ''} ${t.category ? '- ' + t.category : ''} ${t.type || ''}</div>
-                            <div class="task-click-hint">Click to take action</div>
+                            ${metaText.trim() ? `<div class="task-meta">${metaText.trim()}</div>` : ''}
                         </div>
                         <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
-                            <div class="task-meta">${t.urgency || t.type || ''}</div>
+                            <div class="task-meta" style="color: ${urgColor}; font-weight: 600;">${urgLabel}</div>
                             <i class="fas fa-chevron-right" style="color: #666; font-size: 0.8rem;"></i>
                         </div>
-                    </div>
-                `).join('');
+                    </div>`;
+                }).join('');
             } else {
                 prioritiesContainer.innerHTML = '<div style="color: var(--text-secondary); padding: 12px;">No tasks scheduled for today</div>';
             }
@@ -7244,14 +7445,17 @@
             ).map(p => p.Target_Bed_ID)).size;
             const utilization = Math.round((usedBeds / totalBeds) * 100);
 
-            // Show context when KPIs are 0 but data exists
+            // Include planned/scheduled in the count so dashboard never looks empty
             const upcoming = allPlantings.filter(p => {
                 const s = (p.Status || '').toLowerCase();
                 return s === 'planned' || s === 'scheduled' || s === '';
             }).length;
-            document.getElementById('statActive').textContent = active || (upcoming > 0 ? `0` : '0');
-            if (active === 0 && upcoming > 0) {
-                document.getElementById('statActive').title = `${upcoming} upcoming plantings not yet started`;
+            const totalActive = active + upcoming;
+            document.getElementById('statActive').textContent = totalActive;
+            if (upcoming > 0 && active === 0) {
+                document.getElementById('statActive').title = `${upcoming} planned, none yet in ground`;
+            } else if (upcoming > 0) {
+                document.getElementById('statActive').title = `${active} in ground + ${upcoming} planned`;
             }
             document.getElementById('statTasks').textContent = tasksThisWeek;
             document.getElementById('statHarvest').textContent = harvestReady;
@@ -7565,7 +7769,9 @@
                     'directSeed': 'Direct Seed', 'harvest': 'Harvest',
                     'maintenance': 'Maintenance', 'admin': 'Admin',
                     'delivery': 'Delivery', 'spray': 'Spray', 'weed': 'Weeding',
-                    'scout': 'Field Scout', 'irrigate': 'Irrigation'
+                    'scout': 'Field Scout', 'irrigate': 'Irrigation',
+                    'fulfillment': 'Order Fulfillment', 'pick': 'Order Picking',
+                    'pack': 'Order Packing', 'prep': 'Pickup Prep'
                 };
                 const typeLabel = typeLabels[task.type] || task.type || 'Task';
                 const daysText = task.daysOverdue === 1 ? '1 day' : `${task.daysOverdue} days`;

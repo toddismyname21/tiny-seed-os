@@ -14,7 +14,7 @@
         :root {
             --primary: var(--ts-green-500, #2ca01c);
             --primary-dark: var(--ts-green-700, #1e7014);
-            --secondary: #0077b6;
+            --secondary: var(--ts-blue-500, #0077b6);
             --success: var(--ts-teal-500, #2a9d8f);
             --warning: var(--ts-amber-500, #f4a261);
             --danger: var(--ts-red-500, #e63946);
@@ -23,7 +23,7 @@
             --bg-light: var(--ts-slate-700, #334155);
             --text-primary: var(--ts-slate-100, #f1f5f9);
             --text-secondary: var(--ts-slate-400, #94a3b8);
-            --border: rgba(255,255,255,0.1);
+            --border: var(--ts-border, rgba(255,255,255,0.1));
             --qb-green: var(--ts-green-500, #2ca01c);
         }
 
@@ -31,7 +31,7 @@
 
         body {
             font-family: var(--ts-font-sans, 'Inter', sans-serif);
-            background: linear-gradient(135deg, var(--bg-dark) 0%, #1a1a2e 100%);
+            background: linear-gradient(135deg, var(--bg-dark) 0%, var(--ts-bg-surface, #1a1a2e) 100%);
             color: var(--text-primary);
             min-height: 100vh;
             -webkit-font-smoothing: antialiased;
@@ -442,9 +442,9 @@
         }
 
         .aging-current { background: var(--success); }
-        .aging-30 { background: #f4d35e; color: #000; }
+        .aging-30 { background: var(--ts-amber-400, #f4d35e); color: #000; }
         .aging-60 { background: var(--warning); }
-        .aging-90 { background: #e76f51; }
+        .aging-90 { background: var(--ts-red-400, #e76f51); }
         .aging-over90 { background: var(--danger); }
 
         .aging-legend {

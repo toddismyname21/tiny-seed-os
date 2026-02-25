@@ -58,19 +58,19 @@
         /* HERO */
         /* ═══════════════════════════════════════ */
         .hero {
-            background: linear-gradient(135deg, var(--green-deep) 0%, #1e3a1e 50%, #2d4a2d 100%);
+            background: linear-gradient(rgba(20, 83, 45, 0.68), rgba(20, 83, 45, 0.82)),
+                        url('https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=1600&q=80') center/cover no-repeat;
             color: #fff;
-            padding: 80px 24px 60px;
+            padding: 100px 24px 80px;
             text-align: center;
             position: relative;
             overflow: hidden;
+            min-height: 60vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
-        .hero::before {
-            content: '';
-            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
-            opacity: 0.5;
-        }
+        .hero-logo { width: 140px; margin-bottom: 20px; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.3)); }
         .hero-content { position: relative; z-index: 1; max-width: 800px; margin: 0 auto; }
         .hero-badge {
             display: inline-flex; align-items: center; gap: 8px;
@@ -343,7 +343,7 @@
         /* RESPONSIVE */
         /* ═══════════════════════════════════════ */
         @media (max-width: 768px) {
-            .hero { padding: 60px 16px 40px; }
+            .hero { padding: 60px 16px 40px; min-height: 50vh; }
             .hero-dates { flex-direction: column; gap: 8px; padding: 12px 20px; }
             .hero-dates span + span { border-left: none; padding-left: 0; border-top: 1px solid rgba(255,255,255,0.15); padding-top: 8px; }
             section { padding: 40px 16px; }
@@ -364,6 +364,7 @@
 <!-- ═══════════════════════════════════════════════════════════ -->
 <header class="hero" role="banner">
     <div class="hero-content">
+        <img src="assets/logo.png" alt="Tiny Seed Farm" class="hero-logo">
         <div class="hero-badge"><i class="fas fa-seedling"></i> 2026 PRESALE NOW OPEN</div>
         <h1>Pittsburgh's Favorite <span>Seedlings</span> Are Back</h1>
         <p>Reserve your heirloom tomato, pepper, and cucurbit starts from Tiny Seed Farm. Grown in Rochester, PA — picked up at your nearest Pittsburgh market.</p>
@@ -645,6 +646,7 @@
 </div>
 
 <footer class="footer">
+    <img src="assets/logo.png" alt="Tiny Seed Farm" style="width:80px; margin-bottom:12px; opacity:0.7;">
     <div class="footer-links">
         <a href="mailto:todd@tinyseedfarmpgh.com"><i class="fas fa-envelope"></i> todd@tinyseedfarmpgh.com</a>
         <a href="tel:7177255177"><i class="fas fa-phone"></i> (717) 725-5177</a>
@@ -724,6 +726,16 @@ function loadPresaleItems() {
                 throw new Error(result.error || 'No seedling items returned from the server.');
             }
 
+            // Detect phase and update UI accordingly
+            var presalePhase = result.phase || 'pre-order';
+            if (presalePhase === 'in-stock') {
+                // Update hero text for in-stock phase
+                var badge = document.querySelector('.hero-badge');
+                if (badge) badge.innerHTML = '<i class="fas fa-fire"></i> SEEDLINGS IN STOCK \u2014 WHILE SUPPLIES LAST';
+                var heroH1 = document.querySelector('.hero h1');
+                if (heroH1) heroH1.innerHTML = 'Pittsburgh\'s Favorite <span>Seedlings</span> Are Here';
+            }
+
             // Map API data to VARIETIES format
             VARIETIES = [];
             for (var i = 0; i < result.data.length; i++) {
@@ -734,6 +746,7 @@ function loadPresaleItems() {
                     price: Number(row.Price_Each) || 6.00,
                     itemId: row.Item_ID || '',
                     available: row.Available != null ? Number(row.Available) : null,
+                    waitlist: !!row.Waitlist,
                     crop: row.Crop || ''
                 });
             }
@@ -820,8 +833,12 @@ function renderCatalogCards() {
 
             var priceStr = '$' + v.price.toFixed(2);
             var availStr = '';
-            if (v.available != null && v.available <= 10 && v.available > 0) {
-                availStr = '<span style="color:var(--red-hot); font-weight:600; font-size:0.78rem;"><i class="fas fa-fire"></i> Only ' + v.available + ' left</span>';
+            if (v.waitlist) {
+                availStr = '<span style="color:var(--earth-light); font-weight:600; font-size:0.78rem;"><i class="fas fa-clock"></i> Waitlist — order now to reserve</span>';
+            } else if (v.available != null && v.available <= 10 && v.available > 0) {
+                availStr = '<span style="color:var(--red-hot); font-weight:600; font-size:0.78rem;"><i class="fas fa-fire"></i> Only ' + v.available + ' left!</span>';
+            } else if (v.available != null && v.available > 10) {
+                availStr = '<span style="color:var(--green-dark); font-weight:500; font-size:0.78rem;"><i class="fas fa-check-circle"></i> ' + v.available + ' available</span>';
             } else if (v.available != null && v.available <= 0) {
                 availStr = '<span style="color:var(--text-muted); font-weight:600; font-size:0.78rem;"><i class="fas fa-times-circle"></i> Sold Out</span>';
             }

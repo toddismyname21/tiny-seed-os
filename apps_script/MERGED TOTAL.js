@@ -17513,6 +17513,12 @@ function doGet(e) {
         return jsonResponse(getSeedlingSalesHistorical(e.parameter));
       case 'getSeedlingTimeline':
         return jsonResponse(getSeedlingTimeline(e.parameter));
+      case 'getSeedlingDemandSummary':
+        return jsonResponse(getSeedlingDemandSummary(e.parameter));
+      case 'calculateSeedingSchedule':
+        return jsonResponse(calculateSeedingSchedule(e.parameter));
+      case 'validateWelcomeDiscount':
+        return jsonResponse(validateWelcomeDiscount(e.parameter));
 
       default:
         return jsonResponse({error: 'Unknown action: ' + action}, 400);
@@ -18884,6 +18890,8 @@ function doPost(e) {
         return jsonResponse(bulkImportSeedlingData(data));
       case 'updateSeedlingStatus':
         return jsonResponse(updateSeedlingStatus(data));
+      case 'cleanupTestSeedlingOrders':
+        return jsonResponse(cleanupTestSeedlingOrders(data));
 
       default:
         return jsonResponse({error: 'Unknown action: ' + action}, 400);
@@ -23319,7 +23327,7 @@ function completeChefRegistration(data) {
 
             ${data.notes ? `<p style="margin-top: 16px; padding: 12px; background: #fffbeb; border-radius: 8px;"><strong>Notes:</strong> ${data.notes}</p>` : ''}
 
-            <a href="https://toddismyname21.github.io/tiny-seed-os/web_app/chef-approve.html"
+            <a href="https://toddismyname21.github.io/tiny-seed-os/index.html#pending-chefs"
                style="display: inline-block; background: #f59e0b; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; margin-top: 20px;">
               Review & Approve
             </a>
@@ -23501,7 +23509,7 @@ function approveChef(data) {
     }
     tokenSheet.appendRow([loginToken, email, chefRow[headers.indexOf('Customer_ID')], new Date().toISOString(), tokenExpires.toISOString()]);
 
-    const loginUrl = `https://toddismyname21.github.io/tiny-seed-os/web_app/wholesale.html?token=${loginToken}&email=${encodeURIComponent(email)}`;
+    const loginUrl = `https://toddismyname21.github.io/tiny-seed-os/web_app/chef-order.html?token=${loginToken}&email=${encodeURIComponent(email)}`;
 
     // Send welcome email with discount code
     try {
@@ -23584,6 +23592,91 @@ function approveChef(data) {
   } catch (error) {
     Logger.log('approveChef error: ' + error.toString());
     return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Validate a WELCOME10 discount code for a wholesale customer
+ * @param {Object} params - { code, email }
+ * @returns {Object} { success, valid, discount, label, error }
+ */
+function validateWelcomeDiscount(params) {
+  try {
+    var code = (params.code || params.discountCode || '').trim();
+    var email = (params.email || '').trim().toLowerCase();
+
+    if (!code) return { success: true, valid: false, error: 'No discount code provided' };
+    if (!email) return { success: true, valid: false, error: 'Email is required to validate discount' };
+
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheet = ss.getSheetByName('WHOLESALE_CUSTOMERS');
+    if (!sheet) return { success: true, valid: false, error: 'No wholesale customers found' };
+
+    var data = sheet.getDataRange().getValues();
+    var headers = data[0];
+    var emailCol = headers.indexOf('Email');
+    var codeCol = headers.indexOf('Discount_Code');
+    var usedCol = headers.indexOf('Discount_Used');
+
+    if (codeCol === -1) return { success: true, valid: false, error: 'Discount codes not configured' };
+
+    for (var i = 1; i < data.length; i++) {
+      var rowEmail = (data[i][emailCol] || '').toString().toLowerCase();
+      if (rowEmail === email) {
+        var storedCode = (data[i][codeCol] || '').toString().trim();
+        var used = (data[i][usedCol] || '').toString().trim();
+
+        if (!storedCode) return { success: true, valid: false, error: 'No discount code assigned to this account' };
+        if (storedCode !== code) return { success: true, valid: false, error: 'Invalid discount code' };
+        if (used === 'Yes') return { success: true, valid: false, error: 'This discount code has already been redeemed' };
+
+        return { success: true, valid: true, discount: 0.10, label: '10% Welcome Discount', rowNum: i + 1 };
+      }
+    }
+
+    return { success: true, valid: false, error: 'Email not found in wholesale customer list' };
+  } catch (error) {
+    Logger.log('validateWelcomeDiscount error: ' + error.toString());
+    return { success: false, valid: false, error: error.toString() };
+  }
+}
+
+/**
+ * Mark a welcome discount code as used after a successful order
+ * @param {string} email - Customer email
+ * @param {string} orderId - Order that used the discount
+ */
+function markDiscountUsed_(email, orderId) {
+  try {
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheet = ss.getSheetByName('WHOLESALE_CUSTOMERS');
+    if (!sheet) return;
+
+    var data = sheet.getDataRange().getValues();
+    var headers = data[0];
+    var emailCol = headers.indexOf('Email');
+
+    // Helper to get or create column
+    function getOrCreateCol(name) {
+      var col = headers.indexOf(name);
+      if (col === -1) {
+        col = headers.length;
+        sheet.getRange(1, col + 1).setValue(name);
+        headers.push(name);
+      }
+      return col + 1;
+    }
+
+    for (var i = 1; i < data.length; i++) {
+      if ((data[i][emailCol] || '').toString().toLowerCase() === email.toLowerCase()) {
+        sheet.getRange(i + 1, getOrCreateCol('Discount_Used')).setValue('Yes');
+        sheet.getRange(i + 1, getOrCreateCol('Discount_Order_ID')).setValue(orderId);
+        Logger.log('Marked discount used for ' + email + ' on order ' + orderId);
+        return;
+      }
+    }
+  } catch (error) {
+    Logger.log('markDiscountUsed_ error: ' + error.toString());
   }
 }
 
@@ -129769,12 +129862,32 @@ function getSeedlingProductionPlan(params) {
 }
 
 // Shared helper: ensure SEEDLING_PRODUCTION sheet exists with unified schema
+// ============ SEEDLING PRESALE CONFIGURATION ============
+
+var PRESALE_CUTOFF_DATE = '2026-03-20';
+
+var PICKUP_SCHEDULE = {
+  'Bloomfield': ['2026-05-03', '2026-05-10'],
+  'Lawrenceville': ['2026-04-29', '2026-05-06'],
+  'Sewickley': ['2026-05-03', '2026-05-10'],
+  'Phipps': ['2026-05-03'],
+  'SquirrelHill': ['2026-05-10'],
+  'CityGROWN': null,
+  'Farm': null
+};
+
+function getPickupDateForLocation_(locationSlug) {
+  var dates = PICKUP_SCHEDULE[locationSlug];
+  if (!dates || dates.length === 0) return null;
+  return dates[0]; // earliest date
+}
+
 function ensureSeedlingProductionSheet_(ss) {
   var sheet = ss.getSheetByName('SEEDLING_PRODUCTION');
   if (sheet) {
-    // Auto-migrate: add Seed_Lot_ID and Batch_ID if missing
+    // Auto-migrate: add missing columns
     var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-    var newCols = ['Seed_Lot_ID', 'Batch_ID'];
+    var newCols = ['Seed_Lot_ID', 'Batch_ID', 'Alloc_Presale', 'Alloc_Wholesale', 'Alloc_Market', 'Alloc_Phipps', 'Alloc_CityGROWN'];
     for (var c = 0; c < newCols.length; c++) {
       if (headers.indexOf(newCols[c]) === -1) {
         var nextCol = sheet.getLastColumn() + 1;
@@ -129789,9 +129902,10 @@ function ensureSeedlingProductionSheet_(ss) {
     'Seeding_Date', 'Num_Trays', 'Cell_Pack_Size', 'Pots_Per_Tray',
     'Total_Units', 'Price_Each', 'Ready_Date', 'Status',
     'Units_Sold', 'Revenue', 'Market_Allocation', 'Notes', 'Created_At',
-    'Seed_Lot_ID', 'Batch_ID'
+    'Seed_Lot_ID', 'Batch_ID',
+    'Alloc_Presale', 'Alloc_Wholesale', 'Alloc_Market', 'Alloc_Phipps', 'Alloc_CityGROWN'
   ]);
-  sheet.getRange(1, 1, 1, 21).setFontWeight('bold');
+  sheet.getRange(1, 1, 1, 26).setFontWeight('bold');
   sheet.setFrozenRows(1);
   return sheet;
 }
@@ -130259,6 +130373,17 @@ function createSeedlingDraftOrder_(orderData) {
       }
     };
 
+    // Apply discount if provided (e.g., WELCOME10 code)
+    if (orderData.discount && orderData.discount.valid && orderData.discount.discount > 0) {
+      var discountPct = orderData.discount.discount * 100;
+      draftOrderPayload.draft_order.applied_discount = {
+        description: orderData.discount.label || (discountPct + '% Discount'),
+        value_type: 'percentage',
+        value: String(discountPct),
+        title: orderData.discount.label || 'Welcome Discount'
+      };
+    }
+
     var result = shopifyApiCall('draft_orders.json', 'POST', draftOrderPayload);
 
     if (result.success && result.data && result.data.draft_order) {
@@ -130304,6 +130429,123 @@ function sendSeedlingDraftInvoice_(draftOrderId, customerEmail) {
 }
 
 /**
+ * Delete a single Shopify draft order by ID.
+ */
+function deleteSeedlingDraftOrder_(draftOrderId) {
+  try {
+    var result = shopifyApiCall('draft_orders/' + draftOrderId + '.json', 'DELETE');
+    if (result.success) {
+      return { success: true };
+    } else {
+      return { success: false, error: result.error || 'Failed to delete draft order ' + draftOrderId };
+    }
+  } catch (error) {
+    Logger.log('deleteSeedlingDraftOrder_ error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Clean up test seedling orders from Shopify and Google Sheets.
+ * Accepts params.orderIds (array of order IDs like ["SEED-2026-0001"]) OR
+ * deletes all rows where Notes contains "TEST".
+ */
+function cleanupTestSeedlingOrders(params) {
+  var deleted = [];
+  var errors = [];
+
+  try {
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var targetIds = params.orderIds || [];
+
+    // --- Clean SEEDLING_ORDERS sheet ---
+    var ordersSheet = ss.getSheetByName('SEEDLING_ORDERS');
+    if (ordersSheet) {
+      var data = ordersSheet.getDataRange().getValues();
+      var rowsToDelete = [];
+
+      for (var i = 1; i < data.length; i++) {
+        var orderId = String(data[i][0] || '');
+        var notes = String(data[i][16] || '');
+        var shopifyId = String(data[i][9] || '');
+
+        var isTarget = targetIds.length > 0
+          ? targetIds.indexOf(orderId) !== -1
+          : notes.toUpperCase().indexOf('TEST') !== -1;
+
+        if (isTarget) {
+          // Delete from Shopify if draft order ID exists
+          if (shopifyId && shopifyId !== '' && shopifyId !== 'undefined') {
+            try {
+              var delResult = deleteSeedlingDraftOrder_(shopifyId);
+              if (delResult.success) {
+                deleted.push({ orderId: orderId, shopifyId: shopifyId, source: 'shopify' });
+              } else {
+                errors.push('Shopify delete ' + orderId + ': ' + delResult.error);
+              }
+            } catch (e) {
+              errors.push('Shopify delete ' + orderId + ': ' + e.toString());
+            }
+          }
+          rowsToDelete.push(i + 1); // 1-indexed for sheet
+          deleted.push({ orderId: orderId, source: 'SEEDLING_ORDERS' });
+        }
+      }
+
+      // Delete rows bottom-up to preserve indices
+      rowsToDelete.sort(function(a, b) { return b - a; });
+      for (var r = 0; r < rowsToDelete.length; r++) {
+        ordersSheet.deleteRow(rowsToDelete[r]);
+      }
+    }
+
+    // --- Clean SEEDLING_SALES sheet ---
+    var salesSheet = ss.getSheetByName('SEEDLING_SALES');
+    if (salesSheet) {
+      var salesData = salesSheet.getDataRange().getValues();
+      var headers = salesData[0] || [];
+      var orderIdCol = -1;
+      var notesCol = -1;
+
+      for (var h = 0; h < headers.length; h++) {
+        if (String(headers[h]).toLowerCase().indexOf('order_id') !== -1) orderIdCol = h;
+        if (String(headers[h]).toLowerCase() === 'notes') notesCol = h;
+      }
+
+      var salesRowsToDelete = [];
+      for (var s = 1; s < salesData.length; s++) {
+        var sOrderId = orderIdCol >= 0 ? String(salesData[s][orderIdCol] || '') : '';
+        var sNotes = notesCol >= 0 ? String(salesData[s][notesCol] || '') : '';
+
+        var isSalesTarget = targetIds.length > 0
+          ? targetIds.indexOf(sOrderId) !== -1
+          : sNotes.toUpperCase().indexOf('TEST') !== -1;
+
+        if (isSalesTarget) {
+          salesRowsToDelete.push(s + 1);
+          deleted.push({ orderId: sOrderId, source: 'SEEDLING_SALES' });
+        }
+      }
+
+      salesRowsToDelete.sort(function(a, b) { return b - a; });
+      for (var sr = 0; sr < salesRowsToDelete.length; sr++) {
+        salesSheet.deleteRow(salesRowsToDelete[sr]);
+      }
+    }
+
+    return {
+      success: true,
+      deleted: deleted,
+      errors: errors,
+      summary: deleted.length + ' items cleaned up' + (errors.length > 0 ? ', ' + errors.length + ' errors' : '')
+    };
+  } catch (error) {
+    Logger.log('cleanupTestSeedlingOrders FATAL: ' + error.toString());
+    return { success: false, error: error.toString(), deleted: deleted, errors: errors };
+  }
+}
+
+/**
  * Generate pick, pack, and prep tasks for a seedling order.
  * Creates 3 tasks in TASKS_2026 and detailed pick list items in SALES_PickPack.
  */
@@ -130321,45 +130563,63 @@ function generateSeedlingFulfillmentTasks_(orderId, items, pickupDate, pickupLoc
     }
 
     var now = new Date().toISOString();
-    var pickup = pickupDate ? new Date(pickupDate) : new Date();
 
-    // Pick task: 2 days before pickup
-    var pickDate = new Date(pickup);
-    pickDate.setDate(pickDate.getDate() - 2);
+    // Resolve the actual pickup date from location schedule
+    var resolvedPickupDate = pickupDate;
+    if (!resolvedPickupDate && pickupLocation) {
+      resolvedPickupDate = getPickupDateForLocation_(pickupLocation);
+    }
+    var pickup = resolvedPickupDate ? new Date(resolvedPickupDate) : null;
 
-    // Pack task: 1 day before pickup
-    var packDate = new Date(pickup);
-    packDate.setDate(packDate.getDate() - 1);
-
-    // Build crop summary
-    var cropSummary = (items || []).map(function(i) {
-      return (i.name || i.crop || '') + (i.variety ? ' (' + i.variety + ')' : '') + ' x' + (i.quantity || 1);
+    // Build detailed item summary
+    var totalPlants = 0;
+    var itemSummary = (items || []).map(function(i) {
+      var qty = Number(i.quantity) || 1;
+      totalPlants += qty;
+      return qty + ' ' + (i.name || i.crop || '') + (i.variety ? ' (' + i.variety + ')' : '');
     }).join(', ');
+
+    var locationLabel = pickupLocation || 'TBD';
+    var dateLabel = pickup ? (pickup.getMonth() + 1) + '/' + pickup.getDate() : 'TBD';
+
+    // Pick task: 2 days before pickup (or now + 7 days if no pickup date)
+    var pickDate = pickup ? new Date(pickup) : new Date();
+    if (pickup) { pickDate.setDate(pickDate.getDate() - 2); }
+    else { pickDate.setDate(pickDate.getDate() + 7); }
+
+    // Pack task: 1 day before pickup (or now + 8 days)
+    var packDate = pickup ? new Date(pickup) : new Date();
+    if (pickup) { packDate.setDate(packDate.getDate() - 1); }
+    else { packDate.setDate(packDate.getDate() + 8); }
+
+    // Prep task: pickup day (or now + 9 days)
+    var prepDate = pickup || new Date();
+    if (!pickup) { prepDate = new Date(); prepDate.setDate(prepDate.getDate() + 9); }
 
     var tasks = [
       {
         id: 'TASK-PICK-' + orderId,
-        name: 'Pick seedlings for ' + orderId,
-        category: 'Fulfillment',
+        name: 'Pick ' + itemSummary + ' for ' + locationLabel + ' ' + dateLabel,
+        category: 'Seedling Fulfillment',
         dueDate: pickDate,
-        duration: 30,
-        notes: 'Items: ' + cropSummary + ' | Customer: ' + (customerName || '')
+        duration: Math.max(15, totalPlants * 3), // ~3 min per plant
+        notes: 'Order: ' + orderId + ' | Customer: ' + (customerName || '') + ' | ' + totalPlants + ' plants total'
       },
       {
         id: 'TASK-PACK-' + orderId,
-        name: 'Pack order ' + orderId,
-        category: 'Fulfillment',
+        name: 'Pack ' + orderId + ' for ' + locationLabel + ' ' + dateLabel + ' (' + totalPlants + ' plants)',
+        category: 'Seedling Fulfillment',
         dueDate: packDate,
-        duration: 20,
-        notes: 'Pack and label for ' + (customerName || '') + ' | Pickup: ' + (pickupLocation || 'TBD')
+        duration: Math.max(10, totalPlants * 2), // ~2 min per plant
+        notes: 'Label with customer name: ' + (customerName || '') + ' | Items: ' + itemSummary
       },
       {
         id: 'TASK-PREP-' + orderId,
-        name: 'Prep for pickup ' + orderId + ' @ ' + (pickupLocation || 'TBD'),
-        category: 'Fulfillment',
-        dueDate: pickup,
+        name: 'Load ' + locationLabel + ' ' + dateLabel + ' — ' + orderId,
+        category: 'Seedling Fulfillment',
+        dueDate: prepDate,
         duration: 15,
-        notes: 'Have ready for customer pickup. ' + (items || []).length + ' line items.'
+        notes: 'Ensure packed order for ' + (customerName || '') + ' is on the truck/ready at ' + locationLabel
       }
     ];
 
@@ -130373,7 +130633,7 @@ function generateSeedlingFulfillmentTasks_(orderId, items, pickupDate, pickupLoc
 
     // Also generate detailed pick list items using existing system
     var pickListResult = generatePickListForOrder(orderId, {
-      deliveryDate: pickupDate || new Date().toISOString().split('T')[0],
+      deliveryDate: resolvedPickupDate || new Date().toISOString().split('T')[0],
       customerName: customerName || '',
       customerType: 'Seedling Presale',
       items: (items || []).map(function(i) {
@@ -130386,7 +130646,7 @@ function generateSeedlingFulfillmentTasks_(orderId, items, pickupDate, pickupLoc
       })
     });
 
-    return { success: true, tasksCreated: tasksCreated, pickListGenerated: pickListResult.success };
+    return { success: true, tasksCreated: tasksCreated, pickListGenerated: pickListResult.success, pickupDate: resolvedPickupDate, pickupLocation: locationLabel };
   } catch (error) {
     Logger.log('generateSeedlingFulfillmentTasks_ error: ' + error.toString());
     return { success: false, error: error.toString(), tasksCreated: tasksCreated };
@@ -130478,6 +130738,22 @@ function submitSeedlingOrder(params) {
     }
     result.totalRevenue = totalRevenue;
 
+    // Step 2b: Validate discount code if provided
+    var discountInfo = null;
+    var discountCode = (params.discountCode || '').trim();
+    if (discountCode && params.email) {
+      try {
+        var discountResult = validateWelcomeDiscount({ code: discountCode, email: params.email });
+        if (discountResult.valid) {
+          discountInfo = discountResult;
+        } else {
+          errors.push('Discount code: ' + (discountResult.error || 'invalid'));
+        }
+      } catch (discErr) {
+        errors.push('Discount validation: ' + discErr.toString());
+      }
+    }
+
     // Step 3: Create Shopify Draft Order
     var shopifyResult = { success: false };
     try {
@@ -130489,7 +130765,8 @@ function submitSeedlingOrder(params) {
         pickupLocation: params.pickupLocation || '',
         pickupDate: params.pickupDate || '',
         businessName: params.businessName || '',
-        channel: params.channel || 'Presale'
+        channel: params.channel || 'Presale',
+        discount: discountInfo
       });
 
       if (shopifyResult.success) {
@@ -130553,6 +130830,17 @@ function submitSeedlingOrder(params) {
       errors.push('Order log: ' + logErr.toString());
     }
 
+    // Step 7: Mark discount code as used (if applied)
+    if (discountInfo && discountInfo.valid && params.email) {
+      try {
+        markDiscountUsed_(params.email, orderId);
+        result.discountApplied = true;
+        result.discountLabel = discountInfo.label;
+      } catch (discErr) {
+        errors.push('Discount marking: ' + discErr.toString());
+      }
+    }
+
     result.errors = errors;
     if (errors.length > 0) {
       result.warnings = errors.length + ' non-critical error(s) occurred. Sales were recorded successfully.';
@@ -130601,11 +130889,17 @@ function getSeedlingSales(params) {
 function getSeedlingPresaleItems(params) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   var sheet = ss.getSheetByName('SEEDLING_PRODUCTION');
-  if (!sheet) return { success: true, data: [] };
+  if (!sheet) return { success: true, data: [], phase: 'unknown' };
 
   var data = sheet.getDataRange().getValues();
   var headers = data[0];
   var items = [];
+
+  // Determine which phase we're in
+  var today = new Date();
+  var cutoff = new Date(PRESALE_CUTOFF_DATE + 'T23:59:59');
+  var isPreOrderPhase = today <= cutoff;
+  var phase = isPreOrderPhase ? 'pre-order' : 'in-stock';
 
   for (var i = 1; i < data.length; i++) {
     var row = {};
@@ -130613,17 +130907,32 @@ function getSeedlingPresaleItems(params) {
       row[headers[h]] = data[i][h];
     }
     if (!row.Item_ID) continue;
-    // Only include items with status allowing sales
+
     var status = String(row.Status || '').toLowerCase();
     if (status === 'cancelled' || status === 'failed') continue;
+
     var totalUnits = Number(row.Total_Units) || 0;
+    var allocPresale = Number(row.Alloc_Presale) || totalUnits; // default: all available for presale
     var soldUnits = Number(row.Units_Sold) || 0;
-    if (totalUnits - soldUnits <= 0) continue;
-    row.Available = totalUnits - soldUnits;
-    items.push(row);
+    var available = allocPresale - soldUnits;
+
+    if (isPreOrderPhase) {
+      // Phase 1: Show everything, even if sold out (show as waitlist)
+      row.Available = Math.max(0, available);
+      row.Waitlist = available <= 0;
+      items.push(row);
+    } else {
+      // Phase 2: Only show items that are actively growing/ready AND have stock
+      var growingStatuses = ['seeded', 'growing', 'hardening', 'ready'];
+      if (growingStatuses.indexOf(status) === -1) continue;
+      if (available <= 0) continue;
+      row.Available = available;
+      row.Waitlist = false;
+      items.push(row);
+    }
   }
 
-  return { success: true, data: items, count: items.length };
+  return { success: true, data: items, count: items.length, phase: phase, cutoffDate: PRESALE_CUTOFF_DATE };
 }
 
 function getSeedlingSalesHistorical(params) {
@@ -130788,12 +131097,214 @@ function bulkImportSeedlingData(params) {
       p.seedingDate || '', trays, p.cellPackSize || p.cellSize || '',
       potsPerTray, totalUnits, Number(p.priceEach) || 0,
       p.readyDate || '', p.status || 'Planned',
-      0, 0, p.marketAllocation || '', p.notes || '', new Date().toISOString()
+      0, 0, p.marketAllocation || '', p.notes || '', new Date().toISOString(),
+      '', '', // Seed_Lot_ID, Batch_ID
+      Number(p.allocPresale) || 0, Number(p.allocWholesale) || 0,
+      Number(p.allocMarket) || 0, Number(p.allocPhipps) || 0,
+      Number(p.allocCityGROWN) || 0
     ]);
     imported++;
   }
 
   return { success: true, imported: imported, cleared: !!params.clearFirst, message: imported + ' items imported to SEEDLING_PRODUCTION' };
+}
+
+// ============ SEEDLING DEMAND & SCHEDULING ============
+
+/**
+ * Aggregate presale/wholesale orders by variety vs production plan.
+ * Shows what's been ordered, what's planned, and what needs attention.
+ */
+function getSeedlingDemandSummary(params) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var prodSheet = ss.getSheetByName('SEEDLING_PRODUCTION');
+  if (!prodSheet) return { success: true, data: [], summary: {} };
+
+  var prodData = prodSheet.getDataRange().getValues();
+  var prodHeaders = prodData[0];
+
+  // Build production plan map
+  var items = [];
+  for (var i = 1; i < prodData.length; i++) {
+    var row = {};
+    for (var h = 0; h < prodHeaders.length; h++) {
+      row[prodHeaders[h]] = prodData[i][h];
+    }
+    if (!row.Item_ID) continue;
+    var status = String(row.Status || '').toLowerCase();
+    if (status === 'cancelled' || status === 'failed') continue;
+
+    var totalUnits = Number(row.Total_Units) || 0;
+    var unitsSold = Number(row.Units_Sold) || 0;
+    var allocPresale = Number(row.Alloc_Presale) || 0;
+    var allocWholesale = Number(row.Alloc_Wholesale) || 0;
+    var allocMarket = Number(row.Alloc_Market) || 0;
+    var allocPhipps = Number(row.Alloc_Phipps) || 0;
+    var allocCityGROWN = Number(row.Alloc_CityGROWN) || 0;
+    var totalAllocated = allocPresale + allocWholesale + allocMarket + allocPhipps + allocCityGROWN;
+    var unallocated = totalUnits - totalAllocated;
+    var available = totalUnits - unitsSold;
+    var coveragePct = totalUnits > 0 ? Math.round((unitsSold / totalUnits) * 100) : 0;
+
+    items.push({
+      itemId: row.Item_ID,
+      crop: row.Crop || '',
+      variety: row.Variety || '',
+      category: row.Category || '',
+      status: row.Status || 'Planned',
+      totalUnits: totalUnits,
+      unitsSold: unitsSold,
+      available: available,
+      coveragePct: coveragePct,
+      allocPresale: allocPresale,
+      allocWholesale: allocWholesale,
+      allocMarket: allocMarket,
+      allocPhipps: allocPhipps,
+      allocCityGROWN: allocCityGROWN,
+      totalAllocated: totalAllocated,
+      unallocated: unallocated,
+      seedingDate: row.Seeding_Date || '',
+      readyDate: row.Ready_Date || '',
+      revenue: Number(row.Revenue) || 0,
+      needsAttention: coveragePct >= 80,
+      soldOut: available <= 0
+    });
+  }
+
+  // Summary stats
+  var totalPlanned = 0, totalSold = 0, totalRevenue = 0, needsAttentionCount = 0;
+  for (var s = 0; s < items.length; s++) {
+    totalPlanned += items[s].totalUnits;
+    totalSold += items[s].unitsSold;
+    totalRevenue += items[s].revenue;
+    if (items[s].needsAttention) needsAttentionCount++;
+  }
+
+  return {
+    success: true,
+    data: items,
+    summary: {
+      totalVarieties: items.length,
+      totalPlanned: totalPlanned,
+      totalSold: totalSold,
+      totalAvailable: totalPlanned - totalSold,
+      overallCoverage: totalPlanned > 0 ? Math.round((totalSold / totalPlanned) * 100) + '%' : '0%',
+      totalRevenue: totalRevenue,
+      needsAttention: needsAttentionCount
+    },
+    phase: new Date() <= new Date(PRESALE_CUTOFF_DATE + 'T23:59:59') ? 'pre-order' : 'in-stock'
+  };
+}
+
+/**
+ * Calculate seeding schedule by working backward from pickup dates.
+ * Uses nurseryDays from REF_CropProfiles to determine when to seed.
+ */
+function calculateSeedingSchedule(params) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+  // Get crop profiles for nurseryDays
+  var profileSheet = ss.getSheetByName('REF_CropProfiles');
+  var nurseryMap = {};
+  if (profileSheet) {
+    var profData = profileSheet.getDataRange().getValues();
+    var profHeaders = profData[0];
+    for (var p = 1; p < profData.length; p++) {
+      var profRow = {};
+      for (var ph = 0; ph < profHeaders.length; ph++) {
+        profRow[profHeaders[ph]] = profData[p][ph];
+      }
+      var cropName = String(profRow.Crop_Name || profRow.crop || '').toLowerCase();
+      var nurseryDays = Number(profRow.nurseryDays || profRow.Nursery_Days || profRow.days_to_transplant || 0);
+      if (cropName && nurseryDays > 0) {
+        nurseryMap[cropName] = nurseryDays;
+      }
+    }
+  }
+
+  // Get production plan
+  var prodSheet = ss.getSheetByName('SEEDLING_PRODUCTION');
+  if (!prodSheet) return { success: true, data: [] };
+
+  var prodData = prodSheet.getDataRange().getValues();
+  var prodHeaders = prodData[0];
+  var schedule = [];
+
+  for (var i = 1; i < prodData.length; i++) {
+    var row = {};
+    for (var h = 0; h < prodHeaders.length; h++) {
+      row[prodHeaders[h]] = prodData[i][h];
+    }
+    if (!row.Item_ID) continue;
+    var status = String(row.Status || '').toLowerCase();
+    if (status === 'cancelled' || status === 'failed') continue;
+
+    var crop = String(row.Crop || '').toLowerCase();
+    var nurseryDays = nurseryMap[crop] || 56; // default 8 weeks
+    var bufferDays = 7;
+
+    // Find earliest pickup date (use first date from any location)
+    var earliestPickup = null;
+    var allDates = [];
+    for (var loc in PICKUP_SCHEDULE) {
+      if (PICKUP_SCHEDULE[loc]) {
+        for (var d = 0; d < PICKUP_SCHEDULE[loc].length; d++) {
+          allDates.push(new Date(PICKUP_SCHEDULE[loc][d]));
+        }
+      }
+    }
+    allDates.sort(function(a, b) { return a - b; });
+    earliestPickup = allDates.length > 0 ? allDates[0] : null;
+
+    // Calculate seed-by date
+    var seedByDate = null;
+    if (earliestPickup) {
+      seedByDate = new Date(earliestPickup);
+      seedByDate.setDate(seedByDate.getDate() - nurseryDays - bufferDays);
+    }
+
+    var actualSeedDate = row.Seeding_Date ? new Date(row.Seeding_Date) : null;
+    var scheduleStatus = 'not_seeded';
+    var daysAheadBehind = 0;
+
+    if (actualSeedDate && seedByDate) {
+      daysAheadBehind = Math.round((seedByDate - actualSeedDate) / (1000 * 60 * 60 * 24));
+      if (daysAheadBehind >= 0) {
+        scheduleStatus = 'on_track';
+      } else {
+        scheduleStatus = 'behind';
+      }
+    } else if (seedByDate && !actualSeedDate) {
+      var today = new Date();
+      daysAheadBehind = Math.round((seedByDate - today) / (1000 * 60 * 60 * 24));
+      scheduleStatus = daysAheadBehind < 0 ? 'overdue' : 'not_seeded';
+    }
+
+    schedule.push({
+      itemId: row.Item_ID,
+      crop: row.Crop || '',
+      variety: row.Variety || '',
+      category: row.Category || '',
+      nurseryDays: nurseryDays,
+      earliestPickup: earliestPickup ? earliestPickup.toISOString().split('T')[0] : null,
+      seedByDate: seedByDate ? seedByDate.toISOString().split('T')[0] : null,
+      actualSeedDate: actualSeedDate ? actualSeedDate.toISOString().split('T')[0] : null,
+      readyDate: row.Ready_Date || '',
+      status: row.Status || 'Planned',
+      scheduleStatus: scheduleStatus,
+      daysAheadBehind: daysAheadBehind,
+      totalUnits: Number(row.Total_Units) || 0,
+      unitsSold: Number(row.Units_Sold) || 0
+    });
+  }
+
+  // Sort: overdue first, then behind, then not_seeded, then on_track
+  var statusOrder = { overdue: 0, behind: 1, not_seeded: 2, on_track: 3 };
+  schedule.sort(function(a, b) {
+    return (statusOrder[a.scheduleStatus] || 99) - (statusOrder[b.scheduleStatus] || 99);
+  });
+
+  return { success: true, data: schedule, count: schedule.length };
 }
 
 /**
