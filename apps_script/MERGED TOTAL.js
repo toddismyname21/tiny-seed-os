@@ -131609,8 +131609,38 @@ function fixCorruptedSeedlingUrls() {
   var fixed = 0;
   for (var i = 1; i < data.length; i++) {
     var url = String(data[i][imgCol] || '');
-    if (url.indexOf('&amp;') !== -1) {
-      sheet.getRange(i + 1, imgCol + 1).setValue(url.replace(/&amp;/g, '&'));
+    if (!url) continue;
+
+    var newUrl = url;
+    // Fix 1: Decode &amp; entities
+    newUrl = newUrl.replace(/&amp;/g, '&');
+
+    // Fix 2: For Demandware/Johnny's URLs, clean up malformed query strings
+    // Pattern: ...image.jpg&sh=400?sw=800&sh=800 → ...image.jpg?sw=800&sh=800
+    var extMatch = newUrl.match(/^(.*\.(jpg|jpeg|png|webp|gif))/i);
+    if (extMatch) {
+      var base = extMatch[1];
+      var afterExt = newUrl.substring(base.length);
+      // If there's junk between the extension and the first ? or no ? at all, clean it
+      if (afterExt && (!afterExt.startsWith('?') || afterExt.indexOf('?') !== afterExt.lastIndexOf('?'))) {
+        // For Johnny's Seeds images, add standard size params
+        if (base.indexOf('johnnyseeds.com') !== -1 || base.indexOf('demandware') !== -1) {
+          newUrl = base + '?sw=800&sh=800';
+        } else {
+          // For other sites, just strip the garbage after extension
+          var qIdx = afterExt.indexOf('?');
+          if (qIdx !== -1) {
+            // Keep only clean query params (first ? onward)
+            newUrl = base + afterExt.substring(qIdx);
+          } else {
+            newUrl = base;
+          }
+        }
+      }
+    }
+
+    if (newUrl !== url) {
+      sheet.getRange(i + 1, imgCol + 1).setValue(newUrl);
       fixed++;
     }
   }
@@ -131908,10 +131938,12 @@ function searchSeedSite_(searchUrl, site) {
         var imgUrl = match[1].replace(/&amp;/g, '&').replace(/&quot;/g, '"');
         if (/no.?image|placeholder|logo|icon|sprite|pixel/i.test(imgUrl)) continue;
         if (imgUrl.startsWith('//')) imgUrl = 'https:' + imgUrl;
-        // Clean existing size params, then set desired size
+        // For Johnny's: extract base URL up to extension, then add clean size params
         if (site === 'johnnys') {
-          imgUrl = imgUrl.replace(/[?&]sw=\d+/g, '').replace(/[?&]sh=\d+/g, '');
-          imgUrl += (imgUrl.indexOf('?') === -1 ? '?' : '&') + 'sw=800&sh=800';
+          var extM = imgUrl.match(/^(.*\.(jpg|jpeg|png|webp|gif))/i);
+          if (extM) {
+            imgUrl = extM[1] + '?sw=800&sh=800';
+          }
         }
         return imgUrl;
       }
@@ -132065,8 +132097,17 @@ function scrapeProductUrl(params) {
           var baseUrl = url.match(/^(https?:\/\/[^\/]+)/);
           if (baseUrl) imgUrl = baseUrl[1] + imgUrl;
         }
-        // Clean HTML entities and fix size params
-        imgUrl = imgUrl.replace(/[?&]sw=\d+/, '?sw=800').replace(/[?&]sh=\d+/, '&sh=800');
+        // Clean URL: extract base up to extension, add standard size params
+        var extMatch = imgUrl.match(/^(.*\.(jpg|jpeg|png|webp|gif))/i);
+        if (extMatch && (imgUrl.indexOf('demandware') !== -1 || imgUrl.indexOf('johnnyseeds') !== -1)) {
+          imgUrl = extMatch[1] + '?sw=800&sh=800';
+        } else if (extMatch) {
+          // For other sites, keep clean URL up to extension plus any existing clean query
+          var qPos = imgUrl.indexOf('?');
+          if (qPos > extMatch[1].length) {
+            imgUrl = extMatch[1] + imgUrl.substring(qPos);
+          }
+        }
         result.data.imageUrl = imgUrl;
         break;
       }
