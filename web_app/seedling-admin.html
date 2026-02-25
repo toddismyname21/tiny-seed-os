@@ -293,6 +293,11 @@
             color: #fff;
             border-color: var(--blue);
         }
+        .action-btn.delete:hover {
+            background: var(--red);
+            color: #fff;
+            border-color: var(--red);
+        }
 
         /* Modal */
         .modal-overlay {
@@ -596,20 +601,20 @@
             </select>
         </div>
         <div class="toolbar-right">
-            <button class="btn btn-secondary" onclick="exportData()">
-                <i class="fas fa-download"></i> Export
-            </button>
-            <button class="btn btn-primary" onclick="openBulkScrapeModal()">
-                <i class="fas fa-magic"></i> Bulk Scrape URLs
-            </button>
-            <button class="btn btn-secondary" onclick="fixCorruptedUrls()" id="fixUrlsBtn">
-                <i class="fas fa-wrench"></i> Fix URLs
+            <button class="btn btn-primary" onclick="openAddModal()" style="background:var(--green);font-weight:700;font-size:0.95rem;padding:10px 20px;">
+                <i class="fas fa-plus"></i> Add Variety
             </button>
             <button class="btn btn-primary" onclick="autoPopulateImages()" id="autoPopBtn" style="background:#166534;">
                 <i class="fas fa-magic"></i> Auto-Fill Photos + Descriptions
             </button>
-            <button class="btn btn-primary" onclick="openAddModal()" style="background:var(--green);">
-                <i class="fas fa-plus"></i> Add New Variety
+            <button class="btn btn-secondary" onclick="openBulkScrapeModal()">
+                <i class="fas fa-magic"></i> Bulk Scrape
+            </button>
+            <button class="btn btn-secondary" onclick="fixCorruptedUrls()" id="fixUrlsBtn">
+                <i class="fas fa-wrench"></i> Fix URLs
+            </button>
+            <button class="btn btn-secondary" onclick="exportData()">
+                <i class="fas fa-download"></i> Export
             </button>
         </div>
     </div>
@@ -769,10 +774,36 @@
                 </div>
             </div>
         </div>
-        <div class="modal-footer">
-            <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-            <button class="btn btn-primary" onclick="saveVariety()">
-                <i class="fas fa-save"></i> Save Changes
+        <div class="modal-footer" style="justify-content:space-between;">
+            <button class="btn" onclick="deleteFromModal()" style="background:var(--red);color:#fff;border:none;">
+                <i class="fas fa-trash"></i> Delete
+            </button>
+            <div style="display:flex;gap:12px;">
+                <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveVariety()">
+                    <i class="fas fa-save"></i> Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal-overlay" id="deleteModal">
+    <div class="modal" style="max-width:440px;">
+        <div class="modal-header" style="background:var(--red);color:#fff;">
+            <h2><i class="fas fa-exclamation-triangle"></i> Delete Variety</h2>
+            <button class="modal-close" onclick="closeDeleteModal()" style="color:#fff;"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body" style="text-align:center;padding:32px 24px;">
+            <p style="font-size:1.1rem;margin-bottom:8px;">Are you sure you want to delete</p>
+            <p style="font-size:1.25rem;font-weight:700;color:var(--text-dark);" id="deleteItemName"></p>
+            <p style="color:var(--text-muted);margin-top:16px;">This cannot be undone. The variety will be removed from production and presale.</p>
+        </div>
+        <div class="modal-footer" style="justify-content:center;gap:16px;">
+            <button class="btn btn-secondary" onclick="closeDeleteModal()" style="min-width:100px;">Cancel</button>
+            <button class="btn" onclick="confirmDelete()" style="background:var(--red);color:#fff;border:none;min-width:100px;">
+                <i class="fas fa-trash"></i> Delete
             </button>
         </div>
     </div>
@@ -999,6 +1030,7 @@ function renderTable() {
         html += '<td><div class="action-btns">';
         html += '<button class="action-btn" onclick="event.stopPropagation();editVariety(\'' + v.itemId + '\')" title="Edit"><i class="fas fa-edit"></i></button>';
         html += '<button class="action-btn scrape" onclick="event.stopPropagation();quickScrape(\'' + v.itemId + '\')" title="Scrape URL"><i class="fas fa-magic"></i></button>';
+        html += '<button class="action-btn delete" onclick="event.stopPropagation();deleteVariety(\'' + v.itemId + '\',\'' + escapeHtml(v.name).replace(/'/g, "\\'") + '\')" title="Delete"><i class="fas fa-trash"></i></button>';
         html += '</div></td>';
         html += '</tr>';
     }
@@ -1428,6 +1460,61 @@ function createVariety() {
         setTimeout(function() {
             loadVarieties();
             showToast('New variety "' + name + '" added');
+        }, 1500);
+    })
+    .catch(function(err) {
+        showToast('Network error: ' + err.message);
+    });
+}
+
+// ═══════════════════════════════════════════════════
+// DELETE VARIETY
+// ═══════════════════════════════════════════════════
+var pendingDeleteId = null;
+var pendingDeleteName = '';
+
+function deleteVariety(itemId, name) {
+    pendingDeleteId = itemId;
+    pendingDeleteName = name;
+    document.getElementById('deleteItemName').textContent = '"' + name + '"';
+    document.getElementById('deleteModal').classList.add('active');
+}
+
+function deleteFromModal() {
+    var itemId = document.getElementById('editItemId').value;
+    var v = varieties.find(function(x) { return x.itemId === itemId; });
+    closeModal();
+    if (v) deleteVariety(itemId, v.name);
+}
+
+function closeDeleteModal() {
+    document.getElementById('deleteModal').classList.remove('active');
+    pendingDeleteId = null;
+    pendingDeleteName = '';
+}
+
+function confirmDelete() {
+    if (!pendingDeleteId) return;
+
+    var name = pendingDeleteName;
+    var payload = {
+        action: 'deleteSeedlingItem',
+        itemId: pendingDeleteId
+    };
+
+    closeDeleteModal();
+    showToast('Deleting "' + name + '"...');
+
+    fetch(TINY_SEED_API.MAIN_API, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify(payload)
+    })
+    .then(function() {
+        setTimeout(function() {
+            loadVarieties();
+            showToast('"' + name + '" deleted');
         }, 1500);
     })
     .catch(function(err) {

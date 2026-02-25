@@ -18969,6 +18969,8 @@ function doPost(e) {
         return jsonResponse(sendSeedlingOrderConfirmation(JSON.parse(e.postData.contents)));
       case 'addSeedlingItem':
         return jsonResponse(addSeedlingItem(data));
+      case 'deleteSeedlingItem':
+        return jsonResponse(deleteSeedlingItem(data));
 
       default:
         return jsonResponse({error: 'Unknown action: ' + action}, 400);
@@ -131583,6 +131585,35 @@ function addSeedlingItem(params) {
   sheet.appendRow(newRow);
 
   return { success: true, itemId: itemId, message: 'New variety added' };
+}
+
+/**
+ * Delete a seedling variety from SEEDLING_PRODUCTION
+ */
+function deleteSeedlingItem(params) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('SEEDLING_PRODUCTION');
+  if (!sheet) return { success: false, error: 'SEEDLING_PRODUCTION sheet not found' };
+
+  var itemId = params.itemId;
+  if (!itemId) return { success: false, error: 'itemId is required' };
+
+  var data = sheet.getDataRange().getValues();
+  var headers = data[0];
+  var idCol = -1;
+  for (var h = 0; h < headers.length; h++) {
+    if (headers[h] === 'Item_ID') { idCol = h; break; }
+  }
+  if (idCol === -1) return { success: false, error: 'No Item_ID column found' };
+
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][idCol]) === String(itemId)) {
+      sheet.deleteRow(i + 1);
+      return { success: true, itemId: itemId, message: 'Variety deleted' };
+    }
+  }
+
+  return { success: false, error: 'Item not found: ' + itemId };
 }
 
 /**
