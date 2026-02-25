@@ -20,6 +20,91 @@
         .skip-link { position: absolute; top: -100px; left: 16px; background: var(--green-deep); color: #fff; padding: 12px 24px; border-radius: 0 0 8px 8px; font-weight: 700; z-index: 9999; transition: top 0.2s; text-decoration: none; }
         .skip-link:focus { top: 0; }
 
+        /* ═══════════════════════════════════════ */
+        /* SITE HEADER - Phase 1 Redesign         */
+        /* ═══════════════════════════════════════ */
+        .site-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 32px;
+            background: rgba(20, 83, 45, 0.92);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            z-index: 1000;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .header-logo {
+            height: 52px;
+            width: auto;
+            filter: brightness(1.1);
+            transition: transform 0.2s ease;
+        }
+        .header-logo:hover {
+            transform: scale(1.02);
+        }
+
+        .header-nav {
+            display: flex;
+            align-items: center;
+            gap: 28px;
+        }
+
+        .header-nav a {
+            color: rgba(255,255,255,0.9);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: color 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .header-nav a:hover {
+            color: #86efac;
+        }
+
+        .header-nav .nav-cta {
+            background: var(--green);
+            color: #000;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
+        .header-nav .nav-cta:hover {
+            background: #4ade80;
+            color: #000;
+        }
+
+        /* Mobile header */
+        @media (max-width: 768px) {
+            .site-header {
+                padding: 10px 16px;
+            }
+            .header-logo {
+                height: 40px;
+            }
+            .header-nav {
+                gap: 16px;
+            }
+            .header-nav .nav-text {
+                display: none; /* Hide text links on mobile, keep icons */
+            }
+            .header-nav a {
+                font-size: 1.1rem;
+            }
+            .header-nav .nav-cta {
+                padding: 8px 16px;
+                font-size: 0.8rem;
+            }
+        }
+
         :root {
             --green: #22c55e;
             --green-dark: #16a34a;
@@ -61,24 +146,24 @@
             background: linear-gradient(rgba(20, 83, 45, 0.68), rgba(20, 83, 45, 0.82)),
                         url('https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=1600&q=80') center/cover no-repeat;
             color: #fff;
-            padding: 100px 24px 80px;
+            padding: 120px 24px 80px; /* Extra top padding for fixed header */
             text-align: center;
             position: relative;
             overflow: hidden;
-            min-height: 60vh;
+            min-height: 70vh;
             display: flex;
             align-items: center;
             justify-content: center;
         }
+        /* PHASE 1: Hide the giant centered logo - it's now in the header */
         .hero-logo { display: none; }
-        .page-logo {
-            width: 480px;
-            max-width: 85vw;
-            margin-bottom: 24px;
-            filter: drop-shadow(0 4px 20px rgba(0,0,0,0.4));
-        }
+        .page-logo { display: none; }
+
         @media (max-width: 768px) {
-            .page-logo { width: 340px; margin-bottom: 16px; }
+            .hero {
+                padding: 100px 20px 60px;
+                min-height: 65vh;
+            }
         }
         .hero-content { position: relative; z-index: 1; max-width: 800px; margin: 0 auto; }
         .hero-badge {
@@ -369,10 +454,28 @@
 <a href="#order" class="skip-link">Skip to order form</a>
 
 <!-- ═══════════════════════════════════════════════════════════ -->
+<!-- SITE HEADER - Fixed top navigation                          -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<nav class="site-header" role="navigation" aria-label="Main navigation">
+    <a href="/" class="header-logo-link">
+        <img src="images/tiny-seed-farm-logo.png?v=3" alt="Tiny Seed Farm" class="header-logo">
+    </a>
+    <div class="header-nav">
+        <a href="#catalog" class="nav-text"><i class="fas fa-seedling"></i> Varieties</a>
+        <a href="#pickup" class="nav-text"><i class="fas fa-map-marker-alt"></i> Pickup</a>
+        <a href="https://instagram.com/tinyseedfarm" target="_blank" rel="noopener" aria-label="Instagram">
+            <i class="fab fa-instagram"></i>
+        </a>
+        <a href="#order" class="nav-cta">Reserve Now</a>
+    </div>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
 <!-- HERO -->
 <!-- ═══════════════════════════════════════════════════════════ -->
 <header class="hero" role="banner">
     <div class="hero-content">
+        <!-- Logo moved to site-header above -->
         <img src="images/tiny-seed-farm-logo.png?v=3" alt="Tiny Seed Farm and Fleurs — Estd 2017" class="page-logo">
         <img src="assets/logo.png" alt="Tiny Seed Farm" class="hero-logo">
         <div class="hero-badge"><i class="fas fa-seedling"></i> 2026 PRESALE NOW OPEN</div>
