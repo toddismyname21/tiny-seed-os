@@ -345,7 +345,7 @@
             background: #fef3c7; color: #b45309;
         }
         .type-heirloom, .type-organic {
-            background: #dcfce7; color: #166534;
+            background: #dcfce7; color: var(--green-deep);
         }
 
         .variety-card .variety-desc { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 10px; line-height: 1.5; }
@@ -692,10 +692,7 @@
         /* ═══════════════════════════════════════ */
         /* STARTER GARDEN BUNDLES                  */
         /* ═══════════════════════════════════════ */
-        .bundles-section {
-            background: var(--warm-cream);
-            padding: 60px 24px;
-        }
+        /* .bundles-section removed — bundles now nested inside order section */
         .bundles-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -1415,14 +1412,14 @@
 
 <!-- Seedlings: half over the hero/countdown, half over the tan benefits -->
 <div class="seedling-overlay" aria-hidden="true">
-    <img src="images/seedlings/tomato-card.png" alt="">
-    <img src="images/seedlings/basil-card.png" alt="">
-    <img src="images/seedlings/pepper-card.png" alt="">
-    <img src="images/seedlings/chard-card.png" alt="">
-    <img src="images/seedlings/sage-card.png" alt="">
-    <img src="images/seedlings/parsley-card.png" alt="">
-    <img src="images/seedlings/mint-card.png" alt="">
-    <img src="images/seedlings/broccoli-card.png" alt="">
+    <img src="images/seedlings/tomato-card.png" alt="" loading="lazy">
+    <img src="images/seedlings/basil-card.png" alt="" loading="lazy">
+    <img src="images/seedlings/pepper-card.png" alt="" loading="lazy">
+    <img src="images/seedlings/chard-card.png" alt="" loading="lazy">
+    <img src="images/seedlings/sage-card.png" alt="" loading="lazy">
+    <img src="images/seedlings/parsley-card.png" alt="" loading="lazy">
+    <img src="images/seedlings/mint-card.png" alt="" loading="lazy">
+    <img src="images/seedlings/broccoli-card.png" alt="" loading="lazy">
 </div>
 
 <main id="main-content" role="main">
@@ -1527,66 +1524,7 @@
     </div>
 </section>
 
-<!-- ═══════════════════════════════════════════════════════════ -->
-<!-- STARTER GARDEN BUNDLES                                       -->
-<!-- ═══════════════════════════════════════════════════════════ -->
-<section class="bundles-section" id="bundles" aria-labelledby="bundles-heading">
-    <div class="container">
-        <h2 class="section-title" id="bundles-heading" style="text-align:center;">Starter Garden Bundles</h2>
-        <p class="section-subtitle" style="text-align:center;">Curated collections for instant garden success. Save money and skip the guesswork.</p>
-        <div class="bundles-grid" id="bundlesGrid">
-            <!-- Salsa Garden -->
-            <div class="bundle-card">
-                <div class="bundle-name">Salsa Garden</div>
-                <p class="bundle-desc">"Everything you need for fresh salsa all summer long"</p>
-                <ul class="bundle-items">
-                    <li>2x Roma Tomato</li>
-                    <li>1x San Marzano</li>
-                    <li>1x Jalape&ntilde;o</li>
-                    <li>1x Cilantro</li>
-                    <li>1x Onion</li>
-                </ul>
-                <div class="bundle-pricing">
-                    <span class="bundle-price">$28</span>
-                    <span class="bundle-savings">Save $4!</span>
-                </div>
-                <button class="bundle-add-btn" onclick="addBundle('salsa')"><i class="fas fa-plus"></i> Add Bundle</button>
-            </div>
-            <!-- Pizza Garden -->
-            <div class="bundle-card">
-                <div class="bundle-name">Pizza Garden</div>
-                <p class="bundle-desc">"Grow your own pizza toppings &mdash; from garden to pie"</p>
-                <ul class="bundle-items">
-                    <li>2x Roma Tomato</li>
-                    <li>1x Sweet Basil</li>
-                    <li>1x Bell Pepper</li>
-                    <li>1x Oregano</li>
-                </ul>
-                <div class="bundle-pricing">
-                    <span class="bundle-price">$24</span>
-                    <span class="bundle-savings">Save $3!</span>
-                </div>
-                <button class="bundle-add-btn" onclick="addBundle('pizza')"><i class="fas fa-plus"></i> Add Bundle</button>
-            </div>
-            <!-- Flower Power -->
-            <div class="bundle-card">
-                <div class="bundle-name">Flower Power</div>
-                <p class="bundle-desc">"A riot of color from June through October"</p>
-                <ul class="bundle-items">
-                    <li>2x Zinnia</li>
-                    <li>2x Sunflower</li>
-                    <li>2x Marigold</li>
-                    <li>1x Cosmos</li>
-                </ul>
-                <div class="bundle-pricing">
-                    <span class="bundle-price">$30</span>
-                    <span class="bundle-savings">Save $5!</span>
-                </div>
-                <button class="bundle-add-btn" onclick="addBundle('flower')"><i class="fas fa-plus"></i> Add Bundle</button>
-            </div>
-        </div>
-    </div>
-</section>
+<!-- Bundles moved into Reserve Your Seedlings section below -->
 
 <!-- ═══════════════════════════════════════════════════════════ -->
 <!-- SEEDLING CATALOG -->
@@ -1707,6 +1645,68 @@
                 <h3 style="font-size:1rem; color:var(--text-dark); margin:0;">Your Seedling Order</h3>
                 <button type="button" class="clear-order-btn" id="clearOrderBtn" onclick="clearOrder()" style="display:none;"><i class="fas fa-times"></i> Clear All</button>
             </div>
+
+            <!-- STARTER BUNDLES — quick curated selections first -->
+            <h4 style="font-size:0.9rem; color:var(--green-dark); margin:16px 0 8px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">
+                <i class="fas fa-box-open" style="margin-right:4px;"></i> Starter Bundles — Save More
+            </h4>
+            <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:12px;">Curated collections for instant garden success. One tap to add.</p>
+            <div class="bundles-grid" id="bundlesGrid">
+                <!-- Salsa Garden -->
+                <div class="bundle-card">
+                    <div class="bundle-name">Salsa Garden</div>
+                    <p class="bundle-desc">"Everything you need for fresh salsa all summer long"</p>
+                    <ul class="bundle-items">
+                        <li>2x Roma Tomato</li>
+                        <li>1x San Marzano</li>
+                        <li>1x Jalape&ntilde;o</li>
+                        <li>1x Cilantro</li>
+                        <li>1x Onion</li>
+                    </ul>
+                    <div class="bundle-pricing">
+                        <span class="bundle-price">$28</span>
+                        <span class="bundle-savings">Save $4!</span>
+                    </div>
+                    <button type="button" class="bundle-add-btn" onclick="addBundle('salsa')"><i class="fas fa-plus"></i> Add Bundle</button>
+                </div>
+                <!-- Pizza Garden -->
+                <div class="bundle-card">
+                    <div class="bundle-name">Pizza Garden</div>
+                    <p class="bundle-desc">"Grow your own pizza toppings &mdash; from garden to pie"</p>
+                    <ul class="bundle-items">
+                        <li>2x Roma Tomato</li>
+                        <li>1x Sweet Basil</li>
+                        <li>1x Bell Pepper</li>
+                        <li>1x Oregano</li>
+                    </ul>
+                    <div class="bundle-pricing">
+                        <span class="bundle-price">$24</span>
+                        <span class="bundle-savings">Save $3!</span>
+                    </div>
+                    <button type="button" class="bundle-add-btn" onclick="addBundle('pizza')"><i class="fas fa-plus"></i> Add Bundle</button>
+                </div>
+                <!-- Flower Power -->
+                <div class="bundle-card">
+                    <div class="bundle-name">Flower Power</div>
+                    <p class="bundle-desc">"A riot of color from June through October"</p>
+                    <ul class="bundle-items">
+                        <li>2x Zinnia</li>
+                        <li>2x Sunflower</li>
+                        <li>2x Marigold</li>
+                        <li>1x Cosmos</li>
+                    </ul>
+                    <div class="bundle-pricing">
+                        <span class="bundle-price">$30</span>
+                        <span class="bundle-savings">Save $5!</span>
+                    </div>
+                    <button type="button" class="bundle-add-btn" onclick="addBundle('flower')"><i class="fas fa-plus"></i> Add Bundle</button>
+                </div>
+            </div>
+
+            <!-- INDIVIDUAL SEEDLINGS — custom selection -->
+            <h4 style="font-size:0.9rem; color:var(--green-dark); margin:28px 0 8px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">
+                <i class="fas fa-seedling" style="margin-right:4px;"></i> Individual Seedlings
+            </h4>
             <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:16px;">Use + and − to select quantities. Tap a category header to collapse/expand.</p>
 
             <div id="orderItems">

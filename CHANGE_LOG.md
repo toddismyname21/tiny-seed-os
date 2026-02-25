@@ -38,6 +38,27 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-02-25 — Move Bundles Into Order Section + Final UX Audit
+
+**Role:** UX_Design_Claude
+
+### Files Modified
+- `web_app/seedling-presale-2026.html` — Structural redesign + polish:
+  1. **Bundles moved into "Reserve Your Seedlings" section** — No longer a standalone section. Now nested inside the order form as the first product selection area, before individual seedlings. Subheadings added for clarity: "Starter Bundles — Save More" and "Individual Seedlings".
+  2. **Bundle buttons fixed** — Added `type="button"` to prevent accidental form submission
+  3. **Seedling images** — Added `loading="lazy"` to 8 overlay images for performance
+  4. **Last hardcoded hex** — `.type-heirloom/.type-organic` badge: `#166534` → `var(--green-deep)`
+  5. **Removed orphaned `.bundles-section` CSS** — No longer needed
+
+### Reason
+Owner requested bundles be nested inside the "Reserve Your Seedlings" section as the first item, not a standalone section. Final UX audit run: 11 PASS, 6 WARN (acceptable), 0 FAIL after fixes.
+
+### Duplicate Check
+- [x] No new files — modified existing page only
+- [x] No duplicates
+
+---
+
 ## 2026-02-25 — Presale Page Audit Fixes (13 edits)
 
 **Role:** UX_Design_Claude
