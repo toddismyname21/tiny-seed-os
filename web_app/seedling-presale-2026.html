@@ -245,7 +245,7 @@
             margin-top: -120px;
             margin-bottom: -120px;
             position: relative;
-            z-index: 2;
+            z-index: 5;
             pointer-events: none;
             padding: 0 20px;
         }
@@ -638,56 +638,7 @@
             }
         }
 
-        /* ═══════════════════════════════════════ */
-        /* COUNTDOWN TIMER                         */
-        /* ═══════════════════════════════════════ */
-        .countdown-bar {
-            background: var(--green-deep);
-            color: #fff;
-            text-align: center;
-            padding: 16px 24px;
-            font-size: 1rem;
-            font-weight: 600;
-            position: relative;
-            z-index: 3;
-        }
-        .countdown-bar .countdown-label {
-            font-size: 0.85rem;
-            color: rgba(255,255,255,0.7);
-            margin-bottom: 4px;
-        }
-        .countdown-numbers {
-            display: inline-flex;
-            gap: 16px;
-            align-items: center;
-        }
-        .countdown-unit {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        .countdown-value {
-            font-size: 1.6rem;
-            font-weight: 900;
-            color: #86efac;
-            line-height: 1.2;
-        }
-        .countdown-label-small {
-            font-size: 0.7rem;
-            color: rgba(255,255,255,0.6);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .countdown-separator {
-            font-size: 1.4rem;
-            color: rgba(255,255,255,0.4);
-            font-weight: 700;
-            margin-top: -8px;
-        }
-        .countdown-expired {
-            color: #fbbf24;
-            font-weight: 700;
-        }
+        /* Countdown bar removed — deadline shown in hero dates instead */
 
         /* ═══════════════════════════════════════ */
         /* STARTER GARDEN BUNDLES                  */
@@ -1392,25 +1343,7 @@
     </div>
 </header>
 
-<!-- ═══════════════════════════════════════════════════════════ -->
-<!-- COUNTDOWN TIMER                                              -->
-<!-- ═══════════════════════════════════════════════════════════ -->
-<div class="countdown-bar" id="countdownBar">
-    <div class="countdown-label">Presale closes April 15, 2026</div>
-    <div class="countdown-numbers" id="countdownNumbers">
-        <div class="countdown-unit">
-            <span class="countdown-value" id="countdownDays">--</span>
-            <span class="countdown-label-small">Days</span>
-        </div>
-        <span class="countdown-separator">:</span>
-        <div class="countdown-unit">
-            <span class="countdown-value" id="countdownHours">--</span>
-            <span class="countdown-label-small">Hours</span>
-        </div>
-    </div>
-</div>
-
-<!-- Seedlings: half over the hero/countdown, half over the tan benefits -->
+<!-- Seedlings: half over the hero photo, half over the tan benefits -->
 <div class="seedling-overlay" aria-hidden="true">
     <img src="images/seedlings/tomato-card.png" alt="" loading="lazy">
     <img src="images/seedlings/basil-card.png" alt="" loading="lazy">
@@ -1844,6 +1777,8 @@
         <a href="mailto:todd@tinyseedfarmpgh.com"><i class="fas fa-envelope"></i> todd@tinyseedfarmpgh.com</a>
         <a href="tel:7177255177"><i class="fas fa-phone"></i> (717) 725-5177</a>
         <a href="https://www.instagram.com/tinyseedfarm" target="_blank" rel="noopener noreferrer"><i class="fab fa-instagram"></i> @tinyseedfarm</a>
+        <a href="https://www.instagram.com/tinyseedfleurs" target="_blank" rel="noopener noreferrer"><i class="fab fa-instagram"></i> @tinyseedfleurs</a>
+        <a href="https://www.instagram.com/tinyseedfungi" target="_blank" rel="noopener noreferrer"><i class="fab fa-instagram"></i> @tinyseedfungi</a>
     </div>
     <p>Tiny Seed Farm — 257 Zeigler Rd, Rochester, PA 15074</p>
     <p style="margin-top:8px; font-size:0.75rem; color:rgba(255,255,255,0.75);">Locally grown with love for Pittsburgh gardeners.</p>
@@ -1993,7 +1928,6 @@ document.addEventListener('DOMContentLoaded', function() {
     loadPresaleItems();
     setupInlineValidation();
     setupHeaderScroll();
-    initCountdown();
     setupMobileCartSwipe();
 });
 
@@ -2892,39 +2826,6 @@ function showConfirmation(customerName, email, pickup, orderCalc, hadPartialFail
 function resetOrderForm() {
     // Reload the page to start fresh
     window.location.reload();
-}
-
-// ═══════════════════════════════════════
-// COUNTDOWN TIMER
-// ═══════════════════════════════════════
-function initCountdown() {
-    updateCountdown();
-    setInterval(updateCountdown, 60000);
-}
-
-function updateCountdown() {
-    var deadline = new Date('2026-04-15T23:59:59').getTime();
-    var now = new Date().getTime();
-    var diff = deadline - now;
-
-    var daysEl = document.getElementById('countdownDays');
-    var hoursEl = document.getElementById('countdownHours');
-    var numbersEl = document.getElementById('countdownNumbers');
-    var barEl = document.getElementById('countdownBar');
-
-    if (!daysEl || !hoursEl) return;
-
-    if (diff <= 0) {
-        numbersEl.innerHTML = '<span class="countdown-expired"><i class="fas fa-clock"></i> Presale has ended</span>';
-        barEl.querySelector('.countdown-label').textContent = '';
-        return;
-    }
-
-    var days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    var hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-
-    daysEl.textContent = days;
-    hoursEl.textContent = hours;
 }
 
 // ═══════════════════════════════════════
