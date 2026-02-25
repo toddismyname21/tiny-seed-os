@@ -3,18 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>2026 Seedling Presale | Tomato & Pepper Plants | Tiny Seed Farm Pittsburgh</title>
-    <meta name="description" content="Pre-order heirloom tomato and pepper seedlings from Tiny Seed Farm. 12+ tomato varieties, 20+ peppers. Pickup at Pittsburgh area markets April-May 2026.">
+    <title>Pittsburgh Seedling Presale 2026 | Tiny Seed Farm</title>
+    <meta name="description" content="Reserve 35+ varieties of heirloom tomato, pepper, and cucurbit seedlings from Tiny Seed Farm. Grown in Rochester, PA. Pickup at 5 Pittsburgh-area markets, April–May 2026.">
     <meta name="keywords" content="Pittsburgh seedling sale, tomato plants Pittsburgh, pepper starts Pennsylvania, vegetable seedlings near me, heirloom tomato plants Rochester PA">
     <meta property="og:title" content="2026 Seedling Presale - Tiny Seed Farm Pittsburgh">
     <meta property="og:description" content="Reserve your locally-grown tomato and pepper seedlings. 35+ varieties. Pickup at Pittsburgh-area markets.">
     <meta property="og:type" content="website">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <link rel="dns-prefetch" href="https://script.google.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="tiny-seed-design-system.css">
-    <script src="api-config.js"></script>
+    <script defer src="api-config.js"></script>
     <style>
         /* Skip link */
         .skip-link { position: absolute; top: -100px; left: 16px; background: var(--green-deep); color: #fff; padding: 12px 24px; border-radius: 0 0 8px 8px; font-weight: 700; z-index: 9999; transition: top 0.2s; text-decoration: none; }
@@ -86,7 +88,7 @@
             display: inline-flex;
             align-items: center;
             gap: 4px;
-            padding: 4px 10px;
+            padding: 8px 12px;
             border-radius: 20px;
             font-size: 0.7rem;
             font-weight: 600;
@@ -107,24 +109,26 @@
         }
 
         .header-cta {
-            background: var(--green);
-            color: #fff;
+            background: transparent;
+            color: var(--green-deep);
+            border: 1.5px solid var(--green-deep);
             padding: 8px 20px;
-            border-radius: 50px;
+            border-radius: 8px;
             font-weight: 700;
             font-size: 0.82rem;
             text-decoration: none;
             transition: all 0.2s ease;
-            box-shadow: 0 2px 8px rgba(22, 101, 52, 0.2);
+            box-shadow: none;
             display: inline-flex;
             align-items: center;
             gap: 6px;
             white-space: nowrap;
         }
         .header-cta:hover {
-            background: var(--green-dark);
+            background: var(--green-deep);
+            color: #fff;
             transform: translateY(-1px);
-            box-shadow: 0 4px 14px rgba(22, 101, 52, 0.3);
+            box-shadow: none;
         }
 
         /* Mobile header */
@@ -132,13 +136,13 @@
             .site-header { padding: 6px 14px; }
             .header-countdown span.countdown-text { display: none; }
             .header-social-link span { display: none; }
-            .header-social-link { padding: 5px; border-radius: 50%; }
+            .header-social-link { padding: 10px; border-radius: 50%; }
             .header-cta { padding: 7px 14px; font-size: 0.78rem; }
             .header-cta span { display: none; }
         }
         @media (max-width: 480px) {
             .header-socials { gap: 3px; }
-            .header-social-link { padding: 4px; }
+            .header-social-link { padding: 8px; }
             .header-social-link i { font-size: 0.7rem; }
             .header-logo img { height: 30px; }
         }
@@ -206,6 +210,7 @@
             --green: #2d9f4e;           /* Primary action green — natural garden */
             --green-dark: #248c42;      /* Hover state */
             --green-deep: #166534;      /* Deep forest - headers, accents */
+            --green-tint: #dcfce7;      /* Light green tint — backgrounds, pills */
             --earth: #78350f;           /* Rich soil brown */
             --earth-light: #92400e;     /* Terracotta */
             --warm-bg: #faf8f2;         /* Warm cream background */
@@ -281,7 +286,7 @@
         .hero-content { position: relative; z-index: 1; max-width: 800px; margin: 0 auto; }
         .hero-badge {
             display: inline-flex; align-items: center; gap: 8px;
-            background: rgba(34, 197, 94, 0.2); border: 1px solid rgba(34, 197, 94, 0.4);
+            background: rgba(45, 159, 78, 0.2); border: 1px solid rgba(45, 159, 78, 0.4);
             padding: 6px 16px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;
             color: #86efac; margin-bottom: 20px; letter-spacing: 0.5px;
         }
@@ -306,9 +311,9 @@
             background: var(--green); color: #fff; padding: 16px 36px;
             border-radius: 50px; font-size: 1.1rem; font-weight: 700;
             text-decoration: none; transition: all 0.3s; border: none; cursor: pointer;
-            box-shadow: 0 4px 20px rgba(34, 197, 94, 0.3);
+            box-shadow: 0 4px 20px rgba(45, 159, 78, 0.3);
         }
-        .cta-btn:hover { background: var(--green-dark); transform: translateY(-2px); box-shadow: 0 6px 30px rgba(34, 197, 94, 0.4); }
+        .cta-btn:hover { background: var(--green-dark); transform: translateY(-2px); box-shadow: 0 6px 30px rgba(45, 159, 78, 0.4); }
         .hero-trust { margin-top: 24px; font-size: 0.8rem; color: rgba(255,255,255,0.5); }
 
         /* ═══════════════════════════════════════ */
@@ -363,7 +368,7 @@
         /* ═══════════════════════════════════════ */
         /* SECTIONS */
         /* ═══════════════════════════════════════ */
-        section { padding: 60px 24px; }
+        section { padding: 80px 24px; scroll-margin-top: 72px; }
         .container { max-width: 1100px; margin: 0 auto; }
         .section-title {
             font-family: 'Playfair Display', serif;
@@ -375,7 +380,7 @@
         /* ═══════════════════════════════════════ */
         /* WHY PRE-ORDER */
         /* ═══════════════════════════════════════ */
-        .benefits { background: var(--warm-cream); position: relative; z-index: 1; padding-top: 100px; }
+        .benefits { background: var(--warm-cream); position: relative; z-index: 1; }
         .benefits-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; }
         .benefit-card {
             background: #fff; border-radius: var(--radius); padding: 24px;
@@ -458,8 +463,8 @@
         /* ═══════════════════════════════════════ */
         .order-section { background: #fff; }
         .order-form {
-            max-width: 700px; margin: 0 auto; background: #f9fafb;
-            border-radius: 16px; padding: 32px; box-shadow: var(--shadow-md);
+            max-width: 760px; margin: 0 auto; background: #f9fafb;
+            border-radius: var(--radius); padding: 32px; box-shadow: var(--shadow-md);
         }
         .form-group { margin-bottom: 20px; }
         .form-group label { display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 6px; color: var(--text-dark); }
@@ -469,7 +474,7 @@
             transition: border-color 0.2s;
         }
         .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
-            outline: none; border-color: var(--green); box-shadow: 0 0 0 3px rgba(34,197,94,0.15);
+            outline: none; border-color: var(--green); box-shadow: 0 0 0 3px rgba(45,159,78,0.15);
         }
         .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 
@@ -483,7 +488,7 @@
             display: flex; align-items: center; gap: 8px;
         }
         .qty-btn {
-            width: 48px; height: 48px; border-radius: 50%; border: 1px solid #d1d5db;
+            width: 48px; height: 48px; border-radius: 50%; border: 1.5px solid var(--warm-sand);
             background: #fff; cursor: pointer; font-size: 1.2rem; font-weight: 700;
             display: flex; align-items: center; justify-content: center;
             transition: all 0.2s; color: var(--text-dark); font-family: inherit;
@@ -498,11 +503,11 @@
         }
 
         .submit-order {
-            width: 100%; padding: 16px; border: none; border-radius: 12px;
-            background: var(--green); color: #000; font-size: 1.1rem; font-weight: 700;
+            width: 100%; padding: 16px; border: none; border-radius: 50px;
+            background: var(--green); color: #fff; font-size: 1.1rem; font-weight: 700;
             cursor: pointer; transition: all 0.3s; margin-top: 20px; font-family: inherit;
         }
-        .submit-order:hover { background: #4ade80; }
+        .submit-order:hover { background: var(--green-dark); }
         .submit-order:disabled { background: #d1d5db; cursor: not-allowed; }
 
         /* ═══════════════════════════════════════ */
@@ -543,7 +548,16 @@
             background: var(--green-deep); color: rgba(255,255,255,0.7);
             padding: 40px 24px; text-align: center; font-size: 0.85rem;
         }
-        .footer a { color: #86efac; text-decoration: none; }
+        .footer a { color: #a7f3d0; text-decoration: none; }
+        .back-to-top {
+            position: fixed; bottom: 24px; right: 24px; width: 48px; height: 48px;
+            border-radius: 50%; background: var(--green-deep); color: #fff; border: none;
+            font-size: 1.1rem; cursor: pointer; box-shadow: var(--shadow-md);
+            opacity: 0; visibility: hidden; transition: all 0.3s; z-index: 999;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .back-to-top.visible { opacity: 1; visibility: visible; }
+        .back-to-top:hover { background: var(--green-dark); transform: translateY(-2px); }
         .footer-links { display: flex; gap: 24px; justify-content: center; margin-bottom: 12px; flex-wrap: wrap; }
 
         /* ═══════════════════════════════════════ */
@@ -562,11 +576,11 @@
         .sticky-cart-count { background: var(--green); color: #000; font-weight: 800; border-radius: 20px; padding: 4px 12px; font-size: 0.85rem; }
         .sticky-cart-total { font-weight: 700; font-size: 1.1rem; }
         .sticky-cart-cta {
-            background: var(--green); color: #000; font-weight: 700; border: none;
+            background: var(--green); color: #fff; font-weight: 700; border: none;
             padding: 10px 24px; border-radius: 50px; cursor: pointer; font-size: 0.95rem;
             transition: all 0.2s; font-family: inherit;
         }
-        .sticky-cart-cta:hover { background: #4ade80; }
+        .sticky-cart-cta:hover { background: var(--green-dark); }
 
         /* ═══════════════════════════════════════ */
         /* FORM VALIDATION STATES */
@@ -577,11 +591,11 @@
 
         /* Clear order button */
         .clear-order-btn {
-            background: none; border: 1px solid #d1d5db; border-radius: 8px;
-            padding: 6px 14px; font-size: 0.8rem; color: var(--text-muted);
-            cursor: pointer; transition: all 0.2s; font-family: inherit;
+            background: none; border: 1px solid var(--red-hot); border-radius: 8px;
+            padding: 6px 14px; font-size: 0.8rem; color: var(--red-hot);
+            cursor: pointer; transition: all 0.2s; font-family: inherit; font-weight: 600;
         }
-        .clear-order-btn:hover { border-color: var(--red-hot); color: var(--red-hot); }
+        .clear-order-btn:hover { background: var(--red-hot); color: #fff; }
 
         /* Order category headers */
         .order-category-header {
@@ -615,7 +629,7 @@
         /* MEET YOUR FARMER SECTION               */
         /* ═══════════════════════════════════════ */
         .farmer-section {
-            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 50%, #f0fdf4 100%);
+            background: var(--warm-cream);
             color: var(--text-dark);
             padding: 60px 24px;
         }
@@ -631,15 +645,15 @@
             width: 180px;
             height: 180px;
             border-radius: 50%;
-            background: var(--green);
+            background: var(--warm-sand);
             display: flex;
             align-items: center;
             justify-content: center;
             font-family: 'Playfair Display', serif;
             font-size: 3.5rem;
             font-weight: 900;
-            color: #fff;
-            box-shadow: 0 10px 40px rgba(34, 197, 94, 0.3);
+            color: var(--green-deep);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
             border: 5px solid #fff;
             margin: 0 auto;
         }
@@ -739,7 +753,7 @@
         }
         .bundle-card {
             background: #fff;
-            border-radius: 16px;
+            border-radius: var(--radius);
             padding: 20px;
             box-shadow: var(--shadow-md);
             border: 2px solid transparent;
@@ -815,9 +829,9 @@
             width: 100%;
             padding: 14px;
             background: var(--green);
-            color: #000;
+            color: #fff;
             border: none;
-            border-radius: 10px;
+            border-radius: 50px;
             font-weight: 700;
             font-size: 0.95rem;
             cursor: pointer;
@@ -847,7 +861,7 @@
             margin-top: 4px;
         }
         .difficulty-easy {
-            background: #f0fdf4;
+            background: var(--green-tint);
             color: #166534;
         }
         .difficulty-moderate {
@@ -875,11 +889,11 @@
         }
         .beginner-filter-btn.active {
             background: var(--green);
-            color: #000;
+            color: #fff;
             border-color: var(--green);
         }
         .beginner-filter-btn:hover:not(.active) {
-            background: #f0fdf4;
+            background: var(--green-tint);
         }
 
         /* ═══════════════════════════════════════ */
@@ -1250,7 +1264,7 @@
         }
         .variety-card-illustration {
             object-fit: contain;
-            background: linear-gradient(135deg, #fefce8 0%, #f0fdf4 100%);
+            background: var(--warm-cream);
             padding: 8px;
         }
         .variety-card-image-placeholder {
@@ -1454,6 +1468,7 @@
             <span><i class="fas fa-map-pin"></i> <strong>5 pickup locations</strong></span>
         </div>
         <a href="#order" class="cta-btn"><i class="fas fa-shopping-cart"></i> Reserve Your Seedlings</a>
+        <p style="margin-top:12px; font-size:0.9rem; color:rgba(255,255,255,0.75); font-weight:600;">$6 each · 4 for $20 · 15% off 10+ plants</p>
         <p class="hero-trust">Tiny Seed Farm — Serving Pittsburgh-area gardeners since 2017</p>
     </div>
 </header>
@@ -1640,33 +1655,33 @@
     <div class="container">
         <h2 class="section-title" id="order-heading" style="text-align:center;">Reserve Your Seedlings</h2>
         <p class="section-subtitle" style="text-align:center;">$6 each · 4 for $20 · 15% off orders of 10+ seedlings</p>
-        <form class="order-form" id="presaleForm" onsubmit="submitPresaleOrder(event)" novalidate>
+        <form class="order-form" id="presaleForm" method="post" onsubmit="submitPresaleOrder(event)" novalidate>
             <div class="form-row">
                 <div class="form-group">
                     <label for="orderFirstName">First Name</label>
-                    <input type="text" id="orderFirstName" placeholder="Your first name" required autocomplete="given-name">
+                    <input type="text" id="orderFirstName" name="firstName" placeholder="Your first name" required autocomplete="given-name">
                     <div class="form-error" id="firstNameError">Please enter your first name.</div>
                 </div>
                 <div class="form-group">
                     <label for="orderLastName">Last Name</label>
-                    <input type="text" id="orderLastName" placeholder="Your last name" required autocomplete="family-name">
+                    <input type="text" id="orderLastName" name="lastName" placeholder="Your last name" required autocomplete="family-name">
                     <div class="form-error" id="lastNameError">Please enter your last name.</div>
                 </div>
             </div>
             <div class="form-row">
                 <div class="form-group">
                     <label for="orderEmail">Email</label>
-                    <input type="email" id="orderEmail" placeholder="you@email.com" required autocomplete="email">
+                    <input type="email" id="orderEmail" name="email" placeholder="you@email.com" required autocomplete="email">
                     <div class="form-error" id="emailError">Please enter a valid email address.</div>
                 </div>
                 <div class="form-group">
                     <label for="orderPhone">Phone <span style="color:var(--text-muted); font-weight:400; font-size:0.8rem;">(optional)</span></label>
-                    <input type="tel" id="orderPhone" placeholder="(412) 555-1234" autocomplete="tel">
+                    <input type="tel" id="orderPhone" name="phone" placeholder="(412) 555-1234" autocomplete="tel">
                 </div>
             </div>
             <div class="form-group">
                 <label for="orderPickup">Preferred Pickup Location</label>
-                <select id="orderPickup" required>
+                <select id="orderPickup" name="pickup" required>
                     <option value="">Choose your pickup spot...</option>
                     <option value="Bloomfield">Bloomfield Market — May 3 & 10 (Sat)</option>
                     <option value="Lawrenceville">Lawrenceville Market — Apr 29 & May 6 (Tue)</option>
@@ -1683,9 +1698,9 @@
             </div>
 
             <!-- STARTER BUNDLES — quick curated selections first -->
-            <h4 style="font-size:0.9rem; color:var(--green-dark); margin:16px 0 8px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">
+            <h3 style="font-size:0.9rem; color:var(--green-dark); margin:16px 0 8px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">
                 <i class="fas fa-box-open" style="margin-right:4px;"></i> Starter Bundles — Save More
-            </h4>
+            </h3>
             <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:12px;">Curated collections for instant garden success. One tap to add.</p>
             <div class="bundles-grid" id="bundlesGrid">
                 <!-- Salsa Garden -->
@@ -1743,9 +1758,9 @@
             </div>
 
             <!-- INDIVIDUAL SEEDLINGS — custom selection -->
-            <h4 style="font-size:0.9rem; color:var(--green-dark); margin:28px 0 8px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">
+            <h3 style="font-size:0.9rem; color:var(--green-dark); margin:28px 0 8px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">
                 <i class="fas fa-seedling" style="margin-right:4px;"></i> Individual Seedlings
-            </h4>
+            </h3>
             <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:16px;">Use + and − to select quantities. Tap a category header to collapse/expand.</p>
 
             <div id="orderItems">
@@ -1877,6 +1892,7 @@
     </div>
 </div>
 
+<button class="back-to-top" id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="Back to top"><i class="fas fa-arrow-up"></i></button>
 <footer class="footer">
     <img src="images/tiny-seed-farm-logo-final.png" alt="Tiny Seed Farm" style="width:80px; margin-bottom:12px; opacity:0.7;">
     <div class="footer-links">
@@ -1943,10 +1959,10 @@ function getDifficulty(name) {
 
 function getDifficultyBadge(name) {
     var d = getDifficulty(name);
-    if (d === 'easy') return '<span class="difficulty-badge difficulty-easy"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#22c55e;margin-right:4px;vertical-align:middle;"></span> Easy to Grow</span>';
+    if (d === 'easy') return '<span class="difficulty-badge difficulty-easy"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#2d9f4e;margin-right:4px;vertical-align:middle;"></span> Easy to Grow</span>';
     if (d === 'moderate') return '<span class="difficulty-badge difficulty-moderate"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#eab308;margin-right:4px;vertical-align:middle;"></span> Moderate</span>';
     if (d === 'expert') return '<span class="difficulty-badge difficulty-expert"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#ef4444;margin-right:4px;vertical-align:middle;"></span> Expert</span>';
-    return '<span class="difficulty-badge difficulty-easy"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#22c55e;margin-right:4px;vertical-align:middle;"></span> Easy to Grow</span>';
+    return '<span class="difficulty-badge difficulty-easy"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#2d9f4e;margin-right:4px;vertical-align:middle;"></span> Easy to Grow</span>';
 }
 
 // ═══════════════════════════════════════
@@ -2036,6 +2052,13 @@ document.addEventListener('DOMContentLoaded', function() {
     setupHeaderScroll();
     initCountdown();
     setupMobileCartSwipe();
+    // Back-to-top button
+    var btt = document.getElementById('backToTop');
+    if (btt) {
+        window.addEventListener('scroll', function() {
+            btt.classList.toggle('visible', window.scrollY > 500);
+        }, { passive: true });
+    }
 });
 
 // ═══════════════════════════════════════
@@ -2215,8 +2238,8 @@ function renderCatalogCards() {
     var html = '';
 
     // Starter Bundles — always shown at top of catalog
-    html += '<h4 style="font-size:0.9rem; color:var(--green-dark); margin:0 0 8px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">';
-    html += '<i class="fas fa-box-open" style="margin-right:4px;"></i> Starter Bundles — Save More</h4>';
+    html += '<h3 style="font-size:0.9rem; color:var(--green-dark); margin:0 0 8px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">';
+    html += '<i class="fas fa-box-open" style="margin-right:4px;"></i> Starter Bundles — Save More</h3>';
     html += '<p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:12px;">Curated collections for instant garden success. One tap to add.</p>';
     html += '<div class="bundles-grid" style="margin-bottom:32px;">';
     html += '<div class="bundle-card">';
@@ -2243,8 +2266,8 @@ function renderCatalogCards() {
     html += '</div>';
 
     // Subheading for individual seedlings
-    html += '<h4 style="font-size:0.9rem; color:var(--green-dark); margin:0 0 12px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">';
-    html += '<i class="fas fa-seedling" style="margin-right:4px;"></i> Individual Seedlings</h4>';
+    html += '<h3 style="font-size:0.9rem; color:var(--green-dark); margin:0 0 12px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">';
+    html += '<i class="fas fa-seedling" style="margin-right:4px;"></i> Individual Seedlings</h3>';
 
     if (beginnerFilterActive) {
         // Beginner mode: single grid with only easy varieties
@@ -2432,7 +2455,7 @@ function renderOrderItems() {
         var qty = quantities[v.name] || 0;
         var escapedName = v.name.replace(/'/g, "\\'");
         var soldOut = v.available != null && v.available <= 0;
-        html += '<div class="order-item-row"' + (qty > 0 ? ' style="background:rgba(34,197,94,0.05);"' : '') + (soldOut ? ' style="opacity:0.5;"' : '') + '>';
+        html += '<div class="order-item-row"' + (qty > 0 ? ' style="background:rgba(45,159,78,0.05);"' : '') + (soldOut ? ' style="opacity:0.5;"' : '') + '>';
         html += '  <div><span class="order-item-name">' + escapeHtml(v.name) + '</span> <span class="order-item-price">$' + v.price.toFixed(2) + ' ea \u00b7 4/$20</span>';
         if (soldOut) html += ' <span style="color:var(--red-hot); font-size:0.75rem; font-weight:600;">SOLD OUT</span>';
         html += '</div>';
@@ -2569,7 +2592,7 @@ function updateTotal() {
     } else if (order.totalPlants >= 10) {
         warning.innerHTML = '<i class="fas fa-check-circle"></i> 15% bulk discount applied! You saved $' + order.discount.toFixed(2);
         warning.style.display = 'block';
-        warning.style.background = '#f0fdf4';
+        warning.style.background = '#dcfce7';
         warning.style.color = 'var(--green-dark)';
     } else {
         warning.style.display = 'none';
@@ -2911,7 +2934,7 @@ function showConfirmation(customerName, email, pickup, orderCalc, hadPartialFail
 
     var html = '';
     html += '<div style="text-align:center; padding:40px 20px;">';
-    html += '<div style="width:80px; height:80px; border-radius:50%; background:#f0fdf4; display:flex; align-items:center; justify-content:center; margin:0 auto 20px;">';
+    html += '<div style="width:80px; height:80px; border-radius:50%; background:#dcfce7; display:flex; align-items:center; justify-content:center; margin:0 auto 20px;">';
     html += '<i class="fas fa-check-circle" style="font-size:3rem; color:var(--green);"></i>';
     html += '</div>';
     html += '<h3 style="font-family:\'Playfair Display\',serif; font-size:1.5rem; color:var(--text-dark); margin-bottom:8px;">Order Confirmed!</h3>';
@@ -2924,13 +2947,13 @@ function showConfirmation(customerName, email, pickup, orderCalc, hadPartialFail
 
     // Invoice info
     if (hasInvoice) {
-        html += '<div style="background:#f0fdf4; border:1px solid var(--green); border-radius:12px; padding:16px; max-width:400px; margin:0 auto 16px;">';
+        html += '<div style="background:#dcfce7; border:1px solid var(--green); border-radius:12px; padding:16px; max-width:400px; margin:0 auto 16px;">';
         html += '<p style="font-size:0.9rem; color:var(--green-dark); margin-bottom:8px;"><i class="fas fa-file-invoice-dollar"></i> <strong>Invoice sent to ' + escapeHtml(email) + '</strong></p>';
         html += '<a href="' + escapeHtml(invoiceUrl) + '" target="_blank" style="display:inline-block; background:var(--green); color:#000; padding:10px 24px; border-radius:50px; font-weight:700; text-decoration:none; font-size:0.9rem;">';
         html += '<i class="fas fa-credit-card"></i> Pay Now</a>';
         html += '</div>';
     } else if (warnings) {
-        html += '<div style="background:#ffffff; border:1px solid #22c55e; border-radius:12px; padding:16px; max-width:400px; margin:0 auto 16px;">';
+        html += '<div style="background:#ffffff; border:1px solid #2d9f4e; border-radius:12px; padding:16px; max-width:400px; margin:0 auto 16px;">';
         html += '<p style="font-size:0.85rem; color:#92400e;"><i class="fas fa-info-circle"></i> Your order was recorded. We\'ll send payment instructions to <strong>' + escapeHtml(email) + '</strong> shortly.</p>';
         html += '</div>';
     }
