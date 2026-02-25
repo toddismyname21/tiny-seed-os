@@ -176,7 +176,7 @@
             background: linear-gradient(180deg, rgba(22, 101, 52, 0.7), rgba(22, 101, 52, 0.85)),
                         url('https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=1600&q=80') center/cover no-repeat;
             color: #fff;
-            padding: 100px 24px 160px;
+            padding: 100px 24px 60px;
             text-align: center;
             position: relative;
             overflow: hidden;
@@ -188,7 +188,7 @@
 
         @media (max-width: 768px) {
             .hero {
-                padding: 80px 20px 140px;
+                padding: 80px 20px 40px;
                 min-height: 75vh;
             }
         }
@@ -232,50 +232,51 @@
         .hero-trust { margin-top: 24px; font-size: 0.8rem; color: rgba(255,255,255,0.5); }
 
         /* ═══════════════════════════════════════ */
-        /* SEEDLING OVERLAY — sits ON the wave arc */
-        /* Each seedling's translateY follows the  */
-        /* SVG curve so they ride the arc shape     */
+        /* SEEDLING ROW — straddles hero/benefits    */
+        /* Negative margins pull it up into hero and  */
+        /* let benefits overlap bottom half.           */
+        /* No white strip — hero flows into tan.       */
         /* ═══════════════════════════════════════ */
         .seedling-overlay {
-            position: absolute;
-            top: -240px;
-            left: 0;
-            right: 0;
-            z-index: 4;
             display: flex;
             justify-content: space-evenly;
-            align-items: flex-end;
-            padding: 0 20px;
+            align-items: center;
+            height: 240px;
+            margin-top: -120px;
+            margin-bottom: -120px;
+            position: relative;
+            z-index: 10;
             pointer-events: none;
+            padding: 0 20px;
         }
         .seedling-overlay img {
             width: 240px;
             height: 240px;
             object-fit: contain;
-            filter: drop-shadow(0 6px 20px rgba(0,0,0,0.25));
+            filter: drop-shadow(0 4px 12px rgba(0,0,0,0.2));
         }
         /* Rotation: 0 → 5L → 10L → 5L → 0 → 5R → 10R → 5R */
-        /* TranslateY follows the SVG wave curve */
-        .seedling-overlay img:nth-child(1) { transform: translateY(11px) rotate(0deg); }
-        .seedling-overlay img:nth-child(2) { transform: translateY(40px) rotate(-5deg); }
-        .seedling-overlay img:nth-child(3) { transform: translateY(64px) rotate(-10deg); }
-        .seedling-overlay img:nth-child(4) { transform: translateY(75px) rotate(-5deg); }
-        .seedling-overlay img:nth-child(5) { transform: translateY(56px) rotate(0deg); }
-        .seedling-overlay img:nth-child(6) { transform: translateY(43px) rotate(5deg); }
-        .seedling-overlay img:nth-child(7) { transform: translateY(19px) rotate(10deg); }
-        .seedling-overlay img:nth-child(8) { transform: translateY(3px) rotate(5deg); }
+        /* Gentle curve so edges sit slightly higher, center dips */
+        .seedling-overlay img:nth-child(1) { transform: translateY(-16px) rotate(0deg); }
+        .seedling-overlay img:nth-child(2) { transform: translateY(-6px) rotate(-5deg); }
+        .seedling-overlay img:nth-child(3) { transform: translateY(6px) rotate(-10deg); }
+        .seedling-overlay img:nth-child(4) { transform: translateY(12px) rotate(-5deg); }
+        .seedling-overlay img:nth-child(5) { transform: translateY(8px) rotate(0deg); }
+        .seedling-overlay img:nth-child(6) { transform: translateY(-2px) rotate(5deg); }
+        .seedling-overlay img:nth-child(7) { transform: translateY(-12px) rotate(10deg); }
+        .seedling-overlay img:nth-child(8) { transform: translateY(-18px) rotate(5deg); }
         @media (max-width: 1024px) {
+            .seedling-overlay { height: 190px; margin-top: -95px; margin-bottom: -95px; }
             .seedling-overlay img { width: 190px; height: 190px; }
-            .seedling-overlay { top: -190px; }
         }
         @media (max-width: 768px) {
+            .seedling-overlay { height: 140px; margin-top: -70px; margin-bottom: -70px; }
             .seedling-overlay img { width: 140px; height: 140px; }
-            .seedling-overlay { top: -140px; }
             .seedling-overlay img:nth-child(n+7) { display: none; }
         }
         @media (max-width: 480px) {
+            .seedling-overlay { height: 100px; margin-top: -50px; margin-bottom: -50px; padding: 0 8px; }
             .seedling-overlay img { width: 100px; height: 100px; }
-            .seedling-overlay { top: -100px; padding: 0 8px; }
             .seedling-overlay img:nth-child(n+6) { display: none; }
         }
 
@@ -294,7 +295,7 @@
         /* ═══════════════════════════════════════ */
         /* WHY PRE-ORDER */
         /* ═══════════════════════════════════════ */
-        .benefits { background: var(--warm-cream); position: relative; z-index: 1; }
+        .benefits { background: var(--warm-cream); position: relative; z-index: 1; padding-top: 140px; }
         .benefits-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; }
         .benefit-card {
             background: #fff; border-radius: var(--radius); padding: 24px;
@@ -531,70 +532,598 @@
         }
 
         /* ═══════════════════════════════════════ */
-        /* MEET THE FARMER SECTION                */
+        /* MEET YOUR FARMER SECTION               */
         /* ═══════════════════════════════════════ */
         .farmer-section {
-            background: linear-gradient(135deg, var(--green-deep) 0%, #1a472a 100%);
-            color: #fff;
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 50%, #f0fdf4 100%);
+            color: var(--text-dark);
             padding: 60px 24px;
         }
         .farmer-grid {
             display: grid;
-            grid-template-columns: 280px 1fr;
+            grid-template-columns: 200px 1fr;
             gap: 40px;
             align-items: center;
             max-width: 900px;
             margin: 0 auto;
         }
-        .farmer-photo {
-            width: 280px;
-            height: 280px;
+        .farmer-avatar {
+            width: 180px;
+            height: 180px;
             border-radius: 50%;
-            object-fit: cover;
-            border: 4px solid rgba(255,255,255,0.3);
-            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
-        }
-        .farmer-photo-placeholder {
-            width: 280px;
-            height: 280px;
-            border-radius: 50%;
-            background: rgba(255,255,255,0.1);
-            border: 4px dashed rgba(255,255,255,0.3);
+            background: var(--green);
             display: flex;
             align-items: center;
             justify-content: center;
-            flex-direction: column;
-            gap: 8px;
-            color: rgba(255,255,255,0.5);
-            font-size: 0.85rem;
+            font-family: 'Playfair Display', serif;
+            font-size: 3.5rem;
+            font-weight: 900;
+            color: #fff;
+            box-shadow: 0 10px 40px rgba(34, 197, 94, 0.3);
+            border: 5px solid #fff;
+            margin: 0 auto;
         }
-        .farmer-photo-placeholder i { font-size: 3rem; }
         .farmer-content h2 {
             font-family: 'Playfair Display', serif;
             font-size: 2rem;
+            margin-bottom: 4px;
+            color: var(--green-deep);
+        }
+        .farmer-content .farmer-tagline {
+            font-size: 0.95rem;
+            color: var(--text-muted);
             margin-bottom: 16px;
         }
         .farmer-content p {
-            font-size: 1.05rem;
+            font-size: 1rem;
             line-height: 1.7;
-            color: rgba(255,255,255,0.85);
+            color: var(--text-body);
+            margin-bottom: 12px;
+        }
+        .farmer-contact {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.9rem;
+            color: var(--green-dark);
+            font-weight: 600;
             margin-bottom: 16px;
+        }
+        .farmer-contact a {
+            color: var(--green-dark);
+            text-decoration: none;
+        }
+        .farmer-contact a:hover {
+            text-decoration: underline;
+        }
+        .farmer-trust-stats {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-top: 16px;
+        }
+        .farmer-trust-stat {
+            background: #fff;
+            border-radius: 50px;
+            padding: 8px 18px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--green-deep);
+            box-shadow: var(--shadow-sm);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
         }
         .farmer-signature {
             font-family: 'Playfair Display', serif;
             font-size: 1.5rem;
             font-style: italic;
-            color: #86efac;
+            color: var(--green-dark);
         }
         @media (max-width: 768px) {
             .farmer-grid {
                 grid-template-columns: 1fr;
                 text-align: center;
             }
-            .farmer-photo, .farmer-photo-placeholder {
-                width: 200px;
-                height: 200px;
-                margin: 0 auto;
+            .farmer-avatar {
+                width: 140px;
+                height: 140px;
+                font-size: 2.8rem;
+            }
+            .farmer-trust-stats {
+                justify-content: center;
+            }
+            .farmer-contact {
+                justify-content: center;
+            }
+        }
+
+        /* ═══════════════════════════════════════ */
+        /* COUNTDOWN TIMER                         */
+        /* ═══════════════════════════════════════ */
+        .countdown-bar {
+            background: var(--green-deep);
+            color: #fff;
+            text-align: center;
+            padding: 16px 24px;
+            font-size: 1rem;
+            font-weight: 600;
+            position: relative;
+            z-index: 3;
+        }
+        .countdown-bar .countdown-label {
+            font-size: 0.85rem;
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 4px;
+        }
+        .countdown-numbers {
+            display: inline-flex;
+            gap: 16px;
+            align-items: center;
+        }
+        .countdown-unit {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .countdown-value {
+            font-size: 1.6rem;
+            font-weight: 900;
+            color: #86efac;
+            line-height: 1.2;
+        }
+        .countdown-label-small {
+            font-size: 0.7rem;
+            color: rgba(255,255,255,0.6);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .countdown-separator {
+            font-size: 1.4rem;
+            color: rgba(255,255,255,0.4);
+            font-weight: 700;
+            margin-top: -8px;
+        }
+        .countdown-expired {
+            color: #fbbf24;
+            font-weight: 700;
+        }
+
+        /* ═══════════════════════════════════════ */
+        /* STARTER GARDEN BUNDLES                  */
+        /* ═══════════════════════════════════════ */
+        .bundles-section {
+            background: var(--warm-cream);
+            padding: 60px 24px;
+        }
+        .bundles-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        .bundle-card {
+            background: #fff;
+            border-radius: 16px;
+            padding: 28px;
+            box-shadow: var(--shadow-md);
+            border: 2px solid transparent;
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+        .bundle-card:hover {
+            border-color: var(--green);
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-lg);
+        }
+        .bundle-card .bundle-name {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: var(--text-dark);
+            margin-bottom: 6px;
+        }
+        .bundle-card .bundle-desc {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            font-style: italic;
+            margin-bottom: 16px;
+            line-height: 1.5;
+        }
+        .bundle-card .bundle-items {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 16px;
+        }
+        .bundle-card .bundle-items li {
+            font-size: 0.88rem;
+            color: var(--text-body);
+            padding: 4px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .bundle-card .bundle-items li::before {
+            content: '\f4d8';
+            font-family: 'Font Awesome 5 Free';
+            font-weight: 900;
+            color: var(--green);
+            font-size: 0.75rem;
+        }
+        .bundle-pricing {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .bundle-price {
+            font-size: 1.5rem;
+            font-weight: 900;
+            color: var(--green-dark);
+        }
+        .bundle-savings {
+            background: #fef3c7;
+            color: #b45309;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-weight: 700;
+        }
+        .bundle-add-btn {
+            width: 100%;
+            padding: 14px;
+            background: var(--green);
+            color: #000;
+            border: none;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .bundle-add-btn:hover {
+            background: var(--green-dark);
+            color: #fff;
+        }
+
+        /* ═══════════════════════════════════════ */
+        /* DIFFICULTY BADGES                       */
+        /* ═══════════════════════════════════════ */
+        .difficulty-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            padding: 3px 10px;
+            border-radius: 20px;
+            margin-top: 4px;
+        }
+        .difficulty-easy {
+            background: #f0fdf4;
+            color: #166534;
+        }
+        .difficulty-moderate {
+            background: #fffbeb;
+            color: #92400e;
+        }
+        .difficulty-expert {
+            background: #fef2f2;
+            color: #991b1b;
+        }
+        .beginner-filter-btn {
+            padding: 8px 18px;
+            border-radius: 30px;
+            border: 2px solid var(--green);
+            background: #fff;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--green-dark);
+            font-family: inherit;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .beginner-filter-btn.active {
+            background: var(--green);
+            color: #000;
+            border-color: var(--green);
+        }
+        .beginner-filter-btn:hover:not(.active) {
+            background: #f0fdf4;
+        }
+
+        /* ═══════════════════════════════════════ */
+        /* ORDER PREVIEW MODAL                     */
+        /* ═══════════════════════════════════════ */
+        .order-preview-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .order-preview-box {
+            background: #fff;
+            border-radius: 16px;
+            padding: 32px;
+            max-width: 520px;
+            width: 100%;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.2);
+        }
+        .order-preview-box h3 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.3rem;
+            margin-bottom: 16px;
+            color: var(--text-dark);
+        }
+        .preview-item-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #f3f4f6;
+            font-size: 0.9rem;
+        }
+        .preview-item-name {
+            flex: 1;
+            color: var(--text-dark);
+        }
+        .preview-item-qty {
+            color: var(--text-muted);
+            min-width: 30px;
+            text-align: center;
+        }
+        .preview-item-total {
+            font-weight: 600;
+            color: var(--text-dark);
+            min-width: 60px;
+            text-align: right;
+        }
+        .preview-summary {
+            margin-top: 16px;
+            padding-top: 12px;
+            border-top: 2px solid var(--green);
+        }
+        .preview-summary-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            font-size: 0.9rem;
+            color: var(--text-body);
+        }
+        .preview-summary-row.total {
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: var(--text-dark);
+            padding-top: 8px;
+        }
+        .preview-customer {
+            background: #f9fafb;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-top: 16px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+        .preview-customer strong {
+            color: var(--text-dark);
+        }
+        .preview-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+        .preview-edit-btn {
+            flex: 1;
+            padding: 14px;
+            background: transparent;
+            color: var(--text-dark);
+            border: 2px solid #d1d5db;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .preview-edit-btn:hover {
+            border-color: var(--text-dark);
+        }
+        .preview-confirm-btn {
+            flex: 1;
+            padding: 14px;
+            background: var(--green);
+            color: #000;
+            border: none;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .preview-confirm-btn:hover {
+            background: var(--green-dark);
+            color: #fff;
+        }
+
+        /* ═══════════════════════════════════════ */
+        /* MOBILE BOTTOM SHEET CART                */
+        /* ═══════════════════════════════════════ */
+        @media (max-width: 767px) {
+            .sticky-cart { display: none !important; }
+            .mobile-cart-overlay {
+                position: fixed;
+                top: 0; left: 0; right: 0; bottom: 0;
+                background: rgba(0,0,0,0.4);
+                z-index: 9998;
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 0.3s ease;
+            }
+            .mobile-cart-overlay.visible {
+                opacity: 1;
+                pointer-events: auto;
+            }
+            .mobile-cart-sheet {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                z-index: 9999;
+                background: #fff;
+                border-radius: 20px 20px 0 0;
+                box-shadow: 0 -10px 40px rgba(0,0,0,0.2);
+                transform: translateY(100%);
+                transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+                max-height: 75vh;
+                overflow: hidden;
+                display: flex;
+                flex-direction: column;
+            }
+            .mobile-cart-sheet.expanded {
+                transform: translateY(0);
+            }
+            .mobile-cart-collapsed {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                z-index: 9997;
+                background: var(--green-deep);
+                color: #fff;
+                padding: 14px 20px calc(14px + env(safe-area-inset-bottom, 0px));
+                display: none;
+                align-items: center;
+                justify-content: space-between;
+                cursor: pointer;
+                box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+            }
+            .mobile-cart-collapsed.visible {
+                display: flex;
+            }
+            .mobile-cart-collapsed-left {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                font-weight: 600;
+                font-size: 0.95rem;
+            }
+            .mobile-cart-collapsed-badge {
+                background: var(--green);
+                color: #000;
+                font-weight: 800;
+                border-radius: 20px;
+                padding: 3px 10px;
+                font-size: 0.8rem;
+            }
+            .mobile-cart-collapsed-cta {
+                background: var(--green);
+                color: #000;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 50px;
+                font-weight: 700;
+                font-size: 0.85rem;
+                cursor: pointer;
+                font-family: inherit;
+            }
+            .mobile-cart-sheet-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 16px 20px;
+                border-bottom: 1px solid #f3f4f6;
+                flex-shrink: 0;
+            }
+            .mobile-cart-sheet-header h3 {
+                font-family: 'Playfair Display', serif;
+                font-size: 1.1rem;
+                color: var(--text-dark);
+                margin: 0;
+            }
+            .mobile-cart-sheet-close {
+                width: 36px;
+                height: 36px;
+                border-radius: 50%;
+                background: #f3f4f6;
+                border: none;
+                font-size: 1.1rem;
+                color: var(--text-muted);
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .mobile-cart-sheet-body {
+                overflow-y: auto;
+                flex: 1;
+                padding: 12px 20px;
+            }
+            .mobile-cart-sheet-item {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 10px 0;
+                border-bottom: 1px solid #f3f4f6;
+                font-size: 0.9rem;
+            }
+            .mobile-cart-sheet-footer {
+                padding: 16px 20px calc(16px + env(safe-area-inset-bottom, 0px));
+                border-top: 2px solid var(--green);
+                flex-shrink: 0;
+                background: #fff;
+            }
+            .mobile-cart-sheet-total {
+                display: flex;
+                justify-content: space-between;
+                font-size: 1.1rem;
+                font-weight: 800;
+                color: var(--text-dark);
+                margin-bottom: 12px;
+            }
+            .mobile-cart-checkout-btn {
+                width: 100%;
+                padding: 16px;
+                background: var(--green);
+                color: #000;
+                border: none;
+                border-radius: 12px;
+                font-weight: 700;
+                font-size: 1rem;
+                cursor: pointer;
+                font-family: inherit;
+            }
+            .mobile-cart-checkout-btn:hover {
+                background: var(--green-dark);
+                color: #fff;
+            }
+            .mobile-cart-drag-handle {
+                width: 40px;
+                height: 4px;
+                background: #d1d5db;
+                border-radius: 2px;
+                margin: 8px auto 0;
+            }
+        }
+        @media (min-width: 768px) {
+            .mobile-cart-overlay,
+            .mobile-cart-sheet,
+            .mobile-cart-collapsed {
+                display: none !important;
             }
         }
 
@@ -866,23 +1395,34 @@
     </div>
 </header>
 
-<!-- SVG Wave Divider: overlaps hero so photo extends to arc bottom -->
-<div style="margin-top: -80px; line-height: 0; position: relative; z-index: 2;">
-    <svg viewBox="0 0 1440 60" preserveAspectRatio="none" style="display:block; width:100%; height:80px;" xmlns="http://www.w3.org/2000/svg">
-        <path d="M0,0 C360,50 720,60 1080,30 C1260,15 1380,5 1440,0 L1440,60 L0,60 Z" fill="#ffffff"/>
-        <path d="M0,20 C240,55 600,60 960,35 C1200,18 1380,10 1440,15 L1440,60 L0,60 Z" fill="#ffffff" opacity="0.5"/>
-    </svg>
-    <!-- Seedlings sitting directly on the arc, following the wave curve -->
-    <div class="seedling-overlay" aria-hidden="true">
-        <img src="images/seedlings/tomato-card.png" alt="">
-        <img src="images/seedlings/basil-card.png" alt="">
-        <img src="images/seedlings/pepper-card.png" alt="">
-        <img src="images/seedlings/chard-card.png" alt="">
-        <img src="images/seedlings/sage-card.png" alt="">
-        <img src="images/seedlings/parsley-card.png" alt="">
-        <img src="images/seedlings/mint-card.png" alt="">
-        <img src="images/seedlings/broccoli-card.png" alt="">
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- COUNTDOWN TIMER                                              -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="countdown-bar" id="countdownBar">
+    <div class="countdown-label">Presale closes April 15, 2026</div>
+    <div class="countdown-numbers" id="countdownNumbers">
+        <div class="countdown-unit">
+            <span class="countdown-value" id="countdownDays">--</span>
+            <span class="countdown-label-small">Days</span>
+        </div>
+        <span class="countdown-separator">:</span>
+        <div class="countdown-unit">
+            <span class="countdown-value" id="countdownHours">--</span>
+            <span class="countdown-label-small">Hours</span>
+        </div>
     </div>
+</div>
+
+<!-- Seedlings: half over the hero/countdown, half over the tan benefits -->
+<div class="seedling-overlay" aria-hidden="true">
+    <img src="images/seedlings/tomato-card.png" alt="">
+    <img src="images/seedlings/basil-card.png" alt="">
+    <img src="images/seedlings/pepper-card.png" alt="">
+    <img src="images/seedlings/chard-card.png" alt="">
+    <img src="images/seedlings/sage-card.png" alt="">
+    <img src="images/seedlings/parsley-card.png" alt="">
+    <img src="images/seedlings/mint-card.png" alt="">
+    <img src="images/seedlings/broccoli-card.png" alt="">
 </div>
 
 <main id="main-content" role="main">
@@ -920,19 +1460,26 @@
 </section>
 
 <!-- ═══════════════════════════════════════════════════════════ -->
-<!-- MEET THE FARMER                                             -->
+<!-- MEET YOUR FARMER                                            -->
 <!-- ═══════════════════════════════════════════════════════════ -->
 <section class="farmer-section" aria-labelledby="farmer-heading">
     <div class="farmer-grid">
-        <div class="farmer-photo-placeholder" id="farmerPhotoContainer">
-            <i class="fas fa-user"></i>
-            <span>Photo coming soon</span>
-        </div>
+        <div class="farmer-avatar" aria-hidden="true">TW</div>
         <div class="farmer-content">
-            <h2 id="farmer-heading">Meet Todd, Your Farmer</h2>
-            <p>I started Tiny Seed Farm in 2017 with a simple mission: grow the tastiest heirloom vegetables for Pittsburgh families. What began as a backyard experiment has grown into a 5-acre operation in Rochester, PA.</p>
-            <p>Every seedling I sell is one I'd plant in my own garden. I trial dozens of varieties each year and only offer the ones that thrive in our Zone 6b climate with its clay soil and unpredictable springs.</p>
-            <p class="farmer-signature">— Todd</p>
+            <h2 id="farmer-heading">Meet Your Farmer</h2>
+            <p style="font-family:'Playfair Display',serif; font-size:1.4rem; font-weight:800; color:var(--green-deep); margin-bottom:2px;">Todd Wilson</p>
+            <p class="farmer-tagline">Tiny Seed Farm &mdash; Rochester, PA. Serving Pittsburgh-area gardeners since 2017.</p>
+            <p>15+ years growing. I started Tiny Seed Farm with a simple mission: grow the tastiest heirloom vegetables for Pittsburgh families. Every seedling I sell is one I'd plant in my own garden. I trial dozens of varieties each year and only offer the ones that thrive in our Zone 6b climate.</p>
+            <div class="farmer-contact">
+                <i class="fas fa-phone"></i>
+                <a href="tel:7249009498">(724) 900-9498</a>
+            </div>
+            <div class="farmer-trust-stats">
+                <span class="farmer-trust-stat"><i class="fas fa-seedling" style="color:var(--green);"></i> 35+ Varieties</span>
+                <span class="farmer-trust-stat"><i class="fas fa-leaf" style="color:var(--green);"></i> 1,000+ Seedlings Grown</span>
+                <span class="farmer-trust-stat"><i class="fas fa-map-pin" style="color:var(--green);"></i> Local Pickup Only</span>
+            </div>
+            <p class="farmer-signature" style="margin-top:16px;">— Todd</p>
         </div>
     </div>
 </section>
@@ -975,6 +1522,67 @@
                         <div class="testimonial-location">Sewickley</div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- STARTER GARDEN BUNDLES                                       -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section class="bundles-section" id="bundles" aria-labelledby="bundles-heading">
+    <div class="container">
+        <h2 class="section-title" id="bundles-heading" style="text-align:center;">Starter Garden Bundles</h2>
+        <p class="section-subtitle" style="text-align:center;">Curated collections for instant garden success. Save money and skip the guesswork.</p>
+        <div class="bundles-grid" id="bundlesGrid">
+            <!-- Salsa Garden -->
+            <div class="bundle-card">
+                <div class="bundle-name">Salsa Garden</div>
+                <p class="bundle-desc">"Everything you need for fresh salsa all summer long"</p>
+                <ul class="bundle-items">
+                    <li>2x Roma Tomato</li>
+                    <li>1x San Marzano</li>
+                    <li>1x Jalape&ntilde;o</li>
+                    <li>1x Cilantro</li>
+                    <li>1x Onion</li>
+                </ul>
+                <div class="bundle-pricing">
+                    <span class="bundle-price">$28</span>
+                    <span class="bundle-savings">Save $4!</span>
+                </div>
+                <button class="bundle-add-btn" onclick="addBundle('salsa')"><i class="fas fa-plus"></i> Add Bundle</button>
+            </div>
+            <!-- Pizza Garden -->
+            <div class="bundle-card">
+                <div class="bundle-name">Pizza Garden</div>
+                <p class="bundle-desc">"Grow your own pizza toppings &mdash; from garden to pie"</p>
+                <ul class="bundle-items">
+                    <li>2x Roma Tomato</li>
+                    <li>1x Sweet Basil</li>
+                    <li>1x Bell Pepper</li>
+                    <li>1x Oregano</li>
+                </ul>
+                <div class="bundle-pricing">
+                    <span class="bundle-price">$24</span>
+                    <span class="bundle-savings">Save $3!</span>
+                </div>
+                <button class="bundle-add-btn" onclick="addBundle('pizza')"><i class="fas fa-plus"></i> Add Bundle</button>
+            </div>
+            <!-- Flower Power -->
+            <div class="bundle-card">
+                <div class="bundle-name">Flower Power</div>
+                <p class="bundle-desc">"A riot of color from June through October"</p>
+                <ul class="bundle-items">
+                    <li>2x Zinnia</li>
+                    <li>2x Sunflower</li>
+                    <li>2x Marigold</li>
+                    <li>1x Cosmos</li>
+                </ul>
+                <div class="bundle-pricing">
+                    <span class="bundle-price">$30</span>
+                    <span class="bundle-savings">Save $5!</span>
+                </div>
+                <button class="bundle-add-btn" onclick="addBundle('flower')"><i class="fas fa-plus"></i> Add Bundle</button>
             </div>
         </div>
     </div>
@@ -1190,7 +1798,7 @@
 <!-- ═══════════════════════════════════════════════════════════ -->
 </main>
 
-<!-- STICKY CART BAR -->
+<!-- STICKY CART BAR (desktop only) -->
 <div class="sticky-cart" id="stickyCart" aria-live="polite">
     <div class="sticky-cart-info">
         <span class="sticky-cart-count" id="stickyCartCount">0 plants</span>
@@ -1199,6 +1807,35 @@
     <button class="sticky-cart-cta" onclick="document.getElementById('submitOrderBtn').scrollIntoView({behavior:'smooth'})">
         <i class="fas fa-shopping-cart"></i> Complete Order
     </button>
+</div>
+
+<!-- MOBILE BOTTOM SHEET CART (< 768px only) -->
+<div class="mobile-cart-overlay" id="mobileCartOverlay" onclick="collapseMobileCart()"></div>
+<div class="mobile-cart-collapsed" id="mobileCartCollapsed" onclick="expandMobileCart()">
+    <div class="mobile-cart-collapsed-left">
+        <span class="mobile-cart-collapsed-badge" id="mobileCartBadge">0</span>
+        <span id="mobileCartCollapsedTotal">$0.00</span>
+    </div>
+    <button class="mobile-cart-collapsed-cta">View Cart</button>
+</div>
+<div class="mobile-cart-sheet" id="mobileCartSheet">
+    <div class="mobile-cart-drag-handle"></div>
+    <div class="mobile-cart-sheet-header">
+        <h3>Your Cart</h3>
+        <button class="mobile-cart-sheet-close" onclick="collapseMobileCart()" aria-label="Close cart"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="mobile-cart-sheet-body" id="mobileCartBody">
+        <!-- Populated by JS -->
+    </div>
+    <div class="mobile-cart-sheet-footer">
+        <div class="mobile-cart-sheet-total">
+            <span>Total</span>
+            <span id="mobileCartTotal">$0.00</span>
+        </div>
+        <button class="mobile-cart-checkout-btn" onclick="collapseMobileCart(); document.getElementById('submitOrderBtn').scrollIntoView({behavior:'smooth'});">
+            <i class="fas fa-shopping-cart"></i> Checkout
+        </button>
+    </div>
 </div>
 
 <footer class="footer">
@@ -1224,6 +1861,86 @@ var CATEGORIES = []; // unique category names, derived from VARIETIES
 var activeCategory = ''; // slug of the currently shown catalog tab
 var quantities = {};
 var collapsedCategories = {};
+var beginnerFilterActive = false;
+
+// ═══════════════════════════════════════
+// DIFFICULTY MAP
+// ═══════════════════════════════════════
+var DIFFICULTY_MAP = {
+    // Easy (green)
+    'Tomato': 'easy', 'Roma Tomato': 'easy', 'San Marzano': 'easy', 'Cherry Tomato': 'easy',
+    'Sun Gold': 'easy', 'Cherokee Purple': 'easy', 'Brandywine': 'easy', 'Celebrity': 'easy',
+    'Black Krim': 'easy', 'Mortgage Lifter': 'easy', 'Rutgers': 'easy', 'Beefsteak': 'easy',
+    'Cherry Mix': 'easy', 'Lunchbox': 'easy', 'Green Zebra': 'easy',
+    'Basil': 'easy', 'Sweet Basil': 'easy', 'Thai Basil': 'easy', 'Genovese Basil': 'easy',
+    'Mint': 'easy', 'Chives': 'easy',
+    'Marigold': 'easy', 'Zinnia': 'easy', 'Sunflower': 'easy', 'Cosmos': 'easy',
+    'Lettuce': 'easy', 'Kale': 'easy', 'Swiss Chard': 'easy',
+    'Cucumber': 'easy', 'Zucchini': 'easy', 'Squash': 'easy', 'Summer Squash': 'easy',
+    // Moderate (amber)
+    'Pepper': 'moderate', 'Bell Pepper': 'moderate', 'Jalapeño': 'moderate', 'Jalapeno': 'moderate',
+    'Habanero': 'moderate', 'Serrano': 'moderate', 'Poblano': 'moderate',
+    'Cayenne': 'moderate', 'Anaheim': 'moderate', 'Banana Pepper': 'moderate',
+    'Shishito': 'moderate', 'Ghost Pepper': 'moderate', 'Carolina Reaper': 'moderate',
+    'Sweet Pepper': 'moderate', 'Hungarian Hot Wax': 'moderate',
+    'Eggplant': 'moderate', 'Broccoli': 'moderate', 'Cauliflower': 'moderate', 'Cabbage': 'moderate',
+    'Melon': 'moderate', 'Watermelon': 'moderate', 'Cantaloupe': 'moderate',
+    'Cilantro': 'moderate', 'Dill': 'moderate', 'Parsley': 'moderate', 'Oregano': 'moderate',
+    // Expert (red)
+    'Artichoke': 'expert', 'Celery': 'expert', 'Fennel': 'expert', 'Leek': 'expert', 'Onion': 'expert'
+};
+
+function getDifficulty(name) {
+    if (DIFFICULTY_MAP[name]) return DIFFICULTY_MAP[name];
+    for (var key in DIFFICULTY_MAP) {
+        if (name.toLowerCase().indexOf(key.toLowerCase()) !== -1) {
+            return DIFFICULTY_MAP[key];
+        }
+    }
+    return 'easy';
+}
+
+function getDifficultyBadge(name) {
+    var d = getDifficulty(name);
+    if (d === 'easy') return '<span class="difficulty-badge difficulty-easy">\u{1F7E2} Easy to Grow</span>';
+    if (d === 'moderate') return '<span class="difficulty-badge difficulty-moderate">\u{1F7E1} Moderate</span>';
+    if (d === 'expert') return '<span class="difficulty-badge difficulty-expert">\u{1F534} Expert</span>';
+    return '<span class="difficulty-badge difficulty-easy">\u{1F7E2} Easy to Grow</span>';
+}
+
+// ═══════════════════════════════════════
+// BUNDLE DEFINITIONS
+// ═══════════════════════════════════════
+var BUNDLES = {
+    salsa: {
+        name: 'Salsa Garden',
+        items: [
+            { name: 'Roma Tomato', qty: 2 },
+            { name: 'San Marzano', qty: 1 },
+            { name: 'Jalapeño', qty: 1 },
+            { name: 'Cilantro', qty: 1 },
+            { name: 'Onion', qty: 1 }
+        ]
+    },
+    pizza: {
+        name: 'Pizza Garden',
+        items: [
+            { name: 'Roma Tomato', qty: 2 },
+            { name: 'Sweet Basil', qty: 1 },
+            { name: 'Bell Pepper', qty: 1 },
+            { name: 'Oregano', qty: 1 }
+        ]
+    },
+    flower: {
+        name: 'Flower Power',
+        items: [
+            { name: 'Zinnia', qty: 2 },
+            { name: 'Sunflower', qty: 2 },
+            { name: 'Marigold', qty: 2 },
+            { name: 'Cosmos', qty: 1 }
+        ]
+    }
+};
 
 // ═══════════════════════════════════════
 // CATEGORY ICONS — maps category names
@@ -1276,6 +1993,8 @@ document.addEventListener('DOMContentLoaded', function() {
     loadPresaleItems();
     setupInlineValidation();
     setupHeaderScroll();
+    initCountdown();
+    setupMobileCartSwipe();
 });
 
 // ═══════════════════════════════════════
@@ -1423,7 +2142,28 @@ function renderCatalogTabs() {
         html += '</button>';
     }
 
+    // Add beginner filter button
+    html += '<button class="beginner-filter-btn' + (beginnerFilterActive ? ' active' : '') + '" onclick="toggleBeginnerFilter(this)">';
+    html += '<i class="fas fa-star"></i> Best for Beginners';
+    html += '</button>';
+
     nav.innerHTML = html;
+}
+
+// ═══════════════════════════════════════
+// BEGINNER FILTER
+// ═══════════════════════════════════════
+function toggleBeginnerFilter(btnEl) {
+    beginnerFilterActive = !beginnerFilterActive;
+    if (beginnerFilterActive) {
+        // Deactivate category tabs — show all easy varieties across categories
+        activeCategory = '__beginner__';
+    } else {
+        // Revert to first category
+        activeCategory = CATEGORIES.length > 0 ? catSlug(CATEGORIES[0]) : '';
+    }
+    renderCatalogTabs();
+    renderCatalogCards();
 }
 
 // ═══════════════════════════════════════
@@ -1433,84 +2173,103 @@ function renderCatalogCards() {
     var container = document.getElementById('catalogContent');
     var html = '';
 
-    for (var i = 0; i < CATEGORIES.length; i++) {
-        var cat = CATEGORIES[i];
-        var slug = catSlug(cat);
-        var isVisible = slug === activeCategory;
-
-        html += '<div id="cat-' + slug + '" class="variety-grid"' + (isVisible ? '' : ' style="display:none;"') + '>';
-
-        for (var j = 0; j < VARIETIES.length; j++) {
-            var v = VARIETIES[j];
-            if (v.category !== cat) continue;
-
-            var priceStr = '$' + v.price.toFixed(2);
-            var soldOut = v.available != null && v.available <= 0;
-            var currentQty = quantities[v.name] || 0;
-            var availStr = '';
-
-            if (v.waitlist) {
-                availStr = '<span style="color:var(--earth-light); font-weight:600; font-size:0.78rem;"><i class="fas fa-clock"></i> Waitlist — order now to reserve</span>';
-            } else if (soldOut) {
-                availStr = '<span style="color:var(--text-muted); font-weight:600; font-size:0.78rem;"><i class="fas fa-times-circle"></i> Sold Out</span>';
-            } else if (v.available != null && v.available <= 10 && v.available > 0) {
-                availStr = '<span style="color:var(--red-hot); font-weight:600; font-size:0.78rem;"><i class="fas fa-fire"></i> Only ' + v.available + ' left!</span>';
-            } else if (v.available != null && v.available > 10) {
-                availStr = '<span style="color:var(--green-dark); font-weight:500; font-size:0.78rem;"><i class="fas fa-check-circle"></i> ' + v.available + ' available</span>';
+    if (beginnerFilterActive) {
+        // Beginner mode: single grid with only easy varieties
+        html += '<div class="variety-grid" style="display:grid;">';
+        for (var b = 0; b < VARIETIES.length; b++) {
+            if (getDifficulty(VARIETIES[b].name) === 'easy') {
+                html += buildVarietyCard(VARIETIES[b]);
             }
+        }
+        html += '</div>';
+    } else {
+        for (var i = 0; i < CATEGORIES.length; i++) {
+            var cat = CATEGORIES[i];
+            var slug = catSlug(cat);
+            var isVisible = slug === activeCategory;
 
-            var escapedName = v.name.replace(/'/g, "\\'");
+            html += '<div id="cat-' + slug + '" class="variety-grid"' + (isVisible ? '' : ' style="display:none;"') + '>';
 
-            html += '<div class="variety-card"' + (soldOut ? ' style="opacity:0.6;"' : '') + '>';
-
-            // Stock badge overlay — shows production-based inventory status
-            if (soldOut && !v.waitlist) {
-                html += '<span class="stock-badge sold-out"><i class="fas fa-times-circle"></i> Sold Out</span>';
-            } else if (v.available != null && v.available <= 5 && v.available > 0) {
-                html += '<span class="stock-badge critical-stock"><i class="fas fa-fire"></i> ' + v.available + ' Left</span>';
-            } else if (v.available != null && v.available <= 10 && v.available > 0) {
-                html += '<span class="stock-badge low-stock"><i class="fas fa-exclamation-triangle"></i> Low Stock</span>';
-            }
-
-            // Photo, illustration fallback, or placeholder
-            if (v.imageUrl) {
-                html += '<img src="' + escapeHtml(v.imageUrl) + '" alt="' + escapeHtml(v.name) + '" class="variety-card-image" loading="lazy">';
-            } else {
-                var fallbackSrc = CATEGORY_FALLBACK_IMG[v.category] || 'images/seedlings/basil-card.png';
-                html += '<img src="' + fallbackSrc + '" alt="' + escapeHtml(v.name) + ' seedling illustration" class="variety-card-image variety-card-illustration" loading="lazy">';
-            }
-
-            html += '<div class="variety-header">';
-            html += '<span class="variety-name">' + escapeHtml(v.name) + '</span>';
-            html += '<span class="variety-price">' + priceStr + '</span>';
-            html += '</div>';
-
-            // Description if available
-            if (v.description) {
-                html += '<p class="variety-desc">' + escapeHtml(v.description) + '</p>';
-            }
-
-            if (availStr) {
-                html += '<div style="margin-bottom:8px;">' + availStr + '</div>';
-            }
-            html += '<div class="variety-meta"><span><i class="fas fa-seedling"></i> 3" pot</span></div>';
-
-            // Quick-add button
-            if (soldOut) {
-                html += '<button class="quick-add-btn" disabled><i class="fas fa-times"></i> Sold Out</button>';
-            } else if (currentQty > 0) {
-                html += '<button class="quick-add-btn added" onclick="quickAdd(\'' + escapedName + '\')"><i class="fas fa-check"></i> ' + currentQty + ' in cart — Add More</button>';
-            } else {
-                html += '<button class="quick-add-btn" onclick="quickAdd(\'' + escapedName + '\')"><i class="fas fa-plus"></i> Add to Order</button>';
+            for (var j = 0; j < VARIETIES.length; j++) {
+                var v = VARIETIES[j];
+                if (v.category !== cat) continue;
+                html += buildVarietyCard(v);
             }
 
             html += '</div>';
         }
-
-        html += '</div>';
     }
 
     container.innerHTML = html;
+}
+
+function buildVarietyCard(v) {
+    var cardHtml = '';
+    var priceStr = '$' + v.price.toFixed(2);
+    var soldOut = v.available != null && v.available <= 0;
+    var currentQty = quantities[v.name] || 0;
+    var availStr = '';
+
+    if (v.waitlist) {
+        availStr = '<span style="color:var(--earth-light); font-weight:600; font-size:0.78rem;"><i class="fas fa-clock"></i> Waitlist \u2014 order now to reserve</span>';
+    } else if (soldOut) {
+        availStr = '<span style="color:var(--text-muted); font-weight:600; font-size:0.78rem;"><i class="fas fa-times-circle"></i> Sold Out</span>';
+    } else if (v.available != null && v.available <= 10 && v.available > 0) {
+        availStr = '<span style="color:var(--red-hot); font-weight:600; font-size:0.78rem;"><i class="fas fa-fire"></i> Only ' + v.available + ' left!</span>';
+    } else if (v.available != null && v.available > 10) {
+        availStr = '<span style="color:var(--green-dark); font-weight:500; font-size:0.78rem;"><i class="fas fa-check-circle"></i> ' + v.available + ' available</span>';
+    }
+
+    var escapedName = v.name.replace(/'/g, "\\'");
+
+    cardHtml += '<div class="variety-card"' + (soldOut ? ' style="opacity:0.6;"' : '') + '>';
+
+    // Stock badge overlay
+    if (soldOut && !v.waitlist) {
+        cardHtml += '<span class="stock-badge sold-out"><i class="fas fa-times-circle"></i> Sold Out</span>';
+    } else if (v.available != null && v.available <= 5 && v.available > 0) {
+        cardHtml += '<span class="stock-badge critical-stock"><i class="fas fa-fire"></i> ' + v.available + ' Left</span>';
+    } else if (v.available != null && v.available <= 10 && v.available > 0) {
+        cardHtml += '<span class="stock-badge low-stock"><i class="fas fa-exclamation-triangle"></i> Low Stock</span>';
+    }
+
+    // Photo, illustration fallback, or placeholder
+    if (v.imageUrl) {
+        cardHtml += '<img src="' + escapeHtml(v.imageUrl) + '" alt="' + escapeHtml(v.name) + '" class="variety-card-image" loading="lazy">';
+    } else {
+        var fallbackSrc = CATEGORY_FALLBACK_IMG[v.category] || 'images/seedlings/basil-card.png';
+        cardHtml += '<img src="' + fallbackSrc + '" alt="' + escapeHtml(v.name) + ' seedling illustration" class="variety-card-image variety-card-illustration" loading="lazy">';
+    }
+
+    cardHtml += '<div class="variety-header">';
+    cardHtml += '<span class="variety-name">' + escapeHtml(v.name) + '</span>';
+    cardHtml += '<span class="variety-price">' + priceStr + '</span>';
+    cardHtml += '</div>';
+
+    // Difficulty badge
+    cardHtml += getDifficultyBadge(v.name);
+
+    // Description if available
+    if (v.description) {
+        cardHtml += '<p class="variety-desc">' + escapeHtml(v.description) + '</p>';
+    }
+
+    if (availStr) {
+        cardHtml += '<div style="margin-bottom:8px;">' + availStr + '</div>';
+    }
+    cardHtml += '<div class="variety-meta"><span><i class="fas fa-seedling"></i> 3" pot</span></div>';
+
+    // Quick-add button
+    if (soldOut) {
+        cardHtml += '<button class="quick-add-btn" disabled><i class="fas fa-times"></i> Sold Out</button>';
+    } else if (currentQty > 0) {
+        cardHtml += '<button class="quick-add-btn added" onclick="quickAdd(\'' + escapedName + '\')"><i class="fas fa-check"></i> ' + currentQty + ' in cart \u2014 Add More</button>';
+    } else {
+        cardHtml += '<button class="quick-add-btn" onclick="quickAdd(\'' + escapedName + '\')"><i class="fas fa-plus"></i> Add to Order</button>';
+    }
+
+    cardHtml += '</div>';
+    return cardHtml;
 }
 
 // ═══════════════════════════════════════
@@ -1723,6 +2482,9 @@ function updateTotal() {
     } else {
         warning.style.display = 'none';
     }
+
+    // Mobile bottom sheet cart update
+    updateMobileCart(order);
 }
 
 // ═══════════════════════════════════════
@@ -1730,6 +2492,7 @@ function updateTotal() {
 // ═══════════════════════════════════════
 function showCategory(slug, btnEl) {
     activeCategory = slug;
+    beginnerFilterActive = false;
 
     // Toggle grid visibility
     for (var i = 0; i < CATEGORIES.length; i++) {
@@ -1865,6 +2628,11 @@ function submitPresaleOrder(e) {
     var pickup = document.getElementById('orderPickup').value;
     var customerName = firstName + ' ' + lastName;
 
+    // Show order preview modal before proceeding
+    showOrderPreview(items, customerName, email, phone, pickup, orderCalc);
+}
+
+function actuallySubmitOrder(items, customerName, email, phone, pickup, orderCalc) {
     // Disable submit button and show loading
     var btn = document.getElementById('submitOrderBtn');
     var originalBtnHtml = btn.innerHTML;
