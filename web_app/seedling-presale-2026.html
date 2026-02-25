@@ -78,17 +78,18 @@
             z-index: 10;
         }
         .hero-logo-overlay img {
-            height: 320px;
+            height: 352px;
             width: auto;
-            /* No filter - logo is already cream/white, perfect for dark bg */
+            /* Van going down a gentle slope - playful! */
+            transform: rotate(-5deg);
             opacity: 1;
             display: block;
             transition: transform 0.3s ease, opacity 0.3s ease;
             /* Subtle drop shadow for depth */
-            filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.15));
+            filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.2));
         }
         .hero-logo-overlay:hover img {
-            transform: scale(1.02);
+            transform: rotate(-5deg) scale(1.02);
             opacity: 0.95;
         }
 
@@ -109,7 +110,8 @@
                 left: 32px;
             }
             .hero-logo-overlay img {
-                height: 240px;
+                height: 264px;
+                transform: rotate(-5deg);
             }
         }
 
@@ -120,10 +122,11 @@
                 transform: translateX(-50%);
             }
             .hero-logo-overlay img {
-                height: 180px;
+                height: 200px;
+                transform: rotate(-5deg);
             }
             .hero-logo-overlay:hover img {
-                transform: translateX(-50%) scale(1.02);
+                transform: rotate(-5deg) scale(1.02);
             }
             .header-cta {
                 padding: 8px 16px;
@@ -715,7 +718,7 @@
 <header class="hero" role="banner">
     <!-- White logo overlaid on hero photo - top left -->
     <a href="/" class="hero-logo-overlay" aria-label="Tiny Seed Farm Home">
-        <img src="images/tiny-seed-farm-logo-final.png?v=6" alt="Tiny Seed Farm and Fleurs - Estd 2017">
+        <img src="images/tiny-seed-farm-logo-final.png?v=7" alt="Tiny Seed Farm and Fleurs - Estd 2017">
     </a>
     <div class="hero-content">
         <div class="hero-badge"><i class="fas fa-seedling"></i> 2026 PRESALE NOW OPEN</div>
