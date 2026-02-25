@@ -232,53 +232,36 @@
         .hero-trust { margin-top: 24px; font-size: 0.8rem; color: rgba(255,255,255,0.5); }
 
         /* ═══════════════════════════════════════ */
-        /* SEEDLING DANCE — hero-to-content       */
-        /* Seedlings on both sides of the wave    */
+        /* HERO → CONTENT TRANSITION              */
+        /* Wave divider + even seedling row        */
         /* ═══════════════════════════════════════ */
-        .hero-transition {
-            position: relative;
-            margin-top: -1px;
-            z-index: 2;
-            overflow: hidden;
-            padding-top: 60px;
-            padding-bottom: 40px;
-        }
-        .hero-transition-wave {
+        .hero-wave {
             background: linear-gradient(135deg, var(--green-deep) 0%, #1e3a1e 50%, #2d4a2d 100%);
+            margin-top: -1px;
             line-height: 0;
         }
-        .hero-transition-wave svg { display: block; width: 100%; height: 60px; }
-        .dancing-seedling {
-            position: absolute;
-            z-index: 3;
-            filter: drop-shadow(0 4px 12px rgba(0,0,0,0.2));
-            transition: transform 0.4s ease;
-            pointer-events: none;
+        .hero-wave svg { display: block; width: 100%; height: 60px; }
+        .seedling-row {
+            display: flex;
+            justify-content: space-evenly;
+            align-items: center;
+            padding: 16px 24px;
+            background: #fff;
         }
-        /* Left side seedlings — staggered at different heights & angles */
-        .ds-1 { left: 3%; top: 10px; width: clamp(90px, 13vw, 160px); transform: rotate(-14deg); }
-        .ds-2 { left: 16%; top: 50px; width: clamp(70px, 10vw, 120px); transform: rotate(9deg); }
-        .ds-3 { left: 8%; bottom: 5px; width: clamp(55px, 8vw, 95px); transform: rotate(-6deg); }
-        /* Right side seedlings */
-        .ds-4 { right: 3%; top: 15px; width: clamp(85px, 12vw, 150px); transform: rotate(12deg); }
-        .ds-5 { right: 16%; top: 55px; width: clamp(65px, 9vw, 110px); transform: rotate(-16deg); }
-        .ds-6 { right: 7%; bottom: 5px; width: clamp(55px, 8vw, 90px); transform: rotate(7deg); }
-        /* Center bridge accents */
-        .ds-7 { left: 36%; top: 20px; width: clamp(50px, 7vw, 80px); transform: rotate(-10deg); }
-        .ds-8 { right: 36%; top: 60px; width: clamp(50px, 7vw, 80px); transform: rotate(13deg); }
+        .seedling-row img {
+            width: 80px;
+            height: 80px;
+            object-fit: contain;
+            filter: drop-shadow(0 2px 6px rgba(0,0,0,0.12));
+        }
         @media (max-width: 768px) {
-            .hero-transition { padding-top: 40px; padding-bottom: 30px; }
-            .ds-7, .ds-8 { display: none; }
-            .ds-1, .ds-4 { width: clamp(70px, 16vw, 110px); }
-            .ds-2, .ds-5 { width: clamp(55px, 12vw, 85px); }
-            .ds-3, .ds-6 { display: none; }
+            .seedling-row img { width: 60px; height: 60px; }
+            .seedling-row img:nth-child(n+7) { display: none; }
         }
         @media (max-width: 480px) {
-            .hero-transition { padding-top: 30px; padding-bottom: 20px; }
-            .ds-1 { left: 2%; top: 5px; width: 80px; }
-            .ds-2 { left: 22%; top: 35px; width: 60px; }
-            .ds-4 { right: 2%; top: 8px; width: 75px; }
-            .ds-5 { right: 22%; top: 38px; width: 55px; }
+            .seedling-row { padding: 12px 16px; }
+            .seedling-row img { width: 48px; height: 48px; }
+            .seedling-row img:nth-child(n+6) { display: none; }
         }
 
         /* ═══════════════════════════════════════ */
@@ -792,25 +775,23 @@
     </div>
 </header>
 
-<!-- SVG Wave Divider with dancing seedlings on both sides -->
-<div class="hero-transition" aria-hidden="true">
-    <div class="hero-transition-wave">
-        <svg viewBox="0 0 1440 60" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M0,0 C360,50 720,60 1080,30 C1260,15 1380,5 1440,0 L1440,60 L0,60 Z" fill="#ffffff"/>
-            <path d="M0,20 C240,55 600,60 960,35 C1200,18 1380,10 1440,15 L1440,60 L0,60 Z" fill="#ffffff" opacity="0.5"/>
-        </svg>
-    </div>
-    <!-- Left side dancers -->
-    <img src="images/seedlings/tomato-card.png" alt="" class="dancing-seedling ds-1">
-    <img src="images/seedlings/basil-card.png" alt="" class="dancing-seedling ds-2">
-    <img src="images/seedlings/chard-card.png" alt="" class="dancing-seedling ds-3">
-    <!-- Right side dancers -->
-    <img src="images/seedlings/pepper-card.png" alt="" class="dancing-seedling ds-4">
-    <img src="images/seedlings/sage-card.png" alt="" class="dancing-seedling ds-5">
-    <img src="images/seedlings/mint-card.png" alt="" class="dancing-seedling ds-6">
-    <!-- Center bridge accents -->
-    <img src="images/seedlings/parsley-card.png" alt="" class="dancing-seedling ds-7">
-    <img src="images/seedlings/broccoli-card.png" alt="" class="dancing-seedling ds-8">
+<!-- SVG Wave Divider -->
+<div class="hero-wave" aria-hidden="true">
+    <svg viewBox="0 0 1440 60" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M0,0 C360,50 720,60 1080,30 C1260,15 1380,5 1440,0 L1440,60 L0,60 Z" fill="#ffffff"/>
+        <path d="M0,20 C240,55 600,60 960,35 C1200,18 1380,10 1440,15 L1440,60 L0,60 Z" fill="#ffffff" opacity="0.5"/>
+    </svg>
+</div>
+<!-- Seedling row: all same size, evenly spaced -->
+<div class="seedling-row" aria-hidden="true">
+    <img src="images/seedlings/tomato-card.png" alt="">
+    <img src="images/seedlings/basil-card.png" alt="">
+    <img src="images/seedlings/pepper-card.png" alt="">
+    <img src="images/seedlings/chard-card.png" alt="">
+    <img src="images/seedlings/sage-card.png" alt="">
+    <img src="images/seedlings/parsley-card.png" alt="">
+    <img src="images/seedlings/mint-card.png" alt="">
+    <img src="images/seedlings/broccoli-card.png" alt="">
 </div>
 
 <main id="main-content" role="main">
