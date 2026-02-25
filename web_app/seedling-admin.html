@@ -602,9 +602,6 @@
             <button class="btn btn-primary" onclick="openBulkScrapeModal()">
                 <i class="fas fa-magic"></i> Bulk Scrape URLs
             </button>
-            <button class="btn btn-primary" onclick="autoPopulateImages()" id="autoPopBtn" style="background:#166534;">
-                <i class="fas fa-images"></i> Auto-Fill Images from Johnny's
-            </button>
         </div>
     </div>
 
@@ -1054,7 +1051,7 @@ function saveVariety() {
 
     fetch(TINY_SEED_API.MAIN_API, {
         method: 'POST',
-        headers: { 'Content-Type': 'text/plain' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
     })
     .then(function(res) { return res.json(); })
@@ -1101,7 +1098,7 @@ function runBulkScrape() {
 
     fetch(TINY_SEED_API.MAIN_API, {
         method: 'POST',
-        headers: { 'Content-Type': 'text/plain' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'bulkScrapeUrls', urls: urls })
     })
     .then(function(res) { return res.json(); })
@@ -1128,48 +1125,6 @@ function runBulkScrape() {
         btn.innerHTML = '<i class="fas fa-play"></i> Start Scraping';
         results.innerHTML = '<p style="color:var(--red);"><i class="fas fa-exclamation-circle"></i> Network error: ' + err.message + '</p>';
     });
-}
-
-// ═══════════════════════════════════════════════════
-// AUTO-POPULATE IMAGES FROM JOHNNY'S SEEDS
-// ═══════════════════════════════════════════════════
-function autoPopulateImages() {
-    var missing = varieties.filter(function(v) { return !v.imageUrl; }).length;
-    if (missing === 0) {
-        alert('All varieties already have images!');
-        return;
-    }
-
-    if (!confirm('Auto-fill images for ' + missing + ' varieties without photos?\n\nThis searches Johnny\'s Seeds for each variety and pulls the product photo. It may take a few minutes.\n\nYou can replace any image later with your own photos.')) {
-        return;
-    }
-
-    var btn = document.getElementById('autoPopBtn');
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner spinner"></i> Searching Johnny\'s... (this takes a while)';
-
-    fetch(TINY_SEED_API.MAIN_API + '?action=autoPopulateSeedlingImages')
-        .then(function(res) { return res.json(); })
-        .then(function(result) {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-images"></i> Auto-Fill Images from Johnny\'s';
-
-            if (result.success) {
-                var msg = 'Done!\n\n' +
-                    'Found images: ' + result.updated + '\n' +
-                    'Already had images: ' + result.skipped + '\n' +
-                    'Not found on Johnny\'s: ' + result.failed;
-                alert(msg);
-                loadVarieties(); // Refresh table
-            } else {
-                alert('Error: ' + (result.error || 'Auto-populate failed'));
-            }
-        })
-        .catch(function(err) {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-images"></i> Auto-Fill Images from Johnny\'s';
-            alert('Network error: ' + err.message);
-        });
 }
 
 // ═══════════════════════════════════════════════════

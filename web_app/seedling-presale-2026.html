@@ -173,7 +173,8 @@
         /* HERO                                   */
         /* ═══════════════════════════════════════ */
         .hero {
-            background: linear-gradient(180deg, #166534 0%, #14532d 60%, #1a3a2a 100%);
+            background: linear-gradient(180deg, rgba(22, 101, 52, 0.7), rgba(22, 101, 52, 0.85)),
+                        url('https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=1600&q=80') center/cover no-repeat;
             color: #fff;
             padding: 100px 24px 80px;
             text-align: center;
@@ -185,59 +186,17 @@
             justify-content: center;
         }
 
-        /* Floating botanical illustrations */
-        .hero-seedling {
-            position: absolute;
-            pointer-events: none;
-            opacity: 0.35;
-            filter: drop-shadow(0 4px 12px rgba(0,0,0,0.3));
-            transition: opacity 0.5s ease;
-            z-index: 0;
-        }
-        .hero-seedling.left-1 {
-            left: 3%;
-            bottom: 8%;
-            width: 160px;
-            transform: rotate(-8deg);
-        }
-        .hero-seedling.left-2 {
-            left: 8%;
-            top: 18%;
-            width: 120px;
-            transform: rotate(5deg);
-        }
-        .hero-seedling.right-1 {
-            right: 3%;
-            bottom: 12%;
-            width: 150px;
-            transform: rotate(6deg);
-        }
-        .hero-seedling.right-2 {
-            right: 7%;
-            top: 22%;
-            width: 130px;
-            transform: rotate(-4deg);
-        }
-
         @media (max-width: 768px) {
             .hero {
                 padding: 80px 20px 60px;
                 min-height: 75vh;
             }
-            .hero-seedling { opacity: 0.2; }
-            .hero-seedling.left-1 { width: 100px; left: 2%; bottom: 4%; }
-            .hero-seedling.left-2 { display: none; }
-            .hero-seedling.right-1 { width: 100px; right: 2%; bottom: 6%; }
-            .hero-seedling.right-2 { display: none; }
         }
 
         @media (max-width: 480px) {
             .hero {
                 min-height: 90vh;
             }
-            .hero-seedling { opacity: 0.15; }
-            .hero-seedling.left-1 { width: 80px; }
-            .hero-seedling.right-1 { width: 80px; }
         }
         .hero-content { position: relative; z-index: 1; max-width: 800px; margin: 0 auto; }
         .hero-badge {
@@ -287,20 +246,7 @@
         /* ═══════════════════════════════════════ */
         /* WHY PRE-ORDER */
         /* ═══════════════════════════════════════ */
-        .benefits { background: var(--warm-cream); position: relative; overflow: hidden; }
-        .section-accent {
-            position: absolute;
-            pointer-events: none;
-            opacity: 0.12;
-            z-index: 0;
-        }
-        .section-accent.right { right: -20px; bottom: -10px; width: 180px; transform: rotate(10deg); }
-        .section-accent.left { left: -20px; top: -10px; width: 160px; transform: rotate(-8deg); }
-        @media (max-width: 768px) {
-            .section-accent { opacity: 0.08; }
-            .section-accent.right { width: 120px; }
-            .section-accent.left { width: 100px; }
-        }
+        .benefits { background: var(--warm-cream); }
         .benefits-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; }
         .benefit-card {
             background: #fff; border-radius: var(--radius); padding: 24px;
@@ -320,16 +266,9 @@
             padding: 10px 20px; border-radius: 30px; border: 2px solid #e5e7eb;
             background: #fff; font-weight: 600; font-size: 0.9rem; cursor: pointer;
             transition: all 0.2s; color: var(--text-muted); font-family: inherit;
-            display: inline-flex; align-items: center; gap: 8px;
-        }
-        .catalog-tab .tab-illustration {
-            width: 28px; height: 28px; object-fit: contain; flex-shrink: 0;
-            transition: transform 0.2s;
         }
         .catalog-tab.active { background: var(--green-deep); color: #fff; border-color: var(--green-deep); }
-        .catalog-tab.active .tab-illustration { filter: brightness(1.3) drop-shadow(0 1px 2px rgba(0,0,0,0.2)); }
         .catalog-tab:hover:not(.active) { border-color: var(--green); color: var(--green-dark); }
-        .catalog-tab:hover .tab-illustration { transform: scale(1.1); }
 
         .variety-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
         .variety-card {
@@ -436,7 +375,7 @@
         /* ═══════════════════════════════════════ */
         /* GROWING TIPS */
         /* ═══════════════════════════════════════ */
-        .tips { background: var(--warm-cream); position: relative; overflow: hidden; }
+        .tips { background: var(--warm-cream); }
         .tips-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
         .tip-card {
             background: #fff; border-radius: var(--radius); padding: 24px;
@@ -688,12 +627,6 @@
             margin-bottom: 12px;
             background: #f3f4f6;
         }
-        /* Watercolor illustration fallback — transparent bg, needs different treatment */
-        .variety-card-illustration {
-            object-fit: contain;
-            background: linear-gradient(135deg, #fafaf9 0%, #f0ede6 100%);
-            padding: 8px;
-        }
         .variety-card-image-placeholder {
             width: 100%;
             height: 100px;
@@ -783,17 +716,10 @@
 <!-- HERO -->
 <!-- ═══════════════════════════════════════════════════════════ -->
 <header class="hero" role="banner">
-    <!-- White logo overlaid on hero - top left -->
+    <!-- White logo overlaid on hero photo - top left -->
     <a href="/" class="hero-logo-overlay" aria-label="Tiny Seed Farm Home">
         <img src="images/tiny-seed-farm-logo-final.png?v=7" alt="Tiny Seed Farm and Fleurs - Estd 2017">
     </a>
-
-    <!-- Floating watercolor seedling illustrations -->
-    <img src="images/seedlings/tomato-hero.png" alt="" class="hero-seedling left-1" aria-hidden="true" loading="eager">
-    <img src="images/seedlings/basil-hero.png" alt="" class="hero-seedling left-2" aria-hidden="true" loading="eager">
-    <img src="images/seedlings/pepper-hero.png" alt="" class="hero-seedling right-1" aria-hidden="true" loading="eager">
-    <img src="images/seedlings/chard-hero.png" alt="" class="hero-seedling right-2" aria-hidden="true" loading="eager">
-
     <div class="hero-content">
         <div class="hero-badge"><i class="fas fa-seedling"></i> 2026 PRESALE NOW OPEN</div>
         <h1>Pittsburgh's Favorite <span>Seedlings</span> Are Back</h1>
@@ -822,9 +748,7 @@
 <!-- WHY PRE-ORDER -->
 <!-- ═══════════════════════════════════════════════════════════ -->
 <section class="benefits" aria-labelledby="benefits-heading">
-    <img src="images/seedlings/parsley-card.png" alt="" class="section-accent right" aria-hidden="true">
-    <img src="images/seedlings/mint-card.png" alt="" class="section-accent left" aria-hidden="true">
-    <div class="container" style="position:relative; z-index:1;">
+    <div class="container">
         <h2 class="section-title" id="benefits-heading" style="text-align:center;">Why Pre-Order?</h2>
         <p class="section-subtitle" style="text-align:center;">Last year's presale sold out — reserve yours today.</p>
         <div class="benefits-grid">
@@ -1063,9 +987,7 @@
 <!-- GROWING TIPS -->
 <!-- ═══════════════════════════════════════════════════════════ -->
 <section class="tips" aria-labelledby="tips-heading">
-    <img src="images/seedlings/sage-card.png" alt="" class="section-accent right" aria-hidden="true">
-    <img src="images/seedlings/broccoli-card.png" alt="" class="section-accent left" aria-hidden="true">
-    <div class="container" style="position:relative; z-index:1;">
+    <div class="container">
         <h2 class="section-title" id="tips-heading" style="text-align:center;">Growing Tips for Pittsburgh</h2>
         <p class="section-subtitle" style="text-align:center;">Zone 6b, clay soil, unpredictable springs — we've got you covered.</p>
         <div class="tips-grid">
@@ -1171,26 +1093,6 @@ var CATEGORY_ICONS = {
     'Herbs': 'fa-leaf',
     'Greens': 'fa-seedling',
     'Flowers': 'fa-spa'
-};
-
-// Watercolor illustration fallbacks by category (when no photo uploaded)
-var CATEGORY_ILLUSTRATIONS = {
-    'Tomatoes': 'images/seedlings/tomato-card.png',
-    'Peppers': 'images/seedlings/pepper-card.png',
-    'Cucurbits': 'images/seedlings/tomato-card.png',
-    'Herbs': 'images/seedlings/basil-card.png',
-    'Greens': 'images/seedlings/chard-card.png',
-    'Flowers': 'images/seedlings/sage-card.png'
-};
-
-// Tab illustration images by category
-var CATEGORY_TAB_IMAGES = {
-    'Tomatoes': 'images/seedlings/tomato-tab.png',
-    'Peppers': 'images/seedlings/pepper-tab.png',
-    'Cucurbits': 'images/seedlings/tomato-tab.png',
-    'Herbs': 'images/seedlings/basil-tab.png',
-    'Greens': 'images/seedlings/chard-tab.png',
-    'Flowers': 'images/seedlings/sage-tab.png'
 };
 
 // ═══════════════════════════════════════
@@ -1349,14 +1251,8 @@ function renderCatalogTabs() {
         for (var j = 0; j < VARIETIES.length; j++) {
             if (VARIETIES[j].category === cat) count++;
         }
-        var tabImg = CATEGORY_TAB_IMAGES[cat] || '';
         html += '<button class="catalog-tab' + (isActive ? ' active' : '') + '" onclick="showCategory(\'' + slug + '\', this)">';
-        if (tabImg) {
-            html += '<img src="' + tabImg + '" alt="" class="tab-illustration" aria-hidden="true">';
-        } else {
-            html += '<i class="fas ' + icon + '"></i>';
-        }
-        html += ' ' + escapeHtml(cat) + ' (' + count + ')';
+        html += '<i class="fas ' + icon + '"></i> ' + escapeHtml(cat) + ' (' + count + ')';
         html += '</button>';
     }
 
@@ -1400,12 +1296,11 @@ function renderCatalogCards() {
 
             html += '<div class="variety-card"' + (soldOut ? ' style="opacity:0.6;"' : '') + '>';
 
-            // Photo, watercolor illustration fallback, or generic placeholder
+            // Photo or placeholder
             if (v.imageUrl) {
                 html += '<img src="' + escapeHtml(v.imageUrl) + '" alt="' + escapeHtml(v.name) + '" class="variety-card-image" loading="lazy">';
             } else {
-                var illustrationSrc = CATEGORY_ILLUSTRATIONS[v.category] || 'images/seedlings/basil-card.png';
-                html += '<img src="' + illustrationSrc + '" alt="' + escapeHtml(v.name) + ' seedling illustration" class="variety-card-image variety-card-illustration" loading="lazy">';
+                html += '<div class="variety-card-image-placeholder"><i class="fas fa-seedling"></i>Photo coming</div>';
             }
 
             html += '<div class="variety-header">';
