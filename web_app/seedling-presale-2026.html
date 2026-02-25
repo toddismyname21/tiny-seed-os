@@ -726,20 +726,32 @@
         /* .bundles-section removed — bundles now nested inside order section */
         .bundles-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 24px;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
             max-width: 1100px;
             margin: 0 auto;
+        }
+        @media (max-width: 768px) {
+            .bundles-grid {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
         }
         .bundle-card {
             background: #fff;
             border-radius: 16px;
-            padding: 28px;
+            padding: 20px;
             box-shadow: var(--shadow-md);
             border: 2px solid transparent;
             transition: all 0.2s;
             position: relative;
             overflow: hidden;
+        }
+        .bundle-img {
+            width: 100%;
+            height: 140px;
+            object-fit: contain;
+            margin-bottom: 12px;
         }
         .bundle-card:hover {
             border-color: var(--green);
@@ -1678,6 +1690,7 @@
             <div class="bundles-grid" id="bundlesGrid">
                 <!-- Salsa Garden -->
                 <div class="bundle-card">
+                    <img src="images/bundle-salsa-garden.png" alt="Watercolor salsa bowl" class="bundle-img" loading="lazy">
                     <div class="bundle-name">Salsa Garden</div>
                     <p class="bundle-desc">"Everything you need for fresh salsa all summer long"</p>
                     <ul class="bundle-items">
@@ -1695,6 +1708,7 @@
                 </div>
                 <!-- Pizza Garden -->
                 <div class="bundle-card">
+                    <img src="images/bundle-pizza-garden.png" alt="Watercolor pizza slice" class="bundle-img" loading="lazy">
                     <div class="bundle-name">Pizza Garden</div>
                     <p class="bundle-desc">"Grow your own pizza toppings &mdash; from garden to pie"</p>
                     <ul class="bundle-items">
