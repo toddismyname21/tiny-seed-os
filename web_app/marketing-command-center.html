@@ -7696,6 +7696,26 @@
 
             <!-- QUICK POST MODE (Field Mode) -->
             <div id="quickPostMode" class="create-mode-content">
+            <div class="onboarding-card" id="onboardingCard">
+                <button class="onboarding-dismiss" onclick="dismissOnboarding()">&times; Don't show again</button>
+                <h4><i class="fas fa-seedling"></i> Welcome to Quick Post</h4>
+                <div class="onboarding-steps">
+                    <div class="onboarding-step">
+                        <span class="step-number">1</span>
+                        Write your caption
+                        <span class="step-arrow"><i class="fas fa-arrow-right"></i></span>
+                    </div>
+                    <div class="onboarding-step">
+                        <span class="step-number">2</span>
+                        Add a photo
+                        <span class="step-arrow"><i class="fas fa-arrow-right"></i></span>
+                    </div>
+                    <div class="onboarding-step">
+                        <span class="step-number">3</span>
+                        Hit Post Now
+                    </div>
+                </div>
+            </div>
             <div class="field-mode-container">
                 <div class="field-mode-header">
                     <div class="field-mode-title">
@@ -16140,6 +16160,21 @@
                 });
             }
         });
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // ONBOARDING CARD: Dismiss + auto-hide if already dismissed
+        // ═══════════════════════════════════════════════════════════════════════════
+        function dismissOnboarding() {
+            localStorage.setItem('mcc_onboarding_dismissed', 'true');
+            var card = document.getElementById('onboardingCard');
+            if (card) card.classList.add('hidden');
+        }
+        (function() {
+            if (localStorage.getItem('mcc_onboarding_dismissed') === 'true') {
+                var card = document.getElementById('onboardingCard');
+                if (card) card.classList.add('hidden');
+            }
+        })();
 
         // ═══════════════════════════════════════════════════════════════════════════
         // PHASE 1C: Relocate platform selection above fold (2026-02-22)
