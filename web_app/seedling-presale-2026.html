@@ -77,16 +77,16 @@
             z-index: 10;
         }
         .hero-logo-overlay img {
-            height: 180px;
+            height: 200px;
             width: auto;
             /* White logo for dark hero background */
             filter: brightness(0) invert(1);
-            opacity: 0.95;
+            opacity: 1;
             display: block;
-            transition: opacity 0.2s ease;
+            transition: transform 0.2s ease;
         }
         .hero-logo-overlay:hover img {
-            opacity: 1;
+            transform: scale(1.02);
         }
 
         /* Mobile adjustments */
@@ -106,7 +106,7 @@
                 left: 20px;
             }
             .hero-logo-overlay img {
-                height: 140px;
+                height: 160px;
             }
         }
 
@@ -116,7 +116,7 @@
                 left: 16px;
             }
             .hero-logo-overlay img {
-                height: 100px;
+                height: 120px;
             }
             .header-cta {
                 padding: 8px 16px;
