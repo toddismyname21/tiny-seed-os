@@ -13314,9 +13314,9 @@ function predictStaffingNeeds(daysAhead = 7) {
           laborHours -= 2;
           reasoning.push('Rain expected - reduce outdoor work');
         }
-        if (weather.temperature && weather.temperature < 32) {
+        if (weather.temperature && weather.temperature < 36) {
           laborHours += 2;
-          reasoning.push('Frost protection needed');
+          reasoning.push('Frost risk — protection needed below 36°F');
           tasks.push('Protect crops from frost');
         }
         if (weather.temperature && weather.temperature > 90) {
@@ -17582,6 +17582,8 @@ function doGet(e) {
         return jsonResponse(calculateSeedingSchedule(e.parameter));
       case 'validateWelcomeDiscount':
         return jsonResponse(validateWelcomeDiscount(e.parameter));
+      case 'validateSeedlingAvailability':
+        return jsonResponse(validateSeedlingAvailability(e.parameter));
 
       default:
         return jsonResponse({error: 'Unknown action: ' + action}, 400);
@@ -110440,6 +110442,74 @@ function getUnifiedMorningBrief(params = {}) {
     }
 
     // ═══════════════════════════════════════════════════════════════════
+    // SECTION 7B: SATELLITE / NDVI ALERTS (farm, full levels)
+    // Pulls recent SATELLITE_ALERTS from the last 7 days
+    // ═══════════════════════════════════════════════════════════════════
+    if (detailLevel === 'farm' || detailLevel === 'full') {
+      try {
+        const satAlerts = typeof getSatelliteAlerts === 'function'
+          ? getSatelliteAlerts({ status: 'OPEN' })
+          : null;
+
+        if (satAlerts && satAlerts.success && satAlerts.alerts && satAlerts.alerts.length > 0) {
+          const sevenDaysAgo = new Date();
+          sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+          const recentAlerts = satAlerts.alerts.filter(a => {
+            const ts = a.timestamp ? new Date(a.timestamp) : null;
+            return ts && ts >= sevenDaysAgo;
+          });
+
+          const criticalSat = recentAlerts.filter(a =>
+            a.severity === 'CRITICAL' || a.severity === 'HIGH'
+          );
+
+          brief.sections.satelliteAlerts = {
+            totalRecent: recentAlerts.length,
+            criticalCount: criticalSat.length,
+            items: recentAlerts.slice(0, 5).map(a => ({
+              alertId: a.alertId,
+              fieldId: a.fieldId,
+              type: a.type || 'NDVI_ANOMALY',
+              severity: a.severity || 'MEDIUM',
+              details: a.details || '',
+              timestamp: a.timestamp,
+              action: a.type === 'WEED_OUTBREAK' ? 'Scout field for weed pressure' :
+                      a.type === 'DROUGHT_STRESS' ? 'Check irrigation and soil moisture' :
+                      a.type === 'NUTRIENT_DEFICIENCY' ? 'Soil test and consider foliar feed' :
+                      a.type === 'DISEASE_RISK' ? 'Scout for disease symptoms, consider preventive spray' :
+                      'Scout field and assess crop health'
+            })),
+            message: criticalSat.length > 0
+              ? '🛰️ ' + criticalSat.length + ' critical satellite alert(s) in the last 7 days'
+              : recentAlerts.length > 0
+              ? '🛰️ ' + recentAlerts.length + ' satellite alert(s) in the last 7 days'
+              : 'No recent satellite alerts'
+          };
+
+          // Add critical satellite alerts to criticalItems
+          criticalSat.slice(0, 2).forEach(a => {
+            brief.criticalItems.push({
+              type: 'SATELLITE_ALERT',
+              priority: a.severity === 'CRITICAL' ? 'CRITICAL' : 'HIGH',
+              message: '🛰️ ' + (a.type || 'NDVI anomaly') + ' detected' + (a.fieldId ? ' in field ' + a.fieldId : ''),
+              action: a.details || 'Scout field and assess crop health'
+            });
+          });
+        } else {
+          brief.sections.satelliteAlerts = {
+            totalRecent: 0,
+            criticalCount: 0,
+            items: [],
+            message: 'No recent satellite alerts'
+          };
+        }
+      } catch (e) {
+        brief.sections.satelliteAlerts = { error: e.message };
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
     // SECTION 8: EMPLOYEE SCHEDULE (manager, full levels)
     // ═══════════════════════════════════════════════════════════════════
     if (detailLevel === 'manager' || detailLevel === 'full') {
@@ -110664,6 +110734,9 @@ function getUnifiedMorningBrief(params = {}) {
     if (brief.sections.goals?.atRisk > 0) {
       summaryPoints.push(`${brief.sections.goals.atRisk} goals at risk`);
     }
+    if (brief.sections.satelliteAlerts?.criticalCount > 0) {
+      summaryPoints.push(`${brief.sections.satelliteAlerts.criticalCount} satellite alert(s)`);
+    }
 
     brief.executiveSummary = summaryPoints.length > 0 ?
       `Today's priorities: ${summaryPoints.join(', ')}` :
@@ -110681,6 +110754,9 @@ function getUnifiedMorningBrief(params = {}) {
     }
     if (brief.sections.csaDelivery?.pendingOrders > 0) {
       brief.tips.push(`📦 ${brief.sections.csaDelivery.pendingOrders} order(s) need processing`);
+    }
+    if (brief.sections.satelliteAlerts?.totalRecent > 0) {
+      brief.tips.push(`🛰️ ${brief.sections.satelliteAlerts.totalRecent} satellite alert(s) — review field scouting needs`);
     }
     if (brief.sections.thisTimeLastYear?.highlights?.length > 0) {
       brief.tips.push(`Last year: ${brief.sections.thisTimeLastYear.highlights[0]}`);
@@ -131154,6 +131230,158 @@ function getSeedlingPresaleItems(params) {
   }
 
   return { success: true, data: items, count: items.length, phase: phase, cutoffDate: PRESALE_CUTOFF_DATE };
+}
+
+// ============ SEEDLING AVAILABILITY VALIDATION ============
+// Checks production inventory against orders to validate availability before purchase.
+// Called by presale page before order submission.
+
+/**
+ * Validate seedling availability against actual greenhouse production.
+ * Checks SEEDLING_PRODUCTION for total units and allocation,
+ * cross-references SEEDLING_SALES for quantity already ordered.
+ *
+ * @param {Object} params - { itemId, variety, quantity }
+ *   itemId: (optional) specific Item_ID to check
+ *   variety: (optional) variety name to check (used if itemId not provided)
+ *   quantity: (optional) requested quantity to validate against available stock
+ *   items: (optional) JSON string of array [{ itemId, variety, quantity }] for batch validation
+ * @returns {Object} availability result
+ */
+function validateSeedlingAvailability(params) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var prodSheet = ss.getSheetByName('SEEDLING_PRODUCTION');
+  if (!prodSheet) return { success: false, error: 'SEEDLING_PRODUCTION sheet not found. Production plan has not been set up.' };
+
+  // Load production data
+  var prodData = prodSheet.getDataRange().getValues();
+  var prodHeaders = prodData[0];
+  var prodCols = {};
+  for (var h = 0; h < prodHeaders.length; h++) {
+    prodCols[prodHeaders[h]] = h;
+  }
+
+  // Load sales data to calculate actual ordered quantities
+  var salesSheet = ss.getSheetByName('SEEDLING_SALES');
+  var salesByItemId = {};
+  if (salesSheet) {
+    var salesData = salesSheet.getDataRange().getValues();
+    var salesHeaders = salesData[0];
+    var salesItemIdCol = salesHeaders.indexOf('Item_ID');
+    var salesQtyCol = salesHeaders.indexOf('Quantity_Sold');
+    for (var s = 1; s < salesData.length; s++) {
+      var sItemId = String(salesData[s][salesItemIdCol] || '');
+      if (sItemId) {
+        salesByItemId[sItemId] = (salesByItemId[sItemId] || 0) + (Number(salesData[s][salesQtyCol]) || 0);
+      }
+    }
+  }
+
+  // Build a lookup of production items
+  var prodItems = [];
+  for (var i = 1; i < prodData.length; i++) {
+    var row = {};
+    for (var p = 0; p < prodHeaders.length; p++) {
+      row[prodHeaders[p]] = prodData[i][p];
+    }
+    if (!row.Item_ID) continue;
+    var status = String(row.Status || '').toLowerCase();
+    if (status === 'cancelled' || status === 'failed') continue;
+    prodItems.push(row);
+  }
+
+  // Batch mode: validate multiple items at once
+  var itemsToCheck = [];
+  if (params.items) {
+    try {
+      itemsToCheck = typeof params.items === 'string' ? JSON.parse(params.items) : params.items;
+    } catch (parseErr) {
+      return { success: false, error: 'Invalid items parameter: ' + parseErr.message };
+    }
+  } else if (params.itemId || params.variety) {
+    itemsToCheck = [{ itemId: params.itemId || '', variety: params.variety || '', quantity: Number(params.quantity) || 1 }];
+  } else {
+    return { success: false, error: 'Provide itemId, variety, or items[] to validate' };
+  }
+
+  var results = [];
+  var allAvailable = true;
+
+  for (var c = 0; c < itemsToCheck.length; c++) {
+    var check = itemsToCheck[c];
+    var requestedQty = Number(check.quantity) || 1;
+    var matchedItem = null;
+
+    // Find matching production item by itemId first, then by variety name
+    for (var m = 0; m < prodItems.length; m++) {
+      if (check.itemId && String(prodItems[m].Item_ID) === String(check.itemId)) {
+        matchedItem = prodItems[m];
+        break;
+      }
+      if (check.variety && String(prodItems[m].Variety).toLowerCase() === String(check.variety).toLowerCase()) {
+        matchedItem = prodItems[m];
+        break;
+      }
+    }
+
+    if (!matchedItem) {
+      results.push({
+        itemId: check.itemId || '',
+        variety: check.variety || '',
+        quantityRequested: requestedQty,
+        available: false,
+        quantityAvailable: 0,
+        quantityProduced: 0,
+        quantityOrdered: 0,
+        reason: 'Item not found in production plan'
+      });
+      allAvailable = false;
+      continue;
+    }
+
+    var totalUnits = Number(matchedItem.Total_Units) || 0;
+    var allocPresale = Number(matchedItem.Alloc_Presale) || totalUnits; // default: all available for presale
+    var unitsSoldSheet = Number(matchedItem.Units_Sold) || 0;
+    // Cross-reference with actual sales data for accuracy
+    var unitsSoldActual = salesByItemId[String(matchedItem.Item_ID)] || 0;
+    // Use the higher of the two values (sheet may lag behind sales entries)
+    var quantityOrdered = Math.max(unitsSoldSheet, unitsSoldActual);
+    var quantityAvailable = Math.max(0, allocPresale - quantityOrdered);
+    var isAvailable = quantityAvailable >= requestedQty;
+
+    if (!isAvailable) allAvailable = false;
+
+    var stockLevel = 'in_stock';
+    if (quantityAvailable <= 0) {
+      stockLevel = 'sold_out';
+    } else if (quantityAvailable <= 5) {
+      stockLevel = 'critical_low';
+    } else if (quantityAvailable <= 10) {
+      stockLevel = 'low_stock';
+    }
+
+    results.push({
+      itemId: String(matchedItem.Item_ID),
+      variety: String(matchedItem.Variety),
+      crop: String(matchedItem.Crop || ''),
+      quantityRequested: requestedQty,
+      available: isAvailable,
+      quantityAvailable: quantityAvailable,
+      quantityProduced: totalUnits,
+      quantityAllocatedPresale: allocPresale,
+      quantityOrdered: quantityOrdered,
+      stockLevel: stockLevel,
+      status: String(matchedItem.Status || '')
+    });
+  }
+
+  return {
+    success: true,
+    allAvailable: allAvailable,
+    results: results,
+    count: results.length,
+    checkedAt: new Date().toISOString()
+  };
 }
 
 // ============ SEEDLING ADMIN API ENDPOINTS ============

@@ -313,6 +313,7 @@
 
         .variety-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
         .variety-card {
+            position: relative;
             background: #fff; border-radius: var(--radius); padding: 20px;
             box-shadow: var(--shadow-sm); border: 1px solid #f3f4f6;
             transition: all 0.2s;
@@ -720,6 +721,81 @@
             border-color: #d1d5db;
             color: var(--text-muted);
             cursor: not-allowed;
+        }
+
+        /* ═══════════════════════════════════════ */
+        /* STOCK BADGES — production inventory    */
+        /* ═══════════════════════════════════════ */
+        .stock-badge {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            z-index: 2;
+            line-height: 1.3;
+        }
+        .stock-badge.low-stock {
+            background: #fef3c7;
+            color: #b45309;
+        }
+        .stock-badge.critical-stock {
+            background: #fee2e2;
+            color: #dc2626;
+            animation: pulse-badge 2s ease-in-out infinite;
+        }
+        .stock-badge.sold-out {
+            background: #f3f4f6;
+            color: #6b7280;
+        }
+        @keyframes pulse-badge {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        /* Availability validation warning overlay */
+        .availability-warning-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .availability-warning-box {
+            background: #fff;
+            border-radius: 16px;
+            padding: 32px;
+            max-width: 480px;
+            width: 100%;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.2);
+        }
+        .availability-warning-box h3 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.3rem;
+            margin-bottom: 12px;
+            color: var(--text-dark);
+        }
+        .availability-item-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #f3f4f6;
+            font-size: 0.9rem;
+        }
+        .availability-item-row.unavailable {
+            color: #dc2626;
+            font-weight: 600;
+        }
+        .availability-item-row.reduced {
+            color: #b45309;
         }
 
         /* Toast animations */
@@ -1377,6 +1453,15 @@ function renderCatalogCards() {
 
             html += '<div class="variety-card"' + (soldOut ? ' style="opacity:0.6;"' : '') + '>';
 
+            // Stock badge overlay — shows production-based inventory status
+            if (soldOut && !v.waitlist) {
+                html += '<span class="stock-badge sold-out"><i class="fas fa-times-circle"></i> Sold Out</span>';
+            } else if (v.available != null && v.available <= 5 && v.available > 0) {
+                html += '<span class="stock-badge critical-stock"><i class="fas fa-fire"></i> ' + v.available + ' Left</span>';
+            } else if (v.available != null && v.available <= 10 && v.available > 0) {
+                html += '<span class="stock-badge low-stock"><i class="fas fa-exclamation-triangle"></i> Low Stock</span>';
+            }
+
             // Photo, illustration fallback, or placeholder
             if (v.imageUrl) {
                 html += '<img src="' + escapeHtml(v.imageUrl) + '" alt="' + escapeHtml(v.name) + '" class="variety-card-image" loading="lazy">';
@@ -1737,6 +1822,7 @@ function validateForm() {
 
 // ═══════════════════════════════════════
 // ORDER SUBMISSION (API-connected)
+// Validates production availability before submitting
 // ═══════════════════════════════════════
 function submitPresaleOrder(e) {
     if (e) e.preventDefault();
@@ -1773,6 +1859,133 @@ function submitPresaleOrder(e) {
     var btn = document.getElementById('submitOrderBtn');
     var originalBtnHtml = btn.innerHTML;
     btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking availability...';
+
+    // Step 1: Validate availability against production inventory
+    var validationItems = items.map(function(item) {
+        return { itemId: item.itemId, variety: item.variety, quantity: item.quantity };
+    });
+    var validationUrl = TINY_SEED_API.MAIN_API + '?action=validateSeedlingAvailability&items=' + encodeURIComponent(JSON.stringify(validationItems));
+
+    fetch(validationUrl)
+        .then(function(response) { return response.json(); })
+        .then(function(validation) {
+            if (!validation.success) {
+                // Validation endpoint failed — proceed anyway (graceful degradation)
+                console.warn('Availability check failed, proceeding with order:', validation.error);
+                proceedWithOrder_(items, customerName, email, phone, pickup, orderCalc, btn, originalBtnHtml);
+                return;
+            }
+
+            if (validation.allAvailable) {
+                // All items available — proceed
+                proceedWithOrder_(items, customerName, email, phone, pickup, orderCalc, btn, originalBtnHtml);
+                return;
+            }
+
+            // Some items unavailable — show warning dialog
+            showAvailabilityWarning_(validation.results, items, customerName, email, phone, pickup, orderCalc, btn, originalBtnHtml);
+        })
+        .catch(function(err) {
+            // Network error on validation — proceed anyway (graceful degradation)
+            console.warn('Availability validation network error, proceeding:', err);
+            proceedWithOrder_(items, customerName, email, phone, pickup, orderCalc, btn, originalBtnHtml);
+        });
+}
+
+/**
+ * Show availability warning dialog when requested quantities exceed production.
+ * Gives the customer a choice: adjust quantities or proceed anyway (waitlist).
+ */
+function showAvailabilityWarning_(results, items, customerName, email, phone, pickup, orderCalc, btn, originalBtnHtml) {
+    var unavailableItems = [];
+    var reducedItems = [];
+
+    for (var r = 0; r < results.length; r++) {
+        var res = results[r];
+        if (!res.available) {
+            if (res.quantityAvailable <= 0) {
+                unavailableItems.push(res);
+            } else {
+                reducedItems.push(res);
+            }
+        }
+    }
+
+    var overlay = document.createElement('div');
+    overlay.className = 'availability-warning-overlay';
+    overlay.id = 'availabilityWarning';
+
+    var html = '<div class="availability-warning-box">';
+    html += '<h3><i class="fas fa-exclamation-triangle" style="color:#b45309; margin-right:8px;"></i>Some items have limited stock</h3>';
+    html += '<p style="font-size:0.9rem; color:var(--text-muted); margin-bottom:16px;">We checked our greenhouse production and found the following:</p>';
+
+    // Show unavailable items
+    for (var u = 0; u < unavailableItems.length; u++) {
+        var item = unavailableItems[u];
+        html += '<div class="availability-item-row unavailable">';
+        html += '<span>' + escapeHtml(item.variety) + '</span>';
+        html += '<span>Requested: ' + item.quantityRequested + ' | Available: 0</span>';
+        html += '</div>';
+    }
+
+    // Show reduced items
+    for (var d = 0; d < reducedItems.length; d++) {
+        var rItem = reducedItems[d];
+        html += '<div class="availability-item-row reduced">';
+        html += '<span>' + escapeHtml(rItem.variety) + '</span>';
+        html += '<span>Requested: ' + rItem.quantityRequested + ' | Available: ' + rItem.quantityAvailable + '</span>';
+        html += '</div>';
+    }
+
+    html += '<div style="margin-top:20px; display:flex; gap:10px; flex-wrap:wrap;">';
+    html += '<button id="availAdjustBtn" style="flex:1; padding:12px 20px; background:var(--green); color:#000; border:none; border-radius:8px; font-weight:700; cursor:pointer; font-family:inherit; font-size:0.9rem;">';
+    html += '<i class="fas fa-edit"></i> Adjust My Order</button>';
+    html += '<button id="availProceedBtn" style="flex:1; padding:12px 20px; background:transparent; color:var(--text-dark); border:2px solid #d1d5db; border-radius:8px; font-weight:600; cursor:pointer; font-family:inherit; font-size:0.9rem;">';
+    html += '<i class="fas fa-clock"></i> Order Anyway (Waitlist)</button>';
+    html += '</div>';
+    html += '<p style="font-size:0.78rem; color:var(--text-muted); margin-top:10px; text-align:center;">Waitlisted items will be fulfilled if additional production becomes available.</p>';
+    html += '</div>';
+
+    overlay.innerHTML = html;
+    document.body.appendChild(overlay);
+
+    // Adjust: close dialog, auto-reduce quantities, re-render
+    document.getElementById('availAdjustBtn').addEventListener('click', function() {
+        for (var a = 0; a < results.length; a++) {
+            var r = results[a];
+            if (!r.available && r.variety) {
+                // Find matching variety and reduce quantity
+                for (var v = 0; v < VARIETIES.length; v++) {
+                    if (VARIETIES[v].name === r.variety) {
+                        quantities[VARIETIES[v].name] = Math.min(quantities[VARIETIES[v].name] || 0, r.quantityAvailable);
+                        // Also update local availability data for card badges
+                        VARIETIES[v].available = r.quantityAvailable;
+                        break;
+                    }
+                }
+            }
+        }
+        overlay.remove();
+        btn.disabled = false;
+        btn.innerHTML = originalBtnHtml;
+        renderCatalogCards();
+        renderOrderItems();
+        updateTotal();
+        showToast('Order adjusted to available stock');
+    });
+
+    // Proceed anyway — submit as waitlist order
+    document.getElementById('availProceedBtn').addEventListener('click', function() {
+        overlay.remove();
+        proceedWithOrder_(items, customerName, email, phone, pickup, orderCalc, btn, originalBtnHtml);
+    });
+}
+
+/**
+ * Actually submit the order to the backend after availability is validated (or bypassed).
+ */
+function proceedWithOrder_(items, customerName, email, phone, pickup, orderCalc, btn, originalBtnHtml) {
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting your order...';
 
     // Single API call — records sales, creates Shopify invoice, generates fulfillment tasks
@@ -1790,7 +2003,7 @@ function submitPresaleOrder(e) {
 
     fetch(TINY_SEED_API.MAIN_API, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'text/plain' },
         body: JSON.stringify(payload)
     })
     .then(function(response) { return response.json(); })

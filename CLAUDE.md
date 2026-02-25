@@ -174,6 +174,30 @@ See `docs/system/GOVERNOR_PROTOCOL.md` for optional Governor system logging.
 
 ---
 
+## STEP 6: SYSTEM INTEGRATION CHECK (Mandatory)
+
+**Before modifying ANY system, answer:** "What other systems read or write the same data?"
+
+1. Check `DATA_CONTRACTS.md` for affected metrics/endpoints
+2. Grep `MERGED TOTAL.js` for affected sheet names
+3. Grep all HTML files for affected API action names
+4. If changing a sheet schema → verify ALL frontend consumers
+5. If changing an API response → verify ALL frontend callers
+
+### Cross-System Verification Matrix
+| If you change... | Also verify... |
+|------------------|---------------|
+| PLANNING_2026 schema | calendar.html, planning.html, index.html, succession.html, greenhouse.html |
+| UNIFIED_TASKS schema | task-assignment.html, manager-dashboard.html, index.html, employee.html |
+| Any customer sheet | wholesale.html, chef-order.html, csa.html, customer.html, sales.html |
+| Morning brief response | index.html, chief-of-staff.html, manager-dashboard.html |
+| Employee/USERS schema | employee.html, admin.html, employee-management.html, schedule.html |
+| Task completion logic | ALL pages that show task counts/stats |
+
+**Integration Watcher agent** (`.claude/agents/integration-watcher.md`) enforces this before deploys.
+
+---
+
 ## STEP 7: VERIFICATION BEFORE "DONE"
 
 **No agent may declare "done" without passing verification gates.**
