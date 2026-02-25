@@ -2062,7 +2062,8 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // ═══════════════════════════════════════
-// LOAD PAGE CONFIG (admin-managed photos)
+// LOAD PAGE CONFIG — Full CMS
+// Applies admin-managed content to ALL sections
 // ═══════════════════════════════════════
 function loadPageConfig() {
     fetch(TINY_SEED_API.MAIN_API + '?action=getPresalePageConfig')
@@ -2071,15 +2072,59 @@ function loadPageConfig() {
             if (!result.success || !result.config) return;
             var c = result.config;
 
-            // Hero background image
+            // ─── HERO ───
             if (c.heroImageUrl) {
                 var hero = document.querySelector('.hero');
-                if (hero) {
-                    hero.style.background = 'linear-gradient(180deg, rgba(22, 101, 52, 0.7), rgba(22, 101, 52, 0.85)), url(\'' + c.heroImageUrl + '\') center/cover no-repeat';
-                }
+                if (hero) hero.style.background = 'linear-gradient(180deg, rgba(22,101,52,0.7), rgba(22,101,52,0.85)), url(\'' + c.heroImageUrl + '\') center/cover no-repeat';
+            }
+            if (c.heroBadge) {
+                var badge = document.querySelector('.hero-badge');
+                if (badge) badge.innerHTML = '<i class="fas fa-seedling"></i> ' + c.heroBadge;
+            }
+            if (c.heroHeading) {
+                var h1 = document.querySelector('.hero h1');
+                if (h1) h1.innerHTML = c.heroHeading;
+            }
+            if (c.heroSubheading) {
+                var sub = document.querySelector('.hero-content > p:not(.hero-trust):not([style])');
+                if (sub) sub.textContent = c.heroSubheading;
+            }
+            var datSpans = document.querySelectorAll('.hero-dates span strong');
+            if (c.heroDeadline && datSpans[0]) datSpans[0].textContent = c.heroDeadline;
+            if (c.heroPickupDates && datSpans[1]) datSpans[1].textContent = c.heroPickupDates;
+            if (c.heroLocationCount && datSpans[2]) datSpans[2].textContent = c.heroLocationCount;
+            if (c.heroCta) {
+                var cta = document.querySelector('.cta-btn');
+                if (cta) cta.innerHTML = '<i class="fas fa-shopping-cart"></i> ' + c.heroCta;
+            }
+            if (c.heroPricing) {
+                var pLine = document.querySelector('.hero-content > p[style*="margin-top:12px"]');
+                if (pLine) pLine.textContent = c.heroPricing;
+            }
+            if (c.heroTrust) {
+                var trust = document.querySelector('.hero-trust');
+                if (trust) trust.textContent = c.heroTrust;
             }
 
-            // Farmer photo — replace initials avatar with actual photo
+            // ─── BENEFITS ───
+            if (c.benefitsTitle) {
+                var bt = document.getElementById('benefits-heading');
+                if (bt) bt.textContent = c.benefitsTitle;
+            }
+            if (c.benefitsSubtitle) {
+                var bs = document.querySelector('.benefits .section-subtitle');
+                if (bs) bs.textContent = c.benefitsSubtitle;
+            }
+            var bCards = document.querySelectorAll('.benefit-card');
+            for (var b = 0; b < 4; b++) {
+                if (!bCards[b]) continue;
+                var tKey = 'benefit' + (b+1) + 'Title';
+                var dKey = 'benefit' + (b+1) + 'Desc';
+                if (c[tKey]) { var h3 = bCards[b].querySelector('h3'); if (h3) h3.textContent = c[tKey]; }
+                if (c[dKey]) { var p = bCards[b].querySelector('p'); if (p) p.textContent = c[dKey]; }
+            }
+
+            // ─── FARMER ───
             if (c.farmerPhotoUrl) {
                 var avatar = document.querySelector('.farmer-avatar');
                 if (avatar) {
@@ -2088,37 +2133,164 @@ function loadPageConfig() {
                     avatar.style.overflow = 'hidden';
                     var img = document.createElement('img');
                     img.src = c.farmerPhotoUrl;
-                    img.alt = c.farmerName || 'Farmer Todd';
+                    img.alt = c.farmerName || 'Farmer';
                     img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%;';
                     avatar.appendChild(img);
                 }
             }
-
-            // Farmer name
             if (c.farmerName) {
                 var nameEl = document.querySelector('.farmer-content p[style*="Playfair"]');
                 if (nameEl) nameEl.textContent = c.farmerName;
-                var sigEl = document.querySelector('.farmer-signature');
-                if (sigEl) sigEl.textContent = '— ' + c.farmerName.split(' ')[0];
             }
-
-            // Farmer tagline
             if (c.farmerTagline) {
-                var tagline = document.querySelector('.farmer-tagline');
-                if (tagline) tagline.textContent = c.farmerTagline;
+                var tag = document.querySelector('.farmer-tagline');
+                if (tag) tag.textContent = c.farmerTagline;
             }
-
-            // Farmer bio
             if (c.farmerBio) {
                 var bioParas = document.querySelectorAll('.farmer-content > p');
-                // The bio paragraph is the one after tagline (3rd p in farmer-content)
                 for (var i = 0; i < bioParas.length; i++) {
                     var p = bioParas[i];
                     if (!p.classList.contains('farmer-tagline') && !p.classList.contains('farmer-signature') && !p.style.fontFamily) {
-                        p.textContent = c.farmerBio;
-                        break;
+                        p.textContent = c.farmerBio; break;
                     }
                 }
+            }
+            if (c.farmerEmail) {
+                var eMail = document.querySelector('.farmer-contact a');
+                if (eMail) { eMail.textContent = c.farmerEmail; eMail.href = 'mailto:' + c.farmerEmail; }
+            }
+            var fStats = document.querySelectorAll('.farmer-trust-stat');
+            if (c.farmerStat1 && fStats[0]) fStats[0].innerHTML = '<i class="fas fa-seedling" style="color:var(--green);"></i> ' + c.farmerStat1;
+            if (c.farmerStat2 && fStats[1]) fStats[1].innerHTML = '<i class="fas fa-leaf" style="color:var(--green);"></i> ' + c.farmerStat2;
+            if (c.farmerStat3 && fStats[2]) fStats[2].innerHTML = '<i class="fas fa-map-pin" style="color:var(--green);"></i> ' + c.farmerStat3;
+            if (c.farmerSignature) {
+                var sig = document.querySelector('.farmer-signature');
+                if (sig) sig.textContent = c.farmerSignature;
+            }
+
+            // ─── TESTIMONIALS ───
+            if (c.testimonialsTitle) {
+                var tt = document.getElementById('testimonials-heading');
+                if (tt) tt.textContent = c.testimonialsTitle;
+            }
+            if (c.testimonialsSubtitle) {
+                var ts = document.querySelector('.testimonials-section .section-subtitle');
+                if (ts) ts.textContent = c.testimonialsSubtitle;
+            }
+            var tCards = document.querySelectorAll('.testimonial-card');
+            for (var t = 0; t < 3; t++) {
+                if (!tCards[t]) continue;
+                var qk = 'test' + (t+1) + 'Quote', nk = 'test' + (t+1) + 'Name', lk = 'test' + (t+1) + 'Location';
+                if (c[qk]) { var qt = tCards[t].querySelector('.testimonial-text'); if (qt) qt.textContent = c[qk]; }
+                if (c[nk]) {
+                    var nm = tCards[t].querySelector('.testimonial-name'); if (nm) nm.textContent = c[nk];
+                    var av = tCards[t].querySelector('.testimonial-avatar');
+                    if (av && c[nk]) av.textContent = c[nk].split(' ').map(function(w){return w[0];}).join('');
+                }
+                if (c[lk]) { var lo = tCards[t].querySelector('.testimonial-location'); if (lo) lo.textContent = c[lk]; }
+            }
+
+            // ─── PICKUP LOCATIONS ───
+            var pCards = document.querySelectorAll('.pickup-card');
+            for (var l = 0; l < 5; l++) {
+                if (!pCards[l]) continue;
+                var nKey = 'loc' + (l+1) + 'Name', dtKey = 'loc' + (l+1) + 'Dates', dlKey = 'loc' + (l+1) + 'Details';
+                if (c[nKey]) {
+                    var h3 = pCards[l].querySelector('h3');
+                    if (h3) {
+                        var icon = h3.querySelector('i');
+                        h3.textContent = '';
+                        if (icon) h3.appendChild(icon);
+                        h3.appendChild(document.createTextNode(' ' + c[nKey]));
+                    }
+                }
+                if (c[dtKey]) { var dt = pCards[l].querySelector('.pickup-date'); if (dt) dt.textContent = c[dtKey]; }
+                if (c[dlKey]) { var dl = pCards[l].querySelector('.pickup-details'); if (dl) dl.textContent = c[dlKey]; }
+            }
+
+            // ─── BUNDLES ───
+            var bndCards = document.querySelectorAll('.bundle-card');
+            for (var bn = 0; bn < 3; bn++) {
+                if (!bndCards[bn]) continue;
+                var prefix = 'bundle' + (bn+1);
+                if (c[prefix+'Image']) { var bi = bndCards[bn].querySelector('.bundle-img'); if (bi) bi.src = c[prefix+'Image']; }
+                if (c[prefix+'Name']) { var bName = bndCards[bn].querySelector('.bundle-name'); if (bName) bName.textContent = c[prefix+'Name']; }
+                if (c[prefix+'Tagline']) { var bDesc = bndCards[bn].querySelector('.bundle-desc'); if (bDesc) bDesc.textContent = c[prefix+'Tagline']; }
+                if (c[prefix+'Items']) {
+                    var ul = bndCards[bn].querySelector('.bundle-items');
+                    if (ul) {
+                        ul.innerHTML = '';
+                        c[prefix+'Items'].split('\n').forEach(function(item) {
+                            if (item.trim()) { var li = document.createElement('li'); li.textContent = item.trim(); ul.appendChild(li); }
+                        });
+                    }
+                }
+                if (c[prefix+'Price']) { var bp = bndCards[bn].querySelector('.bundle-price'); if (bp) bp.textContent = c[prefix+'Price']; }
+                if (c[prefix+'Savings']) { var bsv = bndCards[bn].querySelector('.bundle-savings'); if (bsv) bsv.textContent = c[prefix+'Savings']; }
+            }
+
+            // ─── GROWING TIPS ───
+            if (c.tipsTitle) { var tit = document.getElementById('tips-heading'); if (tit) tit.textContent = c.tipsTitle; }
+            if (c.tipsSubtitle) { var tsub = document.querySelector('.tips .section-subtitle'); if (tsub) tsub.textContent = c.tipsSubtitle; }
+            var tipCards = document.querySelectorAll('.tip-card');
+            for (var tp = 0; tp < 3; tp++) {
+                if (!tipCards[tp]) continue;
+                var ttk = 'tip' + (tp+1) + 'Title', txk = 'tip' + (tp+1) + 'Text';
+                if (c[ttk]) {
+                    var h3 = tipCards[tp].querySelector('h3');
+                    if (h3) { var ic = h3.querySelector('i'); h3.textContent = ''; if (ic) h3.appendChild(ic); h3.appendChild(document.createTextNode(' ' + c[ttk])); }
+                }
+                if (c[txk]) { var p = tipCards[tp].querySelector('p'); if (p) p.textContent = c[txk]; }
+            }
+
+            // ─── FAQ ───
+            if (c.faqTitle) { var fh = document.getElementById('faq-heading'); if (fh) fh.textContent = c.faqTitle; }
+            var faqItems = document.querySelectorAll('.faq-item');
+            for (var f = 0; f < 6; f++) {
+                if (!faqItems[f]) continue;
+                var fqk = 'faq' + (f+1) + 'Q', fak = 'faq' + (f+1) + 'A';
+                if (c[fqk]) {
+                    var btn = faqItems[f].querySelector('.faq-question');
+                    if (btn) { btn.innerHTML = c[fqk] + ' <i class="fas fa-chevron-down"></i>'; }
+                }
+                if (c[fak]) {
+                    var ans = faqItems[f].querySelector('.faq-answer');
+                    if (ans) ans.textContent = c[fak];
+                }
+            }
+
+            // ─── FOOTER ───
+            if (c.footerEmail) {
+                var fEmailLinks = document.querySelectorAll('a[href^="mailto:"]');
+                fEmailLinks.forEach(function(el) {
+                    el.href = 'mailto:' + c.footerEmail;
+                    if (el.querySelector('i')) el.innerHTML = '<i class="fas fa-envelope"></i> ' + c.footerEmail;
+                });
+            }
+            if (c.footerAddress) {
+                var fAddr = document.querySelector('.footer > p:not([style])');
+                if (fAddr) fAddr.textContent = c.footerAddress;
+            }
+            if (c.footerTagline) {
+                var fTag = document.querySelector('.footer > p[style*="0.75rem"]');
+                if (fTag) fTag.textContent = c.footerTagline;
+            }
+            // Instagram handles
+            var igLinks = document.querySelectorAll('.footer-links a[href*="instagram"]');
+            if (c.instagram1 && igLinks[0]) {
+                var handle = c.instagram1.replace('@','');
+                igLinks[0].href = 'https://www.instagram.com/' + handle;
+                igLinks[0].innerHTML = '<i class="fab fa-instagram"></i> @' + handle;
+            }
+            if (c.instagram2 && igLinks[1]) {
+                var handle = c.instagram2.replace('@','');
+                igLinks[1].href = 'https://www.instagram.com/' + handle;
+                igLinks[1].innerHTML = '<i class="fab fa-instagram"></i> @' + handle;
+            }
+            if (c.instagram3 && igLinks[2]) {
+                var handle = c.instagram3.replace('@','');
+                igLinks[2].href = 'https://www.instagram.com/' + handle;
+                igLinks[2].innerHTML = '<i class="fab fa-instagram"></i> @' + handle;
             }
         })
         .catch(function(err) {

@@ -131646,13 +131646,12 @@ function savePresalePageConfig(params) {
     try { existing = JSON.parse(raw); } catch(e) {}
   }
 
-  // Merge new values into existing config
-  var fields = ['heroImageUrl', 'farmerPhotoUrl', 'logoUrl', 'farmerName', 'farmerBio', 'farmerTagline', 'presaleTitle', 'presaleSubtitle'];
-  for (var i = 0; i < fields.length; i++) {
-    var key = fields[i];
-    if (params[key] !== undefined && params[key] !== null) {
-      existing[key] = params[key];
-    }
+  // Accept ANY key from params (except 'action') — full CMS flexibility
+  var keys = Object.keys(params);
+  for (var i = 0; i < keys.length; i++) {
+    var key = keys[i];
+    if (key === 'action') continue;
+    existing[key] = params[key];
   }
 
   props.setProperty('PRESALE_PAGE_CONFIG', JSON.stringify(existing));

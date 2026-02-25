@@ -139,59 +139,107 @@
         .page-settings-toggle { color: var(--text-muted); transition: transform 0.3s; }
         .page-settings-toggle.open { transform: rotate(180deg); }
         .page-settings-body { padding: 0 20px 20px; }
-        .page-settings-grid {
+        .settings-tabs {
+            display: flex;
+            gap: 4px;
+            overflow-x: auto;
+            padding-bottom: 16px;
+            margin-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+        .settings-tab {
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            border: 1px solid transparent;
+            background: none;
+            color: var(--text-muted);
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+        .settings-tab:hover { background: #f3f4f6; color: var(--text-dark); }
+        .settings-tab.active {
+            background: var(--green);
+            color: #000;
+            border-color: var(--green-dark);
+        }
+        .settings-section { display: none; }
+        .settings-section.active { display: block; }
+        .s-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 20px;
+            gap: 16px;
+            margin-bottom: 16px;
         }
-        @media (max-width: 768px) {
-            .page-settings-grid { grid-template-columns: 1fr; }
-        }
-        .page-setting-card label {
+        @media (max-width: 768px) { .s-grid { grid-template-columns: 1fr; } }
+        .s-field label {
             font-weight: 600;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             color: var(--text-dark);
             display: block;
             margin-bottom: 4px;
         }
-        .page-setting-card .form-help {
-            font-size: 0.8rem;
+        .s-field .s-help {
+            font-size: 0.75rem;
             color: var(--text-muted);
-            margin-bottom: 8px;
+            margin-bottom: 6px;
         }
-        .setting-input {
+        .s-input {
             width: 100%;
-            padding: 10px 12px;
+            padding: 9px 12px;
             border: 1px solid var(--border);
             border-radius: 8px;
-            font-size: 0.9rem;
+            font-size: 0.88rem;
             font-family: inherit;
             outline: none;
             transition: border-color 0.2s;
         }
-        .setting-input:focus { border-color: var(--green); }
-        .setting-image-preview {
+        .s-input:focus { border-color: var(--green); }
+        textarea.s-input { resize: vertical; min-height: 60px; }
+        .s-img-preview {
             width: 100%;
-            height: 120px;
+            height: 100px;
             border-radius: 8px;
             border: 1px dashed var(--border);
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             overflow: hidden;
             display: flex;
             align-items: center;
             justify-content: center;
             background: #f9fafb;
-            position: relative;
         }
-        .setting-image-preview img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
+        .s-img-preview img { width: 100%; height: 100%; object-fit: cover; }
+        .s-img-preview .no-img { color: var(--text-muted); font-size: 0.8rem; text-align: center; }
+        .s-subsection {
+            background: #f9fafb;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 16px;
         }
-        .setting-image-preview .no-image {
-            color: var(--text-muted);
-            font-size: 0.85rem;
-            text-align: center;
+        .s-subsection h4 {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .s-subsection h4 i { color: var(--blue); font-size: 0.85rem; }
+        .settings-save-bar {
+            position: sticky;
+            bottom: 0;
+            background: var(--card);
+            border-top: 1px solid var(--border);
+            padding: 12px 20px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin: 16px -20px -20px;
         }
 
         /* Toolbar */
@@ -667,46 +715,355 @@
         </div>
     </div>
 
-    <!-- Page Settings (Hero image, farmer photo, etc.) -->
+    <!-- Page Settings — Full CMS for presale page -->
     <div class="page-settings-panel" id="pageSettingsPanel">
         <div class="page-settings-header" onclick="togglePageSettings()">
-            <h3><i class="fas fa-image"></i> Page Photos &amp; Settings</h3>
+            <h3><i class="fas fa-edit"></i> Presale Page Editor</h3>
             <span class="page-settings-toggle" id="settingsToggleIcon"><i class="fas fa-chevron-down"></i></span>
         </div>
         <div class="page-settings-body" id="pageSettingsBody" style="display:none;">
-            <div class="page-settings-grid">
-                <div class="page-setting-card">
+            <!-- Tabs -->
+            <div class="settings-tabs">
+                <button class="settings-tab active" onclick="switchSettingsTab('hero')"><i class="fas fa-mountain"></i> Hero</button>
+                <button class="settings-tab" onclick="switchSettingsTab('benefits')"><i class="fas fa-star"></i> Why Pre-Order</button>
+                <button class="settings-tab" onclick="switchSettingsTab('farmer')"><i class="fas fa-user"></i> Farmer</button>
+                <button class="settings-tab" onclick="switchSettingsTab('testimonials')"><i class="fas fa-quote-left"></i> Testimonials</button>
+                <button class="settings-tab" onclick="switchSettingsTab('locations')"><i class="fas fa-map-pin"></i> Pickup Locations</button>
+                <button class="settings-tab" onclick="switchSettingsTab('bundles')"><i class="fas fa-box-open"></i> Bundles</button>
+                <button class="settings-tab" onclick="switchSettingsTab('tips')"><i class="fas fa-leaf"></i> Growing Tips</button>
+                <button class="settings-tab" onclick="switchSettingsTab('faq')"><i class="fas fa-question-circle"></i> FAQ</button>
+                <button class="settings-tab" onclick="switchSettingsTab('footer')"><i class="fas fa-info-circle"></i> Footer</button>
+            </div>
+
+            <!-- TAB: Hero -->
+            <div class="settings-section active" id="tab-hero">
+                <div class="s-field" style="margin-bottom:16px;">
                     <label>Hero Background Image</label>
-                    <p class="form-help">The large banner photo behind the presale page header. Recommended: 1600x900px landscape.</p>
-                    <div class="setting-image-preview" id="heroPreview"></div>
-                    <input type="url" id="settingHeroImage" placeholder="https://images.unsplash.com/..." class="setting-input">
+                    <p class="s-help">Large banner photo behind the page header. 1600x900px landscape recommended.</p>
+                    <div class="s-img-preview" id="prevHeroImg"><span class="no-img"><i class="fas fa-mountain"></i><br>Loading...</span></div>
+                    <input type="url" id="cfg_heroImageUrl" class="s-input" placeholder="https://images.unsplash.com/...">
                 </div>
-                <div class="page-setting-card">
-                    <label>Farmer Photo</label>
-                    <p class="form-help">Photo of Todd for the "Meet Your Farmer" section. Recommended: 400x400px square.</p>
-                    <div class="setting-image-preview" id="farmerPreview"></div>
-                    <input type="url" id="settingFarmerPhoto" placeholder="https://..." class="setting-input">
+                <div class="s-grid">
+                    <div class="s-field">
+                        <label>Badge Text</label>
+                        <input type="text" id="cfg_heroBadge" class="s-input">
+                    </div>
+                    <div class="s-field">
+                        <label>Trust Line</label>
+                        <input type="text" id="cfg_heroTrust" class="s-input">
+                    </div>
+                </div>
+                <div class="s-field" style="margin-bottom:12px;">
+                    <label>Main Heading</label>
+                    <p class="s-help">Use &lt;span&gt; tags for green-highlighted text.</p>
+                    <input type="text" id="cfg_heroHeading" class="s-input">
+                </div>
+                <div class="s-field" style="margin-bottom:12px;">
+                    <label>Subheading</label>
+                    <textarea id="cfg_heroSubheading" class="s-input" rows="2"></textarea>
+                </div>
+                <div class="s-grid">
+                    <div class="s-field">
+                        <label>Order Deadline</label>
+                        <input type="text" id="cfg_heroDeadline" class="s-input">
+                    </div>
+                    <div class="s-field">
+                        <label>Pickup Window</label>
+                        <input type="text" id="cfg_heroPickupDates" class="s-input">
+                    </div>
+                </div>
+                <div class="s-grid">
+                    <div class="s-field">
+                        <label>Location Count</label>
+                        <input type="text" id="cfg_heroLocationCount" class="s-input">
+                    </div>
+                    <div class="s-field">
+                        <label>CTA Button Text</label>
+                        <input type="text" id="cfg_heroCta" class="s-input">
+                    </div>
+                </div>
+                <div class="s-field">
+                    <label>Pricing Summary Line</label>
+                    <input type="text" id="cfg_heroPricing" class="s-input">
                 </div>
             </div>
-            <div class="page-settings-grid" style="margin-top:16px;">
-                <div class="page-setting-card">
-                    <label>Farmer Name</label>
-                    <input type="text" id="settingFarmerName" placeholder="Todd Wilson" class="setting-input">
+
+            <!-- TAB: Benefits / Why Pre-Order -->
+            <div class="settings-section" id="tab-benefits">
+                <div class="s-grid" style="margin-bottom:12px;">
+                    <div class="s-field">
+                        <label>Section Title</label>
+                        <input type="text" id="cfg_benefitsTitle" class="s-input">
+                    </div>
+                    <div class="s-field">
+                        <label>Section Subtitle</label>
+                        <input type="text" id="cfg_benefitsSubtitle" class="s-input">
+                    </div>
                 </div>
-                <div class="page-setting-card">
-                    <label>Farmer Tagline</label>
-                    <input type="text" id="settingFarmerTagline" placeholder="Tiny Seed Farm — Rochester, PA..." class="setting-input">
+                <div class="s-grid">
+                    <div class="s-subsection">
+                        <h4><i class="fas fa-check-circle"></i> Benefit 1</h4>
+                        <div class="s-field"><label>Title</label><input type="text" id="cfg_benefit1Title" class="s-input"></div>
+                        <div class="s-field" style="margin-top:8px;"><label>Description</label><textarea id="cfg_benefit1Desc" class="s-input" rows="2"></textarea></div>
+                    </div>
+                    <div class="s-subsection">
+                        <h4><i class="fas fa-check-circle"></i> Benefit 2</h4>
+                        <div class="s-field"><label>Title</label><input type="text" id="cfg_benefit2Title" class="s-input"></div>
+                        <div class="s-field" style="margin-top:8px;"><label>Description</label><textarea id="cfg_benefit2Desc" class="s-input" rows="2"></textarea></div>
+                    </div>
+                    <div class="s-subsection">
+                        <h4><i class="fas fa-check-circle"></i> Benefit 3</h4>
+                        <div class="s-field"><label>Title</label><input type="text" id="cfg_benefit3Title" class="s-input"></div>
+                        <div class="s-field" style="margin-top:8px;"><label>Description</label><textarea id="cfg_benefit3Desc" class="s-input" rows="2"></textarea></div>
+                    </div>
+                    <div class="s-subsection">
+                        <h4><i class="fas fa-check-circle"></i> Benefit 4</h4>
+                        <div class="s-field"><label>Title</label><input type="text" id="cfg_benefit4Title" class="s-input"></div>
+                        <div class="s-field" style="margin-top:8px;"><label>Description</label><textarea id="cfg_benefit4Desc" class="s-input" rows="2"></textarea></div>
+                    </div>
                 </div>
             </div>
-            <div class="page-setting-card" style="margin-top:16px;">
-                <label>Farmer Bio</label>
-                <textarea id="settingFarmerBio" rows="3" placeholder="I started Tiny Seed Farm in 2017..." class="setting-input" style="resize:vertical;"></textarea>
+
+            <!-- TAB: Farmer -->
+            <div class="settings-section" id="tab-farmer">
+                <div class="s-grid">
+                    <div class="s-field">
+                        <label>Farmer Photo</label>
+                        <p class="s-help">Square photo, 400x400px recommended.</p>
+                        <div class="s-img-preview" id="prevFarmerImg"><span class="no-img"><i class="fas fa-user"></i><br>Loading...</span></div>
+                        <input type="url" id="cfg_farmerPhotoUrl" class="s-input">
+                    </div>
+                    <div>
+                        <div class="s-field"><label>Farmer Name</label><input type="text" id="cfg_farmerName" class="s-input"></div>
+                        <div class="s-field" style="margin-top:10px;"><label>Tagline</label><input type="text" id="cfg_farmerTagline" class="s-input"></div>
+                        <div class="s-field" style="margin-top:10px;"><label>Email</label><input type="email" id="cfg_farmerEmail" class="s-input"></div>
+                    </div>
+                </div>
+                <div class="s-field" style="margin-top:12px;">
+                    <label>Bio Paragraph</label>
+                    <textarea id="cfg_farmerBio" class="s-input" rows="3"></textarea>
+                </div>
+                <div class="s-grid" style="margin-top:12px;">
+                    <div class="s-field"><label>Trust Stat 1</label><input type="text" id="cfg_farmerStat1" class="s-input"></div>
+                    <div class="s-field"><label>Trust Stat 2</label><input type="text" id="cfg_farmerStat2" class="s-input"></div>
+                </div>
+                <div class="s-grid">
+                    <div class="s-field"><label>Trust Stat 3</label><input type="text" id="cfg_farmerStat3" class="s-input"></div>
+                    <div class="s-field"><label>Signature</label><input type="text" id="cfg_farmerSignature" class="s-input"></div>
+                </div>
             </div>
-            <div style="margin-top:16px; display:flex; gap:12px; align-items:center;">
-                <button class="btn btn-primary" onclick="savePageSettings()">
-                    <i class="fas fa-save"></i> Save Page Settings
+
+            <!-- TAB: Testimonials -->
+            <div class="settings-section" id="tab-testimonials">
+                <div class="s-grid" style="margin-bottom:12px;">
+                    <div class="s-field"><label>Section Title</label><input type="text" id="cfg_testimonialsTitle" class="s-input"></div>
+                    <div class="s-field"><label>Section Subtitle</label><input type="text" id="cfg_testimonialsSubtitle" class="s-input"></div>
+                </div>
+                <div class="s-subsection">
+                    <h4><i class="fas fa-quote-left"></i> Testimonial 1</h4>
+                    <div class="s-field"><label>Quote</label><textarea id="cfg_test1Quote" class="s-input" rows="2"></textarea></div>
+                    <div class="s-grid" style="margin-top:8px;">
+                        <div class="s-field"><label>Name</label><input type="text" id="cfg_test1Name" class="s-input"></div>
+                        <div class="s-field"><label>Location</label><input type="text" id="cfg_test1Location" class="s-input"></div>
+                    </div>
+                </div>
+                <div class="s-subsection">
+                    <h4><i class="fas fa-quote-left"></i> Testimonial 2</h4>
+                    <div class="s-field"><label>Quote</label><textarea id="cfg_test2Quote" class="s-input" rows="2"></textarea></div>
+                    <div class="s-grid" style="margin-top:8px;">
+                        <div class="s-field"><label>Name</label><input type="text" id="cfg_test2Name" class="s-input"></div>
+                        <div class="s-field"><label>Location</label><input type="text" id="cfg_test2Location" class="s-input"></div>
+                    </div>
+                </div>
+                <div class="s-subsection">
+                    <h4><i class="fas fa-quote-left"></i> Testimonial 3</h4>
+                    <div class="s-field"><label>Quote</label><textarea id="cfg_test3Quote" class="s-input" rows="2"></textarea></div>
+                    <div class="s-grid" style="margin-top:8px;">
+                        <div class="s-field"><label>Name</label><input type="text" id="cfg_test3Name" class="s-input"></div>
+                        <div class="s-field"><label>Location</label><input type="text" id="cfg_test3Location" class="s-input"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB: Pickup Locations -->
+            <div class="settings-section" id="tab-locations">
+                <div class="s-subsection">
+                    <h4><i class="fas fa-map-marker-alt"></i> Location 1</h4>
+                    <div class="s-grid">
+                        <div class="s-field"><label>Name</label><input type="text" id="cfg_loc1Name" class="s-input"></div>
+                        <div class="s-field"><label>Dates</label><input type="text" id="cfg_loc1Dates" class="s-input"></div>
+                    </div>
+                    <div class="s-field" style="margin-top:8px;"><label>Details (address, hours)</label><input type="text" id="cfg_loc1Details" class="s-input"></div>
+                </div>
+                <div class="s-subsection">
+                    <h4><i class="fas fa-map-marker-alt"></i> Location 2</h4>
+                    <div class="s-grid">
+                        <div class="s-field"><label>Name</label><input type="text" id="cfg_loc2Name" class="s-input"></div>
+                        <div class="s-field"><label>Dates</label><input type="text" id="cfg_loc2Dates" class="s-input"></div>
+                    </div>
+                    <div class="s-field" style="margin-top:8px;"><label>Details</label><input type="text" id="cfg_loc2Details" class="s-input"></div>
+                </div>
+                <div class="s-subsection">
+                    <h4><i class="fas fa-map-marker-alt"></i> Location 3</h4>
+                    <div class="s-grid">
+                        <div class="s-field"><label>Name</label><input type="text" id="cfg_loc3Name" class="s-input"></div>
+                        <div class="s-field"><label>Dates</label><input type="text" id="cfg_loc3Dates" class="s-input"></div>
+                    </div>
+                    <div class="s-field" style="margin-top:8px;"><label>Details</label><input type="text" id="cfg_loc3Details" class="s-input"></div>
+                </div>
+                <div class="s-subsection">
+                    <h4><i class="fas fa-map-marker-alt"></i> Location 4</h4>
+                    <div class="s-grid">
+                        <div class="s-field"><label>Name</label><input type="text" id="cfg_loc4Name" class="s-input"></div>
+                        <div class="s-field"><label>Dates</label><input type="text" id="cfg_loc4Dates" class="s-input"></div>
+                    </div>
+                    <div class="s-field" style="margin-top:8px;"><label>Details</label><input type="text" id="cfg_loc4Details" class="s-input"></div>
+                </div>
+                <div class="s-subsection">
+                    <h4><i class="fas fa-map-marker-alt"></i> Location 5</h4>
+                    <div class="s-grid">
+                        <div class="s-field"><label>Name</label><input type="text" id="cfg_loc5Name" class="s-input"></div>
+                        <div class="s-field"><label>Dates</label><input type="text" id="cfg_loc5Dates" class="s-input"></div>
+                    </div>
+                    <div class="s-field" style="margin-top:8px;"><label>Details</label><input type="text" id="cfg_loc5Details" class="s-input"></div>
+                </div>
+            </div>
+
+            <!-- TAB: Bundles -->
+            <div class="settings-section" id="tab-bundles">
+                <div class="s-subsection">
+                    <h4><i class="fas fa-box-open"></i> Bundle 1</h4>
+                    <div class="s-field" style="margin-bottom:8px;">
+                        <label>Bundle Image</label>
+                        <div class="s-img-preview" id="prevBundle1Img"><span class="no-img"><i class="fas fa-image"></i></span></div>
+                        <input type="url" id="cfg_bundle1Image" class="s-input" placeholder="images/bundle-salsa-garden.png">
+                    </div>
+                    <div class="s-grid">
+                        <div class="s-field"><label>Name</label><input type="text" id="cfg_bundle1Name" class="s-input"></div>
+                        <div class="s-field"><label>Tagline</label><input type="text" id="cfg_bundle1Tagline" class="s-input"></div>
+                    </div>
+                    <div class="s-field" style="margin-top:8px;"><label>Items (one per line)</label><textarea id="cfg_bundle1Items" class="s-input" rows="3"></textarea></div>
+                    <div class="s-grid" style="margin-top:8px;">
+                        <div class="s-field"><label>Price</label><input type="text" id="cfg_bundle1Price" class="s-input"></div>
+                        <div class="s-field"><label>Savings Text</label><input type="text" id="cfg_bundle1Savings" class="s-input"></div>
+                    </div>
+                </div>
+                <div class="s-subsection">
+                    <h4><i class="fas fa-box-open"></i> Bundle 2</h4>
+                    <div class="s-field" style="margin-bottom:8px;">
+                        <label>Bundle Image</label>
+                        <div class="s-img-preview" id="prevBundle2Img"><span class="no-img"><i class="fas fa-image"></i></span></div>
+                        <input type="url" id="cfg_bundle2Image" class="s-input">
+                    </div>
+                    <div class="s-grid">
+                        <div class="s-field"><label>Name</label><input type="text" id="cfg_bundle2Name" class="s-input"></div>
+                        <div class="s-field"><label>Tagline</label><input type="text" id="cfg_bundle2Tagline" class="s-input"></div>
+                    </div>
+                    <div class="s-field" style="margin-top:8px;"><label>Items (one per line)</label><textarea id="cfg_bundle2Items" class="s-input" rows="3"></textarea></div>
+                    <div class="s-grid" style="margin-top:8px;">
+                        <div class="s-field"><label>Price</label><input type="text" id="cfg_bundle2Price" class="s-input"></div>
+                        <div class="s-field"><label>Savings Text</label><input type="text" id="cfg_bundle2Savings" class="s-input"></div>
+                    </div>
+                </div>
+                <div class="s-subsection">
+                    <h4><i class="fas fa-box-open"></i> Bundle 3</h4>
+                    <div class="s-field" style="margin-bottom:8px;">
+                        <label>Bundle Image</label>
+                        <div class="s-img-preview" id="prevBundle3Img"><span class="no-img"><i class="fas fa-image"></i></span></div>
+                        <input type="url" id="cfg_bundle3Image" class="s-input">
+                    </div>
+                    <div class="s-grid">
+                        <div class="s-field"><label>Name</label><input type="text" id="cfg_bundle3Name" class="s-input"></div>
+                        <div class="s-field"><label>Tagline</label><input type="text" id="cfg_bundle3Tagline" class="s-input"></div>
+                    </div>
+                    <div class="s-field" style="margin-top:8px;"><label>Items (one per line)</label><textarea id="cfg_bundle3Items" class="s-input" rows="3"></textarea></div>
+                    <div class="s-grid" style="margin-top:8px;">
+                        <div class="s-field"><label>Price</label><input type="text" id="cfg_bundle3Price" class="s-input"></div>
+                        <div class="s-field"><label>Savings Text</label><input type="text" id="cfg_bundle3Savings" class="s-input"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB: Growing Tips -->
+            <div class="settings-section" id="tab-tips">
+                <div class="s-grid" style="margin-bottom:12px;">
+                    <div class="s-field"><label>Section Title</label><input type="text" id="cfg_tipsTitle" class="s-input"></div>
+                    <div class="s-field"><label>Section Subtitle</label><input type="text" id="cfg_tipsSubtitle" class="s-input"></div>
+                </div>
+                <div class="s-subsection">
+                    <h4><i class="fas fa-leaf"></i> Tip 1</h4>
+                    <div class="s-field"><label>Title</label><input type="text" id="cfg_tip1Title" class="s-input"></div>
+                    <div class="s-field" style="margin-top:8px;"><label>Text</label><textarea id="cfg_tip1Text" class="s-input" rows="2"></textarea></div>
+                </div>
+                <div class="s-subsection">
+                    <h4><i class="fas fa-leaf"></i> Tip 2</h4>
+                    <div class="s-field"><label>Title</label><input type="text" id="cfg_tip2Title" class="s-input"></div>
+                    <div class="s-field" style="margin-top:8px;"><label>Text</label><textarea id="cfg_tip2Text" class="s-input" rows="2"></textarea></div>
+                </div>
+                <div class="s-subsection">
+                    <h4><i class="fas fa-leaf"></i> Tip 3</h4>
+                    <div class="s-field"><label>Title</label><input type="text" id="cfg_tip3Title" class="s-input"></div>
+                    <div class="s-field" style="margin-top:8px;"><label>Text</label><textarea id="cfg_tip3Text" class="s-input" rows="2"></textarea></div>
+                </div>
+            </div>
+
+            <!-- TAB: FAQ -->
+            <div class="settings-section" id="tab-faq">
+                <div class="s-field" style="margin-bottom:12px;"><label>Section Title</label><input type="text" id="cfg_faqTitle" class="s-input"></div>
+                <div class="s-subsection">
+                    <h4><i class="fas fa-question-circle"></i> FAQ 1</h4>
+                    <div class="s-field"><label>Question</label><input type="text" id="cfg_faq1Q" class="s-input"></div>
+                    <div class="s-field" style="margin-top:8px;"><label>Answer</label><textarea id="cfg_faq1A" class="s-input" rows="2"></textarea></div>
+                </div>
+                <div class="s-subsection">
+                    <h4><i class="fas fa-question-circle"></i> FAQ 2</h4>
+                    <div class="s-field"><label>Question</label><input type="text" id="cfg_faq2Q" class="s-input"></div>
+                    <div class="s-field" style="margin-top:8px;"><label>Answer</label><textarea id="cfg_faq2A" class="s-input" rows="2"></textarea></div>
+                </div>
+                <div class="s-subsection">
+                    <h4><i class="fas fa-question-circle"></i> FAQ 3</h4>
+                    <div class="s-field"><label>Question</label><input type="text" id="cfg_faq3Q" class="s-input"></div>
+                    <div class="s-field" style="margin-top:8px;"><label>Answer</label><textarea id="cfg_faq3A" class="s-input" rows="2"></textarea></div>
+                </div>
+                <div class="s-subsection">
+                    <h4><i class="fas fa-question-circle"></i> FAQ 4</h4>
+                    <div class="s-field"><label>Question</label><input type="text" id="cfg_faq4Q" class="s-input"></div>
+                    <div class="s-field" style="margin-top:8px;"><label>Answer</label><textarea id="cfg_faq4A" class="s-input" rows="2"></textarea></div>
+                </div>
+                <div class="s-subsection">
+                    <h4><i class="fas fa-question-circle"></i> FAQ 5</h4>
+                    <div class="s-field"><label>Question</label><input type="text" id="cfg_faq5Q" class="s-input"></div>
+                    <div class="s-field" style="margin-top:8px;"><label>Answer</label><textarea id="cfg_faq5A" class="s-input" rows="2"></textarea></div>
+                </div>
+                <div class="s-subsection">
+                    <h4><i class="fas fa-question-circle"></i> FAQ 6</h4>
+                    <div class="s-field"><label>Question</label><input type="text" id="cfg_faq6Q" class="s-input"></div>
+                    <div class="s-field" style="margin-top:8px;"><label>Answer</label><textarea id="cfg_faq6A" class="s-input" rows="2"></textarea></div>
+                </div>
+            </div>
+
+            <!-- TAB: Footer -->
+            <div class="settings-section" id="tab-footer">
+                <div class="s-grid">
+                    <div class="s-field"><label>Email</label><input type="email" id="cfg_footerEmail" class="s-input"></div>
+                    <div class="s-field"><label>Farm Address</label><input type="text" id="cfg_footerAddress" class="s-input"></div>
+                </div>
+                <div class="s-grid" style="margin-top:12px;">
+                    <div class="s-field"><label>Instagram 1 (handle)</label><input type="text" id="cfg_instagram1" class="s-input"></div>
+                    <div class="s-field"><label>Instagram 2 (handle)</label><input type="text" id="cfg_instagram2" class="s-input"></div>
+                </div>
+                <div class="s-grid" style="margin-top:12px;">
+                    <div class="s-field"><label>Instagram 3 (handle)</label><input type="text" id="cfg_instagram3" class="s-input"></div>
+                    <div class="s-field"><label>Footer Tagline</label><input type="text" id="cfg_footerTagline" class="s-input"></div>
+                </div>
+            </div>
+
+            <!-- Save Bar -->
+            <div class="settings-save-bar">
+                <button class="btn btn-primary" onclick="savePageSettings()" style="font-weight:700;">
+                    <i class="fas fa-save"></i> Save All Page Settings
                 </button>
-                <button class="btn btn-secondary" onclick="previewPresale()" title="Open presale page in new tab">
+                <button class="btn btn-secondary" onclick="previewPresale()">
                     <i class="fas fa-external-link-alt"></i> Preview Live
                 </button>
                 <span id="pageSettingsStatus" style="font-size:0.85rem; color:var(--text-muted);"></span>
@@ -1673,8 +2030,105 @@ function exportData() {
 }
 
 // ═══════════════════════════════════════════════════
-// PAGE SETTINGS (hero image, farmer photo, etc.)
+// PAGE SETTINGS — FULL CMS
 // ═══════════════════════════════════════════════════
+
+// Default values — these match what's currently hardcoded on the presale page.
+// Shown in the admin until the user changes them.
+var PAGE_DEFAULTS = {
+    // Hero
+    heroImageUrl: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=1600&q=80',
+    heroBadge: '2026 PRESALE NOW OPEN',
+    heroHeading: "Pittsburgh's Favorite <span>Seedlings</span> Are Back",
+    heroSubheading: 'Reserve your heirloom tomato, pepper, and cucurbit starts from Tiny Seed Farm. Grown in Rochester, PA \u2014 picked up at your nearest Pittsburgh market.',
+    heroDeadline: 'Order by March 20',
+    heroPickupDates: 'Pickup April 26 \u2013 May 17',
+    heroLocationCount: '5 pickup locations',
+    heroCta: 'Reserve Your Seedlings',
+    heroPricing: '$6 each \u00b7 4 for $20 \u00b7 15% off 10+ plants',
+    heroTrust: 'Tiny Seed Farm \u2014 Serving Pittsburgh-area gardeners since 2017',
+    // Benefits
+    benefitsTitle: 'Why Pre-Order?',
+    benefitsSubtitle: "Last year\u2019s presale sold out \u2014 reserve yours today.",
+    benefit1Title: 'Guaranteed Availability',
+    benefit1Desc: 'Lock in rare varieties like Cherokee Purple and Ghost Pepper before they sell out at market.',
+    benefit2Title: 'Skip the Line',
+    benefit2Desc: 'Your order is pre-packed and labeled. Walk up, grab your box, and go \u2014 no browsing required.',
+    benefit3Title: '5 Pickup Locations',
+    benefit3Desc: 'Choose a market near you: Bloomfield, Lawrenceville, Sewickley, Phipps, or our farm.',
+    benefit4Title: 'Support Local',
+    benefit4Desc: 'Every seedling is started by hand at our Rochester, PA farm \u2014 just 30 min from Pittsburgh.',
+    // Farmer
+    farmerPhotoUrl: '',
+    farmerName: 'Todd Wilson',
+    farmerTagline: 'Tiny Seed Farm \u2014 Rochester, PA. Serving Pittsburgh-area gardeners since 2017.',
+    farmerBio: "I started Tiny Seed Farm in 2017 with a simple mission: grow the tastiest heirloom vegetables for Pittsburgh families. Every seedling I sell is one I\u2019d plant in my own garden. I trial dozens of varieties each year and only offer the ones that thrive in our Zone 6b climate.",
+    farmerEmail: 'todd@tinyseedfarmpgh.com',
+    farmerStat1: '35+ Varieties',
+    farmerStat2: '1,000+ Seedlings Grown',
+    farmerStat3: 'Local Pickup Only',
+    farmerSignature: '\u2014 Farmer Todd',
+    // Testimonials
+    testimonialsTitle: 'What Gardeners Are Saying',
+    testimonialsSubtitle: 'Join hundreds of Pittsburgh gardeners who trust Tiny Seed Farm.',
+    test1Quote: "The Cherokee Purple tomatoes were incredible \u2014 the healthiest seedlings I\u2019ve ever bought. Already reserved my 2026 order!",
+    test1Name: 'Maria K.', test1Location: 'Squirrel Hill',
+    test2Quote: "Todd\u2019s Ghost Peppers produced all season long. My hot sauce game has never been stronger. The pickup at Bloomfield Market was so convenient.",
+    test2Name: 'James R.', test2Location: 'Lawrenceville',
+    test3Quote: "First-time gardener here \u2014 the growing tips and healthy starts made all the difference. Can\u2019t wait for my Sun Golds again this year!",
+    test3Name: 'Ashley P.', test3Location: 'Sewickley',
+    // Pickup Locations
+    loc1Name: 'Bloomfield Market', loc1Dates: 'Saturdays, May 3 & May 10', loc1Details: 'Liberty Ave & Main St, Bloomfield \u2014 9am\u20131pm',
+    loc2Name: 'Lawrenceville Market', loc2Dates: 'Tuesdays, April 29 & May 6', loc2Details: 'Arsenal Park, Lawrenceville \u2014 3pm\u20137pm',
+    loc3Name: 'Sewickley Market', loc3Dates: 'Saturdays, May 3 & May 10', loc3Details: 'Sewickley Borough, Thorn & Broad \u2014 8am\u20131pm',
+    loc4Name: 'Phipps Conservatory', loc4Dates: 'Saturday, May 3', loc4Details: 'One Schenley Park, Oakland \u2014 during plant sale hours',
+    loc5Name: 'Farm Pickup \u2014 Rochester, PA', loc5Dates: 'Weekdays, April 28 \u2013 May 16', loc5Details: '257 Zeigler Rd, Rochester \u2014 by appointment, 2pm\u20136pm',
+    // Bundles
+    bundle1Image: 'images/bundle-salsa-garden.png', bundle1Name: 'Salsa Garden',
+    bundle1Tagline: 'Everything you need for fresh salsa all summer long',
+    bundle1Items: '2x Roma Tomato\n1x San Marzano\n1x Jalape\u00f1o\n1x Cilantro\n1x Onion',
+    bundle1Price: '$28', bundle1Savings: 'Save $4!',
+    bundle2Image: 'images/bundle-pizza-garden.png', bundle2Name: 'Pizza Garden',
+    bundle2Tagline: 'Grow your own pizza toppings \u2014 from garden to pie',
+    bundle2Items: '2x Roma Tomato\n1x Sweet Basil\n1x Bell Pepper\n1x Oregano',
+    bundle2Price: '$24', bundle2Savings: 'Save $3!',
+    bundle3Image: 'images/bundle-flower-power.png', bundle3Name: 'Flower Power',
+    bundle3Tagline: 'A riot of color from June through October',
+    bundle3Items: '2x Zinnia\n2x Sunflower\n2x Marigold\n1x Cosmos',
+    bundle3Price: '$30', bundle3Savings: 'Save $5!',
+    // Growing Tips
+    tipsTitle: 'Growing Tips for Pittsburgh',
+    tipsSubtitle: 'Zone 6b, clay soil, unpredictable springs \u2014 we\u2019ve got you covered.',
+    tip1Title: 'When to Plant Out',
+    tip1Text: "Pittsburgh\u2019s last frost is typically May 10-15. Wait until nighttime temps stay above 50\u00b0F before transplanting tomatoes and peppers. Cucurbits can go out after Memorial Day.",
+    tip2Title: 'Hardening Off',
+    tip2Text: 'Your seedlings have been greenhouse-grown. Set them outside for 2-3 hours the first day, increasing daily. After 5-7 days, they\u2019re ready to transplant.',
+    tip3Title: 'Best for Containers',
+    tip3Text: 'Short on space? Celebrity, Lunchbox, Cherry Mix, and Shishito all do great in 5-gallon containers on a sunny patio or deck.',
+    // FAQ
+    faqTitle: 'Frequently Asked Questions',
+    faq1Q: 'What size are the seedlings at pickup?',
+    faq1A: 'All seedlings are grown in 3-inch pots and will be 6-10 inches tall at pickup, with strong root systems ready for transplanting. Tomatoes will typically have their first flowers or buds.',
+    faq2Q: 'Can I cancel or modify my order?',
+    faq2A: 'Full refund available until March 20. After that, we\u2019ll issue store credit for future purchases. To modify varieties, email todd@tinyseedfarmpgh.com before March 20.',
+    faq3Q: 'What if a variety sells out?',
+    faq3A: 'We\u2019ll contact you to choose a substitute or receive a refund for that item. Popular varieties (Sun Gold, Cherokee Purple, Ghost Pepper) sell out fastest \u2014 order early!',
+    faq4Q: 'Are the seedlings organic?',
+    faq4A: 'We use organic seeds and growing practices. Our farm is transitioning to certified organic. All seedlings are grown without synthetic pesticides or fertilizers.',
+    faq5Q: "What if I can\u2019t make my pickup date?",
+    faq5A: 'Contact us and we\u2019ll arrange an alternative pickup at another market date or farm pickup in Rochester. We hold orders for up to 1 week after your scheduled date.',
+    faq6Q: 'Do you offer bulk/wholesale pricing?',
+    faq6A: 'All seedlings are $6 each or 4 for $20. Orders of 10+ seedlings automatically receive 15% off the entire order. For wholesale quantities (flats, custom grows), contact todd@tinyseedfarmpgh.com.',
+    // Footer
+    footerEmail: 'todd@tinyseedfarmpgh.com',
+    footerAddress: 'Tiny Seed Farm \u2014 257 Zeigler Rd, Rochester, PA 15074',
+    instagram1: '@tinyseedfarm', instagram2: '@tinyseedfleurs', instagram3: '@tinyseedfungi',
+    footerTagline: 'Locally grown with love for Pittsburgh gardeners.'
+};
+
+// All config field IDs (must match element IDs with "cfg_" prefix)
+var ALL_CFG_KEYS = Object.keys(PAGE_DEFAULTS);
+
 function togglePageSettings() {
     var body = document.getElementById('pageSettingsBody');
     var icon = document.getElementById('settingsToggleIcon');
@@ -1687,45 +2141,71 @@ function togglePageSettings() {
     }
 }
 
+function switchSettingsTab(tabName) {
+    // Update tab buttons
+    var tabs = document.querySelectorAll('.settings-tab');
+    for (var i = 0; i < tabs.length; i++) tabs[i].classList.remove('active');
+    event.target.closest('.settings-tab').classList.add('active');
+    // Show section
+    var sections = document.querySelectorAll('.settings-section');
+    for (var i = 0; i < sections.length; i++) sections[i].classList.remove('active');
+    var target = document.getElementById('tab-' + tabName);
+    if (target) target.classList.add('active');
+}
+
 function loadPageSettings() {
+    // First fill all fields with defaults
+    ALL_CFG_KEYS.forEach(function(key) {
+        var el = document.getElementById('cfg_' + key);
+        if (el) el.value = PAGE_DEFAULTS[key];
+    });
+    updateImagePreviews();
+
+    // Then fetch saved config and override
     fetch(TINY_SEED_API.MAIN_API + '?action=getPresalePageConfig')
         .then(function(res) { return res.json(); })
         .then(function(result) {
             if (result.success && result.config) {
                 var c = result.config;
-                if (c.heroImageUrl) {
-                    document.getElementById('settingHeroImage').value = c.heroImageUrl;
-                    document.getElementById('heroPreview').innerHTML = '<img src="' + escapeHtml(c.heroImageUrl) + '" alt="Hero">';
-                } else {
-                    document.getElementById('heroPreview').innerHTML = '<span class="no-image"><i class="fas fa-mountain"></i><br>No hero image set</span>';
-                }
-                if (c.farmerPhotoUrl) {
-                    document.getElementById('settingFarmerPhoto').value = c.farmerPhotoUrl;
-                    document.getElementById('farmerPreview').innerHTML = '<img src="' + escapeHtml(c.farmerPhotoUrl) + '" alt="Farmer" style="object-fit:cover;">';
-                } else {
-                    document.getElementById('farmerPreview').innerHTML = '<span class="no-image"><i class="fas fa-user"></i><br>No farmer photo set</span>';
-                }
-                if (c.farmerName) document.getElementById('settingFarmerName').value = c.farmerName;
-                if (c.farmerTagline) document.getElementById('settingFarmerTagline').value = c.farmerTagline;
-                if (c.farmerBio) document.getElementById('settingFarmerBio').value = c.farmerBio;
+                ALL_CFG_KEYS.forEach(function(key) {
+                    if (c[key] !== undefined && c[key] !== null && c[key] !== '') {
+                        var el = document.getElementById('cfg_' + key);
+                        if (el) el.value = c[key];
+                    }
+                });
+                updateImagePreviews();
             }
         })
         .catch(function(err) {
-            console.log('Could not load page settings:', err);
-            document.getElementById('heroPreview').innerHTML = '<span class="no-image"><i class="fas fa-mountain"></i><br>No hero image set</span>';
-            document.getElementById('farmerPreview').innerHTML = '<span class="no-image"><i class="fas fa-user"></i><br>No farmer photo set</span>';
+            console.log('Using defaults (could not load config):', err.message);
         });
 }
 
+function updateImagePreviews() {
+    var imgFields = [
+        { input: 'cfg_heroImageUrl', preview: 'prevHeroImg', fallback: 'Hero background' },
+        { input: 'cfg_farmerPhotoUrl', preview: 'prevFarmerImg', fallback: 'Farmer photo' },
+        { input: 'cfg_bundle1Image', preview: 'prevBundle1Img', fallback: 'Bundle 1' },
+        { input: 'cfg_bundle2Image', preview: 'prevBundle2Img', fallback: 'Bundle 2' },
+        { input: 'cfg_bundle3Image', preview: 'prevBundle3Img', fallback: 'Bundle 3' }
+    ];
+    imgFields.forEach(function(f) {
+        var val = document.getElementById(f.input).value.trim();
+        var prev = document.getElementById(f.preview);
+        if (val) {
+            prev.innerHTML = '<img src="' + escapeHtml(val) + '" alt="' + f.fallback + '">';
+        } else {
+            prev.innerHTML = '<span class="no-img"><i class="fas fa-image"></i><br>No ' + f.fallback.toLowerCase() + ' set</span>';
+        }
+    });
+}
+
 function savePageSettings() {
-    var payload = {
-        action: 'savePresalePageConfig',
-        heroImageUrl: document.getElementById('settingHeroImage').value.trim(),
-        farmerPhotoUrl: document.getElementById('settingFarmerPhoto').value.trim(),
-        farmerName: document.getElementById('settingFarmerName').value.trim(),
-        farmerTagline: document.getElementById('settingFarmerTagline').value.trim(),
-        farmerBio: document.getElementById('settingFarmerBio').value.trim()
-    };
+    var payload = { action: 'savePresalePageConfig' };
+    ALL_CFG_KEYS.forEach(function(key) {
+        var el = document.getElementById('cfg_' + key);
+        if (el) payload[key] = el.value;
+    });
 
     var status = document.getElementById('pageSettingsStatus');
     status.textContent = 'Saving...';
@@ -1738,19 +2218,11 @@ function savePageSettings() {
         body: JSON.stringify(payload)
     })
     .then(function() {
-        showToast('Page settings saved');
-        status.textContent = 'Saved!';
+        showToast('All page settings saved — changes are live!');
+        status.textContent = 'Saved! Changes are live on the presale page.';
         status.style.color = 'var(--green-dark)';
-        // Update previews
-        var heroUrl = document.getElementById('settingHeroImage').value.trim();
-        var farmerUrl = document.getElementById('settingFarmerPhoto').value.trim();
-        if (heroUrl) {
-            document.getElementById('heroPreview').innerHTML = '<img src="' + escapeHtml(heroUrl) + '" alt="Hero">';
-        }
-        if (farmerUrl) {
-            document.getElementById('farmerPreview').innerHTML = '<img src="' + escapeHtml(farmerUrl) + '" alt="Farmer" style="object-fit:cover;">';
-        }
-        setTimeout(function() { status.textContent = ''; }, 3000);
+        updateImagePreviews();
+        setTimeout(function() { status.textContent = ''; }, 5000);
     })
     .catch(function(err) {
         showToast('Network error: ' + err.message);
@@ -1763,22 +2235,10 @@ function previewPresale() {
     window.open('seedling-presale-2026.html', '_blank');
 }
 
-// Live preview on URL input change
-document.getElementById('settingHeroImage').addEventListener('change', function() {
-    var url = this.value.trim();
-    if (url) {
-        document.getElementById('heroPreview').innerHTML = '<img src="' + escapeHtml(url) + '" alt="Hero">';
-    } else {
-        document.getElementById('heroPreview').innerHTML = '<span class="no-image"><i class="fas fa-mountain"></i><br>No hero image set</span>';
-    }
-});
-document.getElementById('settingFarmerPhoto').addEventListener('change', function() {
-    var url = this.value.trim();
-    if (url) {
-        document.getElementById('farmerPreview').innerHTML = '<img src="' + escapeHtml(url) + '" alt="Farmer" style="object-fit:cover;">';
-    } else {
-        document.getElementById('farmerPreview').innerHTML = '<span class="no-image"><i class="fas fa-user"></i><br>No farmer photo set</span>';
-    }
+// Live image previews on URL change
+['cfg_heroImageUrl', 'cfg_farmerPhotoUrl', 'cfg_bundle1Image', 'cfg_bundle2Image', 'cfg_bundle3Image'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.addEventListener('change', updateImagePreviews);
 });
 
 // ═══════════════════════════════════════════════════
