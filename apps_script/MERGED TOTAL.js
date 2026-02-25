@@ -17570,6 +17570,8 @@ function doGet(e) {
         return jsonResponse(getSeedlingPresaleItems(e.parameter));
       case 'scrapeProductUrl':
         return jsonResponse(scrapeProductUrl(e.parameter));
+      case 'autoPopulateSeedlingImages':
+        return jsonResponse(autoPopulateSeedlingImages(e.parameter));
       case 'getSeedlingSalesHistorical':
         return jsonResponse(getSeedlingSalesHistorical(e.parameter));
       case 'getSeedlingTimeline':
@@ -131235,6 +131237,138 @@ function updateSeedlingItem(params) {
   }
 
   return { success: true, itemId: itemId, updated: updates };
+}
+
+/**
+ * Bulk auto-populate Image_URL for seedling varieties by searching Johnny's Seeds.
+ * Only fills items that don't already have an Image_URL.
+ * @param {object} params - { overwrite: boolean (default false), itemIds: string[] (optional, specific items) }
+ */
+function autoPopulateSeedlingImages(params) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('SEEDLING_PRODUCTION');
+  if (!sheet) return { success: false, error: 'SEEDLING_PRODUCTION sheet not found' };
+
+  var data = sheet.getDataRange().getValues();
+  var headers = data[0];
+  var cols = {};
+  for (var h = 0; h < headers.length; h++) cols[headers[h]] = h;
+
+  // Ensure Image_URL column exists
+  if (cols['Image_URL'] === undefined) {
+    sheet.getRange(1, headers.length + 1).setValue('Image_URL');
+    cols['Image_URL'] = headers.length;
+  }
+
+  var overwrite = params && params.overwrite;
+  var onlyIds = params && params.itemIds ? params.itemIds : null;
+  var updated = 0;
+  var skipped = 0;
+  var failed = 0;
+  var results = [];
+
+  for (var i = 1; i < data.length; i++) {
+    var itemId = String(data[i][cols['Item_ID']] || '');
+    if (!itemId) continue;
+
+    // Skip if filtering by specific IDs
+    if (onlyIds && onlyIds.indexOf(itemId) === -1) continue;
+
+    // Skip if already has image and not overwriting
+    var currentImage = String(data[i][cols['Image_URL']] || '').trim();
+    if (currentImage && !overwrite) { skipped++; continue; }
+
+    var variety = String(data[i][cols['Variety']] || '');
+    var crop = String(data[i][cols['Crop']] || '');
+    var searchTerm = (variety || crop).trim();
+    if (!searchTerm) { skipped++; continue; }
+
+    // Search Johnny's Seeds for this variety
+    try {
+      var imageUrl = searchJohnnysForImage_(searchTerm, crop);
+      if (imageUrl) {
+        sheet.getRange(i + 1, cols['Image_URL'] + 1).setValue(imageUrl);
+        updated++;
+        results.push({ itemId: itemId, variety: searchTerm, imageUrl: imageUrl, status: 'found' });
+      } else {
+        failed++;
+        results.push({ itemId: itemId, variety: searchTerm, status: 'not_found' });
+      }
+      // Rate limit: 1 second between requests to be respectful
+      Utilities.sleep(1000);
+    } catch (e) {
+      failed++;
+      results.push({ itemId: itemId, variety: searchTerm, status: 'error', error: e.message });
+    }
+  }
+
+  return { success: true, updated: updated, skipped: skipped, failed: failed, results: results };
+}
+
+/**
+ * Search Johnny's Seeds for a variety and return the first product image URL.
+ * @private
+ */
+function searchJohnnysForImage_(variety, crop) {
+  // Clean up search term — remove F1/hybrid markers, extra words
+  var searchTerm = variety.replace(/\s*f1\s*/gi, ' ').replace(/\s*hybrid\s*/gi, ' ').trim();
+  if (crop && searchTerm.toLowerCase().indexOf(crop.toLowerCase()) === -1) {
+    searchTerm = searchTerm + ' ' + crop;
+  }
+
+  var searchUrl = 'https://www.johnnyseeds.com/search?q=' + encodeURIComponent(searchTerm);
+
+  try {
+    var response = UrlFetchApp.fetch(searchUrl, {
+      muteHttpExceptions: true,
+      followRedirects: true,
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; TinySeedFarm/1.0)' }
+    });
+    var html = response.getContentText();
+
+    // Try to find the first product image in search results
+    // Johnny's uses Demandware with product tiles
+    var patterns = [
+      // Product tile image (search results)
+      /<img[^>]+class=["'][^"']*tile-image[^"']*["'][^>]+src=["']([^"']+)["']/i,
+      // Any product image in results
+      /src=["'](https:\/\/www\.johnnyseeds\.com\/dw\/image\/[^"']+\.(jpg|jpeg|png)[^"']*)["']/i,
+      // data-src lazy load
+      /data-src=["'](https:\/\/www\.johnnyseeds\.com\/dw\/image\/[^"']+\.(jpg|jpeg|png)[^"']*)["']/i,
+      // JSON-LD in search
+      /"image"\s*:\s*"(https:\/\/www\.johnnyseeds\.com\/dw\/image\/[^"]+)"/i
+    ];
+
+    for (var p = 0; p < patterns.length; p++) {
+      var match = html.match(patterns[p]);
+      if (match && match[1]) {
+        var imgUrl = match[1];
+        // Skip placeholder/no-image images
+        if (/no.?image|placeholder|logo|icon/i.test(imgUrl)) continue;
+        // Upscale to 800px
+        imgUrl = imgUrl.replace(/[?&]sw=\d+/g, '').replace(/[?&]sh=\d+/g, '');
+        imgUrl += (imgUrl.indexOf('?') === -1 ? '?' : '&') + 'sw=800&sh=800';
+        return imgUrl;
+      }
+    }
+
+    // If search didn't work, try direct product page from first result link
+    var productLink = html.match(/href=["'](\/[^"']+\.html)["'][^>]*class=["'][^"']*thumb-link/i) ||
+                      html.match(/href=["'](\/[^"']+\.html)["'][^>]*class=["'][^"']*product-link/i) ||
+                      html.match(/<a[^>]+class=["'][^"']*name-link["'][^>]+href=["'](\/[^"']+\.html)["']/i);
+    if (productLink && productLink[1]) {
+      var productUrl = 'https://www.johnnyseeds.com' + productLink[1];
+      var scrapeResult = scrapeProductUrl({ url: productUrl });
+      if (scrapeResult.success && scrapeResult.data && scrapeResult.data.imageUrl) {
+        return scrapeResult.data.imageUrl;
+      }
+    }
+
+    return null;
+  } catch (e) {
+    Logger.log('Johnny\'s search failed for "' + variety + '": ' + e.message);
+    return null;
+  }
 }
 
 function scrapeProductUrl(params) {

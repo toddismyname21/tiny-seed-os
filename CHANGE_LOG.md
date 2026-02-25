@@ -38,6 +38,23 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-02-25 — Auto-Populate Seedling Images from Johnny's Seeds + Fix Save CORS
+
+**Role:** PM_Architect
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — Added `autoPopulateSeedlingImages()` and `searchJohnnysForImage_()` functions. Searches Johnny's Seeds for each variety without an image, pulls the product photo, saves to Image_URL column. Rate-limited at 1 req/sec. Added doGet route.
+- `web_app/seedling-admin.html` — Added "Auto-Fill Images from Johnny's" button in toolbar. Fixed CORS on save (Content-Type `application/json` → `text/plain`) and bulk scrape. Added `autoPopulateImages()` JS function with confirmation dialog and progress feedback.
+
+### Reason
+Owner reported save was "failed to fetch" (CORS from Content-Type header). Also requested auto-populating all seedling variety photos from Johnny's Seeds as high-quality placeholders.
+
+### Duplicate Check
+- [x] No duplicate functions
+- [x] Enhanced existing admin page only
+
+---
+
 ## 2026-02-25 — Enhance Product URL Scraper (Johnny's Seeds, Burpee, etc.)
 
 **Role:** PM_Architect
