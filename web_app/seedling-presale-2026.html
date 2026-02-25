@@ -71,6 +71,17 @@
             justify-content: center;
         }
         .hero-logo { width: 140px; margin-bottom: 20px; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.3)); }
+        .page-logo {
+            position: absolute;
+            top: 20px;
+            left: 24px;
+            z-index: 10;
+            width: 220px;
+            filter: drop-shadow(0 2px 12px rgba(0,0,0,0.4));
+        }
+        @media (max-width: 768px) {
+            .page-logo { width: 160px; top: 12px; left: 12px; }
+        }
         .hero-content { position: relative; z-index: 1; max-width: 800px; margin: 0 auto; }
         .hero-badge {
             display: inline-flex; align-items: center; gap: 8px;
@@ -363,6 +374,7 @@
 <!-- HERO -->
 <!-- ═══════════════════════════════════════════════════════════ -->
 <header class="hero" role="banner">
+    <img src="images/tiny-seed-farm-logo.png" alt="Tiny Seed Farm — Estd 2017" class="page-logo">
     <div class="hero-content">
         <img src="assets/logo.png" alt="Tiny Seed Farm" class="hero-logo">
         <div class="hero-badge"><i class="fas fa-seedling"></i> 2026 PRESALE NOW OPEN</div>

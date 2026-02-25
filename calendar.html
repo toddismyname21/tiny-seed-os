@@ -405,13 +405,18 @@
 
         .skip-link:focus { top: 0; }
 
-        /* Focus indicators (Fix #34) */
+        /* Focus indicators (Fix #34, #45) — global focus-visible */
+        *:focus-visible {
+            outline: 3px solid var(--primary);
+            outline-offset: 2px;
+        }
+
         .variety-checkbox input:focus-visible,
         .zoom-btn:focus-visible,
         .nav-btn:focus-visible,
         .checkbox-filter input:focus-visible,
         .btn:focus-visible {
-            outline: 2px solid #4fc3f7;
+            outline: 3px solid var(--primary);
             outline-offset: 2px;
         }
 
@@ -761,7 +766,8 @@
             display: flex;
             align-items: center;
             gap: 10px;
-            padding: 8px 12px;
+            padding: 10px 12px;
+            min-height: 44px;
             background: var(--bg-light);
             border-radius: 8px;
             cursor: pointer;
@@ -841,10 +847,12 @@
             overflow: hidden;
         }
 
-        /* Corner cell - top left, always visible */
+        /* Corner cell - top left, always visible (frozen) */
         .gantt-corner {
             grid-row: 1;
             grid-column: 1;
+            position: sticky;
+            left: 0;
             background: var(--bg-light);
             border-right: 2px solid var(--border);
             border-bottom: 2px solid var(--border);
@@ -872,10 +880,12 @@
             flex-direction: column;
         }
 
-        /* Labels column - scrolls vertically only */
+        /* Labels column - frozen left, scrolls vertically only */
         .gantt-labels-scroll {
             grid-row: 2;
             grid-column: 1;
+            position: sticky;
+            left: 0;
             overflow-x: hidden;
             overflow-y: hidden;
             border-right: 2px solid var(--border);
@@ -1333,16 +1343,28 @@
             border-right-color: rgba(255,255,255,0.08);
         }
 
-        /* Today Line — single full-height vertical hairline across entire grid */
+        /* Today Line — prominent vertical marker across entire grid */
         .today-line {
             position: absolute;
             top: 0;
             bottom: 0;
-            width: 2px;
+            width: 3px;
             background: var(--danger);
             z-index: 25;
             pointer-events: none;
-            opacity: 0.7;
+            opacity: 1;
+            box-shadow: 0 0 8px rgba(230, 57, 70, 0.5);
+        }
+
+        .today-line::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: -12px;
+            width: 27px;
+            background: rgba(230, 57, 70, 0.06);
+            pointer-events: none;
         }
 
         .today-marker {
@@ -1352,12 +1374,14 @@
             transform: translateX(-50%);
             background: var(--danger);
             color: white;
-            padding: 2px 8px;
-            border-radius: 0 0 4px 4px;
-            font-size: 0.65rem;
+            padding: 3px 10px;
+            border-radius: 0 0 6px 6px;
+            font-size: 0.7rem;
             font-weight: 700;
             white-space: nowrap;
             z-index: 26;
+            box-shadow: 0 2px 6px rgba(230, 57, 70, 0.4);
+            letter-spacing: 0.5px;
         }
 
         /* Crop Bars */
@@ -1387,11 +1411,33 @@
             z-index: 30;
         }
 
+        /* Drag handle icon — appears on hover (Fix #21) */
+        .crop-bar .drag-handle {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            opacity: 0.7;
+            margin-right: 4px;
+            flex-shrink: 0;
+            cursor: grab;
+            letter-spacing: -1px;
+        }
+
+        .crop-bar:hover .drag-handle {
+            display: flex;
+        }
+
         .crop-bar.dragging {
             cursor: grabbing;
             box-shadow: 0 8px 30px rgba(0,0,0,0.5);
             z-index: 100;
             opacity: 0.9;
+        }
+
+        .crop-bar.dragging .drag-handle {
+            display: flex;
+            cursor: grabbing;
         }
 
         /* Ghost element showing original position */
@@ -1455,15 +1501,18 @@
 
         .gantt-label.empty-bed .field-meta {
             font-style: italic;
-            color: #8a9bb0;
+            color: #b0c4d8;
         }
 
         .crop-bar.resizing {
             z-index: 100;
         }
 
+        /* Phase patterns — not color-only (Fix #43) */
         .crop-bar.seeding {
-            background: linear-gradient(135deg, #8e44ad 0%, #9b59b6 100%);
+            background:
+                repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(255,255,255,0.08) 4px, rgba(255,255,255,0.08) 8px),
+                linear-gradient(135deg, #8e44ad 0%, #9b59b6 100%);
         }
 
         .crop-bar.growing {
@@ -1471,12 +1520,25 @@
         }
 
         .crop-bar.harvest {
-            background: linear-gradient(135deg, var(--secondary) 0%, var(--accent) 100%);
+            background:
+                repeating-linear-gradient(90deg, transparent, transparent 6px, rgba(255,255,255,0.1) 6px, rgba(255,255,255,0.1) 8px),
+                linear-gradient(135deg, var(--secondary) 0%, var(--accent) 100%);
         }
 
         .crop-bar.completed {
             background: linear-gradient(135deg, #555 0%, #777 100%);
             opacity: 0.7;
+        }
+
+        /* Unassigned block distinct styling (Fix #34) */
+        .crop-bar.unassigned {
+            border: 2px dashed var(--warning) !important;
+            background: linear-gradient(135deg, rgba(233, 196, 106, 0.35) 0%, rgba(244, 162, 97, 0.35) 100%) !important;
+            box-shadow: 0 0 8px rgba(244, 162, 97, 0.4);
+        }
+
+        .crop-bar.unassigned:hover {
+            box-shadow: 0 0 14px rgba(244, 162, 97, 0.6);
         }
 
         .crop-bar.locked {
@@ -1667,11 +1729,14 @@
 
         .crop-bar-name {
             font-weight: 700;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
         }
 
         .crop-bar-dates {
             font-size: 0.65rem;
-            opacity: 0.9;
+            font-weight: 600;
+            opacity: 1;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
         }
 
         /* Resize Handles */
@@ -2542,8 +2607,9 @@
                 <button class="zoom-btn active" onclick="setViewMode('field')" id="view-field" role="tab" title="Group by Field"><i class="fas fa-th-large" style="margin-right:4px;font-size:0.7rem;"></i>Field</button>
                 <button class="zoom-btn" onclick="setViewMode('bed')" id="view-bed" role="tab" title="Group by Bed"><i class="fas fa-th" style="margin-right:4px;font-size:0.7rem;"></i>Bed</button>
                 <button class="zoom-btn" onclick="setViewMode('crop')" id="view-crop" role="tab" title="Group by Crop"><i class="fas fa-leaf" style="margin-right:4px;font-size:0.7rem;"></i>Crop</button>
-                <button class="zoom-btn" onclick="setViewMode('variety')" id="view-variety" role="tab" title="Group by Variety"><i class="fas fa-seedling" style="margin-right:4px;font-size:0.7rem;"></i>Variety</button>
+                <button class="zoom-btn" onclick="setViewMode('variety')" id="view-variety" role="tab" title="Group by Variety"><i class="fas fa-seedling" style="margin-right:4px;font-size:0.7rem;"></i>Var</button>
             </div>
+            <div style="width: 1px; height: 24px; background: var(--border); flex-shrink: 0; margin: 0 2px;"></div>
             <div class="zoom-controls" role="tablist" aria-label="Time scale">
                 <button class="zoom-btn" onclick="setZoom('day')" id="zoom-day" role="tab">Day</button>
                 <button class="zoom-btn active" onclick="setZoom('week')" id="zoom-week" role="tab">Week</button>
@@ -2588,14 +2654,57 @@
         <button class="nav-btn today-btn" onclick="goToToday()" title="Center calendar on today's date" aria-label="Go to today">
             Today
         </button>
+        <input type="date" id="jumpToDatePicker" value="2026-01-01"
+               title="Jump to a specific date"
+               aria-label="Jump to date"
+               onchange="jumpToDate(this.value)"
+               style="background: var(--bg-light); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); padding: 4px 8px; font-size: 0.8rem; cursor: pointer; max-width: 140px;">
         <div class="current-range" id="currentRange">Jan 1 - Dec 31, 2026</div>
         <div id="zoomSpanReadout" style="font-size:0.7rem;color:var(--text-secondary);margin-left:4px;white-space:nowrap;" aria-live="polite"></div>
     </div>
 
-    <aside class="sidebar" id="sidebar">
+    <aside class="sidebar" id="sidebar" role="navigation" aria-label="Calendar filters and legend">
         <button class="sidebar-collapse-btn" onclick="toggleCalendarSidebar()" title="Collapse sidebar" aria-label="Collapse sidebar">
             <i class="fas fa-chevron-left"></i>
         </button>
+        <!-- Phases legend pinned to top of sidebar (Fix #24) -->
+        <div class="sidebar-section">
+            <h3 class="sidebar-title">Phases & Status</h3>
+            <div class="checkbox-filters">
+                <label class="checkbox-filter">
+                    <input type="checkbox" checked onchange="applyFilters()" data-status="seeding">
+                    <div class="legend-color" style="background: linear-gradient(135deg, #8e44ad 0%, #9b59b6 100%); width:12px; height:12px; border-radius:3px; flex-shrink:0;"></div>
+                    <span>Seeding</span>
+                </label>
+                <label class="checkbox-filter">
+                    <input type="checkbox" checked onchange="applyFilters()" data-status="growing">
+                    <div class="legend-color" style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%); width:12px; height:12px; border-radius:3px; flex-shrink:0;"></div>
+                    <span>Growing</span>
+                </label>
+                <label class="checkbox-filter">
+                    <input type="checkbox" checked onchange="applyFilters()" data-status="harvest">
+                    <div class="legend-color" style="background: linear-gradient(135deg, var(--secondary) 0%, var(--accent) 100%); width:12px; height:12px; border-radius:3px; flex-shrink:0;"></div>
+                    <span>Harvest Ready</span>
+                </label>
+                <label class="checkbox-filter">
+                    <input type="checkbox" onchange="applyFilters()" data-status="completed">
+                    <div class="legend-color" style="background: var(--text-secondary); width:12px; height:12px; border-radius:3px; flex-shrink:0;"></div>
+                    <span>Completed</span>
+                </label>
+            </div>
+            <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border);">
+                <div style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem;">
+                    <div class="legend-color" style="background: repeating-linear-gradient(45deg, var(--warning), var(--warning) 2px, transparent 2px, transparent 6px); width:12px; height:12px; border-radius:3px; flex-shrink:0; border: 1px dashed var(--warning);"></div>
+                    <span style="color: var(--warning);">Unassigned (<span id="legendUnassignedCount">0</span>)</span>
+                </div>
+            </div>
+            <div style="font-size:0.75rem; color:var(--text-secondary); margin-top:8px; padding-top:8px; border-top:1px solid var(--border);">
+                <span title="Greenhouse sowing">🏠 = Greenhouse</span> &nbsp;
+                <span title="Transplant to field">↔ = Transplant</span> &nbsp;
+                <span title="Harvest window">✂ = Harvest</span>
+            </div>
+        </div>
+
         <div class="sidebar-section">
             <h3 class="sidebar-title">Filters</h3>
 
@@ -2650,43 +2759,12 @@
             </div>
         </div>
 
-        <div class="sidebar-section">
-            <h3 class="sidebar-title">Phases & Status</h3>
-            <div class="checkbox-filters">
-                <label class="checkbox-filter">
-                    <input type="checkbox" checked onchange="applyFilters()" data-status="seeding">
-                    <div class="legend-color" style="background: linear-gradient(135deg, #8e44ad 0%, #9b59b6 100%); width:12px; height:12px; border-radius:3px; flex-shrink:0;"></div>
-                    <span>Seeding</span>
-                </label>
-                <label class="checkbox-filter">
-                    <input type="checkbox" checked onchange="applyFilters()" data-status="growing">
-                    <div class="legend-color" style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%); width:12px; height:12px; border-radius:3px; flex-shrink:0;"></div>
-                    <span>Growing</span>
-                </label>
-                <label class="checkbox-filter">
-                    <input type="checkbox" checked onchange="applyFilters()" data-status="harvest">
-                    <div class="legend-color" style="background: linear-gradient(135deg, var(--secondary) 0%, var(--accent) 100%); width:12px; height:12px; border-radius:3px; flex-shrink:0;"></div>
-                    <span>Harvest Ready</span>
-                </label>
-                <label class="checkbox-filter">
-                    <input type="checkbox" onchange="applyFilters()" data-status="completed">
-                    <div class="legend-color" style="background: var(--text-secondary); width:12px; height:12px; border-radius:3px; flex-shrink:0;"></div>
-                    <span>Completed</span>
-                </label>
-            </div>
-            <div style="font-size:0.75rem; color:var(--text-secondary); margin-top:8px; padding-top:8px; border-top:1px solid var(--border);">
-                <span title="Greenhouse sowing">🏠 = Greenhouse</span> &nbsp;
-                <span title="Transplant to field">↔ = Transplant</span> &nbsp;
-                <span title="Harvest window">✂ = Harvest</span>
-            </div>
-        </div>
-
         <div class="sidebar-section" style="background:rgba(233,196,106,0.08); border-radius:8px; padding:12px; border-left:3px solid var(--warning);">
             <h3 class="sidebar-title" style="margin-bottom:0.5rem;">How It Works</h3>
             <div style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.6;">
                 <p><strong>Drag</strong> bars to move plantings between beds</p>
                 <p><strong>Resize</strong> bar edges to adjust planting duration</p>
-                <p><strong>Click</strong> a bar to see details, <strong>double-click</strong> to edit</p>
+                <p><strong>Click</strong> a bar to see details &amp; <strong>Edit</strong> button</p>
                 <p><strong>Hover</strong> a bar to see crop, dates, and maturity</p>
                 <p style="color:var(--warning); font-weight:600; margin-top:8px;"><i class="fas fa-exclamation-circle"></i> Changes are NOT auto-saved! Click "Submit Changes" (or use the floating Save bar) to save to Google Sheets.</p>
                 <p><strong>Ctrl+Z</strong> to undo the last change</p>
@@ -2746,6 +2824,10 @@
                         <span class="stat-value" id="totalBedFeet">--</span>
                         <span class="stat-label">Bed Feet</span>
                     </div>
+                    <div class="stat-item" id="unassignedStat" title="Plantings without bed assignment" style="cursor: pointer;" onclick="toggleUnassignedPanel()">
+                        <span class="stat-value" id="unassignedCount" style="color: var(--warning);">--</span>
+                        <span class="stat-label" style="color: var(--warning);"><i class="fas fa-exclamation-triangle" style="font-size: 0.65rem;"></i> Unassigned</span>
+                    </div>
                 </div>
 
                 <div class="gantt-chart" id="ganttChart">
@@ -2782,7 +2864,7 @@
         Need Beds
     </button>
 
-    <aside class="unassigned-panel" id="unassignedPanel">
+    <aside class="unassigned-panel" id="unassignedPanel" role="complementary" aria-label="Unassigned plantings needing bed assignment">
         <div class="unassigned-header">
             <h3><i class="fas fa-exclamation-triangle"></i> Unassigned Plantings</h3>
             <div class="unassigned-count" id="unassignedPanelCount">0 plantings need bed assignment</div>
@@ -2794,7 +2876,7 @@
     </aside>
 
     <!-- Edit Planting Modal -->
-    <div class="edit-modal-overlay" id="editModal">
+    <div class="edit-modal-overlay" id="editModal" role="dialog" aria-modal="true" aria-labelledby="editModalCropName">
         <div class="edit-modal" style="max-width: 700px;">
             <div class="edit-modal-header">
                 <div class="edit-modal-title">
@@ -2900,6 +2982,10 @@
                             <input type="date" class="edit-form-input" id="editLastHarvest">
                         </div>
                     </div>
+                    <div id="editDateError" style="display: none; color: var(--danger); font-size: 0.8rem; margin-top: 8px; padding: 6px 10px; background: rgba(230, 57, 70, 0.1); border-radius: 6px;">
+                        <i class="fas fa-exclamation-triangle" style="margin-right: 4px;"></i>
+                        <span id="editDateErrorText">Last Harvest must be on or after First Harvest.</span>
+                    </div>
                 </div>
 
                 <!-- Days to Maturity (info only) -->
@@ -2920,7 +3006,11 @@
                     <textarea class="edit-form-input" id="editNotes" rows="2" placeholder="Any notes about this planting..."></textarea>
                 </div>
             </div>
-            <div class="edit-modal-footer">
+            <div class="edit-modal-footer" style="flex-wrap: wrap;">
+                <div id="editLastEdited" style="width: 100%; font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 8px; display: none;">
+                    <i class="fas fa-clock" style="margin-right: 4px;"></i>
+                    <span id="editLastEditedText">Last edited: --</span>
+                </div>
                 <button class="edit-btn edit-btn-cancel" onclick="closeEditModal()">Cancel</button>
                 <button class="edit-btn edit-btn-save" id="editSaveBtn" onclick="saveEditModal()">
                     <i class="fas fa-save"></i> Save Changes
@@ -2930,7 +3020,7 @@
     </div>
 
     <!-- Add Planting Modal -->
-    <div class="edit-modal-overlay" id="addPlantingModal">
+    <div class="edit-modal-overlay" id="addPlantingModal" role="dialog" aria-modal="true" aria-label="Add New Planting">
         <div class="edit-modal" style="max-width: 600px;">
             <div class="edit-modal-header">
                 <div class="edit-modal-title">
@@ -3027,6 +3117,9 @@
             </div>
             <div class="edit-modal-footer">
                 <button class="edit-btn edit-btn-cancel" onclick="closeAddPlantingModal()">Cancel</button>
+                <button class="edit-btn" onclick="resetAddPlantingForm()" style="background: transparent; border: 1px solid var(--border); color: var(--text-secondary);" title="Reset all fields to defaults">
+                    <i class="fas fa-undo"></i> Reset
+                </button>
                 <button class="edit-btn edit-btn-save" onclick="saveAddPlanting()">
                     <i class="fas fa-plus"></i> Add Planting
                 </button>
@@ -3035,7 +3128,7 @@
     </div>
 
     <!-- Gap Analysis Tooltip -->
-    <div class="gap-tooltip" id="gapTooltip">
+    <div class="gap-tooltip" id="gapTooltip" role="dialog" aria-label="Open field space details">
         <div class="gap-tooltip-header">
             <span style="font-size: 1.2rem;">📅</span>
             <span class="gap-tooltip-title">Open Field Space</span>
@@ -3058,7 +3151,7 @@
         </div>
     </div>
 
-    <div class="tooltip" id="tooltip">
+    <div class="tooltip" id="tooltip" role="dialog" aria-label="Planting details">
         <div class="tooltip-header">
             <span class="tooltip-icon" id="tooltipIcon">🌱</span>
             <div style="flex: 1;">
@@ -3107,7 +3200,15 @@
             <span class="tooltip-label">Status:</span>
             <span id="tooltipStatus">-</span>
         </div>
-        <div class="tooltip-actions" id="tooltipActions">
+        <div style="display: flex; gap: 8px; padding: 8px 12px; border-top: 1px solid rgba(255,255,255,0.1);">
+            <button onclick="openEditModal(currentTooltipId); hideTooltip();" style="flex:1; padding: 8px 14px; background: var(--primary); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                <i class="fas fa-pen"></i> Edit
+            </button>
+            <button onclick="hideTooltip();" style="padding: 8px 14px; background: var(--bg-light); color: var(--text-secondary); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; font-size: 0.85rem;">
+                Close
+            </button>
+        </div>
+        <div class="tooltip-actions" id="tooltipActions" style="font-size: 0.75rem; padding: 4px 12px 8px;">
             Drag to move | Resize edges to adjust dates
         </div>
     </div>
@@ -3410,8 +3511,10 @@
                     plantings = normalizeData(data.data);
 
                     if (plantings.length > 0) {
-                        setSyncStatus('synced', `Live: ${plantings.length} plantings`);
-                        showToast(`Loaded ${plantings.length} plantings from Google Sheets`, 'success');
+                        const skipped = rawCount - plantings.length;
+                        const skippedNote = skipped > 0 ? ` (${skipped} skipped — missing dates)` : '';
+                        setSyncStatus('synced', `Live: ${plantings.length.toLocaleString()} plantings`);
+                        showToast(`Loaded ${plantings.length.toLocaleString()} plantings from Google Sheets${skippedNote}`, 'success');
                     } else {
                         console.warn('All plantings filtered out - check date fields in your data');
                         plantings = getDemoPlantings();
@@ -3448,6 +3551,7 @@
             extractFieldsAndCrops();
             applyFilters();
             populateUnassignedPanel();
+            autoOpenUnassignedIfNeeded();
         }
 
         function loadDemoMode() {
@@ -3456,6 +3560,21 @@
             extractFieldsAndCrops();
             applyFilters();
             populateUnassignedPanel();
+            autoOpenUnassignedIfNeeded();
+        }
+
+        function autoOpenUnassignedIfNeeded() {
+            const unassigned = plantings.filter(p =>
+                p.isUnassigned || p.field === 'Unassigned' || p.field === 'Unknown' || !p.field
+            );
+            if (unassigned.length > 0) {
+                const panel = document.getElementById('unassignedPanel');
+                const toggle = document.getElementById('unassignedToggle');
+                if (panel && !panel.classList.contains('open')) {
+                    panel.classList.add('open');
+                    if (toggle) toggle.classList.add('open');
+                }
+            }
         }
 
         function normalizeData(data) {
@@ -3970,7 +4089,7 @@
             // Broader status matching — case-insensitive, includes all growing/active states
             const active = filteredPlantings.filter(p => {
                 const s = (p.status || '').toLowerCase();
-                return ['growing', 'planted', 'sown', 'seeded', 'transplanted', 'active'].includes(s);
+                return ['growing', 'planted', 'sown', 'seeded', 'seeding', 'transplanted', 'active'].includes(s);
             }).length;
             const harvest = filteredPlantings.filter(p => {
                 const s = (p.status || '').toLowerCase();
@@ -3990,18 +4109,31 @@
             const harvestEl = document.getElementById('harvestReady');
             const bedFeetEl = document.getElementById('totalBedFeet');
 
-            totalEl.textContent = total;
+            totalEl.textContent = total.toLocaleString();
             // Show 0 as "0" not "None in view" — use neutral styling for zero
-            activeEl.textContent = active;
-            harvestEl.textContent = harvest;
+            activeEl.textContent = active.toLocaleString();
+            harvestEl.textContent = harvest.toLocaleString();
             bedFeetEl.textContent = bedFeet.toLocaleString();
+
+            // Update unassigned count in stats bar and legend
+            const unassigned = plantings.filter(p =>
+                p.isUnassigned || p.field === 'Unassigned' || p.field === 'Unknown' || !p.field
+            ).length;
+            const unassignedEl = document.getElementById('unassignedCount');
+            const unassignedStatEl = document.getElementById('unassignedStat');
+            const legendUnassignedEl = document.getElementById('legendUnassignedCount');
+            if (unassignedEl) unassignedEl.textContent = unassigned.toLocaleString();
+            if (legendUnassignedEl) legendUnassignedEl.textContent = unassigned.toLocaleString();
+            if (unassignedStatEl) {
+                unassignedStatEl.style.display = unassigned > 0 ? 'flex' : 'none';
+            }
 
             // Style zero-state in neutral gray instead of green
             activeEl.style.color = active > 0 ? '' : 'var(--text-muted)';
             harvestEl.style.color = harvest > 0 ? '' : 'var(--text-muted)';
 
             // Add info tooltip for zero states
-            activeEl.title = active > 0 ? `${active} plantings in growing phase` : 'No plantings with growing/sown/planted status match current filters';
+            activeEl.title = active > 0 ? `${active} plantings currently seeding or growing` : 'No plantings with seeding/growing status match current filters';
             harvestEl.title = harvest > 0 ? `${harvest} plantings at or near harvest` : 'No plantings near harvest date match current filters';
 
             // Update stats bar aria
@@ -4028,6 +4160,17 @@
 
             renderGantt();
             updateRangeDisplay();
+        }
+
+        // Toggle field group collapse in bed/field view
+        function toggleFieldGroup(fieldName) {
+            if (!window._collapsedFields) window._collapsedFields = new Set();
+            if (window._collapsedFields.has(fieldName)) {
+                window._collapsedFields.delete(fieldName);
+            } else {
+                window._collapsedFields.add(fieldName);
+            }
+            renderGantt();
         }
 
         // Set View Mode (field, crop, variety)
@@ -4097,6 +4240,25 @@
             // Set timeline to start 2 weeks before today
             timelineStart = new Date(today);
             timelineStart.setDate(timelineStart.getDate() - 14);
+
+            const viewDays = zoomLevel === 'day' ? 30 : zoomLevel === 'week' ? 90 : 180;
+            timelineEnd = new Date(timelineStart);
+            timelineEnd.setDate(timelineEnd.getDate() + viewDays);
+
+            updateSliderPosition();
+            renderGantt();
+            updateRangeDisplay();
+        }
+
+        // Jump to specific date (Fix #27)
+        function jumpToDate(dateStr) {
+            if (!dateStr) return;
+            const target = new Date(dateStr);
+            if (isNaN(target.getTime())) return;
+
+            // Center the timeline on the chosen date
+            timelineStart = new Date(target);
+            timelineStart.setDate(timelineStart.getDate() - 7);
 
             const viewDays = zoomLevel === 'day' ? 30 : zoomLevel === 'week' ? 90 : 180;
             timelineEnd = new Date(timelineStart);
@@ -4339,7 +4501,11 @@
             let rowsHtml = '';
             const rowHeights = [];
 
+            // Track which fields are collapsed
+            if (!window._collapsedFields) window._collapsedFields = new Set();
+
             // Render rows based on view mode
+            let lastFieldName = null;
             groups.forEach((group, index) => {
                 let groupPlantings;
                 let isEmpty = false;
@@ -4347,6 +4513,29 @@
                 if (viewMode === 'bed' || viewMode === 'field') {
                     // Both field and bed view show individual beds
                     const [field, bed] = group.split('|');
+
+                    // Insert field group header when field changes
+                    if (field !== lastFieldName) {
+                        const fieldPlantingCount = filteredPlantings.filter(p => p.field === field).length;
+                        const isCollapsed = window._collapsedFields.has(field);
+                        const chevron = isCollapsed ? 'fa-chevron-right' : 'fa-chevron-down';
+                        labelsHtml += `
+                            <div class="gantt-label field-group-header" data-field-group="${field}" onclick="toggleFieldGroup('${field}')" style="height: 32px; background: var(--bg-light); cursor: pointer; border-bottom: 2px solid var(--primary); flex-direction: row; align-items: center; gap: 8px; padding: 0 12px;">
+                                <i class="fas ${chevron}" style="font-size: 0.7rem; color: var(--primary); width: 12px;"></i>
+                                <div class="field-name" style="font-size: 0.85rem; color: var(--primary); font-weight: 700;">Field ${field}</div>
+                                <div class="field-meta" style="font-size: 0.75rem; margin-left: auto;">${fieldPlantingCount} plantings</div>
+                            </div>
+                        `;
+                        rowsHtml += `
+                            <div class="gantt-row field-group-header" data-field-group="${field}" style="height: 32px; background: rgba(34, 197, 94, 0.05); border-bottom: 2px solid var(--primary); width: ${timelineWidth}px;">
+                            </div>
+                        `;
+                        lastFieldName = field;
+                    }
+
+                    // Skip bed rows if field is collapsed
+                    if (window._collapsedFields.has(field)) return;
+
                     groupPlantings = filteredPlantings.filter(p => {
                         const pBed = p.bed || p.Bed || p.bedNumber || '1';
                         // Handle "Field F3L-01" format from allBeds
@@ -4437,6 +4626,25 @@
 
             // Setup drop zones for unassigned plantings (after gantt is rendered)
             setTimeout(() => setupGanttDropZones(), 100);
+
+            // Auto-scroll to first occupied row on initial load (Fix #32)
+            if (!window._hasAutoScrolled) {
+                window._hasAutoScrolled = true;
+                setTimeout(() => {
+                    const labelsScroll = document.getElementById('labelsScroll');
+                    const contentScroll = document.getElementById('contentScroll');
+                    if (!labelsScroll || !contentScroll) return;
+                    const labels = labelsScroll.querySelectorAll('.gantt-label:not(.empty-bed)');
+                    if (labels.length > 0) {
+                        const firstOccupied = labels[0];
+                        const offsetTop = firstOccupied.offsetTop;
+                        if (offsetTop > 0) {
+                            labelsScroll.scrollTop = offsetTop;
+                            contentScroll.scrollTop = offsetTop;
+                        }
+                    }
+                }, 200);
+            }
         }
 
         // Synchronized scrolling for sticky headers
@@ -4468,7 +4676,9 @@
                 );
 
                 const width = daysInView * dayWidth;
-                const label = currentDate.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+                const monthName = currentDate.toLocaleDateString('en-US', { month: 'short' });
+                const yearShort = currentDate.toLocaleDateString('en-US', { year: '2-digit' });
+                const label = `${monthName} '${yearShort}`;
 
                 html += `<div class="gantt-month" style="width: ${width}px;">${label}</div>`;
 
@@ -4532,9 +4742,10 @@
             const dayOffset = Math.ceil((today - timelineStart) / (24 * 60 * 60 * 1000));
             const left = dayOffset * dayWidth;
 
+            const todayLabel = today.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
             return `
                 <div class="today-line" style="left: ${left}px;">
-                    <div class="today-marker">TODAY</div>
+                    <div class="today-marker">TODAY &mdash; ${todayLabel}</div>
                 </div>
             `;
         }
@@ -4605,21 +4816,19 @@
                     ? `background: linear-gradient(135deg, ${cropColor} 0%, ${lightenColor(cropColor, 20)} 100%);`
                     : '';
 
-                // Add dashed border for unassigned plantings
-                const unassignedStyle = planting.isUnassigned
-                    ? 'border: 2px dashed rgba(255,255,255,0.8); box-shadow: 0 0 8px rgba(244, 162, 97, 0.5);'
-                    : '';
+                // Unassigned styling now handled by CSS class .crop-bar.unassigned (Fix #34)
 
                 // Add opacity for completed status
                 const completedStyle = planting.status === 'completed' ? 'opacity: 0.6;' : '';
 
-                // Build hover tooltip text (shows on native title — no click needed)
+                // Build comprehensive hover tooltip (Fix #25)
                 const startStr = formatDisplayDate ? formatDisplayDate(planting.fieldStartDate || planting.seedDate) : (planting.fieldStartDate || planting.seedDate);
                 const endStr = formatDisplayDate ? formatDisplayDate(planting.harvestDate) : planting.harvestDate;
-                const hoverTitle = `${planting.crop} - ${planting.variety}\nBed: ${planting.bed || 'Unassigned'}\nIn field: ${startStr}\nHarvest: ${endStr}\n${planting.dtm} days to maturity${planting.isUnassigned ? '\n⚠ No bed assigned — click to assign' : ''}`;
+                const statusLabel = (planting.status || 'unknown').charAt(0).toUpperCase() + (planting.status || 'unknown').slice(1);
+                const hoverTitle = `${planting.crop} - ${planting.variety}\nBed: ${planting.bed || 'Unassigned'}\nField: ${planting.field || 'N/A'}\nIn field: ${startStr}\nHarvest: ${endStr}\nDTM: ${planting.dtm} days\nBed Feet: ${planting.bedFeet || 'N/A'}\nStatus: ${statusLabel}${planting.isUnassigned ? '\n⚠ No bed assigned — click to assign' : ''}`;
 
-                // aria-label for screen readers
-                const ariaLabel = `${planting.crop} ${planting.variety} in ${planting.bed || 'unassigned'}, ${startStr} to ${endStr}, ${planting.dtm} days`;
+                // aria-label for screen readers (Fix #46)
+                const ariaLabel = `${planting.crop} ${planting.variety} in ${planting.bed || 'unassigned'}, ${startStr} to ${endStr}, ${planting.dtm} days, status ${statusLabel}`;
 
                 html += `
                     <div class="crop-bar ${lockedClass} ${unassignedClass}"
@@ -4634,11 +4843,12 @@
                          data-locked="${planting.isLocked}"
                          data-start="${planting.fieldStartDate || planting.seedDate}"
                          data-end="${planting.harvestDate}"
-                         style="left: ${left}px; width: ${width}px; top: ${top}px; ${barStyle} ${completedStyle} ${unassignedStyle} cursor: pointer;"
+                         style="left: ${left}px; width: ${width}px; top: ${top}px; ${barStyle} ${completedStyle}"
                          ondblclick="openEditModal('${planting.id}')"
                          onclick="toggleTooltip(event, '${planting.id}')"
                          onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleTooltip(event,'${planting.id}');}">
                         <div class="resize-handle resize-handle-left" data-edge="left"></div>
+                        <span class="drag-handle" title="Drag to move">⠿</span>
                         <span class="crop-bar-icon">${unassignedIcon}${lockIcon}${icon}</span>
                         <div class="crop-bar-content">
                             <div class="crop-bar-name">${displayText}</div>
@@ -4863,6 +5073,8 @@
                             const id = event.target.dataset.id;
                             currentDragPlanting = plantings.find(p => p.id === id);
 
+                            // Undo state is automatically saved in updatePlantingDates
+
                             // Create ghost at original position (only if not already moved)
                             if (!originalPositions.has(id)) {
                                 createGhost(id, event.target);
@@ -4930,6 +5142,7 @@
                             target.classList.add('moved');
 
                             // Update planting with date cascade (no re-render!)
+                            // This also pushes to undoStack and shows undo toast
                             updatePlantingDates(id, newStartDate, null, newField, newBed);
                             currentDragPlanting = null;
                         }
@@ -5637,6 +5850,25 @@
 
             document.getElementById('editCurrentSchedule').innerHTML = scheduleHTML;
 
+            // Show last-edited timestamp if available (Fix #36)
+            const lastEditedEl = document.getElementById('editLastEdited');
+            const lastEditedText = document.getElementById('editLastEditedText');
+            if (lastEditedEl) {
+                if (planting.lastEditedDate) {
+                    lastEditedText.textContent = 'Last edited: ' + new Date(planting.lastEditedDate).toLocaleString();
+                    lastEditedEl.style.display = 'block';
+                } else if (planting._localLastEdited) {
+                    lastEditedText.textContent = 'Last edited: ' + new Date(planting._localLastEdited).toLocaleString();
+                    lastEditedEl.style.display = 'block';
+                } else {
+                    lastEditedEl.style.display = 'none';
+                }
+            }
+
+            // Clear date validation error on open
+            const dateErrorEl = document.getElementById('editDateError');
+            if (dateErrorEl) dateErrorEl.style.display = 'none';
+
             // Show modal
             document.getElementById('editModal').classList.add('active');
         }
@@ -5666,6 +5898,21 @@
 
         async function saveEditModal() {
             if (!currentEditingPlanting) return;
+
+            // Date validation (Fix #20)
+            const firstHarvestVal = document.getElementById('editFirstHarvest').value;
+            const lastHarvestVal = document.getElementById('editLastHarvest').value;
+            const dateErrorEl = document.getElementById('editDateError');
+            const dateErrorText = document.getElementById('editDateErrorText');
+
+            if (firstHarvestVal && lastHarvestVal && new Date(lastHarvestVal) < new Date(firstHarvestVal)) {
+                if (dateErrorEl) {
+                    dateErrorText.textContent = 'Last Harvest must be on or after First Harvest.';
+                    dateErrorEl.style.display = 'block';
+                }
+                return;
+            }
+            if (dateErrorEl) dateErrorEl.style.display = 'none';
 
             const saveBtn = document.getElementById('editSaveBtn');
             saveBtn.disabled = true;
@@ -5749,6 +5996,9 @@
 
                     if (firstHarvest) currentEditingPlanting.firstHarvest = firstHarvest;
                     if (lastHarvest) currentEditingPlanting.harvestDate = lastHarvest;
+
+                    // Track local last-edited timestamp (Fix #36)
+                    currentEditingPlanting._localLastEdited = new Date().toISOString();
 
                     closeEditModal();
                     applyFilters();
@@ -5836,7 +6086,7 @@
                 actions.style.color = '#e63946';
             } else {
                 lockRow.style.display = 'none';
-                actions.textContent = 'Double-click to edit | Drag to move';
+                actions.textContent = 'Drag to move | Resize edges to adjust dates';
                 actions.style.color = 'var(--text-secondary)';
             }
 
@@ -6209,6 +6459,26 @@
             document.getElementById('addPlantingModal').classList.remove('active');
         }
 
+        // Reset form with confirmation (Fix #22)
+        function resetAddPlantingForm() {
+            if (!confirm('Reset all fields to their default values?')) return;
+            document.getElementById('addCrop').selectedIndex = 0;
+            document.getElementById('addVariety').innerHTML = '<option value="">Select variety...</option>';
+            document.getElementById('addNewCrop').style.display = 'none';
+            document.getElementById('addNewCrop').value = '';
+            document.getElementById('addNewVariety').style.display = 'none';
+            document.getElementById('addNewVariety').value = '';
+            document.getElementById('addMethod').value = 'Transplant';
+            document.getElementById('addTraySize').value = '128';
+            document.getElementById('addFeet').value = '100';
+            document.getElementById('addBed').value = '';
+            document.getElementById('addDateType').value = 'transplant';
+            document.getElementById('addDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('addSuccessionCheck').checked = false;
+            document.getElementById('addSuccessionOptions').style.display = 'none';
+            updateAddPlantingSummary();
+        }
+
         function onAddCropChange() {
             const crop = document.getElementById('addCrop').value;
             const varietySelect = document.getElementById('addVariety');
@@ -6346,6 +6616,15 @@
             if (!crop || !targetDate) {
                 showToast('Please select crop and date', 'error');
                 return;
+            }
+
+            // Bed assignment warning (Fix #19)
+            if (!bed || bed.trim() === '') {
+                const proceed = confirm('This planting has no bed assigned and won\'t appear on the field calendar. Assign a bed?\n\nClick OK to go back and assign a bed, or Cancel to save as unassigned.');
+                if (proceed) {
+                    document.getElementById('addBed').focus();
+                    return;
+                }
             }
 
             const successionEnabled = document.getElementById('addSuccessionCheck').checked;
