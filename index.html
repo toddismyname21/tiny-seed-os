@@ -2141,6 +2141,35 @@
             transform: scale(1.05);
         }
 
+        /* Overdue filter bar */
+        .overdue-filter-bar {
+            display: flex;
+            gap: 6px;
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--border);
+        }
+        .overdue-filter-btn {
+            padding: 6px 14px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .overdue-filter-btn:hover { background: rgba(255,255,255,0.05); }
+        .overdue-filter-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+        .overdue-filter-btn i { font-size: 0.7rem; }
+
         /* Audit Fix 2: Category group headers */
         .overdue-category-header {
             display: flex;
@@ -5244,6 +5273,17 @@
                             <i class="fas fa-trash"></i> Delete
                         </button>
                     </div>
+                    <div class="overdue-filter-bar" id="overdueFilterBar">
+                        <button class="overdue-filter-btn active" data-filter="all" onclick="filterOverdueCategory('all')">
+                            All
+                        </button>
+                        <button class="overdue-filter-btn" data-filter="growing" onclick="filterOverdueCategory('growing')">
+                            <i class="fas fa-seedling"></i> Growing
+                        </button>
+                        <button class="overdue-filter-btn" data-filter="fulfillment" onclick="filterOverdueCategory('fulfillment')">
+                            <i class="fas fa-box"></i> Orders
+                        </button>
+                    </div>
                     <div class="overdue-list" id="overdueList"></div>
                 </div>
             </div>
@@ -7644,30 +7684,38 @@
                 const overdueResult = await overdueResponse.json();
 
                 if (overdueResult.success && overdueResult.tasks) {
-                    // Add tasks from TASKS_2026 that aren't already in overdueTasks
+                    // Dedup by BOTH taskId AND batchId to prevent duplicates across sources
                     const existingIds = new Set(overdueTasks.map(t => t.taskId || t.id));
+                    const existingBatchTypes = new Set(overdueTasks.map(t => `${t.batchId}::${t.type}`));
 
                     overdueResult.tasks.forEach(task => {
-                        if (!existingIds.has(task.taskId)) {
-                            overdueTasks.push({
-                                id: task.taskId || `tasks-${overdueTasks.length}`,
-                                taskId: task.taskId,
-                                batchId: task.taskId?.split('-').slice(0, 4).join('-') || '',
-                                type: task.taskType || 'task',
-                                crop: task.crop || task.task?.split(':')[1]?.trim() || 'Task',
-                                variety: '',
-                                quantity: '',
-                                location: task.location || 'Farm',
-                                completed: false,
-                                date: task.dueDate ? new Date(task.dueDate) : null,
-                                daysOverdue: task.daysOverdue || 0,
-                                priorityScore: 90, // High priority for overdue
-                                atRisk: true,
-                                atRiskReason: `${task.daysOverdue} days overdue`,
-                                source: 'tasks_sheet',
-                                taskName: task.task // Full task name like "Transplant seedlings: Kale"
-                            });
-                        }
+                        const derivedBatchId = task.taskId?.split('-').slice(0, 4).join('-') || '';
+                        const normalizedType = normalizeTaskType(task.taskType || 'task');
+                        const batchTypeKey = `${derivedBatchId}::${normalizedType}`;
+
+                        // Skip if we already have this exact task ID OR same batch+type combo
+                        if (existingIds.has(task.taskId) || existingBatchTypes.has(batchTypeKey)) return;
+
+                        overdueTasks.push({
+                            id: task.taskId || `tasks-${overdueTasks.length}`,
+                            taskId: task.taskId,
+                            batchId: derivedBatchId,
+                            type: normalizedType,
+                            crop: task.crop || task.task?.split(':')[1]?.trim() || 'Task',
+                            variety: '',
+                            quantity: '',
+                            location: task.location || 'Farm',
+                            completed: false,
+                            date: task.dueDate ? new Date(task.dueDate) : null,
+                            daysOverdue: task.daysOverdue || 0,
+                            priorityScore: 90, // High priority for overdue
+                            atRisk: true,
+                            atRiskReason: `${task.daysOverdue} days overdue`,
+                            source: 'tasks_sheet',
+                            taskName: task.task // Full task name like "Transplant seedlings: Kale"
+                        });
+                        existingIds.add(task.taskId);
+                        existingBatchTypes.add(batchTypeKey);
                     });
 
                     // Re-sort with new tasks
@@ -7778,6 +7826,26 @@
                 overdueTasks.sort((a, b) => b.daysOverdue - a.daysOverdue);
             }
 
+            // GLOBAL DEDUP: Remove duplicate tasks by batchId+type combo
+            // Keep the version with the most data (prefer planning source for crop/variety)
+            const seenBatchType = new Map();
+            overdueTasks = overdueTasks.filter(t => {
+                const key = t.batchId ? `${t.batchId}::${t.type}` : t.id;
+                if (seenBatchType.has(key)) {
+                    // Keep whichever has more data (variety, quantity)
+                    const existing = seenBatchType.get(key);
+                    if (t.variety && !existing.variety) {
+                        // This one is better, swap
+                        const idx = overdueTasks.indexOf(existing);
+                        seenBatchType.set(key, t);
+                        return true;
+                    }
+                    return false; // Skip this duplicate
+                }
+                seenBatchType.set(key, t);
+                return true;
+            });
+
             // Render both sections
             renderOverdueTasks();
             renderTodaysTasks();
@@ -7785,19 +7853,45 @@
 
         // Map unified task types to legacy types for compatibility
         function mapUnifiedTaskType(unifiedType) {
+            if (!unifiedType) return 'task';
             const typeMap = {
                 'sow': 'ghSow',
                 'transplant': 'transplant',
                 'harvest': 'harvest',
-                'spray': 'maintenance',
-                'irrigate': 'maintenance',
-                'weed': 'maintenance',
-                'scout': 'maintenance',
+                'spray': 'spray',
+                'irrigate': 'irrigate',
+                'weed': 'weed',
+                'scout': 'scout',
                 'maintenance': 'maintenance',
                 'admin': 'admin',
-                'delivery': 'delivery'
+                'delivery': 'delivery',
+                'pick': 'pick',
+                'pack': 'pack',
+                'prep': 'prep',
+                'fulfillment': 'fulfillment'
             };
-            return typeMap[unifiedType?.toLowerCase()] || 'ghSow';
+            return typeMap[unifiedType.toLowerCase()] || normalizeTaskType(unifiedType);
+        }
+
+        // Normalize task types from any source to canonical types
+        function normalizeTaskType(raw) {
+            if (!raw) return 'task';
+            const lower = raw.toLowerCase().replace(/[_\s-]+/g, '');
+            const map = {
+                'ghsow': 'ghSow', 'greenhousesow': 'ghSow', 'sow': 'ghSow',
+                'transplant': 'transplant',
+                'directseed': 'directSeed', 'fieldsow': 'directSeed',
+                'harvest': 'harvest',
+                'maintenance': 'maintenance', 'spray': 'spray', 'weed': 'weed',
+                'scout': 'scout', 'irrigate': 'irrigate', 'irrigation': 'irrigate',
+                'delivery': 'delivery',
+                'fulfillment': 'fulfillment', 'orderfulfillment': 'fulfillment',
+                'pick': 'pick', 'orderpicking': 'pick',
+                'pack': 'pack', 'orderpacking': 'pack',
+                'prep': 'prep', 'pickupprep': 'prep',
+                'admin': 'admin', 'task': 'task'
+            };
+            return map[lower] || raw;
         }
 
         // Fallback: Load tasks from PLANNING_2026 data (legacy method)
@@ -7939,6 +8033,27 @@
             }
         }
 
+        // Active overdue filter state
+        let activeOverdueFilter = 'all';
+
+        function filterOverdueCategory(filter) {
+            activeOverdueFilter = filter;
+            // Update button states
+            document.querySelectorAll('.overdue-filter-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.filter === filter);
+            });
+            renderOverdueTasks();
+        }
+
+        // Canonical category for a task type
+        const GROWING_TYPES = new Set(['ghSow', 'transplant', 'directSeed', 'harvest', 'scout', 'irrigate', 'weed', 'spray', 'maintenance']);
+        const FULFILLMENT_TYPES = new Set(['fulfillment', 'pick', 'pack', 'prep', 'delivery']);
+
+        function getTaskCategory(type) {
+            if (FULFILLMENT_TYPES.has(type)) return 'fulfillment';
+            return 'growing'; // Default everything non-fulfillment to growing
+        }
+
         function renderOverdueTasks() {
             const container = document.getElementById('overdueTasks');
             const listContainer = document.getElementById('overdueList');
@@ -7956,16 +8071,31 @@
             }
 
             container.classList.add('visible');
-            // Audit Fix 8: Add has-tasks class for urgent pulse animation
             if (headerEl) headerEl.classList.add('has-tasks');
             countBadge.textContent = `${overdueTasks.length} task${overdueTasks.length !== 1 ? 's' : ''}`;
 
-            // Audit Fix 2: Group overdue tasks by category
-            const growingTypes = new Set(['ghSow', 'transplant', 'directSeed', 'harvest', 'scout', 'irrigate', 'weed', 'spray', 'maintenance']);
-            const fulfillmentTypes = new Set(['fulfillment', 'pick', 'pack', 'prep', 'delivery']);
-            const growingTasks = overdueTasks.filter(t => growingTypes.has(t.type) || (!fulfillmentTypes.has(t.type) && !t.type));
-            const fulfillmentTasks = overdueTasks.filter(t => fulfillmentTypes.has(t.type));
-            const otherTasks = overdueTasks.filter(t => t.type && !growingTypes.has(t.type) && !fulfillmentTypes.has(t.type));
+            // Apply active filter
+            const filteredTasks = activeOverdueFilter === 'all'
+                ? overdueTasks
+                : overdueTasks.filter(t => getTaskCategory(t.type) === activeOverdueFilter);
+
+            // Update filter button counts
+            const growingCount = overdueTasks.filter(t => getTaskCategory(t.type) === 'growing').length;
+            const fulfillmentCount = overdueTasks.filter(t => getTaskCategory(t.type) === 'fulfillment').length;
+            const filterBar = document.getElementById('overdueFilterBar');
+            if (filterBar) {
+                const btns = filterBar.querySelectorAll('.overdue-filter-btn');
+                btns.forEach(btn => {
+                    const f = btn.dataset.filter;
+                    if (f === 'all') btn.textContent = `All (${overdueTasks.length})`;
+                    else if (f === 'growing') btn.innerHTML = `<i class="fas fa-seedling"></i> Growing (${growingCount})`;
+                    else if (f === 'fulfillment') btn.innerHTML = `<i class="fas fa-box"></i> Orders (${fulfillmentCount})`;
+                });
+            }
+
+            // Split filtered tasks into categories for grouped display
+            const growingTasks = filteredTasks.filter(t => getTaskCategory(t.type) === 'growing');
+            const fulfillmentTasks = filteredTasks.filter(t => getTaskCategory(t.type) === 'fulfillment');
 
             function renderTaskRow(task) {
                 const isSelected = selectedOverdueTasks.has(task.id);
@@ -7976,7 +8106,8 @@
                     'delivery': 'Delivery', 'spray': 'Spray', 'weed': 'Weeding',
                     'scout': 'Field Scout', 'irrigate': 'Irrigation',
                     'fulfillment': 'Order Fulfillment', 'pick': 'Order Picking',
-                    'pack': 'Order Packing', 'prep': 'Pickup Prep'
+                    'pack': 'Order Packing', 'prep': 'Pickup Prep',
+                    'task': 'Task'
                 };
                 const typeLabel = typeLabels[task.type] || task.type || 'Task';
                 const daysText = task.daysOverdue === 1 ? '1 day' : `${task.daysOverdue} days`;
@@ -8013,17 +8144,23 @@
             }
 
             let html = '';
-            if (growingTasks.length > 0) {
-                html += `<div class="overdue-category-header"><i class="fas fa-seedling"></i> Growing Operations <span class="overdue-cat-count">${growingTasks.length}</span></div>`;
-                html += growingTasks.map(renderTaskRow).join('');
+            // Only show category headers when viewing "All"
+            if (activeOverdueFilter === 'all') {
+                if (growingTasks.length > 0) {
+                    html += `<div class="overdue-category-header"><i class="fas fa-seedling"></i> Growing Operations <span class="overdue-cat-count">${growingTasks.length}</span></div>`;
+                    html += growingTasks.map(renderTaskRow).join('');
+                }
+                if (fulfillmentTasks.length > 0) {
+                    html += `<div class="overdue-category-header"><i class="fas fa-box"></i> Order Fulfillment <span class="overdue-cat-count">${fulfillmentTasks.length}</span></div>`;
+                    html += fulfillmentTasks.map(renderTaskRow).join('');
+                }
+            } else {
+                // Single category selected — no subheaders needed
+                html = filteredTasks.map(renderTaskRow).join('');
             }
-            if (fulfillmentTasks.length > 0) {
-                html += `<div class="overdue-category-header"><i class="fas fa-box"></i> Order Fulfillment <span class="overdue-cat-count">${fulfillmentTasks.length}</span></div>`;
-                html += fulfillmentTasks.map(renderTaskRow).join('');
-            }
-            if (otherTasks.length > 0) {
-                html += `<div class="overdue-category-header"><i class="fas fa-tasks"></i> Other <span class="overdue-cat-count">${otherTasks.length}</span></div>`;
-                html += otherTasks.map(renderTaskRow).join('');
+
+            if (filteredTasks.length === 0 && overdueTasks.length > 0) {
+                html = `<div style="padding: 16px; color: var(--text-secondary); text-align: center;">No overdue tasks in this category</div>`;
             }
 
             listContainer.innerHTML = html;
