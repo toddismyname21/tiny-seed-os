@@ -239,6 +239,9 @@
             position: relative;
             margin-top: -1px;
             z-index: 2;
+            overflow: hidden;
+            padding-top: 60px;
+            padding-bottom: 40px;
         }
         .hero-transition-wave {
             background: linear-gradient(135deg, var(--green-deep) 0%, #1e3a1e 50%, #2d4a2d 100%);
@@ -250,34 +253,32 @@
             z-index: 3;
             filter: drop-shadow(0 4px 12px rgba(0,0,0,0.2));
             transition: transform 0.4s ease;
-            pointer-events: auto;
+            pointer-events: none;
         }
-        .dancing-seedling:hover {
-            transform: scale(1.12) !important;
-            filter: drop-shadow(0 6px 18px rgba(0,0,0,0.3));
-        }
-        /* Left side seedlings */
-        .ds-1 { left: 2%; top: -40px; width: clamp(80px, 12vw, 140px); transform: rotate(-12deg); }
-        .ds-2 { left: 12%; top: -10px; width: clamp(60px, 9vw, 110px); transform: rotate(8deg); }
-        .ds-3 { left: 6%; top: 30px; width: clamp(50px, 8vw, 90px); transform: rotate(-5deg); }
+        /* Left side seedlings — staggered at different heights & angles */
+        .ds-1 { left: 3%; top: 10px; width: clamp(90px, 13vw, 160px); transform: rotate(-14deg); }
+        .ds-2 { left: 16%; top: 50px; width: clamp(70px, 10vw, 120px); transform: rotate(9deg); }
+        .ds-3 { left: 8%; bottom: 5px; width: clamp(55px, 8vw, 95px); transform: rotate(-6deg); }
         /* Right side seedlings */
-        .ds-4 { right: 2%; top: -35px; width: clamp(75px, 11vw, 130px); transform: rotate(10deg); }
-        .ds-5 { right: 13%; top: -5px; width: clamp(55px, 8vw, 100px); transform: rotate(-15deg); }
-        .ds-6 { right: 5%; top: 35px; width: clamp(50px, 7vw, 85px); transform: rotate(6deg); }
-        /* Center accent (smaller, bridging) */
-        .ds-7 { left: 35%; top: -20px; width: clamp(45px, 6vw, 70px); transform: rotate(-8deg); }
-        .ds-8 { right: 35%; top: 10px; width: clamp(45px, 6vw, 70px); transform: rotate(12deg); }
+        .ds-4 { right: 3%; top: 15px; width: clamp(85px, 12vw, 150px); transform: rotate(12deg); }
+        .ds-5 { right: 16%; top: 55px; width: clamp(65px, 9vw, 110px); transform: rotate(-16deg); }
+        .ds-6 { right: 7%; bottom: 5px; width: clamp(55px, 8vw, 90px); transform: rotate(7deg); }
+        /* Center bridge accents */
+        .ds-7 { left: 36%; top: 20px; width: clamp(50px, 7vw, 80px); transform: rotate(-10deg); }
+        .ds-8 { right: 36%; top: 60px; width: clamp(50px, 7vw, 80px); transform: rotate(13deg); }
         @media (max-width: 768px) {
+            .hero-transition { padding-top: 40px; padding-bottom: 30px; }
             .ds-7, .ds-8 { display: none; }
-            .ds-1, .ds-4 { width: clamp(60px, 14vw, 100px); }
-            .ds-2, .ds-5 { width: clamp(45px, 10vw, 80px); }
+            .ds-1, .ds-4 { width: clamp(70px, 16vw, 110px); }
+            .ds-2, .ds-5 { width: clamp(55px, 12vw, 85px); }
             .ds-3, .ds-6 { display: none; }
         }
         @media (max-width: 480px) {
-            .ds-1 { left: -2%; top: -25px; width: 70px; }
-            .ds-2 { left: 15%; top: 5px; width: 55px; }
-            .ds-4 { right: -2%; top: -25px; width: 65px; }
-            .ds-5 { right: 15%; top: 5px; width: 50px; }
+            .hero-transition { padding-top: 30px; padding-bottom: 20px; }
+            .ds-1 { left: 2%; top: 5px; width: 80px; }
+            .ds-2 { left: 22%; top: 35px; width: 60px; }
+            .ds-4 { right: 2%; top: 8px; width: 75px; }
+            .ds-5 { right: 22%; top: 38px; width: 55px; }
         }
 
         /* ═══════════════════════════════════════ */
@@ -384,7 +385,7 @@
         .form-group label { display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 6px; color: var(--text-dark); }
         .form-group input, .form-group select, .form-group textarea {
             width: 100%; padding: 12px 16px; border-radius: 8px;
-            border: 1px solid #d1d5db; font-family: inherit; font-size: 0.95rem;
+            border: 1px solid #d1d5db; font-family: inherit; font-size: 1rem;
             transition: border-color 0.2s;
         }
         .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
@@ -470,7 +471,7 @@
         /* ═══════════════════════════════════════ */
         .sticky-cart {
             position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
-            background: var(--green-deep); color: #fff; padding: 12px 24px;
+            background: var(--green-deep); color: #fff; padding: 12px 24px calc(12px + env(safe-area-inset-bottom, 0px));
             display: none; align-items: center; justify-content: center; gap: 16px;
             box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
             backdrop-filter: blur(12px);
@@ -787,7 +788,7 @@
             <span><i class="fas fa-map-pin"></i> <strong>7 pickup locations</strong></span>
         </div>
         <a href="#order" class="cta-btn"><i class="fas fa-shopping-cart"></i> Reserve Your Seedlings</a>
-        <p class="hero-trust">Tiny Seed Farm — Serving Pittsburgh-area gardeners since 2021</p>
+        <p class="hero-trust">Tiny Seed Farm — Serving Pittsburgh-area gardeners since 2017</p>
     </div>
 </header>
 
@@ -1772,7 +1773,7 @@ function submitPresaleOrder(e) {
     }
 
     if (items.length === 0) {
-        alert('Please add at least one seedling to your order.');
+        showToast('Please add at least one seedling to your order.');
         return;
     }
 
@@ -1815,14 +1816,14 @@ function submitPresaleOrder(e) {
         } else {
             btn.disabled = false;
             btn.innerHTML = originalBtnHtml;
-            alert('We were unable to submit your order. Please try again or contact todd@tinyseedfarmpgh.com for help.');
+            showToast('Unable to submit order. Please try again or email todd@tinyseedfarmpgh.com');
             console.error('Order submission failed:', result.error);
         }
     })
     .catch(function(err) {
         btn.disabled = false;
         btn.innerHTML = originalBtnHtml;
-        alert('Network error. Please check your connection and try again.');
+        showToast('Network error. Please check your connection and try again.');
         console.error('Network error:', err);
     });
 }
