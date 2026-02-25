@@ -38,6 +38,22 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-02-25 — Enhance Product URL Scraper (Johnny's Seeds, Burpee, etc.)
+
+**Role:** PM_Architect
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — `scrapeProductUrl()` rewritten with 15 image extraction patterns (was 4). Now handles JSON-LD structured data, Demandware/SFCC URLs, OG tags in both attribute orderings, Twitter cards, lazy-loaded images, srcset, data-zoom, and product container divs. Skips logos/icons/pixels. Auto-upscales to 800px when URL has size params.
+
+### Reason
+Scraper failed on Johnny's Seeds product pages (Demandware platform). Old patterns only matched basic `og:image` and `product-image` class names. Johnny's uses JSON-LD structured data and Demandware static asset URLs.
+
+### Duplicate Check
+- [x] Enhanced existing function only
+- [x] No duplicates
+
+---
+
 ## 2026-02-25 — Wire Image_URL to Presale Cards + Add Seedling Admin to Nav
 
 **Role:** PM_Architect

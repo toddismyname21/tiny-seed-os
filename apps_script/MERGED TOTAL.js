@@ -131268,17 +131268,42 @@ function scrapeProductUrl(params) {
       }
     }
 
-    // Extract image - try multiple patterns
+    // Extract image - try multiple patterns (ordered by reliability)
     var imgPatterns = [
+      // 1. JSON-LD structured data (most reliable - used by Johnny's Seeds, Burpee, etc.)
+      /"image"\s*:\s*"(https?:\/\/[^"]+\.(jpg|jpeg|png|webp)[^"]*)"/i,
+      /"image"\s*:\s*\[\s*"(https?:\/\/[^"]+\.(jpg|jpeg|png|webp)[^"]*)"/i,
+      // 2. Open Graph meta tag (both attribute orderings)
       /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i,
+      /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i,
+      // 3. Twitter card image
+      /<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i,
+      /<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image["']/i,
+      // 4. Primary/main product image classes (Demandware, Shopify, WooCommerce)
+      /<img[^>]+class=["'][^"']*primary[_-]image[^"']*["'][^>]+src=["']([^"']+)["']/i,
       /<img[^>]+class=["'][^"']*product[_-]?image[^"']*["'][^>]+src=["']([^"']+)["']/i,
+      /<img[^>]+class=["'][^"']*main[_-]image[^"']*["'][^>]+src=["']([^"']+)["']/i,
+      /<img[^>]+class=["'][^"']*hero[_-]image[^"']*["'][^>]+src=["']([^"']+)["']/i,
+      // 5. Product image by ID
       /<img[^>]+id=["'][^"']*product[_-]?image[^"']*["'][^>]+src=["']([^"']+)["']/i,
-      /data-src=["']([^"']+\.(jpg|jpeg|png|webp)[^"']*)["']/i
+      /<img[^>]+id=["'][^"']*main[_-]?image[^"']*["'][^>]+src=["']([^"']+)["']/i,
+      // 6. Demandware/SFCC image URLs (Johnny's Seeds, Territorial, etc.)
+      /(https?:\/\/[^"'\s]+demandware\.static[^"'\s]+\.(jpg|jpeg|png|webp)[^"'\s]*)/i,
+      // 7. data-src and data-zoom (lazy-loaded images)
+      /data-zoom-image=["']([^"']+\.(jpg|jpeg|png|webp)[^"']*)["']/i,
+      /data-src=["']([^"']+\.(jpg|jpeg|png|webp)[^"']*)["']/i,
+      /data-large[_-]?image=["']([^"']+\.(jpg|jpeg|png|webp)[^"']*)["']/i,
+      // 8. srcset first entry (responsive images)
+      /<img[^>]+class=["'][^"']*product[^"']*["'][^>]+srcset=["']([^"'\s,]+)/i,
+      // 9. Any large product-area image as last resort
+      /<div[^>]+class=["'][^"']*product[^"']*["'][^>]*>[\s\S]{0,500}<img[^>]+src=["']([^"']+\.(jpg|jpeg|png|webp)[^"']*)["']/i
     ];
     for (var i = 0; i < imgPatterns.length; i++) {
       var imgMatch = html.match(imgPatterns[i]);
       if (imgMatch && imgMatch[1]) {
         var imgUrl = imgMatch[1];
+        // Skip tiny icons, logos, and tracking pixels
+        if (/logo|icon|pixel|badge|sprite|rating|star/i.test(imgUrl)) continue;
         // Make relative URLs absolute
         if (imgUrl.startsWith('//')) {
           imgUrl = 'https:' + imgUrl;
@@ -131286,6 +131311,8 @@ function scrapeProductUrl(params) {
           var baseUrl = url.match(/^(https?:\/\/[^\/]+)/);
           if (baseUrl) imgUrl = baseUrl[1] + imgUrl;
         }
+        // Prefer larger image sizes when URL has size params
+        imgUrl = imgUrl.replace(/[?&]sw=\d+/, '?sw=800').replace(/[?&]sh=\d+/, '&sh=800');
         result.data.imageUrl = imgUrl;
         break;
       }
