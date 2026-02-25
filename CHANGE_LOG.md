@@ -38,6 +38,53 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-02-24 — Calendar UX Audit (32 of 47 items) + Presale Logo + Dashboard Dedup Fix
+
+**Role:** PM_Architect
+
+### Files Created
+- `web_app/images/tiny-seed-farm-logo.png` — Tiny Seed Farm van logo (1.3MB PNG with transparency)
+
+### Files Modified
+- `calendar.html` — 32 UX audit items implemented (scored 44/100 → ~80/100):
+  - **Critical #1:** Edit button added to popover (replaced hidden double-click)
+  - **Critical #2:** Unassigned planting count in header stats bar + auto-open panel
+  - **Critical #3:** Undo system verified (Ctrl+Z, toast)
+  - Sticky left column (#3 Quick Win), enhanced TODAY marker (#4)
+  - Loading toast with skipped count (#5), month format "Jan '26" (#6)
+  - Field group headers with collapse/expand (#7), button dividers (#13)
+  - "Var" label fix (#14), `.toLocaleString()` on stats (#15)
+  - Bed assignment warning (#19), date validation (#20)
+  - Drag handles with cursor affordance (#21), reset confirmation (#22)
+  - Legend moved above filters (#24), enhanced tooltips (#25)
+  - Jump-to-date picker (#27), auto-scroll to first planting (#32)
+  - Unassigned planting CSS: dashed amber border (#34)
+  - Last-edited timestamp in edit modal (#36)
+  - Text-shadow on planting blocks (#41), lightened empty rows (#42)
+  - Phase patterns: diagonal stripes (seeding), dots (harvest) (#43)
+  - 44px touch targets (#44), global focus-visible indicator (#45)
+  - ARIA roles on dialogs/blocks (#46), ARIA landmarks (#47)
+- `web_app/seedling-presale-2026.html` — Added farm van logo (220px, top-left, responsive)
+- `index.html` — Fixed duplicate overdue tasks (3-layer dedup), added task category filters (Growing/Orders/Admin), normalizeTaskType() function
+
+### Functions Added
+- `normalizeTaskType()` in `index.html` — Canonicalizes task type strings across data sources
+- `getTaskCategory()` in `index.html` — Routes tasks to growing/fulfillment/admin categories
+- `toggleFieldGroup()` in `calendar.html` — Collapse/expand field groups in Gantt view
+- `jumpToDate()` in `calendar.html` — Navigate Gantt to specific date
+- `autoOpenUnassignedIfNeeded()` in `calendar.html` — Auto-opens Need Beds panel
+- `resetAddPlantingForm()` in `calendar.html` — Form reset with confirmation
+
+### Reason
+User requested calendar UX audit implementation (47 items, completed 32 — remaining 15 are high-effort architectural items like bulk assign, AI planner integration, coach marks). Also fixed confusing duplicate tasks on dashboard and added farm branding to presale page.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
 ## 2026-02-24 — Dashboard UX Audit #3 Fixes (79→90+) + Task Architecture Cascade Deletion
 
 **Role:** PM_Architect
