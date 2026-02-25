@@ -38,6 +38,32 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-02-25 — Presale Page Audit Fixes (13 edits)
+
+**Role:** UX_Design_Claude
+
+### Files Modified
+- `web_app/seedling-presale-2026.html` — Fixed all bugs from full page audit:
+  1. **P0: Phone number** — Farmer section: (724) 900-9498 → (717) 725-5177
+  2. **P0: Footer logo** — `assets/logo.png` → `images/tiny-seed-farm-logo-final.png`
+  3. **P0: Seedling z-index** — 10 → 2 so countdown bar (z-index:3) stays visible
+  4. **P1: confirm() dialog** — Replaced native `confirm()` with styled inline "tap again to confirm" pattern
+  5. **P1: rel="noopener"** — Added `rel="noopener noreferrer"` to Instagram link
+  6. **P1: Hardcoded hex** — 4 benefit icons: `#166534` → `var(--green-deep)`
+  7. **P1: "15+ years" claim** — Removed misleading "15+ years growing", now says "started in 2017"
+  8. **P1: Emoji badges** — Replaced Unicode emoji circles with CSS dot spans for cross-browser compatibility
+  9. **P2: Mobile overflow** — 480px breakpoint: show 4 seedlings (was 5) to prevent overflow on 375px phones
+  10. **Farmer Todd** — Sign-off changed from "— Todd" to "— Farmer Todd" per owner request
+
+### Reason
+Full audit found 15+ issues after PM's commit (70a8a8f). Owner confirmed (717) is the correct phone number and requested all fixes deployed.
+
+### Duplicate Check
+- [x] No new files — modified existing page only
+- [x] No duplicates
+
+---
+
 ## 2026-02-25 — Final Seedling Overlay Design: Full Revert + 240px Overlay
 
 **Role:** UX_Design_Claude
