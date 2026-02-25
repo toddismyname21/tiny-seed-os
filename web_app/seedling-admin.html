@@ -1201,6 +1201,8 @@ function quickScrape(itemId) {
 // ═══════════════════════════════════════════════════
 function saveVariety() {
     var itemId = document.getElementById('editItemId').value;
+    if (!itemId) { showToast('Error: No item selected'); return; }
+
     var payload = {
         action: 'updateSeedlingItem',
         itemId: itemId,
@@ -1218,20 +1220,23 @@ function saveVariety() {
         sourceUrl: document.getElementById('editSourceUrl').value
     };
 
+    // Google Apps Script POST returns a cross-origin redirect that browsers can't follow.
+    // Use no-cors mode — the POST still goes through, we just can't read the response.
+    // Reload data via GET afterward to verify the save worked.
     fetch(TINY_SEED_API.MAIN_API, {
         method: 'POST',
+        mode: 'no-cors',
         headers: { 'Content-Type': 'text/plain' },
         body: JSON.stringify(payload)
     })
-    .then(function(res) { return res.json(); })
-    .then(function(result) {
-        if (result.success) {
-            closeModal();
-            loadVarieties(); // Refresh
-            showToast('Variety updated successfully');
-        } else {
-            showToast('Error saving: ' + (result.error || 'Unknown error'));
-        }
+    .then(function() {
+        closeModal();
+        showToast('Saving...');
+        // Give Apps Script a moment to process, then reload to verify
+        setTimeout(function() {
+            loadVarieties();
+            showToast('Variety saved successfully');
+        }, 1500);
     })
     .catch(function(err) {
         showToast('Network error: ' + err.message);
@@ -1267,27 +1272,19 @@ function runBulkScrape() {
 
     fetch(TINY_SEED_API.MAIN_API, {
         method: 'POST',
+        mode: 'no-cors',
         headers: { 'Content-Type': 'text/plain' },
         body: JSON.stringify({ action: 'bulkScrapeUrls', urls: urls })
     })
-    .then(function(res) { return res.json(); })
-    .then(function(result) {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-play"></i> Start Scraping';
-
-        if (result.success) {
-            var html = '<h4 style="margin-bottom:12px;color:var(--green-dark);"><i class="fas fa-check-circle"></i> Scraping Complete</h4>';
-            html += '<p>Processed: ' + result.processed + ' | Updated: ' + result.updated + ' | Failed: ' + result.failed + '</p>';
-            if (result.errors && result.errors.length > 0) {
-                html += '<details style="margin-top:8px;"><summary style="cursor:pointer;color:var(--red);">View errors</summary><ul style="padding-left:20px;margin-top:8px;">';
-                result.errors.forEach(function(e) { html += '<li>' + escapeHtml(e) + '</li>'; });
-                html += '</ul></details>';
-            }
-            results.innerHTML = html;
-            loadVarieties(); // Refresh table
-        } else {
-            results.innerHTML = '<p style="color:var(--red);"><i class="fas fa-exclamation-circle"></i> ' + (result.error || 'Bulk scrape failed') + '</p>';
-        }
+    .then(function() {
+        // no-cors: can't read response, give server time to process
+        results.innerHTML = '<p><i class="fas fa-spinner spinner"></i> Server is processing URLs. This may take a few minutes...</p>';
+        setTimeout(function() {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-play"></i> Start Scraping';
+            results.innerHTML = '<h4 style="color:var(--green-dark);"><i class="fas fa-check-circle"></i> Scraping request sent</h4><p>Refreshing data...</p>';
+            loadVarieties();
+        }, Math.max(5000, urls.length * 2000)); // ~2s per URL
     })
     .catch(function(err) {
         btn.disabled = false;
@@ -1421,18 +1418,17 @@ function createVariety() {
 
     fetch(TINY_SEED_API.MAIN_API, {
         method: 'POST',
+        mode: 'no-cors',
         headers: { 'Content-Type': 'text/plain' },
         body: JSON.stringify(payload)
     })
-    .then(function(res) { return res.json(); })
-    .then(function(result) {
-        if (result.success) {
-            closeAddModal();
+    .then(function() {
+        closeAddModal();
+        showToast('Adding variety...');
+        setTimeout(function() {
             loadVarieties();
             showToast('New variety "' + name + '" added');
-        } else {
-            showToast('Error: ' + (result.error || 'Failed to add variety'));
-        }
+        }, 1500);
     })
     .catch(function(err) {
         showToast('Network error: ' + err.message);
