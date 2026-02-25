@@ -2214,6 +2214,38 @@ function renderCatalogCards() {
     var container = document.getElementById('catalogContent');
     var html = '';
 
+    // Starter Bundles — always shown at top of catalog
+    html += '<h4 style="font-size:0.9rem; color:var(--green-dark); margin:0 0 8px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">';
+    html += '<i class="fas fa-box-open" style="margin-right:4px;"></i> Starter Bundles — Save More</h4>';
+    html += '<p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:12px;">Curated collections for instant garden success. One tap to add.</p>';
+    html += '<div class="bundles-grid" style="margin-bottom:32px;">';
+    html += '<div class="bundle-card">';
+    html += '<img src="images/bundle-salsa-garden.png" alt="Watercolor salsa bowl" class="bundle-img" loading="lazy">';
+    html += '<div class="bundle-name">Salsa Garden</div>';
+    html += '<p class="bundle-desc">"Everything you need for fresh salsa all summer long"</p>';
+    html += '<div class="bundle-pricing"><span class="bundle-price">$28</span><span class="bundle-savings">Save $4!</span></div>';
+    html += '<button type="button" class="bundle-add-btn" onclick="addBundle(\'salsa\')"><i class="fas fa-plus"></i> Add Bundle</button>';
+    html += '</div>';
+    html += '<div class="bundle-card">';
+    html += '<img src="images/bundle-pizza-garden.png" alt="Watercolor pizza slice" class="bundle-img" loading="lazy">';
+    html += '<div class="bundle-name">Pizza Garden</div>';
+    html += '<p class="bundle-desc">"Grow your own pizza toppings &mdash; from garden to pie"</p>';
+    html += '<div class="bundle-pricing"><span class="bundle-price">$24</span><span class="bundle-savings">Save $3!</span></div>';
+    html += '<button type="button" class="bundle-add-btn" onclick="addBundle(\'pizza\')"><i class="fas fa-plus"></i> Add Bundle</button>';
+    html += '</div>';
+    html += '<div class="bundle-card">';
+    html += '<img src="images/bundle-flower-power.png" alt="Watercolor flower bouquet" class="bundle-img" loading="lazy">';
+    html += '<div class="bundle-name">Flower Power</div>';
+    html += '<p class="bundle-desc">"A riot of color from June through October"</p>';
+    html += '<div class="bundle-pricing"><span class="bundle-price">$30</span><span class="bundle-savings">Save $5!</span></div>';
+    html += '<button type="button" class="bundle-add-btn" onclick="addBundle(\'flower\')"><i class="fas fa-plus"></i> Add Bundle</button>';
+    html += '</div>';
+    html += '</div>';
+
+    // Subheading for individual seedlings
+    html += '<h4 style="font-size:0.9rem; color:var(--green-dark); margin:0 0 12px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">';
+    html += '<i class="fas fa-seedling" style="margin-right:4px;"></i> Individual Seedlings</h4>';
+
     if (beginnerFilterActive) {
         // Beginner mode: single grid with only easy varieties
         html += '<div class="variety-grid" style="display:grid;">';
