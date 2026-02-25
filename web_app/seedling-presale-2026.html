@@ -68,25 +68,28 @@
 
         /* ═══════════════════════════════════════ */
         /* LOGO OVERLAY ON HERO                    */
-        /* White logo directly on hero - clean     */
+        /* Full color logo with van - cream/white  */
+        /* on dark hero. Room to breathe.          */
         /* ═══════════════════════════════════════ */
         .hero-logo-overlay {
             position: absolute;
-            top: 32px;
-            left: 40px;
+            top: 48px;
+            left: 56px;
             z-index: 10;
         }
         .hero-logo-overlay img {
-            height: 200px;
+            height: 320px;
             width: auto;
-            /* White logo for dark hero background */
-            filter: brightness(0) invert(1);
+            /* No filter - logo is already cream/white, perfect for dark bg */
             opacity: 1;
             display: block;
-            transition: transform 0.2s ease;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+            /* Subtle drop shadow for depth */
+            filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.15));
         }
         .hero-logo-overlay:hover img {
             transform: scale(1.02);
+            opacity: 0.95;
         }
 
         /* Mobile adjustments */
@@ -102,21 +105,25 @@
                 font-size: 0.85rem;
             }
             .hero-logo-overlay {
-                top: 20px;
-                left: 20px;
+                top: 32px;
+                left: 32px;
             }
             .hero-logo-overlay img {
-                height: 160px;
+                height: 240px;
             }
         }
 
         @media (max-width: 480px) {
             .hero-logo-overlay {
-                top: 16px;
-                left: 16px;
+                top: 24px;
+                left: 50%;
+                transform: translateX(-50%);
             }
             .hero-logo-overlay img {
-                height: 120px;
+                height: 180px;
+            }
+            .hero-logo-overlay:hover img {
+                transform: translateX(-50%) scale(1.02);
             }
             .header-cta {
                 padding: 8px 16px;
@@ -708,7 +715,7 @@
 <header class="hero" role="banner">
     <!-- White logo overlaid on hero photo - top left -->
     <a href="/" class="hero-logo-overlay" aria-label="Tiny Seed Farm Home">
-        <img src="images/tiny-seed-farm-logo.png?v=3" alt="Tiny Seed Farm">
+        <img src="images/tiny-seed-farm-logo-final.png" alt="Tiny Seed Farm and Fleurs - Estd 2017">
     </a>
     <div class="hero-content">
         <div class="hero-badge"><i class="fas fa-seedling"></i> 2026 PRESALE NOW OPEN</div>
