@@ -2491,23 +2491,30 @@ function updateTotal() {
 // CATALOG TABS — sync with order form
 // ═══════════════════════════════════════
 function showCategory(slug, btnEl) {
+    var wasBeginnerFilter = beginnerFilterActive;
     activeCategory = slug;
     beginnerFilterActive = false;
 
-    // Toggle grid visibility
-    for (var i = 0; i < CATEGORIES.length; i++) {
-        var s = catSlug(CATEGORIES[i]);
-        var grid = document.getElementById('cat-' + s);
-        if (grid) grid.style.display = s === slug ? 'grid' : 'none';
-    }
+    if (wasBeginnerFilter) {
+        // Need to fully re-render since we were in beginner mode (flat grid)
+        renderCatalogTabs();
+        renderCatalogCards();
+    } else {
+        // Toggle grid visibility
+        for (var i = 0; i < CATEGORIES.length; i++) {
+            var s = catSlug(CATEGORIES[i]);
+            var grid = document.getElementById('cat-' + s);
+            if (grid) grid.style.display = s === slug ? 'grid' : 'none';
+        }
 
-    // Update tab active state
-    var tabs = document.querySelectorAll('.catalog-tab');
-    for (var j = 0; j < tabs.length; j++) {
-        tabs[j].classList.remove('active');
-    }
-    if (btnEl) {
-        btnEl.classList.add('active');
+        // Update tab active state
+        var tabs = document.querySelectorAll('.catalog-tab');
+        for (var j = 0; j < tabs.length; j++) {
+            tabs[j].classList.remove('active');
+        }
+        if (btnEl) {
+            btnEl.classList.add('active');
+        }
     }
 
     // Sync: expand the matching category in order form, collapse others
@@ -2852,9 +2859,12 @@ function showConfirmation(customerName, email, pickup, orderCalc, hadPartialFail
     html += '</div>';
     form.innerHTML = html;
 
-    // Hide sticky cart
+    // Hide sticky cart and mobile cart
     var stickyCart = document.getElementById('stickyCart');
     if (stickyCart) stickyCart.classList.remove('visible');
+    var mobileCollapsed = document.getElementById('mobileCartCollapsed');
+    if (mobileCollapsed) mobileCollapsed.classList.remove('visible');
+    collapseMobileCart();
 
     // Scroll to confirmation
     form.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -2863,6 +2873,239 @@ function showConfirmation(customerName, email, pickup, orderCalc, hadPartialFail
 function resetOrderForm() {
     // Reload the page to start fresh
     window.location.reload();
+}
+
+// ═══════════════════════════════════════
+// COUNTDOWN TIMER
+// ═══════════════════════════════════════
+function initCountdown() {
+    updateCountdown();
+    setInterval(updateCountdown, 60000);
+}
+
+function updateCountdown() {
+    var deadline = new Date('2026-04-15T23:59:59').getTime();
+    var now = new Date().getTime();
+    var diff = deadline - now;
+
+    var daysEl = document.getElementById('countdownDays');
+    var hoursEl = document.getElementById('countdownHours');
+    var numbersEl = document.getElementById('countdownNumbers');
+    var barEl = document.getElementById('countdownBar');
+
+    if (!daysEl || !hoursEl) return;
+
+    if (diff <= 0) {
+        numbersEl.innerHTML = '<span class="countdown-expired"><i class="fas fa-clock"></i> Presale has ended</span>';
+        barEl.querySelector('.countdown-label').textContent = '';
+        return;
+    }
+
+    var days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    var hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+
+    daysEl.textContent = days;
+    hoursEl.textContent = hours;
+}
+
+// ═══════════════════════════════════════
+// ADD BUNDLE TO CART
+// ═══════════════════════════════════════
+function addBundle(bundleKey) {
+    var bundle = BUNDLES[bundleKey];
+    if (!bundle) return;
+
+    var addedCount = 0;
+    for (var i = 0; i < bundle.items.length; i++) {
+        var bundleItem = bundle.items[i];
+        var matched = null;
+        for (var j = 0; j < VARIETIES.length; j++) {
+            if (VARIETIES[j].name === bundleItem.name ||
+                VARIETIES[j].name.toLowerCase().indexOf(bundleItem.name.toLowerCase()) !== -1 ||
+                bundleItem.name.toLowerCase().indexOf(VARIETIES[j].name.toLowerCase()) !== -1) {
+                matched = VARIETIES[j];
+                break;
+            }
+        }
+
+        if (matched) {
+            var current = quantities[matched.name] || 0;
+            var newQty = current + bundleItem.qty;
+            if (matched.available != null && newQty > matched.available) {
+                newQty = matched.available;
+            }
+            quantities[matched.name] = newQty;
+            addedCount += bundleItem.qty;
+        }
+    }
+
+    renderCatalogCards();
+    renderOrderItems();
+    updateTotal();
+
+    if (addedCount > 0) {
+        showToast(bundle.name + ' bundle added (' + addedCount + ' plants)');
+    } else {
+        showToast('Some bundle items not found in current catalog');
+    }
+}
+
+// ═══════════════════════════════════════
+// ORDER PREVIEW MODAL
+// ═══════════════════════════════════════
+function showOrderPreview(items, customerName, email, phone, pickup, orderCalc) {
+    var existing = document.getElementById('orderPreviewOverlay');
+    if (existing) existing.remove();
+
+    var overlay = document.createElement('div');
+    overlay.className = 'order-preview-overlay';
+    overlay.id = 'orderPreviewOverlay';
+
+    var html = '<div class="order-preview-box">';
+    html += '<h3><i class="fas fa-clipboard-list" style="color:var(--green); margin-right:8px;"></i>Review Your Order</h3>';
+
+    for (var i = 0; i < items.length; i++) {
+        var item = items[i];
+        var lineTotal = item.quantity * item.price;
+        html += '<div class="preview-item-row">';
+        html += '<span class="preview-item-name">' + escapeHtml(item.variety) + '</span>';
+        html += '<span class="preview-item-qty">x' + item.quantity + '</span>';
+        html += '<span class="preview-item-total">$' + lineTotal.toFixed(2) + '</span>';
+        html += '</div>';
+    }
+
+    html += '<div class="preview-summary">';
+    html += '<div class="preview-summary-row"><span>Subtotal (' + orderCalc.totalPlants + ' plants)</span><span>$' + orderCalc.subtotal.toFixed(2) + '</span></div>';
+    if (orderCalc.discount > 0) {
+        html += '<div class="preview-summary-row" style="color:var(--green-dark);"><span>15% Bulk Discount</span><span>-$' + orderCalc.discount.toFixed(2) + '</span></div>';
+    }
+    if (orderCalc.bundles > 0) {
+        html += '<div class="preview-summary-row" style="color:var(--green-dark);"><span>4-for-$20 Bundle Savings</span><span>Applied</span></div>';
+    }
+    html += '<div class="preview-summary-row total"><span>Total</span><span>$' + orderCalc.total.toFixed(2) + '</span></div>';
+    html += '</div>';
+
+    html += '<div class="preview-customer">';
+    html += '<p><strong>Name:</strong> ' + escapeHtml(customerName) + '</p>';
+    html += '<p><strong>Email:</strong> ' + escapeHtml(email) + '</p>';
+    if (phone) html += '<p><strong>Phone:</strong> ' + escapeHtml(phone) + '</p>';
+    html += '<p><strong>Pickup:</strong> ' + escapeHtml(pickup) + '</p>';
+    html += '</div>';
+
+    html += '<div class="preview-buttons">';
+    html += '<button class="preview-edit-btn" id="previewEditBtn"><i class="fas fa-edit"></i> Edit Order</button>';
+    html += '<button class="preview-confirm-btn" id="previewConfirmBtn"><i class="fas fa-lock"></i> Confirm & Pay</button>';
+    html += '</div>';
+
+    html += '</div>';
+    overlay.innerHTML = html;
+    document.body.appendChild(overlay);
+
+    document.getElementById('previewEditBtn').addEventListener('click', function() {
+        overlay.remove();
+    });
+
+    document.getElementById('previewConfirmBtn').addEventListener('click', function() {
+        overlay.remove();
+        actuallySubmitOrder(items, customerName, email, phone, pickup, orderCalc);
+    });
+
+    overlay.addEventListener('click', function(ev) {
+        if (ev.target === overlay) overlay.remove();
+    });
+}
+
+// ═══════════════════════════════════════
+// MOBILE BOTTOM SHEET CART
+// ═══════════════════════════════════════
+function updateMobileCart(order) {
+    var collapsed = document.getElementById('mobileCartCollapsed');
+    var badge = document.getElementById('mobileCartBadge');
+    var collapsedTotal = document.getElementById('mobileCartCollapsedTotal');
+    var body = document.getElementById('mobileCartBody');
+    var sheetTotal = document.getElementById('mobileCartTotal');
+
+    if (!collapsed || !badge) return;
+
+    if (order.totalPlants > 0) {
+        collapsed.classList.add('visible');
+        badge.textContent = order.totalPlants;
+        collapsedTotal.textContent = '$' + order.total.toFixed(2);
+        sheetTotal.textContent = '$' + order.total.toFixed(2);
+
+        var html = '';
+        for (var i = 0; i < VARIETIES.length; i++) {
+            var qty = quantities[VARIETIES[i].name] || 0;
+            if (qty > 0) {
+                html += '<div class="mobile-cart-sheet-item">';
+                html += '<span>' + escapeHtml(VARIETIES[i].name) + ' <span style="color:var(--text-muted);">x' + qty + '</span></span>';
+                html += '<span style="font-weight:600;">$' + (qty * VARIETIES[i].price).toFixed(2) + '</span>';
+                html += '</div>';
+            }
+        }
+        if (order.discount > 0) {
+            html += '<div class="mobile-cart-sheet-item" style="color:var(--green-dark);">';
+            html += '<span>15% Bulk Discount</span>';
+            html += '<span style="font-weight:600;">-$' + order.discount.toFixed(2) + '</span>';
+            html += '</div>';
+        }
+        body.innerHTML = html;
+    } else {
+        collapsed.classList.remove('visible');
+        collapseMobileCart();
+    }
+}
+
+function expandMobileCart() {
+    var sheet = document.getElementById('mobileCartSheet');
+    var overlay = document.getElementById('mobileCartOverlay');
+    if (sheet) sheet.classList.add('expanded');
+    if (overlay) overlay.classList.add('visible');
+}
+
+function collapseMobileCart() {
+    var sheet = document.getElementById('mobileCartSheet');
+    var overlay = document.getElementById('mobileCartOverlay');
+    if (sheet) sheet.classList.remove('expanded');
+    if (overlay) overlay.classList.remove('visible');
+}
+
+function setupMobileCartSwipe() {
+    var sheet = document.getElementById('mobileCartSheet');
+    if (!sheet) return;
+
+    var startY = 0;
+    var currentY = 0;
+    var isDragging = false;
+
+    sheet.addEventListener('touchstart', function(e) {
+        var target = e.target;
+        var header = sheet.querySelector('.mobile-cart-sheet-header');
+        var handle = sheet.querySelector('.mobile-cart-drag-handle');
+        if (target === handle || target === header || header.contains(target)) {
+            startY = e.touches[0].clientY;
+            isDragging = true;
+        }
+    }, { passive: true });
+
+    sheet.addEventListener('touchmove', function(e) {
+        if (!isDragging) return;
+        currentY = e.touches[0].clientY;
+        var diff = currentY - startY;
+        if (diff > 0) {
+            sheet.style.transform = 'translateY(' + diff + 'px)';
+        }
+    }, { passive: true });
+
+    sheet.addEventListener('touchend', function() {
+        if (!isDragging) return;
+        isDragging = false;
+        var diff = currentY - startY;
+        sheet.style.transform = '';
+        if (diff > 80) {
+            collapseMobileCart();
+        }
+    }, { passive: true });
 }
 </script>
 </body>
