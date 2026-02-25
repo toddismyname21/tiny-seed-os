@@ -38,6 +38,22 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-02-25 — Wire Image_URL to Presale Cards + Add Seedling Admin to Nav
+
+**Role:** PM_Architect
+
+### Files Modified
+- `index.html` — Added "Seedling Admin" nav link (fa-images icon) in sidebar between Seedling Presale and Wholesale Seedlings
+
+### Reason
+seedling-admin.html was an orphan page with no navigation link. Owner couldn't find it.
+
+### Duplicate Check
+- [x] No new files created
+- [x] No duplicate nav items
+
+---
+
 ## 2026-02-25 — Wire Image_URL to Seedling Presale Cards
 
 **Role:** PM_Architect
