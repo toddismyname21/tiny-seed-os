@@ -605,6 +605,9 @@
             <button class="btn btn-primary" onclick="autoPopulateImages()" id="autoPopBtn" style="background:#166534;">
                 <i class="fas fa-images"></i> Auto-Fill Images from Johnny's
             </button>
+            <button class="btn btn-primary" onclick="openAddModal()" style="background:var(--green);">
+                <i class="fas fa-plus"></i> Add New Variety
+            </button>
         </div>
     </div>
 
@@ -614,9 +617,11 @@
             <thead>
                 <tr>
                     <th>Variety</th>
+                    <th>Crop</th>
                     <th>Price</th>
                     <th>Available</th>
-                    <th>Seed Source URL</th>
+                    <th>Difficulty</th>
+                    <th>Description</th>
                     <th>Status</th>
                     <th>Actions</th>
                 </tr>
@@ -662,9 +667,17 @@
 
             <div class="form-row">
                 <div class="form-group">
-                    <label>Variety Name</label>
+                    <label>Variety Name <span style="color:var(--red);">*</span></label>
                     <input type="text" id="editName" placeholder="Cherokee Purple">
                 </div>
+                <div class="form-group">
+                    <label>Crop <span style="color:var(--red);">*</span></label>
+                    <input type="text" id="editCrop" placeholder="Tomato">
+                    <p class="form-help">The plant type (Tomato, Pepper, Basil, etc.)</p>
+                </div>
+            </div>
+
+            <div class="form-row">
                 <div class="form-group">
                     <label>Category</label>
                     <select id="editCategory">
@@ -674,6 +687,19 @@
                         <option value="Herbs">Herbs</option>
                         <option value="Greens">Greens</option>
                         <option value="Flowers">Flowers</option>
+                        <option value="Alliums">Alliums</option>
+                        <option value="Brassicas">Brassicas</option>
+                        <option value="Root Vegetables">Root Vegetables</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Difficulty</label>
+                    <select id="editDifficulty">
+                        <option value="">— Select —</option>
+                        <option value="Easy">🟢 Easy — Great for beginners</option>
+                        <option value="Moderate">🟡 Moderate — Some experience helpful</option>
+                        <option value="Expert">🔴 Expert — Experienced gardeners</option>
                     </select>
                 </div>
             </div>
@@ -689,16 +715,40 @@
                 </div>
             </div>
 
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Days to Maturity</label>
+                    <input type="text" id="editDTM" placeholder="75-80 days">
+                    <p class="form-help">From transplant to first harvest</p>
+                </div>
+                <div class="form-group">
+                    <label>Sun Requirements</label>
+                    <select id="editSun">
+                        <option value="">— Select —</option>
+                        <option value="Full Sun">☀️ Full Sun (6+ hours)</option>
+                        <option value="Partial Sun">🌤️ Partial Sun (4-6 hours)</option>
+                        <option value="Partial Shade">⛅ Partial Shade (2-4 hours)</option>
+                        <option value="Shade">🌥️ Shade Tolerant</option>
+                    </select>
+                </div>
+            </div>
+
             <div class="form-group">
-                <label>Description</label>
-                <textarea id="editDescription" placeholder="A beautiful heirloom tomato with rich, complex flavor..."></textarea>
-                <p class="form-help">Brief description for the presale page. 1-2 sentences.</p>
+                <label>Description <span style="color:var(--red);">*</span></label>
+                <textarea id="editDescription" rows="3" placeholder="A beautiful heirloom tomato with rich, complex flavor. Perfect for slicing and sandwiches."></textarea>
+                <p class="form-help">Customer-facing description for the presale page. 1-2 sentences about flavor, use, and what makes it special.</p>
+            </div>
+
+            <div class="form-group">
+                <label>Growing Tips</label>
+                <textarea id="editGrowingTips" rows="3" placeholder="Plant in full sun after last frost. Space 24-36 inches apart. Stake or cage for support."></textarea>
+                <p class="form-help">Brief care instructions sent in the post-purchase email.</p>
             </div>
 
             <div class="form-group">
                 <label>Seed Source URL</label>
                 <input type="url" id="editSourceUrl" placeholder="https://rfrseeds.com/products/...">
-                <p class="form-help">Where you buy the seeds. Saved for future reference.</p>
+                <p class="form-help">Where you buy the seeds. Used for scraping photos/descriptions.</p>
             </div>
 
             <div class="form-group">
@@ -753,6 +803,96 @@ https://rfrseeds.com/products/ghost-pepper"></textarea>
     </div>
 </div>
 
+<!-- Add New Variety Modal -->
+<div class="modal-overlay" id="addModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h2><i class="fas fa-plus-circle"></i> Add New Variety</h2>
+            <button class="modal-close" onclick="closeAddModal()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                <div class="form-group">
+                    <label>Variety Name *</label>
+                    <input type="text" id="addName" placeholder="e.g. Cherokee Purple">
+                </div>
+                <div class="form-group">
+                    <label>Crop</label>
+                    <input type="text" id="addCrop" placeholder="e.g. Tomato">
+                </div>
+                <div class="form-group">
+                    <label>Category</label>
+                    <select id="addCategory">
+                        <option value="Tomatoes">Tomatoes</option>
+                        <option value="Peppers">Peppers</option>
+                        <option value="Herbs">Herbs</option>
+                        <option value="Greens">Greens</option>
+                        <option value="Flowers">Flowers</option>
+                        <option value="Alliums">Alliums</option>
+                        <option value="Brassicas">Brassicas</option>
+                        <option value="Root Vegetables">Root Vegetables</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Difficulty</label>
+                    <select id="addDifficulty">
+                        <option value="">-- Select --</option>
+                        <option value="Easy">Easy</option>
+                        <option value="Moderate">Moderate</option>
+                        <option value="Expert">Expert</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Price ($)</label>
+                    <input type="number" id="addPrice" value="6.00" step="0.50" min="0">
+                </div>
+                <div class="form-group">
+                    <label>Available for Presale</label>
+                    <input type="number" id="addAvailable" placeholder="e.g. 50">
+                </div>
+                <div class="form-group">
+                    <label>Days to Maturity</label>
+                    <input type="text" id="addDTM" placeholder="e.g. 75-85">
+                </div>
+                <div class="form-group">
+                    <label>Sun Requirements</label>
+                    <select id="addSun">
+                        <option value="">-- Select --</option>
+                        <option value="Full Sun">Full Sun</option>
+                        <option value="Partial Sun">Partial Sun</option>
+                        <option value="Shade">Shade</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group" style="margin-top:16px;">
+                <label>Description</label>
+                <textarea id="addDescription" rows="3" placeholder="Describe this variety for customers..."></textarea>
+            </div>
+            <div class="form-group">
+                <label>Growing Tips</label>
+                <textarea id="addGrowingTips" rows="2" placeholder="Tips for growing success..."></textarea>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                <div class="form-group">
+                    <label>Image URL</label>
+                    <input type="text" id="addImageUrl" placeholder="https://...">
+                </div>
+                <div class="form-group">
+                    <label>Seed Source URL</label>
+                    <input type="text" id="addSourceUrl" placeholder="https://...">
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeAddModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="createVariety()">
+                <i class="fas fa-plus"></i> Add Variety
+            </button>
+        </div>
+    </div>
+</div>
+
 <script>
 // ═══════════════════════════════════════════════════
 // DATA
@@ -779,12 +919,18 @@ function loadVarieties() {
                     return {
                         itemId: row.Item_ID || '',
                         name: row.Variety || row.Crop || 'Unknown',
+                        crop: row.Crop || '',
                         category: row.Category || 'Other',
                         price: Number(row.Price_Each) || 6.00,
                         available: row.Available != null ? Number(row.Available) : null,
                         description: row.Description || '',
                         imageUrl: row.Image_URL || '',
-                        sourceUrl: row.Source_URL || ''
+                        sourceUrl: row.Source_URL || '',
+                        difficulty: row.Difficulty || '',
+                        daysToMaturity: row.Days_to_Maturity || '',
+                        sunRequirements: row.Sun_Requirements || '',
+                        growingTips: row.Growing_Tips || '',
+                        notes: row.Notes || ''
                     };
                 });
                 filteredVarieties = varieties.slice();
@@ -807,7 +953,7 @@ function renderTable() {
     var tbody = document.getElementById('varietiesTableBody');
 
     if (filteredVarieties.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><i class="fas fa-search"></i><h3>No varieties found</h3><p>Try adjusting your filters</p></div></td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><i class="fas fa-search"></i><h3>No varieties found</h3><p>Try adjusting your filters</p></div></td></tr>';
         return;
     }
 
@@ -816,11 +962,20 @@ function renderTable() {
         var v = filteredVarieties[i];
         var hasPhoto = !!v.imageUrl;
         var hasDesc = !!v.description;
-        var status = (hasPhoto && hasDesc) ? 'complete' : (hasPhoto || hasDesc) ? 'pending' : 'missing';
-        var statusLabel = status === 'complete' ? 'Complete' : status === 'pending' ? 'Needs Info' : 'Missing Data';
+        var hasDifficulty = !!v.difficulty;
+        var complete = hasPhoto && hasDesc && hasDifficulty;
+        var status = complete ? 'complete' : (hasPhoto && hasDesc) ? 'pending' : 'missing';
+        var statusLabel = complete ? 'Complete' : status === 'pending' ? 'Needs Difficulty' : 'Missing Data';
         var statusClass = 'status-' + status;
 
-        html += '<tr data-item-id="' + v.itemId + '">';
+        // Difficulty badge
+        var diffBadge = '';
+        if (v.difficulty === 'Easy') diffBadge = '<span style="background:#dcfce7;color:#166534;padding:2px 8px;border-radius:10px;font-size:0.75rem;font-weight:600;">🟢 Easy</span>';
+        else if (v.difficulty === 'Moderate') diffBadge = '<span style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:10px;font-size:0.75rem;font-weight:600;">🟡 Moderate</span>';
+        else if (v.difficulty === 'Expert') diffBadge = '<span style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-size:0.75rem;font-weight:600;">🔴 Expert</span>';
+        else diffBadge = '<span style="color:var(--text-muted);font-size:0.75rem;">—</span>';
+
+        html += '<tr data-item-id="' + v.itemId + '" onclick="editVariety(\'' + v.itemId + '\')" style="cursor:pointer;">';
         html += '<td><div class="variety-info">';
         if (v.imageUrl) {
             html += '<img src="' + escapeHtml(v.imageUrl) + '" alt="" class="variety-thumb">';
@@ -830,19 +985,17 @@ function renderTable() {
         html += '<div><div class="variety-name">' + escapeHtml(v.name) + '</div>';
         html += '<div class="variety-category">' + escapeHtml(v.category) + '</div></div>';
         html += '</div></td>';
+        html += '<td>' + escapeHtml(v.crop || '—') + '</td>';
         html += '<td>$' + v.price.toFixed(2) + '</td>';
         html += '<td>' + (v.available != null ? v.available : '—') + '</td>';
-        html += '<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">';
-        if (v.sourceUrl) {
-            html += '<a href="' + escapeHtml(v.sourceUrl) + '" target="_blank" style="color:var(--blue);text-decoration:none;"><i class="fas fa-link"></i> ' + truncateUrl(v.sourceUrl) + '</a>';
-        } else {
-            html += '<span style="color:var(--text-muted);">—</span>';
-        }
+        html += '<td>' + diffBadge + '</td>';
+        html += '<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:0.85rem;color:var(--text-muted);">';
+        html += v.description ? escapeHtml(v.description.substring(0, 60)) + '...' : '<span style="color:var(--red);font-weight:600;">Missing</span>';
         html += '</td>';
         html += '<td><span class="status-badge ' + statusClass + '">' + statusLabel + '</span></td>';
         html += '<td><div class="action-btns">';
-        html += '<button class="action-btn" onclick="editVariety(\'' + v.itemId + '\')" title="Edit"><i class="fas fa-edit"></i></button>';
-        html += '<button class="action-btn scrape" onclick="quickScrape(\'' + v.itemId + '\')" title="Scrape URL"><i class="fas fa-magic"></i></button>';
+        html += '<button class="action-btn" onclick="event.stopPropagation();editVariety(\'' + v.itemId + '\')" title="Edit"><i class="fas fa-edit"></i></button>';
+        html += '<button class="action-btn scrape" onclick="event.stopPropagation();quickScrape(\'' + v.itemId + '\')" title="Scrape URL"><i class="fas fa-magic"></i></button>';
         html += '</div></td>';
         html += '</tr>';
     }
@@ -931,10 +1084,15 @@ function editVariety(itemId) {
     document.getElementById('modalTitle').textContent = 'Edit: ' + v.name;
     document.getElementById('editItemId').value = v.itemId;
     document.getElementById('editName').value = v.name;
+    document.getElementById('editCrop').value = v.crop || '';
     document.getElementById('editCategory').value = v.category;
+    document.getElementById('editDifficulty').value = v.difficulty || '';
     document.getElementById('editPrice').value = v.price;
     document.getElementById('editAvailable').value = v.available || '';
+    document.getElementById('editDTM').value = v.daysToMaturity || '';
+    document.getElementById('editSun').value = v.sunRequirements || '';
     document.getElementById('editDescription').value = v.description || '';
+    document.getElementById('editGrowingTips').value = v.growingTips || '';
     document.getElementById('editSourceUrl').value = v.sourceUrl || '';
     document.getElementById('editImageUrl').value = v.imageUrl || '';
     document.getElementById('scrapeUrl').value = v.sourceUrl || '';
@@ -967,7 +1125,7 @@ function handleImageUpload(event) {
     reader.onload = function(e) {
         document.getElementById('imagePreview').innerHTML = '<div class="image-preview-item"><img src="' + e.target.result + '" alt=""><button class="remove-img" onclick="clearImage()"><i class="fas fa-times"></i></button></div>';
         // In production, upload to server and get URL
-        alert('Image preview shown. To save permanently, upload to your server and paste the URL in "Image URL" field.');
+        showToast('Image preview loaded — save the variety to keep it');
     };
     reader.readAsDataURL(file);
 }
@@ -978,7 +1136,7 @@ function handleImageUpload(event) {
 function scrapeUrl() {
     var url = document.getElementById('scrapeUrl').value.trim();
     if (!url) {
-        alert('Please enter a URL to scrape');
+        showToast('Please enter a URL to scrape');
         return;
     }
 
@@ -1044,10 +1202,15 @@ function saveVariety() {
         action: 'updateSeedlingItem',
         itemId: itemId,
         name: document.getElementById('editName').value,
+        crop: document.getElementById('editCrop').value,
         category: document.getElementById('editCategory').value,
+        difficulty: document.getElementById('editDifficulty').value,
         price: parseFloat(document.getElementById('editPrice').value) || 6.00,
         available: parseInt(document.getElementById('editAvailable').value) || null,
+        daysToMaturity: document.getElementById('editDTM').value,
+        sunRequirements: document.getElementById('editSun').value,
         description: document.getElementById('editDescription').value,
+        growingTips: document.getElementById('editGrowingTips').value,
         imageUrl: document.getElementById('editImageUrl').value,
         sourceUrl: document.getElementById('editSourceUrl').value
     };
@@ -1064,11 +1227,11 @@ function saveVariety() {
             loadVarieties(); // Refresh
             showToast('Variety updated successfully');
         } else {
-            alert('Error saving: ' + (result.error || 'Unknown error'));
+            showToast('Error saving: ' + (result.error || 'Unknown error'));
         }
     })
     .catch(function(err) {
-        alert('Network error: ' + err.message);
+        showToast('Network error: ' + err.message);
     });
 }
 
@@ -1088,7 +1251,7 @@ function closeBulkModal() {
 function runBulkScrape() {
     var urls = document.getElementById('bulkUrls').value.trim().split('\n').filter(function(u) { return u.trim(); });
     if (urls.length === 0) {
-        alert('Please enter at least one URL');
+        showToast('Please enter at least one URL');
         return;
     }
 
@@ -1136,7 +1299,7 @@ function runBulkScrape() {
 function autoPopulateImages() {
     var missing = varieties.filter(function(v) { return !v.imageUrl; }).length;
     if (missing === 0) {
-        alert('All varieties already have images!');
+        showToast('All varieties already have images!');
         return;
     }
 
@@ -1159,26 +1322,94 @@ function autoPopulateImages() {
                     'Found images: ' + result.updated + '\n' +
                     'Already had images: ' + result.skipped + '\n' +
                     'Not found on Johnny\'s: ' + result.failed;
-                alert(msg);
+                showToast('Images updated: ' + result.updated + ' found, ' + result.failed + ' not found');
                 loadVarieties(); // Refresh table
             } else {
-                alert('Error: ' + (result.error || 'Auto-populate failed'));
+                showToast('Error: ' + (result.error || 'Auto-populate failed'));
             }
         })
         .catch(function(err) {
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-images"></i> Auto-Fill Images from Johnny\'s';
-            alert('Network error: ' + err.message);
+            showToast('Network error: ' + err.message);
         });
+}
+
+// ═══════════════════════════════════════════════════
+// ADD NEW VARIETY
+// ═══════════════════════════════════════════════════
+function openAddModal() {
+    document.getElementById('addModal').classList.add('active');
+    document.getElementById('addName').value = '';
+    document.getElementById('addCrop').value = '';
+    document.getElementById('addCategory').value = 'Other';
+    document.getElementById('addDifficulty').value = '';
+    document.getElementById('addPrice').value = '6.00';
+    document.getElementById('addAvailable').value = '';
+    document.getElementById('addDTM').value = '';
+    document.getElementById('addSun').value = '';
+    document.getElementById('addDescription').value = '';
+    document.getElementById('addGrowingTips').value = '';
+    document.getElementById('addImageUrl').value = '';
+    document.getElementById('addSourceUrl').value = '';
+    document.getElementById('addName').focus();
+}
+
+function closeAddModal() {
+    document.getElementById('addModal').classList.remove('active');
+}
+
+function createVariety() {
+    var name = document.getElementById('addName').value.trim();
+    if (!name) {
+        showToast('Variety name is required');
+        document.getElementById('addName').focus();
+        return;
+    }
+
+    var payload = {
+        action: 'addSeedlingItem',
+        name: name,
+        crop: document.getElementById('addCrop').value,
+        category: document.getElementById('addCategory').value,
+        difficulty: document.getElementById('addDifficulty').value,
+        price: parseFloat(document.getElementById('addPrice').value) || 6.00,
+        available: parseInt(document.getElementById('addAvailable').value) || null,
+        daysToMaturity: document.getElementById('addDTM').value,
+        sunRequirements: document.getElementById('addSun').value,
+        description: document.getElementById('addDescription').value,
+        growingTips: document.getElementById('addGrowingTips').value,
+        imageUrl: document.getElementById('addImageUrl').value,
+        sourceUrl: document.getElementById('addSourceUrl').value
+    };
+
+    fetch(TINY_SEED_API.MAIN_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify(payload)
+    })
+    .then(function(res) { return res.json(); })
+    .then(function(result) {
+        if (result.success) {
+            closeAddModal();
+            loadVarieties();
+            showToast('New variety "' + name + '" added');
+        } else {
+            showToast('Error: ' + (result.error || 'Failed to add variety'));
+        }
+    })
+    .catch(function(err) {
+        showToast('Network error: ' + err.message);
+    });
 }
 
 // ═══════════════════════════════════════════════════
 // EXPORT
 // ═══════════════════════════════════════════════════
 function exportData() {
-    var csv = 'Name,Category,Price,Available,Description,Image URL,Source URL\n';
+    var csv = 'Name,Crop,Category,Price,Available,Difficulty,Days to Maturity,Sun,Description,Growing Tips,Image URL,Source URL\n';
     varieties.forEach(function(v) {
-        csv += '"' + v.name + '","' + v.category + '",' + v.price + ',' + (v.available || '') + ',"' + (v.description || '').replace(/"/g, '""') + '","' + (v.imageUrl || '') + '","' + (v.sourceUrl || '') + '"\n';
+        csv += '"' + v.name + '","' + (v.crop || '') + '","' + v.category + '",' + v.price + ',' + (v.available || '') + ',"' + (v.difficulty || '') + '","' + (v.daysToMaturity || '') + '","' + (v.sunRequirements || '') + '","' + (v.description || '').replace(/"/g, '""') + '","' + (v.growingTips || '').replace(/"/g, '""') + '","' + (v.imageUrl || '') + '","' + (v.sourceUrl || '') + '"\n';
     });
 
     var blob = new Blob([csv], { type: 'text/csv' });

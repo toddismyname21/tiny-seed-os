@@ -17584,6 +17584,8 @@ function doGet(e) {
         return jsonResponse(validateWelcomeDiscount(e.parameter));
       case 'validateSeedlingAvailability':
         return jsonResponse(validateSeedlingAvailability(e.parameter));
+      case 'getSeedlingBundles':
+        return jsonResponse(getSeedlingBundles());
 
       default:
         return jsonResponse({error: 'Unknown action: ' + action}, 400);
@@ -18961,6 +18963,10 @@ function doPost(e) {
         return jsonResponse(updateSeedlingStatus(data));
       case 'cleanupTestSeedlingOrders':
         return jsonResponse(cleanupTestSeedlingOrders(data));
+      case 'sendSeedlingOrderConfirmation':
+        return jsonResponse(sendSeedlingOrderConfirmation(JSON.parse(e.postData.contents)));
+      case 'addSeedlingItem':
+        return jsonResponse(addSeedlingItem(data));
 
       default:
         return jsonResponse({error: 'Unknown action: ' + action}, 400);
@@ -131138,6 +131144,27 @@ function submitSeedlingOrder(params) {
       }
     }
 
+    // Step 8: Send order confirmation email (if customer provided email)
+    if (params.email) {
+      try {
+        var emailResult = sendSeedlingOrderConfirmation({
+          email: params.email,
+          name: params.customerName || '',
+          orderId: orderId,
+          items: JSON.stringify(items),
+          total: totalRevenue,
+          pickup: params.pickupLocation || ''
+        });
+        if (!emailResult.success) {
+          errors.push('Confirmation email: ' + (emailResult.error || 'failed to send'));
+        } else {
+          result.confirmationEmailSent = true;
+        }
+      } catch (emailErr) {
+        errors.push('Confirmation email: ' + emailErr.toString());
+      }
+    }
+
     result.errors = errors;
     if (errors.length > 0) {
       result.warnings = errors.length + ' non-critical error(s) occurred. Sales were recorded successfully.';
@@ -131464,7 +131491,96 @@ function updateSeedlingItem(params) {
     updates.push('sourceUrl');
   }
 
+  // New fields: crop, difficulty, daysToMaturity, sunRequirements, growingTips
+  var extraFields = [
+    { param: 'crop', col: 'Crop' },
+    { param: 'difficulty', col: 'Difficulty' },
+    { param: 'daysToMaturity', col: 'Days_to_Maturity' },
+    { param: 'sunRequirements', col: 'Sun_Requirements' },
+    { param: 'growingTips', col: 'Growing_Tips' }
+  ];
+  // Re-read headers in case columns were added above
+  var currentHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  var currentCols = {};
+  for (var ch = 0; ch < currentHeaders.length; ch++) {
+    currentCols[currentHeaders[ch]] = ch;
+  }
+  for (var ef = 0; ef < extraFields.length; ef++) {
+    var field = extraFields[ef];
+    if (params[field.param] !== undefined) {
+      if (currentCols[field.col] === undefined) {
+        var newCol = sheet.getLastColumn() + 1;
+        sheet.getRange(1, newCol).setValue(field.col);
+        currentCols[field.col] = newCol - 1;
+      }
+      sheet.getRange(targetRow, currentCols[field.col] + 1).setValue(params[field.param]);
+      updates.push(field.param);
+    }
+  }
+
   return { success: true, itemId: itemId, updated: updates };
+}
+
+/**
+ * Add a new seedling variety to SEEDLING_PRODUCTION from admin page
+ */
+function addSeedlingItem(params) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('SEEDLING_PRODUCTION');
+  if (!sheet) return { success: false, error: 'SEEDLING_PRODUCTION sheet not found' };
+
+  if (!params.name) return { success: false, error: 'Variety name is required' };
+
+  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  var cols = {};
+  for (var h = 0; h < headers.length; h++) {
+    cols[headers[h]] = h;
+  }
+
+  // Generate Item_ID
+  var itemId = 'SDL-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
+
+  // Build row with correct column positions
+  var newRow = new Array(headers.length).fill('');
+  if (cols['Item_ID'] !== undefined) newRow[cols['Item_ID']] = itemId;
+  if (cols['Year'] !== undefined) newRow[cols['Year']] = new Date().getFullYear();
+  if (cols['Variety'] !== undefined) newRow[cols['Variety']] = params.name;
+  if (cols['Crop'] !== undefined) newRow[cols['Crop']] = params.crop || '';
+  if (cols['Category'] !== undefined) newRow[cols['Category']] = params.category || 'Other';
+  if (cols['Price_Each'] !== undefined) newRow[cols['Price_Each']] = params.price || 6.00;
+  if (cols['Alloc_Presale'] !== undefined) newRow[cols['Alloc_Presale']] = params.available || '';
+  if (cols['Status'] !== undefined) newRow[cols['Status']] = 'Active';
+  if (cols['Created_At'] !== undefined) newRow[cols['Created_At']] = new Date().toISOString();
+  if (cols['Notes'] !== undefined) newRow[cols['Notes']] = params.notes || '';
+
+  // Handle columns that may need to be created
+  var dynamicFields = [
+    { param: 'description', col: 'Description' },
+    { param: 'imageUrl', col: 'Image_URL' },
+    { param: 'sourceUrl', col: 'Source_URL' },
+    { param: 'difficulty', col: 'Difficulty' },
+    { param: 'daysToMaturity', col: 'Days_to_Maturity' },
+    { param: 'sunRequirements', col: 'Sun_Requirements' },
+    { param: 'growingTips', col: 'Growing_Tips' }
+  ];
+
+  for (var df = 0; df < dynamicFields.length; df++) {
+    var field = dynamicFields[df];
+    if (params[field.param]) {
+      if (cols[field.col] === undefined) {
+        var newCol = sheet.getLastColumn() + 1;
+        sheet.getRange(1, newCol).setValue(field.col);
+        cols[field.col] = newCol - 1;
+        // Extend row to match
+        while (newRow.length < newCol) newRow.push('');
+      }
+      newRow[cols[field.col]] = params[field.param];
+    }
+  }
+
+  sheet.appendRow(newRow);
+
+  return { success: true, itemId: itemId, message: 'New variety added' };
 }
 
 /**
@@ -132252,6 +132368,185 @@ function calculateSeedingSchedule(params) {
   });
 
   return { success: true, data: schedule, count: schedule.length };
+}
+
+// ============ SEEDLING STARTER BUNDLES & POST-PURCHASE EMAIL (2026-02-25) ============
+
+/**
+ * Returns pre-built starter garden bundle definitions for the seedling presale.
+ * Called via doGet with action=getSeedlingBundles.
+ */
+function getSeedlingBundles() {
+  return {
+    success: true,
+    bundles: [
+      {
+        id: 'salsa-garden',
+        name: 'Salsa Garden',
+        description: 'Everything you need for fresh salsa all summer long',
+        price: 28.00,
+        savings: 4.00,
+        items: [
+          { variety: 'Roma Tomato', quantity: 2 },
+          { variety: 'San Marzano Tomato', quantity: 1 },
+          { variety: 'Jalapeño Pepper', quantity: 1 },
+          { variety: 'Cilantro', quantity: 1 },
+          { variety: 'Onion', quantity: 1 }
+        ],
+        badge: '🍅 Most Popular'
+      },
+      {
+        id: 'pizza-garden',
+        name: 'Pizza Garden',
+        description: 'Grow your own pizza toppings — from garden to pie',
+        price: 24.00,
+        savings: 3.00,
+        items: [
+          { variety: 'Roma Tomato', quantity: 2 },
+          { variety: 'Sweet Basil', quantity: 1 },
+          { variety: 'Bell Pepper', quantity: 1 },
+          { variety: 'Oregano', quantity: 1 }
+        ],
+        badge: '🍕 Fan Favorite'
+      },
+      {
+        id: 'flower-power',
+        name: 'Flower Power',
+        description: 'A riot of color from June through October',
+        price: 30.00,
+        savings: 5.00,
+        items: [
+          { variety: 'Zinnia', quantity: 2 },
+          { variety: 'Sunflower', quantity: 2 },
+          { variety: 'Marigold', quantity: 2 },
+          { variety: 'Cosmos', quantity: 1 }
+        ],
+        badge: '🌸 Best Value'
+      }
+    ]
+  };
+}
+
+/**
+ * Sends an order confirmation email after a seedling presale order.
+ * Also logs the email send to a SEEDLING_EMAIL_LOG sheet.
+ *
+ * @param {Object} params - { email, name, orderId, items (JSON string), total, pickup }
+ * @returns {Object} { success: true, message: 'Confirmation email sent' }
+ */
+function sendSeedlingOrderConfirmation(params) {
+  var email = (params.email || '').trim();
+  var name = (params.name || 'Friend').trim();
+  var orderId = params.orderId || '';
+  var total = Number(params.total) || 0;
+  var pickup = (params.pickup || 'TBD').trim();
+
+  if (!email) {
+    return { success: false, error: 'Email address is required' };
+  }
+
+  // Parse items
+  var items = [];
+  try {
+    if (typeof params.items === 'string') {
+      items = JSON.parse(params.items);
+    } else if (Array.isArray(params.items)) {
+      items = params.items;
+    }
+  } catch (parseErr) {
+    Logger.log('sendSeedlingOrderConfirmation: failed to parse items: ' + parseErr.toString());
+  }
+
+  // Build order summary rows
+  var itemRows = '';
+  for (var i = 0; i < items.length; i++) {
+    var item = items[i];
+    var itemName = item.name || item.variety || item.crop || 'Seedling';
+    var qty = item.quantity || 1;
+    var price = Number(item.price) || 0;
+    itemRows += '<tr>' +
+      '<td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;">' + itemName + '</td>' +
+      '<td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;text-align:center;">' + qty + '</td>' +
+      '<td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;text-align:right;">$' + price.toFixed(2) + '</td>' +
+      '</tr>';
+  }
+
+  var subject = '🌱 Your Tiny Seed Farm Seedling Order is Confirmed!';
+
+  var htmlBody = '<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="font-family:Arial,Helvetica,sans-serif;color:#1f2937;max-width:600px;margin:0 auto;padding:20px;">' +
+    '<div style="background:#22c55e;color:white;padding:24px;border-radius:12px 12px 0 0;text-align:center;">' +
+      '<h1 style="margin:0;font-size:24px;">🌱 Order Confirmed!</h1>' +
+      '<p style="margin:8px 0 0;font-size:16px;opacity:0.9;">Order #' + orderId + '</p>' +
+    '</div>' +
+    '<div style="background:#f9fafb;padding:24px;border:1px solid #e5e7eb;border-top:none;">' +
+      '<p style="font-size:18px;margin:0 0 16px;">Thanks, <strong>' + name + '</strong>! Your seedlings are being grown just for you.</p>' +
+      '<h2 style="font-size:16px;color:#374151;margin:24px 0 12px;border-bottom:2px solid #22c55e;padding-bottom:8px;">Order Summary</h2>' +
+      '<table style="width:100%;border-collapse:collapse;font-size:14px;">' +
+        '<thead><tr style="background:#f3f4f6;">' +
+          '<th style="padding:8px 12px;text-align:left;">Variety</th>' +
+          '<th style="padding:8px 12px;text-align:center;">Qty</th>' +
+          '<th style="padding:8px 12px;text-align:right;">Price</th>' +
+        '</tr></thead>' +
+        '<tbody>' + itemRows + '</tbody>' +
+        '<tfoot><tr style="background:#f0fdf4;">' +
+          '<td colspan="2" style="padding:10px 12px;font-weight:bold;font-size:16px;">Total</td>' +
+          '<td style="padding:10px 12px;text-align:right;font-weight:bold;font-size:16px;color:#16a34a;">$' + total.toFixed(2) + '</td>' +
+        '</tr></tfoot>' +
+      '</table>' +
+      '<h2 style="font-size:16px;color:#374151;margin:24px 0 12px;border-bottom:2px solid #22c55e;padding-bottom:8px;">📍 Pickup Information</h2>' +
+      '<p style="font-size:14px;margin:0;"><strong>Location:</strong> ' + pickup + '</p>' +
+      '<p style="font-size:14px;margin:4px 0 0;"><strong>Estimated Dates:</strong> April 15 – May 15, 2026</p>' +
+      '<p style="font-size:13px;color:#6b7280;margin:4px 0 0;">We\'ll send a reminder as your pickup date approaches.</p>' +
+      '<h2 style="font-size:16px;color:#374151;margin:24px 0 12px;border-bottom:2px solid #22c55e;padding-bottom:8px;">🌿 Growing Tips</h2>' +
+      '<ul style="font-size:14px;line-height:1.8;padding-left:20px;color:#374151;">' +
+        '<li><strong>Don\'t plant outside until after your last frost date</strong> (mid-May in Pittsburgh)</li>' +
+        '<li><strong>Harden off seedlings:</strong> set them outside for increasing hours over 7 days</li>' +
+        '<li><strong>Water deeply but less frequently</strong> — seedlings need to grow strong roots</li>' +
+        '<li><strong>Questions?</strong> Text Todd directly at (724) 900-9498</li>' +
+      '</ul>' +
+    '</div>' +
+    '<div style="background:#1f2937;color:#9ca3af;padding:16px 24px;border-radius:0 0 12px 12px;text-align:center;font-size:12px;">' +
+      '<p style="margin:0;"><strong style="color:white;">Tiny Seed Farm</strong></p>' +
+      '<p style="margin:4px 0 0;">Rochester, PA</p>' +
+      '<p style="margin:4px 0 0;">Growing good things for good people 🌱</p>' +
+    '</div>' +
+  '</body></html>';
+
+  // Send the email
+  try {
+    MailApp.sendEmail({
+      to: email,
+      subject: subject,
+      htmlBody: htmlBody
+    });
+  } catch (mailErr) {
+    Logger.log('sendSeedlingOrderConfirmation mail error: ' + mailErr.toString());
+    return { success: false, error: 'Failed to send email: ' + mailErr.toString() };
+  }
+
+  // Log to SEEDLING_EMAIL_LOG sheet
+  try {
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var logSheet = ss.getSheetByName('SEEDLING_EMAIL_LOG');
+    if (!logSheet) {
+      logSheet = ss.insertSheet('SEEDLING_EMAIL_LOG');
+      logSheet.appendRow(['Timestamp', 'Email', 'Order_ID', 'Type', 'Status']);
+      logSheet.getRange(1, 1, 1, 5).setFontWeight('bold');
+      logSheet.setFrozenRows(1);
+    }
+    logSheet.appendRow([
+      new Date().toISOString(),
+      email,
+      orderId,
+      'order_confirmation',
+      'sent'
+    ]);
+  } catch (logErr) {
+    Logger.log('sendSeedlingOrderConfirmation log error: ' + logErr.toString());
+    // Don't fail the whole operation if logging fails
+  }
+
+  return { success: true, message: 'Confirmation email sent' };
 }
 
 /**
