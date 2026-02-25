@@ -3645,6 +3645,30 @@ function syncTasksFromPlanning() {
 }
 
 /**
+ * Set up a daily trigger to sync tasks from PLANNING_2026 → TASKS_2026.
+ * Run once to install; clears any existing trigger first.
+ * Ensures overdue GH sowings and other planning tasks always appear on the dashboard.
+ */
+function setupDailyTaskSync() {
+  // Remove existing triggers for syncTasksFromPlanning
+  ScriptApp.getProjectTriggers().forEach(function(trigger) {
+    if (trigger.getHandlerFunction() === 'syncTasksFromPlanning') {
+      ScriptApp.deleteTrigger(trigger);
+    }
+  });
+
+  // Create daily trigger at 5 AM
+  ScriptApp.newTrigger('syncTasksFromPlanning')
+    .timeBased()
+    .everyDays(1)
+    .atHour(5)
+    .create();
+
+  Logger.log('[setupDailyTaskSync] Installed daily trigger for syncTasksFromPlanning at 5 AM');
+  return { success: true, message: 'Daily task sync trigger installed (5 AM daily)' };
+}
+
+/**
  * Reset TASKS_2026 - clears all tasks and regenerates from planning
  * Use with caution!
  */
