@@ -70,17 +70,16 @@
             align-items: center;
             justify-content: center;
         }
-        .hero-logo { width: 140px; margin-bottom: 20px; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.3)); }
+        .hero-logo { display: none; }
         .page-logo {
-            position: absolute;
-            top: 20px;
-            left: 24px;
-            z-index: 10;
-            width: 220px;
-            filter: drop-shadow(0 2px 12px rgba(0,0,0,0.4));
+            width: 420px;
+            max-width: 80vw;
+            margin-bottom: 28px;
+            filter: drop-shadow(0 4px 20px rgba(0,0,0,0.5));
+            mix-blend-mode: lighten;
         }
         @media (max-width: 768px) {
-            .page-logo { width: 160px; top: 12px; left: 12px; }
+            .page-logo { width: 320px; margin-bottom: 20px; }
         }
         .hero-content { position: relative; z-index: 1; max-width: 800px; margin: 0 auto; }
         .hero-badge {
@@ -374,8 +373,8 @@
 <!-- HERO -->
 <!-- ═══════════════════════════════════════════════════════════ -->
 <header class="hero" role="banner">
-    <img src="images/tiny-seed-farm-logo.png" alt="Tiny Seed Farm — Estd 2017" class="page-logo">
     <div class="hero-content">
+        <img src="images/tiny-seed-farm-logo.png" alt="Tiny Seed Farm — Estd 2017" class="page-logo">
         <img src="assets/logo.png" alt="Tiny Seed Farm" class="hero-logo">
         <div class="hero-badge"><i class="fas fa-seedling"></i> 2026 PRESALE NOW OPEN</div>
         <h1>Pittsburgh's Favorite <span>Seedlings</span> Are Back</h1>
