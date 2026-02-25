@@ -38,6 +38,26 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-02-25 — Final Seedling Overlay Design: Full Revert + 240px Overlay
+
+**Role:** UX_Design_Claude
+
+### Files Modified
+- `web_app/seedling-presale-2026.html` — Full revert to original page (pre-seedling state from commit 0ace60e), then applied:
+  1. **240px seedling overlay**: 8 watercolor seedlings positioned absolutely at bottom of hero, spanning across wave divider into pre-order section. 3x bigger than previous attempts per owner direction.
+  2. **Watercolor tab icons**: Category filter tabs use 24px watercolor thumbnails
+  3. **Card fallback illustrations**: Varieties without photos show category-matched watercolors
+  4. **UX fixes**: Input font 1rem (iOS zoom fix), safe-area padding on sticky cart, alert()→showToast(), year corrected to 2017
+
+### Reason
+Owner rejected 3 previous seedling designs (sticker overload, dancing both-sides, simple even row). Final direction: revert page completely, make seedlings 3x bigger, overlay them across the hero photo bottom and pre-order section top. Responsive breakpoints hide extras on mobile.
+
+### Duplicate Check
+- [x] No new files created — modified existing page only
+- [x] No duplicates
+
+---
+
 ## 2026-02-25 — Integrate Watercolor Seedling Illustrations into Presale Page
 
 **Role:** UX_Design_Claude
