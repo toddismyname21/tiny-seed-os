@@ -1603,23 +1603,26 @@
         /* Stats Grid */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 1.5rem;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 1rem;
             margin-bottom: 2rem;
         }
 
         @media (max-width: 1200px) {
+            .stats-grid { grid-template-columns: repeat(3, 1fr); }
+        }
+        @media (max-width: 768px) {
             .stats-grid { grid-template-columns: repeat(2, 1fr); }
         }
 
         .stat-card {
             background: var(--bg-card);
             border-radius: 16px;
-            padding: 1.5rem;
+            padding: 1rem;
             border: 1px solid var(--border);
             display: flex;
             align-items: center;
-            gap: 1rem;
+            gap: 0.75rem;
             transition: all 0.3s;
         }
 
@@ -1835,16 +1838,6 @@
             font-weight: 700;
         }
 
-        /* Pulse animation when overdue tasks exist and section is collapsed */
-        .overdue-tasks.visible:not(.expanded) .overdue-tasks-header {
-            animation: overdueGlow 2s ease-in-out 3;
-            border-left: 3px solid var(--danger);
-        }
-        @keyframes overdueGlow {
-            0%, 100% { box-shadow: none; }
-            50% { box-shadow: 0 0 8px rgba(239, 68, 68, 0.35); }
-        }
-
         .overdue-chevron {
             color: var(--danger);
             font-size: 0.9rem;
@@ -1854,6 +1847,34 @@
         .overdue-tasks.expanded .overdue-chevron {
             transform: rotate(180deg);
         }
+
+        /* Audit Fix 8: Urgent pulse animation for collapsed overdue section */
+        @keyframes urgentPulse {
+            0%, 100% { border-left-color: #ef4444; }
+            50% { border-left-color: #f59e0b; }
+        }
+        .overdue-tasks-header.has-tasks {
+            border-left: 4px solid #ef4444;
+            animation: urgentPulse 2s ease-in-out infinite;
+        }
+        .overdue-tasks.expanded .overdue-tasks-header.has-tasks {
+            animation: none;
+            border-left: 4px solid #ef4444;
+        }
+
+        /* Audit Fix 5: Days-overdue badge colors for Top Priority rows */
+        .days-overdue-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            line-height: 1.4;
+            white-space: nowrap;
+        }
+        .days-overdue-badge.amber { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+        .days-overdue-badge.red { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+        .days-overdue-badge.deep-red { background: rgba(185, 28, 28, 0.25); color: #dc2626; }
 
         .overdue-body {
             display: none;
@@ -3521,9 +3542,12 @@
         }
 
         @media (max-width: 768px) {
-            .stats-grid { grid-template-columns: 1fr; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
             .nursery-item { grid-template-columns: 1fr; gap: 0.5rem; }
             .nursery-header { display: none; }
+        }
+        @media (max-width: 480px) {
+            .stats-grid { grid-template-columns: 1fr; }
         }
 
         /* Morning Brief Styles */
@@ -5064,41 +5088,59 @@
         </div>
 
         <div class="content-area">
-            <!-- Stats Grid -->
+            <!-- Consolidated Stats Grid (6 tiles) -->
             <div class="stats-grid">
-                <a href="planning.html" class="stat-card" style="text-decoration: none; color: inherit; cursor: pointer;">
-                    <div class="stat-icon green">
-                        <i class="fas fa-seedling"></i>
+                <a href="#todaysTasks" class="stat-card" style="text-decoration: none; color: inherit; cursor: pointer;" onclick="document.getElementById('todaysTasks').scrollIntoView({behavior:'smooth'}); return false;">
+                    <div class="stat-icon orange" style="width:44px;height:44px;border-radius:12px;font-size:1.2rem;">
+                        <i class="fas fa-clipboard-check"></i>
                     </div>
                     <div class="stat-info">
-                        <div class="stat-value" id="statActive">--</div>
-                        <div class="stat-label">Plantings</div>
+                        <div class="stat-value" id="statTodaysTasks" style="font-size:1.6rem;">--</div>
+                        <div class="stat-label">Today's Tasks</div>
+                    </div>
+                </a>
+                <a href="#overdueTasks" class="stat-card" style="text-decoration: none; color: inherit; cursor: pointer;" onclick="scrollToOverdue(); return false;">
+                    <div class="stat-icon" style="background:rgba(239,68,68,0.2);color:#ef4444;width:44px;height:44px;border-radius:12px;font-size:1.2rem;">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value" id="statOverdue" style="font-size:1.6rem;color:#22c55e;">0</div>
+                        <div class="stat-label">Overdue</div>
                     </div>
                 </a>
                 <a href="web_app/task-assignment.html" class="stat-card" style="text-decoration: none; color: inherit; cursor: pointer;">
-                    <div class="stat-icon orange">
+                    <div class="stat-icon orange" style="width:44px;height:44px;border-radius:12px;font-size:1.2rem;">
                         <i class="fas fa-tasks"></i>
                     </div>
                     <div class="stat-info">
-                        <div class="stat-value" id="statTasks">--</div>
-                        <div class="stat-label">Tasks This Week</div>
+                        <div class="stat-value" id="statTasks" style="font-size:1.6rem;">--</div>
+                        <div class="stat-label">This Week</div>
+                    </div>
+                </a>
+                <a href="planning.html" class="stat-card" style="text-decoration: none; color: inherit; cursor: pointer;">
+                    <div class="stat-icon green" style="width:44px;height:44px;border-radius:12px;font-size:1.2rem;">
+                        <i class="fas fa-seedling"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value" id="statActive" style="font-size:1.6rem;">--</div>
+                        <div class="stat-label">Plantings</div>
                     </div>
                 </a>
                 <a href="web_app/field-planner.html#harvest" class="stat-card" style="text-decoration: none; color: inherit; cursor: pointer;">
-                    <div class="stat-icon blue">
+                    <div class="stat-icon blue" style="width:44px;height:44px;border-radius:12px;font-size:1.2rem;">
                         <i class="fas fa-basket-shopping"></i>
                     </div>
                     <div class="stat-info">
-                        <div class="stat-value" id="statHarvest">--</div>
+                        <div class="stat-value" id="statHarvest" style="font-size:1.6rem;">--</div>
                         <div class="stat-label">Harvest Ready</div>
                     </div>
                 </a>
                 <a href="web_app/field-planner.html" class="stat-card" style="text-decoration: none; color: inherit; cursor: pointer;">
-                    <div class="stat-icon purple">
+                    <div class="stat-icon purple" style="width:44px;height:44px;border-radius:12px;font-size:1.2rem;">
                         <i class="fas fa-chart-pie"></i>
                     </div>
                     <div class="stat-info">
-                        <div class="stat-value" id="statUtilization">--%</div>
+                        <div class="stat-value" id="statUtilization" style="font-size:1.6rem;">--%</div>
                         <div class="stat-label">Bed Utilization</div>
                     </div>
                 </a>
@@ -5108,15 +5150,17 @@
             <div id="pendingChefsSection" data-role="Admin" style="display:none;">
             </div>
 
-            <!-- Team Actions — compact labelled container -->
-            <div class="invite-section" data-role="Admin" style="margin:0;display:flex;align-items:center;gap:10px;padding:6px 0;">
-                <span style="font-size:0.78rem;color:var(--text-secondary,#6b7280);font-weight:600;white-space:nowrap;">Team:</span>
-                <button class="invite-btn employee" onclick="openInviteEmployee()" style="padding:6px 14px; font-size:0.78rem; border-radius:6px;">
-                    <i class="fas fa-hard-hat"></i> Invite Employee
-                </button>
-                <button class="invite-btn chef" onclick="openInviteChef()" style="padding:6px 14px; font-size:0.78rem; border-radius:6px;">
-                    <i class="fas fa-utensils"></i> Invite Chef
-                </button>
+            <!-- Invite Team Members — compact inline -->
+            <div class="invite-section" data-role="Admin" style="margin:0;">
+                <div style="display:flex; align-items:center; gap:8px; justify-content:flex-end; padding:4px 0;">
+                    <span style="font-size:0.75rem; color:var(--text-secondary,#6b7280); margin-right:auto;">Team</span>
+                    <button class="invite-btn employee" onclick="openInviteEmployee()" style="padding:6px 14px; font-size:0.78rem; border-radius:6px;">
+                        <i class="fas fa-hard-hat"></i> Invite Employee
+                    </button>
+                    <button class="invite-btn chef" onclick="openInviteChef()" style="padding:6px 14px; font-size:0.78rem; border-radius:6px;">
+                        <i class="fas fa-utensils"></i> Invite Chef
+                    </button>
+                </div>
             </div>
 
             <!-- Weekly Efficiency Summary Widget -->
@@ -5153,11 +5197,11 @@
 
             <!-- Overdue Tasks - Warning Section -->
             <div class="overdue-tasks" id="overdueTasks">
-                <div class="overdue-tasks-header" onclick="toggleOverdueDropdown()" role="button" tabindex="0" aria-expanded="false" aria-controls="overdueBody" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleOverdueDropdown();}">
+                <div class="overdue-tasks-header" id="overdueTasksHeader" role="button" tabindex="0" aria-expanded="false" aria-controls="overdueBody" onclick="toggleOverdueDropdown()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleOverdueDropdown();}">
                     <h3><i class="fas fa-exclamation-triangle"></i> Overdue Tasks</h3>
                     <div class="overdue-header-right">
                         <span class="overdue-count-badge" id="overdueCountBadge">0 tasks</span>
-                        <i class="fas fa-chevron-down overdue-chevron" id="overdueChevron"></i>
+                        <i class="fas fa-chevron-down overdue-chevron" id="overdueChevron" aria-hidden="true"></i>
                     </div>
                 </div>
                 <div class="overdue-body" id="overdueBody">
@@ -6850,27 +6894,18 @@
                             description += (description ? ' · ' : '') + locationText;
                         }
 
-                        // Urgency label — ALWAYS show days overdue if available
+                        // Urgency label in plain language
                         const daysOverdue = task.daysOverdue || 0;
-                        let urgencyLabel, urgencyColor;
-                        if (daysOverdue > 0) {
-                            urgencyLabel = daysOverdue + 'd overdue';
-                            urgencyColor = daysOverdue >= 7 ? '#dc2626' : daysOverdue >= 3 ? '#ef4444' : '#f59e0b';
-                        } else if (task.urgency === 'MUST DO') {
-                            urgencyLabel = 'Must do today';
-                            urgencyColor = '#ef4444';
-                        } else if (task.urgency === 'SHOULD DO') {
-                            urgencyLabel = 'Should do today';
-                            urgencyColor = '#f59e0b';
-                        } else {
-                            urgencyLabel = 'Scheduled';
-                            urgencyColor = '#22c55e';
-                        }
+                        const urgencyLabel = task.overdue && daysOverdue > 0 ? daysOverdue + 'd overdue' :
+                                             task.urgency === 'MUST DO' ? 'Must do today' :
+                                             task.urgency === 'SHOULD DO' ? 'Should do today' : 'Scheduled';
+                        const urgencyColor = task.urgency === 'MUST DO' || task.overdue ? '#ef4444' : task.urgency === 'SHOULD DO' ? '#f59e0b' : '#22c55e';
 
-                        // Add batch ID to description when multiple tasks have same name (differentiation)
-                        const batchId = task.batchId || task.batch_id || '';
-                        if (batchId && !description.includes(batchId)) {
-                            description += (description ? ' · ' : '') + batchId;
+                        // Audit Fix 5: Days-overdue badge with color coding
+                        let overdueBadgeHtml = '';
+                        if (task.overdue && daysOverdue > 0) {
+                            const badgeClass = daysOverdue <= 3 ? 'amber' : daysOverdue <= 7 ? 'red' : 'deep-red';
+                            overdueBadgeHtml = `<span class="days-overdue-badge ${badgeClass}">${daysOverdue}d late</span>`;
                         }
 
                         return `
@@ -6882,6 +6917,7 @@
                                 ${description ? `<div class="task-meta">${description}</div>` : ''}
                             </div>
                             <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+                                ${overdueBadgeHtml}
                                 <div class="task-meta" style="color: ${urgencyColor}; font-weight: 600;">${urgencyLabel}</div>
                                 <i class="fas fa-chevron-right" style="color: #666; font-size: 0.8rem;"></i>
                             </div>
@@ -6962,51 +6998,21 @@
 
                 recsContainer.innerHTML = recsHtml;
 
-                // Add stats footer - widgets are only clickable when count > 0
-                const totalTasks = taskSection.count || allTasks.length;
-                // Use global overdueTasks array if already loaded (most accurate), else fallback to API data
-                const actualOverdueCount = (typeof overdueTasks !== 'undefined' && overdueTasks.length > 0) ? overdueTasks.length : (overdueCount || apiData.must_do_today?.length || 0);
-
-                // Helper to create stat item - only clickable if count > 0
-                const createStatItem = (count, label, href, color = 'inherit') => {
-                    if (count > 0) {
-                        return `<a href="${href}" class="stat-item stat-link" style="text-decoration: none; color: inherit; cursor: pointer;" title="Click to view ${label.toLowerCase()}">
-                            <div class="stat-value" style="color: ${color}">${count}</div>
-                            <div class="stat-label">${label}</div>
-                        </a>`;
-                    } else {
-                        return `<div class="stat-item" style="cursor: default;">
-                            <div class="stat-value" style="color: #22c55e">${count}</div>
-                            <div class="stat-label">${label}</div>
-                        </div>`;
-                    }
-                };
-
-                const statsHtml = `
-                    <div class="brief-stats">
-                        ${createStatItem(totalTasks, 'Tasks', 'web_app/task-assignment.html')}
-                        ${actualOverdueCount > 0 ?
-                            `<a class="stat-item stat-link" style="text-decoration: none; color: inherit; cursor: pointer;" title="Click to see overdue tasks" onclick="scrollToOverdue(); return false;" href="#">
-                                <div class="stat-value" style="color: #ef4444">${actualOverdueCount}</div>
-                                <div class="stat-label">Overdue</div>
-                            </a>` :
-                            `<div class="stat-item" style="cursor: default;">
-                                <div class="stat-value" style="color: #22c55e">0</div>
-                                <div class="stat-label">Overdue</div>
-                            </div>`
-                        }
-                        ${createStatItem(totalTasks > 0 ? allTasks.filter(t => !t.completed && !t.overdue).length : 0, 'Due Today', 'web_app/task-assignment.html', '#3b82f6')}
-                    </div>
-                `;
-                // Remove existing stats if any before adding new ones
+                // Audit Fix 4: Instead of a separate brief-stats row, sync to the consolidated stats-grid.
+                // Remove any previously-rendered brief-stats row (legacy cleanup)
                 const existingStats = briefSection.querySelector('.brief-stats');
                 if (existingStats) existingStats.remove();
-                briefSection.insertAdjacentHTML('beforeend', statsHtml);
 
-                // If loadTodaysTasks already finished, overwrite with real overdue count
+                // Sync the "Today's Tasks" tile in the consolidated stats-grid
+                const totalTasks = taskSection.count || allTasks.length;
+                const todaysTasksEl = document.getElementById('statTodaysTasks');
+                if (todaysTasksEl) todaysTasksEl.textContent = totalTasks;
+
+                // Sync overdue count into consolidated stats-grid
                 if (typeof syncBriefOverdueCount === 'function') {
                     syncBriefOverdueCount();
                 }
+                syncStatsGridOverdue();
 
             } catch (error) {
                 console.error('Morning Brief error:', error);
@@ -7630,6 +7636,107 @@
                 console.log('Could not fetch getOverdueTasks:', e.message);
             }
 
+            // CRITICAL FIX: Merge overdue planning tasks from allPlantings
+            // that aren't already represented in the unified/overdue API results.
+            // allPlantings is loaded before loadTodaysTasks is called (see loadAllData flow).
+            if (allPlantings && allPlantings.length > 0) {
+                const today_merge = new Date();
+                today_merge.setHours(0, 0, 0, 0);
+                const existingBatchIds = new Set(
+                    todaysTasks.concat(overdueTasks).map(t => t.batchId).filter(Boolean)
+                );
+                // Also build a set of existing task IDs to avoid duplicates
+                const existingTaskIds = new Set(
+                    todaysTasks.concat(overdueTasks).map(t => t.id).filter(Boolean)
+                );
+
+                allPlantings.forEach(p => {
+                    // GH Sow overdue
+                    const ghSow = parseDate(p.Plan_GH_Sow);
+                    if (ghSow && !p.Act_GH_Sow && ghSow < today_merge) {
+                        const taskId = `${p.Batch_ID}-ghSow`;
+                        if (!existingTaskIds.has(taskId) && !existingBatchIds.has(p.Batch_ID)) {
+                            const daysOverdue = Math.floor((today_merge - ghSow) / (1000 * 60 * 60 * 24));
+                            if (daysOverdue <= 30) {
+                                overdueTasks.push({
+                                    id: taskId,
+                                    batchId: p.Batch_ID,
+                                    type: 'ghSow',
+                                    crop: p.Crop || '',
+                                    variety: p.Variety || '',
+                                    quantity: p.Trays_Needed ? `${p.Trays_Needed} trays` : (p.Plants_Needed ? `${p.Plants_Needed} plants` : ''),
+                                    location: p.GH_Location || 'Greenhouse',
+                                    completed: false,
+                                    date: ghSow,
+                                    daysOverdue: daysOverdue,
+                                    priorityScore: 80 + Math.min(daysOverdue, 20),
+                                    atRisk: daysOverdue > 7,
+                                    atRiskReason: daysOverdue + ' days overdue',
+                                    source: 'planning'
+                                });
+                            }
+                        }
+                    }
+
+                    // Transplant overdue
+                    const transplant = parseDate(p.Plan_Transplant);
+                    if (transplant && !p.Act_Transplant && transplant < today_merge) {
+                        const taskId = `${p.Batch_ID}-transplant`;
+                        if (!existingTaskIds.has(taskId) && !existingBatchIds.has(p.Batch_ID)) {
+                            const daysOverdue = Math.floor((today_merge - transplant) / (1000 * 60 * 60 * 24));
+                            if (daysOverdue <= 30) {
+                                overdueTasks.push({
+                                    id: taskId,
+                                    batchId: p.Batch_ID,
+                                    type: 'transplant',
+                                    crop: p.Crop || '',
+                                    variety: p.Variety || '',
+                                    quantity: p.Plants_Needed ? `${p.Plants_Needed} plants` : '',
+                                    location: p.Target_Bed_ID || 'Field',
+                                    completed: false,
+                                    date: transplant,
+                                    daysOverdue: daysOverdue,
+                                    priorityScore: 80 + Math.min(daysOverdue, 20),
+                                    atRisk: daysOverdue > 7,
+                                    atRiskReason: daysOverdue + ' days overdue',
+                                    source: 'planning'
+                                });
+                            }
+                        }
+                    }
+
+                    // Direct Seed / Field Sow overdue
+                    const fieldSow = parseDate(p.Plan_Field_Sow);
+                    if (fieldSow && !p.Act_Field_Sow && fieldSow < today_merge) {
+                        const taskId = `${p.Batch_ID}-directSeed`;
+                        if (!existingTaskIds.has(taskId) && !existingBatchIds.has(p.Batch_ID)) {
+                            const daysOverdue = Math.floor((today_merge - fieldSow) / (1000 * 60 * 60 * 24));
+                            if (daysOverdue <= 30) {
+                                overdueTasks.push({
+                                    id: taskId,
+                                    batchId: p.Batch_ID,
+                                    type: 'directSeed',
+                                    crop: p.Crop || '',
+                                    variety: p.Variety || '',
+                                    quantity: p.Feet_Used ? `${p.Feet_Used} ft` : '',
+                                    location: p.Target_Bed_ID || 'Field',
+                                    completed: false,
+                                    date: fieldSow,
+                                    daysOverdue: daysOverdue,
+                                    priorityScore: 80 + Math.min(daysOverdue, 20),
+                                    atRisk: daysOverdue > 7,
+                                    atRiskReason: daysOverdue + ' days overdue',
+                                    source: 'planning'
+                                });
+                            }
+                        }
+                    }
+                });
+
+                // Re-sort after merging planning data
+                overdueTasks.sort((a, b) => b.daysOverdue - a.daysOverdue);
+            }
+
             // Render both sections
             renderOverdueTasks();
             renderTodaysTasks();
@@ -7747,10 +7854,10 @@
         // OVERDUE TASKS
         // ========================================
 
-        // Keeps Morning Brief stat card in sync with actual overdue count
+        // Keeps Morning Brief stat card in sync with actual overdue count (legacy brief-stats row)
         function syncBriefOverdueCount() {
             var count = overdueTasks.length;
-            // Find the Overdue stat by its label text
+            // Find the Overdue stat by its label text in legacy brief-stats (if still present)
             var allLabels = document.querySelectorAll('.brief-stats .stat-label');
             for (var i = 0; i < allLabels.length; i++) {
                 if (allLabels[i].textContent.trim() === 'Overdue') {
@@ -7764,28 +7871,52 @@
             }
         }
 
+        // Audit Fix 4: Sync overdue count into consolidated stats-grid tile
+        function syncStatsGridOverdue() {
+            var count = overdueTasks.length;
+            var el = document.getElementById('statOverdue');
+            if (el) {
+                el.textContent = count;
+                el.style.color = count > 0 ? '#ef4444' : '#22c55e';
+            }
+        }
+
+        // Audit Fix 4: Sync today's tasks count into consolidated stats-grid tile
+        function syncStatsGridTodaysTasks() {
+            var count = todaysTasks.filter(function(t){ return !t.completed; }).length;
+            var el = document.getElementById('statTodaysTasks');
+            if (el) el.textContent = count;
+        }
+
         function toggleOverdueDropdown() {
             const container = document.getElementById('overdueTasks');
             container.classList.toggle('expanded');
-            const isExpanded = container.classList.contains('expanded');
-            const header = container.querySelector('.overdue-tasks-header');
-            if (header) header.setAttribute('aria-expanded', String(isExpanded));
+            // Audit Fix 15: Toggle aria-expanded for accessibility
+            const header = document.getElementById('overdueTasksHeader');
+            if (header) {
+                header.setAttribute('aria-expanded', container.classList.contains('expanded'));
+            }
         }
 
         function renderOverdueTasks() {
             const container = document.getElementById('overdueTasks');
             const listContainer = document.getElementById('overdueList');
             const countBadge = document.getElementById('overdueCountBadge');
+            const headerEl = document.getElementById('overdueTasksHeader');
 
-            // Always sync the Morning Brief stat card
+            // Always sync the Morning Brief stat card and consolidated stats-grid
             syncBriefOverdueCount();
+            syncStatsGridOverdue();
 
             if (overdueTasks.length === 0) {
                 container.classList.remove('visible');
+                if (headerEl) headerEl.classList.remove('has-tasks');
                 return;
             }
 
             container.classList.add('visible');
+            // Audit Fix 8: Add has-tasks class for urgent pulse animation
+            if (headerEl) headerEl.classList.add('has-tasks');
             countBadge.textContent = `${overdueTasks.length} task${overdueTasks.length !== 1 ? 's' : ''}`;
 
             listContainer.innerHTML = overdueTasks.map(task => {
@@ -7804,10 +7935,10 @@
                 const daysText = task.daysOverdue === 1 ? '1 day' : `${task.daysOverdue} days`;
                 const taskIdForComplete = task.taskId || task.id;
 
-                // Build a clear task name with batch differentiation
-                const taskDisplayName = task.taskName || (task.crop + (task.variety ? ' — ' + task.variety : ''));
-                const locationText = task.location && task.location !== 'Farm' && task.location !== 'Unassigned' ? ' in ' + task.location : '';
-                const batchSuffix = task.batchId ? ' · ' + task.batchId : '';
+                // Audit Fix 1: Build task name with variety and batch ID for differentiation
+                const taskDisplayName = task.taskName || (task.crop + (task.variety ? ' \u00b7 ' + task.variety : ''));
+                const locationText = task.location && task.location !== 'Farm' ? ' in ' + task.location : '';
+                const batchSuffix = task.batchId ? ` <span style="color:var(--text-secondary);font-size:0.7rem;">[${task.batchId}]</span>` : '';
 
                 return `
                     <div class="overdue-item ${isSelected ? 'selected' : ''}"
@@ -7818,8 +7949,8 @@
                             <i class="fas fa-check"></i>
                         </div>
                         <div class="overdue-info">
-                            <div class="overdue-crop">${taskDisplayName}</div>
-                            <div class="overdue-details">${typeLabel}${locationText}${batchSuffix}${task.quantity ? ' — ' + task.quantity : ''}</div>
+                            <div class="overdue-crop">${taskDisplayName}${batchSuffix}</div>
+                            <div class="overdue-details">${typeLabel}${locationText}${task.quantity ? ' \u2014 ' + task.quantity : ''}</div>
                         </div>
                         <div class="overdue-days-badge">${daysText} overdue</div>
                         <div class="overdue-actions">
@@ -8341,6 +8472,9 @@
             const actionBar = document.getElementById('taskActionBar');
             const incompleteTasks = todaysTasks.filter(t => !t.completed);
 
+            // Audit Fix 4: Sync today's tasks count into consolidated stats-grid
+            syncStatsGridTodaysTasks();
+
             // Show/hide action bar based on tasks
             if (actionBar) {
                 actionBar.style.display = incompleteTasks.length > 0 ? 'flex' : 'none';
@@ -8433,11 +8567,11 @@
             const isSelected = selectedTasks.has(task.id);
             const taskIdForComplete = task.taskId || task.id;
 
-            // Build clear task description with batch ID for differentiation
-            const cropName = task.crop + (task.variety ? ' — ' + task.variety : '');
-            const locationText = task.location && task.location !== 'Farm' && task.location !== 'Unassigned' ? task.location : '';
+            // Audit Fix 1: Build task description with variety and batch ID for differentiation
+            const cropName = task.crop + (task.variety ? ' \u00b7 ' + task.variety : '');
+            const locationText = task.location && task.location !== 'Farm' ? task.location : '';
             const quantityText = task.quantity || '';
-            const batchLabel = task.batchId ? task.batchId : '';
+            const batchLabel = task.batchId ? `<span style="color:var(--text-secondary);font-size:0.7rem;margin-left:6px;">[${task.batchId}]</span>` : '';
 
             return `
                 <div class="task-item with-priority ${isSelected ? 'selected' : ''} ${task.completed ? 'completed' : ''}"
@@ -8450,13 +8584,11 @@
                         <i class="fas fa-check"></i>
                     </div>
                     <div class="task-info">
-                        <div class="task-crop">${cropName}</div>
+                        <div class="task-crop">${cropName}${batchLabel}</div>
                         <div class="task-details">
                             ${locationText ? `<i class="fas fa-map-marker-alt"></i> ${locationText}` : ''}
-                            ${batchLabel ? `<span style="${locationText ? 'margin-left: 8px;' : ''}"><i class="fas fa-tag" style="opacity:0.5;"></i> ${batchLabel}</span>` : ''}
-                            ${quantityText ? `<span style="margin-left: 8px;"><i class="fas fa-layer-group"></i> ${quantityText}</span>` : ''}
+                            ${quantityText ? `<span style="${locationText ? 'margin-left: 8px;' : ''}"><i class="fas fa-layer-group"></i> ${quantityText}</span>` : ''}
                             ${task.assignee ? `<span style="margin-left: 8px;"><i class="fas fa-user"></i> ${task.assignee}</span>` : ''}
-                            ${task.daysOverdue > 0 ? `<span style="margin-left: 8px; color: ${task.daysOverdue >= 7 ? '#dc2626' : '#ef4444'}; font-weight: 600;">${task.daysOverdue}d overdue</span>` : ''}
                         </div>
                     </div>
                     <button class="task-complete-btn ${task.completed ? 'done' : ''}"
@@ -8955,15 +9087,14 @@
             const onTargetEl = document.getElementById('efficiencyOnTarget');
             const overTimeEl = document.getElementById('efficiencyOverTime');
 
-            // Hide widget if no data
+            // Audit Fix 10: Collapse empty state to single compact line
             const hasData = data.tasksCompleted > 0 || data.avgEfficiency > 0;
             if (!hasData && widget) {
                 widget.innerHTML = `
-                    <div style="display:flex;align-items:center;gap:8px;padding:0.75rem 1rem;color:var(--text-secondary);font-size:0.85rem;">
+                    <div style="padding:0.75rem 1rem; display:flex; align-items:center; gap:8px; color:var(--text-secondary); font-size:0.85rem;">
                         <i class="fas fa-chart-line" style="opacity:0.5;"></i>
-                        <span>Weekly Efficiency — Complete tasks to track performance</span>
+                        Weekly Efficiency &mdash; Complete tasks to track performance
                     </div>`;
-                widget.style.padding = '0';
                 return;
             }
 
@@ -9748,10 +9879,17 @@
         function checkWeatherWarnings(temp, wind, code) {
             const warnings = [];
 
+            // Audit Fix 3: Consolidate frost warning — include current temp AND tonight's forecast low
+            const tonightLow = (forecastData && forecastData.temperature_2m_min) ? Math.round(forecastData.temperature_2m_min[0]) : null;
             if (temp <= 32) {
-                warnings.push({ type: 'weather', icon: 'fa-snowflake', text: `FREEZING: ${temp}°F - Protect crops immediately!` });
+                const lowPart = (tonightLow !== null && tonightLow !== temp) ? ` (tonight's low: ${tonightLow}°F)` : '';
+                warnings.push({ type: 'weather', icon: 'fa-snowflake', text: `FREEZING: ${temp}°F${lowPart} - Protect crops immediately!` });
             } else if (temp <= 36) {
-                warnings.push({ type: 'weather', icon: 'fa-snowflake', text: `Frost Risk: ${temp}°F - Cover tender plants tonight` });
+                const lowPart = (tonightLow !== null && tonightLow <= 32) ? ` — tonight's low ${tonightLow}°F (freeze likely)` : '';
+                warnings.push({ type: 'weather', icon: 'fa-snowflake', text: `Frost Risk: ${temp}°F${lowPart} - Cover tender plants tonight` });
+            } else if (tonightLow !== null && tonightLow <= 32) {
+                // Current temp above 36 but tonight will freeze
+                warnings.push({ type: 'weather', icon: 'fa-snowflake', text: `Currently ${temp}°F but tonight's low ${tonightLow}°F — freeze expected, cover crops before dark` });
             }
             if (temp >= 95) {
                 warnings.push({ type: 'weather', icon: 'fa-temperature-high', text: `Extreme Heat: ${temp}°F - Shade crops & water early!` });
@@ -9922,8 +10060,12 @@
         }
 
         function dismissAllWarnings() {
-            const today = new Date().toDateString();
+            // Audit Fix 6: Confirm before dismissing all alerts
             const allWarnings = [...(window.weatherWarnings || []), ...(window.taskWarnings || [])];
+            if (allWarnings.length > 0 && !confirm('Dismiss all ' + allWarnings.length + ' alert(s)? They won\'t reappear until tomorrow.')) {
+                return;
+            }
+            const today = new Date().toDateString();
             const dismissed = allWarnings.map(w => today + ':' + (w.text || '').substring(0, 50));
             localStorage.setItem('dismissedWarnings', JSON.stringify(dismissed));
             document.getElementById('warningsBar').classList.remove('visible');
@@ -10468,7 +10610,7 @@
                         filteredPlantings = [...allPlantings];
                 }
 
-                renderView();
+                renderPlantings();
             }
         }
 
