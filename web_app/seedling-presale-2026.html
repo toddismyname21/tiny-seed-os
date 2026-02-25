@@ -232,39 +232,52 @@
         .hero-trust { margin-top: 24px; font-size: 0.8rem; color: rgba(255,255,255,0.5); }
 
         /* ═══════════════════════════════════════ */
-        /* SEEDLING PARADE — hero-to-content      */
+        /* SEEDLING DANCE — hero-to-content       */
+        /* Seedlings on both sides of the wave    */
         /* ═══════════════════════════════════════ */
-        .seedling-parade {
-            background: linear-gradient(180deg, var(--green-deep) 0%, var(--warm-cream) 100%);
-            padding: 20px 0 12px;
-            overflow: hidden;
+        .hero-transition {
+            position: relative;
             margin-top: -1px;
+            z-index: 2;
         }
-        .seedling-parade-track {
-            display: flex;
-            justify-content: center;
-            align-items: flex-end;
-            gap: clamp(16px, 4vw, 48px);
-            padding: 0 24px;
+        .hero-transition-wave {
+            background: linear-gradient(135deg, var(--green-deep) 0%, #1e3a1e 50%, #2d4a2d 100%);
+            line-height: 0;
         }
-        .parade-seedling {
-            height: clamp(64px, 10vw, 110px);
-            width: auto;
-            object-fit: contain;
-            filter: drop-shadow(0 3px 6px rgba(0,0,0,0.15));
-            transition: transform 0.3s ease;
+        .hero-transition-wave svg { display: block; width: 100%; height: 60px; }
+        .dancing-seedling {
+            position: absolute;
+            z-index: 3;
+            filter: drop-shadow(0 4px 12px rgba(0,0,0,0.2));
+            transition: transform 0.4s ease;
+            pointer-events: auto;
         }
-        .parade-seedling:nth-child(odd) { transform: rotate(-3deg); }
-        .parade-seedling:nth-child(even) { transform: rotate(3deg); }
-        .parade-seedling:hover {
-            transform: rotate(0deg) translateY(-6px) scale(1.08);
+        .dancing-seedling:hover {
+            transform: scale(1.12) !important;
+            filter: drop-shadow(0 6px 18px rgba(0,0,0,0.3));
         }
+        /* Left side seedlings */
+        .ds-1 { left: 2%; top: -40px; width: clamp(80px, 12vw, 140px); transform: rotate(-12deg); }
+        .ds-2 { left: 12%; top: -10px; width: clamp(60px, 9vw, 110px); transform: rotate(8deg); }
+        .ds-3 { left: 6%; top: 30px; width: clamp(50px, 8vw, 90px); transform: rotate(-5deg); }
+        /* Right side seedlings */
+        .ds-4 { right: 2%; top: -35px; width: clamp(75px, 11vw, 130px); transform: rotate(10deg); }
+        .ds-5 { right: 13%; top: -5px; width: clamp(55px, 8vw, 100px); transform: rotate(-15deg); }
+        .ds-6 { right: 5%; top: 35px; width: clamp(50px, 7vw, 85px); transform: rotate(6deg); }
+        /* Center accent (smaller, bridging) */
+        .ds-7 { left: 35%; top: -20px; width: clamp(45px, 6vw, 70px); transform: rotate(-8deg); }
+        .ds-8 { right: 35%; top: 10px; width: clamp(45px, 6vw, 70px); transform: rotate(12deg); }
         @media (max-width: 768px) {
-            .seedling-parade-track { gap: 8px; }
-            .parade-seedling:nth-child(n+7) { display: none; }
+            .ds-7, .ds-8 { display: none; }
+            .ds-1, .ds-4 { width: clamp(60px, 14vw, 100px); }
+            .ds-2, .ds-5 { width: clamp(45px, 10vw, 80px); }
+            .ds-3, .ds-6 { display: none; }
         }
         @media (max-width: 480px) {
-            .parade-seedling:nth-child(n+6) { display: none; }
+            .ds-1 { left: -2%; top: -25px; width: 70px; }
+            .ds-2 { left: 15%; top: 5px; width: 55px; }
+            .ds-4 { right: -2%; top: -25px; width: 65px; }
+            .ds-5 { right: 15%; top: 5px; width: 50px; }
         }
 
         /* ═══════════════════════════════════════ */
@@ -778,18 +791,25 @@
     </div>
 </header>
 
-<!-- Seedling parade: dancing watercolor illustrations at hero → content transition -->
-<div class="seedling-parade" aria-hidden="true">
-    <div class="seedling-parade-track">
-        <img src="images/seedlings/tomato-sm.png" alt="" class="parade-seedling">
-        <img src="images/seedlings/basil-sm.png" alt="" class="parade-seedling">
-        <img src="images/seedlings/pepper-sm.png" alt="" class="parade-seedling">
-        <img src="images/seedlings/chard-sm.png" alt="" class="parade-seedling">
-        <img src="images/seedlings/parsley-sm.png" alt="" class="parade-seedling">
-        <img src="images/seedlings/sage-sm.png" alt="" class="parade-seedling">
-        <img src="images/seedlings/broccoli-sm.png" alt="" class="parade-seedling">
-        <img src="images/seedlings/mint-sm.png" alt="" class="parade-seedling">
+<!-- SVG Wave Divider with dancing seedlings on both sides -->
+<div class="hero-transition" aria-hidden="true">
+    <div class="hero-transition-wave">
+        <svg viewBox="0 0 1440 60" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M0,0 C360,50 720,60 1080,30 C1260,15 1380,5 1440,0 L1440,60 L0,60 Z" fill="#ffffff"/>
+            <path d="M0,20 C240,55 600,60 960,35 C1200,18 1380,10 1440,15 L1440,60 L0,60 Z" fill="#ffffff" opacity="0.5"/>
+        </svg>
     </div>
+    <!-- Left side dancers -->
+    <img src="images/seedlings/tomato-card.png" alt="" class="dancing-seedling ds-1">
+    <img src="images/seedlings/basil-card.png" alt="" class="dancing-seedling ds-2">
+    <img src="images/seedlings/chard-card.png" alt="" class="dancing-seedling ds-3">
+    <!-- Right side dancers -->
+    <img src="images/seedlings/pepper-card.png" alt="" class="dancing-seedling ds-4">
+    <img src="images/seedlings/sage-card.png" alt="" class="dancing-seedling ds-5">
+    <img src="images/seedlings/mint-card.png" alt="" class="dancing-seedling ds-6">
+    <!-- Center bridge accents -->
+    <img src="images/seedlings/parsley-card.png" alt="" class="dancing-seedling ds-7">
+    <img src="images/seedlings/broccoli-card.png" alt="" class="dancing-seedling ds-8">
 </div>
 
 <main id="main-content" role="main">
