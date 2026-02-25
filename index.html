@@ -5283,6 +5283,9 @@
                         <button class="overdue-filter-btn" data-filter="fulfillment" onclick="filterOverdueCategory('fulfillment')">
                             <i class="fas fa-box"></i> Orders
                         </button>
+                        <button class="overdue-filter-btn" data-filter="admin" onclick="filterOverdueCategory('admin')">
+                            <i class="fas fa-clipboard-list"></i> Admin
+                        </button>
                     </div>
                     <div class="overdue-list" id="overdueList"></div>
                 </div>
@@ -8048,10 +8051,12 @@
         // Canonical category for a task type
         const GROWING_TYPES = new Set(['ghSow', 'transplant', 'directSeed', 'harvest', 'scout', 'irrigate', 'weed', 'spray', 'maintenance']);
         const FULFILLMENT_TYPES = new Set(['fulfillment', 'pick', 'pack', 'prep', 'delivery']);
+        const ADMIN_TYPES = new Set(['admin', 'task', 'reporting', 'compliance', 'hr', 'finance', 'planning']);
 
         function getTaskCategory(type) {
+            if (GROWING_TYPES.has(type)) return 'growing';
             if (FULFILLMENT_TYPES.has(type)) return 'fulfillment';
-            return 'growing'; // Default everything non-fulfillment to growing
+            return 'admin';
         }
 
         function renderOverdueTasks() {
@@ -8079,23 +8084,26 @@
                 ? overdueTasks
                 : overdueTasks.filter(t => getTaskCategory(t.type) === activeOverdueFilter);
 
-            // Update filter button counts
+            // Update filter button counts and hide empty categories
             const growingCount = overdueTasks.filter(t => getTaskCategory(t.type) === 'growing').length;
             const fulfillmentCount = overdueTasks.filter(t => getTaskCategory(t.type) === 'fulfillment').length;
+            const adminCount = overdueTasks.filter(t => getTaskCategory(t.type) === 'admin').length;
             const filterBar = document.getElementById('overdueFilterBar');
             if (filterBar) {
                 const btns = filterBar.querySelectorAll('.overdue-filter-btn');
                 btns.forEach(btn => {
                     const f = btn.dataset.filter;
                     if (f === 'all') btn.textContent = `All (${overdueTasks.length})`;
-                    else if (f === 'growing') btn.innerHTML = `<i class="fas fa-seedling"></i> Growing (${growingCount})`;
-                    else if (f === 'fulfillment') btn.innerHTML = `<i class="fas fa-box"></i> Orders (${fulfillmentCount})`;
+                    else if (f === 'growing') { btn.innerHTML = `<i class="fas fa-seedling"></i> Growing (${growingCount})`; btn.style.display = growingCount ? '' : 'none'; }
+                    else if (f === 'fulfillment') { btn.innerHTML = `<i class="fas fa-box"></i> Orders (${fulfillmentCount})`; btn.style.display = fulfillmentCount ? '' : 'none'; }
+                    else if (f === 'admin') { btn.innerHTML = `<i class="fas fa-clipboard-list"></i> Admin (${adminCount})`; btn.style.display = adminCount ? '' : 'none'; }
                 });
             }
 
             // Split filtered tasks into categories for grouped display
             const growingTasks = filteredTasks.filter(t => getTaskCategory(t.type) === 'growing');
             const fulfillmentTasks = filteredTasks.filter(t => getTaskCategory(t.type) === 'fulfillment');
+            const adminTasks = filteredTasks.filter(t => getTaskCategory(t.type) === 'admin');
 
             function renderTaskRow(task) {
                 const isSelected = selectedOverdueTasks.has(task.id);
@@ -8153,6 +8161,10 @@
                 if (fulfillmentTasks.length > 0) {
                     html += `<div class="overdue-category-header"><i class="fas fa-box"></i> Order Fulfillment <span class="overdue-cat-count">${fulfillmentTasks.length}</span></div>`;
                     html += fulfillmentTasks.map(renderTaskRow).join('');
+                }
+                if (adminTasks.length > 0) {
+                    html += `<div class="overdue-category-header"><i class="fas fa-clipboard-list"></i> Admin &amp; Operations <span class="overdue-cat-count">${adminTasks.length}</span></div>`;
+                    html += adminTasks.map(renderTaskRow).join('');
                 }
             } else {
                 // Single category selected — no subheaders needed
