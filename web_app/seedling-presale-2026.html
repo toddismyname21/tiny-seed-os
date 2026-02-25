@@ -262,27 +262,41 @@
             background: linear-gradient(180deg, rgba(22, 101, 52, 0.7), rgba(22, 101, 52, 0.85)),
                         url('https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=1600&q=80') center/cover no-repeat;
             color: #fff;
-            padding: 120px 24px 60px;
+            padding: 110px 24px 80px;
             text-align: center;
             position: relative;
-            overflow: hidden;
-            min-height: 85vh;
+            overflow: visible;
+            min-height: 65vh;
             display: flex;
             align-items: center;
             justify-content: center;
         }
+        /* Curved bottom edge — organic farm feel */
+        .hero::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: var(--warm-cream);
+            clip-path: ellipse(55% 100% at 50% 100%);
+            z-index: 1;
+        }
 
         @media (max-width: 768px) {
             .hero {
-                padding: 80px 20px 40px;
-                min-height: 75vh;
+                padding: 80px 20px 60px;
+                min-height: 60vh;
             }
+            .hero::after { height: 40px; }
         }
 
         @media (max-width: 480px) {
             .hero {
-                min-height: 90vh;
+                min-height: 75vh;
             }
+            .hero::after { height: 30px; }
         }
         .hero-content { position: relative; z-index: 1; max-width: 800px; margin: 0 auto; }
         .hero-badge {
@@ -381,7 +395,7 @@
         /* ═══════════════════════════════════════ */
         /* WHY PRE-ORDER */
         /* ═══════════════════════════════════════ */
-        .benefits { background: var(--warm-cream); position: relative; z-index: 1; padding-top: 140px; }
+        .benefits { background: var(--warm-cream); position: relative; z-index: 1; padding-top: 100px; }
         .benefits-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; }
         .benefit-card {
             background: #fff; border-radius: var(--radius); padding: 24px;
