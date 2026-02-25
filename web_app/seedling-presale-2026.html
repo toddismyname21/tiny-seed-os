@@ -232,6 +232,42 @@
         .hero-trust { margin-top: 24px; font-size: 0.8rem; color: rgba(255,255,255,0.5); }
 
         /* ═══════════════════════════════════════ */
+        /* SEEDLING PARADE — hero-to-content      */
+        /* ═══════════════════════════════════════ */
+        .seedling-parade {
+            background: linear-gradient(180deg, var(--green-deep) 0%, var(--warm-cream) 100%);
+            padding: 20px 0 12px;
+            overflow: hidden;
+            margin-top: -1px;
+        }
+        .seedling-parade-track {
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            gap: clamp(16px, 4vw, 48px);
+            padding: 0 24px;
+        }
+        .parade-seedling {
+            height: clamp(64px, 10vw, 110px);
+            width: auto;
+            object-fit: contain;
+            filter: drop-shadow(0 3px 6px rgba(0,0,0,0.15));
+            transition: transform 0.3s ease;
+        }
+        .parade-seedling:nth-child(odd) { transform: rotate(-3deg); }
+        .parade-seedling:nth-child(even) { transform: rotate(3deg); }
+        .parade-seedling:hover {
+            transform: rotate(0deg) translateY(-6px) scale(1.08);
+        }
+        @media (max-width: 768px) {
+            .seedling-parade-track { gap: 8px; }
+            .parade-seedling:nth-child(n+7) { display: none; }
+        }
+        @media (max-width: 480px) {
+            .parade-seedling:nth-child(n+6) { display: none; }
+        }
+
+        /* ═══════════════════════════════════════ */
         /* SECTIONS */
         /* ═══════════════════════════════════════ */
         section { padding: 60px 24px; }
@@ -263,11 +299,14 @@
             display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap;
         }
         .catalog-tab {
-            padding: 10px 20px; border-radius: 30px; border: 2px solid #e5e7eb;
+            padding: 8px 18px; border-radius: 30px; border: 2px solid #e5e7eb;
             background: #fff; font-weight: 600; font-size: 0.9rem; cursor: pointer;
             transition: all 0.2s; color: var(--text-muted); font-family: inherit;
+            display: inline-flex; align-items: center; gap: 6px;
         }
+        .catalog-tab .tab-seedling { width: 24px; height: 24px; object-fit: contain; }
         .catalog-tab.active { background: var(--green-deep); color: #fff; border-color: var(--green-deep); }
+        .catalog-tab.active .tab-seedling { filter: brightness(1.4); }
         .catalog-tab:hover:not(.active) { border-color: var(--green); color: var(--green-dark); }
 
         .variety-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
@@ -627,6 +666,11 @@
             margin-bottom: 12px;
             background: #f3f4f6;
         }
+        .variety-card-illustration {
+            object-fit: contain;
+            background: linear-gradient(135deg, #fefce8 0%, #f0fdf4 100%);
+            padding: 8px;
+        }
         .variety-card-image-placeholder {
             width: 100%;
             height: 100px;
@@ -734,12 +778,18 @@
     </div>
 </header>
 
-<!-- SVG Wave Divider: hero (dark green) → cream section -->
-<div style="background: linear-gradient(135deg, var(--green-deep) 0%, #1e3a1e 50%, #2d4a2d 100%); margin-top: -1px; line-height: 0;">
-    <svg viewBox="0 0 1440 60" preserveAspectRatio="none" style="display:block; width:100%; height:60px;" xmlns="http://www.w3.org/2000/svg">
-        <path d="M0,0 C360,50 720,60 1080,30 C1260,15 1380,5 1440,0 L1440,60 L0,60 Z" fill="#ffffff"/>
-        <path d="M0,20 C240,55 600,60 960,35 C1200,18 1380,10 1440,15 L1440,60 L0,60 Z" fill="#ffffff" opacity="0.5"/>
-    </svg>
+<!-- Seedling parade: dancing watercolor illustrations at hero → content transition -->
+<div class="seedling-parade" aria-hidden="true">
+    <div class="seedling-parade-track">
+        <img src="images/seedlings/tomato-sm.png" alt="" class="parade-seedling">
+        <img src="images/seedlings/basil-sm.png" alt="" class="parade-seedling">
+        <img src="images/seedlings/pepper-sm.png" alt="" class="parade-seedling">
+        <img src="images/seedlings/chard-sm.png" alt="" class="parade-seedling">
+        <img src="images/seedlings/parsley-sm.png" alt="" class="parade-seedling">
+        <img src="images/seedlings/sage-sm.png" alt="" class="parade-seedling">
+        <img src="images/seedlings/broccoli-sm.png" alt="" class="parade-seedling">
+        <img src="images/seedlings/mint-sm.png" alt="" class="parade-seedling">
+    </div>
 </div>
 
 <main id="main-content" role="main">
@@ -1095,6 +1145,26 @@ var CATEGORY_ICONS = {
     'Flowers': 'fa-spa'
 };
 
+// Watercolor tab images per category
+var CATEGORY_TAB_IMG = {
+    'Tomatoes': 'images/seedlings/tomato-tab.png',
+    'Peppers': 'images/seedlings/pepper-tab.png',
+    'Cucurbits': 'images/seedlings/cucurbit-tab.png',
+    'Herbs': 'images/seedlings/basil-tab.png',
+    'Greens': 'images/seedlings/chard-tab.png',
+    'Flowers': 'images/seedlings/flower-tab.png'
+};
+
+// Watercolor card fallback images per category
+var CATEGORY_FALLBACK_IMG = {
+    'Tomatoes': 'images/seedlings/tomato-card.png',
+    'Peppers': 'images/seedlings/pepper-card.png',
+    'Cucurbits': 'images/seedlings/tomato-card.png',
+    'Herbs': 'images/seedlings/basil-card.png',
+    'Greens': 'images/seedlings/chard-card.png',
+    'Flowers': 'images/seedlings/sage-card.png'
+};
+
 // ═══════════════════════════════════════
 // HELPERS
 // ═══════════════════════════════════════
@@ -1251,8 +1321,14 @@ function renderCatalogTabs() {
         for (var j = 0; j < VARIETIES.length; j++) {
             if (VARIETIES[j].category === cat) count++;
         }
+        var tabImg = CATEGORY_TAB_IMG[cat];
         html += '<button class="catalog-tab' + (isActive ? ' active' : '') + '" onclick="showCategory(\'' + slug + '\', this)">';
-        html += '<i class="fas ' + icon + '"></i> ' + escapeHtml(cat) + ' (' + count + ')';
+        if (tabImg) {
+            html += '<img src="' + tabImg + '" alt="" class="tab-seedling">';
+        } else {
+            html += '<i class="fas ' + icon + '"></i>';
+        }
+        html += ' ' + escapeHtml(cat) + ' (' + count + ')';
         html += '</button>';
     }
 
@@ -1296,11 +1372,12 @@ function renderCatalogCards() {
 
             html += '<div class="variety-card"' + (soldOut ? ' style="opacity:0.6;"' : '') + '>';
 
-            // Photo or placeholder
+            // Photo, illustration fallback, or placeholder
             if (v.imageUrl) {
                 html += '<img src="' + escapeHtml(v.imageUrl) + '" alt="' + escapeHtml(v.name) + '" class="variety-card-image" loading="lazy">';
             } else {
-                html += '<div class="variety-card-image-placeholder"><i class="fas fa-seedling"></i>Photo coming</div>';
+                var fallbackSrc = CATEGORY_FALLBACK_IMG[v.category] || 'images/seedlings/basil-card.png';
+                html += '<img src="' + fallbackSrc + '" alt="' + escapeHtml(v.name) + ' seedling illustration" class="variety-card-image variety-card-illustration" loading="lazy">';
             }
 
             html += '<div class="variety-header">';

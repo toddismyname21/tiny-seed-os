@@ -38,6 +38,35 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-02-25 — Integrate Watercolor Seedling Illustrations into Presale Page
+
+**Role:** UX_Design_Claude
+
+### Files Created
+- `web_app/images/seedlings/*-card.png` (8 files) — 400px category-matched watercolor illustrations for variety card placeholders
+- `web_app/images/seedlings/*-sm.png` (8 files) — 160px illustrations for dancing parade row
+- `web_app/images/seedlings/*-tab.png` (6 files) — 36px icons for category filter tabs
+
+### Files Modified
+- `web_app/seedling-presale-2026.html` — 3 targeted illustration integrations:
+  1. **Dancing seedling parade**: Replaced SVG wave divider between hero and "Why Pre-Order" with a responsive row of 8 watercolor seedlings (alternating rotations, hover lift, hides extras on mobile)
+  2. **Category tab illustrations**: Added 24x24px watercolor thumbnails inside category filter tabs, replacing Font Awesome icons
+  3. **Card placeholder fallback**: Replaced "Photo coming" text placeholders with category-matched watercolor illustrations for varieties without uploaded photos
+
+### Functions Modified
+- `renderCatalogTabs()` — Now uses CATEGORY_TAB_IMG map for watercolor tab icons
+- `renderCatalogCards()` — Now uses CATEGORY_FALLBACK_IMG map for illustration fallbacks
+
+### Reason
+Owner provided hand-painted watercolor seedling illustrations (LOGO 2.zip) for brand integration. First attempt over-decorated the page (reverted). Second attempt follows owner's specific direction: parade at hero transition, icons in tab bubbles, correct category-matched placeholders on cards.
+
+### Duplicate Check
+- [x] Checked existing image assets — no duplicates
+- [x] No new HTML files created
+- [x] Enhanced existing page only
+
+---
+
 ## 2026-02-25 — Enhance Product URL Scraper (Johnny's Seeds, Burpee, etc.)
 
 **Role:** PM_Architect
