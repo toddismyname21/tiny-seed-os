@@ -252,16 +252,16 @@
             align-items: center;
             justify-content: center;
         }
-        /* Curved bottom edge — organic farm feel */
+        /* Curved bottom edge — hero bulges DOWN into benefits */
         .hero::after {
             content: '';
             position: absolute;
-            bottom: -1px;
+            bottom: -59px;
             left: 0;
             right: 0;
             height: 60px;
-            background: var(--warm-cream);
-            clip-path: ellipse(55% 100% at 50% 100%);
+            background: var(--green-deep);
+            clip-path: ellipse(55% 100% at 50% 0%);
             z-index: 1;
         }
 
@@ -270,14 +270,14 @@
                 padding: 80px 20px 60px;
                 min-height: 60vh;
             }
-            .hero::after { height: 40px; }
+            .hero::after { height: 40px; bottom: -39px; }
         }
 
         @media (max-width: 480px) {
             .hero {
                 min-height: 75vh;
             }
-            .hero::after { height: 30px; }
+            .hero::after { height: 30px; bottom: -29px; }
         }
         .hero-content { position: relative; z-index: 1; max-width: 800px; margin: 0 auto; }
         .hero-badge {
