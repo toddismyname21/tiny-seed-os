@@ -602,8 +602,11 @@
             <button class="btn btn-primary" onclick="openBulkScrapeModal()">
                 <i class="fas fa-magic"></i> Bulk Scrape URLs
             </button>
+            <button class="btn btn-secondary" onclick="fixCorruptedUrls()" id="fixUrlsBtn">
+                <i class="fas fa-wrench"></i> Fix URLs
+            </button>
             <button class="btn btn-primary" onclick="autoPopulateImages()" id="autoPopBtn" style="background:#166534;">
-                <i class="fas fa-images"></i> Auto-Fill Images from Johnny's
+                <i class="fas fa-magic"></i> Auto-Fill Photos + Descriptions
             </button>
             <button class="btn btn-primary" onclick="openAddModal()" style="background:var(--green);">
                 <i class="fas fa-plus"></i> Add New Variety
@@ -1294,43 +1297,76 @@ function runBulkScrape() {
 }
 
 // ═══════════════════════════════════════════════════
-// AUTO-POPULATE IMAGES FROM JOHNNY'S SEEDS
+// FIX CORRUPTED URLs (quick &amp; → & fix)
+// ═══════════════════════════════════════════════════
+function fixCorruptedUrls() {
+    var btn = document.getElementById('fixUrlsBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner spinner"></i> Fixing...';
+
+    fetch(TINY_SEED_API.MAIN_API + '?action=fixCorruptedSeedlingUrls')
+        .then(function(res) { return res.json(); })
+        .then(function(result) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-wrench"></i> Fix URLs';
+            if (result.success) {
+                showToast('Fixed ' + result.fixed + ' corrupted URLs out of ' + result.total + ' items');
+                loadVarieties();
+            } else {
+                showToast('Error: ' + (result.error || 'Fix failed'));
+            }
+        })
+        .catch(function(err) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-wrench"></i> Fix URLs';
+            showToast('Network error: ' + err.message);
+        });
+}
+
+// ═══════════════════════════════════════════════════
+// AUTO-POPULATE PHOTOS + DESCRIPTIONS
 // ═══════════════════════════════════════════════════
 function autoPopulateImages() {
-    var missing = varieties.filter(function(v) { return !v.imageUrl; }).length;
-    if (missing === 0) {
-        showToast('All varieties already have images!');
+    var missingImg = varieties.filter(function(v) { return !v.imageUrl; }).length;
+    var missingDesc = varieties.filter(function(v) { return !v.description; }).length;
+
+    if (missingImg === 0 && missingDesc === 0) {
+        showToast('All varieties already have photos and descriptions!');
         return;
     }
 
-    if (!confirm('Auto-fill images for ' + missing + ' varieties without photos?\n\nThis searches Johnny\'s Seeds for each variety and pulls the product photo. It may take a few minutes.\n\nYou can replace any image later with your own photos.')) {
-        return;
-    }
+    var msg = 'Auto-fill from seed company websites:\n\n';
+    if (missingImg > 0) msg += '- ' + missingImg + ' varieties need photos\n';
+    if (missingDesc > 0) msg += '- ' + missingDesc + ' varieties need descriptions\n';
+    msg += '\nThis visits product pages on Johnny\'s Seeds, Burpee, and Bonnie Plants. It may take several minutes.\n\nAlso fixes any corrupted image URLs.';
+
+    if (!confirm(msg)) return;
 
     var btn = document.getElementById('autoPopBtn');
     btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner spinner"></i> Searching Johnny\'s... (this takes a while)';
+    btn.innerHTML = '<i class="fas fa-spinner spinner"></i> Scraping product pages... (this takes a while)';
 
     fetch(TINY_SEED_API.MAIN_API + '?action=autoPopulateSeedlingImages')
         .then(function(res) { return res.json(); })
         .then(function(result) {
             btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-images"></i> Auto-Fill Images from Johnny\'s';
+            btn.innerHTML = '<i class="fas fa-magic"></i> Auto-Fill Photos + Descriptions';
 
             if (result.success) {
-                var msg = 'Done!\n\n' +
-                    'Found images: ' + result.updated + '\n' +
-                    'Already had images: ' + result.skipped + '\n' +
-                    'Not found on Johnny\'s: ' + result.failed;
-                showToast('Images updated: ' + result.updated + ' found, ' + result.failed + ' not found');
-                loadVarieties(); // Refresh table
+                var parts = [];
+                if (result.updated > 0) parts.push(result.updated + ' updated');
+                if (result.descriptionsAdded > 0) parts.push(result.descriptionsAdded + ' descriptions added');
+                if (result.urlsFixed > 0) parts.push(result.urlsFixed + ' URLs fixed');
+                if (result.failed > 0) parts.push(result.failed + ' not found');
+                showToast(parts.join(', ') || 'Complete');
+                loadVarieties();
             } else {
                 showToast('Error: ' + (result.error || 'Auto-populate failed'));
             }
         })
         .catch(function(err) {
             btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-images"></i> Auto-Fill Images from Johnny\'s';
+            btn.innerHTML = '<i class="fas fa-magic"></i> Auto-Fill Photos + Descriptions';
             showToast('Network error: ' + err.message);
         });
 }

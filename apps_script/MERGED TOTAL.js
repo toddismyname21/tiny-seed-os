@@ -17572,6 +17572,8 @@ function doGet(e) {
         return jsonResponse(scrapeProductUrl(e.parameter));
       case 'autoPopulateSeedlingImages':
         return jsonResponse(autoPopulateSeedlingImages(e.parameter));
+      case 'fixCorruptedSeedlingUrls':
+        return jsonResponse(fixCorruptedSeedlingUrls());
       case 'getSeedlingSalesHistorical':
         return jsonResponse(getSeedlingSalesHistorical(e.parameter));
       case 'getSeedlingTimeline':
@@ -131588,6 +131590,33 @@ function addSeedlingItem(params) {
  * Searches: 1) Johnny's Seeds, 2) Burpee, 3) Bonnie Plants, 4) Wikipedia/Wikimedia
  * Only fills items that don't already have an Image_URL.
  */
+/**
+ * Quick fix: clean &amp; corruption from existing Image_URLs. No scraping needed.
+ */
+function fixCorruptedSeedlingUrls() {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('SEEDLING_PRODUCTION');
+  if (!sheet) return { success: false, error: 'SEEDLING_PRODUCTION sheet not found' };
+
+  var data = sheet.getDataRange().getValues();
+  var headers = data[0];
+  var imgCol = -1;
+  for (var h = 0; h < headers.length; h++) {
+    if (headers[h] === 'Image_URL') { imgCol = h; break; }
+  }
+  if (imgCol === -1) return { success: false, error: 'No Image_URL column' };
+
+  var fixed = 0;
+  for (var i = 1; i < data.length; i++) {
+    var url = String(data[i][imgCol] || '');
+    if (url.indexOf('&amp;') !== -1) {
+      sheet.getRange(i + 1, imgCol + 1).setValue(url.replace(/&amp;/g, '&'));
+      fixed++;
+    }
+  }
+  return { success: true, fixed: fixed, total: data.length - 1 };
+}
+
 function autoPopulateSeedlingImages(params) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   var sheet = ss.getSheetByName('SEEDLING_PRODUCTION');
@@ -131598,14 +131627,18 @@ function autoPopulateSeedlingImages(params) {
   var cols = {};
   for (var h = 0; h < headers.length; h++) cols[headers[h]] = h;
 
-  // Ensure Image_URL column exists
-  if (cols['Image_URL'] === undefined) {
-    sheet.getRange(1, headers.length + 1).setValue('Image_URL');
-    cols['Image_URL'] = headers.length;
+  // Ensure required columns exist
+  var ensureCols = ['Image_URL', 'Description', 'Source_URL'];
+  for (var ec = 0; ec < ensureCols.length; ec++) {
+    if (cols[ensureCols[ec]] === undefined) {
+      var nextCol = sheet.getLastColumn() + 1;
+      sheet.getRange(1, nextCol).setValue(ensureCols[ec]);
+      cols[ensureCols[ec]] = nextCol - 1;
+    }
   }
 
   var overwrite = params && params.overwrite;
-  var updated = 0, skipped = 0, failed = 0;
+  var updated = 0, skipped = 0, failed = 0, urlsFixed = 0, descsAdded = 0;
   var results = [];
 
   for (var i = 1; i < data.length; i++) {
@@ -131613,7 +131646,20 @@ function autoPopulateSeedlingImages(params) {
     if (!itemId) continue;
 
     var currentImage = String(data[i][cols['Image_URL']] || '').trim();
-    if (currentImage && !overwrite) { skipped++; continue; }
+    var currentDesc = String(data[i][cols['Description']] || '').trim();
+    var needsImage = !currentImage || overwrite;
+    var needsDesc = !currentDesc;
+
+    // Fix corrupted &amp; in existing URLs
+    if (currentImage && currentImage.indexOf('&amp;') !== -1) {
+      var fixedUrl = currentImage.replace(/&amp;/g, '&');
+      sheet.getRange(i + 1, cols['Image_URL'] + 1).setValue(fixedUrl);
+      currentImage = fixedUrl;
+      urlsFixed++;
+    }
+
+    // Skip if both image and description are already filled
+    if (!needsImage && !needsDesc) { skipped++; continue; }
 
     var variety = String(data[i][cols['Variety']] || '');
     var crop = String(data[i][cols['Crop']] || '');
@@ -131621,23 +131667,46 @@ function autoPopulateSeedlingImages(params) {
     if (!searchTerm) { skipped++; continue; }
 
     try {
-      var imageUrl = findSeedlingImage_(searchTerm, crop);
-      if (imageUrl) {
-        sheet.getRange(i + 1, cols['Image_URL'] + 1).setValue(imageUrl);
+      // Get both image and description from product pages
+      var productData = findSeedlingData_(searchTerm, crop);
+      var didUpdate = false;
+
+      if (productData.imageUrl && needsImage) {
+        sheet.getRange(i + 1, cols['Image_URL'] + 1).setValue(productData.imageUrl);
+        didUpdate = true;
+      }
+      if (productData.description && needsDesc) {
+        sheet.getRange(i + 1, cols['Description'] + 1).setValue(productData.description);
+        descsAdded++;
+        didUpdate = true;
+      }
+      if (productData.sourceUrl && cols['Source_URL'] !== undefined) {
+        var currentSrc = String(data[i][cols['Source_URL']] || '').trim();
+        if (!currentSrc) {
+          sheet.getRange(i + 1, cols['Source_URL'] + 1).setValue(productData.sourceUrl);
+        }
+      }
+
+      if (didUpdate) {
         updated++;
-        results.push({ itemId: itemId, variety: searchTerm, imageUrl: imageUrl, status: 'found' });
-      } else {
+        results.push({ itemId: itemId, variety: searchTerm, image: !!productData.imageUrl, desc: !!productData.description, status: 'updated' });
+      } else if (!productData.imageUrl && !productData.description) {
         failed++;
         results.push({ itemId: itemId, variety: searchTerm, status: 'not_found' });
+      } else {
+        skipped++;
       }
-      Utilities.sleep(1000);
+      Utilities.sleep(1500); // Slightly longer to avoid rate limits
     } catch (e) {
       failed++;
       results.push({ itemId: itemId, variety: searchTerm, status: 'error', error: e.message });
     }
   }
 
-  return { success: true, updated: updated, skipped: skipped, failed: failed, results: results };
+  return {
+    success: true, updated: updated, skipped: skipped, failed: failed,
+    urlsFixed: urlsFixed, descriptionsAdded: descsAdded, results: results
+  };
 }
 
 /**
@@ -131674,6 +131743,128 @@ function findSeedlingImage_(variety, crop) {
   if (img) return img;
 
   return null;
+}
+
+/**
+ * Search for BOTH image and description by visiting product detail pages.
+ * Returns {imageUrl, description, sourceUrl} or partial data.
+ * @private
+ */
+function findSeedlingData_(variety, crop) {
+  var searchTerm = variety.replace(/\s*f1\s*/gi, ' ').replace(/\s*hybrid\s*/gi, ' ').trim();
+  var fullTerm = searchTerm;
+  if (crop && searchTerm.toLowerCase().indexOf(crop.toLowerCase()) === -1) {
+    fullTerm = searchTerm + ' ' + crop;
+  }
+
+  // Try Johnny's Seeds first — find product page and scrape it
+  var productUrl = findProductPageUrl_('https://www.johnnyseeds.com/search?q=' + encodeURIComponent(fullTerm), 'johnnys');
+  if (productUrl) {
+    var scrapeResult = scrapeProductUrl({ url: productUrl });
+    if (scrapeResult.success && scrapeResult.data) {
+      var d = scrapeResult.data;
+      if (d.imageUrl || d.description) {
+        return { imageUrl: d.imageUrl || null, description: d.description || null, sourceUrl: productUrl };
+      }
+    }
+  }
+
+  // Try Burpee
+  productUrl = findProductPageUrl_('https://www.burpee.com/search?q=' + encodeURIComponent(fullTerm), 'burpee');
+  if (productUrl) {
+    var scrapeResult2 = scrapeProductUrl({ url: productUrl });
+    if (scrapeResult2.success && scrapeResult2.data) {
+      var d2 = scrapeResult2.data;
+      if (d2.imageUrl || d2.description) {
+        return { imageUrl: d2.imageUrl || null, description: d2.description || null, sourceUrl: productUrl };
+      }
+    }
+  }
+
+  // Try Bonnie Plants
+  productUrl = findProductPageUrl_('https://bonnieplants.com/?s=' + encodeURIComponent(fullTerm), 'bonnie');
+  if (productUrl) {
+    var scrapeResult3 = scrapeProductUrl({ url: productUrl });
+    if (scrapeResult3.success && scrapeResult3.data) {
+      var d3 = scrapeResult3.data;
+      if (d3.imageUrl || d3.description) {
+        return { imageUrl: d3.imageUrl || null, description: d3.description || null, sourceUrl: productUrl };
+      }
+    }
+  }
+
+  // Broader search on Johnny's with just crop name
+  if (crop && crop !== searchTerm) {
+    productUrl = findProductPageUrl_('https://www.johnnyseeds.com/search?q=' + encodeURIComponent(crop), 'johnnys');
+    if (productUrl) {
+      var scrapeResult4 = scrapeProductUrl({ url: productUrl });
+      if (scrapeResult4.success && scrapeResult4.data) {
+        var d4 = scrapeResult4.data;
+        if (d4.imageUrl || d4.description) {
+          return { imageUrl: d4.imageUrl || null, description: d4.description || null, sourceUrl: productUrl };
+        }
+      }
+    }
+  }
+
+  // Fallback: image-only from old method + Wikimedia
+  var img = findSeedlingImage_(variety, crop);
+  return { imageUrl: img || null, description: null, sourceUrl: null };
+}
+
+/**
+ * Find the first product page URL from a search results page.
+ * @private
+ */
+function findProductPageUrl_(searchUrl, site) {
+  try {
+    var response = UrlFetchApp.fetch(searchUrl, {
+      muteHttpExceptions: true,
+      followRedirects: true,
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; TinySeedFarm/1.0)' }
+    });
+    if (response.getResponseCode() !== 200) return null;
+    var html = response.getContentText();
+
+    var linkPatterns = [];
+    if (site === 'johnnys') {
+      linkPatterns = [
+        /class=["'][^"']*tile-name-link[^"']*["'][^>]+href=["'](https?:\/\/[^"']+\.html)["']/i,
+        /href=["'](https?:\/\/www\.johnnyseeds\.com\/vegetables\/[^"']+\.html)["']/i,
+        /href=["'](https?:\/\/www\.johnnyseeds\.com\/herbs\/[^"']+\.html)["']/i,
+        /href=["'](https?:\/\/www\.johnnyseeds\.com\/flowers\/[^"']+\.html)["']/i,
+        /<a[^>]+class=["'][^"']*name-link["'][^>]+href=["'](\/[^"']+\.html)["']/i,
+        /href=["'](\/vegetables\/[^"']+\.html)["']/i,
+        /href=["'](\/herbs\/[^"']+\.html)["']/i,
+        /href=["'](\/flowers\/[^"']+\.html)["']/i
+      ];
+    } else if (site === 'burpee') {
+      linkPatterns = [
+        /href=["'](\/[^"']+)["'][^>]*class=["'][^"']*product/i,
+        /href=["'](https?:\/\/www\.burpee\.com\/[^"']+)["'][^>]*class=["'][^"']*product/i
+      ];
+    } else if (site === 'bonnie') {
+      linkPatterns = [
+        /href=["'](https?:\/\/bonnieplants\.com\/[^"']+)["'][^>]*class=["'][^"']*product/i,
+        /<a[^>]+class=["'][^"']*woocommerce[^"']*["'][^>]+href=["']([^"']+)["']/i
+      ];
+    }
+
+    for (var l = 0; l < linkPatterns.length; l++) {
+      var linkMatch = html.match(linkPatterns[l]);
+      if (linkMatch && linkMatch[1]) {
+        var productUrl = linkMatch[1].replace(/&amp;/g, '&');
+        if (productUrl.startsWith('/')) {
+          var base = searchUrl.match(/^(https?:\/\/[^\/]+)/);
+          if (base) productUrl = base[1] + productUrl;
+        }
+        return productUrl;
+      }
+    }
+    return null;
+  } catch (e) {
+    return null;
+  }
 }
 
 /**
@@ -131714,10 +131905,10 @@ function searchSeedSite_(searchUrl, site) {
     for (var p = 0; p < patterns.length; p++) {
       var match = html.match(patterns[p]);
       if (match && match[1]) {
-        var imgUrl = match[1];
+        var imgUrl = match[1].replace(/&amp;/g, '&').replace(/&quot;/g, '"');
         if (/no.?image|placeholder|logo|icon|sprite|pixel/i.test(imgUrl)) continue;
         if (imgUrl.startsWith('//')) imgUrl = 'https:' + imgUrl;
-        // Upscale Johnny's images
+        // Clean existing size params, then set desired size
         if (site === 'johnnys') {
           imgUrl = imgUrl.replace(/[?&]sw=\d+/g, '').replace(/[?&]sh=\d+/g, '');
           imgUrl += (imgUrl.indexOf('?') === -1 ? '?' : '&') + 'sw=800&sh=800';
@@ -131813,10 +132004,13 @@ function scrapeProductUrl(params) {
     var html = response.getContentText();
     var result = { success: true, data: {} };
 
-    // Extract description - try multiple patterns
+    // Extract description - try multiple patterns (ordered by quality)
     var descPatterns = [
       /<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i,
+      /<meta[^>]+content=["']([^"']+)["'][^>]+name=["']description["']/i,
       /<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']+)["']/i,
+      /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:description["']/i,
+      /"description"\s*:\s*"([^"]{15,})"/i,
       /<div[^>]+class=["'][^"']*product[_-]?description[^"']*["'][^>]*>([^<]+)/i,
       /<p[^>]+class=["'][^"']*description[^"']*["'][^>]*>([^<]+)/i
     ];
@@ -131861,7 +132055,7 @@ function scrapeProductUrl(params) {
     for (var i = 0; i < imgPatterns.length; i++) {
       var imgMatch = html.match(imgPatterns[i]);
       if (imgMatch && imgMatch[1]) {
-        var imgUrl = imgMatch[1];
+        var imgUrl = imgMatch[1].replace(/&amp;/g, '&').replace(/&quot;/g, '"');
         // Skip tiny icons, logos, and tracking pixels
         if (/logo|icon|pixel|badge|sprite|rating|star/i.test(imgUrl)) continue;
         // Make relative URLs absolute
@@ -131871,7 +132065,7 @@ function scrapeProductUrl(params) {
           var baseUrl = url.match(/^(https?:\/\/[^\/]+)/);
           if (baseUrl) imgUrl = baseUrl[1] + imgUrl;
         }
-        // Prefer larger image sizes when URL has size params
+        // Clean HTML entities and fix size params
         imgUrl = imgUrl.replace(/[?&]sw=\d+/, '?sw=800').replace(/[?&]sh=\d+/, '&sh=800');
         result.data.imageUrl = imgUrl;
         break;
