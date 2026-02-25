@@ -21,100 +21,80 @@
         .skip-link:focus { top: 0; }
 
         /* ═══════════════════════════════════════ */
-        /* ANNOUNCEMENT BAR — Kneehigh-inspired   */
-        /* Slim countdown bar at very top          */
-        /* ═══════════════════════════════════════ */
-        .announcement-bar {
-            background: var(--green-deep);
-            color: rgba(255,255,255,0.9);
-            text-align: center;
-            padding: 8px 24px;
-            font-size: 0.82rem;
-            font-weight: 600;
-            letter-spacing: 0.3px;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 1001;
-        }
-        .announcement-bar .countdown-inline {
-            color: #86efac;
-            font-weight: 800;
-        }
-        .announcement-bar i { margin-right: 4px; }
-
-        /* ═══════════════════════════════════════ */
-        /* SITE HEADER — Kneehigh-inspired nav    */
-        /* Logo left, links center, socials right  */
+        /* SITE HEADER — warm cream, single bar    */
+        /* Logo + countdown + Instagram + CTA      */
         /* ═══════════════════════════════════════ */
         .site-header {
             position: fixed;
-            top: 33px; /* below announcement bar */
+            top: 0;
             left: 0;
             right: 0;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 10px 24px;
-            background: rgba(255,255,255,0.95);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
+            padding: 8px 24px;
+            background: var(--warm-cream);
             z-index: 1000;
             transition: all 0.3s ease;
-            box-shadow: 0 1px 8px rgba(0,0,0,0.06);
+            box-shadow: 0 1px 6px rgba(0,0,0,0.06);
         }
         .site-header.scrolled {
-            padding: 8px 24px;
             box-shadow: 0 2px 12px rgba(0,0,0,0.1);
         }
 
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
         .header-logo img {
-            height: 40px;
+            height: 36px;
             width: auto;
         }
 
-        .header-nav {
+        /* Countdown inline in header */
+        .header-countdown {
             display: flex;
             align-items: center;
-            gap: 20px;
-        }
-        .header-nav a {
-            font-size: 0.85rem;
+            gap: 6px;
+            font-size: 0.78rem;
             font-weight: 600;
-            color: var(--text-body);
-            text-decoration: none;
-            transition: color 0.2s;
+            color: var(--text-muted);
         }
-        .header-nav a:hover {
+        .header-countdown i {
             color: var(--green-dark);
+            font-size: 0.7rem;
+        }
+        .header-countdown .countdown-inline {
+            color: var(--green-deep);
+            font-weight: 800;
         }
 
         .header-right {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
         }
 
         /* Cute Instagram links — small pills with icons */
         .header-socials {
             display: flex;
-            gap: 6px;
+            gap: 5px;
             align-items: center;
         }
         .header-social-link {
             display: inline-flex;
             align-items: center;
             gap: 4px;
-            padding: 5px 10px;
+            padding: 4px 10px;
             border-radius: 20px;
-            font-size: 0.72rem;
+            font-size: 0.7rem;
             font-weight: 600;
             text-decoration: none;
             transition: all 0.2s;
-            border: 1px solid #e5e7eb;
+            border: 1px solid var(--warm-sand);
             color: var(--text-muted);
-            background: #fafafa;
+            background: rgba(255,255,255,0.6);
         }
         .header-social-link:hover {
             border-color: #e1306c;
@@ -122,20 +102,20 @@
             background: #fdf2f8;
         }
         .header-social-link i {
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             color: #e1306c;
         }
 
         .header-cta {
             background: var(--green);
             color: #fff;
-            padding: 9px 22px;
+            padding: 8px 20px;
             border-radius: 50px;
             font-weight: 700;
-            font-size: 0.85rem;
+            font-size: 0.82rem;
             text-decoration: none;
             transition: all 0.2s ease;
-            box-shadow: 0 2px 10px rgba(22, 101, 52, 0.2);
+            box-shadow: 0 2px 8px rgba(22, 101, 52, 0.2);
             display: inline-flex;
             align-items: center;
             gap: 6px;
@@ -144,22 +124,23 @@
         .header-cta:hover {
             background: var(--green-dark);
             transform: translateY(-1px);
-            box-shadow: 0 4px 16px rgba(22, 101, 52, 0.3);
+            box-shadow: 0 4px 14px rgba(22, 101, 52, 0.3);
         }
 
         /* Mobile header */
         @media (max-width: 768px) {
-            .header-nav { display: none; }
+            .site-header { padding: 6px 14px; }
+            .header-countdown span.countdown-text { display: none; }
             .header-social-link span { display: none; }
-            .header-social-link { padding: 6px; border-radius: 50%; }
-            .header-cta { padding: 8px 16px; font-size: 0.8rem; }
+            .header-social-link { padding: 5px; border-radius: 50%; }
+            .header-cta { padding: 7px 14px; font-size: 0.78rem; }
             .header-cta span { display: none; }
         }
         @media (max-width: 480px) {
-            .header-socials { gap: 4px; }
-            .header-social-link { padding: 5px; }
-            .header-social-link i { font-size: 0.75rem; }
-            .header-cta { padding: 7px 14px; font-size: 0.78rem; }
+            .header-socials { gap: 3px; }
+            .header-social-link { padding: 4px; }
+            .header-social-link i { font-size: 0.7rem; }
+            .header-logo img { height: 30px; }
         }
 
         /* ═══════════════════════════════════════ */
@@ -262,7 +243,7 @@
             background: linear-gradient(180deg, rgba(22, 101, 52, 0.7), rgba(22, 101, 52, 0.85)),
                         url('https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=1600&q=80') center/cover no-repeat;
             color: #fff;
-            padding: 110px 24px 80px;
+            padding: 90px 24px 80px;
             text-align: center;
             position: relative;
             overflow: visible;
@@ -1415,23 +1396,18 @@
 <a href="#order" class="skip-link">Skip to order form</a>
 
 <!-- ═══════════════════════════════════════════════════════════ -->
-<!-- ANNOUNCEMENT BAR — Countdown                                  -->
-<!-- ═══════════════════════════════════════════════════════════ -->
-<div class="announcement-bar" id="announcementBar">
-    <i class="fas fa-clock"></i> Presale closes April 15 — <span class="countdown-inline" id="countdownInline">loading...</span>
-</div>
-
-<!-- ═══════════════════════════════════════════════════════════ -->
-<!-- SITE HEADER — Kneehigh-inspired nav                          -->
+<!-- SITE HEADER — warm cream bar                                  -->
 <!-- ═══════════════════════════════════════════════════════════ -->
 <nav class="site-header" id="siteHeader" role="navigation" aria-label="Main navigation">
-    <a href="/" class="header-logo" aria-label="Tiny Seed Farm Home">
-        <img src="images/tiny-seed-farm-logo-final.png?v=7" alt="Tiny Seed Farm">
-    </a>
-    <div class="header-nav">
-        <a href="#catalog">Varieties</a>
-        <a href="#pickup">Pickup</a>
-        <a href="#faq">FAQ</a>
+    <div class="header-left">
+        <a href="/" class="header-logo" aria-label="Tiny Seed Farm Home">
+            <img src="images/tiny-seed-farm-logo-final.png?v=7" alt="Tiny Seed Farm">
+        </a>
+        <div class="header-countdown">
+            <i class="fas fa-clock"></i>
+            <span class="countdown-text">Presale closes April 15 —</span>
+            <span class="countdown-inline" id="countdownInline">loading...</span>
+        </div>
     </div>
     <div class="header-right">
         <div class="header-socials">
