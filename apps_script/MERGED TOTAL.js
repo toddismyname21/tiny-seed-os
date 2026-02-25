@@ -17570,6 +17570,8 @@ function doGet(e) {
         return jsonResponse(getSeedlingPresaleItems(e.parameter));
       case 'scrapeProductUrl':
         return jsonResponse(scrapeProductUrl(e.parameter));
+      case 'autoPopulateSeedlingImages':
+        return jsonResponse(autoPopulateSeedlingImages(e.parameter));
       case 'getSeedlingSalesHistorical':
         return jsonResponse(getSeedlingSalesHistorical(e.parameter));
       case 'getSeedlingTimeline':
@@ -131235,6 +131237,220 @@ function updateSeedlingItem(params) {
   }
 
   return { success: true, itemId: itemId, updated: updates };
+}
+
+/**
+ * Bulk auto-populate Image_URL for seedling varieties.
+ * Searches: 1) Johnny's Seeds, 2) Burpee, 3) Bonnie Plants, 4) Wikipedia/Wikimedia
+ * Only fills items that don't already have an Image_URL.
+ */
+function autoPopulateSeedlingImages(params) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('SEEDLING_PRODUCTION');
+  if (!sheet) return { success: false, error: 'SEEDLING_PRODUCTION sheet not found' };
+
+  var data = sheet.getDataRange().getValues();
+  var headers = data[0];
+  var cols = {};
+  for (var h = 0; h < headers.length; h++) cols[headers[h]] = h;
+
+  // Ensure Image_URL column exists
+  if (cols['Image_URL'] === undefined) {
+    sheet.getRange(1, headers.length + 1).setValue('Image_URL');
+    cols['Image_URL'] = headers.length;
+  }
+
+  var overwrite = params && params.overwrite;
+  var updated = 0, skipped = 0, failed = 0;
+  var results = [];
+
+  for (var i = 1; i < data.length; i++) {
+    var itemId = String(data[i][cols['Item_ID']] || '');
+    if (!itemId) continue;
+
+    var currentImage = String(data[i][cols['Image_URL']] || '').trim();
+    if (currentImage && !overwrite) { skipped++; continue; }
+
+    var variety = String(data[i][cols['Variety']] || '');
+    var crop = String(data[i][cols['Crop']] || '');
+    var searchTerm = (variety || crop).trim();
+    if (!searchTerm) { skipped++; continue; }
+
+    try {
+      var imageUrl = findSeedlingImage_(searchTerm, crop);
+      if (imageUrl) {
+        sheet.getRange(i + 1, cols['Image_URL'] + 1).setValue(imageUrl);
+        updated++;
+        results.push({ itemId: itemId, variety: searchTerm, imageUrl: imageUrl, status: 'found' });
+      } else {
+        failed++;
+        results.push({ itemId: itemId, variety: searchTerm, status: 'not_found' });
+      }
+      Utilities.sleep(1000);
+    } catch (e) {
+      failed++;
+      results.push({ itemId: itemId, variety: searchTerm, status: 'error', error: e.message });
+    }
+  }
+
+  return { success: true, updated: updated, skipped: skipped, failed: failed, results: results };
+}
+
+/**
+ * Search multiple sources for a seedling image. Falls through sources until one works.
+ * @private
+ */
+function findSeedlingImage_(variety, crop) {
+  var searchTerm = variety.replace(/\s*f1\s*/gi, ' ').replace(/\s*hybrid\s*/gi, ' ').trim();
+  var fullTerm = searchTerm;
+  if (crop && searchTerm.toLowerCase().indexOf(crop.toLowerCase()) === -1) {
+    fullTerm = searchTerm + ' ' + crop;
+  }
+
+  // Source 1: Johnny's Seeds
+  var img = searchSeedSite_('https://www.johnnyseeds.com/search?q=' + encodeURIComponent(fullTerm), 'johnnys');
+  if (img) return img;
+
+  // Source 2: Burpee
+  img = searchSeedSite_('https://www.burpee.com/search?q=' + encodeURIComponent(fullTerm), 'burpee');
+  if (img) return img;
+
+  // Source 3: Bonnie Plants
+  img = searchSeedSite_('https://bonnieplants.com/?s=' + encodeURIComponent(fullTerm), 'bonnie');
+  if (img) return img;
+
+  // Source 4: Try scraping the crop name directly on Johnny's (broader search)
+  if (crop && crop !== searchTerm) {
+    img = searchSeedSite_('https://www.johnnyseeds.com/search?q=' + encodeURIComponent(crop), 'johnnys');
+    if (img) return img;
+  }
+
+  // Source 5: Wikimedia Commons (public domain / CC images)
+  img = searchWikimedia_(fullTerm);
+  if (img) return img;
+
+  return null;
+}
+
+/**
+ * Search a seed company website for a product image.
+ * @private
+ */
+function searchSeedSite_(searchUrl, site) {
+  try {
+    var response = UrlFetchApp.fetch(searchUrl, {
+      muteHttpExceptions: true,
+      followRedirects: true,
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; TinySeedFarm/1.0)' }
+    });
+    if (response.getResponseCode() !== 200) return null;
+    var html = response.getContentText();
+
+    var patterns = [];
+    if (site === 'johnnys') {
+      patterns = [
+        /<img[^>]+class=["'][^"']*tile-image[^"']*["'][^>]+src=["']([^"']+)["']/i,
+        /src=["'](https:\/\/www\.johnnyseeds\.com\/dw\/image\/[^"']+\.(jpg|jpeg|png)[^"']*)["']/i,
+        /"image"\s*:\s*"(https:\/\/www\.johnnyseeds\.com\/dw\/image\/[^"]+)"/i
+      ];
+    } else if (site === 'burpee') {
+      patterns = [
+        /<img[^>]+class=["'][^"']*product[^"']*["'][^>]+src=["']([^"']+\.(jpg|jpeg|png)[^"']*)["']/i,
+        /"image"\s*:\s*"(https?:\/\/[^"]+\.(jpg|jpeg|png)[^"]*)"/i,
+        /data-src=["'](https?:\/\/[^"']+\.(jpg|jpeg|png)[^"']*)["']/i
+      ];
+    } else if (site === 'bonnie') {
+      patterns = [
+        /<img[^>]+class=["'][^"']*wp-post-image[^"']*["'][^>]+src=["']([^"']+)["']/i,
+        /<img[^>]+src=["'](https:\/\/bonnieplants\.com\/[^"']+\.(jpg|jpeg|png)[^"']*)["']/i,
+        /"image"\s*:\s*"(https?:\/\/[^"]+\.(jpg|jpeg|png)[^"]*)"/i
+      ];
+    }
+
+    for (var p = 0; p < patterns.length; p++) {
+      var match = html.match(patterns[p]);
+      if (match && match[1]) {
+        var imgUrl = match[1];
+        if (/no.?image|placeholder|logo|icon|sprite|pixel/i.test(imgUrl)) continue;
+        if (imgUrl.startsWith('//')) imgUrl = 'https:' + imgUrl;
+        // Upscale Johnny's images
+        if (site === 'johnnys') {
+          imgUrl = imgUrl.replace(/[?&]sw=\d+/g, '').replace(/[?&]sh=\d+/g, '');
+          imgUrl += (imgUrl.indexOf('?') === -1 ? '?' : '&') + 'sw=800&sh=800';
+        }
+        return imgUrl;
+      }
+    }
+
+    // Try following first product link to its detail page
+    var linkPatterns = [
+      /href=["'](\/[^"']+\.html)["'][^>]*class=["'][^"']*thumb/i,
+      /href=["'](\/[^"']+\.html)["'][^>]*class=["'][^"']*product/i,
+      /<a[^>]+class=["'][^"']*name-link["'][^>]+href=["'](\/[^"']+\.html)["']/i,
+      /href=["'](https?:\/\/[^"']+\/[^"']+\.html)["'][^>]*class=["'][^"']*product/i
+    ];
+    for (var l = 0; l < linkPatterns.length; l++) {
+      var linkMatch = html.match(linkPatterns[l]);
+      if (linkMatch && linkMatch[1]) {
+        var productUrl = linkMatch[1];
+        if (productUrl.startsWith('/')) {
+          var base = searchUrl.match(/^(https?:\/\/[^\/]+)/);
+          if (base) productUrl = base[1] + productUrl;
+        }
+        var scrapeResult = scrapeProductUrl({ url: productUrl });
+        if (scrapeResult.success && scrapeResult.data && scrapeResult.data.imageUrl) {
+          return scrapeResult.data.imageUrl;
+        }
+        break;
+      }
+    }
+
+    return null;
+  } catch (e) {
+    return null;
+  }
+}
+
+/**
+ * Search Wikimedia Commons for a free-use image of the plant.
+ * @private
+ */
+function searchWikimedia_(searchTerm) {
+  try {
+    var apiUrl = 'https://commons.wikimedia.org/w/api.php?action=query&list=search' +
+      '&srsearch=' + encodeURIComponent(searchTerm + ' plant') +
+      '&srnamespace=6&srlimit=3&format=json';
+    var response = UrlFetchApp.fetch(apiUrl, { muteHttpExceptions: true });
+    if (response.getResponseCode() !== 200) return null;
+    var data = JSON.parse(response.getContentText());
+
+    if (!data.query || !data.query.search || data.query.search.length === 0) return null;
+
+    // Get the first image file
+    for (var s = 0; s < data.query.search.length; s++) {
+      var title = data.query.search[s].title;
+      if (!/\.(jpg|jpeg|png)$/i.test(title)) continue;
+
+      // Get the actual image URL
+      var infoUrl = 'https://commons.wikimedia.org/w/api.php?action=query&titles=' +
+        encodeURIComponent(title) + '&prop=imageinfo&iiprop=url&iiurlwidth=800&format=json';
+      var infoResp = UrlFetchApp.fetch(infoUrl, { muteHttpExceptions: true });
+      if (infoResp.getResponseCode() !== 200) continue;
+      var infoData = JSON.parse(infoResp.getContentText());
+      var pages = infoData.query && infoData.query.pages;
+      if (!pages) continue;
+
+      for (var pid in pages) {
+        var ii = pages[pid].imageinfo;
+        if (ii && ii[0]) {
+          return ii[0].thumburl || ii[0].url;
+        }
+      }
+    }
+    return null;
+  } catch (e) {
+    return null;
+  }
 }
 
 function scrapeProductUrl(params) {
