@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seedling Admin | Tiny Seed Farm</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="api-config.js"></script>
+    <style>
+        :root {
+            --green: #22c55e;
+            --green-dark: #16a34a;
+            --green-deep: #14532d;
+            --red: #dc2626;
+            --orange: #f97316;
+            --blue: #3b82f6;
+            --text-dark: #1c1917;
+            --text-body: #44403c;
+            --text-muted: #78716c;
+            --bg: #f9fafb;
+            --card: #fff;
+            --border: #e5e7eb;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text-body);
+            line-height: 1.5;
+        }
+
+        /* Header */
+        .admin-header {
+            background: var(--green-deep);
+            color: #fff;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .admin-header h1 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .admin-nav {
+            display: flex;
+            gap: 12px;
+        }
+        .admin-nav a {
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            font-size: 0.9rem;
+            padding: 8px 16px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        .admin-nav a:hover, .admin-nav a.active {
+            background: rgba(255,255,255,0.15);
+            color: #fff;
+        }
+
+        /* Main layout */
+        .admin-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        /* Stats bar */
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .stat-card {
+            background: var(--card);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border);
+        }
+        .stat-card .stat-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+        .stat-card .stat-value {
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: var(--text-dark);
+        }
+        .stat-card .stat-sub {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+        .stat-card.needs-attention .stat-value { color: var(--orange); }
+        .stat-card.good .stat-value { color: var(--green-dark); }
+
+        /* Toolbar */
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .toolbar-left {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        .search-box {
+            display: flex;
+            align-items: center;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px 12px;
+            gap: 8px;
+        }
+        .search-box input {
+            border: none;
+            outline: none;
+            font-size: 0.9rem;
+            width: 200px;
+            font-family: inherit;
+        }
+        .search-box i { color: var(--text-muted); }
+        .filter-select {
+            padding: 10px 16px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-family: inherit;
+            background: var(--card);
+            cursor: pointer;
+        }
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            font-family: inherit;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-primary {
+            background: var(--green);
+            color: #000;
+        }
+        .btn-primary:hover { background: #4ade80; }
+        .btn-secondary {
+            background: var(--card);
+            color: var(--text-dark);
+            border: 1px solid var(--border);
+        }
+        .btn-secondary:hover { background: #f3f4f6; }
+        .btn-danger {
+            background: var(--red);
+            color: #fff;
+        }
+        .btn-danger:hover { background: #b91c1c; }
+
+        /* Table */
+        .varieties-table {
+            background: var(--card);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        thead {
+            background: #f9fafb;
+            border-bottom: 1px solid var(--border);
+        }
+        th {
+            text-align: left;
+            padding: 12px 16px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        td {
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+        tr:last-child td { border-bottom: none; }
+        tr:hover { background: #fafafa; }
+
+        .variety-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .variety-thumb {
+            width: 60px;
+            height: 60px;
+            border-radius: 8px;
+            object-fit: cover;
+            background: #f3f4f6;
+        }
+        .variety-thumb-placeholder {
+            width: 60px;
+            height: 60px;
+            border-radius: 8px;
+            background: #f3f4f6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            font-size: 1.25rem;
+        }
+        .variety-name {
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+        .variety-category {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .status-complete {
+            background: #dcfce7;
+            color: #166534;
+        }
+        .status-pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        .status-missing {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .action-btns {
+            display: flex;
+            gap: 8px;
+        }
+        .action-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--card);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            color: var(--text-muted);
+        }
+        .action-btn:hover {
+            background: var(--green);
+            color: #000;
+            border-color: var(--green);
+        }
+        .action-btn.scrape:hover {
+            background: var(--blue);
+            color: #fff;
+            border-color: var(--blue);
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: var(--card);
+            border-radius: 16px;
+            width: 100%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow: auto;
+        }
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-header h2 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-dark);
+        }
+        .modal-close {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            border: none;
+            background: #f3f4f6;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            font-size: 1.1rem;
+        }
+        .modal-close:hover { background: #e5e7eb; }
+        .modal-body {
+            padding: 24px;
+        }
+        .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: var(--text-dark);
+        }
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-family: inherit;
+            transition: border-color 0.2s;
+        }
+        .form-group input:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: var(--green);
+        }
+        .form-group textarea { min-height: 100px; resize: vertical; }
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        .form-help {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        /* Image upload area */
+        .image-upload-area {
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .image-upload-area:hover {
+            border-color: var(--green);
+            background: #f0fdf4;
+        }
+        .image-upload-area i {
+            font-size: 2rem;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+        .image-upload-area p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+        .image-preview {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 16px;
+        }
+        .image-preview-item {
+            position: relative;
+            width: 80px;
+            height: 80px;
+        }
+        .image-preview-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+        .image-preview-item .remove-img {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--red);
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-size: 0.7rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Scrape section */
+        .scrape-section {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+        .scrape-section h4 {
+            font-size: 0.9rem;
+            color: #1e40af;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .scrape-input-row {
+            display: flex;
+            gap: 8px;
+        }
+        .scrape-input-row input {
+            flex: 1;
+            padding: 10px 14px;
+            border: 1px solid #bfdbfe;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-family: inherit;
+        }
+        .scrape-input-row input:focus {
+            outline: none;
+            border-color: var(--blue);
+        }
+        .scrape-btn {
+            background: var(--blue);
+            color: #fff;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: inherit;
+        }
+        .scrape-btn:hover { background: #2563eb; }
+        .scrape-btn:disabled {
+            background: #93c5fd;
+            cursor: not-allowed;
+        }
+        .scrape-results {
+            margin-top: 12px;
+            padding: 12px;
+            background: #fff;
+            border-radius: 8px;
+            font-size: 0.85rem;
+        }
+        .scrape-results.success { border-left: 3px solid var(--green); }
+        .scrape-results.error { border-left: 3px solid var(--red); }
+
+        /* Loading spinner */
+        .spinner {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 60px 24px;
+            color: var(--text-muted);
+        }
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 16px;
+            color: #d1d5db;
+        }
+        .empty-state h3 {
+            font-size: 1.1rem;
+            color: var(--text-dark);
+            margin-bottom: 8px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .admin-header { flex-direction: column; gap: 12px; text-align: center; }
+            .toolbar { flex-direction: column; align-items: stretch; }
+            .toolbar-left { flex-direction: column; }
+            .search-box input { width: 100%; }
+            .stats-bar { grid-template-columns: 1fr 1fr; }
+            .form-row { grid-template-columns: 1fr; }
+            table { font-size: 0.85rem; }
+            th, td { padding: 12px 8px; }
+            .variety-thumb, .variety-thumb-placeholder { width: 40px; height: 40px; }
+        }
+    </style>
+</head>
+<body>
+
+<header class="admin-header">
+    <h1><i class="fas fa-seedling"></i> Seedling Admin</h1>
+    <nav class="admin-nav">
+        <a href="seedling-presale-2026.html" target="_blank"><i class="fas fa-external-link-alt"></i> View Live Page</a>
+        <a href="manager-dashboard.html"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
+    </nav>
+</header>
+
+<div class="admin-container">
+    <!-- Stats -->
+    <div class="stats-bar" id="statsBar">
+        <div class="stat-card">
+            <div class="stat-label">Total Varieties</div>
+            <div class="stat-value" id="statTotal">--</div>
+        </div>
+        <div class="stat-card needs-attention" id="statMissingCard">
+            <div class="stat-label">Missing Photos</div>
+            <div class="stat-value" id="statMissing">--</div>
+            <div class="stat-sub">Need attention</div>
+        </div>
+        <div class="stat-card needs-attention" id="statNoDescCard">
+            <div class="stat-label">No Description</div>
+            <div class="stat-value" id="statNoDesc">--</div>
+        </div>
+        <div class="stat-card good" id="statCompleteCard">
+            <div class="stat-label">Complete</div>
+            <div class="stat-value" id="statComplete">--</div>
+            <div class="stat-sub">Ready for launch</div>
+        </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+        <div class="toolbar-left">
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" id="searchInput" placeholder="Search varieties..." oninput="filterVarieties()">
+            </div>
+            <select class="filter-select" id="categoryFilter" onchange="filterVarieties()">
+                <option value="">All Categories</option>
+            </select>
+            <select class="filter-select" id="statusFilter" onchange="filterVarieties()">
+                <option value="">All Status</option>
+                <option value="complete">Complete</option>
+                <option value="pending">Needs Photo</option>
+                <option value="missing">Needs Description</option>
+            </select>
+        </div>
+        <div class="toolbar-right">
+            <button class="btn btn-secondary" onclick="exportData()">
+                <i class="fas fa-download"></i> Export
+            </button>
+            <button class="btn btn-primary" onclick="openBulkScrapeModal()">
+                <i class="fas fa-magic"></i> Bulk Scrape URLs
+            </button>
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="varieties-table">
+        <table>
+            <thead>
+                <tr>
+                    <th>Variety</th>
+                    <th>Price</th>
+                    <th>Available</th>
+                    <th>Seed Source URL</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="varietiesTableBody">
+                <tr>
+                    <td colspan="6">
+                        <div class="empty-state">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <h3>Loading varieties...</h3>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal-overlay" id="editModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h2 id="modalTitle">Edit Variety</h2>
+            <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="editItemId">
+
+            <!-- Scrape Section -->
+            <div class="scrape-section">
+                <h4><i class="fas fa-robot"></i> Auto-Fill from Seed Source</h4>
+                <p style="font-size:0.85rem; color:#1e40af; margin-bottom:12px;">
+                    Paste the URL where you buy seeds and we'll try to pull in the photo and description.
+                </p>
+                <div class="scrape-input-row">
+                    <input type="url" id="scrapeUrl" placeholder="https://rfrseeds.com/products/cherokee-purple...">
+                    <button class="scrape-btn" id="scrapeBtn" onclick="scrapeUrl()">
+                        <i class="fas fa-download"></i> Scrape
+                    </button>
+                </div>
+                <div id="scrapeResults" class="scrape-results" style="display:none;"></div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Variety Name</label>
+                    <input type="text" id="editName" placeholder="Cherokee Purple">
+                </div>
+                <div class="form-group">
+                    <label>Category</label>
+                    <select id="editCategory">
+                        <option value="Tomatoes">Tomatoes</option>
+                        <option value="Peppers">Peppers</option>
+                        <option value="Cucurbits">Cucurbits</option>
+                        <option value="Herbs">Herbs</option>
+                        <option value="Greens">Greens</option>
+                        <option value="Flowers">Flowers</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Price ($)</label>
+                    <input type="number" id="editPrice" step="0.01" min="0" placeholder="6.00">
+                </div>
+                <div class="form-group">
+                    <label>Available Quantity</label>
+                    <input type="number" id="editAvailable" min="0" placeholder="50">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Description</label>
+                <textarea id="editDescription" placeholder="A beautiful heirloom tomato with rich, complex flavor..."></textarea>
+                <p class="form-help">Brief description for the presale page. 1-2 sentences.</p>
+            </div>
+
+            <div class="form-group">
+                <label>Seed Source URL</label>
+                <input type="url" id="editSourceUrl" placeholder="https://rfrseeds.com/products/...">
+                <p class="form-help">Where you buy the seeds. Saved for future reference.</p>
+            </div>
+
+            <div class="form-group">
+                <label>Product Image</label>
+                <div class="image-upload-area" onclick="document.getElementById('imageUpload').click()">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <p>Click to upload or drag and drop</p>
+                    <p style="font-size:0.75rem;">PNG, JPG up to 2MB</p>
+                </div>
+                <input type="file" id="imageUpload" accept="image/*" style="display:none;" onchange="handleImageUpload(event)">
+                <div id="imagePreview" class="image-preview"></div>
+                <div class="form-group" style="margin-top:12px;">
+                    <label>Or paste image URL</label>
+                    <input type="url" id="editImageUrl" placeholder="https://images.example.com/tomato.jpg">
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="saveVariety()">
+                <i class="fas fa-save"></i> Save Changes
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Scrape Modal -->
+<div class="modal-overlay" id="bulkScrapeModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h2><i class="fas fa-magic"></i> Bulk Scrape URLs</h2>
+            <button class="modal-close" onclick="closeBulkModal()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+            <p style="margin-bottom:16px; color:var(--text-body);">
+                Paste one URL per line. We'll try to match each URL to a variety by name and pull in photos/descriptions.
+            </p>
+            <div class="form-group">
+                <label>URLs (one per line)</label>
+                <textarea id="bulkUrls" rows="10" placeholder="https://rfrseeds.com/products/cherokee-purple-tomato
+https://rfrseeds.com/products/sun-gold-tomato
+https://rfrseeds.com/products/ghost-pepper"></textarea>
+            </div>
+            <div id="bulkResults" style="display:none; margin-top:16px;"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeBulkModal()">Cancel</button>
+            <button class="btn btn-primary" id="bulkScrapeBtn" onclick="runBulkScrape()">
+                <i class="fas fa-play"></i> Start Scraping
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════════════════
+var varieties = [];
+var filteredVarieties = [];
+
+// ═══════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', function() {
+    loadVarieties();
+});
+
+// ═══════════════════════════════════════════════════
+// LOAD VARIETIES FROM API
+// ═══════════════════════════════════════════════════
+function loadVarieties() {
+    fetch(TINY_SEED_API.MAIN_API + '?action=getSeedlingPresaleItems')
+        .then(function(res) { return res.json(); })
+        .then(function(result) {
+            if (result.success && result.data) {
+                varieties = result.data.map(function(row) {
+                    return {
+                        itemId: row.Item_ID || '',
+                        name: row.Variety || row.Crop || 'Unknown',
+                        category: row.Category || 'Other',
+                        price: Number(row.Price_Each) || 6.00,
+                        available: row.Available != null ? Number(row.Available) : null,
+                        description: row.Description || '',
+                        imageUrl: row.Image_URL || '',
+                        sourceUrl: row.Source_URL || ''
+                    };
+                });
+                filteredVarieties = varieties.slice();
+                renderTable();
+                updateStats();
+                populateCategoryFilter();
+            } else {
+                showError('Failed to load varieties: ' + (result.error || 'Unknown error'));
+            }
+        })
+        .catch(function(err) {
+            showError('Network error: ' + err.message);
+        });
+}
+
+// ═══════════════════════════════════════════════════
+// RENDER TABLE
+// ═══════════════════════════════════════════════════
+function renderTable() {
+    var tbody = document.getElementById('varietiesTableBody');
+
+    if (filteredVarieties.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><i class="fas fa-search"></i><h3>No varieties found</h3><p>Try adjusting your filters</p></div></td></tr>';
+        return;
+    }
+
+    var html = '';
+    for (var i = 0; i < filteredVarieties.length; i++) {
+        var v = filteredVarieties[i];
+        var hasPhoto = !!v.imageUrl;
+        var hasDesc = !!v.description;
+        var status = (hasPhoto && hasDesc) ? 'complete' : (hasPhoto || hasDesc) ? 'pending' : 'missing';
+        var statusLabel = status === 'complete' ? 'Complete' : status === 'pending' ? 'Needs Info' : 'Missing Data';
+        var statusClass = 'status-' + status;
+
+        html += '<tr data-item-id="' + v.itemId + '">';
+        html += '<td><div class="variety-info">';
+        if (v.imageUrl) {
+            html += '<img src="' + escapeHtml(v.imageUrl) + '" alt="" class="variety-thumb">';
+        } else {
+            html += '<div class="variety-thumb-placeholder"><i class="fas fa-seedling"></i></div>';
+        }
+        html += '<div><div class="variety-name">' + escapeHtml(v.name) + '</div>';
+        html += '<div class="variety-category">' + escapeHtml(v.category) + '</div></div>';
+        html += '</div></td>';
+        html += '<td>$' + v.price.toFixed(2) + '</td>';
+        html += '<td>' + (v.available != null ? v.available : '—') + '</td>';
+        html += '<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">';
+        if (v.sourceUrl) {
+            html += '<a href="' + escapeHtml(v.sourceUrl) + '" target="_blank" style="color:var(--blue);text-decoration:none;"><i class="fas fa-link"></i> ' + truncateUrl(v.sourceUrl) + '</a>';
+        } else {
+            html += '<span style="color:var(--text-muted);">—</span>';
+        }
+        html += '</td>';
+        html += '<td><span class="status-badge ' + statusClass + '">' + statusLabel + '</span></td>';
+        html += '<td><div class="action-btns">';
+        html += '<button class="action-btn" onclick="editVariety(\'' + v.itemId + '\')" title="Edit"><i class="fas fa-edit"></i></button>';
+        html += '<button class="action-btn scrape" onclick="quickScrape(\'' + v.itemId + '\')" title="Scrape URL"><i class="fas fa-magic"></i></button>';
+        html += '</div></td>';
+        html += '</tr>';
+    }
+    tbody.innerHTML = html;
+}
+
+function truncateUrl(url) {
+    try {
+        var parsed = new URL(url);
+        var path = parsed.pathname.split('/').pop();
+        return path.length > 20 ? path.substring(0, 20) + '...' : path;
+    } catch(e) {
+        return url.substring(0, 25) + '...';
+    }
+}
+
+// ═══════════════════════════════════════════════════
+// STATS
+// ═══════════════════════════════════════════════════
+function updateStats() {
+    var total = varieties.length;
+    var missingPhoto = 0;
+    var missingDesc = 0;
+    var complete = 0;
+
+    for (var i = 0; i < varieties.length; i++) {
+        var v = varieties[i];
+        var hasPhoto = !!v.imageUrl;
+        var hasDesc = !!v.description;
+        if (!hasPhoto) missingPhoto++;
+        if (!hasDesc) missingDesc++;
+        if (hasPhoto && hasDesc) complete++;
+    }
+
+    document.getElementById('statTotal').textContent = total;
+    document.getElementById('statMissing').textContent = missingPhoto;
+    document.getElementById('statNoDesc').textContent = missingDesc;
+    document.getElementById('statComplete').textContent = complete;
+
+    // Update card styles
+    document.getElementById('statMissingCard').className = 'stat-card ' + (missingPhoto > 0 ? 'needs-attention' : 'good');
+    document.getElementById('statNoDescCard').className = 'stat-card ' + (missingDesc > 0 ? 'needs-attention' : 'good');
+}
+
+// ═══════════════════════════════════════════════════
+// FILTERS
+// ═══════════════════════════════════════════════════
+function populateCategoryFilter() {
+    var cats = {};
+    for (var i = 0; i < varieties.length; i++) {
+        cats[varieties[i].category] = true;
+    }
+    var select = document.getElementById('categoryFilter');
+    select.innerHTML = '<option value="">All Categories</option>';
+    Object.keys(cats).sort().forEach(function(cat) {
+        select.innerHTML += '<option value="' + cat + '">' + cat + '</option>';
+    });
+}
+
+function filterVarieties() {
+    var search = document.getElementById('searchInput').value.toLowerCase();
+    var category = document.getElementById('categoryFilter').value;
+    var status = document.getElementById('statusFilter').value;
+
+    filteredVarieties = varieties.filter(function(v) {
+        var matchSearch = !search || v.name.toLowerCase().indexOf(search) !== -1;
+        var matchCategory = !category || v.category === category;
+        var hasPhoto = !!v.imageUrl;
+        var hasDesc = !!v.description;
+        var itemStatus = (hasPhoto && hasDesc) ? 'complete' : (hasPhoto || hasDesc) ? 'pending' : 'missing';
+        var matchStatus = !status || itemStatus === status;
+        return matchSearch && matchCategory && matchStatus;
+    });
+
+    renderTable();
+}
+
+// ═══════════════════════════════════════════════════
+// EDIT MODAL
+// ═══════════════════════════════════════════════════
+function editVariety(itemId) {
+    var v = varieties.find(function(x) { return x.itemId === itemId; });
+    if (!v) return;
+
+    document.getElementById('editModal').classList.add('active');
+    document.getElementById('modalTitle').textContent = 'Edit: ' + v.name;
+    document.getElementById('editItemId').value = v.itemId;
+    document.getElementById('editName').value = v.name;
+    document.getElementById('editCategory').value = v.category;
+    document.getElementById('editPrice').value = v.price;
+    document.getElementById('editAvailable').value = v.available || '';
+    document.getElementById('editDescription').value = v.description || '';
+    document.getElementById('editSourceUrl').value = v.sourceUrl || '';
+    document.getElementById('editImageUrl').value = v.imageUrl || '';
+    document.getElementById('scrapeUrl').value = v.sourceUrl || '';
+    document.getElementById('scrapeResults').style.display = 'none';
+
+    // Show image preview if exists
+    var preview = document.getElementById('imagePreview');
+    if (v.imageUrl) {
+        preview.innerHTML = '<div class="image-preview-item"><img src="' + escapeHtml(v.imageUrl) + '" alt=""><button class="remove-img" onclick="clearImage()"><i class="fas fa-times"></i></button></div>';
+    } else {
+        preview.innerHTML = '';
+    }
+}
+
+function closeModal() {
+    document.getElementById('editModal').classList.remove('active');
+}
+
+function clearImage() {
+    document.getElementById('editImageUrl').value = '';
+    document.getElementById('imagePreview').innerHTML = '';
+}
+
+function handleImageUpload(event) {
+    var file = event.target.files[0];
+    if (!file) return;
+
+    // For now, just preview locally. Full implementation would upload to server.
+    var reader = new FileReader();
+    reader.onload = function(e) {
+        document.getElementById('imagePreview').innerHTML = '<div class="image-preview-item"><img src="' + e.target.result + '" alt=""><button class="remove-img" onclick="clearImage()"><i class="fas fa-times"></i></button></div>';
+        // In production, upload to server and get URL
+        alert('Image preview shown. To save permanently, upload to your server and paste the URL in "Image URL" field.');
+    };
+    reader.readAsDataURL(file);
+}
+
+// ═══════════════════════════════════════════════════
+// SCRAPE URL
+// ═══════════════════════════════════════════════════
+function scrapeUrl() {
+    var url = document.getElementById('scrapeUrl').value.trim();
+    if (!url) {
+        alert('Please enter a URL to scrape');
+        return;
+    }
+
+    var btn = document.getElementById('scrapeBtn');
+    var results = document.getElementById('scrapeResults');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner spinner"></i> Scraping...';
+    results.style.display = 'none';
+
+    fetch(TINY_SEED_API.MAIN_API + '?action=scrapeProductUrl&url=' + encodeURIComponent(url))
+        .then(function(res) { return res.json(); })
+        .then(function(result) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-download"></i> Scrape';
+            results.style.display = 'block';
+
+            if (result.success && result.data) {
+                results.className = 'scrape-results success';
+                results.innerHTML = '<strong><i class="fas fa-check-circle"></i> Found data:</strong><br>';
+
+                if (result.data.description) {
+                    document.getElementById('editDescription').value = result.data.description;
+                    results.innerHTML += '- Description: ' + result.data.description.substring(0, 100) + '...<br>';
+                }
+                if (result.data.imageUrl) {
+                    document.getElementById('editImageUrl').value = result.data.imageUrl;
+                    document.getElementById('imagePreview').innerHTML = '<div class="image-preview-item"><img src="' + escapeHtml(result.data.imageUrl) + '" alt=""><button class="remove-img" onclick="clearImage()"><i class="fas fa-times"></i></button></div>';
+                    results.innerHTML += '- Image URL found<br>';
+                }
+                document.getElementById('editSourceUrl').value = url;
+                results.innerHTML += '<br><em>Review and click Save to apply.</em>';
+            } else {
+                results.className = 'scrape-results error';
+                results.innerHTML = '<i class="fas fa-exclamation-circle"></i> ' + (result.error || 'Could not extract data from this URL. Try manually entering the info.');
+            }
+        })
+        .catch(function(err) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-download"></i> Scrape';
+            results.style.display = 'block';
+            results.className = 'scrape-results error';
+            results.innerHTML = '<i class="fas fa-exclamation-circle"></i> Network error: ' + err.message;
+        });
+}
+
+function quickScrape(itemId) {
+    var v = varieties.find(function(x) { return x.itemId === itemId; });
+    if (!v || !v.sourceUrl) {
+        editVariety(itemId);
+        return;
+    }
+    // Open edit modal and auto-trigger scrape
+    editVariety(itemId);
+    setTimeout(function() { scrapeUrl(); }, 300);
+}
+
+// ═══════════════════════════════════════════════════
+// SAVE VARIETY
+// ═══════════════════════════════════════════════════
+function saveVariety() {
+    var itemId = document.getElementById('editItemId').value;
+    var payload = {
+        action: 'updateSeedlingItem',
+        itemId: itemId,
+        name: document.getElementById('editName').value,
+        category: document.getElementById('editCategory').value,
+        price: parseFloat(document.getElementById('editPrice').value) || 6.00,
+        available: parseInt(document.getElementById('editAvailable').value) || null,
+        description: document.getElementById('editDescription').value,
+        imageUrl: document.getElementById('editImageUrl').value,
+        sourceUrl: document.getElementById('editSourceUrl').value
+    };
+
+    fetch(TINY_SEED_API.MAIN_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    })
+    .then(function(res) { return res.json(); })
+    .then(function(result) {
+        if (result.success) {
+            closeModal();
+            loadVarieties(); // Refresh
+            showToast('Variety updated successfully');
+        } else {
+            alert('Error saving: ' + (result.error || 'Unknown error'));
+        }
+    })
+    .catch(function(err) {
+        alert('Network error: ' + err.message);
+    });
+}
+
+// ═══════════════════════════════════════════════════
+// BULK SCRAPE
+// ═══════════════════════════════════════════════════
+function openBulkScrapeModal() {
+    document.getElementById('bulkScrapeModal').classList.add('active');
+    document.getElementById('bulkUrls').value = '';
+    document.getElementById('bulkResults').style.display = 'none';
+}
+
+function closeBulkModal() {
+    document.getElementById('bulkScrapeModal').classList.remove('active');
+}
+
+function runBulkScrape() {
+    var urls = document.getElementById('bulkUrls').value.trim().split('\n').filter(function(u) { return u.trim(); });
+    if (urls.length === 0) {
+        alert('Please enter at least one URL');
+        return;
+    }
+
+    var btn = document.getElementById('bulkScrapeBtn');
+    var results = document.getElementById('bulkResults');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner spinner"></i> Processing...';
+    results.style.display = 'block';
+    results.innerHTML = '<p>Processing ' + urls.length + ' URLs...</p>';
+
+    fetch(TINY_SEED_API.MAIN_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'bulkScrapeUrls', urls: urls })
+    })
+    .then(function(res) { return res.json(); })
+    .then(function(result) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-play"></i> Start Scraping';
+
+        if (result.success) {
+            var html = '<h4 style="margin-bottom:12px;color:var(--green-dark);"><i class="fas fa-check-circle"></i> Scraping Complete</h4>';
+            html += '<p>Processed: ' + result.processed + ' | Updated: ' + result.updated + ' | Failed: ' + result.failed + '</p>';
+            if (result.errors && result.errors.length > 0) {
+                html += '<details style="margin-top:8px;"><summary style="cursor:pointer;color:var(--red);">View errors</summary><ul style="padding-left:20px;margin-top:8px;">';
+                result.errors.forEach(function(e) { html += '<li>' + escapeHtml(e) + '</li>'; });
+                html += '</ul></details>';
+            }
+            results.innerHTML = html;
+            loadVarieties(); // Refresh table
+        } else {
+            results.innerHTML = '<p style="color:var(--red);"><i class="fas fa-exclamation-circle"></i> ' + (result.error || 'Bulk scrape failed') + '</p>';
+        }
+    })
+    .catch(function(err) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-play"></i> Start Scraping';
+        results.innerHTML = '<p style="color:var(--red);"><i class="fas fa-exclamation-circle"></i> Network error: ' + err.message + '</p>';
+    });
+}
+
+// ═══════════════════════════════════════════════════
+// EXPORT
+// ═══════════════════════════════════════════════════
+function exportData() {
+    var csv = 'Name,Category,Price,Available,Description,Image URL,Source URL\n';
+    varieties.forEach(function(v) {
+        csv += '"' + v.name + '","' + v.category + '",' + v.price + ',' + (v.available || '') + ',"' + (v.description || '').replace(/"/g, '""') + '","' + (v.imageUrl || '') + '","' + (v.sourceUrl || '') + '"\n';
+    });
+
+    var blob = new Blob([csv], { type: 'text/csv' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'seedling-varieties-' + new Date().toISOString().split('T')[0] + '.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+// ═══════════════════════════════════════════════════
+// UTILITIES
+// ═══════════════════════════════════════════════════
+function escapeHtml(str) {
+    if (!str) return '';
+    var div = document.createElement('div');
+    div.appendChild(document.createTextNode(str));
+    return div.innerHTML;
+}
+
+function showError(message) {
+    document.getElementById('varietiesTableBody').innerHTML = '<tr><td colspan="6"><div class="empty-state"><i class="fas fa-exclamation-triangle" style="color:var(--red);"></i><h3>Error</h3><p>' + escapeHtml(message) + '</p><button class="btn btn-primary" onclick="loadVarieties()" style="margin-top:12px;"><i class="fas fa-redo"></i> Retry</button></div></td></tr>';
+}
+
+function showToast(message) {
+    var existing = document.getElementById('admin-toast');
+    if (existing) existing.remove();
+
+    var toast = document.createElement('div');
+    toast.id = 'admin-toast';
+    toast.style.cssText = 'position:fixed;bottom:24px;right:24px;background:var(--green-deep);color:#fff;padding:16px 24px;border-radius:12px;font-weight:600;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.2);display:flex;align-items:center;gap:10px;';
+    toast.innerHTML = '<i class="fas fa-check-circle"></i> ' + message;
+    document.body.appendChild(toast);
+
+    setTimeout(function() { toast.remove(); }, 3000);
+}
+</script>
+
+</body>
+</html>

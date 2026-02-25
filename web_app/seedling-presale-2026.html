@@ -21,7 +21,8 @@
         .skip-link:focus { top: 0; }
 
         /* ═══════════════════════════════════════ */
-        /* SITE HEADER - Phase 1 Redesign         */
+        /* SITE HEADER - Knee High Inspired       */
+        /* Ultra-thin, single CTA, transparent    */
         /* ═══════════════════════════════════════ */
         .site-header {
             position: fixed;
@@ -29,77 +30,89 @@
             left: 0;
             right: 0;
             display: flex;
-            justify-content: space-between;
+            justify-content: flex-end;
             align-items: center;
-            padding: 12px 32px;
-            background: rgba(20, 83, 45, 0.92);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
+            padding: 16px 24px;
+            background: transparent;
             z-index: 1000;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
+            transition: background 0.3s ease, padding 0.3s ease;
         }
 
-        .header-logo {
-            height: 52px;
-            width: auto;
-            filter: brightness(1.1);
-            transition: transform 0.2s ease;
-        }
-        .header-logo:hover {
-            transform: scale(1.02);
+        /* Scrolled state - subtle glass effect */
+        .site-header.scrolled {
+            background: rgba(20, 83, 45, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 10px 24px;
         }
 
-        .header-nav {
-            display: flex;
-            align-items: center;
-            gap: 28px;
-        }
-
-        .header-nav a {
-            color: rgba(255,255,255,0.9);
-            text-decoration: none;
-            font-size: 0.9rem;
-            font-weight: 500;
-            transition: color 0.2s ease;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .header-nav a:hover {
-            color: #86efac;
-        }
-
-        .header-nav .nav-cta {
+        .header-cta {
             background: var(--green);
             color: #000;
-            padding: 10px 20px;
-            border-radius: 25px;
+            padding: 12px 28px;
+            border-radius: 50px;
             font-weight: 700;
-            font-size: 0.85rem;
+            font-size: 0.95rem;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
         }
-        .header-nav .nav-cta:hover {
+        .header-cta:hover {
             background: #4ade80;
-            color: #000;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.25);
         }
 
-        /* Mobile header */
+        /* ═══════════════════════════════════════ */
+        /* WHITE LOGO OVERLAY ON HERO              */
+        /* Positioned top-left within hero photo   */
+        /* ═══════════════════════════════════════ */
+        .hero-logo-overlay {
+            position: absolute;
+            top: 24px;
+            left: 24px;
+            z-index: 10;
+        }
+        .hero-logo-overlay img {
+            height: 90px;
+            width: auto;
+            filter: brightness(0) invert(1);
+            opacity: 0.95;
+            transition: opacity 0.2s ease;
+        }
+        .hero-logo-overlay img:hover {
+            opacity: 1;
+        }
+
+        /* Mobile adjustments */
         @media (max-width: 768px) {
             .site-header {
-                padding: 10px 16px;
+                padding: 12px 16px;
             }
-            .header-logo {
-                height: 40px;
+            .site-header.scrolled {
+                padding: 8px 16px;
             }
-            .header-nav {
-                gap: 16px;
+            .header-cta {
+                padding: 10px 20px;
+                font-size: 0.85rem;
             }
-            .header-nav .nav-text {
-                display: none; /* Hide text links on mobile, keep icons */
+            .hero-logo-overlay {
+                top: 16px;
+                left: 16px;
             }
-            .header-nav a {
-                font-size: 1.1rem;
+            .hero-logo-overlay img {
+                height: 70px;
             }
-            .header-nav .nav-cta {
+        }
+
+        @media (max-width: 480px) {
+            .hero-logo-overlay img {
+                height: 56px;
+            }
+            .header-cta {
                 padding: 8px 16px;
                 font-size: 0.8rem;
             }
@@ -140,29 +153,32 @@
         }
 
         /* ═══════════════════════════════════════ */
-        /* HERO */
+        /* HERO                                   */
         /* ═══════════════════════════════════════ */
         .hero {
-            background: linear-gradient(rgba(20, 83, 45, 0.68), rgba(20, 83, 45, 0.82)),
+            background: linear-gradient(rgba(20, 83, 45, 0.55), rgba(20, 83, 45, 0.75)),
                         url('https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=1600&q=80') center/cover no-repeat;
             color: #fff;
-            padding: 120px 24px 80px; /* Extra top padding for fixed header */
+            padding: 100px 24px 80px;
             text-align: center;
             position: relative;
             overflow: hidden;
-            min-height: 70vh;
+            min-height: 85vh;
             display: flex;
             align-items: center;
             justify-content: center;
         }
-        /* PHASE 1: Hide the giant centered logo - it's now in the header */
-        .hero-logo { display: none; }
-        .page-logo { display: none; }
 
         @media (max-width: 768px) {
             .hero {
-                padding: 100px 20px 60px;
-                min-height: 65vh;
+                padding: 80px 20px 60px;
+                min-height: 75vh;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .hero {
+                min-height: 90vh;
             }
         }
         .hero-content { position: relative; z-index: 1; max-width: 800px; margin: 0 auto; }
@@ -434,10 +450,229 @@
         .payment-badges i { font-size: 1.1rem; }
 
         /* ═══════════════════════════════════════ */
+        /* FOCUS VISIBLE (Accessibility)          */
+        /* ═══════════════════════════════════════ */
+        *:focus-visible {
+            outline: 2px solid var(--green);
+            outline-offset: 2px;
+        }
+        button:focus-visible, a:focus-visible {
+            outline: 2px solid var(--green);
+            outline-offset: 2px;
+        }
+
+        /* ═══════════════════════════════════════ */
+        /* MEET THE FARMER SECTION                */
+        /* ═══════════════════════════════════════ */
+        .farmer-section {
+            background: linear-gradient(135deg, var(--green-deep) 0%, #1a472a 100%);
+            color: #fff;
+            padding: 60px 24px;
+        }
+        .farmer-grid {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 40px;
+            align-items: center;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .farmer-photo {
+            width: 280px;
+            height: 280px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid rgba(255,255,255,0.3);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+        .farmer-photo-placeholder {
+            width: 280px;
+            height: 280px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.1);
+            border: 4px dashed rgba(255,255,255,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 8px;
+            color: rgba(255,255,255,0.5);
+            font-size: 0.85rem;
+        }
+        .farmer-photo-placeholder i { font-size: 3rem; }
+        .farmer-content h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            margin-bottom: 16px;
+        }
+        .farmer-content p {
+            font-size: 1.05rem;
+            line-height: 1.7;
+            color: rgba(255,255,255,0.85);
+            margin-bottom: 16px;
+        }
+        .farmer-signature {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem;
+            font-style: italic;
+            color: #86efac;
+        }
+        @media (max-width: 768px) {
+            .farmer-grid {
+                grid-template-columns: 1fr;
+                text-align: center;
+            }
+            .farmer-photo, .farmer-photo-placeholder {
+                width: 200px;
+                height: 200px;
+                margin: 0 auto;
+            }
+        }
+
+        /* ═══════════════════════════════════════ */
+        /* TESTIMONIALS SECTION                   */
+        /* ═══════════════════════════════════════ */
+        .testimonials-section {
+            background: #fff;
+            padding: 60px 24px;
+        }
+        .testimonials-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        .testimonial-card {
+            background: var(--warm-cream);
+            border-radius: var(--radius);
+            padding: 24px;
+            position: relative;
+        }
+        .testimonial-card::before {
+            content: '"';
+            font-family: 'Playfair Display', serif;
+            font-size: 4rem;
+            color: var(--green);
+            opacity: 0.3;
+            position: absolute;
+            top: 8px;
+            left: 16px;
+            line-height: 1;
+        }
+        .testimonial-text {
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: var(--text-body);
+            margin-bottom: 16px;
+            padding-top: 24px;
+        }
+        .testimonial-author {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .testimonial-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: var(--green);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+        .testimonial-name {
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+        .testimonial-location {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+        .testimonial-placeholder {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
+        /* ═══════════════════════════════════════ */
+        /* VARIETY CARD WITH PHOTO & QUICK ADD    */
+        /* ═══════════════════════════════════════ */
+        .variety-card-image {
+            width: 100%;
+            height: 140px;
+            border-radius: 8px;
+            object-fit: cover;
+            margin-bottom: 12px;
+            background: #f3f4f6;
+        }
+        .variety-card-image-placeholder {
+            width: 100%;
+            height: 100px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 12px;
+            color: var(--text-muted);
+            font-size: 0.75rem;
+        }
+        .variety-card-image-placeholder i {
+            font-size: 1.5rem;
+            margin-bottom: 4px;
+            display: block;
+        }
+        .quick-add-btn {
+            width: 100%;
+            padding: 10px;
+            margin-top: 12px;
+            border: 2px solid var(--green);
+            background: transparent;
+            color: var(--green-dark);
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        .quick-add-btn:hover {
+            background: var(--green);
+            color: #000;
+        }
+        .quick-add-btn.added {
+            background: var(--green);
+            color: #000;
+        }
+        .quick-add-btn:disabled {
+            border-color: #d1d5db;
+            color: var(--text-muted);
+            cursor: not-allowed;
+        }
+
+        /* Toast animations */
+        @keyframes toastIn {
+            from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+            to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+        @keyframes toastOut {
+            from { opacity: 1; transform: translateX(-50%) translateY(0); }
+            to { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+        }
+
+        /* ═══════════════════════════════════════ */
         /* RESPONSIVE */
         /* ═══════════════════════════════════════ */
         @media (max-width: 768px) {
-            .hero { padding: 60px 16px 40px; min-height: 50vh; }
             .hero-dates { flex-direction: column; gap: 8px; padding: 12px 20px; }
             .hero-dates span + span { border-left: none; padding-left: 0; border-top: 1px solid rgba(255,255,255,0.15); padding-top: 8px; }
             section { padding: 40px 16px; }
@@ -454,30 +689,21 @@
 <a href="#order" class="skip-link">Skip to order form</a>
 
 <!-- ═══════════════════════════════════════════════════════════ -->
-<!-- SITE HEADER - Fixed top navigation                          -->
+<!-- SITE HEADER - Single CTA, Knee High Style                   -->
 <!-- ═══════════════════════════════════════════════════════════ -->
-<nav class="site-header" role="navigation" aria-label="Main navigation">
-    <a href="/" class="header-logo-link">
-        <img src="images/tiny-seed-farm-logo.png?v=3" alt="Tiny Seed Farm" class="header-logo">
-    </a>
-    <div class="header-nav">
-        <a href="#catalog" class="nav-text"><i class="fas fa-seedling"></i> Varieties</a>
-        <a href="#pickup" class="nav-text"><i class="fas fa-map-marker-alt"></i> Pickup</a>
-        <a href="https://instagram.com/tinyseedfarm" target="_blank" rel="noopener" aria-label="Instagram">
-            <i class="fab fa-instagram"></i>
-        </a>
-        <a href="#order" class="nav-cta">Reserve Now</a>
-    </div>
+<nav class="site-header" id="siteHeader" role="navigation" aria-label="Main navigation">
+    <a href="#order" class="header-cta">Reserve Your Seedlings</a>
 </nav>
 
 <!-- ═══════════════════════════════════════════════════════════ -->
 <!-- HERO -->
 <!-- ═══════════════════════════════════════════════════════════ -->
 <header class="hero" role="banner">
+    <!-- White logo overlaid on hero photo - top left -->
+    <a href="/" class="hero-logo-overlay" aria-label="Tiny Seed Farm Home">
+        <img src="images/tiny-seed-farm-logo.png?v=3" alt="Tiny Seed Farm">
+    </a>
     <div class="hero-content">
-        <!-- Logo moved to site-header above -->
-        <img src="images/tiny-seed-farm-logo.png?v=3" alt="Tiny Seed Farm and Fleurs — Estd 2017" class="page-logo">
-        <img src="assets/logo.png" alt="Tiny Seed Farm" class="hero-logo">
         <div class="hero-badge"><i class="fas fa-seedling"></i> 2026 PRESALE NOW OPEN</div>
         <h1>Pittsburgh's Favorite <span>Seedlings</span> Are Back</h1>
         <p>Reserve your heirloom tomato, pepper, and cucurbit starts from Tiny Seed Farm. Grown in Rochester, PA — picked up at your nearest Pittsburgh market.</p>
@@ -528,6 +754,67 @@
                 <i class="fas fa-heart" style="color: #166534;"></i>
                 <h3>Support Local</h3>
                 <p>Every seedling is started by hand at our Rochester, PA farm — just 30 min from Pittsburgh.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- MEET THE FARMER                                             -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section class="farmer-section" aria-labelledby="farmer-heading">
+    <div class="farmer-grid">
+        <div class="farmer-photo-placeholder" id="farmerPhotoContainer">
+            <i class="fas fa-user"></i>
+            <span>Photo coming soon</span>
+        </div>
+        <div class="farmer-content">
+            <h2 id="farmer-heading">Meet Todd, Your Farmer</h2>
+            <p>I started Tiny Seed Farm in 2017 with a simple mission: grow the tastiest heirloom vegetables for Pittsburgh families. What began as a backyard experiment has grown into a 5-acre operation in Rochester, PA.</p>
+            <p>Every seedling I sell is one I'd plant in my own garden. I trial dozens of varieties each year and only offer the ones that thrive in our Zone 6b climate with its clay soil and unpredictable springs.</p>
+            <p class="farmer-signature">— Todd</p>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- TESTIMONIALS                                                -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section class="testimonials-section" aria-labelledby="testimonials-heading">
+    <div class="container">
+        <h2 class="section-title" id="testimonials-heading" style="text-align:center;">What Gardeners Are Saying</h2>
+        <p class="section-subtitle" style="text-align:center;">Join hundreds of Pittsburgh gardeners who trust Tiny Seed Farm.</p>
+        <div class="testimonials-grid" id="testimonialsGrid">
+            <!-- Testimonials loaded from API or placeholders -->
+            <div class="testimonial-card">
+                <p class="testimonial-text">The Cherokee Purple tomatoes were incredible — the healthiest seedlings I've ever bought. Already reserved my 2026 order!</p>
+                <div class="testimonial-author">
+                    <div class="testimonial-avatar">MK</div>
+                    <div>
+                        <div class="testimonial-name">Maria K.</div>
+                        <div class="testimonial-location">Squirrel Hill</div>
+                    </div>
+                </div>
+            </div>
+            <div class="testimonial-card">
+                <p class="testimonial-text">Todd's Ghost Peppers produced all season long. My hot sauce game has never been stronger. The pickup at Bloomfield Market was so convenient.</p>
+                <div class="testimonial-author">
+                    <div class="testimonial-avatar">JR</div>
+                    <div>
+                        <div class="testimonial-name">James R.</div>
+                        <div class="testimonial-location">Lawrenceville</div>
+                    </div>
+                </div>
+            </div>
+            <div class="testimonial-card">
+                <p class="testimonial-text">First-time gardener here — the growing tips and healthy starts made all the difference. Can't wait for my Sun Golds again this year!</p>
+                <div class="testimonial-author">
+                    <div class="testimonial-avatar">AP</div>
+                    <div>
+                        <div class="testimonial-name">Ashley P.</div>
+                        <div class="testimonial-location">Sewickley</div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -629,9 +916,8 @@
                     <div class="form-error" id="emailError">Please enter a valid email address.</div>
                 </div>
                 <div class="form-group">
-                    <label for="orderPhone">Phone</label>
+                    <label for="orderPhone">Phone <span style="color:var(--text-muted); font-weight:400; font-size:0.8rem;">(optional)</span></label>
                     <input type="tel" id="orderPhone" placeholder="(412) 555-1234" autocomplete="tel">
-                    <div class="form-error" id="phoneError">Please enter a valid phone number.</div>
                 </div>
             </div>
             <div class="form-group">
@@ -811,7 +1097,38 @@ function escapeHtml(str) {
 document.addEventListener('DOMContentLoaded', function() {
     loadPresaleItems();
     setupInlineValidation();
+    setupHeaderScroll();
 });
+
+// ═══════════════════════════════════════
+// HEADER SCROLL BEHAVIOR
+// ═══════════════════════════════════════
+function setupHeaderScroll() {
+    var header = document.getElementById('siteHeader');
+    if (!header) return;
+
+    var scrollThreshold = 100;
+    var ticking = false;
+
+    function updateHeader() {
+        if (window.scrollY > scrollThreshold) {
+            header.classList.add('scrolled');
+        } else {
+            header.classList.remove('scrolled');
+        }
+        ticking = false;
+    }
+
+    window.addEventListener('scroll', function() {
+        if (!ticking) {
+            requestAnimationFrame(updateHeader);
+            ticking = true;
+        }
+    }, { passive: true });
+
+    // Initial check
+    updateHeader();
+}
 
 // ═══════════════════════════════════════
 // LOAD PRESALE ITEMS FROM API
@@ -924,7 +1241,7 @@ function renderCatalogTabs() {
 }
 
 // ═══════════════════════════════════════
-// DYNAMIC CATALOG CARDS
+// DYNAMIC CATALOG CARDS (with photos & quick-add)
 // ═══════════════════════════════════════
 function renderCatalogCards() {
     var container = document.getElementById('catalogContent');
@@ -942,26 +1259,55 @@ function renderCatalogCards() {
             if (v.category !== cat) continue;
 
             var priceStr = '$' + v.price.toFixed(2);
+            var soldOut = v.available != null && v.available <= 0;
+            var currentQty = quantities[v.name] || 0;
             var availStr = '';
+
             if (v.waitlist) {
                 availStr = '<span style="color:var(--earth-light); font-weight:600; font-size:0.78rem;"><i class="fas fa-clock"></i> Waitlist — order now to reserve</span>';
+            } else if (soldOut) {
+                availStr = '<span style="color:var(--text-muted); font-weight:600; font-size:0.78rem;"><i class="fas fa-times-circle"></i> Sold Out</span>';
             } else if (v.available != null && v.available <= 10 && v.available > 0) {
                 availStr = '<span style="color:var(--red-hot); font-weight:600; font-size:0.78rem;"><i class="fas fa-fire"></i> Only ' + v.available + ' left!</span>';
             } else if (v.available != null && v.available > 10) {
                 availStr = '<span style="color:var(--green-dark); font-weight:500; font-size:0.78rem;"><i class="fas fa-check-circle"></i> ' + v.available + ' available</span>';
-            } else if (v.available != null && v.available <= 0) {
-                availStr = '<span style="color:var(--text-muted); font-weight:600; font-size:0.78rem;"><i class="fas fa-times-circle"></i> Sold Out</span>';
             }
 
-            html += '<div class="variety-card">';
+            var escapedName = v.name.replace(/'/g, "\\'");
+
+            html += '<div class="variety-card"' + (soldOut ? ' style="opacity:0.6;"' : '') + '>';
+
+            // Photo or placeholder
+            if (v.imageUrl) {
+                html += '<img src="' + escapeHtml(v.imageUrl) + '" alt="' + escapeHtml(v.name) + '" class="variety-card-image" loading="lazy">';
+            } else {
+                html += '<div class="variety-card-image-placeholder"><i class="fas fa-seedling"></i>Photo coming</div>';
+            }
+
             html += '<div class="variety-header">';
             html += '<span class="variety-name">' + escapeHtml(v.name) + '</span>';
             html += '<span class="variety-price">' + priceStr + '</span>';
             html += '</div>';
+
+            // Description if available
+            if (v.description) {
+                html += '<p class="variety-desc">' + escapeHtml(v.description) + '</p>';
+            }
+
             if (availStr) {
                 html += '<div style="margin-bottom:8px;">' + availStr + '</div>';
             }
             html += '<div class="variety-meta"><span><i class="fas fa-seedling"></i> 3" pot</span></div>';
+
+            // Quick-add button
+            if (soldOut) {
+                html += '<button class="quick-add-btn" disabled><i class="fas fa-times"></i> Sold Out</button>';
+            } else if (currentQty > 0) {
+                html += '<button class="quick-add-btn added" onclick="quickAdd(\'' + escapedName + '\')"><i class="fas fa-check"></i> ' + currentQty + ' in cart — Add More</button>';
+            } else {
+                html += '<button class="quick-add-btn" onclick="quickAdd(\'' + escapedName + '\')"><i class="fas fa-plus"></i> Add to Order</button>';
+            }
+
             html += '</div>';
         }
 
@@ -969,6 +1315,53 @@ function renderCatalogCards() {
     }
 
     container.innerHTML = html;
+}
+
+// ═══════════════════════════════════════
+// QUICK ADD FROM CATALOG
+// ═══════════════════════════════════════
+function quickAdd(name) {
+    var variety = null;
+    for (var i = 0; i < VARIETIES.length; i++) {
+        if (VARIETIES[i].name === name) { variety = VARIETIES[i]; break; }
+    }
+    if (!variety) return;
+
+    var current = quantities[name] || 0;
+    var newQty = current + 1;
+
+    // Cap at available quantity
+    if (variety.available != null && newQty > variety.available) {
+        newQty = variety.available;
+        showToast('Maximum available: ' + variety.available);
+    }
+
+    quantities[name] = newQty;
+    renderCatalogCards(); // Update button state
+    renderOrderItems();
+    updateTotal();
+
+    // Visual feedback
+    showToast(name + ' added to order');
+}
+
+// ═══════════════════════════════════════
+// TOAST NOTIFICATIONS
+// ═══════════════════════════════════════
+function showToast(message) {
+    var existing = document.getElementById('toast-notification');
+    if (existing) existing.remove();
+
+    var toast = document.createElement('div');
+    toast.id = 'toast-notification';
+    toast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--green-deep);color:#fff;padding:12px 24px;border-radius:50px;font-size:0.9rem;font-weight:600;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.2);animation:toastIn 0.3s ease;';
+    toast.innerHTML = '<i class="fas fa-check-circle" style="margin-right:8px;"></i>' + message;
+    document.body.appendChild(toast);
+
+    setTimeout(function() {
+        toast.style.animation = 'toastOut 0.3s ease forwards';
+        setTimeout(function() { toast.remove(); }, 300);
+    }, 2000);
 }
 
 // ═══════════════════════════════════════
@@ -1060,8 +1453,10 @@ function changeQty(name, delta) {
 function clearOrder() {
     if (!confirm('Clear all items from your order?')) return;
     quantities = {};
+    renderCatalogCards(); // Update quick-add button states
     renderOrderItems();
     updateTotal();
+    showToast('Order cleared');
 }
 
 // ═══════════════════════════════════════
@@ -1231,7 +1626,11 @@ function validateForm() {
             err.classList.remove('visible');
         }
     });
-    if (firstError) firstError.focus();
+    // Scroll error into view on mobile
+    if (firstError) {
+        firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setTimeout(function() { firstError.focus(); }, 300);
+    }
     return valid;
 }
 

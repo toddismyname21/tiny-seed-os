@@ -17568,6 +17568,8 @@ function doGet(e) {
         return jsonResponse(getSeedlingSales(e.parameter));
       case 'getSeedlingPresaleItems':
         return jsonResponse(getSeedlingPresaleItems(e.parameter));
+      case 'scrapeProductUrl':
+        return jsonResponse(scrapeProductUrl(e.parameter));
       case 'getSeedlingSalesHistorical':
         return jsonResponse(getSeedlingSalesHistorical(e.parameter));
       case 'getSeedlingTimeline':
@@ -18947,6 +18949,10 @@ function doPost(e) {
         return jsonResponse(reportGreenhouseProblem(data));
       case 'bulkImportSeedlingData':
         return jsonResponse(bulkImportSeedlingData(data));
+      case 'updateSeedlingItem':
+        return jsonResponse(updateSeedlingItem(data));
+      case 'bulkScrapeUrls':
+        return jsonResponse(bulkScrapeUrls(data));
       case 'updateSeedlingStatus':
         return jsonResponse(updateSeedlingStatus(data));
       case 'cleanupTestSeedlingOrders':
@@ -131146,6 +131152,263 @@ function getSeedlingPresaleItems(params) {
   }
 
   return { success: true, data: items, count: items.length, phase: phase, cutoffDate: PRESALE_CUTOFF_DATE };
+}
+
+// ============ SEEDLING ADMIN API ENDPOINTS ============
+
+function updateSeedlingItem(params) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('SEEDLING_PRODUCTION');
+  if (!sheet) return { success: false, error: 'SEEDLING_PRODUCTION sheet not found' };
+
+  var itemId = params.itemId;
+  if (!itemId) return { success: false, error: 'itemId is required' };
+
+  var data = sheet.getDataRange().getValues();
+  var headers = data[0];
+
+  // Find column indices
+  var cols = {};
+  for (var h = 0; h < headers.length; h++) {
+    cols[headers[h]] = h;
+  }
+
+  // Find the row with matching Item_ID
+  var targetRow = -1;
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][cols['Item_ID']]) === String(itemId)) {
+      targetRow = i + 1; // 1-indexed for sheet
+      break;
+    }
+  }
+
+  if (targetRow === -1) return { success: false, error: 'Item not found: ' + itemId };
+
+  // Update fields if provided
+  var updates = [];
+  if (params.name !== undefined && cols['Variety'] !== undefined) {
+    sheet.getRange(targetRow, cols['Variety'] + 1).setValue(params.name);
+    updates.push('name');
+  }
+  if (params.category !== undefined && cols['Category'] !== undefined) {
+    sheet.getRange(targetRow, cols['Category'] + 1).setValue(params.category);
+    updates.push('category');
+  }
+  if (params.price !== undefined && cols['Price_Each'] !== undefined) {
+    sheet.getRange(targetRow, cols['Price_Each'] + 1).setValue(params.price);
+    updates.push('price');
+  }
+  if (params.available !== undefined && cols['Alloc_Presale'] !== undefined) {
+    sheet.getRange(targetRow, cols['Alloc_Presale'] + 1).setValue(params.available);
+    updates.push('available');
+  }
+  if (params.description !== undefined) {
+    // Add Description column if it doesn't exist
+    if (cols['Description'] === undefined) {
+      sheet.getRange(1, headers.length + 1).setValue('Description');
+      cols['Description'] = headers.length;
+    }
+    sheet.getRange(targetRow, cols['Description'] + 1).setValue(params.description);
+    updates.push('description');
+  }
+  if (params.imageUrl !== undefined) {
+    // Add Image_URL column if it doesn't exist
+    if (cols['Image_URL'] === undefined) {
+      var nextCol = headers.length + (params.description !== undefined && cols['Description'] === headers.length ? 1 : 0) + 1;
+      sheet.getRange(1, nextCol).setValue('Image_URL');
+      cols['Image_URL'] = nextCol - 1;
+    }
+    sheet.getRange(targetRow, cols['Image_URL'] + 1).setValue(params.imageUrl);
+    updates.push('imageUrl');
+  }
+  if (params.sourceUrl !== undefined) {
+    // Add Source_URL column if it doesn't exist
+    if (cols['Source_URL'] === undefined) {
+      var descOffset = (params.description !== undefined && !data[0].includes('Description')) ? 1 : 0;
+      var imgOffset = (params.imageUrl !== undefined && !data[0].includes('Image_URL')) ? 1 : 0;
+      var nextCol = headers.length + descOffset + imgOffset + 1;
+      sheet.getRange(1, nextCol).setValue('Source_URL');
+      cols['Source_URL'] = nextCol - 1;
+    }
+    sheet.getRange(targetRow, cols['Source_URL'] + 1).setValue(params.sourceUrl);
+    updates.push('sourceUrl');
+  }
+
+  return { success: true, itemId: itemId, updated: updates };
+}
+
+function scrapeProductUrl(params) {
+  var url = params.url;
+  if (!url) return { success: false, error: 'URL is required' };
+
+  try {
+    var response = UrlFetchApp.fetch(url, {
+      muteHttpExceptions: true,
+      followRedirects: true,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; TinySeedFarm/1.0; +https://tinyseedfarm.com)'
+      }
+    });
+
+    var html = response.getContentText();
+    var result = { success: true, data: {} };
+
+    // Extract description - try multiple patterns
+    var descPatterns = [
+      /<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i,
+      /<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']+)["']/i,
+      /<div[^>]+class=["'][^"']*product[_-]?description[^"']*["'][^>]*>([^<]+)/i,
+      /<p[^>]+class=["'][^"']*description[^"']*["'][^>]*>([^<]+)/i
+    ];
+    for (var d = 0; d < descPatterns.length; d++) {
+      var descMatch = html.match(descPatterns[d]);
+      if (descMatch && descMatch[1]) {
+        result.data.description = descMatch[1].replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;/g, "'").trim();
+        break;
+      }
+    }
+
+    // Extract image - try multiple patterns
+    var imgPatterns = [
+      /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i,
+      /<img[^>]+class=["'][^"']*product[_-]?image[^"']*["'][^>]+src=["']([^"']+)["']/i,
+      /<img[^>]+id=["'][^"']*product[_-]?image[^"']*["'][^>]+src=["']([^"']+)["']/i,
+      /data-src=["']([^"']+\.(jpg|jpeg|png|webp)[^"']*)["']/i
+    ];
+    for (var i = 0; i < imgPatterns.length; i++) {
+      var imgMatch = html.match(imgPatterns[i]);
+      if (imgMatch && imgMatch[1]) {
+        var imgUrl = imgMatch[1];
+        // Make relative URLs absolute
+        if (imgUrl.startsWith('//')) {
+          imgUrl = 'https:' + imgUrl;
+        } else if (imgUrl.startsWith('/')) {
+          var baseUrl = url.match(/^(https?:\/\/[^\/]+)/);
+          if (baseUrl) imgUrl = baseUrl[1] + imgUrl;
+        }
+        result.data.imageUrl = imgUrl;
+        break;
+      }
+    }
+
+    // Extract product name if needed
+    var namePatterns = [
+      /<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i,
+      /<h1[^>]*>([^<]+)<\/h1>/i,
+      /<title>([^<]+)<\/title>/i
+    ];
+    for (var n = 0; n < namePatterns.length; n++) {
+      var nameMatch = html.match(namePatterns[n]);
+      if (nameMatch && nameMatch[1]) {
+        result.data.productName = nameMatch[1].replace(/&amp;/g, '&').trim();
+        break;
+      }
+    }
+
+    if (!result.data.description && !result.data.imageUrl) {
+      return { success: false, error: 'Could not extract product data from this URL' };
+    }
+
+    return result;
+  } catch (e) {
+    return { success: false, error: 'Failed to fetch URL: ' + e.message };
+  }
+}
+
+function bulkScrapeUrls(params) {
+  var urls = params.urls;
+  if (!urls || !urls.length) return { success: false, error: 'URLs array is required' };
+
+  var processed = 0;
+  var updated = 0;
+  var failed = 0;
+  var errors = [];
+
+  for (var i = 0; i < urls.length; i++) {
+    var url = urls[i].trim();
+    if (!url) continue;
+    processed++;
+
+    try {
+      // Scrape the URL
+      var scrapeResult = scrapeProductUrl({ url: url });
+      if (!scrapeResult.success || !scrapeResult.data) {
+        errors.push(url + ': ' + (scrapeResult.error || 'No data found'));
+        failed++;
+        continue;
+      }
+
+      // Try to find matching variety by URL or product name
+      var productName = scrapeResult.data.productName || '';
+      var matched = findMatchingVariety_(productName, url);
+
+      if (matched) {
+        var updateResult = updateSeedlingItem({
+          itemId: matched.Item_ID,
+          description: scrapeResult.data.description,
+          imageUrl: scrapeResult.data.imageUrl,
+          sourceUrl: url
+        });
+        if (updateResult.success) {
+          updated++;
+        } else {
+          errors.push(url + ': Update failed - ' + updateResult.error);
+          failed++;
+        }
+      } else {
+        errors.push(url + ': No matching variety found for "' + productName + '"');
+        failed++;
+      }
+
+      // Rate limiting
+      Utilities.sleep(500);
+    } catch (e) {
+      errors.push(url + ': ' + e.message);
+      failed++;
+    }
+  }
+
+  return { success: true, processed: processed, updated: updated, failed: failed, errors: errors };
+}
+
+function findMatchingVariety_(productName, url) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('SEEDLING_PRODUCTION');
+  if (!sheet) return null;
+
+  var data = sheet.getDataRange().getValues();
+  var headers = data[0];
+  var cols = {};
+  for (var h = 0; h < headers.length; h++) {
+    cols[headers[h]] = h;
+  }
+
+  var nameCol = cols['Variety'] !== undefined ? cols['Variety'] : cols['Crop'];
+  var sourceCol = cols['Source_URL'];
+  var searchName = productName.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+  for (var i = 1; i < data.length; i++) {
+    // Check if Source_URL already matches
+    if (sourceCol !== undefined && data[i][sourceCol] === url) {
+      return rowToObject_(data[i], headers);
+    }
+
+    // Check name match
+    var varietyName = String(data[i][nameCol] || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (searchName.indexOf(varietyName) !== -1 || varietyName.indexOf(searchName) !== -1) {
+      return rowToObject_(data[i], headers);
+    }
+  }
+
+  return null;
+}
+
+function rowToObject_(row, headers) {
+  var obj = {};
+  for (var h = 0; h < headers.length; h++) {
+    obj[headers[h]] = row[h];
+  }
+  return obj;
 }
 
 function getSeedlingSalesHistorical(params) {
