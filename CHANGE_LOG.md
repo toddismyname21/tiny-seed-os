@@ -38,6 +38,37 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-02-27 — PM Tooling Upgrade: Hooks, getSheetSchema, CLAUDE.md Pruning
+
+**Role:** PM_Architect
+**Deploy:** @700
+
+### Summary
+Four-action PM tooling upgrade: automated enforcement hooks, new backend introspection endpoint, CLAUDE.md pruning, and commit triage.
+
+### Files Created
+- `scripts/hooks/pre-tool-guard.sh` — PreToolUse hook blocking bare `clasp deploy`, `rm -rf /`, `git push --force main`
+- `scripts/hooks/post-edit-validate.sh` — PostToolUse hook running element ref validation and API URL checks after edits
+- `docs/CLAUDE_MD_REFERENCE.md` — Extended reference tables moved from CLAUDE.md (dashboards, UX audit, preflight scripts)
+
+### Files Modified
+- `.claude/settings.local.json` — Added hooks config (PreToolUse, PostToolUse, Notification)
+- `apps_script/MERGED TOTAL.js` — Added `getSheetSchema()` function and `case 'getSheetSchema'` endpoint
+- `CLAUDE.md` — Pruned from 324 → 180 lines, moved detailed tables to docs/CLAUDE_MD_REFERENCE.md
+
+### Functions Added
+- `getSheetSchema(sheetName)` in `MERGED TOTAL.js` — Returns column headers, row count, column count, sample row for any sheet
+
+### Reason
+Turn paper governance rules into automated enforcement. Eliminate blind spots (sheet schema). Sharpen CLAUDE.md so rules aren't lost in noise.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions (no existing getSheetSchema)
+- [x] No duplicates created
+
+---
+
 ## 2026-02-27 — Overdue Tasks Never Hidden + Seed Lot Backfill + UL-247 Printer Research
 
 **Role:** PM_Architect
