@@ -38,6 +38,37 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-02-26 — HIGH Priority UX Fixes (Fonts, Meta Descriptions, Accessibility)
+
+**Role:** PM_Architect / UX_Design_Claude
+
+### Files Modified
+- `web_app/chef-order.html` — Font changed from DM Sans to Inter; green updated to #2d9f4e; meta description added; skip-to-content link + ARIA landmarks added
+- `web_app/customer.html` — Meta description added; skip-to-content link + ARIA landmarks added
+- `web_app/csa.html` — Meta description added; skip-to-content link + ARIA landmarks added
+- `web_app/wholesale.html` — Skip-to-content link + ARIA landmarks added
+- `web_app/delivery-zone-checker.html` — Meta description added; skip-to-content link + ARIA landmarks added
+- `web_app/csa-unified-finder.html` — Meta description added; skip-to-content link + ARIA landmarks added
+- `web_app/neighbor.html` — Skip-to-content link + ARIA landmarks added
+- `web_app/sales.html` — Meta description added; skip-to-content link + ARIA landmarks added
+- `web_app/log-commitment.html` — Meta description added; skip-to-content link + ARIA landmarks added
+- `web_app/seedling-presale-2026.html` — Already had all accessibility features (no changes needed)
+- `web_app/index.html` — Meta description added
+- `web_app/employee-register.html` — Meta description added
+- `web_app/farmers-market.html` — Meta description added
+- `web_app/food-safety.html` — Meta description added
+- `web_app/financial-dashboard.html` — Meta description added
+
+### Reason
+Full OS UX audit identified HIGH priority issues: font inconsistency (DM Sans in chef-order.html), 12+ customer-facing/admin pages missing meta descriptions, zero ARIA labels or skip-to-content links on customer-facing pages. All 10 customer-facing pages now have skip-to-content, role="main", role="navigation", and aria-label attributes.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
 ## 2026-02-26 — Critical UX Audit Fixes (Security, API Config, Theme)
 
 **Role:** PM_Architect

@@ -8,6 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="manifest" href="../manifest.json">
   <title>Check Delivery Availability | Tiny Seed Farm</title>
+  <meta name="description" content="Check if your address is in Tiny Seed Farm's delivery zone. Enter your Pittsburgh-area address to find nearby CSA pickup locations or home delivery options.">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <!-- Leaflet CSS -->
@@ -16,6 +17,9 @@
   <!-- UNIFIED API CONFIG - SINGLE SOURCE OF TRUTH -->
   <script src="api-config.js"></script>
   <style>
+    .skip-link { position: absolute; top: -40px; left: 0; background: #166534; color: #fff; padding: 8px 16px; z-index: 10000; font-size: 14px; transition: top 0.2s; }
+    .skip-link:focus { top: 0; }
+
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     :root {
@@ -518,12 +522,13 @@
   </style>
 </head>
 <body>
-  <div class="header">
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+  <div class="header" role="navigation" aria-label="Main navigation">
     <h1><i class="fas fa-seedling"></i> Tiny Seed Farm</h1>
     <p>Check Home Delivery Availability</p>
   </div>
 
-  <div class="main-container">
+  <div class="main-container" id="main-content" role="main">
     <!-- Sidebar -->
     <div class="sidebar">
       <!-- Input Form -->

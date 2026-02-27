@@ -15,6 +15,9 @@
     <link rel="stylesheet" href="tiny-seed-design-system.css">
     <script src="api-config.js"></script>
     <style>
+        .skip-link { position: absolute; top: -40px; left: 0; background: #166534; color: #fff; padding: 8px 16px; z-index: 10000; font-size: 14px; transition: top 0.2s; }
+        .skip-link:focus { top: 0; }
+
         * {
             margin: 0;
             padding: 0;
@@ -643,8 +646,9 @@
     </style>
 </head>
 <body>
+    <a href="#main-content" class="skip-link">Skip to main content</a>
     <!-- Hero Section -->
-    <section class="hero">
+    <section class="hero" role="navigation" aria-label="Main navigation">
         <div class="hero-content">
             <div class="hero-badge">
                 <i class="fas fa-seedling"></i> Your Local Farm
@@ -660,7 +664,7 @@
     </section>
 
     <!-- Introduction Section -->
-    <section class="intro">
+    <section class="intro" id="main-content" role="main">
         <div class="intro-grid">
             <div class="intro-image">
                 <img src="https://images.unsplash.com/photo-1595855759920-86582396756a?w=600&q=80" alt="Fresh farm vegetables">

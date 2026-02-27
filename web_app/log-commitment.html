@@ -8,6 +8,7 @@
     <meta name="apple-mobile-web-app-title" content="Log Promise">
     <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%23059669' width='100' height='100' rx='20'/><text x='50' y='65' text-anchor='middle' font-size='50'>✓</text></svg>">
     <title>Log Commitment | Tiny Seed</title>
+    <meta name="description" content="Log your commitment to Tiny Seed Farm. Track your CSA participation and community-supported agriculture journey.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -15,6 +16,9 @@
     <script src="api-config.js"></script>
     <script src="auth-guard.js" data-required-role="Admin"></script>
     <style>
+        .skip-link { position: absolute; top: -40px; left: 0; background: #166534; color: #fff; padding: 8px 16px; z-index: 10000; font-size: 14px; transition: top 0.2s; }
+        .skip-link:focus { top: 0; }
+
         * {
             box-sizing: border-box;
             -webkit-tap-highlight-color: transparent;
@@ -438,13 +442,15 @@
     </style>
 </head>
 <body>
+    <a href="#main-content" class="skip-link">Skip to main content</a>
     <div class="container">
-        <div class="header">
+        <div class="header" role="navigation" aria-label="Main navigation">
             <h1>Log Commitment</h1>
             <p>AI-powered promise tracking</p>
         </div>
 
         <!-- Input Card -->
+        <div id="main-content" role="main">
         <div class="card input-card" id="inputCard">
             <div class="input-group">
                 <label>Message</label>
@@ -547,6 +553,7 @@
             <div id="historyList">
                 <div class="empty-history">No recent logs</div>
             </div>
+        </div>
         </div>
     </div>
 

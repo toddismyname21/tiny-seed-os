@@ -7,6 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#166534">
     <title>Tiny Seed Farm - CSA Member Portal</title>
+    <meta name="description" content="Manage your Tiny Seed Farm CSA membership. View weekly shares, customize your box, check pickup schedules, and explore seasonal recipes.">
     <script src="api-config.js"></script>
     <script src="auth-guard.js" data-required-role="Customer"></script>
     <link rel="manifest" href="manifest.json">
@@ -14,6 +15,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="tiny-seed-design-system.css">
     <style>
+        .skip-link { position: absolute; top: -40px; left: 0; background: #166534; color: #fff; padding: 8px 16px; z-index: 10000; font-size: 14px; transition: top 0.2s; }
+        .skip-link:focus { top: 0; }
+
         /* ═══════════════════════════════════════════════════════════════════════════
            TINY SEED FARM - EXCEPTIONAL CSA MEMBER PORTAL
            State-of-the-art member experience
@@ -2111,6 +2115,7 @@
     </style>
 </head>
 <body>
+    <a href="#main-content" class="skip-link">Skip to main content</a>
     <!-- Pull to Refresh Indicator -->
     <div class="pull-indicator" id="pullIndicator">
         <i class="fas fa-sync-alt"></i>
@@ -2413,7 +2418,8 @@
     <!-- ═══════════════════════════════════════════════════════════════════════════
          MAIN APP
          ═══════════════════════════════════════════════════════════════════════════ -->
-    <div class="app-container" id="appContainer">
+    <div class="app-container" id="appContainer" role="main">
+        <div id="main-content"></div>
         <!-- Home Tab -->
         <div class="tab-content active" id="tab-home">
             <!-- Smart Alert Banner -->
@@ -2974,7 +2980,7 @@
         </div>
 
         <!-- Bottom Navigation -->
-        <nav class="bottom-nav">
+        <nav class="bottom-nav" role="navigation" aria-label="Main navigation">
             <button class="nav-item active" onclick="switchTab('home')">
                 <i class="fas fa-home"></i>
                 Home

@@ -9,6 +9,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="tiny-seed-design-system.css">
     <style>
+        .skip-link { position: absolute; top: -40px; left: 0; background: #166534; color: #fff; padding: 8px 16px; z-index: 10000; font-size: 14px; transition: top 0.2s; }
+        .skip-link:focus { top: 0; }
+
         /* ═══════════════════════════════════════════════════════════════════════════
            TINY SEED FARM - WHOLESALE PORTAL
            Professional B2B ordering interface
@@ -1203,6 +1206,7 @@
     </style>
 </head>
 <body>
+    <a href="#main-content" class="skip-link">Skip to main content</a>
     <!-- ═══════════════════════════════════════════════════════════════════════════
          LOGIN SCREEN
          ═══════════════════════════════════════════════════════════════════════════ -->
@@ -1248,7 +1252,7 @@
          MAIN APP
          ═══════════════════════════════════════════════════════════════════════════ -->
     <div class="app-container" id="appContainer">
-        <header class="header">
+        <header class="header" role="navigation" aria-label="Main navigation">
             <div class="logo">
                 <div class="logo-icon">🌱</div>
                 <span class="logo-text">Tiny Seed Farm</span>
@@ -1272,7 +1276,7 @@
             <button class="nav-tab admin-only" onclick="switchTab('manage')" id="manageTab" style="display:none;">👥 Manage Chefs</button>
         </nav>
 
-        <main class="main-content">
+        <main class="main-content" id="main-content" role="main">
             <!-- Catalog Tab -->
             <div class="tab-content active" id="tab-catalog">
                 <div class="filters-bar">

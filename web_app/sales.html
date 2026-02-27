@@ -4,10 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tiny Seed Farm - Sales Dashboard</title>
+    <meta name="description" content="Tiny Seed Farm sales dashboard. Track orders, manage wholesale accounts, and monitor farm revenue across all sales channels.">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="tiny-seed-design-system.css">
     <script src="auth-guard.js" data-required-role="Manager"></script>
     <style>
+        .skip-link { position: absolute; top: -40px; left: 0; background: #166534; color: #fff; padding: 8px 16px; z-index: 10000; font-size: 14px; transition: top 0.2s; }
+        .skip-link:focus { top: 0; }
+
         /* ========================================
            TINY SEED SALES DASHBOARD - CSS
            ======================================== */
@@ -2205,9 +2209,10 @@
     </style>
 </head>
 <body>
+    <a href="#main-content" class="skip-link">Skip to main content</a>
     <div class="app-container">
         <!-- Sidebar -->
-        <aside class="sidebar">
+        <aside class="sidebar" role="navigation" aria-label="Main navigation">
             <div class="sidebar-header">
                 <div class="logo">
                     <div class="logo-icon">🌱</div>
@@ -2277,7 +2282,7 @@
         </aside>
 
         <!-- Main Content -->
-        <main class="main-content">
+        <main class="main-content" id="main-content" role="main">
             <!-- Header -->
             <header class="header">
                 <div class="header-left">

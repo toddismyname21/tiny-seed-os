@@ -4,11 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Find Your CSA Option | Tiny Seed Farm Pittsburgh</title>
+  <meta name="description" content="Find your nearest Tiny Seed Farm CSA pickup location. Search by address to discover weekly farm share pickup spots across the Pittsburgh area.">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="tiny-seed-design-system.css">
   <script src="api-config.js"></script>
   <style>
+    .skip-link { position: absolute; top: -40px; left: 0; background: #166534; color: #fff; padding: 8px 16px; z-index: 10000; font-size: 14px; transition: top 0.2s; }
+    .skip-link:focus { top: 0; }
+
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     :root {
@@ -444,14 +448,15 @@
   </style>
 </head>
 <body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
   <div class="widget-container">
-    <div class="widget-header">
+    <div class="widget-header" role="navigation" aria-label="Main navigation">
       <h2><i class="fas fa-seedling"></i> Find Your CSA Option</h2>
       <p>Pickup locations OR home delivery - you choose!</p>
     </div>
 
     <!-- Tabs -->
-    <div class="tabs">
+    <div class="tabs" id="main-content" role="main">
       <div class="tab active" onclick="switchTab('pickup')">
         <i class="fas fa-store"></i>
         Pickup Locations

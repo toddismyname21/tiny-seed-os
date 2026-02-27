@@ -7,11 +7,15 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Tiny Seed Farm - Order Portal</title>
+    <meta name="description" content="Order fresh, local produce from Tiny Seed Farm. Browse seasonal vegetables, herbs, and flowers for pickup or delivery in the Pittsburgh area.">
     <script src="api-config.js"></script>
     <script src="auth-guard.js" data-required-role="Customer"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="tiny-seed-design-system.css">
     <style>
+        .skip-link { position: absolute; top: -40px; left: 0; background: #166534; color: #fff; padding: 8px 16px; z-index: 10000; font-size: 14px; transition: top 0.2s; }
+        .skip-link:focus { top: 0; }
+
         /* ========================================
            TINY SEED CUSTOMER PORTAL - CSS
            Mobile-First Design
@@ -1314,8 +1318,9 @@
     </style>
 </head>
 <body>
+    <a href="#main-content" class="skip-link">Skip to main content</a>
     <!-- Header -->
-    <header class="header">
+    <header class="header" role="navigation" aria-label="Main navigation">
         <div class="logo">
             <div class="logo-icon">🌱</div>
             <div class="logo-text">Tiny Seed Farm</div>
@@ -1393,7 +1398,7 @@
     <!-- Main App -->
     <div class="app-container" id="appContainer">
         <!-- Page Content -->
-        <div class="page-content">
+        <div class="page-content" id="main-content" role="main">
             <!-- Shop Tab -->
             <div class="tab-content active" id="tab-shop">
                 <div class="shop-header">

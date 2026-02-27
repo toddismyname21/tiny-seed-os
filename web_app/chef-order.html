@@ -7,12 +7,16 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1a1a2e">
     <title>Tiny Seed Farm | Chef Orders</title>
+    <meta name="description" content="Wholesale ordering portal for Pittsburgh chefs. Browse seasonal produce, place recurring orders, and get farm-fresh ingredients delivered to your restaurant.">
     <link rel="manifest" href="chef-manifest.json">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="tiny-seed-design-system.css">
     <script src="api-config.js"></script>
     <script src="auth-guard.js" data-required-role="Customer"></script>
     <style>
+        .skip-link { position: absolute; top: -40px; left: 0; background: #166534; color: #fff; padding: 8px 16px; z-index: 10000; font-size: 14px; transition: top 0.2s; }
+        .skip-link:focus { top: 0; }
+
         /* ═══════════════════════════════════════════════════════════════════════════
            TINY SEED FARM - CHEF ORDERING APP
            State-of-the-art mobile-first B2B ordering experience
@@ -20,8 +24,8 @@
            ═══════════════════════════════════════════════════════════════════════════ */
 
         :root {
-            --primary: var(--ts-green-500, #22c55e);
-            --primary-dark: var(--ts-green-600, #16a34a);
+            --primary: var(--ts-green-500, #2d9f4e);
+            --primary-dark: var(--ts-green-600, #248c42);
             --secondary: var(--ts-bg-base, #1a1a2e);
             --accent: var(--ts-amber-500, #f59e0b);
             --danger: var(--ts-red-500, #ef4444);
@@ -44,7 +48,7 @@
         }
 
         body {
-            font-family: var(--ts-font-sans, 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif);
+            font-family: var(--ts-font-sans, 'Inter', -apple-system, BlinkMacSystemFont, sans-serif);
             background: var(--bg-main);
             color: var(--text-primary);
             min-height: 100vh;
@@ -1338,6 +1342,7 @@
     </style>
 </head>
 <body>
+    <a href="#main-content" class="skip-link">Skip to main content</a>
     <!-- Login Screen -->
     <div class="login-screen" id="loginScreen">
         <div class="login-logo">🌱</div>
@@ -1365,7 +1370,7 @@
     <!-- Main App -->
     <div class="app-container" id="appContainer">
         <!-- Header -->
-        <header class="header">
+        <header class="header" role="navigation" aria-label="Main navigation">
             <div class="header-top">
                 <div class="header-logo">
                     <div class="header-logo-icon">🌱</div>
@@ -1394,6 +1399,7 @@
             <button class="tab" data-tab="account">Account</button>
         </div>
 
+        <div id="main-content" role="main">
         <!-- Fresh Now Tab -->
         <div class="tab-content active" id="tab-fresh">
             <div class="hero">
@@ -1558,6 +1564,7 @@
             <button class="logout-btn" onclick="logout()">Sign Out</button>
         </div>
 
+        </div>
         <!-- Bottom Nav -->
         <nav class="bottom-nav">
             <button class="nav-item active" data-tab="fresh">
