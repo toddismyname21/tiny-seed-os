@@ -38,6 +38,56 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-02-26 — Production Audit + Bug Fixes + Category Management
+
+**Role:** PM_Architect
+**Deploy:** @697
+
+### Bug Fixes (found during production audit)
+- **getChiefOfStaffBriefing alias CRASH**: Called nonexistent `generateUltimateMorningBrief()` with no typeof guard. Fixed: calls `getMorningBrief()` with typeof guard.
+- **getBedsWithStatus alias BROKEN**: Called `getBeds()` which already returns jsonResponse(), causing double-wrap. Fixed: calls `getBedsWithStatus()` directly, wraps in `{success: true, beds: [...]}`.
+- **Alloc_* columns missing from sheet**: `getSeedlingProductionPlan()` only ran migration when sheet didn't exist. Fixed: always calls `ensureSeedlingProductionSheet_()` to ensure columns.
+- **Status filter excluded all items**: Frontend filtered for `Status === 'Active'` but all 95 items are `'Planned'`. Fixed: include all except removed/deleted/cancelled.
+- **Category dropdown wrong values**: Hardcoded "Vegetable/Herb/Floral" but actual data has 13 different categories. Fixed: dynamically populated from API.
+
+### Features Added
+- Dynamic category management: add/remove categories on the fly, persisted in ScriptProperties, logged to SEEDLING_LIFECYCLE
+- `getSeedlingCategories()`, `addSeedlingCategory()`, `removeSeedlingCategory()` endpoints
+
+### Verification
+- All 12 action aliases tested: 10 PASS, 2 correctly report "not implemented"
+- All 6 seedling endpoints: PASS
+- All 4 frontend pages: HTTP 200 + feature checks passing (20/20 seedling-admin, 6/6 greenhouse)
+
+---
+
+## 2026-02-26 — Seedling Allocation Editor + Live Presale Tracking
+
+**Role:** PM_Architect
+**Deploy:** @694
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — New `updateSeedlingAllocations()` bulk POST endpoint, extended `updateSeedlingItem()` with Alloc_* fields, added `sales_by_item` to `getSeedlingOperationsOverview()` response
+- `web_app/seedling-admin.html` — New "Allocations" tab: spreadsheet-style table for Phipps/Market/Wholesale/CityGROWN allocation per variety, auto-calc presale remainder, live presale sold tracking, Save All button
+
+### Functions Added
+- `updateSeedlingAllocations()` in `MERGED TOTAL.js` — Bulk POST endpoint: updates Alloc_* columns in SEEDLING_PRODUCTION, auto-calculates Alloc_Presale, logs to SEEDLING_LIFECYCLE
+- `switchAdminView()`, `loadAllocations()`, `renderAllocTable()`, `onAllocChange()`, `updateAllocSummary()`, `saveAllocations()` in `seedling-admin.html`
+
+### Functions Modified
+- `updateSeedlingItem()` in `MERGED TOTAL.js` — Added alloc_phipps, alloc_market, alloc_wholesale, alloc_citygrown, alloc_presale, total_units to extraFields
+- `getSeedlingOperationsOverview()` in `MERGED TOTAL.js` — Added `sales_by_item` to return object for per-item presale tracking
+
+### Reason
+Owner needs to plan seedling quantities per outlet (Phipps May Market, Farmer's Market, Wholesale, CityGROWN) before presale opens. Presale gets the remainder. Presale Sold updates live as orders come in. All allocation changes logged to SEEDLING_LIFECYCLE for year-over-year tracking.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions — no existing allocation editor
+- [x] No duplicates created
+
+---
+
 ## 2026-02-26 — Action Mismatches + Seedling Operations Map
 
 **Role:** PM_Architect
