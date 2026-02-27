@@ -207,18 +207,19 @@
             opacity: 0.95;
         }
 
-        /* Mobile adjustments — logo overlay */
+        /* Tablet adjustments — logo overlay */
         @media (max-width: 768px) {
             .hero-logo-overlay {
-                top: 32px;
-                left: 32px;
+                top: 20px;
+                left: 16px;
             }
             .hero-logo-overlay img {
-                height: 264px;
+                height: 180px;
                 transform: rotate(-5deg);
             }
         }
 
+        /* Mobile adjustments — logo overlay */
         @media (max-width: 480px) {
             .hero-logo-overlay {
                 top: auto;
@@ -227,11 +228,18 @@
                 transform: translateX(-50%);
             }
             .hero-logo-overlay img {
-                height: 120px;
+                height: 100px;
                 transform: rotate(-5deg);
             }
             .hero-logo-overlay:hover img {
                 transform: rotate(-5deg) scale(1.02);
+            }
+            .hero h1 {
+                font-size: clamp(1.8rem, 8vw, 2.2rem);
+            }
+            .hero p {
+                font-size: 1rem;
+                padding: 0 8px;
             }
             .header-cta {
                 padding: 8px 16px;
@@ -313,7 +321,8 @@
 
         @media (max-width: 480px) {
             .hero {
-                min-height: 75vh;
+                min-height: auto;
+                padding: 70px 16px 50px;
             }
             .hero::after { height: 30px; bottom: -29px; }
         }
