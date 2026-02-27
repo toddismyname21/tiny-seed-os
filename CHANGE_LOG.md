@@ -38,6 +38,54 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-02-26 — Critical UX Audit Fixes (Security, API Config, Theme)
+
+**Role:** PM_Architect
+
+### Files Modified
+- `web_app/ai-assistant.html` — Removed hardcoded API URL fallback, now uses `TINY_SEED_API.MAIN_API` only
+- `web_app/smart-predictions.html` — Same
+- `web_app/labels.html` — Same
+- `web_app/delivery-zone-checker.html` — Same
+- `web_app/pm-dashboard.html` — Same
+- `web_app/command-center.html` — Same
+- `web_app/food-safety.html` — Same
+- `web_app/schedule.html` — Same
+- `web_app/employee-management.html` — Same
+- `web_app/financial-dashboard.html` — Removed 2 hardcoded API URL fallbacks
+- `web_app/csa-unified-finder.html` — Same
+- `web_app/chief-of-staff.html` — Same
+- `web_app/loan-readiness.html` — Same
+- `web_app/quickbooks-dashboard.html` — Same
+- `web_app/employee-onboarding.html` — Same
+- `web_app/driver.html` — Same
+- `web_app/csa.html` — Same
+- `web_app/log-commitment.html` — Same
+- `web_app/reports-dashboard.html` — Same
+- `web_app/offline-task-manager.js` — Same
+- `web_app/shared-content-calendar.js` — Same
+- `web_app/auth-guard.js` — Same
+- `web_app/customer.html` — Switched from dark theme to light theme matching rest of OS; updated greens from #22c55e to #2d9f4e
+- `apps_script/FieldManagementDashboard.html` — Removed hardcoded Google Maps API key from HTML; now loads via `google.script.run.getGoogleMapsApiKey()`
+- `apps_script/IrrigationDashboard.html` — Same
+- `apps_script/MERGED TOTAL.js` — Added `getGoogleMapsApiKey()` server-side function
+
+### Files Deleted
+- `web_app/marketing-command-center-v3-backup.html` — Dead backup file (245KB), not referenced anywhere
+
+### Functions Added
+- `getGoogleMapsApiKey()` in `MERGED TOTAL.js` — Returns Maps API key from PropertiesService (replaces hardcoded HTML key)
+
+### Reason
+Full OS UX audit identified critical security and consistency issues: Google Maps API key exposed in client-side HTML, 20+ files with hardcoded API URL fallbacks bypassing api-config.js, customer portal using dark theme while all other pages use light theme, dead backup file.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
 ## 2026-02-25 — Move Bundles Into Order Section + Final UX Audit
 
 **Role:** UX_Design_Claude

@@ -21,9 +21,7 @@ class OfflineTaskManager {
     constructor(options = {}) {
         this.DB_NAME = options.dbName || 'TinySeedOfflineTasks';
         this.DB_VERSION = options.dbVersion || 1;
-        this.API_URL = options.apiUrl || (typeof TINY_SEED_API !== 'undefined'
-            ? TINY_SEED_API.MAIN_API
-            : 'https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec');
+        this.API_URL = options.apiUrl || TINY_SEED_API.MAIN_API;
 
         this.db = null;
         this.isInitialized = false;

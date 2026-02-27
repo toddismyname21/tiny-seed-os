@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#1a1a2e">
+    <meta name="theme-color" content="#166534">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Tiny Seed Farm - Order Portal</title>
@@ -19,35 +19,35 @@
 
         :root {
             /* Brand Colors - Farm Green Theme */
-            --primary: var(--ts-green-500, #22c55e);
-            --primary-dark: var(--ts-green-600, #16a34a);
+            --primary: var(--ts-green-500, #2d9f4e);
+            --primary-dark: var(--ts-green-600, #248c42);
             --primary-light: var(--ts-green-400, #4ade80);
 
             /* Status Colors */
-            --success: var(--ts-teal-500, #2a9d8f);
-            --warning: var(--ts-amber-400, #e9c46a);
-            --danger: var(--ts-red-500, #e63946);
-            --info: var(--ts-blue-500, #6366f1);
+            --success: var(--ts-green-500, #2d9f4e);
+            --warning: var(--ts-amber-500, #f59e0b);
+            --danger: var(--ts-red-500, #ef4444);
+            --info: var(--ts-blue-500, #3b82f6);
 
-            /* Dark Theme (Matching Desktop) */
-            --bg-main: var(--ts-bg-base, #1a1a2e);
-            --bg-card: var(--ts-bg-surface, #16213e);
-            --bg-elevated: var(--ts-bg-elevated, #0f3460);
-            --bg-input: var(--ts-bg-elevated, #0f3460);
+            /* Light Theme (Matching Rest of OS) */
+            --bg-main: var(--ts-stone-50, #fafaf9);
+            --bg-card: #ffffff;
+            --bg-elevated: var(--ts-stone-100, #f5f5f4);
+            --bg-input: #ffffff;
 
             /* Text Colors */
-            --text-primary: var(--ts-text, #edf2f4);
-            --text-secondary: var(--ts-text-secondary, #8d99ae);
-            --text-muted: var(--ts-text-muted, #6b7280);
+            --text-primary: var(--ts-stone-900, #1c1917);
+            --text-secondary: var(--ts-stone-600, #57534e);
+            --text-muted: var(--ts-stone-400, #a8a29e);
 
             /* Borders */
-            --border-color: var(--ts-border, rgba(255,255,255,0.1));
-            --border-light: var(--ts-border-strong, rgba(255,255,255,0.15));
+            --border-color: var(--ts-stone-200, #e7e5e4);
+            --border-light: var(--ts-stone-300, #d6d3d1);
 
             /* Shadows */
-            --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
-            --shadow-md: 0 4px 6px rgba(0,0,0,0.4);
-            --shadow-lg: 0 10px 25px rgba(0,0,0,0.5);
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 6px rgba(0,0,0,0.07);
+            --shadow-lg: 0 10px 15px rgba(0,0,0,0.1);
 
             /* Mobile-first touch targets */
             --touch-min: 48px;
@@ -65,7 +65,7 @@
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: linear-gradient(135deg, var(--bg-main) 0%, var(--ts-bg-subtle, #0f0f1a) 100%);
+            background: var(--bg-main);
             color: var(--text-primary);
             min-height: 100vh;
             -webkit-font-smoothing: antialiased;
@@ -209,7 +209,7 @@
         .form-input:focus {
             outline: none;
             border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(255, 140, 0, 0.1);
+            box-shadow: 0 0 0 3px rgba(45, 159, 78, 0.15);
         }
 
         .btn {

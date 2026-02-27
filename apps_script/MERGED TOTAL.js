@@ -348,6 +348,15 @@ const GOOGLE_ROUTES_CONFIG = {
   FARM_COORDS: { lat: 40.7456217, lng: -80.1610431 }
 };
 
+/**
+ * Returns Google Maps API key from PropertiesService.
+ * Called by FieldManagementDashboard.html and IrrigationDashboard.html
+ * so the key is not hardcoded in client-side HTML.
+ */
+function getGoogleMapsApiKey() {
+  return PropertiesService.getScriptProperties().getProperty('GOOGLE_MAPS_API_KEY') || '';
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // CLAUDE AI CONFIGURATION - STATE-OF-THE-ART EMAIL INTELLIGENCE
 // Claude 3.5 Sonnet - The SMARTEST model for deep email understanding
@@ -15101,7 +15110,7 @@ function doGet(e) {
       case 'fetchWeatherData':
         return jsonResponse(fetchWeatherData(e.parameter));
       case 'analyzeEquipmentPhoto':
-        return jsonResponse(analyzeEquipmentPhoto(data));
+        return jsonResponse(analyzeEquipmentPhoto(e.parameter));
 
       // ============ EQUIPMENT → FOOD SAFETY PIPELINE ============
       case 'runEquipmentFoodSafetyPipeline':
@@ -15244,13 +15253,13 @@ function doGet(e) {
       case 'getOrderById':
         return jsonResponse(getOrderById(e.parameter));
       case 'deleteOrder':
-        return jsonResponse(deleteOrder(data));
+        return jsonResponse(deleteOrder(e.parameter));
       case 'getSalesCustomers':
         return jsonResponse(getSalesCustomers(e.parameter));
       case 'deleteCustomer':
-        return jsonResponse(deleteCustomer(data));
+        return jsonResponse(deleteCustomer(e.parameter));
       case 'updateCustomer':
-        return jsonResponse(updateCustomer(data));
+        return jsonResponse(updateCustomer(e.parameter));
       case 'setupTwilio':
         return jsonResponse(setupTwilioCredentials());
       case 'testTwilio':
@@ -15444,9 +15453,9 @@ function doGet(e) {
       case 'clearSampleTasks':
         return jsonResponse(clearSampleTasks());
       case 'completeSharedTask':
-        return jsonResponse(completeSharedTask(data));
+        return jsonResponse(completeSharedTask(e.parameter));
       case 'completeSubtask':
-        return jsonResponse(completeSubtask(data));
+        return jsonResponse(completeSubtask(e.parameter));
       case 'completeTaskWithGPS':
         return jsonResponse(completeTaskWithGPS(e.parameter));
       case 'logHarvestWithDetails':

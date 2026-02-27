@@ -5150,7 +5150,7 @@ IF abs(drift) >= 0.05: needs_rebalancing = TRUE</code></pre>
         // =============================================
         const API_CONFIG = {
             sheetId: '128O56X_FN9_U-s0ENHBBRyLpae_yvWHPYbBheVlR3Vc',
-            apiUrl: (typeof TINY_SEED_API !== 'undefined') ? TINY_SEED_API.MAIN_API : 'https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec'
+            apiUrl: TINY_SEED_API.MAIN_API
         };
 
         // Allocation Pie Chart - shows target allocation until AlpacaManager loads real data
@@ -8691,7 +8691,7 @@ IF abs(drift) >= 0.05: needs_rebalancing = TRUE</code></pre>
         // =============================================
         // MARKETING FUNCTIONS
         // =============================================
-        const MARKETING_API_URL = (typeof TINY_SEED_API !== 'undefined') ? TINY_SEED_API.MAIN_API : 'https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec';
+        const MARKETING_API_URL = TINY_SEED_API.MAIN_API;
 
         async function loadMarketingData() {
             try {

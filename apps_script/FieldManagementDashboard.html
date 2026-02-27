@@ -5,7 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Field Management Dashboard - Tiny Seed Farm</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAL2-2Y_LmMrKuDLIlTkkPZkH9e-FV3ZF0&libraries=drawing,geometry"></script>
+  <script>
+    // Load Google Maps API key from server-side PropertiesService (not hardcoded)
+    function loadGoogleMaps() {
+      google.script.run.withSuccessHandler(function(key) {
+        var s = document.createElement('script');
+        s.src = 'https://maps.googleapis.com/maps/api/js?key=' + key + '&libraries=drawing,geometry&callback=initMaps';
+        document.head.appendChild(s);
+      }).getGoogleMapsApiKey();
+    }
+    loadGoogleMaps();
+  </script>
   <style>
     :root {
       --bg-primary: var(--ts-bg-base, #0f0f0f);

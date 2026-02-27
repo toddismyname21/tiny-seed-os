@@ -93,10 +93,7 @@ let sharedCalendarStats = null;
 function getSharedCalendarAPIURL() {
     // Check for global API_URL (MCC style)
     if (typeof API_URL !== 'undefined') return API_URL;
-    // Check for TINY_SEED_API (api-config.js style)
-    if (typeof TINY_SEED_API !== 'undefined') return TINY_SEED_API.MAIN_API;
-    // Fallback
-    return 'https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec';
+    return TINY_SEED_API.MAIN_API;
 }
 
 /**
