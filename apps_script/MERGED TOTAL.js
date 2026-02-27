@@ -14567,6 +14567,8 @@ function doGet(e) {
     return jsonResponse(getTransplantTasks(e.parameter));
   case 'getDirectSeedTasks':
     return jsonResponse(getDirectSeedTasks(e.parameter));
+  case 'findSeedLotsByCropVariety':
+    return jsonResponse(findSeedLotsByCropVariety(e.parameter));
   case 'getSocialStatus':
     return jsonResponse(getAyrshareStatus());
 
@@ -18574,6 +18576,10 @@ function doPost(e) {
         return jsonResponse(updateSEOPage(data));
       case 'createSEOPage':
         return jsonResponse(createSEOPage(data));
+
+      // ============ PLANNING FIELD EDITING ============
+      case 'updatePlanningFields':
+        return jsonResponse(updatePlanningFields(data));
 
       // ============ SEED INVENTORY & TRACEABILITY ============
       case 'addSeedLot':
@@ -32678,7 +32684,9 @@ function createDirectSeedingTab() {
       bed: headers.indexOf('Target_Bed_ID'),
       feetUsed: headers.indexOf('Feet_Used'),
       notes: headers.indexOf('Notes'),
-      category: headers.indexOf('Category')
+      category: headers.indexOf('Category'),
+      trayCellCount: headers.indexOf('Tray_Cell_Count'),
+      seedLotUsed: headers.indexOf('Seed_Lot_Used')
     };
 
     // Parse date range
@@ -32725,13 +32733,11 @@ function createDirectSeedingTab() {
       const plantingMethod = cols.plantingMethod >= 0 ? row[cols.plantingMethod] : 'Transplant';
       const isDirectSeed = plantingMethod === 'Direct Seed';
 
-      // Get the appropriate sow date
-      let sowDateRaw;
-      if (isDirectSeed) {
-        sowDateRaw = cols.fieldSow >= 0 ? row[cols.fieldSow] : null;
-      } else {
-        sowDateRaw = cols.ghSow >= 0 ? row[cols.ghSow] : null;
-      }
+      // Skip direct seed crops — they belong in getDirectSeedTasks(), not here
+      if (isDirectSeed) continue;
+
+      // Get the greenhouse sow date
+      const sowDateRaw = cols.ghSow >= 0 ? row[cols.ghSow] : null;
 
       if (!sowDateRaw) continue;
 
@@ -32756,13 +32762,33 @@ function createDirectSeedingTab() {
       const plantsNeeded = cols.plantsNeeded >= 0 ? (parseInt(row[cols.plantsNeeded]) || 0) : 0;
       const feetUsed = cols.feetUsed >= 0 ? (parseInt(row[cols.feetUsed]) || 0) : 0;
 
-      const cellsPerTray = profile.defaultCells || 128;
+      // Priority: row's Tray_Cell_Count > crop profile default > fallback 128
+      const rowCellCount = cols.trayCellCount >= 0 ? (parseInt(row[cols.trayCellCount]) || 0) : 0;
+      const cellsPerTray = rowCellCount || profile.defaultCells || 128;
       const seedsNeeded = plantsNeeded > 0 ? Math.ceil(plantsNeeded * 1.05) : Math.ceil(trays * cellsPerTray * 1.05);
 
-      // Check if already completed
-      const isCompleted = isDirectSeed
-        ? (cols.actFieldSow >= 0 && row[cols.actFieldSow])
-        : (cols.actGhSow >= 0 && row[cols.actGhSow]);
+      // Check if already completed and get actual date
+      const actualDateRaw = cols.actGhSow >= 0 ? row[cols.actGhSow] : null;
+      const isCompleted = !!actualDateRaw;
+      const actualDate = actualDateRaw ? formatDateSimple(new Date(actualDateRaw)) : null;
+
+      // Calculate days variance (positive = late, negative = early)
+      let daysVariance = null;
+      if (actualDate && sowDate) {
+        const diffMs = new Date(actualDate).getTime() - sowDate.getTime();
+        daysVariance = Math.round(diffMs / (1000 * 60 * 60 * 24));
+      }
+
+      // Auto-calculate trays if missing but plants exist (poka-yoke)
+      let autoCalculatedTrays = false;
+      let effectiveTrays = trays;
+      if (trays === 0 && plantsNeeded > 0 && cellsPerTray > 0) {
+        effectiveTrays = Math.ceil(plantsNeeded / cellsPerTray);
+        autoCalculatedTrays = true;
+      }
+
+      // Seed lot used (if tracked)
+      const seedLotUsed = cols.seedLotUsed >= 0 ? (row[cols.seedLotUsed] || '') : '';
 
       tasks.push({
         batchId: cols.batchId >= 0 ? row[cols.batchId] : 'ROW-' + i,
@@ -32770,17 +32796,31 @@ function createDirectSeedingTab() {
         variety: variety,
         category: category,
         plantingMethod: plantingMethod,
+        plannedDate: formatDateSimple(sowDate),
         sowDate: formatDateSimple(sowDate),
-        trays: trays,
+        actualDate: actualDate,
+        daysVariance: daysVariance,
+        trays: effectiveTrays,
+        traysOriginal: trays,
+        autoCalculatedTrays: autoCalculatedTrays,
         cellsPerTray: cellsPerTray,
         plantsNeeded: plantsNeeded,
         feetUsed: feetUsed,
         seedsNeeded: seedsNeeded,
         bed: cols.bed >= 0 ? row[cols.bed] : '',
+        seedLotUsed: seedLotUsed,
         germTemp: profile.germTemp || '',
         notes: cols.notes >= 0 ? row[cols.notes] : '',
         completed: !!isCompleted,
-        rowIndex: i + 1
+        rowIndex: i + 1,
+        // Readiness flags for poka-yoke
+        readiness: {
+          hasTrays: effectiveTrays > 0,
+          hasCellSize: cellsPerTray > 0,
+          hasBed: !!(cols.bed >= 0 && row[cols.bed]),
+          hasSeedLot: !!seedLotUsed,
+          hasPlants: plantsNeeded > 0
+        }
       });
 
       // Track trays by size
@@ -32791,13 +32831,39 @@ function createDirectSeedingTab() {
     // Sort by date
     tasks.sort((a, b) => new Date(a.sowDate) - new Date(b.sowDate));
 
+    // Build seedsNeeded array — aggregate by crop+variety
+    const seedAgg = {};
+    tasks.forEach(function(t) {
+      if (t.completed) return; // Only count incomplete tasks
+      const key = t.crop + '|' + t.variety;
+      if (!seedAgg[key]) {
+        seedAgg[key] = { crop: t.crop, variety: t.variety, totalSeeds: 0, totalTrays: 0, totalPlants: 0 };
+      }
+      seedAgg[key].totalSeeds += t.seedsNeeded || 0;
+      seedAgg[key].totalTrays += t.trays || 0;
+      seedAgg[key].totalPlants += t.plantsNeeded || 0;
+    });
+    const seedsNeededList = Object.values(seedAgg).sort(function(a, b) { return b.totalSeeds - a.totalSeeds; });
+
+    // Count readiness issues
+    const incompleteTasks = tasks.filter(function(t) { return !t.completed; });
+    const readinessIssues = {
+      missingTrays: incompleteTasks.filter(function(t) { return !t.readiness.hasTrays; }).length,
+      missingCellSize: incompleteTasks.filter(function(t) { return !t.readiness.hasCellSize; }).length,
+      missingBed: incompleteTasks.filter(function(t) { return !t.readiness.hasBed; }).length,
+      missingSeedLot: incompleteTasks.filter(function(t) { return !t.readiness.hasSeedLot; }).length
+    };
+
     return {
       success: true,
       tasks: tasks,
       summary: {
         totalTasks: tasks.length,
-        totalTrays: tasks.reduce((sum, t) => sum + t.trays, 0),
+        completedTasks: tasks.filter(function(t) { return t.completed; }).length,
+        totalTrays: tasks.reduce(function(sum, t) { return sum + t.trays; }, 0),
         traysBySize: traysBySize,
+        seedsNeeded: seedsNeededList,
+        readinessIssues: readinessIssues,
         dateRange: {
           start: formatDateSimple(startDate),
           end: formatDateSimple(endDate)
@@ -32820,6 +32886,8 @@ function createDirectSeedingTab() {
     const batchId = params.batchId;
     const completed = params.completed === 'true' || params.completed === true;
     const completedBy = params.completedBy || '';
+    const seedLotId = params.seedLotId || '';
+    const seedsUsed = parseInt(params.seedsUsed) || 0;
 
     const data = sheet.getDataRange().getValues();
     const headers = data[0];
@@ -32829,11 +32897,14 @@ function createDirectSeedingTab() {
     const plantingMethodCol = headers.indexOf('Planting_Method');
     const actGhSowCol = headers.indexOf('Act_GH_Sow');
     const actFieldSowCol = headers.indexOf('Act_Field_Sow');
+    const traysCol = headers.indexOf('Trays_Needed');
+    const cellCountCol = headers.indexOf('Tray_Cell_Count');
+    let seedLotCol = headers.indexOf('Seed_Lot_Used');
 
     // Find the row
     let rowIndex = -1;
     for (let i = 1; i < data.length; i++) {
-      if (data[i][batchIdCol] === batchId) {
+      if (String(data[i][batchIdCol]).trim() === String(batchId).trim()) {
         rowIndex = i + 1; // 1-indexed for sheet
         break;
       }
@@ -32843,10 +32914,20 @@ function createDirectSeedingTab() {
       return { success: false, error: 'Batch not found: ' + batchId };
     }
 
-    const plantingMethod = data[rowIndex - 1][plantingMethodCol];
+    const rowData = data[rowIndex - 1];
+    const plantingMethod = rowData[plantingMethodCol];
     const isDirectSeed = plantingMethod === 'Direct Seed';
     const today = new Date();
     const todayStr = Utilities.formatDate(today, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+
+    // Pre-sow validation warnings (not blocking, but informational)
+    const warnings = [];
+    if (completed) {
+      const trays = traysCol >= 0 ? (parseInt(rowData[traysCol]) || 0) : 0;
+      const cellCount = cellCountCol >= 0 ? (parseInt(rowData[cellCountCol]) || 0) : 0;
+      if (trays === 0) warnings.push('Trays_Needed is 0 — edit before marking complete');
+      if (cellCount === 0 && !isDirectSeed) warnings.push('Tray_Cell_Count is 0 — verify cell size');
+    }
 
     if (completed) {
       // Set actual sow date
@@ -32859,6 +32940,39 @@ function createDirectSeedingTab() {
       if (statusCol >= 0) {
         sheet.getRange(rowIndex, statusCol + 1).setValue('Sown');
       }
+
+      // Link seed lot if provided
+      let seedLotResult = null;
+      if (seedLotId) {
+        // Write Seed_Lot_Used to PLANNING_2026
+        if (seedLotCol < 0) {
+          // Create the column if it doesn't exist
+          const lastCol = headers.length;
+          sheet.getRange(1, lastCol + 1).setValue('Seed_Lot_Used');
+          seedLotCol = lastCol;
+        }
+        sheet.getRange(rowIndex, seedLotCol + 1).setValue(seedLotId);
+
+        // Deduct seeds from inventory using existing useSeedFromLot()
+        if (seedsUsed > 0) {
+          seedLotResult = useSeedFromLot({
+            seedLotId: seedLotId,
+            quantityUsed: seedsUsed,
+            batchId: batchId,
+            notes: 'Sown on ' + todayStr + (completedBy ? ' by ' + completedBy : '')
+          });
+        }
+      }
+
+      return {
+        success: true,
+        message: 'Task marked complete',
+        batchId: batchId,
+        actualDate: todayStr,
+        seedLotLinked: !!seedLotId,
+        seedLotResult: seedLotResult,
+        warnings: warnings
+      };
     } else {
       // Clear actual sow date
       if (isDirectSeed && actFieldSowCol >= 0) {
@@ -32870,14 +32984,193 @@ function createDirectSeedingTab() {
       if (statusCol >= 0) {
         sheet.getRange(rowIndex, statusCol + 1).setValue('Planned');
       }
+
+      return {
+        success: true,
+        message: 'Task marked incomplete',
+        batchId: batchId,
+        warnings: warnings
+      };
+    }
+  }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// INLINE EDITING: Update PLANNING_2026 fields by Batch_ID
+// ═══════════════════════════════════════════════════════════════════════════
+
+function updatePlanningFields(data) {
+  var SHEET_ID = '128O56X_FN9_U-s0ENHBBRyLpae_yvWHPYbBheVlR3Vc';
+  var PLANNING_TAB = 'PLANNING_2026';
+
+  // Whitelist of editable fields
+  var EDITABLE_FIELDS = [
+    'Tray_Cell_Count', 'Trays_Needed', 'Plants_Needed', 'Target_Bed_ID',
+    'Notes', 'Seed_Lot_Used', 'Plan_GH_Sow', 'Plan_Field_Sow', 'Plan_Transplant',
+    'Feet_Used'
+  ];
+
+  try {
+    var batchId = data.batchId;
+    var fields = data.fields;
+
+    if (!batchId) {
+      return { success: false, error: 'batchId is required' };
+    }
+    if (!fields || typeof fields !== 'object') {
+      return { success: false, error: 'fields object is required' };
+    }
+
+    // Validate all fields are in whitelist
+    var invalidFields = [];
+    for (var fieldName in fields) {
+      if (EDITABLE_FIELDS.indexOf(fieldName) === -1) {
+        invalidFields.push(fieldName);
+      }
+    }
+    if (invalidFields.length > 0) {
+      return { success: false, error: 'Non-editable fields: ' + invalidFields.join(', ') };
+    }
+
+    var ss = SpreadsheetApp.openById(SHEET_ID);
+    var sheet = ss.getSheetByName(PLANNING_TAB);
+    if (!sheet) {
+      return { success: false, error: 'Planning sheet not found' };
+    }
+
+    var sheetData = sheet.getDataRange().getValues();
+    var headers = sheetData[0];
+
+    var batchIdCol = headers.indexOf('Batch_ID');
+    if (batchIdCol < 0) {
+      return { success: false, error: 'Batch_ID column not found' };
+    }
+
+    // Find the row
+    var rowIndex = -1;
+    for (var i = 1; i < sheetData.length; i++) {
+      if (String(sheetData[i][batchIdCol]).trim() === String(batchId).trim()) {
+        rowIndex = i + 1; // 1-indexed for sheet
+        break;
+      }
+    }
+
+    if (rowIndex === -1) {
+      return { success: false, error: 'Batch not found: ' + batchId };
+    }
+
+    // Update each field
+    var updated = [];
+    for (var fieldName in fields) {
+      var colIndex = headers.indexOf(fieldName);
+      if (colIndex >= 0) {
+        sheet.getRange(rowIndex, colIndex + 1).setValue(fields[fieldName]);
+        updated.push(fieldName);
+      } else {
+        // Column doesn't exist yet — add it (for Seed_Lot_Used etc.)
+        var lastCol = headers.length;
+        sheet.getRange(1, lastCol + 1).setValue(fieldName);
+        sheet.getRange(rowIndex, lastCol + 1).setValue(fields[fieldName]);
+        headers.push(fieldName); // Keep local copy in sync
+        updated.push(fieldName + ' (new column)');
+      }
     }
 
     return {
       success: true,
-      message: completed ? 'Task marked complete' : 'Task marked incomplete',
-      batchId: batchId
+      message: 'Updated ' + updated.length + ' field(s)',
+      batchId: batchId,
+      updatedFields: updated
     };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SEED LOT LOOKUP: Find matching seed lots by crop and variety
+// ═══════════════════════════════════════════════════════════════════════════
+
+function findSeedLotsByCropVariety(params) {
+  try {
+    var crop = (params.crop || '').trim();
+    var variety = (params.variety || '').trim();
+
+    if (!crop) {
+      return { success: false, error: 'crop parameter is required' };
+    }
+
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheet = ss.getSheetByName('SEED_INVENTORY');
+
+    if (!sheet) {
+      return { success: true, lots: [], message: 'SEED_INVENTORY sheet not found' };
+    }
+
+    var data = sheet.getDataRange().getValues();
+    var headers = data[0];
+
+    var lotIdCol = headers.indexOf('Seed_Lot_ID');
+    var cropCol = headers.indexOf('Crop');
+    var varietyCol = headers.indexOf('Variety');
+    var supplierCol = headers.indexOf('Supplier');
+    var remainingCol = headers.indexOf('Quantity_Remaining');
+    var statusCol = headers.indexOf('Status');
+    var purchaseDateCol = headers.indexOf('Purchase_Date');
+    var germRateCol = headers.indexOf('Germination_Rate');
+    var organicCol = headers.indexOf('Organic_Certified');
+    var unitCol = headers.indexOf('Unit');
+
+    var lots = [];
+
+    for (var i = 1; i < data.length; i++) {
+      var row = data[i];
+
+      // Match crop (case-insensitive)
+      var rowCrop = String(row[cropCol] || '').trim().toLowerCase();
+      if (rowCrop !== crop.toLowerCase()) continue;
+
+      // Match variety if provided (case-insensitive, partial match)
+      if (variety) {
+        var rowVariety = String(row[varietyCol] || '').trim().toLowerCase();
+        if (rowVariety.indexOf(variety.toLowerCase()) === -1 && variety.toLowerCase().indexOf(rowVariety) === -1) continue;
+      }
+
+      // Only active or low status
+      var status = String(row[statusCol] || '').trim();
+      if (status !== 'Active' && status !== 'Low') continue;
+
+      var remaining = Number(row[remainingCol]) || 0;
+      if (remaining <= 0) continue;
+
+      lots.push({
+        seedLotId: row[lotIdCol] || '',
+        crop: row[cropCol] || '',
+        variety: row[varietyCol] || '',
+        supplier: supplierCol >= 0 ? (row[supplierCol] || '') : '',
+        quantityRemaining: remaining,
+        unit: unitCol >= 0 ? (row[unitCol] || 'seeds') : 'seeds',
+        status: status,
+        germRate: germRateCol >= 0 ? (row[germRateCol] || '') : '',
+        organic: organicCol >= 0 ? (row[organicCol] || false) : false,
+        purchaseDate: purchaseDateCol >= 0 ? formatDateSimple(row[purchaseDateCol]) : ''
+      });
+    }
+
+    // Sort by remaining quantity descending (best lot first)
+    lots.sort(function(a, b) { return b.quantityRemaining - a.quantityRemaining; });
+
+    return {
+      success: true,
+      lots: lots,
+      bestMatch: lots.length > 0 ? lots[0] : null,
+      totalLots: lots.length
+    };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
 
   // Helper function for date formatting
   function formatDateSimple(date) {
@@ -32952,14 +33245,26 @@ function getTransplantTasks(params) {
 
       if (transplantDate < startDate || transplantDate > endDate) continue;
 
-      const isCompleted = cols.actTransplant >= 0 && row[cols.actTransplant];
+      const actualTransplantRaw = cols.actTransplant >= 0 ? row[cols.actTransplant] : null;
+      const isCompleted = !!actualTransplantRaw;
+      const actualDate = actualTransplantRaw ? formatDateSimple(new Date(actualTransplantRaw)) : null;
+
+      // Calculate days variance
+      let daysVariance = null;
+      if (actualDate && transplantDate) {
+        const diffMs = new Date(actualDate).getTime() - transplantDate.getTime();
+        daysVariance = Math.round(diffMs / (1000 * 60 * 60 * 24));
+      }
 
       tasks.push({
         batchId: cols.batchId >= 0 ? row[cols.batchId] : 'ROW-' + i,
         crop: cols.crop >= 0 ? row[cols.crop] : '',
         variety: cols.variety >= 0 ? row[cols.variety] : '',
         category: cols.category >= 0 ? row[cols.category] : 'Veg',
+        plannedDate: formatDateSimple(transplantDate),
         transplantDate: formatDateSimple(transplantDate),
+        actualDate: actualDate,
+        daysVariance: daysVariance,
         bed: cols.bed >= 0 ? row[cols.bed] : '',
         feetUsed: cols.feetUsed >= 0 ? (parseInt(row[cols.feetUsed]) || 0) : 0,
         plantsNeeded: cols.plantsNeeded >= 0 ? (parseInt(row[cols.plantsNeeded]) || 0) : 0,
@@ -33037,14 +33342,26 @@ function getDirectSeedTasks(params) {
 
       if (fieldSowDate < startDate || fieldSowDate > endDate) continue;
 
-      const isCompleted = cols.actFieldSow >= 0 && row[cols.actFieldSow];
+      const actualFieldSowRaw = cols.actFieldSow >= 0 ? row[cols.actFieldSow] : null;
+      const isCompleted = !!actualFieldSowRaw;
+      const actualDate = actualFieldSowRaw ? formatDateSimple(new Date(actualFieldSowRaw)) : null;
+
+      // Calculate days variance
+      let daysVariance = null;
+      if (actualDate && fieldSowDate) {
+        const diffMs = new Date(actualDate).getTime() - fieldSowDate.getTime();
+        daysVariance = Math.round(diffMs / (1000 * 60 * 60 * 24));
+      }
 
       tasks.push({
         batchId: cols.batchId >= 0 ? row[cols.batchId] : 'ROW-' + i,
         crop: cols.crop >= 0 ? row[cols.crop] : '',
         variety: cols.variety >= 0 ? row[cols.variety] : '',
         category: cols.category >= 0 ? row[cols.category] : 'Veg',
+        plannedDate: formatDateSimple(fieldSowDate),
         sowDate: formatDateSimple(fieldSowDate),
+        actualDate: actualDate,
+        daysVariance: daysVariance,
         bed: cols.bed >= 0 ? row[cols.bed] : '',
         feetUsed: cols.feetUsed >= 0 ? (parseInt(row[cols.feetUsed]) || 0) : 0,
         notes: cols.notes >= 0 ? row[cols.notes] : '',

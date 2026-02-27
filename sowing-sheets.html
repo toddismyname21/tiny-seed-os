@@ -592,6 +592,16 @@
             border-radius: 3px;
             display: inline-block;
         }
+
+        /* Dirty cell / inline editing styles */
+        .dirty-cell {
+            background: rgba(249, 158, 11, 0.2) !important;
+            border-radius: 4px;
+        }
+        .editable-cell:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
@@ -664,6 +674,9 @@
                     <button class="btn btn-secondary" style="flex:1; padding: 8px;" onclick="setThisWeek()">This Week</button>
                     <button class="btn btn-secondary" style="flex:1; padding: 8px;" onclick="setNextWeek()">Next Week</button>
                 </div>
+                <button class="btn" style="width:100%; margin-top: 8px; padding: 8px; background: var(--danger); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;" onclick="loadOverdueTasks()">
+                    <i class="fas fa-exclamation-triangle"></i> Load Overdue Tasks
+                </button>
             </div>
 
             <!-- Category Filter -->
@@ -823,12 +836,47 @@
 
         // Helper to get date from task (handles multiple field names)
         function getTaskDate(task) {
-            return task.sowDate || task.ghSowDate || task.transplantDate || task.fieldSowDate || '';
+            return task.plannedDate || task.sowDate || task.ghSowDate || task.transplantDate || task.fieldSowDate || '';
         }
 
-        // Initialize
+        // Initialize — supports URL params for auto-loading (2E)
         document.addEventListener('DOMContentLoaded', () => {
-            setThisWeek();
+            const urlParams = new URLSearchParams(window.location.search);
+
+            // Auto-set task type from URL
+            const taskTypeParam = urlParams.get('taskType');
+            if (taskTypeParam && taskTypeConfig[taskTypeParam]) {
+                currentTaskType = taskTypeParam;
+                // Update radio buttons
+                document.querySelectorAll('[name="taskType"]').forEach(radio => {
+                    const opt = radio.closest('.radio-option');
+                    if (opt) opt.classList.remove('selected');
+                    if (radio.value === taskTypeParam) {
+                        radio.checked = true;
+                        const opt2 = radio.closest('.radio-option');
+                        if (opt2) opt2.classList.add('selected');
+                    }
+                });
+            }
+
+            // Auto-set dates from URL
+            const startParam = urlParams.get('startDate');
+            const endParam = urlParams.get('endDate');
+            if (startParam) document.getElementById('startDate').value = startParam;
+            if (endParam) document.getElementById('endDate').value = endParam;
+
+            // Default: set this week if no URL params
+            if (!startParam && !endParam) {
+                setThisWeek();
+            }
+
+            // Auto-load if requested (for dashboard linking)
+            const filterParam = urlParams.get('filter');
+            if (filterParam === 'overdue') {
+                loadOverdueTasks();
+            } else if (urlParams.get('autoLoad') === 'true') {
+                loadTasks();
+            }
         });
 
         // Date Range Helpers
@@ -954,81 +1002,154 @@
                     document.getElementById('saveBtn').disabled = tasks.length === 0;
                     showToast(`Loaded ${tasks.length} ${currentTaskType === 'ghSow' ? 'sowing' : currentTaskType === 'transplant' ? 'transplant' : 'direct seed'} tasks`, 'success');
                 } else {
-                    loadDemoData();
+                    showErrorState(data.error || 'No tasks returned from server');
                 }
             } catch (error) {
                 console.error('Fetch error:', error);
-                loadDemoData();
+                showErrorState('Could not load tasks. Check your connection and try again.');
             }
         }
 
-        // Demo Data
-        function loadDemoData() {
-            const startDate = document.getElementById('startDate').value;
-            const nextDay = new Date(startDate);
-            nextDay.setDate(nextDay.getDate() + 1);
-            const nextDayStr = nextDay.toISOString().split('T')[0];
+        // Show error instead of demo data (CLAUDE.md: NEVER add demo data fallbacks)
+        function showErrorState(message) {
+            document.getElementById('sheetContainer').innerHTML = `
+                <div class="empty-state" style="border: 2px solid var(--danger); border-radius: 12px; padding: 2rem;">
+                    <i class="fas fa-exclamation-triangle" style="color: var(--danger);"></i>
+                    <h3 style="color: var(--danger);">Error Loading Tasks</h3>
+                    <p>${message}</p>
+                    <button class="btn btn-primary" onclick="loadTasks()" style="margin-top: 1rem;">
+                        <i class="fas fa-redo"></i> Try Again
+                    </button>
+                </div>
+            `;
+            document.getElementById('printBtn').disabled = true;
+            document.getElementById('saveBtn').disabled = true;
+        }
 
-            if (currentTaskType === 'ghSow') {
-                tasks = [
-                    { batchId: '26-LET-001', crop: 'Lettuce', variety: 'Salanova Formula Mix', category: 'Veg', sowDate: startDate, trays: 4, cellsPerTray: 128, seedsNeeded: 538, bed: 'M-09', germTemp: '65-70F', germInstructions: 'Surface sow, light required for germination', completed: false },
-                    { batchId: '26-TOM-001', crop: 'Tomato', variety: 'Cherokee Purple', category: 'Veg', sowDate: startDate, trays: 2, cellsPerTray: 72, seedsNeeded: 151, bed: 'A-12', germTemp: '80-85F', germInstructions: 'Bottom heat recommended, cover until emergence', completed: false },
-                    { batchId: '26-BAS-001', crop: 'Basil', variety: 'Genovese', category: 'Herb', sowDate: nextDayStr, trays: 3, cellsPerTray: 72, seedsNeeded: 227, bed: 'GH-01', germTemp: '75-80F', germInstructions: 'Surface sow, needs light and warmth', completed: false },
-                    { batchId: '26-PEP-001', crop: 'Pepper', variety: 'Jimmy Nardello', category: 'Veg', sowDate: nextDayStr, trays: 2, cellsPerTray: 50, seedsNeeded: 105, bed: 'A-08', germTemp: '80-85F', germInstructions: 'Bottom heat essential, slow germination', completed: false },
-                    { batchId: '26-ZIN-001', crop: 'Zinnia', variety: 'Benary Giant Mix', category: 'Floral', sowDate: startDate, trays: 3, cellsPerTray: 72, seedsNeeded: 227, bed: 'F-01', germTemp: '70-75F', germInstructions: 'Cover seeds, germinates in 5-7 days', completed: false }
-                ];
-                summary = {
-                    totalTrays: 14,
-                    traysBySize: { '128': 4, '72': 8, '50': 2 },
-                    seedsNeeded: [
-                        { crop: 'Lettuce', variety: 'Salanova Formula Mix', seeds: 538 },
-                        { crop: 'Basil', variety: 'Genovese', seeds: 227 },
-                        { crop: 'Zinnia', variety: 'Benary Giant Mix', seeds: 227 },
-                        { crop: 'Tomato', variety: 'Cherokee Purple', seeds: 151 },
-                        { crop: 'Pepper', variety: 'Jimmy Nardello', seeds: 105 }
-                    ],
-                    uniqueCrops: 5
-                };
-            } else if (currentTaskType === 'transplant') {
-                tasks = [
-                    { batchId: '26-LET-002', crop: 'Lettuce', variety: 'Salanova Red', category: 'Veg', sowDate: startDate, plants: 256, location: 'F2L-03', fromTray: 'GH Bench 1', completed: false },
-                    { batchId: '26-KAL-001', crop: 'Kale', variety: 'Lacinato', category: 'Veg', sowDate: startDate, plants: 150, location: 'F3L-01', fromTray: 'GH Bench 2', completed: false },
-                    { batchId: '26-TOM-002', crop: 'Tomato', variety: 'Sungold', category: 'Veg', sowDate: nextDayStr, plants: 72, location: 'HT-A1', fromTray: 'GH Bench 3', completed: false },
-                    { batchId: '26-PEP-002', crop: 'Pepper', variety: 'Padron', category: 'Veg', sowDate: nextDayStr, plants: 48, location: 'HT-A2', fromTray: 'GH Bench 3', completed: false },
-                    { batchId: '26-BAS-002', crop: 'Basil', variety: 'Italian Large Leaf', category: 'Herb', sowDate: startDate, plants: 200, location: 'F1L-05', fromTray: 'GH Bench 1', completed: false }
-                ];
-                summary = {
-                    totalPlants: 726,
-                    byLocation: { 'Field': 606, 'High Tunnel': 120 },
-                    uniqueCrops: 5
-                };
-            } else if (currentTaskType === 'directSeed') {
-                tasks = [
-                    { batchId: '26-CAR-001', crop: 'Carrots', variety: 'Napoli', category: 'Veg', sowDate: startDate, feet: 200, seedsNeeded: 2400, location: 'F1L-01', completed: false },
-                    { batchId: '26-BET-001', crop: 'Beets', variety: 'Detroit Dark Red', category: 'Veg', sowDate: startDate, feet: 100, seedsNeeded: 800, location: 'F1L-02', completed: false },
-                    { batchId: '26-RAD-001', crop: 'Radish', variety: 'French Breakfast', category: 'Veg', sowDate: nextDayStr, feet: 50, seedsNeeded: 600, location: 'F2L-04', completed: false },
-                    { batchId: '26-ARU-001', crop: 'Arugula', variety: 'Astro', category: 'Veg', sowDate: nextDayStr, feet: 75, seedsNeeded: 1500, location: 'F2L-05', completed: false },
-                    { batchId: '26-SPN-001', crop: 'Spinach', variety: 'Space', category: 'Veg', sowDate: startDate, feet: 150, seedsNeeded: 1800, location: 'F1L-03', completed: false }
-                ];
-                summary = {
-                    totalFeet: 575,
-                    totalSeeds: 7100,
-                    uniqueCrops: 5
-                };
+        // Load overdue tasks
+        async function loadOverdueTasks() {
+            showLoading();
+            try {
+                const url = `${API_URL}?action=getOverduePlantings`;
+                const response = await fetch(url, { method: 'GET', redirect: 'follow', headers: { 'Accept': 'application/json' } });
+                const data = await response.json();
+
+                if (data.success) {
+                    // Filter by current task type
+                    const typeMap = { ghSow: 'GH Sow', transplant: 'Transplant', directSeed: 'Direct Seed' };
+                    const filterType = typeMap[currentTaskType] || 'GH Sow';
+                    const filtered = (data.overdue || []).filter(t => t.taskType === filterType || t.type === filterType);
+
+                    // Normalize to our task format
+                    tasks = filtered.map(t => ({
+                        batchId: t.batchId || t.batch_id || '',
+                        crop: t.crop || '',
+                        variety: t.variety || '',
+                        category: t.category || 'Veg',
+                        sowDate: t.plannedDate || t.dueDate || '',
+                        plannedDate: t.plannedDate || t.dueDate || '',
+                        actualDate: null,
+                        daysVariance: null,
+                        trays: t.trays || t.traysNeeded || 0,
+                        cellsPerTray: t.cellsPerTray || t.cellCount || 0,
+                        plantsNeeded: t.plantsNeeded || 0,
+                        seedsNeeded: t.seedsNeeded || 0,
+                        bed: t.bed || t.targetBed || '',
+                        germTemp: t.germTemp || '',
+                        notes: t.notes || '',
+                        completed: false,
+                        daysOverdue: t.daysOverdue || 0,
+                        readiness: t.readiness || { hasTrays: (t.trays || 0) > 0, hasCellSize: (t.cellsPerTray || 0) > 0, hasBed: !!(t.bed || t.targetBed), hasSeedLot: false, hasPlants: (t.plantsNeeded || 0) > 0 }
+                    }));
+
+                    summary = { totalTasks: tasks.length, totalTrays: tasks.reduce((sum, t) => sum + (t.trays || 0), 0), traysBySize: {}, seedsNeeded: [] };
+                    renderSheet();
+                    updateStats();
+                    document.getElementById('printBtn').disabled = tasks.length === 0;
+                    document.getElementById('saveBtn').disabled = tasks.length === 0;
+                    showToast(`Loaded ${tasks.length} overdue ${currentTaskType === 'ghSow' ? 'sowing' : currentTaskType} tasks`, tasks.length > 0 ? 'warning' : 'success');
+                } else {
+                    showErrorState(data.error || 'Could not load overdue tasks');
+                }
+            } catch (error) {
+                console.error('Overdue fetch error:', error);
+                showErrorState('Could not load overdue tasks. Check your connection.');
+            }
+        }
+
+        // Dirty state tracking for inline editing
+        let dirtyFields = {}; // { batchId: { fieldName: newValue, ... } }
+
+        function markFieldDirty(batchId, field, value) {
+            if (!dirtyFields[batchId]) dirtyFields[batchId] = {};
+            dirtyFields[batchId][field] = value;
+            updateSaveBar();
+        }
+
+        function updateSaveBar() {
+            const count = Object.keys(dirtyFields).length;
+            let bar = document.getElementById('dirtySaveBar');
+            if (count > 0) {
+                if (!bar) {
+                    bar = document.createElement('div');
+                    bar.id = 'dirtySaveBar';
+                    bar.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:var(--warning);color:#1a1a2e;padding:12px 24px;display:flex;justify-content:space-between;align-items:center;z-index:9999;font-weight:600;';
+                    document.body.appendChild(bar);
+                }
+                bar.innerHTML = `<span><i class="fas fa-edit"></i> ${count} task(s) with unsaved changes</span><button class="btn btn-primary" onclick="saveFieldEdits()" style="padding:8px 20px;"><i class="fas fa-save"></i> Save Changes</button>`;
+            } else if (bar) {
+                bar.remove();
+            }
+        }
+
+        async function saveFieldEdits() {
+            const batches = Object.keys(dirtyFields);
+            if (batches.length === 0) return;
+
+            showToast('Saving edits...', 'warning');
+            let saved = 0;
+            let errors = [];
+
+            for (const batchId of batches) {
+                try {
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain' },
+                        body: JSON.stringify({ action: 'updatePlanningFields', batchId: batchId, fields: dirtyFields[batchId] })
+                    });
+                    const result = await response.json();
+                    if (result.success) {
+                        saved++;
+                        // Update local task data
+                        const task = tasks.find(t => t.batchId === batchId);
+                        if (task) {
+                            Object.assign(task, dirtyFields[batchId]);
+                        }
+                    } else {
+                        errors.push(batchId + ': ' + (result.error || 'Unknown error'));
+                    }
+                } catch (e) {
+                    errors.push(batchId + ': ' + e.message);
+                }
             }
 
-            renderSheet();
-            updateStats();
-            document.getElementById('printBtn').disabled = false;
-            document.getElementById('saveBtn').disabled = false;
-            showToast('Loaded demo data (API not connected)', 'warning');
+            dirtyFields = {};
+            updateSaveBar();
+
+            if (errors.length > 0) {
+                showToast(`Saved ${saved}, failed ${errors.length}: ${errors[0]}`, 'error');
+            } else {
+                showToast(`Saved ${saved} task(s) successfully`, 'success');
+                // Remove dirty styling
+                document.querySelectorAll('.dirty-cell').forEach(el => el.classList.remove('dirty-cell'));
+            }
         }
 
         // Update Statistics
         function updateStats() {
             document.getElementById('statTotalTasks').textContent = tasks.length;
-            document.getElementById('statTotalTrays').textContent = summary.totalTrays || tasks.reduce((sum, t) => sum + t.trays, 0);
-            document.getElementById('statTotalSeeds').textContent = (summary.seedsNeeded || []).reduce((sum, s) => sum + s.seeds, 0).toLocaleString();
+            document.getElementById('statTotalTrays').textContent = summary.totalTrays || tasks.reduce((sum, t) => sum + (t.trays || 0), 0);
+            document.getElementById('statTotalSeeds').textContent = (summary.seedsNeeded || []).reduce((sum, s) => sum + (s.totalSeeds || s.seeds || 0), 0).toLocaleString();
             document.getElementById('statCompleted').textContent = tasks.filter(t => t.completed).length;
         }
 
@@ -1170,11 +1291,22 @@
                             <div class="summary-box-title">Seeds Needed</div>
                             ${(summary.seedsNeeded || []).slice(0, 6).map(s => `
                                 <div class="summary-item">
-                                    <span>${s.crop} (${s.variety.substring(0, 15)}${s.variety.length > 15 ? '...' : ''})</span>
-                                    <span>${s.seeds.toLocaleString()}</span>
+                                    <span>${s.crop} (${(s.variety || '').substring(0, 15)}${(s.variety || '').length > 15 ? '...' : ''})</span>
+                                    <span>${(s.totalSeeds || s.seeds || 0).toLocaleString()}</span>
                                 </div>
                             `).join('')}
+                            ${(summary.seedsNeeded || []).length === 0 ? '<div class="summary-item" style="opacity:0.6;"><span>No seed data</span><span>--</span></div>' : ''}
                         </div>
+                        ${summary.readinessIssues ? `
+                        <div class="summary-box" style="border-left: 3px solid var(--danger);">
+                            <div class="summary-box-title" style="color: var(--danger);"><i class="fas fa-exclamation-triangle"></i> Readiness Issues</div>
+                            ${summary.readinessIssues.missingTrays > 0 ? `<div class="summary-item"><span>Missing Tray Count</span><span style="color:var(--danger);">${summary.readinessIssues.missingTrays}</span></div>` : ''}
+                            ${summary.readinessIssues.missingCellSize > 0 ? `<div class="summary-item"><span>Missing Cell Size</span><span style="color:var(--danger);">${summary.readinessIssues.missingCellSize}</span></div>` : ''}
+                            ${summary.readinessIssues.missingBed > 0 ? `<div class="summary-item"><span>Missing Target Bed</span><span style="color:var(--warning);">${summary.readinessIssues.missingBed}</span></div>` : ''}
+                            ${summary.readinessIssues.missingSeedLot > 0 ? `<div class="summary-item"><span>No Seed Lot Linked</span><span style="color:var(--warning);">${summary.readinessIssues.missingSeedLot}</span></div>` : ''}
+                            ${Object.values(summary.readinessIssues).every(v => v === 0) ? '<div class="summary-item" style="color:var(--success);"><span>All tasks ready!</span><span><i class="fas fa-check-circle"></i></span></div>' : ''}
+                        </div>
+                        ` : ''}
                     </div>
                 `;
             } else if (currentTaskType === 'transplant') {
@@ -1248,36 +1380,77 @@
         function renderTaskRow(task) {
             const categoryClass = task.category === 'Floral' ? 'floral' : (task.category === 'Herb' ? 'herb' : 'veg');
             const config = taskTypeConfig[currentTaskType];
-            const taskDate = task[config.dateField];
+            const taskDate = task.plannedDate || task[config.dateField];
+
+            // Planned vs Actual date display
+            let dateCell = formatDateShort(taskDate);
+            if (task.actualDate) {
+                const variance = task.daysVariance || 0;
+                let varColor = '#22c55e'; // green = on time
+                let varLabel = 'on time';
+                if (variance > 0) {
+                    varColor = variance <= 3 ? '#f59e0b' : '#e63946'; // yellow or red
+                    varLabel = '+' + variance + 'd late';
+                } else if (variance < 0) {
+                    varColor = '#3b82f6'; // blue = early
+                    varLabel = Math.abs(variance) + 'd early';
+                }
+                dateCell = `${formatDateShort(taskDate)}<br><span style="font-size:10px;color:${varColor};font-weight:600;">Actual: ${formatDateShort(task.actualDate)} (${varLabel})</span>`;
+            }
+
+            // Readiness flags
+            let readinessHtml = '';
+            if (!task.completed && task.readiness) {
+                const issues = [];
+                if (!task.readiness.hasTrays) issues.push('trays');
+                if (!task.readiness.hasCellSize) issues.push('cell size');
+                if (!task.readiness.hasBed) issues.push('bed');
+                if (issues.length > 0) {
+                    readinessHtml = `<span style="color:var(--danger);font-size:10px;cursor:help;" title="Needs: ${issues.join(', ')}"><i class="fas fa-exclamation-triangle"></i></span>`;
+                }
+            }
+
+            // Auto-calculated indicator
+            let traysDisplay = task.trays || 0;
+            if (task.autoCalculatedTrays) {
+                traysDisplay = `${task.trays} <span style="font-size:9px;color:var(--warning);cursor:help;" title="Auto-calculated from plants/cells — verify">calc</span>`;
+            }
+
+            // Editable cell helper
+            function editableCell(field, value, type) {
+                type = type || 'text';
+                const bid = task.batchId;
+                return `<span class="editable-cell" onclick="makeEditable(this, '${bid}', '${field}', '${type}')" style="cursor:pointer;border-bottom:1px dashed rgba(255,255,255,0.3);padding:2px 4px;">${value || '-'}</span>`;
+            }
 
             let rowContent = '';
 
             if (currentTaskType === 'ghSow') {
                 rowContent = `
-                    <td>${formatDateShort(taskDate)}</td>
-                    <td>${task.crop} <span class="category-badge ${categoryClass}">GH</span></td>
+                    <td>${dateCell}</td>
+                    <td>${task.crop} <span class="category-badge ${categoryClass}">GH</span> ${readinessHtml}</td>
                     <td>${task.variety}</td>
-                    <td><strong>${task.trays || 0}</strong></td>
-                    <td>${task.cellsPerTray || '-'}</td>
-                    <td>${task.bed || '-'}</td>
+                    <td>${editableCell('Trays_Needed', traysDisplay, 'number')}</td>
+                    <td>${editableCell('Tray_Cell_Count', task.cellsPerTray || '-', 'number')}</td>
+                    <td>${editableCell('Target_Bed_ID', task.bed || '-', 'text')}</td>
                 `;
             } else if (currentTaskType === 'transplant') {
                 rowContent = `
-                    <td>${formatDateShort(taskDate)}</td>
-                    <td>${task.crop} <span class="category-badge ${categoryClass}">TP</span></td>
+                    <td>${dateCell}</td>
+                    <td>${task.crop} <span class="category-badge ${categoryClass}">TP</span> ${readinessHtml}</td>
                     <td>${task.variety}</td>
-                    <td><strong>${task.plants || 0}</strong></td>
-                    <td>${task.location || '-'}</td>
+                    <td><strong>${task.plantsNeeded || task.plants || 0}</strong></td>
+                    <td>${editableCell('Target_Bed_ID', task.bed || task.location || '-', 'text')}</td>
                     <td>${task.fromTray || '-'}</td>
                 `;
             } else if (currentTaskType === 'directSeed') {
                 rowContent = `
-                    <td>${formatDateShort(taskDate)}</td>
-                    <td>${task.crop} <span class="category-badge ${categoryClass}">DS</span></td>
+                    <td>${dateCell}</td>
+                    <td>${task.crop} <span class="category-badge ${categoryClass}">DS</span> ${readinessHtml}</td>
                     <td>${task.variety}</td>
-                    <td><strong>${task.feet || 0} ft</strong></td>
+                    <td><strong>${editableCell('Feet_Used', (task.feetUsed || task.feet || 0) + ' ft', 'number')}</strong></td>
                     <td>${(task.seedsNeeded || 0).toLocaleString()}</td>
-                    <td>${task.location || '-'}</td>
+                    <td>${editableCell('Target_Bed_ID', task.bed || task.location || '-', 'text')}</td>
                 `;
             }
 
@@ -1289,6 +1462,35 @@
                     ${rowContent}
                 </tr>
             `;
+        }
+
+        // Inline editing: click to edit a cell
+        function makeEditable(element, batchId, fieldName, inputType) {
+            if (element.querySelector('input')) return; // Already editing
+            const currentValue = element.textContent.trim().replace(' ft', '').replace('calc', '').trim();
+            const input = document.createElement('input');
+            input.type = inputType || 'text';
+            input.value = currentValue === '-' ? '' : currentValue;
+            input.style.cssText = 'width:80px;padding:4px;border:1px solid var(--primary);border-radius:4px;background:var(--bg-light);color:var(--text-primary);font-size:13px;';
+            input.onblur = function() {
+                const newValue = input.value.trim();
+                if (newValue !== currentValue && newValue !== '') {
+                    element.textContent = newValue;
+                    element.classList.add('dirty-cell');
+                    element.style.background = 'rgba(249, 158, 11, 0.2)';
+                    markFieldDirty(batchId, fieldName, inputType === 'number' ? Number(newValue) : newValue);
+                } else {
+                    element.textContent = currentValue || '-';
+                }
+            };
+            input.onkeydown = function(e) {
+                if (e.key === 'Enter') input.blur();
+                if (e.key === 'Escape') { element.textContent = currentValue || '-'; }
+            };
+            element.textContent = '';
+            element.appendChild(input);
+            input.focus();
+            input.select();
         }
 
         // Toggle Task Completion

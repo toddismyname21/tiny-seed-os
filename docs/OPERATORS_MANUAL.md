@@ -1,8 +1,8 @@
 # Tiny Seed OS - Operators Manual
 
-**Version:** 1.2
-**Last Updated:** 2026-01-23
-**Maintained By:** PM Claude
+**Version:** 2.0
+**Last Updated:** 2026-02-26
+**Maintained By:** PM_Architect Claude
 
 ---
 
@@ -20,7 +20,8 @@ This manual documents ALL functions in the Tiny Seed OS web application and Empl
 4. [Employee App (employee.html)](#employee-app)
 5. [Financial Command Center](#financial-command-center)
 6. [Farm Operations](#farm-operations)
-7. [**Farm Intelligence System**](#farm-intelligence-system)
+7. [**Greenhouse Seeding Workflow: Seed to Seeded**](#greenhouse-seeding-workflow-seed-to-seeded) ⭐ NEW
+8. [**Farm Intelligence System**](#farm-intelligence-system)
    - [Morning Brief Generator](#morning-brief-generator)
    - [Smart Succession Planner](#smart-succession-planner)
    - [Food Safety Intelligence](#food-safety-intelligence)
@@ -248,8 +249,238 @@ Double-click to launch directly into the Farm Operating System.
 ### Labels (labels.html)
 | Function | Description | API Endpoint |
 |----------|-------------|--------------|
-| Print Labels | Generate plant labels | `?action=generateLabels` |
-| Label Templates | Manage templates | `?action=getLabelTemplates` |
+| Tray Lip Labels | Standard printer labels for greenhouse tray lips | `?action=getGreenhouseSeedings` |
+| Pot Tags (UL-247) | ZX5141T stake tags for seedling sale pots | `?action=getGreenhouseSeedings` |
+| Field Tray Labels (UL-247) | FT40101WH stickers for field seedling trays | `?action=getGreenhouseSeedings` |
+| Seed Lot Labels | Inventory labels for seed storage containers | `?action=getSeedInventory` |
+
+---
+
+## GREENHOUSE SEEDING WORKFLOW: SEED TO SEEDED
+
+> **Complete step-by-step guide for the seeding process. Follow this from start to finish on seeding day.**
+
+### Equipment Needed
+
+| Item | Where to Find |
+|------|---------------|
+| Seed trays (correct cell size per plan) | Tray storage area |
+| Seed starting mix | Supply room |
+| Seeds (check seed lot before starting) | Seed cabinet / cooler |
+| UL-247 thermal printer + labels | Label station |
+| ZX5141T pot tags (sale pots) | Label supply shelf |
+| FT40101WH tray labels (field trays) | Label supply shelf |
+| Phone or tablet with Tiny Seed OS open | Your device |
+| Pen (backup for hand-labeling if needed) | Desk |
+
+---
+
+### STEP 1: Review Today's Seeding Plan (5 min)
+
+**Where:** Greenhouse Manager Dashboard
+
+1. Open Tiny Seed OS and navigate to **Greenhouse Manager**
+   - From the main dashboard: click "Greenhouse Manager" in the sidebar
+   - Direct URL: `https://app.tinyseedfarm.com/web_app/greenhouse-dashboard.html`
+
+2. Look at **Today's Tasks** tab — this shows everything scheduled to sow this week
+
+3. Check the **Overdue** section (red box at top) — these should be done first
+
+4. For each task, verify:
+   - **Tray count** — are trays assigned? (green check = yes, red X = missing)
+   - **Cell size** — does it match the trays you have? (e.g., 72-cell, 128-cell)
+   - **Seed lot** — is a seed lot available? (green check = yes)
+   - **Target bed** — do you know where it's going after the greenhouse?
+
+5. If anything is missing (red X marks):
+   - Click the **edit icon** on the task card
+   - Fill in the missing info (tray count, cell size, bed assignment)
+   - Click **Save**
+
+> **TIP:** If trays show "auto-calculated," the system calculated trays from plants needed. Verify this matches what you have on hand.
+
+---
+
+### STEP 2: Print Labels (5-10 min)
+
+**Where:** Labels page (`labels.html`)
+
+You need TWO types of labels:
+- **Pot Tags** → for any seedlings being grown for sale (go in individual pots)
+- **Field Tray Labels** → for seedlings being grown for the field (stick on tray)
+
+#### For Field Tray Labels (FT40101WH):
+
+1. Open **Labels** from the sidebar or Greenhouse Manager "Print" button
+2. Click **"Field Tray"** in the label type selector
+3. Set the date range to cover this week's seedings
+4. Click **"Load Seedings"**
+5. Select the seedings that need labels (check the boxes)
+6. Click **"Generate Labels"** — preview appears on the right
+7. Click **"Print Selected"** in the top-right
+8. In the print dialog:
+   - **Printer:** Select "UL-247"
+   - **Paper size:** 4" x 1"
+   - **Margins:** None
+   - **Orientation:** Landscape
+9. Click **Print**
+
+Each label includes: Crop, Variety, Batch ID, Tray number, Sow date, Transplant date, Cell size, Target bed, QR code
+
+#### For Pot Tags (ZX5141T):
+
+1. Switch to **"Pot Tags"** in the label type selector
+2. Load the same seedings
+3. Set "Tags Per Seeding" — use "Auto (= plants needed)" to get one tag per pot, or set a custom count
+4. Click **"Generate Labels"**
+5. Click **"Print Selected"**
+6. In the print dialog:
+   - **Printer:** Select "UL-247"
+   - **Paper size:** 1" x 4.5"
+   - **Margins:** None
+   - **Orientation:** Portrait
+7. Click **Print**
+
+Each pot tag includes: Crop, Variety, "Tiny Seed Farm" branding, Sow date, Batch ID, QR code
+
+> **PRINTER SETUP TIP:** The UL-247 thermal printer needs the correct media loaded:
+> - For pot tags: Load ZX5141T styrene tags
+> - For field tray labels: Load FT40101WH Floratherm labels
+> - Make sure the ribbon is installed and the media guide is snug against the labels
+
+---
+
+### STEP 3: Prepare Trays + Mix (10-15 min)
+
+1. **Count trays needed** — check the dashboard for exact count per crop
+2. **Match cell sizes** — each crop has a specified cell count (72-cell, 128-cell, etc.)
+3. **Fill trays** with seed starting mix:
+   - Fill to the rim
+   - Brush excess off with a straight edge
+   - Tamp down gently (about 1/4 inch below the rim)
+   - Water the mix until evenly moist (not soaking)
+4. **Apply labels** to each tray:
+   - Field trays: Stick FT40101WH label on the front lip
+   - Sale pot trays: Stick one tag per cell/pot after seeding
+
+---
+
+### STEP 4: Seed the Trays (Main Work)
+
+**For each crop/variety on today's list:**
+
+1. **Get the correct seed packet** — match the Seed Lot ID shown on the dashboard
+   - The seed lot is shown on the task card
+   - Verify the crop and variety match what's on the packet
+
+2. **Sow seeds:**
+   - Drop seeds into each cell according to the plan
+   - Typically 1-2 seeds per cell (check crop profile for specifics)
+   - Use a dibble board for consistent depth if available
+   - Cover seeds with vermiculite or light mix (depth depends on seed size)
+
+3. **Water in gently** — mist or light watering, don't displace seeds
+
+4. **Place in greenhouse** on the correct bench/table
+   - Check the Germination Chamber Quick Reference on the dashboard for ideal temps
+   - Warm-season crops (tomatoes, peppers) → heat mats or germination chamber
+   - Cool-season crops (lettuce, brassicas) → ambient greenhouse temp
+
+---
+
+### STEP 5: Mark as Sown in the System (2 min per crop)
+
+**Where:** Greenhouse Manager Dashboard
+
+1. Find the task card for the crop you just seeded
+2. Click **"Mark Sown"**
+3. A seed lot confirmation modal appears:
+   - The system auto-matches the best seed lot for this crop/variety
+   - **Verify** the lot shown matches what you actually used
+   - If correct: click **"Confirm"**
+   - If wrong: click **"Change"** and select the right lot
+   - If you don't know the lot: click **"Skip"** (but try to record it — traceability matters)
+4. The system automatically:
+   - Records today as the actual sow date
+   - Deducts seeds from the seed lot inventory
+   - Creates an audit trail in the SEED_USAGE_LOG
+   - Shows the task as complete with a green checkmark
+
+> **WHY THIS MATTERS:** Recording the seed lot at sow time creates full traceability: Seed Lot → Tray → Field → Harvest → Sale. This is required for organic certification and food safety audits.
+
+---
+
+### STEP 6: Print Seeding Task Sheet (Optional — for paper backup)
+
+**Where:** Greenhouse Manager Dashboard or Sowing Sheets page
+
+1. Click the **"Print"** button (printer icon) next to the sowing task count
+2. This opens the Sowing Task Sheet page pre-loaded with this week's tasks
+3. Click **"Print"** → use your regular printer (standard 8.5" x 11")
+4. The task sheet shows:
+   - Crop, variety, trays needed, cell size
+   - Seed lot to use
+   - Target bed for transplanting
+   - Checkboxes for each task (mark by hand in the greenhouse)
+   - Planned vs actual dates
+
+> **WHEN TO USE THIS:** Great for mornings when you want a physical sheet in the greenhouse. Check things off by hand, then enter them in the system later.
+
+---
+
+### STEP 7: Daily Monitoring (Ongoing)
+
+After seeding, monitor daily:
+
+1. **Check germination** — most crops emerge in 3-14 days
+2. **Water as needed** — keep soil evenly moist, not waterlogged
+3. **Monitor temperature** — use the Germination Chamber Quick Reference
+4. **Thin if needed** — remove weaker seedlings if multiple germinated per cell
+5. **Track progress** on the dashboard — the Reports tab shows seeding accuracy (planned vs actual dates)
+
+---
+
+### QUICK REFERENCE: Seeding Day Checklist
+
+```
+BEFORE YOU START
+[ ] Check Greenhouse Manager → Today's Tasks
+[ ] Verify all tasks have tray counts, cell sizes assigned
+[ ] Load correct media in UL-247 printer
+[ ] Print field tray labels (FT40101WH, 4" x 1")
+[ ] Print pot tags if needed (ZX5141T, 1" x 4.5")
+
+FOR EACH CROP
+[ ] Get correct seed lot (match lot ID on dashboard)
+[ ] Fill correct cell-size trays with seed mix
+[ ] Sow seeds at correct depth and density
+[ ] Label each tray (stick label on front lip)
+[ ] Water in gently
+[ ] Place on correct bench (check temp requirements)
+[ ] Mark as Sown in dashboard
+[ ] Confirm seed lot in the modal
+
+AFTER ALL SEEDING
+[ ] Verify all tasks show green checkmarks
+[ ] Print seeding task sheet for records (optional)
+[ ] Clean and return supplies
+[ ] Note any issues in the dashboard (use edit → Notes field)
+```
+
+---
+
+### TROUBLESHOOTING
+
+| Problem | Solution |
+|---------|----------|
+| "No seedings found" when loading tasks | Check the date range — widen it. Make sure PLANNING_2026 has entries. |
+| Task shows 0 trays | Click edit on the task, set tray count manually, then save. |
+| Can't find seed lot | The system auto-matches by crop + variety. If no lot exists, add one via Seed Inventory page first. |
+| UL-247 not printing | Check: Is the printer on? Is media loaded? Is the ribbon installed? Try printing a test label. |
+| Labels printing wrong size | In the print dialog, verify paper size matches the label (1"x4.5" for pot tags, 4"x1" for field tray). Set margins to "None". |
+| "Mark Sown" button is disabled | The task is missing critical info (trays or cell count). Edit the task first. |
+| Seed lot shows "0 remaining" | The lot is depleted. You'll need to open a new lot or reorder. Update seed inventory. |
 
 ---
 
@@ -831,6 +1062,7 @@ POST: Body as JSON, action in query string
 
 | Date | Change | Updated By |
 |------|--------|------------|
+| 2026-02-26 | Added complete Seed-to-Seeded workflow guide (7-step process with equipment list, UL-247 printer instructions, troubleshooting). Updated Labels section with 4 label types (Tray Lip, Pot Tags, Field Tray, Seed Lots). Added UL-247 thermal printer setup for ZX5141T pot tags and FT40101WH field tray labels. | PM_Architect |
 | 2026-01-23 | Added universal sheet access (getSheetData, listSheets) - 201 sheets accessible | PM_Architect |
 | 2026-01-23 | Added addField endpoint with manual bed count override | PM_Architect |
 | 2026-01-23 | Added fields Z1 (70x450 Veg, 17 beds) and CL (120x20 Floral, 5 beds) | PM_Architect |

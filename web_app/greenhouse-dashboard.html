@@ -465,9 +465,21 @@
         <div class="stat-card red"><div class="stat-label">Germination Checks</div><div class="stat-value" id="statGermChecks">--</div><div class="stat-sub">Due today</div></div>
     </div>
 
+    <!-- Overdue Section (3C) -->
+    <div id="overdueSection" style="display:none; margin-bottom:1.25rem;">
+        <div class="section-header" style="border-left:3px solid var(--danger);padding-left:0.75rem;">
+            <h2 style="color:var(--danger);"><i class="fas fa-exclamation-triangle"></i> Overdue</h2>
+            <span class="badge" id="overdueCount" style="background:var(--danger);">0</span>
+        </div>
+        <div class="task-grid" id="overdueTasks"></div>
+    </div>
+
     <div class="section-header">
         <h2><i class="fas fa-seedling"></i> Sowing Tasks</h2>
-        <span class="badge" id="sowingCount">0</span>
+        <div style="display:flex; align-items:center; gap:0.5rem;">
+            <span class="badge" id="sowingCount">0</span>
+            <button class="btn btn-outline btn-sm" onclick="openPrintSheet('ghSow')" title="Print task sheet"><i class="fas fa-print"></i> Print</button>
+        </div>
     </div>
     <div class="task-grid" id="sowingTasks">
         <div class="loading-spinner"><i class="fas fa-spinner"></i> Loading sowing tasks...</div>
@@ -758,6 +770,7 @@
         <button class="btn btn-outline" onclick="showReport('transplant')"><i class="fas fa-exchange-alt"></i> Transplant Readiness</button>
         <button class="btn btn-outline" onclick="showReport('utilization')"><i class="fas fa-warehouse"></i> Nursery Utilization</button>
         <button class="btn btn-outline" onclick="showReport('revenue')"><i class="fas fa-dollar-sign"></i> Seedling Revenue</button>
+        <button class="btn btn-outline" onclick="showReport('accuracy')"><i class="fas fa-bullseye"></i> Seeding Accuracy</button>
         <button class="btn btn-outline" onclick="window.print()"><i class="fas fa-print"></i> Print</button>
     </div>
     <div id="reportContent">
@@ -1073,6 +1086,33 @@
     </div>
 </div>
 
+<!-- Seed Lot Confirmation Modal (Phase 3B) -->
+<div class="modal-overlay" id="seedLotModal">
+    <div class="modal" style="max-width:480px;">
+        <div class="modal-head"><h3><i class="fas fa-box-open"></i> Confirm Seed Lot</h3><button class="modal-close" onclick="closeModal('seedLotModal')">&times;</button></div>
+        <div class="modal-body">
+            <div id="seedLotInfo" style="margin-bottom:1rem;">
+                <p style="color:var(--text-secondary);">Searching for matching seed lots...</p>
+            </div>
+            <div class="form-group">
+                <label>Seeds Used</label>
+                <input type="number" id="seedLotSeedsUsed" min="0" placeholder="Auto-calculated" style="width:100%;padding:0.5rem;background:var(--bg-light);border:1px solid var(--border);color:var(--text-primary);border-radius:var(--radius-sm);">
+            </div>
+            <div class="form-group">
+                <label>Notes</label>
+                <input type="text" id="seedLotNotes" placeholder="Optional notes" style="width:100%;padding:0.5rem;background:var(--bg-light);border:1px solid var(--border);color:var(--text-primary);border-radius:var(--radius-sm);">
+            </div>
+            <input type="hidden" id="seedLotBatchId">
+            <input type="hidden" id="seedLotSelectedId">
+        </div>
+        <div class="modal-foot">
+            <button class="btn btn-outline" onclick="closeModal('seedLotModal')">Cancel</button>
+            <button class="btn btn-outline" onclick="confirmSownWithoutLot()" style="color:var(--gold);border-color:var(--gold);">Skip (No Lot)</button>
+            <button class="btn btn-primary" onclick="confirmSownWithLot()"><i class="fas fa-check"></i> Confirm & Deduct</button>
+        </div>
+    </div>
+</div>
+
 <!-- Toast -->
 <div class="toast" id="toastEl"></div>
 
@@ -1173,6 +1213,15 @@ function toast(msg, type = 'success') {
     el.textContent = msg;
     el.className = 'toast ' + type + ' show';
     setTimeout(() => el.classList.remove('show'), 3500);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// PRINT TASK SHEET (Phase 3A)
+// ═══════════════════════════════════════════════════════════════════
+function openPrintSheet(taskType) {
+    const today = todayStr();
+    const end = weekFromNow();
+    window.open(`../sowing-sheets.html?taskType=${taskType}&startDate=${today}&endDate=${end}&autoLoad=true`, '_blank');
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -1467,32 +1516,66 @@ function renderTodayStats() {
 
 function renderSowingTasks() {
     const container = document.getElementById('sowingTasks');
-    const tasks = state.sowingTasks.filter(t => !t.completed).sort((a, b) => new Date(a.sowDate) - new Date(b.sowDate));
-    document.getElementById('sowingCount').textContent = tasks.length;
+    const allTasks = state.sowingTasks.filter(t => !t.completed).sort((a, b) => new Date(a.sowDate || a.plannedDate) - new Date(b.sowDate || b.plannedDate));
 
-    if (!tasks.length) {
+    // Separate overdue from upcoming
+    const overdueTasks = allTasks.filter(t => urgencyClass(t.sowDate || t.plannedDate) === 'overdue');
+    const upcomingTasks = allTasks.filter(t => urgencyClass(t.sowDate || t.plannedDate) !== 'overdue');
+
+    document.getElementById('sowingCount').textContent = upcomingTasks.length;
+
+    // Render overdue section
+    const overdueSection = document.getElementById('overdueSection');
+    const overdueContainer = document.getElementById('overdueTasks');
+    if (overdueTasks.length > 0) {
+        overdueSection.style.display = 'block';
+        document.getElementById('overdueCount').textContent = overdueTasks.length;
+        overdueContainer.innerHTML = overdueTasks.map(t => renderSowingCard(t)).join('');
+    } else {
+        overdueSection.style.display = 'none';
+    }
+
+    if (!upcomingTasks.length) {
         container.innerHTML = '<div class="empty-state"><i class="fas fa-check-circle"></i><p>No sowing tasks pending. Great work!</p></div>';
         return;
     }
 
-    container.innerHTML = tasks.map(t => {
-        const urg = urgencyClass(t.sowDate);
-        return `<div class="task-card ${urg}">
-            <div class="crop-name">${esc(t.crop || 'Unknown Crop')}</div>
-            <div class="variety">${esc(t.variety || '')}</div>
-            <div class="task-date ${urg === 'overdue' ? 'overdue-text' : urg === 'today' ? 'today-text' : ''}">
-                <i class="far fa-calendar"></i> Sow: ${formatDate(t.sowDate)} &mdash; ${urgencyText(t.sowDate)}
-            </div>
-            <div class="task-details">
-                <span class="detail-chip"><i class="fas fa-th"></i> ${t.trays || '?'} trays</span>
-                <span class="detail-chip"><i class="fas fa-braille"></i> ${t.cellsPerTray || '?'}-cell</span>
-                ${t.seedsNeeded ? '<span class="detail-chip"><i class="fas fa-dot-circle"></i> ' + t.seedsNeeded + ' seeds</span>' : ''}
-            </div>
-            <button class="btn btn-primary btn-block btn-sm" onclick="markSown('${esc(t.batchId)}')">
-                <i class="fas fa-check"></i> Mark Sown
-            </button>
-        </div>`;
-    }).join('');
+    container.innerHTML = upcomingTasks.map(t => renderSowingCard(t)).join('');
+}
+
+function renderSowingCard(t) {
+    const dateStr = t.sowDate || t.plannedDate;
+    const urg = urgencyClass(dateStr);
+
+    // Readiness checklist
+    const r = t.readiness || {};
+    const readinessItems = [];
+    readinessItems.push(r.hasTrays ? '<span style="color:var(--primary);">&#10003; Trays</span>' : '<span style="color:var(--danger);">&#10007; Trays</span>');
+    readinessItems.push(r.hasCellSize ? '<span style="color:var(--primary);">&#10003; Cells</span>' : '<span style="color:var(--danger);">&#10007; Cells</span>');
+    readinessItems.push(r.hasBed ? '<span style="color:var(--primary);">&#10003; Bed</span>' : '<span style="color:var(--gold);">&#10007; Bed</span>');
+    readinessItems.push(r.hasSeedLot ? '<span style="color:var(--primary);">&#10003; Lot</span>' : '<span style="color:var(--gold);">&#10007; Lot</span>');
+
+    const isReady = r.hasTrays && r.hasCellSize;
+    const autoCalc = t.autoCalculatedTrays ? ' <span style="font-size:0.7rem;color:var(--gold);cursor:help;" title="Auto-calculated — verify">(calc)</span>' : '';
+
+    return `<div class="task-card ${urg}">
+        <div class="crop-name">${esc(t.crop || 'Unknown Crop')}</div>
+        <div class="variety">${esc(t.variety || '')}</div>
+        <div class="task-date ${urg === 'overdue' ? 'overdue-text' : urg === 'today' ? 'today-text' : ''}">
+            <i class="far fa-calendar"></i> Sow: ${formatDate(dateStr)} &mdash; ${urgencyText(dateStr)}
+        </div>
+        <div class="task-details">
+            <span class="detail-chip"><i class="fas fa-th"></i> ${t.trays || '?'} trays${autoCalc}</span>
+            <span class="detail-chip"><i class="fas fa-braille"></i> ${t.cellsPerTray || '?'}-cell</span>
+            ${t.seedsNeeded ? '<span class="detail-chip"><i class="fas fa-dot-circle"></i> ' + t.seedsNeeded + ' seeds</span>' : ''}
+            ${t.bed ? '<span class="detail-chip"><i class="fas fa-map-marker-alt"></i> ' + esc(t.bed) + '</span>' : ''}
+            ${t.germTemp ? '<span class="detail-chip"><i class="fas fa-thermometer-half"></i> ' + esc(t.germTemp) + '</span>' : ''}
+        </div>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;margin:6px 0;font-size:0.75rem;">${readinessItems.join(' ')}</div>
+        <button class="btn btn-primary btn-block btn-sm" onclick="markSown('${esc(t.batchId)}')">
+            <i class="fas fa-check"></i> Mark Sown
+        </button>
+    </div>`;
 }
 
 function renderTransplantTasks() {
@@ -1525,10 +1608,94 @@ function renderTransplantTasks() {
 }
 
 async function markSown(batchId) {
+    // Open seed lot confirmation modal (auto-match + confirm)
+    const task = state.sowingTasks.find(t => t.batchId === batchId);
+    if (!task) { toast('Task not found', 'error'); return; }
+
+    document.getElementById('seedLotBatchId').value = batchId;
+    document.getElementById('seedLotSeedsUsed').value = task.seedsNeeded || '';
+    document.getElementById('seedLotSelectedId').value = '';
+    document.getElementById('seedLotNotes').value = '';
+    document.getElementById('seedLotInfo').innerHTML = '<p style="color:var(--text-secondary);"><i class="fas fa-spinner fa-spin"></i> Searching for seed lots...</p>';
+
+    openModal('seedLotModal');
+
+    // Auto-search for matching seed lots
     try {
-        await api.post('recordSeedingDate', { batchId, type: 'gh_sow', actualDate: todayStr() });
-        await api.post('updateTaskCompletion', { batchId, taskType: 'gh_sow', completed: true });
-        toast('Sowing recorded for ' + batchId);
+        const res = await api.get('findSeedLotsByCropVariety', { crop: task.crop, variety: task.variety || '' });
+        if (res && res.lots && res.lots.length > 0) {
+            const best = res.lots[0];
+            document.getElementById('seedLotSelectedId').value = best.seedLotId;
+            document.getElementById('seedLotInfo').innerHTML = `
+                <div style="background:var(--primary-dim);padding:0.75rem;border-radius:var(--radius-sm);margin-bottom:0.5rem;">
+                    <strong style="color:var(--primary);">${esc(task.crop)} — ${esc(task.variety || 'Any')}</strong>
+                </div>
+                <div style="background:var(--bg-light);padding:0.75rem;border-radius:var(--radius-sm);">
+                    <div style="font-weight:600;">Best Match: ${esc(best.seedLotId)}</div>
+                    <div style="font-size:0.85rem;color:var(--text-secondary);margin-top:4px;">
+                        ${esc(best.supplier || 'Unknown supplier')} &bull; ${best.quantityRemaining} ${best.unit || 'seeds'} remaining &bull; Status: ${best.status}
+                        ${best.organic ? ' &bull; <span style="color:var(--primary);">Organic</span>' : ''}
+                    </div>
+                </div>
+                ${res.lots.length > 1 ? `
+                <div style="margin-top:0.5rem;">
+                    <label style="font-size:0.8rem;color:var(--text-secondary);">Other lots (${res.lots.length - 1} more):</label>
+                    <select onchange="document.getElementById('seedLotSelectedId').value=this.value" style="width:100%;padding:0.4rem;background:var(--bg-light);border:1px solid var(--border);color:var(--text-primary);border-radius:var(--radius-sm);margin-top:4px;">
+                        ${res.lots.map(l => `<option value="${esc(l.seedLotId)}" ${l.seedLotId === best.seedLotId ? 'selected' : ''}>${esc(l.seedLotId)} — ${l.quantityRemaining} ${l.unit || 'seeds'} (${l.supplier || '?'})</option>`).join('')}
+                    </select>
+                </div>` : ''}
+            `;
+        } else {
+            document.getElementById('seedLotInfo').innerHTML = `
+                <div style="background:var(--gold-dim);padding:0.75rem;border-radius:var(--radius-sm);">
+                    <strong style="color:var(--gold);"><i class="fas fa-exclamation-triangle"></i> No matching seed lots found</strong>
+                    <div style="font-size:0.85rem;color:var(--text-secondary);margin-top:4px;">
+                        Searched for: ${esc(task.crop)} ${esc(task.variety || '')}. You can still mark sown without a lot.
+                    </div>
+                </div>
+            `;
+        }
+    } catch (err) {
+        console.error('Seed lot search error:', err);
+        document.getElementById('seedLotInfo').innerHTML = `
+            <div style="background:var(--danger-dim);padding:0.75rem;border-radius:var(--radius-sm);">
+                <strong style="color:var(--danger);">Could not search seed lots</strong>
+                <div style="font-size:0.85rem;color:var(--text-secondary);margin-top:4px;">${err.message}. You can still mark sown without a lot.</div>
+            </div>
+        `;
+    }
+}
+
+async function confirmSownWithLot() {
+    const batchId = document.getElementById('seedLotBatchId').value;
+    const seedLotId = document.getElementById('seedLotSelectedId').value;
+    const seedsUsed = document.getElementById('seedLotSeedsUsed').value;
+
+    closeModal('seedLotModal');
+
+    try {
+        const params = { batchId: batchId, completed: 'true' };
+        if (seedLotId) { params.seedLotId = seedLotId; }
+        if (seedsUsed) { params.seedsUsed = seedsUsed; }
+
+        const url = `${API_URL}?action=updateTaskCompletion&batchId=${encodeURIComponent(batchId)}&completed=true${seedLotId ? '&seedLotId=' + encodeURIComponent(seedLotId) : ''}${seedsUsed ? '&seedsUsed=' + encodeURIComponent(seedsUsed) : ''}`;
+        await fetch(url);
+
+        toast('Sowing recorded' + (seedLotId ? ' with lot ' + seedLotId : ''));
+        loadTodayTab();
+    } catch (err) {
+        console.error(err);
+        toast('Failed to record sowing: ' + err.message, 'error');
+    }
+}
+
+async function confirmSownWithoutLot() {
+    const batchId = document.getElementById('seedLotBatchId').value;
+    closeModal('seedLotModal');
+
+    try {
+        await fetch(`${API_URL}?action=updateTaskCompletion&batchId=${encodeURIComponent(batchId)}&completed=true`);
+        toast('Sowing recorded (no seed lot linked)');
         loadTodayTab();
     } catch (err) {
         console.error(err);
@@ -2345,6 +2512,7 @@ async function showReport(type) {
         else if (type === 'transplant') await renderTransplantReport(container);
         else if (type === 'utilization') await renderUtilizationReport(container);
         else if (type === 'revenue') await renderRevenueReport(container);
+        else if (type === 'accuracy') await renderAccuracyReport(container);
     } catch (err) {
         container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Failed to generate report: ' + esc(err.message) + '</p></div>';
     }
@@ -2469,6 +2637,61 @@ async function renderRevenueReport(container) {
     } catch (err) {
         container.innerHTML = '<div class="empty-state"><i class="fas fa-dollar-sign"></i><p>No seedling revenue data available yet for 2026.</p></div>';
     }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// SEEDING ACCURACY REPORT (Phase 3E)
+// ═══════════════════════════════════════════════════════════════════
+async function renderAccuracyReport(container) {
+    // Fetch wider date range to find completed tasks with actual dates
+    const startOfYear = '2026-01-01';
+    const endOfYear = '2026-12-31';
+    const res = await api.get('getGreenhouseSowingTasks', { startDate: startOfYear, endDate: endOfYear, category: 'all' });
+    const allTasks = (res && res.tasks) ? res.tasks : [];
+
+    // Filter to completed tasks with both planned and actual dates
+    const completed = allTasks.filter(t => t.completed && t.plannedDate && t.actualDate);
+
+    if (!completed.length) {
+        container.innerHTML = `
+            <h2 style="font-size:1.1rem;margin-bottom:1rem;"><i class="fas fa-bullseye" style="color:var(--primary);"></i> Seeding Accuracy Report</h2>
+            <div class="empty-state"><i class="fas fa-calendar-check"></i><p>No completed sowing tasks with planned + actual dates. Data will appear here as you mark tasks sown.</p></div>`;
+        return;
+    }
+
+    // Calculate stats
+    const variances = completed.map(t => t.daysVariance || 0);
+    const avgVariance = (variances.reduce((s, v) => s + v, 0) / variances.length).toFixed(1);
+    const onTime = variances.filter(v => v === 0).length;
+    const early = variances.filter(v => v < 0).length;
+    const late1to3 = variances.filter(v => v >= 1 && v <= 3).length;
+    const late4plus = variances.filter(v => v >= 4).length;
+
+    container.innerHTML = `
+        <h2 style="font-size:1.1rem;margin-bottom:1rem;"><i class="fas fa-bullseye" style="color:var(--primary);"></i> Seeding Accuracy Report</h2>
+        <div class="stat-row">
+            <div class="stat-card green"><div class="stat-label">Completed</div><div class="stat-value">${completed.length}</div></div>
+            <div class="stat-card blue"><div class="stat-label">Avg Variance</div><div class="stat-value">${avgVariance}d</div></div>
+            <div class="stat-card gold"><div class="stat-label">On Time</div><div class="stat-value">${onTime}</div></div>
+            <div class="stat-card red"><div class="stat-label">Late (4+ days)</div><div class="stat-value">${late4plus}</div></div>
+        </div>
+        <div class="table-wrap" style="margin-top:1rem;"><div style="overflow-x:auto;"><table>
+            <thead><tr><th>Batch</th><th>Crop</th><th>Variety</th><th>Planned</th><th>Actual</th><th>Variance</th><th>Seed Lot</th></tr></thead>
+            <tbody>${completed.sort((a,b) => Math.abs(b.daysVariance||0) - Math.abs(a.daysVariance||0)).map(t => {
+                const v = t.daysVariance || 0;
+                const color = v === 0 ? 'var(--primary)' : v <= 3 ? 'var(--gold)' : 'var(--danger)';
+                const label = v === 0 ? 'On time' : v > 0 ? '+' + v + 'd late' : Math.abs(v) + 'd early';
+                return `<tr>
+                    <td style="font-weight:600;">${esc(t.batchId || '--')}</td>
+                    <td>${esc(t.crop || '--')}</td>
+                    <td>${esc(t.variety || '--')}</td>
+                    <td>${formatDate(t.plannedDate)}</td>
+                    <td>${formatDate(t.actualDate)}</td>
+                    <td style="font-weight:600;color:${color};">${label}</td>
+                    <td>${esc(t.seedLotUsed || '--')}</td>
+                </tr>`;
+            }).join('')}</tbody>
+        </table></div></div>`;
 }
 
 // ═══════════════════════════════════════════════════════════════════

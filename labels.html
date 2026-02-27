@@ -585,6 +585,216 @@
             color: #78350f;
         }
 
+        /* Pot Tag Preview (ZX5141T - 1" x 4.5" vertical stake tag, ~0.65x scale) */
+        .pot-tag {
+            background: white;
+            border: 1px solid #555;
+            border-radius: 0;
+            padding: 4px;
+            width: 62px;
+            height: 280px;
+            font-family: 'Inter', Arial, sans-serif;
+            color: #000;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 2px;
+        }
+
+        .pot-tag:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transform: translateY(-2px);
+        }
+
+        .pot-tag.selected { outline: 3px solid var(--primary); }
+
+        .pot-tag .label-checkbox {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            width: 14px;
+            height: 14px;
+            cursor: pointer;
+            accent-color: var(--primary);
+        }
+
+        .pot-tag .pot-tag-crop {
+            font-weight: 800;
+            font-size: 10px;
+            line-height: 1.1;
+            margin-top: 6px;
+            word-wrap: break-word;
+            max-width: 100%;
+        }
+
+        .pot-tag .pot-tag-variety {
+            font-size: 8px;
+            color: #333;
+            word-wrap: break-word;
+            max-width: 100%;
+        }
+
+        .pot-tag .pot-tag-farm {
+            font-size: 6px;
+            color: #666;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            margin-top: 4px;
+        }
+
+        .pot-tag .pot-tag-date {
+            font-size: 7px;
+            color: #666;
+            margin-top: 2px;
+        }
+
+        .pot-tag .pot-tag-batch {
+            font-size: 6px;
+            font-family: monospace;
+            color: #888;
+        }
+
+        .pot-tag .pot-tag-qr {
+            margin-top: auto;
+            margin-bottom: 4px;
+        }
+
+        .pot-tag .pot-tag-qr canvas {
+            width: 50px !important;
+            height: 50px !important;
+        }
+
+        .pot-tag .pot-tag-soil-line {
+            width: 100%;
+            border-top: 1px dashed #ccc;
+            font-size: 5px;
+            color: #bbb;
+            padding-top: 2px;
+            margin-top: auto;
+        }
+
+        /* Field Tray Label Preview (FT40101WH - 4" x 1", ~0.75x scale) */
+        .field-tray-label {
+            background: white;
+            border: 1px solid #333;
+            border-radius: 2px;
+            padding: 4px 6px;
+            width: 288px;
+            height: 72px;
+            font-family: 'Inter', Arial, sans-serif;
+            color: #000;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .field-tray-label:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transform: translateY(-2px);
+        }
+
+        .field-tray-label.selected { outline: 3px solid var(--primary); }
+
+        .field-tray-label .label-checkbox {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            width: 14px;
+            height: 14px;
+            cursor: pointer;
+            accent-color: var(--primary);
+        }
+
+        .field-tray-label .ftl-qr {
+            width: 60px;
+            height: 60px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .field-tray-label .ftl-qr canvas {
+            width: 58px !important;
+            height: 58px !important;
+        }
+
+        .field-tray-label .ftl-content {
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+        }
+
+        .field-tray-label .ftl-crop {
+            font-weight: 700;
+            font-size: 12px;
+            line-height: 1.2;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .field-tray-label .ftl-variety {
+            font-size: 9px;
+            color: #333;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .field-tray-label .ftl-batch {
+            font-size: 7px;
+            font-family: monospace;
+            color: #555;
+        }
+
+        .field-tray-label .ftl-dates {
+            font-size: 7px;
+            color: #555;
+        }
+
+        .field-tray-label .ftl-meta {
+            text-align: right;
+            flex-shrink: 0;
+            min-width: 45px;
+        }
+
+        .field-tray-label .ftl-cells {
+            font-weight: 700;
+            font-size: 11px;
+        }
+
+        .field-tray-label .ftl-tray {
+            font-size: 8px;
+            color: #555;
+        }
+
+        .field-tray-label .ftl-bed {
+            font-size: 7px;
+            color: #555;
+        }
+
+        /* Label type description beneath toggle */
+        .label-type-desc {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            text-align: center;
+            padding: 8px 0 0;
+            line-height: 1.4;
+        }
+
+        .label-type-desc strong {
+            color: var(--primary-light);
+        }
+
         /* Print Preview Modal */
         .modal-overlay {
             position: fixed;
@@ -770,13 +980,22 @@
             <!-- Label Type Selector -->
             <div class="panel-section">
                 <h3 class="panel-title"><i class="fas fa-tags"></i> Label Type</h3>
-                <div class="label-type-toggle">
+                <div class="label-type-toggle" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
                     <button class="type-btn active" id="btnGreenhouseLabels" onclick="switchLabelType('greenhouse')">
-                        <i class="fas fa-seedling"></i> Greenhouse Trays
+                        <i class="fas fa-seedling"></i> Tray Lip
+                    </button>
+                    <button class="type-btn" id="btnPotTagLabels" onclick="switchLabelType('potTag')">
+                        <i class="fas fa-tag"></i> Pot Tags
+                    </button>
+                    <button class="type-btn" id="btnFieldTrayLabels" onclick="switchLabelType('fieldTray')">
+                        <i class="fas fa-th-large"></i> Field Tray
                     </button>
                     <button class="type-btn" id="btnSeedLabels" onclick="switchLabelType('seed')">
                         <i class="fas fa-box"></i> Seed Lots
                     </button>
+                </div>
+                <div class="label-type-desc" id="labelTypeDesc">
+                    <strong>2.5" x 0.75"</strong> — Standard printer, clips to tray lip
                 </div>
             </div>
 
@@ -862,12 +1081,30 @@
             <div class="panel-section">
                 <h3 class="panel-title"><i class="fas fa-cog"></i> Label Options</h3>
 
-                <div class="form-group">
+                <div class="form-group" id="labelsPerTrayGroup">
                     <label>Labels Per Tray</label>
                     <select class="form-control" id="labelsPerTray">
                         <option value="1">1 label per tray</option>
                         <option value="2">2 labels per tray</option>
                     </select>
+                </div>
+
+                <div class="form-group" id="potTagQtyGroup" style="display: none;">
+                    <label>Tags Per Seeding</label>
+                    <select class="form-control" id="potTagQty">
+                        <option value="auto">Auto (= plants needed)</option>
+                        <option value="1">1 tag per seeding</option>
+                        <option value="5">5 tags per seeding</option>
+                        <option value="10">10 tags per seeding</option>
+                        <option value="25">25 tags per seeding</option>
+                        <option value="50">50 tags per seeding</option>
+                        <option value="custom">Custom count...</option>
+                    </select>
+                </div>
+
+                <div class="form-group" id="potTagCustomGroup" style="display: none;">
+                    <label>Custom Tag Count</label>
+                    <input type="number" class="form-control" id="potTagCustomCount" min="1" value="10" placeholder="Number of tags">
                 </div>
 
                 <div class="form-group">
@@ -889,7 +1126,7 @@
             <div class="preview-header">
                 <div>
                     <h2 class="preview-title">Label Preview</h2>
-                    <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 4px;">
+                    <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 4px;" id="previewSubtitle">
                         Labels sized for tray lip (0.75" tall x 2.5" wide)
                     </p>
                 </div>
@@ -1609,14 +1846,41 @@
 
             // Update toggle buttons
             document.getElementById('btnGreenhouseLabels').classList.toggle('active', type === 'greenhouse');
+            document.getElementById('btnPotTagLabels').classList.toggle('active', type === 'potTag');
+            document.getElementById('btnFieldTrayLabels').classList.toggle('active', type === 'fieldTray');
             document.getElementById('btnSeedLabels').classList.toggle('active', type === 'seed');
 
-            // Show/hide filter sections
-            document.getElementById('greenhouseFilters').style.display = type === 'greenhouse' ? 'block' : 'none';
+            // Show/hide filter sections — pot tags and field tray use same seedings filters
+            const usesSeedings = (type === 'greenhouse' || type === 'potTag' || type === 'fieldTray');
+            document.getElementById('greenhouseFilters').style.display = usesSeedings ? 'block' : 'none';
             document.getElementById('seedFilters').style.display = type === 'seed' ? 'block' : 'none';
 
+            // Show/hide label options based on type
+            document.getElementById('labelsPerTrayGroup').style.display = (type === 'greenhouse' || type === 'fieldTray') ? 'block' : 'none';
+            document.getElementById('potTagQtyGroup').style.display = type === 'potTag' ? 'block' : 'none';
+            document.getElementById('potTagCustomGroup').style.display = 'none';
+
             // Update list title
-            document.getElementById('listTitle').textContent = type === 'greenhouse' ? 'Available Seedings' : 'Available Seed Lots';
+            const titles = { greenhouse: 'Available Seedings', potTag: 'Available Seedings', fieldTray: 'Available Seedings', seed: 'Available Seed Lots' };
+            document.getElementById('listTitle').textContent = titles[type] || 'Available Items';
+
+            // Update type description
+            const descs = {
+                greenhouse: '<strong>2.5" x 0.75"</strong> — Standard printer, clips to tray lip',
+                potTag: '<strong>1" x 4.5"</strong> — UL-247 thermal, ZX5141T stake tags for sale pots',
+                fieldTray: '<strong>4" x 1"</strong> — UL-247 thermal, FT40101WH stickers for field trays',
+                seed: '<strong>Seed inventory</strong> — Labels for seed lot storage containers'
+            };
+            document.getElementById('labelTypeDesc').innerHTML = descs[type] || '';
+
+            // Update preview subtitle
+            const subtitles = {
+                greenhouse: 'Labels sized for tray lip (0.75" tall x 2.5" wide)',
+                potTag: 'Pot tags for UL-247 printer (1" x 4.5" ZX5141T)',
+                fieldTray: 'Tray labels for UL-247 printer (4" x 1" FT40101WH)',
+                seed: 'Seed lot inventory labels'
+            };
+            document.getElementById('previewSubtitle').textContent = subtitles[type] || '';
 
             // Clear labels and selections
             labels = [];
@@ -1625,13 +1889,13 @@
                 <div class="empty-state">
                     <i class="fas fa-tag"></i>
                     <h3>No Labels Generated</h3>
-                    <p>${type === 'greenhouse' ? 'Select seedings' : 'Select seed lots'} from the list and click "Generate Labels"</p>
+                    <p>${usesSeedings ? 'Select seedings' : 'Select seed lots'} from the list and click "Generate Labels"</p>
                 </div>
             `;
             document.getElementById('totalLabelsCount').textContent = '0';
 
             // Load data based on type
-            if (type === 'greenhouse') {
+            if (usesSeedings) {
                 loadSeedings();
             } else {
                 loadSeedLots();
@@ -1790,11 +2054,15 @@
             }
         };
 
-        // Override generateLabels for seed lots
+        // Override generateLabels for all label types
         const originalGenerateLabels = generateLabels;
         generateLabels = function() {
             if (currentLabelType === 'seed') {
                 generateSeedLabels();
+            } else if (currentLabelType === 'potTag') {
+                generatePotTagLabels();
+            } else if (currentLabelType === 'fieldTray') {
+                generateFieldTrayLabels();
             } else {
                 originalGenerateLabels();
             }
@@ -1878,6 +2146,551 @@
         document.getElementById('seedStatusFilter')?.addEventListener('change', function() {
             if (currentLabelType === 'seed') applyFiltersAndRenderSeedLots();
         });
+
+        // Pot tag custom count toggle
+        document.getElementById('potTagQty')?.addEventListener('change', function() {
+            document.getElementById('potTagCustomGroup').style.display =
+                this.value === 'custom' ? 'block' : 'none';
+        });
+
+        // ============ POT TAG FUNCTIONS (ZX5141T - 1" x 4.5") ============
+
+        function getPotTagCount(seeding) {
+            const qty = document.getElementById('potTagQty').value;
+            if (qty === 'auto') {
+                // Use plants needed from the seeding data
+                return seeding.trays * seeding.cellsPerTray || seeding.trays || 1;
+            }
+            if (qty === 'custom') {
+                return parseInt(document.getElementById('potTagCustomCount').value) || 1;
+            }
+            return parseInt(qty) || 1;
+        }
+
+        function generatePotTagLabels() {
+            if (selectedSeedings.size === 0) {
+                showToast('Please select at least one seeding');
+                return;
+            }
+
+            labels = [];
+            selectedLabels.clear();
+            let totalTags = 0;
+
+            selectedSeedings.forEach(id => {
+                const seeding = seedings.find(s => s.id === id);
+                if (seeding) {
+                    const count = getPotTagCount(seeding);
+                    for (let i = 1; i <= count; i++) {
+                        const labelId = `pot-${seeding.id}-${i}`;
+                        labels.push({
+                            ...seeding,
+                            labelId: labelId,
+                            labelType: 'potTag',
+                            tagNumber: i,
+                            tagTotal: count
+                        });
+                        selectedLabels.add(labelId);
+                    }
+                    totalTags += count;
+                }
+            });
+
+            document.getElementById('totalLabelsCount').textContent = labels.length;
+            renderPotTagLabels();
+            showToast(`Generated ${labels.length} pot tags for ${selectedSeedings.size} seedings`);
+        }
+
+        function renderPotTagLabels() {
+            const container = document.getElementById('labelsContainer');
+
+            if (labels.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-tag"></i>
+                        <h3>No Tags Generated</h3>
+                        <p>Select seedings from the list and click "Generate Labels"</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            labels.forEach((label, index) => {
+                const isSelected = selectedLabels.has(label.labelId);
+                html += `
+                    <div class="pot-tag ${isSelected ? 'selected' : ''}"
+                         id="label-${index}"
+                         onclick="toggleLabel('${label.labelId}', ${index})">
+                        <input type="checkbox" class="label-checkbox"
+                               ${isSelected ? 'checked' : ''}
+                               onclick="event.stopPropagation(); toggleLabel('${label.labelId}', ${index})">
+                        <div class="pot-tag-crop">${label.crop}</div>
+                        <div class="pot-tag-variety">${label.variety}</div>
+                        <div class="pot-tag-farm">Tiny Seed Farm</div>
+                        <div class="pot-tag-date">Sown: ${formatDate(label.seedDate)}</div>
+                        <div class="pot-tag-batch">${label.batchNumber}</div>
+                        <div class="pot-tag-qr" id="qr-${index}"></div>
+                        <div class="pot-tag-soil-line">▼ soil line ▼</div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+
+            // Generate QR codes
+            labels.forEach((label, index) => {
+                generateQRCode(`qr-${index}`, getQRData(label), 50);
+            });
+        }
+
+        // ============ FIELD TRAY LABEL FUNCTIONS (FT40101WH - 4" x 1") ============
+
+        function generateFieldTrayLabels() {
+            if (selectedSeedings.size === 0) {
+                showToast('Please select at least one seeding');
+                return;
+            }
+
+            const labelsPerTray = parseInt(document.getElementById('labelsPerTray').value);
+            labels = [];
+            selectedLabels.clear();
+            let totalTrays = 0;
+
+            selectedSeedings.forEach(id => {
+                const seeding = seedings.find(s => s.id === id);
+                if (seeding) {
+                    for (let trayNum = 1; trayNum <= seeding.trays; trayNum++) {
+                        for (let labelNum = 1; labelNum <= labelsPerTray; labelNum++) {
+                            const labelId = `ftl-${seeding.id}-T${trayNum}-L${labelNum}`;
+                            const traySizeDisplay = formatTraySize(seeding.cellsPerTray, seeding.paperpotSpacing);
+                            labels.push({
+                                ...seeding,
+                                labelId: labelId,
+                                labelType: 'fieldTray',
+                                trayNumber: trayNum,
+                                labelNumber: labelNum,
+                                traySizeDisplay: traySizeDisplay
+                            });
+                            selectedLabels.add(labelId);
+                        }
+                    }
+                    totalTrays += seeding.trays;
+                }
+            });
+
+            document.getElementById('totalLabelsCount').textContent = labels.length;
+            renderFieldTrayLabels();
+            showToast(`Generated ${labels.length} labels for ${totalTrays} trays`);
+        }
+
+        function renderFieldTrayLabels() {
+            const container = document.getElementById('labelsContainer');
+
+            if (labels.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-tag"></i>
+                        <h3>No Labels Generated</h3>
+                        <p>Select seedings from the list and click "Generate Labels"</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            labels.forEach((label, index) => {
+                const isSelected = selectedLabels.has(label.labelId);
+                html += `
+                    <div class="field-tray-label ${isSelected ? 'selected' : ''}"
+                         id="label-${index}"
+                         onclick="toggleLabel('${label.labelId}', ${index})">
+                        <input type="checkbox" class="label-checkbox"
+                               ${isSelected ? 'checked' : ''}
+                               onclick="event.stopPropagation(); toggleLabel('${label.labelId}', ${index})">
+                        <div class="ftl-qr" id="qr-${index}"></div>
+                        <div class="ftl-content">
+                            <div class="ftl-crop">${label.crop}</div>
+                            <div class="ftl-variety">${label.variety}</div>
+                            <div class="ftl-batch">${label.batchNumber} T${label.trayNumber}</div>
+                            <div class="ftl-dates">Sow: ${formatDate(label.seedDate)} → TP: ${formatDate(label.transplantDate)}${label.field ? ' @ ' + label.field : ''}</div>
+                        </div>
+                        <div class="ftl-meta">
+                            <div class="ftl-cells">${label.traySizeDisplay}</div>
+                            <div class="ftl-tray">Tray ${label.trayNumber}/${label.trays}</div>
+                            ${label.field ? '<div class="ftl-bed">' + label.field + '</div>' : ''}
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+
+            // Generate QR codes
+            labels.forEach((label, index) => {
+                generateQRCode(`qr-${index}`, getQRData(label), 58);
+            });
+        }
+
+        // ============ UL-247 THERMAL PRINTER PRINT FUNCTIONS ============
+
+        // Override executePrint to handle thermal printer formats
+        const originalExecutePrint = executePrint;
+        executePrint = function() {
+            if (currentLabelType === 'potTag') {
+                executePrintUL247PotTags();
+            } else if (currentLabelType === 'fieldTray') {
+                executePrintUL247FieldTray();
+            } else {
+                originalExecutePrint();
+            }
+        };
+
+        function executePrintUL247PotTags() {
+            const labelsToprint = labels.filter(l => selectedLabels.has(l.labelId));
+            const printWindow = window.open('', '_blank', 'width=400,height=800');
+
+            let printContent = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Pot Tags - UL-247 Print</title>
+                    <style>
+                        @page {
+                            size: 1in 4.5in;
+                            margin: 0;
+                        }
+                        * { margin: 0; padding: 0; box-sizing: border-box; }
+                        body {
+                            font-family: Arial, Helvetica, sans-serif;
+                            -webkit-print-color-adjust: exact;
+                            print-color-adjust: exact;
+                        }
+                        .tag {
+                            width: 1in;
+                            height: 4.5in;
+                            padding: 0.05in;
+                            display: flex;
+                            flex-direction: column;
+                            align-items: center;
+                            text-align: center;
+                            page-break-after: always;
+                            overflow: hidden;
+                        }
+                        .tag:last-child { page-break-after: auto; }
+                        .tag-crop {
+                            font-weight: 900;
+                            font-size: 11pt;
+                            line-height: 1.1;
+                            margin-top: 0.08in;
+                            word-wrap: break-word;
+                            max-width: 0.9in;
+                        }
+                        .tag-variety {
+                            font-size: 8pt;
+                            color: #333;
+                            margin-top: 0.03in;
+                            word-wrap: break-word;
+                            max-width: 0.9in;
+                        }
+                        .tag-farm {
+                            font-size: 6pt;
+                            font-weight: 700;
+                            letter-spacing: 0.5px;
+                            text-transform: uppercase;
+                            color: #555;
+                            margin-top: 0.1in;
+                            border-top: 0.5pt solid #999;
+                            border-bottom: 0.5pt solid #999;
+                            padding: 0.03in 0;
+                            width: 0.85in;
+                        }
+                        .tag-date {
+                            font-size: 7pt;
+                            color: #444;
+                            margin-top: 0.06in;
+                        }
+                        .tag-batch {
+                            font-size: 6pt;
+                            font-family: 'Courier New', monospace;
+                            color: #666;
+                            margin-top: 0.02in;
+                        }
+                        .tag-qr {
+                            margin-top: 0.1in;
+                        }
+                        .tag-qr canvas {
+                            width: 0.7in !important;
+                            height: 0.7in !important;
+                        }
+                        .tag-soil {
+                            margin-top: auto;
+                            width: 0.85in;
+                            border-top: 1px dashed #ccc;
+                            font-size: 5pt;
+                            color: #bbb;
+                            padding-top: 0.02in;
+                        }
+                        /* Screen preview mode */
+                        @media screen {
+                            body { background: #e0e0e0; padding: 20px; }
+                            .tag {
+                                background: white;
+                                border: 1px solid #999;
+                                margin: 10px auto;
+                                box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+                            }
+                        }
+                    </style>
+                    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"><\/script>
+                </head>
+                <body>
+            `;
+
+            labelsToprint.forEach((label, index) => {
+                printContent += `
+                    <div class="tag">
+                        <div class="tag-crop">${label.crop}</div>
+                        <div class="tag-variety">${label.variety}</div>
+                        <div class="tag-farm">Tiny Seed Farm</div>
+                        <div class="tag-date">Sown: ${formatDate(label.seedDate)}</div>
+                        <div class="tag-batch">${label.batchNumber}</div>
+                        <div class="tag-qr" id="qr-${index}"></div>
+                        <div class="tag-soil">▼ insert in soil ▼</div>
+                    </div>
+                `;
+            });
+
+            printContent += `
+                    <script>
+                        const labelsData = ${JSON.stringify(labelsToprint.map((l, i) => ({
+                            index: i,
+                            qrData: getQRData(l)
+                        })))};
+
+                        window.onload = function() {
+                            labelsData.forEach(item => {
+                                const container = document.getElementById('qr-' + item.index);
+                                if (container && item.qrData) {
+                                    QRCode.toCanvas(document.createElement('canvas'), String(item.qrData), {
+                                        width: 67,
+                                        margin: 0,
+                                        errorCorrectionLevel: 'M'
+                                    }, function(error, canvas) {
+                                        if (!error) container.appendChild(canvas);
+                                    });
+                                }
+                            });
+                            setTimeout(function() { window.print(); }, 500);
+                        };
+                    <\/script>
+                </body>
+                </html>
+            `;
+
+            printWindow.document.write(printContent);
+            printWindow.document.close();
+            closePrintPreview();
+            showToast('Printing ' + labelsToprint.length + ' pot tags to UL-247...');
+        }
+
+        function executePrintUL247FieldTray() {
+            const labelsToprint = labels.filter(l => selectedLabels.has(l.labelId));
+            const printWindow = window.open('', '_blank', 'width=600,height=400');
+
+            let printContent = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Field Tray Labels - UL-247 Print</title>
+                    <style>
+                        @page {
+                            size: 4in 1in;
+                            margin: 0;
+                        }
+                        * { margin: 0; padding: 0; box-sizing: border-box; }
+                        body {
+                            font-family: Arial, Helvetica, sans-serif;
+                            -webkit-print-color-adjust: exact;
+                            print-color-adjust: exact;
+                        }
+                        .label {
+                            width: 4in;
+                            height: 1in;
+                            padding: 0.04in 0.08in;
+                            display: flex;
+                            align-items: center;
+                            gap: 0.1in;
+                            page-break-after: always;
+                            overflow: hidden;
+                        }
+                        .label:last-child { page-break-after: auto; }
+                        .label-qr {
+                            width: 0.85in;
+                            height: 0.85in;
+                            flex-shrink: 0;
+                        }
+                        .label-qr canvas {
+                            width: 0.85in !important;
+                            height: 0.85in !important;
+                        }
+                        .label-main {
+                            flex: 1;
+                            overflow: hidden;
+                        }
+                        .label-crop {
+                            font-weight: 900;
+                            font-size: 13pt;
+                            line-height: 1.1;
+                            white-space: nowrap;
+                            overflow: hidden;
+                            text-overflow: ellipsis;
+                        }
+                        .label-variety {
+                            font-size: 9pt;
+                            color: #333;
+                            white-space: nowrap;
+                            overflow: hidden;
+                            text-overflow: ellipsis;
+                        }
+                        .label-batch {
+                            font-size: 7pt;
+                            font-family: 'Courier New', monospace;
+                            color: #555;
+                            margin-top: 0.02in;
+                        }
+                        .label-dates {
+                            font-size: 7pt;
+                            color: #444;
+                        }
+                        .label-right {
+                            text-align: right;
+                            flex-shrink: 0;
+                            min-width: 0.6in;
+                        }
+                        .label-cells {
+                            font-weight: 800;
+                            font-size: 12pt;
+                        }
+                        .label-tray {
+                            font-size: 8pt;
+                            color: #444;
+                        }
+                        .label-bed {
+                            font-size: 7pt;
+                            color: #555;
+                        }
+                        /* Screen preview mode */
+                        @media screen {
+                            body { background: #e0e0e0; padding: 20px; }
+                            .label {
+                                background: white;
+                                border: 1px solid #999;
+                                margin: 10px auto;
+                                box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+                            }
+                        }
+                    </style>
+                    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"><\/script>
+                </head>
+                <body>
+            `;
+
+            labelsToprint.forEach((label, index) => {
+                const traySizeDisplay = formatTraySize(label.cellsPerTray, label.paperpotSpacing);
+                printContent += `
+                    <div class="label">
+                        <div class="label-qr" id="qr-${index}"></div>
+                        <div class="label-main">
+                            <div class="label-crop">${label.crop}</div>
+                            <div class="label-variety">${label.variety}</div>
+                            <div class="label-batch">${label.batchNumber} T${label.trayNumber}</div>
+                            <div class="label-dates">Sow: ${formatDate(label.seedDate)} → TP: ${formatDate(label.transplantDate)}${label.field ? ' @ ' + label.field : ''}</div>
+                        </div>
+                        <div class="label-right">
+                            <div class="label-cells">${traySizeDisplay}</div>
+                            <div class="label-tray">Tray ${label.trayNumber}/${label.trays}</div>
+                            ${label.field ? '<div class="label-bed">' + label.field + '</div>' : ''}
+                        </div>
+                    </div>
+                `;
+            });
+
+            printContent += `
+                    <script>
+                        const labelsData = ${JSON.stringify(labelsToprint.map((l, i) => ({
+                            index: i,
+                            qrData: getQRData(l)
+                        })))};
+
+                        window.onload = function() {
+                            labelsData.forEach(item => {
+                                const container = document.getElementById('qr-' + item.index);
+                                if (container && item.qrData) {
+                                    QRCode.toCanvas(document.createElement('canvas'), String(item.qrData), {
+                                        width: 82,
+                                        margin: 0,
+                                        errorCorrectionLevel: 'M'
+                                    }, function(error, canvas) {
+                                        if (!error) container.appendChild(canvas);
+                                    });
+                                }
+                            });
+                            setTimeout(function() { window.print(); }, 500);
+                        };
+                    <\/script>
+                </body>
+                </html>
+            `;
+
+            printWindow.document.write(printContent);
+            printWindow.document.close();
+            closePrintPreview();
+            showToast('Printing ' + labelsToprint.length + ' tray labels to UL-247...');
+        }
+
+        // Override openPrintPreview to show appropriate preview for thermal labels
+        const originalOpenPrintPreview = openPrintPreview;
+        openPrintPreview = function() {
+            if (currentLabelType === 'potTag' || currentLabelType === 'fieldTray') {
+                // For thermal labels, skip the letter-page preview and go straight to thermal preview
+                if (selectedLabels.size === 0) {
+                    showToast('Please select labels to print');
+                    return;
+                }
+                const labelsToprint = labels.filter(l => selectedLabels.has(l.labelId));
+                document.getElementById('printLabelCount').textContent = labelsToprint.length;
+
+                const printerName = currentLabelType === 'potTag' ? 'ZX5141T pot tags' : 'FT40101WH tray labels';
+                const dimensions = currentLabelType === 'potTag' ? '1" x 4.5"' : '4" x 1"';
+
+                document.getElementById('printPreviewBody').innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: #333;">
+                        <i class="fas fa-print" style="font-size: 3rem; color: var(--primary); margin-bottom: 1rem;"></i>
+                        <h3 style="margin-bottom: 0.5rem;">UL-247 Thermal Printer</h3>
+                        <p style="margin-bottom: 1rem; color: #666;">
+                            ${labelsToprint.length} ${printerName} (${dimensions} each)
+                        </p>
+                        <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 1rem; margin: 1rem auto; max-width: 400px;">
+                            <strong style="color: #856404;">Printer Setup:</strong>
+                            <ol style="text-align: left; margin-top: 0.5rem; padding-left: 1.5rem; color: #856404; font-size: 0.9rem;">
+                                <li>Load ${printerName.split(' ')[0]} media in UL-247</li>
+                                <li>Select "UL-247" as your printer in the dialog</li>
+                                <li>Set paper size to ${dimensions}</li>
+                                <li>Set margins to "None"</li>
+                            </ol>
+                        </div>
+                        <p style="font-size: 0.85rem; color: #888;">
+                            Each label prints as a separate page at ${dimensions}.
+                        </p>
+                    </div>
+                `;
+
+                document.getElementById('printModal').classList.add('show');
+            } else {
+                originalOpenPrintPreview();
+            }
+        };
     </script>
 </body>
 </html>

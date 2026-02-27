@@ -38,6 +38,103 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-02-26 — Greenhouse Seeding Workflow: From Broken to Production-Ready
+
+**Role:** PM_Architect
+**Deploy:** Pending
+
+### Summary
+Complete overhaul of the greenhouse seeding workflow. Consolidated 3 duplicate pages into 1 primary dashboard, fixed critical backend bugs, added seed-to-sale traceability, pre-sow validation, inline editing, planned vs actual date tracking, UL-247 thermal printer support for seedling labels, and a comprehensive operator's manual.
+
+### Research Completed
+- 30+ greenhouse/farm management tools analyzed (enterprise, mid-market, small-farm, free, mobile-first)
+- 6 cross-industry workflow domains (aviation, manufacturing, surgery, pharma, warehouse, kitchen)
+- 10 transferable principles identified and implemented
+
+### Backend Changes (MERGED TOTAL.js)
+
+#### Bug Fixes
+- **1A: Direct seed crops contaminating GH tasks** — Added `if (isDirectSeed) continue;` in `getGreenhouseSowingTasks()` to skip direct-seed crops (they belong in `getDirectSeedTasks()`)
+- **1B: Wrong cell sizes** — Now reads `Tray_Cell_Count` from PLANNING_2026 row, not just profile defaults
+- **1C: Seeds Needed summary empty** — Built `seedsNeeded` aggregation array + `readinessIssues` tracking in summary
+
+#### New Features
+- **1D: Planned vs Actual dates** — Added `plannedDate`, `actualDate`, `daysVariance`, readiness flags, auto-calculated trays to all 3 task endpoints (GH Sow, Transplant, Direct Seed)
+- **1E: `updatePlanningFields()` POST endpoint** — Whitelist-only inline editing for PLANNING_2026 rows (10 editable fields)
+- **1F: `findSeedLotsByCropVariety()` GET endpoint** — Searches SEED_INVENTORY for matching lots, returns sorted by remaining qty with `bestMatch` flag
+- **1G: Extended `updateTaskCompletion()`** — Accepts `seedLotId` and `seedsUsed` params, writes `Seed_Lot_Used` to PLANNING_2026, calls `useSeedFromLot()` for inventory deduction + SEED_USAGE_LOG audit trail
+- **1H: Auto-calculate `Trays_Needed`** — `Math.ceil(Plants_Needed / Tray_Cell_Count)` when trays = 0 but plants > 0
+
+### Frontend Changes
+
+#### sowing-sheets.html
+- Removed demo data fallback (violated CLAUDE.md rule)
+- Added error state display with retry button
+- Added "Load Overdue Tasks" button (uses existing `getOverduePlantings` endpoint)
+- Added inline editing (click-to-edit cells, dirty tracking, batch save)
+- Added planned vs actual date display with color coding (green/yellow/red/blue)
+- Added readiness warning icons on incomplete tasks
+- Added URL parameter support (`?taskType=ghSow&filter=overdue&autoLoad=true`)
+
+#### web_app/greenhouse-dashboard.html
+- Added overdue section (red-accented, above regular tasks)
+- Added "Print" button → opens sowing-sheets with this week pre-loaded
+- Added Seed Lot Confirmation Modal (auto-match + confirm/change/skip)
+- Replaced `markSown()` with seed lot modal flow
+- Added `renderSowingCard()` with readiness checklist (trays/cells/bed/lot)
+- Added Seeding Accuracy report (planned vs actual variance stats)
+
+#### labels.html — UL-247 Thermal Printer Support
+- Added 2 new label types: **Pot Tags** (ZX5141T, 1"x4.5") and **Field Tray Labels** (FT40101WH, 4"x1")
+- Label type toggle: 4 options (Tray Lip, Pot Tags, Field Tray, Seed Lots)
+- UL-247 print functions with correct `@page` sizes for thermal printer
+- Pot tags: configurable quantity (auto = plants needed, or custom count)
+- Print preview with printer setup instructions
+
+#### Navigation Fixes
+- `greenhouse.html` → retired, replaced with redirect to dashboard
+- `index.html` → fixed 404 nav link, removed duplicate sidebar entry, fixed command palette
+- `web_app/index.html` → fixed All Apps link
+- `farm-operations.html` → fixed sidebar link
+
+### Documentation
+- **Operator's Manual** (`docs/OPERATORS_MANUAL.md` v2.0) — Added complete "Seed to Seeded" 7-step workflow guide with equipment list, UL-247 printer instructions, seeding day checklist, and troubleshooting table
+
+### Functions Added
+- `updatePlanningFields(data)` in MERGED TOTAL.js — POST endpoint for inline field editing
+- `findSeedLotsByCropVariety(params)` in MERGED TOTAL.js — GET endpoint for seed lot search
+- `generatePotTagLabels()` in labels.html — Generate ZX5141T pot tags
+- `generateFieldTrayLabels()` in labels.html — Generate FT40101WH tray labels
+- `executePrintUL247PotTags()` in labels.html — Thermal print for pot tags
+- `executePrintUL247FieldTray()` in labels.html — Thermal print for field tray labels
+- `renderPotTagLabels()` in labels.html — Preview pot tag layout
+- `renderFieldTrayLabels()` in labels.html — Preview field tray label layout
+- `showErrorState()` in sowing-sheets.html — Error display replacing demo data
+- `loadOverdueTasks()` in sowing-sheets.html — Fetch overdue from existing endpoint
+- `markFieldDirty()` / `saveFieldEdits()` in sowing-sheets.html — Inline editing
+- `renderSowingCard()` in greenhouse-dashboard.html — Task card with readiness checklist
+- `confirmSownWithLot()` / `confirmSownWithoutLot()` in greenhouse-dashboard.html — Seed lot modal actions
+- `renderAccuracyReport()` in greenhouse-dashboard.html — Planned vs actual stats
+
+### Functions Modified
+- `getGreenhouseSowingTasks()` — Skip direct seed, read Tray_Cell_Count, build seedsNeeded, add readiness flags
+- `getTransplantTasks()` — Added planned/actual dates + variance
+- `getDirectSeedTasks()` — Added planned/actual dates + variance
+- `updateTaskCompletion()` — Extended with seedLotId, seedsUsed, pre-sow validation
+- `switchLabelType()` in labels.html — Handles 4 label types
+- `renderSowingTasks()` in greenhouse-dashboard.html — Separates overdue from upcoming
+- `markSown()` → replaced with seed lot modal flow
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created — consolidated 3 greenhouse pages into 1
+
+### Reason
+Farm owner tried to prepare for seeding and the system was fundamentally broken: 3 duplicate pages, Seeds Needed empty, "Direct cell cell trays" nonsense, wrong cell sizes, no editing, no actual date tracking, no seed lot traceability. Now production-ready for seeding day (tomorrow).
+
+---
+
 ## 2026-02-26 — Production Audit + Bug Fixes + Category Management
 
 **Role:** PM_Architect

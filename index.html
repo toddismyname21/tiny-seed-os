@@ -4890,12 +4890,8 @@
 
             <div class="nav-section">
                 <div class="nav-section-title">Grow</div>
-                <a class="nav-item" href="greenhouse.html">
-                    <i class="fas fa-seedling"></i>
-                    <span>Greenhouse View</span>
-                </a>
                 <a class="nav-item" href="web_app/greenhouse-dashboard.html">
-                    <i class="fas fa-leaf"></i>
+                    <i class="fas fa-seedling"></i>
                     <span>Greenhouse Manager</span>
                 </a>
                 <a class="nav-item" href="seed_inventory_PRODUCTION.html">
@@ -7431,8 +7427,8 @@
                 // Audit Fix 7: Navigate to relevant page for the task type
                 const taskType = (task.type || '').toLowerCase();
                 const navMap = {
-                    'ghsow': 'web_app/greenhouse.html',
-                    'transplant': 'web_app/greenhouse.html',
+                    'ghsow': 'web_app/greenhouse-dashboard.html',
+                    'transplant': 'web_app/greenhouse-dashboard.html',
                     'directseed': 'calendar.html',
                     'harvest': 'web_app/employee.html',
                     'pick': 'web_app/wholesale-seedlings.html',
@@ -11079,7 +11075,7 @@
                     window.location.href = 'calendar.html';
                     break;
                 case 'goto-greenhouse':
-                    window.location.href = 'greenhouse.html';
+                    window.location.href = 'web_app/greenhouse-dashboard.html';
                     break;
                 case 'goto-planning':
                     window.location.href = 'planning.html';
