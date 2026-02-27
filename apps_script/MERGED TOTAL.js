@@ -14569,6 +14569,8 @@ function doGet(e) {
     return jsonResponse(getDirectSeedTasks(e.parameter));
   case 'findSeedLotsByCropVariety':
     return jsonResponse(findSeedLotsByCropVariety(e.parameter));
+  case 'backfillSeedLotIds':
+    return jsonResponse(backfillSeedLotIds());
   case 'getSocialStatus':
     return jsonResponse(getAyrshareStatus());
 
@@ -27026,6 +27028,65 @@ function addSeedLot(data) {
 }
 
 /**
+ * Backfill Seed_Lot_IDs for any SEED_INVENTORY rows that are missing one.
+ * Safe to run multiple times — skips rows that already have a lot ID.
+ * Returns count of rows fixed.
+ */
+function backfillSeedLotIds() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName('SEED_INVENTORY');
+    if (!sheet) return { success: false, error: 'SEED_INVENTORY sheet not found' };
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const lotIdCol = headers.indexOf('Seed_Lot_ID');
+    const cropCol = headers.indexOf('Crop');
+    const qrCol = headers.indexOf('QR_Code_URL');
+
+    if (lotIdCol === -1) return { success: false, error: 'Seed_Lot_ID column not found' };
+    if (cropCol === -1) return { success: false, error: 'Crop column not found' };
+
+    let fixed = 0;
+    const fixedRows = [];
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const existingLotId = String(row[lotIdCol] || '').trim();
+      const crop = String(row[cropCol] || '').trim();
+
+      if (!crop) continue; // Skip empty rows
+      if (existingLotId) continue; // Already has a lot ID
+
+      // Generate a new lot ID and QR code
+      const newLotId = generateSeedLotId(crop);
+      const newQrUrl = generateSeedQRCode(newLotId);
+
+      // Write lot ID
+      sheet.getRange(i + 1, lotIdCol + 1).setValue(newLotId);
+
+      // Write QR code URL if column exists and is empty
+      if (qrCol >= 0 && !row[qrCol]) {
+        sheet.getRange(i + 1, qrCol + 1).setValue(newQrUrl);
+      }
+
+      fixed++;
+      fixedRows.push({ row: i + 1, crop: crop, lotId: newLotId });
+    }
+
+    return {
+      success: true,
+      message: fixed + ' seed rows backfilled with Seed_Lot_IDs',
+      fixed: fixed,
+      totalRows: data.length - 1,
+      details: fixedRows
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
  * Update an existing seed lot row by Seed_Lot_ID.
  * Accepts any subset of fields to update.
  */
@@ -32744,8 +32805,11 @@ function createDirectSeedingTab() {
       const sowDate = new Date(sowDateRaw);
       if (isNaN(sowDate.getTime())) continue;
 
-      // Date filter
-      if (sowDate < startDate || sowDate > endDate) continue;
+      // Date filter — but NEVER hide incomplete overdue tasks
+      const isIncomplete = !(cols.actGhSow >= 0 && row[cols.actGhSow]);
+      const isOverdue = sowDate < new Date();
+      if (sowDate > endDate) continue;
+      if (sowDate < startDate && !(isIncomplete && isOverdue)) continue;
 
       const crop = cols.crop >= 0 ? row[cols.crop] : '';
       const profile = profileMap[crop] || {};
@@ -33243,10 +33307,12 @@ function getTransplantTasks(params) {
       const transplantDate = new Date(transplantDateRaw);
       if (isNaN(transplantDate.getTime())) continue;
 
-      if (transplantDate < startDate || transplantDate > endDate) continue;
-
+      // Date filter — but NEVER hide incomplete overdue transplant tasks
       const actualTransplantRaw = cols.actTransplant >= 0 ? row[cols.actTransplant] : null;
       const isCompleted = !!actualTransplantRaw;
+      const isOverdueTransplant = transplantDate < new Date();
+      if (transplantDate > endDate) continue;
+      if (transplantDate < startDate && !(! isCompleted && isOverdueTransplant)) continue;
       const actualDate = actualTransplantRaw ? formatDateSimple(new Date(actualTransplantRaw)) : null;
 
       // Calculate days variance

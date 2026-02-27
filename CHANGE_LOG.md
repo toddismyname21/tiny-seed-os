@@ -38,6 +38,45 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-02-27 — Overdue Tasks Never Hidden + Seed Lot Backfill + UL-247 Printer Research
+
+**Role:** PM_Architect
+**Deploy:** @699
+
+### Summary
+Three critical fixes for seeding day readiness: overdue tasks are now never hidden from the dashboard (regardless of how old they are), seed lot auto-creation confirmed working + backfill function added for any existing seeds missing lot IDs, and UL-247 printer compatibility verified via catalog research.
+
+### Backend Changes (MERGED TOTAL.js)
+
+#### Bug Fixes
+- **Overdue sowing tasks hidden after 7 days** — `getGreenhouseSowingTasks()` date filter now preserves incomplete overdue tasks regardless of startDate. Logic: `if (sowDate < startDate && !(isIncomplete && isOverdue)) continue;`
+- **Overdue transplant tasks hidden after 7 days** — Same fix applied to `getTransplantTasks()`
+
+#### New Functions
+- `backfillSeedLotIds()` — Scans SEED_INVENTORY for rows missing Seed_Lot_ID, generates new lot IDs + QR codes for each. Safe to run multiple times. Registered in doGet.
+
+### Frontend Changes (greenhouse-dashboard.html)
+- Added `seasonStart()` helper — returns January 1st of current year
+- `loadTodayTab()` now fetches from `seasonStart()` instead of `weekAgo()` — all overdue tasks from entire season are fetched
+- Both sowing and transplant task fetches use season-wide date range
+
+### Frontend Changes (labels.html)
+- Updated UL-247 print instructions with "use system dialog" and "scaling 100%" tips from printer research
+
+### UL-247 Printer Research Findings
+- **Actual printable width: 4.09"** (not 4.25" — that's the printhead width)
+- **Max print length: 39.3"** per label
+- **ZX5141T pot tags (1" x 4.5")** — CONFIRMED compatible, fits within 4.5" max media width
+- **FT40101WH field tray labels (4" x 1")** — CONFIRMED compatible, 4" within 4.09" printable area
+- **Browser printing works** via window.print() + @page CSS, but user must set custom paper size in driver and use "Print using system dialog"
+- **Future upgrade path**: QZ Tray (qz.io) for silent thermal printing without dialogs
+
+### Duplicate Check
+- [x] Checked for existing backfill functions — none exist
+- [x] No duplicates created
+
+---
+
 ## 2026-02-26 — Greenhouse Seeding Workflow: From Broken to Production-Ready
 
 **Role:** PM_Architect

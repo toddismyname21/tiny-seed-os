@@ -1236,6 +1236,7 @@ function weekAgo() {
     const d = new Date(); d.setDate(d.getDate() - 7);
     return d.toISOString().split('T')[0];
 }
+function seasonStart() { return new Date().getFullYear() + '-01-01'; }
 function formatDate(d) {
     if (!d) return '--';
     const dt = new Date(d);
@@ -1474,8 +1475,8 @@ function renderOpsSeedStatus(seeds) {
 async function loadTodayTab() {
     try {
         const [sowRes, transRes, trayRes] = await Promise.all([
-            api.get('getGreenhouseSowingTasks', { startDate: weekAgo(), endDate: weekFromNow(), category: 'veg-herb' }),
-            api.get('getTransplantTasks', { startDate: weekAgo(), endDate: weekFromNow() }),
+            api.get('getGreenhouseSowingTasks', { startDate: seasonStart(), endDate: weekFromNow(), includeOverdue: 'true', category: 'veg-herb' }),
+            api.get('getTransplantTasks', { startDate: seasonStart(), endDate: weekFromNow() }),
             api.get('getTrayInventory')
         ]);
 
