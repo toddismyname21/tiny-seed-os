@@ -38,6 +38,28 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-02-27 — Seed Procurement Warning System
+
+**Role:** PM_Architect
+**Deploy:** Backend (clasp @702) + Frontend (GitHub Pages)
+
+### Summary
+Automated seed procurement checker that scans PLANNING_2026 for sowings due in next 21 days, matches against SEED_INVENTORY, and creates a single batched "Buy Seeds" task in UNIFIED_TASKS. Deduplicates to avoid daily task spam — updates existing open task if one was created within 7 days. Yellow/red warning banner on greenhouse dashboard.
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — Added `checkSeedProcurementNeeds()`, `setupSeedProcurementTrigger()`, and `checkSeedProcurement` doGet route
+- `web_app/greenhouse-dashboard.html` — Added seed warning banner + `loadSeedWarnings()` function
+
+### Functions Added
+- `checkSeedProcurementNeeds()` — Core function: 21-day lookahead, inventory matching, task creation/update
+- `setupSeedProcurementTrigger()` — Sets up daily 7am ET time-driven trigger
+
+### Duplicate Check
+- [x] Reuses existing `findSeedLotsByCropVariety()`, `createUnifiedTask()`, UNIFIED_TASKS schema
+- [x] No duplicates created
+
+---
+
 ## 2026-02-27 — Greenhouse & Seeding System: Bug Fixes + Traceability
 
 **Role:** PM_Architect

@@ -476,6 +476,16 @@
         <div class="task-grid" id="overdueTasks"></div>
     </div>
 
+    <!-- Seed Procurement Warning Banner -->
+    <div id="seedWarningBanner" style="display:none;padding:0.75rem 1rem;border-radius:var(--radius-sm);margin-bottom:0.75rem;font-size:0.85rem;cursor:pointer;" onclick="this.querySelector('.seed-warning-details').style.display=this.querySelector('.seed-warning-details').style.display==='none'?'block':'none'">
+        <div style="display:flex;align-items:center;gap:0.5rem;">
+            <i class="fas fa-exclamation-triangle"></i>
+            <span id="seedWarningText" style="flex:1;font-weight:600;"></span>
+            <i class="fas fa-chevron-down" style="font-size:0.7rem;opacity:0.6;"></i>
+        </div>
+        <div class="seed-warning-details" style="display:none;margin-top:0.5rem;font-size:0.8rem;opacity:0.9;white-space:pre-line;" id="seedWarningDetails"></div>
+    </div>
+
     <div class="section-header">
         <h2><i class="fas fa-seedling"></i> Sowing Tasks</h2>
         <div style="display:flex; align-items:center; gap:0.5rem;">
@@ -1491,11 +1501,45 @@ async function loadTodayTab() {
         renderSowingTasks();
         renderTransplantTasks();
         updateSyncIndicator(true);
+
+        // Check seed procurement warnings (non-blocking)
+        loadSeedWarnings();
     } catch (err) {
         console.error('Failed to load today tab:', err);
         updateSyncIndicator(false);
         document.getElementById('sowingTasks').innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Failed to load sowing tasks. Check your connection and try again.</p><button class="btn btn-outline" onclick="loadTodayTab()"><i class="fas fa-redo"></i> Retry</button></div>';
         document.getElementById('transplantTasks').innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Failed to load transplant tasks.</p></div>';
+    }
+}
+
+async function loadSeedWarnings() {
+    try {
+        var res = await fetch(API_URL + '?action=checkSeedProcurement').then(function(r) { return r.json(); });
+        var banner = document.getElementById('seedWarningBanner');
+        if (res.success && res.needsCount > 0) {
+            var urgCount = res.urgentCount || 0;
+            var bgColor = urgCount > 0 ? 'rgba(239,68,68,0.15)' : 'rgba(234,179,8,0.15)';
+            var borderColor = urgCount > 0 ? 'var(--danger, #ef4444)' : 'var(--gold, #eab308)';
+            var icon = urgCount > 0 ? 'color:var(--danger,#ef4444)' : 'color:var(--gold,#eab308)';
+            banner.style.background = bgColor;
+            banner.style.border = '1px solid ' + borderColor;
+            banner.querySelector('i').style.cssText = icon;
+            document.getElementById('seedWarningText').textContent = res.needsCount + ' seed varieties missing for next 3 weeks' + (urgCount > 0 ? ' (' + urgCount + ' URGENT)' : '');
+            // Build details
+            var details = '';
+            if (res.items) {
+                res.items.forEach(function(item) {
+                    var tag = item.urgency === 'urgent' ? 'URGENT' : item.urgency === 'high' ? 'SOON' : 'UPCOMING';
+                    details += tag + ': ' + item.crop + (item.variety ? ' - ' + item.variety : '') + ' — need ' + item.seedsNeeded + ', have ' + item.seedsAvailable + ' (sow ' + item.earliestSowDate + ')\n';
+                });
+            }
+            document.getElementById('seedWarningDetails').textContent = details;
+            banner.style.display = 'block';
+        } else {
+            banner.style.display = 'none';
+        }
+    } catch (err) {
+        console.log('Seed warning check skipped:', err.message);
     }
 }
 
