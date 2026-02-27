@@ -17614,7 +17614,7 @@ function doGet(e) {
       case 'getInstagramAnalytics':
         return jsonResponse(getInstagramInsights(e.parameter));
       case 'getChiefOfStaffBriefing':
-        return jsonResponse(generateUltimateMorningBrief());
+        return jsonResponse(typeof getMorningBrief === 'function' ? getMorningBrief(e.parameter) : { success: false, error: 'Morning brief not available' });
       case 'getTeamWorkload':
         return jsonResponse(typeof getTeamWorkloadBalance === 'function' ? getTeamWorkloadBalance(e.parameter) : { success: false, error: 'Not available' });
       case 'getFieldReadings':
@@ -17622,7 +17622,7 @@ function doGet(e) {
       case 'getFieldsDashboard':
         return jsonResponse(getFields(e.parameter));
       case 'getBedsWithStatus':
-        return jsonResponse(typeof getBeds === 'function' ? getBeds() : { success: false, error: 'Not available' });
+        return jsonResponse(typeof getBedsWithStatus === 'function' ? { success: true, beds: getBedsWithStatus() } : { success: false, error: 'Not available' });
       case 'getRecentCompletedTasks':
         return jsonResponse(typeof getUnifiedTaskStats === 'function' ? getUnifiedTaskStats({ status: 'completed', hoursAgo: parseInt(e.parameter.hours) || 24 }) : { success: false, error: 'Not available' });
       case 'getRecentBlogPosts':
