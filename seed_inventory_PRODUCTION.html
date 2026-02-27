@@ -415,6 +415,77 @@
             background: linear-gradient(135deg, #7c7ff7, var(--ts-purple-500, #6366f1));
         }
 
+        /* Variety (aggregated) card styles */
+        .variety-card .seed-info {
+            flex: 1;
+        }
+        .lot-expander {
+            padding: 8px 12px;
+            font-size: 12px;
+            color: var(--primary-light);
+            cursor: pointer;
+            border-top: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .lot-expander:hover {
+            background: rgba(45, 90, 39, 0.1);
+        }
+        .lot-toggle-icon {
+            font-size: 10px;
+            transition: transform 0.2s;
+        }
+        .lot-details {
+            border-top: 1px solid var(--border);
+            padding: 0;
+        }
+        .lot-header-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 20px;
+            padding: 6px 12px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border);
+        }
+        .lot-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 20px;
+            padding: 8px 12px;
+            font-size: 12px;
+            color: var(--text-primary);
+            cursor: pointer;
+            align-items: center;
+        }
+        .lot-row:hover {
+            background: rgba(45, 90, 39, 0.08);
+        }
+        .lot-row:not(:last-child) {
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .lot-id {
+            font-family: monospace;
+            font-size: 11px;
+        }
+        .lot-qty {
+            font-weight: 600;
+        }
+        .lot-depleted {
+            color: var(--danger);
+        }
+        .lot-status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        .dot-green { background: var(--primary-light); }
+        .dot-yellow { background: #f59e0b; }
+        .dot-red { background: var(--danger); }
+        .single-lot {
+            color: var(--text-secondary);
+        }
+
         .scan-btn {
             background: linear-gradient(135deg, var(--ts-purple-500, #8b5cf6), #7c3aed);
             color: white;
@@ -739,6 +810,13 @@
                         <option value="dtm">Days to Maturity</option>
                         <option value="status">Stock Status</option>
                         <option value="date">Date Added (Newest)</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>View Mode</label>
+                    <select id="viewMode" onchange="changeViewMode(this.value)">
+                        <option value="variety" selected>By Variety</option>
+                        <option value="lot">By Lot</option>
                     </select>
                 </div>
             </div>
@@ -1140,7 +1218,9 @@
         const API_URL = (typeof TINY_SEED_API !== 'undefined') ? TINY_SEED_API.MAIN_API : 'https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec';
 
         let seedInventory = [];
+        let aggregatedInventory = [];
         let currentSortBy = 'family'; // Default sort by plant family
+        let currentViewMode = 'variety'; // 'variety' = aggregated, 'lot' = individual lots
 
         // Plant family lookup - maps lowercase crop names to family info
         const PLANT_FAMILIES = {
@@ -1260,12 +1340,17 @@
 
         async function loadInventory() {
             try {
-                const response = await fetch(`${API_URL}?action=getSeedInventory`);
-                const result = await response.json();
+                // Fetch both lot-level and aggregated data in parallel
+                const [lotResponse, aggResponse] = await Promise.all([
+                    fetch(`${API_URL}?action=getSeedInventory`),
+                    fetch(`${API_URL}?action=getSeedInventory&mode=aggregated`)
+                ]);
+                const lotResult = await lotResponse.json();
+                const aggResult = await aggResponse.json();
 
-                if (result.success && result.data) {
+                if (lotResult.success && lotResult.data) {
                     // Map backend column names to frontend property names
-                    seedInventory = result.data.map(item => {
+                    seedInventory = lotResult.data.map(item => {
                         const crop = item.Crop || '';
                         const familyInfo = lookupPlantFamily(crop);
                         return {
@@ -1297,13 +1382,36 @@
                     });
                     // Filter out deleted seeds
                     seedInventory = seedInventory.filter(s => s.status !== 'Deleted');
-                } else if (result.success && result.data === undefined) {
-                    // Empty inventory is valid
+                } else if (lotResult.success && lotResult.data === undefined) {
                     seedInventory = [];
                 } else {
-                    // Show error - NO DEMO DATA FALLBACK
-                    console.error('Failed to load inventory:', result.error || 'Unknown error');
-                    showLoadError(result.error || 'Failed to load seed inventory data');
+                    console.error('Failed to load inventory:', lotResult.error || 'Unknown error');
+                    showLoadError(lotResult.error || 'Failed to load seed inventory data');
+                    return;
+                }
+
+                // Map aggregated data
+                if (aggResult.success && aggResult.data) {
+                    aggregatedInventory = aggResult.data.map(item => {
+                        const familyInfo = lookupPlantFamily(item.crop);
+                        return {
+                            crop: item.crop || '',
+                            variety: item.variety || '',
+                            totalQuantityRemaining: item.totalQuantityRemaining || 0,
+                            totalQuantityOriginal: item.totalQuantityOriginal || 0,
+                            unit: item.unit || 'seeds',
+                            lotCount: item.lotCount || 0,
+                            lots: item.lots || [],
+                            organic: item.organic || false,
+                            suppliers: item.suppliers || [],
+                            status: item.status || 'Empty',
+                            latestPurchase: item.latestPurchase || '',
+                            plantFamily: familyInfo.family,
+                            latinName: familyInfo.latin
+                        };
+                    });
+                } else {
+                    aggregatedInventory = [];
                 }
             } catch (error) {
                 console.error('Error loading inventory:', error);
@@ -1412,6 +1520,14 @@
         }
 
         function renderInventory(filtered = null) {
+            if (currentViewMode === 'variety') {
+                renderAggregatedInventory(filtered);
+            } else {
+                renderLotInventory(filtered);
+            }
+        }
+
+        function renderLotInventory(filtered = null) {
             const seeds = filtered || seedInventory;
             const grid = document.getElementById('inventoryGrid');
 
@@ -1449,7 +1565,6 @@
                     const family = seed.plantFamily || 'Unknown';
                     if (family !== currentFamily) {
                         currentFamily = family;
-                        const latinDisplay = seed.latinName ? ` <span style="font-style:italic;color:var(--text-secondary);font-weight:400;">(${family})</span>` : ` <span style="font-style:italic;color:var(--text-secondary);font-weight:400;">(${family})</span>`;
                         const familyInfo = Object.values(PLANT_FAMILIES).find(f => f.family === family);
                         const commonName = familyInfo ? familyInfo.common : '';
                         html += `
@@ -1465,6 +1580,168 @@
                 grid.innerHTML = sorted.map(seed => renderSeedCard(seed)).join('');
             }
         }
+
+        function renderAggregatedInventory(filtered = null) {
+            const varieties = filtered || aggregatedInventory;
+            const grid = document.getElementById('inventoryGrid');
+
+            if (varieties.length === 0) {
+                const isFiltered = filtered !== null;
+                grid.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">${isFiltered ? '🔍' : '🌱'}</div>
+                        <div class="empty-state-title">${isFiltered ? 'No Varieties Match Your Filter' : 'No Seeds in Inventory'}</div>
+                        <div class="empty-state-desc">
+                            ${isFiltered ? 'Try adjusting your search or filter criteria.' : 'Start building your seed inventory by adding seeds.'}
+                        </div>
+                        ${!isFiltered ? `
+                            <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                                <button class="btn btn-success" onclick="openAddSeed()">Add First Seed</button>
+                                <button class="btn" style="background: linear-gradient(135deg, #8b5cf6, #6366f1); color: white;" onclick="openPacketScanner()">Scan Packet</button>
+                            </div>
+                        ` : `<button class="btn btn-secondary" onclick="clearFilters()">Clear Filters</button>`}
+                    </div>
+                `;
+                return;
+            }
+
+            // Sort aggregated varieties
+            const sorted = sortAggregated(varieties);
+
+            if (currentSortBy === 'family') {
+                let html = '';
+                let currentFamily = '';
+                for (const v of sorted) {
+                    const family = v.plantFamily || 'Unknown';
+                    if (family !== currentFamily) {
+                        currentFamily = family;
+                        const familyInfo = Object.values(PLANT_FAMILIES).find(f => f.family === family);
+                        const commonName = familyInfo ? familyInfo.common : '';
+                        html += `
+                            <div style="padding: 12px 16px; margin-top: 12px; background: linear-gradient(135deg, rgba(45,90,39,0.2), rgba(74,124,67,0.1)); border-left: 4px solid var(--primary-light); border-radius: 4px; font-weight: 700; font-size: 15px; color: var(--primary-light);">
+                                ${commonName ? commonName + ' — ' : ''}${family}
+                            </div>
+                        `;
+                    }
+                    html += renderVarietyCard(v);
+                }
+                grid.innerHTML = html;
+            } else {
+                grid.innerHTML = sorted.map(v => renderVarietyCard(v)).join('');
+            }
+        }
+
+        function sortAggregated(varieties) {
+            const sorted = [...varieties];
+            switch (currentSortBy) {
+                case 'family':
+                    sorted.sort((a, b) => (a.plantFamily || 'ZZZ').localeCompare(b.plantFamily || 'ZZZ') || a.crop.localeCompare(b.crop));
+                    break;
+                case 'crop':
+                    sorted.sort((a, b) => a.crop.localeCompare(b.crop) || a.variety.localeCompare(b.variety));
+                    break;
+                case 'status':
+                    const order = { Empty: 0, Low: 1, Active: 2 };
+                    sorted.sort((a, b) => (order[a.status] || 2) - (order[b.status] || 2));
+                    break;
+                case 'date':
+                    sorted.sort((a, b) => (b.latestPurchase || '').localeCompare(a.latestPurchase || ''));
+                    break;
+                default:
+                    sorted.sort((a, b) => a.crop.localeCompare(b.crop));
+            }
+            return sorted;
+        }
+
+        function renderVarietyCard(v) {
+            const statusClass = v.status === 'Low' ? 'low-stock' : v.status === 'Empty' ? 'depleted' : '';
+            const badgeClass = v.status === 'Low' ? 'badge-low' : v.status === 'Empty' ? 'badge-depleted' : 'badge-good';
+            const percentRemaining = v.totalQuantityOriginal > 0 ? (v.totalQuantityRemaining / v.totalQuantityOriginal) * 100 : 0;
+            const cardId = (v.crop + '-' + v.variety).replace(/[^a-zA-Z0-9]/g, '_');
+
+            let lotsHtml = '';
+            if (v.lots && v.lots.length > 0) {
+                lotsHtml = v.lots.map(lot => `
+                    <div class="lot-row" onclick="event.stopPropagation(); showSeedDetailById('${lot.seedLotId}')">
+                        <span class="lot-id">${lot.seedLotId || '—'}</span>
+                        <span class="lot-supplier">${lot.supplier || '—'}</span>
+                        <span class="lot-qty ${lot.quantityRemaining <= 0 ? 'lot-depleted' : ''}">${lot.quantityRemaining.toLocaleString()} ${v.unit}</span>
+                        <span class="lot-status-dot ${lot.status === 'Empty' ? 'dot-red' : lot.status === 'Low' ? 'dot-yellow' : 'dot-green'}"></span>
+                    </div>
+                `).join('');
+            }
+
+            return `
+                <div class="seed-card variety-card ${statusClass}" style="cursor:pointer;">
+                    <div class="seed-info">
+                        <div class="seed-header">
+                            <div>
+                                <div class="seed-name">${v.crop}</div>
+                                <div class="seed-variety">${v.variety}</div>
+                            </div>
+                            <div>
+                                <span class="status-badge ${badgeClass}">${v.status.toUpperCase()}</span>
+                                ${v.organic ? '<span class="status-badge badge-organic">ORGANIC</span>' : ''}
+                            </div>
+                        </div>
+                        <div class="seed-details">
+                            <div class="detail-item">
+                                <div class="detail-label">Total Seeds</div>
+                                <div class="detail-value" style="font-weight:700;font-size:16px;">${v.totalQuantityRemaining.toLocaleString()}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Lots</div>
+                                <div class="detail-value">${v.lotCount}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Suppliers</div>
+                                <div class="detail-value">${v.suppliers.length > 0 ? v.suppliers.join(', ') : '—'}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Unit</div>
+                                <div class="detail-value">${v.unit}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="seed-actions">
+                        <div class="quantity-display">${v.totalQuantityRemaining.toLocaleString()}</div>
+                        <div class="quantity-label">${v.unit} remaining</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill ${v.status === 'Low' ? 'low' : ''} ${v.status === 'Empty' ? 'depleted' : ''}"
+                                 style="width: ${percentRemaining}%"></div>
+                        </div>
+                    </div>
+                    ${v.lotCount > 1 ? `
+                        <div class="lot-expander" onclick="event.stopPropagation(); toggleLots('${cardId}')">
+                            <span class="lot-toggle-icon" id="lotIcon_${cardId}">&#9654;</span>
+                            ${v.lotCount} individual lots — tap to expand
+                        </div>
+                        <div class="lot-details" id="lots_${cardId}" style="display:none;">
+                            <div class="lot-header-row">
+                                <span>Lot ID</span><span>Supplier</span><span>Qty</span><span></span>
+                            </div>
+                            ${lotsHtml}
+                        </div>
+                    ` : v.lotCount === 1 ? `
+                        <div class="lot-expander single-lot" onclick="event.stopPropagation(); showSeedDetailById('${v.lots[0] ? v.lots[0].seedLotId : ''}')">
+                            Lot: ${v.lots[0] ? v.lots[0].seedLotId : '—'} — tap for details
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        function toggleLots(cardId) {
+            const el = document.getElementById('lots_' + cardId);
+            const icon = document.getElementById('lotIcon_' + cardId);
+            if (el.style.display === 'none') {
+                el.style.display = 'block';
+                icon.innerHTML = '&#9660;';
+            } else {
+                el.style.display = 'none';
+                icon.innerHTML = '&#9654;';
+            }
+        }
         
         function getStatus(seed) {
             if (seed.quantity === 0) return 'depleted';
@@ -1473,25 +1750,31 @@
         }
         
         function updateStats() {
-            const totalVarieties = seedInventory.length;
-            const totalPackets = seedInventory.reduce((sum, s) => sum + s.quantity, 0);
-            const lowStock = seedInventory.filter(s => getStatus(s) === 'low' || getStatus(s) === 'depleted');
-            
-            document.getElementById('totalVarieties').textContent = totalVarieties;
-            document.getElementById('totalPackets').textContent = totalPackets;
+            // Always show unique variety count (from aggregated data) and lot-level alerts
+            const uniqueVarieties = aggregatedInventory.length || seedInventory.length;
+            const totalLots = seedInventory.length;
+            const totalSeeds = aggregatedInventory.reduce((sum, v) => sum + v.totalQuantityRemaining, 0);
+            const lowStock = aggregatedInventory.filter(v => v.status === 'Low' || v.status === 'Empty');
+
+            document.getElementById('totalVarieties').textContent = uniqueVarieties;
+            document.getElementById('totalPackets').textContent = totalSeeds.toLocaleString();
             document.getElementById('lowStockCount').textContent = lowStock.length;
-            
-            // Alerts
+
+            // Update label to reflect what we're counting
+            const packetsLabel = document.querySelector('#totalPackets').nextElementSibling;
+            if (packetsLabel) packetsLabel.textContent = 'Total Seeds';
+
+            // Alerts — show variety-level low stock
             const alertsList = document.getElementById('alertsList');
             if (lowStock.length === 0) {
-                alertsList.innerHTML = '<div style="color: #10b981; font-size: 13px;">✓ All seeds in stock</div>';
+                alertsList.innerHTML = '<div style="color: #10b981; font-size: 13px;">All seeds in stock</div>';
             } else {
-                const alertsHtml = lowStock.map(seed => `
+                const alertsHtml = lowStock.map(v => `
                     <div class="alert-item">
-                        <div class="alert-crop">${seed.crop} - ${seed.variety}</div>
+                        <div class="alert-crop">${v.crop} - ${v.variety}</div>
                         <div class="alert-detail">
-                            ${seed.quantity} packet${seed.quantity !== 1 ? 's' : ''} remaining 
-                            ${seed.quantity === 0 ? '(DEPLETED)' : `(LOW - reorder soon)`}
+                            ${v.totalQuantityRemaining.toLocaleString()} ${v.unit} remaining across ${v.lotCount} lot${v.lotCount !== 1 ? 's' : ''}
+                            ${v.totalQuantityRemaining === 0 ? '(DEPLETED)' : '(LOW - reorder soon)'}
                         </div>
                     </div>
                 `).join('');
@@ -1504,29 +1787,55 @@
             const status = document.getElementById('statusFilter').value;
             const organic = document.getElementById('organicFilter').value;
 
-            let filtered = seedInventory.filter(seed => {
-                const searchMatch = !search ||
-                    (seed.crop && seed.crop.toLowerCase().includes(search)) ||
-                    (seed.variety && seed.variety.toLowerCase().includes(search)) ||
-                    (seed.vendor && seed.vendor.toLowerCase().includes(search)) ||
-                    (seed.seedLotId && seed.seedLotId.toLowerCase().includes(search)) ||
-                    (seed.plantFamily && seed.plantFamily.toLowerCase().includes(search)) ||
-                    (seed.latinName && seed.latinName.toLowerCase().includes(search));
+            if (currentViewMode === 'variety') {
+                // Filter aggregated varieties
+                const statusMap = { good: 'Active', low: 'Low', depleted: 'Empty' };
+                let filtered = aggregatedInventory.filter(v => {
+                    const searchMatch = !search ||
+                        (v.crop && v.crop.toLowerCase().includes(search)) ||
+                        (v.variety && v.variety.toLowerCase().includes(search)) ||
+                        (v.suppliers && v.suppliers.join(' ').toLowerCase().includes(search)) ||
+                        (v.plantFamily && v.plantFamily.toLowerCase().includes(search));
 
-                const statusMatch = status === 'all' || getStatus(seed) === status;
+                    const statusMatch = status === 'all' || v.status === statusMap[status];
 
-                const organicMatch = organic === 'all' ||
-                    (organic === 'yes' && seed.organic) ||
-                    (organic === 'no' && !seed.organic);
+                    const organicMatch = organic === 'all' ||
+                        (organic === 'yes' && v.organic) ||
+                        (organic === 'no' && !v.organic);
 
-                return searchMatch && statusMatch && organicMatch;
-            });
+                    return searchMatch && statusMatch && organicMatch;
+                });
+                renderInventory(filtered);
+            } else {
+                // Filter individual lots
+                let filtered = seedInventory.filter(seed => {
+                    const searchMatch = !search ||
+                        (seed.crop && seed.crop.toLowerCase().includes(search)) ||
+                        (seed.variety && seed.variety.toLowerCase().includes(search)) ||
+                        (seed.vendor && seed.vendor.toLowerCase().includes(search)) ||
+                        (seed.seedLotId && seed.seedLotId.toLowerCase().includes(search)) ||
+                        (seed.plantFamily && seed.plantFamily.toLowerCase().includes(search)) ||
+                        (seed.latinName && seed.latinName.toLowerCase().includes(search));
 
-            renderInventory(filtered);
+                    const statusMatch = status === 'all' || getStatus(seed) === status;
+
+                    const organicMatch = organic === 'all' ||
+                        (organic === 'yes' && seed.organic) ||
+                        (organic === 'no' && !seed.organic);
+
+                    return searchMatch && statusMatch && organicMatch;
+                });
+                renderInventory(filtered);
+            }
         }
 
         function changeSortBy(value) {
             currentSortBy = value;
+            filterInventory();
+        }
+
+        function changeViewMode(value) {
+            currentViewMode = value;
             filterInventory();
         }
 
