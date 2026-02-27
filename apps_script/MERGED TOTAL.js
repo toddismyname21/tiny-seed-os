@@ -17599,6 +17599,34 @@ function doGet(e) {
         return jsonResponse(getSeedlingBundles());
       case 'getPresalePageConfig':
         return jsonResponse(getPresalePageConfig());
+      case 'getSeedlingOperationsOverview':
+        return jsonResponse(getSeedlingOperationsOverview(e.parameter));
+
+      // ============ FRONTEND COMPATIBILITY ALIASES (from 2026-02-26 audit) ============
+      case 'assignTask':
+        return jsonResponse(assignTaskToEmployee(e.parameter.data ? JSON.parse(e.parameter.data) : e.parameter));
+      case 'deleteTask':
+        return jsonResponse(typeof deleteUnifiedTask === 'function' ? deleteUnifiedTask(e.parameter.taskId) : { error: 'Not available' });
+      case 'getAlgorithmIntelligence':
+        return jsonResponse(getAlgorithmIntelligenceDashboard());
+      case 'getInstagramAnalytics':
+        return jsonResponse(getInstagramInsights(e.parameter));
+      case 'getChiefOfStaffBriefing':
+        return jsonResponse(generateUltimateMorningBrief());
+      case 'getTeamWorkload':
+        return jsonResponse(typeof getTeamWorkloadBalance === 'function' ? getTeamWorkloadBalance(e.parameter) : { success: false, error: 'Not available' });
+      case 'getFieldReadings':
+        return jsonResponse(typeof getFieldReadings === 'function' ? getFieldReadings(e.parameter.fieldId, parseInt(e.parameter.days) || 30) : { success: false, error: 'Not available' });
+      case 'getFieldsDashboard':
+        return jsonResponse(getFields(e.parameter));
+      case 'getBedsWithStatus':
+        return jsonResponse(typeof getBeds === 'function' ? getBeds() : { success: false, error: 'Not available' });
+      case 'getRecentCompletedTasks':
+        return jsonResponse(typeof getUnifiedTaskStats === 'function' ? getUnifiedTaskStats({ status: 'completed', hoursAgo: parseInt(e.parameter.hours) || 24 }) : { success: false, error: 'Not available' });
+      case 'getRecentBlogPosts':
+        return jsonResponse(typeof getRecentBlogPosts === 'function' ? getRecentBlogPosts(parseInt(e.parameter.limit) || 5) : { success: false, error: 'Blog posts endpoint not implemented' });
+      case 'generateSmartCaption':
+        return jsonResponse(typeof generateSmartCaption === 'function' ? generateSmartCaption(e.parameter) : { success: false, error: 'Smart caption endpoint not implemented' });
 
       default:
         return jsonResponse({error: 'Unknown action: ' + action}, 400);
@@ -18707,6 +18735,24 @@ function doPost(e) {
         return jsonResponse(bulkUpdateTasks(data));
       case 'bulkCreateTasks':
         return jsonResponse(bulkCreateTasks(data));
+      case 'bulkAssignTasks':
+        try {
+          var assignResults = [];
+          var taskIds = data.taskIds || [];
+          for (var i = 0; i < taskIds.length; i++) {
+            assignResults.push(assignTaskToEmployee({ taskId: taskIds[i], employeeId: data.employeeId, employeeName: data.employeeName }));
+          }
+          return jsonResponse({ success: true, results: assignResults, count: taskIds.length });
+        } catch (err) { return jsonResponse({ success: false, error: err.toString() }); }
+      case 'bulkCompleteTasks':
+        try {
+          var completeResults = [];
+          var cTaskIds = data.taskIds || [];
+          for (var j = 0; j < cTaskIds.length; j++) {
+            completeResults.push(completeTask(cTaskIds[j], data.completedBy || 'Manager', data.notes || ''));
+          }
+          return jsonResponse({ success: true, results: completeResults, count: cTaskIds.length });
+        } catch (err) { return jsonResponse({ success: false, error: err.toString() }); }
       case 'deleteUnifiedTask':
         return jsonResponse(deleteUnifiedTask(data.taskId));
 
@@ -18984,6 +19030,8 @@ function doPost(e) {
         return jsonResponse(deleteSeedlingItem(data));
       case 'savePresalePageConfig':
         return jsonResponse(savePresalePageConfig(data));
+      case 'updateSeedlingAllocations':
+        return jsonResponse(updateSeedlingAllocations(data));
 
       default:
         return jsonResponse({error: 'Unknown action: ' + action}, 400);
@@ -131514,7 +131562,13 @@ function updateSeedlingItem(params) {
     { param: 'difficulty', col: 'Difficulty' },
     { param: 'daysToMaturity', col: 'Days_to_Maturity' },
     { param: 'sunRequirements', col: 'Sun_Requirements' },
-    { param: 'growingTips', col: 'Growing_Tips' }
+    { param: 'growingTips', col: 'Growing_Tips' },
+    { param: 'alloc_phipps', col: 'Alloc_Phipps' },
+    { param: 'alloc_market', col: 'Alloc_Market' },
+    { param: 'alloc_wholesale', col: 'Alloc_Wholesale' },
+    { param: 'alloc_citygrown', col: 'Alloc_CityGROWN' },
+    { param: 'alloc_presale', col: 'Alloc_Presale' },
+    { param: 'total_units', col: 'Total_Units' }
   ];
   // Re-read headers in case columns were added above
   var currentHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
@@ -131536,6 +131590,111 @@ function updateSeedlingItem(params) {
   }
 
   return { success: true, itemId: itemId, updated: updates };
+}
+
+/**
+ * Bulk update seedling allocations across outlets (Phipps, Market, Wholesale, CityGROWN).
+ * Auto-calculates Alloc_Presale = Total_Units - sum(other allocs).
+ * Logs each allocation change to SEEDLING_LIFECYCLE for year-over-year tracking.
+ *
+ * @param {Object} params - { allocations: [{ itemId, alloc_phipps, alloc_market, alloc_wholesale, alloc_citygrown }] }
+ */
+function updateSeedlingAllocations(params) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('SEEDLING_PRODUCTION');
+  if (!sheet) return { success: false, error: 'SEEDLING_PRODUCTION sheet not found' };
+
+  var allocations = params.allocations;
+  if (!allocations || !Array.isArray(allocations) || allocations.length === 0) {
+    return { success: false, error: 'allocations array is required' };
+  }
+
+  var data = sheet.getDataRange().getValues();
+  var headers = data[0];
+  var cols = {};
+  for (var h = 0; h < headers.length; h++) {
+    cols[headers[h]] = h;
+  }
+
+  // Verify required columns exist
+  var allocCols = ['Alloc_Phipps', 'Alloc_Market', 'Alloc_Wholesale', 'Alloc_CityGROWN', 'Alloc_Presale', 'Total_Units'];
+  for (var ac = 0; ac < allocCols.length; ac++) {
+    if (cols[allocCols[ac]] === undefined) {
+      return { success: false, error: 'Missing column: ' + allocCols[ac] + '. Run ensureSeedlingProductionSheet_ first.' };
+    }
+  }
+
+  // Build item row lookup
+  var rowMap = {};
+  for (var i = 1; i < data.length; i++) {
+    var id = String(data[i][cols['Item_ID']] || '');
+    if (id) rowMap[id] = { rowIndex: i + 1, data: data[i] }; // 1-indexed for sheet
+  }
+
+  var results = [];
+  var warnings = [];
+  var updated = 0;
+
+  for (var a = 0; a < allocations.length; a++) {
+    var alloc = allocations[a];
+    var itemId = String(alloc.itemId || '');
+    if (!itemId) {
+      warnings.push({ index: a, error: 'Missing itemId' });
+      continue;
+    }
+
+    var match = rowMap[itemId];
+    if (!match) {
+      warnings.push({ itemId: itemId, error: 'Item not found' });
+      continue;
+    }
+
+    var phipps = Number(alloc.alloc_phipps) || 0;
+    var market = Number(alloc.alloc_market) || 0;
+    var wholesale = Number(alloc.alloc_wholesale) || 0;
+    var citygrown = Number(alloc.alloc_citygrown) || 0;
+    var totalUnits = Number(match.data[cols['Total_Units']]) || 0;
+    var presale = totalUnits - phipps - market - wholesale - citygrown;
+
+    // Write allocation values
+    sheet.getRange(match.rowIndex, cols['Alloc_Phipps'] + 1).setValue(phipps);
+    sheet.getRange(match.rowIndex, cols['Alloc_Market'] + 1).setValue(market);
+    sheet.getRange(match.rowIndex, cols['Alloc_Wholesale'] + 1).setValue(wholesale);
+    sheet.getRange(match.rowIndex, cols['Alloc_CityGROWN'] + 1).setValue(citygrown);
+    sheet.getRange(match.rowIndex, cols['Alloc_Presale'] + 1).setValue(presale);
+
+    var isOver = presale < 0;
+    if (isOver) {
+      warnings.push({ itemId: itemId, warning: 'OVERALLOCATED', presale: presale, total: totalUnits });
+    }
+
+    // Log to SEEDLING_LIFECYCLE for historical tracking
+    var details = JSON.stringify({
+      phipps: phipps, market: market, wholesale: wholesale,
+      citygrown: citygrown, presale: presale, total: totalUnits
+    });
+    logSeedlingLifecycleEvent_(ss, itemId, '', '', 'ALLOCATION_SET', '', '', details, 'Admin');
+
+    results.push({
+      itemId: itemId,
+      total: totalUnits,
+      phipps: phipps,
+      market: market,
+      wholesale: wholesale,
+      citygrown: citygrown,
+      presale: presale,
+      overallocated: isOver
+    });
+    updated++;
+  }
+
+  return {
+    success: true,
+    updated: updated,
+    results: results,
+    warnings: warnings,
+    savedAt: new Date().toISOString()
+  };
 }
 
 /**
@@ -132741,6 +132900,385 @@ function getSeedlingBundles() {
         badge: '🌸 Best Value'
       }
     ]
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SEEDLING OPERATIONS OVERVIEW — Unified view for greenhouse launch
+// Combines PLANNING_2026 (field production) + SEEDLING_PRODUCTION (sale)
+// + SEED_INVENTORY cross-check with warnings
+// Added 2026-02-26
+// ═══════════════════════════════════════════════════════════════════════════
+
+function getSeedlingOperationsOverview(params) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var today = new Date();
+  var todayStr = today.toISOString().split('T')[0];
+
+  // ── 1. Load PLANNING_2026 (production seedlings for field) ──
+  var planningSheet = ss.getSheetByName('PLANNING_2026');
+  var planningRows = [];
+  if (planningSheet) {
+    var pData = planningSheet.getDataRange().getValues();
+    var pH = pData[0];
+    for (var i = 1; i < pData.length; i++) {
+      var row = {};
+      for (var h = 0; h < pH.length; h++) row[pH[h]] = pData[i][h];
+      if (row.STATUS === 'cancelled' || row.STATUS === 'Cancelled') continue;
+      planningRows.push(row);
+    }
+  }
+
+  // ── 2. Load SEEDLING_PRODUCTION (sale seedlings) ──
+  var prodSheet = ss.getSheetByName('SEEDLING_PRODUCTION');
+  var prodRows = [];
+  if (prodSheet) {
+    var sData = prodSheet.getDataRange().getValues();
+    var sH = sData[0];
+    for (var i = 1; i < sData.length; i++) {
+      var row = {};
+      for (var h = 0; h < sH.length; h++) row[sH[h]] = sData[i][h];
+      if (row.Status === 'Cancelled' || row.Status === 'Failed') continue;
+      prodRows.push(row);
+    }
+  }
+
+  // ── 3. Load SEED_INVENTORY ──
+  var seedSheet = ss.getSheetByName('SEED_INVENTORY');
+  var seedRows = [];
+  if (seedSheet) {
+    var iData = seedSheet.getDataRange().getValues();
+    var iH = iData[0];
+    for (var i = 1; i < iData.length; i++) {
+      var row = {};
+      for (var h = 0; h < iH.length; h++) row[iH[h]] = iData[i][h];
+      seedRows.push(row);
+    }
+  }
+
+  // ── 4. Load SEEDLING_SALES for sold counts by channel ──
+  var salesSheet = ss.getSheetByName('SEEDLING_SALES');
+  var salesByItem = {};
+  if (salesSheet) {
+    var slData = salesSheet.getDataRange().getValues();
+    var slH = slData[0];
+    for (var i = 1; i < slData.length; i++) {
+      var row = {};
+      for (var h = 0; h < slH.length; h++) row[slH[h]] = slData[i][h];
+      var itemId = row.Item_ID || '';
+      if (!salesByItem[itemId]) salesByItem[itemId] = { total: 0, byChannel: {} };
+      var qty = Number(row.Quantity_Sold) || 0;
+      salesByItem[itemId].total += qty;
+      var ch = row.Channel || 'Unknown';
+      salesByItem[itemId].byChannel[ch] = (salesByItem[itemId].byChannel[ch] || 0) + qty;
+    }
+  }
+
+  // ── Build seed inventory lookup by crop+variety ──
+  var seedLookup = {};
+  for (var s = 0; s < seedRows.length; s++) {
+    var seed = seedRows[s];
+    var key = (seed.Crop || '').toLowerCase().trim() + '|' + (seed.Variety || '').toLowerCase().trim();
+    if (!seedLookup[key]) seedLookup[key] = [];
+    seedLookup[key].push(seed);
+  }
+
+  // ── Build combined greenhouse schedule ──
+  var schedule = [];
+  var warnings = [];
+  var fieldAssignments = [];
+
+  // From PLANNING_2026 — production seedlings
+  for (var p = 0; p < planningRows.length; p++) {
+    var plan = planningRows[p];
+    var method = (plan.Planting_Method || plan.Method || '').toLowerCase();
+    if (method.indexOf('transplant') === -1 && method.indexOf('greenhouse') === -1) continue;
+
+    var ghDate = plan.Plan_GH_Sow || plan.GH_Sow_Date || '';
+    var actGhDate = plan.Act_GH_Sow || '';
+    var dateStr = ghDate ? (ghDate instanceof Date ? ghDate.toISOString().split('T')[0] : String(ghDate)) : '';
+    var crop = (plan.Crop || '').trim();
+    var variety = (plan.Variety || '').trim();
+
+    schedule.push({
+      date: dateStr,
+      crop: crop,
+      variety: variety,
+      purpose: 'FIELD',
+      trays: Number(plan.Trays_Needed) || 0,
+      plants_needed: Number(plan.Plants_Needed) || 0,
+      destination: plan.Target_Bed_ID || 'UNASSIGNED',
+      transplant_date: plan.Plan_Transplant ? (plan.Plan_Transplant instanceof Date ? plan.Plan_Transplant.toISOString().split('T')[0] : String(plan.Plan_Transplant)) : '',
+      source: 'PLANNING_2026',
+      batch_id: plan.Batch_ID || '',
+      status: plan.STATUS || 'planned',
+      completed: !!actGhDate,
+      category: plan.Category || ''
+    });
+
+    // Field assignment tracking
+    fieldAssignments.push({
+      crop: crop,
+      variety: variety,
+      bed: plan.Target_Bed_ID || null,
+      plants: Number(plan.Plants_Needed) || 0,
+      feet: Number(plan.Feet_Used) || 0,
+      status: plan.Target_Bed_ID ? 'assigned' : 'UNASSIGNED',
+      batch_id: plan.Batch_ID || ''
+    });
+
+    // WARNINGS for production seedlings
+    if (!plan.Target_Bed_ID && method.indexOf('transplant') !== -1) {
+      warnings.push({
+        type: 'NO_FIELD_ASSIGNMENT',
+        severity: 'HIGH',
+        crop: crop,
+        variety: variety,
+        detail: (Number(plan.Plants_Needed) || '?') + ' plants planned, no Target_Bed_ID set — WHERE are these going?'
+      });
+    }
+
+    if (!plan.Plants_Needed && !plan.Trays_Needed) {
+      warnings.push({
+        type: 'MISSING_PLANT_COUNT',
+        severity: 'HIGH',
+        crop: crop,
+        variety: variety,
+        detail: 'No Plants_Needed or Trays_Needed — HOW MANY should we start?'
+      });
+    }
+
+    if (!dateStr) {
+      warnings.push({
+        type: 'MISSING_SEEDING_DATE',
+        severity: 'MEDIUM',
+        crop: crop,
+        variety: variety,
+        detail: 'No GH_Sow_Date set — WHEN should we start these?'
+      });
+    }
+
+    // Seed inventory check
+    var seedKey = crop.toLowerCase() + '|' + variety.toLowerCase();
+    var seedLots = seedLookup[seedKey] || [];
+    var totalSeedRemaining = 0;
+    for (var sl = 0; sl < seedLots.length; sl++) {
+      totalSeedRemaining += Number(seedLots[sl].Quantity_Remaining) || 0;
+    }
+    var plantsNeeded = Number(plan.Plants_Needed) || 0;
+    if (plantsNeeded > 0 && totalSeedRemaining < plantsNeeded && seedLots.length > 0) {
+      warnings.push({
+        type: 'LOW_SEED_INVENTORY',
+        severity: 'HIGH',
+        crop: crop,
+        variety: variety,
+        detail: 'Need ' + plantsNeeded + ' seeds, only ' + totalSeedRemaining + ' remaining'
+      });
+    }
+    if (seedLots.length === 0 && plantsNeeded > 0) {
+      warnings.push({
+        type: 'NO_SEED_LOT',
+        severity: 'HIGH',
+        crop: crop,
+        variety: variety,
+        detail: 'No seed lot found in SEED_INVENTORY — need to ORDER SEEDS'
+      });
+    }
+  }
+
+  // From SEEDLING_PRODUCTION — sale seedlings
+  for (var sp = 0; sp < prodRows.length; sp++) {
+    var prod = prodRows[sp];
+    var crop = (prod.Crop || '').trim();
+    var variety = (prod.Variety || '').trim();
+    var seedDate = prod.Seeding_Date || '';
+    var dateStr = seedDate ? (seedDate instanceof Date ? seedDate.toISOString().split('T')[0] : String(seedDate)) : '';
+
+    // Build destination string from allocations
+    var destinations = [];
+    if (Number(prod.Alloc_Presale) > 0) destinations.push('Presale(' + prod.Alloc_Presale + ')');
+    if (Number(prod.Alloc_Wholesale) > 0) destinations.push('Wholesale(' + prod.Alloc_Wholesale + ')');
+    if (Number(prod.Alloc_Market) > 0) destinations.push('Market(' + prod.Alloc_Market + ')');
+    if (Number(prod.Alloc_Phipps) > 0) destinations.push('Phipps(' + prod.Alloc_Phipps + ')');
+    if (Number(prod.Alloc_CityGROWN) > 0) destinations.push('CityGROWN(' + prod.Alloc_CityGROWN + ')');
+
+    schedule.push({
+      date: dateStr,
+      crop: crop,
+      variety: variety,
+      purpose: 'SALE',
+      trays: Number(prod.Num_Trays) || 0,
+      plants_needed: Number(prod.Total_Units) || 0,
+      destination: destinations.length > 0 ? destinations.join(', ') : 'NO ALLOCATION',
+      source: 'SEEDLING_PRODUCTION',
+      item_id: prod.Item_ID || '',
+      status: prod.Status || 'Planned',
+      completed: (prod.Status === 'Growing' || prod.Status === 'Hardening' || prod.Status === 'Ready'),
+      category: prod.Category || '',
+      price_each: Number(prod.Price_Each) || 0
+    });
+
+    // WARNINGS for sale seedlings
+    var totalUnits = Number(prod.Total_Units) || 0;
+    var allocSum = (Number(prod.Alloc_Presale) || 0) + (Number(prod.Alloc_Wholesale) || 0) +
+                   (Number(prod.Alloc_Market) || 0) + (Number(prod.Alloc_Phipps) || 0) +
+                   (Number(prod.Alloc_CityGROWN) || 0);
+
+    if (totalUnits > 0 && allocSum === 0) {
+      warnings.push({
+        type: 'NO_ALLOCATION',
+        severity: 'MEDIUM',
+        crop: crop,
+        variety: variety,
+        detail: totalUnits + ' units produced but 0 allocated to any outlet — WHERE are they going?'
+      });
+    }
+
+    if (allocSum > totalUnits && totalUnits > 0) {
+      warnings.push({
+        type: 'OVERALLOCATED',
+        severity: 'MEDIUM',
+        crop: crop,
+        variety: variety,
+        detail: 'Allocated ' + allocSum + ' but only ' + totalUnits + ' total units — ' + (allocSum - totalUnits) + ' short'
+      });
+    }
+
+    if (!dateStr && prod.Status === 'Planned') {
+      warnings.push({
+        type: 'MISSING_SEEDING_DATE',
+        severity: 'MEDIUM',
+        crop: crop,
+        variety: variety,
+        detail: 'Sale seedling with no Seeding_Date — WHEN should we start these?'
+      });
+    }
+
+    // Seed inventory check for sale seedlings
+    var seedKey = crop.toLowerCase() + '|' + variety.toLowerCase();
+    var seedLots = seedLookup[seedKey] || [];
+    var totalSeedRemaining = 0;
+    for (var sl = 0; sl < seedLots.length; sl++) {
+      totalSeedRemaining += Number(seedLots[sl].Quantity_Remaining) || 0;
+    }
+    if (totalUnits > 0 && seedLots.length === 0) {
+      warnings.push({
+        type: 'NO_SEED_LOT',
+        severity: 'HIGH',
+        crop: crop,
+        variety: variety,
+        detail: 'Sale seedling with no seed lot in SEED_INVENTORY — need to ORDER SEEDS'
+      });
+    }
+  }
+
+  // ── Build outlet summary ──
+  var outlets = { presale: { allocated: 0, sold: 0 }, wholesale: { allocated: 0, sold: 0 },
+                  market: { allocated: 0, sold: 0 }, phipps: { allocated: 0, sold: 0 },
+                  citygrown: { allocated: 0, sold: 0 } };
+  var totalProduction = 0;
+  var totalAllocated = 0;
+
+  for (var op = 0; op < prodRows.length; op++) {
+    var p = prodRows[op];
+    totalProduction += Number(p.Total_Units) || 0;
+    outlets.presale.allocated += Number(p.Alloc_Presale) || 0;
+    outlets.wholesale.allocated += Number(p.Alloc_Wholesale) || 0;
+    outlets.market.allocated += Number(p.Alloc_Market) || 0;
+    outlets.phipps.allocated += Number(p.Alloc_Phipps) || 0;
+    outlets.citygrown.allocated += Number(p.Alloc_CityGROWN) || 0;
+
+    // Sum sold by channel from sales data
+    var itemSales = salesByItem[p.Item_ID] || { total: 0, byChannel: {} };
+    outlets.presale.sold += Number(itemSales.byChannel['Presale']) || 0;
+    outlets.wholesale.sold += Number(itemSales.byChannel['Wholesale']) || 0;
+    outlets.market.sold += Number(itemSales.byChannel['Market']) || 0;
+    outlets.phipps.sold += Number(itemSales.byChannel['Phipps']) || 0;
+    outlets.citygrown.sold += Number(itemSales.byChannel['CityGROWN']) || 0;
+  }
+
+  totalAllocated = outlets.presale.allocated + outlets.wholesale.allocated +
+                   outlets.market.allocated + outlets.phipps.allocated + outlets.citygrown.allocated;
+
+  // Add available to each outlet
+  outlets.presale.available = outlets.presale.allocated - outlets.presale.sold;
+  outlets.wholesale.available = outlets.wholesale.allocated - outlets.wholesale.sold;
+  outlets.market.available = outlets.market.allocated - outlets.market.sold;
+  outlets.phipps.available = outlets.phipps.allocated - outlets.phipps.sold;
+  outlets.citygrown.available = outlets.citygrown.allocated - outlets.citygrown.sold;
+
+  // ── Build seed status ──
+  var seedStatus = [];
+  var seenCrops = {};
+  var allScheduleItems = schedule;
+  for (var as = 0; as < allScheduleItems.length; as++) {
+    var item = allScheduleItems[as];
+    var lookupKey = item.crop.toLowerCase() + '|' + item.variety.toLowerCase();
+    if (seenCrops[lookupKey]) continue;
+    seenCrops[lookupKey] = true;
+
+    var lots = seedLookup[lookupKey] || [];
+    var remaining = 0;
+    var lotIds = [];
+    for (var l = 0; l < lots.length; l++) {
+      remaining += Number(lots[l].Quantity_Remaining) || 0;
+      lotIds.push(lots[l].Seed_Lot_ID);
+    }
+
+    var status = 'OK';
+    if (lots.length === 0) status = 'NO_SEED_LOT';
+    else if (remaining <= 0) status = 'EMPTY';
+    else if (remaining < item.plants_needed) status = 'LOW';
+
+    seedStatus.push({
+      crop: item.crop,
+      variety: item.variety,
+      lot_ids: lotIds,
+      remaining: remaining,
+      needed: item.plants_needed,
+      status: status
+    });
+  }
+
+  // ── Sort schedule by date ──
+  schedule.sort(function(a, b) {
+    if (!a.date && !b.date) return 0;
+    if (!a.date) return 1;
+    if (!b.date) return -1;
+    return a.date.localeCompare(b.date);
+  });
+
+  // ── Sort warnings by severity ──
+  var severityOrder = { HIGH: 0, MEDIUM: 1, LOW: 2 };
+  warnings.sort(function(a, b) {
+    return (severityOrder[a.severity] || 2) - (severityOrder[b.severity] || 2);
+  });
+
+  return {
+    success: true,
+    generated: todayStr,
+    greenhouse_schedule: schedule,
+    warnings: warnings,
+    warning_count: { HIGH: warnings.filter(function(w) { return w.severity === 'HIGH'; }).length,
+                     MEDIUM: warnings.filter(function(w) { return w.severity === 'MEDIUM'; }).length,
+                     total: warnings.length },
+    outlet_summary: {
+      presale: outlets.presale,
+      wholesale: outlets.wholesale,
+      market: outlets.market,
+      phipps: outlets.phipps,
+      citygrown: outlets.citygrown,
+      unallocated: totalProduction - totalAllocated,
+      total_production: totalProduction
+    },
+    seed_status: seedStatus,
+    field_assignments: fieldAssignments,
+    sales_by_item: salesByItem,
+    counts: {
+      production_seedlings: planningRows.filter(function(r) { var m = (r.Planting_Method || r.Method || '').toLowerCase(); return m.indexOf('transplant') !== -1 || m.indexOf('greenhouse') !== -1; }).length,
+      sale_seedlings: prodRows.length,
+      total_schedule_items: schedule.length
+    }
   };
 }
 

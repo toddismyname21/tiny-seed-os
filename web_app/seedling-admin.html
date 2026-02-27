@@ -669,6 +669,150 @@
             margin-bottom: 8px;
         }
 
+        /* View Tabs (Varieties / Allocations) */
+        .admin-view-tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 20px;
+            background: #f3f4f6;
+            border-radius: 10px;
+            padding: 4px;
+            width: fit-content;
+        }
+        .admin-view-tab {
+            padding: 10px 24px;
+            border: none;
+            background: transparent;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .admin-view-tab:hover { color: var(--text-dark); }
+        .admin-view-tab.active {
+            background: #fff;
+            color: var(--green-dark);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        /* Allocations Panel */
+        .alloc-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .alloc-stat {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px 16px;
+            text-align: center;
+        }
+        .alloc-stat .alloc-stat-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+        .alloc-stat .alloc-stat-value {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--text-dark);
+        }
+        .alloc-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .alloc-toolbar-left { display: flex; gap: 8px; align-items: center; }
+        .alloc-toolbar-right { display: flex; gap: 8px; align-items: center; }
+        .alloc-search {
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.9rem;
+            width: 220px;
+        }
+        .alloc-search:focus { outline: none; border-color: var(--green); }
+        .alloc-table-wrap {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow-x: auto;
+        }
+        .alloc-table-wrap table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.88rem;
+        }
+        .alloc-table-wrap th {
+            background: #f9fafb;
+            padding: 10px 12px;
+            text-align: left;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            border-bottom: 2px solid var(--border);
+            white-space: nowrap;
+        }
+        .alloc-table-wrap td {
+            padding: 8px 12px;
+            border-bottom: 1px solid #f3f4f6;
+        }
+        .alloc-table-wrap tr:hover { background: #f9fafb; }
+        .alloc-input {
+            width: 70px;
+            padding: 6px 8px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 0.88rem;
+            text-align: center;
+            font-weight: 600;
+        }
+        .alloc-input:focus { outline: none; border-color: var(--green); box-shadow: 0 0 0 2px rgba(34,197,94,0.15); }
+        .alloc-presale, .alloc-remaining { font-weight: 700; text-align: center; }
+        .alloc-sold { text-align: center; color: var(--blue); font-weight: 600; }
+        .alloc-total { font-weight: 700; text-align: center; }
+        .alloc-negative { color: var(--red) !important; }
+        .alloc-badge {
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+        .alloc-badge.alloc-over { background: #fee2e2; color: #991b1b; }
+        .alloc-badge.alloc-soldout { background: #fef3c7; color: #92400e; }
+        .alloc-badge.alloc-nostock { background: #f3f4f6; color: #6b7280; }
+        tr.alloc-over { background: #fff5f5 !important; }
+        tr.alloc-soldout { background: #fffbeb !important; }
+        #allocSaveBtn.alloc-dirty {
+            background: var(--orange) !important;
+            animation: allocPulse 1.5s ease-in-out infinite;
+        }
+        @keyframes allocPulse { 0%,100% { box-shadow: none; } 50% { box-shadow: 0 0 0 4px rgba(249,115,22,0.3); } }
+        .alloc-warnings {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 16px;
+            display: none;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             .admin-header { flex-direction: column; gap: 12px; text-align: center; }
@@ -680,6 +824,9 @@
             table { font-size: 0.85rem; }
             th, td { padding: 12px 8px; }
             .variety-thumb, .variety-thumb-placeholder { width: 40px; height: 40px; }
+            .alloc-summary { grid-template-columns: repeat(3, 1fr); }
+            .alloc-input { width: 55px; }
+            .alloc-toolbar { flex-direction: column; }
         }
     </style>
 </head>
@@ -715,6 +862,15 @@
             <div class="stat-sub">Ready for launch</div>
         </div>
     </div>
+
+    <!-- View Tabs -->
+    <div class="admin-view-tabs">
+        <button class="admin-view-tab active" onclick="switchAdminView('varieties')"><i class="fas fa-seedling"></i> Varieties</button>
+        <button class="admin-view-tab" onclick="switchAdminView('allocations')"><i class="fas fa-chart-pie"></i> Allocations</button>
+    </div>
+
+    <!-- ═══ VARIETIES PANEL (existing content) ═══ -->
+    <div id="varietiesPanel">
 
     <!-- Page Settings — Full CMS for presale page -->
     <div class="page-settings-panel" id="pageSettingsPanel">
@@ -1135,6 +1291,92 @@
             </tbody>
         </table>
     </div>
+    </div><!-- end varietiesPanel -->
+
+    <!-- ═══ ALLOCATIONS PANEL ═══ -->
+    <div id="allocationsPanel" style="display:none;">
+        <div class="alloc-warnings" id="allocWarnings"></div>
+
+        <!-- Summary Cards -->
+        <div class="alloc-summary">
+            <div class="alloc-stat">
+                <div class="alloc-stat-label">Total Units</div>
+                <div class="alloc-stat-value" id="allocStatTotal">--</div>
+            </div>
+            <div class="alloc-stat" style="border-left:3px solid #8b5cf6;">
+                <div class="alloc-stat-label">Phipps</div>
+                <div class="alloc-stat-value" id="allocStatPhipps">0</div>
+            </div>
+            <div class="alloc-stat" style="border-left:3px solid var(--green);">
+                <div class="alloc-stat-label">Market</div>
+                <div class="alloc-stat-value" id="allocStatMarket">0</div>
+            </div>
+            <div class="alloc-stat" style="border-left:3px solid var(--blue);">
+                <div class="alloc-stat-label">Wholesale</div>
+                <div class="alloc-stat-value" id="allocStatWholesale">0</div>
+            </div>
+            <div class="alloc-stat" style="border-left:3px solid var(--orange);">
+                <div class="alloc-stat-label">Presale Avail</div>
+                <div class="alloc-stat-value" id="allocStatPresale">0</div>
+            </div>
+            <div class="alloc-stat" style="border-left:3px solid #06b6d4;">
+                <div class="alloc-stat-label">Presale Sold</div>
+                <div class="alloc-stat-value" id="allocStatSold">0</div>
+            </div>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="alloc-toolbar">
+            <div class="alloc-toolbar-left">
+                <input type="text" class="alloc-search" id="allocSearch" placeholder="Search varieties..." oninput="filterAllocTable()">
+                <select class="filter-select" id="allocCategoryFilter" onchange="filterAllocTable()">
+                    <option value="">All Categories</option>
+                    <option value="Vegetable">Vegetable</option>
+                    <option value="Herb">Herb</option>
+                    <option value="Floral">Floral</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            <div class="alloc-toolbar-right">
+                <button class="btn btn-primary" id="allocSaveBtn" onclick="saveAllocations()" style="background:var(--green);font-weight:700;padding:10px 24px;">
+                    <i class="fas fa-save"></i> Save All Allocations
+                </button>
+                <button class="btn btn-secondary" onclick="loadAllocations()">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+            </div>
+        </div>
+
+        <!-- Allocation Table -->
+        <div class="alloc-table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Variety</th>
+                        <th style="text-align:center;">Total</th>
+                        <th style="text-align:center;">Phipps</th>
+                        <th style="text-align:center;">Market</th>
+                        <th style="text-align:center;">Wholesale</th>
+                        <th style="text-align:center;">CityGROWN</th>
+                        <th style="text-align:center;">Presale Avail</th>
+                        <th style="text-align:center;">Presale Sold</th>
+                        <th style="text-align:center;">Remaining</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="allocTableBody">
+                    <tr><td colspan="10" style="text-align:center;padding:40px;"><i class="fas fa-spinner fa-spin"></i> Loading...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <p style="margin-top:16px;font-size:0.8rem;color:var(--text-muted);text-align:center;">
+            Presale Available = Total Units - Phipps - Market - Wholesale - CityGROWN &nbsp;|&nbsp;
+            Presale Sold updates live from orders &nbsp;|&nbsp;
+            Allocations logged to SEEDLING_LIFECYCLE for year-over-year tracking
+        </p>
+    </div><!-- end allocationsPanel -->
+
 </div>
 
 <!-- Edit Modal -->
@@ -2267,6 +2509,235 @@ function showToast(message) {
     document.body.appendChild(toast);
 
     setTimeout(function() { toast.remove(); }, 3000);
+}
+
+// ═══════════════════════════════════════════════════
+// ALLOCATIONS TAB
+// ═══════════════════════════════════════════════════
+var allocData = [];       // production items with alloc fields
+var allocSales = {};      // sales by item ID + channel
+var allocDirty = false;   // unsaved changes flag
+
+function switchAdminView(view) {
+    var varietiesPanel = document.getElementById('varietiesPanel');
+    var allocPanel = document.getElementById('allocationsPanel');
+    var tabBtns = document.querySelectorAll('.admin-view-tab');
+    tabBtns.forEach(function(btn) { btn.classList.remove('active'); });
+    if (view === 'allocations') {
+        varietiesPanel.style.display = 'none';
+        allocPanel.style.display = 'block';
+        tabBtns[1].classList.add('active');
+        loadAllocations();
+    } else {
+        varietiesPanel.style.display = 'block';
+        allocPanel.style.display = 'none';
+        tabBtns[0].classList.add('active');
+    }
+}
+
+function loadAllocations() {
+    var tbody = document.getElementById('allocTableBody');
+    tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:40px;"><i class="fas fa-spinner fa-spin"></i> Loading allocation data...</td></tr>';
+
+    // Load production plan (has alloc columns) and sales data in parallel
+    Promise.all([
+        fetch(TINY_SEED_API.MAIN_API + '?action=getSeedlingProductionPlan').then(function(r) { return r.json(); }),
+        fetch(TINY_SEED_API.MAIN_API + '?action=getSeedlingOperationsOverview').then(function(r) { return r.json(); })
+    ]).then(function(results) {
+        var prodResult = results[0];
+        var opsResult = results[1];
+
+        if (!prodResult.success) {
+            tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--red);"><i class="fas fa-exclamation-triangle"></i> ' + (prodResult.error || 'Failed to load') + '</td></tr>';
+            return;
+        }
+
+        allocData = (prodResult.data || []).filter(function(item) {
+            return item.Status === 'Active' || !item.Status;
+        });
+
+        // Build sales lookup from operations overview
+        allocSales = {};
+        if (opsResult.success && opsResult.sales_by_item) {
+            allocSales = opsResult.sales_by_item;
+        }
+
+        renderAllocTable();
+        updateAllocSummary();
+        allocDirty = false;
+    }).catch(function(err) {
+        tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--red);"><i class="fas fa-exclamation-triangle"></i> Network error: ' + err.message + '</td></tr>';
+    });
+}
+
+function renderAllocTable() {
+    var tbody = document.getElementById('allocTableBody');
+    var catFilter = document.getElementById('allocCategoryFilter').value;
+    var searchTerm = document.getElementById('allocSearch').value.toLowerCase();
+
+    var filtered = allocData.filter(function(item) {
+        if (catFilter && (item.Category || '') !== catFilter) return false;
+        if (searchTerm) {
+            var name = ((item.Variety || '') + ' ' + (item.Crop || '')).toLowerCase();
+            if (name.indexOf(searchTerm) === -1) return false;
+        }
+        return true;
+    });
+
+    if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--text-muted);"><i class="fas fa-inbox"></i> No items match your filter</td></tr>';
+        return;
+    }
+
+    var html = '';
+    for (var i = 0; i < filtered.length; i++) {
+        var item = filtered[i];
+        var total = Number(item.Total_Units) || 0;
+        var phipps = Number(item.Alloc_Phipps) || 0;
+        var market = Number(item.Alloc_Market) || 0;
+        var wholesale = Number(item.Alloc_Wholesale) || 0;
+        var citygrown = Number(item.Alloc_CityGROWN) || 0;
+        var presaleAvail = total - phipps - market - wholesale - citygrown;
+
+        // Get actual presale orders from sales data
+        var salesInfo = allocSales[item.Item_ID] || { total: 0, byChannel: {} };
+        var presaleSold = Number(salesInfo.byChannel['Presale'] || salesInfo.byChannel['presale'] || salesInfo.byChannel['Pre-Order'] || 0);
+        var remaining = presaleAvail - presaleSold;
+
+        var statusClass = '';
+        var statusText = 'OK';
+        if (presaleAvail < 0) { statusClass = 'alloc-over'; statusText = 'OVER!'; }
+        else if (remaining <= 0 && presaleAvail > 0) { statusClass = 'alloc-soldout'; statusText = 'SOLD OUT'; }
+        else if (total === 0) { statusClass = 'alloc-nostock'; statusText = 'NO STOCK'; }
+
+        html += '<tr class="' + statusClass + '" data-item-id="' + item.Item_ID + '">';
+        html += '<td class="alloc-name"><strong>' + escapeHtml(item.Variety || '') + '</strong><br><span style="color:var(--text-muted);font-size:0.8rem;">' + escapeHtml(item.Crop || '') + ' &middot; ' + escapeHtml(item.Category || '') + '</span></td>';
+        html += '<td class="alloc-total">' + total + '</td>';
+        html += '<td><input type="number" class="alloc-input" value="' + phipps + '" min="0" data-field="phipps" data-id="' + item.Item_ID + '" onchange="onAllocChange(this)"></td>';
+        html += '<td><input type="number" class="alloc-input" value="' + market + '" min="0" data-field="market" data-id="' + item.Item_ID + '" onchange="onAllocChange(this)"></td>';
+        html += '<td><input type="number" class="alloc-input" value="' + wholesale + '" min="0" data-field="wholesale" data-id="' + item.Item_ID + '" onchange="onAllocChange(this)"></td>';
+        html += '<td><input type="number" class="alloc-input" value="' + citygrown + '" min="0" data-field="citygrown" data-id="' + item.Item_ID + '" onchange="onAllocChange(this)"></td>';
+        html += '<td class="alloc-presale' + (presaleAvail < 0 ? ' alloc-negative' : '') + '">' + presaleAvail + '</td>';
+        html += '<td class="alloc-sold">' + presaleSold + '</td>';
+        html += '<td class="alloc-remaining' + (remaining <= 0 && presaleAvail > 0 ? ' alloc-negative' : '') + '">' + remaining + '</td>';
+        html += '<td class="alloc-status"><span class="alloc-badge ' + statusClass + '">' + statusText + '</span></td>';
+        html += '</tr>';
+    }
+    tbody.innerHTML = html;
+}
+
+function onAllocChange(input) {
+    var id = input.getAttribute('data-id');
+    var field = input.getAttribute('data-field');
+    var val = Number(input.value) || 0;
+    if (val < 0) { input.value = 0; val = 0; }
+
+    // Update the allocData array
+    for (var i = 0; i < allocData.length; i++) {
+        if (allocData[i].Item_ID === id) {
+            if (field === 'phipps') allocData[i].Alloc_Phipps = val;
+            else if (field === 'market') allocData[i].Alloc_Market = val;
+            else if (field === 'wholesale') allocData[i].Alloc_Wholesale = val;
+            else if (field === 'citygrown') allocData[i].Alloc_CityGROWN = val;
+            break;
+        }
+    }
+
+    allocDirty = true;
+    document.getElementById('allocSaveBtn').classList.add('alloc-dirty');
+
+    // Re-render the row's calculated fields
+    renderAllocTable();
+    updateAllocSummary();
+}
+
+function updateAllocSummary() {
+    var totals = { total: 0, phipps: 0, market: 0, wholesale: 0, citygrown: 0, presale: 0, sold: 0, remaining: 0, overCount: 0 };
+    for (var i = 0; i < allocData.length; i++) {
+        var item = allocData[i];
+        var t = Number(item.Total_Units) || 0;
+        var p = Number(item.Alloc_Phipps) || 0;
+        var m = Number(item.Alloc_Market) || 0;
+        var w = Number(item.Alloc_Wholesale) || 0;
+        var c = Number(item.Alloc_CityGROWN) || 0;
+        var presaleAvail = t - p - m - w - c;
+        var salesInfo = allocSales[item.Item_ID] || { total: 0, byChannel: {} };
+        var presaleSold = Number(salesInfo.byChannel['Presale'] || salesInfo.byChannel['presale'] || salesInfo.byChannel['Pre-Order'] || 0);
+
+        totals.total += t;
+        totals.phipps += p;
+        totals.market += m;
+        totals.wholesale += w;
+        totals.citygrown += c;
+        totals.presale += Math.max(0, presaleAvail);
+        totals.sold += presaleSold;
+        totals.remaining += (presaleAvail - presaleSold);
+        if (presaleAvail < 0) totals.overCount++;
+    }
+
+    document.getElementById('allocStatTotal').textContent = totals.total;
+    document.getElementById('allocStatPhipps').textContent = totals.phipps;
+    document.getElementById('allocStatMarket').textContent = totals.market;
+    document.getElementById('allocStatWholesale').textContent = totals.wholesale;
+    document.getElementById('allocStatPresale').textContent = totals.presale;
+    document.getElementById('allocStatSold').textContent = totals.sold;
+    var warnEl = document.getElementById('allocWarnings');
+    if (totals.overCount > 0) {
+        warnEl.style.display = 'block';
+        warnEl.textContent = totals.overCount + ' item(s) overallocated!';
+    } else {
+        warnEl.style.display = 'none';
+    }
+}
+
+function saveAllocations() {
+    var btn = document.getElementById('allocSaveBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+
+    var allocations = [];
+    for (var i = 0; i < allocData.length; i++) {
+        var item = allocData[i];
+        allocations.push({
+            itemId: item.Item_ID,
+            alloc_phipps: Number(item.Alloc_Phipps) || 0,
+            alloc_market: Number(item.Alloc_Market) || 0,
+            alloc_wholesale: Number(item.Alloc_Wholesale) || 0,
+            alloc_citygrown: Number(item.Alloc_CityGROWN) || 0
+        });
+    }
+
+    fetch(TINY_SEED_API.MAIN_API + '?action=updateSeedlingAllocations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({ action: 'updateSeedlingAllocations', allocations: allocations })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(result) {
+        btn.disabled = false;
+        if (result.success) {
+            btn.innerHTML = '<i class="fas fa-save"></i> Save All Allocations';
+            btn.classList.remove('alloc-dirty');
+            allocDirty = false;
+            showToast('Allocations saved! ' + result.updated + ' items updated.');
+            if (result.warnings && result.warnings.length > 0) {
+                var warnMsg = result.warnings.map(function(w) { return w.itemId + ': ' + (w.warning || w.error); }).join(', ');
+                alert('Warnings: ' + warnMsg);
+            }
+        } else {
+            btn.innerHTML = '<i class="fas fa-save"></i> Save All Allocations';
+            alert('Save failed: ' + (result.error || 'Unknown error'));
+        }
+    })
+    .catch(function(err) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-save"></i> Save All Allocations';
+        alert('Network error: ' + err.message);
+    });
+}
+
+function filterAllocTable() {
+    renderAllocTable();
 }
 </script>
 
