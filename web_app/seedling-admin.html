@@ -1325,6 +1325,24 @@
             </div>
         </div>
 
+        <!-- Category Manager (collapsible) -->
+        <div style="margin-bottom:16px;">
+            <button class="btn btn-secondary" onclick="toggleCategoryManager()" style="font-size:0.85rem;padding:6px 14px;">
+                <i class="fas fa-tags"></i> Manage Categories
+            </button>
+            <div id="categoryManager" style="display:none;margin-top:12px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;">
+                <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;">
+                    <input type="text" id="newCategoryInput" class="alloc-search" placeholder="New category name..." style="width:250px;">
+                    <button class="btn btn-primary" onclick="addNewCategory()" style="background:var(--green);font-size:0.85rem;padding:8px 16px;white-space:nowrap;">
+                        <i class="fas fa-plus"></i> Add Category
+                    </button>
+                </div>
+                <div id="categoryList" style="display:flex;flex-wrap:wrap;gap:8px;">
+                    <span style="color:var(--text-muted);font-size:0.85rem;">Loading categories...</span>
+                </div>
+            </div>
+        </div>
+
         <!-- Toolbar -->
         <div class="alloc-toolbar">
             <div class="alloc-toolbar-left">
@@ -1415,18 +1433,9 @@
             <div class="form-row">
                 <div class="form-group">
                     <label>Category</label>
-                    <select id="editCategory">
-                        <option value="Tomatoes">Tomatoes</option>
-                        <option value="Peppers">Peppers</option>
-                        <option value="Cucurbits">Cucurbits</option>
-                        <option value="Herbs">Herbs</option>
-                        <option value="Greens">Greens</option>
-                        <option value="Flowers">Flowers</option>
-                        <option value="Alliums">Alliums</option>
-                        <option value="Brassicas">Brassicas</option>
-                        <option value="Root Vegetables">Root Vegetables</option>
-                        <option value="Other">Other</option>
+                    <select id="editCategory" onchange="onCategorySelectChange(this, 'editCategoryCustom')">
                     </select>
+                    <input type="text" id="editCategoryCustom" class="s-input" placeholder="Type new category name..." style="display:none;margin-top:6px;" onblur="onCustomCategoryBlur(this, 'editCategory')">
                 </div>
                 <div class="form-group">
                     <label>Difficulty</label>
@@ -1583,17 +1592,9 @@ https://rfrseeds.com/products/ghost-pepper"></textarea>
                 </div>
                 <div class="form-group">
                     <label>Category</label>
-                    <select id="addCategory">
-                        <option value="Tomatoes">Tomatoes</option>
-                        <option value="Peppers">Peppers</option>
-                        <option value="Herbs">Herbs</option>
-                        <option value="Greens">Greens</option>
-                        <option value="Flowers">Flowers</option>
-                        <option value="Alliums">Alliums</option>
-                        <option value="Brassicas">Brassicas</option>
-                        <option value="Root Vegetables">Root Vegetables</option>
-                        <option value="Other">Other</option>
+                    <select id="addCategory" onchange="onCategorySelectChange(this, 'addCategoryCustom')">
                     </select>
+                    <input type="text" id="addCategoryCustom" class="s-input" placeholder="Type new category name..." style="display:none;margin-top:6px;" onblur="onCustomCategoryBlur(this, 'addCategory')">
                 </div>
                 <div class="form-group">
                     <label>Difficulty</label>
@@ -1667,6 +1668,7 @@ var filteredVarieties = [];
 document.addEventListener('DOMContentLoaded', function() {
     loadVarieties();
     loadPageSettings();
+    loadCategories();
 });
 
 // ═══════════════════════════════════════════════════
@@ -1848,7 +1850,18 @@ function editVariety(itemId) {
     document.getElementById('editItemId').value = v.itemId;
     document.getElementById('editName').value = v.name;
     document.getElementById('editCrop').value = v.crop || '';
-    document.getElementById('editCategory').value = v.category;
+    var editCatSel = document.getElementById('editCategory');
+    editCatSel.value = v.category;
+    // If category not in select, the value won't set — add it as an option
+    if (editCatSel.value !== v.category && v.category) {
+        var tempOpt = document.createElement('option');
+        tempOpt.value = v.category;
+        tempOpt.textContent = v.category;
+        editCatSel.insertBefore(tempOpt, editCatSel.lastElementChild);
+        editCatSel.value = v.category;
+    }
+    var editCustEl = document.getElementById('editCategoryCustom');
+    if (editCustEl) { editCustEl.value = ''; editCustEl.style.display = 'none'; }
     document.getElementById('editDifficulty').value = v.difficulty || '';
     document.getElementById('editPrice').value = v.price;
     document.getElementById('editAvailable').value = v.available || '';
@@ -1968,7 +1981,7 @@ function saveVariety() {
         itemId: itemId,
         name: document.getElementById('editName').value,
         crop: document.getElementById('editCrop').value,
-        category: document.getElementById('editCategory').value,
+        category: getCategoryValue('editCategory', 'editCategoryCustom'),
         difficulty: document.getElementById('editDifficulty').value,
         price: parseFloat(document.getElementById('editPrice').value) || 6.00,
         available: parseInt(document.getElementById('editAvailable').value) || null,
@@ -2135,7 +2148,10 @@ function openAddModal() {
     document.getElementById('addModal').classList.add('active');
     document.getElementById('addName').value = '';
     document.getElementById('addCrop').value = '';
-    document.getElementById('addCategory').value = 'Other';
+    var addCat = document.getElementById('addCategory');
+    if (addCat.options.length > 0) addCat.selectedIndex = 0;
+    var addCustEl = document.getElementById('addCategoryCustom');
+    if (addCustEl) { addCustEl.value = ''; addCustEl.style.display = 'none'; }
     document.getElementById('addDifficulty').value = '';
     document.getElementById('addPrice').value = '6.00';
     document.getElementById('addAvailable').value = '';
@@ -2164,7 +2180,7 @@ function createVariety() {
         action: 'addSeedlingItem',
         name: name,
         crop: document.getElementById('addCrop').value,
-        category: document.getElementById('addCategory').value,
+        category: getCategoryValue('addCategory', 'addCategoryCustom'),
         difficulty: document.getElementById('addDifficulty').value,
         price: parseFloat(document.getElementById('addPrice').value) || 6.00,
         available: parseInt(document.getElementById('addAvailable').value) || null,
@@ -2752,6 +2768,184 @@ function populateAllocCategoryFilter() {
 function filterAllocTable() {
     renderAllocTable();
 }
+
+// ═══════════════════════════════════════════════════
+// CATEGORY MANAGEMENT
+// ═══════════════════════════════════════════════════
+var managedCategories = [];
+
+function getCategoryValue(selectId, customInputId) {
+    var select = document.getElementById(selectId);
+    var customInput = document.getElementById(customInputId);
+    if (select.value === '__custom__' && customInput && customInput.value.trim()) {
+        return customInput.value.trim();
+    }
+    return select.value === '__custom__' ? 'Other' : select.value;
+}
+
+function loadCategories() {
+    fetch(TINY_SEED_API.MAIN_API + '?action=getSeedlingCategories')
+        .then(function(r) { return r.json(); })
+        .then(function(result) {
+            if (result.success) {
+                managedCategories = result.categories || [];
+                populateAllCategorySelects();
+                renderCategoryManager();
+            }
+        })
+        .catch(function() {});
+}
+
+function populateAllCategorySelects() {
+    var selects = ['editCategory', 'addCategory'];
+    for (var s = 0; s < selects.length; s++) {
+        var el = document.getElementById(selects[s]);
+        if (!el) continue;
+        var current = el.value;
+        el.innerHTML = '';
+        for (var c = 0; c < managedCategories.length; c++) {
+            var opt = document.createElement('option');
+            opt.value = managedCategories[c].name;
+            opt.textContent = managedCategories[c].name;
+            el.appendChild(opt);
+        }
+        var customOpt = document.createElement('option');
+        customOpt.value = '__custom__';
+        customOpt.textContent = '+ Add New Category...';
+        customOpt.style.fontStyle = 'italic';
+        customOpt.style.color = '#16a34a';
+        el.appendChild(customOpt);
+        if (current) el.value = current;
+    }
+}
+
+function onCategorySelectChange(select, customInputId) {
+    var customInput = document.getElementById(customInputId);
+    if (select.value === '__custom__') {
+        customInput.style.display = 'block';
+        customInput.focus();
+    } else {
+        customInput.style.display = 'none';
+    }
+}
+
+function onCustomCategoryBlur(input, selectId) {
+    var name = input.value.trim();
+    if (!name) {
+        input.style.display = 'none';
+        var select = document.getElementById(selectId);
+        if (select.value === '__custom__' && managedCategories.length > 0) {
+            select.value = managedCategories[0].name;
+        }
+        return;
+    }
+    // Add the category to the backend, then refresh selects
+    fetch(TINY_SEED_API.MAIN_API + '?action=addSeedlingCategory', {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({ action: 'addSeedlingCategory', name: name })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(result) {
+        if (result.success) {
+            showToast('Category added: ' + name);
+            input.value = '';
+            input.style.display = 'none';
+            loadCategories();
+            // Set the select to the new category after reload
+            setTimeout(function() {
+                var select = document.getElementById(selectId);
+                if (select) select.value = name;
+            }, 500);
+        } else {
+            alert(result.error || 'Failed to add category');
+        }
+    })
+    .catch(function(err) { alert('Error: ' + err.message); });
+}
+
+function toggleCategoryManager() {
+    var el = document.getElementById('categoryManager');
+    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+    if (el.style.display === 'block' && managedCategories.length === 0) {
+        loadCategories();
+    }
+}
+
+function renderCategoryManager() {
+    var container = document.getElementById('categoryList');
+    if (managedCategories.length === 0) {
+        container.innerHTML = '<span style="color:var(--text-muted);font-size:0.85rem;">No categories yet</span>';
+        return;
+    }
+    var html = '';
+    for (var i = 0; i < managedCategories.length; i++) {
+        var cat = managedCategories[i];
+        html += '<span style="display:inline-flex;align-items:center;gap:6px;background:#f3f4f6;border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:0.85rem;">';
+        html += '<strong>' + escapeHtml(cat.name) + '</strong>';
+        html += '<span style="color:var(--text-muted);font-size:0.75rem;">(' + (cat.count || 0) + ')</span>';
+        html += '<button onclick="removeCategory(\'' + escapeHtml(cat.name).replace(/'/g, "\\'") + '\')" style="background:none;border:none;color:var(--red);cursor:pointer;padding:0 2px;font-size:0.85rem;" title="Remove category"><i class="fas fa-times"></i></button>';
+        html += '</span>';
+    }
+    container.innerHTML = html;
+}
+
+function addNewCategory() {
+    var input = document.getElementById('newCategoryInput');
+    var name = input.value.trim();
+    if (!name) { input.focus(); return; }
+
+    fetch(TINY_SEED_API.MAIN_API + '?action=addSeedlingCategory', {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({ action: 'addSeedlingCategory', name: name })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(result) {
+        if (result.success) {
+            showToast('Category added: ' + name);
+            input.value = '';
+            loadCategories();
+        } else {
+            alert(result.error || 'Failed to add category');
+        }
+    })
+    .catch(function(err) { alert('Error: ' + err.message); });
+}
+
+function removeCategory(name) {
+    var itemCount = 0;
+    for (var i = 0; i < managedCategories.length; i++) {
+        if (managedCategories[i].name === name) { itemCount = managedCategories[i].count || 0; break; }
+    }
+
+    var reassignTo = '';
+    if (itemCount > 0) {
+        reassignTo = prompt('Category "' + name + '" has ' + itemCount + ' item(s).\n\nReassign them to which category? (Leave blank to just remove the category without reassigning)');
+        if (reassignTo === null) return; // cancelled
+    } else {
+        if (!confirm('Remove category "' + name + '"?')) return;
+    }
+
+    fetch(TINY_SEED_API.MAIN_API + '?action=removeSeedlingCategory', {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({ action: 'removeSeedlingCategory', name: name, reassignTo: reassignTo || '' })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(result) {
+        if (result.success) {
+            showToast(result.message);
+            loadCategories();
+            if (reassignTo) loadAllocations(); // refresh table if items were reassigned
+        } else {
+            alert(result.error || 'Failed to remove category');
+        }
+    })
+    .catch(function(err) { alert('Error: ' + err.message); });
+}
+
+
 </script>
 
 </body>

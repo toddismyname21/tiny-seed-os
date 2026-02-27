@@ -17599,6 +17599,8 @@ function doGet(e) {
         return jsonResponse(getSeedlingBundles());
       case 'getPresalePageConfig':
         return jsonResponse(getPresalePageConfig());
+      case 'getSeedlingCategories':
+        return jsonResponse(getSeedlingCategories());
       case 'getSeedlingOperationsOverview':
         return jsonResponse(getSeedlingOperationsOverview(e.parameter));
 
@@ -19032,6 +19034,10 @@ function doPost(e) {
         return jsonResponse(savePresalePageConfig(data));
       case 'updateSeedlingAllocations':
         return jsonResponse(updateSeedlingAllocations(data));
+      case 'addSeedlingCategory':
+        return jsonResponse(addSeedlingCategory(data));
+      case 'removeSeedlingCategory':
+        return jsonResponse(removeSeedlingCategory(data));
 
       default:
         return jsonResponse({error: 'Unknown action: ' + action}, 400);
@@ -131823,6 +131829,138 @@ function savePresalePageConfig(params) {
 
   props.setProperty('PRESALE_PAGE_CONFIG', JSON.stringify(existing));
   return { success: true, config: existing, message: 'Page settings saved' };
+}
+
+// ============ SEEDLING CATEGORY MANAGEMENT ============
+
+/**
+ * Get managed seedling categories. Merges persisted config with categories
+ * found in the actual SEEDLING_PRODUCTION data.
+ */
+function getSeedlingCategories() {
+  var props = PropertiesService.getScriptProperties();
+  var raw = props.getProperty('SEEDLING_CATEGORIES');
+  var managed = [];
+  if (raw) { try { managed = JSON.parse(raw); } catch(e) { managed = []; } }
+
+  // Also scan actual data for any categories not in the managed list
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('SEEDLING_PRODUCTION');
+  var dataCategories = {};
+  if (sheet) {
+    var data = sheet.getDataRange().getValues();
+    var headers = data[0];
+    var catCol = headers.indexOf('Category');
+    if (catCol !== -1) {
+      for (var i = 1; i < data.length; i++) {
+        var cat = String(data[i][catCol] || '').trim();
+        if (cat) dataCategories[cat] = (dataCategories[cat] || 0) + 1;
+      }
+    }
+  }
+
+  // Merge: managed list is authoritative, but include any data-only categories
+  var managedNames = {};
+  for (var m = 0; m < managed.length; m++) {
+    managedNames[managed[m].name] = true;
+    managed[m].count = dataCategories[managed[m].name] || 0;
+  }
+  var dataCats = Object.keys(dataCategories);
+  for (var d = 0; d < dataCats.length; d++) {
+    if (!managedNames[dataCats[d]]) {
+      managed.push({ name: dataCats[d], count: dataCategories[dataCats[d]], source: 'data' });
+    }
+  }
+
+  // Sort alphabetically
+  managed.sort(function(a, b) { return a.name.localeCompare(b.name); });
+
+  return { success: true, categories: managed, total: managed.length };
+}
+
+/**
+ * Add a new seedling category to the managed list.
+ * @param {Object} params - { name: "New Category Name" }
+ */
+function addSeedlingCategory(params) {
+  if (!params.name || !params.name.trim()) {
+    return { success: false, error: 'Category name is required' };
+  }
+  var catName = params.name.trim();
+
+  var props = PropertiesService.getScriptProperties();
+  var raw = props.getProperty('SEEDLING_CATEGORIES');
+  var managed = [];
+  if (raw) { try { managed = JSON.parse(raw); } catch(e) { managed = []; } }
+
+  // Check for duplicate
+  for (var i = 0; i < managed.length; i++) {
+    if (managed[i].name.toLowerCase() === catName.toLowerCase()) {
+      return { success: false, error: 'Category already exists: ' + managed[i].name };
+    }
+  }
+
+  managed.push({ name: catName, addedAt: new Date().toISOString(), source: 'manual' });
+  props.setProperty('SEEDLING_CATEGORIES', JSON.stringify(managed));
+
+  // Log to lifecycle
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  logSeedlingLifecycleEvent_(ss, '', '', '', 'CATEGORY_ADDED', '', catName, JSON.stringify({ category: catName }), 'Admin');
+
+  return { success: true, category: catName, message: 'Category added: ' + catName };
+}
+
+/**
+ * Remove a seedling category. Optionally reassign items to a new category.
+ * @param {Object} params - { name: "Category to Remove", reassignTo: "New Category" (optional) }
+ */
+function removeSeedlingCategory(params) {
+  if (!params.name || !params.name.trim()) {
+    return { success: false, error: 'Category name is required' };
+  }
+  var catName = params.name.trim();
+
+  var props = PropertiesService.getScriptProperties();
+  var raw = props.getProperty('SEEDLING_CATEGORIES');
+  var managed = [];
+  if (raw) { try { managed = JSON.parse(raw); } catch(e) { managed = []; } }
+
+  // Remove from managed list
+  var found = false;
+  managed = managed.filter(function(c) {
+    if (c.name === catName) { found = true; return false; }
+    return true;
+  });
+  props.setProperty('SEEDLING_CATEGORIES', JSON.stringify(managed));
+
+  // Reassign items if requested
+  var reassigned = 0;
+  if (params.reassignTo) {
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheet = ss.getSheetByName('SEEDLING_PRODUCTION');
+    if (sheet) {
+      var data = sheet.getDataRange().getValues();
+      var headers = data[0];
+      var catCol = headers.indexOf('Category');
+      if (catCol !== -1) {
+        for (var i = 1; i < data.length; i++) {
+          if (String(data[i][catCol]).trim() === catName) {
+            sheet.getRange(i + 1, catCol + 1).setValue(params.reassignTo.trim());
+            reassigned++;
+          }
+        }
+      }
+    }
+
+    logSeedlingLifecycleEvent_(ss, '', '', '', 'CATEGORY_REMOVED', catName, params.reassignTo,
+      JSON.stringify({ removed: catName, reassignedTo: params.reassignTo, count: reassigned }), 'Admin');
+  } else {
+    var ss2 = SpreadsheetApp.openById(SPREADSHEET_ID);
+    logSeedlingLifecycleEvent_(ss2, '', '', '', 'CATEGORY_REMOVED', catName, '',
+      JSON.stringify({ removed: catName, reassigned: false }), 'Admin');
+  }
+
+  return { success: true, removed: catName, reassigned: reassigned, message: 'Category removed' + (reassigned > 0 ? ', ' + reassigned + ' items reassigned to ' + params.reassignTo : '') };
 }
 
 /**
