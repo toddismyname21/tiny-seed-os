@@ -42,7 +42,7 @@ const CAPITAL_LOAN = {
 
 // Apps Script API for sheet operations
 const API_BASE = process.env.APPS_SCRIPT_URL ||
-  'https://script.google.com/macros/s/AKfycbzQGqay-b2A97ThL33YSnLa4MBdu_48ReQMXV_ndtvfSzoYVhURlZy5cWbXQ2hDPx2d/exec';
+  'https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec';
 
 /**
  * Parse CSV line handling quoted values with commas

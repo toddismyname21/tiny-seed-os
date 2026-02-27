@@ -188,7 +188,7 @@
 
   <script>
     (function() {
-      const API_BASE = 'https://script.google.com/macros/s/AKfycbyayQD18LoTXiE16bcG90zEMZlGZGtAgNeWco_528QIrZ_3pCgB5tmleR7NglI1q3No/exec';
+      const API_BASE = 'https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec';
 
       const form = document.getElementById('tsf-form');
       const btn = document.getElementById('tsf-btn');
@@ -344,7 +344,9 @@
       TinySeedDeliveryWidget.isInZone('123 Main St', 'Pittsburgh', '15201')
         .then(inZone => {
           if (inZone) {
-            document.getElementById('delivery-option').style.display = 'block';
+            // Show delivery option element on your page
+            var el = document.querySelector('[data-delivery-option]');
+            if (el) el.style.display = 'block';
           }
         });
     </script>
