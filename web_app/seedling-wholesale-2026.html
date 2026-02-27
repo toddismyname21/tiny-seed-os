@@ -904,7 +904,7 @@
                 <div id="confirmInvoice" style="display:none; background:#dcfce7; border:1px solid var(--green); border-radius:12px; padding:16px; max-width:400px; margin:0 auto 16px;"></div>
                 <div class="confirmation-details" id="confirmDetails"></div>
                 <p style="font-size:0.85rem; color:var(--text-muted); margin-top:20px;">
-                    Questions? Email <a href="mailto:todd@tinyseedfarm.com" style="color:var(--green-dark);">todd@tinyseedfarm.com</a>
+                    Questions? Email <a href="mailto:todd@tinyseedfarmpgh.com" style="color:var(--green-dark);">todd@tinyseedfarmpgh.com</a>
                 </p>
                 <button onclick="window.location.reload()" style="background:var(--green); color:#fff; border:none; padding:12px 28px; border-radius:50px; font-weight:700; cursor:pointer; font-family:inherit; font-size:0.95rem; margin-top:16px; min-height:48px;">
                     <i class="fas fa-plus"></i> Place Another Order
@@ -932,7 +932,7 @@
 <footer class="footer">
     <img src="images/tiny-seed-farm-logo-final.png" alt="Tiny Seed Farm" style="width:80px; margin-bottom:12px; opacity:0.7;" loading="lazy">
     <div class="footer-links">
-        <a href="mailto:todd@tinyseedfarm.com"><i class="fas fa-envelope"></i> todd@tinyseedfarm.com</a>
+        <a href="mailto:todd@tinyseedfarmpgh.com"><i class="fas fa-envelope"></i> todd@tinyseedfarmpgh.com</a>
         <a href="https://www.instagram.com/tinyseedfarm" target="_blank" rel="noopener noreferrer"><i class="fab fa-instagram"></i> @tinyseedfarm</a>
     </div>
     <p>Tiny Seed Farm &mdash; 257 Zeigler Rd, Rochester, PA 15074</p>
@@ -1151,7 +1151,7 @@ function loadCatalogItems() {
             catalogContent.innerHTML = '<div style="text-align:center; padding:60px 20px;">' +
                 '<i class="fas fa-exclamation-triangle" style="font-size:2rem; color:#dc2626; margin-bottom:12px; display:block;"></i>' +
                 '<p style="color:var(--text-dark); font-weight:700; margin-bottom:8px;">Unable to load catalog</p>' +
-                '<p style="color:var(--text-muted); font-size:0.9rem; max-width:400px; margin:0 auto 16px;">Please try again or contact us directly at todd@tinyseedfarm.com.</p>' +
+                '<p style="color:var(--text-muted); font-size:0.9rem; max-width:400px; margin:0 auto 16px;">Please try again or contact us directly at todd@tinyseedfarmpgh.com.</p>' +
                 '<button onclick="loadCatalogItems()" style="background:var(--green); color:#fff; border:none; padding:10px 24px; border-radius:50px; font-weight:700; cursor:pointer; font-family:inherit; min-height:48px;">' +
                 '<i class="fas fa-redo"></i> Try Again</button></div>';
             catalogNav.innerHTML = '';
@@ -1523,7 +1523,7 @@ function submitWholesaleOrder(e) {
         } else {
             btn.disabled = false;
             btn.innerHTML = originalHtml;
-            alert('We were unable to submit your order. Please try again or contact todd@tinyseedfarm.com for assistance.');
+            alert('We were unable to submit your order. Please try again or contact todd@tinyseedfarmpgh.com for assistance.');
             console.error('Order submission failed:', result.error);
         }
     })
