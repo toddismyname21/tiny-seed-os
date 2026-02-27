@@ -679,14 +679,7 @@
             width: 180px;
             height: 180px;
             border-radius: 50%;
-            background: var(--warm-sand);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-family: 'Playfair Display', serif;
-            font-size: 3.5rem;
-            font-weight: 900;
-            color: var(--green-deep);
+            object-fit: cover;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
             border: 5px solid #fff;
             margin: 0 auto;
@@ -756,7 +749,6 @@
             .farmer-avatar {
                 width: 140px;
                 height: 140px;
-                font-size: 2.8rem;
             }
             .farmer-trust-stats {
                 justify-content: center;
@@ -1558,7 +1550,7 @@
 <!-- ═══════════════════════════════════════════════════════════ -->
 <section class="farmer-section" aria-labelledby="farmer-heading">
     <div class="farmer-grid">
-        <div class="farmer-avatar" aria-hidden="true">TW</div>
+        <img class="farmer-avatar" src="images/todd-farmer.jpg" alt="Todd Wilson, farmer at Tiny Seed Farm, with Black Cherry tomato seedlings" loading="lazy">
         <div class="farmer-content">
             <h2 id="farmer-heading">Meet Your Farmer</h2>
             <p style="font-family:'Playfair Display',serif; font-size:1.4rem; font-weight:800; color:var(--green-deep); margin-bottom:2px;">Todd Wilson</p>
@@ -2162,16 +2154,7 @@ function loadPageConfig() {
             // ─── FARMER ───
             if (c.farmerPhotoUrl) {
                 var avatar = document.querySelector('.farmer-avatar');
-                if (avatar) {
-                    avatar.textContent = '';
-                    avatar.style.background = 'none';
-                    avatar.style.overflow = 'hidden';
-                    var img = document.createElement('img');
-                    img.src = c.farmerPhotoUrl;
-                    img.alt = c.farmerName || 'Farmer';
-                    img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%;';
-                    avatar.appendChild(img);
-                }
+                if (avatar) avatar.src = c.farmerPhotoUrl;
             }
             if (c.farmerName) {
                 var nameEl = document.querySelector('.farmer-content p[style*="Playfair"]');
