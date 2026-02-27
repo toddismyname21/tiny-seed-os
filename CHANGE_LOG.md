@@ -38,6 +38,33 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-02-26 — Action Mismatches + Seedling Operations Map
+
+**Role:** PM_Architect
+
+### Files Created
+- `docs/DATA_CONTRACTS.md` — Seedling system data contracts (SEEDLING_PRODUCTION, SEEDLING_SALES, PLANNING_2026, SEED_INVENTORY schemas + warning rules)
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — 14 action name mismatch fixes (12 GET aliases + 2 POST bulk ops) + new `getSeedlingOperationsOverview()` endpoint
+- `web_app/greenhouse-dashboard.html` — New "Operations" tab (first position) with warnings, outlet allocations, unified schedule, field assignments, seed inventory status
+
+### Functions Added
+- `getSeedlingOperationsOverview()` in `MERGED TOTAL.js` — Unified seedling ops endpoint combining PLANNING_2026 + SEEDLING_PRODUCTION + SEED_INVENTORY with warnings
+- `bulkAssignTasks()` case in doPost — Loops `assignTaskToEmployee()` for multiple tasks
+- `bulkCompleteTasks()` case in doPost — Loops `completeTask()` for multiple tasks
+- 12 alias cases in doGet: assignTask, deleteTask, getAlgorithmIntelligence, getInstagramAnalytics, getChiefOfStaffBriefing, getTeamWorkload, getFieldReadings, getFieldsDashboard, getBedsWithStatus, getRecentCompletedTasks, getRecentBlogPosts, generateSmartCaption
+
+### Reason
+System audit identified 14 silent API failures from frontend-backend name mismatches. Seedling operations needed unified view for greenhouse launch combining production (field) and sale seedling schedules with warnings for missing field assignments, low seed inventory, and incomplete outlet allocations.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for existing getSeedlingOperationsOverview — does not exist
+- [x] No duplicates created
+
+---
+
 ## 2026-02-26 — MEDIUM Priority Fixes + Presale Description Cleanup
 
 **Role:** PM_Architect / UX_Design_Claude

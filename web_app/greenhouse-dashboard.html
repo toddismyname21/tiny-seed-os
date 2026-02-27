@@ -401,7 +401,8 @@
 
 <!-- ═══ TABS ═══ -->
 <nav class="gh-tabs" id="mainTabs">
-    <div class="gh-tab active" data-tab="today" onclick="showTab('today')"><i class="fas fa-calendar-day"></i> Today's Tasks</div>
+    <div class="gh-tab active" data-tab="ops" onclick="showTab('ops')"><i class="fas fa-map"></i> Operations</div>
+    <div class="gh-tab" data-tab="today" onclick="showTab('today')"><i class="fas fa-calendar-day"></i> Today's Tasks</div>
     <div class="gh-tab" data-tab="trays" onclick="showTab('trays')"><i class="fas fa-th"></i> Tray Inventory</div>
     <div class="gh-tab" data-tab="growth" onclick="showTab('growth')"><i class="fas fa-chart-line"></i> Growth Tracking</div>
     <div class="gh-tab" data-tab="sales" onclick="showTab('sales')"><i class="fas fa-seedling"></i> Seedling Sales</div>
@@ -411,8 +412,52 @@
 <!-- ═══ MAIN CONTENT ═══ -->
 <main class="gh-main">
 
+<!-- ────────────── TAB 0: OPERATIONS OVERVIEW ────────────── -->
+<div class="tab-panel active" id="panel-ops">
+    <!-- Warning Banner -->
+    <div id="opsWarnings" style="margin-bottom:1rem;"></div>
+
+    <!-- Stat Cards -->
+    <div class="stat-row" id="opsStats">
+        <div class="stat-card green"><div class="stat-label">Production (Field)</div><div class="stat-value" id="opsFieldCount">--</div><div class="stat-sub">For our fields</div></div>
+        <div class="stat-card blue"><div class="stat-label">Sale Seedlings</div><div class="stat-value" id="opsSaleCount">--</div><div class="stat-sub">Presale + markets</div></div>
+        <div class="stat-card gold"><div class="stat-label">Warnings</div><div class="stat-value" id="opsWarnCount">--</div><div class="stat-sub" id="opsWarnSub">Loading...</div></div>
+        <div class="stat-card red"><div class="stat-label">Seeds to Order</div><div class="stat-value" id="opsSeedAlert">--</div><div class="stat-sub">Missing or low</div></div>
+    </div>
+
+    <!-- Outlet Allocation Cards -->
+    <div class="section-header"><h2><i class="fas fa-store"></i> Outlet Allocations</h2></div>
+    <div id="opsOutlets" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:0.75rem; margin-bottom:1.5rem;">
+        <div style="text-align:center; color:var(--text-secondary); padding:2rem;">Loading outlet data...</div>
+    </div>
+
+    <!-- Combined Sowing Schedule -->
+    <div class="section-header"><h2><i class="fas fa-calendar-alt"></i> Greenhouse Schedule</h2>
+        <div style="display:flex; gap:0.5rem;">
+            <button class="btn btn-outline btn-sm" onclick="filterOpsSchedule('all')" id="filterAll" style="font-size:0.75rem; padding:4px 10px; border-radius:6px;">All</button>
+            <button class="btn btn-outline btn-sm" onclick="filterOpsSchedule('FIELD')" id="filterField" style="font-size:0.75rem; padding:4px 10px; border-radius:6px;">Field</button>
+            <button class="btn btn-outline btn-sm" onclick="filterOpsSchedule('SALE')" id="filterSale" style="font-size:0.75rem; padding:4px 10px; border-radius:6px;">Sale</button>
+        </div>
+    </div>
+    <div id="opsSchedule" style="margin-bottom:1.5rem;">
+        <div class="loading-spinner"><i class="fas fa-spinner"></i> Loading operations overview...</div>
+    </div>
+
+    <!-- Field Assignments -->
+    <div class="section-header"><h2><i class="fas fa-map-marked-alt"></i> Field Assignments</h2></div>
+    <div id="opsFields" style="margin-bottom:1.5rem;">
+        <div style="text-align:center; color:var(--text-secondary); padding:1rem;">Loading...</div>
+    </div>
+
+    <!-- Seed Inventory Status -->
+    <div class="section-header"><h2><i class="fas fa-warehouse"></i> Seed Inventory Check</h2></div>
+    <div id="opsSeedStatus" style="margin-bottom:1.5rem;">
+        <div style="text-align:center; color:var(--text-secondary); padding:1rem;">Loading...</div>
+    </div>
+</div>
+
 <!-- ────────────── TAB 1: TODAY'S TASKS ────────────── -->
-<div class="tab-panel active" id="panel-today">
+<div class="tab-panel" id="panel-today">
     <div class="stat-row" id="todayStats">
         <div class="stat-card gold"><div class="stat-label">Tasks Due Today</div><div class="stat-value" id="statTasksToday">--</div><div class="stat-sub" id="statTasksSub">Loading...</div></div>
         <div class="stat-card green"><div class="stat-label">Trays Active</div><div class="stat-value" id="statTraysActive">--</div><div class="stat-sub">In greenhouse</div></div>
@@ -1056,7 +1101,7 @@ const state = {
 // ═══════════════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
     setDefaultDates();
-    loadTodayTab();
+    loadOperationsTab();
     startAutoRefresh();
     setupGermCalc();
 });
@@ -1088,7 +1133,8 @@ function showTab(tab) {
     state.activeTab = tab;
     document.querySelectorAll('.gh-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + tab));
-    if (tab === 'today') loadTodayTab();
+    if (tab === 'ops') loadOperationsTab();
+    else if (tab === 'today') loadTodayTab();
     else if (tab === 'trays') loadTrayInventory();
     else if (tab === 'growth') loadGrowthTab();
     else if (tab === 'sales') loadSalesTab();
@@ -1162,6 +1208,215 @@ function urgencyText(dateStr) {
     if (diff < 0) return Math.abs(diff) + ' day' + (Math.abs(diff) !== 1 ? 's' : '') + ' overdue';
     if (diff === 0) return 'Due today';
     return 'In ' + diff + ' day' + (diff !== 1 ? 's' : '');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// TAB 0: OPERATIONS OVERVIEW
+// ═══════════════════════════════════════════════════════════════════
+let opsData = null;
+
+async function loadOperationsTab() {
+    try {
+        const res = await api.get('getSeedlingOperationsOverview');
+        if (!res || !res.success) {
+            document.getElementById('opsSchedule').innerHTML = '<div style="color:var(--danger);padding:1rem;">Failed to load operations data</div>';
+            return;
+        }
+        opsData = res;
+
+        // Stat cards
+        document.getElementById('opsFieldCount').textContent = res.counts.production_seedlings || 0;
+        document.getElementById('opsSaleCount').textContent = res.counts.sale_seedlings || 0;
+        document.getElementById('opsWarnCount').textContent = res.warning_count.total || 0;
+        document.getElementById('opsWarnSub').textContent = (res.warning_count.HIGH || 0) + ' high priority';
+        if (res.warning_count.HIGH > 0) document.getElementById('opsWarnCount').parentElement.parentElement.style.background = 'var(--danger-dim)';
+
+        const seedAlerts = res.seed_status.filter(s => s.status === 'NO_SEED_LOT' || s.status === 'EMPTY' || s.status === 'LOW').length;
+        document.getElementById('opsSeedAlert').textContent = seedAlerts;
+
+        // Warnings banner
+        renderOpsWarnings(res.warnings);
+
+        // Outlet allocations
+        renderOpsOutlets(res.outlet_summary);
+
+        // Schedule
+        renderOpsSchedule(res.greenhouse_schedule, 'all');
+
+        // Field assignments
+        renderOpsFields(res.field_assignments);
+
+        // Seed status
+        renderOpsSeedStatus(res.seed_status);
+
+    } catch (err) {
+        document.getElementById('opsSchedule').innerHTML = '<div style="color:var(--danger);padding:1rem;">Error: ' + err.message + '</div>';
+    }
+}
+
+function renderOpsWarnings(warnings) {
+    const el = document.getElementById('opsWarnings');
+    if (!warnings || warnings.length === 0) {
+        el.innerHTML = '<div style="background:var(--primary-dim); border:1px solid var(--primary); border-radius:var(--radius-sm); padding:0.75rem 1rem; color:var(--primary);"><i class="fas fa-check-circle"></i> No warnings — all systems go</div>';
+        return;
+    }
+    const highWarns = warnings.filter(w => w.severity === 'HIGH');
+    const medWarns = warnings.filter(w => w.severity === 'MEDIUM');
+    let html = '';
+    if (highWarns.length > 0) {
+        html += '<div style="background:var(--danger-dim); border:1px solid var(--danger); border-radius:var(--radius-sm); padding:0.75rem 1rem; margin-bottom:0.5rem;">';
+        html += '<div style="color:var(--danger); font-weight:600; margin-bottom:0.5rem;"><i class="fas fa-exclamation-triangle"></i> ' + highWarns.length + ' High Priority Warning' + (highWarns.length > 1 ? 's' : '') + '</div>';
+        highWarns.forEach(w => {
+            html += '<div style="color:var(--text-primary); font-size:0.85rem; padding:4px 0; border-bottom:1px solid rgba(255,255,255,0.05);">';
+            html += '<strong>' + w.crop + ' ' + w.variety + '</strong> — ' + w.detail + '</div>';
+        });
+        html += '</div>';
+    }
+    if (medWarns.length > 0) {
+        html += '<div style="background:var(--gold-dim); border:1px solid var(--gold); border-radius:var(--radius-sm); padding:0.75rem 1rem;">';
+        html += '<div style="color:var(--gold); font-weight:600; margin-bottom:0.5rem;"><i class="fas fa-info-circle"></i> ' + medWarns.length + ' Medium Warning' + (medWarns.length > 1 ? 's' : '') + '</div>';
+        medWarns.forEach(w => {
+            html += '<div style="color:var(--text-primary); font-size:0.85rem; padding:4px 0; border-bottom:1px solid rgba(255,255,255,0.05);">';
+            html += '<strong>' + w.crop + ' ' + w.variety + '</strong> — ' + w.detail + '</div>';
+        });
+        html += '</div>';
+    }
+    el.innerHTML = html;
+}
+
+function renderOpsOutlets(outlets) {
+    const el = document.getElementById('opsOutlets');
+    const items = [
+        { name: 'Presale', icon: 'fa-shopping-cart', data: outlets.presale, color: 'var(--primary)' },
+        { name: 'Wholesale', icon: 'fa-truck', data: outlets.wholesale, color: 'var(--info)' },
+        { name: 'Markets', icon: 'fa-store-alt', data: outlets.market, color: 'var(--gold)' },
+        { name: 'Phipps', icon: 'fa-leaf', data: outlets.phipps, color: 'var(--purple)' },
+        { name: 'CityGROWN', icon: 'fa-city', data: outlets.citygrown, color: '#f472b6' }
+    ];
+    let html = '';
+    items.forEach(it => {
+        const pct = it.data.allocated > 0 ? Math.round((it.data.sold / it.data.allocated) * 100) : 0;
+        html += '<div style="background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-sm); padding:1rem; text-align:center;">';
+        html += '<div style="font-size:1.5rem; color:' + it.color + '; margin-bottom:0.25rem;"><i class="fas ' + it.icon + '"></i></div>';
+        html += '<div style="font-weight:600; font-size:0.85rem;">' + it.name + '</div>';
+        html += '<div style="font-size:1.4rem; font-weight:700; color:' + it.color + ';">' + (it.data.allocated || 0) + '</div>';
+        html += '<div style="font-size:0.75rem; color:var(--text-secondary);">Sold: ' + (it.data.sold || 0) + ' (' + pct + '%)</div>';
+        html += '<div style="font-size:0.75rem; color:var(--text-secondary);">Avail: ' + (it.data.available || 0) + '</div>';
+        html += '</div>';
+    });
+    // Unallocated
+    html += '<div style="background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-sm); padding:1rem; text-align:center;">';
+    html += '<div style="font-size:1.5rem; color:var(--text-secondary); margin-bottom:0.25rem;"><i class="fas fa-question-circle"></i></div>';
+    html += '<div style="font-weight:600; font-size:0.85rem;">Unallocated</div>';
+    html += '<div style="font-size:1.4rem; font-weight:700; color:var(--text-secondary);">' + (outlets.unallocated || 0) + '</div>';
+    html += '<div style="font-size:0.75rem; color:var(--text-secondary);">of ' + (outlets.total_production || 0) + ' total</div>';
+    html += '</div>';
+    el.innerHTML = html;
+}
+
+function filterOpsSchedule(filter) {
+    if (!opsData) return;
+    document.querySelectorAll('[id^="filter"]').forEach(b => b.style.opacity = '0.5');
+    const btn = document.getElementById('filter' + filter.charAt(0).toUpperCase() + filter.slice(1));
+    if (btn) btn.style.opacity = '1';
+    renderOpsSchedule(opsData.greenhouse_schedule, filter);
+}
+
+function renderOpsSchedule(schedule, filter) {
+    const el = document.getElementById('opsSchedule');
+    let items = schedule;
+    if (filter !== 'all') items = items.filter(s => s.purpose === filter);
+
+    if (items.length === 0) {
+        el.innerHTML = '<div style="text-align:center; color:var(--text-secondary); padding:2rem;">No items match this filter</div>';
+        return;
+    }
+
+    let html = '<div style="display:flex; flex-direction:column; gap:0.5rem;">';
+    let currentDate = '';
+    items.forEach(item => {
+        const dateLabel = item.date || 'No date set';
+        if (dateLabel !== currentDate) {
+            currentDate = dateLabel;
+            html += '<div style="font-weight:700; font-size:0.85rem; color:var(--text-secondary); margin-top:0.75rem; padding-bottom:0.25rem; border-bottom:1px solid var(--border);">' + (item.date ? formatDate(item.date) : 'DATE NOT SET') + '</div>';
+        }
+
+        const purposeColor = item.purpose === 'FIELD' ? 'var(--primary)' : 'var(--info)';
+        const purposeLabel = item.purpose === 'FIELD' ? 'FIELD' : 'SALE';
+        const statusColor = item.completed ? 'var(--primary)' : (item.status === 'Planned' || item.status === 'planned' ? 'var(--gold)' : 'var(--text-secondary)');
+
+        html += '<div style="background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-sm); padding:0.75rem 1rem; display:flex; align-items:center; gap:1rem;">';
+        html += '<div style="background:' + purposeColor + '20; color:' + purposeColor + '; padding:2px 8px; border-radius:4px; font-size:0.7rem; font-weight:700; min-width:45px; text-align:center;">' + purposeLabel + '</div>';
+        html += '<div style="flex:1;">';
+        html += '<div style="font-weight:600; font-size:0.9rem;">' + item.crop + ' — ' + item.variety + '</div>';
+        html += '<div style="font-size:0.8rem; color:var(--text-secondary);">' + (item.trays || '?') + ' trays · ' + (item.plants_needed || '?') + ' plants → ' + (item.destination || 'unknown') + '</div>';
+        html += '</div>';
+        html += '<div style="color:' + statusColor + '; font-size:0.75rem; font-weight:600;">' + (item.completed ? 'DONE' : (item.status || '')) + '</div>';
+        html += '</div>';
+    });
+    html += '</div>';
+    el.innerHTML = html;
+}
+
+function renderOpsFields(fields) {
+    const el = document.getElementById('opsFields');
+    if (!fields || fields.length === 0) {
+        el.innerHTML = '<div style="text-align:center; color:var(--text-secondary); padding:1rem;">No field assignments found</div>';
+        return;
+    }
+    const unassigned = fields.filter(f => !f.bed);
+    const assigned = fields.filter(f => f.bed);
+    let html = '';
+    if (unassigned.length > 0) {
+        html += '<div style="background:var(--danger-dim); border:1px solid var(--danger); border-radius:var(--radius-sm); padding:0.75rem 1rem; margin-bottom:0.75rem;">';
+        html += '<div style="color:var(--danger); font-weight:600; margin-bottom:0.5rem;"><i class="fas fa-exclamation-triangle"></i> ' + unassigned.length + ' crop' + (unassigned.length > 1 ? 's' : '') + ' without field assignment</div>';
+        unassigned.forEach(f => {
+            html += '<div style="font-size:0.85rem; padding:3px 0; color:var(--text-primary);">' + f.crop + ' ' + f.variety + ' — ' + f.plants + ' plants need a bed</div>';
+        });
+        html += '</div>';
+    }
+    if (assigned.length > 0) {
+        html += '<div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:0.5rem;">';
+        assigned.forEach(f => {
+            html += '<div style="background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-sm); padding:0.75rem;">';
+            html += '<div style="font-weight:600; font-size:0.85rem;">' + f.crop + ' ' + f.variety + '</div>';
+            html += '<div style="font-size:0.8rem; color:var(--primary);"><i class="fas fa-map-pin"></i> ' + f.bed + '</div>';
+            html += '<div style="font-size:0.75rem; color:var(--text-secondary);">' + f.plants + ' plants · ' + (f.feet || '?') + ' ft</div>';
+            html += '</div>';
+        });
+        html += '</div>';
+    }
+    el.innerHTML = html;
+}
+
+function renderOpsSeedStatus(seeds) {
+    const el = document.getElementById('opsSeedStatus');
+    if (!seeds || seeds.length === 0) {
+        el.innerHTML = '<div style="text-align:center; color:var(--text-secondary); padding:1rem;">No seed data available</div>';
+        return;
+    }
+    const problems = seeds.filter(s => s.status !== 'OK');
+    const ok = seeds.filter(s => s.status === 'OK');
+
+    let html = '';
+    if (problems.length > 0) {
+        html += '<div style="display:flex; flex-direction:column; gap:0.4rem; margin-bottom:1rem;">';
+        problems.forEach(s => {
+            const color = s.status === 'NO_SEED_LOT' ? 'var(--danger)' : s.status === 'EMPTY' ? 'var(--danger)' : 'var(--gold)';
+            const label = s.status === 'NO_SEED_LOT' ? 'NO SEED LOT' : s.status === 'EMPTY' ? 'EMPTY' : 'LOW';
+            html += '<div style="background:var(--bg-card); border-left:3px solid ' + color + '; border-radius:var(--radius-sm); padding:0.6rem 1rem; display:flex; align-items:center; justify-content:space-between;">';
+            html += '<div><span style="font-weight:600;">' + s.crop + ' ' + s.variety + '</span></div>';
+            html += '<div style="display:flex; align-items:center; gap:0.75rem;">';
+            html += '<span style="font-size:0.8rem; color:var(--text-secondary);">Need: ' + s.needed + ' · Have: ' + s.remaining + '</span>';
+            html += '<span style="background:' + color + '30; color:' + color + '; padding:2px 8px; border-radius:4px; font-size:0.7rem; font-weight:700;">' + label + '</span>';
+            html += '</div></div>';
+        });
+        html += '</div>';
+    }
+    if (ok.length > 0) {
+        html += '<div style="color:var(--text-secondary); font-size:0.85rem; padding:0.5rem;"><i class="fas fa-check-circle" style="color:var(--primary);"></i> ' + ok.length + ' varieties with adequate seed stock</div>';
+    }
+    el.innerHTML = html;
 }
 
 // ═══════════════════════════════════════════════════════════════════

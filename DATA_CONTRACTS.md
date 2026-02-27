@@ -795,4 +795,64 @@ If you create a new API endpoint, add it to Section 3 with:
 
 ---
 
+---
+
+## 11. Seedling System Contracts (Added 2026-02-26)
+
+### Sheet Cross-References
+
+```
+PLANNING_2026.Batch_ID ←→ SEEDLING_PRODUCTION.Batch_ID
+SEEDLING_PRODUCTION.Item_ID ←→ SEEDLING_SALES.Item_ID
+SEEDLING_PRODUCTION.Seed_Lot_ID ←→ SEED_INVENTORY.Seed_Lot_ID
+SEEDLING_ORDERS.Order_ID ←→ SEEDLING_SALES.Order_ID
+PLANNING_2026.Crop ←→ REF_CropProfiles.Crop_Name
+```
+
+### Two Seedling Flows
+
+| Flow | Source Sheet | Purpose | Destination |
+|------|-------------|---------|-------------|
+| Production | PLANNING_2026 | Seedlings for farm fields | Target_Bed_ID in field |
+| Sale | SEEDLING_PRODUCTION | Seedlings for customers | Alloc_Presale/Market/Phipps/Wholesale/CityGROWN |
+
+### SEEDLING_PRODUCTION Key Columns
+
+| Column | Type | Description |
+|--------|------|-------------|
+| Item_ID | string | `SDL-{timestamp}-{chars}` |
+| Total_Units | number | Total seedlings produced |
+| Units_Sold | number | Auto-updated by `logSeedlingSale_()` |
+| Alloc_Presale | number | Reserved for presale |
+| Alloc_Wholesale | number | Reserved for wholesale |
+| Alloc_Market | number | Reserved for farmers market |
+| Alloc_Phipps | number | Reserved for Phipps Conservatory |
+| Alloc_CityGROWN | number | Reserved for CityGROWN |
+| Status | string | Planned/Seeded/Growing/Hardening/Ready/Sold_Out/Cancelled/Failed |
+
+**Contract:** `available = Alloc_{outlet} - Units_Sold_for_that_outlet`. If `sum(Alloc_*) > Total_Units` → OVERALLOCATED.
+
+### Warning Rules (enforced by `getSeedlingOperationsOverview()`)
+
+| Warning | Condition | Severity |
+|---------|-----------|----------|
+| NO_FIELD_ASSIGNMENT | Transplant crop with empty Target_Bed_ID | HIGH |
+| MISSING_PLANT_COUNT | Empty Plants_Needed AND Trays_Needed | HIGH |
+| LOW_SEED_INVENTORY | Seed remaining < plants needed | HIGH |
+| NO_SEED_LOT | No SEED_INVENTORY record for crop/variety | HIGH |
+| NO_ALLOCATION | Total_Units > 0 but all Alloc_* = 0 | MEDIUM |
+| OVERALLOCATED | sum(Alloc_*) > Total_Units | MEDIUM |
+| MISSING_SEEDING_DATE | Transplant crop with no sowing date | MEDIUM |
+
+### Frontend Consumers
+
+| Page | Endpoint | Data |
+|------|----------|------|
+| greenhouse-dashboard.html (Operations tab) | `getSeedlingOperationsOverview` | Schedule, warnings, outlets, seed status |
+| seedling-presale-2026.html | `getSeedlingPresaleItems`, `submitSeedlingOrder` | Catalog + ordering |
+| seedling-admin.html | `addSeedlingItem`, `updateSeedlingItem`, `getSeedlingProductionPlan` | Admin CRUD |
+| seedling-wholesale-2026.html | `getSeedlingPresaleItems`, `submitSeedlingOrder` | Wholesale ordering |
+
+---
+
 **This document is the single source of truth for all data contracts. Agents: read before building. Humans: reference before questioning numbers.**
