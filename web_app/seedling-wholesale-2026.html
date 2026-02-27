@@ -9,6 +9,58 @@
     <meta property="og:title" content="2026 Wholesale Seedling Program - Tiny Seed Farm">
     <meta property="og:description" content="Pre-order seedling trays at wholesale pricing. Tiered volume discounts up to 42% off retail. Delivery or pickup for chefs, florists, and market vendors.">
     <meta property="og:type" content="website">
+    <link rel="canonical" href="https://app.tinyseedfarm.com/web_app/seedling-wholesale-2026.html">
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "LocalBusiness",
+        "name": "Tiny Seed Farm",
+        "description": "USDA Certified Organic seedling farm offering wholesale trays for chefs, florists, market vendors, and landscapers in the Pittsburgh area.",
+        "url": "https://app.tinyseedfarm.com",
+        "address": {
+            "@type": "PostalAddress",
+            "streetAddress": "257 Zeigler Rd",
+            "addressLocality": "Rochester",
+            "addressRegion": "PA",
+            "postalCode": "15074",
+            "addressCountry": "US"
+        },
+        "geo": {
+            "@type": "GeoCoordinates",
+            "latitude": 40.7195,
+            "longitude": -80.2715
+        },
+        "email": "todd@tinyseedfarm.com",
+        "priceRange": "$3.50–$4.50 per plant",
+        "hasOfferCatalog": {
+            "@type": "OfferCatalog",
+            "name": "2026 Wholesale Seedling Program",
+            "itemListElement": [
+                {
+                    "@type": "Offer",
+                    "name": "Standard Wholesale Tray (1–5 trays)",
+                    "price": "81.00",
+                    "priceCurrency": "USD",
+                    "description": "18 plants per tray at $4.50/plant"
+                },
+                {
+                    "@type": "Offer",
+                    "name": "Volume Wholesale Tray (6–10 trays)",
+                    "price": "72.00",
+                    "priceCurrency": "USD",
+                    "description": "18 plants per tray at $4.00/plant"
+                },
+                {
+                    "@type": "Offer",
+                    "name": "Bulk Wholesale Tray (11+ trays)",
+                    "price": "63.00",
+                    "priceCurrency": "USD",
+                    "description": "18 plants per tray at $3.50/plant"
+                }
+            ]
+        }
+    }
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@700;800;900&display=swap" rel="stylesheet">
@@ -21,9 +73,10 @@
         .skip-link:focus { top: 0; }
 
         :root {
-            --green: #22c55e;
-            --green-dark: #16a34a;
-            --green-deep: #14532d;
+            --green: #2d9f4e;
+            --green-dark: #248c42;
+            --green-deep: #166534;
+            --green-tint: #dcfce7;
             --earth: #78350f;
             --earth-light: #92400e;
             --warm-bg: #fefce8;
@@ -68,7 +121,7 @@
         .hero-content { position: relative; z-index: 1; max-width: 800px; margin: 0 auto; }
         .hero-badge {
             display: inline-flex; align-items: center; gap: 8px;
-            background: rgba(34,197,94,0.2); border: 1px solid rgba(34,197,94,0.4);
+            background: rgba(45,159,78,0.2); border: 1px solid rgba(45,159,78,0.4);
             padding: 6px 16px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;
             color: #86efac; margin-bottom: 20px; letter-spacing: 0.5px;
         }
@@ -87,19 +140,19 @@
         .hero-dates strong { color: #fbbf24; }
         .cta-btn {
             display: inline-flex; align-items: center; gap: 10px;
-            background: var(--green); color: #000; padding: 16px 36px;
+            background: var(--green); color: #fff; padding: 16px 36px;
             border-radius: 50px; font-size: 1.1rem; font-weight: 700;
             text-decoration: none; transition: all 0.3s; border: none; cursor: pointer;
-            box-shadow: 0 4px 20px rgba(34,197,94,0.3);
+            box-shadow: 0 4px 20px rgba(45,159,78,0.3);
             min-height: 48px;
         }
-        .cta-btn:hover { background: #4ade80; transform: translateY(-2px); box-shadow: 0 6px 30px rgba(34,197,94,0.4); }
+        .cta-btn:hover { background: var(--green-dark); transform: translateY(-2px); box-shadow: 0 6px 30px rgba(45,159,78,0.4); }
         .hero-trust { margin-top: 24px; font-size: 0.8rem; color: rgba(255,255,255,0.5); }
 
         /* =============================================== */
         /* SECTIONS                                        */
         /* =============================================== */
-        section { padding: 60px 24px; }
+        section { padding: 80px 24px; }
         .container { max-width: 1100px; margin: 0 auto; }
         .section-title {
             font-family: 'Playfair Display', serif;
@@ -214,7 +267,7 @@
         .pricing-table thead { background: var(--green-deep); color: #fff; }
         .pricing-table th { padding: 14px 20px; text-align: left; font-size: 0.85rem; font-weight: 700; letter-spacing: 0.3px; }
         .pricing-table td { padding: 14px 20px; font-size: 0.9rem; border-bottom: 1px solid #f3f4f6; }
-        .pricing-table tbody tr:hover { background: #f0fdf4; }
+        .pricing-table tbody tr:hover { background: var(--green-tint); }
         .pricing-table .tier-name { font-weight: 700; color: var(--text-dark); }
         .pricing-table .savings-badge {
             display: inline-block; padding: 2px 8px; border-radius: 12px;
@@ -227,8 +280,8 @@
         /* =============================================== */
         .order-section { background: #fff; }
         .order-form {
-            max-width: 700px; margin: 0 auto; background: #f9fafb;
-            border-radius: 16px; padding: 32px; box-shadow: var(--shadow-md);
+            max-width: 760px; margin: 0 auto; background: #f9fafb;
+            border-radius: var(--radius); padding: 32px; box-shadow: var(--shadow-md);
         }
         .form-group { margin-bottom: 20px; }
         .form-group label { display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 6px; color: var(--text-dark); }
@@ -239,7 +292,7 @@
         }
         .form-group textarea { min-height: 80px; resize: vertical; }
         .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
-            outline: none; border-color: var(--green); box-shadow: 0 0 0 3px rgba(34,197,94,0.15);
+            outline: none; border-color: var(--green); box-shadow: 0 0 0 3px rgba(45,159,78,0.15);
         }
         .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
         .form-group input.error, .form-group select.error { border-color: #dc2626; box-shadow: 0 0 0 3px rgba(220,38,38,0.15); }
@@ -247,12 +300,12 @@
         .form-error.visible { display: block; }
 
         .submit-order {
-            width: 100%; padding: 16px; border: none; border-radius: 12px;
-            background: var(--green); color: #000; font-size: 1.1rem; font-weight: 700;
+            width: 100%; padding: 16px; border: none; border-radius: 50px;
+            background: var(--green); color: #fff; font-size: 1.1rem; font-weight: 700;
             cursor: pointer; transition: all 0.3s; margin-top: 20px; font-family: inherit;
             min-height: 48px;
         }
-        .submit-order:hover { background: #4ade80; }
+        .submit-order:hover { background: var(--green-dark); }
         .submit-order:disabled { background: #d1d5db; cursor: not-allowed; }
 
         /* =============================================== */
@@ -268,15 +321,15 @@
         }
         .sticky-cart.visible { display: flex; }
         .sticky-cart-info { display: flex; align-items: center; gap: 16px; font-size: 0.95rem; flex-wrap: wrap; }
-        .sticky-cart-count { background: var(--green); color: #000; font-weight: 800; border-radius: 20px; padding: 4px 12px; font-size: 0.85rem; }
+        .sticky-cart-count { background: var(--green); color: #fff; font-weight: 800; border-radius: 20px; padding: 4px 12px; font-size: 0.85rem; }
         .sticky-cart-total { font-weight: 700; font-size: 1.1rem; }
         .sticky-cart-tier { font-size: 0.8rem; color: #86efac; font-weight: 500; }
         .sticky-cart-cta {
-            background: var(--green); color: #000; font-weight: 700; border: none;
+            background: var(--green); color: #fff; font-weight: 700; border: none;
             padding: 10px 24px; border-radius: 50px; cursor: pointer; font-size: 0.95rem;
             transition: all 0.2s; font-family: inherit; min-height: 44px;
         }
-        .sticky-cart-cta:hover { background: #4ade80; }
+        .sticky-cart-cta:hover { background: var(--green-dark); }
 
         /* =============================================== */
         /* CONFIRMATION                                    */
@@ -288,7 +341,7 @@
             max-width: 600px; margin: 0 auto;
         }
         .confirmation-icon {
-            width: 80px; height: 80px; border-radius: 50%; background: #f0fdf4;
+            width: 80px; height: 80px; border-radius: 50%; background: var(--green-tint);
             display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;
         }
         .confirmation-icon i { font-size: 3rem; color: var(--green); }
@@ -308,6 +361,42 @@
         }
         .footer a { color: #86efac; text-decoration: none; }
         .footer-links { display: flex; gap: 24px; justify-content: center; margin-bottom: 12px; flex-wrap: wrap; }
+
+        /* =============================================== */
+        /* TRUST BAR                                       */
+        /* =============================================== */
+        .trust-bar { background: var(--warm-cream); }
+        .trust-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 24px; text-align: center; }
+        .trust-item { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+        .trust-icon { width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; }
+        .trust-icon.organic { background: var(--green-tint); color: var(--green-dark); }
+        .trust-icon.local { background: #fef3c7; color: #a16207; }
+        .trust-icon.healthy { background: #ede9fe; color: #7c3aed; }
+        .trust-icon.season { background: #fee2e2; color: #b91c1c; }
+        .trust-item h4 { font-size: 0.9rem; font-weight: 700; color: var(--text-dark); margin: 0; }
+        .trust-item p { font-size: 0.8rem; color: var(--text-muted); margin: 0; line-height: 1.4; }
+
+        /* =============================================== */
+        /* FAQ                                             */
+        /* =============================================== */
+        .faq-section { background: #fff; }
+        .faq-list { max-width: 760px; margin: 0 auto; }
+        .faq-item { border-bottom: 1px solid #f3f4f6; }
+        .faq-question {
+            display: flex; justify-content: space-between; align-items: center;
+            width: 100%; padding: 20px 0; background: none; border: none;
+            font-family: inherit; font-size: 1rem; font-weight: 600;
+            color: var(--text-dark); cursor: pointer; text-align: left;
+            gap: 16px; min-height: 48px;
+        }
+        .faq-question:hover { color: var(--green-dark); }
+        .faq-question i { font-size: 0.8rem; color: var(--text-muted); transition: transform 0.3s; flex-shrink: 0; }
+        .faq-item.open .faq-question i { transform: rotate(180deg); }
+        .faq-answer {
+            max-height: 0; overflow: hidden; transition: max-height 0.3s ease;
+        }
+        .faq-item.open .faq-answer { max-height: 300px; }
+        .faq-answer p { padding: 0 0 20px; font-size: 0.9rem; color: var(--text-body); line-height: 1.7; }
 
         /* =============================================== */
         /* RESPONSIVE                                      */
@@ -457,6 +546,92 @@
 </section>
 
 <!-- =============================================================== -->
+<!-- TRUST BAR                                                       -->
+<!-- =============================================================== -->
+<section class="trust-bar" aria-labelledby="trust-heading">
+    <div class="container">
+        <h2 class="section-title" id="trust-heading" style="text-align:center;">Why Professionals Choose Tiny Seed</h2>
+        <p class="section-subtitle" style="text-align:center;">Trusted by chefs, florists, and market vendors across the Pittsburgh region.</p>
+        <div class="trust-grid">
+            <div class="trust-item">
+                <div class="trust-icon organic"><i class="fas fa-certificate"></i></div>
+                <h4>USDA Certified Organic</h4>
+                <p>Every seedling grown to certified organic standards. No synthetic pesticides or fertilizers.</p>
+            </div>
+            <div class="trust-item">
+                <div class="trust-icon local"><i class="fas fa-map-marker-alt"></i></div>
+                <h4>Locally Grown</h4>
+                <p>Rochester, PA — 30-mile delivery radius covering greater Pittsburgh.</p>
+            </div>
+            <div class="trust-item">
+                <div class="trust-icon healthy"><i class="fas fa-seedling"></i></div>
+                <h4>90+ Varieties</h4>
+                <p>Tomatoes, peppers, herbs, greens, flowers, and cucurbits — all hardened off and ready to plant.</p>
+            </div>
+            <div class="trust-item">
+                <div class="trust-icon season"><i class="fas fa-calendar-alt"></i></div>
+                <h4>5th Growing Season</h4>
+                <p>Proven track record supplying restaurants and markets since 2022.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- =============================================================== -->
+<!-- FAQ                                                              -->
+<!-- =============================================================== -->
+<section class="faq-section" id="faq" aria-labelledby="faq-heading">
+    <div class="container">
+        <h2 class="section-title" id="faq-heading" style="text-align:center;">Frequently Asked Questions</h2>
+        <p class="section-subtitle" style="text-align:center;">Everything you need to know about our wholesale program.</p>
+        <div class="faq-list">
+            <div class="faq-item">
+                <button class="faq-question" onclick="toggleFaq(this)" aria-expanded="false">
+                    What is the minimum order?
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+                <div class="faq-answer"><p>Just 1 tray (18 plants). There is no minimum tray count to get started. Order 6+ trays to unlock Volume pricing, or 11+ for Bulk pricing.</p></div>
+            </div>
+            <div class="faq-item">
+                <button class="faq-question" onclick="toggleFaq(this)" aria-expanded="false">
+                    What does a tray include?
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+                <div class="faq-answer"><p>Each tray is a standard nursery flat with 18 plants of a single variety. Seedlings are hardened off and ready to transplant on delivery day.</p></div>
+            </div>
+            <div class="faq-item">
+                <button class="faq-question" onclick="toggleFaq(this)" aria-expanded="false">
+                    When will my order be delivered?
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+                <div class="faq-answer"><p>Delivery begins in April based on weather and variety readiness. We will contact you to schedule a specific delivery date that works for your operation. You can also pick up at the farm in Rochester, PA.</p></div>
+            </div>
+            <div class="faq-item">
+                <button class="faq-question" onclick="toggleFaq(this)" aria-expanded="false">
+                    What are the payment terms?
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+                <div class="faq-answer"><p>We offer Pay on Delivery, Net 15, and Net 30. Net terms are available for orders of 6+ trays with approved credit. No payment is collected until we confirm your order.</p></div>
+            </div>
+            <div class="faq-item">
+                <button class="faq-question" onclick="toggleFaq(this)" aria-expanded="false">
+                    Can I mix varieties within a tray?
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+                <div class="faq-answer"><p>Standard trays are single-variety (18 plants of the same type). If you need custom mixes, mention it in the Special Instructions field and we will do our best to accommodate.</p></div>
+            </div>
+            <div class="faq-item">
+                <button class="faq-question" onclick="toggleFaq(this)" aria-expanded="false">
+                    Do you deliver outside Pittsburgh?
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+                <div class="faq-answer"><p>We deliver within a 30-mile radius of Rochester, PA, covering greater Pittsburgh, Beaver County, and surrounding areas. For locations outside this range, farm pickup is available.</p></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- =============================================================== -->
 <!-- ORDER FORM                                                      -->
 <!-- =============================================================== -->
 <section class="order-section" id="order" aria-labelledby="order-heading">
@@ -584,13 +759,12 @@
                 <h3 style="font-family:'Playfair Display',serif; font-size:1.5rem; color:var(--text-dark); margin-bottom:4px;">Order Confirmed!</h3>
                 <p id="confirmOrderId" style="font-size:0.85rem; color:var(--text-muted); margin-bottom:8px;"></p>
                 <p id="confirmMsg" style="color:var(--text-muted); margin-bottom:20px; max-width:450px; margin-left:auto; margin-right:auto;"></p>
-                <div id="confirmInvoice" style="display:none; background:#f0fdf4; border:1px solid var(--green); border-radius:12px; padding:16px; max-width:400px; margin:0 auto 16px;"></div>
+                <div id="confirmInvoice" style="display:none; background:#dcfce7; border:1px solid var(--green); border-radius:12px; padding:16px; max-width:400px; margin:0 auto 16px;"></div>
                 <div class="confirmation-details" id="confirmDetails"></div>
                 <p style="font-size:0.85rem; color:var(--text-muted); margin-top:20px;">
-                    Questions? Email <a href="mailto:todd@tinyseedfarmpgh.com" style="color:var(--green-dark);">todd@tinyseedfarmpgh.com</a>
-                    or call <a href="tel:7177255177" style="color:var(--green-dark);">(717) 725-5177</a>.
+                    Questions? Email <a href="mailto:todd@tinyseedfarm.com" style="color:var(--green-dark);">todd@tinyseedfarm.com</a>
                 </p>
-                <button onclick="window.location.reload()" style="background:var(--green); color:#000; border:none; padding:12px 28px; border-radius:50px; font-weight:700; cursor:pointer; font-family:inherit; font-size:0.95rem; margin-top:16px; min-height:48px;">
+                <button onclick="window.location.reload()" style="background:var(--green); color:#fff; border:none; padding:12px 28px; border-radius:50px; font-weight:700; cursor:pointer; font-family:inherit; font-size:0.95rem; margin-top:16px; min-height:48px;">
                     <i class="fas fa-plus"></i> Place Another Order
                 </button>
             </div>
@@ -615,8 +789,7 @@
 <!-- FOOTER -->
 <footer class="footer">
     <div class="footer-links">
-        <a href="mailto:todd@tinyseedfarmpgh.com"><i class="fas fa-envelope"></i> todd@tinyseedfarmpgh.com</a>
-        <a href="tel:7177255177"><i class="fas fa-phone"></i> (717) 725-5177</a>
+        <a href="mailto:todd@tinyseedfarm.com"><i class="fas fa-envelope"></i> todd@tinyseedfarm.com</a>
         <a href="https://www.instagram.com/tinyseedfarm" target="_blank" rel="noopener noreferrer"><i class="fab fa-instagram"></i> @tinyseedfarm</a>
     </div>
     <p>Tiny Seed Farm &mdash; 257 Zeigler Rd, Rochester, PA 15074</p>
@@ -769,8 +942,8 @@ function loadCatalogItems() {
             catalogContent.innerHTML = '<div style="text-align:center; padding:60px 20px;">' +
                 '<i class="fas fa-exclamation-triangle" style="font-size:2rem; color:#dc2626; margin-bottom:12px; display:block;"></i>' +
                 '<p style="color:var(--text-dark); font-weight:700; margin-bottom:8px;">Unable to load catalog</p>' +
-                '<p style="color:var(--text-muted); font-size:0.9rem; max-width:400px; margin:0 auto 16px;">Please try again or contact us directly at todd@tinyseedfarmpgh.com.</p>' +
-                '<button onclick="loadCatalogItems()" style="background:var(--green); color:#000; border:none; padding:10px 24px; border-radius:50px; font-weight:700; cursor:pointer; font-family:inherit; min-height:48px;">' +
+                '<p style="color:var(--text-muted); font-size:0.9rem; max-width:400px; margin:0 auto 16px;">Please try again or contact us directly at todd@tinyseedfarm.com.</p>' +
+                '<button onclick="loadCatalogItems()" style="background:var(--green); color:#fff; border:none; padding:10px 24px; border-radius:50px; font-weight:700; cursor:pointer; font-family:inherit; min-height:48px;">' +
                 '<i class="fas fa-redo"></i> Try Again</button></div>';
             catalogNav.innerHTML = '';
         });
@@ -1126,7 +1299,7 @@ function submitWholesaleOrder(e) {
         } else {
             btn.disabled = false;
             btn.innerHTML = originalHtml;
-            alert('We were unable to submit your order. Please try again or contact todd@tinyseedfarmpgh.com for assistance.');
+            alert('We were unable to submit your order. Please try again or contact todd@tinyseedfarm.com for assistance.');
             console.error('Order submission failed:', result.error);
         }
     })
@@ -1166,7 +1339,7 @@ function showConfirmation(businessName, contactName, email, deliveryPref, delive
         if (invoiceUrl) {
             invoiceEl.style.display = 'block';
             invoiceEl.innerHTML = '<p style="font-size:0.9rem; color:var(--green-dark); margin-bottom:8px;"><i class="fas fa-file-invoice-dollar"></i> <strong>Invoice sent to ' + escapeHtml(email) + '</strong></p>' +
-                '<a href="' + escapeHtml(invoiceUrl) + '" target="_blank" style="display:inline-block; background:var(--green); color:#000; padding:10px 24px; border-radius:50px; font-weight:700; text-decoration:none; font-size:0.9rem;">' +
+                '<a href="' + escapeHtml(invoiceUrl) + '" target="_blank" style="display:inline-block; background:var(--green); color:#fff; padding:10px 24px; border-radius:50px; font-weight:700; text-decoration:none; font-size:0.9rem;">' +
                 '<i class="fas fa-credit-card"></i> Pay Now</a>';
         } else if (warnings) {
             invoiceEl.style.display = 'block';
@@ -1197,6 +1370,26 @@ function showConfirmation(businessName, contactName, email, deliveryPref, delive
 
     // Scroll to confirmation
     conf.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ===============================================
+// FAQ TOGGLE
+// ===============================================
+function toggleFaq(btn) {
+    var item = btn.parentElement;
+    var isOpen = item.classList.contains('open');
+    // Close all
+    var allItems = document.querySelectorAll('.faq-item');
+    for (var i = 0; i < allItems.length; i++) {
+        allItems[i].classList.remove('open');
+        var q = allItems[i].querySelector('.faq-question');
+        if (q) q.setAttribute('aria-expanded', 'false');
+    }
+    // Open clicked (if it was closed)
+    if (!isOpen) {
+        item.classList.add('open');
+        btn.setAttribute('aria-expanded', 'true');
+    }
 }
 </script>
 </body>
