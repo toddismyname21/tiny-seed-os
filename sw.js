@@ -10,7 +10,7 @@
  * - v9: Added sync-market-sales for offline farmers market sales
  */
 
-const CACHE_VERSION = 'v9';
+const CACHE_VERSION = 'v10';
 const CACHE_NAME = `tiny-seed-mobile-${CACHE_VERSION}`;
 const STATIC_CACHE_NAME = `tiny-seed-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE_NAME = `tiny-seed-dynamic-${CACHE_VERSION}`;
@@ -42,6 +42,7 @@ const STATIC_ASSETS = [
 
 // HTML pages to cache for offline navigation
 const HTML_PAGES = [
+  '/quick-seed.html',
   '/inventory_capture.html',
   '/web_app/driver.html',
   '/web_app/csa.html',

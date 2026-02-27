@@ -38,6 +38,32 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-02-27 — Quick Seed: On-the-Fly Seeding Logger
+
+**Role:** PM_Architect
+**Deploy:** Frontend only (GitHub Pages)
+
+### Summary
+New mobile-first page for logging seeding actions on the fly — both confirming planned plantings and creating unplanned ones. Glove-friendly 56px touch targets, dark theme for sunlight, offline queueing. Zero backend changes — all 6 endpoints already existed.
+
+### Files Created
+- `quick-seed.html` — Main page with 3 screens (Home, Log Planned, Quick Add)
+
+### Files Modified
+- `index.html` — Added Quick Seed nav link in Grow section
+- `manifest.json` — Added PWA shortcut for Quick Seed
+- `sw.js` — Added quick-seed.html to cache, bumped version to v10
+
+### Functions Added
+- None (all backend endpoints already existed: recordSeedingDate, savePlanting, getCrops, getBeds, getPlanningData)
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for existing quick-seed/quick-add pages (none found)
+- [x] No duplicates created
+
+---
+
 ## 2026-02-27 — PM Tooling Upgrade: Hooks, getSheetSchema, CLAUDE.md Pruning
 
 **Role:** PM_Architect

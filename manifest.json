@@ -139,6 +139,13 @@
       "description": "Record harvest data from the field",
       "url": "./employee.html?tab=harvest",
       "icons": [{ "src": "icons/icon-96.png", "sizes": "96x96", "type": "image/png" }]
+    },
+    {
+      "name": "Quick Seed",
+      "short_name": "Seed",
+      "description": "Log plantings and seedings on the fly",
+      "url": "./quick-seed.html",
+      "icons": [{ "src": "icons/icon-96.png", "sizes": "96x96", "type": "image/png" }]
     }
   ],
   "categories": ["business", "productivity", "lifestyle"],

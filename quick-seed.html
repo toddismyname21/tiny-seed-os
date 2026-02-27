@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#22c55e">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Quick Seed | Tiny Seed Farm</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <script src="web_app/api-config.js"></script>
+    <script src="web_app/auth-guard.js" data-required-role="Employee"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --primary: #22c55e;
+            --primary-light: #4ade80;
+            --primary-dark: #16a34a;
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --bg-elevated: #334155;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border: rgba(255, 255, 255, 0.1);
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --touch-min: 48px;
+            --touch-comfortable: 56px;
+            --safe-top: env(safe-area-inset-top, 0px);
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100dvh;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+        }
+
+        button, input, select, textarea {
+            font-family: inherit;
+            min-height: var(--touch-min);
+            font-size: 16px;
+            touch-action: manipulation;
+        }
+
+        /* ===== HEADER ===== */
+        .header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: var(--bg-dark);
+            border-bottom: 1px solid var(--border);
+            padding: calc(var(--safe-top) + 12px) 16px 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .back-btn {
+            width: 40px; height: 40px;
+            border-radius: 10px;
+            background: var(--bg-card);
+            border: none;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 1.1rem;
+        }
+
+        .header-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            flex: 1;
+        }
+
+        .sync-badge {
+            font-size: 0.75rem;
+            padding: 4px 10px;
+            border-radius: 20px;
+            background: var(--bg-elevated);
+            color: var(--text-secondary);
+            display: none;
+        }
+
+        .sync-badge.offline { background: var(--danger); color: white; display: inline; }
+        .sync-badge.pending { background: var(--warning); color: #000; display: inline; }
+
+        /* ===== CONTENT AREA ===== */
+        .content { padding: 16px; padding-bottom: calc(var(--safe-bottom) + 24px); }
+
+        /* ===== SCREEN: HOME ===== */
+        .mode-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 16px;
+            cursor: pointer;
+            transition: transform 0.15s, background 0.15s;
+            border: 1px solid var(--border);
+        }
+
+        .mode-card:active { transform: scale(0.98); background: var(--bg-elevated); }
+
+        .mode-card-icon {
+            width: 48px; height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            margin-bottom: 12px;
+        }
+
+        .mode-card-icon.log { background: rgba(34, 197, 94, 0.15); color: var(--primary); }
+        .mode-card-icon.add { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
+
+        .mode-card-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 4px; }
+        .mode-card-desc { font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 12px; }
+
+        .mode-card-stats { display: flex; gap: 12px; }
+        .stat-chip {
+            font-size: 0.8rem;
+            padding: 4px 10px;
+            border-radius: 8px;
+            background: var(--bg-elevated);
+            color: var(--text-secondary);
+        }
+        .stat-chip.overdue { background: rgba(239, 68, 68, 0.15); color: var(--danger); }
+        .stat-chip.upcoming { background: rgba(34, 197, 94, 0.15); color: var(--primary); }
+
+        /* ===== FILTER TABS ===== */
+        .filter-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .filter-tab {
+            flex: 1;
+            min-height: var(--touch-min);
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .filter-tab.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        /* ===== PLANTING CARDS ===== */
+        .planting-list { display: flex; flex-direction: column; gap: 12px; }
+
+        .planting-card {
+            background: var(--bg-card);
+            border-radius: 14px;
+            padding: 16px;
+            border: 1px solid var(--border);
+            transition: opacity 0.3s, transform 0.3s;
+        }
+
+        .planting-card.done { opacity: 0; transform: translateX(100%); pointer-events: none; }
+
+        .planting-crop { font-size: 1.05rem; font-weight: 700; margin-bottom: 2px; }
+        .planting-meta { font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 4px; }
+        .planting-meta .overdue { color: var(--danger); font-weight: 600; }
+        .planting-meta .upcoming { color: var(--primary); }
+        .planting-bed { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px; }
+
+        .planting-actions { display: flex; gap: 8px; }
+
+        .btn-done {
+            flex: 2;
+            min-height: var(--touch-comfortable);
+            border-radius: 10px;
+            border: none;
+            background: var(--primary);
+            color: white;
+            font-weight: 700;
+            font-size: 0.95rem;
+            cursor: pointer;
+        }
+        .btn-done:active { background: var(--primary-dark); }
+
+        .btn-date {
+            flex: 1;
+            min-height: var(--touch-comfortable);
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-date input[type="date"] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+            width: 100%;
+            height: 100%;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 48px 16px;
+            color: var(--text-muted);
+        }
+        .empty-state i { font-size: 2.5rem; margin-bottom: 12px; display: block; }
+
+        /* ===== QUICK ADD FORM ===== */
+        .form-group { margin-bottom: 16px; }
+        .form-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+            display: block;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 14px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-primary);
+            font-size: 16px;
+        }
+        .form-input:focus { outline: none; border-color: var(--primary); }
+        .form-input::placeholder { color: var(--text-muted); }
+
+        textarea.form-input { resize: vertical; min-height: 70px; }
+
+        /* Searchable dropdown */
+        .search-select { position: relative; }
+        .search-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0; right: 0;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 0 0 10px 10px;
+            max-height: 240px;
+            overflow-y: auto;
+            z-index: 50;
+            display: none;
+        }
+        .search-dropdown.open { display: block; }
+
+        .search-option {
+            padding: 14px;
+            min-height: var(--touch-comfortable);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+        }
+        .search-option:active { background: rgba(34, 197, 94, 0.1); }
+        .search-option-name { font-weight: 600; }
+        .search-option-meta { font-size: 0.8rem; color: var(--text-muted); }
+
+        /* Method toggle */
+        .method-toggle { display: flex; gap: 8px; }
+        .method-btn {
+            flex: 1;
+            min-height: var(--touch-comfortable);
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            text-align: center;
+            padding: 8px;
+        }
+        .method-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .btn-plant {
+            width: 100%;
+            min-height: 56px;
+            border-radius: 14px;
+            border: none;
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            color: white;
+            font-weight: 700;
+            font-size: 1.1rem;
+            cursor: pointer;
+            margin-top: 8px;
+            box-shadow: 0 4px 20px rgba(34, 197, 94, 0.3);
+        }
+        .btn-plant:active { transform: scale(0.98); }
+        .btn-plant:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        /* ===== TOAST ===== */
+        .toast {
+            position: fixed;
+            bottom: calc(var(--safe-bottom) + 20px);
+            left: 16px; right: 16px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--primary);
+            border-radius: 12px;
+            padding: 14px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 200;
+            animation: slideUp 0.3s ease;
+        }
+        .toast-msg { font-size: 0.9rem; font-weight: 500; }
+        .toast-undo {
+            padding: 6px 14px;
+            border-radius: 8px;
+            border: none;
+            background: var(--primary);
+            color: white;
+            font-weight: 700;
+            font-size: 0.85rem;
+            cursor: pointer;
+            min-height: 36px;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px; height: 20px;
+            border: 2px solid var(--text-muted);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .screen { display: none; }
+        .screen.active { display: block; }
+    </style>
+</head>
+<body>
+
+<!-- ===== HEADER ===== -->
+<div class="header">
+    <button class="back-btn" id="backBtn" onclick="goBack()" style="display:none">
+        <i class="fas fa-arrow-left"></i>
+    </button>
+    <div class="header-title" id="headerTitle">Quick Seed</div>
+    <span class="sync-badge" id="syncBadge"></span>
+</div>
+
+<!-- ===== SCREEN: HOME ===== -->
+<div class="content">
+    <section class="screen active" id="homeScreen">
+        <div class="mode-card" onclick="showScreen('log')">
+            <div class="mode-card-icon log"><i class="fas fa-seedling"></i></div>
+            <div class="mode-card-title">Log Planned</div>
+            <div class="mode-card-desc">Confirm plantings from your plan</div>
+            <div class="mode-card-stats">
+                <span class="stat-chip overdue" id="overdueChip">0 overdue</span>
+                <span class="stat-chip upcoming" id="upcomingChip">0 upcoming</span>
+            </div>
+        </div>
+
+        <div class="mode-card" onclick="showScreen('add')">
+            <div class="mode-card-icon add"><i class="fas fa-plus"></i></div>
+            <div class="mode-card-title">Quick Add</div>
+            <div class="mode-card-desc">Log an unplanned planting right now</div>
+        </div>
+    </section>
+
+    <!-- ===== SCREEN: LOG PLANNED ===== -->
+    <section class="screen" id="logScreen">
+        <div class="filter-tabs" id="filterTabs">
+            <button class="filter-tab active" data-type="gh_sow" onclick="setFilter('gh_sow')">
+                GH Sow (<span id="countGH">0</span>)
+            </button>
+            <button class="filter-tab" data-type="field_sow" onclick="setFilter('field_sow')">
+                Field Sow (<span id="countField">0</span>)
+            </button>
+            <button class="filter-tab" data-type="transplant" onclick="setFilter('transplant')">
+                Transplant (<span id="countTransplant">0</span>)
+            </button>
+        </div>
+        <div class="planting-list" id="plantingList"></div>
+    </section>
+
+    <!-- ===== SCREEN: QUICK ADD ===== -->
+    <section class="screen" id="addScreen">
+        <div class="form-group">
+            <label class="form-label">Crop *</label>
+            <div class="search-select">
+                <input type="text" class="form-input" id="cropInput"
+                       placeholder="Search crops..." autocomplete="off"
+                       oninput="filterCrops(this.value)" onfocus="openCropDropdown()">
+                <div class="search-dropdown" id="cropDropdown"></div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Variety</label>
+            <input type="text" class="form-input" id="varietyInput" placeholder="Standard" value="Standard">
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Method *</label>
+            <div class="method-toggle">
+                <button class="method-btn" data-method="gh_sow" onclick="setMethod('gh_sow')">
+                    <i class="fas fa-house"></i><br>GH Sow
+                </button>
+                <button class="method-btn" data-method="field_sow" onclick="setMethod('field_sow')">
+                    <i class="fas fa-sun"></i><br>Direct Seed
+                </button>
+                <button class="method-btn" data-method="transplant" onclick="setMethod('transplant')">
+                    <i class="fas fa-hand-holding-seedling"></i><br>Transplant
+                </button>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Bed (optional)</label>
+            <div class="search-select">
+                <input type="text" class="form-input" id="bedInput"
+                       placeholder="Search beds..." autocomplete="off"
+                       oninput="filterBeds(this.value)" onfocus="openBedDropdown()">
+                <div class="search-dropdown" id="bedDropdown"></div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Notes (optional)</label>
+            <textarea class="form-input" id="notesInput" rows="2" placeholder="e.g. Impulse planting, extra tray"></textarea>
+        </div>
+
+        <button class="btn-plant" id="plantBtn" onclick="submitQuickAdd()" disabled>
+            <i class="fas fa-seedling"></i>&nbsp; Plant It
+        </button>
+    </section>
+</div>
+
+<script>
+// ========== STATE ==========
+const state = {
+    screen: 'home',
+    plantings: [],
+    crops: [],
+    beds: [],
+    filter: 'gh_sow',
+    selectedCrop: '',
+    selectedMethod: getSeasonalDefault(),
+    selectedBed: '',
+    syncQueue: [],
+    isOnline: navigator.onLine
+};
+
+const API_URL = TINY_SEED_API.MAIN_API;
+
+// ========== SMART DEFAULTS ==========
+function getSeasonalDefault() {
+    const m = new Date().getMonth();
+    if (m <= 2) return 'gh_sow';
+    if (m <= 4) return 'transplant';
+    if (m <= 7) return 'field_sow';
+    return 'field_sow';
+}
+
+const METHOD_MAP = {
+    gh_sow: 'Greenhouse Sowing',
+    field_sow: 'Direct Seed',
+    transplant: 'Transplant'
+};
+
+const PLAN_DATE_FIELD = {
+    gh_sow: 'Plan_GH_Sow',
+    field_sow: 'Plan_Field_Sow',
+    transplant: 'Plan_Transplant'
+};
+
+const ACT_DATE_FIELD = {
+    gh_sow: 'Act_GH_Sow',
+    field_sow: 'Act_Field_Sow',
+    transplant: 'Act_Transplant'
+};
+
+// ========== API HELPERS ==========
+async function apiGet(action, params = {}) {
+    const qp = new URLSearchParams({ action, ...params });
+    const url = `${API_URL}?${qp.toString()}`;
+    const resp = await fetch(url, { redirect: 'follow' });
+    return resp.json();
+}
+
+// ========== DATA LOADING ==========
+async function loadData() {
+    try {
+        const [planResp, cropResp, bedResp] = await Promise.all([
+            apiGet('getPlanningData'),
+            apiGet('getCrops'),
+            apiGet('getBeds')
+        ]);
+
+        if (planResp.success !== false) {
+            state.plantings = planResp.plantings || planResp.data || planResp || [];
+            if (Array.isArray(state.plantings)) {
+                localStorage.setItem('qs_plantings', JSON.stringify(state.plantings));
+            }
+        }
+
+        if (cropResp.success !== false) {
+            state.crops = cropResp.crops || cropResp.data || cropResp || [];
+            if (Array.isArray(state.crops)) {
+                localStorage.setItem('qs_crops', JSON.stringify(state.crops));
+            }
+        }
+
+        if (bedResp.success !== false) {
+            state.beds = bedResp.beds || bedResp.data || bedResp || [];
+            if (Array.isArray(state.beds)) {
+                localStorage.setItem('qs_beds', JSON.stringify(state.beds));
+            }
+        }
+    } catch (err) {
+        console.warn('API load failed, trying cache:', err);
+        loadFromCache();
+    }
+    updateHomeCounts();
+}
+
+function loadFromCache() {
+    try {
+        state.plantings = JSON.parse(localStorage.getItem('qs_plantings') || '[]');
+        state.crops = JSON.parse(localStorage.getItem('qs_crops') || '[]');
+        state.beds = JSON.parse(localStorage.getItem('qs_beds') || '[]');
+    } catch (e) { /* empty fallback */ }
+}
+
+// ========== ACTIONABLE ITEMS ==========
+function getActionable(type) {
+    const planField = PLAN_DATE_FIELD[type];
+    const actField = ACT_DATE_FIELD[type];
+    return state.plantings.filter(p => {
+        const planned = p[planField];
+        const actual = p[actField];
+        return planned && !actual;
+    }).sort((a, b) => {
+        const da = new Date(a[PLAN_DATE_FIELD[type]]);
+        const db = new Date(b[PLAN_DATE_FIELD[type]]);
+        return da - db;
+    });
+}
+
+function daysDiff(dateStr) {
+    const d = new Date(dateStr);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    d.setHours(0, 0, 0, 0);
+    return Math.round((d - today) / 86400000);
+}
+
+function updateHomeCounts() {
+    const gh = getActionable('gh_sow');
+    const fs = getActionable('field_sow');
+    const tp = getActionable('transplant');
+    const all = [...gh, ...fs, ...tp];
+    const overdue = all.filter(p => {
+        const type = gh.includes(p) ? 'gh_sow' : fs.includes(p) ? 'field_sow' : 'transplant';
+        return daysDiff(p[PLAN_DATE_FIELD[type]]) < 0;
+    }).length;
+    const upcoming = all.length - overdue;
+
+    document.getElementById('overdueChip').textContent = `${overdue} overdue`;
+    document.getElementById('upcomingChip').textContent = `${upcoming} upcoming`;
+    document.getElementById('countGH').textContent = gh.length;
+    document.getElementById('countField').textContent = fs.length;
+    document.getElementById('countTransplant').textContent = tp.length;
+}
+
+// ========== SCREEN NAVIGATION ==========
+function showScreen(screen) {
+    state.screen = screen;
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(screen + 'Screen').classList.add('active');
+
+    const backBtn = document.getElementById('backBtn');
+    const title = document.getElementById('headerTitle');
+
+    if (screen === 'home') {
+        backBtn.style.display = 'none';
+        title.textContent = 'Quick Seed';
+    } else if (screen === 'log') {
+        backBtn.style.display = 'flex';
+        title.textContent = 'Log Planned';
+        renderLogList();
+    } else if (screen === 'add') {
+        backBtn.style.display = 'flex';
+        title.textContent = 'Quick Add';
+        setMethod(state.selectedMethod);
+    }
+}
+
+function goBack() {
+    showScreen('home');
+    updateHomeCounts();
+}
+
+// ========== LOG PLANNED ==========
+function setFilter(type) {
+    state.filter = type;
+    document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+    document.querySelector(`.filter-tab[data-type="${type}"]`).classList.add('active');
+    renderLogList();
+}
+
+function renderLogList() {
+    const items = getActionable(state.filter);
+    const list = document.getElementById('plantingList');
+
+    if (!items.length) {
+        list.innerHTML = `<div class="empty-state">
+            <i class="fas fa-check-circle"></i>
+            <div>All caught up! No ${state.filter.replace('_', ' ')} dates needed.</div>
+        </div>`;
+        return;
+    }
+
+    const today = new Date();
+    list.innerHTML = items.map(p => {
+        const plannedDate = p[PLAN_DATE_FIELD[state.filter]];
+        const diff = daysDiff(plannedDate);
+        const dateStr = new Date(plannedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        const diffLabel = diff < 0
+            ? `<span class="overdue">${Math.abs(diff)}d overdue</span>`
+            : diff === 0
+            ? `<span class="upcoming">Today</span>`
+            : `<span class="upcoming">in ${diff}d</span>`;
+        const bed = p.Target_Bed_ID && p.Target_Bed_ID !== 'Unassigned' ? p.Target_Bed_ID : '';
+
+        return `<div class="planting-card" id="card-${p.Batch_ID}">
+            <div class="planting-crop">${p.Crop || 'Unknown'}${p.Variety && p.Variety !== 'Standard' ? ' - ' + p.Variety : ''}</div>
+            <div class="planting-meta">Planned: ${dateStr} &nbsp;|&nbsp; ${diffLabel}</div>
+            ${bed ? `<div class="planting-bed"><i class="fas fa-map-pin"></i> ${bed}</div>` : ''}
+            <div class="planting-actions">
+                <button class="btn-done" onclick="confirmDone('${p.Batch_ID}', '${state.filter}')">
+                    <i class="fas fa-check"></i> Done Today
+                </button>
+                <button class="btn-date">
+                    Pick Date
+                    <input type="date" value="${new Date().toISOString().split('T')[0]}"
+                           onchange="confirmDone('${p.Batch_ID}', '${state.filter}', this.value)">
+                </button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+async function confirmDone(batchId, type, date) {
+    const actualDate = date || new Date().toISOString().split('T')[0];
+    const card = document.getElementById('card-' + batchId);
+    const planting = state.plantings.find(p => p.Batch_ID === batchId);
+    const cropName = planting ? (planting.Crop || 'Planting') : 'Planting';
+
+    // Optimistic UI
+    if (card) card.classList.add('done');
+
+    try {
+        if (state.isOnline) {
+            await apiGet('recordSeedingDate', { batchId, type, actualDate });
+        } else {
+            state.syncQueue.push({ action: 'recordSeedingDate', batchId, type, actualDate });
+            localStorage.setItem('qs_syncQueue', JSON.stringify(state.syncQueue));
+            updateSyncBadge();
+        }
+
+        // Update local state
+        if (planting) planting[ACT_DATE_FIELD[type]] = actualDate;
+        updateHomeCounts();
+        updateFilterCounts();
+
+        showToast(`${cropName} logged`, () => undoConfirm(batchId, type));
+    } catch (err) {
+        if (card) card.classList.remove('done');
+        showToast('Failed - try again', null);
+    }
+}
+
+async function undoConfirm(batchId, type) {
+    const planting = state.plantings.find(p => p.Batch_ID === batchId);
+    if (planting) planting[ACT_DATE_FIELD[type]] = '';
+
+    try {
+        if (state.isOnline) {
+            await apiGet('updatePlanting', { batchId, [ACT_DATE_FIELD[type]]: '' });
+        }
+    } catch (e) { /* best effort */ }
+
+    renderLogList();
+    updateHomeCounts();
+    updateFilterCounts();
+}
+
+function updateFilterCounts() {
+    document.getElementById('countGH').textContent = getActionable('gh_sow').length;
+    document.getElementById('countField').textContent = getActionable('field_sow').length;
+    document.getElementById('countTransplant').textContent = getActionable('transplant').length;
+}
+
+// ========== QUICK ADD ==========
+function setMethod(method) {
+    state.selectedMethod = method;
+    document.querySelectorAll('.method-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector(`.method-btn[data-method="${method}"]`).classList.add('active');
+    updatePlantBtn();
+}
+
+function openCropDropdown() {
+    filterCrops(document.getElementById('cropInput').value);
+    document.getElementById('cropDropdown').classList.add('open');
+}
+
+function filterCrops(query) {
+    const dd = document.getElementById('cropDropdown');
+    const q = (query || '').toLowerCase();
+    const filtered = state.crops.filter(c => {
+        const name = (c.Crop_Name || c.Crop || c.crop || c.name || '').toLowerCase();
+        return !q || name.includes(q);
+    }).slice(0, 15);
+
+    dd.innerHTML = filtered.map(c => {
+        const name = c.Crop_Name || c.Crop || c.crop || c.name || 'Unknown';
+        return `<div class="search-option" onclick="selectCrop('${name.replace(/'/g, "\\'")}')">
+            <span class="search-option-name">${name}</span>
+        </div>`;
+    }).join('');
+
+    if (filtered.length && q) dd.classList.add('open');
+}
+
+function selectCrop(name) {
+    state.selectedCrop = name;
+    document.getElementById('cropInput').value = name;
+    document.getElementById('cropDropdown').classList.remove('open');
+
+    // Auto-set method from crop profile if available
+    const crop = state.crops.find(c =>
+        (c.Crop_Name || c.Crop || c.crop || c.name || '') === name
+    );
+    if (crop) {
+        const method = (crop.Planting_Method || crop.planting_method || '').toLowerCase();
+        if (method.includes('direct') || method.includes('field')) setMethod('field_sow');
+        else if (method.includes('greenhouse') || method.includes('gh')) setMethod('gh_sow');
+        else if (method.includes('transplant')) setMethod('transplant');
+    }
+    updatePlantBtn();
+}
+
+function openBedDropdown() {
+    filterBeds(document.getElementById('bedInput').value);
+    document.getElementById('bedDropdown').classList.add('open');
+}
+
+function filterBeds(query) {
+    const dd = document.getElementById('bedDropdown');
+    const q = (query || '').toLowerCase();
+    const filtered = state.beds.filter(b => {
+        const id = (b.Bed_ID || b.bed_id || b.name || b.id || '').toLowerCase();
+        return !q || id.includes(q);
+    }).slice(0, 15);
+
+    dd.innerHTML = filtered.map(b => {
+        const id = b.Bed_ID || b.bed_id || b.name || b.id || '';
+        const field = b.Field || b.field || '';
+        return `<div class="search-option" onclick="selectBed('${id.replace(/'/g, "\\'")}')">
+            <span class="search-option-name">${id}</span>
+            ${field ? `<span class="search-option-meta">${field}</span>` : ''}
+        </div>`;
+    }).join('');
+
+    if (filtered.length && q) dd.classList.add('open');
+}
+
+function selectBed(id) {
+    state.selectedBed = id;
+    document.getElementById('bedInput').value = id;
+    document.getElementById('bedDropdown').classList.remove('open');
+}
+
+function updatePlantBtn() {
+    document.getElementById('plantBtn').disabled = !state.selectedCrop;
+}
+
+async function submitQuickAdd() {
+    const btn = document.getElementById('plantBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="loading-spinner"></span>&nbsp; Saving...';
+
+    const today = new Date().toISOString().split('T')[0];
+    const crop = state.selectedCrop;
+    const variety = document.getElementById('varietyInput').value || 'Standard';
+    const method = state.selectedMethod;
+    const bed = state.selectedBed || 'Unassigned';
+    const notes = document.getElementById('notesInput').value || `Quick add ${today}`;
+
+    const plantingParams = {
+        Crop: crop,
+        Variety: variety,
+        Planting_Method: METHOD_MAP[method],
+        Target_Bed_ID: bed,
+        Notes: notes,
+        STATUS: 'Active'
+    };
+    plantingParams[PLAN_DATE_FIELD[method]] = today;
+
+    try {
+        let batchId = null;
+
+        if (state.isOnline) {
+            const result = await apiGet('savePlanting', plantingParams);
+            if (result.success) {
+                batchId = result.batchId;
+                // Step 2: Record actual date
+                await apiGet('recordSeedingDate', { batchId, type: method, actualDate: today });
+            } else {
+                throw new Error(result.error || 'Save failed');
+            }
+        } else {
+            state.syncQueue.push({ action: 'quickAdd', params: plantingParams, method, date: today });
+            localStorage.setItem('qs_syncQueue', JSON.stringify(state.syncQueue));
+            updateSyncBadge();
+        }
+
+        // Reset form
+        document.getElementById('cropInput').value = '';
+        document.getElementById('varietyInput').value = 'Standard';
+        document.getElementById('bedInput').value = '';
+        document.getElementById('notesInput').value = '';
+        state.selectedCrop = '';
+        state.selectedBed = '';
+
+        btn.innerHTML = '<i class="fas fa-seedling"></i>&nbsp; Plant It';
+        btn.disabled = true;
+
+        showToast(`${crop} planted!`, batchId ? () => undoQuickAdd(batchId) : null);
+
+        // Refresh data in background
+        loadData();
+    } catch (err) {
+        btn.innerHTML = '<i class="fas fa-seedling"></i>&nbsp; Plant It';
+        btn.disabled = false;
+        showToast('Failed: ' + err.message, null);
+    }
+}
+
+async function undoQuickAdd(batchId) {
+    try {
+        if (state.isOnline) {
+            await apiGet('deletePlanting', { id: batchId });
+        }
+    } catch (e) { /* best effort */ }
+    loadData();
+}
+
+// ========== TOAST ==========
+function showToast(message, undoFn) {
+    const existing = document.querySelector('.toast');
+    if (existing) existing.remove();
+
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.innerHTML = `<span class="toast-msg">${message}</span>
+        ${undoFn ? '<button class="toast-undo">UNDO</button>' : ''}`;
+
+    if (undoFn) {
+        toast.querySelector('.toast-undo').addEventListener('click', () => {
+            undoFn();
+            toast.remove();
+        });
+    }
+
+    document.body.appendChild(toast);
+    setTimeout(() => { if (toast.parentNode) toast.remove(); }, 5000);
+}
+
+// ========== SYNC ==========
+function updateSyncBadge() {
+    const badge = document.getElementById('syncBadge');
+    if (!state.isOnline) {
+        badge.className = 'sync-badge offline';
+        badge.textContent = 'Offline';
+    } else if (state.syncQueue.length) {
+        badge.className = 'sync-badge pending';
+        badge.textContent = `${state.syncQueue.length} queued`;
+    } else {
+        badge.className = 'sync-badge';
+    }
+}
+
+async function processQueue() {
+    if (!state.isOnline || !state.syncQueue.length) return;
+    const queue = [...state.syncQueue];
+    state.syncQueue = [];
+
+    for (const item of queue) {
+        try {
+            if (item.action === 'recordSeedingDate') {
+                await apiGet('recordSeedingDate', { batchId: item.batchId, type: item.type, actualDate: item.actualDate });
+            } else if (item.action === 'quickAdd') {
+                const result = await apiGet('savePlanting', item.params);
+                if (result.success) {
+                    await apiGet('recordSeedingDate', { batchId: result.batchId, type: item.method, actualDate: item.date });
+                }
+            }
+        } catch (e) {
+            state.syncQueue.push(item); // re-queue failed items
+        }
+    }
+    localStorage.setItem('qs_syncQueue', JSON.stringify(state.syncQueue));
+    updateSyncBadge();
+}
+
+// ========== CLOSE DROPDOWNS ON OUTSIDE TAP ==========
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.search-select')) {
+        document.querySelectorAll('.search-dropdown').forEach(d => d.classList.remove('open'));
+    }
+});
+
+// ========== INIT ==========
+async function init() {
+    // Load offline queue
+    try {
+        state.syncQueue = JSON.parse(localStorage.getItem('qs_syncQueue') || '[]');
+    } catch (e) { state.syncQueue = []; }
+
+    window.addEventListener('online', () => { state.isOnline = true; updateSyncBadge(); processQueue(); loadData(); });
+    window.addEventListener('offline', () => { state.isOnline = false; updateSyncBadge(); });
+
+    updateSyncBadge();
+    setMethod(state.selectedMethod);
+
+    // Load cached data first for instant UI, then refresh from API
+    loadFromCache();
+    updateHomeCounts();
+    await loadData();
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
