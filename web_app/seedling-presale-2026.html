@@ -10,10 +10,21 @@
     <meta property="og:description" content="Reserve your locally-grown tomato, pepper, herb, and flower seedlings. 90+ varieties. Pickup at Pittsburgh-area markets.">
     <meta property="og:type" content="website">
     <link rel="canonical" href="https://app.tinyseedfarm.com/web_app/seedling-presale-2026.html">
+    <meta property="og:image" content="https://app.tinyseedfarm.com/web_app/images/og-presale-2026.jpg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="2026 Seedling Presale - Tiny Seed Farm Pittsburgh">
+    <meta name="twitter:description" content="Reserve your locally-grown tomato, pepper, herb, and flower seedlings. 90+ varieties. Pickup at Pittsburgh-area markets.">
+    <meta name="twitter:image" content="https://app.tinyseedfarm.com/web_app/images/og-presale-2026.jpg">
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="favicon-180x180.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     <link rel="dns-prefetch" href="https://script.google.com">
+    <link rel="preload" as="image" href="images/hero-greenhouse.webp" type="image/webp">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="tiny-seed-design-system.css">
@@ -36,7 +47,12 @@
             "addressCountry": "US"
         },
         "areaServed": "Pittsburgh metropolitan area",
-        "founder": { "@type": "Person", "name": "Todd Wilson" }
+        "founder": { "@type": "Person", "name": "Todd Wilson" },
+        "geo": {
+            "@type": "GeoCoordinates",
+            "latitude": 40.7195,
+            "longitude": -80.2715
+        }
     },
     {
         "@context": "https://schema.org",
@@ -260,7 +276,7 @@
             --warm-sand: #ebe6db;       /* Sandy beige */
             --text-dark: #1c1917;       /* Near black */
             --text-body: #44403c;       /* Warm gray body */
-            --text-muted: #78716c;      /* Muted for secondary */
+            --text-muted: #6b6560;      /* Muted for secondary — WCAG AA 5.1:1 on cream */
             --red-hot: #dc2626;
             --orange-hot: #ea580c;
             --yellow-mild: #ca8a04;
@@ -287,7 +303,7 @@
         /* ═══════════════════════════════════════ */
         .hero {
             background: linear-gradient(180deg, rgba(22, 101, 52, 0.7), rgba(22, 101, 52, 0.85)),
-                        url('https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=1600&q=80') center/cover no-repeat;
+                        url('images/hero-greenhouse.webp') center/cover no-repeat;
             color: #fff;
             padding: 90px 24px 80px;
             text-align: center;
@@ -499,7 +515,7 @@
             box-shadow: var(--shadow-sm); border-left: 4px solid var(--green);
         }
         .pickup-card h3 { font-size: 1rem; font-weight: 700; color: var(--text-dark); margin-bottom: 4px; }
-        .pickup-card .pickup-date { font-size: 0.85rem; color: var(--green-dark); font-weight: 600; margin-bottom: 6px; }
+        .pickup-card .pickup-date { font-size: 0.85rem; color: var(--green-deep); font-weight: 600; margin-bottom: 6px; }
         .pickup-card .pickup-details { font-size: 0.8rem; color: var(--text-muted); }
 
         /* ═══════════════════════════════════════ */
@@ -589,7 +605,7 @@
         /* FOOTER */
         /* ═══════════════════════════════════════ */
         .footer {
-            background: var(--green-deep); color: rgba(255,255,255,0.7);
+            background: var(--green-deep); color: rgba(255,255,255,0.82);
             padding: 40px 24px; text-align: center; font-size: 0.85rem;
         }
         .footer a { color: #a7f3d0; text-decoration: none; }
@@ -863,7 +879,7 @@
         .bundle-add-btn {
             width: 100%;
             padding: 14px;
-            background: var(--green);
+            background: var(--green-deep);
             color: #fff;
             border: none;
             border-radius: 50px;
@@ -1263,7 +1279,7 @@
             width: 48px;
             height: 48px;
             border-radius: 50%;
-            background: var(--green);
+            background: var(--green-deep);
             color: #fff;
             display: flex;
             align-items: center;
@@ -1451,6 +1467,28 @@
             .sticky-cart-cta { width: 100%; text-align: center; }
         }
     </style>
+
+    <!-- Facebook Pixel — replace YOUR_PIXEL_ID with your actual Pixel ID -->
+    <script>
+    !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+    n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
+    n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
+    t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
+    document,'script','https://connect.facebook.net/en_US/fbevents.js');
+    // fbq('init', 'YOUR_PIXEL_ID');
+    // fbq('track', 'PageView');
+    </script>
+
+    <!-- Google Analytics 4 — replace YOUR_GA4_ID with your Measurement ID (G-XXXXXXXXXX) -->
+    <!--
+    <script async src="https://www.googletagmanager.com/gtag/js?id=YOUR_GA4_ID"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'YOUR_GA4_ID');
+    </script>
+    -->
 </head>
 <body>
 <a href="#order" class="skip-link">Skip to order form</a>
@@ -1734,7 +1772,7 @@
             </div>
 
             <!-- STARTER BUNDLES — quick curated selections first -->
-            <h3 style="font-size:0.9rem; color:var(--green-dark); margin:16px 0 8px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">
+            <h3 style="font-size:0.9rem; color:var(--green-deep); margin:16px 0 8px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">
                 <i class="fas fa-box-open" style="margin-right:4px;"></i> Quick-Add Bundles
             </h3>
             <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:12px;">One tap to add a curated bundle to your order.</p>
