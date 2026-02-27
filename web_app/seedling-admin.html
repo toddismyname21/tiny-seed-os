@@ -1331,10 +1331,6 @@
                 <input type="text" class="alloc-search" id="allocSearch" placeholder="Search varieties..." oninput="filterAllocTable()">
                 <select class="filter-select" id="allocCategoryFilter" onchange="filterAllocTable()">
                     <option value="">All Categories</option>
-                    <option value="Vegetable">Vegetable</option>
-                    <option value="Herb">Herb</option>
-                    <option value="Floral">Floral</option>
-                    <option value="Other">Other</option>
                 </select>
             </div>
             <div class="alloc-toolbar-right">
@@ -2553,7 +2549,9 @@ function loadAllocations() {
         }
 
         allocData = (prodResult.data || []).filter(function(item) {
-            return item.Status === 'Active' || !item.Status;
+            var s = (item.Status || '').toLowerCase();
+            // Include all items except explicitly removed/deleted ones
+            return s !== 'removed' && s !== 'deleted' && s !== 'cancelled';
         });
 
         // Build sales lookup from operations overview
@@ -2562,6 +2560,7 @@ function loadAllocations() {
             allocSales = opsResult.sales_by_item;
         }
 
+        populateAllocCategoryFilter();
         renderAllocTable();
         updateAllocSummary();
         allocDirty = false;
@@ -2734,6 +2733,20 @@ function saveAllocations() {
         btn.innerHTML = '<i class="fas fa-save"></i> Save All Allocations';
         alert('Network error: ' + err.message);
     });
+}
+
+function populateAllocCategoryFilter() {
+    var select = document.getElementById('allocCategoryFilter');
+    var cats = {};
+    for (var i = 0; i < allocData.length; i++) {
+        var cat = allocData[i].Category || 'Other';
+        cats[cat] = (cats[cat] || 0) + 1;
+    }
+    var sorted = Object.keys(cats).sort();
+    select.innerHTML = '<option value="">All Categories (' + allocData.length + ')</option>';
+    for (var c = 0; c < sorted.length; c++) {
+        select.innerHTML += '<option value="' + sorted[c] + '">' + sorted[c] + ' (' + cats[sorted[c]] + ')</option>';
+    }
 }
 
 function filterAllocTable() {

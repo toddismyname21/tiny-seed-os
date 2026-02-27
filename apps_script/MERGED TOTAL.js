@@ -130114,10 +130114,8 @@ function getVarietyPerformanceTracking(params) {
 
 function getSeedlingProductionPlan(params) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  var sheet = ss.getSheetByName('SEEDLING_PRODUCTION');
-  if (!sheet) {
-    sheet = ensureSeedlingProductionSheet_(ss);
-  }
+  // Always run migration to ensure Alloc_* columns exist
+  var sheet = ensureSeedlingProductionSheet_(ss);
 
   var data = sheet.getDataRange().getValues();
   var headers = data[0];
@@ -131601,7 +131599,8 @@ function updateSeedlingItem(params) {
  */
 function updateSeedlingAllocations(params) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  var sheet = ss.getSheetByName('SEEDLING_PRODUCTION');
+  // Always run migration to ensure Alloc_* columns exist
+  var sheet = ensureSeedlingProductionSheet_(ss);
   if (!sheet) return { success: false, error: 'SEEDLING_PRODUCTION sheet not found' };
 
   var allocations = params.allocations;
