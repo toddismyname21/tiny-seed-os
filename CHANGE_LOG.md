@@ -38,6 +38,35 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-02-27 — Seed Inventory Consolidation (View by Variety)
+
+**Role:** PM_Architect
+**Deploy:** Backend (clasp @703) + Frontend (GitHub Pages)
+
+### Summary
+Two seed packets of the same variety now show as one combined total. Default "View by Variety" mode groups seeds by Crop+Variety, sums quantities across lots. Expandable lot details preserve individual lot traceability. "View by Lot" toggle switches to original per-lot cards. Stats sidebar now shows true unique variety count (113) vs lot count (130).
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — Added `mode=aggregated` parameter to `getSeedInventory()`. Groups by Crop+Variety, sums Quantity_Original/Remaining, returns lots as children array.
+- `seed_inventory_PRODUCTION.html` — Added "View by Variety / View by Lot" toggle, `renderVarietyCard()`, `renderAggregatedInventory()`, `sortAggregated()`, `toggleLots()`, `changeViewMode()`. Updated `loadInventory()` to fetch both lot and aggregated data in parallel. Updated `updateStats()` for correct unique variety count and total seeds.
+
+### Functions Added (Backend)
+- `getSeedInventory(params)` aggregated mode branch — Groups inventory by Crop+Variety key, returns aggregate objects with child lots
+
+### Functions Added (Frontend)
+- `renderVarietyCard(v)` — Renders aggregated variety card with expandable lot details
+- `renderAggregatedInventory(filtered)` — Routes to variety cards, groups by plant family
+- `sortAggregated(varieties)` — Sorts aggregated data by family/crop/status/date
+- `toggleLots(cardId)` — Expands/collapses lot detail rows within variety card
+- `changeViewMode(value)` — Switches between 'variety' and 'lot' view modes
+
+### Duplicate Check
+- [x] Reuses existing `getSeedInventory()` — extended with mode param, no new function
+- [x] Reuses existing filter/sort infrastructure
+- [x] No duplicates created
+
+---
+
 ## 2026-02-27 — Seed Procurement Warning System
 
 **Role:** PM_Architect
