@@ -14482,6 +14482,8 @@ function doGet(e) {
         return jsonResponse(insertSampleDeliveries());
       case 'diagnoseSheets':
         return jsonResponse(diagnoseSheets());
+      case 'getSheetSchema':
+        return jsonResponse(getSheetSchema(e.parameter.sheet));
       case 'diagnoseIntegrations':
         return jsonResponse(diagnoseIntegrations());
       case 'getSystemStatus':
@@ -33850,6 +33852,34 @@ function healthCheck() {
       status: 'unhealthy',
       error: error.toString()
     };
+  }
+}
+
+function getSheetSchema(sheetName) {
+  if (!sheetName) {
+    return { success: false, error: 'Missing required parameter: sheet' };
+  }
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(sheetName);
+    if (!sheet) {
+      const available = ss.getSheets().map(s => s.getName());
+      return { success: false, error: 'Sheet not found: ' + sheetName, availableSheets: available };
+    }
+    const lastCol = sheet.getLastColumn();
+    const lastRow = sheet.getLastRow();
+    const columns = lastCol > 0 ? sheet.getRange(1, 1, 1, lastCol).getValues()[0] : [];
+    const sampleRow = lastRow > 1 && lastCol > 0 ? sheet.getRange(2, 1, 1, lastCol).getValues()[0] : [];
+    return {
+      success: true,
+      sheet: sheetName,
+      columns: columns,
+      columnCount: lastCol,
+      totalRows: Math.max(0, lastRow - 1),
+      sampleRow: sampleRow
+    };
+  } catch (err) {
+    return { success: false, error: err.message };
   }
 }
 
