@@ -2396,12 +2396,58 @@ function loadPresaleItems() {
                 if (heroH1) heroH1.innerHTML = 'Pittsburgh\'s Favorite <span>Seedlings</span> Are Here';
             }
 
+            // Description overrides — fix scraped/mismatched/empty descriptions
+            var DESC_FIX = {
+                'Cucumber': 'Crisp, refreshing slicing cucumber. Prolific producer all summer long — perfect for salads, pickles, and snacking straight from the garden.',
+                'Yellow Squash': 'Classic golden summer squash with buttery flavor. Prolific plants yield tender, straight-necked fruits ideal for grilling, sautéing, or baking.',
+                'Small Bell Pepper': 'Compact, colorful mini bell peppers. Sweet and crunchy with thin walls — great for snacking, stuffing, or adding to salads.',
+                'Jimmy Nardello': 'Sweet Italian frying pepper with thin, wrinkled skin. Legendary flavor when pan-fried in olive oil — caramelizes beautifully.',
+                'Hot Rod Serrano': 'Fiery serrano pepper with thick walls and bold heat. Hotter than jalapeño — excellent for salsas, hot sauces, and pickling.',
+                'Trinidad Scorpion': 'Extremely hot pepper with fruity, smoky undertones. One of the world\'s hottest — use sparingly in hot sauces and spicy dishes.',
+                'Hungarian Wax': 'Versatile hot pepper that ripens from yellow to red. Medium heat with tangy flavor — great for pickling, stuffing, or fresh eating.',
+                'Ghost': 'Legendary super-hot pepper with intense, slow-building heat. Smoky, slightly sweet flavor — a little goes a very long way.',
+                'Shishito': 'Mild, thin-walled Japanese pepper. Blistered in a hot pan with oil and sea salt — one of the best appetizers you can grow.',
+                'Amish Paste': 'Large heirloom plum tomato, a longtime favorite for sauces. Meaty flesh with rich, sweet flavor and very few seeds.',
+                'Brandywine': 'One of the most flavorful tomatoes you can grow. Large pink beefsteak with an unbeatable old-fashioned tomato taste.',
+                'San Marzano': 'Classic Italian paste tomato prized for making sauce. Elongated fruits with thick walls, few seeds, and rich concentrated flavor.',
+                'Roma': 'Dependable paste tomato with meaty flesh and mild flavor. Compact determinate plants produce heavy yields — great for canning and sauces.',
+                'Mountain Mix (Four Packs)': 'Assorted mountain-series determinate tomatoes in a convenient four-pack. Bred for disease resistance and reliable harvests in our region.',
+                'Juliet Grape': 'Elongated grape tomato with sweet, rich flavor. Vigorous indeterminate vines produce heavy clusters all season — crack-resistant.',
+                'Blush Grape': 'Beautiful ivory grape tomato with a pink blush. Sweet, mild flavor with a striking look in salads and on appetizer plates.',
+                'White Cherry': 'Pale yellow cherry tomato with delicate, mild sweetness. Lovely contrast in mixed cherry bowls and garden salads.',
+                'Fat Italian': 'Large, broad Italian eggplant with creamy white flesh. Excellent for grilling, roasting, and making eggplant parmesan.',
+                'Peas': 'Sweet, crunchy garden peas. Easy to grow on a simple trellis — nothing beats the flavor of fresh-picked peas straight from the vine.',
+                'Russian Mix': 'Assorted Russian kale varieties with tender, colorful leaves. Cold-hardy and sweet after frost — beautiful in salads and stir-fries.',
+                'Cabbage': 'Dense, round heads with crisp, sweet leaves. Versatile in the kitchen — great for coleslaw, sauerkraut, stir-fries, and soups.',
+                'Mixed Head Lettuce': 'Assorted head lettuce varieties in vibrant colors. Buttery, crisp, and beautiful — a salad garden in one planting.',
+                'Mixed Salad Mix': 'Diverse blend of salad greens for continuous cutting. Spicy, mild, and colorful — grow your own gourmet salad mix at home.',
+                'Thai Basil': 'Aromatic basil with anise-clove flavor and purple stems. Essential for Thai curries, pho, and Southeast Asian dishes.',
+                'Genovese Basil': 'Classic Italian sweet basil with large, fragrant leaves. The standard for pesto, caprese, and fresh summer cooking.',
+                'Purple Basil': 'Stunning deep purple basil with mild, slightly spicy flavor. Beautiful garnish and gorgeous in herbal vinegars and oils.',
+                'Mixed Herb': 'Assorted culinary herb mix — a starter garden of kitchen essentials. Perfect for new gardeners who want variety.',
+                'Simon and Garfunkel Herb': 'Parsley, sage, rosemary, and thyme — the classic herb quartet in one bundle. All the kitchen staples, ready to plant.',
+                'Curly Parsley': 'Bright green, tightly curled parsley with mild flavor. A classic garnish that\'s also great chopped into tabbouleh and salads.',
+                'Patchouli': 'Aromatic tropical herb with earthy, musky fragrance. Attractive foliage plant — the dried leaves are prized in potpourri and sachets.',
+                'French Tarragon': 'The essential French culinary herb with subtle anise flavor. Indispensable in béarnaise sauce, chicken dishes, and herb butter.',
+                'Mexican Tarragon': 'Marigold-scented herb used as a tarragon substitute in warm climates. Bright yellow flowers and a sweet anise-like flavor.',
+                'Cat Grass': 'Safe, nutritious grass blend for indoor cats. Easy to grow in a pot on the windowsill — cats love nibbling the tender shoots.',
+                'Lavender': 'Fragrant perennial with silvery foliage and purple flower spikes. Beloved for sachets, baking, crafts, and pollinator gardens.',
+                'Nasturtium': 'Cheerful, easy-to-grow annual with edible flowers and leaves. Peppery flavor brightens salads — attracts beneficial insects too.',
+                'Gomphrena': 'Globe-shaped flowers in vivid pinks and purples. Outstanding as a cut flower and dried arrangement — blooms nonstop all summer.',
+                'Snap Peas': 'Sweet, crunchy snap peas with edible pods. A garden favorite for snacking, stir-fries, and salads — kids love picking them.'
+            };
+
             // Map API data to VARIETIES format
             VARIETIES = [];
             for (var i = 0; i < result.data.length; i++) {
                 var row = result.data[i];
+                var varName = row.Variety || row.Crop || 'Unknown';
+                var rawDesc = row.Description || row.Notes || '';
+                // Apply description fixes and strip seed company artifacts
+                var desc = DESC_FIX[varName] || rawDesc;
+                desc = desc.replace(/^(New!|Exclusive!)\s*/i, '').replace(/\|\s*Johnny\b.*$/i, '').replace(/^Take advantage of our overstock position!\s*/i, '').replace(/^Now available organic!\s*/i, '').trim();
                 VARIETIES.push({
-                    name: row.Variety || row.Crop || 'Unknown',
+                    name: varName,
                     category: row.Category || 'Other',
                     price: Number(row.Price_Each) || 6.00,
                     itemId: row.Item_ID || '',
@@ -2409,7 +2455,7 @@ function loadPresaleItems() {
                     waitlist: !!row.Waitlist,
                     crop: row.Crop || '',
                     imageUrl: row.Image_URL || '',
-                    description: row.Description || row.Notes || ''
+                    description: desc
                 });
             }
 

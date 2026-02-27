@@ -438,6 +438,16 @@
             from { opacity: 0; transform: translateX(-50%) translateY(20px); }
             to { opacity: 1; transform: translateX(-50%) translateY(0); }
         }
+
+        @media (max-width: 768px) {
+            body { padding: 8px; }
+            .container, .main-content, .content, .page-content, .dashboard { padding: 12px; }
+            table { display: block; overflow-x: auto; }
+            .sidebar, .side-panel { display: none; }
+            h1 { font-size: 24px; }
+            h2 { font-size: 20px; }
+            .btn, button { min-height: 44px; }
+        }
     </style>
 </head>
 <body>

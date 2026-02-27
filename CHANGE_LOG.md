@@ -38,6 +38,41 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-02-26 — MEDIUM Priority Fixes + Presale Description Cleanup
+
+**Role:** PM_Architect / UX_Design_Claude
+
+### Files Modified
+- `web_app/seedling-presale-2026.html` — Added DESC_FIX override map (37 varieties) to replace scraped seed company descriptions, mismatched descriptions, and empty fields with original copy. Regex strips "New!", "Exclusive!", "| Johnny", and "Take advantage of our overstock" from remaining descriptions.
+- `web_app/claude-chat.html` — Added responsive CSS (@media max-width: 768px)
+- `web_app/csa-location-widget.html` — Same
+- `web_app/driver.html` — Same
+- `web_app/employee-register.html` — Same
+- `web_app/food-safety.html` — Same
+- `web_app/labels.html` — Same
+- `web_app/market-sales.html` — Same
+- `web_app/pm-dashboard.html` — Same
+- `web_app/quick-content.html` — Same
+- `web_app/manager-dashboard.html` — Added loading spinner overlay
+- `web_app/employee-management.html` — Same
+- `web_app/schedule.html` — Same
+- `web_app/command-center.html` — Same
+- `web_app/reports-dashboard.html` — Same
+- `web_app/task-assignment.html` — Same
+
+### Files Deleted
+- `privacy/index.html` — Duplicate of web_app/privacy-policy.html (older, missing Meta integration section)
+- `eula/index.html` — Duplicate of web_app/eula.html (older, missing design system integration)
+
+### Reason
+Medium priority UX audit fixes: 9 desktop-only admin pages now have basic responsive CSS, 6 key admin pages have loading spinners instead of blank screens, duplicate legal pages removed, and 37 presale variety descriptions fixed (seed company references, mismatched text, empty fields).
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] No duplicates created
+
+---
+
 ## 2026-02-26 — HIGH Priority UX Fixes (Fonts, Meta Descriptions, Accessibility)
 
 **Role:** PM_Architect / UX_Design_Claude
