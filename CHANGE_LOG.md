@@ -38,6 +38,31 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-02-27 — Greenhouse & Seeding System: Bug Fixes + Traceability
+
+**Role:** PM_Architect
+**Deploy:** Backend (clasp) + Frontend (GitHub Pages)
+
+### Summary
+Fixed 4 stacked bugs causing "Load Overdue Tasks" to return nothing (field name mismatch, type mismatch, date parsing, 30-day cap). Fixed ghost plantings appearing after deletion (missing STATUS filter). Added inline editing on greenhouse task cards (tap tray count or cell size to edit before marking sown). Wired QR codes into field tray labels and added auto-print prompt after marking sown.
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — STATUS='Deleted' filter in `getGreenhouseSowingTasks()` + `getOverduePlantings()`; date parsing fix (`instanceof Date` → safe coercion); `maxOverdueDays` 30→90; added `plannedDate` + `trays` fields to overdue response
+- `sowing-sheets.html` — Fixed `data.overdue` → `data.tasks` field name; fixed type filter mismatch (`'GH Sow'` → `currentTaskType`)
+- `web_app/greenhouse-dashboard.html` — Added `editableChip()`, `startInlineEdit()`, `saveInlineEdit()` for inline tray/cell editing; added print tray label prompt in `confirmSownWithLot()`
+- `labels.html` — Added `qrContent` to field tray label generation; added URL param auto-load (`?batch=X&type=fieldTray&autoprint=1`)
+
+### Functions Added
+- `editableChip()` in greenhouse-dashboard.html — Renders tap-to-edit detail chips
+- `startInlineEdit()` in greenhouse-dashboard.html — Replaces chip with input on tap
+- `saveInlineEdit()` in greenhouse-dashboard.html — Saves edited value via updatePlanting API
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] No duplicates created
+
+---
+
 ## 2026-02-27 — Quick Seed: On-the-Fly Seeding Logger
 
 **Role:** PM_Architect

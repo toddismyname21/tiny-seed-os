@@ -3345,12 +3345,17 @@ function getOverduePlantings() {
     const ghLocIdx = headers.indexOf('GH_Location');
 
     const overdue = [];
-    const maxOverdueDays = 30; // Only show recent overdue, not ancient data
+    const maxOverdueDays = 90; // Cover a full growing season quarter
+    const statusIdx = headers.indexOf('STATUS');
 
     for (let i = 1; i < data.length; i++) {
       const row = data[i];
       const crop = row[cropIdx];
       if (!crop) continue;
+
+      // Skip deleted/cancelled rows
+      const rowStatus = statusIdx >= 0 ? String(row[statusIdx]).toLowerCase() : '';
+      if (rowStatus === 'deleted' || rowStatus === 'cancelled') continue;
 
       const batchId = row[batchIdx] || `PLAN-${i}`;
       const variety = varietyIdx >= 0 ? row[varietyIdx] : '';
@@ -3358,63 +3363,78 @@ function getOverduePlantings() {
       // Check GH Sow - overdue if planned but not done
       const ghSowPlan = ghSowPlanIdx >= 0 ? row[ghSowPlanIdx] : null;
       const ghSowAct = ghSowActIdx >= 0 ? row[ghSowActIdx] : null;
-      if (ghSowPlan instanceof Date && !ghSowAct) {
-        const daysOverdue = Math.floor((today - ghSowPlan) / (1000 * 60 * 60 * 24));
-        if (daysOverdue > 0 && daysOverdue <= maxOverdueDays) {
-          overdue.push({
-            id: `${batchId}-ghSow`,
-            batchId: batchId,
-            type: 'ghSow',
-            task: `GH Sow: ${crop}${variety ? ' (' + variety + ')' : ''}`,
-            crop: crop,
-            variety: variety,
-            quantity: traysIdx >= 0 && row[traysIdx] ? `${row[traysIdx]} trays` : '',
-            location: ghLocIdx >= 0 ? (row[ghLocIdx] || 'Greenhouse') : 'Greenhouse',
-            dueDate: ghSowPlan.toISOString(),
-            daysOverdue: daysOverdue
-          });
+      if (ghSowPlan && !ghSowAct) {
+        const ghSowDate = ghSowPlan instanceof Date ? ghSowPlan : new Date(ghSowPlan);
+        if (!isNaN(ghSowDate.getTime())) {
+          const daysOverdue = Math.floor((today - ghSowDate) / (1000 * 60 * 60 * 24));
+          if (daysOverdue > 0 && daysOverdue <= maxOverdueDays) {
+            overdue.push({
+              id: `${batchId}-ghSow`,
+              batchId: batchId,
+              type: 'ghSow',
+              task: `GH Sow: ${crop}${variety ? ' (' + variety + ')' : ''}`,
+              crop: crop,
+              variety: variety,
+              quantity: traysIdx >= 0 && row[traysIdx] ? `${row[traysIdx]} trays` : '',
+              trays: traysIdx >= 0 ? (row[traysIdx] || 0) : 0,
+              location: ghLocIdx >= 0 ? (row[ghLocIdx] || 'Greenhouse') : 'Greenhouse',
+              dueDate: ghSowDate.toISOString(),
+              plannedDate: ghSowDate.toISOString(),
+              daysOverdue: daysOverdue
+            });
+          }
         }
       }
 
       // Check Transplant - overdue if planned but not done
       const transplantPlan = transplantPlanIdx >= 0 ? row[transplantPlanIdx] : null;
       const transplantAct = transplantActIdx >= 0 ? row[transplantActIdx] : null;
-      if (transplantPlan instanceof Date && !transplantAct) {
-        const daysOverdue = Math.floor((today - transplantPlan) / (1000 * 60 * 60 * 24));
-        if (daysOverdue > 0 && daysOverdue <= maxOverdueDays) {
-          overdue.push({
-            id: `${batchId}-transplant`,
-            batchId: batchId,
-            type: 'transplant',
-            task: `Transplant: ${crop}${variety ? ' (' + variety + ')' : ''}`,
-            crop: crop,
-            variety: variety,
-            quantity: plantsIdx >= 0 && row[plantsIdx] ? `${row[plantsIdx]} plants` : '',
-            location: bedIdx >= 0 ? (row[bedIdx] || 'Field') : 'Field',
-            dueDate: transplantPlan.toISOString(),
-            daysOverdue: daysOverdue
-          });
+      if (transplantPlan && !transplantAct) {
+        const transplantDate = transplantPlan instanceof Date ? transplantPlan : new Date(transplantPlan);
+        if (!isNaN(transplantDate.getTime())) {
+          const daysOverdue = Math.floor((today - transplantDate) / (1000 * 60 * 60 * 24));
+          if (daysOverdue > 0 && daysOverdue <= maxOverdueDays) {
+            overdue.push({
+              id: `${batchId}-transplant`,
+              batchId: batchId,
+              type: 'transplant',
+              task: `Transplant: ${crop}${variety ? ' (' + variety + ')' : ''}`,
+              crop: crop,
+              variety: variety,
+              quantity: plantsIdx >= 0 && row[plantsIdx] ? `${row[plantsIdx]} plants` : '',
+              trays: traysIdx >= 0 ? (row[traysIdx] || 0) : 0,
+              location: bedIdx >= 0 ? (row[bedIdx] || 'Field') : 'Field',
+              dueDate: transplantDate.toISOString(),
+              plannedDate: transplantDate.toISOString(),
+              daysOverdue: daysOverdue
+            });
+          }
         }
       }
 
       // Check Field/Direct Sow - overdue if planned but not done
       const fieldSowPlan = fieldSowPlanIdx >= 0 ? row[fieldSowPlanIdx] : null;
       const fieldSowAct = fieldSowActIdx >= 0 ? row[fieldSowActIdx] : null;
-      if (fieldSowPlan instanceof Date && !fieldSowAct) {
-        const daysOverdue = Math.floor((today - fieldSowPlan) / (1000 * 60 * 60 * 24));
-        if (daysOverdue > 0 && daysOverdue <= maxOverdueDays) {
-          overdue.push({
-            id: `${batchId}-directSeed`,
-            batchId: batchId,
-            type: 'directSeed',
-            task: `Direct Seed: ${crop}${variety ? ' (' + variety + ')' : ''}`,
-            crop: crop,
-            variety: variety,
-            quantity: plantsIdx >= 0 && row[plantsIdx] ? `${row[plantsIdx]} plants` : '',
-            location: bedIdx >= 0 ? (row[bedIdx] || 'Field') : 'Field',
-            dueDate: fieldSowPlan.toISOString(),
-            daysOverdue: daysOverdue
-          });
+      if (fieldSowPlan && !fieldSowAct) {
+        const fieldSowDate = fieldSowPlan instanceof Date ? fieldSowPlan : new Date(fieldSowPlan);
+        if (!isNaN(fieldSowDate.getTime())) {
+          const daysOverdue = Math.floor((today - fieldSowDate) / (1000 * 60 * 60 * 24));
+          if (daysOverdue > 0 && daysOverdue <= maxOverdueDays) {
+            overdue.push({
+              id: `${batchId}-directSeed`,
+              batchId: batchId,
+              type: 'directSeed',
+              task: `Direct Seed: ${crop}${variety ? ' (' + variety + ')' : ''}`,
+              crop: crop,
+              variety: variety,
+              quantity: plantsIdx >= 0 && row[plantsIdx] ? `${row[plantsIdx]} plants` : '',
+              trays: traysIdx >= 0 ? (row[traysIdx] || 0) : 0,
+              location: bedIdx >= 0 ? (row[bedIdx] || 'Field') : 'Field',
+              dueDate: fieldSowDate.toISOString(),
+              plannedDate: fieldSowDate.toISOString(),
+              daysOverdue: daysOverdue
+            });
+          }
         }
       }
     }
@@ -32791,6 +32811,10 @@ function createDirectSeedingTab() {
 
     for (let i = 1; i < planningData.length; i++) {
       const row = planningData[i];
+
+      // Skip deleted/cancelled rows
+      const rowStatus = cols.status >= 0 ? String(row[cols.status]).toLowerCase() : '';
+      if (rowStatus === 'deleted' || rowStatus === 'cancelled') continue;
 
       // Get planting method
       const plantingMethod = cols.plantingMethod >= 0 ? row[cols.plantingMethod] : 'Transplant';

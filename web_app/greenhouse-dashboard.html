@@ -137,6 +137,8 @@
             display:flex; align-items:center; gap:0.3rem;
         }
         .task-card .detail-chip i { font-size:0.65rem; }
+        .task-card .editable-chip { cursor:pointer; transition:background 0.2s; }
+        .task-card .editable-chip:hover, .task-card .editable-chip:active { background:var(--primary-dim, rgba(34,197,94,0.15)); }
         .task-card .task-date { font-size:0.7rem; color:var(--text-secondary); margin-bottom:0.6rem; }
         .task-card .task-date.overdue-text { color:var(--danger); font-weight:600; }
         .task-card .task-date.today-text { color:var(--gold); font-weight:600; }
@@ -1544,6 +1546,36 @@ function renderSowingTasks() {
     container.innerHTML = upcomingTasks.map(t => renderSowingCard(t)).join('');
 }
 
+function editableChip(batchId, icon, label, value, fieldName, inputType) {
+    inputType = inputType || 'number';
+    const displayVal = value || '?';
+    return '<span class="detail-chip editable-chip" onclick="startInlineEdit(this, \'' + esc(batchId) + '\', \'' + fieldName + '\', \'' + inputType + '\')" title="Tap to edit" data-field="' + fieldName + '" data-batch="' + esc(batchId) + '"><i class="fas fa-' + icon + '"></i> ' + displayVal + ' ' + label + ' <i class="fas fa-pencil-alt" style="font-size:0.55rem;opacity:0.4;margin-left:2px;"></i></span>';
+}
+
+function startInlineEdit(chipEl, batchId, fieldName, inputType) {
+    if (chipEl.querySelector('input')) return; // already editing
+    var currentVal = (chipEl.textContent.match(/\d+/) || [''])[0];
+    chipEl.innerHTML = '<input type="' + inputType + '" value="' + currentVal + '" style="width:60px;padding:2px 4px;font-size:0.85rem;background:var(--bg-dark);color:var(--text-primary);border:1px solid var(--primary);border-radius:4px;text-align:center;" onblur="saveInlineEdit(this,\'' + batchId + '\',\'' + fieldName + '\')" onkeydown="if(event.key===\'Enter\')this.blur()">';
+    chipEl.querySelector('input').focus();
+}
+
+async function saveInlineEdit(inputEl, batchId, fieldName) {
+    var newVal = inputEl.value;
+    if (!newVal) { loadTodayTab(); return; }
+    try {
+        var params = { action: 'updatePlanting', batchId: batchId };
+        params[fieldName] = Number(newVal);
+        var res = await fetch(API_URL, { method: 'POST', headers: {'Content-Type': 'text/plain'}, body: JSON.stringify(params) }).then(r => r.json());
+        if (res.success) {
+            toast('Updated ' + fieldName.replace(/_/g, ' '));
+            loadTodayTab();
+        } else {
+            toast('Update failed: ' + (res.error || 'Unknown'), 'error');
+            loadTodayTab();
+        }
+    } catch (err) { toast('Update failed: ' + err.message, 'error'); loadTodayTab(); }
+}
+
 function renderSowingCard(t) {
     const dateStr = t.sowDate || t.plannedDate;
     const urg = urgencyClass(dateStr);
@@ -1566,8 +1598,8 @@ function renderSowingCard(t) {
             <i class="far fa-calendar"></i> Sow: ${formatDate(dateStr)} &mdash; ${urgencyText(dateStr)}
         </div>
         <div class="task-details">
-            <span class="detail-chip"><i class="fas fa-th"></i> ${t.trays || '?'} trays${autoCalc}</span>
-            <span class="detail-chip"><i class="fas fa-braille"></i> ${t.cellsPerTray || '?'}-cell</span>
+            ${editableChip(t.batchId, 'th', 'trays', t.trays, 'Trays_Needed', 'number')}${autoCalc}
+            ${editableChip(t.batchId, 'braille', '-cell', t.cellsPerTray, 'Tray_Cell_Count', 'number')}
             ${t.seedsNeeded ? '<span class="detail-chip"><i class="fas fa-dot-circle"></i> ' + t.seedsNeeded + ' seeds</span>' : ''}
             ${t.bed ? '<span class="detail-chip"><i class="fas fa-map-marker-alt"></i> ' + esc(t.bed) + '</span>' : ''}
             ${t.germTemp ? '<span class="detail-chip"><i class="fas fa-thermometer-half"></i> ' + esc(t.germTemp) + '</span>' : ''}
@@ -1671,6 +1703,7 @@ async function confirmSownWithLot() {
     const batchId = document.getElementById('seedLotBatchId').value;
     const seedLotId = document.getElementById('seedLotSelectedId').value;
     const seedsUsed = document.getElementById('seedLotSeedsUsed').value;
+    const task = state.sowingTasks.find(t => t.batchId === batchId);
 
     closeModal('seedLotModal');
 
@@ -1683,6 +1716,21 @@ async function confirmSownWithLot() {
         await fetch(url);
 
         toast('Sowing recorded' + (seedLotId ? ' with lot ' + seedLotId : ''));
+
+        // Offer to print tray labels with QR code for traceability
+        if (task && task.trays) {
+            const cropName = (task.crop || '') + (task.variety ? ' - ' + task.variety : '');
+            if (confirm('Print tray labels for ' + cropName + '?\n' + task.trays + ' trays')) {
+                const labelParams = new URLSearchParams({
+                    batch: batchId,
+                    type: 'fieldTray',
+                    autoprint: '1'
+                });
+                if (seedLotId) labelParams.set('seedLot', seedLotId);
+                window.open('../labels.html?' + labelParams.toString(), '_blank');
+            }
+        }
+
         loadTodayTab();
     } catch (err) {
         console.error(err);

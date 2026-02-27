@@ -1269,7 +1269,40 @@
             document.getElementById('startDate').value = today.toISOString().split('T')[0];
             document.getElementById('endDate').value = sixtyDays.toISOString().split('T')[0];
 
-            loadSeedings();
+            // Check for auto-print URL params (from greenhouse dashboard mark-sown flow)
+            const urlParams = new URLSearchParams(window.location.search);
+            const autoBatch = urlParams.get('batch');
+            const autoType = urlParams.get('type');
+            const autoSeedLot = urlParams.get('seedLot');
+            const autoPrint = urlParams.get('autoprint');
+
+            if (autoType) {
+                switchLabelType(autoType);
+            }
+
+            loadSeedings().then(function() {
+                if (autoBatch) {
+                    // Auto-select the matching seeding by batch ID
+                    var matched = seedings.find(function(s) { return s.batchNumber === autoBatch || s.id === autoBatch; });
+                    if (matched) {
+                        selectedSeedings.add(matched.id);
+                        // Update UI checkbox
+                        var checkbox = document.querySelector('[data-seeding-id="' + matched.id + '"]');
+                        if (checkbox) checkbox.checked = true;
+                        // Set QR to full details for traceability
+                        document.getElementById('qrContent').value = 'full';
+                        // Auto-generate labels
+                        if (currentLabelType === 'fieldTray') {
+                            generateFieldTrayLabels();
+                        } else {
+                            generateLabels();
+                        }
+                        if (autoPrint === '1') {
+                            showToast('Labels generated — ready to print');
+                        }
+                    }
+                }
+            });
         });
 
         // Load Seedings from API
@@ -2253,6 +2286,7 @@
             }
 
             const labelsPerTray = parseInt(document.getElementById('labelsPerTray').value);
+            const qrContent = document.getElementById('qrContent').value;
             labels = [];
             selectedLabels.clear();
             let totalTrays = 0;
@@ -2270,6 +2304,7 @@
                                 labelType: 'fieldTray',
                                 trayNumber: trayNum,
                                 labelNumber: labelNum,
+                                qrContent: qrContent,
                                 traySizeDisplay: traySizeDisplay
                             });
                             selectedLabels.add(labelId);
