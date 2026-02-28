@@ -38,6 +38,38 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-02-28 — Bulletproof Printing: TinySeedPrint Engine
+
+**Role:** PM_Architect
+**Deploy:** Frontend (GitHub Pages)
+
+### Files Created
+- `web_app/print-engine.js` — Shared print engine for all Tiny Seed OS printing (~600 lines)
+
+### Files Modified (17 total)
+- `labels.html` — Replaced jsPDF CDN with print-engine.js, thermal labels now use TinySeedPrint.label()
+- `web_app/labels.html` — Replaced quickchart.io QR API with client-side TinySeedPrint.qr(), all print calls use TinySeedPrint.report()
+- `sowing-sheets.html` — Replaced 250-line HTML string builder + popup window with TinySeedPrint.sheet()
+- 13 dashboard files — Added print-engine.js, replaced window.print() with TinySeedPrint.report()
+
+### Functions Added (in print-engine.js)
+- `TinySeedPrint.label()` — jsPDF label generation at exact page dimensions (8 formats)
+- `TinySeedPrint.sheet()` — Structured task sheet/report as PDF with auto-pagination
+- `TinySeedPrint.report()` — Dashboard printing with standardized @media print CSS injection
+- `TinySeedPrint.qr()` — Client-side QR code generation (replaces quickchart.io + 2 library versions)
+- `TinySeedPrint.preview()` — In-page preview modal (never blocked by popup blocker)
+- `TinySeedPrint.download()` — PDF download fallback
+
+### Reason
+31 HTML files had 4 different print methods with 3 QR code approaches, race conditions, popup blocker issues, and an external API dependency. Standardized to one shared engine. Labels now embed exact page dimensions in PDF — printer auto-detects paper size.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions (replacing scattered print code with centralized engine)
+- [x] No duplicates created
+
+---
+
 ## 2026-02-28 — Greenhouse UX Audit & Full Implementation (Phases 0–3)
 
 **Role:** PM_Architect (Claude Opus 4.6)
