@@ -136,7 +136,7 @@
             font-size:0.7rem; padding:0.4rem 0.6rem; border-radius:var(--radius-sm);
             background:var(--bg-light); color:var(--text-secondary);
             display:flex; align-items:center; gap:0.3rem;
-            min-height:36px;
+            min-height:44px;
         }
         .task-card .detail-chip i { font-size:0.65rem; }
         .task-card .editable-chip { cursor:pointer; transition:background 0.2s; }
@@ -1405,6 +1405,21 @@ const state = {
 };
 
 // ═══════════════════════════════════════════════════════════════════
+// API CACHE (Phase 3 — avoid redundant API calls on tab switch)
+// ═══════════════════════════════════════════════════════════════════
+const _apiCache = {};
+const CACHE_TTL = { today: 30000, trays: 120000, growth: 120000, sales: 300000, ops: 120000 };
+
+function getCached(key) {
+    const entry = _apiCache[key];
+    if (!entry) return null;
+    if (Date.now() - entry.ts > (CACHE_TTL[key] || 60000)) { delete _apiCache[key]; return null; }
+    return entry.data;
+}
+function setCache(key, data) { _apiCache[key] = { data: data, ts: Date.now() }; }
+function invalidateCache(key) { if (key) delete _apiCache[key]; else Object.keys(_apiCache).forEach(k => delete _apiCache[k]); }
+
+// ═══════════════════════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
@@ -1423,7 +1438,7 @@ function setDefaultDates() {
 }
 
 function startAutoRefresh() {
-    setInterval(() => { if (state.activeTab === 'today') loadTodayTab(); }, 60000);
+    setInterval(() => { if (state.activeTab === 'today') loadTodayTab(true); }, 60000);
 }
 
 function setupGermCalc() {
@@ -2145,7 +2160,20 @@ function renderOpsSeedStatus(seeds) {
 // ═══════════════════════════════════════════════════════════════════
 // TAB 1: TODAY'S TASKS
 // ═══════════════════════════════════════════════════════════════════
-async function loadTodayTab() {
+async function loadTodayTab(forceRefresh) {
+    // Use cache if available (30s TTL)
+    var cached = !forceRefresh && getCached('today');
+    if (cached) {
+        state.sowingTasks = cached.sowingTasks;
+        state.transplantTasks = cached.transplantTasks;
+        state.trays = cached.trays;
+        state.batches = [...state.sowingTasks, ...state.transplantTasks];
+        renderTodayStats();
+        renderSowingTasks();
+        renderTransplantTasks();
+        return;
+    }
+
     try {
         const [sowRes, transRes, trayRes] = await Promise.all([
             api.get('getGreenhouseSowingTasks', { startDate: seasonStart(), endDate: weekFromNow(), includeOverdue: 'true', category: 'veg-herb' }),
@@ -2158,6 +2186,9 @@ async function loadTodayTab() {
         state.trays = (trayRes && trayRes.trays) ? trayRes.trays : [];
         state.batches = [...state.sowingTasks, ...state.transplantTasks];
 
+        // Cache the results
+        setCache('today', { sowingTasks: state.sowingTasks, transplantTasks: state.transplantTasks, trays: state.trays });
+
         renderTodayStats();
         renderSowingTasks();
         renderTransplantTasks();
@@ -2168,7 +2199,7 @@ async function loadTodayTab() {
     } catch (err) {
         console.error('Failed to load today tab:', err);
         updateSyncIndicator(false);
-        document.getElementById('sowingTasks').innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Failed to load sowing tasks. Check your connection and try again.</p><button class="btn btn-outline" onclick="loadTodayTab()"><i class="fas fa-redo"></i> Retry</button></div>';
+        document.getElementById('sowingTasks').innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Failed to load sowing tasks. Check your connection and try again.</p><button class="btn btn-outline" onclick="loadTodayTab(true)"><i class="fas fa-redo"></i> Retry</button></div>';
         document.getElementById('transplantTasks').innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Failed to load transplant tasks.</p></div>';
     }
 }
@@ -2304,19 +2335,19 @@ function startInlineEdit(chipEl, batchId, fieldName, inputType) {
 
 async function saveInlineEdit(inputEl, batchId, fieldName) {
     var newVal = inputEl.value;
-    if (!newVal) { loadTodayTab(); return; }
+    if (!newVal) { invalidateCache('today'); loadTodayTab(true); return; }
     try {
         var params = { action: 'updatePlanting', batchId: batchId };
         params[fieldName] = Number(newVal);
         var res = await fetch(API_URL, { method: 'POST', headers: {'Content-Type': 'text/plain'}, body: JSON.stringify(params) }).then(r => r.json());
         if (res.success) {
             toast('Updated ' + fieldName.replace(/_/g, ' '));
-            loadTodayTab();
+            invalidateCache('today'); loadTodayTab(true);
         } else {
             toast('Update failed: ' + (res.error || 'Unknown'), 'error');
-            loadTodayTab();
+            invalidateCache('today'); loadTodayTab(true);
         }
-    } catch (err) { toast('Update failed: ' + err.message, 'error'); loadTodayTab(); }
+    } catch (err) { toast('Update failed: ' + err.message, 'error'); invalidateCache('today'); loadTodayTab(true); }
 }
 
 function renderSowingCard(t) {
@@ -2494,7 +2525,7 @@ async function confirmSownWithLot() {
                 }
             }
 
-            loadTodayTab();
+            invalidateCache('today'); loadTodayTab(true);
         } catch (err) {
             console.error(err);
             // Revert on failure
@@ -2528,7 +2559,7 @@ async function confirmSownWithoutLot() {
         clearUndoToast();
         try {
             await fetch(API_URL + '?action=updateTaskCompletion&batchId=' + encodeURIComponent(batchId) + '&completed=true');
-            loadTodayTab();
+            invalidateCache('today'); loadTodayTab(true);
         } catch (err) {
             console.error(err);
             if (task) task.completed = false;
@@ -2560,7 +2591,7 @@ async function markTransplanted(batchId) {
         try {
             await api.post('recordSeedingDate', { batchId: batchId, type: 'transplant', actualDate: todayStr() });
             await api.post('updateTaskCompletion', { batchId: batchId, taskType: 'transplant', completed: true });
-            loadTodayTab();
+            invalidateCache('today'); loadTodayTab(true);
         } catch (err) {
             console.error(err);
             if (task) task.completed = false;
@@ -2614,22 +2645,31 @@ async function bulkMarkSown(section) {
     } else {
         toast('All ' + count + ' tasks marked as sown!', 'success');
     }
-    loadTodayTab();
+    invalidateCache('today'); loadTodayTab(true);
 }
 
 // ═══════════════════════════════════════════════════════════════════
 // TAB 2: TRAY INVENTORY
 // ═══════════════════════════════════════════════════════════════════
 async function loadTrayInventory() {
+    var cached = getCached('trays');
+    if (cached) {
+        state.trays = cached;
+        renderTrayStats();
+        renderTrayTable(state.trays);
+        populateTrayCropFilter();
+        return;
+    }
     try {
         const res = await api.get('getTrayInventory');
         state.trays = (res && res.trays) ? res.trays : [];
+        setCache('trays', state.trays);
         renderTrayStats();
         renderTrayTable(state.trays);
         populateTrayCropFilter();
     } catch (err) {
         console.error(err);
-        document.getElementById('trayTableBody').innerHTML = '<tr><td colspan="9"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Failed to load tray inventory.</p><button class="btn btn-outline" onclick="loadTrayInventory()"><i class="fas fa-redo"></i> Retry</button></div></td></tr>';
+        document.getElementById('trayTableBody').innerHTML = '<tr><td colspan="9"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Failed to load tray inventory.</p><button class="btn btn-outline" onclick="invalidateCache(\'trays\');loadTrayInventory()"><i class="fas fa-redo"></i> Retry</button></div></td></tr>';
     }
 }
 
