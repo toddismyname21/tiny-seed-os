@@ -38,6 +38,37 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-02-28 — Overdue Tasks Fix + Garage API Fix + Flower Inventory Tab
+
+**Role:** PM_Architect
+**Deploy:** Backend (clasp @705) + Frontend (GitHub Pages)
+
+### Overdue Tasks — Missing Trays/Cells/Bed Data (Critical Fix)
+`getOverduePlantings()` was missing 3 fields the frontend expected:
+- Added `Tray_Cell_Count` → returns as `cellsPerTray` (was never read)
+- Added `bed` and `targetBed` fields (backend returned `location`, frontend expected `bed`)
+- Added `plantsNeeded`, `seedsNeeded`, `category`, `notes`, `readiness` object
+- Added backend `summary` with `traysBySize`, `totalTrays`, `readinessIssues`
+- Fixed `sowing-sheets.html` to use `t.location` as fallback for bed, use backend summary
+
+**Result:** 50/50 tasks now show cells + bed (was 0/50 before), 39/50 have trays (11 genuinely empty in sheet)
+
+### Garage.html — Response Key Mismatch (Critical Fix)
+All three load functions expected `data.data` but backend returns `data.assets`, `data.parts`, `data.manuals`. This caused garage to always fall back to sample data. Fixed to accept actual response keys. Also fixed all 7 POST calls from `Content-Type: application/json` to `text/plain` per Apps Script CORS rules.
+
+### Flower Inventory — New Inventory Tab + Backend Enhancements
+- `getFlowerInventory()`: Added stock_status computation (Empty/Low/Warning/In_Stock) + aggregated mode (group by Flower+Variety with lot details, lowStockCount)
+- `flowers.html`: Added "Inventory" tab with By Flower/By Item views, type filter, status filter, stats row, Add Item modal, expandable lot details
+- Full CRUD: saveFlowerInventoryItem via modal with 11 fields
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — getOverduePlantings(), getFlowerInventory()
+- `sowing-sheets.html` — loadOverdueTasks() field mapping + summary usage
+- `web_app/garage.html` — loadEquipment/Parts/Manuals response keys + Content-Type
+- `flowers.html` — Inventory tab, modal, JavaScript functions
+
+---
+
 ## 2026-02-28 — Thermal Label Print Fix + Farm Inventory Audit
 
 **Role:** PM_Architect
