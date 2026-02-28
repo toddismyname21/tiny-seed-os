@@ -272,9 +272,61 @@
             transition:all 0.3s ease;
         }
         .toast.show { transform:translateY(0); opacity:1; }
+        .toast.show { display:flex; align-items:center; gap:0.75rem; }
         .toast.success { background:var(--ts-green-600, #16a34a); }
         .toast.error { background:var(--danger); }
         .toast.info { background:var(--info); }
+        .toast .toast-dismiss {
+            background:none; border:none; color:rgba(255,255,255,0.8); cursor:pointer;
+            font-size:1rem; padding:0 0 0 0.5rem; line-height:1;
+        }
+        .toast .toast-dismiss:hover { color:#fff; }
+        /* ── Error Banner ── */
+        .error-banner {
+            display:none; align-items:center; gap:0.75rem;
+            background:var(--danger-dim); border:1px solid var(--danger);
+            border-radius:var(--radius-sm); padding:0.75rem 1rem; margin-bottom:1rem;
+            color:var(--danger); font-size:0.82rem; font-weight:500;
+        }
+        .error-banner.show { display:flex; }
+        .error-banner i { font-size:1rem; flex-shrink:0; }
+        .error-banner .error-msg { flex:1; }
+        .error-banner .btn-retry {
+            background:var(--danger); color:#fff; border:none; border-radius:var(--radius-sm);
+            padding:0.35rem 0.75rem; font-size:0.75rem; font-weight:600; cursor:pointer;
+            white-space:nowrap; min-height:36px;
+        }
+        .error-banner .btn-retry:hover { opacity:0.9; }
+        .error-banner .btn-dismiss {
+            background:none; border:none; color:var(--danger); cursor:pointer;
+            font-size:1rem; padding:0; line-height:1; flex-shrink:0;
+        }
+        /* ── Offline Banner ── */
+        .offline-banner {
+            display:none; align-items:center; justify-content:center; gap:0.5rem;
+            position:fixed; top:52px; left:0; right:0; z-index:101;
+            background:#b45309; color:#fff; padding:0.5rem 1rem;
+            font-size:0.78rem; font-weight:600;
+        }
+        .offline-banner.show { display:flex; }
+        .offline-banner i { font-size:0.85rem; }
+        /* ── Skeleton Shimmer ── */
+        .skeleton {
+            background:var(--bg-light); border-radius:var(--radius-sm);
+            position:relative; overflow:hidden;
+        }
+        .skeleton::after {
+            content:''; position:absolute; inset:0;
+            background:linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent);
+            animation:shimmer 1.5s ease-in-out infinite;
+        }
+        @keyframes shimmer { 0%{transform:translateX(-100%)} 100%{transform:translateX(100%)} }
+        .skeleton-card { height:120px; margin-bottom:0.75rem; }
+        .skeleton-row { height:44px; margin-bottom:0.5rem; }
+        .skeleton-stat { height:80px; }
+        .skeleton-text { height:14px; margin-bottom:0.5rem; border-radius:4px; }
+        .skeleton-text.w75 { width:75%; }
+        .skeleton-text.w50 { width:50%; }
         /* ── Sub-tabs ── */
         .sub-tabs {
             display:flex; gap:0; margin-bottom:1rem;
@@ -601,6 +653,7 @@
 
 <!-- ────────────── TAB 0: OPERATIONS OVERVIEW ────────────── -->
 <div class="tab-panel" id="panel-ops" role="tabpanel" aria-labelledby="tab-ops">
+    <div class="error-banner" id="errorBanner-ops" role="alert" aria-live="assertive"><i class="fas fa-exclamation-triangle"></i><span class="error-msg"></span><button class="btn-retry" onclick="retryErrorBanner('ops')"><i class="fas fa-redo"></i> Retry</button><button class="btn-dismiss" onclick="hideErrorBanner('ops')" aria-label="Dismiss">&times;</button></div>
     <!-- Warning Banner -->
     <div id="opsWarnings" style="margin-bottom:1rem;"></div>
 
@@ -667,6 +720,7 @@
 
 <!-- ────────────── TAB 1: TODAY'S TASKS ────────────── -->
 <div class="tab-panel active" id="panel-today" role="tabpanel" aria-labelledby="tab-today">
+    <div class="error-banner" id="errorBanner-today" role="alert" aria-live="assertive"><i class="fas fa-exclamation-triangle"></i><span class="error-msg"></span><button class="btn-retry" onclick="retryErrorBanner('today')"><i class="fas fa-redo"></i> Retry</button><button class="btn-dismiss" onclick="hideErrorBanner('today')" aria-label="Dismiss">&times;</button></div>
     <div class="stat-row" id="todayStats">
         <div class="stat-card gold"><div class="stat-label">Tasks Due Today</div><div class="stat-value" id="statTasksToday">--</div><div class="stat-sub" id="statTasksSub">Loading...</div></div>
         <div class="stat-card green"><div class="stat-label">Trays Active</div><div class="stat-value" id="statTraysActive">--</div><div class="stat-sub">In greenhouse</div></div>
@@ -736,6 +790,7 @@
 
 <!-- ────────────── TAB 2: TRAY INVENTORY ────────────── -->
 <div class="tab-panel" id="panel-trays" role="tabpanel" aria-labelledby="tab-trays">
+    <div class="error-banner" id="errorBanner-trays" role="alert" aria-live="assertive"><i class="fas fa-exclamation-triangle"></i><span class="error-msg"></span><button class="btn-retry" onclick="retryErrorBanner('trays')"><i class="fas fa-redo"></i> Retry</button><button class="btn-dismiss" onclick="hideErrorBanner('trays')" aria-label="Dismiss">&times;</button></div>
     <div class="stat-row" id="trayStats">
         <div class="stat-card green"><div class="stat-label">Total Active Trays</div><div class="stat-value" id="statTotalTrays">--</div></div>
         <div class="stat-card blue"><div class="stat-label">Germinating</div><div class="stat-value" id="statGerminating">--</div></div>
@@ -784,6 +839,7 @@
 
 <!-- ────────────── TAB 3: GROWTH TRACKING ────────────── -->
 <div class="tab-panel" id="panel-growth" role="tabpanel" aria-labelledby="tab-growth">
+    <div class="error-banner" id="errorBanner-growth" role="alert" aria-live="assertive"><i class="fas fa-exclamation-triangle"></i><span class="error-msg"></span><button class="btn-retry" onclick="retryErrorBanner('growth')"><i class="fas fa-redo"></i> Retry</button><button class="btn-dismiss" onclick="hideErrorBanner('growth')" aria-label="Dismiss">&times;</button></div>
     <div style="display:flex;flex-wrap:wrap;gap:0.75rem;align-items:flex-end;margin-bottom:1.25rem;">
         <div class="form-group" style="margin:0;flex:1;min-width:200px;">
             <label>Select Batch</label>
@@ -820,6 +876,7 @@
 
 <!-- ────────────── TAB 4: SEEDLING SALES ────────────── -->
 <div class="tab-panel" id="panel-sales" role="tabpanel" aria-labelledby="tab-sales">
+    <div class="error-banner" id="errorBanner-sales" role="alert" aria-live="assertive"><i class="fas fa-exclamation-triangle"></i><span class="error-msg"></span><button class="btn-retry" onclick="retryErrorBanner('sales')"><i class="fas fa-redo"></i> Retry</button><button class="btn-dismiss" onclick="hideErrorBanner('sales')" aria-label="Dismiss">&times;</button></div>
     <div class="sub-tabs" role="tablist" aria-label="Seedling Sales sections">
         <div class="sub-tab active" role="tab" aria-selected="true" onclick="showSubTab('sales','prodPlan')">Production Plan</div>
         <div class="sub-tab" role="tab" aria-selected="false" onclick="showSubTab('sales','presale')">Presale Manager</div>
@@ -999,6 +1056,7 @@
 
 <!-- ────────────── TAB 5: REPORTS ────────────── -->
 <div class="tab-panel" id="panel-reports" role="tabpanel" aria-labelledby="tab-reports">
+    <div class="error-banner" id="errorBanner-reports" role="alert" aria-live="assertive"><i class="fas fa-exclamation-triangle"></i><span class="error-msg"></span><button class="btn-retry" onclick="retryErrorBanner('reports')"><i class="fas fa-redo"></i> Retry</button><button class="btn-dismiss" onclick="hideErrorBanner('reports')" aria-label="Dismiss">&times;</button></div>
     <div style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-bottom:1.25rem;">
         <button class="btn btn-outline" onclick="showReport('germination')"><i class="fas fa-flask"></i> Germination Success</button>
         <button class="btn btn-outline" onclick="showReport('transplant')"><i class="fas fa-exchange-alt"></i> Transplant Readiness</button>
@@ -1377,8 +1435,11 @@
     </div>
 </div>
 
+<!-- Offline Banner -->
+<div class="offline-banner" id="offlineBanner" role="alert" aria-live="assertive"><i class="fas fa-wifi"></i> <span id="offlineMsg">You're offline — changes will sync when reconnected</span></div>
+
 <!-- Toast -->
-<div class="toast" id="toastEl" role="status" aria-live="polite"></div>
+<div class="toast" id="toastEl" role="status" aria-live="polite"><span id="toastText"></span><button class="toast-dismiss" onclick="dismissToast()" aria-label="Dismiss">&times;</button></div>
 <div class="undo-toast" id="undoToast">
     <span class="undo-msg" id="undoMsg"></span>
     <span class="undo-countdown" id="undoCountdown">5</span>
@@ -1425,6 +1486,7 @@ function invalidateCache(key) { if (key) delete _apiCache[key]; else Object.keys
 // ═══════════════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
     setDefaultDates();
+    initOfflineDetection();
     loadTodayTab();
     startAutoRefresh();
     setupGermCalc();
@@ -1722,11 +1784,113 @@ function clearOnboardingHighlight() {
 // ═══════════════════════════════════════════════════════════════════
 // TOAST
 // ═══════════════════════════════════════════════════════════════════
+var _toastTimer = null;
 function toast(msg, type = 'success') {
-    const el = document.getElementById('toastEl');
-    el.textContent = msg;
+    var el = document.getElementById('toastEl');
+    document.getElementById('toastText').textContent = msg;
     el.className = 'toast ' + type + ' show';
-    setTimeout(() => el.classList.remove('show'), 3500);
+    if (_toastTimer) clearTimeout(_toastTimer);
+    if (type !== 'error') {
+        _toastTimer = setTimeout(function() { el.classList.remove('show'); _toastTimer = null; }, 3500);
+    }
+}
+function dismissToast() {
+    var el = document.getElementById('toastEl');
+    el.classList.remove('show');
+    if (_toastTimer) { clearTimeout(_toastTimer); _toastTimer = null; }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ERROR BANNER (Phase 4A — persistent error recovery)
+// ═══════════════════════════════════════════════════════════════════
+var _errorBannerRetryFns = {};
+function showErrorBanner(panelId, message, retryFn) {
+    var banner = document.getElementById('errorBanner-' + panelId);
+    if (!banner) return;
+    banner.querySelector('.error-msg').textContent = message;
+    banner.classList.add('show');
+    if (retryFn) _errorBannerRetryFns[panelId] = retryFn;
+}
+function hideErrorBanner(panelId) {
+    var banner = document.getElementById('errorBanner-' + panelId);
+    if (banner) banner.classList.remove('show');
+    delete _errorBannerRetryFns[panelId];
+}
+function retryErrorBanner(panelId) {
+    var fn = _errorBannerRetryFns[panelId];
+    hideErrorBanner(panelId);
+    if (typeof fn === 'function') fn();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// SKELETON LOADING (Phase 4C)
+// ═══════════════════════════════════════════════════════════════════
+function renderSkeleton(type, count) {
+    count = count || 3;
+    var html = '';
+    if (type === 'card') {
+        for (var i = 0; i < count; i++) html += '<div class="skeleton skeleton-card"></div>';
+    } else if (type === 'row') {
+        for (var i = 0; i < count; i++) html += '<div class="skeleton skeleton-row"></div>';
+    } else if (type === 'stat') {
+        html = '<div class="stat-row">';
+        for (var i = 0; i < count; i++) html += '<div class="skeleton skeleton-stat"></div>';
+        html += '</div>';
+    }
+    return html;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// OFFLINE DETECTION + QUEUE (Phase 4E)
+// ═══════════════════════════════════════════════════════════════════
+var _offlineQueue = [];
+function initOfflineDetection() {
+    window.addEventListener('online', function() {
+        document.getElementById('offlineBanner').classList.remove('show');
+        document.getElementById('syncDot').classList.remove('offline');
+        document.getElementById('syncLabel').textContent = 'Synced';
+        flushOfflineQueue();
+    });
+    window.addEventListener('offline', function() {
+        document.getElementById('offlineBanner').classList.add('show');
+        document.getElementById('syncDot').classList.add('offline');
+        document.getElementById('syncLabel').textContent = 'Offline';
+    });
+    if (!navigator.onLine) {
+        document.getElementById('offlineBanner').classList.add('show');
+        document.getElementById('syncDot').classList.add('offline');
+        document.getElementById('syncLabel').textContent = 'Offline';
+    }
+}
+function queueOfflineMutation(action, params) {
+    _offlineQueue.push({ action: action, params: params, ts: Date.now() });
+    toast('Saved offline — will sync when reconnected', 'info');
+}
+async function flushOfflineQueue() {
+    if (_offlineQueue.length === 0) return;
+    var count = _offlineQueue.length;
+    document.getElementById('offlineMsg').textContent = 'Syncing ' + count + ' offline changes...';
+    document.getElementById('offlineBanner').classList.add('show');
+    var failed = [];
+    while (_offlineQueue.length > 0) {
+        var item = _offlineQueue.shift();
+        try {
+            await fetch(API_URL + '?action=' + item.action, {
+                method: 'POST', headers: {'Content-Type':'text/plain'},
+                body: JSON.stringify(item.params)
+            });
+        } catch (e) {
+            failed.push(item);
+        }
+    }
+    _offlineQueue = failed;
+    if (failed.length > 0) {
+        document.getElementById('offlineMsg').textContent = failed.length + ' changes failed to sync';
+    } else {
+        document.getElementById('offlineBanner').classList.remove('show');
+        toast('All offline changes synced', 'success');
+        invalidateCache(); loadTodayTab(true);
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -1792,22 +1956,33 @@ function printCardSheet() {
 // ── Embedded Label Preview ──
 var _labelPreviewBatchId = '';
 
-function getTrayQRUrl(batchId) {
-    const trackUrl = 'https://toddismyname21.github.io/tiny-seed-os/web_app/greenhouse-dashboard.html?batch=' + encodeURIComponent(batchId);
-    return 'https://quickchart.io/chart?cht=qr&chs=150x150&chl=' + encodeURIComponent(trackUrl);
+function getTrayTrackUrl(batchId) {
+    return 'https://toddismyname21.github.io/tiny-seed-os/web_app/greenhouse-dashboard.html?batch=' + encodeURIComponent(batchId);
+}
+
+function _upgradeTrayQRCodes() {
+    var imgs = document.querySelectorAll('.tray-label-card .qr-img[data-qr-batch]');
+    imgs.forEach(function(img) {
+        var batch = img.getAttribute('data-qr-batch');
+        if (!batch) return;
+        TinySeedPrint.qr(getTrayTrackUrl(batch), { width: 70 }).then(function(dataUrl) {
+            img.src = dataUrl;
+            img.removeAttribute('data-qr-batch');
+        }).catch(function() {});
+    });
 }
 
 function showLabelPreviewModal(task) {
     _labelPreviewBatchId = task.batchId;
-    const qrUrl = getTrayQRUrl(task.batchId);
     const trayCount = task.trays || 1;
     const cellSize = task.cellsPerTray || '?';
     const sowDate = task.sowDate || task.plannedDate || todayStr();
+    const placeholder = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="70" height="70"><rect width="70" height="70" fill="%23f0f0f0"/><text x="50%" y="50%" text-anchor="middle" font-size="8" fill="%23999" dy=".3em">QR</text></svg>');
 
     let labels = '';
     for (let i = 1; i <= trayCount; i++) {
         labels += '<div class="tray-label-card">' +
-            '<img class="qr-img" src="' + qrUrl + '" alt="QR Code" loading="lazy">' +
+            '<img class="qr-img" src="' + placeholder + '" data-qr-batch="' + esc(task.batchId) + '" alt="QR Code">' +
             '<div class="lbl-info">' +
                 '<div class="lbl-crop">' + esc(task.crop || '') + '</div>' +
                 '<div class="lbl-variety">' + esc(task.variety || '') + '</div>' +
@@ -1820,6 +1995,7 @@ function showLabelPreviewModal(task) {
 
     document.getElementById('labelPreviewContent').innerHTML = labels;
     openModal('labelPreviewModal');
+    setTimeout(function() { _upgradeTrayQRCodes(); }, 50);
 }
 
 function printLabelFromModal() {

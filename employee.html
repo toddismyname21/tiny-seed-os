@@ -25,6 +25,8 @@
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
     <!-- PWA Install Prompt -->
     <script src="install-prompt.js" defer></script>
+    <!-- Print Engine -->
+    <script src="web_app/print-engine.js"></script>
     <style>
         /* ========================================
            CSS DESIGN SYSTEM - HIGH CONTRAST THEME
@@ -19758,40 +19760,48 @@
         }
 
         // ============================================
-        // LABEL PRINTING (Zebra ZPL)
+        // LABEL PRINTING (via TinySeedPrint engine)
         // ============================================
         async function printLabel(type, data) {
-            // Generate ZPL code for Zebra printer
-            const zpl = generateZPL(type, data);
-
-            // Try Bluetooth printing (Zebra printers support this)
             try {
-                if ('bluetooth' in navigator) {
-                    const device = await navigator.bluetooth.requestDevice({
-                        filters: [{ services: ['printer_service'] }]
+                if (type === 'harvest') {
+                    await TinySeedPrint.label({
+                        format: 'fieldTray',
+                        data: [{
+                            crop: data.crop || '',
+                            variety: data.variety || '',
+                            batchNumber: data.batchId || '',
+                            seedDate: data.date || '',
+                            qrData: data.batchId || ''
+                        }]
                     });
-                    // Connect and send ZPL
-                    console.log('Bluetooth printing:', device.name);
+                } else if (type === 'inventory') {
+                    await TinySeedPrint.label({
+                        format: 'fieldTray',
+                        data: [{
+                            crop: data.batchId || '',
+                            variety: (data.grade ? 'Grade: ' + data.grade : '') + (data.weight ? '  Wt: ' + data.weight : ''),
+                            batchNumber: 'Packed: ' + (data.packDate || '') + ' by ' + (data.packedBy || ''),
+                            qrData: data.batchId || ''
+                        }]
+                    });
+                } else {
+                    // Generic label fallback
+                    await TinySeedPrint.label({
+                        format: 'fieldTray',
+                        data: [{
+                            crop: data.batchId || data.name || 'Label',
+                            variety: '',
+                            batchNumber: '',
+                            qrData: data.batchId || ''
+                        }]
+                    });
                 }
+                showToast('Label ready for printing', 'success');
             } catch (error) {
-                // Fallback: Show ZPL for manual copy or use print server
-                console.log('ZPL for printing:', zpl);
-                showToast('Label sent to printer', 'success');
+                console.error('Print label error:', error);
+                showToast('Failed to generate label: ' + error.message, 'error');
             }
-        }
-
-        function generateZPL(type, data) {
-            // ZPL template for different label types
-            if (type === 'harvest') {
-                return `^XA
-^FO50,50^A0N,40,40^FD${data.batchId}^FS
-^FO50,100^A0N,30,30^FD${data.crop} - ${data.variety}^FS
-^FO50,140^A0N,25,25^FDHarvested: ${data.date}^FS
-^FO50,170^A0N,25,25^FDBy: ${data.harvester}^FS
-^FO50,210^BQN,2,5^FDLA,${data.batchId}^FS
-^XZ`;
-            }
-            return '^XA^FO50,50^A0N,40,40^FDLabel^FS^XZ';
         }
 
         // ============================================
@@ -23114,6 +23124,7 @@
             // Add a header for printing
             const header = document.createElement('div');
             header.id = 'printHeader';
+            header.className = 'ts-print-no-print';
             header.innerHTML = `
                 <div style="text-align: center; padding: 20px 0; border-bottom: 2px solid #333;">
                     <h1 style="margin: 0; font-size: 24px;">Tiny Seed Farm - Pick List</h1>
@@ -23126,16 +23137,17 @@
                 modalBody.insertBefore(header, modalBody.firstChild);
             }
 
-            // Print
-            window.print();
-
-            // Remove the header after printing
-            setTimeout(() => {
-                const printHeader = document.getElementById('printHeader');
-                if (printHeader) {
-                    printHeader.remove();
+            // Print via TinySeedPrint engine
+            TinySeedPrint.report({
+                title: 'Pick List',
+                orientation: 'portrait',
+                afterPrint: function() {
+                    const printHeader = document.getElementById('printHeader');
+                    if (printHeader) {
+                        printHeader.remove();
+                    }
                 }
-            }, 1000);
+            });
         }
 
         // ============================================

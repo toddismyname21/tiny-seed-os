@@ -9,6 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="web_app/tiny-seed-design-system.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="web_app/print-engine.js"></script>
     <style>
         * {
             margin: 0;
@@ -12905,7 +12906,7 @@
 
         // Print schedule
         function printMandatorySchedule() {
-            window.print();
+            TinySeedPrint.report();
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
@@ -13592,7 +13593,7 @@
                 case '5': switchTab('compliance'); break;
                 case 'n': if (typeof openAddModal === 'function') openAddModal(); break;
                 case 'r': if (typeof loadData === 'function') loadData(); break;
-                case 'p': window.print(); break;
+                case 'p': TinySeedPrint.report(); break;
                 case 'h': window.location.href = 'index.html'; break;
                 case '?': toggleKeyboardHelp(); break;
                 case 'escape':

@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Seed Inventory Management - Tiny Seed OS</title>
     <script src="web_app/auth-guard.js" data-required-role="Manager"></script>
+    <script src="web_app/print-engine.js"></script>
     <style>
         :root {
             --primary: var(--ts-green-500, #22c55e);
@@ -1499,7 +1500,7 @@
                         </div>
                     </div>
                     <div class="qr-section">
-                        <img class="qr-code" src="${getQRCodeUrl(seed)}" alt="QR Code" onerror="this.style.display='none'">
+                        <img class="qr-code" src="${getQRCodeUrl(seed)}" data-qr-url="${getSeedTrackingUrl(seed)}" alt="QR Code" onerror="this.style.display='none'">
                         <div class="qr-id">${seed.seedLotId || seed.lotNumber}</div>
                     </div>
                     <div class="seed-actions">
@@ -1525,6 +1526,8 @@
             } else {
                 renderLotInventory(filtered);
             }
+            // Upgrade placeholder QR images with real client-side QR codes
+            upgradeQRImages();
         }
 
         function renderLotInventory(filtered = null) {
@@ -2130,12 +2133,30 @@
 
         // ============ QR CODE FUNCTIONS ============
 
-        // Generate QR code URL using QuickChart.io (free, no API key)
-        // Encodes full tracking URL so any phone camera opens the page directly
-        function getQRCodeUrl(seed) {
+        // Build tracking URL for a seed lot
+        function getSeedTrackingUrl(seed) {
             const seedId = seed.seedLotId || seed.lotNumber || `S-${seed.crop.substring(0,3).toUpperCase()}-${seed.id}`;
-            const trackingUrl = `https://tinyseedfarm.github.io/TIny_Seed_OS/seed_track.html?id=${seedId}`;
-            return `https://quickchart.io/chart?cht=qr&chs=150x150&chl=${encodeURIComponent(trackingUrl)}&choe=UTF-8`;
+            return `https://tinyseedfarm.github.io/TIny_Seed_OS/seed_track.html?id=${seedId}`;
+        }
+
+        // Returns a placeholder SVG data URL for immediate display.
+        // The actual QR is rendered client-side by upgradeQRImages() after DOM render.
+        function getQRCodeUrl(seed) {
+            return "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Crect width='150' height='150' fill='%23f0f0f0'/%3E%3Ctext x='75' y='80' text-anchor='middle' font-size='12' fill='%23999'%3EQR%3C/text%3E%3C/svg%3E";
+        }
+
+        // Upgrade placeholder QR images with real client-side QR codes via TinySeedPrint
+        function upgradeQRImages() {
+            document.querySelectorAll('img[data-qr-url]').forEach(function(img) {
+                var url = img.getAttribute('data-qr-url');
+                if (!url || img.dataset.qrRendered === 'true') return;
+                img.dataset.qrRendered = 'true';
+                TinySeedPrint.qr(url, { size: 150 }).then(function(dataUrl) {
+                    img.src = dataUrl;
+                }).catch(function() {
+                    // Keep placeholder on failure
+                });
+            });
         }
 
         // QR Scanner variables
@@ -2393,7 +2414,7 @@
                         </div>
                     </div>
                     <div style="text-align: center;">
-                        <img src="${getQRCodeUrl(seed)}" style="width: 120px; height: 120px; border-radius: 8px; background: white; padding: 5px;">
+                        <img src="${getQRCodeUrl(seed)}" data-qr-url="${getSeedTrackingUrl(seed)}" style="width: 120px; height: 120px; border-radius: 8px; background: white; padding: 5px;">
                         <div style="font-size: 10px; color: var(--text-secondary); margin-top: 5px;">Scan to track</div>
                     </div>
                 </div>
@@ -2474,6 +2495,9 @@
                 }
                 docLinksEl.innerHTML = html;
             }
+
+            // Upgrade placeholder QR images with real client-side QR codes
+            upgradeQRImages();
         }
 
         function closeSeedDetail() {
@@ -2637,53 +2661,23 @@
         }
 
         function printLabel(seedLotId) {
-            // Find the seed
-            const seed = seedInventory.find(s => s.seedLotId === seedLotId || s.lotNumber === seedLotId);
-            if (seed) {
-                currentDetailSeed = seed;
-            }
-
-            // Open print dialog with label preview
-            const printWindow = window.open('', '_blank', 'width=400,height=300');
-            const qrUrl = getQRCodeUrl(currentDetailSeed || { lotNumber: seedLotId });
-
-            printWindow.document.write(`
-                <html>
-                <head>
-                    <title>Seed Label - ${seedLotId}</title>
-                    <style>
-                        body { font-family: Arial, sans-serif; padding: 10px; }
-                        .label {
-                            border: 2px solid #000;
-                            padding: 10px;
-                            width: 2in;
-                            text-align: center;
-                            page-break-inside: avoid;
-                        }
-                        .crop-name { font-size: 14pt; font-weight: bold; margin-bottom: 5px; }
-                        .variety { font-size: 10pt; color: #666; margin-bottom: 8px; }
-                        .qr { width: 1in; height: 1in; }
-                        .lot-id { font-size: 8pt; font-family: monospace; margin-top: 5px; }
-                        @media print {
-                            body { padding: 0; }
-                            .no-print { display: none; }
-                        }
-                    </style>
-                </head>
-                <body>
-                    <div class="label">
-                        <div class="crop-name">${currentDetailSeed?.crop || currentDetailSeed?.Crop || 'Seed'}</div>
-                        <div class="variety">${currentDetailSeed?.variety || currentDetailSeed?.Variety || ''}</div>
-                        <img class="qr" src="${qrUrl}" alt="QR">
-                        <div class="lot-id">${seedLotId}</div>
-                    </div>
-                    <p class="no-print" style="margin-top: 20px;">
-                        <button onclick="window.print()">Print Label</button>
-                        <button onclick="window.close()">Close</button>
-                    </p>
-                </body>
-                </html>
-            `);
+            // Find the seed lot data
+            const lot = seedInventory.find(s => s.seedLotId === seedLotId || s.lotNumber === seedLotId);
+            if (!lot) { alert('Seed lot not found'); return; }
+            currentDetailSeed = lot;
+            TinySeedPrint.label({
+                format: 'seedPacket',
+                data: [{
+                    crop: lot.crop || '',
+                    variety: lot.variety || '',
+                    seedLotId: seedLotId,
+                    supplier: lot.vendor || '',
+                    organic: lot.organic || false,
+                    germRate: lot.germRate || '',
+                    expiration: lot.expirationDate || '',
+                    qrData: 'https://tinyseedfarm.github.io/TIny_Seed_OS/seed_track.html?id=' + encodeURIComponent(seedLotId)
+                }]
+            });
         }
 
         async function viewUsageHistory() {
