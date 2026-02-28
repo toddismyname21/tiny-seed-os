@@ -33,6 +33,19 @@
             --shadow: 0 4px 24px rgba(0,0,0,0.3);
         }
         * { margin:0; padding:0; box-sizing:border-box; }
+        /* ── Focus Visible (Phase 5A) ── */
+        :focus-visible {
+            outline:2px solid #4FC3F7; outline-offset:2px;
+        }
+        :focus:not(:focus-visible) { outline:none; }
+        /* ── Skip to Content (Phase 5B) ── */
+        .skip-link {
+            position:absolute; top:-100px; left:0; z-index:999;
+            background:var(--primary); color:#000; padding:0.75rem 1.25rem;
+            font-weight:700; font-size:0.9rem; text-decoration:none;
+            border-radius:0 0 var(--radius-sm) 0;
+        }
+        .skip-link:focus { top:0; }
         body {
             font-family:'Inter',system-ui,sans-serif;
             background:var(--bg-dark);
@@ -97,6 +110,7 @@
         .stat-card {
             background:var(--bg-card); border:1px solid var(--border);
             border-radius:var(--radius); padding:1rem;
+            box-shadow:0 1px 3px rgba(0,0,0,0.2);
         }
         .stat-card .stat-label { font-size:0.7rem; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:0.35rem; }
         .stat-card .stat-value { font-size:1.5rem; font-weight:700; }
@@ -149,8 +163,9 @@
             display:inline-flex; align-items:center; gap:0.4rem;
             padding:0.55rem 1rem; border-radius:var(--radius-sm);
             font-size:0.8rem; font-weight:600; border:none; cursor:pointer;
-            transition:all 0.2s; font-family:inherit; min-height:44px;
+            transition:all 0.15s ease; font-family:inherit; min-height:44px;
         }
+        .btn:active, .gh-tab:active { transform:scale(0.97); }
         .btn-primary { background:var(--primary); color:#0a0a0f; }
         .btn-primary:hover { background:#6ee7a0; }
         .btn-primary:disabled { opacity:0.4; cursor:not-allowed; }
@@ -182,7 +197,7 @@
             padding:0.4rem 0.65rem; font-size:0.78rem; font-family:inherit;
         }
         .table-toolbar input:focus, .table-toolbar select:focus {
-            outline:none; border-color:var(--primary);
+            border-color:var(--primary); outline:2px solid rgba(79,195,247,0.4); outline-offset:1px;
         }
         table { width:100%; border-collapse:collapse; }
         th {
@@ -216,8 +231,10 @@
         }
         .modal-overlay.open { display:flex; }
         .modal {
-            background:var(--bg-card); border:1px solid var(--border);
+            background:linear-gradient(rgba(255,255,255,0.07), rgba(255,255,255,0.07)), var(--bg-card);
+            border:1px solid var(--border-light);
             border-radius:var(--radius); width:100%; max-width:560px;
+            box-shadow:0 8px 32px rgba(0,0,0,0.4);
             max-height:85vh; overflow-y:auto;
         }
         .modal-head {
@@ -248,7 +265,7 @@
         }
         .form-group textarea { resize:vertical; min-height:80px; }
         .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
-            outline:none; border-color:var(--primary);
+            border-color:var(--primary); outline:2px solid rgba(79,195,247,0.4); outline-offset:1px;
         }
         .form-row { display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; }
         /* ── Loading / Empty ── */
@@ -261,8 +278,24 @@
         .empty-state {
             text-align:center; padding:3rem 1.5rem; color:var(--text-secondary);
         }
-        .empty-state i { font-size:2rem; margin-bottom:0.75rem; display:block; opacity:0.4; }
-        .empty-state p { font-size:0.85rem; margin-bottom:1rem; }
+        .empty-state i { font-size:2.5rem; margin-bottom:1rem; display:block; opacity:0.3; }
+        .empty-state h3 { font-size:1rem; font-weight:600; color:var(--text-primary); margin-bottom:0.5rem; }
+        .empty-state p { font-size:0.85rem; margin-bottom:1rem; line-height:1.5; }
+        .empty-state .btn { margin-top:0.5rem; }
+        /* ── Staggered Card Animation (Phase 7B) ── */
+        @keyframes fadeSlideIn {
+            from { opacity:0; transform:translateY(8px); }
+            to { opacity:1; transform:translateY(0); }
+        }
+        .task-card, .stat-card, .action-card {
+            animation:fadeSlideIn 0.25s ease both;
+        }
+        .task-card:nth-child(1) { animation-delay:0ms; }
+        .task-card:nth-child(2) { animation-delay:50ms; }
+        .task-card:nth-child(3) { animation-delay:100ms; }
+        .task-card:nth-child(4) { animation-delay:150ms; }
+        .task-card:nth-child(5) { animation-delay:200ms; }
+        .task-card:nth-child(n+6) { animation-delay:250ms; }
         /* ── Toast ── */
         .toast {
             position:fixed; bottom:1.5rem; right:1.5rem; z-index:300;
@@ -446,10 +479,14 @@
         }
         .progress-fill {
             height: 100%;
-            background: linear-gradient(90deg, var(--primary, #22c55e), var(--primary-light, #4ade80));
+            background: linear-gradient(90deg, #16a34a, var(--primary, #22c55e), #4ade80);
             border-radius: 4px;
             transition: width 0.5s ease;
         }
+        .progress-fill.complete {
+            animation: progressPulse 2s ease-in-out infinite;
+        }
+        @keyframes progressPulse { 0%,100%{opacity:1} 50%{opacity:0.8} }
         .progress-detail {
             margin-top: 0.5rem;
             font-size: 0.8rem;
@@ -609,16 +646,51 @@
             .action-card { padding: 0.75rem; min-height: 90px; }
             .action-icon { font-size: 1.25rem; }
             .action-title { font-size: 0.85rem; }
+            /* Phase 6A: Responsive modals */
+            .modal { max-width:none !important; width:calc(100vw - 2rem) !important; margin:0.5rem; }
+            .modal-body { padding:0.75rem; }
+            .modal-head { padding:0.75rem 1rem; }
+            .modal-foot { padding:0.75rem 1rem; }
+            .label-preview-grid { grid-template-columns:1fr !important; }
+            .sheet-preview-table { font-size:0.72rem; }
+            /* Phase 6B: Table card view on mobile */
+            .mobile-card-view table { display:block; min-width:0 !important; }
+            .mobile-card-view thead { display:none; }
+            .mobile-card-view tr { display:block; background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-sm); padding:0.75rem; margin-bottom:0.5rem; }
+            .mobile-card-view td { display:flex; justify-content:space-between; padding:0.3rem 0; border:none; font-size:0.78rem; }
+            .mobile-card-view td::before { content:attr(data-label); font-weight:600; color:var(--text-secondary); margin-right:0.5rem; }
+            /* Phase 6C: Touch targets for outdoor/gloved use */
+            .btn, .btn-sm, .btn-action, .btn-done, .btn-label, .btn-sheet { min-height:48px !important; min-width:48px !important; }
+            .detail-chip { min-height:48px !important; }
         }
         @media(max-width:480px) {
             .stat-row { grid-template-columns:1fr 1fr; gap:0.5rem; }
             .stat-card { padding:0.75rem; }
             .stat-card .stat-value { font-size:1.2rem; }
+            /* Phase 6D: Compact tab bar */
+            .gh-tabs { justify-content:space-around; padding:0; }
+            .gh-tab { flex-direction:column; padding:0.5rem 0.25rem; font-size:0.65rem; gap:0.15rem; flex:1; text-align:center; justify-content:center; }
+            .gh-tab i { font-size:1rem; }
+            .gh-main { padding:105px 0.5rem 2rem; }
+            .action-card { min-height:70px; }
+            .overview-actions { grid-template-columns:1fr 1fr 1fr; gap:0.35rem; }
+        }
+        /* ── Reduced Motion (Phase 5F) ── */
+        @media(prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration:0.01ms !important;
+                animation-iteration-count:1 !important;
+                transition-duration:0.01ms !important;
+            }
+            .skeleton::after { animation:none !important; }
+            .toast { transition:none !important; }
         }
     </style>
     <script src="print-engine.js"></script>
 </head>
 <body>
+
+<a class="skip-link" href="#panel-today">Skip to main content</a>
 
 <!-- ═══ HEADER ═══ -->
 <header class="gh-header">
@@ -641,9 +713,9 @@
     <div class="gh-tab" data-tab="growth" onclick="showTab('growth')" role="tab" aria-selected="false" aria-controls="panel-growth" tabindex="-1"><i class="fas fa-chart-line"></i> Growth</div>
     <div class="gh-tab" data-tab="sales" onclick="showTab('sales')" role="tab" aria-selected="false" aria-controls="panel-sales" tabindex="-1"><i class="fas fa-seedling"></i> Sales</div>
     <div class="gh-tab" data-tab="more" onclick="toggleMoreMenu(event)" role="button" aria-haspopup="true" aria-expanded="false" tabindex="-1" style="position:relative;"><i class="fas fa-ellipsis-h"></i> More
-        <div class="more-menu" id="moreMenu" style="display:none;position:absolute;top:100%;right:0;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);min-width:180px;box-shadow:var(--shadow);z-index:150;">
-            <div class="more-menu-item" onclick="event.stopPropagation();closeMoreMenu();showTab('ops')" style="padding:0.65rem 1rem;cursor:pointer;font-size:0.8rem;display:flex;align-items:center;gap:0.5rem;color:var(--text-primary);"><i class="fas fa-map" style="width:16px;"></i> Overview</div>
-            <div class="more-menu-item" onclick="event.stopPropagation();closeMoreMenu();showTab('reports')" style="padding:0.65rem 1rem;cursor:pointer;font-size:0.8rem;display:flex;align-items:center;gap:0.5rem;color:var(--text-primary);border-top:1px solid var(--border);"><i class="fas fa-file-alt" style="width:16px;"></i> Reports</div>
+        <div class="more-menu" id="moreMenu" role="menu" aria-label="More options" style="display:none;position:absolute;top:100%;right:0;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);min-width:180px;box-shadow:var(--shadow);z-index:150;">
+            <div class="more-menu-item" role="menuitem" tabindex="-1" onclick="event.stopPropagation();closeMoreMenu();showTab('ops')" style="padding:0.65rem 1rem;cursor:pointer;font-size:0.8rem;display:flex;align-items:center;gap:0.5rem;color:var(--text-primary);"><i class="fas fa-map" style="width:16px;"></i> Overview</div>
+            <div class="more-menu-item" role="menuitem" tabindex="-1" onclick="event.stopPropagation();closeMoreMenu();showTab('reports')" style="padding:0.65rem 1rem;cursor:pointer;font-size:0.8rem;display:flex;align-items:center;gap:0.5rem;color:var(--text-primary);border-top:1px solid var(--border);"><i class="fas fa-file-alt" style="width:16px;"></i> Reports</div>
         </div>
     </div>
 </nav>
@@ -677,7 +749,7 @@
     </div>
 
     <!-- Stat Cards -->
-    <details class="overview-details" open>
+    <details class="overview-details" open aria-expanded="true" ontoggle="this.setAttribute('aria-expanded', this.open)">
         <summary class="overview-summary"><i class="fas fa-chart-bar"></i> Operations Stats</summary>
         <div class="stat-row" id="opsStats">
             <div class="stat-card green"><div class="stat-label">Production (Field)</div><div class="stat-value" id="opsFieldCount">--</div><div class="stat-sub">For our fields</div></div>
@@ -1438,6 +1510,9 @@
 <!-- Offline Banner -->
 <div class="offline-banner" id="offlineBanner" role="alert" aria-live="assertive"><i class="fas fa-wifi"></i> <span id="offlineMsg">You're offline — changes will sync when reconnected</span></div>
 
+<!-- Screen Reader Announcements (Phase 5G) -->
+<div id="srAnnounce" role="status" aria-live="polite" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;"></div>
+
 <!-- Toast -->
 <div class="toast" id="toastEl" role="status" aria-live="polite"><span id="toastText"></span><button class="toast-dismiss" onclick="dismissToast()" aria-label="Dismiss">&times;</button></div>
 <div class="undo-toast" id="undoToast">
@@ -1517,14 +1592,18 @@ function setupGermCalc() {
 // ═══════════════════════════════════════════════════════════════════
 // TAB NAVIGATION
 // ═══════════════════════════════════════════════════════════════════
+function announce(msg) {
+    var el = document.getElementById('srAnnounce');
+    if (el) { el.textContent = ''; setTimeout(function() { el.textContent = msg; }, 50); }
+}
+
 function showTab(tab) {
     state.activeTab = tab;
-    const overflowTabs = ['ops', 'reports'];
-    const isOverflow = overflowTabs.includes(tab);
+    var overflowTabs = ['ops', 'reports'];
+    var isOverflow = overflowTabs.includes(tab);
     document.querySelectorAll('.gh-tab').forEach(t => {
-        const tabKey = t.dataset.tab;
-        // "More" button highlights when an overflow tab is active
-        const isActive = tabKey === tab || (tabKey === 'more' && isOverflow);
+        var tabKey = t.dataset.tab;
+        var isActive = tabKey === tab || (tabKey === 'more' && isOverflow);
         t.classList.toggle('active', isActive);
         if (t.getAttribute('role') === 'tab') {
             t.setAttribute('aria-selected', isActive ? 'true' : 'false');
@@ -1532,6 +1611,8 @@ function showTab(tab) {
         }
     });
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + tab));
+    var tabNames = { today:'Today\'s Tasks', trays:'Tray Inventory', growth:'Growth Tracking', sales:'Seedling Sales', ops:'Overview', reports:'Reports' };
+    announce((tabNames[tab] || tab) + ' tab selected');
     if (tab === 'ops') loadOperationsTab();
     else if (tab === 'today') loadTodayTab();
     else if (tab === 'trays') loadTrayInventory();
@@ -1543,18 +1624,32 @@ function showTab(tab) {
 // More menu toggle
 function toggleMoreMenu(e) {
     e.stopPropagation();
-    const menu = document.getElementById('moreMenu');
-    const isOpen = menu.style.display !== 'none';
+    var menu = document.getElementById('moreMenu');
+    var isOpen = menu.style.display !== 'none';
     menu.style.display = isOpen ? 'none' : 'block';
     e.currentTarget.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
+    if (!isOpen) {
+        // Focus first menu item
+        var first = menu.querySelector('[role="menuitem"]');
+        if (first) first.focus();
+    }
 }
 function closeMoreMenu() {
     document.getElementById('moreMenu').style.display = 'none';
-    const moreTab = document.querySelector('.gh-tab[data-tab="more"]');
+    var moreTab = document.querySelector('.gh-tab[data-tab="more"]');
     if (moreTab) moreTab.setAttribute('aria-expanded', 'false');
 }
 // Close more menu on outside click
-document.addEventListener('click', () => closeMoreMenu());
+document.addEventListener('click', function() { closeMoreMenu(); });
+// Arrow key navigation in more menu
+document.getElementById('moreMenu').addEventListener('keydown', function(e) {
+    var items = Array.from(this.querySelectorAll('[role="menuitem"]'));
+    var idx = items.indexOf(document.activeElement);
+    if (e.key === 'ArrowDown') { e.preventDefault(); items[(idx + 1) % items.length].focus(); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); items[(idx - 1 + items.length) % items.length].focus(); }
+    else if (e.key === 'Escape') { e.preventDefault(); closeMoreMenu(); document.querySelector('.gh-tab[data-tab="more"]').focus(); }
+    else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); document.activeElement.click(); }
+});
 
 function showSubTab(parentTab, subId) {
     const panel = document.getElementById('panel-' + parentTab);
@@ -1670,6 +1765,31 @@ document.addEventListener('keydown', e => {
     }
 });
 
+// ═══════════════════════════════════════════════════════════════════
+// ARROW KEY TAB NAVIGATION (Phase 5C — WAI-ARIA tabs pattern)
+// ═══════════════════════════════════════════════════════════════════
+document.getElementById('mainTabs').addEventListener('keydown', function(e) {
+    var primaryTabs = ['today', 'trays', 'growth', 'sales'];
+    var currentIdx = primaryTabs.indexOf(state.activeTab);
+    if (currentIdx === -1) currentIdx = 0;
+    var newIdx = -1;
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+        newIdx = (currentIdx + 1) % primaryTabs.length;
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+        newIdx = (currentIdx - 1 + primaryTabs.length) % primaryTabs.length;
+    } else if (e.key === 'Home') {
+        newIdx = 0;
+    } else if (e.key === 'End') {
+        newIdx = primaryTabs.length - 1;
+    }
+    if (newIdx >= 0) {
+        e.preventDefault();
+        showTab(primaryTabs[newIdx]);
+        var tabEl = document.querySelector('.gh-tab[data-tab="' + primaryTabs[newIdx] + '"]');
+        if (tabEl) tabEl.focus();
+    }
+});
+
 var _shortcutHelpVisible = false;
 function toggleShortcutHelp() {
     let el = document.getElementById('shortcutHelp');
@@ -1677,14 +1797,19 @@ function toggleShortcutHelp() {
         el = document.createElement('div');
         el.id = 'shortcutHelp';
         el.style.cssText = 'position:fixed;bottom:80px;right:20px;z-index:500;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.25rem;box-shadow:var(--shadow);min-width:220px;font-size:0.8rem;';
+        var kbdStyle = 'background:var(--bg-light);padding:2px 6px;border-radius:4px;font-family:monospace;font-size:0.75rem;color:var(--text-primary);';
         el.innerHTML = '<div style="font-weight:700;margin-bottom:0.5rem;color:var(--primary);">Keyboard Shortcuts</div>' +
             '<div style="display:grid;grid-template-columns:auto 1fr;gap:4px 12px;color:var(--text-secondary);">' +
-            '<kbd style="background:var(--bg-light);padding:2px 6px;border-radius:4px;font-family:monospace;font-size:0.75rem;color:var(--text-primary);">S</kbd><span>Mark next as sown</span>' +
-            '<kbd style="background:var(--bg-light);padding:2px 6px;border-radius:4px;font-family:monospace;font-size:0.75rem;color:var(--text-primary);">L</kbd><span>Print label</span>' +
-            '<kbd style="background:var(--bg-light);padding:2px 6px;border-radius:4px;font-family:monospace;font-size:0.75rem;color:var(--text-primary);">P</kbd><span>Print sowing sheet</span>' +
-            '<kbd style="background:var(--bg-light);padding:2px 6px;border-radius:4px;font-family:monospace;font-size:0.75rem;color:var(--text-primary);">1-4</kbd><span>Switch tabs</span>' +
-            '<kbd style="background:var(--bg-light);padding:2px 6px;border-radius:4px;font-family:monospace;font-size:0.75rem;color:var(--text-primary);">Esc</kbd><span>Close modal</span>' +
-            '<kbd style="background:var(--bg-light);padding:2px 6px;border-radius:4px;font-family:monospace;font-size:0.75rem;color:var(--text-primary);">?</kbd><span>Toggle this help</span>' +
+            '<kbd style="' + kbdStyle + '">S</kbd><span>Mark next as sown</span>' +
+            '<kbd style="' + kbdStyle + '">L</kbd><span>Print label</span>' +
+            '<kbd style="' + kbdStyle + '">P</kbd><span>Print sowing sheet</span>' +
+            '<kbd style="' + kbdStyle + '">1-4</kbd><span>Switch tabs</span>' +
+            '<kbd style="' + kbdStyle + '">←→</kbd><span>Navigate tabs</span>' +
+            '<kbd style="' + kbdStyle + '">Esc</kbd><span>Close modal/menu</span>' +
+            '<kbd style="' + kbdStyle + '">?</kbd><span>Toggle this help</span>' +
+            '</div>' +
+            '<div style="margin-top:0.75rem;padding-top:0.5rem;border-top:1px solid var(--border);">' +
+            '<button class="btn btn-outline btn-sm" style="width:100%;justify-content:center;min-height:36px;" onclick="replayOnboarding()"><i class="fas fa-play-circle"></i> Replay Tour</button>' +
             '</div>';
         document.body.appendChild(el);
     }
@@ -1768,9 +1893,16 @@ function nextOnboardingStep() {
 
 function skipOnboarding() {
     clearOnboardingHighlight();
-    const existing = document.getElementById('onboardingTooltip');
+    var existing = document.getElementById('onboardingTooltip');
     if (existing) existing.remove();
     localStorage.setItem('gh_onboarding_done', '1');
+}
+
+function replayOnboarding() {
+    localStorage.removeItem('gh_onboarding_done');
+    _onboardingStep = 0;
+    toggleShortcutHelp(); // Close help panel
+    startOnboarding();
 }
 
 function clearOnboardingHighlight() {
@@ -2165,7 +2297,8 @@ async function loadOperationsTab() {
         renderOpsSeedStatus(res.seed_status);
 
     } catch (err) {
-        document.getElementById('opsSchedule').innerHTML = '<div style="color:var(--danger);padding:1rem;">Error: ' + err.message + '</div>';
+        showErrorBanner('ops', 'Failed to load overview: ' + err.message, function() { loadOpsOverview(); });
+        document.getElementById('opsSchedule').innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Could not load schedule data.</p></div>';
     }
 }
 
@@ -2338,6 +2471,7 @@ function renderOpsSeedStatus(seeds) {
 // TAB 1: TODAY'S TASKS
 // ═══════════════════════════════════════════════════════════════════
 async function loadTodayTab(forceRefresh) {
+    hideErrorBanner('today');
     // Use cache if available (30s TTL)
     var cached = !forceRefresh && getCached('today');
     if (cached) {
@@ -2350,6 +2484,11 @@ async function loadTodayTab(forceRefresh) {
         renderTransplantTasks();
         return;
     }
+
+    // Show skeleton loading
+    document.getElementById('sowingTasks').innerHTML = renderSkeleton('card', 3);
+    document.getElementById('transplantTasks').innerHTML = renderSkeleton('card', 2);
+    document.getElementById('panel-today').setAttribute('aria-busy', 'true');
 
     try {
         const [sowRes, transRes, trayRes] = await Promise.all([
@@ -2370,13 +2509,16 @@ async function loadTodayTab(forceRefresh) {
         renderSowingTasks();
         renderTransplantTasks();
         updateSyncIndicator(true);
+        document.getElementById('panel-today').setAttribute('aria-busy', 'false');
 
         // Check seed procurement warnings (non-blocking)
         loadSeedWarnings();
     } catch (err) {
         console.error('Failed to load today tab:', err);
         updateSyncIndicator(false);
-        document.getElementById('sowingTasks').innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Failed to load sowing tasks. Check your connection and try again.</p><button class="btn btn-outline" onclick="loadTodayTab(true)"><i class="fas fa-redo"></i> Retry</button></div>';
+        document.getElementById('panel-today').setAttribute('aria-busy', 'false');
+        showErrorBanner('today', 'Failed to load tasks: ' + err.message, function() { loadTodayTab(true); });
+        document.getElementById('sowingTasks').innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Failed to load sowing tasks. Check your connection.</p></div>';
         document.getElementById('transplantTasks').innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Failed to load transplant tasks.</p></div>';
     }
 }
@@ -2461,7 +2603,9 @@ function updateMorningProgress() {
 
     const pct = Math.round((totalDone / totalTasks) * 100);
     document.getElementById('progressPct').textContent = pct + '%';
-    document.getElementById('progressFill').style.width = pct + '%';
+    var fillEl = document.getElementById('progressFill');
+    fillEl.style.width = pct + '%';
+    fillEl.classList.toggle('complete', pct >= 100);
     document.getElementById('progressDetail').textContent =
         totalDone + ' of ' + totalTasks + ' tasks complete' +
         (doneSow > 0 ? ' (' + doneSow + ' sown' : ' (') +
@@ -2490,7 +2634,7 @@ function renderSowingTasks() {
     }
 
     if (!upcomingTasks.length) {
-        container.innerHTML = '<div class="empty-state"><i class="fas fa-check-circle"></i><p>No sowing tasks pending. Great work!</p></div>';
+        container.innerHTML = '<div class="empty-state"><i class="fas fa-seedling"></i><h3>All caught up!</h3><p>No sowing tasks pending for this period.</p><button class="btn btn-outline" onclick="showTab(\'trays\')"><i class="fas fa-th"></i> View Inventory</button></div>';
         return;
     }
 
@@ -2557,13 +2701,13 @@ function renderSowingCard(t) {
         </div>
         <div style="display:flex;gap:4px;flex-wrap:wrap;margin:6px 0;font-size:0.75rem;">${readinessItems.join(' ')}</div>
         <div class="card-actions">
-            <button class="btn-action btn-label" onclick="event.stopPropagation(); printCardLabel('${esc(t.batchId)}')" title="Print tray label">
+            <button class="btn-action btn-label" onclick="event.stopPropagation(); printCardLabel('${esc(t.batchId)}')" title="Print tray label (L)">
                 <i class="fas fa-tag"></i> Label
             </button>
-            <button class="btn-action btn-sheet" onclick="event.stopPropagation(); printCardSheet()" title="Print task sheet">
+            <button class="btn-action btn-sheet" onclick="event.stopPropagation(); printCardSheet()" title="Print task sheet (P)">
                 <i class="fas fa-clipboard-list"></i> Sheet
             </button>
-            <button class="btn-action btn-done" onclick="markSown('${esc(t.batchId)}')">
+            <button class="btn-action btn-done" onclick="markSown('${esc(t.batchId)}')" title="Mark as sown (S)">
                 <i class="fas fa-check"></i> Done
             </button>
         </div>
@@ -2829,6 +2973,7 @@ async function bulkMarkSown(section) {
 // TAB 2: TRAY INVENTORY
 // ═══════════════════════════════════════════════════════════════════
 async function loadTrayInventory() {
+    hideErrorBanner('trays');
     var cached = getCached('trays');
     if (cached) {
         state.trays = cached;
@@ -2837,6 +2982,8 @@ async function loadTrayInventory() {
         populateTrayCropFilter();
         return;
     }
+    document.getElementById('trayTableBody').innerHTML = '<tr><td colspan="9">' + renderSkeleton('row', 5) + '</td></tr>';
+    document.getElementById('panel-trays').setAttribute('aria-busy', 'true');
     try {
         const res = await api.get('getTrayInventory');
         state.trays = (res && res.trays) ? res.trays : [];
@@ -2844,9 +2991,12 @@ async function loadTrayInventory() {
         renderTrayStats();
         renderTrayTable(state.trays);
         populateTrayCropFilter();
+        document.getElementById('panel-trays').setAttribute('aria-busy', 'false');
     } catch (err) {
         console.error(err);
-        document.getElementById('trayTableBody').innerHTML = '<tr><td colspan="9"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Failed to load tray inventory.</p><button class="btn btn-outline" onclick="invalidateCache(\'trays\');loadTrayInventory()"><i class="fas fa-redo"></i> Retry</button></div></td></tr>';
+        document.getElementById('panel-trays').setAttribute('aria-busy', 'false');
+        showErrorBanner('trays', 'Failed to load tray inventory: ' + err.message, function() { invalidateCache('trays'); loadTrayInventory(); });
+        document.getElementById('trayTableBody').innerHTML = '<tr><td colspan="9"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Could not load inventory data.</p></div></td></tr>';
     }
 }
 
@@ -2861,7 +3011,7 @@ function renderTrayStats() {
 function renderTrayTable(trays) {
     const tbody = document.getElementById('trayTableBody');
     if (!trays.length) {
-        tbody.innerHTML = '<tr><td colspan="9"><div class="empty-state"><i class="fas fa-th"></i><p>No trays in inventory. Add a tray to get started.</p></div></td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9"><div class="empty-state"><i class="fas fa-box-open"></i><h3>No trays yet</h3><p>Add your first tray to start tracking your greenhouse inventory.</p><button class="btn btn-primary" onclick="openModal(\'addTrayModal\')"><i class="fas fa-plus"></i> Add Tray</button></div></td></tr>';
         return;
     }
     tbody.innerHTML = trays.map(t => {
@@ -2960,14 +3110,18 @@ async function loadGrowthData() {
         container.innerHTML = '<div class="empty-state"><i class="fas fa-chart-line"></i><p>Select a batch above to view its growth timeline.</p></div>';
         return;
     }
-    container.innerHTML = '<div class="loading-spinner"><i class="fas fa-spinner"></i> Loading growth data...</div>';
+    container.innerHTML = renderSkeleton('row', 4);
+    document.getElementById('panel-growth').setAttribute('aria-busy', 'true');
     try {
         const res = await api.get('getGrowthTracking', { batchId });
         const stages = (res && res.stages) ? res.stages : (res && res.data) ? res.data : [];
         renderGrowthTimeline(stages, batchId);
+        document.getElementById('panel-growth').setAttribute('aria-busy', 'false');
     } catch (err) {
         console.error(err);
-        container.innerHTML = '<div class="empty-state"><i class="fas fa-info-circle"></i><p>No growth tracking data yet for this batch. Log an observation to start tracking.</p></div>';
+        document.getElementById('panel-growth').setAttribute('aria-busy', 'false');
+        showErrorBanner('growth', 'Failed to load growth data: ' + err.message, function() { loadGrowthData(); });
+        container.innerHTML = '<div class="empty-state"><i class="fas fa-info-circle"></i><p>No growth tracking data yet for this batch.</p></div>';
     }
 }
 
@@ -3070,7 +3224,8 @@ async function loadProductionPlan() {
         populateVarietySelects();
     } catch (err) {
         console.error('loadProductionPlan error:', err);
-        document.getElementById('prodPlanBody').innerHTML = '<tr><td colspan="11"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Failed to load production plan.</p><button class="btn btn-outline btn-sm" onclick="loadProductionPlan()"><i class="fas fa-redo"></i> Retry</button></div></td></tr>';
+        showErrorBanner('sales', 'Failed to load production plan: ' + err.message, function() { loadProductionPlan(); });
+        document.getElementById('prodPlanBody').innerHTML = '<tr><td colspan="11"><div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Could not load production plan.</p></div></td></tr>';
     }
 }
 
@@ -3254,6 +3409,7 @@ async function loadSalesTracker() {
         renderSalesTracker();
     } catch (err) {
         console.error('loadSalesTracker error:', err);
+        showErrorBanner('sales', 'Failed to load sales data: ' + err.message, function() { loadSalesTracker(); });
         state.salesLog = [];
         renderSalesTracker();
     }
@@ -3420,7 +3576,7 @@ state.s2sFiltered = [];
 
 async function loadSeedToSaleList() {
     var listEl = document.getElementById('s2sList');
-    listEl.innerHTML = '<div class="loading-spinner"><i class="fas fa-spinner"></i> Loading production items...</div>';
+    listEl.innerHTML = renderSkeleton('row', 5);
     try {
         var res = await api.get('getSeedlingProductionPlan', { year: new Date().getFullYear() });
         var items = (res && res.data) ? res.data : (res && res.rows) ? res.rows : (res && res.items) ? res.items : [];
@@ -3486,7 +3642,7 @@ async function openSeedToSaleDetail(itemId) {
     detailEl.style.display = 'block';
     document.getElementById('s2sDetailTitle').textContent = 'Loading...';
     document.getElementById('s2sStatusBadges').innerHTML = '';
-    document.getElementById('s2sTimeline').innerHTML = '<div class="loading-spinner"><i class="fas fa-spinner"></i> Loading timeline...</div>';
+    document.getElementById('s2sTimeline').innerHTML = renderSkeleton('row', 4);
     document.getElementById('s2sSeedInfo').style.display = 'none';
 
     try {
@@ -3624,7 +3780,7 @@ function closeSeedToSaleDetail() {
 // ═══════════════════════════════════════════════════════════════════
 async function showReport(type) {
     const container = document.getElementById('reportContent');
-    container.innerHTML = '<div class="loading-spinner"><i class="fas fa-spinner"></i> Generating report...</div>';
+    container.innerHTML = renderSkeleton('row', 6);
 
     try {
         if (type === 'germination') await renderGerminationReport(container);
@@ -3633,7 +3789,8 @@ async function showReport(type) {
         else if (type === 'revenue') await renderRevenueReport(container);
         else if (type === 'accuracy') await renderAccuracyReport(container);
     } catch (err) {
-        container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Failed to generate report: ' + esc(err.message) + '</p></div>';
+        showErrorBanner('reports', 'Failed to generate report: ' + err.message, function() { showReport(type); });
+        container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Report generation failed.</p></div>';
     }
 }
 
