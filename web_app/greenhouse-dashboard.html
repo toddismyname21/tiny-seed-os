@@ -660,7 +660,10 @@
     <div id="overdueSection" style="display:none; margin-bottom:1.25rem;">
         <div class="section-header" style="border-left:3px solid var(--danger);padding-left:0.75rem;">
             <h2 style="color:var(--danger);"><i class="fas fa-exclamation-triangle"></i> Overdue</h2>
-            <span class="badge" id="overdueCount" style="background:var(--danger);">0</span>
+            <div style="display:flex;align-items:center;gap:0.5rem;">
+                <span class="badge" id="overdueCount" style="background:var(--danger);">0</span>
+                <button class="btn btn-outline btn-sm" onclick="bulkMarkSown('overdue')" title="Mark all overdue as sown" style="border-color:var(--danger);color:var(--danger);"><i class="fas fa-check-double"></i> Mark All Sown</button>
+            </div>
         </div>
         <div class="task-grid" id="overdueTasks"></div>
     </div>
@@ -1407,10 +1410,43 @@ function showSubTab(parentTab, subId) {
 // MODAL
 // ═══════════════════════════════════════════════════════════════════
 function openModal(id) {
-    document.getElementById(id).classList.add('open');
+    const modal = document.getElementById(id);
+    modal.classList.add('open');
     populateBatchSelects();
+    // Focus first focusable element inside modal
+    requestAnimationFrame(() => {
+        const focusable = modal.querySelectorAll('input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled])');
+        if (focusable.length) focusable[0].focus();
+    });
+    // Store the element that opened the modal for focus restoration
+    modal._triggerEl = document.activeElement;
 }
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function closeModal(id) {
+    const modal = document.getElementById(id);
+    modal.classList.remove('open');
+    // Restore focus to the element that triggered the modal
+    if (modal._triggerEl && typeof modal._triggerEl.focus === 'function') {
+        modal._triggerEl.focus();
+    }
+}
+
+// Focus trap — keep Tab cycling inside open modals
+document.addEventListener('keydown', e => {
+    if (e.key !== 'Tab') return;
+    const openModal = document.querySelector('.modal-overlay.open');
+    if (!openModal) return;
+    const focusable = openModal.querySelectorAll('input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled])');
+    if (focusable.length === 0) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+        last.focus();
+        e.preventDefault();
+    } else if (!e.shiftKey && document.activeElement === last) {
+        first.focus();
+        e.preventDefault();
+    }
+});
 
 // Close modal on overlay click
 document.addEventListener('click', e => {
@@ -2170,6 +2206,52 @@ async function markTransplanted(batchId) {
             toast('Failed to record transplant: ' + err.message, 'error');
         }
     }, 5000);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// BULK MARK ALL SOWN (Phase 2)
+// ═══════════════════════════════════════════════════════════════════
+async function bulkMarkSown(section) {
+    const tasks = state.sowingTasks.filter(t => !t.completed);
+    let toMark;
+    if (section === 'overdue') {
+        toMark = tasks.filter(t => urgencyClass(t.sowDate || t.plannedDate) === 'overdue');
+    } else {
+        toMark = tasks.filter(t => urgencyClass(t.sowDate || t.plannedDate) !== 'overdue');
+    }
+    if (!toMark.length) { toast('No tasks to mark', 'info'); return; }
+
+    const count = toMark.length;
+    const label = section === 'overdue' ? count + ' overdue' : count + ' sowing';
+    if (!confirm('Mark ' + label + ' task' + (count > 1 ? 's' : '') + ' as sown today? (No seed lot will be assigned)')) return;
+
+    // Optimistic UI — mark all completed locally
+    const origStates = toMark.map(t => ({ batchId: t.batchId, completed: t.completed }));
+    toMark.forEach(t => { t.completed = true; });
+    renderSowingTasks();
+    renderTodayStats();
+    updateMorningProgress();
+
+    toast('Marking ' + count + ' tasks as sown...', 'success');
+
+    // Send to server
+    let failCount = 0;
+    for (const t of toMark) {
+        try {
+            await api.post('recordSeedingDate', { batchId: t.batchId, type: 'ghSow', actualDate: todayStr() });
+            await api.post('updateTaskCompletion', { batchId: t.batchId, taskType: 'sowing', completed: true });
+        } catch (err) {
+            console.error('Bulk sow failed for ' + t.batchId, err);
+            failCount++;
+        }
+    }
+
+    if (failCount > 0) {
+        toast(failCount + ' of ' + count + ' failed — reload to check', 'error');
+    } else {
+        toast('All ' + count + ' tasks marked as sown!', 'success');
+    }
+    loadTodayTab();
 }
 
 // ═══════════════════════════════════════════════════════════════════
