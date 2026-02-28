@@ -2383,7 +2383,7 @@
 
         function executePrintUL247PotTags() {
             const labelsToprint = labels.filter(l => selectedLabels.has(l.labelId));
-            const printWindow = window.open('', '_blank', 'width=400,height=800');
+            const printWindow = window.open('', '_blank', 'width=500,height=800');
 
             let printContent = `
                 <!DOCTYPE html>
@@ -2466,7 +2466,83 @@
                             color: #bbb;
                             padding-top: 0.02in;
                         }
-                        /* Screen preview mode */
+                        /* Setup guide - visible on screen, hidden when printing */
+                        .print-setup {
+                            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                            background: #1a1a2e;
+                            color: #e0e0e0;
+                            padding: 24px;
+                            margin-bottom: 20px;
+                            border-radius: 12px;
+                        }
+                        .print-setup h2 {
+                            color: #4ade80;
+                            font-size: 18px;
+                            margin-bottom: 16px;
+                        }
+                        .setup-steps {
+                            display: flex;
+                            flex-direction: column;
+                            gap: 12px;
+                        }
+                        .setup-step {
+                            display: flex;
+                            gap: 12px;
+                            align-items: flex-start;
+                            background: rgba(255,255,255,0.05);
+                            padding: 12px;
+                            border-radius: 8px;
+                            border-left: 3px solid #4ade80;
+                        }
+                        .step-num {
+                            background: #4ade80;
+                            color: #1a1a2e;
+                            font-weight: 800;
+                            width: 28px;
+                            height: 28px;
+                            border-radius: 50%;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            flex-shrink: 0;
+                            font-size: 14px;
+                        }
+                        .step-text {
+                            font-size: 13px;
+                            line-height: 1.4;
+                        }
+                        .step-text strong { color: #fbbf24; }
+                        .step-text code {
+                            background: rgba(255,255,255,0.1);
+                            padding: 1px 5px;
+                            border-radius: 3px;
+                            font-size: 12px;
+                        }
+                        .print-btn-row {
+                            text-align: center;
+                            margin-top: 20px;
+                        }
+                        .print-btn {
+                            background: #4ade80;
+                            color: #1a1a2e;
+                            border: none;
+                            padding: 14px 40px;
+                            font-size: 16px;
+                            font-weight: 800;
+                            border-radius: 8px;
+                            cursor: pointer;
+                            letter-spacing: 0.5px;
+                        }
+                        .print-btn:hover { background: #22c55e; }
+                        .label-size-ref {
+                            text-align: center;
+                            color: #888;
+                            font-size: 12px;
+                            margin: 8px 0 4px;
+                        }
+                        @media print {
+                            .print-setup, .label-size-ref { display: none !important; }
+                        }
                         @media screen {
                             body { background: #e0e0e0; padding: 20px; }
                             .tag {
@@ -2480,6 +2556,52 @@
                     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"><\/script>
                 </head>
                 <body>
+                    <div class="print-setup" id="printSetup">
+                        <h2>Pot Tags &mdash; 1&Prime; &times; 4.5&Prime;</h2>
+                        <div class="setup-steps" id="setupSteps"></div>
+                        <div class="print-btn-row">
+                            <button class="print-btn" onclick="window.print()">Open Print Dialog</button>
+                        </div>
+                    </div>
+                    <div class="label-size-ref">Tags below are shown at actual size (1&Prime; &times; 4.5&Prime;):</div>
+                    <script>
+                    (function() {
+                        var isMac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+                        var isWin = /Win/.test(navigator.platform || navigator.userAgent);
+                        var steps = document.getElementById('setupSteps');
+                        var s1 = '<div class="setup-step"><div class="step-num">1</div><div class="step-text">'
+                            + 'When the print dialog opens, set <strong>Printer</strong> to your thermal label printer (UL-247 / Zebra / etc).'
+                            + '</div></div>';
+                        var s2mac = '<div class="setup-step"><div class="step-num">2</div><div class="step-text">'
+                            + 'Set <strong>Paper Size</strong> to <code>1&quot; &times; 4.5&quot;</code>.<br>'
+                            + 'If not listed: select <strong>&ldquo;Manage Custom Sizes...&rdquo;</strong> at the bottom of the Paper Size dropdown '
+                            + '&rarr; click <strong>+</strong> &rarr; Width = <code>1.00 in</code>, Height = <code>4.50 in</code>, all margins = <code>0</code> '
+                            + '&rarr; name it <code>1x4.5 Pot Tag</code> &rarr; <strong>OK</strong>. Then select it.'
+                            + '</div></div>';
+                        var s2win = '<div class="setup-step"><div class="step-num">2</div><div class="step-text">'
+                            + 'Set <strong>Paper Size</strong> to <code>1&quot; &times; 4.5&quot;</code>.<br>'
+                            + 'If not listed: click <strong>&ldquo;More settings&rdquo;</strong> in the print dialog &rarr; look for Paper size. '
+                            + 'If still missing, open <strong>Settings &rarr; Printers &amp; scanners</strong> &rarr; select your printer &rarr; <strong>Printing preferences</strong> '
+                            + '&rarr; <strong>Paper/Quality</strong> or <strong>Advanced</strong> &rarr; set Paper Size to a custom <code>1.00 x 4.50 in</code>. '
+                            + 'Save, then retry printing.'
+                            + '</div></div>';
+                        var s2both = '<div class="setup-step"><div class="step-num">2</div><div class="step-text">'
+                            + 'Set <strong>Paper Size</strong> to <code>1&quot; &times; 4.5&quot;</code>.<br>'
+                            + '<strong>Mac:</strong> Select <strong>&ldquo;Manage Custom Sizes...&rdquo;</strong> at bottom of Paper Size dropdown '
+                            + '&rarr; <strong>+</strong> &rarr; 1.00&times;4.50 in, margins 0 &rarr; name <code>1x4.5 Pot Tag</code>.<br>'
+                            + '<strong>Windows:</strong> Click <strong>&ldquo;More settings&rdquo;</strong> &rarr; Paper size. '
+                            + 'If missing, open <strong>Settings &rarr; Printers &amp; scanners &rarr; Printing preferences &rarr; Advanced</strong> &rarr; custom size 1.00 x 4.50 in.'
+                            + '</div></div>';
+                        var s3 = '<div class="setup-step"><div class="step-num">3</div><div class="step-text">'
+                            + 'Set <strong>Margins</strong> to <code>None</code> and <strong>Scale</strong> to <code>100%</code> (not &ldquo;Fit to page&rdquo;).'
+                            + '</div></div>';
+                        var s4 = '<div class="setup-step"><div class="step-num">4</div><div class="step-text">'
+                            + 'Click <strong>Print</strong>. Each tag prints on one 1&Prime;&times;4.5&Prime; stake. ${labelsToprint.length} total.'
+                            + '</div></div>';
+                        var s2 = isMac ? s2mac : (isWin ? s2win : s2both);
+                        steps.innerHTML = s1 + s2 + s3 + s4;
+                    })();
+                    <\/script>
             `;
 
             labelsToprint.forEach((label, index) => {
@@ -2516,7 +2638,6 @@
                                     });
                                 }
                             });
-                            setTimeout(function() { window.print(); }, 500);
                         };
                     <\/script>
                 </body>
@@ -2526,12 +2647,11 @@
             printWindow.document.write(printContent);
             printWindow.document.close();
             closePrintPreview();
-            showToast('Printing ' + labelsToprint.length + ' pot tags to UL-247...');
         }
 
         function executePrintUL247FieldTray() {
             const labelsToprint = labels.filter(l => selectedLabels.has(l.labelId));
-            const printWindow = window.open('', '_blank', 'width=600,height=400');
+            const printWindow = window.open('', '_blank', 'width=700,height=700');
 
             let printContent = `
                 <!DOCTYPE html>
@@ -2615,7 +2735,83 @@
                             font-size: 7pt;
                             color: #555;
                         }
-                        /* Screen preview mode */
+                        /* Setup guide - visible on screen, hidden when printing */
+                        .print-setup {
+                            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                            background: #1a1a2e;
+                            color: #e0e0e0;
+                            padding: 24px;
+                            margin-bottom: 20px;
+                            border-radius: 12px;
+                        }
+                        .print-setup h2 {
+                            color: #4ade80;
+                            font-size: 18px;
+                            margin-bottom: 16px;
+                        }
+                        .setup-steps {
+                            display: flex;
+                            flex-direction: column;
+                            gap: 12px;
+                        }
+                        .setup-step {
+                            display: flex;
+                            gap: 12px;
+                            align-items: flex-start;
+                            background: rgba(255,255,255,0.05);
+                            padding: 12px;
+                            border-radius: 8px;
+                            border-left: 3px solid #4ade80;
+                        }
+                        .step-num {
+                            background: #4ade80;
+                            color: #1a1a2e;
+                            font-weight: 800;
+                            width: 28px;
+                            height: 28px;
+                            border-radius: 50%;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            flex-shrink: 0;
+                            font-size: 14px;
+                        }
+                        .step-text {
+                            font-size: 13px;
+                            line-height: 1.4;
+                        }
+                        .step-text strong { color: #fbbf24; }
+                        .step-text code {
+                            background: rgba(255,255,255,0.1);
+                            padding: 1px 5px;
+                            border-radius: 3px;
+                            font-size: 12px;
+                        }
+                        .print-btn-row {
+                            text-align: center;
+                            margin-top: 20px;
+                        }
+                        .print-btn {
+                            background: #4ade80;
+                            color: #1a1a2e;
+                            border: none;
+                            padding: 14px 40px;
+                            font-size: 16px;
+                            font-weight: 800;
+                            border-radius: 8px;
+                            cursor: pointer;
+                            letter-spacing: 0.5px;
+                        }
+                        .print-btn:hover { background: #22c55e; }
+                        .label-size-ref {
+                            text-align: center;
+                            color: #888;
+                            font-size: 12px;
+                            margin: 8px 0 4px;
+                        }
+                        @media print {
+                            .print-setup, .label-size-ref { display: none !important; }
+                        }
                         @media screen {
                             body { background: #e0e0e0; padding: 20px; }
                             .label {
@@ -2629,6 +2825,52 @@
                     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"><\/script>
                 </head>
                 <body>
+                    <div class="print-setup" id="printSetup">
+                        <h2>Field Tray Labels &mdash; 4&Prime; &times; 1&Prime;</h2>
+                        <div class="setup-steps" id="setupSteps"></div>
+                        <div class="print-btn-row">
+                            <button class="print-btn" onclick="window.print()">Open Print Dialog</button>
+                        </div>
+                    </div>
+                    <div class="label-size-ref">Labels below are shown at actual size (4&Prime; &times; 1&Prime;):</div>
+                    <script>
+                    (function() {
+                        var isMac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+                        var isWin = /Win/.test(navigator.platform || navigator.userAgent);
+                        var steps = document.getElementById('setupSteps');
+                        var s1 = '<div class="setup-step"><div class="step-num">1</div><div class="step-text">'
+                            + 'When the print dialog opens, set <strong>Printer</strong> to your thermal label printer (UL-247 / Rollo / DYMO / Zebra / etc).'
+                            + '</div></div>';
+                        var s2mac = '<div class="setup-step"><div class="step-num">2</div><div class="step-text">'
+                            + 'Set <strong>Paper Size</strong> to <code>4&quot; &times; 1&quot;</code>.<br>'
+                            + 'If not listed: select <strong>&ldquo;Manage Custom Sizes...&rdquo;</strong> at the bottom of the Paper Size dropdown '
+                            + '&rarr; click <strong>+</strong> &rarr; Width = <code>4.00 in</code>, Height = <code>1.00 in</code>, all margins = <code>0</code> '
+                            + '&rarr; name it <code>4x1 Field Tray</code> &rarr; <strong>OK</strong>. Then select it.'
+                            + '</div></div>';
+                        var s2win = '<div class="setup-step"><div class="step-num">2</div><div class="step-text">'
+                            + 'Set <strong>Paper Size</strong> to <code>4&quot; &times; 1&quot;</code>.<br>'
+                            + 'If not listed: click <strong>&ldquo;More settings&rdquo;</strong> in the print dialog &rarr; look for Paper size. '
+                            + 'If still missing, open <strong>Settings &rarr; Printers &amp; scanners</strong> &rarr; select your printer &rarr; <strong>Printing preferences</strong> '
+                            + '&rarr; <strong>Paper/Quality</strong> or <strong>Advanced</strong> &rarr; set Paper Size to a custom <code>4.00 x 1.00 in</code>. '
+                            + 'Save, then retry printing.'
+                            + '</div></div>';
+                        var s2both = '<div class="setup-step"><div class="step-num">2</div><div class="step-text">'
+                            + 'Set <strong>Paper Size</strong> to <code>4&quot; &times; 1&quot;</code>.<br>'
+                            + '<strong>Mac:</strong> Select <strong>&ldquo;Manage Custom Sizes...&rdquo;</strong> at bottom of Paper Size dropdown '
+                            + '&rarr; <strong>+</strong> &rarr; 4.00&times;1.00 in, margins 0 &rarr; name <code>4x1 Field Tray</code>.<br>'
+                            + '<strong>Windows:</strong> Click <strong>&ldquo;More settings&rdquo;</strong> &rarr; Paper size. '
+                            + 'If missing, open <strong>Settings &rarr; Printers &amp; scanners &rarr; Printing preferences &rarr; Advanced</strong> &rarr; custom size 4.00 x 1.00 in.'
+                            + '</div></div>';
+                        var s3 = '<div class="setup-step"><div class="step-num">3</div><div class="step-text">'
+                            + 'Set <strong>Margins</strong> to <code>None</code> and <strong>Scale</strong> to <code>100%</code> (not &ldquo;Fit to page&rdquo;).'
+                            + '</div></div>';
+                        var s4 = '<div class="setup-step"><div class="step-num">4</div><div class="step-text">'
+                            + 'Click <strong>Print</strong>. Each label prints on one 4&Prime;&times;1&Prime; sticker. ${labelsToprint.length} total.'
+                            + '</div></div>';
+                        var s2 = isMac ? s2mac : (isWin ? s2win : s2both);
+                        steps.innerHTML = s1 + s2 + s3 + s4;
+                    })();
+                    <\/script>
             `;
 
             labelsToprint.forEach((label, index) => {
@@ -2671,7 +2913,6 @@
                                     });
                                 }
                             });
-                            setTimeout(function() { window.print(); }, 500);
                         };
                     <\/script>
                 </body>
@@ -2681,7 +2922,6 @@
             printWindow.document.write(printContent);
             printWindow.document.close();
             closePrintPreview();
-            showToast('Printing ' + labelsToprint.length + ' tray labels to UL-247...');
         }
 
         // Override openPrintPreview to show appropriate preview for thermal labels
@@ -2702,22 +2942,18 @@
                 document.getElementById('printPreviewBody').innerHTML = `
                     <div style="text-align: center; padding: 2rem; color: #333;">
                         <i class="fas fa-print" style="font-size: 3rem; color: var(--primary); margin-bottom: 1rem;"></i>
-                        <h3 style="margin-bottom: 0.5rem;">UL-247 Thermal Printer</h3>
+                        <h3 style="margin-bottom: 0.5rem;">Thermal Label Printing</h3>
                         <p style="margin-bottom: 1rem; color: #666;">
                             ${labelsToprint.length} ${printerName} (${dimensions} each)
                         </p>
-                        <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 1rem; margin: 1rem auto; max-width: 400px;">
-                            <strong style="color: #856404;">Printer Setup:</strong>
-                            <ol style="text-align: left; margin-top: 0.5rem; padding-left: 1.5rem; color: #856404; font-size: 0.9rem;">
-                                <li>Load ${printerName.split(' ')[0]} media in UL-247</li>
-                                <li>Select "UL-247" as your printer in the dialog</li>
-                                <li>Set paper size to ${dimensions} (create custom size in printer driver if needed)</li>
-                                <li>Set margins to "None" and scaling to 100%</li>
-                                <li>Use "Print using system dialog" for best results</li>
-                            </ol>
+                        <div style="background: #e8f5e9; border: 1px solid #4caf50; border-radius: 8px; padding: 1rem; margin: 1rem auto; max-width: 420px; text-align: left;">
+                            <strong style="color: #2e7d32;">What happens next:</strong>
+                            <p style="margin-top: 0.5rem; font-size: 0.9rem; color: #333; line-height: 1.5;">
+                                A new window will open with your labels and <strong>step-by-step instructions</strong> for setting up the printer correctly. Follow the numbered steps to create a custom paper size (${dimensions}) if you haven't already.
+                            </p>
                         </div>
-                        <p style="font-size: 0.85rem; color: #888;">
-                            Each label prints as a separate page at ${dimensions}.
+                        <p style="font-size: 0.85rem; color: #888; margin-top: 1rem;">
+                            You only need to create the custom paper size once — it saves for future prints.
                         </p>
                     </div>
                 `;
