@@ -1412,6 +1412,8 @@ document.addEventListener('DOMContentLoaded', () => {
     loadTodayTab();
     startAutoRefresh();
     setupGermCalc();
+    // Start onboarding after data loads (delayed to ensure cards render)
+    setTimeout(startOnboarding, 2000);
 });
 
 function setDefaultDates() {
@@ -1544,6 +1546,162 @@ document.addEventListener('keydown', e => {
         }
     }
 });
+
+// ═══════════════════════════════════════════════════════════════════
+// KEYBOARD SHORTCUTS (Phase 3 — power user efficiency)
+// ═══════════════════════════════════════════════════════════════════
+document.addEventListener('keydown', e => {
+    // Skip if user is typing in an input/textarea/select, or a modal is open
+    const tag = (e.target.tagName || '').toLowerCase();
+    if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+    if (document.querySelector('.modal-overlay.open')) return;
+
+    // ? = show shortcut help
+    if (e.key === '?' && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        toggleShortcutHelp();
+        return;
+    }
+    // s = mark first incomplete sowing task as sown
+    if (e.key === 's' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        if (state.activeTab !== 'today') return;
+        const firstIncomplete = state.sowingTasks.find(t => !t.completed);
+        if (firstIncomplete) { markSown(firstIncomplete.batchId); e.preventDefault(); }
+        return;
+    }
+    // p = open sowing sheet preview (print)
+    if (e.key === 'p' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        if (state.activeTab !== 'today') return;
+        showSheetPreviewModal();
+        e.preventDefault();
+        return;
+    }
+    // l = open label preview for first incomplete task
+    if (e.key === 'l' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        if (state.activeTab !== 'today') return;
+        const firstIncomplete = state.sowingTasks.find(t => !t.completed);
+        if (firstIncomplete) { printCardLabel(firstIncomplete.batchId); e.preventDefault(); }
+        return;
+    }
+    // 1-4 = switch primary tabs
+    if (e.key >= '1' && e.key <= '4' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        const tabs = ['today', 'trays', 'growth', 'sales'];
+        showTab(tabs[parseInt(e.key) - 1]);
+        e.preventDefault();
+        return;
+    }
+});
+
+var _shortcutHelpVisible = false;
+function toggleShortcutHelp() {
+    let el = document.getElementById('shortcutHelp');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'shortcutHelp';
+        el.style.cssText = 'position:fixed;bottom:80px;right:20px;z-index:500;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.25rem;box-shadow:var(--shadow);min-width:220px;font-size:0.8rem;';
+        el.innerHTML = '<div style="font-weight:700;margin-bottom:0.5rem;color:var(--primary);">Keyboard Shortcuts</div>' +
+            '<div style="display:grid;grid-template-columns:auto 1fr;gap:4px 12px;color:var(--text-secondary);">' +
+            '<kbd style="background:var(--bg-light);padding:2px 6px;border-radius:4px;font-family:monospace;font-size:0.75rem;color:var(--text-primary);">S</kbd><span>Mark next as sown</span>' +
+            '<kbd style="background:var(--bg-light);padding:2px 6px;border-radius:4px;font-family:monospace;font-size:0.75rem;color:var(--text-primary);">L</kbd><span>Print label</span>' +
+            '<kbd style="background:var(--bg-light);padding:2px 6px;border-radius:4px;font-family:monospace;font-size:0.75rem;color:var(--text-primary);">P</kbd><span>Print sowing sheet</span>' +
+            '<kbd style="background:var(--bg-light);padding:2px 6px;border-radius:4px;font-family:monospace;font-size:0.75rem;color:var(--text-primary);">1-4</kbd><span>Switch tabs</span>' +
+            '<kbd style="background:var(--bg-light);padding:2px 6px;border-radius:4px;font-family:monospace;font-size:0.75rem;color:var(--text-primary);">Esc</kbd><span>Close modal</span>' +
+            '<kbd style="background:var(--bg-light);padding:2px 6px;border-radius:4px;font-family:monospace;font-size:0.75rem;color:var(--text-primary);">?</kbd><span>Toggle this help</span>' +
+            '</div>';
+        document.body.appendChild(el);
+    }
+    _shortcutHelpVisible = !_shortcutHelpVisible;
+    el.style.display = _shortcutHelpVisible ? 'block' : 'none';
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ONBOARDING TOOLTIPS (Phase 3 — first-visit guidance)
+// ═══════════════════════════════════════════════════════════════════
+var _onboardingSteps = [
+    { target: '#panel-today .morning-progress', text: 'Track your morning progress here. The bar fills as you complete tasks.', position: 'bottom' },
+    { target: '.task-card .btn-done', text: 'Tap "Done" to mark a task as sown. You get 5 seconds to undo.', position: 'top' },
+    { target: '.task-card .btn-label', text: 'Print a tray label with QR code — right from the card. No page navigation.', position: 'top' },
+    { target: '.task-card .btn-sheet', text: 'View and print your sowing sheet — all from this one page.', position: 'top' },
+    { target: '#overdueSection', text: 'Overdue tasks appear here with a red border. Use "Mark All Sown" to batch-complete them.', position: 'bottom' }
+];
+var _onboardingStep = 0;
+
+function startOnboarding() {
+    if (localStorage.getItem('gh_onboarding_done') === '1') return;
+    _onboardingStep = 0;
+    showOnboardingStep();
+}
+
+function showOnboardingStep() {
+    // Remove existing tooltip
+    const existing = document.getElementById('onboardingTooltip');
+    if (existing) existing.remove();
+
+    if (_onboardingStep >= _onboardingSteps.length) {
+        localStorage.setItem('gh_onboarding_done', '1');
+        toast('You\'re all set! Press ? for keyboard shortcuts.', 'info');
+        return;
+    }
+
+    const step = _onboardingSteps[_onboardingStep];
+    const targetEl = document.querySelector(step.target);
+    if (!targetEl || targetEl.offsetParent === null) {
+        // Target not visible — skip
+        _onboardingStep++;
+        showOnboardingStep();
+        return;
+    }
+
+    const rect = targetEl.getBoundingClientRect();
+    const tooltip = document.createElement('div');
+    tooltip.id = 'onboardingTooltip';
+    tooltip.style.cssText = 'position:fixed;z-index:600;background:var(--bg-card);border:2px solid var(--primary);border-radius:var(--radius);padding:1rem;max-width:280px;box-shadow:0 8px 32px rgba(0,0,0,0.5);';
+
+    if (step.position === 'bottom') {
+        tooltip.style.top = (rect.bottom + 10) + 'px';
+        tooltip.style.left = Math.max(10, rect.left) + 'px';
+    } else {
+        tooltip.style.top = Math.max(10, rect.top - 120) + 'px';
+        tooltip.style.left = Math.max(10, rect.left) + 'px';
+    }
+
+    tooltip.innerHTML = '<div style="font-size:0.8rem;color:var(--text-primary);margin-bottom:0.75rem;">' + step.text + '</div>' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+        '<span style="font-size:0.7rem;color:var(--text-secondary);">' + (_onboardingStep + 1) + ' of ' + _onboardingSteps.length + '</span>' +
+        '<div style="display:flex;gap:0.5rem;">' +
+        '<button onclick="skipOnboarding()" style="background:none;border:none;color:var(--text-secondary);cursor:pointer;font-size:0.75rem;padding:4px 8px;">Skip</button>' +
+        '<button onclick="nextOnboardingStep()" style="background:var(--primary);color:#0a0a0f;border:none;border-radius:var(--radius-sm);padding:6px 14px;cursor:pointer;font-size:0.75rem;font-weight:600;">' +
+        (_onboardingStep < _onboardingSteps.length - 1 ? 'Next' : 'Done') + '</button>' +
+        '</div></div>';
+
+    // Highlight the target
+    targetEl.style.outline = '2px solid var(--primary)';
+    targetEl.style.outlineOffset = '4px';
+    targetEl.dataset.onboardHighlight = '1';
+
+    document.body.appendChild(tooltip);
+}
+
+function nextOnboardingStep() {
+    clearOnboardingHighlight();
+    _onboardingStep++;
+    showOnboardingStep();
+}
+
+function skipOnboarding() {
+    clearOnboardingHighlight();
+    const existing = document.getElementById('onboardingTooltip');
+    if (existing) existing.remove();
+    localStorage.setItem('gh_onboarding_done', '1');
+}
+
+function clearOnboardingHighlight() {
+    document.querySelectorAll('[data-onboard-highlight]').forEach(el => {
+        el.style.outline = '';
+        el.style.outlineOffset = '';
+        delete el.dataset.onboardHighlight;
+    });
+}
 
 // ═══════════════════════════════════════════════════════════════════
 // TOAST

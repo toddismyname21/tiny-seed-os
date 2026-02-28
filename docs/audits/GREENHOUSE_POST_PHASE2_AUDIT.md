@@ -10,15 +10,7 @@
 |-------|--------|-------------|
 | **Phase 0** | DEPLOYED | Default tab → Today's Tasks, "Operations" → "Overview", Escape key on modals, touch targets 44px |
 | **Phase 1** | DEPLOYED | Morning progress bar, card action buttons (Label/Sheet/Done), undo toast with countdown, Overview action cards, wholesale redirect, ARIA roles/labels on all tabs + modals + toast |
-| **Phase 2 (partial)** | DEPLOYED | Bulk "Mark All Sown" on overdue, modal focus traps (Tab/Shift+Tab cycling), auto-focus first input on modal open, focus restoration on modal close |
-
-### Phase 2 Remaining
-
-| # | Item | Status |
-|---|------|--------|
-| 11 | Embed label printing modal in dashboard | NOT STARTED |
-| 12 | Embed sowing sheet preview modal | NOT STARTED |
-| 15 | Restructure from 6 tabs to 4 tabs | NOT STARTED |
+| **Phase 2** | DEPLOYED | Bulk "Mark All Sown" on overdue, modal focus traps (Tab/Shift+Tab cycling), auto-focus first input on modal open, focus restoration on modal close, embedded tray label preview modal with QR codes, embedded sowing sheet preview modal, tab restructure from 6 to 4 primary tabs + overflow menu |
 
 ---
 
@@ -29,15 +21,15 @@
 | 1 | **Visibility of system status** | 4/10 | **7/10** | +3 | Morning progress bar shows "Today's Progress: X%" with animated fill. Undo toast displays countdown timer (5s). Optimistic UI instantly removes cards on Mark Sown. Bulk sow shows "Marking N tasks..." feedback. **Remaining:** Regular toast still 3.5s timeout, no persistent error banner. | 2 |
 | 2 | **Match between system and real world** | 6/10 | **7/10** | +1 | "Operations" → "Overview". Card buttons use farm language ("Done" not "Complete Task"). Action cards say "Start Sowing" not "Execute Sowing Operations". **Remaining:** Seed lot modal uses technical batch IDs. | 2 |
 | 3 | **User control and freedom** | 3/10 | **7/10** | +4 | Undo toast on Mark Sown (5s), Mark Transplanted (5s). Escape closes modals. Click overlay closes modals. Focus returns to trigger element. **Remaining:** Bulk mark has no undo (confirm-only). No breadcrumbs. | 2 |
-| 4 | **Consistency and standards** | 4/10 | **6/10** | +2 | Mark Sown now matches quick-seed pattern (optimistic UI + undo). Card action buttons consistent (Label/Sheet/Done on every task card). Sub-tabs have aria-selected. **Remaining:** 6 tabs still (not 4). Label/Sheet buttons open external pages, not embedded. | 3 |
+| 4 | **Consistency and standards** | 4/10 | **7/10** | +3 | Mark Sown matches quick-seed pattern (optimistic UI + undo). Card action buttons consistent (Label/Sheet/Done). Sub-tabs have aria-selected. Tab restructure: 4 primary tabs (was 6). Label/Sheet buttons now open embedded modals (no page navigation). | 2 |
 | 5 | **Error prevention** | 5/10 | **6/10** | +1 | Bulk mark requires confirm dialog. Undo prevents accidental single marks. Failed bulk ops report exact count. **Remaining:** Inline chips still save-on-blur. CSV import limited preview. | 2 |
-| 6 | **Recognition rather than recall** | 3/10 | **7/10** | +4 | Today's Tasks is DEFAULT — zero recall needed. Overview has 3 action cards (Start Sowing / Print Labels / Print Sheets). Each task card has Label/Sheet/Done buttons in-context. **Remaining:** Label/Sheet still navigate away. | 2 |
+| 6 | **Recognition rather than recall** | 3/10 | **8/10** | +5 | Today's Tasks is DEFAULT — zero recall needed. Overview has 3 action cards. Each task card has Label/Sheet/Done buttons. Label opens embedded QR preview modal. Sheet opens embedded sowing sheet modal. Zero page navigation needed for core morning loop. | 1 |
 | 7 | **Flexibility and efficiency of use** | 4/10 | **6/10** | +2 | Bulk "Mark All Sown" for overdue batch. Per-card action buttons skip navigation. Print button on section header. **Remaining:** No keyboard shortcuts. No bulk for non-overdue section. | 3 |
-| 8 | **Aesthetic and minimalist design** | 7/10 | **8/10** | +1 | Overview tab: action cards + collapsed stats (not wall of data). Progress bar adds focused info. Undo toast is minimal and centered. **Remaining:** 6 tabs create cognitive load. | 2 |
+| 8 | **Aesthetic and minimalist design** | 7/10 | **8/10** | +1 | Overview: action cards + collapsed stats. Progress bar adds focused info. Undo toast minimal and centered. Tab restructure: 4 primary + overflow = 33% less cognitive load. | 1 |
 | 9 | **Help users recover from errors** | 2/10 | **5/10** | +3 | Undo toast (5s window) on sow + transplant. Tray inventory retry button on API failure. Bulk failure shows "X of Y failed — reload to check". API errors caught and reverted. **Remaining:** No persistent error banner. Regular toast 3.5s is too short. No offline queuing. | 3 |
 | 10 | **Help and documentation** | 1/10 | **1/10** | 0 | NO CHANGE. Zero onboarding. Zero tooltips. Zero help text. Zero contextual guidance. This remains the biggest gap. | 4 |
 
-### Heuristic Average: 6.0/10 (was 3.9/10, improvement: +2.1)
+### Heuristic Average: 6.4/10 (was 3.9/10, improvement: +2.5)
 
 ---
 
@@ -82,11 +74,11 @@
 | "What do I sow today?" | 3 clicks / 1 page | **0 clicks** (auto-default) | 3 clicks eliminated |
 | "Mark tray as sown" | 4 clicks + modal / 1 page | **1 click (Done)** → modal → confirm → undo toast | ~2 clicks saved + recovery option |
 | "Mark all overdue sown" | Not possible | **1 click** (Mark All Sown) → confirm | NEW capability |
-| "Print today's labels" | 6+ clicks / 2 pages | **1 click** (Label on card) → labels.html | 3 clicks saved, still 2 pages |
-| "Print task sheets" | 5+ clicks / 2 pages | **1 click** (Print button) | 3 clicks saved, still leaves page |
-| "Full morning routine" | 12-18 clicks / 4 pages | **6-9 clicks / 2-3 pages** | ~50% reduction |
+| "Print today's labels" | 6+ clicks / 2 pages | **1 click** (Label on card) → embedded QR modal → Print | 5 clicks saved, **1 page** |
+| "Print task sheets" | 5+ clicks / 2 pages | **1 click** (Sheet on card or Print button) → embedded modal → Print | 4 clicks saved, **1 page** |
+| "Full morning routine" | 12-18 clicks / 4 pages | **4-6 clicks / 1 page** | ~70% reduction |
 
-**Task Completion Score: 6/10** (was 3/10, improvement: +3)
+**Task Completion Score: 7/10** (was 3/10, improvement: +4)
 
 ---
 
@@ -101,23 +93,15 @@ A new greenhouse employee opens this dashboard and sees a sophisticated dark UI 
 
 **Effort:** Medium | **Impact:** Transforms new user experience
 
-### CRITICAL #2: Label & Sheet Still External Pages (Heuristic #4 = 6/10)
-**Severity: 3/5 | Impact: Every morning routine**
+### RESOLVED #2: Label & Sheet Now Embedded (was Critical)
+**Status: FIXED in Phase 2 completion**
 
-Card buttons for "Label" and "Sheet" are a massive UX improvement over the old zero-button state. But they still navigate to `labels.html` and `sowing-sheets.html` — breaking context. The user leaves their task list, does a print action, and must navigate back. This is the #1 remaining friction in the morning routine.
+Label button now opens embedded tray label preview modal with QR codes (QuickChart.io). Sheet button opens embedded sowing sheet preview with printable table. Both modals include "Print" (new window) and "Full Page" (external fallback) buttons. **Zero page navigation required for core morning loop.**
 
-**Recommendation:** Embed label preview as a print-ready modal inside the dashboard. Reuse QR generation logic from labels.html. For sowing sheets, embed a simplified print-ready task card view.
+### RESOLVED #3: Tab Restructure Complete (was Critical)
+**Status: FIXED in Phase 2 completion**
 
-**Effort:** High | **Impact:** Eliminates the last page navigations from the core morning loop
-
-### CRITICAL #3: Still 6 Tabs (Heuristic #8 = 8/10)
-**Severity: 3/5 | Impact: Cognitive load on every visit**
-
-6 tabs + 5 sub-tabs in Sales = 11 navigation targets. Research consensus: 3-5 primary nav items maximum. Reports tab is rarely used (periodic, not daily). Consolidating to 4 tabs (Today, Inventory, Growth, Sales) with Reports in an overflow menu would reduce cognitive load by 33%.
-
-**Recommendation:** Merge Overview stats into Today's Tasks as collapsible header. Move Reports to overflow/More menu. Result: 4 tabs.
-
-**Effort:** Medium | **Impact:** Cleaner information architecture
+Tabs restructured from 6 to 4 primary: Today, Inventory, Growth, Sales. Overview and Reports moved to "More" overflow dropdown menu. Navigation targets reduced from 11 (6+5) to 9 (4+5). Primary cognitive load reduced by 33%.
 
 ---
 
@@ -128,7 +112,7 @@ Card buttons for "Label" and "Sheet" are a massive UX improvement over the old z
 
 The individual Mark Sown has undo (5s). The bulk "Mark All Sown" only has a confirm dialog — no undo. Add the same undo toast pattern: optimistically mark all, show undo toast, delay API calls by 5s.
 
-### QUICK WIN #2: Increase Detail Chip Touch Targets
+### QUICK WIN #2: Increase Detail Chip Touch Targets to 44px
 **Effort: 5 min | Impact: 5/10**
 
 Detail chips are still 36px (below WCAG 2.2's 48px ideal, below our 44px standard for buttons). Change `min-height:36px` → `min-height:44px` to match all other interactive elements.
@@ -136,7 +120,7 @@ Detail chips are still 36px (below WCAG 2.2's 48px ideal, below our 44px standar
 ### QUICK WIN #3: Add `aria-expanded` to Collapsible Sections
 **Effort: 15 min | Impact: 5/10**
 
-The Overview tab `<details>` element and seed warning banner expandable section lack `aria-expanded`. Add it for screen reader users to understand toggle state.
+The Overview tab `<details>` element and seed warning banner expandable section lack `aria-expanded`. Add for screen reader users.
 
 ---
 
@@ -144,15 +128,15 @@ The Overview tab `<details>` element and seed warning banner expandable section 
 
 | Category | Phase 0 Baseline | After Phase 0+1+2 | Change |
 |----------|-----------------|-------------------|--------|
-| Nielsen's Heuristics Average | 3.9/10 | **6.0/10** | **+2.1** |
-| Task Completion Efficiency | 3/10 | **6/10** | **+3** |
+| Nielsen's Heuristics Average | 3.9/10 | **6.4/10** | **+2.5** |
+| Task Completion Efficiency | 3/10 | **7/10** | **+4** |
 | Learnability | 3/10 | **6/10** | **+3** |
 | Memorability | 5/10 | **7/10** | **+2** |
 | Error Recovery | 2/10 | **5/10** | **+3** |
 | Accessibility (WCAG 2.2) | 2/10 | **5.5/10** | **+3.5** |
 | Mobile Responsiveness | 6/10 | **6/10** | **0** |
 | Visual Design | 7/10 | **8/10** | **+1** |
-| **OVERALL UX SCORE** | **47/100** | **66/100** | **+19 (+40%)** |
+| **OVERALL UX SCORE** | **47/100** | **71/100** | **+24 (+51%)** |
 
 ---
 
@@ -170,24 +154,24 @@ The Overview tab `<details>` element and seed warning banner expandable section 
 - Overview action cards: Dead-end tab → launchpad
 - ARIA labels: Accessibility from 2/10 → 4/10
 
-### Phase 2 Impact (Polish + Accessibility)
+### Phase 2 Impact (Embedded Modals + Restructure)
+- Embedded label preview modal: QR code + print from dashboard, zero page navigation (Heuristic #6: 7→8)
+- Embedded sowing sheet modal: Full task table + print, zero page navigation
+- Tab restructure 6→4: Reduced cognitive load 33% (Heuristic #8)
 - Bulk mark sown: Efficiency for power users (Heuristic #7: 4→6)
 - Focus traps: Critical accessibility (modal keyboard usability)
 - Focus management: Auto-focus + restoration = professional modal UX
 - ARIA completion: Accessibility from 4/10 → 5.5/10
+- **Core morning loop now achievable in 4-6 clicks on 1 page (was 12-18 clicks across 4 pages)**
 
 ---
 
-## Next Steps: Phase 2 Completion + Phase 3
+## Next Steps: Phase 3
 
-### Phase 2 Remaining (implement next)
-| # | Item | Effort | Impact |
-|---|------|--------|--------|
-| 11 | Embed label printing modal (reuse labels.html QR logic) | High | Eliminates 1 page navigation |
-| 12 | Embed sowing sheet preview modal | Medium | Eliminates 1 page navigation |
-| 15 | Restructure from 6 tabs to 4 tabs | Medium | Reduces cognitive load 33% |
+### Phase 2: COMPLETE
+All 5 Phase 2 items deployed: bulk mark sown, focus traps, embedded label modal, embedded sheet modal, tab restructure.
 
-### Phase 3 (after Phase 2 complete)
+### Phase 3 (implement next)
 | # | Item | Effort | Impact |
 |---|------|--------|--------|
 | 16 | Keyboard shortcuts (S=sow, P=print, N=next) | Medium | Power user efficiency |
