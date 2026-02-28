@@ -33,7 +33,7 @@
     })();
     </script>
     <!-- QR/Barcode Scanner Library -->
-    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js" integrity="sha384-c9d8RFSL+u3exBOJ4Yp3HUJXS4znl9f+z66d1y54ig+ea249SpqR+w1wyvXz/lk+" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
     <!-- PWA Install Prompt -->
     <script src="install-prompt.js" defer></script>
@@ -9432,6 +9432,104 @@
             font-weight: 600;
             cursor: pointer;
         }
+
+        /* Seed Packet Capture Prompt */
+        .seed-prompt-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.85);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .seed-prompt-overlay.visible { opacity: 1; }
+        .seed-prompt-card {
+            background: var(--card-bg, #1e1e2e);
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+        }
+        .seed-prompt-icon {
+            font-size: 3rem;
+            margin-bottom: 12px;
+        }
+        .seed-prompt-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 8px;
+        }
+        .seed-prompt-desc {
+            color: #aaa;
+            font-size: 0.85rem;
+            margin-bottom: 20px;
+            line-height: 1.4;
+        }
+        .seed-prompt-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .seed-prompt-btn {
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .seed-prompt-btn.primary {
+            background: var(--primary, #4a7c43);
+            color: #fff;
+        }
+        .seed-prompt-btn.secondary {
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+        }
+        .seed-prompt-btn.skip {
+            background: transparent;
+            color: #888;
+            font-size: 0.85rem;
+            padding: 10px;
+        }
+        .seed-prompt-input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            background: rgba(255,255,255,0.05);
+            color: #fff;
+            font-size: 1rem;
+            margin-top: 10px;
+            box-sizing: border-box;
+        }
+        .seed-prompt-input::placeholder { color: #666; }
+        .seed-prompt-or {
+            color: #666;
+            font-size: 0.8rem;
+            margin: 4px 0;
+        }
+        .seed-prompt-photo-preview {
+            margin-top: 12px;
+            border-radius: 8px;
+            overflow: hidden;
+            display: none;
+        }
+        .seed-prompt-photo-preview img {
+            width: 100%;
+            max-height: 200px;
+            object-fit: cover;
+        }
     </style>
     <!-- OFFLINE TASK MANAGER - For background sync and offline task operations -->
     <script src="web_app/offline-task-manager.js"></script>
@@ -12689,6 +12787,34 @@
             <button class="camera-btn confirm" onclick="confirmPhoto()">
                 <i class="fas fa-check"></i>
             </button>
+        </div>
+    </div>
+
+    <!-- Seed Packet Capture Prompt Modal -->
+    <div class="seed-prompt-overlay" id="seedPromptOverlay">
+        <div class="seed-prompt-card">
+            <div class="seed-prompt-icon">🌱</div>
+            <div class="seed-prompt-title">Seed Packet Photo</div>
+            <div class="seed-prompt-desc" id="seedPromptDesc">
+                No seed lot is linked to this planting.<br>
+                Snap a photo of the seed packet for organic traceability.
+            </div>
+            <div class="seed-prompt-photo-preview" id="seedPromptPhotoPreview">
+                <img id="seedPromptPhoto" src="" alt="Seed packet">
+            </div>
+            <div class="seed-prompt-actions">
+                <button class="seed-prompt-btn primary" id="seedPromptCameraBtn" onclick="SeedTraceability.openCamera()">
+                    <i class="fas fa-camera"></i> Take Photo of Seed Packet
+                </button>
+                <div class="seed-prompt-or">— or enter lot ID manually —</div>
+                <input type="text" class="seed-prompt-input" id="seedPromptLotInput" placeholder="e.g., SL-2026-001 or lot # from packet">
+                <button class="seed-prompt-btn secondary" id="seedPromptManualBtn" onclick="SeedTraceability.submitManual()" style="display:none;">
+                    <i class="fas fa-check"></i> Save Lot ID
+                </button>
+                <button class="seed-prompt-btn skip" onclick="SeedTraceability.skip()">
+                    Skip — I'll add it later
+                </button>
+            </div>
         </div>
     </div>
 
@@ -20956,10 +21082,170 @@
             renderTasks(AppState.currentTaskFilter || 'all');
         }
 
+        // ============================================
+        // SEED PACKET TRACEABILITY — Organic audit compliance
+        // Prompts crew to photograph seed packets during sow/seeding tasks
+        // ============================================
+        const SeedTraceability = {
+            _resolve: null,
+            _taskRef: null,
+            _capturedPhoto: null,
+            _SOW_TYPES: ['sow', 'seeding', 'field_sow', 'container_sow', 'direct_sow', 'direct_seed'],
+
+            isSowTask: function(task) {
+                const t = (task.type || task.Task_Type || '').toLowerCase().replace(/[\s-]/g, '_');
+                const name = (task.taskName || task.Task_Name || task.name || '').toLowerCase();
+                return this._SOW_TYPES.includes(t) || name.includes('sow') || name.includes('seeding') || name.includes('direct seed');
+            },
+
+            hasSeedLot: function(task) {
+                return !!(task.Seed_Lot_ID || task.seedLotId || task.seed_lot_id);
+            },
+
+            // Returns Promise that resolves when user takes photo, enters lot ID, or skips
+            prompt: function(task) {
+                if (!this.isSowTask(task) || this.hasSeedLot(task)) {
+                    return Promise.resolve(null); // not applicable or already has lot
+                }
+                this._taskRef = task;
+                this._capturedPhoto = null;
+
+                // Update description with crop name
+                const cropName = task.crop || task.Crop || task.taskName || task.Task_Name || 'this planting';
+                const desc = document.getElementById('seedPromptDesc');
+                if (desc) desc.innerHTML = 'No seed lot linked to <strong>' + cropName + '</strong>.<br>Snap the seed packet for organic traceability.';
+
+                // Reset UI state
+                const photoPreview = document.getElementById('seedPromptPhotoPreview');
+                const cameraBtn = document.getElementById('seedPromptCameraBtn');
+                const manualBtn = document.getElementById('seedPromptManualBtn');
+                const lotInput = document.getElementById('seedPromptLotInput');
+                if (photoPreview) photoPreview.style.display = 'none';
+                if (cameraBtn) cameraBtn.style.display = 'flex';
+                if (manualBtn) manualBtn.style.display = 'none';
+                if (lotInput) lotInput.value = '';
+
+                // Show overlay
+                const overlay = document.getElementById('seedPromptOverlay');
+                if (overlay) {
+                    overlay.style.display = 'flex';
+                    requestAnimationFrame(() => overlay.classList.add('visible'));
+                }
+
+                return new Promise(resolve => { this._resolve = resolve; });
+            },
+
+            openCamera: function() {
+                AppState.currentPhotoTarget = 'seedPacket';
+                capturePhoto('seedPacket');
+            },
+
+            // Called from confirmPhoto when target === 'seedPacket'
+            onPhotoConfirmed: function(photoData) {
+                this._capturedPhoto = photoData;
+                // Show preview in prompt modal
+                const photoPreview = document.getElementById('seedPromptPhotoPreview');
+                const img = document.getElementById('seedPromptPhoto');
+                const cameraBtn = document.getElementById('seedPromptCameraBtn');
+                if (img) img.src = photoData;
+                if (photoPreview) photoPreview.style.display = 'block';
+                if (cameraBtn) cameraBtn.innerHTML = '<i class="fas fa-check-circle"></i> Photo Captured — Complete Task';
+                if (cameraBtn) cameraBtn.onclick = function() { SeedTraceability.submitPhoto(); };
+            },
+
+            submitPhoto: function() {
+                const data = { photo: this._capturedPhoto, lotId: '', source: 'photo_capture' };
+                this._save(data);
+                this._close(data);
+            },
+
+            submitManual: function() {
+                const lotInput = document.getElementById('seedPromptLotInput');
+                const lotId = (lotInput ? lotInput.value.trim() : '');
+                if (!lotId) {
+                    showToast('Enter a seed lot ID', 'warning');
+                    return;
+                }
+                const data = { photo: null, lotId: lotId, source: 'manual_entry' };
+                this._save(data);
+                this._close(data);
+            },
+
+            skip: function() {
+                this._close(null);
+            },
+
+            _close: function(result) {
+                const overlay = document.getElementById('seedPromptOverlay');
+                if (overlay) {
+                    overlay.classList.remove('visible');
+                    setTimeout(() => { overlay.style.display = 'none'; }, 300);
+                }
+                if (this._resolve) this._resolve(result);
+                this._resolve = null;
+                this._taskRef = null;
+                this._capturedPhoto = null;
+            },
+
+            _save: function(data) {
+                if (!this._taskRef) return;
+                const task = this._taskRef;
+                const batchId = task.batchId || task.Batch_ID || task.plantingId || task.Planting_ID || task.id || '';
+                const record = {
+                    batchId: batchId,
+                    taskId: task.id,
+                    crop: task.crop || task.Crop || '',
+                    variety: task.variety || task.Variety || '',
+                    lotId: data.lotId || '',
+                    hasPhoto: !!data.photo,
+                    source: data.source,
+                    capturedAt: new Date().toISOString(),
+                    employeeId: AppState.employee?.Employee_ID || ''
+                };
+
+                // Save to localStorage as backup (organic audit evidence)
+                try {
+                    const stored = JSON.parse(localStorage.getItem('tsf_seed_traceability') || '[]');
+                    stored.push(record);
+                    localStorage.setItem('tsf_seed_traceability', JSON.stringify(stored));
+                } catch (e) { console.warn('Seed traceability localStorage save failed:', e); }
+
+                // Send to backend
+                if (AppState.isOnline && CONFIG.API_URL) {
+                    const payload = {
+                        action: 'saveSeedTraceability',
+                        ...record,
+                        photo: data.photo || ''
+                    };
+                    fetch(CONFIG.API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain' },
+                        body: JSON.stringify(payload)
+                    }).catch(err => console.warn('Seed traceability API save failed:', err));
+                }
+            }
+        };
+
+        // Show manual submit button when lot ID is typed
+        (function() {
+            const lotInput = document.getElementById('seedPromptLotInput');
+            if (lotInput) {
+                lotInput.addEventListener('input', function() {
+                    const manualBtn = document.getElementById('seedPromptManualBtn');
+                    if (manualBtn) manualBtn.style.display = this.value.trim() ? 'flex' : 'none';
+                });
+            }
+        })();
+
         // Complete task v2 with time logging
         async function completeTaskV2(taskId) {
             const task = AppState.tasks.find(t => t.id === taskId);
             if (!task) return;
+
+            // SEED TRACEABILITY: For sow/seeding tasks without a seed lot, prompt for seed packet photo
+            if (SeedTraceability.isSowTask(task) && !SeedTraceability.hasSeedLot(task)) {
+                await SeedTraceability.prompt(task);
+            }
 
             // Calculate time
             let durationMinutes;
@@ -21356,6 +21642,13 @@
         }
 
         function confirmPhoto() {
+            // Seed packet capture — route back to SeedTraceability prompt
+            if (AppState.currentPhotoTarget === 'seedPacket') {
+                SeedTraceability.onPhotoConfirmed(AppState.capturedPhoto);
+                closeCamera();
+                return;
+            }
+
             const targetMap = {
                 'harvest': 'harvestPhotoPreview',
                 'scout': 'scoutPhotoPreview',

@@ -1055,6 +1055,44 @@
         },
 
         /**
+         * Direct print labels to thermal printer via QZ Tray (if available)
+         * Falls back to preview if QZ Tray not connected
+         * @param {Object} options - { format, data, onProgress }
+         * @returns {Promise}
+         */
+        directPrint: function(options) {
+            if (!options || !options.format || !options.data || !options.data.length) {
+                return Promise.reject(new Error('TinySeedPrint.directPrint: format and data required'));
+            }
+            var format = options.format;
+            var fmt = LABEL_FORMATS[format];
+            if (!fmt) return Promise.reject(new Error('Unknown format: ' + format));
+
+            // Check if QZPrint is available and connected (defined in labels.html or globally)
+            if (typeof QZPrint !== 'undefined' && QZPrint.isConnected && QZPrint.isConnected()) {
+                // Generate PDF blob, convert to base64, send to QZ Tray
+                return _generateLabelPDF(format, options.data, options.onProgress).then(function(blob) {
+                    return new Promise(function(resolve, reject) {
+                        var reader = new FileReader();
+                        reader.onload = function() {
+                            var base64 = reader.result.split(',')[1];
+                            var widthIn = fmt.w / 72;
+                            var heightIn = fmt.h / 72;
+                            QZPrint.printPDF(base64, widthIn, heightIn, format).then(function() {
+                                resolve(blob);
+                            }).catch(reject);
+                        };
+                        reader.onerror = function() { reject(new Error('Failed to read PDF')); };
+                        reader.readAsDataURL(blob);
+                    });
+                });
+            }
+
+            // Fallback: show preview modal
+            return this.label(options);
+        },
+
+        /**
          * Close the preview modal
          */
         closePreview: _closePreview,
