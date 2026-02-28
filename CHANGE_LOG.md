@@ -38,6 +38,72 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-02-28 — Greenhouse Dashboard UX Overhaul: Phases 4-8 (75→95/100)
+
+**Role:** PM_Architect
+
+### Files Created
+- `docs/audits/GREENHOUSE_POST_PHASE8_AUDIT.md` — Final UX audit document (95/100 score)
+
+### Files Modified
+- `web_app/greenhouse-dashboard.html` — 368 insertions, 43 deletions
+
+### Functions Added
+- `dismissToast()` — Manual toast dismiss
+- `showErrorBanner(panelId, message, retryFn)` — Persistent error banner with retry
+- `hideErrorBanner(panelId)` — Dismiss error banner
+- `retryErrorBanner(panelId)` — Retry failed operation from banner
+- `renderSkeleton(type, count)` — Skeleton shimmer loading HTML (card/row/stat types)
+- `initOfflineDetection()` — Online/offline event listeners
+- `queueOfflineMutation(action, params)` — Queue failed mutations for later sync
+- `flushOfflineQueue()` — Sync offline mutations when reconnected
+- `announce(msg)` — Screen reader live region announcement
+- `replayOnboarding()` — Reset localStorage and restart tooltip tour
+
+### Functions Modified
+- `toast()` — Error type now persistent (no auto-dismiss), uses inner span + dismiss button
+- `showTab()` — Adds screen reader announcement on tab switch
+- `loadTodayTab()` — Shows skeleton loading, sets aria-busy, shows error banner on failure
+- `loadTrayInventory()` — Shows skeleton loading, sets aria-busy, shows error banner on failure
+- `loadGrowthData()` — Shows skeleton loading, shows error banner on failure
+- `toggleMoreMenu()` — Auto-focuses first menuitem on open
+- `toggleShortcutHelp()` — Added Replay Tour button and arrow key hint
+- `renderSowingCard()` — Added shortcut hints to button titles (L/P/S)
+- `updateMorningProgress()` — Adds `.complete` class to progress bar at 100%
+
+### CSS Added
+- `:focus-visible` global outline (2px solid #4FC3F7)
+- `.skip-link` skip-to-content link
+- `.error-banner` persistent error display
+- `.offline-banner` offline detection display
+- `.skeleton` + `@keyframes shimmer` skeleton loading
+- `.progress-fill.complete` + `@keyframes progressPulse` progress bar pulse
+- `@keyframes fadeSlideIn` staggered card animation
+- `.btn:active` scale(0.97) press feedback
+- `@media(prefers-reduced-motion: reduce)` disables all animations
+- `@media(max-width:768px)` responsive modals, 48px targets, table card view
+- `@media(max-width:480px)` compact tab bar
+- Modal elevation (overlay + shadow)
+
+### HTML Added
+- Skip-to-content link (first element in body)
+- Error banner div in each of 6 tab panels
+- Offline banner (fixed position)
+- Screen reader announcement div (aria-live="polite")
+- role="menu" and role="menuitem" on More menu
+- aria-expanded on details element
+- Toast dismiss button
+
+### Reason
+User requested improvement from 75/100 to 95/100 on UX score. Implemented 5 phases addressing the 3 biggest gaps: error recovery (5→9), accessibility (6→9.5), and mobile (6→9). Added micro-interactions, enhanced empty states, and help documentation polish.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
 ## 2026-02-28 — Bulletproof Printing: TinySeedPrint Engine
 
 **Role:** PM_Architect
