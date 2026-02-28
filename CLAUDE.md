@@ -112,6 +112,37 @@ After completing ANY work:
 
 ---
 
+## STEP 8: SECURITY AUDIT PROTOCOL
+
+**Full protocol:** `docs/system/AUDIT_PROTOCOL.md`
+
+### Gate 1: Pre-Commit (Automatic)
+The pre-commit hook (`scripts/pre-commit-hook.sh`) enforces 13 checks including:
+- Hardcoded secrets detection (blocks commit)
+- Banned JS patterns: `eval()`, `new Function()`, `setTimeout(string)` (blocks commit)
+- innerHTML injection warnings
+- SRI hash verification on CDN resources
+- CSP meta tag checks
+
+### Gate 2: Weekly Full Audit
+Run: `./scripts/security-audit.sh`
+- Pass 1: Context build (entry points, data flows, trust boundaries)
+- Pass 2: Security sweep (OWASP Top 10 focused on our stack)
+- Pass 3: Red team checklist (manual adversarial testing)
+
+### Gate 3: PR Auto-Review
+`.github/workflows/security-review.yml` — Anthropic Claude reviews every PR automatically.
+
+### Non-Negotiable Architecture Rules
+- Server-side price lookup (never trust client prices)
+- Server-side quantity validation
+- LockService on all Sheets writes
+- Formula injection prevention (`'` prefix on user values)
+- No secrets in git history
+- Whitelist the `action` parameter
+
+---
+
 ## FORBIDDEN ACTIONS
 
 1. **NEVER** create a new file without checking SYSTEM_MANIFEST.md first

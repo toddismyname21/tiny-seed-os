@@ -19,7 +19,7 @@ REPO_ROOT=$(git rev-parse --show-toplevel)
 # =============================================================================
 CORRECT_ID="AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm"
 
-BAD_URLS=$(git diff --cached --name-only | grep -v "api-config.js" | grep -v "CLAUDE.md" | grep -v "validate-api-urls" | xargs grep -l "script.google.com/macros/s/AKfycb" 2>/dev/null | while read file; do
+BAD_URLS=$(git diff --cached --name-only | grep -v "api-config.js" | grep -v "CLAUDE.md" | grep -v "validate-api-urls" | grep -v "pre-commit-hook" | grep -v "AUDIT_PROTOCOL" | xargs grep -l "script.google.com/macros/s/AKfycb" 2>/dev/null | while read file; do
     grep -n "script.google.com/macros/s/AKfycb" "$file" | grep -v "$CORRECT_ID"
 done || true)
 
@@ -241,10 +241,225 @@ if [ -n "$STAGED_SIGNIFICANT" ]; then
 fi
 
 # =============================================================================
+# CHECK 9: HARDCODED SECRETS DETECTION (Gate 1 — Audit Protocol)
+# =============================================================================
+# Catches API keys, tokens, passwords outside approved locations (api-config.js)
+
+STAGED_CODE_SEC=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(html|js)$' | grep -vE "(api-config\.js|CLAUDE\.md|CHANGE_LOG|\.md$)" || true)
+
+if [ -n "$STAGED_CODE_SEC" ]; then
+    echo ""
+    echo "Checking for hardcoded secrets..."
+
+    SECRETS_FOUND=""
+    for file in $STAGED_CODE_SEC; do
+        if [ -f "$file" ]; then
+            # Google Maps API keys (AIzaSy pattern)
+            MAPS_KEYS=$(grep -nE 'AIzaSy[A-Za-z0-9_-]{30,}' "$file" 2>/dev/null || true)
+            if [ -n "$MAPS_KEYS" ]; then
+                SECRETS_FOUND="${SECRETS_FOUND}  ${file}: Google Maps API key found inline\n${MAPS_KEYS}\n"
+            fi
+
+            # Generic hardcoded key/token/password/secret patterns (in assignments, not comments)
+            GENERIC_SECRETS=$(grep -nE "(apiKey|api_key|apiSecret|api_secret|secretKey|secret_key)\s*[:=]\s*['\"][A-Za-z0-9]{16,}" "$file" 2>/dev/null | grep -v "^\s*//" | grep -v "localStorage" | grep -v "getItem" || true)
+            if [ -n "$GENERIC_SECRETS" ]; then
+                SECRETS_FOUND="${SECRETS_FOUND}  ${file}: Possible hardcoded secret\n${GENERIC_SECRETS}\n"
+            fi
+        fi
+    done
+
+    if [ -n "$SECRETS_FOUND" ]; then
+        echo ""
+        echo "❌ COMMIT BLOCKED: Hardcoded secrets detected!"
+        echo ""
+        echo -e "$SECRETS_FOUND"
+        echo ""
+        echo "FIX: Move secrets to api-config.js or use environment variables."
+        echo "     Google Maps keys should use TINY_SEED_API.GOOGLE_MAPS_KEY"
+        exit 1
+    else
+        echo "✅ No hardcoded secrets found"
+    fi
+fi
+
+# =============================================================================
+# CHECK 10: DANGEROUS DOM INJECTION (Gate 1 — Audit Protocol)
+# =============================================================================
+# Warns about innerHTML with dynamic data — does NOT block (too many existing)
+
+if [ -n "$STAGED_CODE_SEC" ]; then
+    echo ""
+    echo "Checking for dangerous DOM injection patterns..."
+
+    INNERHTML_COUNT=0
+    INNERHTML_FILES=""
+    for file in $STAGED_CODE_SEC; do
+        if [ -f "$file" ]; then
+            # Count innerHTML assignments with variables (not pure string literals)
+            COUNT=$(git diff --cached -- "$file" | grep -c '^\+.*\.innerHTML\s*=' 2>/dev/null || echo "0")
+            if [ "$COUNT" -gt 0 ]; then
+                INNERHTML_COUNT=$((INNERHTML_COUNT + COUNT))
+                INNERHTML_FILES="${INNERHTML_FILES}  ${file}: ${COUNT} innerHTML assignment(s)\n"
+            fi
+        fi
+    done
+
+    if [ "$INNERHTML_COUNT" -gt 0 ]; then
+        echo "⚠️  WARNING: ${INNERHTML_COUNT} new innerHTML assignment(s) in staged changes:"
+        echo -e "$INNERHTML_FILES"
+        echo "   Prefer .textContent for text, or sanitize HTML input."
+        echo "   See docs/system/AUDIT_PROTOCOL.md for security requirements."
+    else
+        echo "✅ No new innerHTML assignments in staged changes"
+    fi
+fi
+
+# =============================================================================
+# CHECK 11: BANNED JAVASCRIPT PATTERNS (Gate 1 — Audit Protocol)
+# =============================================================================
+# Blocks: eval(), new Function(), setTimeout(string)
+# Warns: document.write() outside print contexts
+
+if [ -n "$STAGED_CODE_SEC" ]; then
+    echo ""
+    echo "Checking for banned JavaScript patterns..."
+
+    BANNED_FOUND=""
+    for file in $STAGED_CODE_SEC; do
+        if [ -f "$file" ]; then
+            # Check only ADDED lines in the diff (not existing code)
+            ADDED_LINES=$(git diff --cached -- "$file" | grep '^+' | grep -v '^+++' || true)
+
+            # eval() — BLOCKS
+            EVAL_HITS=$(echo "$ADDED_LINES" | grep -c '[^a-zA-Z]eval(' 2>/dev/null || echo "0")
+            if [ "$EVAL_HITS" -gt 0 ]; then
+                BANNED_FOUND="${BANNED_FOUND}  ❌ ${file}: eval() detected (${EVAL_HITS} occurrence(s)) — BLOCKED\n"
+            fi
+
+            # new Function() — BLOCKS
+            FUNC_HITS=$(echo "$ADDED_LINES" | grep -c 'new Function(' 2>/dev/null || echo "0")
+            if [ "$FUNC_HITS" -gt 0 ]; then
+                BANNED_FOUND="${BANNED_FOUND}  ❌ ${file}: new Function() detected (${FUNC_HITS} occurrence(s)) — BLOCKED\n"
+            fi
+
+            # setTimeout with string argument — BLOCKS
+            # Match setTimeout('string' or setTimeout("string" but not setTimeout(function or setTimeout(()
+            TIMEOUT_HITS=$(echo "$ADDED_LINES" | grep -cE "setTimeout\s*\(\s*['\"]" 2>/dev/null || echo "0")
+            if [ "$TIMEOUT_HITS" -gt 0 ]; then
+                BANNED_FOUND="${BANNED_FOUND}  ❌ ${file}: setTimeout(string) detected (${TIMEOUT_HITS} occurrence(s)) — BLOCKED\n"
+            fi
+        fi
+    done
+
+    if [ -n "$BANNED_FOUND" ]; then
+        echo ""
+        echo "❌ COMMIT BLOCKED: Banned JavaScript patterns detected!"
+        echo ""
+        echo -e "$BANNED_FOUND"
+        echo ""
+        echo "eval(), new Function(), and setTimeout(string) are banned."
+        echo "See docs/system/AUDIT_PROTOCOL.md"
+        exit 1
+    else
+        echo "✅ No banned JavaScript patterns found"
+    fi
+
+    # document.write — WARN only (used legitimately in print contexts)
+    DOC_WRITE_WARN=""
+    for file in $STAGED_CODE_SEC; do
+        if [ -f "$file" ]; then
+            ADDED_LINES=$(git diff --cached -- "$file" | grep '^+' | grep -v '^+++' || true)
+            DW_HITS=$(echo "$ADDED_LINES" | grep -c 'document\.write(' 2>/dev/null || echo "0")
+            if [ "$DW_HITS" -gt 0 ]; then
+                DOC_WRITE_WARN="${DOC_WRITE_WARN}  ${file}: ${DW_HITS} document.write() call(s)\n"
+            fi
+        fi
+    done
+
+    if [ -n "$DOC_WRITE_WARN" ]; then
+        echo "⚠️  WARNING: document.write() found in staged changes:"
+        echo -e "$DOC_WRITE_WARN"
+        echo "   Only acceptable inside print preview windows. Review carefully."
+    fi
+fi
+
+# =============================================================================
+# CHECK 12: SRI HASH VERIFICATION (Gate 1 — Audit Protocol)
+# =============================================================================
+# Warns about CDN scripts/styles missing integrity attribute
+
+STAGED_HTML_SRI=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.html$' || true)
+
+if [ -n "$STAGED_HTML_SRI" ]; then
+    echo ""
+    echo "Checking SRI hashes on external resources..."
+
+    SRI_MISSING=0
+    SRI_DETAILS=""
+    for file in $STAGED_HTML_SRI; do
+        if [ -f "$file" ]; then
+            # Find <script src="https://"> without integrity=
+            # Exclude: Google Fonts (no SRI), Google Maps API (no SRI), Google APIs (no SRI)
+            MISSING=$(grep -nE '<script\s+[^>]*src="https://' "$file" 2>/dev/null | grep -v 'integrity=' | grep -v 'fonts.googleapis' | grep -v 'maps.googleapis' | grep -v 'apis.google.com' || true)
+            if [ -n "$MISSING" ]; then
+                COUNT=$(echo "$MISSING" | wc -l | tr -d ' ')
+                SRI_MISSING=$((SRI_MISSING + COUNT))
+                SRI_DETAILS="${SRI_DETAILS}  ${file}: ${COUNT} external script(s) without SRI\n"
+            fi
+
+            # Find <link href="https://"> without integrity=
+            MISSING_CSS=$(grep -nE '<link\s+[^>]*href="https://' "$file" 2>/dev/null | grep -v 'integrity=' | grep -v 'fonts.googleapis' || true)
+            if [ -n "$MISSING_CSS" ]; then
+                COUNT=$(echo "$MISSING_CSS" | wc -l | tr -d ' ')
+                SRI_MISSING=$((SRI_MISSING + COUNT))
+                SRI_DETAILS="${SRI_DETAILS}  ${file}: ${COUNT} external stylesheet(s) without SRI\n"
+            fi
+        fi
+    done
+
+    if [ "$SRI_MISSING" -gt 0 ]; then
+        echo "⚠️  WARNING: ${SRI_MISSING} external resource(s) missing SRI hashes:"
+        echo -e "$SRI_DETAILS"
+        echo "   Add integrity=\"sha384-...\" to CDN <script> and <link> tags."
+        echo "   Generate hashes at: https://www.srihash.org/"
+    else
+        echo "✅ External resources SRI check passed"
+    fi
+fi
+
+# =============================================================================
+# CHECK 13: CSP META TAG CHECK (Gate 1 — Audit Protocol)
+# =============================================================================
+# Informs about missing Content-Security-Policy — does NOT block
+
+if [ -n "$STAGED_HTML_SRI" ]; then
+    echo ""
+    echo "Checking for CSP meta tags..."
+
+    CSP_MISSING=""
+    for file in $STAGED_HTML_SRI; do
+        if [ -f "$file" ]; then
+            HAS_CSP=$(grep -c 'Content-Security-Policy' "$file" 2>/dev/null || echo "0")
+            if [ "$HAS_CSP" -eq 0 ]; then
+                CSP_MISSING="${CSP_MISSING}  ${file}\n"
+            fi
+        fi
+    done
+
+    if [ -n "$CSP_MISSING" ]; then
+        echo "ℹ️  INFO: HTML file(s) without CSP meta tag:"
+        echo -e "$CSP_MISSING"
+        echo "   Consider adding: <meta http-equiv=\"Content-Security-Policy\" content=\"...\">"
+    else
+        echo "✅ CSP meta tags present"
+    fi
+fi
+
+# =============================================================================
 # ALL CHECKS PASSED
 # =============================================================================
 echo ""
 echo "=============================================="
-echo "✅ All pre-commit checks passed"
+echo "✅ All pre-commit checks passed (13 checks)"
 echo "=============================================="
 exit 0
