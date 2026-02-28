@@ -79,6 +79,11 @@ if [ -n "$STAGED_NEW" ]; then
 
     if [ -x "$PRE_FLIGHT_SCRIPT" ]; then
         for file in $STAGED_NEW; do
+            # Skip non-application files (configs, scripts, docs, CI)
+            if echo "$file" | grep -qE '\.(yml|yaml|sh|md|json|txt)$'; then
+                echo "  Skipping pre-flight (non-app file): $file"
+                continue
+            fi
             echo "  Checking: $file"
 
             # Run pre-flight check (capture exit code, don't exit on failure)
