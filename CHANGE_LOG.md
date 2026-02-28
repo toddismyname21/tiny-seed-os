@@ -38,6 +38,68 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-02-28 — Greenhouse UX Audit & Full Implementation (Phases 0–3)
+
+**Role:** PM_Architect (Claude Opus 4.6)
+**Deploy:** Frontend (GitHub Pages) — 4 commits
+
+### Files Created
+- `docs/audits/GREENHOUSE_SEEDING_UX_AUDIT.md` — Initial audit (score: 47/100), 24 issues, 4-phase plan
+- `docs/audits/GREENHOUSE_POST_PHASE2_AUDIT.md` — Post-Phase 2 audit (score: 71/100)
+- `docs/audits/GREENHOUSE_POST_PHASE3_AUDIT.md` — Post-Phase 3 audit (score: 75/100)
+
+### Files Modified
+- `web_app/greenhouse-dashboard.html` — Complete UX overhaul across all phases
+
+### Phase 0 (Quick Wins)
+- Default tab: Operations → Today's Tasks
+- Tab renamed: "Operations" → "Overview"
+- Escape key closes modals
+- Touch targets increased to 44px (buttons, detail chips)
+- ARIA: role=tablist/tab/tabpanel, aria-selected, aria-controls on all tabs
+
+### Phase 1 (Core Workflow)
+- Morning progress bar with percentage and animated fill
+- Card action buttons: Label, Sheet, Done on every task card
+- Undo toast with 5-second countdown on Mark Sown / Mark Transplanted
+- Overview tab: 3 action cards (Start Sowing, Print Labels, Print Sheets)
+- Optimistic UI: instant card removal + server sync after undo window
+- ARIA: role=dialog, aria-modal, aria-label on all 12 modals; aria-live on toast
+
+### Phase 2 (Embedded Modals + Restructure)
+- Bulk "Mark All Sown" button on overdue section
+- Modal focus traps (Tab/Shift+Tab cycling within open modals)
+- Auto-focus first input on modal open; focus restoration on close
+- Embedded tray label preview modal with QR codes (QuickChart.io)
+- Embedded sowing sheet preview modal with printable table
+- Tab restructure: 6 tabs → 4 primary (Today, Inventory, Growth, Sales) + "More" overflow menu
+
+### Phase 3 (Polish)
+- Keyboard shortcuts: S=sow, L=label, P=print sheet, 1-4=tabs, ?=help
+- First-visit onboarding tooltips: 5-step guided tour, localStorage persistence
+- Client-side API cache with TTL (30s today, 2min others, 5min sales)
+- Cache invalidation on all mutations
+- Detail chip touch targets: 36px → 44px
+
+### Functions Added
+- `showLabelPreviewModal()`, `printLabelFromModal()`, `getTrayQRUrl()` — embedded label preview
+- `showSheetPreviewModal()`, `printSheetFromModal()` — embedded sheet preview
+- `toggleMoreMenu()`, `closeMoreMenu()` — overflow tab menu
+- `bulkMarkSown()` — batch mark overdue as sown
+- `toggleShortcutHelp()` — keyboard shortcut reference panel
+- `startOnboarding()`, `showOnboardingStep()`, `nextOnboardingStep()`, `skipOnboarding()` — tooltip tour
+- `getCached()`, `setCache()`, `invalidateCache()` — API response caching
+
+### Reason
+User directive: "State-of-the-art mode. Production-ready perfection." Full Nielsen's heuristics audit → 4-phase implementation with audits after each phase. UX score improved from 47/100 → 75/100 (+60%).
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
 ## 2026-02-28 — Greenhouse UX Overhaul (Phases 0–1E)
 
 **Role:** PM_Architect + Agentic Team (greenhouse-ux-overhaul)
