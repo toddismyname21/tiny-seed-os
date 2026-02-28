@@ -51,6 +51,10 @@ Brief explanation of why these changes were made.
 - `web_app/labels.html` — Replaced quickchart.io QR API with client-side TinySeedPrint.qr(), all print calls use TinySeedPrint.report()
 - `sowing-sheets.html` — Replaced 250-line HTML string builder + popup window with TinySeedPrint.sheet()
 - 13 dashboard files — Added print-engine.js, replaced window.print() with TinySeedPrint.report()
+- `seed_inventory_PRODUCTION.html` — Replaced quickchart.io QR with TinySeedPrint.qr(), printLabel() uses TinySeedPrint.label()
+- `employee.html` — Removed broken Bluetooth ZPL code, printLabel() uses TinySeedPrint.label(), printPickList uses TinySeedPrint.report()
+- `soil-tests.html` — printMandatorySchedule() and 'p' shortcut use TinySeedPrint.report()
+- `web_app/greenhouse-dashboard.html` — Replaced quickchart.io QR with TinySeedPrint.qr() for tray label preview
 
 ### Functions Added (in print-engine.js)
 - `TinySeedPrint.label()` — jsPDF label generation at exact page dimensions (8 formats)
