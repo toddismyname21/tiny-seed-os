@@ -19,21 +19,26 @@
         }
 
         :root {
-            --primary: var(--ts-green-500, #22c55e);
+            --primary: var(--ts-primary, #22c55e);
             --primary-dark: var(--ts-green-600, #16a34a);
-            --bg-dark: var(--ts-bg-base, #0f172a);
-            --bg-card: var(--ts-bg-surface, #1e293b);
-            --text-primary: var(--ts-text, #f8fafc);
-            --text-secondary: var(--ts-text-secondary, #94a3b8);
-            --border: var(--ts-border, #334155);
+            --bg-dark: var(--ts-bg-base, #141211);
+            --bg-card: var(--ts-bg-surface, #201e1b);
+            --bg-elevated: var(--ts-bg-elevated, #282520);
+            --text-primary: var(--ts-text, #ece8e1);
+            --text-secondary: var(--ts-text-secondary, #a09888);
+            --border: var(--ts-border, rgba(255,255,255,0.06));
         }
 
+        /* Focus visible — defined in Design System Utilities block below */
+
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: var(--ts-font-sans, 'Inter', -apple-system, BlinkMacSystemFont, sans-serif);
             background: var(--bg-dark);
             color: var(--text-primary);
             min-height: 100vh;
-            padding: 24px;
+            padding: var(--ts-space-6, 24px);
+            font-size: var(--ts-text-base, 1rem);
+            line-height: var(--ts-leading-normal, 1.5);
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
         }
@@ -45,56 +50,65 @@
 
         header {
             text-align: center;
-            margin-bottom: 48px;
+            margin-bottom: var(--ts-space-12, 48px);
         }
 
         .logo {
-            font-size: 64px;
-            margin-bottom: 16px;
+            font-size: var(--ts-text-5xl, 3rem);
+            margin-bottom: var(--ts-space-4, 16px);
         }
 
         h1 {
-            font-size: 32px;
-            margin-bottom: 8px;
+            font-size: var(--ts-text-4xl, 2rem);
+            font-weight: 700;
+            letter-spacing: var(--ts-tracking-tight, -0.015em);
+            margin-bottom: var(--ts-space-2, 8px);
+        }
+
+        h2 {
+            font-size: var(--ts-text-2xl, 1.5rem);
+            font-weight: 600;
+            letter-spacing: var(--ts-tracking-tight, -0.015em);
         }
 
         .subtitle {
             color: var(--text-secondary);
-            font-size: 18px;
+            font-size: var(--ts-text-lg, 1.125rem);
         }
 
         .status-banner {
             background: var(--bg-card);
-            border-radius: 12px;
-            padding: 16px 24px;
-            margin-bottom: 32px;
+            border-radius: var(--ts-radius-lg, 16px);
+            padding: var(--ts-space-4, 16px) var(--ts-space-6, 24px);
+            margin-bottom: var(--ts-space-8, 32px);
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
-            gap: 16px;
+            gap: var(--ts-space-4, 16px);
         }
 
         .status-item {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: var(--ts-space-2, 8px);
+            font-size: var(--ts-text-sm, 0.875rem);
         }
 
         .status-dot {
             width: 10px;
             height: 10px;
-            border-radius: 50%;
+            border-radius: var(--ts-radius-full, 9999px);
             background: var(--primary);
             animation: pulse 2s infinite;
         }
 
         .status-dot.error {
-            background: #ef4444;
+            background: var(--ts-danger, #ef4444);
         }
 
         .status-dot.loading {
-            background: #f59e0b;
+            background: var(--ts-warning, #f59e0b);
         }
 
         @keyframes pulse {
@@ -105,98 +119,109 @@
         .apps-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 24px;
-            margin-bottom: 48px;
+            gap: var(--ts-space-5, 20px);
+            margin-bottom: var(--ts-space-12, 48px);
         }
 
         .app-card {
             background: var(--bg-card);
-            border-radius: 16px;
-            padding: 24px;
+            border-radius: var(--ts-radius-lg, 16px);
+            padding: var(--ts-space-6, 24px);
             border: 1px solid var(--border);
-            transition: all 0.3s;
+            transition: all var(--ts-dur-normal, 200ms) var(--ts-ease-out, ease);
             text-decoration: none;
             color: inherit;
             display: block;
         }
 
         .app-card:hover {
-            transform: translateY(-4px);
-            border-color: var(--primary);
-            box-shadow: 0 10px 40px rgba(34, 197, 94, 0.2);
+            transform: translateY(-2px);
+            border-color: var(--ts-border-hover, rgba(255,255,255,0.15));
+            box-shadow: var(--ts-shadow-lg, 0 10px 25px rgba(0,0,0,0.10));
+        }
+
+        .app-card:active {
+            transform: scale(0.98);
         }
 
         .app-icon {
-            font-size: 48px;
-            margin-bottom: 16px;
+            font-size: var(--ts-text-5xl, 3rem);
+            margin-bottom: var(--ts-space-4, 16px);
         }
 
         .app-title {
-            font-size: 20px;
+            font-size: var(--ts-text-xl, 1.25rem);
             font-weight: 600;
-            margin-bottom: 8px;
+            margin-bottom: var(--ts-space-2, 8px);
         }
 
         .app-description {
             color: var(--text-secondary);
-            font-size: 14px;
-            line-height: 1.5;
-            margin-bottom: 16px;
+            font-size: var(--ts-text-sm, 0.875rem);
+            line-height: var(--ts-leading-relaxed, 1.625);
+            margin-bottom: var(--ts-space-4, 16px);
         }
 
         .app-features {
             display: flex;
             flex-wrap: wrap;
-            gap: 8px;
+            gap: var(--ts-space-2, 8px);
         }
 
         .feature-tag {
-            background: rgba(34, 197, 94, 0.1);
+            background: var(--ts-primary-muted, rgba(34, 197, 94, 0.12));
             color: var(--primary);
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 12px;
+            padding: var(--ts-space-1, 4px) var(--ts-space-3, 12px);
+            border-radius: var(--ts-radius-full, 9999px);
+            font-size: var(--ts-text-xs, 0.75rem);
             font-weight: 500;
+            letter-spacing: 0.05em;
         }
 
         .section-title {
-            font-size: 24px;
-            margin-bottom: 24px;
-            padding-bottom: 12px;
+            font-size: var(--ts-text-2xl, 1.5rem);
+            font-weight: 600;
+            margin-bottom: var(--ts-space-6, 24px);
+            padding-bottom: var(--ts-space-3, 12px);
             border-bottom: 1px solid var(--border);
         }
 
         .api-test {
             background: var(--bg-card);
-            border-radius: 16px;
-            padding: 24px;
-            margin-bottom: 48px;
+            border-radius: var(--ts-radius-lg, 16px);
+            padding: var(--ts-space-6, 24px);
+            margin-bottom: var(--ts-space-12, 48px);
         }
 
         .test-btn {
             background: var(--primary);
-            color: white;
+            color: var(--ts-text-on-primary, #0a1208);
             border: none;
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-size: 14px;
+            padding: var(--ts-space-3, 12px) var(--ts-space-6, 24px);
+            border-radius: var(--ts-radius-md, 10px);
+            font-size: var(--ts-text-sm, 0.875rem);
             font-weight: 500;
             cursor: pointer;
-            margin-right: 12px;
-            margin-bottom: 12px;
+            margin-right: var(--ts-space-3, 12px);
+            margin-bottom: var(--ts-space-3, 12px);
+            transition: all var(--ts-dur-fast, 120ms) var(--ts-ease-out, ease);
         }
 
         .test-btn:hover {
-            background: var(--primary-dark);
+            background: var(--ts-primary-hover, var(--primary-dark));
+        }
+
+        .test-btn:active {
+            transform: scale(0.97);
         }
 
         .test-result {
-            margin-top: 16px;
-            padding: 16px;
+            margin-top: var(--ts-space-4, 16px);
+            padding: var(--ts-space-4, 16px);
             background: var(--bg-dark);
-            border-radius: 8px;
-            font-family: monospace;
-            font-size: 13px;
+            border-radius: var(--ts-radius-md, 10px);
+            font-family: var(--ts-font-mono, monospace);
+            font-size: var(--ts-text-xs, 0.75rem);
             white-space: pre-wrap;
             overflow-x: auto;
             max-height: 300px;
@@ -206,54 +231,56 @@
         .integration-status {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 16px;
-            margin-top: 24px;
+            gap: var(--ts-space-4, 16px);
+            margin-top: var(--ts-space-6, 24px);
         }
 
         .status-card {
             background: var(--bg-dark);
-            padding: 16px;
-            border-radius: 8px;
+            padding: var(--ts-space-4, 16px);
+            border-radius: var(--ts-radius-md, 10px);
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: var(--ts-space-3, 12px);
         }
 
         .status-icon {
-            font-size: 24px;
+            font-size: var(--ts-text-2xl, 1.5rem);
         }
 
         .status-label {
             flex: 1;
+            font-size: var(--ts-text-sm, 0.875rem);
         }
 
         .status-value {
-            font-size: 12px;
-            padding: 4px 8px;
-            border-radius: 4px;
+            font-size: var(--ts-text-xs, 0.75rem);
+            padding: var(--ts-space-1, 4px) var(--ts-space-2, 8px);
+            border-radius: var(--ts-radius-sm, 6px);
             font-weight: 500;
         }
 
         .status-value.success {
-            background: rgba(34, 197, 94, 0.2);
-            color: #22c55e;
+            background: var(--ts-success-muted, rgba(34, 197, 94, 0.12));
+            color: var(--ts-success, #22c55e);
         }
 
         .status-value.pending {
-            background: rgba(245, 158, 11, 0.2);
-            color: #f59e0b;
+            background: var(--ts-warning-muted, rgba(245, 158, 11, 0.12));
+            color: var(--ts-warning, #f59e0b);
         }
 
         .status-value.error {
-            background: rgba(239, 68, 68, 0.2);
-            color: #ef4444;
+            background: var(--ts-danger-muted, rgba(239, 68, 68, 0.12));
+            color: var(--ts-danger, #ef4444);
         }
 
         footer {
             text-align: center;
             color: var(--text-secondary);
-            padding: 32px 0;
+            padding: var(--ts-space-8, 32px) 0;
             border-top: 1px solid var(--border);
+            font-size: var(--ts-text-sm, 0.875rem);
         }
 
         footer a {
@@ -263,16 +290,16 @@
 
         .quick-links {
             display: flex;
-            gap: 24px;
+            gap: var(--ts-space-6, 24px);
             justify-content: center;
-            margin-top: 16px;
+            margin-top: var(--ts-space-4, 16px);
             flex-wrap: wrap;
         }
 
         .quick-link {
             color: var(--text-secondary);
             text-decoration: none;
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
         }
 
         .quick-link:hover {
@@ -281,11 +308,11 @@
 
         @media (max-width: 768px) {
             body {
-                padding: 16px;
+                padding: var(--ts-space-5, 20px);
             }
 
             h1 {
-                font-size: 24px;
+                font-size: var(--ts-text-3xl, 1.875rem);
             }
 
             .apps-grid {
@@ -293,57 +320,36 @@
             }
         }
 
+        /* ── Reduced motion ── */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
         /* Invite Section Styles */
         .invite-section {
-            background: linear-gradient(145deg, #1e293b, #1a1a2e);
-            border-radius: 16px;
-            padding: 24px;
-            margin-bottom: 32px;
+            background: var(--ts-gradient-surface, linear-gradient(145deg, #201e1b, #1a1816));
+            border-radius: var(--ts-radius-lg, 16px);
+            padding: var(--ts-space-6, 24px);
+            margin-bottom: var(--ts-space-8, 32px);
             border: 1px solid var(--border);
         }
 
         .invite-section h3 {
-            font-size: 18px;
-            margin-bottom: 16px;
+            font-size: var(--ts-text-lg, 1.125rem);
+            margin-bottom: var(--ts-space-4, 16px);
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: var(--ts-space-3, 12px);
         }
 
         .invite-buttons {
             display: flex;
-            gap: 16px;
+            gap: var(--ts-space-4, 16px);
             flex-wrap: wrap;
-        }
-
-        .invite-btn {
-            background: var(--primary);
-            color: white;
-            border: none;
-            padding: 14px 24px;
-            border-radius: 12px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            transition: all 0.3s;
-        }
-
-        .invite-btn:hover {
-            background: var(--primary-dark);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(34, 197, 94, 0.3);
-        }
-
-        .invite-btn.chef {
-            background: #f59e0b;
-        }
-
-        .invite-btn.chef:hover {
-            background: #d97706;
-            box-shadow: 0 6px 20px rgba(245, 158, 11, 0.3);
         }
 
         /* Modal Styles */
@@ -354,11 +360,11 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0, 0, 0, 0.8);
-            z-index: 1000;
+            background: var(--ts-overlay, rgba(0, 0, 0, 0.8));
+            z-index: var(--ts-z-modal, 1000);
             justify-content: center;
             align-items: center;
-            padding: 20px;
+            padding: var(--ts-space-5, 20px);
         }
 
         .modal-overlay.active {
@@ -366,134 +372,150 @@
         }
 
         .modal {
-            background: var(--bg-card);
-            border-radius: 16px;
+            background: var(--ts-surface-elevated, var(--bg-card));
+            border-radius: var(--ts-radius-lg, 16px);
             max-width: 480px;
             width: 100%;
             max-height: 90vh;
             overflow-y: auto;
-            border: 1px solid var(--border);
+            border: 1px solid var(--ts-border, var(--border));
+            box-shadow: var(--ts-shadow-xl, 0 20px 60px rgba(0, 0, 0, 0.5));
         }
 
         .modal-header {
-            padding: 20px 24px;
-            border-bottom: 1px solid var(--border);
+            padding: var(--ts-space-5, 20px) var(--ts-space-6, 24px);
+            border-bottom: 1px solid var(--ts-border, var(--border));
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
         .modal-header h3 {
-            font-size: 20px;
+            font-size: var(--ts-text-xl, 1.25rem);
+            font-weight: 600;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: var(--ts-space-2, 8px);
         }
 
         .modal-close {
             background: none;
             border: none;
-            color: var(--text-secondary);
-            font-size: 24px;
+            color: var(--ts-text-muted, var(--text-secondary));
+            font-size: var(--ts-text-2xl, 1.5rem);
             cursor: pointer;
-            padding: 4px;
+            padding: var(--ts-space-1, 4px);
+            border-radius: var(--ts-radius-sm, 6px);
+            transition: color var(--ts-dur-fast, 150ms) var(--ts-ease-out, ease);
         }
 
         .modal-close:hover {
-            color: var(--text-primary);
+            color: var(--ts-text, var(--text-primary));
         }
 
         .modal-body {
-            padding: 24px;
+            padding: var(--ts-space-6, 24px);
         }
 
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: var(--ts-space-5, 20px);
         }
 
         .form-group label {
             display: block;
-            margin-bottom: 8px;
+            margin-bottom: var(--ts-space-2, 8px);
             font-weight: 500;
-            color: var(--text-secondary);
+            font-size: var(--ts-text-sm, 0.875rem);
+            color: var(--ts-text-muted, var(--text-secondary));
         }
 
         .form-group input,
         .form-group select {
             width: 100%;
-            padding: 12px 16px;
-            background: var(--bg-dark);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            color: var(--text-primary);
-            font-size: 16px;
+            padding: var(--ts-space-3, 12px) var(--ts-space-4, 16px);
+            background: var(--ts-surface, var(--bg-dark));
+            border: 1px solid var(--ts-border, var(--border));
+            border-radius: var(--ts-radius-md, 10px);
+            color: var(--ts-text, var(--text-primary));
+            font-size: var(--ts-text-base, 1rem);
+            font-family: inherit;
+            transition: border-color var(--ts-dur-fast, 150ms) var(--ts-ease-out, ease),
+                        box-shadow var(--ts-dur-fast, 150ms) var(--ts-ease-out, ease);
         }
 
         .form-group input:focus,
         .form-group select:focus {
             outline: none;
-            border-color: var(--primary);
+            border-color: var(--ts-primary, var(--primary));
+            box-shadow: 0 0 0 3px var(--ts-primary-muted, rgba(34, 197, 94, 0.15));
         }
 
         .form-info {
-            background: rgba(34, 197, 94, 0.1);
-            border-radius: 8px;
-            padding: 16px;
-            margin-bottom: 20px;
+            background: var(--ts-primary-muted, rgba(34, 197, 94, 0.1));
+            border-radius: var(--ts-radius-md, 10px);
+            padding: var(--ts-space-4, 16px);
+            margin-bottom: var(--ts-space-5, 20px);
         }
 
         .form-info p {
-            margin-bottom: 8px;
+            margin-bottom: var(--ts-space-2, 8px);
             font-weight: 500;
-            color: var(--primary);
+            color: var(--ts-primary, var(--primary));
         }
 
         .form-info ul {
             margin: 0;
-            padding-left: 20px;
-            color: var(--text-secondary);
+            padding-left: var(--ts-space-5, 20px);
+            color: var(--ts-text-muted, var(--text-secondary));
         }
 
         .form-info li {
-            margin-bottom: 4px;
+            margin-bottom: var(--ts-space-1, 4px);
         }
 
         .modal-footer {
-            padding: 16px 24px;
-            border-top: 1px solid var(--border);
+            padding: var(--ts-space-4, 16px) var(--ts-space-6, 24px);
+            border-top: 1px solid var(--ts-border, var(--border));
             display: flex;
             justify-content: flex-end;
-            gap: 12px;
+            gap: var(--ts-space-3, 12px);
         }
 
         .btn-cancel {
-            background: var(--bg-dark);
-            color: var(--text-secondary);
-            border: 1px solid var(--border);
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-size: 16px;
+            background: var(--ts-surface, var(--bg-dark));
+            color: var(--ts-text-muted, var(--text-secondary));
+            border: 1px solid var(--ts-border, var(--border));
+            padding: var(--ts-space-3, 12px) var(--ts-space-6, 24px);
+            border-radius: var(--ts-radius-md, 10px);
+            font-size: var(--ts-text-base, 1rem);
+            font-weight: 500;
             cursor: pointer;
+            transition: all var(--ts-dur-fast, 150ms) var(--ts-ease-out, ease);
         }
 
         .btn-cancel:hover {
-            background: var(--border);
+            background: var(--ts-border, var(--border));
         }
 
+        .btn-cancel:active { transform: scale(0.97); }
+
         .btn-submit {
-            background: var(--primary);
-            color: white;
+            background: var(--ts-primary, var(--primary));
+            color: var(--ts-text-on-primary, #0a1208);
             border: none;
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-size: 16px;
+            padding: var(--ts-space-3, 12px) var(--ts-space-6, 24px);
+            border-radius: var(--ts-radius-md, 10px);
+            font-size: var(--ts-text-base, 1rem);
             font-weight: 600;
             cursor: pointer;
+            transition: all var(--ts-dur-fast, 150ms) var(--ts-ease-out, ease);
         }
 
         .btn-submit:hover {
-            background: var(--primary-dark);
+            background: var(--ts-primary-hover, var(--primary-dark));
         }
+
+        .btn-submit:active { transform: scale(0.97); }
 
         .btn-submit:disabled {
             opacity: 0.6;
@@ -501,7 +523,7 @@
         }
 
         .btn-submit.chef {
-            background: #f59e0b;
+            background: var(--ts-warning, #f59e0b);
         }
 
         .btn-submit.chef:hover {
@@ -511,30 +533,30 @@
         /* Toast Notification */
         .toast {
             position: fixed;
-            bottom: 24px;
-            right: 24px;
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 16px 24px;
+            bottom: var(--ts-space-6, 24px);
+            right: var(--ts-space-6, 24px);
+            background: var(--ts-surface-elevated, var(--bg-card));
+            border: 1px solid var(--ts-border, var(--border));
+            border-radius: var(--ts-radius-lg, 16px);
+            padding: var(--ts-space-4, 16px) var(--ts-space-6, 24px);
             display: none;
             align-items: center;
-            gap: 12px;
-            z-index: 2000;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+            gap: var(--ts-space-3, 12px);
+            z-index: var(--ts-z-toast, 2000);
+            box-shadow: var(--ts-shadow-xl, 0 10px 40px rgba(0, 0, 0, 0.4));
         }
 
         .toast.show {
             display: flex;
-            animation: slideIn 0.3s ease;
+            animation: slideIn var(--ts-dur-normal, 200ms) var(--ts-ease-out, ease);
         }
 
         .toast.success {
-            border-color: var(--primary);
+            border-color: var(--ts-primary, var(--primary));
         }
 
         .toast.error {
-            border-color: #ef4444;
+            border-color: var(--ts-danger, #ef4444);
         }
 
         @keyframes slideIn {
@@ -544,85 +566,85 @@
 
         /* Invite Section */
         .invite-section {
-            margin: 32px 0;
+            margin: var(--ts-space-8, 32px) 0;
         }
 
         .invite-card {
-            background: linear-gradient(145deg, var(--bg-card), var(--bg-dark));
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 24px;
+            background: linear-gradient(145deg, var(--ts-surface-elevated, var(--bg-card)), var(--ts-surface, var(--bg-dark)));
+            border: 1px solid var(--ts-border, var(--border));
+            border-radius: var(--ts-radius-lg, 16px);
+            padding: var(--ts-space-6, 24px);
         }
 
         .invite-header {
             display: flex;
             align-items: center;
-            gap: 16px;
-            margin-bottom: 20px;
+            gap: var(--ts-space-4, 16px);
+            margin-bottom: var(--ts-space-5, 20px);
         }
 
         .invite-icon {
             width: 56px;
             height: 56px;
-            background: linear-gradient(135deg, var(--primary), #16a34a);
-            border-radius: 14px;
+            background: linear-gradient(135deg, var(--ts-primary, var(--primary)), #16a34a);
+            border-radius: var(--ts-radius-md, 14px);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 28px;
+            font-size: var(--ts-text-3xl, 1.75rem);
         }
 
         .invite-header h3 {
-            font-size: 18px;
+            font-size: var(--ts-text-lg, 1.125rem);
             font-weight: 600;
-            margin-bottom: 4px;
+            margin-bottom: var(--ts-space-1, 4px);
         }
 
         .invite-buttons {
             display: flex;
-            gap: 16px;
+            gap: var(--ts-space-4, 16px);
             flex-wrap: wrap;
         }
 
         .invite-btn {
             flex: 1;
             min-width: 180px;
-            padding: 16px 24px;
+            padding: var(--ts-space-4, 16px) var(--ts-space-6, 24px);
             border: none;
-            border-radius: 12px;
-            font-size: 15px;
+            border-radius: var(--ts-radius-lg, 16px);
+            font-size: var(--ts-text-base, 1rem);
             font-weight: 600;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 10px;
+            gap: var(--ts-space-2, 8px);
             min-height: 56px;
             touch-action: manipulation;
-            transition: all 0.2s;
+            transition: all var(--ts-dur-normal, 200ms) var(--ts-ease-out, ease);
         }
 
         .invite-btn.employee {
-            background: linear-gradient(135deg, var(--primary), #16a34a);
-            color: white;
+            background: linear-gradient(135deg, var(--ts-primary, var(--primary)), #16a34a);
+            color: var(--ts-text-on-primary, #0a1208);
         }
 
         .invite-btn.chef {
-            background: linear-gradient(135deg, #f59e0b, #d97706);
-            color: white;
+            background: linear-gradient(135deg, var(--ts-warning, #f59e0b), #d97706);
+            color: var(--ts-text-on-primary, #0a1208);
         }
 
         .invite-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+            box-shadow: var(--ts-shadow-lg, 0 8px 20px rgba(0,0,0,0.3));
         }
 
         .invite-btn:active {
-            transform: scale(0.98);
+            transform: scale(0.97);
         }
 
         .invite-btn span {
-            font-size: 20px;
+            font-size: var(--ts-text-xl, 1.25rem);
         }
 
         @media (max-width: 500px) {
@@ -640,43 +662,61 @@
         }
 
         .invite-info {
-            background: rgba(34, 197, 94, 0.1);
+            background: var(--ts-primary-muted, rgba(34, 197, 94, 0.1));
             border: 1px solid rgba(34, 197, 94, 0.3);
-            border-radius: 10px;
-            padding: 16px;
-            margin-top: 16px;
+            border-radius: var(--ts-radius-md, 10px);
+            padding: var(--ts-space-4, 16px);
+            margin-top: var(--ts-space-4, 16px);
         }
 
         .invite-info h4 {
-            font-size: 14px;
-            margin-bottom: 10px;
-            color: var(--primary);
+            font-size: var(--ts-text-sm, 0.875rem);
+            margin-bottom: var(--ts-space-2, 8px);
+            color: var(--ts-primary, var(--primary));
         }
 
         .invite-info ul {
             list-style: none;
-            font-size: 13px;
-            color: var(--text-secondary);
+            font-size: var(--ts-text-xs, 0.8rem);
+            color: var(--ts-text-muted, var(--text-secondary));
         }
 
         .invite-info li {
-            padding: 4px 0;
+            padding: var(--ts-space-1, 4px) 0;
         }
 
         .invite-info li::before {
-            content: '✓ ';
-            color: var(--primary);
+            content: '\2713  ';
+            color: var(--ts-primary, var(--primary));
         }
 
         /* Design System Utilities */
-        :focus-visible { outline: 2px solid var(--primary, #22c55e); outline-offset: 2px; }
+        :focus-visible {
+            outline: 2px solid var(--ts-primary, #22c55e);
+            outline-offset: 2px;
+        }
         :focus:not(:focus-visible) { outline: none; }
-        .app-card:hover { border-color: var(--primary, #22c55e); transition: border-color 200ms ease, transform 200ms ease; }
-        .btn:active, button:active { transform: scale(0.97); }
-        @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: var(--border, #334155); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb {
+            background: var(--ts-border, rgba(255,255,255,0.06));
+            border-radius: var(--ts-radius-full, 9999px);
+        }
+        /* ── Page Load Animation ── */
+        @keyframes ts-page-enter {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        body { animation: ts-page-enter var(--ts-dur-moderate, 300ms) var(--ts-ease-out, ease) both; }
+
     </style>
 </head>
 <body>
@@ -704,7 +744,7 @@
 
         <div class="apps-grid">
             <!-- Chief of Staff - Command Center -->
-            <a href="chief-of-staff.html" class="app-card" style="border: 2px solid #f59e0b; background: linear-gradient(145deg, #1e293b, #1a1a2e);">
+            <a href="chief-of-staff.html" class="app-card" style="border: 2px solid #f59e0b; background: linear-gradient(145deg, #201e1b, #1a1816);">
                 <div class="app-icon">&#x1F3AF;</div>
                 <h3 class="app-title">Chief of Staff</h3>
                 <p class="app-description">Command center for farm operations. Email triage, task delegation, morning briefs, and proactive intelligence.</p>
@@ -808,7 +848,7 @@
             </a>
 
             <!-- Claude Chat - Command Center -->
-            <a href="claude-chat.html" class="app-card" style="border: 2px solid #8B5CF6; background: linear-gradient(145deg, #1e293b, #2a1f4e);">
+            <a href="claude-chat.html" class="app-card" style="border: 2px solid #8B5CF6; background: linear-gradient(145deg, #201e1b, #2a1f4e);">
                 <div class="app-icon">&#x1F4AC;</div>
                 <h3 class="app-title">Claude Chat</h3>
                 <p class="app-description">Direct chat interface with Claude AI. Ask questions, get insights, and manage your farm through conversation.</p>
@@ -820,7 +860,7 @@
             </a>
 
             <!-- Remote Dashboard -->
-            <a href="remote-dashboard.html" class="app-card" style="border: 2px solid #8B5CF6; background: linear-gradient(145deg, #1e293b, #2a1f4e);">
+            <a href="remote-dashboard.html" class="app-card" style="border: 2px solid #8B5CF6; background: linear-gradient(145deg, #201e1b, #2a1f4e);">
                 <div class="app-icon">&#x1F4F1;</div>
                 <h3 class="app-title">Remote Terminal</h3>
                 <p class="app-description">Access Claude Code remotely from any device. Connect via WebSocket for full terminal control.</p>
@@ -834,7 +874,7 @@
             <!-- Wealth Builder removed - features consolidated into Financial Dashboard -->
 
             <!-- AI Assistant -->
-            <a href="ai-assistant.html" class="app-card" style="border: 2px solid #8B5CF6; background: linear-gradient(145deg, #1e293b, #2a1f4e);">
+            <a href="ai-assistant.html" class="app-card" style="border: 2px solid #8B5CF6; background: linear-gradient(145deg, #201e1b, #2a1f4e);">
                 <div class="app-icon">&#x1F916;</div>
                 <h3 class="app-title">AI Assistant</h3>
                 <p class="app-description">Your intelligent farm assistant. Proactive suggestions, task management, and smart automation.</p>
@@ -846,7 +886,7 @@
             </a>
 
             <!-- Command Center -->
-            <a href="command-center.html" class="app-card" style="border: 2px solid #f59e0b; background: linear-gradient(145deg, #1e293b, #1a1a2e);">
+            <a href="command-center.html" class="app-card" style="border: 2px solid #f59e0b; background: linear-gradient(145deg, #201e1b, #1a1816);">
                 <div class="app-icon">&#x1F3AF;</div>
                 <h3 class="app-title">Command Center</h3>
                 <p class="app-description">Unified operations dashboard. Monitor all systems, quick actions, and real-time status at a glance.</p>
@@ -1026,7 +1066,7 @@
                 </div>
             </a>
 
-            <a href="loan-readiness.html" class="app-card" style="border: 2px solid #f59e0b; background: linear-gradient(145deg, #1e293b, #1a1a2e);">
+            <a href="loan-readiness.html" class="app-card" style="border: 2px solid #f59e0b; background: linear-gradient(145deg, #201e1b, #1a1816);">
                 <div class="app-icon">&#x1F3E6;</div>
                 <h3 class="app-title">Loan &amp; Grant Center</h3>
                 <p class="app-description">Unified loan command center with grant tracking. Upload documents, track applications, match lenders, and find grant opportunities.</p>
@@ -1097,6 +1137,7 @@
             </a>
         </div>
 
+        <div id="api-test-section" style="display:none;">
         <h2 class="section-title">API Connection Test</h2>
 
         <div class="api-test">
@@ -1133,6 +1174,7 @@
                 </div>
             </div>
         </div>
+        </div><!-- /api-test-section -->
 
         <footer>
             <p>Tiny Seed Farm OS &copy; 2026 | Built with &#x2764; by <a href="#">Tiny Seed Farm</a></p>
@@ -1150,6 +1192,12 @@
 
         // Check API and load dashboard data on load
         window.addEventListener('DOMContentLoaded', async () => {
+            // Show API test section only for Admin users
+            if (typeof AuthGuard !== 'undefined' && AuthGuard.hasMinimumRole && AuthGuard.hasMinimumRole('Admin')) {
+                var apiSection = document.getElementById('api-test-section');
+                if (apiSection) apiSection.style.display = '';
+            }
+
             try {
                 const response = await fetch(`${API_URL}?action=testConnection`);
                 const data = await response.json();

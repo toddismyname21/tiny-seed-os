@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#1e293b">
+    <meta name="theme-color" content="#201e1b">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Food Safety">
     <title>Food Safety Compliance - Tiny Seed Farm</title>
@@ -33,11 +33,11 @@
             --danger-dark: var(--ts-red-600, #dc2626);
             --danger-bg: rgba(239, 68, 68, 0.15);
             --info: var(--ts-blue-500, #3b82f6);
-            --bg-dark: var(--ts-bg-base, #0f172a);
-            --bg-card: var(--ts-bg-surface, #1e293b);
-            --bg-elevated: var(--ts-bg-elevated, #334155);
+            --bg-dark: var(--ts-bg-base, #141211);
+            --bg-card: var(--ts-bg-surface, #201e1b);
+            --bg-elevated: var(--ts-bg-elevated, rgba(255,255,255,0.06));
             --text-primary: var(--ts-text, #f8fafc);
-            --text-secondary: var(--ts-text-secondary, #94a3b8);
+            --text-secondary: var(--ts-text-secondary, #a09888);
             --text-muted: var(--ts-text-muted, #64748b);
             --border: var(--ts-border, rgba(255, 255, 255, 0.1));
             --touch-min: 48px;
@@ -76,13 +76,13 @@
             z-index: 100;
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: var(--ts-space-3, 12px);
         }
 
         .back-btn {
             width: 44px;
             height: 44px;
-            border-radius: 12px;
+            border-radius: var(--ts-radius-md, 12px);
             background: var(--bg-elevated);
             border: none;
             color: var(--text-primary);
@@ -118,9 +118,9 @@
            ======================================== */
         .score-card {
             background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-elevated) 100%);
-            border-radius: 24px;
-            padding: 24px;
-            margin-bottom: 20px;
+            border-radius: var(--ts-radius-xl, 24px);
+            padding: var(--ts-space-6, 24px);
+            margin-bottom: var(--ts-space-5, 20px);
             text-align: center;
             position: relative;
             overflow: hidden;
@@ -187,15 +187,15 @@
         .score-label {
             font-size: 0.875rem;
             color: var(--text-secondary);
-            margin-bottom: 12px;
+            margin-bottom: var(--ts-space-3, 12px);
         }
 
         .score-trend {
             display: inline-flex;
             align-items: center;
-            gap: 6px;
+            gap: var(--ts-space-1, 6px);
             padding: 6px 12px;
-            border-radius: 20px;
+            border-radius: var(--ts-radius-lg, 20px);
             font-size: 0.875rem;
             font-weight: 600;
         }
@@ -220,18 +220,18 @@
            ======================================== */
         .streak-widget {
             background: var(--bg-card);
-            border-radius: 16px;
-            padding: 16px;
-            margin-bottom: 20px;
+            border-radius: var(--ts-radius-lg, 16px);
+            padding: var(--ts-space-4, 16px);
+            margin-bottom: var(--ts-space-5, 20px);
             display: flex;
             align-items: center;
-            gap: 16px;
+            gap: var(--ts-space-4, 16px);
         }
 
         .streak-icon {
             width: 56px;
             height: 56px;
-            border-radius: 12px;
+            border-radius: var(--ts-radius-md, 12px);
             background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
             display: flex;
             align-items: center;
@@ -268,16 +268,16 @@
            ======================================== */
         .leaderboard-widget {
             background: var(--bg-card);
-            border-radius: 16px;
-            padding: 16px;
-            margin-bottom: 20px;
+            border-radius: var(--ts-radius-lg, 16px);
+            padding: var(--ts-space-4, 16px);
+            margin-bottom: var(--ts-space-5, 20px);
         }
 
         .leaderboard-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 12px;
+            margin-bottom: var(--ts-space-3, 12px);
         }
 
         .leaderboard-title {
@@ -293,23 +293,23 @@
             color: var(--text-muted);
             background: var(--bg-elevated);
             padding: 4px 10px;
-            border-radius: 12px;
+            border-radius: var(--ts-radius-md, 12px);
         }
 
         .leaderboard-list {
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: var(--ts-space-2, 8px);
         }
 
         .leaderboard-row {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: var(--ts-space-3, 12px);
             padding: 10px 12px;
             background: var(--bg-elevated);
-            border-radius: 12px;
-            transition: transform 0.2s;
+            border-radius: var(--ts-radius-md, 12px);
+            transition: transform var(--ts-dur-normal, 200ms);
         }
 
         .leaderboard-row:first-child {
@@ -352,13 +352,13 @@
 
         .leaderboard-empty {
             text-align: center;
-            padding: 24px;
+            padding: var(--ts-space-6, 24px);
             color: var(--text-muted);
         }
 
         .leaderboard-empty-icon {
             font-size: 2rem;
-            margin-bottom: 8px;
+            margin-bottom: var(--ts-space-2, 8px);
         }
 
         /* ========================================
@@ -366,14 +366,14 @@
            Big buttons for gloved hands
            ======================================== */
         .quick-actions {
-            margin-bottom: 24px;
+            margin-bottom: var(--ts-space-6, 24px);
         }
 
         .section-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 12px;
+            margin-bottom: var(--ts-space-3, 12px);
         }
 
         .section-title {
@@ -387,20 +387,20 @@
         .quick-action-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
+            gap: var(--ts-space-3, 12px);
         }
 
         .quick-action-btn {
             background: var(--bg-card);
             border: 2px solid var(--border);
-            border-radius: 16px;
+            border-radius: var(--ts-radius-lg, 16px);
             padding: 20px 16px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 8px;
+            gap: var(--ts-space-2, 8px);
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all var(--ts-dur-normal, 200ms);
             min-height: 100px;
         }
 
@@ -412,7 +412,7 @@
         .quick-action-icon {
             width: 48px;
             height: 48px;
-            border-radius: 12px;
+            border-radius: var(--ts-radius-md, 12px);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -435,20 +435,20 @@
            TODAY'S TASKS - TAPPABLE CARDS
            ======================================== */
         .tasks-section {
-            margin-bottom: 24px;
+            margin-bottom: var(--ts-space-6, 24px);
         }
 
         .task-card {
             background: var(--bg-card);
-            border-radius: 16px;
-            padding: 16px;
-            margin-bottom: 12px;
+            border-radius: var(--ts-radius-lg, 16px);
+            padding: var(--ts-space-4, 16px);
+            margin-bottom: var(--ts-space-3, 12px);
             display: flex;
             align-items: center;
-            gap: 16px;
+            gap: var(--ts-space-4, 16px);
             cursor: pointer;
             border-left: 4px solid transparent;
-            transition: all 0.2s;
+            transition: all var(--ts-dur-normal, 200ms);
         }
 
         .task-card:active {
@@ -472,13 +472,13 @@
         .task-checkbox {
             width: 48px;
             height: 48px;
-            border-radius: 12px;
+            border-radius: var(--ts-radius-md, 12px);
             border: 3px solid var(--text-muted);
             display: flex;
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
-            transition: all 0.2s;
+            transition: all var(--ts-dur-normal, 200ms);
         }
 
         .task-checkbox.checked {
@@ -495,7 +495,7 @@
         .task-title {
             font-size: 1rem;
             font-weight: 600;
-            margin-bottom: 4px;
+            margin-bottom: var(--ts-space-1, 4px);
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -505,7 +505,7 @@
             font-size: 0.75rem;
             color: var(--text-secondary);
             display: flex;
-            gap: 12px;
+            gap: var(--ts-space-3, 12px);
         }
 
         .task-time {
@@ -521,16 +521,16 @@
            ALERTS - DISMISSIBLE CARDS
            ======================================== */
         .alerts-section {
-            margin-bottom: 24px;
+            margin-bottom: var(--ts-space-6, 24px);
         }
 
         .alert-card {
             background: var(--bg-card);
-            border-radius: 16px;
-            padding: 16px;
-            margin-bottom: 12px;
+            border-radius: var(--ts-radius-lg, 16px);
+            padding: var(--ts-space-4, 16px);
+            margin-bottom: var(--ts-space-3, 12px);
             display: flex;
-            gap: 16px;
+            gap: var(--ts-space-4, 16px);
             position: relative;
         }
 
@@ -547,7 +547,7 @@
         .alert-icon {
             width: 48px;
             height: 48px;
-            border-radius: 12px;
+            border-radius: var(--ts-radius-md, 12px);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -573,7 +573,7 @@
         .alert-title {
             font-size: 0.9375rem;
             font-weight: 600;
-            margin-bottom: 4px;
+            margin-bottom: var(--ts-space-1, 4px);
         }
 
         .alert-message {
@@ -585,7 +585,7 @@
         .alert-dismiss {
             width: 40px;
             height: 40px;
-            border-radius: 10px;
+            border-radius: var(--ts-radius-md, 10px);
             background: var(--bg-elevated);
             border: none;
             color: var(--text-secondary);
@@ -602,16 +602,16 @@
            ======================================== */
         .audit-card {
             background: var(--bg-card);
-            border-radius: 16px;
-            padding: 20px;
-            margin-bottom: 24px;
+            border-radius: var(--ts-radius-lg, 16px);
+            padding: var(--ts-space-5, 20px);
+            margin-bottom: var(--ts-space-6, 24px);
         }
 
         .audit-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 16px;
+            margin-bottom: var(--ts-space-4, 16px);
         }
 
         .audit-title {
@@ -621,7 +621,7 @@
 
         .audit-badge {
             padding: 6px 12px;
-            border-radius: 20px;
+            border-radius: var(--ts-radius-lg, 20px);
             font-size: 0.75rem;
             font-weight: 600;
         }
@@ -639,14 +639,14 @@
         .audit-progress-bar {
             height: 12px;
             background: var(--bg-elevated);
-            border-radius: 6px;
+            border-radius: var(--ts-radius-sm, 6px);
             overflow: hidden;
-            margin-bottom: 12px;
+            margin-bottom: var(--ts-space-3, 12px);
         }
 
         .audit-progress-fill {
             height: 100%;
-            border-radius: 6px;
+            border-radius: var(--ts-radius-sm, 6px);
             transition: width 1s ease-out;
         }
 
@@ -683,16 +683,16 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 4px;
-            padding: 8px 16px;
-            border-radius: 12px;
+            gap: var(--ts-space-1, 4px);
+            padding: var(--ts-space-2, 8px) var(--ts-space-4, 16px);
+            border-radius: var(--ts-radius-md, 12px);
             background: transparent;
             border: none;
             color: var(--text-muted);
             font-size: 0.625rem;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all var(--ts-dur-normal, 200ms);
             min-width: 64px;
             min-height: 48px;
         }
@@ -727,8 +727,8 @@
 
         .modal-content {
             background: var(--bg-card);
-            border-radius: 24px 24px 0 0;
-            padding: 24px;
+            border-radius: var(--ts-radius-xl, 24px) 24px 0 0;
+            padding: var(--ts-space-6, 24px);
             padding-bottom: calc(24px + var(--safe-bottom));
             width: 100%;
             max-width: 500px;
@@ -747,12 +747,12 @@
         .modal-title {
             font-size: 1.25rem;
             font-weight: 700;
-            margin-bottom: 20px;
+            margin-bottom: var(--ts-space-5, 20px);
             text-align: center;
         }
 
         .modal-form-group {
-            margin-bottom: 20px;
+            margin-bottom: var(--ts-space-5, 20px);
         }
 
         .modal-label {
@@ -760,17 +760,17 @@
             font-size: 0.875rem;
             font-weight: 600;
             color: var(--text-secondary);
-            margin-bottom: 8px;
+            margin-bottom: var(--ts-space-2, 8px);
         }
 
         .modal-input,
         .modal-select {
             width: 100%;
             min-height: var(--touch-comfortable);
-            padding: 16px;
+            padding: var(--ts-space-4, 16px);
             background: var(--bg-elevated);
             border: 2px solid var(--border);
-            border-radius: 12px;
+            border-radius: var(--ts-radius-md, 12px);
             color: var(--text-primary);
             font-size: 1rem;
             font-family: inherit;
@@ -785,20 +785,20 @@
         .temp-quick-buttons {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 8px;
-            margin-bottom: 16px;
+            gap: var(--ts-space-2, 8px);
+            margin-bottom: var(--ts-space-4, 16px);
         }
 
         .temp-quick-btn {
-            padding: 12px;
-            border-radius: 12px;
+            padding: var(--ts-space-3, 12px);
+            border-radius: var(--ts-radius-md, 12px);
             background: var(--bg-elevated);
             border: 2px solid var(--border);
             color: var(--text-primary);
             font-size: 1rem;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all var(--ts-dur-normal, 200ms);
         }
 
         .temp-quick-btn:active,
@@ -810,15 +810,15 @@
         .modal-submit {
             width: 100%;
             min-height: var(--touch-comfortable);
-            padding: 16px;
+            padding: var(--ts-space-4, 16px);
             background: var(--success);
             border: none;
-            border-radius: 12px;
+            border-radius: var(--ts-radius-md, 12px);
             color: white;
             font-size: 1.125rem;
             font-weight: 700;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all var(--ts-dur-normal, 200ms);
         }
 
         .modal-submit:active {
@@ -845,7 +845,7 @@
             border-top-color: var(--success);
             border-radius: 50%;
             animation: spin 1s linear infinite;
-            margin-bottom: 16px;
+            margin-bottom: var(--ts-space-4, 16px);
         }
 
         @keyframes spin {
@@ -860,7 +860,7 @@
 
         .empty-state i {
             font-size: 3rem;
-            margin-bottom: 16px;
+            margin-bottom: var(--ts-space-4, 16px);
             opacity: 0.5;
         }
 
@@ -874,15 +874,15 @@
             transform: translateX(-50%) translateY(-20px);
             background: var(--success);
             color: white;
-            padding: 16px 24px;
-            border-radius: 12px;
+            padding: var(--ts-space-4, 16px) var(--ts-space-6, 24px);
+            border-radius: var(--ts-radius-md, 12px);
             font-weight: 600;
             z-index: 300;
             opacity: 0;
-            transition: all 0.3s;
+            transition: all var(--ts-dur-moderate, 300ms);
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: var(--ts-space-3, 12px);
         }
 
         .toast.show {
@@ -947,12 +947,12 @@
             align-items: center;
             justify-content: center;
             text-align: center;
-            padding: 20px;
+            padding: var(--ts-space-5, 20px);
         }
 
         .onboarding-icon {
             font-size: 5rem;
-            margin-bottom: 32px;
+            margin-bottom: var(--ts-space-8, 32px);
             animation: float 3s ease-in-out infinite;
         }
 
@@ -964,7 +964,7 @@
         .onboarding-title {
             font-size: 1.75rem;
             font-weight: 800;
-            margin-bottom: 16px;
+            margin-bottom: var(--ts-space-4, 16px);
             line-height: 1.2;
         }
 
@@ -973,13 +973,13 @@
             color: var(--text-secondary);
             line-height: 1.6;
             max-width: 320px;
-            margin-bottom: 32px;
+            margin-bottom: var(--ts-space-8, 32px);
         }
 
         .onboarding-features {
             display: flex;
             flex-direction: column;
-            gap: 16px;
+            gap: var(--ts-space-4, 16px);
             width: 100%;
             max-width: 320px;
         }
@@ -987,17 +987,17 @@
         .onboarding-feature {
             display: flex;
             align-items: center;
-            gap: 16px;
+            gap: var(--ts-space-4, 16px);
             background: var(--bg-card);
-            padding: 16px;
-            border-radius: 16px;
+            padding: var(--ts-space-4, 16px);
+            border-radius: var(--ts-radius-lg, 16px);
             text-align: left;
         }
 
         .onboarding-feature-icon {
             width: 48px;
             height: 48px;
-            border-radius: 12px;
+            border-radius: var(--ts-radius-md, 12px);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -1017,15 +1017,15 @@
         .onboarding-nav {
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: var(--ts-space-3, 12px);
             padding: 0 24px 24px;
         }
 
         .onboarding-dots {
             display: flex;
             justify-content: center;
-            gap: 8px;
-            margin-bottom: 16px;
+            gap: var(--ts-space-2, 8px);
+            margin-bottom: var(--ts-space-4, 16px);
         }
 
         .onboarding-dot {
@@ -1033,7 +1033,7 @@
             height: 10px;
             border-radius: 5px;
             background: var(--bg-elevated);
-            transition: all 0.3s;
+            transition: all var(--ts-dur-moderate, 300ms);
         }
 
         .onboarding-dot.active {
@@ -1044,12 +1044,12 @@
         .onboarding-btn {
             width: 100%;
             min-height: var(--touch-comfortable);
-            padding: 16px;
-            border-radius: 16px;
+            padding: var(--ts-space-4, 16px);
+            border-radius: var(--ts-radius-lg, 16px);
             font-size: 1.125rem;
             font-weight: 700;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all var(--ts-dur-normal, 200ms);
             border: none;
         }
 
@@ -1073,14 +1073,33 @@
         }
 
         @media (max-width: 768px) {
-            body { padding: 8px; }
-            .container, .main-content, .content, .page-content, .dashboard { padding: 12px; }
+            body { padding: var(--ts-space-2, 8px); }
+            .container, .main-content, .content, .page-content, .dashboard { padding: var(--ts-space-3, 12px); }
             table { display: block; overflow-x: auto; }
             .sidebar, .side-panel { display: none; }
-            h1 { font-size: 24px; }
-            h2 { font-size: 20px; }
+            h1 { font-size: var(--ts-text-2xl, 1.5rem); }
+            h2 { font-size: var(--ts-text-xl, 1.25rem); }
             .btn, button { min-height: 44px; }
         }
+        /* ── Accessibility: Focus Visible ── */
+        :focus-visible { outline: 2px solid var(--ts-primary, #22c55e); outline-offset: 2px; }
+        :focus:not(:focus-visible) { outline: none; }
+
+        /* ── Accessibility: Reduced Motion ── */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        /* ── Page Load Animation ── */
+        @keyframes ts-page-enter {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        body { animation: ts-page-enter var(--ts-dur-moderate, 300ms) var(--ts-ease-out, ease) both; }
+
     </style>
 </head>
 <body>
@@ -1284,29 +1303,29 @@
             <div class="modal-title">Log Cleaning</div>
 
             <!-- USDA Organic Approved Sanitizer Instructions (Collapsible) -->
-            <div style="background: rgba(59, 130, 246, 0.15); border: 1px solid var(--info); border-radius: 12px; padding: 12px; margin-bottom: 16px;">
-                <div style="display: flex; align-items: center; gap: 8px; cursor: pointer;" onclick="toggleMobileSanitizerInfo()">
+            <div style="background: rgba(59, 130, 246, 0.15); border: 1px solid var(--info); border-radius: var(--ts-radius-md, 12px); padding: var(--ts-space-3, 12px); margin-bottom: var(--ts-space-4, 16px);">
+                <div style="display: flex; align-items: center; gap: var(--ts-space-2, 8px); cursor: pointer;" onclick="toggleMobileSanitizerInfo()">
                     <i class="fas fa-flask" style="color: var(--info);"></i>
-                    <span style="font-weight: 600; color: var(--info); font-size: 14px;">Organic Sanitizer Recipes</span>
-                    <i class="fas fa-chevron-down" id="mobileSanitizerChevron" style="color: var(--info); margin-left: auto; transition: transform 0.3s;"></i>
+                    <span style="font-weight: 600; color: var(--info); font-size: var(--ts-text-sm, 0.875rem);">Organic Sanitizer Recipes</span>
+                    <i class="fas fa-chevron-down" id="mobileSanitizerChevron" style="color: var(--info); margin-left: auto; transition: transform var(--ts-dur-moderate, 300ms);"></i>
                 </div>
-                <div id="mobileSanitizerInfo" style="display: none; margin-top: 12px; font-size: 13px; color: var(--text-secondary);">
-                    <div style="background: var(--bg-elevated); border-radius: 8px; padding: 12px; margin-bottom: 8px;">
+                <div id="mobileSanitizerInfo" style="display: none; margin-top: var(--ts-space-3, 12px); font-size: var(--ts-text-xs, 0.8rem); color: var(--text-secondary);">
+                    <div style="background: var(--bg-elevated); border-radius: var(--ts-radius-sm, 8px); padding: var(--ts-space-3, 12px); margin-bottom: var(--ts-space-2, 8px);">
                         <strong style="color: #06b6d4;">Bleach (200 ppm) - Best for Disinfecting</strong><br>
                         1 tsp bleach per 32 oz water<br>
                         <span style="color: var(--success);">USDA Organic Approved</span>
                     </div>
-                    <div style="background: var(--bg-elevated); border-radius: 8px; padding: 12px; margin-bottom: 8px;">
+                    <div style="background: var(--bg-elevated); border-radius: var(--ts-radius-sm, 8px); padding: var(--ts-space-3, 12px); margin-bottom: var(--ts-space-2, 8px);">
                         <strong style="color: var(--success);">White Vinegar - Fully Organic</strong><br>
                         1:1 vinegar to water ratio<br>
                         <span style="color: var(--success);">No restrictions</span>
                     </div>
-                    <div style="background: var(--bg-elevated); border-radius: 8px; padding: 12px; margin-bottom: 8px;">
+                    <div style="background: var(--bg-elevated); border-radius: var(--ts-radius-sm, 8px); padding: var(--ts-space-3, 12px); margin-bottom: var(--ts-space-2, 8px);">
                         <strong style="color: var(--warning);">Hydrogen Peroxide 3%</strong><br>
                         Use undiluted from bottle<br>
                         <span style="color: var(--success);">USDA Organic Approved</span>
                     </div>
-                    <div style="background: rgba(239, 68, 68, 0.15); border-radius: 8px; padding: 10px; color: var(--danger); font-size: 12px;">
+                    <div style="background: rgba(239, 68, 68, 0.15); border-radius: var(--ts-radius-sm, 8px); padding: 10px; color: var(--danger); font-size: var(--ts-text-xs, 0.75rem);">
                         <i class="fas fa-exclamation-triangle"></i> NEVER mix bleach with vinegar or ammonia!
                     </div>
                 </div>
@@ -1367,20 +1386,20 @@
 
             <div class="modal-form-group">
                 <label class="modal-label">Checklist</label>
-                <div style="display: flex; flex-direction: column; gap: 12px;">
-                    <label style="display: flex; align-items: center; gap: 12px; cursor: pointer;">
+                <div style="display: flex; flex-direction: column; gap: var(--ts-space-3, 12px);">
+                    <label style="display: flex; align-items: center; gap: var(--ts-space-3, 12px); cursor: pointer;">
                         <input type="checkbox" id="check1" style="width: 24px; height: 24px;">
                         <span>No animal intrusion signs</span>
                     </label>
-                    <label style="display: flex; align-items: center; gap: 12px; cursor: pointer;">
+                    <label style="display: flex; align-items: center; gap: var(--ts-space-3, 12px); cursor: pointer;">
                         <input type="checkbox" id="check2" style="width: 24px; height: 24px;">
                         <span>No flooding or standing water</span>
                     </label>
-                    <label style="display: flex; align-items: center; gap: 12px; cursor: pointer;">
+                    <label style="display: flex; align-items: center; gap: var(--ts-space-3, 12px); cursor: pointer;">
                         <input type="checkbox" id="check3" style="width: 24px; height: 24px;">
                         <span>No contamination visible</span>
                     </label>
-                    <label style="display: flex; align-items: center; gap: 12px; cursor: pointer;">
+                    <label style="display: flex; align-items: center; gap: var(--ts-space-3, 12px); cursor: pointer;">
                         <input type="checkbox" id="check4" style="width: 24px; height: 24px;">
                         <span>Equipment clean</span>
                     </label>
@@ -2092,9 +2111,9 @@
 
         function showError(message) {
             document.getElementById('loadingState').innerHTML = `
-                <i class="fas fa-exclamation-circle" style="font-size: 2rem; color: var(--danger); margin-bottom: 16px;"></i>
+                <i class="fas fa-exclamation-circle" style="font-size: 2rem; color: var(--danger); margin-bottom: var(--ts-space-4, 16px);"></i>
                 <div>${message}</div>
-                <button onclick="loadDashboard()" style="margin-top: 16px; padding: 12px 24px; background: var(--success); border: none; border-radius: 8px; color: white; cursor: pointer;">
+                <button onclick="loadDashboard()" style="margin-top: var(--ts-space-4, 16px); padding: var(--ts-space-3, 12px) var(--ts-space-6, 24px); background: var(--success); border: none; border-radius: var(--ts-radius-sm, 8px); color: white; cursor: pointer;">
                     Retry
                 </button>
             `;
@@ -2114,5 +2133,6 @@
             showToast('Coming soon: ' + section);
         }
     </script>
+<script src="shared-nav.js"></script>
 </body>
 </html>

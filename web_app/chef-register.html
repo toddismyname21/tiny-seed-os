@@ -49,22 +49,22 @@
 
         .hero-logo {
             width: 100px;
-            margin-bottom: 16px;
+            margin-bottom: var(--ts-space-4, 16px);
             filter: drop-shadow(0 2px 8px rgba(0,0,0,0.3));
         }
 
         .hero-badge {
             display: inline-flex;
             align-items: center;
-            gap: 8px;
+            gap: var(--ts-space-2, 8px);
             background: rgba(34, 197, 94, 0.2);
             border: 1px solid rgba(34, 197, 94, 0.4);
             padding: 6px 16px;
-            border-radius: 20px;
+            border-radius: var(--ts-radius-lg, 20px);
             font-size: 0.8rem;
             font-weight: 600;
             color: #86efac;
-            margin-bottom: 16px;
+            margin-bottom: var(--ts-space-4, 16px);
             letter-spacing: 0.5px;
         }
 
@@ -101,17 +101,17 @@
         .progress-container {
             background: #fff;
             border-radius: var(--radius);
-            padding: 20px 24px;
+            padding: var(--ts-space-5, 20px) var(--ts-space-6, 24px);
             box-shadow: var(--shadow-md);
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: var(--ts-space-3, 12px);
         }
 
         .progress-step {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: var(--ts-space-2, 8px);
             flex: 1;
         }
 
@@ -125,7 +125,7 @@
             font-size: 0.8rem;
             font-weight: 700;
             flex-shrink: 0;
-            transition: all 0.3s;
+            transition: all var(--ts-dur-moderate, 300ms);
         }
 
         .step-circle.active {
@@ -191,7 +191,7 @@
             border-top-color: var(--green);
             border-radius: 50%;
             animation: spin 0.8s linear infinite;
-            margin-bottom: 16px;
+            margin-bottom: var(--ts-space-4, 16px);
         }
 
         @keyframes spin {
@@ -234,13 +234,13 @@
             font-family: 'Playfair Display', serif;
             color: var(--text-dark);
             font-size: 1.3rem;
-            margin-bottom: 8px;
+            margin-bottom: var(--ts-space-2, 8px);
         }
 
         .error-card p {
             color: var(--text-muted);
             font-size: 0.9rem;
-            margin-bottom: 24px;
+            margin-bottom: var(--ts-space-6, 24px);
             line-height: 1.6;
         }
 
@@ -252,7 +252,7 @@
         .error-card h3 {
             font-size: 0.95rem;
             color: var(--text-dark);
-            margin-bottom: 12px;
+            margin-bottom: var(--ts-space-3, 12px);
         }
 
         /* ══════════════════════════════════════ */
@@ -262,11 +262,11 @@
             background: var(--green-light);
             border: 1.5px solid #bbf7d0;
             border-radius: var(--radius);
-            padding: 16px 20px;
-            margin-bottom: 24px;
+            padding: var(--ts-space-4, 16px) var(--ts-space-5, 20px);
+            margin-bottom: var(--ts-space-6, 24px);
             display: flex;
             align-items: flex-start;
-            gap: 12px;
+            gap: var(--ts-space-3, 12px);
         }
 
         .welcome-banner i {
@@ -290,19 +290,19 @@
             border-radius: var(--radius);
             padding: 28px;
             box-shadow: var(--shadow-sm);
-            margin-bottom: 20px;
+            margin-bottom: var(--ts-space-5, 20px);
         }
 
         .form-card-header {
             font-size: 1rem;
             font-weight: 700;
             color: var(--green-deep);
-            margin-bottom: 20px;
+            margin-bottom: var(--ts-space-5, 20px);
             padding-bottom: 10px;
             border-bottom: 2px solid var(--green);
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: var(--ts-space-2, 10px);
         }
 
         .form-card-header i {
@@ -332,7 +332,7 @@
             width: 100%;
             padding: 11px 14px;
             border: 1.5px solid #e5e7eb;
-            border-radius: 8px;
+            border-radius: var(--ts-radius-sm, 8px);
             font-size: 0.9rem;
             font-family: inherit;
             transition: border-color 0.2s, box-shadow 0.2s;
@@ -399,11 +399,11 @@
         .status-message {
             padding: 14px 18px;
             border-radius: var(--radius);
-            margin-bottom: 16px;
+            margin-bottom: var(--ts-space-4, 16px);
             font-size: 0.88rem;
             display: none;
             align-items: center;
-            gap: 10px;
+            gap: var(--ts-space-2, 10px);
         }
 
         .status-message.error {
@@ -427,15 +427,15 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
+            gap: var(--ts-space-2, 8px);
             padding: 14px 24px;
             border: none;
-            border-radius: 50px;
+            border-radius: var(--ts-radius-full, 9999px);
             font-size: 1rem;
             font-weight: 700;
             font-family: inherit;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all var(--ts-dur-normal, 200ms);
             width: 100%;
         }
 
@@ -496,7 +496,7 @@
             font-family: 'Playfair Display', serif;
             color: var(--text-dark);
             font-size: 1.4rem;
-            margin-bottom: 12px;
+            margin-bottom: var(--ts-space-3, 12px);
         }
 
         .success-card p {
@@ -511,14 +511,14 @@
             background: linear-gradient(135deg, var(--green), var(--green-dark));
             color: #fff;
             border-radius: var(--radius);
-            padding: 20px;
-            margin-top: 24px;
+            padding: var(--ts-space-5, 20px);
+            margin-top: var(--ts-space-6, 24px);
             text-align: center;
         }
 
         .discount-callout h3 {
             font-size: 1.1rem;
-            margin-bottom: 4px;
+            margin-bottom: var(--ts-space-1, 4px);
         }
 
         .discount-callout p {
@@ -529,21 +529,21 @@
         .next-steps {
             background: #f9fafb;
             border-radius: var(--radius);
-            padding: 20px;
-            margin-top: 20px;
+            padding: var(--ts-space-5, 20px);
+            margin-top: var(--ts-space-5, 20px);
             text-align: left;
         }
 
         .next-steps h4 {
             font-size: 0.9rem;
             color: var(--text-dark);
-            margin-bottom: 12px;
+            margin-bottom: var(--ts-space-3, 12px);
         }
 
         .next-steps li {
             font-size: 0.85rem;
             color: var(--text-muted);
-            margin-bottom: 8px;
+            margin-bottom: var(--ts-space-2, 8px);
             line-height: 1.5;
         }
 
@@ -598,8 +598,8 @@
             }
 
             .progress-container {
-                padding: 16px;
-                gap: 8px;
+                padding: var(--ts-space-4, 16px);
+                gap: var(--ts-space-2, 8px);
             }
 
             .step-label {
@@ -615,9 +615,28 @@
             }
 
             .form-card {
-                padding: 20px;
+                padding: var(--ts-space-5, 20px);
             }
         }
+        /* ── Accessibility: Focus Visible ── */
+        :focus-visible { outline: 2px solid var(--ts-primary, #22c55e); outline-offset: 2px; }
+        :focus:not(:focus-visible) { outline: none; }
+
+        /* ── Accessibility: Reduced Motion ── */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        /* ── Page Load Animation ── */
+        @keyframes ts-page-enter {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        body { animation: ts-page-enter var(--ts-dur-moderate, 300ms) var(--ts-ease-out, ease) both; }
+
     </style>
 </head>
 <body>
@@ -1151,5 +1170,6 @@ async function requestNewInvitation() {
 init();
 </script>
 
+<script src="shared-nav.js"></script>
 </body>
 </html>

@@ -21,8 +21,8 @@
             --warning: var(--ts-amber-400, #e9c46a);
             --danger: var(--ts-red-500, #e63946);
             --info: #4361ee;
-            --bg-dark: var(--ts-bg-base, #1a1a2e);
-            --bg-card: var(--ts-bg-surface, #16213e);
+            --bg-dark: var(--ts-bg-base, #1a1816);
+            --bg-card: var(--ts-bg-surface, #282520);
             --bg-light: var(--ts-bg-elevated, #0f3460);
             --text-primary: var(--ts-text, #edf2f4);
             --text-secondary: var(--ts-text-secondary, #8d99ae);
@@ -139,10 +139,10 @@
 
         .stat-card {
             background: var(--bg-card);
-            border-radius: 16px;
+            border-radius: var(--ts-radius-lg, 16px);
             padding: 1.5rem;
             border: 1px solid var(--border);
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: transform var(--ts-dur-normal, 200ms), box-shadow var(--ts-dur-normal, 200ms);
         }
 
         .stat-card:hover {
@@ -160,7 +160,7 @@
         .stat-icon {
             width: 45px;
             height: 45px;
-            border-radius: 12px;
+            border-radius: var(--ts-radius-md, 12px);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -210,13 +210,13 @@
 
         @media (max-width: 768px) {
             body {
-                padding: 16px;
+                padding: var(--ts-space-4, 16px);
             }
 
             .header {
                 flex-direction: column;
                 align-items: flex-start;
-                gap: 16px;
+                gap: var(--ts-space-4, 16px);
             }
 
             .stats-grid {
@@ -224,13 +224,13 @@
             }
 
             .stat-card {
-                padding: 16px;
+                padding: var(--ts-space-4, 16px);
             }
         }
 
         @media (max-width: 480px) {
             body {
-                padding: 12px;
+                padding: var(--ts-space-3, 12px);
                 padding-top: calc(12px + var(--safe-top));
                 padding-bottom: calc(12px + var(--safe-bottom));
             }
@@ -247,7 +247,7 @@
         /* Cards */
         .card {
             background: var(--bg-card);
-            border-radius: 16px;
+            border-radius: var(--ts-radius-lg, 16px);
             border: 1px solid var(--border);
             overflow: hidden;
         }
@@ -301,7 +301,7 @@
             justify-content: space-between;
             padding: 0.5rem 0.75rem;
             background: rgba(255,255,255,0.03);
-            border-radius: 8px;
+            border-radius: var(--ts-radius-sm, 8px);
         }
 
         .legend-item-left {
@@ -346,7 +346,7 @@
         }
 
         .season-block:first-child {
-            border-radius: 12px 0 0 12px;
+            border-radius: var(--ts-radius-md, 12px) 0 0 12px;
         }
 
         .season-block:last-child {
@@ -393,7 +393,7 @@
         /* Growth Signal Panel */
         .signal-panel {
             background: linear-gradient(135deg, var(--bg-light) 0%, var(--bg-card) 100%);
-            border-radius: 12px;
+            border-radius: var(--ts-radius-md, 12px);
             padding: 1.5rem;
             margin-bottom: 1.5rem;
         }
@@ -413,7 +413,7 @@
 
         .signal-mode-badge {
             padding: 0.4rem 1rem;
-            border-radius: 20px;
+            border-radius: var(--ts-radius-lg, 20px);
             font-weight: 600;
             font-size: 0.85rem;
         }
@@ -437,7 +437,7 @@
         .asset-chip {
             background: rgba(255,255,255,0.1);
             padding: 0.5rem 1rem;
-            border-radius: 8px;
+            border-radius: var(--ts-radius-sm, 8px);
             font-weight: 500;
             font-size: 0.85rem;
             display: flex;
@@ -463,7 +463,7 @@
             gap: 1rem;
             padding: 1rem;
             background: rgba(255,255,255,0.03);
-            border-radius: 12px;
+            border-radius: var(--ts-radius-md, 12px);
             border-left: 3px solid var(--primary);
         }
 
@@ -523,7 +523,7 @@
 
         .trade-action {
             padding: 0.3rem 0.75rem;
-            border-radius: 4px;
+            border-radius: var(--ts-radius-sm, 4px);
             font-weight: 600;
             font-size: 0.8rem;
         }
@@ -555,7 +555,7 @@
             position: absolute;
             width: 200px;
             height: 100px;
-            border-radius: 100px 100px 0 0;
+            border-radius: var(--ts-radius-full, 9999px) 100px 0 0;
             background: linear-gradient(90deg,
                 var(--success) 0%,
                 var(--warning) 50%,
@@ -622,13 +622,13 @@
         .progress-bar {
             height: 12px;
             background: rgba(255,255,255,0.1);
-            border-radius: 6px;
+            border-radius: var(--ts-radius-sm, 6px);
             overflow: hidden;
         }
 
         .progress-fill {
             height: 100%;
-            border-radius: 6px;
+            border-radius: var(--ts-radius-sm, 6px);
             transition: width 0.5s ease;
         }
 
@@ -646,7 +646,7 @@
         .schedule-month {
             text-align: center;
             padding: 0.75rem 0.25rem;
-            border-radius: 8px;
+            border-radius: var(--ts-radius-sm, 8px);
             background: rgba(255,255,255,0.05);
         }
 
@@ -681,10 +681,10 @@
             padding: 0.75rem 1.5rem;
             background: transparent;
             border: 1px solid var(--border);
-            border-radius: 8px;
+            border-radius: var(--ts-radius-sm, 8px);
             color: var(--text-secondary);
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all var(--ts-dur-normal, 200ms);
         }
 
         .spec-tab:hover {
@@ -708,7 +708,7 @@
         pre {
             background: #0d1117;
             padding: 1.5rem;
-            border-radius: 12px;
+            border-radius: var(--ts-radius-md, 12px);
             overflow-x: auto;
             font-size: 0.85rem;
             line-height: 1.6;
@@ -727,16 +727,16 @@
         /* Buttons */
         .btn {
             padding: 14px 24px;
-            border-radius: 10px;
+            border-radius: var(--ts-radius-md, 10px);
             font-weight: 600;
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all var(--ts-dur-normal, 200ms);
             border: none;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
+            gap: var(--ts-space-2, 8px);
             min-height: var(--touch-min);
             touch-action: manipulation;
         }
@@ -780,7 +780,7 @@
             color: var(--text-secondary);
             text-decoration: none;
             margin-bottom: 1rem;
-            transition: color 0.2s;
+            transition: color var(--ts-dur-normal, 200ms);
         }
 
         .back-link:hover {
@@ -792,11 +792,11 @@
         /* ============================================= */
         .keyboard-help {
             position: fixed; bottom: 20px; right: 20px; background: var(--bg-card); border: 1px solid var(--border);
-            border-radius: 12px; padding: 1rem; font-size: 0.75rem; color: var(--text-secondary); z-index: 2000; display: none; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            border-radius: var(--ts-radius-md, 12px); padding: 1rem; font-size: 0.75rem; color: var(--text-secondary); z-index: 2000; display: none; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
         }
         .keyboard-help.visible { display: block; }
         .keyboard-help h4 { color: var(--text-primary); margin-bottom: 0.5rem; font-size: 0.85rem; }
-        .keyboard-help kbd { background: var(--bg-light); padding: 2px 6px; border-radius: 4px; font-family: monospace; margin-right: 0.5rem; }
+        .keyboard-help kbd { background: var(--bg-light); padding: 2px 6px; border-radius: var(--ts-radius-sm, 4px); font-family: monospace; margin-right: 0.5rem; }
         .keyboard-help div { margin-bottom: 0.25rem; }
 
         /* ============================================= */
@@ -814,6 +814,25 @@
             canvas { max-height: 200px !important; }
             @page { margin: 0.5in; }
         }
+        /* ── Accessibility: Focus Visible ── */
+        :focus-visible { outline: 2px solid var(--ts-primary, #22c55e); outline-offset: 2px; }
+        :focus:not(:focus-visible) { outline: none; }
+
+        /* ── Accessibility: Reduced Motion ── */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        /* ── Page Load Animation ── */
+        @keyframes ts-page-enter {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        body { animation: ts-page-enter var(--ts-dur-moderate, 300ms) var(--ts-ease-out, ease) both; }
+
     </style>
     <script src="print-engine.js"></script>
 </head>
@@ -1062,17 +1081,17 @@
                         </div>
 
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1.5rem;">
-                            <div style="text-align: center; padding: 1rem; background: rgba(255,255,255,0.03); border-radius: 8px;">
+                            <div style="text-align: center; padding: 1rem; background: rgba(255,255,255,0.03); border-radius: var(--ts-radius-sm, 8px);">
                                 <div style="font-size: 1.25rem; font-weight: 700;">12.4%</div>
                                 <div style="font-size: 0.75rem; color: var(--text-secondary);">Volatility (Ann.)</div>
                             </div>
-                            <div style="text-align: center; padding: 1rem; background: rgba(255,255,255,0.03); border-radius: 8px;">
+                            <div style="text-align: center; padding: 1rem; background: rgba(255,255,255,0.03); border-radius: var(--ts-radius-sm, 8px);">
                                 <div style="font-size: 1.25rem; font-weight: 700;">15%</div>
                                 <div style="font-size: 0.75rem; color: var(--text-secondary);">Max Drawdown Limit</div>
                             </div>
                         </div>
 
-                        <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(42, 157, 143, 0.1); border-radius: 8px; border-left: 3px solid var(--success);">
+                        <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(42, 157, 143, 0.1); border-radius: var(--ts-radius-sm, 8px); border-left: 3px solid var(--success);">
                             <div style="font-weight: 600; margin-bottom: 0.25rem;">
                                 <i class="fas fa-check-circle" style="color: var(--success);"></i> All Clear
                             </div>
@@ -1161,7 +1180,7 @@
                             </div>
                         </div>
 
-                        <div style="margin-top: 1rem; padding: 1rem; background: rgba(255,255,255,0.03); border-radius: 8px; text-align: center;">
+                        <div style="margin-top: 1rem; padding: 1rem; background: rgba(255,255,255,0.03); border-radius: var(--ts-radius-sm, 8px); text-align: center;">
                             <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.25rem;">
                                 Annual Total (Base: $1,000/mo)
                             </div>
@@ -1222,7 +1241,7 @@
                     <div id="spec-overview" class="spec-content active">
                         <h4 style="margin-bottom: 1rem;">Dual Allocation Investment System</h4>
                         <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem;">
-                            <div style="padding: 1.5rem; background: rgba(42, 157, 143, 0.1); border-radius: 12px; border: 1px solid rgba(42, 157, 143, 0.3);">
+                            <div style="padding: 1.5rem; background: rgba(42, 157, 143, 0.1); border-radius: var(--ts-radius-md, 12px); border: 1px solid rgba(42, 157, 143, 0.3);">
                                 <h5 style="color: var(--success); margin-bottom: 1rem;">
                                     <i class="fas fa-shield-alt"></i> SAFE ALLOCATION (75%)
                                 </h5>
@@ -1234,7 +1253,7 @@
                                     <li><strong>Sharpe Ratio:</strong> 0.65-0.75</li>
                                 </ul>
                             </div>
-                            <div style="padding: 1.5rem; background: rgba(244, 162, 97, 0.1); border-radius: 12px; border: 1px solid rgba(244, 162, 97, 0.3);">
+                            <div style="padding: 1.5rem; background: rgba(244, 162, 97, 0.1); border-radius: var(--ts-radius-md, 12px); border: 1px solid rgba(244, 162, 97, 0.3);">
                                 <h5 style="color: var(--secondary); margin-bottom: 1rem;">
                                     <i class="fas fa-rocket"></i> GROWTH ALLOCATION (25%)
                                 </h5>
@@ -1249,7 +1268,7 @@
                         </div>
 
                         <h4 style="margin: 2rem 0 1rem;">Blended Portfolio Expectations</h4>
-                        <div style="padding: 1.5rem; background: rgba(255,255,255,0.03); border-radius: 12px;">
+                        <div style="padding: 1.5rem; background: rgba(255,255,255,0.03); border-radius: var(--ts-radius-md, 12px);">
                             <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; text-align: center;">
                                 <div>
                                     <div style="font-size: 1.5rem; font-weight: 700; color: var(--success);">6-9%</div>
@@ -1356,7 +1375,7 @@
                         <h4 style="margin-bottom: 1rem;">Growth Strategy: Dual Momentum + Factor Tilt</h4>
 
                         <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; margin-bottom: 2rem;">
-                            <div style="padding: 1.5rem; background: rgba(42, 157, 143, 0.1); border-radius: 12px;">
+                            <div style="padding: 1.5rem; background: rgba(42, 157, 143, 0.1); border-radius: var(--ts-radius-md, 12px);">
                                 <h5 style="color: var(--success); margin-bottom: 1rem;">Offensive Holdings</h5>
                                 <ul style="list-style: none; font-size: 0.9rem; line-height: 1.8;">
                                     <li><strong>QQQ</strong> - Nasdaq-100 (up to 35%)</li>
@@ -1365,7 +1384,7 @@
                                     <li><strong>VBK</strong> - Small-Cap Growth (up to 15%)</li>
                                 </ul>
                             </div>
-                            <div style="padding: 1.5rem; background: rgba(230, 57, 70, 0.1); border-radius: 12px;">
+                            <div style="padding: 1.5rem; background: rgba(230, 57, 70, 0.1); border-radius: var(--ts-radius-md, 12px);">
                                 <h5 style="color: var(--danger); margin-bottom: 1rem;">Defensive Holdings</h5>
                                 <ul style="list-style: none; font-size: 0.9rem; line-height: 1.8;">
                                     <li><strong>SHY</strong> - 1-3 Year Treasury (100%)</li>
@@ -1385,7 +1404,7 @@
                         </ol>
 
                         <h4 style="margin: 2rem 0 1rem;">Defensive Triggers</h4>
-                        <div style="padding: 1.5rem; background: rgba(255,255,255,0.03); border-radius: 12px;">
+                        <div style="padding: 1.5rem; background: rgba(255,255,255,0.03); border-radius: var(--ts-radius-md, 12px);">
                             <ul style="list-style: none; font-size: 0.9rem; line-height: 2;">
                                 <li><i class="fas fa-exclamation-triangle" style="color: var(--warning); margin-right: 0.5rem;"></i>
                                     <strong>Growth drawdown >= 10%:</strong> Move to defensive</li>
@@ -1679,5 +1698,6 @@ drift = current_percent - target_percent
         <div><kbd>?</kbd> Toggle help</div>
         <div><kbd>Esc</kbd> Close help</div>
     </div>
+<script src="shared-nav.js"></script>
 </body>
 </html>

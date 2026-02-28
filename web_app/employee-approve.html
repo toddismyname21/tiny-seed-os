@@ -22,13 +22,13 @@
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             background: #f8fafc;
             min-height: 100vh;
-            color: #1e293b;
+            color: #201e1b;
         }
 
         .header {
             background: linear-gradient(135deg, #15803d, #166534);
             color: white;
-            padding: 20px;
+            padding: var(--ts-space-5, 20px);
             position: sticky;
             top: 0;
             z-index: 100;
@@ -44,24 +44,24 @@
         }
 
         .header h1 {
-            font-size: 20px;
+            font-size: var(--ts-text-xl, 1.25rem);
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: var(--ts-space-2, 10px);
         }
 
         .back-btn {
             background: rgba(255,255,255,0.2);
             border: none;
             color: white;
-            padding: 8px 16px;
-            border-radius: 8px;
+            padding: var(--ts-space-2, 8px) var(--ts-space-4, 16px);
+            border-radius: var(--ts-radius-sm, 8px);
             cursor: pointer;
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
             text-decoration: none;
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: var(--ts-space-1, 6px);
         }
 
         .back-btn:hover {
@@ -71,24 +71,24 @@
         .container {
             max-width: 800px;
             margin: 0 auto;
-            padding: 20px;
+            padding: var(--ts-space-5, 20px);
         }
 
         .stats-bar {
             display: flex;
-            gap: 12px;
-            margin-bottom: 20px;
+            gap: var(--ts-space-3, 12px);
+            margin-bottom: var(--ts-space-5, 20px);
             flex-wrap: wrap;
         }
 
         .stat-badge {
             background: white;
-            padding: 12px 20px;
-            border-radius: 10px;
+            padding: var(--ts-space-3, 12px) var(--ts-space-5, 20px);
+            border-radius: var(--ts-radius-md, 10px);
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: var(--ts-space-2, 10px);
         }
 
         .stat-badge.pending {
@@ -100,52 +100,52 @@
         }
 
         .stat-badge .count {
-            font-size: 24px;
+            font-size: var(--ts-text-2xl, 1.5rem);
             font-weight: 700;
-            color: #1e293b;
+            color: #201e1b;
         }
 
         .stat-badge .label {
-            font-size: 13px;
+            font-size: var(--ts-text-xs, 0.8rem);
             color: #64748b;
         }
 
         .section-title {
-            font-size: 16px;
+            font-size: var(--ts-text-base, 1rem);
             font-weight: 600;
             color: #475569;
-            margin-bottom: 12px;
+            margin-bottom: var(--ts-space-3, 12px);
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: var(--ts-space-2, 8px);
         }
 
         .employee-card {
             background: white;
-            border-radius: 12px;
+            border-radius: var(--ts-radius-md, 12px);
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            margin-bottom: 16px;
+            margin-bottom: var(--ts-space-4, 16px);
             overflow: hidden;
         }
 
         .employee-header {
-            padding: 16px;
-            border-bottom: 1px solid #e2e8f0;
+            padding: var(--ts-space-4, 16px);
+            border-bottom: 1px solid #ece8e1;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
         .employee-name {
-            font-size: 18px;
+            font-size: var(--ts-text-lg, 1.125rem);
             font-weight: 600;
-            color: #1e293b;
+            color: #201e1b;
         }
 
         .employee-status {
             padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 12px;
+            border-radius: var(--ts-radius-lg, 20px);
+            font-size: var(--ts-text-xs, 0.75rem);
             font-weight: 500;
         }
 
@@ -165,13 +165,13 @@
         }
 
         .employee-details {
-            padding: 16px;
+            padding: var(--ts-space-4, 16px);
         }
 
         .detail-row {
             display: flex;
             margin-bottom: 10px;
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
         }
 
         .detail-label {
@@ -181,7 +181,7 @@
         }
 
         .detail-value {
-            color: #1e293b;
+            color: #201e1b;
             font-weight: 500;
         }
 
@@ -192,29 +192,29 @@
 
         .emergency-section {
             background: #fef2f2;
-            border-radius: 8px;
-            padding: 12px;
-            margin-top: 12px;
+            border-radius: var(--ts-radius-sm, 8px);
+            padding: var(--ts-space-3, 12px);
+            margin-top: var(--ts-space-3, 12px);
         }
 
         .emergency-section h4 {
-            font-size: 13px;
+            font-size: var(--ts-text-xs, 0.8rem);
             color: #dc2626;
-            margin-bottom: 8px;
+            margin-bottom: var(--ts-space-2, 8px);
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: var(--ts-space-1, 6px);
         }
 
         .approval-form {
-            padding: 16px;
+            padding: var(--ts-space-4, 16px);
             background: #f8fafc;
-            border-top: 1px solid #e2e8f0;
+            border-top: 1px solid #ece8e1;
         }
 
         .form-row {
             display: flex;
-            gap: 12px;
+            gap: var(--ts-space-3, 12px);
             align-items: flex-end;
             flex-wrap: wrap;
         }
@@ -226,7 +226,7 @@
 
         .form-group label {
             display: block;
-            font-size: 13px;
+            font-size: var(--ts-text-xs, 0.8rem);
             font-weight: 500;
             color: #475569;
             margin-bottom: 6px;
@@ -235,9 +235,9 @@
         .form-group select {
             width: 100%;
             padding: 10px 12px;
-            border: 2px solid #e2e8f0;
-            border-radius: 8px;
-            font-size: 14px;
+            border: 2px solid #ece8e1;
+            border-radius: var(--ts-radius-sm, 8px);
+            font-size: var(--ts-text-sm, 0.875rem);
             background: white;
             cursor: pointer;
         }
@@ -248,16 +248,16 @@
         }
 
         .btn {
-            padding: 10px 20px;
+            padding: var(--ts-space-2, 10px) var(--ts-space-5, 20px);
             border: none;
-            border-radius: 8px;
-            font-size: 14px;
+            border-radius: var(--ts-radius-sm, 8px);
+            font-size: var(--ts-text-sm, 0.875rem);
             font-weight: 600;
             cursor: pointer;
             display: flex;
             align-items: center;
-            gap: 6px;
-            transition: all 0.2s;
+            gap: var(--ts-space-1, 6px);
+            transition: all var(--ts-dur-normal, 200ms);
         }
 
         .btn-approve {
@@ -290,15 +290,15 @@
         }
 
         .empty-state i {
-            font-size: 48px;
+            font-size: var(--ts-text-5xl, 3rem);
             color: #cbd5e1;
-            margin-bottom: 16px;
+            margin-bottom: var(--ts-space-4, 16px);
         }
 
         .empty-state h3 {
-            font-size: 18px;
+            font-size: var(--ts-text-lg, 1.125rem);
             color: #475569;
-            margin-bottom: 8px;
+            margin-bottom: var(--ts-space-2, 8px);
         }
 
         .loading {
@@ -309,7 +309,7 @@
         .spinner {
             width: 40px;
             height: 40px;
-            border: 4px solid #e2e8f0;
+            border: 4px solid #ece8e1;
             border-top-color: #22c55e;
             border-radius: 50%;
             animation: spin 1s linear infinite;
@@ -325,10 +325,10 @@
             bottom: 20px;
             left: 50%;
             transform: translateX(-50%);
-            padding: 12px 24px;
-            border-radius: 8px;
+            padding: var(--ts-space-3, 12px) var(--ts-space-6, 24px);
+            border-radius: var(--ts-radius-sm, 8px);
             color: white;
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
             font-weight: 500;
             z-index: 1000;
             display: none;
@@ -356,10 +356,10 @@
             background: none;
             border: 1px solid rgba(255,255,255,0.3);
             color: white;
-            padding: 8px 12px;
-            border-radius: 8px;
+            padding: var(--ts-space-2, 8px) var(--ts-space-3, 12px);
+            border-radius: var(--ts-radius-sm, 8px);
             cursor: pointer;
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
         }
 
         .refresh-btn:hover {
@@ -384,13 +384,32 @@
                 flex-direction: column;
             }
         }
+        /* ── Accessibility: Focus Visible ── */
+        :focus-visible { outline: 2px solid var(--ts-primary, #22c55e); outline-offset: 2px; }
+        :focus:not(:focus-visible) { outline: none; }
+
+        /* ── Accessibility: Reduced Motion ── */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        /* ── Page Load Animation ── */
+        @keyframes ts-page-enter {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        body { animation: ts-page-enter var(--ts-dur-moderate, 300ms) var(--ts-ease-out, ease) both; }
+
     </style>
 </head>
 <body>
     <div class="header">
         <div class="header-content">
             <h1><i class="fas fa-user-check"></i> Employee Approvals</h1>
-            <div style="display: flex; gap: 8px;">
+            <div style="display: flex; gap: var(--ts-space-2, 8px);">
                 <button class="refresh-btn" onclick="loadEmployees()">
                     <i class="fas fa-sync-alt"></i>
                 </button>
@@ -690,5 +709,6 @@
         // Load on page load
         loadEmployees();
     </script>
+<script src="shared-nav.js"></script>
 </body>
 </html>

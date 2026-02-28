@@ -22,8 +22,8 @@
             --warning: var(--ts-amber-400, #e9c46a);
             --danger: var(--ts-red-500, #e63946);
             --info: #4361ee;
-            --bg-dark: var(--ts-bg-base, #1a1a2e);
-            --bg-card: var(--ts-bg-surface, #16213e);
+            --bg-dark: var(--ts-bg-base, #1a1816);
+            --bg-card: var(--ts-bg-surface, #282520);
             --bg-light: var(--ts-bg-elevated, #0f3460);
             --text-primary: var(--ts-text, #edf2f4);
             --text-secondary: var(--ts-text-secondary, #8d99ae);
@@ -79,7 +79,7 @@
             width: 45px;
             height: 45px;
             background: linear-gradient(135deg, var(--gold) 0%, var(--secondary) 100%);
-            border-radius: 12px;
+            border-radius: var(--ts-radius-md, 12px);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -105,19 +105,19 @@
         }
 
         .btn {
-            padding: 12px 20px;
+            padding: var(--ts-space-3, 12px) var(--ts-space-5, 20px);
             border: none;
-            border-radius: 10px;
-            font-size: 14px;
+            border-radius: var(--ts-radius-md, 10px);
+            font-size: var(--ts-text-sm, 0.875rem);
             font-weight: 500;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
+            gap: var(--ts-space-2, 8px);
             min-height: var(--touch-min);
             touch-action: manipulation;
-            transition: all 0.2s;
+            transition: all var(--ts-dur-normal, 200ms);
         }
 
         .btn-primary {
@@ -155,7 +155,7 @@
 
         .score-card {
             background: var(--bg-card);
-            border-radius: 16px;
+            border-radius: var(--ts-radius-lg, 16px);
             padding: 1.5rem;
             border: 1px solid var(--border);
             position: relative;
@@ -219,7 +219,7 @@
         /* Card Styling */
         .card {
             background: var(--bg-card);
-            border-radius: 16px;
+            border-radius: var(--ts-radius-lg, 16px);
             border: 1px solid var(--border);
             overflow: hidden;
         }
@@ -259,6 +259,7 @@
         .rankings-table th {
             font-size: 0.75rem;
             text-transform: uppercase;
+            letter-spacing: 0.05em;
             color: var(--text-secondary);
             font-weight: 500;
         }
@@ -277,7 +278,7 @@
             justify-content: center;
             width: 40px;
             height: 40px;
-            border-radius: 10px;
+            border-radius: var(--ts-radius-md, 10px);
             font-weight: 700;
             font-size: 1.1rem;
         }
@@ -302,7 +303,7 @@
             align-items: center;
             gap: 0.25rem;
             padding: 0.25rem 0.5rem;
-            border-radius: 20px;
+            border-radius: var(--ts-radius-lg, 20px);
             font-size: 0.8rem;
             font-weight: 500;
         }
@@ -319,7 +320,7 @@
 
         .progress-track {
             background: var(--bg-light);
-            border-radius: 10px;
+            border-radius: var(--ts-radius-md, 10px);
             height: 8px;
             overflow: hidden;
             width: 150px;
@@ -327,7 +328,7 @@
 
         .progress-fill {
             height: 100%;
-            border-radius: 10px;
+            border-radius: var(--ts-radius-md, 10px);
             background: linear-gradient(90deg, var(--primary), var(--success));
             transition: width 0.5s ease;
         }
@@ -335,7 +336,7 @@
         /* Recent Reviews */
         .review-item {
             padding: 1rem;
-            border-radius: 12px;
+            border-radius: var(--ts-radius-md, 12px);
             background: var(--bg-light);
             margin-bottom: 1rem;
             border-left: 4px solid var(--success);
@@ -374,10 +375,10 @@
             background: transparent;
             border: 1px solid var(--primary);
             color: var(--primary-light);
-            border-radius: 6px;
+            border-radius: var(--ts-radius-sm, 6px);
             font-size: 0.8rem;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all var(--ts-dur-normal, 200ms);
         }
 
         .respond-btn:hover {
@@ -396,7 +397,7 @@
             padding: 0.35rem 0.7rem;
             background: linear-gradient(135deg, var(--primary), var(--success));
             border: none;
-            border-radius: 6px;
+            border-radius: var(--ts-radius-sm, 6px);
             color: white;
             font-size: 0.75rem;
             font-weight: 600;
@@ -405,7 +406,7 @@
             align-items: center;
             gap: 0.3rem;
             white-space: nowrap;
-            transition: all 0.2s;
+            transition: all var(--ts-dur-normal, 200ms);
         }
         .rank-action-btn:hover {
             transform: scale(1.05);
@@ -436,7 +437,7 @@
         .tier-bar {
             flex: 1;
             background: var(--bg-light);
-            border-radius: 6px;
+            border-radius: var(--ts-radius-sm, 6px);
             height: 24px;
             overflow: hidden;
             position: relative;
@@ -461,11 +462,11 @@
             align-items: center;
             gap: 1rem;
             padding: 1rem;
-            border-radius: 10px;
+            border-radius: var(--ts-radius-md, 10px);
             background: var(--bg-light);
             margin-bottom: 0.75rem;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all var(--ts-dur-normal, 200ms);
         }
 
         .action-item:hover {
@@ -494,16 +495,16 @@
         }
 
         .action-btn {
-            padding: 12px 16px;
+            padding: var(--ts-space-3, 12px) var(--ts-space-4, 16px);
             background: var(--bg-card);
             border: 1px solid var(--border);
             color: var(--text-primary);
-            border-radius: 10px;
-            font-size: 14px;
+            border-radius: var(--ts-radius-md, 10px);
+            font-size: var(--ts-text-sm, 0.875rem);
             cursor: pointer;
             min-height: var(--touch-min);
             touch-action: manipulation;
-            transition: all 0.2s;
+            transition: all var(--ts-dur-normal, 200ms);
         }
 
         .action-btn:hover {
@@ -514,7 +515,7 @@
         .btn-sm {
             padding: 10px 14px;
             min-height: 44px;
-            font-size: 13px;
+            font-size: var(--ts-text-xs, 0.8rem);
         }
 
         /* Chart Container */
@@ -543,7 +544,7 @@
 
         .modal {
             background: var(--bg-card);
-            border-radius: 16px;
+            border-radius: var(--ts-radius-lg, 16px);
             border: 1px solid var(--border);
             width: 90%;
             max-width: 500px;
@@ -567,18 +568,18 @@
             background: var(--bg-light);
             border: none;
             color: var(--text-secondary);
-            font-size: 20px;
+            font-size: var(--ts-text-xl, 1.25rem);
             cursor: pointer;
             width: var(--touch-min);
             height: var(--touch-min);
             min-width: var(--touch-min);
             min-height: var(--touch-min);
-            border-radius: 12px;
+            border-radius: var(--ts-radius-md, 12px);
             display: flex;
             align-items: center;
             justify-content: center;
             touch-action: manipulation;
-            transition: all 0.2s;
+            transition: all var(--ts-dur-normal, 200ms);
         }
 
         .modal-close:hover {
@@ -608,9 +609,9 @@
             padding: 14px;
             background: var(--bg-light);
             border: 1px solid var(--border);
-            border-radius: 10px;
+            border-radius: var(--ts-radius-md, 10px);
             color: var(--text-primary);
-            font-size: 16px; /* Prevents iOS zoom */
+            font-size: var(--ts-text-base, 1rem); /* Prevents iOS zoom */
             min-height: var(--touch-min);
         }
 
@@ -618,6 +619,7 @@
         .form-group select:focus {
             outline: none;
             border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--ts-primary-muted, rgba(34, 197, 94, 0.15));
         }
 
         .modal-footer {
@@ -658,7 +660,7 @@
             padding: 1rem 1.5rem;
             background: var(--bg-card);
             border: 1px solid var(--success);
-            border-radius: 10px;
+            border-radius: var(--ts-radius-md, 10px);
             color: var(--success);
             display: flex;
             align-items: center;
@@ -666,7 +668,7 @@
             z-index: 300;
             transform: translateY(100px);
             opacity: 0;
-            transition: all 0.3s;
+            transition: all var(--ts-dur-moderate, 300ms);
         }
 
         .toast.active {
@@ -699,11 +701,11 @@
             .top-nav {
                 flex-direction: column;
                 gap: 1rem;
-                padding: 12px 16px;
+                padding: var(--ts-space-3, 12px) var(--ts-space-4, 16px);
             }
 
             .main-content {
-                padding: 16px;
+                padding: var(--ts-space-4, 16px);
             }
 
             .nav-actions {
@@ -725,11 +727,11 @@
             }
 
             .main-content {
-                padding: 12px;
+                padding: var(--ts-space-3, 12px);
             }
 
             .score-card {
-                padding: 16px;
+                padding: var(--ts-space-4, 16px);
             }
 
             .btn {
@@ -738,7 +740,7 @@
 
             .nav-actions {
                 flex-direction: column;
-                gap: 8px;
+                gap: var(--ts-space-2, 8px);
             }
 
             .modal-content {
@@ -754,14 +756,14 @@
             }
 
             .modal-body {
-                padding: 16px;
+                padding: var(--ts-space-4, 16px);
             }
 
             .modal-footer {
-                padding: 16px;
+                padding: var(--ts-space-4, 16px);
                 padding-bottom: calc(16px + var(--safe-bottom));
                 flex-direction: column;
-                gap: 8px;
+                gap: var(--ts-space-2, 8px);
             }
 
             .modal-footer .btn {
@@ -774,7 +776,7 @@
         /* ============================================= */
         .wizard-card {
             background: var(--bg-light);
-            border-radius: 12px;
+            border-radius: var(--ts-radius-md, 12px);
             padding: 1rem;
             border-left: 4px solid var(--gold);
         }
@@ -797,13 +799,13 @@
             padding: 0.75rem;
             margin-bottom: 0.5rem;
             background: rgba(0,0,0,0.2);
-            border-radius: 8px;
+            border-radius: var(--ts-radius-sm, 8px);
             font-size: 0.85rem;
             display: flex;
             align-items: flex-start;
             gap: 0.5rem;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all var(--ts-dur-normal, 200ms) ease;
             border: 1px solid transparent;
         }
 
@@ -850,7 +852,7 @@
             z-index: 999;
             opacity: 0;
             visibility: hidden;
-            transition: all 0.3s ease;
+            transition: all var(--ts-dur-moderate, 300ms) ease;
         }
 
         .action-panel-overlay.active {
@@ -974,7 +976,7 @@
             gap: 0.5rem;
             background: rgba(255,255,255,0.1);
             padding: 0.5rem 1rem;
-            border-radius: 20px;
+            border-radius: var(--ts-radius-lg, 20px);
             font-size: 0.85rem;
             margin-bottom: 1rem;
         }
@@ -989,10 +991,10 @@
         .ranking-action-btn {
             padding: 4px 8px;
             font-size: 0.7rem;
-            border-radius: 4px;
+            border-radius: var(--ts-radius-sm, 4px);
             border: none;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all var(--ts-dur-normal, 200ms);
         }
 
         .ranking-action-btn.improve {
@@ -1013,10 +1015,10 @@
         /* Keyword Category Tiles */
         .category-tile {
             background: var(--bg-light);
-            border-radius: 12px;
+            border-radius: var(--ts-radius-md, 12px);
             padding: 1rem;
             border: 1px solid var(--border);
-            transition: all 0.2s;
+            transition: all var(--ts-dur-normal, 200ms);
         }
 
         .category-tile:hover {
@@ -1098,11 +1100,11 @@
         /* ============================================= */
         .keyboard-help {
             position: fixed; bottom: 20px; right: 20px; background: var(--bg-card); border: 1px solid var(--border);
-            border-radius: 12px; padding: 1rem; font-size: 0.75rem; color: var(--text-secondary); z-index: 2000; display: none; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            border-radius: var(--ts-radius-md, 12px); padding: 1rem; font-size: 0.75rem; color: var(--text-secondary); z-index: 2000; display: none; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
         }
         .keyboard-help.visible { display: block; }
         .keyboard-help h4 { color: var(--text-primary); margin-bottom: 0.5rem; font-size: 0.85rem; }
-        .keyboard-help kbd { background: var(--bg-light); padding: 2px 6px; border-radius: 4px; font-family: monospace; margin-right: 0.5rem; }
+        .keyboard-help kbd { background: var(--bg-light); padding: 2px 6px; border-radius: var(--ts-radius-sm, 4px); font-family: monospace; margin-right: 0.5rem; }
         .keyboard-help div { margin-bottom: 0.25rem; }
 
         /* ============================================= */
@@ -1124,6 +1126,25 @@
             0%, 100% { opacity: 1; transform: scale(1); }
             50% { opacity: 0.5; transform: scale(1.2); }
         }
+        /* ── Accessibility: Focus Visible ── */
+        :focus-visible { outline: 2px solid var(--ts-primary, #22c55e); outline-offset: 2px; }
+        :focus:not(:focus-visible) { outline: none; }
+
+        /* ── Accessibility: Reduced Motion ── */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        /* ── Page Load Animation ── */
+        @keyframes ts-page-enter {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        body { animation: ts-page-enter var(--ts-dur-moderate, 300ms) var(--ts-ease-out, ease) both; }
+
     </style>
     <script src="print-engine.js"></script>
 </head>
@@ -1160,7 +1181,7 @@
     </nav>
 
     <!-- API Status Banner -->
-    <div id="api-status-banner" style="padding: 10px 2rem; background: var(--bg-card); border-bottom: 1px solid var(--border); display: flex; gap: 16px; flex-wrap: wrap; font-size: 0.85rem;">
+    <div id="api-status-banner" style="padding: 10px 2rem; background: var(--bg-card); border-bottom: 1px solid var(--border); display: flex; gap: var(--ts-space-4, 16px); flex-wrap: wrap; font-size: 0.85rem;">
         <span id="serpapi-status" class="api-badge"><i class="fas fa-circle" style="color: var(--warning);"></i> SerpAPI: Checking...</span>
         <span id="trigger-status" class="api-badge"><i class="fas fa-circle" style="color: var(--warning);"></i> Daily Check: Checking...</span>
         <span id="last-check" class="api-badge"><i class="fas fa-clock"></i> Last auto-check: --</span>
@@ -1293,7 +1314,7 @@
             </div>
             <div class="card-body">
                 <!-- Industry Context Banner -->
-                <div style="background: linear-gradient(135deg, rgba(230,57,70,0.1) 0%, rgba(255,215,0,0.1) 100%); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; border-left: 4px solid var(--danger);">
+                <div style="background: linear-gradient(135deg, rgba(230,57,70,0.1) 0%, rgba(255,215,0,0.1) 100%); padding: 1rem; border-radius: var(--ts-radius-sm, 8px); margin-bottom: 1.5rem; border-left: 4px solid var(--danger);">
                     <div style="display: flex; align-items: center; gap: 0.75rem;">
                         <i class="fas fa-exclamation-triangle" style="color: var(--danger); font-size: 1.25rem;"></i>
                         <div>
@@ -1319,7 +1340,7 @@
                 </div>
 
                 <!-- AEO Tips -->
-                <div style="margin-top: 1.5rem; padding: 1rem; background: var(--bg-light); border-radius: 8px;">
+                <div style="margin-top: 1.5rem; padding: 1rem; background: var(--bg-light); border-radius: var(--ts-radius-sm, 8px);">
                     <h4 style="font-size: 0.9rem; color: var(--gold); margin-bottom: 0.5rem;">
                         <i class="fas fa-lightbulb"></i> How to Check AI Visibility
                     </h4>
@@ -1357,22 +1378,22 @@
             <div class="card-body">
                 <!-- Social Engagement Summary -->
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
-                    <div style="background: var(--bg-light); padding: 1rem; border-radius: 10px; text-align: center; border-left: 3px solid #e1306c;">
+                    <div style="background: var(--bg-light); padding: 1rem; border-radius: var(--ts-radius-md, 10px); text-align: center; border-left: 3px solid #e1306c;">
                         <i class="fas fa-eye" style="color: #e1306c; font-size: 1.25rem; margin-bottom: 0.5rem; display: block;"></i>
                         <div style="font-size: 0.75rem; color: var(--text-secondary);">Social Impressions</div>
                         <div style="font-size: 1.5rem; font-weight: 700;" id="seoSocialImpressions">--</div>
                     </div>
-                    <div style="background: var(--bg-light); padding: 1rem; border-radius: 10px; text-align: center; border-left: 3px solid var(--success);">
+                    <div style="background: var(--bg-light); padding: 1rem; border-radius: var(--ts-radius-md, 10px); text-align: center; border-left: 3px solid var(--success);">
                         <i class="fas fa-heart" style="color: var(--success); font-size: 1.25rem; margin-bottom: 0.5rem; display: block;"></i>
                         <div style="font-size: 0.75rem; color: var(--text-secondary);">Engagements</div>
                         <div style="font-size: 1.5rem; font-weight: 700;" id="seoSocialEngagements">--</div>
                     </div>
-                    <div style="background: var(--bg-light); padding: 1rem; border-radius: 10px; text-align: center; border-left: 3px solid var(--gold);">
+                    <div style="background: var(--bg-light); padding: 1rem; border-radius: var(--ts-radius-md, 10px); text-align: center; border-left: 3px solid var(--gold);">
                         <i class="fas fa-percentage" style="color: var(--gold); font-size: 1.25rem; margin-bottom: 0.5rem; display: block;"></i>
                         <div style="font-size: 0.75rem; color: var(--text-secondary);">Engagement Rate</div>
                         <div style="font-size: 1.5rem; font-weight: 700;" id="seoEngagementRate">--%</div>
                     </div>
-                    <div style="background: var(--bg-light); padding: 1rem; border-radius: 10px; text-align: center; border-left: 3px solid var(--info);">
+                    <div style="background: var(--bg-light); padding: 1rem; border-radius: var(--ts-radius-md, 10px); text-align: center; border-left: 3px solid var(--info);">
                         <i class="fas fa-paper-plane" style="color: var(--info); font-size: 1.25rem; margin-bottom: 0.5rem; display: block;"></i>
                         <div style="font-size: 0.75rem; color: var(--text-secondary);">Posts This Month</div>
                         <div style="font-size: 1.5rem; font-weight: 700;" id="seoSocialPosts">--</div>
@@ -1390,7 +1411,7 @@
                 </div>
 
                 <!-- Quick Insight -->
-                <div style="background: rgba(225, 48, 108, 0.1); padding: 0.75rem; border-radius: 8px; font-size: 0.85rem;" id="socialSEOInsight">
+                <div style="background: rgba(225, 48, 108, 0.1); padding: 0.75rem; border-radius: var(--ts-radius-sm, 8px); font-size: 0.85rem;" id="socialSEOInsight">
                     <i class="fas fa-lightbulb" style="color: var(--gold);"></i>
                     <span style="color: var(--text-secondary);">Loading social media impact analysis...</span>
                 </div>
@@ -1415,9 +1436,9 @@
             <div class="card-header">
                 <h3><i class="fas fa-th-large"></i> Keyword Categories - DOMINATION STATUS</h3>
                 <div style="display: flex; gap: 0.5rem;">
-                    <span class="legend-badge" style="background: var(--success); padding: 4px 8px; border-radius: 4px; font-size: 0.75rem;">#1-3</span>
-                    <span class="legend-badge" style="background: var(--warning); padding: 4px 8px; border-radius: 4px; font-size: 0.75rem;">#4-10</span>
-                    <span class="legend-badge" style="background: var(--danger); padding: 4px 8px; border-radius: 4px; font-size: 0.75rem;">#11+</span>
+                    <span class="legend-badge" style="background: var(--success); padding: 4px 8px; border-radius: var(--ts-radius-sm, 4px); font-size: 0.75rem;">#1-3</span>
+                    <span class="legend-badge" style="background: var(--warning); padding: 4px 8px; border-radius: var(--ts-radius-sm, 4px); font-size: 0.75rem;">#4-10</span>
+                    <span class="legend-badge" style="background: var(--danger); padding: 4px 8px; border-radius: var(--ts-radius-sm, 4px); font-size: 0.75rem;">#11+</span>
                 </div>
             </div>
             <div class="card-body" id="keyword-categories-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
@@ -1509,21 +1530,21 @@
                     <div class="card-body">
                         <!-- GBP Stats Row -->
                         <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1rem;">
-                            <div style="text-align: center; padding: 1rem; background: rgba(66, 133, 244, 0.1); border-radius: 8px;">
+                            <div style="text-align: center; padding: 1rem; background: rgba(66, 133, 244, 0.1); border-radius: var(--ts-radius-sm, 8px);">
                                 <div style="font-size: 1.5rem; font-weight: 700; color: #4285F4;" id="gbpTotalPostsSEO">--</div>
                                 <div style="font-size: 0.75rem; color: var(--text-secondary);">Total Posts</div>
                             </div>
-                            <div style="text-align: center; padding: 1rem; background: rgba(52, 168, 83, 0.1); border-radius: 8px;">
+                            <div style="text-align: center; padding: 1rem; background: rgba(52, 168, 83, 0.1); border-radius: var(--ts-radius-sm, 8px);">
                                 <div style="font-size: 1.5rem; font-weight: 700; color: #34A853;" id="gbpWeeklyRateSEO">--</div>
                                 <div style="font-size: 0.75rem; color: var(--text-secondary);">Posts/Week</div>
                             </div>
-                            <div style="text-align: center; padding: 1rem; background: rgba(234, 67, 53, 0.1); border-radius: 8px;">
+                            <div style="text-align: center; padding: 1rem; background: rgba(234, 67, 53, 0.1); border-radius: var(--ts-radius-sm, 8px);">
                                 <div style="font-size: 1.5rem; font-weight: 700; color: #EA4335;" id="gbpPendingManualSEO">--</div>
                                 <div style="font-size: 0.75rem; color: var(--text-secondary);">Pending Manual</div>
                             </div>
                         </div>
                         <!-- GBP Status -->
-                        <div style="padding: 0.75rem; background: rgba(66, 133, 244, 0.1); border-radius: 8px; margin-bottom: 1rem; border-left: 3px solid #4285F4;">
+                        <div style="padding: 0.75rem; background: rgba(66, 133, 244, 0.1); border-radius: var(--ts-radius-sm, 8px); margin-bottom: 1rem; border-left: 3px solid #4285F4;">
                             <div style="font-size: 0.85rem;"><i class="fas fa-lightbulb" style="color: #FBBC05;"></i> <span id="gbpRecommendationSEO">Aim for 3+ posts per week for best local SEO results.</span></div>
                         </div>
                         <!-- Recent Posts List -->
@@ -1752,7 +1773,7 @@
                     </div>
                     <div class="form-group">
                         <label>Review Text</label>
-                        <textarea name="reviewText" rows="4" style="width: 100%; padding: 0.75rem; background: var(--bg-light); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-family: inherit; resize: vertical;" placeholder="Paste the review text here..."></textarea>
+                        <textarea name="reviewText" rows="4" style="width: 100%; padding: 0.75rem; background: var(--bg-light); border: 1px solid var(--border); border-radius: var(--ts-radius-sm, 8px); color: var(--text-primary); font-family: inherit; resize: vertical;" placeholder="Paste the review text here..."></textarea>
                     </div>
                 </form>
             </div>
@@ -1925,7 +1946,7 @@
                     </div>
                     <div class="form-group">
                         <label>Notes (optional)</label>
-                        <textarea name="notes" rows="2" style="width: 100%; padding: 0.75rem; background: var(--bg-light); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-family: inherit; resize: vertical;" placeholder="Copy the relevant part of the AI response..."></textarea>
+                        <textarea name="notes" rows="2" style="width: 100%; padding: 0.75rem; background: var(--bg-light); border: 1px solid var(--border); border-radius: var(--ts-radius-sm, 8px); color: var(--text-primary); font-family: inherit; resize: vertical;" placeholder="Copy the relevant part of the AI response..."></textarea>
                     </div>
                 </form>
             </div>
@@ -1949,7 +1970,7 @@
                 <p style="margin-bottom: 1rem; color: var(--text-secondary);">
                     Rankings for "organic farm" search from different Pittsburgh neighborhoods.
                 </p>
-                <div id="geogrid-container" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;">
+                <div id="geogrid-container" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--ts-space-3, 12px);">
                     <div class="loading"><div class="spinner"></div></div>
                 </div>
             </div>
@@ -2095,7 +2116,7 @@
                 const relatedKws = data.relatedSEOKeywords || [];
 
                 html += `
-                    <div style="background: var(--bg-light); padding: 0.75rem; border-radius: 8px; border-left: 3px solid var(--purple);">
+                    <div style="background: var(--bg-light); padding: 0.75rem; border-radius: var(--ts-radius-sm, 8px); border-left: 3px solid var(--purple);">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
                             <span style="font-weight: 600; color: var(--purple);">${data.hashtagSet}</span>
                             <span style="font-size: 0.75rem; color: var(--text-secondary);">${dateStr}</span>
@@ -2105,7 +2126,7 @@
                         </div>
                         <div style="font-size: 0.75rem;">
                             <span style="color: var(--success);">Related SEO Keywords:</span>
-                            ${relatedKws.length > 0 ? relatedKws.slice(0, 3).map(kw => `<span style="background: rgba(34, 197, 94, 0.2); padding: 2px 6px; border-radius: 4px; margin-left: 4px;">${kw}</span>`).join('') : '<span style="color: var(--text-secondary);">None mapped</span>'}
+                            ${relatedKws.length > 0 ? relatedKws.slice(0, 3).map(kw => `<span style="background: rgba(34, 197, 94, 0.2); padding: 2px 6px; border-radius: var(--ts-radius-sm, 4px); margin-left: 4px;">${kw}</span>`).join('') : '<span style="color: var(--text-secondary);">None mapped</span>'}
                         </div>
                     </div>
                 `;
@@ -2252,9 +2273,9 @@
             container.innerHTML = entries.map(([area, rank]) => {
                 const colorClass = rank === 1 ? 'success' : rank <= 3 ? 'primary' : rank <= 10 ? 'warning' : 'danger';
                 return `
-                    <div style="background: var(--bg-light); padding: 16px; border-radius: 12px; text-align: center; border-left: 4px solid var(--${colorClass});">
-                        <div style="font-size: 24px; font-weight: 700; color: var(--${colorClass});">#${rank}</div>
-                        <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">${area}</div>
+                    <div style="background: var(--bg-light); padding: var(--ts-space-4, 16px); border-radius: var(--ts-radius-md, 12px); text-align: center; border-left: 4px solid var(--${colorClass});">
+                        <div style="font-size: var(--ts-text-2xl, 1.5rem); font-weight: 700; color: var(--${colorClass});">#${rank}</div>
+                        <div style="font-size: var(--ts-text-xs, 0.75rem); color: var(--text-secondary); margin-top: 4px;">${area}</div>
                     </div>
                 `;
             }).join('');
@@ -2546,7 +2567,7 @@
                                   post.status === 'failed' ? 'fa-times-circle' : 'fa-clock';
 
                 return `
-                    <div style="display: flex; gap: 0.75rem; padding: 0.75rem; background: var(--bg-light); border-radius: 8px; margin-bottom: 0.5rem; border-left: 3px solid ${statusColor};">
+                    <div style="display: flex; gap: 0.75rem; padding: 0.75rem; background: var(--bg-light); border-radius: var(--ts-radius-sm, 8px); margin-bottom: 0.5rem; border-left: 3px solid ${statusColor};">
                         <div style="flex: 1; min-width: 0;">
                             <div style="font-size: 0.8rem; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                                 ${post.content?.substring(0, 100) || 'No content'}...
@@ -2603,8 +2624,8 @@
                     `;
                 } else {
                     listEl.innerHTML = data.topContent.slice(0, 5).map((content, i) => `
-                        <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem; background: var(--bg-light); border-radius: 8px; margin-bottom: 0.4rem; ${content.seoRank && content.seoRank <= 3 ? 'border-left: 3px solid var(--gold);' : ''}">
-                            <div style="width: 28px; height: 28px; background: ${content.seoKeyword ? 'linear-gradient(135deg, var(--primary), var(--success))' : '#e1306c'}; border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem; background: var(--bg-light); border-radius: var(--ts-radius-sm, 8px); margin-bottom: 0.4rem; ${content.seoRank && content.seoRank <= 3 ? 'border-left: 3px solid var(--gold);' : ''}">
+                            <div style="width: 28px; height: 28px; background: ${content.seoKeyword ? 'linear-gradient(135deg, var(--primary), var(--success))' : '#e1306c'}; border-radius: var(--ts-radius-sm, 6px); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
                                 <span style="font-weight: 600; font-size: 0.8rem;">${i + 1}</span>
                             </div>
                             <div style="flex: 1; min-width: 0;">
@@ -2999,7 +3020,7 @@
                 <div class="time-estimate">
                     <i class="fas fa-clock"></i> ${guide.time}
                 </div>
-                <p style="margin-bottom: 1.5rem; padding: 1rem; background: rgba(0,0,0,0.2); border-radius: 8px;">
+                <p style="margin-bottom: 1.5rem; padding: 1rem; background: rgba(0,0,0,0.2); border-radius: var(--ts-radius-sm, 8px);">
                     <strong>Triggered by:</strong> ${decodedText}
                 </p>
             `;
@@ -3138,10 +3159,10 @@
                             <span style="color: var(--text-secondary); margin-left: 0.5rem;">Total Pages</span>
                         </div>
                         <div style="display: flex; gap: 1rem;">
-                            <span style="background: var(--bg-light); padding: 4px 12px; border-radius: 20px; font-size: 0.85rem;">
+                            <span style="background: var(--bg-light); padding: 4px 12px; border-radius: var(--ts-radius-lg, 20px); font-size: 0.85rem;">
                                 <i class="fas fa-map-marker-alt" style="color: var(--success);"></i> ${neighborhoodPages.length} Neighborhood
                             </span>
-                            <span style="background: var(--bg-light); padding: 4px 12px; border-radius: 20px; font-size: 0.85rem;">
+                            <span style="background: var(--bg-light); padding: 4px 12px; border-radius: var(--ts-radius-lg, 20px); font-size: 0.85rem;">
                                 <i class="fas fa-file-alt" style="color: var(--info);"></i> ${otherPages.length} Other
                             </span>
                         </div>
@@ -3198,10 +3219,10 @@
             const updatedDate = page.updatedAt ? new Date(page.updatedAt).toLocaleDateString() : 'Unknown';
 
             return `
-                <div style="background: var(--bg-light); padding: 1rem; border-radius: 8px; border-left: 3px solid ${statusColor};">
+                <div style="background: var(--bg-light); padding: 1rem; border-radius: var(--ts-radius-sm, 8px); border-left: 3px solid ${statusColor};">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
                         <span style="font-weight: 600; font-size: 0.9rem; color: var(--text-primary);">${page.title}</span>
-                        <span style="font-size: 0.7rem; color: ${statusColor}; background: ${statusColor}20; padding: 2px 6px; border-radius: 4px;">${statusText}</span>
+                        <span style="font-size: 0.7rem; color: ${statusColor}; background: ${statusColor}20; padding: 2px 6px; border-radius: var(--ts-radius-sm, 4px);">${statusText}</span>
                     </div>
                     <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
                         /${page.handle}
@@ -3289,7 +3310,7 @@
                 const statusColor = rate >= 50 ? 'var(--success)' : rate >= 25 ? 'var(--warning)' : 'var(--danger)';
 
                 return `
-                    <div style="background: var(--bg-light); padding: 1rem; border-radius: 12px; border-left: 4px solid ${p.color};">
+                    <div style="background: var(--bg-light); padding: 1rem; border-radius: var(--ts-radius-md, 12px); border-left: 4px solid ${p.color};">
                         <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
                             <i class="fas ${p.icon}" style="color: ${p.color};"></i>
                             <span style="font-weight: 600;">${p.name}</span>
@@ -3303,7 +3324,7 @@
                                     ${data.appearances}/${data.checks} appearances
                                 </div>
                             </div>
-                            <button onclick="quickAICheck('${p.id}')" style="padding: 8px 12px; background: ${p.color}20; border: 1px solid ${p.color}; border-radius: 6px; color: ${p.color}; cursor: pointer; font-size: 0.75rem;">
+                            <button onclick="quickAICheck('${p.id}')" style="padding: var(--ts-space-2, 8px) var(--ts-space-3, 12px); background: ${p.color}20; border: 1px solid ${p.color}; border-radius: var(--ts-radius-sm, 6px); color: ${p.color}; cursor: pointer; font-size: 0.75rem;">
                                 <i class="fas fa-plus"></i> Check
                             </button>
                         </div>
@@ -3339,7 +3360,7 @@
                 const isCited = check.appeared && (check.position === 'featured' || check.position === 'mentioned');
 
                 return `
-                    <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; background: var(--bg-light); border-radius: 8px; margin-bottom: 0.5rem; border-left: 3px solid ${statusColor};">
+                    <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; background: var(--bg-light); border-radius: var(--ts-radius-sm, 8px); margin-bottom: 0.5rem; border-left: 3px solid ${statusColor};">
                         <i class="fas ${platformIcons[check.platform] || 'fa-robot'}" style="color: var(--text-secondary);"></i>
                         <div style="flex: 1;">
                             <div style="font-size: 0.85rem; font-weight: 500;">"${check.query}"</div>
@@ -3351,7 +3372,7 @@
                                 <i class="fas ${statusIcon}"></i>
                                 <span style="font-size: 0.75rem;">${check.appeared ? 'Found' : 'Missing'}</span>
                             </div>
-                            ${isCited ? `<button onclick="copyShareText('${encodeURIComponent(check.query)}')" style="font-size: 0.65rem; padding: 0.2rem 0.5rem; background: var(--instagram); border: none; border-radius: 4px; color: white; cursor: pointer;"><i class="fas fa-copy"></i> Share</button>` : ''}
+                            ${isCited ? `<button onclick="copyShareText('${encodeURIComponent(check.query)}')" style="font-size: 0.65rem; padding: 0.2rem 0.5rem; background: var(--instagram); border: none; border-radius: var(--ts-radius-sm, 4px); color: white; cursor: pointer;"><i class="fas fa-copy"></i> Share</button>` : ''}
                         </div>
                     </div>
                 `;
@@ -3367,7 +3388,7 @@
 
             const container = document.getElementById('ai-recent-checks');
             const citedHtml = `
-                <div style="margin-top: 1rem; padding: 1rem; background: linear-gradient(135deg, rgba(225, 48, 108, 0.15), rgba(155, 89, 182, 0.1)); border-radius: 8px; border: 1px solid rgba(225, 48, 108, 0.4);">
+                <div style="margin-top: 1rem; padding: 1rem; background: linear-gradient(135deg, rgba(225, 48, 108, 0.15), rgba(155, 89, 182, 0.1)); border-radius: var(--ts-radius-sm, 8px); border: 1px solid rgba(225, 48, 108, 0.4);">
                     <h5 style="font-size: 0.9rem; color: var(--instagram); margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
                         <i class="fas fa-fire"></i> Content Being Cited by AI - Promote These!
                     </h5>
@@ -3375,10 +3396,10 @@
                         These queries resulted in AI citing your content. Share this success on social media!
                     </div>
                     ${citedContent.slice(0, 3).map(item => `
-                        <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; background: rgba(0,0,0,0.2); border-radius: 6px; margin-bottom: 0.5rem;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; background: rgba(0,0,0,0.2); border-radius: var(--ts-radius-sm, 6px); margin-bottom: 0.5rem;">
                             <i class="fas fa-quote-left" style="color: var(--instagram); font-size: 0.8rem;"></i>
                             <div style="flex: 1; font-size: 0.8rem;">"${item.query}" - cited by ${item.platform}</div>
-                            <button onclick="copyShareText('${encodeURIComponent(item.query)}')" style="font-size: 0.7rem; padding: 0.25rem 0.5rem; background: var(--instagram); border: none; border-radius: 4px; color: white; cursor: pointer;">
+                            <button onclick="copyShareText('${encodeURIComponent(item.query)}')" style="font-size: 0.7rem; padding: 0.25rem 0.5rem; background: var(--instagram); border: none; border-radius: var(--ts-radius-sm, 4px); color: white; cursor: pointer;">
                                 <i class="fas fa-share"></i> Share
                             </button>
                         </div>
@@ -3791,7 +3812,7 @@
 
             // Show live data indicator if connected to Google
             const liveIndicator = reviews?.isLive
-                ? `<div style="margin-bottom: 1rem; padding: 0.5rem 1rem; background: linear-gradient(135deg, rgba(34,197,94,0.2) 0%, rgba(34,197,94,0.1) 100%); border-radius: 8px; display: flex; align-items: center; gap: 0.5rem;">
+                ? `<div style="margin-bottom: 1rem; padding: 0.5rem 1rem; background: linear-gradient(135deg, rgba(34,197,94,0.2) 0%, rgba(34,197,94,0.1) 100%); border-radius: var(--ts-radius-sm, 8px); display: flex; align-items: center; gap: 0.5rem;">
                     <span style="width: 8px; height: 8px; background: var(--success); border-radius: 50%; animation: pulse 2s infinite;"></span>
                     <span style="font-size: 0.8rem; color: var(--success);">Live from Google Business Profile</span>
                     <span style="margin-left: auto; font-size: 0.75rem; color: var(--text-secondary);">Last synced: ${reviews.lastSynced ? new Date(reviews.lastSynced).toLocaleTimeString() : 'Just now'}</span>
@@ -3801,15 +3822,15 @@
             // Show review summary stats
             let html = liveIndicator + `
                 <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1rem;">
-                    <div style="text-align: center; padding: 1rem; background: var(--bg-light); border-radius: 8px;">
+                    <div style="text-align: center; padding: 1rem; background: var(--bg-light); border-radius: var(--ts-radius-sm, 8px);">
                         <div style="font-size: 1.5rem; font-weight: 700; color: var(--success);">${reviews?.total || 0}</div>
                         <div style="font-size: 0.8rem; color: var(--text-secondary);">Total Reviews</div>
                     </div>
-                    <div style="text-align: center; padding: 1rem; background: var(--bg-light); border-radius: 8px;">
+                    <div style="text-align: center; padding: 1rem; background: var(--bg-light); border-radius: var(--ts-radius-sm, 8px);">
                         <div style="font-size: 1.5rem; font-weight: 700; color: var(--gold);">${(reviews?.averageRating || 0).toFixed(1)}⭐</div>
                         <div style="font-size: 0.8rem; color: var(--text-secondary);">Average Rating</div>
                     </div>
-                    <div style="text-align: center; padding: 1rem; background: var(--bg-light); border-radius: 8px;">
+                    <div style="text-align: center; padding: 1rem; background: var(--bg-light); border-radius: var(--ts-radius-sm, 8px);">
                         <div style="font-size: 1.5rem; font-weight: 700; color: ${(reviews?.needsResponse || 0) > 0 ? 'var(--danger)' : 'var(--success)'};">${reviews?.needsResponse || 0}</div>
                         <div style="font-size: 0.8rem; color: var(--text-secondary);">Need Response</div>
                     </div>
@@ -3819,7 +3840,7 @@
             // Show rating breakdown if available
             const byRating = reviews?.byRating || {};
             if (Object.values(byRating).some(v => v > 0)) {
-                html += `<div style="margin-bottom: 1rem; padding: 1rem; background: var(--bg-light); border-radius: 8px;">
+                html += `<div style="margin-bottom: 1rem; padding: 1rem; background: var(--bg-light); border-radius: var(--ts-radius-sm, 8px);">
                     <h4 style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Rating Distribution</h4>
                     <div style="display: flex; flex-direction: column; gap: 0.25rem;">
                         ${[5,4,3,2,1].map(r => {
@@ -3828,8 +3849,8 @@
                             const pct = (count / maxCount) * 100;
                             return `<div style="display: flex; align-items: center; gap: 0.5rem;">
                                 <span style="width: 20px; font-size: 0.75rem;">${r}<i class="fas fa-star" style="color: var(--gold); margin-left: 2px;"></i></span>
-                                <div style="flex: 1; height: 8px; background: var(--bg-card); border-radius: 4px; overflow: hidden;">
-                                    <div style="width: ${pct}%; height: 100%; background: ${r >= 4 ? 'var(--success)' : r === 3 ? 'var(--warning)' : 'var(--danger)'}; border-radius: 4px;"></div>
+                                <div style="flex: 1; height: 8px; background: var(--bg-card); border-radius: var(--ts-radius-sm, 4px); overflow: hidden;">
+                                    <div style="width: ${pct}%; height: 100%; background: ${r >= 4 ? 'var(--success)' : r === 3 ? 'var(--warning)' : 'var(--danger)'}; border-radius: var(--ts-radius-sm, 4px);"></div>
                                 </div>
                                 <span style="width: 30px; font-size: 0.75rem; text-align: right;">${count}</span>
                             </div>`;
@@ -3841,11 +3862,11 @@
             // Show platform breakdown
             const platforms = reviews?.byPlatform || {};
             if (Object.keys(platforms).length > 0) {
-                html += `<div style="margin-bottom: 1rem; padding: 1rem; background: var(--bg-light); border-radius: 8px;">
+                html += `<div style="margin-bottom: 1rem; padding: 1rem; background: var(--bg-light); border-radius: var(--ts-radius-sm, 8px);">
                     <h4 style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;">By Platform</h4>
                     <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
                         ${Object.entries(platforms).map(([platform, count]) => `
-                            <span style="background: var(--bg-card); padding: 4px 12px; border-radius: 20px; font-size: 0.8rem;">
+                            <span style="background: var(--bg-card); padding: 4px 12px; border-radius: var(--ts-radius-lg, 20px); font-size: 0.8rem;">
                                 ${platform}: <strong>${count}</strong>
                             </span>
                         `).join('')}
@@ -3856,7 +3877,7 @@
             // Show sentiment breakdown
             const sentiment = reviews?.bySentiment || {};
             if (Object.values(sentiment).some(v => v > 0)) {
-                html += `<div style="margin-bottom: 1rem; padding: 1rem; background: var(--bg-light); border-radius: 8px;">
+                html += `<div style="margin-bottom: 1rem; padding: 1rem; background: var(--bg-light); border-radius: var(--ts-radius-sm, 8px);">
                     <h4 style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Sentiment Analysis</h4>
                     <div style="display: flex; gap: 1rem;">
                         <span style="color: var(--success);"><i class="fas fa-smile"></i> ${sentiment.positive || 0} Positive</span>
@@ -3873,7 +3894,7 @@
                     <h4 style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Recent Reviews</h4>
                     <div style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 300px; overflow-y: auto;">
                         ${recentReviews.slice(0, 5).map(r => `
-                            <div style="padding: 0.75rem; background: var(--bg-light); border-radius: 8px; border-left: 3px solid ${r.rating >= 4 ? 'var(--success)' : r.rating === 3 ? 'var(--warning)' : 'var(--danger)'};">
+                            <div style="padding: 0.75rem; background: var(--bg-light); border-radius: var(--ts-radius-sm, 8px); border-left: 3px solid ${r.rating >= 4 ? 'var(--success)' : r.rating === 3 ? 'var(--warning)' : 'var(--danger)'};">
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
                                     <span style="font-weight: 600; font-size: 0.85rem;">${r.author}</span>
                                     <span style="font-size: 0.75rem; color: var(--text-secondary);">${r.relativeDate || r.date}</span>
@@ -3882,9 +3903,9 @@
                                     ${'<i class="fas fa-star" style="color: var(--gold);"></i>'.repeat(r.rating)}${'<i class="far fa-star" style="color: var(--text-secondary);"></i>'.repeat(5 - r.rating)}
                                 </div>
                                 <p style="margin: 0; font-size: 0.8rem; color: var(--text-primary); line-height: 1.4;">${(r.text || '').substring(0, 150)}${r.text?.length > 150 ? '...' : ''}</p>
-                                ${r.response ? `<div style="margin-top: 0.5rem; padding: 0.5rem; background: var(--bg-card); border-radius: 4px; font-size: 0.75rem; color: var(--text-secondary);">
+                                ${r.response ? `<div style="margin-top: 0.5rem; padding: 0.5rem; background: var(--bg-card); border-radius: var(--ts-radius-sm, 4px); font-size: 0.75rem; color: var(--text-secondary);">
                                     <strong>Your reply:</strong> ${(r.response || '').substring(0, 100)}...
-                                </div>` : (!r.response && r.rating <= 3) ? `<button onclick="openReplyModal('${r.reviewId}')" style="margin-top: 0.5rem; padding: 4px 8px; background: var(--primary); color: white; border: none; border-radius: 4px; font-size: 0.7rem; cursor: pointer;"><i class="fas fa-reply"></i> Reply</button>` : ''}
+                                </div>` : (!r.response && r.rating <= 3) ? `<button onclick="openReplyModal('${r.reviewId}')" style="margin-top: 0.5rem; padding: 4px 8px; background: var(--primary); color: white; border: none; border-radius: var(--ts-radius-sm, 4px); font-size: 0.7rem; cursor: pointer;"><i class="fas fa-reply"></i> Reply</button>` : ''}
                             </div>
                         `).join('')}
                     </div>
@@ -3894,7 +3915,7 @@
             // Show call to action if no reviews or low count
             if (!reviews?.total || reviews.total < 10) {
                 html += `
-                    <div style="padding: 1rem; background: linear-gradient(135deg, rgba(255,215,0,0.1) 0%, rgba(34,197,94,0.1) 100%); border-radius: 8px; border: 1px dashed var(--gold); text-align: center;">
+                    <div style="padding: 1rem; background: linear-gradient(135deg, rgba(255,215,0,0.1) 0%, rgba(34,197,94,0.1) 100%); border-radius: var(--ts-radius-sm, 8px); border: 1px dashed var(--gold); text-align: center;">
                         <p style="margin: 0 0 0.5rem; color: var(--text-primary);"><i class="fas fa-star"></i> Reviews are the #1 local SEO factor!</p>
                         <p style="margin: 0; font-size: 0.85rem; color: var(--text-secondary);">Target: 100+ reviews. Log reviews as they come in to track progress.</p>
                     </div>
@@ -4223,7 +4244,7 @@
             });
 
             let html = `
-                <div style="margin-bottom: 1rem; padding: 0.5rem; background: rgba(34, 197, 94, 0.1); border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+                <div style="margin-bottom: 1rem; padding: 0.5rem; background: rgba(34, 197, 94, 0.1); border-radius: var(--ts-radius-sm, 8px); display: flex; justify-content: space-between; align-items: center;">
                     <span style="font-size: 0.85rem;"><strong>${entries.length}</strong> entries for Week ${getCurrentWeekNumber()}</span>
                     <a href="marketing-command-center.html#contentcalendar" class="btn btn-sm btn-secondary" style="font-size: 0.75rem;">
                         <i class="fas fa-external-link-alt"></i> Full Calendar in MCC
@@ -4237,7 +4258,7 @@
                 const pillar = SHARED_CONTENT_PILLARS[entry.Content_Pillar] || { name: entry.Content_Pillar, color: '#666' };
 
                 html += `
-                    <div style="background: rgba(0,0,0,0.2); border-radius: 8px; padding: 0.75rem; border-left: 3px solid ${pillar.color};">
+                    <div style="background: rgba(0,0,0,0.2); border-radius: var(--ts-radius-sm, 8px); padding: 0.75rem; border-left: 3px solid ${pillar.color};">
                         <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem;">
                             <div style="flex: 1;">
                                 <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; margin-bottom: 0.25rem;">
@@ -4325,5 +4346,6 @@
             </button>
         </div>
     </div>
+<script src="shared-nav.js"></script>
 </body>
 </html>

@@ -33,19 +33,19 @@
             --info-bg: rgba(59, 130, 246, 0.1);
 
             /* Background Colors */
-            --bg-dark: var(--ts-bg-base, #0f172a);
-            --bg-card: var(--ts-bg-surface, #1e293b);
-            --bg-elevated: var(--ts-bg-elevated, #334155);
-            --bg-input: #1e293b;
+            --bg-dark: var(--ts-bg-base, #141211);
+            --bg-card: var(--ts-bg-surface, #201e1b);
+            --bg-elevated: var(--ts-bg-elevated, rgba(255,255,255,0.06));
+            --bg-input: #201e1b;
             --bg-hover: #2d3a4f;
 
             /* Text Colors */
             --text-primary: var(--ts-text, #f8fafc);
-            --text-secondary: var(--ts-text-secondary, #94a3b8);
+            --text-secondary: var(--ts-text-secondary, #a09888);
             --text-muted: var(--ts-text-muted, #64748b);
 
             /* Borders */
-            --border: var(--ts-border, #334155);
+            --border: var(--ts-border, rgba(255,255,255,0.06));
             --border-light: #475569;
 
             /* Shadows */
@@ -96,35 +96,35 @@
         }
 
         .sidebar-header {
-            padding: 20px;
+            padding: var(--ts-space-5, 20px);
             border-bottom: 1px solid var(--border);
         }
 
         .logo {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: var(--ts-space-3, 12px);
         }
 
         .logo-icon {
             width: 40px;
             height: 40px;
             background: linear-gradient(135deg, var(--danger), #dc2626);
-            border-radius: 10px;
+            border-radius: var(--ts-radius-md, 10px);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 20px;
+            font-size: var(--ts-text-xl, 1.25rem);
         }
 
         .logo-text {
-            font-size: 18px;
+            font-size: var(--ts-text-lg, 1.125rem);
             font-weight: 700;
             color: var(--text-primary);
         }
 
         .logo-subtitle {
-            font-size: 11px;
+            font-size: var(--ts-text-2xs, 0.69rem);
             color: var(--danger);
             font-weight: 600;
             text-transform: uppercase;
@@ -139,30 +139,30 @@
         }
 
         .nav-section {
-            margin-bottom: 24px;
+            margin-bottom: var(--ts-space-6, 24px);
         }
 
         .nav-section-title {
-            font-size: 11px;
+            font-size: var(--ts-text-2xs, 0.69rem);
             font-weight: 600;
             color: var(--text-muted);
             text-transform: uppercase;
             letter-spacing: 0.5px;
             padding: 0 12px;
-            margin-bottom: 8px;
+            margin-bottom: var(--ts-space-2, 8px);
         }
 
         .nav-item {
             display: flex;
             align-items: center;
-            gap: 12px;
-            padding: 12px;
-            border-radius: 8px;
+            gap: var(--ts-space-3, 12px);
+            padding: var(--ts-space-3, 12px);
+            border-radius: var(--ts-radius-sm, 8px);
             color: var(--text-secondary);
             text-decoration: none;
             cursor: pointer;
-            transition: all 0.15s ease;
-            margin-bottom: 4px;
+            transition: all var(--ts-dur-fast, 120ms) ease;
+            margin-bottom: var(--ts-space-1, 4px);
         }
 
         .nav-item:hover {
@@ -178,17 +178,17 @@
         .nav-item i {
             width: 20px;
             text-align: center;
-            font-size: 16px;
+            font-size: var(--ts-text-base, 1rem);
         }
 
         .nav-item-badge {
             margin-left: auto;
             background: var(--danger);
             color: white;
-            font-size: 11px;
+            font-size: var(--ts-text-2xs, 0.69rem);
             font-weight: 600;
             padding: 2px 8px;
-            border-radius: 10px;
+            border-radius: var(--ts-radius-md, 10px);
         }
 
         .nav-item-badge.warning {
@@ -201,17 +201,17 @@
 
         /* Sidebar Footer */
         .sidebar-footer {
-            padding: 16px;
+            padding: var(--ts-space-4, 16px);
             border-top: 1px solid var(--border);
         }
 
         .user-card {
             display: flex;
             align-items: center;
-            gap: 12px;
-            padding: 12px;
+            gap: var(--ts-space-3, 12px);
+            padding: var(--ts-space-3, 12px);
             background: var(--bg-elevated);
-            border-radius: 8px;
+            border-radius: var(--ts-radius-sm, 8px);
         }
 
         .user-avatar {
@@ -223,7 +223,7 @@
             align-items: center;
             justify-content: center;
             font-weight: 600;
-            font-size: 16px;
+            font-size: var(--ts-text-base, 1rem);
         }
 
         .user-info {
@@ -233,14 +233,14 @@
 
         .user-name {
             font-weight: 600;
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
 
         .user-role {
-            font-size: 12px;
+            font-size: var(--ts-text-xs, 0.75rem);
             color: var(--danger);
             font-weight: 500;
         }
@@ -250,9 +250,9 @@
             border: none;
             color: var(--text-muted);
             cursor: pointer;
-            padding: 8px;
-            border-radius: 6px;
-            transition: all 0.15s ease;
+            padding: var(--ts-space-2, 8px);
+            border-radius: var(--ts-radius-sm, 6px);
+            transition: all var(--ts-dur-fast, 120ms) ease;
         }
 
         .logout-btn:hover {
@@ -282,19 +282,19 @@
         }
 
         .header-title {
-            font-size: 20px;
+            font-size: var(--ts-text-xl, 1.25rem);
             font-weight: 600;
         }
 
         .header-actions {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: var(--ts-space-3, 12px);
         }
 
         /* Content Area */
         .content {
-            padding: 24px;
+            padding: var(--ts-space-6, 24px);
         }
 
         /* ════════════════════════════════════════════════════════════════════════════
@@ -304,12 +304,12 @@
         .card {
             background: var(--bg-card);
             border: 1px solid var(--border);
-            border-radius: 12px;
+            border-radius: var(--ts-radius-md, 12px);
             overflow: hidden;
         }
 
         .card-header {
-            padding: 16px 20px;
+            padding: var(--ts-space-4, 16px) var(--ts-space-5, 20px);
             border-bottom: 1px solid var(--border);
             display: flex;
             align-items: center;
@@ -317,11 +317,11 @@
         }
 
         .card-title {
-            font-size: 16px;
+            font-size: var(--ts-text-base, 1rem);
             font-weight: 600;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: var(--ts-space-2, 10px);
         }
 
         .card-title i {
@@ -329,11 +329,11 @@
         }
 
         .card-body {
-            padding: 20px;
+            padding: var(--ts-space-5, 20px);
         }
 
         .card-footer {
-            padding: 16px 20px;
+            padding: var(--ts-space-4, 16px) var(--ts-space-5, 20px);
             border-top: 1px solid var(--border);
             background: var(--bg-elevated);
         }
@@ -342,26 +342,26 @@
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 16px;
-            margin-bottom: 24px;
+            gap: var(--ts-space-4, 16px);
+            margin-bottom: var(--ts-space-6, 24px);
         }
 
         .stat-card {
             background: var(--bg-card);
             border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 20px;
+            border-radius: var(--ts-radius-md, 12px);
+            padding: var(--ts-space-5, 20px);
         }
 
         .stat-icon {
             width: 48px;
             height: 48px;
-            border-radius: 10px;
+            border-radius: var(--ts-radius-md, 10px);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 20px;
-            margin-bottom: 12px;
+            font-size: var(--ts-text-xl, 1.25rem);
+            margin-bottom: var(--ts-space-3, 12px);
         }
 
         .stat-icon.users { background: var(--info-bg); color: var(--info); }
@@ -370,13 +370,13 @@
         .stat-icon.system { background: var(--primary); color: white; }
 
         .stat-value {
-            font-size: 28px;
+            font-size: var(--ts-text-3xl, 1.75rem);
             font-weight: 700;
-            margin-bottom: 4px;
+            margin-bottom: var(--ts-space-1, 4px);
         }
 
         .stat-label {
-            font-size: 13px;
+            font-size: var(--ts-text-xs, 0.8rem);
             color: var(--text-secondary);
         }
 
@@ -387,10 +387,10 @@
         .badge {
             display: inline-flex;
             align-items: center;
-            gap: 6px;
+            gap: var(--ts-space-1, 6px);
             padding: 4px 10px;
-            border-radius: 6px;
-            font-size: 12px;
+            border-radius: var(--ts-radius-sm, 6px);
+            font-size: var(--ts-text-xs, 0.75rem);
             font-weight: 500;
         }
 
@@ -404,9 +404,9 @@
         .badge-backend {
             background: linear-gradient(135deg, #7c3aed, #5b21b6);
             color: white;
-            font-size: 10px;
+            font-size: var(--ts-text-2xs, 0.625rem);
             padding: 2px 8px;
-            border-radius: 4px;
+            border-radius: var(--ts-radius-sm, 4px);
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
@@ -419,15 +419,15 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
-            padding: 10px 16px;
-            font-size: 14px;
+            gap: var(--ts-space-2, 8px);
+            padding: var(--ts-space-2, 10px) var(--ts-space-4, 16px);
+            font-size: var(--ts-text-sm, 0.875rem);
             font-weight: 500;
             font-family: inherit;
             border: none;
-            border-radius: 8px;
+            border-radius: var(--ts-radius-sm, 8px);
             cursor: pointer;
-            transition: all 0.15s ease;
+            transition: all var(--ts-dur-fast, 120ms) ease;
         }
 
         .btn-primary {
@@ -465,14 +465,14 @@
 
         .btn-sm {
             padding: 6px 12px;
-            font-size: 13px;
+            font-size: var(--ts-text-xs, 0.8rem);
         }
 
         .btn-icon {
             width: 36px;
             height: 36px;
             padding: 0;
-            border-radius: 8px;
+            border-radius: var(--ts-radius-sm, 8px);
         }
 
         .btn:disabled {
@@ -494,13 +494,13 @@
         }
 
         th, td {
-            padding: 12px 16px;
+            padding: var(--ts-space-3, 12px) var(--ts-space-4, 16px);
             text-align: left;
             border-bottom: 1px solid var(--border);
         }
 
         th {
-            font-size: 12px;
+            font-size: var(--ts-text-xs, 0.75rem);
             font-weight: 600;
             color: var(--text-muted);
             text-transform: uppercase;
@@ -509,7 +509,7 @@
         }
 
         td {
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
         }
 
         tr:hover td {
@@ -518,7 +518,7 @@
 
         .table-actions {
             display: flex;
-            gap: 8px;
+            gap: var(--ts-space-2, 8px);
         }
 
         /* ════════════════════════════════════════════════════════════════════════════
@@ -526,12 +526,12 @@
            ════════════════════════════════════════════════════════════════════════════ */
 
         .form-group {
-            margin-bottom: 16px;
+            margin-bottom: var(--ts-space-4, 16px);
         }
 
         .form-label {
             display: block;
-            font-size: 13px;
+            font-size: var(--ts-text-xs, 0.8rem);
             font-weight: 500;
             color: var(--text-secondary);
             margin-bottom: 6px;
@@ -540,13 +540,13 @@
         .form-input, .form-select {
             width: 100%;
             padding: 10px 14px;
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
             font-family: inherit;
             background: var(--bg-input);
             border: 1px solid var(--border);
-            border-radius: 8px;
+            border-radius: var(--ts-radius-sm, 8px);
             color: var(--text-primary);
-            transition: all 0.15s ease;
+            transition: all var(--ts-dur-fast, 120ms) ease;
         }
 
         .form-input:focus, .form-select:focus {
@@ -562,7 +562,7 @@
         .form-row {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 16px;
+            gap: var(--ts-space-4, 16px);
         }
 
         /* ════════════════════════════════════════════════════════════════════════════
@@ -580,7 +580,7 @@
             align-items: center;
             justify-content: center;
             z-index: 1000;
-            padding: 20px;
+            padding: var(--ts-space-5, 20px);
         }
 
         .modal-overlay.active {
@@ -590,7 +590,7 @@
         .modal {
             background: var(--bg-card);
             border: 1px solid var(--border);
-            border-radius: 16px;
+            border-radius: var(--ts-radius-lg, 16px);
             width: 100%;
             max-width: 500px;
             max-height: 90vh;
@@ -600,7 +600,7 @@
         }
 
         .modal-header {
-            padding: 20px;
+            padding: var(--ts-space-5, 20px);
             border-bottom: 1px solid var(--border);
             display: flex;
             align-items: center;
@@ -608,20 +608,20 @@
         }
 
         .modal-title {
-            font-size: 18px;
+            font-size: var(--ts-text-lg, 1.125rem);
             font-weight: 600;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: var(--ts-space-2, 10px);
         }
 
         .modal-close {
             background: none;
             border: none;
             color: var(--text-muted);
-            font-size: 24px;
+            font-size: var(--ts-text-2xl, 1.5rem);
             cursor: pointer;
-            padding: 4px;
+            padding: var(--ts-space-1, 4px);
             line-height: 1;
         }
 
@@ -630,16 +630,16 @@
         }
 
         .modal-body {
-            padding: 20px;
+            padding: var(--ts-space-5, 20px);
             overflow-y: auto;
         }
 
         .modal-footer {
-            padding: 16px 20px;
+            padding: var(--ts-space-4, 16px) var(--ts-space-5, 20px);
             border-top: 1px solid var(--border);
             display: flex;
             justify-content: flex-end;
-            gap: 12px;
+            gap: var(--ts-space-3, 12px);
         }
 
         /* ════════════════════════════════════════════════════════════════════════════
@@ -648,11 +648,11 @@
 
         .alert {
             padding: 14px 16px;
-            border-radius: 8px;
+            border-radius: var(--ts-radius-sm, 8px);
             display: flex;
             align-items: flex-start;
-            gap: 12px;
-            margin-bottom: 16px;
+            gap: var(--ts-space-3, 12px);
+            margin-bottom: var(--ts-space-4, 16px);
         }
 
         .alert-success { background: var(--success-bg); border: 1px solid var(--success); }
@@ -661,7 +661,7 @@
         .alert-info { background: var(--info-bg); border: 1px solid var(--info); }
 
         .alert i {
-            font-size: 18px;
+            font-size: var(--ts-text-lg, 1.125rem);
             margin-top: 2px;
         }
 
@@ -680,7 +680,7 @@
         }
 
         .alert-message {
-            font-size: 13px;
+            font-size: var(--ts-text-xs, 0.8rem);
             color: var(--text-secondary);
         }
 
@@ -692,17 +692,17 @@
             z-index: 2000;
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: var(--ts-space-3, 12px);
         }
 
         .toast {
             background: var(--bg-card);
             border: 1px solid var(--border);
-            border-radius: 10px;
+            border-radius: var(--ts-radius-md, 10px);
             padding: 14px 18px;
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: var(--ts-space-3, 12px);
             box-shadow: var(--shadow-lg);
             animation: slideIn 0.3s ease;
             min-width: 300px;
@@ -734,15 +734,15 @@
         .dev-banner {
             background: linear-gradient(135deg, #7c3aed, #5b21b6);
             color: white;
-            padding: 12px 20px;
+            padding: var(--ts-space-3, 12px) var(--ts-space-5, 20px);
             display: flex;
             align-items: center;
-            gap: 12px;
-            font-size: 13px;
+            gap: var(--ts-space-3, 12px);
+            font-size: var(--ts-text-xs, 0.8rem);
         }
 
         .dev-banner i {
-            font-size: 16px;
+            font-size: var(--ts-text-base, 1rem);
         }
 
         .dev-banner strong {
@@ -753,32 +753,32 @@
         .status-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 16px;
+            gap: var(--ts-space-4, 16px);
         }
 
         .status-item {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 16px;
+            padding: var(--ts-space-4, 16px);
             background: var(--bg-elevated);
-            border-radius: 8px;
+            border-radius: var(--ts-radius-sm, 8px);
         }
 
         .status-item-info {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: var(--ts-space-3, 12px);
         }
 
         .status-item-icon {
             width: 40px;
             height: 40px;
-            border-radius: 8px;
+            border-radius: var(--ts-radius-sm, 8px);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 18px;
+            font-size: var(--ts-text-lg, 1.125rem);
         }
 
         .status-item-name {
@@ -786,7 +786,7 @@
         }
 
         .status-item-detail {
-            font-size: 12px;
+            font-size: var(--ts-text-xs, 0.75rem);
             color: var(--text-muted);
         }
 
@@ -799,7 +799,7 @@
         .activity-item {
             display: flex;
             align-items: flex-start;
-            gap: 12px;
+            gap: var(--ts-space-3, 12px);
             padding: 14px 0;
             border-bottom: 1px solid var(--border);
         }
@@ -815,7 +815,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
             flex-shrink: 0;
         }
 
@@ -831,12 +831,12 @@
         }
 
         .activity-title {
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
             font-weight: 500;
         }
 
         .activity-meta {
-            font-size: 12px;
+            font-size: var(--ts-text-xs, 0.75rem);
             color: var(--text-muted);
             margin-top: 2px;
         }
@@ -849,15 +849,15 @@
         }
 
         .empty-state i {
-            font-size: 48px;
-            margin-bottom: 16px;
+            font-size: var(--ts-text-5xl, 3rem);
+            margin-bottom: var(--ts-space-4, 16px);
             opacity: 0.5;
         }
 
         .empty-state h3 {
-            font-size: 18px;
+            font-size: var(--ts-text-lg, 1.125rem);
             color: var(--text-secondary);
-            margin-bottom: 8px;
+            margin-bottom: var(--ts-space-2, 8px);
         }
 
         /* Loading Spinner */
@@ -891,10 +891,10 @@
         .role-badge {
             display: inline-flex;
             align-items: center;
-            gap: 6px;
+            gap: var(--ts-space-1, 6px);
             padding: 4px 10px;
-            border-radius: 6px;
-            font-size: 12px;
+            border-radius: var(--ts-radius-sm, 6px);
+            font-size: var(--ts-text-xs, 0.75rem);
             font-weight: 500;
         }
 
@@ -911,7 +911,7 @@
         @media (max-width: 1024px) {
             .sidebar {
                 transform: translateX(-100%);
-                transition: transform 0.3s ease;
+                transition: transform var(--ts-dur-moderate, 300ms) ease;
             }
 
             .sidebar.open {
@@ -937,7 +937,7 @@
             }
 
             .header-title {
-                font-size: 16px;
+                font-size: var(--ts-text-base, 1rem);
             }
         }
 
@@ -946,6 +946,25 @@
                 grid-template-columns: 1fr;
             }
         }
+        /* ── Accessibility: Focus Visible ── */
+        :focus-visible { outline: 2px solid var(--ts-primary, #22c55e); outline-offset: 2px; }
+        :focus:not(:focus-visible) { outline: none; }
+
+        /* ── Accessibility: Reduced Motion ── */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        /* ── Page Load Animation ── */
+        @keyframes ts-page-enter {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        body { animation: ts-page-enter var(--ts-dur-moderate, 300ms) var(--ts-ease-out, ease) both; }
+
     </style>
 </head>
 <body>
@@ -1173,7 +1192,7 @@
                     </div>
 
                     <!-- Quick Actions -->
-                    <div class="card" style="margin-bottom: 24px;">
+                    <div class="card" style="margin-bottom: var(--ts-space-6, 24px);">
                         <div class="card-header">
                             <div class="card-title">
                                 <i class="fas fa-bolt"></i>
@@ -1181,7 +1200,7 @@
                             </div>
                         </div>
                         <div class="card-body">
-                            <div style="display: flex; flex-wrap: wrap; gap: 12px;">
+                            <div style="display: flex; flex-wrap: wrap; gap: var(--ts-space-3, 12px);">
                                 <button class="btn btn-primary" onclick="openAddUserModal()">
                                     <i class="fas fa-user-plus"></i>
                                     Add New User
@@ -1255,7 +1274,7 @@
                                         <tr>
                                             <td colspan="6" style="text-align: center; padding: 40px;">
                                                 <div class="spinner" style="margin: 0 auto;"></div>
-                                                <p style="margin-top: 12px; color: var(--text-muted);">Loading users...</p>
+                                                <p style="margin-top: var(--ts-space-3, 12px); color: var(--text-muted);">Loading users...</p>
                                             </td>
                                         </tr>
                                     </tbody>
@@ -1265,7 +1284,7 @@
                     </div>
 
                     <!-- API Status for User Management -->
-                    <div class="card" style="margin-top: 24px;">
+                    <div class="card" style="margin-top: var(--ts-space-6, 24px);">
                         <div class="card-header">
                             <div class="card-title">
                                 <i class="fas fa-code"></i>
@@ -1356,14 +1375,14 @@
                         </div>
                         <div class="card-body" id="sessionsContainer">
                             <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
-                                <i class="fas fa-spinner fa-spin" style="font-size: 24px; margin-bottom: 12px; display: block;"></i>
+                                <i class="fas fa-spinner fa-spin" style="font-size: var(--ts-text-2xl, 1.5rem); margin-bottom: var(--ts-space-3, 12px); display: block;"></i>
                                 Loading active sessions...
                             </div>
                         </div>
                     </div>
 
                     <!-- Session Stats -->
-                    <div class="card" style="margin-top: 24px;">
+                    <div class="card" style="margin-top: var(--ts-space-6, 24px);">
                         <div class="card-header">
                             <div class="card-title">
                                 <i class="fas fa-chart-bar"></i>
@@ -1452,7 +1471,7 @@
                     </div>
 
                     <!-- Permission Matrix -->
-                    <div class="card" style="margin-top: 24px;">
+                    <div class="card" style="margin-top: var(--ts-space-6, 24px);">
                         <div class="card-header">
                             <div class="card-title">
                                 <i class="fas fa-th"></i>
@@ -1485,7 +1504,7 @@
                      SYSTEM STATUS SECTION
                      ════════════════════════════════════════════════════════════════════ -->
                 <section class="view-section" id="section-status">
-                    <div class="stats-grid" style="margin-bottom: 24px;">
+                    <div class="stats-grid" style="margin-bottom: var(--ts-space-6, 24px);">
                         <div class="stat-card">
                             <div class="stat-icon" style="background: var(--success-bg); color: var(--success);">
                                 <i class="fas fa-plug"></i>
@@ -1528,7 +1547,7 @@
                     </div>
 
                     <!-- API Endpoints Status -->
-                    <div class="card" style="margin-top: 24px;">
+                    <div class="card" style="margin-top: var(--ts-space-6, 24px);">
                         <div class="card-header">
                             <div class="card-title">
                                 <i class="fas fa-code"></i>
@@ -1585,7 +1604,7 @@
                     </div>
 
                     <!-- Implementation Requirements -->
-                    <div class="card" style="margin-top: 24px;">
+                    <div class="card" style="margin-top: var(--ts-space-6, 24px);">
                         <div class="card-header">
                             <div class="card-title">
                                 <i class="fas fa-clipboard-list"></i>
@@ -1593,21 +1612,21 @@
                             </div>
                         </div>
                         <div class="card-body">
-                            <h4 style="margin-bottom: 12px; font-size: 14px; color: var(--text-secondary);">Backend APIs Needed:</h4>
+                            <h4 style="margin-bottom: var(--ts-space-3, 12px); font-size: var(--ts-text-sm, 0.875rem); color: var(--text-secondary);">Backend APIs Needed:</h4>
                             <ul style="list-style: none; padding: 0;">
-                                <li style="padding: 8px 0; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px;">
+                                <li style="padding: 8px 0; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: var(--ts-space-2, 10px);">
                                     <span class="badge badge-warning">TODO</span>
-                                    <code style="background: var(--bg-elevated); padding: 2px 8px; border-radius: 4px;">getAuditLog</code>
+                                    <code style="background: var(--bg-elevated); padding: 2px 8px; border-radius: var(--ts-radius-sm, 4px);">getAuditLog</code>
                                     <span style="color: var(--text-muted);">- Return paginated list of admin actions</span>
                                 </li>
-                                <li style="padding: 8px 0; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px;">
+                                <li style="padding: 8px 0; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: var(--ts-space-2, 10px);">
                                     <span class="badge badge-warning">TODO</span>
-                                    <code style="background: var(--bg-elevated); padding: 2px 8px; border-radius: 4px;">logAdminAction</code>
+                                    <code style="background: var(--bg-elevated); padding: 2px 8px; border-radius: var(--ts-radius-sm, 4px);">logAdminAction</code>
                                     <span style="color: var(--text-muted);">- Record admin actions (create, edit, delete user, etc.)</span>
                                 </li>
-                                <li style="padding: 8px 0; display: flex; align-items: center; gap: 10px;">
+                                <li style="padding: 8px 0; display: flex; align-items: center; gap: var(--ts-space-2, 10px);">
                                     <span class="badge badge-warning">TODO</span>
-                                    <code style="background: var(--bg-elevated); padding: 2px 8px; border-radius: 4px;">AUDIT_LOG sheet</code>
+                                    <code style="background: var(--bg-elevated); padding: 2px 8px; border-radius: var(--ts-radius-sm, 4px);">AUDIT_LOG sheet</code>
                                     <span style="color: var(--text-muted);">- Google Sheet: Timestamp, User, Action, Target, Details</span>
                                 </li>
                             </ul>
@@ -1682,7 +1701,7 @@
                             <span id="shopifyStatus" class="badge-backend">Checking...</span>
                         </div>
                         <div class="card-body">
-                            <div class="alert alert-info" style="margin-bottom: 20px;">
+                            <div class="alert alert-info" style="margin-bottom: var(--ts-space-5, 20px);">
                                 <i class="fas fa-info-circle"></i>
                                 <div class="alert-content">
                                     <div class="alert-title">Connect Your Shopify Store</div>
@@ -1690,7 +1709,7 @@
                                 </div>
                             </div>
 
-                            <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 24px;">
+                            <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: var(--ts-space-6, 24px);">
                                 <div class="stat-card">
                                     <div class="stat-value" id="shopifyCustomerCount">--</div>
                                     <div class="stat-label">Customers</div>
@@ -1709,8 +1728,8 @@
                                 </div>
                             </div>
 
-                            <h4 style="margin-bottom: 12px; color: var(--text-secondary);">Sync Operations</h4>
-                            <div class="form-row" style="gap: 12px;">
+                            <h4 style="margin-bottom: var(--ts-space-3, 12px); color: var(--text-secondary);">Sync Operations</h4>
+                            <div class="form-row" style="gap: var(--ts-space-3, 12px);">
                                 <button class="btn btn-primary" onclick="syncShopifyCustomers()">
                                     <i class="fas fa-users"></i>
                                     Import All Customers
@@ -1729,7 +1748,7 @@
                                 </button>
                             </div>
 
-                            <div id="shopifySyncResult" style="margin-top: 16px; display: none;">
+                            <div id="shopifySyncResult" style="margin-top: var(--ts-space-4, 16px); display: none;">
                                 <div class="alert alert-success">
                                     <i class="fas fa-check-circle"></i>
                                     <div class="alert-content">
@@ -1741,7 +1760,7 @@
 
                             <hr style="margin: 24px 0; border-color: var(--border);">
 
-                            <h4 style="margin-bottom: 12px; color: var(--text-secondary);">Connection Settings</h4>
+                            <h4 style="margin-bottom: var(--ts-space-3, 12px); color: var(--text-secondary);">Connection Settings</h4>
                             <div class="form-group">
                                 <label class="form-label">Store Name</label>
                                 <input type="text" class="form-input" id="shopifyStoreName" placeholder="your-store-name (without .myshopify.com)">
@@ -1758,7 +1777,7 @@
                                 </small>
                             </div>
 
-                            <div class="form-row" style="margin-top: 16px;">
+                            <div class="form-row" style="margin-top: var(--ts-space-4, 16px);">
                                 <button class="btn btn-primary" onclick="testShopifyConnection()">
                                     <i class="fas fa-plug"></i>
                                     Test Connection
@@ -1769,11 +1788,11 @@
                                 </button>
                             </div>
 
-                            <div id="shopifyTestResult" style="margin-top: 16px; display: none;"></div>
+                            <div id="shopifyTestResult" style="margin-top: var(--ts-space-4, 16px); display: none;"></div>
                         </div>
                     </div>
 
-                    <div class="card" style="margin-top: 20px;">
+                    <div class="card" style="margin-top: var(--ts-space-5, 20px);">
                         <div class="card-header">
                             <div class="card-title">
                                 <i class="fas fa-book"></i>
@@ -1791,7 +1810,7 @@
                      SOCIAL BRAIN SECTION
                      ════════════════════════════════════════════════════════════════════════════ -->
                 <section class="view-section" id="section-socialBrain">
-                    <div class="alert alert-info" style="margin-bottom: 20px;">
+                    <div class="alert alert-info" style="margin-bottom: var(--ts-space-5, 20px);">
                         <i class="fas fa-robot"></i>
                         <div class="alert-content">
                             <div class="alert-title">Autonomous Social Media Brain</div>
@@ -1836,14 +1855,14 @@
                         </div>
                         <div class="card-body" id="adminUrgentActions">
                             <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
-                                <i class="fas fa-spinner fa-spin" style="font-size: 24px; margin-bottom: 12px; display: block;"></i>
+                                <i class="fas fa-spinner fa-spin" style="font-size: var(--ts-text-2xl, 1.5rem); margin-bottom: var(--ts-space-3, 12px); display: block;"></i>
                                 Loading urgent actions...
                             </div>
                         </div>
                     </div>
 
                     <!-- Quick Training -->
-                    <div class="card" style="margin-top: 20px;">
+                    <div class="card" style="margin-top: var(--ts-space-5, 20px);">
                         <div class="card-header">
                             <div class="card-title">
                                 <i class="fas fa-graduation-cap" style="color: #22c55e;"></i>
@@ -1851,11 +1870,11 @@
                             </div>
                         </div>
                         <div class="card-body">
-                            <p style="color: var(--text-secondary); margin-bottom: 16px;">Paste a high-performing post to train the AI on your voice.</p>
+                            <p style="color: var(--text-secondary); margin-bottom: var(--ts-space-4, 16px);">Paste a high-performing post to train the AI on your voice.</p>
                             <div class="form-group">
                                 <textarea class="form-input" id="adminTrainingPost" placeholder="Paste a post here..." rows="4" style="resize: vertical;"></textarea>
                             </div>
-                            <div class="form-row" style="gap: 12px; align-items: center;">
+                            <div class="form-row" style="gap: var(--ts-space-3, 12px); align-items: center;">
                                 <select class="form-select" id="adminTrainingCategory" style="width: auto;">
                                     <option value="harvest">Harvest</option>
                                     <option value="behind_scenes">Behind Scenes</option>
@@ -1871,7 +1890,7 @@
                     </div>
 
                     <!-- Quick Actions -->
-                    <div class="card" style="margin-top: 20px;">
+                    <div class="card" style="margin-top: var(--ts-space-5, 20px);">
                         <div class="card-header">
                             <div class="card-title">
                                 <i class="fas fa-bolt"></i>
@@ -1879,7 +1898,7 @@
                             </div>
                         </div>
                         <div class="card-body">
-                            <div class="form-row" style="gap: 12px; flex-wrap: wrap;">
+                            <div class="form-row" style="gap: var(--ts-space-3, 12px); flex-wrap: wrap;">
                                 <button class="btn btn-primary" onclick="window.open('marketing-command-center.html', '_blank')">
                                     <i class="fas fa-external-link-alt"></i> Open Full Dashboard
                                 </button>
@@ -1909,7 +1928,7 @@
                             </div>
                         </div>
                         <div class="card-body">
-                            <p style="color: var(--text-secondary); margin-bottom: 16px;">Get SMS alerts when urgent social media actions need attention (sales opportunities, complaints, crises).</p>
+                            <p style="color: var(--text-secondary); margin-bottom: var(--ts-space-4, 16px);">Get SMS alerts when urgent social media actions need attention (sales opportunities, complaints, crises).</p>
                             <div class="form-group">
                                 <label class="form-label">Owner Phone Number</label>
                                 <input type="tel" class="form-input" id="ownerPhoneInput" placeholder="+1 (555) 123-4567">
@@ -1926,7 +1945,7 @@
                         </div>
                     </div>
 
-                    <div class="card" style="margin-top: 20px;">
+                    <div class="card" style="margin-top: var(--ts-space-5, 20px);">
                         <div class="card-header">
                             <div class="card-title">
                                 <i class="fas fa-clock"></i>
@@ -1934,17 +1953,17 @@
                             </div>
                         </div>
                         <div class="card-body">
-                            <p style="color: var(--text-secondary); margin-bottom: 16px;">Enable automatic daily briefing generation at 6 AM EST.</p>
+                            <p style="color: var(--text-secondary); margin-bottom: var(--ts-space-4, 16px);">Enable automatic daily briefing generation at 6 AM EST.</p>
                             <button class="btn btn-primary" onclick="setupBriefingTrigger()">
                                 <i class="fas fa-play"></i> Enable Daily Briefings
                             </button>
-                            <p id="briefingTriggerStatus" style="margin-top: 12px; color: var(--success); display: none;">
+                            <p id="briefingTriggerStatus" style="margin-top: var(--ts-space-3, 12px); color: var(--success); display: none;">
                                 <i class="fas fa-check-circle"></i> Daily briefing trigger is active.
                             </p>
                         </div>
                     </div>
 
-                    <div class="card" style="margin-top: 20px;">
+                    <div class="card" style="margin-top: var(--ts-space-5, 20px);">
                         <div class="card-header">
                             <div class="card-title">
                                 <i class="fab fa-instagram"></i>
@@ -1952,7 +1971,7 @@
                             </div>
                         </div>
                         <div class="card-body">
-                            <p style="color: var(--text-secondary); margin-bottom: 16px;">Connect Instagram for direct posting and engagement tracking.</p>
+                            <p style="color: var(--text-secondary); margin-bottom: var(--ts-space-4, 16px);">Connect Instagram for direct posting and engagement tracking.</p>
                             <div class="form-group">
                                 <label class="form-label">Instagram User ID</label>
                                 <input type="text" class="form-input" id="igUserId" placeholder="17841400xxxxxxx">
@@ -1970,7 +1989,7 @@
                         </div>
                     </div>
 
-                    <div class="card" style="margin-top: 20px;">
+                    <div class="card" style="margin-top: var(--ts-space-5, 20px);">
                         <div class="card-header">
                             <div class="card-title">
                                 <i class="fas fa-key"></i>
@@ -1998,9 +2017,9 @@
                      ════════════════════════════════════════════════════════════════════════════ -->
                 <section class="view-section" id="section-marketingAutomation">
                     <!-- Info Banner -->
-                    <div class="alert alert-info" style="margin-bottom: 24px;">
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            <i class="fas fa-rocket" style="font-size: 24px;"></i>
+                    <div class="alert alert-info" style="margin-bottom: var(--ts-space-6, 24px);">
+                        <div style="display: flex; align-items: center; gap: var(--ts-space-3, 12px);">
+                            <i class="fas fa-rocket" style="font-size: var(--ts-text-2xl, 1.5rem);"></i>
                             <div>
                                 <div class="alert-title">Marketing Automation Command Center</div>
                                 <div class="alert-message">Unified view of all automated marketing systems - Email, CSA Renewals, Referrals, and Competitor Intelligence.</div>
@@ -2033,7 +2052,7 @@
                     </div>
 
                     <!-- Active Campaigns -->
-                    <div class="card" style="margin-top: 24px;">
+                    <div class="card" style="margin-top: var(--ts-space-6, 24px);">
                         <div class="card-header">
                             <div class="card-title"><i class="fas fa-bullseye"></i> Active Campaigns</div>
                             <button class="btn btn-sm btn-secondary" onclick="loadMarketingDashboard()">
@@ -2042,18 +2061,18 @@
                         </div>
                         <div class="card-body">
                             <div id="maDashActiveCampaigns">
-                                <p style="color: var(--text-muted); text-align: center; padding: 20px;">Loading...</p>
+                                <p style="color: var(--text-muted); text-align: center; padding: var(--ts-space-5, 20px);">Loading...</p>
                             </div>
                         </div>
                     </div>
 
                     <!-- Quick Actions -->
-                    <div class="card" style="margin-top: 24px;">
+                    <div class="card" style="margin-top: var(--ts-space-6, 24px);">
                         <div class="card-header">
                             <div class="card-title"><i class="fas fa-bolt"></i> Quick Actions</div>
                         </div>
                         <div class="card-body">
-                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--ts-space-3, 12px);">
                                 <button class="btn btn-primary" onclick="showSection('emailMarketing')">
                                     <i class="fas fa-envelope"></i> Create Email Campaign
                                 </button>
@@ -2135,7 +2154,7 @@
                     </div>
 
                     <!-- Email Queue -->
-                    <div class="card" style="margin-top: 24px;">
+                    <div class="card" style="margin-top: var(--ts-space-6, 24px);">
                         <div class="card-header">
                             <div class="card-title"><i class="fas fa-list"></i> Email Queue</div>
                             <button class="btn btn-sm btn-success" onclick="processEmailQueueNow()">
@@ -2144,7 +2163,7 @@
                         </div>
                         <div class="card-body">
                             <div id="emailQueueList">
-                                <p style="color: var(--text-muted); text-align: center; padding: 20px;">Loading email queue...</p>
+                                <p style="color: var(--text-muted); text-align: center; padding: var(--ts-space-5, 20px);">Loading email queue...</p>
                             </div>
                         </div>
                     </div>
@@ -2154,9 +2173,9 @@
                      MARKETING AUTOMATION - CSA RENEWALS
                      ════════════════════════════════════════════════════════════════════════════ -->
                 <section class="view-section" id="section-csaRenewals">
-                    <div class="alert alert-warning" style="margin-bottom: 24px;">
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            <i class="fas fa-sync-alt" style="font-size: 24px;"></i>
+                    <div class="alert alert-warning" style="margin-bottom: var(--ts-space-6, 24px);">
+                        <div style="display: flex; align-items: center; gap: var(--ts-space-3, 12px);">
+                            <i class="fas fa-sync-alt" style="font-size: var(--ts-text-2xl, 1.5rem);"></i>
                             <div>
                                 <div class="alert-title">CSA Renewal Campaign System</div>
                                 <div class="alert-message">Automatically identifies members nearing renewal and triggers personalized outreach sequences.</div>
@@ -2189,7 +2208,7 @@
                     </div>
 
                     <!-- Members Needing Renewal -->
-                    <div class="card" style="margin-top: 24px;">
+                    <div class="card" style="margin-top: var(--ts-space-6, 24px);">
                         <div class="card-header">
                             <div class="card-title"><i class="fas fa-users"></i> Members Needing Renewal</div>
                             <div>
@@ -2203,13 +2222,13 @@
                         </div>
                         <div class="card-body">
                             <div id="csaRenewalsList">
-                                <p style="color: var(--text-muted); text-align: center; padding: 20px;">Loading renewals...</p>
+                                <p style="color: var(--text-muted); text-align: center; padding: var(--ts-space-5, 20px);">Loading renewals...</p>
                             </div>
                         </div>
                     </div>
 
                     <!-- Reminder Settings -->
-                    <div class="card" style="margin-top: 24px;">
+                    <div class="card" style="margin-top: var(--ts-space-6, 24px);">
                         <div class="card-header">
                             <div class="card-title"><i class="fas fa-cog"></i> Renewal Reminder Settings</div>
                         </div>
@@ -2237,9 +2256,9 @@
                      MARKETING AUTOMATION - REFERRAL TRACKING
                      ════════════════════════════════════════════════════════════════════════════ -->
                 <section class="view-section" id="section-referralTracking">
-                    <div class="alert alert-success" style="margin-bottom: 24px;">
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            <i class="fas fa-users" style="font-size: 24px;"></i>
+                    <div class="alert alert-success" style="margin-bottom: var(--ts-space-6, 24px);">
+                        <div style="display: flex; align-items: center; gap: var(--ts-space-3, 12px);">
+                            <i class="fas fa-users" style="font-size: var(--ts-text-2xl, 1.5rem);"></i>
                             <div>
                                 <div class="alert-title">Referral Program Dashboard</div>
                                 <div class="alert-message">Track referrals, generate unique codes, and see your top advocates. Each successful referral builds your community!</div>
@@ -2272,7 +2291,7 @@
                     </div>
 
                     <!-- Generate Referral Code -->
-                    <div class="card" style="margin-top: 24px;">
+                    <div class="card" style="margin-top: var(--ts-space-6, 24px);">
                         <div class="card-header">
                             <div class="card-title"><i class="fas fa-plus-circle"></i> Generate Referral Code</div>
                         </div>
@@ -2292,10 +2311,10 @@
                             <button class="btn btn-primary" onclick="generateReferralCodeFromUI()">
                                 <i class="fas fa-magic"></i> Generate Code
                             </button>
-                            <div id="generatedCodeDisplay" style="display: none; margin-top: 16px; padding: 16px; background: var(--bg-elevated); border-radius: 8px;">
-                                <p style="color: var(--text-secondary); margin-bottom: 8px;">Generated Referral Code:</p>
-                                <div style="font-size: 24px; font-weight: 700; color: var(--success);" id="generatedCodeValue"></div>
-                                <button class="btn btn-sm btn-secondary" onclick="copyReferralCode()" style="margin-top: 8px;">
+                            <div id="generatedCodeDisplay" style="display: none; margin-top: var(--ts-space-4, 16px); padding: var(--ts-space-4, 16px); background: var(--bg-elevated); border-radius: var(--ts-radius-sm, 8px);">
+                                <p style="color: var(--text-secondary); margin-bottom: var(--ts-space-2, 8px);">Generated Referral Code:</p>
+                                <div style="font-size: var(--ts-text-2xl, 1.5rem); font-weight: 700; color: var(--success);" id="generatedCodeValue"></div>
+                                <button class="btn btn-sm btn-secondary" onclick="copyReferralCode()" style="margin-top: var(--ts-space-2, 8px);">
                                     <i class="fas fa-copy"></i> Copy Code
                                 </button>
                             </div>
@@ -2303,7 +2322,7 @@
                     </div>
 
                     <!-- Referral Leaderboard -->
-                    <div class="card" style="margin-top: 24px;">
+                    <div class="card" style="margin-top: var(--ts-space-6, 24px);">
                         <div class="card-header">
                             <div class="card-title"><i class="fas fa-trophy"></i> Top Referrers</div>
                             <button class="btn btn-sm btn-secondary" onclick="loadReferralLeaderboard()">
@@ -2312,7 +2331,7 @@
                         </div>
                         <div class="card-body">
                             <div id="referralLeaderboard">
-                                <p style="color: var(--text-muted); text-align: center; padding: 20px;">Loading leaderboard...</p>
+                                <p style="color: var(--text-muted); text-align: center; padding: var(--ts-space-5, 20px);">Loading leaderboard...</p>
                             </div>
                         </div>
                     </div>
@@ -2322,9 +2341,9 @@
                      MARKETING AUTOMATION - COMPETITOR INTELLIGENCE
                      ════════════════════════════════════════════════════════════════════════════ -->
                 <section class="view-section" id="section-competitorAlerts">
-                    <div class="alert alert-info" style="margin-bottom: 24px;">
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            <i class="fas fa-binoculars" style="font-size: 24px;"></i>
+                    <div class="alert alert-info" style="margin-bottom: var(--ts-space-6, 24px);">
+                        <div style="display: flex; align-items: center; gap: var(--ts-space-3, 12px);">
+                            <i class="fas fa-binoculars" style="font-size: var(--ts-text-2xl, 1.5rem);"></i>
                             <div>
                                 <div class="alert-title">Competitor Intelligence System</div>
                                 <div class="alert-message">Monitor competitor activity and get alerts when they launch promotions, change pricing, or post viral content.</div>
@@ -2357,7 +2376,7 @@
                     </div>
 
                     <!-- Active Alerts -->
-                    <div class="card" style="margin-top: 24px;">
+                    <div class="card" style="margin-top: var(--ts-space-6, 24px);">
                         <div class="card-header">
                             <div class="card-title"><i class="fas fa-exclamation-circle"></i> Active Alerts</div>
                             <div>
@@ -2371,13 +2390,13 @@
                         </div>
                         <div class="card-body">
                             <div id="competitorAlertsList">
-                                <p style="color: var(--text-muted); text-align: center; padding: 20px;">Loading alerts...</p>
+                                <p style="color: var(--text-muted); text-align: center; padding: var(--ts-space-5, 20px);">Loading alerts...</p>
                             </div>
                         </div>
                     </div>
 
                     <!-- Add Competitor -->
-                    <div class="card" style="margin-top: 24px;">
+                    <div class="card" style="margin-top: var(--ts-space-6, 24px);">
                         <div class="card-header">
                             <div class="card-title"><i class="fas fa-plus-circle"></i> Add Competitor to Monitor</div>
                         </div>
@@ -2401,16 +2420,16 @@
                     </div>
 
                     <!-- Monitoring Automation -->
-                    <div class="card" style="margin-top: 24px;">
+                    <div class="card" style="margin-top: var(--ts-space-6, 24px);">
                         <div class="card-header">
                             <div class="card-title"><i class="fas fa-robot"></i> Automation Settings</div>
                         </div>
                         <div class="card-body">
-                            <p style="color: var(--text-secondary); margin-bottom: 16px;">Enable automatic competitor monitoring to run daily scans.</p>
+                            <p style="color: var(--text-secondary); margin-bottom: var(--ts-space-4, 16px);">Enable automatic competitor monitoring to run daily scans.</p>
                             <button class="btn btn-primary" onclick="setupCompetitorMonitoringTriggerUI()">
                                 <i class="fas fa-play"></i> Enable Daily Monitoring
                             </button>
-                            <p id="competitorTriggerStatus" style="margin-top: 12px; color: var(--success); display: none;">
+                            <p id="competitorTriggerStatus" style="margin-top: var(--ts-space-3, 12px); color: var(--success); display: none;">
                                 <i class="fas fa-check-circle"></i> Daily monitoring is active.
                             </p>
                         </div>
@@ -2429,7 +2448,7 @@
                             </div>
                         </div>
                         <div class="card-body">
-                            <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                            <p style="color: var(--text-secondary); margin-bottom: var(--ts-space-4, 16px);">
                                 Take a photo of any farming reference material and let AI extract actionable data.
                                 Works with books, calendars, seed catalogs, pest guides, and more.
                             </p>
@@ -2471,18 +2490,18 @@
                                 <label class="form-label">Upload Photo</label>
                                 <div id="importDropZone" style="
                                     border: 2px dashed var(--border);
-                                    border-radius: 12px;
+                                    border-radius: var(--ts-radius-md, 12px);
                                     padding: 40px;
                                     text-align: center;
                                     cursor: pointer;
-                                    transition: all 0.2s;
+                                    transition: all var(--ts-dur-normal, 200ms);
                                     background: var(--bg-elevated);
                                 " onclick="document.getElementById('importFileInput').click()">
-                                    <i class="fas fa-camera" style="font-size: 48px; color: var(--primary); margin-bottom: 12px; display: block;"></i>
-                                    <div style="color: var(--text-primary); font-weight: 500; margin-bottom: 8px;">
+                                    <i class="fas fa-camera" style="font-size: var(--ts-text-5xl, 3rem); color: var(--primary); margin-bottom: var(--ts-space-3, 12px); display: block;"></i>
+                                    <div style="color: var(--text-primary); font-weight: 500; margin-bottom: var(--ts-space-2, 8px);">
                                         Tap to take photo or select image
                                     </div>
-                                    <div style="color: var(--text-muted); font-size: 14px;">
+                                    <div style="color: var(--text-muted); font-size: var(--ts-text-sm, 0.875rem);">
                                         Supports JPG, PNG, HEIC
                                     </div>
                                 </div>
@@ -2490,9 +2509,9 @@
                             </div>
 
                             <!-- Preview Area -->
-                            <div id="importPreview" style="display: none; margin-top: 16px;">
+                            <div id="importPreview" style="display: none; margin-top: var(--ts-space-4, 16px);">
                                 <div style="position: relative; display: inline-block; max-width: 100%;">
-                                    <img id="importPreviewImg" style="max-width: 100%; max-height: 300px; border-radius: 8px; border: 1px solid var(--border);">
+                                    <img id="importPreviewImg" style="max-width: 100%; max-height: 300px; border-radius: var(--ts-radius-sm, 8px); border: 1px solid var(--border);">
                                     <button onclick="clearImportPreview()" style="
                                         position: absolute;
                                         top: 8px;
@@ -2509,14 +2528,14 @@
                             </div>
 
                             <!-- Process Button -->
-                            <button class="btn btn-primary" onclick="processImport()" style="margin-top: 16px; width: 100%;">
+                            <button class="btn btn-primary" onclick="processImport()" style="margin-top: var(--ts-space-4, 16px); width: 100%;">
                                 <i class="fas fa-magic"></i> Extract & Organize Data
                             </button>
                         </div>
                     </div>
 
                     <!-- Extracted Data Results -->
-                    <div class="card" style="margin-top: 20px; display: none;" id="importResultsCard">
+                    <div class="card" style="margin-top: var(--ts-space-5, 20px); display: none;" id="importResultsCard">
                         <div class="card-header">
                             <div class="card-title">
                                 <i class="fas fa-list-check"></i>
@@ -2532,7 +2551,7 @@
                     </div>
 
                     <!-- Recent Imports -->
-                    <div class="card" style="margin-top: 20px;">
+                    <div class="card" style="margin-top: var(--ts-space-5, 20px);">
                         <div class="card-header">
                             <div class="card-title">
                                 <i class="fas fa-history"></i>
@@ -2543,7 +2562,7 @@
                             </button>
                         </div>
                         <div class="card-body" id="recentImportsBody">
-                            <p style="color: var(--text-muted); text-align: center; padding: 20px;">
+                            <p style="color: var(--text-muted); text-align: center; padding: var(--ts-space-5, 20px);">
                                 <i class="fas fa-info-circle"></i> No recent imports
                             </p>
                         </div>
@@ -2593,7 +2612,7 @@
                                 <i class="fas fa-calendar-week" style="color: #2563eb;"></i>
                                 Standing Orders Due This Week
                             </div>
-                            <div style="display: flex; gap: 8px;">
+                            <div style="display: flex; gap: var(--ts-space-2, 8px);">
                                 <button class="btn btn-success" onclick="bulkFulfillAllOrders()">
                                     <i class="fas fa-check-double"></i> Fulfill All
                                 </button>
@@ -2604,14 +2623,14 @@
                         </div>
                         <div class="card-body" id="standingOrdersDueList" style="max-height: 500px; overflow-y: auto;">
                             <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
-                                <i class="fas fa-spinner fa-spin" style="font-size: 24px; margin-bottom: 12px; display: block;"></i>
+                                <i class="fas fa-spinner fa-spin" style="font-size: var(--ts-text-2xl, 1.5rem); margin-bottom: var(--ts-space-3, 12px); display: block;"></i>
                                 Loading standing orders...
                             </div>
                         </div>
                     </div>
 
                     <!-- Products Summary -->
-                    <div class="card" style="margin-top: 20px;">
+                    <div class="card" style="margin-top: var(--ts-space-5, 20px);">
                         <div class="card-header">
                             <div class="card-title">
                                 <i class="fas fa-boxes" style="color: #22c55e;"></i>
@@ -2619,14 +2638,14 @@
                             </div>
                         </div>
                         <div class="card-body" id="standingOrdersProductSummary">
-                            <p style="color: var(--text-muted); text-align: center; padding: 20px;">
+                            <p style="color: var(--text-muted); text-align: center; padding: var(--ts-space-5, 20px);">
                                 Loading product summary...
                             </p>
                         </div>
                     </div>
 
                     <!-- Recent Shortages -->
-                    <div class="card" style="margin-top: 20px;">
+                    <div class="card" style="margin-top: var(--ts-space-5, 20px);">
                         <div class="card-header">
                             <div class="card-title">
                                 <i class="fas fa-history" style="color: #ef4444;"></i>
@@ -2634,7 +2653,7 @@
                             </div>
                         </div>
                         <div class="card-body" id="recentShortagesList">
-                            <p style="color: var(--text-muted); text-align: center; padding: 20px;">
+                            <p style="color: var(--text-muted); text-align: center; padding: var(--ts-space-5, 20px);">
                                 No recent shortages
                             </p>
                         </div>
@@ -2717,7 +2736,7 @@
                 <button class="modal-close" onclick="closeModal('editUserModal')">&times;</button>
             </div>
             <div class="modal-body">
-                <div class="alert alert-warning" style="margin-bottom: 16px;">
+                <div class="alert alert-warning" style="margin-bottom: var(--ts-space-4, 16px);">
                     <i class="fas fa-exclamation-triangle"></i>
                     <div class="alert-content">
                         <div class="alert-title">Backend Required</div>
@@ -2901,15 +2920,15 @@
         function renderActiveCampaigns(campaigns) {
             const c = document.getElementById('maDashActiveCampaigns');
             if (campaigns.length === 0) {
-                c.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 20px;">No active campaigns. Create one to get started!</p>';
+                c.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: var(--ts-space-5, 20px);">No active campaigns. Create one to get started!</p>';
                 return;
             }
             c.innerHTML = campaigns.map(camp => `
-                <div style="background: var(--bg-elevated); border-radius: 8px; padding: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+                <div style="background: var(--bg-elevated); border-radius: var(--ts-radius-sm, 8px); padding: var(--ts-space-4, 16px); margin-bottom: var(--ts-space-3, 12px); display: flex; justify-content: space-between; align-items: center;">
                     <div>
-                        <span class="badge badge-${camp.type === 'email' ? 'info' : camp.type === 'renewal' ? 'warning' : 'success'}" style="margin-bottom: 8px;">${camp.type.toUpperCase()}</span>
+                        <span class="badge badge-${camp.type === 'email' ? 'info' : camp.type === 'renewal' ? 'warning' : 'success'}" style="margin-bottom: var(--ts-space-2, 8px);">${camp.type.toUpperCase()}</span>
                         <p style="font-weight: 500;">${camp.name}</p>
-                        <p style="font-size: 13px; color: var(--text-secondary);">${camp.sent || 0} sent, ${camp.opened || 0} opened</p>
+                        <p style="font-size: var(--ts-text-xs, 0.8rem); color: var(--text-secondary);">${camp.sent || 0} sent, ${camp.opened || 0} opened</p>
                     </div>
                     <div style="text-align: right;">
                         <span style="color: var(--success); font-weight: 600;">${((camp.opened / camp.sent) * 100 || 0).toFixed(1)}% open rate</span>
@@ -2932,26 +2951,26 @@
         function renderEmailQueue(queue) {
             const c = document.getElementById('emailQueueList');
             if (queue.length === 0) {
-                c.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 20px;">No emails in queue.</p>';
+                c.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: var(--ts-space-5, 20px);">No emails in queue.</p>';
                 return;
             }
             c.innerHTML = `
                 <table style="width: 100%; border-collapse: collapse;">
                     <thead>
                         <tr style="border-bottom: 1px solid var(--border);">
-                            <th style="text-align: left; padding: 12px; color: var(--text-secondary);">Recipient</th>
-                            <th style="text-align: left; padding: 12px; color: var(--text-secondary);">Subject</th>
-                            <th style="text-align: left; padding: 12px; color: var(--text-secondary);">Status</th>
-                            <th style="text-align: left; padding: 12px; color: var(--text-secondary);">Scheduled</th>
+                            <th style="text-align: left; padding: var(--ts-space-3, 12px); color: var(--text-secondary);">Recipient</th>
+                            <th style="text-align: left; padding: var(--ts-space-3, 12px); color: var(--text-secondary);">Subject</th>
+                            <th style="text-align: left; padding: var(--ts-space-3, 12px); color: var(--text-secondary);">Status</th>
+                            <th style="text-align: left; padding: var(--ts-space-3, 12px); color: var(--text-secondary);">Scheduled</th>
                         </tr>
                     </thead>
                     <tbody>
                         ${queue.map(e => `
                             <tr style="border-bottom: 1px solid var(--border);">
-                                <td style="padding: 12px;">${e.recipientEmail || '--'}</td>
-                                <td style="padding: 12px;">${e.subject || '--'}</td>
-                                <td style="padding: 12px;"><span class="badge badge-${e.status === 'pending' ? 'warning' : 'success'}">${e.status}</span></td>
-                                <td style="padding: 12px;">${e.scheduledTime || 'Immediate'}</td>
+                                <td style="padding: var(--ts-space-3, 12px);">${e.recipientEmail || '--'}</td>
+                                <td style="padding: var(--ts-space-3, 12px);">${e.subject || '--'}</td>
+                                <td style="padding: var(--ts-space-3, 12px);"><span class="badge badge-${e.status === 'pending' ? 'warning' : 'success'}">${e.status}</span></td>
+                                <td style="padding: var(--ts-space-3, 12px);">${e.scheduledTime || 'Immediate'}</td>
                             </tr>
                         `).join('')}
                     </tbody>
@@ -3036,16 +3055,16 @@
         function renderCSARenewalsList(renewals) {
             const c = document.getElementById('csaRenewalsList');
             if (renewals.length === 0) {
-                c.innerHTML = '<p style="color: var(--success); text-align: center; padding: 20px;"><i class="fas fa-check-circle"></i> All members are renewed!</p>';
+                c.innerHTML = '<p style="color: var(--success); text-align: center; padding: var(--ts-space-5, 20px);"><i class="fas fa-check-circle"></i> All members are renewed!</p>';
                 return;
             }
             c.innerHTML = renewals.map(r => `
-                <div style="background: var(--bg-elevated); border-radius: 8px; padding: 16px; margin-bottom: 12px; border-left: 3px solid ${r.daysUntilExpiry <= 7 ? 'var(--danger)' : 'var(--warning)'};">
+                <div style="background: var(--bg-elevated); border-radius: var(--ts-radius-sm, 8px); padding: var(--ts-space-4, 16px); margin-bottom: var(--ts-space-3, 12px); border-left: 3px solid ${r.daysUntilExpiry <= 7 ? 'var(--danger)' : 'var(--warning)'};">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <div>
                             <p style="font-weight: 500;">${r.memberName}</p>
-                            <p style="font-size: 13px; color: var(--text-secondary);">${r.memberEmail}</p>
-                            <p style="font-size: 13px; color: ${r.daysUntilExpiry <= 7 ? 'var(--danger)' : 'var(--warning)'};">
+                            <p style="font-size: var(--ts-text-xs, 0.8rem); color: var(--text-secondary);">${r.memberEmail}</p>
+                            <p style="font-size: var(--ts-text-xs, 0.8rem); color: ${r.daysUntilExpiry <= 7 ? 'var(--danger)' : 'var(--warning)'};">
                                 <i class="fas fa-clock"></i> Expires in ${r.daysUntilExpiry} days
                             </p>
                         </div>
@@ -3112,28 +3131,28 @@
         function renderReferralLeaderboard(leaderboard) {
             const c = document.getElementById('referralLeaderboard');
             if (leaderboard.length === 0) {
-                c.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 20px;">No referrals yet. Generate codes to get started!</p>';
+                c.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: var(--ts-space-5, 20px);">No referrals yet. Generate codes to get started!</p>';
                 return;
             }
             c.innerHTML = `
                 <table style="width: 100%; border-collapse: collapse;">
                     <thead>
                         <tr style="border-bottom: 1px solid var(--border);">
-                            <th style="text-align: left; padding: 12px; color: var(--text-secondary);">Rank</th>
-                            <th style="text-align: left; padding: 12px; color: var(--text-secondary);">Referrer</th>
-                            <th style="text-align: left; padding: 12px; color: var(--text-secondary);">Code</th>
-                            <th style="text-align: center; padding: 12px; color: var(--text-secondary);">Conversions</th>
-                            <th style="text-align: right; padding: 12px; color: var(--text-secondary);">Revenue</th>
+                            <th style="text-align: left; padding: var(--ts-space-3, 12px); color: var(--text-secondary);">Rank</th>
+                            <th style="text-align: left; padding: var(--ts-space-3, 12px); color: var(--text-secondary);">Referrer</th>
+                            <th style="text-align: left; padding: var(--ts-space-3, 12px); color: var(--text-secondary);">Code</th>
+                            <th style="text-align: center; padding: var(--ts-space-3, 12px); color: var(--text-secondary);">Conversions</th>
+                            <th style="text-align: right; padding: var(--ts-space-3, 12px); color: var(--text-secondary);">Revenue</th>
                         </tr>
                     </thead>
                     <tbody>
                         ${leaderboard.map((r, i) => `
                             <tr style="border-bottom: 1px solid var(--border);">
-                                <td style="padding: 12px;">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}</td>
-                                <td style="padding: 12px; font-weight: 500;">${r.referrerName}</td>
-                                <td style="padding: 12px;"><code style="background: var(--bg-elevated); padding: 4px 8px; border-radius: 4px;">${r.code}</code></td>
-                                <td style="padding: 12px; text-align: center;">${r.conversions}</td>
-                                <td style="padding: 12px; text-align: right; color: var(--success); font-weight: 600;">$${(r.revenue || 0).toLocaleString()}</td>
+                                <td style="padding: var(--ts-space-3, 12px);">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}</td>
+                                <td style="padding: var(--ts-space-3, 12px); font-weight: 500;">${r.referrerName}</td>
+                                <td style="padding: var(--ts-space-3, 12px);"><code style="background: var(--bg-elevated); padding: 4px 8px; border-radius: var(--ts-radius-sm, 4px);">${r.code}</code></td>
+                                <td style="padding: var(--ts-space-3, 12px); text-align: center;">${r.conversions}</td>
+                                <td style="padding: var(--ts-space-3, 12px); text-align: right; color: var(--success); font-weight: 600;">$${(r.revenue || 0).toLocaleString()}</td>
                             </tr>
                         `).join('')}
                     </tbody>
@@ -3200,17 +3219,17 @@
         function renderCompetitorAlerts(alerts) {
             const c = document.getElementById('competitorAlertsList');
             if (alerts.length === 0) {
-                c.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 20px;">No competitor alerts. Add competitors to start monitoring.</p>';
+                c.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: var(--ts-space-5, 20px);">No competitor alerts. Add competitors to start monitoring.</p>';
                 return;
             }
             c.innerHTML = alerts.filter(a => !a.acknowledged).map(a => `
-                <div style="background: var(--bg-elevated); border-radius: 8px; padding: 16px; margin-bottom: 12px; border-left: 3px solid ${a.type === 'price_change' ? 'var(--warning)' : a.type === 'viral_post' ? 'var(--info)' : 'var(--primary)'};">
+                <div style="background: var(--bg-elevated); border-radius: var(--ts-radius-sm, 8px); padding: var(--ts-space-4, 16px); margin-bottom: var(--ts-space-3, 12px); border-left: 3px solid ${a.type === 'price_change' ? 'var(--warning)' : a.type === 'viral_post' ? 'var(--info)' : 'var(--primary)'};">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                         <div>
-                            <span class="badge badge-${a.type === 'price_change' ? 'warning' : 'info'}" style="margin-bottom: 8px;">${a.type.replace(/_/g, ' ').toUpperCase()}</span>
+                            <span class="badge badge-${a.type === 'price_change' ? 'warning' : 'info'}" style="margin-bottom: var(--ts-space-2, 8px);">${a.type.replace(/_/g, ' ').toUpperCase()}</span>
                             <p style="font-weight: 500;">${a.competitorName}</p>
-                            <p style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">${a.description}</p>
-                            <p style="font-size: 12px; color: var(--text-muted); margin-top: 8px;">${new Date(a.timestamp).toLocaleString()}</p>
+                            <p style="font-size: var(--ts-text-xs, 0.8rem); color: var(--text-secondary); margin-top: 4px;">${a.description}</p>
+                            <p style="font-size: var(--ts-text-xs, 0.75rem); color: var(--text-muted); margin-top: var(--ts-space-2, 8px);">${new Date(a.timestamp).toLocaleString()}</p>
                         </div>
                         <button class="btn btn-sm btn-secondary" onclick="acknowledgeCompetitorAlertUI('${a.alertId}')">
                             <i class="fas fa-check"></i> Acknowledge
@@ -3465,17 +3484,17 @@
             tbody.innerHTML = currentUsers.map(user => `
                 <tr>
                     <td>
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            <div style="width: 36px; height: 36px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 14px;">
+                        <div style="display: flex; align-items: center; gap: var(--ts-space-3, 12px);">
+                            <div style="width: 36px; height: 36px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: var(--ts-text-sm, 0.875rem);">
                                 ${(user.Full_Name || user.Username || '?').charAt(0).toUpperCase()}
                             </div>
                             <div>
                                 <div style="font-weight: 500;">${user.Full_Name || '-'}</div>
-                                <div style="font-size: 12px; color: var(--text-muted);">${user.User_ID || '-'}</div>
+                                <div style="font-size: var(--ts-text-xs, 0.75rem); color: var(--text-muted);">${user.User_ID || '-'}</div>
                             </div>
                         </div>
                     </td>
-                    <td><code style="background: var(--bg-elevated); padding: 2px 8px; border-radius: 4px;">${user.Username || '-'}</code></td>
+                    <td><code style="background: var(--bg-elevated); padding: 2px 8px; border-radius: var(--ts-radius-sm, 4px);">${user.Username || '-'}</code></td>
                     <td><span class="role-badge ${(user.Role || 'employee').toLowerCase()}">${user.Role || 'Employee'}</span></td>
                     <td>
                         ${user.Is_Active === false
@@ -3483,7 +3502,7 @@
                             : '<span class="badge badge-success"><i class="fas fa-check-circle"></i> Active</span>'
                         }
                     </td>
-                    <td style="color: var(--text-muted); font-size: 13px;">
+                    <td style="color: var(--text-muted); font-size: var(--ts-text-xs, 0.8rem);">
                         ${user.Last_Login ? formatDate(user.Last_Login) : 'Never'}
                     </td>
                     <td>
@@ -3521,7 +3540,7 @@
             const container = document.getElementById('sessionsContainer');
             container.innerHTML = `
                 <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
-                    <i class="fas fa-spinner fa-spin" style="font-size: 24px; margin-bottom: 12px; display: block;"></i>
+                    <i class="fas fa-spinner fa-spin" style="font-size: var(--ts-text-2xl, 1.5rem); margin-bottom: var(--ts-space-3, 12px); display: block;"></i>
                     Loading active sessions...
                 </div>
             `;
@@ -3585,19 +3604,19 @@
                                         return `
                                             <tr>
                                                 <td>
-                                                    <div style="display: flex; align-items: center; gap: 10px;">
-                                                        <div style="width: 32px; height: 32px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 12px;">
+                                                    <div style="display: flex; align-items: center; gap: var(--ts-space-2, 10px);">
+                                                        <div style="width: 32px; height: 32px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: var(--ts-text-xs, 0.75rem);">
                                                             ${(session.Username || session.userId || '?').charAt(0).toUpperCase()}
                                                         </div>
                                                         <div>
                                                             <div style="font-weight: 500;">${session.Username || session.userId || 'Unknown'}</div>
-                                                            <div style="font-size: 11px; color: var(--text-muted);">${session.Role || 'User'}</div>
+                                                            <div style="font-size: var(--ts-text-2xs, 0.69rem); color: var(--text-muted);">${session.Role || 'User'}</div>
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td><code style="font-size: 11px; background: var(--bg-elevated); padding: 2px 6px; border-radius: 4px;">${(session.Token || session.token || '').substring(0, 12)}...</code></td>
-                                                <td style="font-size: 13px; color: var(--text-secondary);">${formatDate(created)}</td>
-                                                <td style="font-size: 13px; color: var(--text-secondary);">${formatDate(expires)}</td>
+                                                <td><code style="font-size: var(--ts-text-2xs, 0.69rem); background: var(--bg-elevated); padding: 2px 6px; border-radius: var(--ts-radius-sm, 4px);">${(session.Token || session.token || '').substring(0, 12)}...</code></td>
+                                                <td style="font-size: var(--ts-text-xs, 0.8rem); color: var(--text-secondary);">${formatDate(created)}</td>
+                                                <td style="font-size: var(--ts-text-xs, 0.8rem); color: var(--text-secondary);">${formatDate(expires)}</td>
                                                 <td>
                                                     ${isExpired
                                                         ? '<span class="badge badge-danger"><i class="fas fa-times-circle"></i> Expired</span>'
@@ -3624,7 +3643,7 @@
                             <i class="fas fa-exclamation-triangle"></i>
                             <h3>Error Loading Sessions</h3>
                             <p>${result.error || 'Failed to load session data'}</p>
-                            <button class="btn btn-secondary" onclick="loadActiveSessions()" style="margin-top: 12px;">
+                            <button class="btn btn-secondary" onclick="loadActiveSessions()" style="margin-top: var(--ts-space-3, 12px);">
                                 <i class="fas fa-sync-alt"></i> Try Again
                             </button>
                         </div>
@@ -3637,7 +3656,7 @@
                         <i class="fas fa-exclamation-triangle"></i>
                         <h3>Connection Error</h3>
                         <p>Unable to connect to the server.</p>
-                        <button class="btn btn-secondary" onclick="loadActiveSessions()" style="margin-top: 12px;">
+                        <button class="btn btn-secondary" onclick="loadActiveSessions()" style="margin-top: var(--ts-space-3, 12px);">
                             <i class="fas fa-sync-alt"></i> Retry
                         </button>
                     </div>
@@ -4213,26 +4232,26 @@
             body.innerHTML = result.tasks.map((task, index) => `
                 <div class="import-item" style="
                     background: var(--bg-elevated);
-                    border-radius: 8px;
-                    padding: 16px;
-                    margin-bottom: 12px;
+                    border-radius: var(--ts-radius-sm, 8px);
+                    padding: var(--ts-space-4, 16px);
+                    margin-bottom: var(--ts-space-3, 12px);
                     border: 1px solid var(--border);
                 ">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <span style="font-size: 20px;">${categoryIcons[task.category] || '📋'}</span>
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--ts-space-2, 8px);">
+                        <div style="display: flex; align-items: center; gap: var(--ts-space-2, 8px);">
+                            <span style="font-size: var(--ts-text-xl, 1.25rem);">${categoryIcons[task.category] || '📋'}</span>
                             <strong style="color: var(--text-primary);">${task.title || task.task}</strong>
                         </div>
-                        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                        <label style="display: flex; align-items: center; gap: var(--ts-space-1, 6px); cursor: pointer;">
                             <input type="checkbox" checked data-index="${index}" class="import-checkbox" style="width: 18px; height: 18px;">
-                            <span style="color: var(--text-secondary); font-size: 12px;">Import</span>
+                            <span style="color: var(--text-secondary); font-size: var(--ts-text-xs, 0.75rem);">Import</span>
                         </label>
                     </div>
-                    ${task.description ? `<p style="color: var(--text-secondary); margin: 8px 0; font-size: 14px;">${task.description}</p>` : ''}
-                    <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;">
-                        ${task.timing ? `<span style="background: var(--info-bg); color: var(--info); padding: 4px 8px; border-radius: 4px; font-size: 12px;">⏰ ${task.timing}</span>` : ''}
-                        ${task.crop ? `<span style="background: var(--success-bg); color: var(--success); padding: 4px 8px; border-radius: 4px; font-size: 12px;">🌱 ${task.crop}</span>` : ''}
-                        ${task.confidence ? `<span style="background: var(--bg-card); color: var(--text-muted); padding: 4px 8px; border-radius: 4px; font-size: 12px;">${Math.round(task.confidence * 100)}% confidence</span>` : ''}
+                    ${task.description ? `<p style="color: var(--text-secondary); margin: 8px 0; font-size: var(--ts-text-sm, 0.875rem);">${task.description}</p>` : ''}
+                    <div style="display: flex; flex-wrap: wrap; gap: var(--ts-space-2, 8px); margin-top: var(--ts-space-2, 8px);">
+                        ${task.timing ? `<span style="background: var(--info-bg); color: var(--info); padding: 4px 8px; border-radius: var(--ts-radius-sm, 4px); font-size: var(--ts-text-xs, 0.75rem);">⏰ ${task.timing}</span>` : ''}
+                        ${task.crop ? `<span style="background: var(--success-bg); color: var(--success); padding: 4px 8px; border-radius: var(--ts-radius-sm, 4px); font-size: var(--ts-text-xs, 0.75rem);">🌱 ${task.crop}</span>` : ''}
+                        ${task.confidence ? `<span style="background: var(--bg-card); color: var(--text-muted); padding: 4px 8px; border-radius: var(--ts-radius-sm, 4px); font-size: var(--ts-text-xs, 0.75rem);">${Math.round(task.confidence * 100)}% confidence</span>` : ''}
                     </div>
                 </div>
             `).join('');
@@ -4290,13 +4309,13 @@
                         <div style="
                             display: flex;
                             justify-content: space-between;
-                            padding: 12px;
+                            padding: var(--ts-space-3, 12px);
                             border-bottom: 1px solid var(--border);
                             align-items: center;
                         ">
                             <div>
                                 <div style="color: var(--text-primary); font-weight: 500;">${task.Title || task.Task}</div>
-                                <div style="color: var(--text-muted); font-size: 12px;">
+                                <div style="color: var(--text-muted); font-size: var(--ts-text-xs, 0.75rem);">
                                     ${task.Source || 'Unknown source'} • ${task.ImportedAt ? new Date(task.ImportedAt).toLocaleDateString() : 'Unknown date'}
                                 </div>
                             </div>
@@ -4304,14 +4323,14 @@
                                 background: ${task.Status === 'Converted' ? 'var(--success-bg)' : 'var(--warning-bg)'};
                                 color: ${task.Status === 'Converted' ? 'var(--success)' : 'var(--warning)'};
                                 padding: 4px 8px;
-                                border-radius: 4px;
-                                font-size: 12px;
+                                border-radius: var(--ts-radius-sm, 4px);
+                                font-size: var(--ts-text-xs, 0.75rem);
                             ">${task.Status || 'Pending'}</span>
                         </div>
                     `).join('');
                 } else {
                     body.innerHTML = `
-                        <p style="color: var(--text-muted); text-align: center; padding: 20px;">
+                        <p style="color: var(--text-muted); text-align: center; padding: var(--ts-space-5, 20px);">
                             <i class="fas fa-info-circle"></i> No recent imports
                         </p>
                     `;
@@ -4319,7 +4338,7 @@
             } catch (error) {
                 console.error('Error loading recent imports:', error);
                 body.innerHTML = `
-                    <p style="color: var(--text-muted); text-align: center; padding: 20px;">
+                    <p style="color: var(--text-muted); text-align: center; padding: var(--ts-space-5, 20px);">
                         <i class="fas fa-exclamation-circle"></i> Failed to load recent imports
                     </p>
                 `;
@@ -4377,7 +4396,7 @@
             align-items: center;
             justify-content: center;
             z-index: 1000;
-            transition: all 0.3s ease;
+            transition: all var(--ts-dur-moderate, 300ms) ease;
         }
 
         .cos-chat-toggle:hover {
@@ -4386,7 +4405,7 @@
         }
 
         .cos-chat-toggle i {
-            font-size: 28px;
+            font-size: var(--ts-text-3xl, 1.75rem);
             color: white;
         }
 
@@ -4398,7 +4417,7 @@
             height: 24px;
             background: var(--danger);
             border-radius: 50%;
-            font-size: 12px;
+            font-size: var(--ts-text-xs, 0.75rem);
             font-weight: 700;
             color: white;
             display: flex;
@@ -4414,7 +4433,7 @@
             width: 420px;
             height: 600px;
             background: var(--bg-card);
-            border-radius: 16px;
+            border-radius: var(--ts-radius-lg, 16px);
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
             display: none;
             flex-direction: column;
@@ -4435,32 +4454,32 @@
 
         .cos-chat-header {
             background: linear-gradient(135deg, var(--ts-green-700, #2d5a27), #1e3d1a);
-            padding: 16px 20px;
+            padding: var(--ts-space-4, 16px) var(--ts-space-5, 20px);
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: var(--ts-space-3, 12px);
         }
 
         .cos-avatar {
             width: 48px;
             height: 48px;
             background: rgba(255,255,255,0.15);
-            border-radius: 12px;
+            border-radius: var(--ts-radius-md, 12px);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 24px;
+            font-size: var(--ts-text-2xl, 1.5rem);
         }
 
         .cos-header-info h3 {
             color: white;
-            font-size: 16px;
+            font-size: var(--ts-text-base, 1rem);
             margin: 0;
         }
 
         .cos-header-info span {
             color: rgba(255,255,255,0.7);
-            font-size: 12px;
+            font-size: var(--ts-text-xs, 0.75rem);
         }
 
         .cos-status-dot {
@@ -4485,7 +4504,7 @@
             color: white;
             width: 32px;
             height: 32px;
-            border-radius: 8px;
+            border-radius: var(--ts-radius-sm, 8px);
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -4498,8 +4517,8 @@
 
         .cos-quick-actions {
             display: flex;
-            gap: 8px;
-            padding: 12px 16px;
+            gap: var(--ts-space-2, 8px);
+            padding: var(--ts-space-3, 12px) var(--ts-space-4, 16px);
             background: var(--bg-elevated);
             border-bottom: 1px solid var(--border);
             overflow-x: auto;
@@ -4509,12 +4528,12 @@
             background: var(--bg-card);
             border: 1px solid var(--border);
             color: var(--text-secondary);
-            padding: 8px 12px;
-            border-radius: 20px;
-            font-size: 12px;
+            padding: var(--ts-space-2, 8px) var(--ts-space-3, 12px);
+            border-radius: var(--ts-radius-lg, 20px);
+            font-size: var(--ts-text-xs, 0.75rem);
             white-space: nowrap;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all var(--ts-dur-normal, 200ms) ease;
         }
 
         .cos-quick-btn:hover {
@@ -4530,17 +4549,17 @@
         .cos-chat-messages {
             flex: 1;
             overflow-y: auto;
-            padding: 16px;
+            padding: var(--ts-space-4, 16px);
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: var(--ts-space-3, 12px);
         }
 
         .cos-message {
             max-width: 85%;
-            padding: 12px 16px;
-            border-radius: 16px;
-            font-size: 14px;
+            padding: var(--ts-space-3, 12px) var(--ts-space-4, 16px);
+            border-radius: var(--ts-radius-lg, 16px);
+            font-size: var(--ts-text-sm, 0.875rem);
             line-height: 1.5;
         }
 
@@ -4569,8 +4588,8 @@
 
         .cos-message h4 {
             color: var(--primary-light);
-            margin-bottom: 8px;
-            font-size: 13px;
+            margin-bottom: var(--ts-space-2, 8px);
+            font-size: var(--ts-text-xs, 0.8rem);
         }
 
         .cos-message ul {
@@ -4579,15 +4598,15 @@
         }
 
         .cos-message li {
-            margin-bottom: 4px;
+            margin-bottom: var(--ts-space-1, 4px);
         }
 
         .cos-typing {
             display: flex;
-            gap: 4px;
-            padding: 12px 16px;
+            gap: var(--ts-space-1, 4px);
+            padding: var(--ts-space-3, 12px) var(--ts-space-4, 16px);
             background: var(--bg-elevated);
-            border-radius: 16px;
+            border-radius: var(--ts-radius-lg, 16px);
             align-self: flex-start;
             width: fit-content;
         }
@@ -4609,11 +4628,11 @@
         }
 
         .cos-chat-input {
-            padding: 16px;
+            padding: var(--ts-space-4, 16px);
             background: var(--bg-elevated);
             border-top: 1px solid var(--border);
             display: flex;
-            gap: 12px;
+            gap: var(--ts-space-3, 12px);
             align-items: center;
         }
 
@@ -4621,15 +4640,16 @@
             flex: 1;
             background: var(--bg-card);
             border: 1px solid var(--border);
-            border-radius: 24px;
-            padding: 12px 20px;
+            border-radius: var(--ts-radius-xl, 24px);
+            padding: var(--ts-space-3, 12px) var(--ts-space-5, 20px);
             color: var(--text-primary);
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
             outline: none;
         }
 
         .cos-chat-input input:focus {
             border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--ts-primary-muted, rgba(34, 197, 94, 0.15));
         }
 
         .cos-chat-input input::placeholder {
@@ -4645,7 +4665,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.2s ease;
+            transition: all var(--ts-dur-normal, 200ms) ease;
         }
 
         .cos-voice-btn {
@@ -4683,18 +4703,18 @@
         /* Weather Card in Chat */
         .cos-weather-card {
             background: linear-gradient(135deg, #1e3a5f, #2d5a87);
-            border-radius: 12px;
-            padding: 12px;
+            border-radius: var(--ts-radius-md, 12px);
+            padding: var(--ts-space-3, 12px);
             margin: 8px 0;
         }
 
         .cos-weather-card .temp {
-            font-size: 28px;
+            font-size: var(--ts-text-3xl, 1.75rem);
             font-weight: 700;
         }
 
         .cos-weather-card .condition {
-            font-size: 13px;
+            font-size: var(--ts-text-xs, 0.8rem);
             opacity: 0.9;
         }
 
@@ -4703,9 +4723,9 @@
             background: var(--warning-bg);
             border-left: 3px solid var(--warning);
             padding: 10px 12px;
-            border-radius: 8px;
+            border-radius: var(--ts-radius-sm, 8px);
             margin: 8px 0;
-            font-size: 13px;
+            font-size: var(--ts-text-xs, 0.8rem);
         }
 
         .cos-alert-card.critical {
@@ -4849,7 +4869,7 @@
                         }
                     }
 
-                    summary += `<p style="margin-top: 10px; font-size: 12px; opacity: 0.7;">Click "Morning Brief" for full details</p>`;
+                    summary += `<p style="margin-top: 10px; font-size: var(--ts-text-xs, 0.75rem); opacity: 0.7;">Click "Morning Brief" for full details</p>`;
 
                     addCOSMessage('assistant', summary);
                 }
@@ -4940,7 +4960,7 @@
             html += `<div class="cos-weather-card">
                 <div class="temp">${Math.round(data.current.temp)}°F</div>
                 <div class="condition">${data.current.description} • Feels like ${Math.round(data.current.feels_like)}°F</div>
-                <div style="margin-top: 8px; font-size: 12px;">
+                <div style="margin-top: var(--ts-space-2, 8px); font-size: var(--ts-text-xs, 0.75rem);">
                     Wind: ${data.current.wind_speed} mph • Humidity: ${data.current.humidity}%
                 </div>
             </div>`;
@@ -5001,7 +5021,7 @@
                     <li>📧 <strong>Email Campaign:</strong> Send a "What's Growing" newsletter this week</li>
                     <li>🎉 <strong>Farm Event:</strong> Plan a spring farm tour for CSA members</li>
                 </ul>
-                <p style="font-size: 12px; opacity: 0.7; margin-top: 10px;">Ask me about any of these for more details!</p>`;
+                <p style="font-size: var(--ts-text-xs, 0.75rem); opacity: 0.7; margin-top: 10px;">Ask me about any of these for more details!</p>`;
             }
 
             return html;
@@ -5053,7 +5073,7 @@
                         <li>Who is it to? (customer, vendor, etc.)</li>
                         <li>What's the purpose?</li>
                     </ul>
-                    <p style="font-size: 12px; opacity: 0.7;">Example: "Draft an email to a customer about delayed delivery"</p>`);
+                    <p style="font-size: var(--ts-text-xs, 0.75rem); opacity: 0.7;">Example: "Draft an email to a customer about delayed delivery"</p>`);
                 return;
             }
 
@@ -5068,7 +5088,7 @@
                         data.data.slice(0, 5).forEach(c => {
                             html += `<li><strong>${c.name || c.email}</strong> - Risk: ${c.churnRisk || 'Unknown'}%</li>`;
                         });
-                        html += '</ul><p style="font-size: 12px; opacity: 0.7;">Consider reaching out to these members!</p>';
+                        html += '</ul><p style="font-size: var(--ts-text-xs, 0.75rem); opacity: 0.7;">Consider reaching out to these members!</p>';
                         addCOSMessage('assistant', html);
                     } else {
                         addCOSMessage('assistant', '<h4>👥 Customer Insights</h4><p>No customers are currently flagged as high churn risk. Great job maintaining relationships!</p>');
@@ -5092,7 +5112,7 @@
                     <li><strong>Email:</strong> "Help me draft an email"</li>
                     <li><strong>Ideas:</strong> "Give me business ideas"</li>
                 </ul>
-                <p style="font-size: 12px; opacity: 0.7;">Try asking one of these!</p>`);
+                <p style="font-size: var(--ts-text-xs, 0.75rem); opacity: 0.7;">Try asking one of these!</p>`);
         }
 
         function addCOSMessage(type, content) {
@@ -5248,7 +5268,7 @@
             if (orders.length === 0) {
                 container.innerHTML = `
                     <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
-                        <i class="fas fa-check-circle" style="font-size: 48px; color: var(--success); display: block; margin-bottom: 16px;"></i>
+                        <i class="fas fa-check-circle" style="font-size: var(--ts-text-5xl, 3rem); color: var(--success); display: block; margin-bottom: var(--ts-space-4, 16px);"></i>
                         <h3>No Orders Due</h3>
                         <p>All standing orders for this week have been fulfilled!</p>
                     </div>
@@ -5260,31 +5280,31 @@
                 <table style="width: 100%; border-collapse: collapse;">
                     <thead>
                         <tr style="border-bottom: 1px solid var(--border);">
-                            <th style="text-align: left; padding: 12px; color: var(--text-secondary);">Customer</th>
-                            <th style="text-align: left; padding: 12px; color: var(--text-secondary);">Product</th>
-                            <th style="text-align: center; padding: 12px; color: var(--text-secondary);">Qty</th>
-                            <th style="text-align: left; padding: 12px; color: var(--text-secondary);">Day</th>
-                            <th style="text-align: left; padding: 12px; color: var(--text-secondary);">Status</th>
-                            <th style="text-align: right; padding: 12px; color: var(--text-secondary);">Actions</th>
+                            <th style="text-align: left; padding: var(--ts-space-3, 12px); color: var(--text-secondary);">Customer</th>
+                            <th style="text-align: left; padding: var(--ts-space-3, 12px); color: var(--text-secondary);">Product</th>
+                            <th style="text-align: center; padding: var(--ts-space-3, 12px); color: var(--text-secondary);">Qty</th>
+                            <th style="text-align: left; padding: var(--ts-space-3, 12px); color: var(--text-secondary);">Day</th>
+                            <th style="text-align: left; padding: var(--ts-space-3, 12px); color: var(--text-secondary);">Status</th>
+                            <th style="text-align: right; padding: var(--ts-space-3, 12px); color: var(--text-secondary);">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         ${orders.map(order => `
                             <tr style="border-bottom: 1px solid var(--border);" data-order-id="${order.Standing_Order_ID || order.standingOrderId}">
-                                <td style="padding: 12px;">
+                                <td style="padding: var(--ts-space-3, 12px);">
                                     <div style="font-weight: 500;">${order.Customer_Name || order.customerName || 'Unknown'}</div>
-                                    <div style="font-size: 12px; color: var(--text-muted);">${order.Customer_ID || order.customerId || ''}</div>
+                                    <div style="font-size: var(--ts-text-xs, 0.75rem); color: var(--text-muted);">${order.Customer_ID || order.customerId || ''}</div>
                                 </td>
-                                <td style="padding: 12px;">${order.Product_Name || order.productName || 'Unknown'}</td>
-                                <td style="padding: 12px; text-align: center; font-weight: 600;">${order.Quantity || order.quantity} ${order.Unit || order.unit}</td>
-                                <td style="padding: 12px;">${order.Day_Of_Week || order.dayOfWeek}</td>
-                                <td style="padding: 12px;">
+                                <td style="padding: var(--ts-space-3, 12px);">${order.Product_Name || order.productName || 'Unknown'}</td>
+                                <td style="padding: var(--ts-space-3, 12px); text-align: center; font-weight: 600;">${order.Quantity || order.quantity} ${order.Unit || order.unit}</td>
+                                <td style="padding: var(--ts-space-3, 12px);">${order.Day_Of_Week || order.dayOfWeek}</td>
+                                <td style="padding: var(--ts-space-3, 12px);">
                                     ${order.atRisk
                                         ? '<span class="badge badge-danger"><i class="fas fa-exclamation-triangle"></i> At Risk</span>'
                                         : '<span class="badge badge-info"><i class="fas fa-clock"></i> Pending</span>'
                                     }
                                 </td>
-                                <td style="padding: 12px; text-align: right;">
+                                <td style="padding: var(--ts-space-3, 12px); text-align: right;">
                                     <button class="btn btn-success btn-sm" onclick="fulfillStandingOrder('${order.Standing_Order_ID || order.standingOrderId}')" style="margin-right: 8px;">
                                         <i class="fas fa-check"></i> Fulfill
                                     </button>
@@ -5303,7 +5323,7 @@
             const container = document.getElementById('standingOrdersProductSummary');
 
             if (products.length === 0) {
-                container.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 20px;">No products due this week</p>';
+                container.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: var(--ts-space-5, 20px);">No products due this week</p>';
                 return;
             }
 
@@ -5311,19 +5331,19 @@
                 <table style="width: 100%; border-collapse: collapse;">
                     <thead>
                         <tr style="border-bottom: 1px solid var(--border);">
-                            <th style="text-align: left; padding: 12px; color: var(--text-secondary);">Product</th>
-                            <th style="text-align: center; padding: 12px; color: var(--text-secondary);">Total Qty</th>
-                            <th style="text-align: center; padding: 12px; color: var(--text-secondary);">Orders</th>
-                            <th style="text-align: left; padding: 12px; color: var(--text-secondary);">Status</th>
+                            <th style="text-align: left; padding: var(--ts-space-3, 12px); color: var(--text-secondary);">Product</th>
+                            <th style="text-align: center; padding: var(--ts-space-3, 12px); color: var(--text-secondary);">Total Qty</th>
+                            <th style="text-align: center; padding: var(--ts-space-3, 12px); color: var(--text-secondary);">Orders</th>
+                            <th style="text-align: left; padding: var(--ts-space-3, 12px); color: var(--text-secondary);">Status</th>
                         </tr>
                     </thead>
                     <tbody>
                         ${products.map(p => `
                             <tr style="border-bottom: 1px solid var(--border);">
-                                <td style="padding: 12px; font-weight: 500;">${p.productName}</td>
-                                <td style="padding: 12px; text-align: center; font-weight: 600;">${p.totalQuantity} ${p.unit}</td>
-                                <td style="padding: 12px; text-align: center;">${p.orderCount}</td>
-                                <td style="padding: 12px;">
+                                <td style="padding: var(--ts-space-3, 12px); font-weight: 500;">${p.productName}</td>
+                                <td style="padding: var(--ts-space-3, 12px); text-align: center; font-weight: 600;">${p.totalQuantity} ${p.unit}</td>
+                                <td style="padding: var(--ts-space-3, 12px); text-align: center;">${p.orderCount}</td>
+                                <td style="padding: var(--ts-space-3, 12px);">
                                     ${p.atRisk
                                         ? '<span class="badge badge-danger"><i class="fas fa-exclamation-triangle"></i> Low Stock</span>'
                                         : '<span class="badge badge-success"><i class="fas fa-check"></i> OK</span>'
@@ -5340,18 +5360,18 @@
             const container = document.getElementById('recentShortagesList');
 
             if (shortages.length === 0) {
-                container.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 20px;"><i class="fas fa-check-circle" style="color: var(--success);"></i> No recent shortages</p>';
+                container.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: var(--ts-space-5, 20px);"><i class="fas fa-check-circle" style="color: var(--success);"></i> No recent shortages</p>';
                 return;
             }
 
             container.innerHTML = shortages.map(s => `
-                <div style="background: var(--bg-elevated); border-radius: 8px; padding: 16px; margin-bottom: 12px; border-left: 3px solid var(--danger);">
+                <div style="background: var(--bg-elevated); border-radius: var(--ts-radius-sm, 8px); padding: var(--ts-space-4, 16px); margin-bottom: var(--ts-space-3, 12px); border-left: 3px solid var(--danger);">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                         <div>
-                            <span class="badge badge-danger" style="margin-bottom: 8px;">${s.Reason || s.reason || 'SHORTED'}</span>
+                            <span class="badge badge-danger" style="margin-bottom: var(--ts-space-2, 8px);">${s.Reason || s.reason || 'SHORTED'}</span>
                             <p style="font-weight: 500;">${s.Product_Name || s.productName} for ${s.Customer_Name || s.customerName}</p>
-                            <p style="font-size: 13px; color: var(--text-secondary);">${s.Quantity || s.quantity} ${s.Unit || s.unit}</p>
-                            <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">${formatDate(s.Shorted_Date || s.shortedDate)}</p>
+                            <p style="font-size: var(--ts-text-xs, 0.8rem); color: var(--text-secondary);">${s.Quantity || s.quantity} ${s.Unit || s.unit}</p>
+                            <p style="font-size: var(--ts-text-xs, 0.75rem); color: var(--text-muted); margin-top: 4px;">${formatDate(s.Shorted_Date || s.shortedDate)}</p>
                         </div>
                     </div>
                 </div>
@@ -5448,5 +5468,6 @@ Choose one:
             }
         }
     </script>
+<script src="shared-nav.js"></script>
 </body>
 </html>

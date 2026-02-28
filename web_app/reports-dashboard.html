@@ -20,8 +20,8 @@
             --warning: var(--ts-amber-400, #e9c46a);
             --danger: var(--ts-red-500, #e63946);
             --info: #4361ee;
-            --bg-dark: var(--ts-bg-base, #1a1a2e);
-            --bg-card: var(--ts-bg-surface, #16213e);
+            --bg-dark: var(--ts-bg-base, #1a1816);
+            --bg-card: var(--ts-bg-surface, #282520);
             --bg-light: var(--ts-bg-elevated, #0f3460);
             --text-primary: var(--ts-text, #edf2f4);
             --text-secondary: var(--ts-text-secondary, #8d99ae);
@@ -62,7 +62,7 @@
             width: 45px;
             height: 45px;
             background: linear-gradient(135deg, var(--primary) 0%, var(--success) 100%);
-            border-radius: 12px;
+            border-radius: var(--ts-radius-md, 12px);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -90,7 +90,7 @@
 
         .year-select {
             padding: 0.5rem 1rem;
-            border-radius: 8px;
+            border-radius: var(--ts-radius-sm, 8px);
             border: 1px solid var(--border);
             background: var(--bg-card);
             color: var(--text-primary);
@@ -115,7 +115,7 @@
 
         .tab-btn {
             padding: 0.75rem 1.5rem;
-            border-radius: 8px;
+            border-radius: var(--ts-radius-sm, 8px);
             border: 1px solid var(--border);
             background: var(--bg-card);
             color: var(--text-secondary);
@@ -124,7 +124,7 @@
             display: flex;
             align-items: center;
             gap: 0.5rem;
-            transition: all 0.2s;
+            transition: all var(--ts-dur-normal, 200ms);
         }
 
         .tab-btn:hover {
@@ -150,7 +150,7 @@
         .quick-actions-banner {
             background: linear-gradient(135deg, rgba(45, 90, 39, 0.2) 0%, rgba(42, 157, 143, 0.2) 100%);
             border: 1px solid var(--primary);
-            border-radius: 16px;
+            border-radius: var(--ts-radius-lg, 16px);
             padding: 1.5rem 2rem;
             margin-bottom: 2rem;
             display: flex;
@@ -179,7 +179,7 @@
         /* Status Banner */
         .status-banner {
             background: var(--bg-card);
-            border-radius: 16px;
+            border-radius: var(--ts-radius-lg, 16px);
             border: 1px solid var(--border);
             padding: 1.5rem 2rem;
             margin-bottom: 2rem;
@@ -222,11 +222,11 @@
         .score-circle.loading { background: var(--bg-light); }
 
         .score-value { font-size: 2rem; }
-        .score-label { font-size: 0.7rem; text-transform: uppercase; opacity: 0.9; }
+        .score-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.9; }
 
         .grade-badge {
             padding: 0.5rem 1.5rem;
-            border-radius: 8px;
+            border-radius: var(--ts-radius-sm, 8px);
             font-size: 2rem;
             font-weight: 800;
         }
@@ -246,10 +246,10 @@
 
         .report-card {
             background: var(--bg-card);
-            border-radius: 16px;
+            border-radius: var(--ts-radius-lg, 16px);
             border: 1px solid var(--border);
             overflow: hidden;
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: transform var(--ts-dur-normal, 200ms), box-shadow var(--ts-dur-normal, 200ms);
         }
 
         .report-card:hover {
@@ -280,7 +280,7 @@
         .report-icon {
             width: 40px;
             height: 40px;
-            border-radius: 10px;
+            border-radius: var(--ts-radius-md, 10px);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -333,7 +333,7 @@
         .recommendation {
             background: rgba(99, 102, 241, 0.1);
             border: 1px solid rgba(99, 102, 241, 0.3);
-            border-radius: 8px;
+            border-radius: var(--ts-radius-sm, 8px);
             padding: 0.75rem 1rem;
             margin-top: 1rem;
             font-size: 0.85rem;
@@ -352,7 +352,7 @@
         /* Buttons */
         .btn {
             padding: 0.6rem 1.25rem;
-            border-radius: 8px;
+            border-radius: var(--ts-radius-sm, 8px);
             border: none;
             font-size: 0.85rem;
             font-weight: 500;
@@ -360,7 +360,7 @@
             display: flex;
             align-items: center;
             gap: 0.5rem;
-            transition: all 0.2s;
+            transition: all var(--ts-dur-normal, 200ms);
         }
 
         .btn-primary {
@@ -415,7 +415,7 @@
 
         .modal-content {
             background: var(--bg-card);
-            border-radius: 16px;
+            border-radius: var(--ts-radius-lg, 16px);
             border: 1px solid var(--border);
             max-width: 1000px;
             width: 100%;
@@ -459,7 +459,7 @@
 
         .data-preview {
             background: rgba(0,0,0,0.3);
-            border-radius: 8px;
+            border-radius: var(--ts-radius-sm, 8px);
             padding: 1.5rem;
             font-family: monospace;
             font-size: 0.85rem;
@@ -543,7 +543,7 @@
         .gaps-list {
             background: rgba(230, 57, 70, 0.1);
             border: 1px solid rgba(230, 57, 70, 0.3);
-            border-radius: 8px;
+            border-radius: var(--ts-radius-sm, 8px);
             padding: 1rem;
             margin-top: 1rem;
         }
@@ -575,7 +575,7 @@
 
         .summary-card {
             background: rgba(255,255,255,0.03);
-            border-radius: 12px;
+            border-radius: var(--ts-radius-md, 12px);
             padding: 1.25rem;
             text-align: center;
         }
@@ -610,11 +610,30 @@
             .top-nav, .tab-nav, .quick-actions-banner, .report-actions { display: none !important; }
         }
 
-        .loading-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #fafaf9; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; transition: opacity 0.3s; }
+        .loading-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #fafaf9; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; transition: opacity var(--ts-dur-moderate, 300ms); }
         .loading-overlay.hidden { opacity: 0; pointer-events: none; }
         .loading-spinner { width: 40px; height: 40px; border: 3px solid #e7e5e4; border-top-color: #2d9f4e; border-radius: 50%; animation: spin 0.8s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
-        .loading-text { margin-top: 16px; color: #57534e; font-size: 14px; }
+        .loading-text { margin-top: var(--ts-space-4, 16px); color: #57534e; font-size: var(--ts-text-sm, 0.875rem); }
+        /* ── Accessibility: Focus Visible ── */
+        :focus-visible { outline: 2px solid var(--ts-primary, #22c55e); outline-offset: 2px; }
+        :focus:not(:focus-visible) { outline: none; }
+
+        /* ── Accessibility: Reduced Motion ── */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        /* ── Page Load Animation ── */
+        @keyframes ts-page-enter {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        body { animation: ts-page-enter var(--ts-dur-moderate, 300ms) var(--ts-ease-out, ease) both; }
+
     </style>
     <script src="print-engine.js"></script>
 </head>
@@ -1666,5 +1685,6 @@
             if (e.target.classList.contains('modal-overlay')) closeModal();
         });
     </script>
+<script src="shared-nav.js"></script>
 </body>
 </html>

@@ -18,11 +18,11 @@
             --success: var(--ts-teal-500, #2a9d8f);
             --warning: var(--ts-amber-500, #f4a261);
             --danger: var(--ts-red-500, #e63946);
-            --bg-dark: var(--ts-slate-900, #0f172a);
-            --bg-card: var(--ts-slate-800, #1e293b);
-            --bg-light: var(--ts-slate-700, #334155);
+            --bg-dark: var(--ts-slate-900, #141211);
+            --bg-card: var(--ts-slate-800, #201e1b);
+            --bg-light: var(--ts-slate-700, rgba(255,255,255,0.06));
             --text-primary: var(--ts-slate-100, #f1f5f9);
-            --text-secondary: var(--ts-slate-400, #94a3b8);
+            --text-secondary: var(--ts-slate-400, #a09888);
             --border: var(--ts-border, rgba(255,255,255,0.1));
             --qb-green: var(--ts-green-500, #2ca01c);
         }
@@ -31,7 +31,7 @@
 
         body {
             font-family: var(--ts-font-sans, 'Inter', sans-serif);
-            background: linear-gradient(135deg, var(--bg-dark) 0%, var(--ts-bg-surface, #1a1a2e) 100%);
+            background: linear-gradient(135deg, var(--bg-dark) 0%, var(--ts-bg-surface, #1a1816) 100%);
             color: var(--text-primary);
             min-height: 100vh;
             -webkit-font-smoothing: antialiased;
@@ -65,7 +65,7 @@
             width: 45px;
             height: 45px;
             background: linear-gradient(135deg, var(--qb-green) 0%, var(--success) 100%);
-            border-radius: 12px;
+            border-radius: var(--ts-radius-md, 12px);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -90,14 +90,14 @@
 
         .btn {
             padding: 0.5rem 1rem;
-            border-radius: 8px;
+            border-radius: var(--ts-radius-sm, 8px);
             border: none;
             cursor: pointer;
             font-weight: 500;
             display: flex;
             align-items: center;
             gap: 0.5rem;
-            transition: all 0.2s;
+            transition: all var(--ts-dur-normal, 200ms);
         }
 
         .btn-primary {
@@ -128,7 +128,7 @@
         /* Connection Status Banner */
         .connection-banner {
             background: var(--bg-card);
-            border-radius: 16px;
+            border-radius: var(--ts-radius-lg, 16px);
             padding: 1.5rem 2rem;
             margin-bottom: 2rem;
             display: flex;
@@ -154,7 +154,7 @@
         .connection-icon {
             width: 50px;
             height: 50px;
-            border-radius: 12px;
+            border-radius: var(--ts-radius-md, 12px);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -191,7 +191,7 @@
 
         .summary-card {
             background: var(--bg-card);
-            border-radius: 16px;
+            border-radius: var(--ts-radius-lg, 16px);
             padding: 1.5rem;
             border: 1px solid var(--border);
         }
@@ -270,7 +270,7 @@
 
         .card-badge {
             padding: 0.25rem 0.75rem;
-            border-radius: 20px;
+            border-radius: var(--ts-radius-lg, 20px);
             font-size: 0.8rem;
             font-weight: 500;
         }
@@ -303,7 +303,7 @@
             align-items: center;
             padding: 1rem;
             background: var(--bg-light);
-            border-radius: 10px;
+            border-radius: var(--ts-radius-md, 10px);
         }
 
         .account-info {
@@ -315,7 +315,7 @@
         .account-icon {
             width: 40px;
             height: 40px;
-            border-radius: 10px;
+            border-radius: var(--ts-radius-md, 10px);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -359,7 +359,7 @@
             align-items: center;
             padding: 0.75rem 1rem;
             background: var(--bg-light);
-            border-radius: 8px;
+            border-radius: var(--ts-radius-sm, 8px);
             font-size: 0.9rem;
         }
 
@@ -380,7 +380,7 @@
             color: var(--danger);
             background: rgba(230, 57, 70, 0.1);
             padding: 0.2rem 0.5rem;
-            border-radius: 4px;
+            border-radius: var(--ts-radius-sm, 4px);
         }
 
         /* P&L Summary */
@@ -395,7 +395,7 @@
             text-align: center;
             padding: 1rem;
             background: var(--bg-light);
-            border-radius: 10px;
+            border-radius: var(--ts-radius-md, 10px);
         }
 
         .pl-label {
@@ -427,7 +427,7 @@
             gap: 0.5rem;
             height: 24px;
             margin: 1rem 0;
-            border-radius: 6px;
+            border-radius: var(--ts-radius-sm, 6px);
             overflow: hidden;
         }
 
@@ -553,7 +553,7 @@
 
         .modal {
             background: var(--bg-card);
-            border-radius: 16px;
+            border-radius: var(--ts-radius-lg, 16px);
             max-width: 700px;
             width: 100%;
             max-height: 90vh;
@@ -590,7 +590,7 @@
 
         .setup-step {
             background: var(--bg-light);
-            border-radius: 12px;
+            border-radius: var(--ts-radius-md, 12px);
             padding: 1.25rem;
             margin-bottom: 1rem;
         }
@@ -624,7 +624,7 @@
         .setup-step code {
             background: var(--bg-dark);
             padding: 2px 6px;
-            border-radius: 4px;
+            border-radius: var(--ts-radius-sm, 4px);
             font-family: monospace;
             font-size: 0.85rem;
         }
@@ -652,7 +652,7 @@
             padding: 0.75rem 1rem;
             background: var(--bg-dark);
             border: 1px solid var(--border);
-            border-radius: 8px;
+            border-radius: var(--ts-radius-sm, 8px);
             color: var(--text-primary);
             font-size: 1rem;
             font-family: monospace;
@@ -671,7 +671,7 @@
 
         .alert {
             padding: 1rem;
-            border-radius: 8px;
+            border-radius: var(--ts-radius-sm, 8px);
             margin-bottom: 1rem;
         }
 
@@ -696,7 +696,7 @@
             right: 20px;
             background: var(--bg-card);
             border: 1px solid var(--border);
-            border-radius: 12px;
+            border-radius: var(--ts-radius-md, 12px);
             padding: 1rem;
             font-size: 0.75rem;
             color: var(--text-secondary);
@@ -707,7 +707,7 @@
 
         .keyboard-help.visible { display: block; }
         .keyboard-help h4 { color: var(--text-primary); margin-bottom: 0.5rem; font-size: 0.85rem; }
-        .keyboard-help kbd { background: var(--bg-light); padding: 2px 6px; border-radius: 4px; font-family: monospace; margin-right: 0.5rem; }
+        .keyboard-help kbd { background: var(--bg-light); padding: 2px 6px; border-radius: var(--ts-radius-sm, 4px); font-family: monospace; margin-right: 0.5rem; }
         .keyboard-help div { margin-bottom: 0.25rem; }
 
         /* ============================================= */
@@ -737,8 +737,15 @@
         /* Scrollbar */
         ::-webkit-scrollbar { width: 5px; height: 5px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 100px; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: var(--ts-radius-full, 9999px); }
         ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+        /* ── Page Load Animation ── */
+        @keyframes ts-page-enter {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        body { animation: ts-page-enter var(--ts-dur-moderate, 300ms) var(--ts-ease-out, ease) both; }
+
     </style>
     <script src="print-engine.js"></script>
 </head>
@@ -1380,7 +1387,7 @@
                     <h4><span class="step-number">3</span> Add Redirect URI (Important!)</h4>
                     <p>
                         In your Intuit Developer App settings, add this Redirect URI:<br><br>
-                        <code style="display: block; padding: 0.75rem; background: var(--bg-dark); border-radius: 6px; word-break: break-all;">
+                        <code style="display: block; padding: 0.75rem; background: var(--bg-dark); border-radius: var(--ts-radius-sm, 6px); word-break: break-all;">
                             https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec
                         </code>
                         <br>
@@ -1420,5 +1427,6 @@
         <div><kbd>?</kbd> Toggle help</div>
         <div><kbd>Esc</kbd> Close help</div>
     </div>
+<script src="shared-nav.js"></script>
 </body>
 </html>

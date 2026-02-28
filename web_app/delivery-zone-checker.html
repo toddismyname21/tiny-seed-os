@@ -17,7 +17,7 @@
   <!-- UNIFIED API CONFIG - SINGLE SOURCE OF TRUTH -->
   <script src="api-config.js"></script>
   <style>
-    .skip-link { position: absolute; top: -40px; left: 0; background: #166534; color: #fff; padding: 8px 16px; z-index: 10000; font-size: 14px; transition: top 0.2s; }
+    .skip-link { position: absolute; top: -40px; left: 0; background: #166534; color: #fff; padding: var(--ts-space-2, 8px) var(--ts-space-4, 16px); z-index: 10000; font-size: var(--ts-text-sm, 0.875rem); transition: top var(--ts-dur-normal, 200ms); }
     .skip-link:focus { top: 0; }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -50,14 +50,14 @@
     .header {
       background: linear-gradient(135deg, var(--primary), var(--primary-light));
       color: white;
-      padding: 20px;
+      padding: var(--ts-space-5, 20px);
       text-align: center;
     }
 
     .header h1 {
       font-size: 1.4rem;
       font-weight: 700;
-      margin-bottom: 4px;
+      margin-bottom: var(--ts-space-1, 4px);
     }
 
     .header p {
@@ -83,7 +83,7 @@
     /* Sidebar */
     .sidebar {
       background: var(--bg-white);
-      padding: 20px;
+      padding: var(--ts-space-5, 20px);
       width: 100%;
     }
 
@@ -123,19 +123,19 @@
     /* Form Styles */
     .card {
       background: var(--bg-white);
-      border-radius: 12px;
-      padding: 20px;
-      margin-bottom: 16px;
+      border-radius: var(--ts-radius-md, 12px);
+      padding: var(--ts-space-5, 20px);
+      margin-bottom: var(--ts-space-4, 16px);
       box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     }
 
     .card-title {
       font-size: 1rem;
       font-weight: 600;
-      margin-bottom: 16px;
+      margin-bottom: var(--ts-space-4, 16px);
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: var(--ts-space-2, 8px);
     }
 
     .card-title i {
@@ -143,7 +143,7 @@
     }
 
     .form-group {
-      margin-bottom: 16px;
+      margin-bottom: var(--ts-space-4, 16px);
     }
 
     .form-group label {
@@ -157,10 +157,10 @@
       width: 100%;
       padding: 12px 14px;
       border: 2px solid var(--border);
-      border-radius: 10px;
-      font-size: 16px; /* Prevents iOS zoom */
+      border-radius: var(--ts-radius-md, 10px);
+      font-size: var(--ts-text-base, 1rem); /* Prevents iOS zoom */
       font-family: inherit;
-      transition: border-color 0.2s;
+      transition: border-color var(--ts-dur-normal, 200ms);
       min-height: var(--touch-min);
       touch-action: manipulation;
     }
@@ -168,6 +168,7 @@
     .form-group input:focus, .form-group textarea:focus {
       outline: none;
       border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--ts-primary-muted, rgba(34, 197, 94, 0.15));
     }
 
     .form-hint {
@@ -181,13 +182,13 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
+      gap: var(--ts-space-2, 8px);
       width: 100%;
       padding: 14px 20px;
       background: var(--primary);
       color: white;
       border: none;
-      border-radius: 10px;
+      border-radius: var(--ts-radius-md, 10px);
       font-size: 1rem;
       font-weight: 600;
       cursor: pointer;
@@ -223,15 +224,15 @@
     .result-accepted {
       background: linear-gradient(135deg, #22c55e, #16a34a);
       color: white;
-      border-radius: 12px;
-      padding: 20px;
+      border-radius: var(--ts-radius-md, 12px);
+      padding: var(--ts-space-5, 20px);
       text-align: center;
-      margin-bottom: 16px;
+      margin-bottom: var(--ts-space-4, 16px);
     }
 
     .result-accepted i {
       font-size: 2.5rem;
-      margin-bottom: 8px;
+      margin-bottom: var(--ts-space-2, 8px);
     }
 
     .result-accepted h2 {
@@ -242,15 +243,15 @@
     .result-rejected {
       background: linear-gradient(135deg, #f59e0b, #d97706);
       color: white;
-      border-radius: 12px;
-      padding: 20px;
+      border-radius: var(--ts-radius-md, 12px);
+      padding: var(--ts-space-5, 20px);
       text-align: center;
-      margin-bottom: 16px;
+      margin-bottom: var(--ts-space-4, 16px);
     }
 
     .result-rejected i {
       font-size: 2.5rem;
-      margin-bottom: 8px;
+      margin-bottom: var(--ts-space-2, 8px);
     }
 
     .result-rejected h2 {
@@ -262,16 +263,16 @@
     .code-box {
       background: linear-gradient(135deg, var(--primary-dark), var(--primary));
       color: white;
-      border-radius: 12px;
-      padding: 20px;
+      border-radius: var(--ts-radius-md, 12px);
+      padding: var(--ts-space-5, 20px);
       text-align: center;
-      margin-bottom: 16px;
+      margin-bottom: var(--ts-space-4, 16px);
     }
 
     .code-display {
       background: rgba(255,255,255,0.2);
       border: 2px dashed rgba(255,255,255,0.5);
-      border-radius: 10px;
+      border-radius: var(--ts-radius-md, 10px);
       padding: 14px;
       margin: 12px 0;
       font-size: 1.5rem;
@@ -284,12 +285,12 @@
       background: white;
       color: var(--primary);
       border: none;
-      border-radius: 8px;
+      border-radius: var(--ts-radius-sm, 8px);
       padding: 14px 20px;
       font-size: 1rem;
       font-weight: 600;
       cursor: pointer;
-      margin-top: 8px;
+      margin-top: var(--ts-space-2, 8px);
       min-height: var(--touch-min);
       touch-action: manipulation;
     }
@@ -302,7 +303,7 @@
     /* Details */
     .details-card {
       background: var(--bg-light);
-      border-radius: 10px;
+      border-radius: var(--ts-radius-md, 10px);
       padding: 14px;
     }
 
@@ -335,19 +336,19 @@
     /* Alternatives */
     .alternative-item {
       background: var(--bg-light);
-      border-radius: 10px;
-      padding: 12px;
-      margin-bottom: 8px;
+      border-radius: var(--ts-radius-md, 10px);
+      padding: var(--ts-space-3, 12px);
+      margin-bottom: var(--ts-space-2, 8px);
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: var(--ts-space-2, 10px);
     }
 
     .alternative-icon {
       width: 36px;
       height: 36px;
       background: var(--primary);
-      border-radius: 8px;
+      border-radius: var(--ts-radius-sm, 8px);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -377,7 +378,7 @@
       z-index: 1000;
       align-items: center;
       justify-content: center;
-      padding: 20px;
+      padding: var(--ts-space-5, 20px);
     }
 
     .popup-overlay.show {
@@ -386,8 +387,8 @@
 
     .popup-content {
       background: white;
-      border-radius: 16px;
-      padding: 24px;
+      border-radius: var(--ts-radius-lg, 16px);
+      padding: var(--ts-space-6, 24px);
       max-width: 500px;
       width: 100%;
       max-height: 90vh;
@@ -411,18 +412,18 @@
 
     .popup-header {
       text-align: center;
-      margin-bottom: 20px;
+      margin-bottom: var(--ts-space-5, 20px);
     }
 
     .popup-header i {
       font-size: 3rem;
       color: var(--warning);
-      margin-bottom: 12px;
+      margin-bottom: var(--ts-space-3, 12px);
     }
 
     .popup-header h2 {
       font-size: 1.3rem;
-      margin-bottom: 8px;
+      margin-bottom: var(--ts-space-2, 8px);
     }
 
     .popup-header p {
@@ -432,8 +433,8 @@
 
     .popup-buttons {
       display: flex;
-      gap: 12px;
-      margin-top: 20px;
+      gap: var(--ts-space-3, 12px);
+      margin-top: var(--ts-space-5, 20px);
     }
 
     .popup-buttons .btn {
@@ -444,14 +445,14 @@
     .success-message {
       background: linear-gradient(135deg, #22c55e, #16a34a);
       color: white;
-      border-radius: 12px;
-      padding: 20px;
+      border-radius: var(--ts-radius-md, 12px);
+      padding: var(--ts-space-5, 20px);
       text-align: center;
     }
 
     .success-message i {
       font-size: 3rem;
-      margin-bottom: 12px;
+      margin-bottom: var(--ts-space-3, 12px);
     }
 
     /* Loading */
@@ -479,8 +480,8 @@
     /* Map Legend */
     .map-legend {
       background: white;
-      padding: 12px;
-      border-radius: 8px;
+      padding: var(--ts-space-3, 12px);
+      border-radius: var(--ts-radius-sm, 8px);
       box-shadow: 0 2px 8px rgba(0,0,0,0.15);
       font-size: 0.85rem;
     }
@@ -488,7 +489,7 @@
     .legend-item {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: var(--ts-space-2, 8px);
       margin-bottom: 6px;
     }
 
@@ -509,7 +510,7 @@
     /* Footer */
     .footer {
       text-align: center;
-      padding: 16px;
+      padding: var(--ts-space-4, 16px);
       color: var(--text-muted);
       font-size: 0.85rem;
       background: var(--bg-white);
@@ -519,6 +520,25 @@
       color: var(--primary);
       text-decoration: none;
     }
+        /* ── Accessibility: Focus Visible ── */
+        :focus-visible { outline: 2px solid var(--ts-primary, #22c55e); outline-offset: 2px; }
+        :focus:not(:focus-visible) { outline: none; }
+
+        /* ── Accessibility: Reduced Motion ── */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        /* ── Page Load Animation ── */
+        @keyframes ts-page-enter {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        body { animation: ts-page-enter var(--ts-dur-moderate, 300ms) var(--ts-ease-out, ease) both; }
+
   </style>
 </head>
 <body>
@@ -632,7 +652,7 @@
         </div>
 
         <!-- Try Again -->
-        <button class="btn btn-secondary" onclick="resetForm()" style="margin-top: 16px;">
+        <button class="btn btn-secondary" onclick="resetForm()" style="margin-top: var(--ts-space-4, 16px);">
           <i class="fas fa-redo"></i>
           Check Another Address
         </button>
@@ -699,7 +719,7 @@
         <h2>Request Sent!</h2>
         <p>We've received your delivery request. Todd will review it and get back to you within 24-48 hours.</p>
       </div>
-      <button class="btn" onclick="closeRequestSentPopup()" style="margin-top: 20px;">
+      <button class="btn" onclick="closeRequestSentPopup()" style="margin-top: var(--ts-space-5, 20px);">
         <i class="fas fa-thumbs-up"></i>
         Got It
       </button>
@@ -774,7 +794,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
             border: 2px solid white;
             box-shadow: 0 2px 6px rgba(0,0,0,0.3);
           ">${stop.icon}</div>`,
@@ -821,7 +841,7 @@
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 18px;
+          font-size: var(--ts-text-lg, 1.125rem);
           border: 3px solid white;
           box-shadow: 0 3px 10px rgba(0,0,0,0.4);
         "><i class="fas ${accepted ? 'fa-check' : 'fa-times'}"></i></div>`,
@@ -1063,5 +1083,6 @@
         .catch(err => console.log('[SW] Registration failed:', err));
     }
   </script>
+<script src="shared-nav.js"></script>
 </body>
 </html>

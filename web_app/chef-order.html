@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#1a1a2e">
+    <meta name="theme-color" content="#1a1816">
     <title>Tiny Seed Farm | Chef Orders</title>
     <meta name="description" content="Wholesale ordering portal for Pittsburgh chefs. Browse seasonal produce, place recurring orders, and get farm-fresh ingredients delivered to your restaurant.">
     <link rel="manifest" href="chef-manifest.json">
@@ -14,7 +14,7 @@
     <script src="api-config.js"></script>
     <script src="auth-guard.js" data-required-role="Customer"></script>
     <style>
-        .skip-link { position: absolute; top: -40px; left: 0; background: #166534; color: #fff; padding: 8px 16px; z-index: 10000; font-size: 14px; transition: top 0.2s; }
+        .skip-link { position: absolute; top: -40px; left: 0; background: #166534; color: #fff; padding: var(--ts-space-2, 8px) var(--ts-space-4, 16px); z-index: 10000; font-size: var(--ts-text-sm, 0.875rem); transition: top var(--ts-dur-normal, 200ms); }
         .skip-link:focus { top: 0; }
 
         /* ═══════════════════════════════════════════════════════════════════════════
@@ -26,12 +26,12 @@
         :root {
             --primary: var(--ts-green-500, #2d9f4e);
             --primary-dark: var(--ts-green-600, #248c42);
-            --secondary: var(--ts-bg-base, #1a1a2e);
+            --secondary: var(--ts-bg-base, #1a1816);
             --accent: var(--ts-amber-500, #f59e0b);
             --danger: var(--ts-red-500, #ef4444);
             --bg-main: var(--ts-stone-50, #fafaf9);
             --bg-card: var(--ts-white, #ffffff);
-            --bg-dark: var(--ts-bg-base, #1a1a2e);
+            --bg-dark: var(--ts-bg-base, #1a1816);
             --text-primary: var(--ts-stone-900, #1c1917);
             --text-secondary: var(--ts-stone-600, #57534e);
             --text-light: var(--ts-stone-400, #a8a29e);
@@ -72,32 +72,32 @@
 
         .login-screen {
             min-height: 100vh;
-            background: linear-gradient(180deg, var(--secondary) 0%, #0f172a 100%);
+            background: linear-gradient(180deg, var(--secondary) 0%, #141211 100%);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 24px;
+            padding: var(--ts-space-6, 24px);
         }
 
         .login-logo {
             width: 80px;
             height: 80px;
             background: var(--primary);
-            border-radius: 24px;
+            border-radius: var(--ts-radius-xl, 24px);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 40px;
-            margin-bottom: 24px;
+            font-size: var(--ts-text-4xl, 2.5rem);
+            margin-bottom: var(--ts-space-6, 24px);
             box-shadow: 0 0 60px rgba(34, 197, 94, 0.3);
         }
 
         .login-title {
             color: white;
-            font-size: 28px;
+            font-size: var(--ts-text-3xl, 1.75rem);
             font-weight: 700;
-            margin-bottom: 8px;
+            margin-bottom: var(--ts-space-2, 8px);
         }
 
         .login-subtitle {
@@ -107,48 +107,49 @@
 
         .login-card {
             background: white;
-            border-radius: 20px;
+            border-radius: var(--ts-radius-lg, 20px);
             padding: 32px 24px;
             width: 100%;
             max-width: 380px;
         }
 
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: var(--ts-space-5, 20px);
         }
 
         .form-label {
             display: block;
             font-weight: 600;
-            margin-bottom: 8px;
+            margin-bottom: var(--ts-space-2, 8px);
             color: var(--text-primary);
         }
 
         .form-input {
             width: 100%;
-            padding: 16px;
+            padding: var(--ts-space-4, 16px);
             border: 2px solid var(--border);
-            border-radius: 12px;
-            font-size: 16px;
+            border-radius: var(--ts-radius-md, 12px);
+            font-size: var(--ts-text-base, 1rem);
             font-family: inherit;
-            transition: all 0.2s;
+            transition: all var(--ts-dur-normal, 200ms);
         }
 
         .form-input:focus {
             outline: none;
             border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--ts-primary-muted, rgba(34, 197, 94, 0.15));
         }
 
         .btn {
             width: 100%;
-            padding: 16px;
+            padding: var(--ts-space-4, 16px);
             border: none;
-            border-radius: 12px;
-            font-size: 16px;
+            border-radius: var(--ts-radius-md, 12px);
+            font-size: var(--ts-text-base, 1rem);
             font-weight: 600;
             font-family: inherit;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all var(--ts-dur-normal, 200ms);
         }
 
         .btn-primary {
@@ -163,17 +164,17 @@
 
         .magic-sent {
             text-align: center;
-            padding: 20px;
+            padding: var(--ts-space-5, 20px);
         }
 
         .magic-sent .icon {
             font-size: 64px;
-            margin-bottom: 16px;
+            margin-bottom: var(--ts-space-4, 16px);
         }
 
         .magic-sent h3 {
-            font-size: 20px;
-            margin-bottom: 8px;
+            font-size: var(--ts-text-xl, 1.25rem);
+            margin-bottom: var(--ts-space-2, 8px);
         }
 
         .magic-sent p {
@@ -194,7 +195,7 @@
         .header {
             background: var(--secondary);
             color: white;
-            padding: 16px 20px;
+            padding: var(--ts-space-4, 16px) var(--ts-space-5, 20px);
             position: sticky;
             top: 0;
             z-index: 100;
@@ -204,34 +205,34 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 12px;
+            margin-bottom: var(--ts-space-3, 12px);
         }
 
         .header-logo {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: var(--ts-space-2, 10px);
         }
 
         .header-logo-icon {
             width: 36px;
             height: 36px;
             background: var(--primary);
-            border-radius: 10px;
+            border-radius: var(--ts-radius-md, 10px);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 18px;
+            font-size: var(--ts-text-lg, 1.125rem);
         }
 
         .header-logo-text {
             font-weight: 700;
-            font-size: 18px;
+            font-size: var(--ts-text-lg, 1.125rem);
         }
 
         .header-actions {
             display: flex;
-            gap: 12px;
+            gap: var(--ts-space-3, 12px);
         }
 
         .header-btn {
@@ -239,9 +240,9 @@
             height: 40px;
             background: rgba(255,255,255,0.1);
             border: none;
-            border-radius: 10px;
+            border-radius: var(--ts-radius-md, 10px);
             color: white;
-            font-size: 18px;
+            font-size: var(--ts-text-lg, 1.125rem);
             cursor: pointer;
             position: relative;
         }
@@ -252,7 +253,7 @@
             right: -4px;
             background: var(--danger);
             color: white;
-            font-size: 11px;
+            font-size: var(--ts-text-2xs, 0.69rem);
             font-weight: 700;
             min-width: 18px;
             height: 18px;
@@ -269,12 +270,12 @@
 
         .search-input {
             width: 100%;
-            padding: 12px 16px 12px 44px;
+            padding: var(--ts-space-3, 12px) var(--ts-space-4, 16px) 12px 44px;
             background: rgba(255,255,255,0.1);
             border: none;
-            border-radius: 12px;
+            border-radius: var(--ts-radius-md, 12px);
             color: white;
-            font-size: 15px;
+            font-size: var(--ts-text-sm, 0.94rem);
             font-family: inherit;
         }
 
@@ -310,7 +311,7 @@
             padding: 14px 20px;
             background: none;
             border: none;
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
             font-weight: 600;
             font-family: inherit;
             color: var(--text-secondary);
@@ -327,7 +328,7 @@
         /* Content */
         .tab-content {
             display: none;
-            padding: 16px;
+            padding: var(--ts-space-4, 16px);
         }
 
         .tab-content.active {
@@ -338,9 +339,9 @@
         .hero {
             background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
             border-radius: var(--ts-radius-lg, 16px);
-            padding: 24px;
+            padding: var(--ts-space-6, 24px);
             color: white;
-            margin-bottom: 20px;
+            margin-bottom: var(--ts-space-5, 20px);
             position: relative;
             overflow: hidden;
         }
@@ -361,18 +362,18 @@
         .hero-title {
             font-size: var(--ts-text-2xl, 24px);
             font-weight: 700;
-            margin-bottom: 8px;
+            margin-bottom: var(--ts-space-2, 8px);
         }
 
         .hero-subtitle {
             opacity: 0.9;
-            font-size: 15px;
+            font-size: var(--ts-text-sm, 0.94rem);
         }
 
         .hero-stats {
             display: flex;
-            gap: 20px;
-            margin-top: 16px;
+            gap: var(--ts-space-5, 20px);
+            margin-top: var(--ts-space-4, 16px);
         }
 
         .hero-stat {
@@ -395,15 +396,15 @@
         /* Filter Pills */
         .filter-pills {
             display: flex;
-            gap: 8px;
+            gap: var(--ts-space-2, 8px);
             overflow-x: auto;
             padding-bottom: 12px;
-            margin-bottom: 16px;
+            margin-bottom: var(--ts-space-4, 16px);
             -webkit-overflow-scrolling: touch;
         }
 
         .filter-pill {
-            padding: 10px 18px;
+            padding: var(--ts-space-2, 10px) var(--ts-space-4, 18px);
             background: var(--bg-card);
             border: 1px solid var(--border);
             border-radius: var(--ts-radius-full, 100px);
@@ -435,7 +436,7 @@
         .products-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
+            gap: var(--ts-space-3, 12px);
         }
 
         @media (min-width: 600px) {
@@ -447,7 +448,7 @@
         /* Product Card */
         .product-card {
             background: var(--bg-card);
-            border-radius: 16px;
+            border-radius: var(--ts-radius-lg, 16px);
             overflow: hidden;
             border: 1px solid var(--border);
             box-shadow: var(--shadow);
@@ -473,7 +474,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 48px;
+            font-size: var(--ts-text-5xl, 3rem);
             position: relative;
         }
 
@@ -482,10 +483,11 @@
             top: 8px;
             left: 8px;
             padding: 4px 8px;
-            border-radius: 6px;
-            font-size: 10px;
+            border-radius: var(--ts-radius-sm, 6px);
+            font-size: var(--ts-text-2xs, 0.625rem);
             font-weight: 700;
             text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
 
         .freshness-badge.today {
@@ -514,12 +516,12 @@
         }
 
         .product-info {
-            padding: 12px;
+            padding: var(--ts-space-3, 12px);
         }
 
         .product-name {
             font-weight: 600;
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
             margin-bottom: 2px;
             white-space: nowrap;
             overflow: hidden;
@@ -527,9 +529,9 @@
         }
 
         .product-variety {
-            font-size: 12px;
+            font-size: var(--ts-text-xs, 0.75rem);
             color: var(--text-secondary);
-            margin-bottom: 8px;
+            margin-bottom: var(--ts-space-2, 8px);
         }
 
         .product-row {
@@ -539,18 +541,18 @@
         }
 
         .product-price {
-            font-size: 16px;
+            font-size: var(--ts-text-base, 1rem);
             font-weight: 700;
             color: var(--primary-dark);
         }
 
         .product-unit {
-            font-size: 11px;
+            font-size: var(--ts-text-2xs, 0.69rem);
             color: var(--text-light);
         }
 
         .product-stock {
-            font-size: 11px;
+            font-size: var(--ts-text-2xs, 0.69rem);
             color: var(--text-secondary);
         }
 
@@ -559,48 +561,48 @@
             height: 32px;
             background: var(--primary);
             border: none;
-            border-radius: 8px;
+            border-radius: var(--ts-radius-sm, 8px);
             color: white;
-            font-size: 18px;
+            font-size: var(--ts-text-lg, 1.125rem);
             cursor: pointer;
         }
 
         /* Coming Soon */
         .coming-soon-section {
-            margin-top: 24px;
+            margin-top: var(--ts-space-6, 24px);
         }
 
         .section-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 12px;
+            margin-bottom: var(--ts-space-3, 12px);
         }
 
         .section-title {
-            font-size: 18px;
+            font-size: var(--ts-text-lg, 1.125rem);
             font-weight: 700;
         }
 
         .see-all {
             color: var(--primary);
             font-weight: 600;
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
             text-decoration: none;
         }
 
         .coming-card {
             background: var(--bg-card);
-            border-radius: 12px;
-            padding: 16px;
+            border-radius: var(--ts-radius-md, 12px);
+            padding: var(--ts-space-4, 16px);
             display: flex;
-            gap: 12px;
-            margin-bottom: 12px;
+            gap: var(--ts-space-3, 12px);
+            margin-bottom: var(--ts-space-3, 12px);
             box-shadow: var(--shadow);
         }
 
         .coming-emoji {
-            font-size: 36px;
+            font-size: var(--ts-text-4xl, 2.25rem);
         }
 
         .coming-info {
@@ -609,11 +611,11 @@
 
         .coming-name {
             font-weight: 600;
-            margin-bottom: 4px;
+            margin-bottom: var(--ts-space-1, 4px);
         }
 
         .coming-date {
-            font-size: 13px;
+            font-size: var(--ts-text-xs, 0.8rem);
             color: var(--text-secondary);
         }
 
@@ -622,8 +624,8 @@
             background: #f3e8ff;
             color: #7c3aed;
             border: none;
-            border-radius: 8px;
-            font-size: 12px;
+            border-radius: var(--ts-radius-sm, 8px);
+            font-size: var(--ts-text-xs, 0.75rem);
             font-weight: 600;
             font-family: inherit;
             cursor: pointer;
@@ -632,13 +634,13 @@
 
         /* Quick Reorder Tab */
         .reorder-section {
-            margin-bottom: 24px;
+            margin-bottom: var(--ts-space-6, 24px);
         }
 
         .last-order-card {
             background: var(--bg-card);
-            border-radius: 16px;
-            padding: 20px;
+            border-radius: var(--ts-radius-lg, 16px);
+            padding: var(--ts-space-5, 20px);
             box-shadow: var(--shadow);
         }
 
@@ -646,16 +648,16 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 16px;
+            margin-bottom: var(--ts-space-4, 16px);
         }
 
         .last-order-date {
-            font-size: 13px;
+            font-size: var(--ts-text-xs, 0.8rem);
             color: var(--text-secondary);
         }
 
         .last-order-items {
-            margin-bottom: 16px;
+            margin-bottom: var(--ts-space-4, 16px);
         }
 
         .last-order-item {
@@ -675,21 +677,21 @@
             background: var(--primary);
             color: white;
             border: none;
-            border-radius: 12px;
-            font-size: 16px;
+            border-radius: var(--ts-radius-md, 12px);
+            font-size: var(--ts-text-base, 1rem);
             font-weight: 600;
             font-family: inherit;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
+            gap: var(--ts-space-2, 8px);
         }
 
         .favorites-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 12px;
+            gap: var(--ts-space-3, 12px);
         }
 
         .favorite-item {
@@ -698,12 +700,12 @@
         }
 
         .favorite-emoji {
-            font-size: 32px;
-            margin-bottom: 4px;
+            font-size: var(--ts-text-4xl, 2rem);
+            margin-bottom: var(--ts-space-1, 4px);
         }
 
         .favorite-name {
-            font-size: 11px;
+            font-size: var(--ts-text-2xs, 0.69rem);
             color: var(--text-secondary);
         }
 
@@ -715,7 +717,7 @@
             z-index: 200;
             opacity: 0;
             visibility: hidden;
-            transition: all 0.3s;
+            transition: all var(--ts-dur-moderate, 300ms);
         }
 
         .cart-overlay.open {
@@ -729,10 +731,10 @@
             left: 0;
             right: 0;
             background: var(--bg-card);
-            border-radius: 24px 24px 0 0;
+            border-radius: var(--ts-radius-xl, 24px) 24px 0 0;
             z-index: 201;
             transform: translateY(100%);
-            transition: transform 0.3s ease-out;
+            transition: transform var(--ts-dur-moderate, 300ms) ease-out;
             max-height: 85vh;
             display: flex;
             flex-direction: column;
@@ -759,7 +761,7 @@
         }
 
         .cart-title {
-            font-size: 18px;
+            font-size: var(--ts-text-lg, 1.125rem);
             font-weight: 700;
         }
 
@@ -767,7 +769,7 @@
             color: var(--danger);
             background: none;
             border: none;
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
             font-weight: 600;
             cursor: pointer;
         }
@@ -775,18 +777,18 @@
         .cart-items {
             flex: 1;
             overflow-y: auto;
-            padding: 16px 20px;
+            padding: var(--ts-space-4, 16px) var(--ts-space-5, 20px);
         }
 
         .cart-item {
             display: flex;
-            gap: 12px;
+            gap: var(--ts-space-3, 12px);
             padding: 12px 0;
             border-bottom: 1px solid var(--border);
         }
 
         .cart-item-emoji {
-            font-size: 32px;
+            font-size: var(--ts-text-4xl, 2rem);
         }
 
         .cart-item-info {
@@ -795,18 +797,18 @@
 
         .cart-item-name {
             font-weight: 600;
-            margin-bottom: 4px;
+            margin-bottom: var(--ts-space-1, 4px);
         }
 
         .cart-item-price {
-            font-size: 13px;
+            font-size: var(--ts-text-xs, 0.8rem);
             color: var(--text-secondary);
         }
 
         .cart-item-qty {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: var(--ts-space-3, 12px);
         }
 
         .qty-btn {
@@ -814,8 +816,8 @@
             height: 32px;
             border: 1px solid var(--border);
             background: var(--bg-main);
-            border-radius: 8px;
-            font-size: 16px;
+            border-radius: var(--ts-radius-sm, 8px);
+            font-size: var(--ts-text-base, 1rem);
             cursor: pointer;
         }
 
@@ -826,7 +828,7 @@
         }
 
         .cart-footer {
-            padding: 16px 20px;
+            padding: var(--ts-space-4, 16px) var(--ts-space-5, 20px);
             border-top: 1px solid var(--border);
             background: var(--bg-main);
         }
@@ -834,35 +836,35 @@
         .cart-total {
             display: flex;
             justify-content: space-between;
-            font-size: 18px;
+            font-size: var(--ts-text-lg, 1.125rem);
             font-weight: 700;
-            margin-bottom: 16px;
+            margin-bottom: var(--ts-space-4, 16px);
         }
 
         .cart-delivery {
-            margin-bottom: 16px;
+            margin-bottom: var(--ts-space-4, 16px);
         }
 
         .cart-delivery-label {
-            font-size: 13px;
+            font-size: var(--ts-text-xs, 0.8rem);
             color: var(--text-secondary);
-            margin-bottom: 8px;
+            margin-bottom: var(--ts-space-2, 8px);
         }
 
         .delivery-options {
             display: flex;
-            gap: 8px;
+            gap: var(--ts-space-2, 8px);
         }
 
         .delivery-option {
             flex: 1;
-            padding: 12px;
+            padding: var(--ts-space-3, 12px);
             background: var(--bg-card);
             border: 2px solid var(--border);
-            border-radius: 10px;
+            border-radius: var(--ts-radius-md, 10px);
             text-align: center;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all var(--ts-dur-normal, 200ms);
         }
 
         .delivery-option.selected {
@@ -872,22 +874,22 @@
 
         .delivery-option-day {
             font-weight: 600;
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
         }
 
         .delivery-option-date {
-            font-size: 12px;
+            font-size: var(--ts-text-xs, 0.75rem);
             color: var(--text-secondary);
         }
 
         .checkout-btn {
             width: 100%;
-            padding: 16px;
+            padding: var(--ts-space-4, 16px);
             background: var(--primary);
             color: white;
             border: none;
-            border-radius: 12px;
-            font-size: 16px;
+            border-radius: var(--ts-radius-md, 12px);
+            font-size: var(--ts-text-base, 1rem);
             font-weight: 700;
             font-family: inherit;
             cursor: pointer;
@@ -916,8 +918,8 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 4px;
-            padding: 8px 16px;
+            gap: var(--ts-space-1, 4px);
+            padding: var(--ts-space-2, 8px) var(--ts-space-4, 16px);
             background: none;
             border: none;
             color: var(--text-secondary);
@@ -930,11 +932,11 @@
         }
 
         .nav-icon {
-            font-size: 22px;
+            font-size: var(--ts-text-xl, 1.375rem);
         }
 
         .nav-label {
-            font-size: 11px;
+            font-size: var(--ts-text-2xs, 0.69rem);
             font-weight: 600;
         }
 
@@ -951,7 +953,7 @@
             padding: 14px 24px;
             border-radius: var(--ts-radius-lg, 16px);
             border: 1px solid rgba(255, 255, 255, 0.08);
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
             font-weight: 500;
             z-index: 300;
             opacity: 0;
@@ -982,43 +984,43 @@
         /* Standing Orders */
         .standing-order-card {
             background: var(--bg-card);
-            border-radius: 16px;
-            padding: 16px;
-            margin-bottom: 12px;
+            border-radius: var(--ts-radius-lg, 16px);
+            padding: var(--ts-space-4, 16px);
+            margin-bottom: var(--ts-space-3, 12px);
             box-shadow: var(--shadow);
         }
 
         .standing-header {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 12px;
+            margin-bottom: var(--ts-space-3, 12px);
         }
 
         .standing-frequency {
-            font-size: 12px;
+            font-size: var(--ts-text-xs, 0.75rem);
             padding: 4px 10px;
             background: #dbeafe;
             color: #1e40af;
-            border-radius: 100px;
+            border-radius: var(--ts-radius-full, 9999px);
             font-weight: 600;
         }
 
         .standing-items {
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
             color: var(--text-secondary);
-            margin-bottom: 12px;
+            margin-bottom: var(--ts-space-3, 12px);
         }
 
         .standing-actions {
             display: flex;
-            gap: 8px;
+            gap: var(--ts-space-2, 8px);
         }
 
         .standing-btn {
             flex: 1;
             padding: 10px;
-            border-radius: 8px;
-            font-size: 13px;
+            border-radius: var(--ts-radius-sm, 8px);
+            font-size: var(--ts-text-xs, 0.8rem);
             font-weight: 600;
             font-family: inherit;
             cursor: pointer;
@@ -1039,19 +1041,19 @@
         /* Account Tab */
         .account-section {
             background: var(--bg-card);
-            border-radius: 16px;
-            padding: 20px;
-            margin-bottom: 16px;
+            border-radius: var(--ts-radius-lg, 16px);
+            padding: var(--ts-space-5, 20px);
+            margin-bottom: var(--ts-space-4, 16px);
             box-shadow: var(--shadow);
         }
 
         .account-section-title {
-            font-size: 12px;
+            font-size: var(--ts-text-xs, 0.75rem);
             font-weight: 700;
             color: var(--text-light);
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            margin-bottom: 12px;
+            margin-bottom: var(--ts-space-3, 12px);
         }
 
         .account-row {
@@ -1076,26 +1078,26 @@
         .prefs-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
+            gap: var(--ts-space-3, 12px);
         }
 
         .pref-toggle {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 12px;
+            padding: var(--ts-space-3, 12px);
             background: var(--bg-main);
-            border-radius: 10px;
+            border-radius: var(--ts-radius-md, 10px);
         }
 
         .toggle-switch {
             width: 48px;
             height: 28px;
             background: var(--border);
-            border-radius: 14px;
+            border-radius: var(--ts-radius-md, 14px);
             position: relative;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: background var(--ts-dur-normal, 200ms);
         }
 
         .toggle-switch.on {
@@ -1125,12 +1127,12 @@
             background: none;
             border: 2px solid var(--danger);
             color: var(--danger);
-            border-radius: 12px;
-            font-size: 15px;
+            border-radius: var(--ts-radius-md, 12px);
+            font-size: var(--ts-text-sm, 0.94rem);
             font-weight: 600;
             font-family: inherit;
             cursor: pointer;
-            margin-top: 20px;
+            margin-top: var(--ts-space-5, 20px);
         }
 
         /* Loading — skeleton shimmer (replaces spinner) */
@@ -1158,8 +1160,8 @@
         .skeleton-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
-            padding: 16px;
+            gap: var(--ts-space-3, 12px);
+            padding: var(--ts-space-4, 16px);
         }
         @media (min-width: 600px) {
             .skeleton-grid { grid-template-columns: repeat(3, 1fr); }
@@ -1167,7 +1169,7 @@
 
         .skeleton-card {
             background: var(--bg-card);
-            border-radius: 16px;
+            border-radius: var(--ts-radius-lg, 16px);
             overflow: hidden;
             border: 1px solid var(--border);
         }
@@ -1178,15 +1180,15 @@
             animation: ts-shimmer 1.5s linear infinite;
         }
         .skeleton-card .skeleton-info {
-            padding: 12px;
+            padding: var(--ts-space-3, 12px);
         }
         .skeleton-card .skeleton-line {
             height: 12px;
-            border-radius: 6px;
+            border-radius: var(--ts-radius-sm, 6px);
             background: linear-gradient(110deg, #e7e5e4 8%, #f5f5f4 18%, #e7e5e4 33%);
             background-size: 200% 100%;
             animation: ts-shimmer 1.5s linear infinite;
-            margin-bottom: 8px;
+            margin-bottom: var(--ts-space-2, 8px);
         }
         .skeleton-card .skeleton-line:last-child {
             width: 60%;
@@ -1224,19 +1226,19 @@
         }
 
         .empty-icon {
-            font-size: 48px;
-            margin-bottom: 12px;
+            font-size: var(--ts-text-5xl, 3rem);
+            margin-bottom: var(--ts-space-3, 12px);
         }
 
         .empty-title {
-            font-size: 18px;
+            font-size: var(--ts-text-lg, 1.125rem);
             font-weight: 600;
-            margin-bottom: 8px;
+            margin-bottom: var(--ts-space-2, 8px);
         }
 
         .empty-text {
             color: var(--text-secondary);
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
         }
 
         /* PWA Install Banner */
@@ -1247,11 +1249,11 @@
             right: 16px;
             background: var(--secondary);
             color: white;
-            padding: 16px;
-            border-radius: 16px;
+            padding: var(--ts-space-4, 16px);
+            border-radius: var(--ts-radius-lg, 16px);
             display: none;
             align-items: center;
-            gap: 12px;
+            gap: var(--ts-space-3, 12px);
             z-index: 99;
             box-shadow: var(--shadow-lg);
         }
@@ -1261,7 +1263,7 @@
         }
 
         .install-icon {
-            font-size: 32px;
+            font-size: var(--ts-text-4xl, 2rem);
         }
 
         .install-text {
@@ -1269,23 +1271,23 @@
         }
 
         .install-text h4 {
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
             margin-bottom: 2px;
         }
 
         .install-text p {
-            font-size: 12px;
+            font-size: var(--ts-text-xs, 0.75rem);
             opacity: 0.7;
         }
 
         .install-btn {
-            padding: 10px 16px;
+            padding: var(--ts-space-2, 10px) var(--ts-space-4, 16px);
             background: var(--primary);
             border: none;
-            border-radius: 8px;
+            border-radius: var(--ts-radius-sm, 8px);
             color: white;
             font-weight: 600;
-            font-size: 13px;
+            font-size: var(--ts-text-xs, 0.8rem);
             cursor: pointer;
         }
 
@@ -1294,7 +1296,7 @@
             border: none;
             color: white;
             opacity: 0.5;
-            font-size: 20px;
+            font-size: var(--ts-text-xl, 1.25rem);
             cursor: pointer;
         }
 
@@ -1337,8 +1339,15 @@
            ═══════════════════════════════════════════════════════════════════════════ */
         ::-webkit-scrollbar { width: 5px; height: 5px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 100px; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: var(--ts-radius-full, 9999px); }
         ::-webkit-scrollbar-thumb:hover { background: var(--text-light); }
+        /* ── Page Load Animation ── */
+        @keyframes ts-page-enter {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        body { animation: ts-page-enter var(--ts-dur-moderate, 300ms) var(--ts-ease-out, ease) both; }
+
     </style>
 </head>
 <body>
@@ -1362,7 +1371,7 @@
                 <div class="icon">📧</div>
                 <h3>Check Your Email!</h3>
                 <p>We sent a login link to<br><strong id="sentEmail"></strong></p>
-                <button class="btn btn-primary" onclick="resetLogin()" style="margin-top: 20px;">Try Different Email</button>
+                <button class="btn btn-primary" onclick="resetLogin()" style="margin-top: var(--ts-space-5, 20px);">Try Different Email</button>
             </div>
         </div>
     </div>
@@ -1436,7 +1445,7 @@
             <div class="section-header">
                 <h2 class="section-title">Coming Soon</h2>
             </div>
-            <p style="color: var(--text-secondary); margin-bottom: 20px;">Products expected to be ready in the next 2-4 weeks based on our field plan.</p>
+            <p style="color: var(--text-secondary); margin-bottom: var(--ts-space-5, 20px);">Products expected to be ready in the next 2-4 weeks based on our field plan.</p>
             <div id="comingSoonList">
                 <div class="loading"><div class="spinner"></div></div>
             </div>
@@ -1469,7 +1478,7 @@
                 <h2 class="section-title">Standing Orders</h2>
                 <button class="see-all" onclick="showCreateStandingOrder()">+ New</button>
             </div>
-            <p style="color: var(--text-secondary); margin-bottom: 20px;">Set up recurring orders that automatically repeat each week.</p>
+            <p style="color: var(--text-secondary); margin-bottom: var(--ts-space-5, 20px);">Set up recurring orders that automatically repeat each week.</p>
             <div id="standingOrdersList">
                 <div class="empty-state">
                     <div class="empty-icon">📦</div>
@@ -1507,7 +1516,7 @@
                     <span>SMS Alerts</span>
                     <div class="toggle-switch on" id="toggleSMS" onclick="togglePref('sms')"></div>
                 </div>
-                <div class="pref-toggle" style="margin-top: 12px;">
+                <div class="pref-toggle" style="margin-top: var(--ts-space-3, 12px);">
                     <span>Email Updates</span>
                     <div class="toggle-switch on" id="toggleEmail" onclick="togglePref('email')"></div>
                 </div>
@@ -1527,7 +1536,7 @@
 
             <div class="account-section" style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);">
                 <div class="account-section-title" style="color: #166534;">📅 Delivery Schedule</div>
-                <div style="font-size: 14px; line-height: 1.8;">
+                <div style="font-size: var(--ts-text-sm, 0.875rem); line-height: 1.8;">
                     <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(22, 101, 52, 0.1);">
                         <span style="font-weight: 600;">Tuesday</span>
                         <span style="color: #15803d;">6:00 - 10:00 AM</span>
@@ -1545,7 +1554,7 @@
 
             <div class="account-section" style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);">
                 <div class="account-section-title" style="color: #92400e;">⏰ Order Cutoff Times</div>
-                <div style="font-size: 13px; line-height: 1.8; color: #78350f;">
+                <div style="font-size: var(--ts-text-xs, 0.8rem); line-height: 1.8; color: #78350f;">
                     <div style="padding: 4px 0;"><strong>Tuesday delivery:</strong> Order by Sunday 8 PM</div>
                     <div style="padding: 4px 0;"><strong>Thursday delivery:</strong> Order by Tuesday 8 PM</div>
                     <div style="padding: 4px 0;"><strong>Saturday delivery:</strong> Order by Thursday 8 PM</div>
@@ -1555,8 +1564,8 @@
             <div class="account-section">
                 <div class="account-section-title">📝 Delivery Instructions</div>
                 <textarea id="deliveryInstructions" placeholder="E.g., Back door, call when arriving, cooler code 1234..."
-                    style="width: 100%; padding: 12px; border: 2px solid var(--border); border-radius: 10px; font-family: inherit; font-size: 14px; resize: vertical; min-height: 80px;"></textarea>
-                <button onclick="saveDeliveryInstructions()" style="margin-top: 12px; padding: 12px 20px; background: var(--primary); color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer;">
+                    style="width: 100%; padding: var(--ts-space-3, 12px); border: 2px solid var(--border); border-radius: var(--ts-radius-md, 10px); font-family: inherit; font-size: var(--ts-text-sm, 0.875rem); resize: vertical; min-height: 80px;"></textarea>
+                <button onclick="saveDeliveryInstructions()" style="margin-top: var(--ts-space-3, 12px); padding: var(--ts-space-3, 12px) var(--ts-space-5, 20px); background: var(--primary); color: white; border: none; border-radius: var(--ts-radius-md, 10px); font-weight: 600; cursor: pointer;">
                     Save Instructions
                 </button>
             </div>
@@ -2380,5 +2389,6 @@
             quickAdd(productId);
         }
     </script>
+<script src="shared-nav.js"></script>
 </body>
 </html>

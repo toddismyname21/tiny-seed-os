@@ -15,12 +15,12 @@
             --warning: var(--ts-amber-500, #f59e0b);
             --danger: var(--ts-red-500, #ef4444);
             --info: var(--ts-blue-500, #3b82f6);
-            --bg-dark: var(--ts-bg-base, #0f172a);
-            --bg-card: var(--ts-bg-surface, #1e293b);
-            --bg-elevated: var(--ts-bg-elevated, #334155);
+            --bg-dark: var(--ts-bg-base, #141211);
+            --bg-card: var(--ts-bg-surface, #201e1b);
+            --bg-elevated: var(--ts-bg-elevated, rgba(255,255,255,0.06));
             --text-primary: var(--ts-text, #f8fafc);
-            --text-secondary: var(--ts-text-secondary, #94a3b8);
-            --border-color: var(--ts-border, #334155);
+            --text-secondary: var(--ts-text-secondary, #a09888);
+            --border-color: var(--ts-border, rgba(255,255,255,0.06));
             /* Mobile-first touch targets */
             --touch-min: 48px;
             --touch-comfortable: 56px;
@@ -50,41 +50,41 @@
         }
 
         h1 {
-            font-size: 28px;
-            margin-bottom: 8px;
+            font-size: var(--ts-text-3xl, 1.75rem);
+            margin-bottom: var(--ts-space-2, 8px);
         }
 
         .subtitle {
             color: var(--text-secondary);
-            margin-bottom: 24px;
+            margin-bottom: var(--ts-space-6, 24px);
         }
 
         .card {
             background: var(--bg-card);
-            border-radius: 12px;
+            border-radius: var(--ts-radius-md, 12px);
             border: 1px solid var(--border-color);
-            padding: 24px;
-            margin-bottom: 20px;
+            padding: var(--ts-space-6, 24px);
+            margin-bottom: var(--ts-space-5, 20px);
         }
 
         .card-title {
-            font-size: 18px;
+            font-size: var(--ts-text-lg, 1.125rem);
             font-weight: 600;
-            margin-bottom: 16px;
+            margin-bottom: var(--ts-space-4, 16px);
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: var(--ts-space-2, 10px);
         }
 
         /* Upload Area */
         .upload-area {
             border: 2px dashed var(--border-color);
-            border-radius: 12px;
+            border-radius: var(--ts-radius-md, 12px);
             padding: 40px;
             text-align: center;
             cursor: pointer;
-            transition: all 0.2s;
-            margin-bottom: 20px;
+            transition: all var(--ts-dur-normal, 200ms);
+            margin-bottom: var(--ts-space-5, 20px);
         }
 
         .upload-area:hover, .upload-area.dragover {
@@ -97,17 +97,17 @@
         }
 
         .upload-icon {
-            font-size: 48px;
-            margin-bottom: 16px;
+            font-size: var(--ts-text-5xl, 3rem);
+            margin-bottom: var(--ts-space-4, 16px);
         }
 
         .upload-text {
-            font-size: 16px;
-            margin-bottom: 8px;
+            font-size: var(--ts-text-base, 1rem);
+            margin-bottom: var(--ts-space-2, 8px);
         }
 
         .upload-hint {
-            font-size: 13px;
+            font-size: var(--ts-text-xs, 0.8rem);
             color: var(--text-secondary);
         }
 
@@ -115,14 +115,14 @@
         .preview-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-            gap: 16px;
-            margin-bottom: 20px;
+            gap: var(--ts-space-4, 16px);
+            margin-bottom: var(--ts-space-5, 20px);
         }
 
         .preview-item {
             position: relative;
             aspect-ratio: 3/4;
-            border-radius: 8px;
+            border-radius: var(--ts-radius-sm, 8px);
             overflow: hidden;
             border: 2px solid var(--border-color);
         }
@@ -138,9 +138,9 @@
             bottom: 0;
             left: 0;
             right: 0;
-            padding: 8px;
+            padding: var(--ts-space-2, 8px);
             background: rgba(0,0,0,0.7);
-            font-size: 11px;
+            font-size: var(--ts-text-2xs, 0.69rem);
             text-align: center;
         }
 
@@ -167,7 +167,7 @@
             border: none;
             color: white;
             cursor: pointer;
-            font-size: 18px;
+            font-size: var(--ts-text-lg, 1.125rem);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -181,32 +181,32 @@
 
         /* Context Selection */
         .context-section {
-            margin-bottom: 20px;
+            margin-bottom: var(--ts-space-5, 20px);
         }
 
         .context-label {
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
             font-weight: 500;
-            margin-bottom: 8px;
+            margin-bottom: var(--ts-space-2, 8px);
         }
 
         .context-options {
             display: flex;
             flex-wrap: wrap;
-            gap: 10px;
+            gap: var(--ts-space-2, 10px);
         }
 
         .context-btn {
             min-height: var(--touch-min);
             padding: 14px 20px;
-            border-radius: 12px;
+            border-radius: var(--ts-radius-md, 12px);
             border: 2px solid var(--border-color);
             background: var(--bg-elevated);
             color: var(--text-primary);
             cursor: pointer;
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
             font-weight: 500;
-            transition: all 0.2s;
+            transition: all var(--ts-dur-normal, 200ms);
             touch-action: manipulation;
         }
 
@@ -224,29 +224,29 @@
         .tasks-list {
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: var(--ts-space-3, 12px);
         }
 
         .task-item {
             background: var(--bg-elevated);
-            border-radius: 10px;
-            padding: 16px;
+            border-radius: var(--ts-radius-md, 10px);
+            padding: var(--ts-space-4, 16px);
             display: flex;
-            gap: 16px;
+            gap: var(--ts-space-4, 16px);
             align-items: flex-start;
         }
 
         .task-checkbox {
             width: var(--touch-min);
             height: var(--touch-min);
-            border-radius: 12px;
+            border-radius: var(--ts-radius-md, 12px);
             border: 3px solid var(--border-color);
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
-            transition: all 0.2s;
+            transition: all var(--ts-dur-normal, 200ms);
             touch-action: manipulation;
         }
 
@@ -262,7 +262,7 @@
         .task-checkbox.checked::after {
             content: '✓';
             color: white;
-            font-size: 20px;
+            font-size: var(--ts-text-xl, 1.25rem);
             font-weight: bold;
         }
 
@@ -276,23 +276,23 @@
         }
 
         .task-meta {
-            font-size: 12px;
+            font-size: var(--ts-text-xs, 0.75rem);
             color: var(--text-secondary);
             display: flex;
             flex-wrap: wrap;
-            gap: 12px;
+            gap: var(--ts-space-3, 12px);
         }
 
         .task-meta span {
             display: flex;
             align-items: center;
-            gap: 4px;
+            gap: var(--ts-space-1, 4px);
         }
 
         .task-source {
-            font-size: 11px;
+            font-size: var(--ts-text-2xs, 0.69rem);
             color: var(--text-muted);
-            margin-top: 8px;
+            margin-top: var(--ts-space-2, 8px);
             font-style: italic;
         }
 
@@ -301,13 +301,13 @@
             min-height: 44px;
             background: var(--bg-card);
             border: 2px solid var(--info);
-            border-radius: 10px;
+            border-radius: var(--ts-radius-md, 10px);
             color: var(--info);
             cursor: pointer;
-            font-size: 13px;
+            font-size: var(--ts-text-xs, 0.8rem);
             font-weight: 600;
-            padding: 10px 16px;
-            transition: all 0.2s;
+            padding: var(--ts-space-2, 10px) var(--ts-space-4, 16px);
+            transition: all var(--ts-dur-normal, 200ms);
             touch-action: manipulation;
         }
 
@@ -329,7 +329,7 @@
             display: none;
             align-items: center;
             justify-content: center;
-            padding: 16px;
+            padding: var(--ts-space-4, 16px);
         }
 
         .edit-modal-overlay.active {
@@ -338,8 +338,8 @@
 
         .edit-modal {
             background: var(--bg-card);
-            border-radius: 20px;
-            padding: 24px;
+            border-radius: var(--ts-radius-lg, 20px);
+            padding: var(--ts-space-6, 24px);
             width: 100%;
             max-width: 500px;
             max-height: 90vh;
@@ -349,14 +349,14 @@
         .edit-modal-title {
             font-size: 1.25rem;
             font-weight: 700;
-            margin-bottom: 20px;
+            margin-bottom: var(--ts-space-5, 20px);
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: var(--ts-space-2, 10px);
         }
 
         .edit-modal-field {
-            margin-bottom: 16px;
+            margin-bottom: var(--ts-space-4, 16px);
         }
 
         .edit-modal-label {
@@ -364,7 +364,7 @@
             font-size: 0.875rem;
             font-weight: 600;
             color: var(--text-secondary);
-            margin-bottom: 8px;
+            margin-bottom: var(--ts-space-2, 8px);
         }
 
         .edit-modal-input {
@@ -373,21 +373,22 @@
             padding: 14px 16px;
             background: var(--bg-elevated);
             border: 2px solid var(--border-color);
-            border-radius: 12px;
+            border-radius: var(--ts-radius-md, 12px);
             color: var(--text-primary);
-            font-size: 16px;
+            font-size: var(--ts-text-base, 1rem);
             font-family: inherit;
         }
 
         .edit-modal-input:focus {
             outline: none;
             border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--ts-primary-muted, rgba(34, 197, 94, 0.15));
         }
 
         .edit-modal-actions {
             display: flex;
-            gap: 12px;
-            margin-top: 24px;
+            gap: var(--ts-space-3, 12px);
+            margin-top: var(--ts-space-6, 24px);
         }
 
         .edit-modal-actions .btn {
@@ -397,7 +398,7 @@
         @media (max-width: 480px) {
             .edit-modal {
                 max-height: 100%;
-                border-radius: 20px 20px 0 0;
+                border-radius: var(--ts-radius-lg, 20px) 20px 0 0;
                 position: fixed;
                 bottom: 0;
                 left: 0;
@@ -410,16 +411,16 @@
         .btn {
             min-height: var(--touch-min);
             padding: 14px 24px;
-            border-radius: 12px;
+            border-radius: var(--ts-radius-md, 12px);
             font-weight: 600;
             cursor: pointer;
             border: none;
-            font-size: 15px;
+            font-size: var(--ts-text-sm, 0.94rem);
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 10px;
-            transition: all 0.2s;
+            gap: var(--ts-space-2, 10px);
+            transition: all var(--ts-dur-normal, 200ms);
             touch-action: manipulation;
         }
 
@@ -461,7 +462,7 @@
 
         .actions {
             display: flex;
-            gap: 12px;
+            gap: var(--ts-space-3, 12px);
             flex-wrap: wrap;
         }
 
@@ -478,14 +479,14 @@
         .raw-text {
             background: var(--bg-dark);
             border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 16px;
+            border-radius: var(--ts-radius-sm, 8px);
+            padding: var(--ts-space-4, 16px);
             font-family: monospace;
-            font-size: 13px;
+            font-size: var(--ts-text-xs, 0.8rem);
             white-space: pre-wrap;
             max-height: 300px;
             overflow-y: auto;
-            margin-top: 16px;
+            margin-top: var(--ts-space-4, 16px);
         }
 
         /* Loading */
@@ -514,8 +515,8 @@
         /* Stats */
         .stats {
             display: flex;
-            gap: 24px;
-            margin-bottom: 16px;
+            gap: var(--ts-space-6, 24px);
+            margin-bottom: var(--ts-space-4, 16px);
         }
 
         .stat {
@@ -523,19 +524,19 @@
         }
 
         .stat-value {
-            font-size: 24px;
+            font-size: var(--ts-text-2xl, 1.5rem);
             font-weight: 700;
             color: var(--primary);
         }
 
         .stat-label {
-            font-size: 12px;
+            font-size: var(--ts-text-xs, 0.75rem);
             color: var(--text-secondary);
         }
 
         /* Toggle */
         .toggle-section {
-            margin-top: 16px;
+            margin-top: var(--ts-space-4, 16px);
         }
 
         .toggle-btn {
@@ -543,10 +544,10 @@
             border: none;
             color: var(--info);
             cursor: pointer;
-            font-size: 13px;
+            font-size: var(--ts-text-xs, 0.8rem);
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: var(--ts-space-1, 6px);
         }
 
         .hidden {
@@ -557,17 +558,17 @@
         @media (max-width: 768px) {
             .preview-grid {
                 grid-template-columns: repeat(2, 1fr);
-                gap: 12px;
+                gap: var(--ts-space-3, 12px);
             }
 
             .task-item {
                 padding: 14px;
-                gap: 12px;
+                gap: var(--ts-space-3, 12px);
             }
 
             .stats {
                 flex-wrap: wrap;
-                gap: 16px;
+                gap: var(--ts-space-4, 16px);
             }
 
             .stat {
@@ -580,7 +581,7 @@
             }
 
             h1 {
-                font-size: 24px;
+                font-size: var(--ts-text-2xl, 1.5rem);
             }
         }
 
@@ -608,7 +609,7 @@
             right: 20px;
             background: var(--bg-card);
             border: 1px solid var(--border-color);
-            border-radius: 12px;
+            border-radius: var(--ts-radius-md, 12px);
             padding: 1rem;
             font-size: 0.75rem;
             color: var(--text-secondary);
@@ -619,7 +620,7 @@
 
         .keyboard-help.visible { display: block; }
         .keyboard-help h4 { color: var(--text-primary); margin-bottom: 0.5rem; font-size: 0.85rem; }
-        .keyboard-help kbd { background: var(--bg-elevated); padding: 2px 6px; border-radius: 4px; font-family: monospace; margin-right: 0.5rem; }
+        .keyboard-help kbd { background: var(--bg-elevated); padding: 2px 6px; border-radius: var(--ts-radius-sm, 4px); font-family: monospace; margin-right: 0.5rem; }
         .keyboard-help div { margin-bottom: 0.25rem; }
 
         /* ============================================= */
@@ -634,6 +635,18 @@
             .result-item { background: #f9f9f9 !important; border: 1px solid #ddd !important; }
             @page { margin: 0.5in; }
         }
+        /* ── Accessibility: Focus Visible ── */
+        :focus-visible { outline: 2px solid var(--ts-primary, #22c55e); outline-offset: 2px; }
+        :focus:not(:focus-visible) { outline: none; }
+
+        /* ── Accessibility: Reduced Motion ── */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
     </style>
     <script src="auth-guard.js" data-required-role="Admin"></script>
 </head>
@@ -699,7 +712,7 @@
 
             <div class="tasks-list" id="tasks-list"></div>
 
-            <div class="actions" style="margin-top: 20px;">
+            <div class="actions" style="margin-top: var(--ts-space-5, 20px);">
                 <button class="btn btn-success" id="import-btn">
                     📥 Import Selected Tasks
                 </button>
@@ -1032,8 +1045,8 @@
                 transform: translateX(-50%);
                 background: var(--success);
                 color: white;
-                padding: 16px 24px;
-                border-radius: 12px;
+                padding: var(--ts-space-4, 16px) var(--ts-space-6, 24px);
+                border-radius: var(--ts-radius-md, 12px);
                 font-weight: 600;
                 z-index: 5000;
                 animation: fadeInOut 2s ease-in-out forwards;
@@ -1197,5 +1210,6 @@
         <div><kbd>?</kbd> Toggle help</div>
         <div><kbd>Esc</kbd> Close help</div>
     </div>
+<script src="shared-nav.js"></script>
 </body>
 </html>

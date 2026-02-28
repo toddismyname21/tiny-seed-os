@@ -18,12 +18,12 @@
       --secondary: var(--ts-blue-500, #3b82f6);
       --warning: var(--ts-amber-500, #f59e0b);
       --danger: var(--ts-red-500, #ef4444);
-      --bg-dark: var(--ts-slate-900, #1a1a2e);
-      --bg-card: var(--ts-bg-surface, #16213e);
+      --bg-dark: var(--ts-slate-900, #1a1816);
+      --bg-card: var(--ts-bg-surface, #282520);
       --bg-hover: var(--ts-bg-elevated, #1e3a5f);
-      --text: var(--ts-slate-200, #e2e8f0);
-      --text-muted: var(--ts-slate-400, #94a3b8);
-      --border: var(--ts-slate-700, #334155);
+      --text: var(--ts-slate-200, #ece8e1);
+      --text-muted: var(--ts-slate-400, #a09888);
+      --border: var(--ts-slate-700, rgba(255,255,255,0.06));
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -122,7 +122,7 @@
       cursor: pointer;
       border-bottom: 3px solid transparent;
       color: var(--text-muted);
-      transition: all 0.2s;
+      transition: all var(--ts-dur-normal, 200ms);
       white-space: nowrap;
       font-weight: 500;
     }
@@ -189,7 +189,7 @@
     .stat-card {
       background: var(--bg-hover);
       padding: 1.25rem;
-      border-radius: 10px;
+      border-radius: var(--ts-radius-md, 10px);
       text-align: center;
     }
 
@@ -208,11 +208,11 @@
     /* Receipt Upload Zone */
     .upload-zone {
       border: 2px dashed var(--border);
-      border-radius: 12px;
+      border-radius: var(--ts-radius-md, 12px);
       padding: 3rem 2rem;
       text-align: center;
       cursor: pointer;
-      transition: all 0.3s;
+      transition: all var(--ts-dur-moderate, 300ms);
       margin-bottom: 1.5rem;
     }
 
@@ -247,7 +247,7 @@
       padding: 0.75rem 1rem;
       background: var(--bg-dark);
       border: 1px solid var(--border);
-      border-radius: 8px;
+      border-radius: var(--ts-radius-sm, 8px);
       color: var(--text);
       font-size: 1rem;
     }
@@ -255,6 +255,7 @@
     .form-input:focus, .form-select:focus {
       outline: none;
       border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--ts-primary-muted, rgba(34, 197, 94, 0.15));
     }
 
     .form-row {
@@ -295,7 +296,7 @@
     .badge {
       display: inline-block;
       padding: 0.25rem 0.75rem;
-      border-radius: 9999px;
+      border-radius: var(--ts-radius-full, 9999px);
       font-size: 0.75rem;
       font-weight: 600;
     }
@@ -341,7 +342,7 @@
 
     .modal {
       background: var(--bg-card);
-      border-radius: 16px;
+      border-radius: var(--ts-radius-lg, 16px);
       max-width: 600px;
       width: 100%;
       max-height: 90vh;
@@ -379,7 +380,7 @@
     /* Alert */
     .alert {
       padding: 1rem;
-      border-radius: 8px;
+      border-radius: var(--ts-radius-sm, 8px);
       margin-bottom: 1rem;
       display: flex;
       align-items: center;
@@ -422,7 +423,7 @@
       max-width: 300px;
       max-height: 400px;
       object-fit: contain;
-      border-radius: 8px;
+      border-radius: var(--ts-radius-sm, 8px);
     }
 
     /* Filters */
@@ -448,7 +449,7 @@
       font-size: 0.65rem;
       font-weight: 700;
       padding: 2px 6px;
-      border-radius: 10px;
+      border-radius: var(--ts-radius-md, 10px);
       min-width: 18px;
       text-align: center;
     }
@@ -456,7 +457,7 @@
     /* Priority Cards */
     .priority-card {
       background: var(--bg-hover);
-      border-radius: 12px;
+      border-radius: var(--ts-radius-md, 12px);
       padding: 1.25rem;
       margin-bottom: 1rem;
       border-left: 4px solid var(--border);
@@ -505,7 +506,7 @@
       text-transform: uppercase;
       letter-spacing: 0.5px;
       padding: 4px 8px;
-      border-radius: 4px;
+      border-radius: var(--ts-radius-sm, 4px);
     }
 
     .priority-label.critical {
@@ -539,11 +540,11 @@
     /* Loan Cards */
     .loan-type-card {
       background: var(--bg-hover);
-      border-radius: 12px;
+      border-radius: var(--ts-radius-md, 12px);
       padding: 1.5rem;
       text-align: center;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all var(--ts-dur-normal, 200ms);
       border: 2px solid transparent;
     }
 
@@ -645,8 +646,15 @@
     /* Scrollbar */
     ::-webkit-scrollbar { width: 5px; height: 5px; }
     ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 100px; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: var(--ts-radius-full, 9999px); }
     ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+        /* ── Page Load Animation ── */
+        @keyframes ts-page-enter {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        body { animation: ts-page-enter var(--ts-dur-moderate, 300ms) var(--ts-ease-out, ease) both; }
+
   </style>
   <script src="print-engine.js"></script>
 </head>
@@ -669,13 +677,13 @@
   <!-- Financial Suite Cross-Navigation -->
   <div style="display: flex; gap: 0.5rem; padding: 0.5rem 1.5rem; background: rgba(0,0,0,0.2); border-bottom: 1px solid var(--border); font-size: 0.8rem; overflow-x: auto;">
     <span style="color: var(--text-muted); padding: 0.3rem 0; white-space: nowrap;">Financial Suite:</span>
-    <a href="accounting.html" style="padding: 0.3rem 0.75rem; border-radius: 100px; background: var(--primary); color: white; text-decoration: none; white-space: nowrap; font-weight: 600;">
+    <a href="accounting.html" style="padding: 0.3rem 0.75rem; border-radius: var(--ts-radius-full, 9999px); background: var(--primary); color: white; text-decoration: none; white-space: nowrap; font-weight: 600;">
       <i class="fas fa-calculator"></i> Accounting Hub
     </a>
-    <a href="financial-dashboard.html" style="padding: 0.3rem 0.75rem; border-radius: 100px; background: var(--bg-card); color: var(--text-muted); text-decoration: none; white-space: nowrap; transition: background 150ms;">
+    <a href="financial-dashboard.html" style="padding: 0.3rem 0.75rem; border-radius: var(--ts-radius-full, 9999px); background: var(--bg-card); color: var(--text-muted); text-decoration: none; white-space: nowrap; transition: background 150ms;">
       <i class="fas fa-chart-line"></i> Financial Command Center
     </a>
-    <a href="loan-readiness.html" style="padding: 0.3rem 0.75rem; border-radius: 100px; background: var(--bg-card); color: var(--text-muted); text-decoration: none; white-space: nowrap; transition: background 150ms;">
+    <a href="loan-readiness.html" style="padding: 0.3rem 0.75rem; border-radius: var(--ts-radius-full, 9999px); background: var(--bg-card); color: var(--text-muted); text-decoration: none; white-space: nowrap; transition: background 150ms;">
       <i class="fas fa-landmark"></i> Loan & Grant Center
     </a>
   </div>
@@ -944,7 +952,7 @@
       <div id="qbConnectionBanner" class="card" style="border-left: 4px solid var(--warning); margin-bottom: 1.5rem;">
         <div style="display: flex; justify-content: space-between; align-items: center;">
           <div style="display: flex; align-items: center; gap: 1rem;">
-            <div id="qbConnectionIcon" style="width: 50px; height: 50px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; background: rgba(244, 162, 97, 0.2); color: var(--warning);">
+            <div id="qbConnectionIcon" style="width: 50px; height: 50px; border-radius: var(--ts-radius-md, 12px); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; background: rgba(244, 162, 97, 0.2); color: var(--warning);">
               <i class="fas fa-plug"></i>
             </div>
             <div id="qbConnectionText">
@@ -1002,15 +1010,15 @@
             <span class="badge badge-success" id="qbPLPeriod">2026</span>
           </div>
           <div style="display: flex; flex-direction: column; gap: 1rem;">
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: var(--bg-hover); border-radius: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: var(--bg-hover); border-radius: var(--ts-radius-sm, 8px);">
               <span style="color: var(--text-muted);">Income</span>
               <span style="font-size: 1.25rem; font-weight: 700; color: var(--primary);" id="qbTotalIncome">--</span>
             </div>
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: var(--bg-hover); border-radius: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: var(--bg-hover); border-radius: var(--ts-radius-sm, 8px);">
               <span style="color: var(--text-muted);">Expenses</span>
               <span style="font-size: 1.25rem; font-weight: 700; color: var(--danger);" id="qbTotalExpenses">--</span>
             </div>
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: var(--bg-hover); border-radius: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: var(--bg-hover); border-radius: var(--ts-radius-sm, 8px);">
               <span style="color: var(--text-muted);">Net Income</span>
               <span style="font-size: 1.25rem; font-weight: 700;" id="qbNetIncome">--</span>
             </div>
@@ -1022,7 +1030,7 @@
             <h2 class="card-title"><i class="fas fa-file-invoice-dollar"></i> Open Invoices (A/R)</h2>
             <span class="badge badge-warning" id="qbAROverdue">0 overdue</span>
           </div>
-          <div id="qbAgingAR" style="display: flex; height: 24px; border-radius: 6px; overflow: hidden; margin-bottom: 1rem; background: var(--bg-hover);">
+          <div id="qbAgingAR" style="display: flex; height: 24px; border-radius: var(--ts-radius-sm, 6px); overflow: hidden; margin-bottom: 1rem; background: var(--bg-hover);">
           </div>
           <div id="qbInvoicesList" style="font-size: 0.9rem;">
             <p style="color: var(--text-muted);">Connect QuickBooks to view invoices</p>
@@ -1034,7 +1042,7 @@
             <h2 class="card-title"><i class="fas fa-file-invoice"></i> Open Bills (A/P)</h2>
             <span class="badge badge-warning" id="qbAPOverdue">0 overdue</span>
           </div>
-          <div id="qbAgingAP" style="display: flex; height: 24px; border-radius: 6px; overflow: hidden; margin-bottom: 1rem; background: var(--bg-hover);">
+          <div id="qbAgingAP" style="display: flex; height: 24px; border-radius: var(--ts-radius-sm, 6px); overflow: hidden; margin-bottom: 1rem; background: var(--bg-hover);">
           </div>
           <div id="qbBillsList" style="font-size: 0.9rem;">
             <p style="color: var(--text-muted);">Connect QuickBooks to view bills</p>
@@ -1049,14 +1057,14 @@
       <div class="card" style="margin-top: 1rem;">
         <h3 style="margin-bottom: 0.75rem;">Related Financial Pages</h3>
         <div class="grid" style="grid-template-columns: repeat(2, 1fr);">
-          <a href="loan-readiness.html" style="display: flex; align-items: center; gap: 0.75rem; padding: 1rem; background: var(--bg-hover); border-radius: 8px; text-decoration: none; color: var(--text);">
+          <a href="loan-readiness.html" style="display: flex; align-items: center; gap: 0.75rem; padding: 1rem; background: var(--bg-hover); border-radius: var(--ts-radius-sm, 8px); text-decoration: none; color: var(--text);">
             <i class="fas fa-file-contract" style="font-size: 1.5rem; color: var(--secondary);"></i>
             <div>
               <strong>Loan & Grant Center</strong>
               <p style="color: var(--text-muted); font-size: 0.85rem;">Loan readiness, grant tracking, business plan, document vault</p>
             </div>
           </a>
-          <a href="financial-dashboard.html" style="display: flex; align-items: center; gap: 0.75rem; padding: 1rem; background: var(--bg-hover); border-radius: 8px; text-decoration: none; color: var(--text);">
+          <a href="financial-dashboard.html" style="display: flex; align-items: center; gap: 0.75rem; padding: 1rem; background: var(--bg-hover); border-radius: var(--ts-radius-sm, 8px); text-decoration: none; color: var(--text);">
             <i class="fas fa-chart-pie" style="font-size: 1.5rem; color: var(--primary);"></i>
             <div>
               <strong>Financial Command Center</strong>
@@ -1467,7 +1475,7 @@
           <strong>Owner Action Required:</strong> Follow these steps to connect QuickBooks to Tiny Seed Farm OS.
         </div>
 
-        <div style="margin-bottom: 1.5rem; padding: 1rem; background: var(--bg-hover); border-radius: 8px;">
+        <div style="margin-bottom: 1.5rem; padding: 1rem; background: var(--bg-hover); border-radius: var(--ts-radius-sm, 8px);">
           <h4 style="margin-bottom: 0.5rem;"><span style="display: inline-flex; width: 24px; height: 24px; background: var(--primary); color: white; border-radius: 50%; align-items: center; justify-content: center; font-size: 0.8rem; margin-right: 0.5rem;">1</span> Find Your Company ID (Realm ID)</h4>
           <p style="font-size: 0.9rem; color: var(--text-muted);">Log into <a href="https://qbo.intuit.com" target="_blank" style="color: var(--secondary);">QuickBooks Online</a>, look at the URL, find the number after <code>companyId=</code></p>
           <div class="form-group" style="margin-top: 0.75rem;">
@@ -1475,7 +1483,7 @@
           </div>
         </div>
 
-        <div style="margin-bottom: 1.5rem; padding: 1rem; background: var(--bg-hover); border-radius: 8px;">
+        <div style="margin-bottom: 1.5rem; padding: 1rem; background: var(--bg-hover); border-radius: var(--ts-radius-sm, 8px);">
           <h4 style="margin-bottom: 0.5rem;"><span style="display: inline-flex; width: 24px; height: 24px; background: var(--primary); color: white; border-radius: 50%; align-items: center; justify-content: center; font-size: 0.8rem; margin-right: 0.5rem;">2</span> Get Client ID & Secret</h4>
           <p style="font-size: 0.9rem; color: var(--text-muted);">Go to <a href="https://developer.intuit.com" target="_blank" style="color: var(--secondary);">developer.intuit.com</a> &rarr; My Apps &rarr; Keys &amp; credentials &rarr; <strong>Production Keys</strong></p>
           <div class="form-group" style="margin-top: 0.75rem;">
@@ -1486,10 +1494,10 @@
           </div>
         </div>
 
-        <div style="margin-bottom: 1.5rem; padding: 1rem; background: var(--bg-hover); border-radius: 8px;">
+        <div style="margin-bottom: 1.5rem; padding: 1rem; background: var(--bg-hover); border-radius: var(--ts-radius-sm, 8px);">
           <h4 style="margin-bottom: 0.5rem;"><span style="display: inline-flex; width: 24px; height: 24px; background: var(--primary); color: white; border-radius: 50%; align-items: center; justify-content: center; font-size: 0.8rem; margin-right: 0.5rem;">3</span> Add Redirect URI</h4>
           <p style="font-size: 0.9rem; color: var(--text-muted);">In your Intuit Developer App settings, add this Redirect URI:</p>
-          <code style="display: block; padding: 0.75rem; background: var(--bg-dark); border-radius: 6px; word-break: break-all; font-size: 0.8rem; margin-top: 0.5rem;">https://script.google.com/macros/d/1OR_XstYXlvw-vCbE6cO_Cyt22QeowHWgYBKtZbLcu77bJANqSNqENWec/usercallback</code>
+          <code style="display: block; padding: 0.75rem; background: var(--bg-dark); border-radius: var(--ts-radius-sm, 6px); word-break: break-all; font-size: 0.8rem; margin-top: 0.5rem;">https://script.google.com/macros/d/1OR_XstYXlvw-vCbE6cO_Cyt22QeowHWgYBKtZbLcu77bJANqSNqENWec/usercallback</code>
         </div>
 
         <div id="qbSetupResult" style="display: none;"></div>
@@ -2555,5 +2563,6 @@
       }
     }
   </script>
+<script src="shared-nav.js"></script>
 </body>
 </html>

@@ -20,12 +20,12 @@
         :root {
             --primary: var(--ts-green-500, #22c55e);
             --primary-dark: var(--ts-green-600, #16a34a);
-            --bg-dark: var(--ts-bg-base, #0f172a);
-            --bg-card: var(--ts-bg-surface, #1e293b);
-            --bg-elevated: var(--ts-bg-elevated, #334155);
+            --bg-dark: var(--ts-bg-base, #141211);
+            --bg-card: var(--ts-bg-surface, #201e1b);
+            --bg-elevated: var(--ts-bg-elevated, rgba(255,255,255,0.06));
             --text-primary: var(--ts-text, #f8fafc);
-            --text-secondary: var(--ts-text-secondary, #94a3b8);
-            --border: var(--ts-border, #334155);
+            --text-secondary: var(--ts-text-secondary, #a09888);
+            --border: var(--ts-border, rgba(255,255,255,0.06));
             --danger: var(--ts-red-500, #ef4444);
             --warning: var(--ts-amber-500, #f59e0b);
             --info: var(--ts-blue-500, #3b82f6);
@@ -45,7 +45,7 @@
            ═══════════════════════════════════════════════════════════════════════════ */
 
         .screen-only {
-            padding: 24px;
+            padding: var(--ts-space-6, 24px);
         }
 
         .container {
@@ -57,29 +57,29 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 32px;
+            margin-bottom: var(--ts-space-8, 32px);
             flex-wrap: wrap;
-            gap: 16px;
+            gap: var(--ts-space-4, 16px);
         }
 
         .header-left {
             display: flex;
             align-items: center;
-            gap: 16px;
+            gap: var(--ts-space-4, 16px);
         }
 
         .back-btn {
             background: var(--bg-card);
             border: 1px solid var(--border);
             color: var(--text-primary);
-            padding: 10px 16px;
-            border-radius: 8px;
+            padding: var(--ts-space-2, 10px) var(--ts-space-4, 16px);
+            border-radius: var(--ts-radius-sm, 8px);
             cursor: pointer;
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
             text-decoration: none;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: var(--ts-space-2, 8px);
         }
 
         .back-btn:hover {
@@ -87,23 +87,23 @@
         }
 
         h1 {
-            font-size: 28px;
+            font-size: var(--ts-text-3xl, 1.75rem);
             font-weight: 700;
         }
 
         .header-right {
             display: flex;
-            gap: 12px;
+            gap: var(--ts-space-3, 12px);
         }
 
         .btn {
-            padding: 10px 20px;
-            border-radius: 8px;
-            font-size: 14px;
+            padding: var(--ts-space-2, 10px) var(--ts-space-5, 20px);
+            border-radius: var(--ts-radius-sm, 8px);
+            font-size: var(--ts-text-sm, 0.875rem);
             font-weight: 500;
             cursor: pointer;
             border: none;
-            transition: all 0.2s;
+            transition: all var(--ts-dur-normal, 200ms);
         }
 
         .btn-primary {
@@ -128,21 +128,21 @@
         /* Tabs */
         .tabs {
             display: flex;
-            gap: 4px;
+            gap: var(--ts-space-1, 4px);
             background: var(--bg-card);
             padding: 6px;
-            border-radius: 12px;
-            margin-bottom: 24px;
+            border-radius: var(--ts-radius-md, 12px);
+            margin-bottom: var(--ts-space-6, 24px);
         }
 
         .tab {
-            padding: 12px 24px;
-            border-radius: 8px;
+            padding: var(--ts-space-3, 12px) var(--ts-space-6, 24px);
+            border-radius: var(--ts-radius-sm, 8px);
             cursor: pointer;
             font-weight: 500;
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
             color: var(--text-secondary);
-            transition: all 0.2s;
+            transition: all var(--ts-dur-normal, 200ms);
             border: none;
             background: none;
         }
@@ -160,23 +160,23 @@
         /* Controls Panel */
         .controls-panel {
             background: var(--bg-card);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 24px;
+            border-radius: var(--ts-radius-md, 12px);
+            padding: var(--ts-space-5, 20px);
+            margin-bottom: var(--ts-space-6, 24px);
             display: flex;
             flex-wrap: wrap;
-            gap: 16px;
+            gap: var(--ts-space-4, 16px);
             align-items: flex-end;
         }
 
         .control-group {
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: var(--ts-space-1, 6px);
         }
 
         .control-group label {
-            font-size: 12px;
+            font-size: var(--ts-text-xs, 0.75rem);
             font-weight: 500;
             color: var(--text-secondary);
             text-transform: uppercase;
@@ -186,11 +186,11 @@
         .control-group select,
         .control-group input {
             padding: 10px 14px;
-            border-radius: 8px;
+            border-radius: var(--ts-radius-sm, 8px);
             border: 1px solid var(--border);
             background: var(--bg-dark);
             color: var(--text-primary);
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
             min-width: 180px;
         }
 
@@ -198,11 +198,12 @@
         .control-group input:focus {
             outline: none;
             border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--ts-primary-muted, rgba(34, 197, 94, 0.15));
         }
 
         .stats-row {
             display: flex;
-            gap: 24px;
+            gap: var(--ts-space-6, 24px);
             margin-left: auto;
         }
 
@@ -211,21 +212,21 @@
         }
 
         .stat-value {
-            font-size: 24px;
+            font-size: var(--ts-text-2xl, 1.5rem);
             font-weight: 700;
             color: var(--primary);
         }
 
         .stat-label {
-            font-size: 12px;
+            font-size: var(--ts-text-xs, 0.75rem);
             color: var(--text-secondary);
         }
 
         /* Labels Grid Preview */
         .labels-preview {
             background: var(--bg-card);
-            border-radius: 12px;
-            padding: 24px;
+            border-radius: var(--ts-radius-md, 12px);
+            padding: var(--ts-space-6, 24px);
             min-height: 400px;
         }
 
@@ -233,20 +234,20 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: var(--ts-space-5, 20px);
             padding-bottom: 16px;
             border-bottom: 1px solid var(--border);
         }
 
         .preview-title {
-            font-size: 18px;
+            font-size: var(--ts-text-lg, 1.125rem);
             font-weight: 600;
         }
 
         .select-all-container {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: var(--ts-space-2, 8px);
         }
 
         .select-all-container input[type="checkbox"] {
@@ -259,17 +260,17 @@
         .market-signs-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 24px;
+            gap: var(--ts-space-6, 24px);
         }
 
         .market-sign-preview {
             background: white;
-            border-radius: 6px;
+            border-radius: var(--ts-radius-sm, 6px);
             overflow: hidden;
             color: #1a1a1a;
             cursor: pointer;
             border: 3px solid transparent;
-            transition: all 0.2s;
+            transition: all var(--ts-dur-normal, 200ms);
             display: flex;
             flex-direction: column;
             aspect-ratio: 0.72;  /* Matching source ~4:5.5 portrait */
@@ -330,7 +331,7 @@
         /* Variety: italic serif below crop name - proportional to header */
         .market-sign-preview .variety {
             font-family: 'Georgia', serif;
-            font-size: 16px;
+            font-size: var(--ts-text-base, 1rem);
             font-style: italic;
             color: #666;
             margin-top: 6px;
@@ -425,17 +426,17 @@
         .labels-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 16px;
+            gap: var(--ts-space-4, 16px);
         }
 
         .label-preview {
             background: white;
-            border-radius: 8px;
-            padding: 16px;
+            border-radius: var(--ts-radius-sm, 8px);
+            padding: var(--ts-space-4, 16px);
             color: #1a1a1a;
             cursor: pointer;
             border: 3px solid transparent;
-            transition: all 0.2s;
+            transition: all var(--ts-dur-normal, 200ms);
         }
 
         .label-preview:hover {
@@ -449,17 +450,17 @@
 
         .label-preview .customer-name {
             font-weight: 700;
-            font-size: 16px;
-            margin-bottom: 8px;
+            font-size: var(--ts-text-base, 1rem);
+            margin-bottom: var(--ts-space-2, 8px);
         }
 
         .label-preview .items-list {
-            font-size: 13px;
+            font-size: var(--ts-text-xs, 0.8rem);
             color: #444;
         }
 
         .label-preview .items-list li {
-            margin-bottom: 4px;
+            margin-bottom: var(--ts-space-1, 4px);
         }
 
         /* Empty State */
@@ -470,27 +471,27 @@
         }
 
         .empty-state-icon {
-            font-size: 48px;
-            margin-bottom: 16px;
+            font-size: var(--ts-text-5xl, 3rem);
+            margin-bottom: var(--ts-space-4, 16px);
             opacity: 0.5;
         }
 
         /* Manual Entry Form */
         .manual-entry-section {
             background: var(--bg-card);
-            border-radius: 12px;
-            padding: 24px;
-            margin-top: 24px;
+            border-radius: var(--ts-radius-md, 12px);
+            padding: var(--ts-space-6, 24px);
+            margin-top: var(--ts-space-6, 24px);
         }
 
         .manual-entry-section h3 {
-            margin-bottom: 16px;
-            font-size: 16px;
+            margin-bottom: var(--ts-space-4, 16px);
+            font-size: var(--ts-text-base, 1rem);
         }
 
         .manual-form-row {
             display: flex;
-            gap: 12px;
+            gap: var(--ts-space-3, 12px);
             flex-wrap: wrap;
         }
 
@@ -498,11 +499,11 @@
             flex: 1;
             min-width: 150px;
             padding: 10px 14px;
-            border-radius: 8px;
+            border-radius: var(--ts-radius-sm, 8px);
             border: 1px solid var(--border);
             background: var(--bg-dark);
             color: var(--text-primary);
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
         }
 
         /* Loading State */
@@ -533,19 +534,19 @@
         .seed-controls {
             display: flex;
             flex-wrap: wrap;
-            gap: 12px;
+            gap: var(--ts-space-3, 12px);
             align-items: flex-end;
         }
 
         .seed-table-container {
             overflow-x: auto;
-            margin-bottom: 20px;
+            margin-bottom: var(--ts-space-5, 20px);
         }
 
         .seed-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 13px;
+            font-size: var(--ts-text-xs, 0.8rem);
         }
 
         .seed-table th,
@@ -556,7 +557,7 @@
         }
 
         .seed-table th {
-            font-size: 11px;
+            font-size: var(--ts-text-2xs, 0.69rem);
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.5px;
@@ -584,19 +585,20 @@
             display: inline-block;
             background: var(--primary);
             color: white;
-            font-size: 10px;
+            font-size: var(--ts-text-2xs, 0.625rem);
             font-weight: 600;
             padding: 2px 6px;
-            border-radius: 4px;
+            border-radius: var(--ts-radius-sm, 4px);
             text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
 
         .status-badge {
             display: inline-block;
-            font-size: 11px;
+            font-size: var(--ts-text-2xs, 0.69rem);
             font-weight: 500;
             padding: 3px 8px;
-            border-radius: 4px;
+            border-radius: var(--ts-radius-sm, 4px);
         }
 
         .status-badge.active { background: rgba(34, 197, 94, 0.15); color: var(--ts-green-500, #22c55e); }
@@ -608,19 +610,19 @@
         .seed-labels-preview-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 12px;
-            margin-top: 20px;
+            gap: var(--ts-space-3, 12px);
+            margin-top: var(--ts-space-5, 20px);
         }
 
         .seed-label-preview {
             background: white;
-            border-radius: 6px;
+            border-radius: var(--ts-radius-sm, 6px);
             padding: 10px;
             color: #1a1a1a;
             display: flex;
-            gap: 10px;
+            gap: var(--ts-space-2, 10px);
             border: 2px solid transparent;
-            transition: all 0.2s;
+            transition: all var(--ts-dur-normal, 200ms);
             min-height: 80px;
         }
 
@@ -641,7 +643,7 @@
 
         .seed-label-preview .info {
             overflow: hidden;
-            font-size: 11px;
+            font-size: var(--ts-text-2xs, 0.69rem);
             line-height: 1.4;
         }
 
@@ -653,7 +655,7 @@
 
         .seed-label-preview .info .crop-name {
             font-weight: 700;
-            font-size: 13px;
+            font-size: var(--ts-text-xs, 0.8rem);
         }
 
         .seed-label-preview .info .variety-name {
@@ -670,6 +672,7 @@
             padding: 1px 4px;
             border-radius: 3px;
             text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
 
         /* ═══════════════════════════════════════════════════════════════════════════
@@ -679,7 +682,7 @@
         .field-controls {
             display: flex;
             flex-wrap: wrap;
-            gap: 16px;
+            gap: var(--ts-space-4, 16px);
             align-items: flex-end;
         }
 
@@ -687,18 +690,18 @@
         .bed-markers-preview-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 16px;
-            margin-top: 20px;
+            gap: var(--ts-space-4, 16px);
+            margin-top: var(--ts-space-5, 20px);
         }
 
         .bed-marker-preview {
             background: white;
-            border-radius: 8px;
-            padding: 16px;
+            border-radius: var(--ts-radius-sm, 8px);
+            padding: var(--ts-space-4, 16px);
             color: #1a1a1a;
             text-align: center;
             border: 2px solid #333;
-            transition: all 0.2s;
+            transition: all var(--ts-dur-normal, 200ms);
         }
 
         .bed-marker-preview:hover {
@@ -708,24 +711,24 @@
         }
 
         .bed-marker-preview .field-name {
-            font-size: 12px;
+            font-size: var(--ts-text-xs, 0.75rem);
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            margin-bottom: 4px;
+            margin-bottom: var(--ts-space-1, 4px);
         }
 
         .bed-marker-preview .bed-number {
-            font-size: 48px;
+            font-size: var(--ts-text-5xl, 3rem);
             font-weight: 700;
             line-height: 1;
             margin: 8px 0;
         }
 
         .bed-marker-preview .crop-info {
-            font-size: 11px;
+            font-size: var(--ts-text-2xs, 0.69rem);
             color: #555;
-            margin-bottom: 8px;
+            margin-bottom: var(--ts-space-2, 8px);
         }
 
         .bed-marker-preview .qr {
@@ -743,43 +746,43 @@
         .row-markers-preview-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-            gap: 12px;
-            margin-top: 20px;
+            gap: var(--ts-space-3, 12px);
+            margin-top: var(--ts-space-5, 20px);
         }
 
         .row-marker-preview {
             background: white;
-            border-radius: 6px;
-            padding: 12px;
+            border-radius: var(--ts-radius-sm, 6px);
+            padding: var(--ts-space-3, 12px);
             color: #1a1a1a;
             border: 2px solid #666;
             text-align: center;
         }
 
-        .row-marker-preview .crop-name { font-weight: 700; font-size: 14px; }
-        .row-marker-preview .variety-name { font-style: italic; color: #555; font-size: 12px; }
-        .row-marker-preview .dates { font-size: 10px; color: #777; margin-top: 6px; }
-        .row-marker-preview .row-num { font-size: 11px; font-weight: 600; margin-top: 4px; }
+        .row-marker-preview .crop-name { font-weight: 700; font-size: var(--ts-text-sm, 0.875rem); }
+        .row-marker-preview .variety-name { font-style: italic; color: #555; font-size: var(--ts-text-xs, 0.75rem); }
+        .row-marker-preview .dates { font-size: var(--ts-text-2xs, 0.625rem); color: #777; margin-top: 6px; }
+        .row-marker-preview .row-num { font-size: var(--ts-text-2xs, 0.69rem); font-weight: 600; margin-top: 4px; }
 
         /* Plant Tag Preview (screen) */
         .plant-tags-preview-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-            gap: 8px;
-            margin-top: 20px;
+            gap: var(--ts-space-2, 8px);
+            margin-top: var(--ts-space-5, 20px);
         }
 
         .plant-tag-preview {
             background: white;
-            border-radius: 4px;
-            padding: 8px;
+            border-radius: var(--ts-radius-sm, 4px);
+            padding: var(--ts-space-2, 8px);
             color: #1a1a1a;
             border: 1px solid #999;
             text-align: center;
-            font-size: 10px;
+            font-size: var(--ts-text-2xs, 0.625rem);
         }
 
-        .plant-tag-preview .variety-name { font-weight: 700; font-size: 11px; }
+        .plant-tag-preview .variety-name { font-weight: 700; font-size: var(--ts-text-2xs, 0.69rem); }
         .plant-tag-preview .plant-date { color: #666; }
 
         /* ═══════════════════════════════════════════════════════════════════════════
@@ -919,7 +922,7 @@
                 color: #555;
                 background: #d4d4d4;
                 padding: 0.04in 0.08in;
-                border-radius: 4px;
+                border-radius: var(--ts-radius-sm, 4px);
                 text-transform: uppercase;
                 letter-spacing: 0.3px;
                 white-space: nowrap;
@@ -1076,7 +1079,7 @@
                 width: 2in;
                 height: 1in;
                 border: 1px dashed #ccc;
-                padding: 4px;
+                padding: var(--ts-space-1, 4px);
                 font-size: 8pt;
                 page-break-inside: avoid;
                 display: inline-block;
@@ -1132,6 +1135,7 @@
                 padding: 0 3px;
                 border-radius: 2px;
                 text-transform: uppercase;
+            letter-spacing: 0.05em;
             }
 
             /* ═══════════════════════════════════════════════════════════════
@@ -1299,14 +1303,33 @@
         }
 
         @media (max-width: 768px) {
-            body { padding: 8px; }
-            .container, .main-content, .content, .page-content, .dashboard { padding: 12px; }
+            body { padding: var(--ts-space-2, 8px); }
+            .container, .main-content, .content, .page-content, .dashboard { padding: var(--ts-space-3, 12px); }
             table { display: block; overflow-x: auto; }
             .sidebar, .side-panel { display: none; }
-            h1 { font-size: 24px; }
-            h2 { font-size: 20px; }
+            h1 { font-size: var(--ts-text-2xl, 1.5rem); }
+            h2 { font-size: var(--ts-text-xl, 1.25rem); }
             .btn, button { min-height: 44px; }
         }
+        /* ── Accessibility: Focus Visible ── */
+        :focus-visible { outline: 2px solid var(--ts-primary, #22c55e); outline-offset: 2px; }
+        :focus:not(:focus-visible) { outline: none; }
+
+        /* ── Accessibility: Reduced Motion ── */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        /* ── Page Load Animation ── */
+        @keyframes ts-page-enter {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        body { animation: ts-page-enter var(--ts-dur-moderate, 300ms) var(--ts-ease-out, ease) both; }
+
     </style>
 </head>
 <body>
@@ -1486,12 +1509,12 @@
                     </div>
                     <div class="control-group">
                         <label>&nbsp;</label>
-                        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px; color: var(--text-primary); text-transform: none; letter-spacing: 0;">
+                        <label style="display: flex; align-items: center; gap: var(--ts-space-1, 6px); cursor: pointer; font-size: var(--ts-text-xs, 0.8rem); color: var(--text-primary); text-transform: none; letter-spacing: 0;">
                             <input type="checkbox" id="seedOrganicOnly" onchange="filterSeedInventory()" style="width: 16px; height: 16px;">
                             Organic Only
                         </label>
                     </div>
-                    <div style="margin-left: auto; display: flex; gap: 8px;">
+                    <div style="margin-left: auto; display: flex; gap: var(--ts-space-2, 8px);">
                         <button class="btn btn-secondary" onclick="loadSeedInventory()">Refresh</button>
                         <button class="btn btn-primary" onclick="generateAllSeedQRCodes()">Generate All QR Codes</button>
                     </div>
@@ -1529,7 +1552,7 @@
                 </div>
 
                 <!-- Seed Label Preview -->
-                <div class="labels-preview" style="margin-top: 24px;">
+                <div class="labels-preview" style="margin-top: var(--ts-space-6, 24px);">
                     <div class="preview-header">
                         <span class="preview-title">Label Preview</span>
                         <button class="btn btn-primary" onclick="printSelected()">Print Selected Labels</button>
@@ -1555,7 +1578,7 @@
                     </div>
                     <div class="control-group">
                         <label>Bed Range</label>
-                        <div style="display: flex; gap: 6px; align-items: center;">
+                        <div style="display: flex; gap: var(--ts-space-1, 6px); align-items: center;">
                             <input type="number" id="bedRangeStart" placeholder="1" min="1" style="width: 70px;">
                             <span style="color: var(--text-secondary);">to</span>
                             <input type="number" id="bedRangeEnd" placeholder="--" min="1" style="width: 70px;">
@@ -2400,7 +2423,7 @@
                 return `
                     <tr class="${isSelected ? 'selected' : ''}" onclick="toggleSelection('seed', ${idx})" style="cursor: pointer;">
                         <td><input type="checkbox" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation(); toggleSelection('seed', ${idx})"></td>
-                        <td style="font-family: monospace; font-size: 12px;">${seed.Seed_Lot_ID || seed.seedLotId || '--'}</td>
+                        <td style="font-family: monospace; font-size: var(--ts-text-xs, 0.75rem);">${seed.Seed_Lot_ID || seed.seedLotId || '--'}</td>
                         <td><strong>${seed.Crop || seed.crop || '--'}</strong></td>
                         <td>${seed.Variety || seed.variety || '--'}</td>
                         <td>${seed.Supplier || seed.supplier || '--'}</td>
@@ -2744,7 +2767,7 @@
                                 ${label.crop ? `<strong>${label.crop}</strong>` : '<em style="color: #aaa;">Empty</em>'}
                                 ${label.variety ? ` - ${label.variety}` : ''}
                             </div>
-                            ${plantDateFormatted ? `<div style="font-size: 10px; color: #888;">Planted: ${plantDateFormatted}</div>` : ''}
+                            ${plantDateFormatted ? `<div style="font-size: var(--ts-text-2xs, 0.625rem); color: #888;">Planted: ${plantDateFormatted}</div>` : ''}
                             <div class="qr"><img src="${qrUrl}" alt="QR" loading="lazy" data-qr-url="${_getBedTrackUrl(label.bedId)}"></div>
                         </div>
                     `;
@@ -2858,5 +2881,6 @@
             TinySeedPrint.report({ orientation: 'portrait' });
         }
     </script>
+<script src="shared-nav.js"></script>
 </body>
 </html>

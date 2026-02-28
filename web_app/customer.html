@@ -13,7 +13,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="tiny-seed-design-system.css">
     <style>
-        .skip-link { position: absolute; top: -40px; left: 0; background: #166534; color: #fff; padding: 8px 16px; z-index: 10000; font-size: 14px; transition: top 0.2s; }
+        .skip-link { position: absolute; top: -40px; left: 0; background: #166534; color: #fff; padding: var(--ts-space-2, 8px) var(--ts-space-4, 16px); z-index: 10000; font-size: var(--ts-text-sm, 0.875rem); transition: top var(--ts-dur-normal, 200ms); }
         .skip-link:focus { top: 0; }
 
         /* ========================================
@@ -82,7 +82,7 @@
 
         .header {
             background: var(--bg-card);
-            padding: 16px 20px;
+            padding: var(--ts-space-4, 16px) var(--ts-space-5, 20px);
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -95,22 +95,22 @@
         .logo {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: var(--ts-space-3, 12px);
         }
 
         .logo-icon {
             width: 40px;
             height: 40px;
             background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-            border-radius: 10px;
+            border-radius: var(--ts-radius-md, 10px);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 20px;
+            font-size: var(--ts-text-xl, 1.25rem);
         }
 
         .logo-text {
-            font-size: 18px;
+            font-size: var(--ts-text-lg, 1.125rem);
             font-weight: 700;
             color: var(--text-primary);
         }
@@ -118,11 +118,11 @@
         .user-menu {
             display: flex;
             align-items: center;
-            gap: 8px;
-            padding: 8px 12px;
-            border-radius: 8px;
+            gap: var(--ts-space-2, 8px);
+            padding: var(--ts-space-2, 8px) var(--ts-space-3, 12px);
+            border-radius: var(--ts-radius-sm, 8px);
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all var(--ts-dur-normal, 200ms);
         }
 
         .user-menu:hover {
@@ -139,7 +139,7 @@
             justify-content: center;
             color: white;
             font-weight: 600;
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
         }
 
         /* ========================================
@@ -151,12 +151,12 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 20px;
+            padding: var(--ts-space-5, 20px);
         }
 
         .login-card {
             background: var(--bg-card);
-            border-radius: 16px;
+            border-radius: var(--ts-radius-lg, 16px);
             padding: 40px;
             width: 100%;
             max-width: 420px;
@@ -168,35 +168,35 @@
             width: 80px;
             height: 80px;
             background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-            border-radius: 20px;
+            border-radius: var(--ts-radius-lg, 20px);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 40px;
+            font-size: var(--ts-text-4xl, 2.5rem);
             margin: 0 auto 24px;
         }
 
         .login-title {
-            font-size: 24px;
+            font-size: var(--ts-text-2xl, 1.5rem);
             font-weight: 700;
-            margin-bottom: 8px;
+            margin-bottom: var(--ts-space-2, 8px);
         }
 
         .login-subtitle {
             color: var(--text-secondary);
-            margin-bottom: 32px;
+            margin-bottom: var(--ts-space-8, 32px);
         }
 
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: var(--ts-space-5, 20px);
             text-align: left;
         }
 
         .form-label {
             display: block;
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
             font-weight: 500;
-            margin-bottom: 8px;
+            margin-bottom: var(--ts-space-2, 8px);
             color: var(--text-secondary);
         }
 
@@ -204,9 +204,9 @@
             width: 100%;
             padding: 14px 16px;
             border: 2px solid var(--border-color);
-            border-radius: 10px;
-            font-size: 16px;
-            transition: all 0.2s;
+            border-radius: var(--ts-radius-md, 10px);
+            font-size: var(--ts-text-base, 1rem);
+            transition: all var(--ts-dur-normal, 200ms);
             background: var(--bg-card);
         }
 
@@ -220,13 +220,13 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
+            gap: var(--ts-space-2, 8px);
             padding: 14px 24px;
-            border-radius: 10px;
-            font-size: 16px;
+            border-radius: var(--ts-radius-md, 10px);
+            font-size: var(--ts-text-base, 1rem);
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all var(--ts-dur-normal, 200ms);
             border: none;
             width: 100%;
         }
@@ -256,7 +256,7 @@
             align-items: center;
             margin: 24px 0;
             color: var(--text-muted);
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
         }
 
         .login-divider::before,
@@ -274,7 +274,7 @@
         .magic-link-sent {
             display: none;
             text-align: center;
-            padding: 20px;
+            padding: var(--ts-space-5, 20px);
         }
 
         .magic-link-sent.show {
@@ -283,7 +283,7 @@
 
         .magic-link-icon {
             font-size: 60px;
-            margin-bottom: 20px;
+            margin-bottom: var(--ts-space-5, 20px);
         }
 
         /* Portal Links */
@@ -296,9 +296,9 @@
         .portal-divider {
             display: flex;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: var(--ts-space-5, 20px);
             color: var(--text-muted);
-            font-size: 12px;
+            font-size: var(--ts-text-xs, 0.75rem);
             text-transform: uppercase;
             letter-spacing: 1px;
         }
@@ -317,21 +317,21 @@
 
         .portal-buttons {
             display: flex;
-            gap: 12px;
+            gap: var(--ts-space-3, 12px);
         }
 
         .portal-link {
             flex: 1;
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: var(--ts-space-3, 12px);
             padding: 14px;
             background: var(--bg-elevated);
             border: 1px solid var(--border-color);
-            border-radius: 12px;
+            border-radius: var(--ts-radius-md, 12px);
             text-decoration: none;
             color: var(--text-primary);
-            transition: all 0.2s;
+            transition: all var(--ts-dur-normal, 200ms);
         }
 
         .portal-link:hover {
@@ -341,7 +341,7 @@
         }
 
         .portal-icon {
-            font-size: 24px;
+            font-size: var(--ts-text-2xl, 1.5rem);
         }
 
         .portal-text {
@@ -351,11 +351,11 @@
 
         .portal-title {
             font-weight: 600;
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
         }
 
         .portal-desc {
-            font-size: 11px;
+            font-size: var(--ts-text-2xs, 0.69rem);
             color: var(--text-secondary);
         }
 
@@ -394,11 +394,11 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 4px;
-            padding: 8px;
+            gap: var(--ts-space-1, 4px);
+            padding: var(--ts-space-2, 8px);
             cursor: pointer;
             color: var(--text-muted);
-            transition: all 0.2s;
+            transition: all var(--ts-dur-normal, 200ms);
         }
 
         .nav-item.active {
@@ -406,11 +406,11 @@
         }
 
         .nav-item .nav-icon {
-            font-size: 24px;
+            font-size: var(--ts-text-2xl, 1.5rem);
         }
 
         .nav-item .nav-label {
-            font-size: 11px;
+            font-size: var(--ts-text-2xs, 0.69rem);
             font-weight: 500;
         }
 
@@ -420,10 +420,10 @@
             right: calc(50% - 16px);
             background: var(--danger);
             color: white;
-            font-size: 10px;
+            font-size: var(--ts-text-2xs, 0.625rem);
             font-weight: 600;
             padding: 2px 6px;
-            border-radius: 10px;
+            border-radius: var(--ts-radius-md, 10px);
             position: relative;
             margin-top: -8px;
             margin-left: 8px;
@@ -431,7 +431,7 @@
 
         /* Page Content */
         .page-content {
-            padding: 20px;
+            padding: var(--ts-space-5, 20px);
             padding-bottom: 100px;
         }
 
@@ -448,13 +448,13 @@
            ======================================== */
 
         .shop-header {
-            margin-bottom: 20px;
+            margin-bottom: var(--ts-space-5, 20px);
         }
 
         .shop-title {
-            font-size: 28px;
+            font-size: var(--ts-text-3xl, 1.75rem);
             font-weight: 700;
-            margin-bottom: 4px;
+            margin-bottom: var(--ts-space-1, 4px);
         }
 
         .shop-subtitle {
@@ -464,23 +464,23 @@
         .delivery-banner {
             background: linear-gradient(135deg, var(--primary), var(--primary-dark));
             color: white;
-            padding: 16px 20px;
-            border-radius: 12px;
-            margin-bottom: 20px;
+            padding: var(--ts-space-4, 16px) var(--ts-space-5, 20px);
+            border-radius: var(--ts-radius-md, 12px);
+            margin-bottom: var(--ts-space-5, 20px);
             display: flex;
             align-items: center;
             justify-content: space-between;
         }
 
         .delivery-info h3 {
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
             font-weight: 500;
             opacity: 0.9;
-            margin-bottom: 4px;
+            margin-bottom: var(--ts-space-1, 4px);
         }
 
         .delivery-date {
-            font-size: 20px;
+            font-size: var(--ts-text-xl, 1.25rem);
             font-weight: 700;
         }
 
@@ -489,22 +489,22 @@
         }
 
         .countdown-label {
-            font-size: 11px;
+            font-size: var(--ts-text-2xs, 0.69rem);
             opacity: 0.8;
         }
 
         .countdown-time {
-            font-size: 24px;
+            font-size: var(--ts-text-2xl, 1.5rem);
             font-weight: 700;
         }
 
         /* Categories */
         .categories-scroll {
             display: flex;
-            gap: 10px;
+            gap: var(--ts-space-2, 10px);
             overflow-x: auto;
             padding-bottom: 12px;
-            margin-bottom: 20px;
+            margin-bottom: var(--ts-space-5, 20px);
             -webkit-overflow-scrolling: touch;
         }
 
@@ -514,14 +514,14 @@
 
         .category-chip {
             flex-shrink: 0;
-            padding: 10px 20px;
+            padding: var(--ts-space-2, 10px) var(--ts-space-5, 20px);
             background: var(--bg-card);
             border: 1px solid var(--border-color);
-            border-radius: 20px;
-            font-size: 14px;
+            border-radius: var(--ts-radius-lg, 20px);
+            font-size: var(--ts-text-sm, 0.875rem);
             font-weight: 500;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all var(--ts-dur-normal, 200ms);
         }
 
         .category-chip:hover {
@@ -538,7 +538,7 @@
         .products-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 16px;
+            gap: var(--ts-space-4, 16px);
         }
 
         @media (min-width: 768px) {
@@ -555,10 +555,10 @@
 
         .product-card {
             background: var(--bg-card);
-            border-radius: 12px;
+            border-radius: var(--ts-radius-md, 12px);
             overflow: hidden;
             box-shadow: var(--shadow-sm);
-            transition: all 0.2s;
+            transition: all var(--ts-dur-normal, 200ms);
         }
 
         .product-card:hover {
@@ -573,22 +573,22 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 48px;
+            font-size: var(--ts-text-5xl, 3rem);
         }
 
         .product-info {
-            padding: 12px;
+            padding: var(--ts-space-3, 12px);
         }
 
         .product-name {
             font-weight: 600;
-            margin-bottom: 4px;
+            margin-bottom: var(--ts-space-1, 4px);
         }
 
         .product-unit {
-            font-size: 12px;
+            font-size: var(--ts-text-xs, 0.75rem);
             color: var(--text-secondary);
-            margin-bottom: 8px;
+            margin-bottom: var(--ts-space-2, 8px);
         }
 
         .product-footer {
@@ -598,7 +598,7 @@
         }
 
         .product-price {
-            font-size: 18px;
+            font-size: var(--ts-text-lg, 1.125rem);
             font-weight: 700;
             color: var(--primary);
         }
@@ -610,12 +610,12 @@
             background: var(--primary);
             color: white;
             border: none;
-            font-size: 20px;
+            font-size: var(--ts-text-xl, 1.25rem);
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.2s;
+            transition: all var(--ts-dur-normal, 200ms);
         }
 
         .add-btn:hover {
@@ -633,9 +633,9 @@
         }
 
         .stock-badge {
-            font-size: 11px;
+            font-size: var(--ts-text-2xs, 0.69rem);
             padding: 2px 8px;
-            border-radius: 4px;
+            border-radius: var(--ts-radius-sm, 4px);
             font-weight: 500;
         }
 
@@ -657,17 +657,17 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 20px;
+            margin-bottom: var(--ts-space-5, 20px);
         }
 
         .cart-title {
-            font-size: 24px;
+            font-size: var(--ts-text-2xl, 1.5rem);
             font-weight: 700;
         }
 
         .clear-cart-btn {
             color: var(--danger);
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
             cursor: pointer;
             background: none;
             border: none;
@@ -680,45 +680,45 @@
 
         .cart-empty-icon {
             font-size: 64px;
-            margin-bottom: 16px;
+            margin-bottom: var(--ts-space-4, 16px);
             opacity: 0.5;
         }
 
         .cart-empty-title {
-            font-size: 18px;
+            font-size: var(--ts-text-lg, 1.125rem);
             font-weight: 600;
-            margin-bottom: 8px;
+            margin-bottom: var(--ts-space-2, 8px);
         }
 
         .cart-empty-desc {
             color: var(--text-secondary);
-            margin-bottom: 20px;
+            margin-bottom: var(--ts-space-5, 20px);
         }
 
         .cart-items {
-            margin-bottom: 20px;
+            margin-bottom: var(--ts-space-5, 20px);
         }
 
         .cart-item {
             display: flex;
             align-items: center;
-            gap: 16px;
-            padding: 16px;
+            gap: var(--ts-space-4, 16px);
+            padding: var(--ts-space-4, 16px);
             background: var(--bg-card);
-            border-radius: 12px;
-            margin-bottom: 12px;
+            border-radius: var(--ts-radius-md, 12px);
+            margin-bottom: var(--ts-space-3, 12px);
             box-shadow: var(--shadow-sm);
         }
 
         .cart-item-image {
             width: 60px;
             height: 60px;
-            border-radius: 8px;
+            border-radius: var(--ts-radius-sm, 8px);
             background: var(--bg-elevated);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 28px;
+            font-size: var(--ts-text-3xl, 1.75rem);
             flex-shrink: 0;
         }
 
@@ -728,7 +728,7 @@
 
         .cart-item-name {
             font-weight: 600;
-            margin-bottom: 4px;
+            margin-bottom: var(--ts-space-1, 4px);
         }
 
         .cart-item-price {
@@ -739,21 +739,21 @@
         .quantity-control {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: var(--ts-space-3, 12px);
         }
 
         .qty-btn {
             width: 32px;
             height: 32px;
-            border-radius: 8px;
+            border-radius: var(--ts-radius-sm, 8px);
             border: 1px solid var(--border-color);
             background: var(--bg-card);
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 16px;
-            transition: all 0.2s;
+            font-size: var(--ts-text-base, 1rem);
+            transition: all var(--ts-dur-normal, 200ms);
         }
 
         .qty-btn:hover {
@@ -761,7 +761,7 @@
         }
 
         .qty-value {
-            font-size: 16px;
+            font-size: var(--ts-text-base, 1rem);
             font-weight: 600;
             min-width: 24px;
             text-align: center;
@@ -772,15 +772,15 @@
             background: none;
             border: none;
             cursor: pointer;
-            font-size: 18px;
-            padding: 8px;
+            font-size: var(--ts-text-lg, 1.125rem);
+            padding: var(--ts-space-2, 8px);
         }
 
         /* Cart Summary */
         .cart-summary {
             background: var(--bg-card);
-            border-radius: 12px;
-            padding: 20px;
+            border-radius: var(--ts-radius-md, 12px);
+            padding: var(--ts-space-5, 20px);
             box-shadow: var(--shadow-sm);
         }
 
@@ -792,14 +792,14 @@
 
         .summary-row.total {
             border-top: 1px solid var(--border-color);
-            margin-top: 8px;
+            margin-top: var(--ts-space-2, 8px);
             padding-top: 16px;
             font-weight: 700;
-            font-size: 18px;
+            font-size: var(--ts-text-lg, 1.125rem);
         }
 
         .checkout-btn {
-            margin-top: 16px;
+            margin-top: var(--ts-space-4, 16px);
         }
 
         /* ========================================
@@ -807,19 +807,19 @@
            ======================================== */
 
         .orders-header {
-            margin-bottom: 20px;
+            margin-bottom: var(--ts-space-5, 20px);
         }
 
         .orders-title {
-            font-size: 24px;
+            font-size: var(--ts-text-2xl, 1.5rem);
             font-weight: 700;
         }
 
         .order-card {
             background: var(--bg-card);
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 12px;
+            border-radius: var(--ts-radius-md, 12px);
+            padding: var(--ts-space-4, 16px);
+            margin-bottom: var(--ts-space-3, 12px);
             box-shadow: var(--shadow-sm);
         }
 
@@ -827,7 +827,7 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 12px;
+            margin-bottom: var(--ts-space-3, 12px);
         }
 
         .order-id {
@@ -837,8 +837,8 @@
 
         .order-status {
             padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 12px;
+            border-radius: var(--ts-radius-lg, 20px);
+            font-size: var(--ts-text-xs, 0.75rem);
             font-weight: 500;
         }
 
@@ -870,7 +870,7 @@
 
         .order-date {
             color: var(--text-secondary);
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
         }
 
         .order-total {
@@ -878,15 +878,15 @@
         }
 
         .order-items-preview {
-            font-size: 13px;
+            font-size: var(--ts-text-xs, 0.8rem);
             color: var(--text-secondary);
-            margin-top: 8px;
+            margin-top: var(--ts-space-2, 8px);
         }
 
         .order-actions {
             display: flex;
-            gap: 8px;
-            margin-top: 12px;
+            gap: var(--ts-space-2, 8px);
+            margin-top: var(--ts-space-3, 12px);
             padding-top: 12px;
             border-top: 1px solid var(--border-color);
         }
@@ -894,7 +894,7 @@
         .order-actions .btn {
             flex: 1;
             padding: 10px;
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
         }
 
         /* ========================================
@@ -902,46 +902,46 @@
            ======================================== */
 
         .csa-header {
-            margin-bottom: 20px;
+            margin-bottom: var(--ts-space-5, 20px);
         }
 
         .csa-title {
-            font-size: 24px;
+            font-size: var(--ts-text-2xl, 1.5rem);
             font-weight: 700;
         }
 
         .csa-status-card {
             background: linear-gradient(135deg, var(--ts-purple-500, #8b5cf6), #7c3aed);
             color: white;
-            padding: 24px;
-            border-radius: 16px;
-            margin-bottom: 20px;
+            padding: var(--ts-space-6, 24px);
+            border-radius: var(--ts-radius-lg, 16px);
+            margin-bottom: var(--ts-space-5, 20px);
         }
 
         .csa-status-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 16px;
+            margin-bottom: var(--ts-space-4, 16px);
         }
 
         .csa-share-type {
-            font-size: 24px;
+            font-size: var(--ts-text-2xl, 1.5rem);
             font-weight: 700;
         }
 
         .csa-active-badge {
             background: rgba(255,255,255,0.2);
             padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 12px;
+            border-radius: var(--ts-radius-lg, 20px);
+            font-size: var(--ts-text-xs, 0.75rem);
             font-weight: 500;
         }
 
         .csa-stats {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 16px;
+            gap: var(--ts-space-4, 16px);
         }
 
         .csa-stat {
@@ -949,49 +949,49 @@
         }
 
         .csa-stat-value {
-            font-size: 24px;
+            font-size: var(--ts-text-2xl, 1.5rem);
             font-weight: 700;
         }
 
         .csa-stat-label {
-            font-size: 12px;
+            font-size: var(--ts-text-xs, 0.75rem);
             opacity: 0.8;
         }
 
         .csa-section {
             background: var(--bg-card);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 16px;
+            border-radius: var(--ts-radius-md, 12px);
+            padding: var(--ts-space-5, 20px);
+            margin-bottom: var(--ts-space-4, 16px);
             box-shadow: var(--shadow-sm);
         }
 
         .csa-section-title {
-            font-size: 16px;
+            font-size: var(--ts-text-base, 1rem);
             font-weight: 600;
-            margin-bottom: 16px;
+            margin-bottom: var(--ts-space-4, 16px);
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: var(--ts-space-2, 8px);
         }
 
         .this-week-box {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
+            gap: var(--ts-space-3, 12px);
         }
 
         .box-item {
             display: flex;
             align-items: center;
-            gap: 12px;
-            padding: 12px;
+            gap: var(--ts-space-3, 12px);
+            padding: var(--ts-space-3, 12px);
             background: var(--bg-elevated);
-            border-radius: 8px;
+            border-radius: var(--ts-radius-sm, 8px);
         }
 
         .box-item-icon {
-            font-size: 24px;
+            font-size: var(--ts-text-2xl, 1.5rem);
         }
 
         .box-item-name {
@@ -999,12 +999,12 @@
         }
 
         .box-item-qty {
-            font-size: 12px;
+            font-size: var(--ts-text-xs, 0.75rem);
             color: var(--text-secondary);
         }
 
         .swap-btn {
-            font-size: 12px;
+            font-size: var(--ts-text-xs, 0.75rem);
             color: var(--primary);
             cursor: pointer;
             margin-left: auto;
@@ -1014,16 +1014,16 @@
         .vacation-hold-list {
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: var(--ts-space-3, 12px);
         }
 
         .vacation-hold-item {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 12px;
+            padding: var(--ts-space-3, 12px);
             background: var(--bg-elevated);
-            border-radius: 8px;
+            border-radius: var(--ts-radius-sm, 8px);
         }
 
         .vacation-dates {
@@ -1055,13 +1055,13 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 32px;
+            font-size: var(--ts-text-4xl, 2rem);
             font-weight: 700;
             margin: 0 auto 16px;
         }
 
         .account-name {
-            font-size: 24px;
+            font-size: var(--ts-text-2xl, 1.5rem);
             font-weight: 700;
         }
 
@@ -1071,17 +1071,17 @@
 
         .account-section {
             background: var(--bg-card);
-            border-radius: 12px;
-            margin-bottom: 16px;
+            border-radius: var(--ts-radius-md, 12px);
+            margin-bottom: var(--ts-space-4, 16px);
             overflow: hidden;
             box-shadow: var(--shadow-sm);
         }
 
         .account-section-title {
-            font-size: 12px;
+            font-size: var(--ts-text-xs, 0.75rem);
             font-weight: 600;
             color: var(--text-muted);
-            padding: 12px 16px;
+            padding: var(--ts-space-3, 12px) var(--ts-space-4, 16px);
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
@@ -1089,10 +1089,10 @@
         .account-item {
             display: flex;
             align-items: center;
-            padding: 16px;
+            padding: var(--ts-space-4, 16px);
             border-top: 1px solid var(--border-color);
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all var(--ts-dur-normal, 200ms);
         }
 
         .account-item:hover {
@@ -1102,12 +1102,12 @@
         .account-item-icon {
             width: 40px;
             height: 40px;
-            border-radius: 10px;
+            border-radius: var(--ts-radius-md, 10px);
             background: var(--bg-elevated);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 18px;
+            font-size: var(--ts-text-lg, 1.125rem);
             margin-right: 16px;
         }
 
@@ -1120,7 +1120,7 @@
         }
 
         .account-item-value {
-            font-size: 13px;
+            font-size: var(--ts-text-xs, 0.8rem);
             color: var(--text-secondary);
         }
 
@@ -1130,7 +1130,7 @@
 
         .logout-btn {
             color: var(--danger);
-            margin-top: 20px;
+            margin-top: var(--ts-space-5, 20px);
         }
 
         /* ========================================
@@ -1145,7 +1145,7 @@
             z-index: 2000;
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: var(--ts-space-3, 12px);
             width: calc(100% - 40px);
             max-width: 400px;
         }
@@ -1153,10 +1153,10 @@
         .toast {
             display: flex;
             align-items: center;
-            gap: 12px;
-            padding: 16px;
+            gap: var(--ts-space-3, 12px);
+            padding: var(--ts-space-4, 16px);
             background: var(--bg-card);
-            border-radius: 12px;
+            border-radius: var(--ts-radius-md, 12px);
             box-shadow: var(--shadow-lg);
             animation: slideDown 0.3s ease;
         }
@@ -1175,11 +1175,11 @@
         .toast.success { border-left: 4px solid var(--success); }
         .toast.error { border-left: 4px solid var(--danger); }
 
-        .toast-icon { font-size: 20px; }
+        .toast-icon { font-size: var(--ts-text-xl, 1.25rem); }
         .toast.success .toast-icon { color: var(--success); }
         .toast.error .toast-icon { color: var(--danger); }
 
-        .toast-message { flex: 1; font-size: 14px; }
+        .toast-message { flex: 1; font-size: var(--ts-text-sm, 0.875rem); }
 
         /* ========================================
            DELIVERY TRACKING MODAL
@@ -1204,7 +1204,7 @@
 
         .modal {
             background: var(--bg-card);
-            border-radius: 24px 24px 0 0;
+            border-radius: var(--ts-radius-xl, 24px) 24px 0 0;
             width: 100%;
             max-width: 600px;
             max-height: 90vh;
@@ -1212,7 +1212,7 @@
         }
 
         .modal-header {
-            padding: 20px;
+            padding: var(--ts-space-5, 20px);
             border-bottom: 1px solid var(--border-color);
             display: flex;
             align-items: center;
@@ -1220,7 +1220,7 @@
         }
 
         .modal-title {
-            font-size: 18px;
+            font-size: var(--ts-text-lg, 1.125rem);
             font-weight: 600;
         }
 
@@ -1237,7 +1237,7 @@
         }
 
         .modal-body {
-            padding: 20px;
+            padding: var(--ts-space-5, 20px);
             overflow-y: auto;
         }
 
@@ -1288,11 +1288,11 @@
 
         .tracking-step-title {
             font-weight: 600;
-            margin-bottom: 4px;
+            margin-bottom: var(--ts-space-1, 4px);
         }
 
         .tracking-step-time {
-            font-size: 13px;
+            font-size: var(--ts-text-xs, 0.8rem);
             color: var(--text-secondary);
         }
 
@@ -1300,11 +1300,11 @@
         .tracking-map {
             height: 200px;
             background: var(--bg-elevated);
-            border-radius: 12px;
+            border-radius: var(--ts-radius-md, 12px);
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 20px;
+            margin-bottom: var(--ts-space-5, 20px);
         }
 
         /* Design System Utilities */
@@ -1315,6 +1315,13 @@
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: var(--border-color, rgba(255,255,255,0.1)); border-radius: 3px; }
+        /* ── Page Load Animation ── */
+        @keyframes ts-page-enter {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        body { animation: ts-page-enter var(--ts-dur-moderate, 300ms) var(--ts-ease-out, ease) both; }
+
     </style>
 </head>
 <body>
@@ -1362,10 +1369,10 @@
             <div class="magic-link-sent" id="magicLinkSent">
                 <div class="magic-link-icon">📧</div>
                 <h2>Check Your Email!</h2>
-                <p style="color: var(--text-secondary); margin-top: 8px;">
+                <p style="color: var(--text-secondary); margin-top: var(--ts-space-2, 8px);">
                     We sent a login link to <strong id="sentEmail"></strong>
                 </p>
-                <p style="color: var(--text-muted); font-size: 14px; margin-top: 16px;">
+                <p style="color: var(--text-muted); font-size: var(--ts-text-sm, 0.875rem); margin-top: var(--ts-space-4, 16px);">
                     Didn't receive it? Check spam or <a href="#" onclick="showLoginForm()">try again</a>
                 </p>
             </div>
@@ -1524,11 +1531,11 @@
                         <span>🏖️</span> Vacation Holds
                     </h3>
                     <div class="vacation-hold-list" id="vacationHolds">
-                        <p style="color: var(--text-secondary); text-align: center; padding: 20px;">
+                        <p style="color: var(--text-secondary); text-align: center; padding: var(--ts-space-5, 20px);">
                             No vacation holds scheduled
                         </p>
                     </div>
-                    <button class="btn btn-secondary" onclick="openVacationModal()" style="margin-top: 16px;">
+                    <button class="btn btn-secondary" onclick="openVacationModal()" style="margin-top: var(--ts-space-4, 16px);">
                         + Add Vacation Hold
                     </button>
                 </div>
@@ -2478,5 +2485,6 @@
                 .catch(err => console.log('[SW] Registration failed:', err));
         }
     </script>
+<script src="shared-nav.js"></script>
 </body>
 </html>

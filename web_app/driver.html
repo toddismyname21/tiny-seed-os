@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#0f172a">
+    <meta name="theme-color" content="#141211">
     <title>Tiny Seed Delivery</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -33,14 +33,14 @@
             --warning: var(--ts-amber-500, #f59e0b);
             --danger: var(--ts-red-500, #ef4444);
             --success: var(--ts-green-500, #22c55e);
-            --bg-dark: var(--ts-bg-base, #0f172a);
-            --bg-card: var(--ts-bg-surface, #1e293b);
-            --bg-elevated: var(--ts-bg-elevated, #334155);
-            --bg-input: #1e293b;
+            --bg-dark: var(--ts-bg-base, #141211);
+            --bg-card: var(--ts-bg-surface, #201e1b);
+            --bg-elevated: var(--ts-bg-elevated, rgba(255,255,255,0.06));
+            --bg-input: #201e1b;
             --text-primary: var(--ts-text, #f8fafc);
-            --text-secondary: var(--ts-text-secondary, #94a3b8);
+            --text-secondary: var(--ts-text-secondary, #a09888);
             --text-muted: var(--ts-text-muted, #64748b);
-            --border: var(--ts-border, #334155);
+            --border: var(--ts-border, rgba(255,255,255,0.06));
             --touch-min: 48px;
             --header-height: 56px;
             --bottom-nav-height: 64px;
@@ -89,28 +89,28 @@
         .header-left {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: var(--ts-space-3, 12px);
         }
 
         .header-title {
-            font-size: 18px;
+            font-size: var(--ts-text-lg, 1.125rem);
             font-weight: 600;
         }
 
         .header-subtitle {
-            font-size: 12px;
+            font-size: var(--ts-text-xs, 0.75rem);
             color: var(--text-secondary);
         }
 
         .header-actions {
             display: flex;
-            gap: 8px;
+            gap: var(--ts-space-2, 8px);
         }
 
         .header-btn {
             width: 44px;
             height: 44px;
-            border-radius: 8px;
+            border-radius: var(--ts-radius-sm, 8px);
             background: var(--bg-elevated);
             border: none;
             color: var(--text-primary);
@@ -118,7 +118,7 @@
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            font-size: 18px;
+            font-size: var(--ts-text-lg, 1.125rem);
         }
 
         .header-btn.active {
@@ -130,10 +130,10 @@
         .status-badge {
             display: inline-flex;
             align-items: center;
-            gap: 6px;
+            gap: var(--ts-space-1, 6px);
             padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 12px;
+            border-radius: var(--ts-radius-lg, 20px);
+            font-size: var(--ts-text-xs, 0.75rem);
             font-weight: 600;
         }
 
@@ -175,30 +175,30 @@
             align-items: center;
             justify-content: center;
             min-height: 100%;
-            padding: 24px;
+            padding: var(--ts-space-6, 24px);
             text-align: center;
         }
 
         .login-logo {
             font-size: 64px;
-            margin-bottom: 16px;
+            margin-bottom: var(--ts-space-4, 16px);
         }
 
         .login-title {
-            font-size: 28px;
+            font-size: var(--ts-text-3xl, 1.75rem);
             font-weight: 700;
-            margin-bottom: 8px;
+            margin-bottom: var(--ts-space-2, 8px);
         }
 
         .login-subtitle {
             color: var(--text-secondary);
-            margin-bottom: 32px;
+            margin-bottom: var(--ts-space-8, 32px);
         }
 
         .pin-display {
             display: flex;
-            gap: 12px;
-            margin-bottom: 24px;
+            gap: var(--ts-space-3, 12px);
+            margin-bottom: var(--ts-space-6, 24px);
         }
 
         .pin-dot {
@@ -207,7 +207,7 @@
             border-radius: 50%;
             background: var(--bg-elevated);
             border: 2px solid var(--border);
-            transition: all 0.2s;
+            transition: all var(--ts-dur-normal, 200ms);
         }
 
         .pin-dot.filled {
@@ -218,7 +218,7 @@
         .pin-pad {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 12px;
+            gap: var(--ts-space-3, 12px);
             max-width: 280px;
         }
 
@@ -229,13 +229,13 @@
             background: var(--bg-card);
             border: 1px solid var(--border);
             color: var(--text-primary);
-            font-size: 28px;
+            font-size: var(--ts-text-3xl, 1.75rem);
             font-weight: 500;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.15s;
+            transition: all var(--ts-dur-fast, 120ms);
             touch-action: manipulation;
             -webkit-user-select: none;
             -moz-user-select: none;
@@ -254,15 +254,15 @@
         }
 
         .pin-btn.action {
-            font-size: 20px;
+            font-size: var(--ts-text-xl, 1.25rem);
             background: transparent;
             border: none;
         }
 
         .login-error {
             color: var(--danger);
-            margin-top: 16px;
-            font-size: 14px;
+            margin-top: var(--ts-space-4, 16px);
+            font-size: var(--ts-text-sm, 0.875rem);
         }
 
         /* Clock In Screen */
@@ -272,7 +272,7 @@
             align-items: center;
             justify-content: center;
             min-height: 100%;
-            padding: 24px;
+            padding: var(--ts-space-6, 24px);
             text-align: center;
             background: linear-gradient(180deg, var(--bg-dark) 0%, #1a2744 100%);
         }
@@ -284,27 +284,27 @@
 
         .clock-icon {
             font-size: 64px;
-            margin-bottom: 16px;
+            margin-bottom: var(--ts-space-4, 16px);
         }
 
         .clock-title {
-            font-size: 24px;
+            font-size: var(--ts-text-2xl, 1.5rem);
             font-weight: 700;
-            margin-bottom: 8px;
+            margin-bottom: var(--ts-space-2, 8px);
             color: var(--text-primary);
         }
 
         .clock-subtitle {
             color: var(--text-secondary);
-            margin-bottom: 24px;
-            font-size: 16px;
+            margin-bottom: var(--ts-space-6, 24px);
+            font-size: var(--ts-text-base, 1rem);
         }
 
         .clock-driver-info {
             display: flex;
             flex-direction: column;
             align-items: center;
-            margin-bottom: 24px;
+            margin-bottom: var(--ts-space-6, 24px);
         }
 
         .clock-driver-avatar {
@@ -315,36 +315,36 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 28px;
+            font-size: var(--ts-text-3xl, 1.75rem);
             font-weight: 700;
             color: white;
-            margin-bottom: 12px;
+            margin-bottom: var(--ts-space-3, 12px);
         }
 
         .clock-driver-name {
-            font-size: 20px;
+            font-size: var(--ts-text-xl, 1.25rem);
             font-weight: 600;
             color: var(--text-primary);
         }
 
         .clock-time-display {
             background: var(--bg-card);
-            border-radius: 16px;
-            padding: 20px;
-            margin-bottom: 24px;
+            border-radius: var(--ts-radius-lg, 16px);
+            padding: var(--ts-space-5, 20px);
+            margin-bottom: var(--ts-space-6, 24px);
             border: 1px solid var(--border);
         }
 
         .current-time {
-            font-size: 48px;
+            font-size: var(--ts-text-5xl, 3rem);
             font-weight: 700;
             color: var(--text-primary);
             line-height: 1;
-            margin-bottom: 4px;
+            margin-bottom: var(--ts-space-1, 4px);
         }
 
         .current-date {
-            font-size: 16px;
+            font-size: var(--ts-text-base, 1rem);
             color: var(--text-secondary);
         }
 
@@ -354,17 +354,17 @@
             background: linear-gradient(135deg, var(--primary), var(--primary-light));
             color: white;
             border: none;
-            border-radius: 16px;
-            font-size: 18px;
+            border-radius: var(--ts-radius-lg, 16px);
+            font-size: var(--ts-text-lg, 1.125rem);
             font-weight: 700;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 12px;
-            margin-bottom: 16px;
+            gap: var(--ts-space-3, 12px);
+            margin-bottom: var(--ts-space-4, 16px);
             box-shadow: 0 4px 14px rgba(34, 197, 94, 0.3);
-            transition: all 0.2s;
+            transition: all var(--ts-dur-normal, 200ms);
         }
 
         .clock-in-btn:active {
@@ -377,17 +377,17 @@
         }
 
         .clock-btn-icon {
-            font-size: 20px;
+            font-size: var(--ts-text-xl, 1.25rem);
         }
 
         .clock-gps-status {
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
+            gap: var(--ts-space-2, 8px);
             color: var(--text-secondary);
-            font-size: 14px;
-            margin-bottom: 24px;
+            font-size: var(--ts-text-sm, 0.875rem);
+            margin-bottom: var(--ts-space-6, 24px);
         }
 
         .clock-gps-status.success {
@@ -402,7 +402,7 @@
             background: none;
             border: none;
             color: var(--text-secondary);
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
             cursor: pointer;
             text-decoration: underline;
         }
@@ -411,10 +411,10 @@
         .clock-status-badge {
             display: inline-flex;
             align-items: center;
-            gap: 6px;
+            gap: var(--ts-space-1, 6px);
             padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 11px;
+            border-radius: var(--ts-radius-lg, 20px);
+            font-size: var(--ts-text-2xs, 0.69rem);
             font-weight: 600;
             background: rgba(34, 197, 94, 0.2);
             color: var(--success);
@@ -430,77 +430,77 @@
         /* Route Summary */
         .route-summary {
             background: linear-gradient(135deg, var(--primary-dark), var(--primary));
-            padding: 20px;
+            padding: var(--ts-space-5, 20px);
             color: white;
         }
 
         .route-stats {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 12px;
+            gap: var(--ts-space-3, 12px);
             text-align: center;
         }
 
         .route-stat {
             background: rgba(255, 255, 255, 0.15);
-            border-radius: 12px;
+            border-radius: var(--ts-radius-md, 12px);
             padding: 12px 8px;
         }
 
         .route-stat-value {
-            font-size: 24px;
+            font-size: var(--ts-text-2xl, 1.5rem);
             font-weight: 700;
         }
 
         .route-stat-label {
-            font-size: 11px;
+            font-size: var(--ts-text-2xs, 0.69rem);
             opacity: 0.9;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
 
         .route-progress {
-            margin-top: 16px;
+            margin-top: var(--ts-space-4, 16px);
         }
 
         .progress-bar {
             height: 8px;
             background: rgba(255, 255, 255, 0.2);
-            border-radius: 4px;
+            border-radius: var(--ts-radius-sm, 4px);
             overflow: hidden;
         }
 
         .progress-fill {
             height: 100%;
             background: white;
-            border-radius: 4px;
+            border-radius: var(--ts-radius-sm, 4px);
             transition: width 0.5s ease;
         }
 
         .progress-text {
             display: flex;
             justify-content: space-between;
-            margin-top: 8px;
-            font-size: 13px;
+            margin-top: var(--ts-space-2, 8px);
+            font-size: var(--ts-text-xs, 0.8rem);
             opacity: 0.9;
         }
 
         /* Start Route Button */
         .start-route-btn {
             width: 100%;
-            padding: 16px;
+            padding: var(--ts-space-4, 16px);
             background: white;
             color: var(--primary-dark);
             border: none;
-            border-radius: 12px;
-            font-size: 16px;
+            border-radius: var(--ts-radius-md, 12px);
+            font-size: var(--ts-text-base, 1rem);
             font-weight: 700;
             cursor: pointer;
-            margin-top: 16px;
+            margin-top: var(--ts-space-4, 16px);
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
+            gap: var(--ts-space-2, 8px);
         }
 
         .start-route-btn:active {
@@ -514,35 +514,35 @@
 
         /* Stop List */
         .stop-list {
-            padding: 16px;
+            padding: var(--ts-space-4, 16px);
         }
 
         .section-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 12px;
+            margin-bottom: var(--ts-space-3, 12px);
         }
 
         .section-title {
-            font-size: 16px;
+            font-size: var(--ts-text-base, 1rem);
             font-weight: 600;
         }
 
         .section-badge {
             background: var(--bg-elevated);
             padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 12px;
+            border-radius: var(--ts-radius-md, 12px);
+            font-size: var(--ts-text-xs, 0.75rem);
             color: var(--text-secondary);
         }
 
         /* Stop Card */
         .stop-card {
             background: var(--bg-card);
-            border-radius: 16px;
-            padding: 16px;
-            margin-bottom: 12px;
+            border-radius: var(--ts-radius-lg, 16px);
+            padding: var(--ts-space-4, 16px);
+            margin-bottom: var(--ts-space-3, 12px);
             border: 1px solid var(--border);
             position: relative;
             overflow: hidden;
@@ -571,7 +571,7 @@
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            margin-bottom: 12px;
+            margin-bottom: var(--ts-space-3, 12px);
         }
 
         .stop-number {
@@ -583,7 +583,7 @@
             align-items: center;
             justify-content: center;
             font-weight: 700;
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
             flex-shrink: 0;
         }
 
@@ -604,13 +604,13 @@
 
         .stop-customer {
             font-weight: 600;
-            font-size: 16px;
+            font-size: var(--ts-text-base, 1rem);
             margin-bottom: 2px;
         }
 
         .stop-address {
             color: var(--text-secondary);
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
             line-height: 1.4;
         }
 
@@ -620,25 +620,25 @@
 
         .stop-time {
             font-weight: 600;
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
         }
 
         .stop-window {
-            font-size: 12px;
+            font-size: var(--ts-text-xs, 0.75rem);
             color: var(--text-secondary);
         }
 
         .stop-items {
             background: var(--bg-dark);
-            border-radius: 8px;
-            padding: 12px;
-            margin-bottom: 12px;
+            border-radius: var(--ts-radius-sm, 8px);
+            padding: var(--ts-space-3, 12px);
+            margin-bottom: var(--ts-space-3, 12px);
         }
 
         .stop-items-title {
-            font-size: 12px;
+            font-size: var(--ts-text-xs, 0.75rem);
             color: var(--text-secondary);
-            margin-bottom: 8px;
+            margin-bottom: var(--ts-space-2, 8px);
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
@@ -647,7 +647,7 @@
             display: flex;
             justify-content: space-between;
             padding: 4px 0;
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
         }
 
         .stop-item-name {
@@ -662,10 +662,10 @@
         .stop-notes {
             background: rgba(245, 158, 11, 0.1);
             border-left: 3px solid var(--warning);
-            padding: 8px 12px;
+            padding: var(--ts-space-2, 8px) var(--ts-space-3, 12px);
             border-radius: 0 8px 8px 0;
-            margin-bottom: 12px;
-            font-size: 13px;
+            margin-bottom: var(--ts-space-3, 12px);
+            font-size: var(--ts-text-xs, 0.8rem);
             color: var(--warning);
         }
 
@@ -673,10 +673,10 @@
         .delivery-count-badge {
             display: flex;
             align-items: center;
-            gap: 8px;
-            padding: 12px 16px;
-            border-radius: 8px;
-            margin-bottom: 12px;
+            gap: var(--ts-space-2, 8px);
+            padding: var(--ts-space-3, 12px) var(--ts-space-4, 16px);
+            border-radius: var(--ts-radius-sm, 8px);
+            margin-bottom: var(--ts-space-3, 12px);
             font-weight: 600;
         }
 
@@ -699,17 +699,17 @@
         }
 
         .delivery-count-badge .count-icon {
-            font-size: 24px;
+            font-size: var(--ts-text-2xl, 1.5rem);
         }
 
         .delivery-count-badge .count-number {
-            font-size: 28px;
+            font-size: var(--ts-text-3xl, 1.75rem);
             font-weight: 700;
             line-height: 1;
         }
 
         .delivery-count-badge .count-label {
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
             font-weight: 500;
             opacity: 0.9;
         }
@@ -717,22 +717,22 @@
         .stop-actions {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
+            gap: var(--ts-space-2, 8px);
         }
 
         .stop-action-btn {
             padding: 10px;
-            border-radius: 8px;
+            border-radius: var(--ts-radius-sm, 8px);
             border: 1px solid var(--border);
             background: var(--bg-elevated);
             color: var(--text-primary);
-            font-size: 12px;
+            font-size: var(--ts-text-xs, 0.75rem);
             font-weight: 500;
             cursor: pointer;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 4px;
+            gap: var(--ts-space-1, 4px);
         }
 
         .stop-action-btn:active {
@@ -747,7 +747,7 @@
             flex-direction: row;
             justify-content: center;
             padding: 14px;
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
         }
 
         .stop-action-btn.primary:active {
@@ -755,7 +755,7 @@
         }
 
         .stop-action-icon {
-            font-size: 18px;
+            font-size: var(--ts-text-lg, 1.125rem);
         }
 
         /* Completed Badge */
@@ -766,8 +766,8 @@
             background: var(--success);
             color: white;
             padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 11px;
+            border-radius: var(--ts-radius-md, 12px);
+            font-size: var(--ts-text-2xs, 0.69rem);
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.5px;
@@ -789,13 +789,13 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 4px;
-            padding: 8px 16px;
+            gap: var(--ts-space-1, 4px);
+            padding: var(--ts-space-2, 8px) var(--ts-space-4, 16px);
             color: var(--text-muted);
             text-decoration: none;
-            font-size: 11px;
+            font-size: var(--ts-text-2xs, 0.69rem);
             cursor: pointer;
-            transition: color 0.2s;
+            transition: color var(--ts-dur-normal, 200ms);
         }
 
         .nav-item.active {
@@ -803,7 +803,7 @@
         }
 
         .nav-icon {
-            font-size: 22px;
+            font-size: var(--ts-text-xl, 1.375rem);
         }
 
         /* Modal */
@@ -817,7 +817,7 @@
             z-index: 1000;
             opacity: 0;
             visibility: hidden;
-            transition: all 0.3s;
+            transition: all var(--ts-dur-moderate, 300ms);
         }
 
         .modal-overlay.active {
@@ -827,11 +827,11 @@
 
         .modal {
             background: var(--bg-card);
-            border-radius: 24px 24px 0 0;
+            border-radius: var(--ts-radius-xl, 24px) 24px 0 0;
             width: 100%;
             max-height: 90vh;
             transform: translateY(100%);
-            transition: transform 0.3s ease;
+            transition: transform var(--ts-dur-moderate, 300ms) ease;
             overflow: hidden;
         }
 
@@ -843,12 +843,12 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 20px;
+            padding: var(--ts-space-5, 20px);
             border-bottom: 1px solid var(--border);
         }
 
         .modal-title {
-            font-size: 18px;
+            font-size: var(--ts-text-lg, 1.125rem);
             font-weight: 600;
         }
 
@@ -859,7 +859,7 @@
             background: var(--bg-elevated);
             border: none;
             color: var(--text-primary);
-            font-size: 20px;
+            font-size: var(--ts-text-xl, 1.25rem);
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -867,20 +867,20 @@
         }
 
         .modal-body {
-            padding: 20px;
+            padding: var(--ts-space-5, 20px);
             max-height: 70vh;
             overflow-y: auto;
         }
 
         /* Proof of Delivery */
         .pod-section {
-            margin-bottom: 24px;
+            margin-bottom: var(--ts-space-6, 24px);
         }
 
         .pod-label {
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
             font-weight: 500;
-            margin-bottom: 8px;
+            margin-bottom: var(--ts-space-2, 8px);
             color: var(--text-secondary);
         }
 
@@ -888,7 +888,7 @@
             width: 100%;
             aspect-ratio: 4/3;
             background: var(--bg-dark);
-            border-radius: 12px;
+            border-radius: var(--ts-radius-md, 12px);
             border: 2px dashed var(--border);
             display: flex;
             flex-direction: column;
@@ -916,20 +916,20 @@
         }
 
         .photo-icon {
-            font-size: 48px;
-            margin-bottom: 8px;
+            font-size: var(--ts-text-5xl, 3rem);
+            margin-bottom: var(--ts-space-2, 8px);
         }
 
         .retake-btn {
             position: absolute;
             bottom: 12px;
             right: 12px;
-            padding: 8px 16px;
+            padding: var(--ts-space-2, 8px) var(--ts-space-4, 16px);
             background: rgba(0, 0, 0, 0.7);
             color: white;
             border: none;
-            border-radius: 20px;
-            font-size: 12px;
+            border-radius: var(--ts-radius-lg, 20px);
+            font-size: var(--ts-text-xs, 0.75rem);
             cursor: pointer;
         }
 
@@ -938,14 +938,14 @@
             width: 100%;
             height: 150px;
             background: white;
-            border-radius: 12px;
+            border-radius: var(--ts-radius-md, 12px);
             position: relative;
         }
 
         .signature-canvas {
             width: 100%;
             height: 100%;
-            border-radius: 12px;
+            border-radius: var(--ts-radius-md, 12px);
         }
 
         .signature-clear {
@@ -956,8 +956,8 @@
             background: var(--bg-card);
             color: var(--text-primary);
             border: none;
-            border-radius: 6px;
-            font-size: 12px;
+            border-radius: var(--ts-radius-sm, 6px);
+            font-size: var(--ts-text-xs, 0.75rem);
             cursor: pointer;
         }
 
@@ -976,7 +976,7 @@
             left: 0;
             right: 0;
             text-align: center;
-            font-size: 11px;
+            font-size: var(--ts-text-2xs, 0.69rem);
             color: #999;
         }
 
@@ -984,11 +984,11 @@
         .gps-status {
             display: flex;
             align-items: center;
-            gap: 8px;
-            padding: 12px;
+            gap: var(--ts-space-2, 8px);
+            padding: var(--ts-space-3, 12px);
             background: var(--bg-dark);
-            border-radius: 8px;
-            font-size: 14px;
+            border-radius: var(--ts-radius-sm, 8px);
+            font-size: var(--ts-text-sm, 0.875rem);
         }
 
         .gps-status.valid {
@@ -1003,17 +1003,17 @@
         .issue-options {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
+            gap: var(--ts-space-3, 12px);
         }
 
         .issue-option {
-            padding: 16px;
+            padding: var(--ts-space-4, 16px);
             background: var(--bg-dark);
             border: 2px solid var(--border);
-            border-radius: 12px;
+            border-radius: var(--ts-radius-md, 12px);
             text-align: center;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all var(--ts-dur-normal, 200ms);
         }
 
         .issue-option:active,
@@ -1023,12 +1023,12 @@
         }
 
         .issue-icon {
-            font-size: 32px;
-            margin-bottom: 8px;
+            font-size: var(--ts-text-4xl, 2rem);
+            margin-bottom: var(--ts-space-2, 8px);
         }
 
         .issue-label {
-            font-size: 13px;
+            font-size: var(--ts-text-xs, 0.8rem);
             font-weight: 500;
         }
 
@@ -1037,31 +1037,32 @@
             height: 100px;
             background: var(--bg-dark);
             border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 12px;
+            border-radius: var(--ts-radius-md, 12px);
+            padding: var(--ts-space-3, 12px);
             color: var(--text-primary);
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
             resize: none;
-            margin-top: 16px;
+            margin-top: var(--ts-space-4, 16px);
         }
 
         .issue-textarea:focus {
             outline: none;
             border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--ts-primary-muted, rgba(34, 197, 94, 0.15));
         }
 
         /* Submit Button */
         .submit-btn {
             width: 100%;
-            padding: 16px;
+            padding: var(--ts-space-4, 16px);
             background: var(--primary);
             color: white;
             border: none;
-            border-radius: 12px;
-            font-size: 16px;
+            border-radius: var(--ts-radius-md, 12px);
+            font-size: var(--ts-text-base, 1rem);
             font-weight: 600;
             cursor: pointer;
-            margin-top: 16px;
+            margin-top: var(--ts-space-4, 16px);
         }
 
         .submit-btn:active {
@@ -1076,14 +1077,14 @@
 
         /* History Tab */
         .history-list {
-            padding: 16px;
+            padding: var(--ts-space-4, 16px);
         }
 
         .history-date {
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
             font-weight: 600;
             color: var(--text-secondary);
-            margin-bottom: 12px;
+            margin-bottom: var(--ts-space-3, 12px);
             padding-bottom: 8px;
             border-bottom: 1px solid var(--border);
         }
@@ -1091,11 +1092,11 @@
         .history-item {
             display: flex;
             align-items: center;
-            gap: 12px;
-            padding: 12px;
+            gap: var(--ts-space-3, 12px);
+            padding: var(--ts-space-3, 12px);
             background: var(--bg-card);
-            border-radius: 12px;
-            margin-bottom: 8px;
+            border-radius: var(--ts-radius-md, 12px);
+            margin-bottom: var(--ts-space-2, 8px);
         }
 
         .history-status {
@@ -1105,7 +1106,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 20px;
+            font-size: var(--ts-text-xl, 1.25rem);
             flex-shrink: 0;
         }
 
@@ -1127,27 +1128,27 @@
         }
 
         .history-time {
-            font-size: 12px;
+            font-size: var(--ts-text-xs, 0.75rem);
             color: var(--text-secondary);
         }
 
         /* Settings Tab */
         .settings-section {
-            padding: 16px;
+            padding: var(--ts-space-4, 16px);
         }
 
         .settings-group {
             background: var(--bg-card);
-            border-radius: 12px;
+            border-radius: var(--ts-radius-md, 12px);
             overflow: hidden;
-            margin-bottom: 16px;
+            margin-bottom: var(--ts-space-4, 16px);
         }
 
         .settings-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 16px;
+            padding: var(--ts-space-4, 16px);
             border-bottom: 1px solid var(--border);
         }
 
@@ -1156,12 +1157,12 @@
         }
 
         .settings-label {
-            font-size: 15px;
+            font-size: var(--ts-text-sm, 0.94rem);
         }
 
         .settings-value {
             color: var(--text-secondary);
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
         }
 
         /* Toggle Switch */
@@ -1169,7 +1170,7 @@
             width: 56px;
             height: 32px;
             background: var(--bg-elevated);
-            border-radius: 16px;
+            border-radius: var(--ts-radius-lg, 16px);
             position: relative;
             cursor: pointer;
             transition: background 0.3s;
@@ -1188,7 +1189,7 @@
             border-radius: 50%;
             top: 2px;
             left: 2px;
-            transition: transform 0.3s;
+            transition: transform var(--ts-dur-moderate, 300ms);
         }
 
         .toggle.active::after {
@@ -1198,8 +1199,8 @@
         /* Driver Info Card */
         .driver-card {
             background: var(--bg-card);
-            border-radius: 16px;
-            padding: 20px;
+            border-radius: var(--ts-radius-lg, 16px);
+            padding: var(--ts-space-5, 20px);
             margin: 16px;
             text-align: center;
         }
@@ -1213,27 +1214,27 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 32px;
+            font-size: var(--ts-text-4xl, 2rem);
             font-weight: 700;
             margin: 0 auto 12px;
         }
 
         .driver-name {
-            font-size: 20px;
+            font-size: var(--ts-text-xl, 1.25rem);
             font-weight: 600;
-            margin-bottom: 4px;
+            margin-bottom: var(--ts-space-1, 4px);
         }
 
         .driver-role {
             color: var(--text-secondary);
-            font-size: 14px;
-            margin-bottom: 16px;
+            font-size: var(--ts-text-sm, 0.875rem);
+            margin-bottom: var(--ts-space-4, 16px);
         }
 
         .driver-stats {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 12px;
+            gap: var(--ts-space-3, 12px);
             padding-top: 16px;
             border-top: 1px solid var(--border);
         }
@@ -1243,27 +1244,28 @@
         }
 
         .driver-stat-value {
-            font-size: 20px;
+            font-size: var(--ts-text-xl, 1.25rem);
             font-weight: 700;
             color: var(--primary);
         }
 
         .driver-stat-label {
-            font-size: 11px;
+            font-size: var(--ts-text-2xs, 0.69rem);
             color: var(--text-secondary);
             text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
 
         /* Logout Button */
         .logout-btn {
             width: calc(100% - 32px);
             margin: 16px;
-            padding: 16px;
+            padding: var(--ts-space-4, 16px);
             background: rgba(239, 68, 68, 0.1);
             color: var(--danger);
             border: 1px solid var(--danger);
-            border-radius: 12px;
-            font-size: 16px;
+            border-radius: var(--ts-radius-md, 12px);
+            font-size: var(--ts-text-base, 1rem);
             font-weight: 500;
             cursor: pointer;
         }
@@ -1272,9 +1274,9 @@
         .map-container {
             height: 200px;
             background: var(--bg-dark);
-            border-radius: 12px;
+            border-radius: var(--ts-radius-md, 12px);
             overflow: hidden;
-            margin-bottom: 16px;
+            margin-bottom: var(--ts-space-4, 16px);
             position: relative;
         }
 
@@ -1289,25 +1291,25 @@
         }
 
         .map-icon {
-            font-size: 48px;
-            margin-bottom: 8px;
+            font-size: var(--ts-text-5xl, 3rem);
+            margin-bottom: var(--ts-space-2, 8px);
         }
 
         .open-maps-btn {
             position: absolute;
             bottom: 12px;
             right: 12px;
-            padding: 10px 16px;
+            padding: var(--ts-space-2, 10px) var(--ts-space-4, 16px);
             background: var(--secondary);
             color: white;
             border: none;
-            border-radius: 20px;
-            font-size: 13px;
+            border-radius: var(--ts-radius-lg, 20px);
+            font-size: var(--ts-text-xs, 0.8rem);
             font-weight: 500;
             cursor: pointer;
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: var(--ts-space-1, 6px);
         }
 
         /* No Route */
@@ -1322,14 +1324,14 @@
 
         .no-route-icon {
             font-size: 64px;
-            margin-bottom: 16px;
+            margin-bottom: var(--ts-space-4, 16px);
             opacity: 0.5;
         }
 
         .no-route-title {
-            font-size: 20px;
+            font-size: var(--ts-text-xl, 1.25rem);
             font-weight: 600;
-            margin-bottom: 8px;
+            margin-bottom: var(--ts-space-2, 8px);
         }
 
         .no-route-text {
@@ -1341,9 +1343,9 @@
         .offline-bar {
             background: var(--danger);
             color: white;
-            padding: 8px;
+            padding: var(--ts-space-2, 8px);
             text-align: center;
-            font-size: 13px;
+            font-size: var(--ts-text-xs, 0.8rem);
             font-weight: 500;
             display: none;
         }
@@ -1365,15 +1367,15 @@
         .quick-actions {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
-            padding: 16px;
+            gap: var(--ts-space-3, 12px);
+            padding: var(--ts-space-4, 16px);
         }
 
         .quick-action {
             background: var(--bg-card);
             border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 16px;
+            border-radius: var(--ts-radius-md, 12px);
+            padding: var(--ts-space-4, 16px);
             text-align: center;
             cursor: pointer;
         }
@@ -1383,12 +1385,12 @@
         }
 
         .quick-action-icon {
-            font-size: 28px;
-            margin-bottom: 8px;
+            font-size: var(--ts-text-3xl, 1.75rem);
+            margin-bottom: var(--ts-space-2, 8px);
         }
 
         .quick-action-label {
-            font-size: 13px;
+            font-size: var(--ts-text-xs, 0.8rem);
             font-weight: 500;
         }
 
@@ -1440,7 +1442,7 @@
             z-index: 2000;
             opacity: 0;
             visibility: hidden;
-            transition: all 0.3s;
+            transition: all var(--ts-dur-moderate, 300ms);
         }
 
         .celebration.active {
@@ -1459,24 +1461,24 @@
         }
 
         .celebration-title {
-            font-size: 28px;
+            font-size: var(--ts-text-3xl, 1.75rem);
             font-weight: 700;
             margin: 16px 0 8px;
         }
 
         .celebration-text {
             color: var(--text-secondary);
-            font-size: 16px;
+            font-size: var(--ts-text-base, 1rem);
         }
 
         .celebration-btn {
-            margin-top: 32px;
+            margin-top: var(--ts-space-8, 32px);
             padding: 14px 32px;
             background: var(--primary);
             color: white;
             border: none;
-            border-radius: 24px;
-            font-size: 16px;
+            border-radius: var(--ts-radius-xl, 24px);
+            font-size: var(--ts-text-base, 1rem);
             font-weight: 600;
             cursor: pointer;
         }
@@ -1484,22 +1486,22 @@
         /* Call/Text buttons */
         .contact-actions {
             display: flex;
-            gap: 8px;
-            margin-top: 8px;
+            gap: var(--ts-space-2, 8px);
+            margin-top: var(--ts-space-2, 8px);
         }
 
         .contact-btn {
             flex: 1;
             padding: 10px;
-            border-radius: 8px;
+            border-radius: var(--ts-radius-sm, 8px);
             border: none;
-            font-size: 13px;
+            font-size: var(--ts-text-xs, 0.8rem);
             font-weight: 500;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 6px;
+            gap: var(--ts-space-1, 6px);
         }
 
         .contact-btn.call {
@@ -1545,7 +1547,7 @@
         }
 
         .map-controls {
-            padding: 12px;
+            padding: var(--ts-space-3, 12px);
             background: var(--bg-card);
             border-top: 1px solid var(--border);
         }
@@ -1556,14 +1558,14 @@
             background: var(--secondary);
             color: white;
             border: none;
-            border-radius: 12px;
-            font-size: 16px;
+            border-radius: var(--ts-radius-md, 12px);
+            font-size: var(--ts-text-base, 1rem);
             font-weight: 600;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
+            gap: var(--ts-space-2, 8px);
         }
 
         .optimize-btn:active {
@@ -1582,7 +1584,7 @@
             align-items: flex-end;
             justify-content: center;
             z-index: 1000;
-            padding: 16px;
+            padding: var(--ts-space-4, 16px);
         }
 
         .nav-picker-overlay.active {
@@ -1591,10 +1593,10 @@
 
         .nav-picker {
             background: var(--bg-card);
-            border-radius: 20px;
+            border-radius: var(--ts-radius-lg, 20px);
             width: 100%;
             max-width: 400px;
-            padding: 20px;
+            padding: var(--ts-space-5, 20px);
             animation: slideUp 0.3s ease;
         }
 
@@ -1604,28 +1606,28 @@
         }
 
         .nav-picker-title {
-            font-size: 18px;
+            font-size: var(--ts-text-lg, 1.125rem);
             font-weight: 600;
             text-align: center;
-            margin-bottom: 16px;
+            margin-bottom: var(--ts-space-4, 16px);
         }
 
         .nav-picker-options {
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: var(--ts-space-2, 10px);
         }
 
         .nav-option {
             display: flex;
             align-items: center;
-            gap: 16px;
-            padding: 16px;
+            gap: var(--ts-space-4, 16px);
+            padding: var(--ts-space-4, 16px);
             background: var(--bg-elevated);
-            border-radius: 12px;
+            border-radius: var(--ts-radius-md, 12px);
             border: none;
             color: var(--text-primary);
-            font-size: 16px;
+            font-size: var(--ts-text-base, 1rem);
             cursor: pointer;
             text-decoration: none;
         }
@@ -1635,18 +1637,18 @@
         }
 
         .nav-option-icon {
-            font-size: 28px;
+            font-size: var(--ts-text-3xl, 1.75rem);
         }
 
         .nav-picker-cancel {
             width: 100%;
-            padding: 16px;
-            margin-top: 12px;
+            padding: var(--ts-space-4, 16px);
+            margin-top: var(--ts-space-3, 12px);
             background: transparent;
             border: 1px solid var(--border);
-            border-radius: 12px;
+            border-radius: var(--ts-radius-md, 12px);
             color: var(--text-secondary);
-            font-size: 16px;
+            font-size: var(--ts-text-base, 1rem);
             cursor: pointer;
         }
 
@@ -1655,16 +1657,16 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
-            padding: 12px 20px;
+            gap: var(--ts-space-2, 8px);
+            padding: var(--ts-space-3, 12px) var(--ts-space-5, 20px);
             background: var(--secondary);
             color: white;
             border: none;
-            border-radius: 10px;
-            font-size: 15px;
+            border-radius: var(--ts-radius-md, 10px);
+            font-size: var(--ts-text-sm, 0.94rem);
             font-weight: 600;
             cursor: pointer;
-            margin-top: 12px;
+            margin-top: var(--ts-space-3, 12px);
         }
 
         .navigate-btn:active {
@@ -1679,9 +1681,9 @@
             transform: translateX(-50%);
             background: var(--primary);
             color: white;
-            padding: 16px 24px;
-            border-radius: 12px;
-            font-size: 16px;
+            padding: var(--ts-space-4, 16px) var(--ts-space-6, 24px);
+            border-radius: var(--ts-radius-md, 12px);
+            font-size: var(--ts-text-base, 1rem);
             font-weight: 600;
             z-index: 1000;
             animation: fadeInOut 3s ease forwards;
@@ -1706,7 +1708,7 @@
             align-items: center;
             justify-content: center;
             font-weight: 700;
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
             border: 3px solid white;
             box-shadow: 0 2px 8px rgba(0,0,0,0.3);
         }
@@ -1735,7 +1737,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 20px;
+            font-size: var(--ts-text-xl, 1.25rem);
             border: 4px solid white;
             box-shadow: 0 4px 12px rgba(34, 197, 94, 0.5);
             animation: depot-pulse 3s infinite;
@@ -1755,12 +1757,12 @@
         /* Route summary card */
         .route-summary {
             background: var(--bg-elevated);
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 16px;
+            border-radius: var(--ts-radius-md, 12px);
+            padding: var(--ts-space-4, 16px);
+            margin-bottom: var(--ts-space-4, 16px);
             display: flex;
             justify-content: space-around;
-            gap: 12px;
+            gap: var(--ts-space-3, 12px);
         }
 
         .route-stat {
@@ -1768,13 +1770,13 @@
         }
 
         .route-stat-value {
-            font-size: 20px;
+            font-size: var(--ts-text-xl, 1.25rem);
             font-weight: 700;
             color: var(--primary);
         }
 
         .route-stat-label {
-            font-size: 11px;
+            font-size: var(--ts-text-2xs, 0.69rem);
             color: var(--text-secondary);
             text-transform: uppercase;
             letter-spacing: 0.5px;
@@ -1787,64 +1789,64 @@
         }
 
         .auto-advance-icon {
-            font-size: 48px;
-            margin-bottom: 16px;
+            font-size: var(--ts-text-5xl, 3rem);
+            margin-bottom: var(--ts-space-4, 16px);
         }
 
         .auto-advance-title {
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
             color: var(--text-secondary);
             text-transform: uppercase;
             letter-spacing: 1px;
-            margin-bottom: 8px;
+            margin-bottom: var(--ts-space-2, 8px);
         }
 
         .auto-advance-destination {
-            font-size: 22px;
+            font-size: var(--ts-text-xl, 1.375rem);
             font-weight: 700;
             color: var(--text-primary);
-            margin-bottom: 8px;
+            margin-bottom: var(--ts-space-2, 8px);
         }
 
         .auto-advance-address {
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
             color: var(--text-secondary);
-            margin-bottom: 24px;
+            margin-bottom: var(--ts-space-6, 24px);
         }
 
         .auto-advance-actions {
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: var(--ts-space-3, 12px);
         }
 
         .auto-advance-actions .btn-lg {
-            padding: 16px 24px;
-            font-size: 16px;
+            padding: var(--ts-space-4, 16px) var(--ts-space-6, 24px);
+            font-size: var(--ts-text-base, 1rem);
         }
 
         /* Professional Map Styling */
         #deliveryMap {
-            border-radius: 12px;
+            border-radius: var(--ts-radius-md, 12px);
             overflow: hidden;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
         }
 
         .leaflet-container {
-            background: var(--ts-bg-base, #1a1a2e);
+            background: var(--ts-bg-base, #1a1816);
             font-family: inherit;
         }
 
         .leaflet-popup-content-wrapper {
             background: var(--bg-card);
             color: var(--text-primary);
-            border-radius: 12px;
+            border-radius: var(--ts-radius-md, 12px);
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
         }
 
         .leaflet-popup-content {
             margin: 16px;
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
             line-height: 1.5;
         }
 
@@ -1864,7 +1866,7 @@
             width: 36px !important;
             height: 36px !important;
             line-height: 36px !important;
-            font-size: 18px !important;
+            font-size: var(--ts-text-lg, 1.125rem) !important;
         }
 
         .leaflet-control-zoom a:hover {
@@ -1874,7 +1876,7 @@
         .leaflet-control-attribution {
             background: rgba(15, 23, 42, 0.8) !important;
             color: var(--text-muted) !important;
-            font-size: 10px;
+            font-size: var(--ts-text-2xs, 0.625rem);
         }
 
         .leaflet-control-attribution a {
@@ -1884,9 +1886,9 @@
         /* Map route info bar */
         .map-info-bar {
             background: var(--bg-card);
-            padding: 16px;
-            border-radius: 12px;
-            margin-bottom: 12px;
+            padding: var(--ts-space-4, 16px);
+            border-radius: var(--ts-radius-md, 12px);
+            margin-bottom: var(--ts-space-3, 12px);
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -1897,26 +1899,39 @@
         }
 
         .map-info-value {
-            font-size: 18px;
+            font-size: var(--ts-text-lg, 1.125rem);
             font-weight: 700;
             color: var(--primary);
         }
 
         .map-info-label {
-            font-size: 11px;
+            font-size: var(--ts-text-2xs, 0.69rem);
             color: var(--text-secondary);
             text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
 
         @media (max-width: 768px) {
-            body { padding: 8px; }
-            .container, .main-content, .content, .page-content, .dashboard { padding: 12px; }
+            body { padding: var(--ts-space-2, 8px); }
+            .container, .main-content, .content, .page-content, .dashboard { padding: var(--ts-space-3, 12px); }
             table { display: block; overflow-x: auto; }
             .sidebar, .side-panel { display: none; }
-            h1 { font-size: 24px; }
-            h2 { font-size: 20px; }
+            h1 { font-size: var(--ts-text-2xl, 1.5rem); }
+            h2 { font-size: var(--ts-text-xl, 1.25rem); }
             .btn, button { min-height: 44px; }
         }
+        /* ── Accessibility: Focus Visible ── */
+        :focus-visible { outline: 2px solid var(--ts-primary, #22c55e); outline-offset: 2px; }
+        :focus:not(:focus-visible) { outline: none; }
+
+        /* ── Accessibility: Reduced Motion ── */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
     </style>
     <!-- UNIFIED API CONFIG - SINGLE SOURCE OF TRUTH -->
     <script src="api-config.js"></script>
@@ -2159,7 +2174,7 @@
                     </div>
                 </div>
 
-                <button class="logout-btn" onclick="clockOut()" style="background: var(--warning); margin-bottom: 12px;">
+                <button class="logout-btn" onclick="clockOut()" style="background: var(--warning); margin-bottom: var(--ts-space-3, 12px);">
                     &#x1F551; Clock Out & End Day
                 </button>
 
@@ -2260,7 +2275,7 @@
 
                 <textarea class="issue-textarea" id="issueNotes" placeholder="Add details about the issue..."></textarea>
 
-                <div class="pod-section" style="margin-top: 16px;">
+                <div class="pod-section" style="margin-top: var(--ts-space-4, 16px);">
                     <div class="pod-label">Photo (Optional)</div>
                     <div class="photo-capture" id="issuePhoto" onclick="captureIssuePhoto()">
                         <div class="photo-placeholder">
@@ -2616,10 +2631,10 @@
             window.pinValue = '';
             AppState.pin = '';
             // Pin debug display removed
-            document.getElementById('pin1').style.background = '#334155';
-            document.getElementById('pin2').style.background = '#334155';
-            document.getElementById('pin3').style.background = '#334155';
-            document.getElementById('pin4').style.background = '#334155';
+            document.getElementById('pin1').style.background = 'rgba(255,255,255,0.06)';
+            document.getElementById('pin2').style.background = 'rgba(255,255,255,0.06)';
+            document.getElementById('pin3').style.background = 'rgba(255,255,255,0.06)';
+            document.getElementById('pin4').style.background = 'rgba(255,255,255,0.06)';
         }
 
         function logout() {
@@ -2637,10 +2652,10 @@
             document.getElementById('bottomNav').style.display = 'none';
             document.querySelectorAll('.tab-content').forEach(function(t) { t.classList.remove('active'); });
             // Pin debug display removed
-            document.getElementById('pin1').style.background = '#334155';
-            document.getElementById('pin2').style.background = '#334155';
-            document.getElementById('pin3').style.background = '#334155';
-            document.getElementById('pin4').style.background = '#334155';
+            document.getElementById('pin1').style.background = 'rgba(255,255,255,0.06)';
+            document.getElementById('pin2').style.background = 'rgba(255,255,255,0.06)';
+            document.getElementById('pin3').style.background = 'rgba(255,255,255,0.06)';
+            document.getElementById('pin4').style.background = 'rgba(255,255,255,0.06)';
         }
 
         // ============================================
@@ -2979,7 +2994,7 @@
                 const typeColor = stop.customerType === 'CSA' ? '#8b5cf6' :
                                   stop.customerType === 'Wholesale' ? '#3b82f6' : '#22c55e';
                 const typeBadge = stop.customerType && stop.customerType !== 'Retail' ?
-                    `<span style="background: ${typeColor}; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">${stop.customerType}</span>` : '';
+                    `<span style="background: ${typeColor}; color: white; padding: 2px 8px; border-radius: var(--ts-radius-sm, 4px); font-size: var(--ts-text-2xs, 0.69rem); font-weight: 600;">${stop.customerType}</span>` : '';
 
                 // CSA box count or Wholesale item count
                 let countDisplay = '';
@@ -3048,7 +3063,7 @@
                                 </button>
                             </div>
 
-                            <div class="stop-actions" style="margin-top: 12px;">
+                            <div class="stop-actions" style="margin-top: var(--ts-space-3, 12px);">
                                 <button class="stop-action-btn" onclick="openNavigation(${stop.lat}, ${stop.lng}, '${encodeURIComponent(stop.address)}')">
                                     <span class="stop-action-icon">&#x1F5FA;</span>
                                     <span>Navigate</span>
@@ -3296,13 +3311,13 @@
                         background: #22c55e;
                         color: white;
                         padding: 4px 10px;
-                        border-radius: 20px;
-                        font-size: 11px;
+                        border-radius: var(--ts-radius-lg, 20px);
+                        font-size: var(--ts-text-2xs, 0.69rem);
                         font-weight: 600;
                         z-index: 9999;
                         display: flex;
                         align-items: center;
-                        gap: 4px;
+                        gap: var(--ts-space-1, 4px);
                     `;
                     document.body.appendChild(indicator);
                 }
@@ -3489,14 +3504,14 @@
                 transform: translateX(-50%);
                 background: ${colors[type] || colors.info};
                 color: white;
-                padding: 12px 20px;
-                border-radius: 8px;
-                font-size: 14px;
+                padding: var(--ts-space-3, 12px) var(--ts-space-5, 20px);
+                border-radius: var(--ts-radius-sm, 8px);
+                font-size: var(--ts-text-sm, 0.875rem);
                 font-weight: 500;
                 z-index: 9999;
                 display: flex;
                 align-items: center;
-                gap: 8px;
+                gap: var(--ts-space-2, 8px);
                 box-shadow: 0 4px 12px rgba(0,0,0,0.3);
                 animation: slideUp 0.3s ease-out;
             `;
@@ -5374,5 +5389,6 @@
                 .catch(err => console.log('[SW] Registration failed:', err));
         }
     </script>
+<script src="shared-nav.js"></script>
 </body>
 </html>

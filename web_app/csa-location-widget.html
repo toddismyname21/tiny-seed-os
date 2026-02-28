@@ -36,13 +36,13 @@
 
     .widget-container {
       max-width: 100%;
-      padding: 20px;
+      padding: var(--ts-space-5, 20px);
     }
 
     /* Header */
     .widget-header {
       text-align: center;
-      margin-bottom: 20px;
+      margin-bottom: var(--ts-space-5, 20px);
       padding-bottom: 16px;
       border-bottom: 2px solid #e8f5e9;
     }
@@ -53,7 +53,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
+      gap: var(--ts-space-2, 8px);
     }
 
     .widget-header p {
@@ -64,43 +64,44 @@
 
     /* Form */
     .search-form {
-      margin-bottom: 20px;
+      margin-bottom: var(--ts-space-5, 20px);
     }
 
     .input-group {
       display: flex;
-      gap: 10px;
-      margin-bottom: 12px;
+      gap: var(--ts-space-2, 10px);
+      margin-bottom: var(--ts-space-3, 12px);
     }
 
     .input-group input {
       flex: 1;
       padding: 12px 14px;
       border: 2px solid var(--border);
-      border-radius: 8px;
-      font-size: 15px;
+      border-radius: var(--ts-radius-sm, 8px);
+      font-size: var(--ts-text-sm, 0.94rem);
       font-family: inherit;
     }
 
     .input-group input:focus {
       outline: none;
       border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--ts-primary-muted, rgba(34, 197, 94, 0.15));
     }
 
     .btn {
-      padding: 12px 20px;
+      padding: var(--ts-space-3, 12px) var(--ts-space-5, 20px);
       background: var(--primary);
       color: white;
       border: none;
-      border-radius: 8px;
+      border-radius: var(--ts-radius-sm, 8px);
       font-size: 0.95rem;
       font-weight: 600;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 6px;
-      transition: background 0.2s;
+      gap: var(--ts-space-1, 6px);
+      transition: background var(--ts-dur-normal, 200ms);
     }
 
     .btn:hover {
@@ -135,10 +136,10 @@
 
     /* Result Banner */
     .result-banner {
-      padding: 16px;
-      border-radius: 10px;
+      padding: var(--ts-space-4, 16px);
+      border-radius: var(--ts-radius-md, 10px);
       text-align: center;
-      margin-bottom: 16px;
+      margin-bottom: var(--ts-space-4, 16px);
     }
 
     .result-banner.delivery {
@@ -153,12 +154,12 @@
 
     .result-banner i {
       font-size: 1.8rem;
-      margin-bottom: 8px;
+      margin-bottom: var(--ts-space-2, 8px);
     }
 
     .result-banner h3 {
       font-size: 1.1rem;
-      margin-bottom: 4px;
+      margin-bottom: var(--ts-space-1, 4px);
     }
 
     .result-banner p {
@@ -175,13 +176,13 @@
     .location-item {
       display: flex;
       align-items: flex-start;
-      gap: 12px;
-      padding: 12px;
+      gap: var(--ts-space-3, 12px);
+      padding: var(--ts-space-3, 12px);
       background: var(--bg-light);
-      border-radius: 8px;
-      margin-bottom: 8px;
+      border-radius: var(--ts-radius-sm, 8px);
+      margin-bottom: var(--ts-space-2, 8px);
       cursor: pointer;
-      transition: background 0.2s;
+      transition: background var(--ts-dur-normal, 200ms);
       border: 2px solid transparent;
     }
 
@@ -198,7 +199,7 @@
       width: 36px;
       height: 36px;
       background: var(--primary);
-      border-radius: 8px;
+      border-radius: var(--ts-radius-sm, 8px);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -237,16 +238,16 @@
     .cta-box {
       background: #fff7ed;
       border: 1px solid #fed7aa;
-      border-radius: 8px;
+      border-radius: var(--ts-radius-sm, 8px);
       padding: 14px;
       text-align: center;
-      margin-top: 16px;
+      margin-top: var(--ts-space-4, 16px);
     }
 
     .cta-box p {
       font-size: 0.85rem;
       color: #9a3412;
-      margin-bottom: 8px;
+      margin-bottom: var(--ts-space-2, 8px);
     }
 
     .cta-box a {
@@ -263,16 +264,16 @@
     .delivery-zones {
       display: flex;
       flex-wrap: wrap;
-      gap: 6px;
+      gap: var(--ts-space-1, 6px);
       justify-content: center;
-      margin-top: 12px;
+      margin-top: var(--ts-space-3, 12px);
     }
 
     .zone-tag {
       background: #e8f5e9;
       color: var(--farm-green);
       padding: 4px 10px;
-      border-radius: 12px;
+      border-radius: var(--ts-radius-md, 12px);
       font-size: 0.75rem;
       font-weight: 500;
     }
@@ -280,8 +281,8 @@
     /* Actions */
     .actions {
       display: flex;
-      gap: 10px;
-      margin-top: 16px;
+      gap: var(--ts-space-2, 10px);
+      margin-top: var(--ts-space-4, 16px);
     }
 
     .actions .btn {
@@ -318,7 +319,7 @@
     /* Link to full page */
     .view-full {
       text-align: center;
-      margin-top: 16px;
+      margin-top: var(--ts-space-4, 16px);
       padding-top: 16px;
       border-top: 1px solid var(--border);
     }
@@ -335,14 +336,33 @@
     }
 
     @media (max-width: 768px) {
-        body { padding: 8px; }
-        .container, .main-content, .content, .page-content, .dashboard { padding: 12px; }
+        body { padding: var(--ts-space-2, 8px); }
+        .container, .main-content, .content, .page-content, .dashboard { padding: var(--ts-space-3, 12px); }
         table { display: block; overflow-x: auto; }
         .sidebar, .side-panel { display: none; }
-        h1 { font-size: 24px; }
-        h2 { font-size: 20px; }
+        h1 { font-size: var(--ts-text-2xl, 1.5rem); }
+        h2 { font-size: var(--ts-text-xl, 1.25rem); }
         .btn, button { min-height: 44px; }
     }
+        /* ── Accessibility: Focus Visible ── */
+        :focus-visible { outline: 2px solid var(--ts-primary, #22c55e); outline-offset: 2px; }
+        :focus:not(:focus-visible) { outline: none; }
+
+        /* ── Accessibility: Reduced Motion ── */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        /* ── Page Load Animation ── */
+        @keyframes ts-page-enter {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        body { animation: ts-page-enter var(--ts-dur-moderate, 300ms) var(--ts-ease-out, ease) both; }
+
   </style>
 </head>
 <body>
@@ -373,7 +393,7 @@
         <span class="zone-tag">North Park</span>
         <span class="zone-tag">Zelienople</span>
       </div>
-      <p style="text-align: center; font-size: 0.75rem; color: #666; margin-top: 8px;">
+      <p style="text-align: center; font-size: 0.75rem; color: #666; margin-top: var(--ts-space-2, 8px);">
         <i class="fas fa-home"></i> Neighborhood community stops available
       </p>
     </div>
@@ -381,7 +401,7 @@
     <!-- Loading -->
     <div id="loading" class="loading">
       <i class="fas fa-spinner"></i>
-      <p style="margin-top: 8px; color: #666;">Finding locations...</p>
+      <p style="margin-top: var(--ts-space-2, 8px); color: #666;">Finding locations...</p>
     </div>
 
     <!-- Results -->
@@ -613,5 +633,6 @@
       }
     });
   </script>
+<script src="shared-nav.js"></script>
 </body>
 </html>

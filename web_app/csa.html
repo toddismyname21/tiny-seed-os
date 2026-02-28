@@ -15,7 +15,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="tiny-seed-design-system.css">
     <style>
-        .skip-link { position: absolute; top: -40px; left: 0; background: #166534; color: #fff; padding: 8px 16px; z-index: 10000; font-size: 14px; transition: top 0.2s; }
+        .skip-link { position: absolute; top: -40px; left: 0; background: #166534; color: #fff; padding: var(--ts-space-2, 8px) var(--ts-space-4, 16px); z-index: 10000; font-size: var(--ts-text-sm, 0.875rem); transition: top var(--ts-dur-normal, 200ms); }
         .skip-link:focus { top: 0; }
 
         /* ═══════════════════════════════════════════════════════════════════════════
@@ -83,8 +83,8 @@
             100% { background-position: -200% 0; }
         }
 
-        .skeleton-text { height: 16px; margin-bottom: 8px; }
-        .skeleton-title { height: 24px; width: 60%; margin-bottom: 12px; }
+        .skeleton-text { height: 16px; margin-bottom: var(--ts-space-2, 8px); }
+        .skeleton-title { height: 24px; width: 60%; margin-bottom: var(--ts-space-3, 12px); }
         .skeleton-card { height: 120px; border-radius: var(--radius-lg); }
         .skeleton-avatar { width: 48px; height: 48px; border-radius: 50%; }
 
@@ -149,7 +149,7 @@
             align-items: center;
             justify-content: center;
             box-shadow: var(--shadow-md);
-            transition: transform 0.2s ease;
+            transition: transform var(--ts-dur-normal, 200ms) ease;
             z-index: 50;
         }
 
@@ -166,7 +166,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 20px;
+            padding: var(--ts-space-5, 20px);
             background: linear-gradient(135deg, #166534 0%, #22c55e 100%);
         }
 
@@ -182,7 +182,7 @@
 
         .login-logo {
             text-align: center;
-            margin-bottom: 32px;
+            margin-bottom: var(--ts-space-8, 32px);
         }
 
         .login-logo-icon {
@@ -193,25 +193,25 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            font-size: 40px;
-            margin-bottom: 16px;
+            font-size: var(--ts-text-4xl, 2.5rem);
+            margin-bottom: var(--ts-space-4, 16px);
             box-shadow: 0 8px 20px rgba(34, 197, 94, 0.3);
         }
 
-        .login-logo h1 { font-size: 24px; font-weight: 700; }
+        .login-logo h1 { font-size: var(--ts-text-2xl, 1.5rem); font-weight: 700; }
         .login-logo p { color: var(--primary); font-weight: 600; margin-top: 4px; }
 
-        .login-form { margin-top: 24px; }
-        .form-group { margin-bottom: 20px; }
-        .form-label { display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px; }
+        .login-form { margin-top: var(--ts-space-6, 24px); }
+        .form-group { margin-bottom: var(--ts-space-5, 20px); }
+        .form-label { display: block; font-size: var(--ts-text-sm, 0.875rem); font-weight: 500; margin-bottom: var(--ts-space-2, 8px); }
 
         .form-input {
             width: 100%;
             padding: 14px 16px;
             border: 2px solid var(--border-color);
             border-radius: var(--radius-md);
-            font-size: 16px;
-            transition: all 0.2s;
+            font-size: var(--ts-text-base, 1rem);
+            transition: all var(--ts-dur-normal, 200ms);
             background: #ffffff;
             color: var(--text-primary);
         }
@@ -230,14 +230,14 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
+            gap: var(--ts-space-2, 8px);
             padding: 14px 24px;
             border-radius: var(--radius-md);
-            font-size: 16px;
+            font-size: var(--ts-text-base, 1rem);
             font-weight: 600;
             cursor: pointer;
             border: none;
-            transition: all 0.2s;
+            transition: all var(--ts-dur-normal, 200ms);
         }
 
         .btn-primary {
@@ -260,34 +260,34 @@
             color: var(--text-primary);
         }
 
-        .btn-sm { padding: 8px 16px; font-size: 14px; }
+        .btn-sm { padding: var(--ts-space-2, 8px) var(--ts-space-4, 16px); font-size: var(--ts-text-sm, 0.875rem); }
         .btn-icon { padding: 10px; width: 44px; height: 44px; border-radius: var(--radius-md); }
 
         /* Login Method Tabs */
         .login-tabs {
             display: flex;
-            gap: 8px;
-            margin-bottom: 24px;
-            padding: 4px;
+            gap: var(--ts-space-2, 8px);
+            margin-bottom: var(--ts-space-6, 24px);
+            padding: var(--ts-space-1, 4px);
             background: var(--bg-elevated);
             border-radius: var(--radius-md);
         }
 
         .login-tab {
             flex: 1;
-            padding: 12px 16px;
+            padding: var(--ts-space-3, 12px) var(--ts-space-4, 16px);
             border: none;
             background: transparent;
             border-radius: var(--radius-sm);
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
             font-weight: 600;
             color: var(--text-secondary);
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all var(--ts-dur-normal, 200ms);
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
+            gap: var(--ts-space-2, 8px);
         }
 
         .login-tab:hover {
@@ -301,7 +301,7 @@
         }
 
         .sms-code-input {
-            font-size: 24px;
+            font-size: var(--ts-text-2xl, 1.5rem);
             font-weight: 700;
             text-align: center;
             letter-spacing: 8px;
@@ -310,11 +310,11 @@
 
         .magic-link-sent {
             text-align: center;
-            padding: 20px;
+            padding: var(--ts-space-5, 20px);
             animation: fadeIn 0.3s ease;
         }
 
-        .magic-link-sent .icon { font-size: 64px; margin-bottom: 16px; }
+        .magic-link-sent .icon { font-size: 64px; margin-bottom: var(--ts-space-4, 16px); }
 
         /* ═══════════════════════════════════════════════════════════════════════════
            ONBOARDING WIZARD
@@ -335,14 +335,14 @@
             text-align: center;
         }
 
-        .onboarding-header h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
-        .onboarding-header p { opacity: 0.9; font-size: 16px; }
+        .onboarding-header h1 { font-size: var(--ts-text-3xl, 1.75rem); font-weight: 700; margin-bottom: var(--ts-space-2, 8px); }
+        .onboarding-header p { opacity: 0.9; font-size: var(--ts-text-base, 1rem); }
 
         .onboarding-progress {
             display: flex;
             justify-content: center;
-            gap: 8px;
-            margin-top: 24px;
+            gap: var(--ts-space-2, 8px);
+            margin-top: var(--ts-space-6, 24px);
         }
 
         .progress-dot {
@@ -350,7 +350,7 @@
             height: 10px;
             border-radius: 50%;
             background: rgba(255,255,255,0.3);
-            transition: all 0.3s;
+            transition: all var(--ts-dur-moderate, 300ms);
         }
 
         .progress-dot.active { background: white; width: 24px; border-radius: 5px; }
@@ -364,7 +364,7 @@
         .onboarding-card {
             background: white;
             border-radius: var(--radius-xl);
-            padding: 24px;
+            padding: var(--ts-space-6, 24px);
             box-shadow: var(--shadow-lg);
         }
 
@@ -380,7 +380,7 @@
         .preference-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 12px;
+            gap: var(--ts-space-3, 12px);
             margin: 20px 0;
         }
 
@@ -391,22 +391,22 @@
             padding: 16px 12px;
             text-align: center;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all var(--ts-dur-normal, 200ms);
         }
 
         .preference-item:hover { border-color: var(--border-color); }
         .preference-item.selected { border-color: var(--primary); background: var(--primary-bg); }
-        .preference-item .emoji { font-size: 28px; margin-bottom: 8px; }
-        .preference-item .name { font-size: 13px; font-weight: 500; }
+        .preference-item .emoji { font-size: var(--ts-text-3xl, 1.75rem); margin-bottom: var(--ts-space-2, 8px); }
+        .preference-item .name { font-size: var(--ts-text-xs, 0.8rem); font-weight: 500; }
 
         .comm-option {
             display: flex;
             align-items: center;
-            gap: 12px;
-            padding: 16px;
+            gap: var(--ts-space-3, 12px);
+            padding: var(--ts-space-4, 16px);
             background: var(--bg-elevated);
             border-radius: var(--radius-md);
-            margin-bottom: 12px;
+            margin-bottom: var(--ts-space-3, 12px);
             cursor: pointer;
         }
 
@@ -415,12 +415,12 @@
             width: 24px;
             height: 24px;
             border: 2px solid var(--border-color);
-            border-radius: 6px;
+            border-radius: var(--ts-radius-sm, 6px);
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
-            transition: all 0.2s;
+            transition: all var(--ts-dur-normal, 200ms);
         }
 
         .comm-option input:checked + .checkbox {
@@ -433,11 +433,11 @@
             bottom: 0;
             left: 0;
             right: 0;
-            padding: 20px;
+            padding: var(--ts-space-5, 20px);
             background: white;
             border-top: 1px solid var(--border-color);
             display: flex;
-            gap: 12px;
+            gap: var(--ts-space-3, 12px);
         }
 
         .onboarding-footer .btn { flex: 1; }
@@ -471,11 +471,11 @@
            ═══════════════════════════════════════════════════════════════════════════ */
 
         .alert-banner {
-            padding: 12px 20px;
+            padding: var(--ts-space-3, 12px) var(--ts-space-5, 20px);
             display: flex;
             align-items: center;
-            gap: 12px;
-            font-size: 14px;
+            gap: var(--ts-space-3, 12px);
+            font-size: var(--ts-text-sm, 0.875rem);
             font-weight: 500;
             animation: slideInUp 0.3s ease;
         }
@@ -495,14 +495,14 @@
             color: var(--primary-darker);
         }
 
-        .alert-banner i { font-size: 18px; }
+        .alert-banner i { font-size: var(--ts-text-lg, 1.125rem); }
         .alert-banner .alert-text { flex: 1; }
         .alert-banner .alert-action {
             background: rgba(0,0,0,0.1);
             border: none;
             padding: 6px 12px;
             border-radius: var(--radius-sm);
-            font-size: 13px;
+            font-size: var(--ts-text-xs, 0.8rem);
             font-weight: 600;
             cursor: pointer;
         }
@@ -510,7 +510,7 @@
         .alert-banner .dismiss {
             background: none;
             border: none;
-            padding: 4px;
+            padding: var(--ts-space-1, 4px);
             cursor: pointer;
             opacity: 0.6;
         }
@@ -531,25 +531,25 @@
             align-items: flex-start;
         }
 
-        .welcome-text { font-size: 14px; opacity: 0.9; }
-        .welcome-name { font-size: 24px; font-weight: 700; margin-top: 4px; }
+        .welcome-text { font-size: var(--ts-text-sm, 0.875rem); opacity: 0.9; }
+        .welcome-name { font-size: var(--ts-text-2xl, 1.5rem); font-weight: 700; margin-top: 4px; }
 
         .weather-widget {
             text-align: right;
-            font-size: 13px;
+            font-size: var(--ts-text-xs, 0.8rem);
         }
 
-        .weather-temp { font-size: 24px; font-weight: 600; }
+        .weather-temp { font-size: var(--ts-text-2xl, 1.5rem); font-weight: 600; }
 
         .membership-badge {
             display: inline-flex;
             align-items: center;
-            gap: 8px;
+            gap: var(--ts-space-2, 8px);
             background: rgba(255,255,255,0.2);
-            padding: 8px 16px;
-            border-radius: 20px;
-            margin-top: 12px;
-            font-size: 14px;
+            padding: var(--ts-space-2, 8px) var(--ts-space-4, 16px);
+            border-radius: var(--ts-radius-lg, 20px);
+            margin-top: var(--ts-space-3, 12px);
+            font-size: var(--ts-text-sm, 0.875rem);
             font-weight: 500;
             backdrop-filter: blur(10px);
         }
@@ -561,7 +561,7 @@
         .stats-row {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 12px;
+            gap: var(--ts-space-3, 12px);
             padding: 0 20px;
             margin-top: -40px;
         }
@@ -569,7 +569,7 @@
         .stat-card {
             background: var(--bg-card);
             border-radius: var(--radius-lg);
-            padding: 16px;
+            padding: var(--ts-space-4, 16px);
             text-align: center;
             box-shadow: var(--shadow-md);
             animation: slideInUp 0.3s ease;
@@ -578,8 +578,8 @@
         .stat-card:nth-child(2) { animation-delay: 0.05s; }
         .stat-card:nth-child(3) { animation-delay: 0.1s; }
 
-        .stat-value { font-size: 28px; font-weight: 700; color: var(--primary); }
-        .stat-label { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+        .stat-value { font-size: var(--ts-text-3xl, 1.75rem); font-weight: 700; color: var(--primary); }
+        .stat-label { font-size: var(--ts-text-xs, 0.75rem); color: var(--text-secondary); margin-top: 4px; }
 
         /* ═══════════════════════════════════════════════════════════════════════════
            QUICK ACTIONS
@@ -587,8 +587,8 @@
 
         .quick-actions {
             display: flex;
-            gap: 12px;
-            padding: 20px;
+            gap: var(--ts-space-3, 12px);
+            padding: var(--ts-space-5, 20px);
             overflow-x: auto;
             scrollbar-width: none;
         }
@@ -600,15 +600,15 @@
             background: var(--bg-card);
             border: 1px solid var(--border-color);
             border-radius: var(--radius-md);
-            padding: 12px 16px;
+            padding: var(--ts-space-3, 12px) var(--ts-space-4, 16px);
             display: flex;
             align-items: center;
-            gap: 10px;
-            font-size: 14px;
+            gap: var(--ts-space-2, 10px);
+            font-size: var(--ts-text-sm, 0.875rem);
             font-weight: 500;
             cursor: pointer;
             white-space: nowrap;
-            transition: all 0.2s;
+            transition: all var(--ts-dur-normal, 200ms);
         }
 
         .quick-action:hover { border-color: var(--primary); }
@@ -624,14 +624,14 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 16px;
+            margin-bottom: var(--ts-space-4, 16px);
         }
 
-        .section-title { font-size: 18px; font-weight: 700; }
+        .section-title { font-size: var(--ts-text-lg, 1.125rem); font-weight: 700; }
 
         .section-action {
             color: var(--primary);
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
             font-weight: 600;
             background: none;
             border: none;
@@ -644,8 +644,8 @@
 
         .dashboard-top-row {
             display: flex;
-            gap: 12px;
-            margin-bottom: 16px;
+            gap: var(--ts-space-3, 12px);
+            margin-bottom: var(--ts-space-4, 16px);
             align-items: stretch;
         }
 
@@ -666,7 +666,7 @@
             text-transform: uppercase;
             letter-spacing: 1px;
             color: rgba(255,255,255,0.5);
-            margin-bottom: 4px;
+            margin-bottom: var(--ts-space-1, 4px);
         }
 
         .flex-clock-display {
@@ -676,7 +676,7 @@
 
         .flex-clock-amount {
             font-family: 'SF Mono', 'Fira Code', monospace;
-            font-size: 28px;
+            font-size: var(--ts-text-3xl, 1.75rem);
             font-weight: 700;
             color: #22c55e;
             line-height: 1;
@@ -689,7 +689,7 @@
 
         .flex-clock-cents {
             font-family: 'SF Mono', 'Fira Code', monospace;
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
             font-weight: 600;
             color: #22c55e;
             transition: color 0.3s;
@@ -701,7 +701,7 @@
 
         .flex-clock-actions {
             display: flex;
-            gap: 8px;
+            gap: var(--ts-space-2, 8px);
             margin-top: 10px;
         }
 
@@ -710,11 +710,11 @@
             color: white;
             border: none;
             padding: 6px 12px;
-            border-radius: 6px;
-            font-size: 11px;
+            border-radius: var(--ts-radius-sm, 6px);
+            font-size: var(--ts-text-2xs, 0.69rem);
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all var(--ts-dur-normal, 200ms);
         }
 
         .flex-add-btn:hover {
@@ -726,10 +726,10 @@
             border: none;
             color: rgba(255,255,255,0.6);
             padding: 6px 10px;
-            border-radius: 6px;
-            font-size: 11px;
+            border-radius: var(--ts-radius-sm, 6px);
+            font-size: var(--ts-text-2xs, 0.69rem);
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all var(--ts-dur-normal, 200ms);
         }
 
         .flex-history-btn:hover {
@@ -752,11 +752,11 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 8px;
+            margin-bottom: var(--ts-space-2, 8px);
         }
 
         .social-strip-title {
-            font-size: 11px;
+            font-size: var(--ts-text-2xs, 0.69rem);
             font-weight: 600;
             color: var(--text-secondary);
             text-transform: uppercase;
@@ -764,14 +764,14 @@
         }
 
         .social-strip-link {
-            font-size: 11px;
+            font-size: var(--ts-text-2xs, 0.69rem);
             color: var(--primary);
             text-decoration: none;
         }
 
         .social-thumbs {
             display: flex;
-            gap: 8px;
+            gap: var(--ts-space-2, 8px);
             overflow-x: auto;
             scrollbar-width: none;
             -webkit-overflow-scrolling: touch;
@@ -784,11 +784,11 @@
         .social-thumb {
             flex: 0 0 72px;
             height: 72px;
-            border-radius: 8px;
+            border-radius: var(--ts-radius-sm, 8px);
             overflow: hidden;
             position: relative;
             cursor: pointer;
-            transition: transform 0.2s;
+            transition: transform var(--ts-dur-normal, 200ms);
         }
 
         .social-thumb:hover {
@@ -806,7 +806,7 @@
             bottom: 0;
             left: 0;
             right: 0;
-            padding: 4px;
+            padding: var(--ts-space-1, 4px);
             background: linear-gradient(transparent, rgba(0,0,0,0.7));
             display: flex;
             align-items: center;
@@ -815,7 +815,7 @@
 
         .social-thumb-overlay i {
             color: white;
-            font-size: 10px;
+            font-size: var(--ts-text-2xs, 0.625rem);
         }
 
         @media (max-width: 480px) {
@@ -846,8 +846,8 @@
         .order-confirmation-card {
             background: var(--bg-elevated);
             border-radius: var(--radius-lg);
-            padding: 16px;
-            margin-bottom: 20px;
+            padding: var(--ts-space-4, 16px);
+            margin-bottom: var(--ts-space-5, 20px);
         }
 
         .order-row {
@@ -861,18 +861,18 @@
 
         .order-label {
             color: var(--text-secondary);
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
         }
 
         .order-value {
             font-weight: 600;
             color: var(--text-primary);
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
             text-align: right;
         }
 
         .dispute-section {
-            margin-top: 20px;
+            margin-top: var(--ts-space-5, 20px);
             padding-top: 16px;
             border-top: 1px solid var(--border-color);
         }
@@ -882,15 +882,15 @@
             background: transparent;
             border: 1px dashed var(--border-color);
             color: var(--text-secondary);
-            padding: 12px;
+            padding: var(--ts-space-3, 12px);
             border-radius: var(--radius-md);
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
-            transition: all 0.2s;
+            gap: var(--ts-space-2, 8px);
+            transition: all var(--ts-dur-normal, 200ms);
         }
 
         .dispute-btn:hover {
@@ -907,19 +907,19 @@
             align-items: center;
             justify-content: center;
             z-index: 1000;
-            padding: 20px;
+            padding: var(--ts-space-5, 20px);
         }
 
         .dispute-modal-content {
             background: white;
             border-radius: var(--radius-lg);
-            padding: 24px;
+            padding: var(--ts-space-6, 24px);
             width: 100%;
             max-width: 400px;
         }
 
         .dispute-modal-content h3 {
-            margin-bottom: 8px;
+            margin-bottom: var(--ts-space-2, 8px);
         }
 
         .dispute-textarea {
@@ -929,14 +929,14 @@
 
         .dispute-actions {
             display: flex;
-            gap: 12px;
-            margin-top: 16px;
+            gap: var(--ts-space-3, 12px);
+            margin-top: var(--ts-space-4, 16px);
         }
 
         .dispute-actions .btn { flex: 1; }
 
         .form-hint {
-            font-size: 12px;
+            font-size: var(--ts-text-xs, 0.75rem);
             color: var(--text-muted);
             margin-top: 6px;
         }
@@ -953,21 +953,21 @@
         .hold-options-info {
             display: flex;
             flex-direction: column;
-            gap: 12px;
-            margin-top: 16px;
+            gap: var(--ts-space-3, 12px);
+            margin-top: var(--ts-space-4, 16px);
         }
 
         .hold-option-card {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: var(--ts-space-3, 12px);
             background: var(--bg-elevated);
-            padding: 12px;
+            padding: var(--ts-space-3, 12px);
             border-radius: var(--radius-md);
         }
 
         .hold-option-icon {
-            font-size: 24px;
+            font-size: var(--ts-text-2xl, 1.5rem);
         }
 
         .hold-option-text {
@@ -976,12 +976,12 @@
         }
 
         .hold-option-text strong {
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
             color: var(--text-primary);
         }
 
         .hold-option-text span {
-            font-size: 12px;
+            font-size: var(--ts-text-xs, 0.75rem);
             color: var(--text-secondary);
         }
 
@@ -994,7 +994,7 @@
             align-items: center;
             justify-content: center;
             z-index: 1000;
-            padding: 20px;
+            padding: var(--ts-space-5, 20px);
         }
 
         .modal-content {
@@ -1009,7 +1009,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 20px;
+            padding: var(--ts-space-5, 20px);
             border-bottom: 1px solid var(--border-color);
         }
 
@@ -1018,20 +1018,20 @@
         .modal-close {
             background: none;
             border: none;
-            font-size: 18px;
+            font-size: var(--ts-text-lg, 1.125rem);
             color: var(--text-secondary);
             cursor: pointer;
-            padding: 4px;
+            padding: var(--ts-space-1, 4px);
         }
 
         .modal-body {
-            padding: 20px;
+            padding: var(--ts-space-5, 20px);
         }
 
         .modal-footer {
             display: flex;
-            gap: 12px;
-            padding: 16px 20px;
+            gap: var(--ts-space-3, 12px);
+            padding: var(--ts-space-4, 16px) var(--ts-space-5, 20px);
             border-top: 1px solid var(--border-color);
         }
 
@@ -1040,13 +1040,13 @@
         .hold-choice {
             display: flex;
             align-items: center;
-            gap: 12px;
-            padding: 16px;
+            gap: var(--ts-space-3, 12px);
+            padding: var(--ts-space-4, 16px);
             border: 2px solid var(--border-color);
             border-radius: var(--radius-md);
-            margin-bottom: 12px;
+            margin-bottom: var(--ts-space-3, 12px);
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all var(--ts-dur-normal, 200ms);
         }
 
         .hold-choice:hover {
@@ -1097,12 +1097,12 @@
         .hold-choice-content {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: var(--ts-space-3, 12px);
             flex: 1;
         }
 
         .hold-choice-icon {
-            font-size: 28px;
+            font-size: var(--ts-text-3xl, 1.75rem);
         }
 
         .hold-choice-text {
@@ -1111,31 +1111,31 @@
         }
 
         .hold-choice-text strong {
-            font-size: 15px;
+            font-size: var(--ts-text-sm, 0.94rem);
             color: var(--text-primary);
         }
 
         .hold-choice-text span {
-            font-size: 13px;
+            font-size: var(--ts-text-xs, 0.8rem);
             color: var(--text-secondary);
         }
 
         .season-warning {
             background: #fef3c7;
             color: #92400e;
-            padding: 12px;
+            padding: var(--ts-space-3, 12px);
             border-radius: var(--radius-md);
-            font-size: 13px;
+            font-size: var(--ts-text-xs, 0.8rem);
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: var(--ts-space-2, 8px);
         }
 
         .flex-history-panel {
-            margin-top: 16px;
+            margin-top: var(--ts-space-4, 16px);
             background: rgba(255,255,255,0.1);
-            border-radius: 12px;
-            padding: 12px;
+            border-radius: var(--ts-radius-md, 12px);
+            padding: var(--ts-space-3, 12px);
         }
 
         .flex-transactions-list {
@@ -1144,14 +1144,14 @@
         }
 
         .flex-history-section {
-            margin-top: 20px;
+            margin-top: var(--ts-space-5, 20px);
             background: var(--bg-card);
             border-radius: var(--radius-lg);
-            padding: 16px;
+            padding: var(--ts-space-4, 16px);
         }
 
         .flex-history-title {
-            font-size: 16px;
+            font-size: var(--ts-text-base, 1rem);
             font-weight: 600;
             margin: 0 0 12px;
             color: var(--text-primary);
@@ -1179,19 +1179,19 @@
         }
 
         .flex-tx-type {
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
             font-weight: 500;
             color: var(--text-primary);
         }
 
         .flex-tx-date {
-            font-size: 12px;
+            font-size: var(--ts-text-xs, 0.75rem);
             color: var(--text-secondary);
             margin-top: 2px;
         }
 
         .flex-tx-reason {
-            font-size: 12px;
+            font-size: var(--ts-text-xs, 0.75rem);
             color: var(--text-secondary);
             margin-top: 2px;
             font-style: italic;
@@ -1199,7 +1199,7 @@
 
         .flex-tx-amount {
             font-weight: 600;
-            font-size: 16px;
+            font-size: var(--ts-text-base, 1rem);
         }
 
         .flex-tx-amount.credit {
@@ -1212,13 +1212,13 @@
 
         .flex-loading {
             text-align: center;
-            padding: 20px;
+            padding: var(--ts-space-5, 20px);
             color: var(--text-secondary);
         }
 
         .flex-empty {
             text-align: center;
-            padding: 20px;
+            padding: var(--ts-space-5, 20px);
             color: var(--text-secondary);
             font-style: italic;
         }
@@ -1243,25 +1243,25 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 48px;
+            font-size: var(--ts-text-5xl, 3rem);
         }
 
         .box-header {
-            padding: 16px;
+            padding: var(--ts-space-4, 16px);
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
             border-bottom: 1px solid var(--border-color);
         }
 
-        .box-week { font-weight: 700; font-size: 16px; }
-        .box-pickup { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
+        .box-week { font-weight: 700; font-size: var(--ts-text-base, 1rem); }
+        .box-pickup { font-size: var(--ts-text-xs, 0.8rem); color: var(--text-secondary); margin-top: 4px; }
         .box-pickup i { margin-right: 4px; }
 
         .box-status {
             padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 12px;
+            border-radius: var(--ts-radius-lg, 20px);
+            font-size: var(--ts-text-xs, 0.75rem);
             font-weight: 600;
         }
 
@@ -1273,54 +1273,54 @@
             background: var(--primary-bg);
             color: var(--primary-darker);
             padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 12px;
+            border-radius: var(--ts-radius-lg, 20px);
+            font-size: var(--ts-text-xs, 0.75rem);
             font-weight: 600;
         }
 
         .box-deadline {
             background: #fef3c7;
-            padding: 12px 16px;
+            padding: var(--ts-space-3, 12px) var(--ts-space-4, 16px);
             display: flex;
             align-items: center;
-            gap: 10px;
-            font-size: 13px;
+            gap: var(--ts-space-2, 10px);
+            font-size: var(--ts-text-xs, 0.8rem);
             font-weight: 500;
             color: #92400e;
         }
 
-        .box-deadline i { font-size: 16px; }
+        .box-deadline i { font-size: var(--ts-text-base, 1rem); }
         .box-deadline .countdown { margin-left: auto; font-weight: 700; }
 
-        .box-items { padding: 8px 16px; }
+        .box-items { padding: var(--ts-space-2, 8px) var(--ts-space-4, 16px); }
 
         .box-item {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: var(--ts-space-3, 12px);
             padding: 12px 0;
             border-bottom: 1px solid var(--border-color);
         }
 
         .box-item:last-child { border-bottom: none; }
 
-        .box-item-emoji { font-size: 32px; width: 44px; text-align: center; }
+        .box-item-emoji { font-size: var(--ts-text-4xl, 2rem); width: 44px; text-align: center; }
 
         .box-item-info { flex: 1; }
         .box-item-name { font-weight: 600; }
-        .box-item-qty { font-size: 13px; color: var(--text-secondary); }
-        .box-item-note { font-size: 12px; color: var(--primary); font-weight: 500; }
+        .box-item-qty { font-size: var(--ts-text-xs, 0.8rem); color: var(--text-secondary); }
+        .box-item-note { font-size: var(--ts-text-xs, 0.75rem); color: var(--primary); font-weight: 500; }
 
-        .box-item-actions { display: flex; gap: 8px; }
+        .box-item-actions { display: flex; gap: var(--ts-space-2, 8px); }
 
         .swap-btn, .keep-btn {
-            padding: 8px 12px;
+            padding: var(--ts-space-2, 8px) var(--ts-space-3, 12px);
             border-radius: var(--radius-sm);
-            font-size: 12px;
+            font-size: var(--ts-text-xs, 0.75rem);
             font-weight: 600;
             cursor: pointer;
             border: none;
-            transition: all 0.2s;
+            transition: all var(--ts-dur-normal, 200ms);
         }
 
         .swap-btn {
@@ -1339,10 +1339,10 @@
         .keep-btn.active { color: var(--primary); }
 
         .box-footer {
-            padding: 16px;
+            padding: var(--ts-space-4, 16px);
             background: var(--bg-elevated);
             display: flex;
-            gap: 12px;
+            gap: var(--ts-space-3, 12px);
         }
 
         .box-footer .btn { flex: 1; }
@@ -1353,7 +1353,7 @@
 
         .updates-feed {
             display: flex;
-            gap: 16px;
+            gap: var(--ts-space-4, 16px);
             overflow-x: auto;
             padding-bottom: 8px;
             scrollbar-width: none;
@@ -1377,15 +1377,15 @@
             background: linear-gradient(135deg, #fef3c7, #fed7aa);
         }
 
-        .update-content { padding: 16px; }
-        .update-text { font-size: 14px; line-height: 1.5; color: var(--text-secondary); }
+        .update-content { padding: var(--ts-space-4, 16px); }
+        .update-text { font-size: var(--ts-text-sm, 0.875rem); line-height: 1.5; color: var(--text-secondary); }
 
         .update-meta {
             display: flex;
             align-items: center;
-            gap: 8px;
-            margin-top: 12px;
-            font-size: 13px;
+            gap: var(--ts-space-2, 8px);
+            margin-top: var(--ts-space-3, 12px);
+            font-size: var(--ts-text-xs, 0.8rem);
             color: var(--text-muted);
         }
 
@@ -1398,7 +1398,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 12px;
+            font-size: var(--ts-text-xs, 0.75rem);
             font-weight: 600;
         }
 
@@ -1406,31 +1406,31 @@
            UPCOMING BOXES
            ═══════════════════════════════════════════════════════════════════════════ */
 
-        .upcoming-list { display: flex; flex-direction: column; gap: 12px; }
+        .upcoming-list { display: flex; flex-direction: column; gap: var(--ts-space-3, 12px); }
 
         .upcoming-card {
             background: var(--bg-card);
             border-radius: var(--radius-md);
-            padding: 16px;
+            padding: var(--ts-space-4, 16px);
             border: 1px solid var(--border-color);
             display: flex;
             justify-content: space-between;
             align-items: center;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all var(--ts-dur-normal, 200ms);
         }
 
         .upcoming-card:hover { border-color: var(--primary); }
         .upcoming-card.hold { opacity: 0.6; background: var(--bg-elevated); }
 
         .upcoming-date { font-weight: 600; }
-        .upcoming-preview { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
+        .upcoming-preview { font-size: var(--ts-text-xs, 0.8rem); color: var(--text-secondary); margin-top: 4px; }
 
         .upcoming-badge {
             padding: 6px 12px;
             background: var(--bg-elevated);
             border-radius: var(--radius-sm);
-            font-size: 12px;
+            font-size: var(--ts-text-xs, 0.75rem);
             font-weight: 600;
             color: var(--text-secondary);
         }
@@ -1447,7 +1447,7 @@
         .vacation-section {
             background: var(--bg-card);
             border-radius: var(--radius-lg);
-            padding: 20px;
+            padding: var(--ts-space-5, 20px);
             border: 1px solid var(--border-color);
         }
 
@@ -1455,25 +1455,25 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 16px;
+            margin-bottom: var(--ts-space-4, 16px);
         }
 
         .vacation-title { font-weight: 700; }
 
         .vacation-remaining {
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
             color: var(--text-secondary);
         }
 
         .vacation-remaining strong { color: var(--primary); }
 
-        .vacation-weeks { display: flex; flex-direction: column; gap: 12px; }
+        .vacation-weeks { display: flex; flex-direction: column; gap: var(--ts-space-3, 12px); }
 
         .vacation-week {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 12px 16px;
+            padding: var(--ts-space-3, 12px) var(--ts-space-4, 16px);
             background: var(--bg-elevated);
             border-radius: var(--radius-md);
         }
@@ -1484,16 +1484,16 @@
 
         .vacation-week-info { }
         .vacation-week-date { font-weight: 600; }
-        .vacation-week-label { font-size: 13px; color: var(--text-secondary); }
+        .vacation-week-label { font-size: var(--ts-text-xs, 0.8rem); color: var(--text-secondary); }
 
         .vacation-btn {
-            padding: 8px 16px;
+            padding: var(--ts-space-2, 8px) var(--ts-space-4, 16px);
             border-radius: var(--radius-sm);
-            font-size: 13px;
+            font-size: var(--ts-text-xs, 0.8rem);
             font-weight: 600;
             cursor: pointer;
             border: none;
-            transition: all 0.2s;
+            transition: all var(--ts-dur-normal, 200ms);
         }
 
         .vacation-btn.schedule {
@@ -1531,19 +1531,19 @@
             align-items: center;
             justify-content: center;
             gap: 2px;
-            padding: 10px 20px;
+            padding: var(--ts-space-2, 10px) var(--ts-space-5, 20px);
             min-height: 56px;
             background: none;
             border: none;
             cursor: pointer;
             color: var(--text-muted);
-            font-size: 10px;
+            font-size: var(--ts-text-2xs, 0.625rem);
             font-weight: 500;
-            transition: color 0.2s;
+            transition: color var(--ts-dur-normal, 200ms);
         }
 
         .nav-item.active { color: var(--primary); }
-        .nav-item i { font-size: 22px; }
+        .nav-item i { font-size: var(--ts-text-xl, 1.375rem); }
 
         /* ═══════════════════════════════════════════════════════════════════════════
            TAB CONTENT
@@ -1557,23 +1557,23 @@
            ═══════════════════════════════════════════════════════════════════════════ */
 
         .page-header {
-            padding: 20px;
+            padding: var(--ts-space-5, 20px);
             padding-top: max(20px, env(safe-area-inset-top));
         }
 
-        .page-header h1 { font-size: 24px; font-weight: 700; }
+        .page-header h1 { font-size: var(--ts-text-2xl, 1.5rem); font-weight: 700; }
 
         .orders-list {
             padding: 0 20px 20px;
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: var(--ts-space-3, 12px);
         }
 
         .order-card {
             background: var(--bg-card);
             border-radius: var(--radius-md);
-            padding: 16px;
+            padding: var(--ts-space-4, 16px);
             border: 1px solid var(--border-color);
         }
 
@@ -1581,16 +1581,16 @@
             display: flex;
             justify-content: space-between;
             align-items: start;
-            margin-bottom: 8px;
+            margin-bottom: var(--ts-space-2, 8px);
         }
 
-        .order-id { font-weight: 600; font-size: 14px; }
-        .order-date { font-size: 13px; color: var(--text-secondary); }
+        .order-id { font-weight: 600; font-size: var(--ts-text-sm, 0.875rem); }
+        .order-date { font-size: var(--ts-text-xs, 0.8rem); color: var(--text-secondary); }
 
         .order-status {
             padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 11px;
+            border-radius: var(--ts-radius-md, 12px);
+            font-size: var(--ts-text-2xs, 0.69rem);
             font-weight: 600;
         }
 
@@ -1598,7 +1598,7 @@
         .order-status.pending { background: #fef3c7; color: #92400e; }
         .order-status.skipped { background: var(--bg-elevated); color: var(--text-muted); }
 
-        .order-items { font-size: 13px; color: var(--text-secondary); }
+        .order-items { font-size: var(--ts-text-xs, 0.8rem); color: var(--text-secondary); }
 
         /* ═══════════════════════════════════════════════════════════════════════════
            ACCOUNT / SETTINGS
@@ -1609,18 +1609,18 @@
         .settings-card {
             background: var(--bg-card);
             border-radius: var(--radius-lg);
-            padding: 20px;
+            padding: var(--ts-space-5, 20px);
             border: 1px solid var(--border-color);
-            margin-bottom: 16px;
+            margin-bottom: var(--ts-space-4, 16px);
         }
 
         .settings-title {
-            font-size: 12px;
+            font-size: var(--ts-text-xs, 0.75rem);
             font-weight: 600;
             color: var(--text-muted);
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            margin-bottom: 16px;
+            margin-bottom: var(--ts-space-4, 16px);
         }
 
         .settings-row {
@@ -1633,7 +1633,7 @@
 
         .settings-row:last-child { border-bottom: none; }
 
-        .settings-label { color: var(--text-secondary); font-size: 14px; }
+        .settings-label { color: var(--text-secondary); font-size: var(--ts-text-sm, 0.875rem); }
         .settings-value { font-weight: 500; }
 
         .settings-toggle {
@@ -1641,9 +1641,9 @@
             width: 50px;
             height: 28px;
             background: var(--border-color);
-            border-radius: 14px;
+            border-radius: var(--ts-radius-md, 14px);
             cursor: pointer;
-            transition: background 0.2s;
+            transition: background var(--ts-dur-normal, 200ms);
         }
 
         .settings-toggle.active { background: var(--primary); }
@@ -1657,7 +1657,7 @@
             height: 24px;
             background: white;
             border-radius: 50%;
-            transition: transform 0.2s;
+            transition: transform var(--ts-dur-normal, 200ms);
             box-shadow: var(--shadow-sm);
         }
 
@@ -1682,10 +1682,10 @@
             border: 2px solid var(--danger);
             color: var(--danger);
             border-radius: var(--radius-md);
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
             font-weight: 600;
             cursor: pointer;
-            margin-top: 20px;
+            margin-top: var(--ts-space-5, 20px);
         }
 
         /* ═══════════════════════════════════════════════════════════════════════════
@@ -1716,7 +1716,7 @@
         }
 
         .modal-header {
-            padding: 20px;
+            padding: var(--ts-space-5, 20px);
             border-bottom: 1px solid var(--border-color);
             display: flex;
             justify-content: space-between;
@@ -1727,7 +1727,7 @@
             z-index: 10;
         }
 
-        .modal-title { font-size: 18px; font-weight: 700; }
+        .modal-title { font-size: var(--ts-text-lg, 1.125rem); font-weight: 700; }
 
         .modal-close {
             background: var(--bg-elevated);
@@ -1735,7 +1735,7 @@
             width: 36px;
             height: 36px;
             border-radius: 50%;
-            font-size: 20px;
+            font-size: var(--ts-text-xl, 1.25rem);
             cursor: pointer;
             color: var(--text-secondary);
             display: flex;
@@ -1743,64 +1743,64 @@
             justify-content: center;
         }
 
-        .modal-body { padding: 20px; }
+        .modal-body { padding: var(--ts-space-5, 20px); }
 
         .swap-current {
             display: flex;
             align-items: center;
-            gap: 12px;
-            padding: 16px;
+            gap: var(--ts-space-3, 12px);
+            padding: var(--ts-space-4, 16px);
             background: #fee2e2;
             border-radius: var(--radius-md);
-            margin-bottom: 20px;
+            margin-bottom: var(--ts-space-5, 20px);
         }
 
-        .swap-current-emoji { font-size: 36px; }
-        .swap-current-label { font-size: 12px; color: #b91c1c; font-weight: 500; }
+        .swap-current-emoji { font-size: var(--ts-text-4xl, 2.25rem); }
+        .swap-current-label { font-size: var(--ts-text-xs, 0.75rem); color: #b91c1c; font-weight: 500; }
         .swap-current-name { font-weight: 700; }
 
         .swap-section-title {
-            font-size: 13px;
+            font-size: var(--ts-text-xs, 0.8rem);
             font-weight: 600;
             color: var(--text-muted);
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            margin-bottom: 12px;
+            margin-bottom: var(--ts-space-3, 12px);
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: var(--ts-space-2, 8px);
         }
 
         .swap-section-title i { color: var(--accent); }
 
-        .swap-options { margin-bottom: 20px; }
+        .swap-options { margin-bottom: var(--ts-space-5, 20px); }
 
         .swap-option {
             display: flex;
             align-items: center;
-            gap: 12px;
-            padding: 16px;
+            gap: var(--ts-space-3, 12px);
+            padding: var(--ts-space-4, 16px);
             background: var(--bg-elevated);
             border-radius: var(--radius-md);
             margin-bottom: 10px;
             cursor: pointer;
             border: 2px solid transparent;
-            transition: all 0.2s;
+            transition: all var(--ts-dur-normal, 200ms);
         }
 
         .swap-option:hover { border-color: var(--border-color); }
         .swap-option.selected { border-color: var(--primary); background: var(--primary-bg); }
         .swap-option.disabled { opacity: 0.5; cursor: not-allowed; }
 
-        .swap-option-emoji { font-size: 36px; }
+        .swap-option-emoji { font-size: var(--ts-text-4xl, 2.25rem); }
         .swap-option-info { flex: 1; }
         .swap-option-name { font-weight: 600; }
-        .swap-option-meta { font-size: 13px; color: var(--text-secondary); display: flex; gap: 12px; margin-top: 2px; }
+        .swap-option-meta { font-size: var(--ts-text-xs, 0.8rem); color: var(--text-secondary); display: flex; gap: var(--ts-space-3, 12px); margin-top: 2px; }
 
         .swap-popularity {
             display: flex;
             align-items: center;
-            gap: 4px;
+            gap: var(--ts-space-1, 4px);
             color: var(--primary);
             font-weight: 500;
         }
@@ -1809,8 +1809,8 @@
             background: #fef3c7;
             color: #92400e;
             padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 11px;
+            border-radius: var(--ts-radius-sm, 4px);
+            font-size: var(--ts-text-2xs, 0.69rem);
             font-weight: 600;
         }
 
@@ -1828,17 +1828,17 @@
         .swap-match-badge {
             background: var(--primary);
             color: white;
-            font-size: 11px;
+            font-size: var(--ts-text-2xs, 0.69rem);
             font-weight: 600;
             padding: 4px 10px;
-            border-radius: 12px;
+            border-radius: var(--ts-radius-md, 12px);
             white-space: nowrap;
         }
 
         .swap-recommended {
             display: flex;
             align-items: center;
-            gap: 4px;
+            gap: var(--ts-space-1, 4px);
             color: var(--primary);
             font-weight: 500;
         }
@@ -1850,23 +1850,23 @@
         .swap-note {
             background: linear-gradient(135deg, #fef3c7, #fde68a);
             color: #92400e;
-            padding: 12px 16px;
+            padding: var(--ts-space-3, 12px) var(--ts-space-4, 16px);
             border-radius: var(--radius-md);
-            margin-bottom: 16px;
+            margin-bottom: var(--ts-space-4, 16px);
             display: flex;
             align-items: center;
-            gap: 10px;
-            font-size: 14px;
+            gap: var(--ts-space-2, 10px);
+            font-size: var(--ts-text-sm, 0.875rem);
         }
 
         .swap-note i {
-            font-size: 18px;
+            font-size: var(--ts-text-lg, 1.125rem);
         }
 
         .swap-empty-note {
-            padding: 16px;
+            padding: var(--ts-space-4, 16px);
             color: var(--text-secondary);
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
             text-align: center;
             background: var(--bg-elevated);
             border-radius: var(--radius-md);
@@ -1878,7 +1878,7 @@
         }
 
         .swap-loading {
-            padding: 24px;
+            padding: var(--ts-space-6, 24px);
             text-align: center;
             color: var(--text-secondary);
         }
@@ -1898,11 +1898,11 @@
         .swap-remember {
             display: flex;
             align-items: center;
-            gap: 12px;
-            padding: 16px;
+            gap: var(--ts-space-3, 12px);
+            padding: var(--ts-space-4, 16px);
             background: var(--bg-elevated);
             border-radius: var(--radius-md);
-            margin-top: 16px;
+            margin-top: var(--ts-space-4, 16px);
             cursor: pointer;
         }
 
@@ -1912,12 +1912,12 @@
             width: 22px;
             height: 22px;
             border: 2px solid var(--border-color);
-            border-radius: 6px;
+            border-radius: var(--ts-radius-sm, 6px);
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
-            transition: all 0.2s;
+            transition: all var(--ts-dur-normal, 200ms);
             flex-shrink: 0;
         }
 
@@ -1926,10 +1926,10 @@
             border-color: var(--primary);
         }
 
-        .swap-remember-text { font-size: 14px; }
+        .swap-remember-text { font-size: var(--ts-text-sm, 0.875rem); }
 
         .modal-footer {
-            padding: 20px;
+            padding: var(--ts-space-5, 20px);
             border-top: 1px solid var(--border-color);
             position: sticky;
             bottom: 0;
@@ -1938,18 +1938,18 @@
 
         .confirm-swap-btn {
             width: 100%;
-            padding: 16px;
+            padding: var(--ts-space-4, 16px);
             background: var(--primary);
             color: white;
             border: none;
             border-radius: var(--radius-md);
-            font-size: 16px;
+            font-size: var(--ts-text-base, 1rem);
             font-weight: 600;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
+            gap: var(--ts-space-2, 8px);
         }
 
         .confirm-swap-btn:disabled { background: var(--text-muted); cursor: not-allowed; }
@@ -1959,12 +1959,12 @@
            ═══════════════════════════════════════════════════════════════════════════ */
 
         .notification-group {
-            margin-bottom: 24px;
+            margin-bottom: var(--ts-space-6, 24px);
         }
 
         .notification-group-title {
             font-weight: 600;
-            margin-bottom: 12px;
+            margin-bottom: var(--ts-space-3, 12px);
         }
 
         .notification-item {
@@ -1977,22 +1977,22 @@
 
         .notification-item:last-child { border-bottom: none; }
 
-        .notification-label { font-size: 14px; }
+        .notification-label { font-size: var(--ts-text-sm, 0.875rem); }
 
         .comm-method-selector {
             display: flex;
-            gap: 8px;
-            margin-top: 16px;
+            gap: var(--ts-space-2, 8px);
+            margin-top: var(--ts-space-4, 16px);
         }
 
         .comm-method {
             flex: 1;
-            padding: 12px;
+            padding: var(--ts-space-3, 12px);
             border: 2px solid var(--border-color);
             border-radius: var(--radius-md);
             text-align: center;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all var(--ts-dur-normal, 200ms);
         }
 
         .comm-method.active {
@@ -2000,8 +2000,8 @@
             background: var(--primary-bg);
         }
 
-        .comm-method i { font-size: 20px; margin-bottom: 4px; color: var(--primary); }
-        .comm-method span { display: block; font-size: 13px; font-weight: 500; }
+        .comm-method i { font-size: var(--ts-text-xl, 1.25rem); margin-bottom: var(--ts-space-1, 4px); color: var(--primary); }
+        .comm-method span { display: block; font-size: var(--ts-text-xs, 0.8rem); font-weight: 500; }
 
         /* ═══════════════════════════════════════════════════════════════════════════
            TOAST NOTIFICATIONS
@@ -2015,7 +2015,7 @@
             z-index: 300;
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: var(--ts-space-2, 8px);
             align-items: center;
         }
 
@@ -2024,11 +2024,11 @@
             color: white;
             padding: 14px 24px;
             border-radius: var(--radius-md);
-            font-size: 14px;
+            font-size: var(--ts-text-sm, 0.875rem);
             font-weight: 500;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: var(--ts-space-2, 10px);
             box-shadow: var(--shadow-lg);
             animation: slideInUp 0.3s ease;
         }
@@ -2072,9 +2072,9 @@
             padding: 40px 20px;
         }
 
-        .empty-state-icon { font-size: 48px; margin-bottom: 16px; }
-        .empty-state-title { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
-        .empty-state-text { color: var(--text-secondary); font-size: 14px; }
+        .empty-state-icon { font-size: var(--ts-text-5xl, 3rem); margin-bottom: var(--ts-space-4, 16px); }
+        .empty-state-title { font-size: var(--ts-text-lg, 1.125rem); font-weight: 600; margin-bottom: var(--ts-space-2, 8px); }
+        .empty-state-text { color: var(--text-secondary); font-size: var(--ts-text-sm, 0.875rem); }
 
         /* ═══════════════════════════════════════════════════════════════════════════
            RESPONSIVE
@@ -2110,7 +2110,7 @@
         /* Scrollbar */
         ::-webkit-scrollbar { width: 5px; height: 5px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: var(--border, #e7e5e4); border-radius: 100px; }
+        ::-webkit-scrollbar-thumb { background: var(--border, #e7e5e4); border-radius: var(--ts-radius-full, 9999px); }
         ::-webkit-scrollbar-thumb:hover { background: #a8a29e; }
     </style>
 </head>
@@ -2152,7 +2152,7 @@
                     <i class="fas fa-paper-plane"></i>
                     Send Login Link
                 </button>
-                <p style="text-align: center; margin-top: 16px; font-size: 13px; color: var(--text-secondary);">
+                <p style="text-align: center; margin-top: var(--ts-space-4, 16px); font-size: var(--ts-text-xs, 0.8rem); color: var(--text-secondary);">
                     We'll send you a magic link to sign in instantly
                 </p>
             </div>
@@ -2167,7 +2167,7 @@
                     <i class="fas fa-sms"></i>
                     Send Verification Code
                 </button>
-                <p style="text-align: center; margin-top: 16px; font-size: 13px; color: var(--text-secondary);">
+                <p style="text-align: center; margin-top: var(--ts-space-4, 16px); font-size: var(--ts-text-xs, 0.8rem); color: var(--text-secondary);">
                     We'll text you a 6-digit code to sign in
                 </p>
             </div>
@@ -2182,10 +2182,10 @@
                     <i class="fas fa-check"></i>
                     Verify Code
                 </button>
-                <p style="text-align: center; margin-top: 16px; font-size: 13px; color: var(--text-secondary);">
+                <p style="text-align: center; margin-top: var(--ts-space-4, 16px); font-size: var(--ts-text-xs, 0.8rem); color: var(--text-secondary);">
                     Code sent to <strong id="sentToPhone"></strong>
                 </p>
-                <button class="btn btn-link" onclick="resetPhoneLogin()" style="margin-top: 8px; background: none; color: var(--primary);">
+                <button class="btn btn-link" onclick="resetPhoneLogin()" style="margin-top: var(--ts-space-2, 8px); background: none; color: var(--primary);">
                     Use different number
                 </button>
             </div>
@@ -2194,13 +2194,13 @@
             <div class="magic-link-sent" id="magicLinkSent" style="display: none;">
                 <div class="icon">📧</div>
                 <h3>Check Your Email!</h3>
-                <p style="color: var(--text-secondary); margin-top: 8px;">
+                <p style="color: var(--text-secondary); margin-top: var(--ts-space-2, 8px);">
                     We sent a login link to<br><strong id="sentToEmail"></strong>
                 </p>
-                <p style="font-size: 13px; color: var(--text-muted); margin-top: 16px;">
+                <p style="font-size: var(--ts-text-xs, 0.8rem); color: var(--text-muted); margin-top: var(--ts-space-4, 16px);">
                     The link expires in 15 minutes
                 </p>
-                <button class="btn btn-secondary" onclick="resetLogin()" style="margin-top: 24px;">
+                <button class="btn btn-secondary" onclick="resetLogin()" style="margin-top: var(--ts-space-6, 24px);">
                     Try Different Email
                 </button>
             </div>
@@ -2227,8 +2227,8 @@
                 <!-- Step 1: Order Confirmation -->
                 <div class="onboarding-step active" id="onboarding-step-1">
                     <div class="onboarding-illustration">📦</div>
-                    <h2 style="text-align: center; margin-bottom: 8px;">Here's What You Ordered!</h2>
-                    <p style="text-align: center; color: var(--text-secondary); margin-bottom: 20px;">
+                    <h2 style="text-align: center; margin-bottom: var(--ts-space-2, 8px);">Here's What You Ordered!</h2>
+                    <p style="text-align: center; color: var(--text-secondary); margin-bottom: var(--ts-space-5, 20px);">
                         Welcome to the Tiny Seed Farm family! We're thrilled to have you.
                     </p>
                     <div class="order-confirmation-card">
@@ -2258,7 +2258,7 @@
                         </div>
                     </div>
                     <div class="dispute-section">
-                        <p style="font-size: 13px; color: var(--text-secondary); text-align: center; margin-bottom: 8px;">
+                        <p style="font-size: var(--ts-text-xs, 0.8rem); color: var(--text-secondary); text-align: center; margin-bottom: var(--ts-space-2, 8px);">
                             Does everything look correct?
                         </p>
                         <button class="dispute-btn" onclick="showDisputeForm()">
@@ -2272,7 +2272,7 @@
                 <div class="dispute-modal" id="disputeModal" style="display: none;">
                     <div class="dispute-modal-content">
                         <h3>Let Us Know What's Wrong</h3>
-                        <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 16px;">
+                        <p style="color: var(--text-secondary); font-size: var(--ts-text-sm, 0.875rem); margin-bottom: var(--ts-space-4, 16px);">
                             We'll review and fix any issues right away.
                         </p>
                         <div class="form-group">
@@ -2290,8 +2290,8 @@
                 <!-- Step 2: Dislikes (Free Text) -->
                 <div class="onboarding-step" id="onboarding-step-2">
                     <div class="onboarding-illustration">🥬</div>
-                    <h2 style="margin-bottom: 8px; text-align: center;">Any veggies you'd rather skip?</h2>
-                    <p style="color: var(--text-secondary); margin-bottom: 20px; font-size: 14px; text-align: center;">
+                    <h2 style="margin-bottom: var(--ts-space-2, 8px); text-align: center;">Any veggies you'd rather skip?</h2>
+                    <p style="color: var(--text-secondary); margin-bottom: var(--ts-space-5, 20px); font-size: var(--ts-text-sm, 0.875rem); text-align: center;">
                         Let us know if there's anything you don't eat, and we'll suggest swaps when they're in your box.
                     </p>
                     <div class="form-group">
@@ -2300,15 +2300,15 @@
                             placeholder="Type any vegetables you'd prefer not to receive..."></textarea>
                         <p class="form-hint">Examples: cilantro, beets, spicy peppers</p>
                     </div>
-                    <p style="font-size: 13px; color: var(--text-muted); text-align: center; margin-top: 16px;">
+                    <p style="font-size: var(--ts-text-xs, 0.8rem); color: var(--text-muted); text-align: center; margin-top: var(--ts-space-4, 16px);">
                         Don't worry, you can always update this later in your settings.
                     </p>
                 </div>
 
                 <!-- Step 3: Communication Preferences -->
                 <div class="onboarding-step" id="onboarding-step-3">
-                    <h2 style="margin-bottom: 8px;">How should we reach you?</h2>
-                    <p style="color: var(--text-secondary); margin-bottom: 20px; font-size: 14px;">
+                    <h2 style="margin-bottom: var(--ts-space-2, 8px);">How should we reach you?</h2>
+                    <p style="color: var(--text-secondary); margin-bottom: var(--ts-space-5, 20px); font-size: var(--ts-text-sm, 0.875rem);">
                         We'll send pickup reminders and box updates
                     </p>
 
@@ -2317,7 +2317,7 @@
                         <div class="checkbox"><i class="fas fa-check"></i></div>
                         <div>
                             <div style="font-weight: 600;">Email</div>
-                            <div style="font-size: 13px; color: var(--text-secondary);">Weekly updates and reminders</div>
+                            <div style="font-size: var(--ts-text-xs, 0.8rem); color: var(--text-secondary);">Weekly updates and reminders</div>
                         </div>
                     </label>
 
@@ -2326,11 +2326,11 @@
                         <div class="checkbox"><i class="fas fa-check"></i></div>
                         <div>
                             <div style="font-weight: 600;">SMS Text Messages</div>
-                            <div style="font-size: 13px; color: var(--text-secondary);">Day-of pickup reminders</div>
+                            <div style="font-size: var(--ts-text-xs, 0.8rem); color: var(--text-secondary);">Day-of pickup reminders</div>
                         </div>
                     </label>
 
-                    <div class="form-group" id="phoneGroup" style="margin-top: 16px; display: none;">
+                    <div class="form-group" id="phoneGroup" style="margin-top: var(--ts-space-4, 16px); display: none;">
                         <label class="form-label">Mobile Phone Number</label>
                         <input type="tel" class="form-input" id="phoneInput" placeholder="(412) 555-1234">
                     </div>
@@ -2339,18 +2339,18 @@
                 <!-- Step 4: Confirm Participation -->
                 <div class="onboarding-step" id="onboarding-step-4">
                     <div class="onboarding-illustration">✅</div>
-                    <h2 style="text-align: center; margin-bottom: 12px;">Confirm Your Participation</h2>
-                    <p style="text-align: center; color: var(--text-secondary); margin-bottom: 20px;">
+                    <h2 style="text-align: center; margin-bottom: var(--ts-space-3, 12px);">Confirm Your Participation</h2>
+                    <p style="text-align: center; color: var(--text-secondary); margin-bottom: var(--ts-space-5, 20px);">
                         Please review your details and confirm you're ready to start!
                     </p>
 
                     <!-- Your Details Summary -->
-                    <div style="background: var(--bg-subtle); padding: 16px; border-radius: var(--radius-lg); margin-bottom: 16px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <div style="background: var(--bg-subtle); padding: var(--ts-space-4, 16px); border-radius: var(--radius-lg); margin-bottom: var(--ts-space-4, 16px);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--ts-space-3, 12px);">
                             <span style="font-weight: 600; color: var(--text-primary);">Your Details</span>
-                            <button onclick="openEditContactFromOnboarding()" style="background: none; border: none; color: var(--primary); font-size: 13px; cursor: pointer; text-decoration: underline;">Edit</button>
+                            <button onclick="openEditContactFromOnboarding()" style="background: none; border: none; color: var(--primary); font-size: var(--ts-text-xs, 0.8rem); cursor: pointer; text-decoration: underline;">Edit</button>
                         </div>
-                        <div style="font-size: 14px; color: var(--text-secondary); line-height: 1.6;">
+                        <div style="font-size: var(--ts-text-sm, 0.875rem); color: var(--text-secondary); line-height: 1.6;">
                             <div><strong>Name:</strong> <span id="confirmName">-</span></div>
                             <div><strong>Email:</strong> <span id="confirmEmail">-</span></div>
                             <div><strong>Phone:</strong> <span id="confirmPhone">Not provided</span></div>
@@ -2358,44 +2358,44 @@
                     </div>
 
                     <!-- Schedule Info (shows frequency and week for biweekly members) -->
-                    <div id="onboardingScheduleInfo" style="background: #fff3cd; padding: 16px; border-radius: var(--radius-lg); margin-bottom: 16px; display: none;">
-                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                    <div id="onboardingScheduleInfo" style="background: #fff3cd; padding: var(--ts-space-4, 16px); border-radius: var(--radius-lg); margin-bottom: var(--ts-space-4, 16px); display: none;">
+                        <div style="display: flex; align-items: center; gap: var(--ts-space-2, 8px); margin-bottom: var(--ts-space-2, 8px);">
                             <i class="fas fa-calendar-alt" style="color: #856404;"></i>
                             <span style="font-weight: 600; color: #856404;" id="onboardingScheduleTitle">Your Pickup Schedule</span>
                         </div>
-                        <div style="font-size: 13px; color: #856404;" id="onboardingScheduleText">
+                        <div style="font-size: var(--ts-text-xs, 0.8rem); color: #856404;" id="onboardingScheduleText">
                             You're signed up for biweekly pickups.
                         </div>
                     </div>
 
                     <!-- First Pickup Info -->
-                    <div style="background: var(--primary-bg); padding: 16px; border-radius: var(--radius-lg); text-align: center; margin-bottom: 16px;">
-                        <div style="font-size: 24px; margin-bottom: 4px;">📦</div>
-                        <div style="font-size: 12px; color: var(--primary-darker); margin-bottom: 4px;" id="firstPickupLabel">Your First Pickup</div>
-                        <div style="font-weight: 700; font-size: 16px;" id="firstPickupDate">Tuesday, January 21</div>
-                        <div style="color: var(--primary-darker); font-size: 13px;" id="firstPickupLocation">4-7pm at Farm Stand</div>
+                    <div style="background: var(--primary-bg); padding: var(--ts-space-4, 16px); border-radius: var(--radius-lg); text-align: center; margin-bottom: var(--ts-space-4, 16px);">
+                        <div style="font-size: var(--ts-text-2xl, 1.5rem); margin-bottom: var(--ts-space-1, 4px);">📦</div>
+                        <div style="font-size: var(--ts-text-xs, 0.75rem); color: var(--primary-darker); margin-bottom: var(--ts-space-1, 4px);" id="firstPickupLabel">Your First Pickup</div>
+                        <div style="font-weight: 700; font-size: var(--ts-text-base, 1rem);" id="firstPickupDate">Tuesday, January 21</div>
+                        <div style="color: var(--primary-darker); font-size: var(--ts-text-xs, 0.8rem);" id="firstPickupLocation">4-7pm at Farm Stand</div>
                     </div>
 
                     <!-- Last Pickup Info (for biweekly) -->
-                    <div id="lastPickupInfo" style="background: var(--bg-subtle); padding: 12px 16px; border-radius: var(--radius-lg); text-align: center; margin-bottom: 16px; display: none;">
+                    <div id="lastPickupInfo" style="background: var(--bg-subtle); padding: var(--ts-space-3, 12px) var(--ts-space-4, 16px); border-radius: var(--radius-lg); text-align: center; margin-bottom: var(--ts-space-4, 16px); display: none;">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <div>
-                                <div style="font-size: 11px; color: var(--text-secondary);">Last Pickup</div>
-                                <div style="font-weight: 600; font-size: 14px;" id="lastPickupDate">--</div>
+                                <div style="font-size: var(--ts-text-2xs, 0.69rem); color: var(--text-secondary);">Last Pickup</div>
+                                <div style="font-weight: 600; font-size: var(--ts-text-sm, 0.875rem);" id="lastPickupDate">--</div>
                             </div>
                             <div>
-                                <div style="font-size: 11px; color: var(--text-secondary);">Total Pickups</div>
-                                <div style="font-weight: 600; font-size: 14px;" id="totalPickupsCount">--</div>
+                                <div style="font-size: var(--ts-text-2xs, 0.69rem); color: var(--text-secondary);">Total Pickups</div>
+                                <div style="font-weight: 600; font-size: var(--ts-text-sm, 0.875rem);" id="totalPickupsCount">--</div>
                             </div>
                         </div>
                     </div>
 
                     <!-- Confirmation Checkbox -->
-                    <label style="display: flex; align-items: flex-start; gap: 12px; padding: 16px; background: var(--bg-card); border: 2px solid var(--border); border-radius: var(--radius-lg); cursor: pointer; margin-bottom: 8px;" id="confirmParticipationLabel">
+                    <label style="display: flex; align-items: flex-start; gap: var(--ts-space-3, 12px); padding: var(--ts-space-4, 16px); background: var(--bg-card); border: 2px solid var(--border); border-radius: var(--radius-lg); cursor: pointer; margin-bottom: var(--ts-space-2, 8px);" id="confirmParticipationLabel">
                         <input type="checkbox" id="confirmParticipationCheckbox" onchange="updateConfirmButton()" style="width: 20px; height: 20px; margin-top: 2px; accent-color: var(--primary);">
                         <div>
-                            <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">I confirm I'm participating</div>
-                            <div style="font-size: 13px; color: var(--text-secondary);">My details are correct and I'm ready to receive my CSA share this season.</div>
+                            <div style="font-weight: 600; color: var(--text-primary); margin-bottom: var(--ts-space-1, 4px);">I confirm I'm participating</div>
+                            <div style="font-size: var(--ts-text-xs, 0.8rem); color: var(--text-secondary);">My details are correct and I'm ready to receive my CSA share this season.</div>
                         </div>
                     </label>
                 </div>
@@ -2468,7 +2468,7 @@
                     </div>
                     <div class="modal-body">
                         <div id="flexTransactionsList">
-                            <div style="text-align: center; padding: 20px; color: var(--text-secondary);">Loading...</div>
+                            <div style="text-align: center; padding: var(--ts-space-5, 20px); color: var(--text-secondary);">Loading...</div>
                         </div>
                     </div>
                 </div>
@@ -2525,24 +2525,24 @@
             <!-- Season Status Banner (shows when season hasn't started or ending soon) -->
             <div class="section" id="seasonStatusSection" style="display: none;">
                 <div class="box-card" id="seasonStatusCard" style="background: linear-gradient(135deg, #166534 0%, #22c55e 100%); color: white;">
-                    <div style="text-align: center; padding: 20px;">
-                        <div id="seasonIcon" style="font-size: 64px; margin-bottom: 16px;">🌱</div>
-                        <h2 id="seasonTitle" style="margin: 0 0 8px 0; font-size: 24px;">Your Season Starts Soon!</h2>
+                    <div style="text-align: center; padding: var(--ts-space-5, 20px);">
+                        <div id="seasonIcon" style="font-size: 64px; margin-bottom: var(--ts-space-4, 16px);">🌱</div>
+                        <h2 id="seasonTitle" style="margin: 0 0 8px 0; font-size: var(--ts-text-2xl, 1.5rem);">Your Season Starts Soon!</h2>
                         <p id="seasonSubtitle" style="margin: 0 0 20px 0; opacity: 0.9;">Summer CSA begins June 1, 2026</p>
-                        <div id="seasonCountdown" style="display: flex; justify-content: center; gap: 16px; margin-bottom: 20px;">
+                        <div id="seasonCountdown" style="display: flex; justify-content: center; gap: var(--ts-space-4, 16px); margin-bottom: var(--ts-space-5, 20px);">
                             <div style="text-align: center;">
-                                <div id="countdownDays" style="font-size: 36px; font-weight: 700;">--</div>
-                                <div style="font-size: 12px; opacity: 0.8;">DAYS</div>
+                                <div id="countdownDays" style="font-size: var(--ts-text-4xl, 2.25rem); font-weight: 700;">--</div>
+                                <div style="font-size: var(--ts-text-xs, 0.75rem); opacity: 0.8;">DAYS</div>
                             </div>
                             <div style="text-align: center;">
-                                <div id="countdownWeeks" style="font-size: 36px; font-weight: 700;">--</div>
-                                <div style="font-size: 12px; opacity: 0.8;">WEEKS</div>
+                                <div id="countdownWeeks" style="font-size: var(--ts-text-4xl, 2.25rem); font-weight: 700;">--</div>
+                                <div style="font-size: var(--ts-text-xs, 0.75rem); opacity: 0.8;">WEEKS</div>
                             </div>
                         </div>
-                        <div id="seasonCalendarPreview" style="background: rgba(255,255,255,0.15); border-radius: 12px; padding: 16px; text-align: left;">
-                            <div style="font-weight: 600; margin-bottom: 8px;">📅 Your Season</div>
-                            <div id="seasonDates" style="font-size: 14px; opacity: 0.9;">June 1 - October 3, 2026</div>
-                            <div id="seasonWeeksTotal" style="font-size: 14px; opacity: 0.9; margin-top: 4px;">18 weeks of fresh produce</div>
+                        <div id="seasonCalendarPreview" style="background: rgba(255,255,255,0.15); border-radius: var(--ts-radius-md, 12px); padding: var(--ts-space-4, 16px); text-align: left;">
+                            <div style="font-weight: 600; margin-bottom: var(--ts-space-2, 8px);">📅 Your Season</div>
+                            <div id="seasonDates" style="font-size: var(--ts-text-sm, 0.875rem); opacity: 0.9;">June 1 - October 3, 2026</div>
+                            <div id="seasonWeeksTotal" style="font-size: var(--ts-text-sm, 0.875rem); opacity: 0.9; margin-top: 4px;">18 weeks of fresh produce</div>
                         </div>
                     </div>
                 </div>
@@ -2551,8 +2551,8 @@
             <!-- Renewal Prompt (shows in final 5 weeks) -->
             <div class="section" id="renewalSection" style="display: none;">
                 <div class="box-card" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white;">
-                    <div style="text-align: center; padding: 20px;">
-                        <div id="renewalIcon" style="font-size: 48px; margin-bottom: 12px;">🍂</div>
+                    <div style="text-align: center; padding: var(--ts-space-5, 20px);">
+                        <div id="renewalIcon" style="font-size: var(--ts-text-5xl, 3rem); margin-bottom: var(--ts-space-3, 12px);">🍂</div>
                         <h3 id="renewalTitle" style="margin: 0 0 8px 0;">5 Weeks Left!</h3>
                         <p id="renewalSubtitle" style="margin: 0 0 16px 0; opacity: 0.9;">Continue the harvest with our Fall & Winter CSA</p>
                         <button class="btn" style="background: white; color: #d97706;" onclick="showRenewalOptions()">
@@ -2624,14 +2624,14 @@
             <div class="section" id="flexCartSection" style="display: none;">
                 <div class="section-header">
                     <h2 class="section-title">Your Weekly Order</h2>
-                    <div style="display: flex; align-items: center; gap: 8px;">
+                    <div style="display: flex; align-items: center; gap: var(--ts-space-2, 8px);">
                         <span class="flex-balance-badge" id="flexBalanceBadge">Balance: $0.00</span>
                     </div>
                 </div>
 
                 <!-- Flex Cart Card -->
                 <div class="box-card" id="flexCartCard">
-                    <div class="box-header" style="border-bottom: 1px solid var(--border); padding-bottom: 12px; margin-bottom: 12px;">
+                    <div class="box-header" style="border-bottom: 1px solid var(--border); padding-bottom: 12px; margin-bottom: var(--ts-space-3, 12px);">
                         <div>
                             <div class="box-week" id="flexWeek">Week of Jan 21</div>
                             <div class="box-pickup" id="flexPickup">
@@ -2643,19 +2643,19 @@
                     </div>
 
                     <!-- Deadline Warning -->
-                    <div class="flex-deadline" id="flexDeadline" style="background: #fff3cd; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
-                        <div style="display: flex; align-items: center; gap: 8px;">
+                    <div class="flex-deadline" id="flexDeadline" style="background: #fff3cd; padding: var(--ts-space-3, 12px); border-radius: var(--ts-radius-sm, 8px); margin-bottom: var(--ts-space-3, 12px);">
+                        <div style="display: flex; align-items: center; gap: var(--ts-space-2, 8px);">
                             <i class="fas fa-clock" style="color: #856404;"></i>
                             <span style="color: #856404; font-weight: 500;">Order by <span id="flexDeadlineTime">Wednesday 5pm</span></span>
                         </div>
-                        <div style="color: #856404; font-size: 12px; margin-top: 4px;" id="flexDeadlineCountdown">2 days left to customize</div>
+                        <div style="color: #856404; font-size: var(--ts-text-xs, 0.75rem); margin-top: 4px;" id="flexDeadlineCountdown">2 days left to customize</div>
                     </div>
 
                     <!-- Cart Info Banner -->
-                    <div style="background: var(--primary-bg); padding: 12px; border-radius: 8px; margin-bottom: 12px;">
-                        <div style="display: flex; align-items: center; gap: 8px; color: var(--primary-darker);">
+                    <div style="background: var(--primary-bg); padding: var(--ts-space-3, 12px); border-radius: var(--ts-radius-sm, 8px); margin-bottom: var(--ts-space-3, 12px);">
+                        <div style="display: flex; align-items: center; gap: var(--ts-space-2, 8px); color: var(--primary-darker);">
                             <i class="fas fa-info-circle"></i>
-                            <span style="font-size: 13px;">Your cart starts with this week's farm share. Remove or add items as you like!</span>
+                            <span style="font-size: var(--ts-text-xs, 0.8rem);">Your cart starts with this week's farm share. Remove or add items as you like!</span>
                         </div>
                     </div>
 
@@ -2663,25 +2663,25 @@
                     <div class="flex-cart-items" id="flexCartItems">
                         <!-- Items loaded dynamically -->
                         <div class="flex-cart-loading">
-                            <div class="skeleton skeleton-text" style="width: 100%; height: 60px; margin-bottom: 8px;"></div>
-                            <div class="skeleton skeleton-text" style="width: 100%; height: 60px; margin-bottom: 8px;"></div>
+                            <div class="skeleton skeleton-text" style="width: 100%; height: 60px; margin-bottom: var(--ts-space-2, 8px);"></div>
+                            <div class="skeleton skeleton-text" style="width: 100%; height: 60px; margin-bottom: var(--ts-space-2, 8px);"></div>
                             <div class="skeleton skeleton-text" style="width: 100%; height: 60px;"></div>
                         </div>
                     </div>
 
                     <!-- Add More Items Button -->
-                    <button class="btn btn-secondary" onclick="openAddItemsModal()" style="width: 100%; margin-top: 12px; margin-bottom: 16px;">
+                    <button class="btn btn-secondary" onclick="openAddItemsModal()" style="width: 100%; margin-top: var(--ts-space-3, 12px); margin-bottom: var(--ts-space-4, 16px);">
                         <i class="fas fa-plus"></i>
                         Add More Items
                     </button>
 
                     <!-- Cart Summary -->
                     <div class="flex-cart-summary" style="border-top: 2px solid var(--border); padding-top: 12px;">
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: var(--ts-space-2, 8px);">
                             <span style="color: var(--text-secondary);">Items in cart:</span>
                             <span style="font-weight: 600;" id="flexCartItemCount">0</span>
                         </div>
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: var(--ts-space-2, 8px);">
                             <span style="color: var(--text-secondary);">Cart total:</span>
                             <span style="font-weight: 600;" id="flexCartTotal">$0.00</span>
                         </div>
@@ -2692,7 +2692,7 @@
                     </div>
 
                     <!-- Submit Order Button -->
-                    <button class="btn btn-primary" onclick="submitFlexOrder()" style="width: 100%; margin-top: 16px; padding: 16px;" id="submitFlexOrderBtn">
+                    <button class="btn btn-primary" onclick="submitFlexOrder()" style="width: 100%; margin-top: var(--ts-space-4, 16px); padding: var(--ts-space-4, 16px);" id="submitFlexOrderBtn">
                         <i class="fas fa-check-circle"></i>
                         Submit This Week's Order
                     </button>
@@ -2708,7 +2708,7 @@
 
                 <div class="updates-feed" id="updatesFeed">
                     <div class="update-card">
-                        <div class="update-image" style="display: flex; align-items: center; justify-content: center; font-size: 48px;">🌱</div>
+                        <div class="update-image" style="display: flex; align-items: center; justify-content: center; font-size: var(--ts-text-5xl, 3rem);">🌱</div>
                         <div class="update-content">
                             <div class="update-text">Tomato seedlings are thriving in the greenhouse! Can't wait for you to taste these heirlooms this summer.</div>
                             <div class="update-meta">
@@ -2718,7 +2718,7 @@
                         </div>
                     </div>
                     <div class="update-card">
-                        <div class="update-image" style="display: flex; align-items: center; justify-content: center; font-size: 48px;">❄️</div>
+                        <div class="update-image" style="display: flex; align-items: center; justify-content: center; font-size: var(--ts-text-5xl, 3rem);">❄️</div>
                         <div class="update-content">
                             <div class="update-text">Winter cover crops protecting the soil for spring planting. Nature's blanket!</div>
                             <div class="update-meta">
@@ -2772,7 +2772,7 @@
             <div class="section">
                 <div class="settings-card">
                     <div class="settings-title">How Holds Work</div>
-                    <ul style="color: var(--text-secondary); font-size: 14px; padding-left: 20px; line-height: 1.8;">
+                    <ul style="color: var(--text-secondary); font-size: var(--ts-text-sm, 0.875rem); padding-left: 20px; line-height: 1.8;">
                         <li><strong id="holdLimitText">Large shares get 3 holds, small shares get 1</strong></li>
                         <li>Schedule at least 5 days before pickup</li>
                         <li>Choose what happens to your box:</li>
@@ -2805,7 +2805,7 @@
                     <button class="modal-close" onclick="closeHoldModal()"><i class="fas fa-times"></i></button>
                 </div>
                 <div class="modal-body">
-                    <p style="color: var(--text-secondary); margin-bottom: 20px;">
+                    <p style="color: var(--text-secondary); margin-bottom: var(--ts-space-5, 20px);">
                         What would you like us to do with your box?
                     </p>
 
@@ -2852,8 +2852,8 @@
                 <!-- Skeleton loading -->
                 <div class="order-card">
                     <div class="skeleton skeleton-text" style="width: 100px;"></div>
-                    <div class="skeleton skeleton-text" style="width: 80px; margin-top: 8px;"></div>
-                    <div class="skeleton skeleton-text" style="width: 200px; margin-top: 12px;"></div>
+                    <div class="skeleton skeleton-text" style="width: 80px; margin-top: var(--ts-space-2, 8px);"></div>
+                    <div class="skeleton skeleton-text" style="width: 200px; margin-top: var(--ts-space-3, 12px);"></div>
                 </div>
             </div>
         </div>
@@ -2884,7 +2884,7 @@
                 <div class="settings-card">
                     <div class="settings-title" style="display: flex; justify-content: space-between; align-items: center;">
                         Pickup Info
-                        <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;" onclick="openEditPickupModal()">
+                        <button class="btn btn-secondary" style="padding: 6px 12px; font-size: var(--ts-text-xs, 0.75rem);" onclick="openEditPickupModal()">
                             <i class="fas fa-edit"></i> Edit
                         </button>
                     </div>
@@ -2916,12 +2916,12 @@
                         <i class="fas fa-calendar-alt" style="margin-right: 8px;"></i>
                         Your Pickup Schedule
                     </div>
-                    <div style="background: #fff3cd; border-radius: 8px; padding: 12px; margin-bottom: 12px;">
-                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                    <div style="background: #fff3cd; border-radius: var(--ts-radius-sm, 8px); padding: var(--ts-space-3, 12px); margin-bottom: var(--ts-space-3, 12px);">
+                        <div style="display: flex; align-items: center; gap: var(--ts-space-2, 8px); margin-bottom: var(--ts-space-2, 8px);">
                             <i class="fas fa-info-circle" style="color: #856404;"></i>
                             <strong style="color: #856404;" id="scheduleNoticeTitle">Biweekly Schedule</strong>
                         </div>
-                        <p style="margin: 0; color: #856404; font-size: 13px;" id="scheduleNoticeText">
+                        <p style="margin: 0; color: #856404; font-size: var(--ts-text-xs, 0.8rem);" id="scheduleNoticeText">
                             As a biweekly member, you pick up every other week.
                         </p>
                     </div>
@@ -2942,7 +2942,7 @@
                 <div class="settings-card">
                     <div class="settings-title" style="display: flex; justify-content: space-between; align-items: center;">
                         Contact Info
-                        <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;" onclick="openEditContactModal()">
+                        <button class="btn btn-secondary" style="padding: 6px 12px; font-size: var(--ts-text-xs, 0.75rem);" onclick="openEditContactModal()">
                             <i class="fas fa-edit"></i> Edit
                         </button>
                     </div>
@@ -3128,65 +3128,65 @@
     <div class="modal-overlay" id="flexOnboardingModal" style="display: none;">
         <div class="modal-content" style="max-width: 480px;">
             <div class="modal-header" style="text-align: center; border-bottom: none; padding-bottom: 0;">
-                <div style="font-size: 48px; margin-bottom: 8px;">🛒</div>
+                <div style="font-size: var(--ts-text-5xl, 3rem); margin-bottom: var(--ts-space-2, 8px);">🛒</div>
                 <h2 class="modal-title" style="margin: 0;">Welcome to Flex Ordering!</h2>
             </div>
             <div class="modal-body" style="padding-top: 12px;">
-                <p style="text-align: center; color: var(--text-secondary); margin-bottom: 20px;">
+                <p style="text-align: center; color: var(--text-secondary); margin-bottom: var(--ts-space-5, 20px);">
                     Your Flex CSA share gives you complete control over your weekly order.
                 </p>
 
-                <div style="background: var(--bg-subtle); padding: 16px; border-radius: var(--radius-lg); margin-bottom: 16px;">
-                    <h3 style="margin: 0 0 12px 0; font-size: 15px;">How it works:</h3>
-                    <div style="display: flex; gap: 12px; margin-bottom: 12px;">
+                <div style="background: var(--bg-subtle); padding: var(--ts-space-4, 16px); border-radius: var(--radius-lg); margin-bottom: var(--ts-space-4, 16px);">
+                    <h3 style="margin: 0 0 12px 0; font-size: var(--ts-text-sm, 0.94rem);">How it works:</h3>
+                    <div style="display: flex; gap: var(--ts-space-3, 12px); margin-bottom: var(--ts-space-3, 12px);">
                         <div style="width: 28px; height: 28px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; flex-shrink: 0;">1</div>
                         <div>
                             <div style="font-weight: 500;">Cart Pre-Filled</div>
-                            <div style="font-size: 13px; color: var(--text-secondary);">Your cart starts with this week's farm share items</div>
+                            <div style="font-size: var(--ts-text-xs, 0.8rem); color: var(--text-secondary);">Your cart starts with this week's farm share items</div>
                         </div>
                     </div>
-                    <div style="display: flex; gap: 12px; margin-bottom: 12px;">
+                    <div style="display: flex; gap: var(--ts-space-3, 12px); margin-bottom: var(--ts-space-3, 12px);">
                         <div style="width: 28px; height: 28px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; flex-shrink: 0;">2</div>
                         <div>
                             <div style="font-weight: 500;">Customize Freely</div>
-                            <div style="font-size: 13px; color: var(--text-secondary);">Remove items you don't want, add items you do</div>
+                            <div style="font-size: var(--ts-text-xs, 0.8rem); color: var(--text-secondary);">Remove items you don't want, add items you do</div>
                         </div>
                     </div>
-                    <div style="display: flex; gap: 12px; margin-bottom: 12px;">
+                    <div style="display: flex; gap: var(--ts-space-3, 12px); margin-bottom: var(--ts-space-3, 12px);">
                         <div style="width: 28px; height: 28px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; flex-shrink: 0;">3</div>
                         <div>
                             <div style="font-weight: 500;">Submit by Deadline</div>
-                            <div style="font-size: 13px; color: var(--text-secondary);">Order by Wednesday 5pm for that week's pickup</div>
+                            <div style="font-size: var(--ts-text-xs, 0.8rem); color: var(--text-secondary);">Order by Wednesday 5pm for that week's pickup</div>
                         </div>
                     </div>
-                    <div style="display: flex; gap: 12px;">
+                    <div style="display: flex; gap: var(--ts-space-3, 12px);">
                         <div style="width: 28px; height: 28px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; flex-shrink: 0;">4</div>
                         <div>
                             <div style="font-weight: 500;">Balance Deducted</div>
-                            <div style="font-size: 13px; color: var(--text-secondary);">Your order total is deducted from your Flex balance</div>
+                            <div style="font-size: var(--ts-text-xs, 0.8rem); color: var(--text-secondary);">Your order total is deducted from your Flex balance</div>
                         </div>
                     </div>
                 </div>
 
-                <div style="background: #fff3cd; padding: 12px; border-radius: 8px; margin-bottom: 16px;">
-                    <div style="display: flex; align-items: flex-start; gap: 8px;">
+                <div style="background: #fff3cd; padding: var(--ts-space-3, 12px); border-radius: var(--ts-radius-sm, 8px); margin-bottom: var(--ts-space-4, 16px);">
+                    <div style="display: flex; align-items: flex-start; gap: var(--ts-space-2, 8px);">
                         <i class="fas fa-exclamation-triangle" style="color: #856404; margin-top: 2px;"></i>
-                        <div style="font-size: 13px; color: #856404;">
+                        <div style="font-size: var(--ts-text-xs, 0.8rem); color: #856404;">
                             <strong>Important:</strong> If you don't submit an order by the deadline, you won't receive items that week. Your balance carries forward.
                         </div>
                     </div>
                 </div>
 
-                <label style="display: flex; align-items: flex-start; gap: 12px; padding: 16px; background: var(--bg-card); border: 2px solid var(--border); border-radius: var(--radius-lg); cursor: pointer;">
+                <label style="display: flex; align-items: flex-start; gap: var(--ts-space-3, 12px); padding: var(--ts-space-4, 16px); background: var(--bg-card); border: 2px solid var(--border); border-radius: var(--radius-lg); cursor: pointer;">
                     <input type="checkbox" id="flexOptInCheckbox" onchange="updateFlexOptInButton()" style="width: 20px; height: 20px; margin-top: 2px; accent-color: var(--primary);">
                     <div>
                         <div style="font-weight: 600; color: var(--text-primary);">I understand how Flex ordering works</div>
-                        <div style="font-size: 13px; color: var(--text-secondary);">I'll submit my order each week by the deadline to receive my items.</div>
+                        <div style="font-size: var(--ts-text-xs, 0.8rem); color: var(--text-secondary);">I'll submit my order each week by the deadline to receive my items.</div>
                     </div>
                 </label>
             </div>
             <div class="modal-footer" style="border-top: none;">
-                <button class="btn btn-primary" id="flexOptInBtn" onclick="completeFlexOptIn()" style="width: 100%; padding: 16px;" disabled>
+                <button class="btn btn-primary" id="flexOptInBtn" onclick="completeFlexOptIn()" style="width: 100%; padding: var(--ts-space-4, 16px);" disabled>
                     <i class="fas fa-check"></i>
                     Start Ordering
                 </button>
@@ -3206,9 +3206,9 @@
             <div class="modal-body" style="padding: 0; max-height: 60vh; overflow-y: auto;">
                 <div id="addItemsCategories">
                     <!-- Categories loaded dynamically -->
-                    <div style="padding: 20px; text-align: center; color: var(--text-secondary);">
-                        <div class="skeleton skeleton-text" style="width: 100%; height: 60px; margin-bottom: 8px;"></div>
-                        <div class="skeleton skeleton-text" style="width: 100%; height: 60px; margin-bottom: 8px;"></div>
+                    <div style="padding: var(--ts-space-5, 20px); text-align: center; color: var(--text-secondary);">
+                        <div class="skeleton skeleton-text" style="width: 100%; height: 60px; margin-bottom: var(--ts-space-2, 8px);"></div>
+                        <div class="skeleton skeleton-text" style="width: 100%; height: 60px; margin-bottom: var(--ts-space-2, 8px);"></div>
                     </div>
                 </div>
             </div>
@@ -3250,7 +3250,7 @@
                     </select>
                 </div>
             </div>
-            <div class="modal-footer" style="padding: 16px; display: flex; gap: 12px;">
+            <div class="modal-footer" style="padding: var(--ts-space-4, 16px); display: flex; gap: var(--ts-space-3, 12px);">
                 <button class="btn btn-secondary" style="flex: 1;" onclick="closeEditPickupModal()">Cancel</button>
                 <button class="btn btn-primary" style="flex: 1;" onclick="savePickupDetails()">Save Changes</button>
             </div>
@@ -3270,34 +3270,34 @@
                     <input type="text" class="form-input" id="editName" placeholder="Your name">
                 </div>
 
-                <div style="background: var(--bg-subtle); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
-                    <div style="font-weight: 600; margin-bottom: 12px; color: var(--text-primary);">
+                <div style="background: var(--bg-subtle); border-radius: var(--ts-radius-md, 12px); padding: var(--ts-space-4, 16px); margin-bottom: var(--ts-space-4, 16px);">
+                    <div style="font-weight: 600; margin-bottom: var(--ts-space-3, 12px); color: var(--text-primary);">
                         <i class="fas fa-envelope" style="margin-right: 8px; color: var(--primary);"></i>Email Addresses
                     </div>
-                    <div class="form-group" style="margin-bottom: 12px;">
-                        <label class="form-label" style="font-size: 12px; color: var(--text-secondary);">Primary Email (Login)</label>
+                    <div class="form-group" style="margin-bottom: var(--ts-space-3, 12px);">
+                        <label class="form-label" style="font-size: var(--ts-text-xs, 0.75rem); color: var(--text-secondary);">Primary Email (Login)</label>
                         <input type="email" class="form-input" id="editPrimaryEmail" readonly style="background: var(--bg-card); opacity: 0.7; cursor: not-allowed;">
-                        <small style="color: var(--text-secondary); font-size: 11px;">Contact us to change your login email</small>
+                        <small style="color: var(--text-secondary); font-size: var(--ts-text-2xs, 0.69rem);">Contact us to change your login email</small>
                     </div>
                     <div class="form-group" style="margin-bottom: 0;">
-                        <label class="form-label" style="font-size: 12px; color: var(--text-secondary);">Secondary Email (Optional)</label>
+                        <label class="form-label" style="font-size: var(--ts-text-xs, 0.75rem); color: var(--text-secondary);">Secondary Email (Optional)</label>
                         <input type="email" class="form-input" id="editSecondaryEmail" placeholder="partner@email.com">
-                        <small style="color: var(--text-secondary); font-size: 11px;">Household member or backup</small>
+                        <small style="color: var(--text-secondary); font-size: var(--ts-text-2xs, 0.69rem);">Household member or backup</small>
                     </div>
                 </div>
 
-                <div style="background: var(--bg-subtle); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
-                    <div style="font-weight: 600; margin-bottom: 12px; color: var(--text-primary);">
+                <div style="background: var(--bg-subtle); border-radius: var(--ts-radius-md, 12px); padding: var(--ts-space-4, 16px); margin-bottom: var(--ts-space-4, 16px);">
+                    <div style="font-weight: 600; margin-bottom: var(--ts-space-3, 12px); color: var(--text-primary);">
                         <i class="fas fa-phone" style="margin-right: 8px; color: var(--primary);"></i>Phone Numbers
                     </div>
-                    <div class="form-group" style="margin-bottom: 12px;">
-                        <label class="form-label" style="font-size: 12px; color: var(--text-secondary);">Primary Phone</label>
+                    <div class="form-group" style="margin-bottom: var(--ts-space-3, 12px);">
+                        <label class="form-label" style="font-size: var(--ts-text-xs, 0.75rem); color: var(--text-secondary);">Primary Phone</label>
                         <input type="tel" class="form-input" id="editPhone" placeholder="(412) 555-1234">
                     </div>
                     <div class="form-group" style="margin-bottom: 0;">
-                        <label class="form-label" style="font-size: 12px; color: var(--text-secondary);">Secondary Phone (Optional)</label>
+                        <label class="form-label" style="font-size: var(--ts-text-xs, 0.75rem); color: var(--text-secondary);">Secondary Phone (Optional)</label>
                         <input type="tel" class="form-input" id="editSecondaryPhone" placeholder="(412) 555-5678">
-                        <small style="color: var(--text-secondary); font-size: 11px;">Household member or backup</small>
+                        <small style="color: var(--text-secondary); font-size: var(--ts-text-2xs, 0.69rem);">Household member or backup</small>
                     </div>
                 </div>
 
@@ -3310,7 +3310,7 @@
                     <input type="text" class="form-input" id="editCity" placeholder="City">
                 </div>
             </div>
-            <div class="modal-footer" style="padding: 16px; display: flex; gap: 12px;">
+            <div class="modal-footer" style="padding: var(--ts-space-4, 16px); display: flex; gap: var(--ts-space-3, 12px);">
                 <button class="btn btn-secondary" style="flex: 1;" onclick="closeEditContactModal()">Cancel</button>
                 <button class="btn btn-primary" style="flex: 1;" onclick="saveContactDetails()">Save Changes</button>
             </div>
@@ -4010,11 +4010,11 @@
                 // Show week assignment
                 weekRow.style.display = 'flex';
                 if (biweeklyWeek === 'A') {
-                    weekAssignment.innerHTML = '<span style="background: #1976d2; color: white; padding: 4px 12px; border-radius: 4px; font-weight: 600;">Week A</span>';
+                    weekAssignment.innerHTML = '<span style="background: #1976d2; color: white; padding: 4px 12px; border-radius: var(--ts-radius-sm, 4px); font-weight: 600;">Week A</span>';
                 } else if (biweeklyWeek === 'B') {
-                    weekAssignment.innerHTML = '<span style="background: #c2185b; color: white; padding: 4px 12px; border-radius: 4px; font-weight: 600;">Week B</span>';
+                    weekAssignment.innerHTML = '<span style="background: #c2185b; color: white; padding: 4px 12px; border-radius: var(--ts-radius-sm, 4px); font-weight: 600;">Week B</span>';
                 } else {
-                    weekAssignment.innerHTML = '<span style="background: #757575; color: white; padding: 4px 12px; border-radius: 4px;">Not Assigned</span>';
+                    weekAssignment.innerHTML = '<span style="background: #757575; color: white; padding: 4px 12px; border-radius: var(--ts-radius-sm, 4px);">Not Assigned</span>';
                 }
 
                 // Show the detailed schedule card
@@ -4024,7 +4024,7 @@
             } else if (frequency === 'weekly' || biweeklyWeek === 'BOTH') {
                 freqDisplay.textContent = 'Weekly (Every Week)';
                 weekRow.style.display = 'flex';
-                weekAssignment.innerHTML = '<span style="background: #43a047; color: white; padding: 4px 12px; border-radius: 4px; font-weight: 600;">All Weeks</span>';
+                weekAssignment.innerHTML = '<span style="background: #43a047; color: white; padding: 4px 12px; border-radius: var(--ts-radius-sm, 4px); font-weight: 600;">All Weeks</span>';
 
                 // Show schedule card for weekly too
                 scheduleCard.style.display = 'block';
@@ -4487,11 +4487,11 @@
             const email = AppState.membership?.Email;
 
             if (!email) {
-                listEl.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-secondary);">Please log in to view history</div>';
+                listEl.innerHTML = '<div style="text-align: center; padding: var(--ts-space-5, 20px); color: var(--text-secondary);">Please log in to view history</div>';
                 return;
             }
 
-            listEl.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-secondary);">Loading...</div>';
+            listEl.innerHTML = '<div style="text-align: center; padding: var(--ts-space-5, 20px); color: var(--text-secondary);">Loading...</div>';
 
             try {
                 const response = await fetch(`${API_URL}?action=getFlexTransactions&email=${encodeURIComponent(email)}`);
@@ -4510,21 +4510,21 @@
                             <div style="display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--border-color);">
                                 <div>
                                     <div style="font-weight: 500; color: var(--text-primary);">${typeLabel}</div>
-                                    <div style="font-size: 13px; color: var(--text-secondary);">${dateStr}</div>
-                                    ${tx.reason ? `<div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">${tx.reason}</div>` : ''}
+                                    <div style="font-size: var(--ts-text-xs, 0.8rem); color: var(--text-secondary);">${dateStr}</div>
+                                    ${tx.reason ? `<div style="font-size: var(--ts-text-xs, 0.75rem); color: var(--text-muted); margin-top: 2px;">${tx.reason}</div>` : ''}
                                 </div>
-                                <div style="font-weight: 600; font-size: 16px; color: ${isCredit ? '#22c55e' : '#ef4444'};">
+                                <div style="font-weight: 600; font-size: var(--ts-text-base, 1rem); color: ${isCredit ? '#22c55e' : '#ef4444'};">
                                     ${isCredit ? '+' : '-'}$${Math.abs(tx.amount).toFixed(2)}
                                 </div>
                             </div>
                         `;
                     }).join('');
                 } else {
-                    listEl.innerHTML = '<div style="text-align: center; padding: 40px 20px; color: var(--text-secondary);"><div style="font-size: 32px; margin-bottom: 8px;">💳</div>No transactions yet<br><small>Add funds or earn credits to get started</small></div>';
+                    listEl.innerHTML = '<div style="text-align: center; padding: 40px 20px; color: var(--text-secondary);"><div style="font-size: var(--ts-text-4xl, 2rem); margin-bottom: var(--ts-space-2, 8px);">💳</div>No transactions yet<br><small>Add funds or earn credits to get started</small></div>';
                 }
             } catch (error) {
                 console.log('Error loading transactions:', error);
-                listEl.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-secondary);">Failed to load history</div>';
+                listEl.innerHTML = '<div style="text-align: center; padding: var(--ts-space-5, 20px); color: var(--text-secondary);">Failed to load history</div>';
             }
         }
 
@@ -4660,7 +4660,7 @@
                     <div class="empty-state-icon">⚠️</div>
                     <div class="empty-state-title">Unable to Load Box Contents</div>
                     <div class="empty-state-text">Please check your connection and try again.</div>
-                    <button class="btn btn-primary btn-sm" onclick="loadBoxContents()" style="margin-top: 16px;">
+                    <button class="btn btn-primary btn-sm" onclick="loadBoxContents()" style="margin-top: var(--ts-space-4, 16px);">
                         <i class="fas fa-refresh"></i> Retry
                     </button>
                 </div>
@@ -5044,11 +5044,11 @@
                         if (result.isDeadlinePassed) {
                             document.getElementById('flexDeadline').style.background = '#f8d7da';
                             document.getElementById('flexDeadline').innerHTML = `
-                                <div style="display: flex; align-items: center; gap: 8px;">
+                                <div style="display: flex; align-items: center; gap: var(--ts-space-2, 8px);">
                                     <i class="fas fa-exclamation-circle" style="color: #721c24;"></i>
                                     <span style="color: #721c24; font-weight: 500;">Order deadline has passed</span>
                                 </div>
-                                <div style="color: #721c24; font-size: 12px; margin-top: 4px;">Orders open again next week</div>
+                                <div style="color: #721c24; font-size: var(--ts-text-xs, 0.75rem); margin-top: 4px;">Orders open again next week</div>
                             `;
                             document.getElementById('submitFlexOrderBtn').disabled = true;
                             document.getElementById('submitFlexOrderBtn').textContent = 'Deadline Passed';
@@ -5076,28 +5076,28 @@
 
             if (flexCart.length === 0) {
                 container.innerHTML = `
-                    <div style="text-align: center; padding: 24px; color: var(--text-secondary);">
-                        <div style="font-size: 32px; margin-bottom: 8px;">🛒</div>
+                    <div style="text-align: center; padding: var(--ts-space-6, 24px); color: var(--text-secondary);">
+                        <div style="font-size: var(--ts-text-4xl, 2rem); margin-bottom: var(--ts-space-2, 8px);">🛒</div>
                         <div>Your cart is empty</div>
-                        <div style="font-size: 13px;">Add items to build your order</div>
+                        <div style="font-size: var(--ts-text-xs, 0.8rem);">Add items to build your order</div>
                     </div>
                 `;
                 return;
             }
 
             container.innerHTML = flexCart.map((item, index) => `
-                <div class="flex-cart-item" style="display: flex; align-items: center; padding: 12px; background: var(--bg-subtle); border-radius: 8px; margin-bottom: 8px;">
+                <div class="flex-cart-item" style="display: flex; align-items: center; padding: var(--ts-space-3, 12px); background: var(--bg-subtle); border-radius: var(--ts-radius-sm, 8px); margin-bottom: var(--ts-space-2, 8px);">
                     <div style="flex: 1;">
                         <div style="font-weight: 500;">${item.name}</div>
-                        <div style="font-size: 12px; color: var(--text-secondary);">
+                        <div style="font-size: var(--ts-text-xs, 0.75rem); color: var(--text-secondary);">
                             ${item.variety ? item.variety + ' · ' : ''}${item.quantity} ${item.unit} · $${(item.price * item.quantity).toFixed(2)}
                         </div>
                     </div>
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <button onclick="adjustFlexItemQty(${index}, -1)" style="width: 28px; height: 28px; border: 1px solid var(--border); background: white; border-radius: 4px; cursor: pointer;">−</button>
+                    <div style="display: flex; align-items: center; gap: var(--ts-space-2, 8px);">
+                        <button onclick="adjustFlexItemQty(${index}, -1)" style="width: 28px; height: 28px; border: 1px solid var(--border); background: white; border-radius: var(--ts-radius-sm, 4px); cursor: pointer;">−</button>
                         <span style="min-width: 24px; text-align: center; font-weight: 500;">${item.quantity}</span>
-                        <button onclick="adjustFlexItemQty(${index}, 1)" style="width: 28px; height: 28px; border: 1px solid var(--border); background: white; border-radius: 4px; cursor: pointer;">+</button>
-                        <button onclick="removeFlexItem(${index})" style="width: 28px; height: 28px; border: none; background: #fee2e2; color: #dc2626; border-radius: 4px; cursor: pointer; margin-left: 8px;">
+                        <button onclick="adjustFlexItemQty(${index}, 1)" style="width: 28px; height: 28px; border: 1px solid var(--border); background: white; border-radius: var(--ts-radius-sm, 4px); cursor: pointer;">+</button>
+                        <button onclick="removeFlexItem(${index})" style="width: 28px; height: 28px; border: none; background: #fee2e2; color: #dc2626; border-radius: var(--ts-radius-sm, 4px); cursor: pointer; margin-left: 8px;">
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
@@ -5184,17 +5184,17 @@
 
             container.innerHTML = Object.entries(categories).map(([category, items]) => `
                 <div style="border-bottom: 1px solid var(--border);">
-                    <div style="padding: 12px 16px; background: var(--bg-subtle); font-weight: 600; font-size: 13px; color: var(--text-secondary);">
+                    <div style="padding: var(--ts-space-3, 12px) var(--ts-space-4, 16px); background: var(--bg-subtle); font-weight: 600; font-size: var(--ts-text-xs, 0.8rem); color: var(--text-secondary);">
                         ${category}
                     </div>
                     ${items.map(item => `
-                        <div class="add-item-row" style="display: flex; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--border); cursor: pointer;" onclick="toggleAddItem('${item.id}')">
-                            <div style="width: 24px; height: 24px; border: 2px solid var(--border); border-radius: 4px; margin-right: 12px; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" id="checkbox-${item.id}">
-                                <i class="fas fa-check" style="color: white; font-size: 12px; display: none;"></i>
+                        <div class="add-item-row" style="display: flex; align-items: center; padding: var(--ts-space-3, 12px) var(--ts-space-4, 16px); border-bottom: 1px solid var(--border); cursor: pointer;" onclick="toggleAddItem('${item.id}')">
+                            <div style="width: 24px; height: 24px; border: 2px solid var(--border); border-radius: var(--ts-radius-sm, 4px); margin-right: 12px; display: flex; align-items: center; justify-content: center; transition: all var(--ts-dur-normal, 200ms);" id="checkbox-${item.id}">
+                                <i class="fas fa-check" style="color: white; font-size: var(--ts-text-xs, 0.75rem); display: none;"></i>
                             </div>
                             <div style="flex: 1;">
                                 <div style="font-weight: 500;">${item.name}</div>
-                                <div style="font-size: 12px; color: var(--text-secondary);">${item.unit}</div>
+                                <div style="font-size: var(--ts-text-xs, 0.75rem); color: var(--text-secondary);">${item.unit}</div>
                             </div>
                             <div style="font-weight: 600; color: var(--primary);">$${item.price.toFixed(2)}</div>
                         </div>
@@ -5527,7 +5527,7 @@
             container.innerHTML = `
                 <div style="text-align: center; padding: 40px 20px;">
                     <div class="loading-spinner"></div>
-                    <div style="margin-top: 12px; color: var(--text-secondary);">Loading pickup history...</div>
+                    <div style="margin-top: var(--ts-space-3, 12px); color: var(--text-secondary);">Loading pickup history...</div>
                 </div>
             `;
 
@@ -5565,7 +5565,7 @@
                     <div class="empty-state-icon">⚠️</div>
                     <div class="empty-state-title">Unable to Load Pickup History</div>
                     <div class="empty-state-text">Please check your connection and try again.</div>
-                    <button class="btn btn-primary btn-sm" onclick="loadOrders()" style="margin-top: 16px;">
+                    <button class="btn btn-primary btn-sm" onclick="loadOrders()" style="margin-top: var(--ts-space-4, 16px);">
                         <i class="fas fa-refresh"></i> Retry
                     </button>
                 </div>
@@ -5877,5 +5877,6 @@
                 .catch(err => console.log('[SW] Registration failed:', err));
         }
     </script>
+<script src="shared-nav.js"></script>
 </body>
 </html>

@@ -15,7 +15,7 @@
     <link rel="stylesheet" href="tiny-seed-design-system.css">
     <script src="api-config.js"></script>
     <style>
-        .skip-link { position: absolute; top: -40px; left: 0; background: #166534; color: #fff; padding: 8px 16px; z-index: 10000; font-size: 14px; transition: top 0.2s; }
+        .skip-link { position: absolute; top: -40px; left: 0; background: #166534; color: #fff; padding: var(--ts-space-2, 8px) var(--ts-space-4, 16px); z-index: 10000; font-size: var(--ts-text-sm, 0.875rem); transition: top var(--ts-dur-normal, 200ms); }
         .skip-link:focus { top: 0; }
 
         * {
@@ -98,7 +98,7 @@
             background: rgba(255,255,255,0.2);
             backdrop-filter: blur(10px);
             padding: 0.5rem 1.5rem;
-            border-radius: 50px;
+            border-radius: var(--ts-radius-full, 9999px);
             font-size: 0.9rem;
             margin-bottom: 1.5rem;
             border: 1px solid rgba(255,255,255,0.3);
@@ -126,11 +126,11 @@
             background: var(--gold);
             color: var(--text-dark);
             padding: 1rem 2.5rem;
-            border-radius: 50px;
+            border-radius: var(--ts-radius-full, 9999px);
             font-size: 1.1rem;
             font-weight: 600;
             text-decoration: none;
-            transition: all 0.3s ease;
+            transition: all var(--ts-dur-moderate, 300ms) ease;
             box-shadow: 0 4px 15px rgba(212, 168, 83, 0.4);
         }
 
@@ -160,7 +160,7 @@
 
         .intro-image img {
             width: 100%;
-            border-radius: 20px;
+            border-radius: var(--ts-radius-lg, 20px);
             box-shadow: 0 20px 40px rgba(0,0,0,0.1);
         }
 
@@ -201,7 +201,7 @@
             gap: 0.5rem;
             background: var(--cream-dark);
             padding: 0.5rem 1rem;
-            border-radius: 50px;
+            border-radius: var(--ts-radius-full, 9999px);
             font-size: 0.9rem;
         }
 
@@ -249,7 +249,7 @@
             background: rgba(255,255,255,0.1);
             backdrop-filter: blur(10px);
             padding: 2rem;
-            border-radius: 20px;
+            border-radius: var(--ts-radius-lg, 20px);
             border: 1px solid rgba(255,255,255,0.2);
         }
 
@@ -314,9 +314,9 @@
             width: 100%;
             padding: 1rem 1.25rem;
             border: 2px solid #e5e5e5;
-            border-radius: 12px;
+            border-radius: var(--ts-radius-md, 12px);
             font-size: 1rem;
-            transition: all 0.3s ease;
+            transition: all var(--ts-dur-moderate, 300ms) ease;
             font-family: inherit;
         }
 
@@ -337,11 +337,11 @@
             background: var(--green-primary);
             color: white;
             border: none;
-            border-radius: 12px;
+            border-radius: var(--ts-radius-md, 12px);
             font-size: 1.1rem;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all var(--ts-dur-moderate, 300ms) ease;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -364,7 +364,7 @@
             margin-top: 1.5rem;
             padding: 1rem;
             background: var(--cream);
-            border-radius: 12px;
+            border-radius: var(--ts-radius-md, 12px);
         }
 
         .promo-code span {
@@ -403,7 +403,7 @@
         .testimonial-card {
             background: var(--cream);
             padding: 2rem;
-            border-radius: 20px;
+            border-radius: var(--ts-radius-lg, 20px);
             position: relative;
         }
 
@@ -482,7 +482,7 @@
 
         .location-map {
             background: #ddd;
-            border-radius: 20px;
+            border-radius: var(--ts-radius-lg, 20px);
             height: 300px;
             display: flex;
             align-items: center;
@@ -495,7 +495,7 @@
             width: 100%;
             height: 100%;
             border: none;
-            border-radius: 20px;
+            border-radius: var(--ts-radius-lg, 20px);
         }
 
         /* Footer */
@@ -528,7 +528,7 @@
             color: white;
             font-size: 1.5rem;
             opacity: 0.8;
-            transition: opacity 0.3s ease;
+            transition: opacity var(--ts-dur-moderate, 300ms) ease;
         }
 
         .footer-social a:hover {
@@ -612,7 +612,7 @@
             background: var(--green-dark);
             color: white;
             padding: 1rem 1.5rem;
-            border-radius: 12px;
+            border-radius: var(--ts-radius-md, 12px);
             display: flex;
             align-items: center;
             gap: 0.75rem;
@@ -643,6 +643,25 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+        /* ── Accessibility: Focus Visible ── */
+        :focus-visible { outline: 2px solid var(--ts-primary, #22c55e); outline-offset: 2px; }
+        :focus:not(:focus-visible) { outline: none; }
+
+        /* ── Accessibility: Reduced Motion ── */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        /* ── Page Load Animation ── */
+        @keyframes ts-page-enter {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        body { animation: ts-page-enter var(--ts-dur-moderate, 300ms) var(--ts-ease-out, ease) both; }
+
     </style>
 </head>
 <body>
@@ -1009,5 +1028,6 @@
                 .catch(err => console.log('[SW] Registration failed:', err));
         }
     </script>
+<script src="shared-nav.js"></script>
 </body>
 </html>
