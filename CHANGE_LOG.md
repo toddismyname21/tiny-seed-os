@@ -38,6 +38,30 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-02-28 — Thermal Label Print Fix + Farm Inventory Audit
+
+**Role:** PM_Architect
+**Deploy:** Backend (clasp @704) + Frontend (GitHub Pages)
+
+### Summary
+**Labels:** Completely rewrote thermal label print flow for Field Tray (4"x1") and Pot Tag (1"x4.5") labels. Print windows now include platform-aware (Mac/Windows) step-by-step instructions for creating custom paper sizes, visible during print dialog setup and hidden when actually printing. Removed auto-print — user controls when print dialog opens after reviewing setup checklist.
+
+**Inventory Audit — 4 bugs fixed:**
+1. `calculateSupplyNeeds()` hardcoded `CELLS_PER_TRAY = 72` — now reads actual `Tray_Cell_Count` from PLANNING_2026 and uses `Trays` column if available
+2. `saveProduct()` allowed duplicate product names — now checks for case-insensitive name match before creating, returns existing ID
+3. `getInventoryProducts()` returned no stock status — now computes `stock_status` (Empty/Low/Warning/In_Stock) based on `Current_Qty` vs `Reorder_Point`
+4. `getTrayInventory()` had `ReorderPoint` field but no logic — now returns `status` per tray size and `lowStockAlerts` array
+
+### Files Modified
+- `labels.html` — Rewrote `executePrintUL247FieldTray()` and `executePrintUL247PotTags()` with embedded setup guides, platform detection, no auto-print. Updated preview modal messaging.
+- `apps_script/MERGED TOTAL.js` — Fixed `calculateSupplyNeeds()` (line 37379), `saveProduct()` (line 35838), `getInventoryProducts()` (line 35497), `getTrayInventory()` (line 26590)
+
+### Duplicate Check
+- [x] All changes modify existing functions — no new files, no new functions
+- [x] No duplicates created
+
+---
+
 ## 2026-02-27 — Seed Inventory Consolidation (View by Variety)
 
 **Role:** PM_Architect
