@@ -38,6 +38,47 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-02-28 — Greenhouse UX Overhaul (Phases 0–1E)
+
+**Role:** PM_Architect + Agentic Team (greenhouse-ux-overhaul)
+**Deploy:** Frontend (GitHub Pages)
+
+### Files Modified
+- `web_app/greenhouse-dashboard.html` — 6 phases of UX improvements
+- `web_app/wholesale-seedlings.html` — Replaced with redirect to seedling-wholesale-2026.html
+
+### Changes to `web_app/greenhouse-dashboard.html`
+1. **Phase 0: Default tab + rename** — "Operations" renamed to "Overview", Today's Tasks set as default active tab, ARIA roles added (tablist/tab/tabpanel), Escape key closes modals
+2. **Phase 1A: Morning progress bar** — Shows "Today's Progress" with percentage, counts overdue+today tasks, green gradient fill bar
+3. **Phase 1B: Card action buttons** — Label/Sheet/Done buttons on sowing cards, Sheet/Done on transplant cards. Direct links to labels.html and sowing-sheets.html with params
+4. **Phase 1C: Undo toast** — 5-second undo window after Mark Sown or Mark Transplanted. Optimistic UI (card removed instantly, API call delayed). Full revert on undo or API failure
+5. **Phase 1D: Overview action cards** — 3 action cards (Start Sowing, Print Labels, Print Sheets) at top of Overview tab. Stats wrapped in collapsible `<details>`. Dynamic task count from today tab data
+6. **Phase 1E: Legacy cleanup** — wholesale-seedlings.html replaced with redirect stub
+
+### Functions Added
+- `showUndoToast(msg, undoCallback, seconds)` — Undo toast with countdown timer
+- `clearUndoToast()` — Clears active undo state
+- `undoLastAction()` — Executes undo callback
+- `updateMorningProgress()` — Calculates and renders morning progress bar
+- `printCardLabel(batchId)` — Opens labels.html with batch params
+- `printCardSheet()` — Opens sowing-sheets.html with date range
+
+### Functions Modified
+- `confirmSownWithLot()` — Now uses optimistic UI + 5s undo delay before API call
+- `confirmSownWithoutLot()` — Same optimistic UI + undo pattern
+- `markTransplanted()` — Same optimistic UI + undo pattern
+- `renderTodayStats()` — Now also updates actionSowCount on Overview tab and calls updateMorningProgress()
+
+### Reason
+UX audit scored greenhouse workflow at 47/100. Morning sowing routine required 4+ pages and 12+ clicks. This overhaul reduces it to 2-3 clicks from the default tab. Based on `docs/audits/GREENHOUSE_SEEDING_UX_AUDIT.md` recommendations.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
 ## 2026-02-28 — Labels: QR Fix, Date Filtering, Sorting, PDF Thermal Printing
 
 **Role:** PM_Architect

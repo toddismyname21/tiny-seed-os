@@ -132,9 +132,10 @@
         .task-card .variety { color:var(--text-secondary); font-size:0.8rem; margin-bottom:0.6rem; }
         .task-card .task-details { display:flex; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.75rem; }
         .task-card .detail-chip {
-            font-size:0.7rem; padding:0.2rem 0.5rem; border-radius:var(--radius-sm);
+            font-size:0.7rem; padding:0.4rem 0.6rem; border-radius:var(--radius-sm);
             background:var(--bg-light); color:var(--text-secondary);
             display:flex; align-items:center; gap:0.3rem;
+            min-height:36px;
         }
         .task-card .detail-chip i { font-size:0.65rem; }
         .task-card .editable-chip { cursor:pointer; transition:background 0.2s; }
@@ -145,9 +146,9 @@
         /* ── Buttons ── */
         .btn {
             display:inline-flex; align-items:center; gap:0.4rem;
-            padding:0.5rem 1rem; border-radius:var(--radius-sm);
+            padding:0.55rem 1rem; border-radius:var(--radius-sm);
             font-size:0.8rem; font-weight:600; border:none; cursor:pointer;
-            transition:all 0.2s; font-family:inherit;
+            transition:all 0.2s; font-family:inherit; min-height:44px;
         }
         .btn-primary { background:var(--primary); color:#0a0a0f; }
         .btn-primary:hover { background:#6ee7a0; }
@@ -161,7 +162,7 @@
             color:var(--text-primary);
         }
         .btn-outline:hover { background:var(--bg-light); border-color:var(--primary); color:var(--primary); }
-        .btn-sm { padding:0.35rem 0.65rem; font-size:0.72rem; }
+        .btn-sm { padding:0.625rem 1rem; font-size:0.75rem; min-height:44px; min-width:44px; }
         .btn-block { width:100%; justify-content:center; }
         /* ── Quick Actions ── */
         .quick-actions { display:flex; flex-wrap:wrap; gap:0.5rem; margin-top:1rem; }
@@ -359,6 +360,156 @@
         .chart-bar-label { width:100px; font-size:0.72rem; color:var(--text-secondary); text-align:right; flex-shrink:0; }
         .chart-bar-track { flex:1; height:20px; background:var(--bg-light); border-radius:4px; overflow:hidden; }
         .chart-bar-fill { height:100%; border-radius:4px; transition:width 0.5s ease; display:flex; align-items:center; justify-content:flex-end; padding-right:0.4rem; font-size:0.65rem; font-weight:600; color:#fff; }
+        /* ── Morning Progress Bar ── */
+        .morning-progress {
+            background: var(--bg-light, #0f3460);
+            border: 1px solid var(--border, rgba(255,255,255,0.1));
+            border-radius: var(--radius, 12px);
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+        .progress-title {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--text-primary, #edf2f4);
+        }
+        .progress-title i { color: var(--gold, #eab308); margin-right: 6px; }
+        .progress-pct {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--primary, #22c55e);
+        }
+        .progress-track {
+            height: 8px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary, #22c55e), var(--primary-light, #4ade80));
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+        .progress-detail {
+            margin-top: 0.5rem;
+            font-size: 0.8rem;
+            color: var(--text-secondary, #8d99ae);
+        }
+        /* ── Overview Action Cards ── */
+        .overview-actions {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .action-card {
+            background: var(--bg-light, #0f3460);
+            border: 1px solid var(--border, rgba(255,255,255,0.1));
+            border-radius: var(--radius, 12px);
+            padding: 1.25rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        .action-card:hover { background: var(--bg-card, #16213e); border-color: var(--primary, #22c55e); transform: translateY(-2px); }
+        .action-icon { font-size: 1.75rem; }
+        .action-title { font-weight: 700; font-size: 1rem; color: var(--text-primary, #edf2f4); }
+        .action-sub { font-size: 0.8rem; color: var(--text-secondary, #8d99ae); }
+        .overview-details { margin-bottom: 1.5rem; }
+        .overview-summary { font-weight: 600; font-size: 0.95rem; color: var(--text-secondary, #8d99ae); cursor: pointer; padding: 0.5rem 0; list-style: none; }
+        .overview-summary::-webkit-details-marker { display: none; }
+        .overview-summary::before { content: '\f078'; font-family: 'Font Awesome 5 Free'; font-weight: 900; font-size: 0.7rem; margin-right: 0.5rem; transition: transform 0.2s; display: inline-block; }
+        details.overview-details[open] .overview-summary::before { transform: rotate(180deg); }
+        /* ── Undo Toast ── */
+        .undo-toast {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: var(--bg-card, #16213e);
+            border: 1px solid var(--border, rgba(255,255,255,0.1));
+            border-radius: var(--radius, 12px);
+            padding: 0.75rem 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            z-index: 9999;
+            opacity: 0;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+            min-width: 280px;
+        }
+        .undo-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        .undo-toast .undo-msg { flex: 1; font-size: 0.9rem; color: var(--text-primary, #edf2f4); }
+        .undo-toast .undo-btn {
+            background: var(--primary-dim, rgba(34,197,94,0.15));
+            color: var(--primary, #22c55e);
+            border: none;
+            border-radius: var(--radius-sm, 8px);
+            padding: 8px 16px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            cursor: pointer;
+            min-height: 40px;
+            white-space: nowrap;
+        }
+        .undo-toast .undo-btn:hover { background: rgba(34,197,94,0.25); }
+        .undo-toast .undo-countdown {
+            font-size: 0.75rem;
+            color: var(--text-secondary, #8d99ae);
+            min-width: 20px;
+            text-align: center;
+        }
+        /* ── Card Action Buttons ── */
+        .card-actions {
+            display: flex;
+            gap: 6px;
+            margin-top: 8px;
+        }
+        .btn-action {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            padding: 10px 8px;
+            min-height: 44px;
+            border: none;
+            border-radius: var(--radius-sm, 8px);
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .btn-action i { font-size: 0.85rem; }
+        .btn-label {
+            background: rgba(99, 102, 241, 0.15);
+            color: #818cf8;
+        }
+        .btn-label:hover { background: rgba(99, 102, 241, 0.25); }
+        .btn-sheet {
+            background: rgba(234, 179, 8, 0.15);
+            color: var(--gold, #eab308);
+        }
+        .btn-sheet:hover { background: rgba(234, 179, 8, 0.25); }
+        .btn-done {
+            background: var(--primary-dim, rgba(34, 197, 94, 0.15));
+            color: var(--primary, #22c55e);
+        }
+        .btn-done:hover { background: rgba(34, 197, 94, 0.25); }
         /* ── Print ── */
         @media print {
             .gh-header, .gh-tabs, .toast, .btn, .quick-actions, .table-toolbar { display:none !important; }
@@ -377,6 +528,10 @@
             .table-wrap { overflow-x:auto; }
             table { min-width:600px; }
             .sub-tab { font-size:0.68rem; padding:0.5rem 0.35rem; }
+            .overview-actions { grid-template-columns: repeat(3, 1fr); gap: 0.5rem; }
+            .action-card { padding: 0.75rem; min-height: 90px; }
+            .action-icon { font-size: 1.25rem; }
+            .action-title { font-size: 0.85rem; }
         }
         @media(max-width:480px) {
             .stat-row { grid-template-columns:1fr 1fr; gap:0.5rem; }
@@ -390,7 +545,7 @@
 <!-- ═══ HEADER ═══ -->
 <header class="gh-header">
     <div class="gh-header-left">
-        <a href="index.html" title="Back to Dashboard"><i class="fas fa-arrow-left"></i></a>
+        <a href="index.html" title="Back to Dashboard" aria-label="Back to Dashboard"><i class="fas fa-arrow-left"></i></a>
         <span class="gh-logo"><i class="fas fa-leaf"></i> Greenhouse Manager</span>
     </div>
     <div class="gh-header-right">
@@ -402,30 +557,52 @@
 </header>
 
 <!-- ═══ TABS ═══ -->
-<nav class="gh-tabs" id="mainTabs">
-    <div class="gh-tab active" data-tab="ops" onclick="showTab('ops')"><i class="fas fa-map"></i> Operations</div>
-    <div class="gh-tab" data-tab="today" onclick="showTab('today')"><i class="fas fa-calendar-day"></i> Today's Tasks</div>
-    <div class="gh-tab" data-tab="trays" onclick="showTab('trays')"><i class="fas fa-th"></i> Tray Inventory</div>
-    <div class="gh-tab" data-tab="growth" onclick="showTab('growth')"><i class="fas fa-chart-line"></i> Growth Tracking</div>
-    <div class="gh-tab" data-tab="sales" onclick="showTab('sales')"><i class="fas fa-seedling"></i> Seedling Sales</div>
-    <div class="gh-tab" data-tab="reports" onclick="showTab('reports')"><i class="fas fa-file-alt"></i> Reports</div>
+<nav class="gh-tabs" id="mainTabs" role="tablist" aria-label="Greenhouse sections">
+    <div class="gh-tab" data-tab="ops" onclick="showTab('ops')" role="tab" aria-selected="false" aria-controls="panel-ops" tabindex="-1"><i class="fas fa-map"></i> Overview</div>
+    <div class="gh-tab active" data-tab="today" onclick="showTab('today')" role="tab" aria-selected="true" aria-controls="panel-today" tabindex="0"><i class="fas fa-calendar-day"></i> Today's Tasks</div>
+    <div class="gh-tab" data-tab="trays" onclick="showTab('trays')" role="tab" aria-selected="false" aria-controls="panel-trays" tabindex="-1"><i class="fas fa-th"></i> Tray Inventory</div>
+    <div class="gh-tab" data-tab="growth" onclick="showTab('growth')" role="tab" aria-selected="false" aria-controls="panel-growth" tabindex="-1"><i class="fas fa-chart-line"></i> Growth Tracking</div>
+    <div class="gh-tab" data-tab="sales" onclick="showTab('sales')" role="tab" aria-selected="false" aria-controls="panel-sales" tabindex="-1"><i class="fas fa-seedling"></i> Seedling Sales</div>
+    <div class="gh-tab" data-tab="reports" onclick="showTab('reports')" role="tab" aria-selected="false" aria-controls="panel-reports" tabindex="-1"><i class="fas fa-file-alt"></i> Reports</div>
 </nav>
 
 <!-- ═══ MAIN CONTENT ═══ -->
 <main class="gh-main">
 
 <!-- ────────────── TAB 0: OPERATIONS OVERVIEW ────────────── -->
-<div class="tab-panel active" id="panel-ops">
+<div class="tab-panel" id="panel-ops" role="tabpanel" aria-labelledby="tab-ops">
     <!-- Warning Banner -->
     <div id="opsWarnings" style="margin-bottom:1rem;"></div>
 
-    <!-- Stat Cards -->
-    <div class="stat-row" id="opsStats">
-        <div class="stat-card green"><div class="stat-label">Production (Field)</div><div class="stat-value" id="opsFieldCount">--</div><div class="stat-sub">For our fields</div></div>
-        <div class="stat-card blue"><div class="stat-label">Sale Seedlings</div><div class="stat-value" id="opsSaleCount">--</div><div class="stat-sub">Presale + markets</div></div>
-        <div class="stat-card gold"><div class="stat-label">Warnings</div><div class="stat-value" id="opsWarnCount">--</div><div class="stat-sub" id="opsWarnSub">Loading...</div></div>
-        <div class="stat-card red"><div class="stat-label">Seeds to Order</div><div class="stat-value" id="opsSeedAlert">--</div><div class="stat-sub">Missing or low</div></div>
+    <!-- Quick Action Cards -->
+    <div class="overview-actions">
+        <div class="action-card" onclick="showTab('today')">
+            <i class="fas fa-seedling action-icon" style="color:var(--primary,#22c55e);"></i>
+            <div class="action-title">Start Sowing</div>
+            <div class="action-sub" id="actionSowCount">View today's tasks</div>
+        </div>
+        <div class="action-card" onclick="window.open('../labels.html','_blank')">
+            <i class="fas fa-tag action-icon" style="color:#818cf8;"></i>
+            <div class="action-title">Print Labels</div>
+            <div class="action-sub">Tray &amp; pot tags</div>
+        </div>
+        <div class="action-card" onclick="openPrintSheet('ghSow')">
+            <i class="fas fa-clipboard-list action-icon" style="color:var(--gold,#eab308);"></i>
+            <div class="action-title">Print Sheets</div>
+            <div class="action-sub">Task sheets for field</div>
+        </div>
     </div>
+
+    <!-- Stat Cards -->
+    <details class="overview-details" open>
+        <summary class="overview-summary"><i class="fas fa-chart-bar"></i> Operations Stats</summary>
+        <div class="stat-row" id="opsStats">
+            <div class="stat-card green"><div class="stat-label">Production (Field)</div><div class="stat-value" id="opsFieldCount">--</div><div class="stat-sub">For our fields</div></div>
+            <div class="stat-card blue"><div class="stat-label">Sale Seedlings</div><div class="stat-value" id="opsSaleCount">--</div><div class="stat-sub">Presale + markets</div></div>
+            <div class="stat-card gold"><div class="stat-label">Warnings</div><div class="stat-value" id="opsWarnCount">--</div><div class="stat-sub" id="opsWarnSub">Loading...</div></div>
+            <div class="stat-card red"><div class="stat-label">Seeds to Order</div><div class="stat-value" id="opsSeedAlert">--</div><div class="stat-sub">Missing or low</div></div>
+        </div>
+    </details>
 
     <!-- Outlet Allocation Cards -->
     <div class="section-header"><h2><i class="fas fa-store"></i> Outlet Allocations</h2></div>
@@ -459,12 +636,24 @@
 </div>
 
 <!-- ────────────── TAB 1: TODAY'S TASKS ────────────── -->
-<div class="tab-panel" id="panel-today">
+<div class="tab-panel active" id="panel-today" role="tabpanel" aria-labelledby="tab-today">
     <div class="stat-row" id="todayStats">
         <div class="stat-card gold"><div class="stat-label">Tasks Due Today</div><div class="stat-value" id="statTasksToday">--</div><div class="stat-sub" id="statTasksSub">Loading...</div></div>
         <div class="stat-card green"><div class="stat-label">Trays Active</div><div class="stat-value" id="statTraysActive">--</div><div class="stat-sub">In greenhouse</div></div>
         <div class="stat-card blue"><div class="stat-label">Ready to Transplant</div><div class="stat-value" id="statReadyTransplant">--</div><div class="stat-sub">This week</div></div>
         <div class="stat-card red"><div class="stat-label">Germination Checks</div><div class="stat-value" id="statGermChecks">--</div><div class="stat-sub">Due today</div></div>
+    </div>
+
+    <!-- Morning Progress Bar (Phase 1A) -->
+    <div id="morningProgress" class="morning-progress" style="display:none;">
+        <div class="progress-header">
+            <span class="progress-title"><i class="fas fa-sun"></i> Today's Progress</span>
+            <span class="progress-pct" id="progressPct">0%</span>
+        </div>
+        <div class="progress-track">
+            <div class="progress-fill" id="progressFill" style="width:0%"></div>
+        </div>
+        <div class="progress-detail" id="progressDetail"></div>
     </div>
 
     <!-- Overdue Section (3C) -->
@@ -513,7 +702,7 @@
 </div>
 
 <!-- ────────────── TAB 2: TRAY INVENTORY ────────────── -->
-<div class="tab-panel" id="panel-trays">
+<div class="tab-panel" id="panel-trays" role="tabpanel" aria-labelledby="tab-trays">
     <div class="stat-row" id="trayStats">
         <div class="stat-card green"><div class="stat-label">Total Active Trays</div><div class="stat-value" id="statTotalTrays">--</div></div>
         <div class="stat-card blue"><div class="stat-label">Germinating</div><div class="stat-value" id="statGerminating">--</div></div>
@@ -561,7 +750,7 @@
 </div>
 
 <!-- ────────────── TAB 3: GROWTH TRACKING ────────────── -->
-<div class="tab-panel" id="panel-growth">
+<div class="tab-panel" id="panel-growth" role="tabpanel" aria-labelledby="tab-growth">
     <div style="display:flex;flex-wrap:wrap;gap:0.75rem;align-items:flex-end;margin-bottom:1.25rem;">
         <div class="form-group" style="margin:0;flex:1;min-width:200px;">
             <label>Select Batch</label>
@@ -597,13 +786,13 @@
 </div>
 
 <!-- ────────────── TAB 4: SEEDLING SALES ────────────── -->
-<div class="tab-panel" id="panel-sales">
-    <div class="sub-tabs">
-        <div class="sub-tab active" onclick="showSubTab('sales','prodPlan')">Production Plan</div>
-        <div class="sub-tab" onclick="showSubTab('sales','presale')">Presale Manager</div>
-        <div class="sub-tab" onclick="showSubTab('sales','tracker')">Sales Tracker</div>
-        <div class="sub-tab" onclick="showSubTab('sales','historical')">Historical Data</div>
-        <div class="sub-tab" onclick="showSubTab('sales','seedToSale')"><i class="fas fa-route"></i> Seed to Sale</div>
+<div class="tab-panel" id="panel-sales" role="tabpanel" aria-labelledby="tab-sales">
+    <div class="sub-tabs" role="tablist" aria-label="Seedling Sales sections">
+        <div class="sub-tab active" role="tab" aria-selected="true" onclick="showSubTab('sales','prodPlan')">Production Plan</div>
+        <div class="sub-tab" role="tab" aria-selected="false" onclick="showSubTab('sales','presale')">Presale Manager</div>
+        <div class="sub-tab" role="tab" aria-selected="false" onclick="showSubTab('sales','tracker')">Sales Tracker</div>
+        <div class="sub-tab" role="tab" aria-selected="false" onclick="showSubTab('sales','historical')">Historical Data</div>
+        <div class="sub-tab" role="tab" aria-selected="false" onclick="showSubTab('sales','seedToSale')"><i class="fas fa-route"></i> Seed to Sale</div>
     </div>
 
     <!-- Sub-panel: Production Plan -->
@@ -776,7 +965,7 @@
 </div>
 
 <!-- ────────────── TAB 5: REPORTS ────────────── -->
-<div class="tab-panel" id="panel-reports">
+<div class="tab-panel" id="panel-reports" role="tabpanel" aria-labelledby="tab-reports">
     <div style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-bottom:1.25rem;">
         <button class="btn btn-outline" onclick="showReport('germination')"><i class="fas fa-flask"></i> Germination Success</button>
         <button class="btn btn-outline" onclick="showReport('transplant')"><i class="fas fa-exchange-alt"></i> Transplant Readiness</button>
@@ -798,9 +987,9 @@
 <!-- ═══════════ MODALS ═══════════ -->
 
 <!-- Germination Check Modal -->
-<div class="modal-overlay" id="germCheckModal">
+<div class="modal-overlay" id="germCheckModal" role="dialog" aria-modal="true" aria-label="Log Germination Check">
     <div class="modal">
-        <div class="modal-head"><h3><i class="fas fa-search"></i> Log Germination Check</h3><button class="modal-close" onclick="closeModal('germCheckModal')">&times;</button></div>
+        <div class="modal-head"><h3><i class="fas fa-search"></i> Log Germination Check</h3><button class="modal-close" onclick="closeModal('germCheckModal')" aria-label="Close">&times;</button></div>
         <div class="modal-body">
             <div class="form-group"><label>Batch</label><select id="germBatchSelect"><option value="">-- Select batch --</option></select></div>
             <div class="form-row">
@@ -818,9 +1007,9 @@
 </div>
 
 <!-- Growth Stage Modal -->
-<div class="modal-overlay" id="growthStageModal">
+<div class="modal-overlay" id="growthStageModal" role="dialog" aria-modal="true" aria-label="Record Growth Stage">
     <div class="modal">
-        <div class="modal-head"><h3><i class="fas fa-chart-bar"></i> Record Growth Stage</h3><button class="modal-close" onclick="closeModal('growthStageModal')">&times;</button></div>
+        <div class="modal-head"><h3><i class="fas fa-chart-bar"></i> Record Growth Stage</h3><button class="modal-close" onclick="closeModal('growthStageModal')" aria-label="Close">&times;</button></div>
         <div class="modal-body">
             <div class="form-group"><label>Batch</label><select id="gstageBatch"><option value="">-- Select batch --</option></select></div>
             <div class="form-group"><label>Growth Stage</label>
@@ -847,9 +1036,9 @@
 </div>
 
 <!-- Problem Report Modal -->
-<div class="modal-overlay" id="problemModal">
+<div class="modal-overlay" id="problemModal" role="dialog" aria-modal="true" aria-label="Report Problem">
     <div class="modal">
-        <div class="modal-head"><h3><i class="fas fa-exclamation-triangle"></i> Report Problem</h3><button class="modal-close" onclick="closeModal('problemModal')">&times;</button></div>
+        <div class="modal-head"><h3><i class="fas fa-exclamation-triangle"></i> Report Problem</h3><button class="modal-close" onclick="closeModal('problemModal')" aria-label="Close">&times;</button></div>
         <div class="modal-body">
             <div class="form-group"><label>Batch (optional)</label><select id="problemBatch"><option value="">-- General / Select batch --</option></select></div>
             <div class="form-group"><label>Problem Type</label>
@@ -880,9 +1069,9 @@
 </div>
 
 <!-- Add Tray Modal -->
-<div class="modal-overlay" id="addTrayModal">
+<div class="modal-overlay" id="addTrayModal" role="dialog" aria-modal="true" aria-label="Add Tray">
     <div class="modal">
-        <div class="modal-head"><h3><i class="fas fa-plus"></i> Add Tray</h3><button class="modal-close" onclick="closeModal('addTrayModal')">&times;</button></div>
+        <div class="modal-head"><h3><i class="fas fa-plus"></i> Add Tray</h3><button class="modal-close" onclick="closeModal('addTrayModal')" aria-label="Close">&times;</button></div>
         <div class="modal-body">
             <div class="form-row">
                 <div class="form-group"><label>Crop</label><input type="text" id="newTrayCrop" placeholder="e.g. Tomato"></div>
@@ -912,9 +1101,9 @@
 </div>
 
 <!-- Growth Observation Modal -->
-<div class="modal-overlay" id="growthObsModal">
+<div class="modal-overlay" id="growthObsModal" role="dialog" aria-modal="true" aria-label="Log Growth Observation">
     <div class="modal">
-        <div class="modal-head"><h3><i class="fas fa-plus"></i> Log Growth Observation</h3><button class="modal-close" onclick="closeModal('growthObsModal')">&times;</button></div>
+        <div class="modal-head"><h3><i class="fas fa-plus"></i> Log Growth Observation</h3><button class="modal-close" onclick="closeModal('growthObsModal')" aria-label="Close">&times;</button></div>
         <div class="modal-body">
             <div class="form-group"><label>Batch</label><select id="obsBatch"><option value="">-- Select batch --</option></select></div>
             <div class="form-group"><label>Growth Stage</label>
@@ -942,9 +1131,9 @@
 </div>
 
 <!-- Presale Item Modal -->
-<div class="modal-overlay" id="presaleModal">
+<div class="modal-overlay" id="presaleModal" role="dialog" aria-modal="true" aria-label="Create Presale Item">
     <div class="modal">
-        <div class="modal-head"><h3><i class="fas fa-tag"></i> Create Presale Item</h3><button class="modal-close" onclick="closeModal('presaleModal')">&times;</button></div>
+        <div class="modal-head"><h3><i class="fas fa-tag"></i> Create Presale Item</h3><button class="modal-close" onclick="closeModal('presaleModal')" aria-label="Close">&times;</button></div>
         <div class="modal-body">
             <div class="form-group"><label>Variety</label><select id="presaleVariety"><option value="">-- Select from production plan --</option></select></div>
             <div class="form-row">
@@ -968,9 +1157,9 @@
 </div>
 
 <!-- Log Sale Modal -->
-<div class="modal-overlay" id="logSaleModal">
+<div class="modal-overlay" id="logSaleModal" role="dialog" aria-modal="true" aria-label="Log Sale">
     <div class="modal">
-        <div class="modal-head"><h3><i class="fas fa-cash-register"></i> Log Sale</h3><button class="modal-close" onclick="closeModal('logSaleModal')">&times;</button></div>
+        <div class="modal-head"><h3><i class="fas fa-cash-register"></i> Log Sale</h3><button class="modal-close" onclick="closeModal('logSaleModal')" aria-label="Close">&times;</button></div>
         <div class="modal-body">
             <div class="form-group"><label>Variety</label><select id="logSaleVariety"><option value="">-- Select variety --</option></select></div>
             <div class="form-row">
@@ -998,9 +1187,9 @@
 </div>
 
 <!-- CSV Import Modal -->
-<div class="modal-overlay" id="csvImportModal">
+<div class="modal-overlay" id="csvImportModal" role="dialog" aria-modal="true" aria-label="Import CSV">
     <div class="modal" style="max-width:700px;">
-        <div class="modal-head"><h3><i class="fas fa-upload"></i> Import CSV - Production Plan</h3><button class="modal-close" onclick="closeModal('csvImportModal')">&times;</button></div>
+        <div class="modal-head"><h3><i class="fas fa-upload"></i> Import CSV - Production Plan</h3><button class="modal-close" onclick="closeModal('csvImportModal')" aria-label="Close">&times;</button></div>
         <div class="modal-body">
             <p style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:1rem;">Upload a CSV with columns: Crop, Bought Seed (TRUE/FALSE), Seeding Date, Quantity need, # Trays, Cell Pack size, pots/tray. The file will be parsed and previewed before importing.</p>
             <div class="form-group">
@@ -1047,9 +1236,9 @@
 </div>
 
 <!-- Add Variety Modal -->
-<div class="modal-overlay" id="addVarietyModal">
+<div class="modal-overlay" id="addVarietyModal" role="dialog" aria-modal="true" aria-label="Add Variety">
     <div class="modal">
-        <div class="modal-head"><h3><i class="fas fa-plus"></i> Add Variety to Production Plan</h3><button class="modal-close" onclick="closeModal('addVarietyModal')">&times;</button></div>
+        <div class="modal-head"><h3><i class="fas fa-plus"></i> Add Variety to Production Plan</h3><button class="modal-close" onclick="closeModal('addVarietyModal')" aria-label="Close">&times;</button></div>
         <div class="modal-body">
             <div class="form-group"><label>Category</label>
                 <select id="addVarCategory">
@@ -1099,9 +1288,9 @@
 </div>
 
 <!-- Seed Lot Confirmation Modal (Phase 3B) -->
-<div class="modal-overlay" id="seedLotModal">
+<div class="modal-overlay" id="seedLotModal" role="dialog" aria-modal="true" aria-label="Select Seed Lot">
     <div class="modal" style="max-width:480px;">
-        <div class="modal-head"><h3><i class="fas fa-box-open"></i> Confirm Seed Lot</h3><button class="modal-close" onclick="closeModal('seedLotModal')">&times;</button></div>
+        <div class="modal-head"><h3><i class="fas fa-box-open"></i> Confirm Seed Lot</h3><button class="modal-close" onclick="closeModal('seedLotModal')" aria-label="Close">&times;</button></div>
         <div class="modal-body">
             <div id="seedLotInfo" style="margin-bottom:1rem;">
                 <p style="color:var(--text-secondary);">Searching for matching seed lots...</p>
@@ -1126,7 +1315,12 @@
 </div>
 
 <!-- Toast -->
-<div class="toast" id="toastEl"></div>
+<div class="toast" id="toastEl" role="status" aria-live="polite"></div>
+<div class="undo-toast" id="undoToast">
+    <span class="undo-msg" id="undoMsg"></span>
+    <span class="undo-countdown" id="undoCountdown">5</span>
+    <button class="undo-btn" onclick="undoLastAction()">Undo</button>
+</div>
 
 <script>
 // ═══════════════════════════════════════════════════════════════════
@@ -1153,7 +1347,7 @@ const state = {
 // ═══════════════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
     setDefaultDates();
-    loadOperationsTab();
+    loadTodayTab();
     startAutoRefresh();
     setupGermCalc();
 });
@@ -1183,7 +1377,12 @@ function setupGermCalc() {
 // ═══════════════════════════════════════════════════════════════════
 function showTab(tab) {
     state.activeTab = tab;
-    document.querySelectorAll('.gh-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+    document.querySelectorAll('.gh-tab').forEach(t => {
+        const isActive = t.dataset.tab === tab;
+        t.classList.toggle('active', isActive);
+        t.setAttribute('aria-selected', isActive ? 'true' : 'false');
+        t.setAttribute('tabindex', isActive ? '0' : '-1');
+    });
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + tab));
     if (tab === 'ops') loadOperationsTab();
     else if (tab === 'today') loadTodayTab();
@@ -1199,6 +1398,7 @@ function showSubTab(parentTab, subId) {
         const panels = panel.querySelectorAll('.sub-panel');
         const isActive = panels[i] && panels[i].id === parentTab + '-' + subId;
         t.classList.toggle('active', isActive);
+        t.setAttribute('aria-selected', isActive ? 'true' : 'false');
         if (panels[i]) panels[i].classList.toggle('active', isActive);
     });
 }
@@ -1217,6 +1417,17 @@ document.addEventListener('click', e => {
     if (e.target.classList.contains('modal-overlay')) e.target.classList.remove('open');
 });
 
+// Close topmost modal on Escape key
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+        const openModals = document.querySelectorAll('.modal-overlay.open');
+        if (openModals.length > 0) {
+            openModals[openModals.length - 1].classList.remove('open');
+            e.preventDefault();
+        }
+    }
+});
+
 // ═══════════════════════════════════════════════════════════════════
 // TOAST
 // ═══════════════════════════════════════════════════════════════════
@@ -1228,12 +1439,63 @@ function toast(msg, type = 'success') {
 }
 
 // ═══════════════════════════════════════════════════════════════════
+// UNDO TOAST (Phase 1C)
+// ═══════════════════════════════════════════════════════════════════
+var _undoState = { timer: null, countdown: null, callback: null, seconds: 0 };
+
+function showUndoToast(msg, undoCallback, seconds) {
+    seconds = seconds || 5;
+    // Clear any existing undo
+    clearUndoToast();
+    _undoState.callback = undoCallback;
+    _undoState.seconds = seconds;
+    document.getElementById('undoMsg').textContent = msg;
+    document.getElementById('undoCountdown').textContent = seconds;
+    var toastEl = document.getElementById('undoToast');
+    toastEl.classList.add('show');
+    _undoState.countdown = setInterval(function() {
+        _undoState.seconds--;
+        document.getElementById('undoCountdown').textContent = _undoState.seconds;
+        if (_undoState.seconds <= 0) clearUndoToast();
+    }, 1000);
+    _undoState.timer = setTimeout(function() { clearUndoToast(); }, seconds * 1000);
+}
+
+function clearUndoToast() {
+    if (_undoState.timer) clearTimeout(_undoState.timer);
+    if (_undoState.countdown) clearInterval(_undoState.countdown);
+    _undoState.timer = null;
+    _undoState.countdown = null;
+    _undoState.callback = null;
+    document.getElementById('undoToast').classList.remove('show');
+}
+
+function undoLastAction() {
+    if (_undoState.callback) {
+        var cb = _undoState.callback;
+        clearUndoToast();
+        cb();
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════
 // PRINT TASK SHEET (Phase 3A)
 // ═══════════════════════════════════════════════════════════════════
 function openPrintSheet(taskType) {
     const today = todayStr();
     const end = weekFromNow();
     window.open(`../sowing-sheets.html?taskType=${taskType}&startDate=${today}&endDate=${end}&autoLoad=true`, '_blank');
+}
+
+function printCardLabel(batchId) {
+    const params = new URLSearchParams({ batch: batchId, type: 'fieldTray', autoprint: '1' });
+    window.open('../labels.html?' + params.toString(), '_blank');
+}
+
+function printCardSheet() {
+    const today = todayStr();
+    const end = weekFromNow();
+    window.open('../sowing-sheets.html?taskType=ghSow&startDate=' + today + '&endDate=' + end + '&autoLoad=true', '_blank');
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -1559,6 +1821,44 @@ function renderTodayStats() {
         return days >= 3 && days <= 7 && !t.completed;
     }).length;
     document.getElementById('statGermChecks').textContent = germChecks;
+
+    // Update Overview action card count
+    var totalPending = todaySow + todayTrans;
+    var el = document.getElementById('actionSowCount');
+    if (el) el.textContent = totalPending > 0 ? totalPending + ' tasks due' : 'All done!';
+
+    updateMorningProgress();
+}
+
+function updateMorningProgress() {
+    const sowTasks = state.sowingTasks.filter(t => {
+        const urg = urgencyClass(t.sowDate || t.plannedDate);
+        return urg === 'overdue' || urg === 'today';
+    });
+    const transTasks = state.transplantTasks.filter(t => {
+        const urg = urgencyClass(t.transplantDate);
+        return urg === 'overdue' || urg === 'today';
+    });
+
+    const totalTasks = sowTasks.length + transTasks.length;
+    const doneSow = sowTasks.filter(t => t.completed).length;
+    const doneTrans = transTasks.filter(t => t.completed).length;
+    const totalDone = doneSow + doneTrans;
+
+    const bar = document.getElementById('morningProgress');
+    if (totalTasks === 0) {
+        bar.style.display = 'none';
+        return;
+    }
+    bar.style.display = 'block';
+
+    const pct = Math.round((totalDone / totalTasks) * 100);
+    document.getElementById('progressPct').textContent = pct + '%';
+    document.getElementById('progressFill').style.width = pct + '%';
+    document.getElementById('progressDetail').textContent =
+        totalDone + ' of ' + totalTasks + ' tasks complete' +
+        (doneSow > 0 ? ' (' + doneSow + ' sown' : ' (') +
+        (doneTrans > 0 ? (doneSow > 0 ? ', ' : '') + doneTrans + ' transplanted)' : (doneSow > 0 ? ')' : '0 done)'));
 }
 
 function renderSowingTasks() {
@@ -1649,9 +1949,17 @@ function renderSowingCard(t) {
             ${t.germTemp ? '<span class="detail-chip"><i class="fas fa-thermometer-half"></i> ' + esc(t.germTemp) + '</span>' : ''}
         </div>
         <div style="display:flex;gap:4px;flex-wrap:wrap;margin:6px 0;font-size:0.75rem;">${readinessItems.join(' ')}</div>
-        <button class="btn btn-primary btn-block btn-sm" onclick="markSown('${esc(t.batchId)}')">
-            <i class="fas fa-check"></i> Mark Sown
-        </button>
+        <div class="card-actions">
+            <button class="btn-action btn-label" onclick="event.stopPropagation(); printCardLabel('${esc(t.batchId)}')" title="Print tray label">
+                <i class="fas fa-tag"></i> Label
+            </button>
+            <button class="btn-action btn-sheet" onclick="event.stopPropagation(); printCardSheet()" title="Print task sheet">
+                <i class="fas fa-clipboard-list"></i> Sheet
+            </button>
+            <button class="btn-action btn-done" onclick="markSown('${esc(t.batchId)}')">
+                <i class="fas fa-check"></i> Done
+            </button>
+        </div>
     </div>`;
 }
 
@@ -1677,9 +1985,14 @@ function renderTransplantTasks() {
                 <span class="detail-chip"><i class="fas fa-seedling"></i> ${t.plantsNeeded || '?'} plants</span>
                 ${t.bed ? '<span class="detail-chip"><i class="fas fa-map-marker-alt"></i> Bed ' + esc(t.bed) + '</span>' : ''}
             </div>
-            <button class="btn btn-gold btn-block btn-sm" onclick="markTransplanted('${esc(t.batchId)}')">
-                <i class="fas fa-check"></i> Mark Transplanted
-            </button>
+            <div class="card-actions">
+                <button class="btn-action btn-sheet" onclick="event.stopPropagation(); printCardSheet()" title="Print task sheet">
+                    <i class="fas fa-clipboard-list"></i> Sheet
+                </button>
+                <button class="btn-action btn-done" onclick="markTransplanted('${esc(t.batchId)}')">
+                    <i class="fas fa-check"></i> Done
+                </button>
+            </div>
         </div>`;
     }).join('');
 }
@@ -1751,61 +2064,112 @@ async function confirmSownWithLot() {
 
     closeModal('seedLotModal');
 
-    try {
-        const params = { batchId: batchId, completed: 'true' };
-        if (seedLotId) { params.seedLotId = seedLotId; }
-        if (seedsUsed) { params.seedsUsed = seedsUsed; }
+    // Optimistic UI — mark completed locally, show undo toast
+    if (task) task.completed = true;
+    renderSowingTasks();
+    renderTodayStats();
 
-        const url = `${API_URL}?action=updateTaskCompletion&batchId=${encodeURIComponent(batchId)}&completed=true${seedLotId ? '&seedLotId=' + encodeURIComponent(seedLotId) : ''}${seedsUsed ? '&seedsUsed=' + encodeURIComponent(seedsUsed) : ''}`;
-        await fetch(url);
+    const cropLabel = task ? (task.crop || '') + (task.variety ? ' — ' + task.variety : '') : batchId;
+    showUndoToast('Sown: ' + cropLabel, function() {
+        // Undo: restore local state
+        if (task) task.completed = false;
+        renderSowingTasks();
+        renderTodayStats();
+        toast('Undo — sowing reverted');
+    }, 5);
 
-        toast('Sowing recorded' + (seedLotId ? ' with lot ' + seedLotId : ''));
+    // Send to server after delay (gives user time to undo)
+    _undoState.timer = setTimeout(async function() {
+        clearUndoToast();
+        try {
+            const url = API_URL + '?action=updateTaskCompletion&batchId=' + encodeURIComponent(batchId) + '&completed=true' + (seedLotId ? '&seedLotId=' + encodeURIComponent(seedLotId) : '') + (seedsUsed ? '&seedsUsed=' + encodeURIComponent(seedsUsed) : '');
+            await fetch(url);
 
-        // Offer to print tray labels with QR code for traceability
-        if (task && task.trays) {
-            const cropName = (task.crop || '') + (task.variety ? ' - ' + task.variety : '');
-            if (confirm('Print tray labels for ' + cropName + '?\n' + task.trays + ' trays')) {
-                const labelParams = new URLSearchParams({
-                    batch: batchId,
-                    type: 'fieldTray',
-                    autoprint: '1'
-                });
-                if (seedLotId) labelParams.set('seedLot', seedLotId);
-                window.open('../labels.html?' + labelParams.toString(), '_blank');
+            // Offer to print tray labels
+            if (task && task.trays) {
+                const cropName = (task.crop || '') + (task.variety ? ' - ' + task.variety : '');
+                if (confirm('Print tray labels for ' + cropName + '?\n' + task.trays + ' trays')) {
+                    const labelParams = new URLSearchParams({ batch: batchId, type: 'fieldTray', autoprint: '1' });
+                    if (seedLotId) labelParams.set('seedLot', seedLotId);
+                    window.open('../labels.html?' + labelParams.toString(), '_blank');
+                }
             }
-        }
 
-        loadTodayTab();
-    } catch (err) {
-        console.error(err);
-        toast('Failed to record sowing: ' + err.message, 'error');
-    }
+            loadTodayTab();
+        } catch (err) {
+            console.error(err);
+            // Revert on failure
+            if (task) task.completed = false;
+            renderSowingTasks();
+            renderTodayStats();
+            toast('Failed to record sowing: ' + err.message, 'error');
+        }
+    }, 5000);
 }
 
 async function confirmSownWithoutLot() {
     const batchId = document.getElementById('seedLotBatchId').value;
+    const task = state.sowingTasks.find(t => t.batchId === batchId);
     closeModal('seedLotModal');
 
-    try {
-        await fetch(`${API_URL}?action=updateTaskCompletion&batchId=${encodeURIComponent(batchId)}&completed=true`);
-        toast('Sowing recorded (no seed lot linked)');
-        loadTodayTab();
-    } catch (err) {
-        console.error(err);
-        toast('Failed to record sowing: ' + err.message, 'error');
-    }
+    // Optimistic UI
+    if (task) task.completed = true;
+    renderSowingTasks();
+    renderTodayStats();
+
+    const cropLabel = task ? (task.crop || '') + (task.variety ? ' — ' + task.variety : '') : batchId;
+    showUndoToast('Sown: ' + cropLabel + ' (no lot)', function() {
+        if (task) task.completed = false;
+        renderSowingTasks();
+        renderTodayStats();
+        toast('Undo — sowing reverted');
+    }, 5);
+
+    _undoState.timer = setTimeout(async function() {
+        clearUndoToast();
+        try {
+            await fetch(API_URL + '?action=updateTaskCompletion&batchId=' + encodeURIComponent(batchId) + '&completed=true');
+            loadTodayTab();
+        } catch (err) {
+            console.error(err);
+            if (task) task.completed = false;
+            renderSowingTasks();
+            renderTodayStats();
+            toast('Failed to record sowing: ' + err.message, 'error');
+        }
+    }, 5000);
 }
 
 async function markTransplanted(batchId) {
-    try {
-        await api.post('recordSeedingDate', { batchId, type: 'transplant', actualDate: todayStr() });
-        await api.post('updateTaskCompletion', { batchId, taskType: 'transplant', completed: true });
-        toast('Transplant recorded for ' + batchId);
-        loadTodayTab();
-    } catch (err) {
-        console.error(err);
-        toast('Failed to record transplant: ' + err.message, 'error');
-    }
+    const task = state.transplantTasks.find(t => t.batchId === batchId);
+
+    // Optimistic UI
+    if (task) task.completed = true;
+    renderTransplantTasks();
+    renderTodayStats();
+
+    const cropLabel = task ? (task.crop || '') + (task.variety ? ' — ' + task.variety : '') : batchId;
+    showUndoToast('Transplanted: ' + cropLabel, function() {
+        if (task) task.completed = false;
+        renderTransplantTasks();
+        renderTodayStats();
+        toast('Undo — transplant reverted');
+    }, 5);
+
+    _undoState.timer = setTimeout(async function() {
+        clearUndoToast();
+        try {
+            await api.post('recordSeedingDate', { batchId: batchId, type: 'transplant', actualDate: todayStr() });
+            await api.post('updateTaskCompletion', { batchId: batchId, taskType: 'transplant', completed: true });
+            loadTodayTab();
+        } catch (err) {
+            console.error(err);
+            if (task) task.completed = false;
+            renderTransplantTasks();
+            renderTodayStats();
+            toast('Failed to record transplant: ' + err.message, 'error');
+        }
+    }, 5000);
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -1852,7 +2216,7 @@ function renderTrayTable(trays) {
             <td>${formatDate(t.readyDate || t.estimatedReadyDate)}</td>
             <td><span class="pill ${pillClass}">${esc(t.status || 'Unknown')}</span></td>
             <td style="${healthColor};font-weight:600;">${health}</td>
-            <td><button class="btn btn-outline btn-sm" onclick="viewTrayDetail('${esc(t.trayId || t.batchId || '')}')"><i class="fas fa-eye"></i></button></td>
+            <td><button class="btn btn-outline btn-sm" onclick="viewTrayDetail('${esc(t.trayId || t.batchId || '')}')" aria-label="View tray details"><i class="fas fa-eye"></i></button></td>
         </tr>`;
     }).join('');
 }
