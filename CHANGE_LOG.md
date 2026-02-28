@@ -38,6 +38,39 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-02-28 — Seed Packet Photo Capture + Print Engine QZ Tray Support
+
+**Role:** PM_Architect
+**Deploy:** Frontend (git push)
+
+### Files Modified
+- `employee.html` — SeedTraceability module for organic audit compliance (+295 lines)
+- `web_app/print-engine.js` — QZ Tray directPrint method (+38 lines)
+
+### Functions Added
+- `SeedTraceability` module in `employee.html` — Prompts crew to photo seed packets during sow/seeding task completion when no seed lot ID is linked. Includes: `isSowTask()`, `hasSeedLot()`, `prompt()`, `openCamera()`, `onPhotoConfirmed()`, `submitPhoto()`, `submitManual()`, `skip()`, `_save()`, `_close()`
+- `directPrint()` in `print-engine.js` — Routes label printing through QZ Tray when connected, falls back to preview modal otherwise
+
+### Functions Modified
+- `confirmPhoto()` in `employee.html` — Added 'seedPacket' camera target routing to SeedTraceability
+- `completeTaskV2()` in `employee.html` — Added seed lot check: intercepts sow/seeding tasks without seed lot ID, prompts via SeedTraceability before completing
+
+### HTML Added
+- Seed Packet Prompt Modal (`#seedPromptOverlay`) — Full-screen mobile overlay with camera, manual lot ID entry, skip option
+
+### CSS Added
+- `.seed-prompt-overlay`, `.seed-prompt-card`, `.seed-prompt-btn`, `.seed-prompt-input`, `.seed-prompt-photo-preview` styles
+
+### Reason
+Organic audit compliance requires seed-to-sale traceability. When crew completes sow/seeding tasks and no seed lot is linked to the planting, they're prompted to photograph the seed packet or enter the lot ID manually. Data saved to localStorage (offline backup) and API (persistent record).
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions — `captureSeedPacket()` exists but only redirects to seed_inventory_PRODUCTION.html. This is different: inline capture during task completion flow.
+- [x] No duplicates created
+
+---
+
 ## 2026-02-28 — QZ Tray Integration: One-Click Thermal Label Printing
 
 **Role:** PM_Architect
