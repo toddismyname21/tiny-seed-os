@@ -1908,10 +1908,12 @@
         const response = await fetch(`${API_BASE}?action=getFleetAssets`);
         const data = await response.json();
 
-        if (data.success && data.data) {
-          equipmentData = data.data;
+        if (data.success && (data.assets || data.data)) {
+          equipmentData = data.assets || data.data;
+        } else if (data.success && Array.isArray(data)) {
+          equipmentData = data;
         } else {
-          // Use sample data for demo if no data available
+          console.warn('No equipment data from API, using sample data');
           equipmentData = getSampleEquipment();
         }
       } catch (error) {
@@ -1925,9 +1927,12 @@
         const response = await fetch(`${API_BASE}?action=getGarageParts`);
         const data = await response.json();
 
-        if (data.success && data.data) {
-          partsData = data.data;
+        if (data.success && (data.parts || data.data)) {
+          partsData = data.parts || data.data;
+        } else if (data.success && Array.isArray(data)) {
+          partsData = data;
         } else {
+          console.warn('No parts data from API, using sample data');
           partsData = getSampleParts();
         }
       } catch (error) {
@@ -1941,9 +1946,12 @@
         const response = await fetch(`${API_BASE}?action=getGarageManuals`);
         const data = await response.json();
 
-        if (data.success && data.data) {
-          manualsData = data.data;
+        if (data.success && (data.manuals || data.data)) {
+          manualsData = data.manuals || data.data;
+        } else if (data.success && Array.isArray(data)) {
+          manualsData = data;
         } else {
+          console.warn('No manuals data from API, using sample data');
           manualsData = getSampleManuals();
         }
       } catch (error) {
@@ -2382,7 +2390,7 @@
       try {
         await fetch(API_BASE, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'text/plain' },
           body: JSON.stringify({
             action: 'adjustPartInventory',
             partId: partId,
@@ -2686,7 +2694,7 @@
       try {
         const response = await fetch(API_BASE, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'text/plain' },
           body: JSON.stringify(data)
         });
 
@@ -2729,7 +2737,7 @@
       try {
         const response = await fetch(API_BASE, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'text/plain' },
           body: JSON.stringify(data)
         });
 
@@ -2769,7 +2777,7 @@
       try {
         const response = await fetch(API_BASE, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'text/plain' },
           body: JSON.stringify(data)
         });
 
@@ -2810,7 +2818,7 @@
       try {
         const response = await fetch(API_BASE, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'text/plain' },
           body: JSON.stringify(data)
         });
 
@@ -2849,7 +2857,7 @@
       try {
         const response = await fetch(API_BASE, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'text/plain' },
           body: JSON.stringify(data)
         });
 
@@ -2887,7 +2895,7 @@
       try {
         const response = await fetch(API_BASE, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'text/plain' },
           body: JSON.stringify(data)
         });
 

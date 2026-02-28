@@ -830,6 +830,10 @@
                 <i class="fas fa-temperature-half"></i>
                 Germination Guide
             </button>
+            <button class="tab-btn" data-tab="inventory">
+                <i class="fas fa-boxes-stacked"></i>
+                Inventory
+            </button>
         </nav>
 
         <!-- Dashboard Tab -->
@@ -1195,7 +1199,147 @@
                 </div>
             </div>
         </div>
+
+        <!-- Inventory Tab -->
+        <div id="inventory" class="tab-content">
+            <div class="section" style="margin-bottom: 1rem;">
+                <div class="section-header" style="margin-bottom: 1rem;">
+                    <div class="section-header-left">
+                        <i class="fas fa-boxes-stacked" style="color: var(--flower-pink);"></i>
+                        <h2>Flower Inventory</h2>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <select id="invViewMode" onchange="changeInvViewMode(this.value)" style="padding: 0.5rem 1rem; background: var(--bg-light); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 0.85rem;">
+                            <option value="aggregated">By Flower</option>
+                            <option value="lots">By Item</option>
+                        </select>
+                        <select id="invTypeFilter" onchange="filterFlowerInventory()" style="padding: 0.5rem 1rem; background: var(--bg-light); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 0.85rem;">
+                            <option value="">All Types</option>
+                            <option value="Tuber">Tubers</option>
+                            <option value="Bulb">Bulbs</option>
+                            <option value="Corm">Corms</option>
+                            <option value="Seed">Seeds</option>
+                        </select>
+                        <select id="invStatusFilter" onchange="filterFlowerInventory()" style="padding: 0.5rem 1rem; background: var(--bg-light); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 0.85rem;">
+                            <option value="">All Status</option>
+                            <option value="In_Stock">In Stock</option>
+                            <option value="Warning">Warning</option>
+                            <option value="Low">Low</option>
+                            <option value="Empty">Empty</option>
+                        </select>
+                        <button class="btn btn-primary" onclick="openAddFlowerItemModal()" style="padding: 0.5rem 1rem; font-size: 0.85rem;">
+                            <i class="fas fa-plus"></i> Add Item
+                        </button>
+                    </div>
+                </div>
+                <!-- Stats row -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.75rem; margin-bottom: 1rem;">
+                    <div style="background: var(--bg-light); border-radius: 10px; padding: 0.75rem 1rem; text-align: center;">
+                        <div style="font-size: 1.5rem; font-weight: 700; color: var(--flower-pink);" id="invStatTotal">0</div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);">Total Items</div>
+                    </div>
+                    <div style="background: var(--bg-light); border-radius: 10px; padding: 0.75rem 1rem; text-align: center;">
+                        <div style="font-size: 1.5rem; font-weight: 700; color: var(--success);" id="invStatInStock">0</div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);">In Stock</div>
+                    </div>
+                    <div style="background: var(--bg-light); border-radius: 10px; padding: 0.75rem 1rem; text-align: center;">
+                        <div style="font-size: 1.5rem; font-weight: 700; color: var(--warning);" id="invStatLow">0</div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);">Low Stock</div>
+                    </div>
+                    <div style="background: var(--bg-light); border-radius: 10px; padding: 0.75rem 1rem; text-align: center;">
+                        <div style="font-size: 1.5rem; font-weight: 700; color: var(--text-secondary);" id="invStatValue">$0</div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);">Total Value</div>
+                    </div>
+                </div>
+                <!-- Inventory list -->
+                <div id="flowerInvList" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <div style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                        <i class="fas fa-spinner fa-spin" style="font-size: 1.5rem;"></i>
+                        <p>Loading inventory...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
     </main>
+
+    <!-- Add Flower Inventory Item Modal -->
+    <div class="modal-overlay" id="addFlowerItemModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2><i class="fas fa-boxes-stacked"></i> Add Flower Inventory Item</h2>
+                <button class="modal-close" onclick="closeModal('addFlowerItemModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Item Type</label>
+                        <select id="fiItemType">
+                            <option value="Tuber">Tuber</option>
+                            <option value="Bulb">Bulb</option>
+                            <option value="Corm">Corm</option>
+                            <option value="Seed">Seed</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Flower</label>
+                        <input type="text" id="fiFlower" placeholder="e.g., Dahlia">
+                    </div>
+                    <div class="form-group">
+                        <label>Variety</label>
+                        <input type="text" id="fiVariety" placeholder="e.g., Cafe au Lait">
+                    </div>
+                    <div class="form-group">
+                        <label>Quantity</label>
+                        <input type="number" id="fiQuantity" placeholder="0" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Unit</label>
+                        <select id="fiUnit">
+                            <option value="each">Each</option>
+                            <option value="lbs">Pounds</option>
+                            <option value="oz">Ounces</option>
+                            <option value="packet">Packet</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Location</label>
+                        <input type="text" id="fiLocation" placeholder="e.g., Garage shelf B">
+                    </div>
+                    <div class="form-group">
+                        <label>Condition</label>
+                        <select id="fiCondition">
+                            <option value="Good">Good</option>
+                            <option value="Fair">Fair</option>
+                            <option value="Poor">Poor</option>
+                            <option value="Sprouting">Sprouting</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Source</label>
+                        <input type="text" id="fiSource" placeholder="e.g., Johnny's Selected Seeds">
+                    </div>
+                    <div class="form-group">
+                        <label>Cost Each ($)</label>
+                        <input type="number" id="fiCostEach" step="0.01" min="0" placeholder="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label>Date Acquired</label>
+                        <input type="date" id="fiDateAcquired">
+                    </div>
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label>Notes</label>
+                        <textarea id="fiNotes" rows="2" placeholder="Any notes about this item..."></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('addFlowerItemModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="saveFlowerItem()">
+                    <i class="fas fa-save"></i> Save Item
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- Floating Action Button -->
     <button class="fab" onclick="openTaskModal()" title="Quick Add Task">
@@ -1763,6 +1907,8 @@
             // Load tasks from Unified Task API
             await loadTasksFromAPI();
             renderDashboard();
+            // Load flower inventory (non-blocking)
+            loadFlowerInventory();
         });
 
         // ========================================
@@ -1867,6 +2013,11 @@
             // Update content
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
             document.getElementById(tabId).classList.add('active');
+
+            // Lazy-load inventory data when tab is first activated
+            if (tabId === 'inventory' && flowerInvAggregated.length === 0 && flowerInvData.length === 0) {
+                loadFlowerInventory();
+            }
         }
 
         // Render Dashboard with AI Priority badges
@@ -2453,6 +2604,257 @@
                     <td>${g.notes}</td>
                 </tr>
             `).join('');
+        }
+
+        // ========================================
+        // FLOWER INVENTORY
+        // ========================================
+
+        let flowerInvData = [];
+        let flowerInvAggregated = [];
+        let flowerInvMode = 'aggregated';
+
+        async function loadFlowerInventory() {
+            try {
+                var mode = flowerInvMode;
+                var url = API_URL + '?action=getFlowerInventory&mode=' + mode;
+                var response = await fetch(url, { method: 'GET', redirect: 'follow' });
+                var result = await response.json();
+
+                if (result.success) {
+                    if (mode === 'aggregated' && result.varieties) {
+                        flowerInvAggregated = result.varieties;
+                        flowerInvData = [];
+                        updateFlowerInvStats(result);
+                        renderFlowerInvAggregated(result.varieties);
+                    } else if (result.items) {
+                        flowerInvData = result.items;
+                        flowerInvAggregated = [];
+                        updateFlowerInvStatsFromItems(result.items, result.lowStockCount || 0);
+                        renderFlowerInvItems(result.items);
+                    }
+                } else {
+                    document.getElementById('flowerInvList').innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-muted);"><i class="fas fa-exclamation-circle"></i> ' + (result.error || 'Could not load inventory') + '</div>';
+                }
+            } catch (error) {
+                console.error('Flower inventory error:', error);
+                document.getElementById('flowerInvList').innerHTML = '<div style="text-align:center;padding:2rem;color:var(--danger);"><i class="fas fa-exclamation-circle"></i> Error loading inventory<br><button class="btn btn-secondary" onclick="loadFlowerInventory()" style="margin-top:0.5rem;"><i class="fas fa-sync-alt"></i> Retry</button></div>';
+            }
+        }
+
+        function updateFlowerInvStats(result) {
+            document.getElementById('invStatTotal').textContent = result.uniqueCount || 0;
+            var inStock = (result.varieties || []).filter(function(v) { return v.stock_status === 'In_Stock' || v.stock_status === 'Warning'; }).length;
+            document.getElementById('invStatInStock').textContent = inStock;
+            document.getElementById('invStatLow').textContent = result.lowStockCount || 0;
+            var totalVal = (result.varieties || []).reduce(function(sum, v) { return sum + (v.totalValue || 0); }, 0);
+            document.getElementById('invStatValue').textContent = '$' + totalVal.toFixed(0);
+        }
+
+        function updateFlowerInvStatsFromItems(items, lowCount) {
+            document.getElementById('invStatTotal').textContent = items.length;
+            var inStock = items.filter(function(i) { return i.stock_status === 'In_Stock' || i.stock_status === 'Warning'; }).length;
+            document.getElementById('invStatInStock').textContent = inStock;
+            document.getElementById('invStatLow').textContent = lowCount;
+            var totalVal = items.reduce(function(sum, i) { return sum + (parseFloat(i.Total_Value) || 0); }, 0);
+            document.getElementById('invStatValue').textContent = '$' + totalVal.toFixed(0);
+        }
+
+        function getStatusColor(status) {
+            switch (status) {
+                case 'In_Stock': return 'var(--success)';
+                case 'Warning': return 'var(--warning)';
+                case 'Low': return '#f97316';
+                case 'Empty': return 'var(--danger)';
+                default: return 'var(--text-muted)';
+            }
+        }
+
+        function getStatusLabel(status) {
+            switch (status) {
+                case 'In_Stock': return 'In Stock';
+                case 'Warning': return 'Warning';
+                case 'Low': return 'Low';
+                case 'Empty': return 'Empty';
+                default: return status || 'Unknown';
+            }
+        }
+
+        function renderFlowerInvAggregated(varieties) {
+            var container = document.getElementById('flowerInvList');
+            if (!varieties || varieties.length === 0) {
+                container.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-muted);"><i class="fas fa-seedling"></i><p>No flower inventory items yet. Add your first item!</p></div>';
+                return;
+            }
+
+            // Sort: Empty/Low first, then by flower name
+            varieties.sort(function(a, b) {
+                var order = { Empty: 0, Low: 1, Warning: 2, In_Stock: 3 };
+                var diff = (order[a.stock_status] || 3) - (order[b.stock_status] || 3);
+                if (diff !== 0) return diff;
+                return (a.flower || '').localeCompare(b.flower || '');
+            });
+
+            container.innerHTML = varieties.map(function(v, idx) {
+                var statusColor = getStatusColor(v.stock_status);
+                var lotsHtml = v.lots && v.lots.length > 1 ? '<div id="fiLots' + idx + '" style="display:none;margin-top:0.75rem;border-top:1px solid var(--border);padding-top:0.5rem;">' +
+                    v.lots.map(function(lot) {
+                        return '<div style="display:flex;justify-content:space-between;align-items:center;padding:0.35rem 0.5rem;font-size:0.8rem;color:var(--text-secondary);border-bottom:1px solid rgba(255,255,255,0.03);">' +
+                            '<span>' + (lot.location || 'No location') + '</span>' +
+                            '<span style="display:flex;gap:0.75rem;align-items:center;">' +
+                                '<span style="color:' + getStatusColor(lot.stock_status) + ';">' + lot.quantity + ' ' + (lot.unit || 'each') + '</span>' +
+                                '<span style="color:var(--text-muted);">' + (lot.condition || '') + '</span>' +
+                                (lot.source ? '<span style="color:var(--text-muted);font-size:0.75rem;">' + lot.source + '</span>' : '') +
+                            '</span>' +
+                        '</div>';
+                    }).join('') +
+                '</div>' : '';
+
+                var expandBtn = v.lots && v.lots.length > 1 ?
+                    '<button onclick="toggleFiLots(' + idx + ')" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:0.75rem;padding:0.25rem 0.5rem;"><i class="fas fa-chevron-down"></i> ' + v.lotCount + ' lots</button>' : '';
+
+                return '<div style="background:var(--bg-light);border-radius:10px;padding:0.85rem 1rem;border-left:4px solid ' + statusColor + ';">' +
+                    '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+                        '<div style="display:flex;align-items:center;gap:0.75rem;">' +
+                            '<div>' +
+                                '<div style="font-weight:600;color:var(--text-primary);">' + (v.flower || 'Unknown') + (v.variety ? ' — ' + v.variety : '') + '</div>' +
+                                '<div style="font-size:0.8rem;color:var(--text-muted);margin-top:0.15rem;">' +
+                                    '<span style="background:rgba(156,79,150,0.15);color:var(--flower-pink);padding:0.15rem 0.5rem;border-radius:4px;font-size:0.75rem;">' + (v.itemType || 'Item') + '</span>' +
+                                    (v.locations && v.locations.length > 0 ? ' <i class="fas fa-map-marker-alt" style="margin-left:0.5rem;"></i> ' + v.locations.join(', ') : '') +
+                                '</div>' +
+                            '</div>' +
+                        '</div>' +
+                        '<div style="text-align:right;display:flex;align-items:center;gap:1rem;">' +
+                            expandBtn +
+                            '<div>' +
+                                '<div style="font-size:1.1rem;font-weight:700;color:' + statusColor + ';">' + v.totalQuantity + '</div>' +
+                                '<div style="font-size:0.7rem;color:var(--text-muted);">' + getStatusLabel(v.stock_status) + '</div>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>' +
+                    lotsHtml +
+                '</div>';
+            }).join('');
+        }
+
+        function renderFlowerInvItems(items) {
+            var container = document.getElementById('flowerInvList');
+            if (!items || items.length === 0) {
+                container.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-muted);"><i class="fas fa-seedling"></i><p>No flower inventory items yet.</p></div>';
+                return;
+            }
+
+            container.innerHTML = items.map(function(item) {
+                var statusColor = getStatusColor(item.stock_status);
+                return '<div style="background:var(--bg-light);border-radius:10px;padding:0.85rem 1rem;border-left:4px solid ' + statusColor + ';">' +
+                    '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+                        '<div>' +
+                            '<div style="font-weight:600;color:var(--text-primary);">' + (item.Flower || '') + (item.Variety ? ' — ' + item.Variety : '') + '</div>' +
+                            '<div style="font-size:0.8rem;color:var(--text-muted);margin-top:0.15rem;">' +
+                                '<span style="background:rgba(156,79,150,0.15);color:var(--flower-pink);padding:0.15rem 0.5rem;border-radius:4px;font-size:0.75rem;">' + (item.Item_Type || 'Item') + '</span>' +
+                                ' <span style="margin-left:0.5rem;">' + (item.Item_ID || '') + '</span>' +
+                                (item.Location ? ' <i class="fas fa-map-marker-alt" style="margin-left:0.5rem;"></i> ' + item.Location : '') +
+                                (item.Condition ? ' <span style="margin-left:0.5rem;">' + item.Condition + '</span>' : '') +
+                            '</div>' +
+                        '</div>' +
+                        '<div style="text-align:right;">' +
+                            '<div style="font-size:1.1rem;font-weight:700;color:' + statusColor + ';">' + (item.Quantity || 0) + ' ' + (item.Unit || 'each') + '</div>' +
+                            '<div style="font-size:0.7rem;color:var(--text-muted);">' + getStatusLabel(item.stock_status) + (item.Total_Value ? ' — $' + parseFloat(item.Total_Value).toFixed(2) : '') + '</div>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>';
+            }).join('');
+        }
+
+        function toggleFiLots(idx) {
+            var el = document.getElementById('fiLots' + idx);
+            if (el) {
+                var visible = el.style.display !== 'none';
+                el.style.display = visible ? 'none' : 'block';
+                var btn = el.parentNode.querySelector('button i');
+                if (btn) btn.className = visible ? 'fas fa-chevron-down' : 'fas fa-chevron-up';
+            }
+        }
+
+        function changeInvViewMode(mode) {
+            flowerInvMode = mode;
+            loadFlowerInventory();
+        }
+
+        function filterFlowerInventory() {
+            var typeFilter = document.getElementById('invTypeFilter').value;
+            var statusFilter = document.getElementById('invStatusFilter').value;
+
+            if (flowerInvMode === 'aggregated') {
+                var filtered = flowerInvAggregated;
+                if (typeFilter) filtered = filtered.filter(function(v) { return v.itemType === typeFilter; });
+                if (statusFilter) filtered = filtered.filter(function(v) { return v.stock_status === statusFilter; });
+                renderFlowerInvAggregated(filtered);
+            } else {
+                var filtered = flowerInvData;
+                if (typeFilter) filtered = filtered.filter(function(i) { return i.Item_Type === typeFilter; });
+                if (statusFilter) filtered = filtered.filter(function(i) { return i.stock_status === statusFilter; });
+                renderFlowerInvItems(filtered);
+            }
+        }
+
+        function openAddFlowerItemModal() {
+            document.getElementById('fiItemType').value = 'Tuber';
+            document.getElementById('fiFlower').value = '';
+            document.getElementById('fiVariety').value = '';
+            document.getElementById('fiQuantity').value = '';
+            document.getElementById('fiUnit').value = 'each';
+            document.getElementById('fiLocation').value = '';
+            document.getElementById('fiCondition').value = 'Good';
+            document.getElementById('fiSource').value = '';
+            document.getElementById('fiCostEach').value = '';
+            document.getElementById('fiDateAcquired').value = new Date().toISOString().split('T')[0];
+            document.getElementById('fiNotes').value = '';
+            document.getElementById('addFlowerItemModal').classList.add('active');
+        }
+
+        async function saveFlowerItem() {
+            var flower = document.getElementById('fiFlower').value.trim();
+            if (!flower) {
+                showToast('Flower name is required', 'error');
+                return;
+            }
+
+            var payload = {
+                action: 'saveFlowerInventoryItem',
+                itemType: document.getElementById('fiItemType').value,
+                flower: flower,
+                variety: document.getElementById('fiVariety').value.trim(),
+                quantity: parseInt(document.getElementById('fiQuantity').value) || 0,
+                unit: document.getElementById('fiUnit').value,
+                location: document.getElementById('fiLocation').value.trim(),
+                condition: document.getElementById('fiCondition').value,
+                source: document.getElementById('fiSource').value.trim(),
+                costEach: parseFloat(document.getElementById('fiCostEach').value) || 0,
+                dateAcquired: document.getElementById('fiDateAcquired').value,
+                notes: document.getElementById('fiNotes').value.trim()
+            };
+
+            try {
+                var response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify(payload),
+                    redirect: 'follow'
+                });
+                var result = await response.json();
+
+                if (result.success) {
+                    showToast('Item saved: ' + flower, 'success');
+                    closeModal('addFlowerItemModal');
+                    loadFlowerInventory();
+                } else {
+                    showToast(result.error || 'Save failed', 'error');
+                }
+            } catch (error) {
+                console.error('Save flower item error:', error);
+                showToast('Error saving item: ' + error.message, 'error');
+            }
         }
     </script>
 </body>

@@ -1052,15 +1052,24 @@
                         cellsPerTray: t.cellsPerTray || t.cellCount || 0,
                         plantsNeeded: t.plantsNeeded || 0,
                         seedsNeeded: t.seedsNeeded || 0,
-                        bed: t.bed || t.targetBed || '',
+                        bed: t.bed || t.targetBed || t.location || '',
                         germTemp: t.germTemp || '',
                         notes: t.notes || '',
                         completed: false,
                         daysOverdue: t.daysOverdue || 0,
-                        readiness: t.readiness || { hasTrays: (t.trays || 0) > 0, hasCellSize: (t.cellsPerTray || 0) > 0, hasBed: !!(t.bed || t.targetBed), hasSeedLot: false, hasPlants: (t.plantsNeeded || 0) > 0 }
+                        location: t.location || t.bed || t.targetBed || '',
+                        readiness: t.readiness || { hasTrays: (t.trays || 0) > 0, hasCellSize: (t.cellsPerTray || 0) > 0, hasBed: !!(t.bed || t.targetBed || t.location), hasSeedLot: false, hasPlants: (t.plantsNeeded || 0) > 0 }
                     }));
 
-                    summary = { totalTasks: tasks.length, totalTrays: tasks.reduce((sum, t) => sum + (t.trays || 0), 0), traysBySize: {}, seedsNeeded: [] };
+                    // Use backend summary if available, otherwise compute locally
+                    var backendSummary = data.summary || {};
+                    summary = {
+                        totalTasks: tasks.length,
+                        totalTrays: backendSummary.totalTrays || tasks.reduce((sum, t) => sum + (t.trays || 0), 0),
+                        traysBySize: backendSummary.traysBySize || {},
+                        seedsNeeded: [],
+                        readinessIssues: backendSummary.readinessIssues || null
+                    };
                     renderSheet();
                     updateStats();
                     document.getElementById('printBtn').disabled = tasks.length === 0;
