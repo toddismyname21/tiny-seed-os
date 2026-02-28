@@ -648,6 +648,7 @@
     ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 100px; }
     ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
   </style>
+  <script src="print-engine.js"></script>
 </head>
 <body>
   <header class="header">
@@ -2138,7 +2139,7 @@
     }
 
     function printReport() {
-      window.print();
+      TinySeedPrint.report();
     }
 
     async function initializeModule() {

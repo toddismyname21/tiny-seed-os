@@ -564,6 +564,7 @@
             .stat-card .stat-value { font-size:1.2rem; }
         }
     </style>
+    <script src="print-engine.js"></script>
 </head>
 <body>
 
@@ -1004,7 +1005,7 @@
         <button class="btn btn-outline" onclick="showReport('utilization')"><i class="fas fa-warehouse"></i> Nursery Utilization</button>
         <button class="btn btn-outline" onclick="showReport('revenue')"><i class="fas fa-dollar-sign"></i> Seedling Revenue</button>
         <button class="btn btn-outline" onclick="showReport('accuracy')"><i class="fas fa-bullseye"></i> Seeding Accuracy</button>
-        <button class="btn btn-outline" onclick="window.print()"><i class="fas fa-print"></i> Print</button>
+        <button class="btn btn-outline" onclick="TinySeedPrint.report()"><i class="fas fa-print"></i> Print</button>
     </div>
     <div id="reportContent">
         <div class="empty-state">

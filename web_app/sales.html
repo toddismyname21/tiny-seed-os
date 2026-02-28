@@ -2207,6 +2207,7 @@
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: var(--border-color, #334155); border-radius: 3px; }
     </style>
+    <script src="print-engine.js"></script>
 </head>
 <body>
     <a href="#main-content" class="skip-link">Skip to main content</a>
@@ -7307,7 +7308,7 @@
         }
 
         function openNewWholesaleModal() { openNewCustomerModal(); }
-        function printPickList() { window.print(); }
+        function printPickList() { TinySeedPrint.report(); }
 
         function printPackingLabels() {
             // Generate labels from pick list

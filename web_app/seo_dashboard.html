@@ -1125,6 +1125,7 @@
             50% { opacity: 0.5; transform: scale(1.2); }
         }
     </style>
+    <script src="print-engine.js"></script>
 </head>
 <body>
     <!-- Navigation -->
@@ -4148,7 +4149,7 @@
             const key = e.key.toLowerCase();
             switch (key) {
                 case 'r': loadDashboard(); break;
-                case 'p': window.print(); break;
+                case 'p': TinySeedPrint.report(); break;
                 case 'h': window.location.href = 'index.html'; break;
                 case '?': toggleKeyboardHelp(); break;
                 case 'escape': document.getElementById('keyboardHelp')?.classList.remove('visible'); break;

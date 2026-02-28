@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Oswald:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700;800&family=Bebas+Neue&family=Raleway:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="tiny-seed-design-system.css">
+    <script src="print-engine.js"></script>
     <script src="auth-guard.js" data-required-role="Employee"></script>
     <style>
         * {
@@ -2200,7 +2201,7 @@
                 `;
             }).join('');
 
-            window.print();
+            TinySeedPrint.report({ orientation: 'portrait' });
         }
 
         // Determine category class based on item category or name
@@ -2248,7 +2249,7 @@
                 </div>
             `).join('');
 
-            window.print();
+            TinySeedPrint.report({ orientation: 'portrait' });
         }
 
         function printWholesaleLabels() {
@@ -2277,7 +2278,7 @@
                 </div>
             `).join('');
 
-            window.print();
+            TinySeedPrint.report({ orientation: 'portrait' });
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
@@ -2413,8 +2414,20 @@
         }
 
         function getSeedQRCodeUrl(seedLotId) {
-            const trackUrl = `https://toddismyname21.github.io/tiny-seed-os/seed_track.html?id=${encodeURIComponent(seedLotId)}`;
-            return `https://quickchart.io/chart?cht=qr&chs=150x150&chl=${encodeURIComponent(trackUrl)}`;
+            // Client-side QR via TinySeedPrint (works offline, no external API)
+            var trackUrl = TinySeedPrint.config.baseTrackingUrl + 'seed_track.html?id=' + encodeURIComponent(seedLotId);
+            // For img src usage, generate data URL async and update on render
+            return 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="150" height="150"><text x="50%" y="50%" text-anchor="middle" font-size="10" fill="%23999">QR</text></svg>');
+        }
+
+        // Generate real QR codes after label render (replaces quickchart.io placeholders)
+        function _upgradeQRCodes(containerSelector) {
+            var imgs = document.querySelectorAll(containerSelector + ' img[data-qr-url]');
+            imgs.forEach(function(img) {
+                TinySeedPrint.qr(img.getAttribute('data-qr-url'), { size: 150, margin: 1 }).then(function(dataUrl) {
+                    img.src = dataUrl;
+                }).catch(function() { /* keep placeholder */ });
+            });
         }
 
         function renderSeedLabelsPreview() {
@@ -2440,9 +2453,10 @@
                 const formattedExp = expDate ? new Date(expDate).toLocaleDateString() : '--';
                 const isOrganic = seed.Organic_Certified || seed.organic;
 
+                var trackUrl = TinySeedPrint.config.baseTrackingUrl + 'seed_track.html?id=' + encodeURIComponent(seedLotId);
                 return `
                     <div class="seed-label-preview">
-                        <div class="qr"><img src="${qrUrl}" alt="QR Code" loading="lazy"></div>
+                        <div class="qr"><img src="${qrUrl}" alt="QR Code" loading="lazy" data-qr-url="${trackUrl}"></div>
                         <div class="info">
                             <div class="seed-lot-id">${seedLotId}</div>
                             <div class="crop-name">${seed.Crop || seed.crop || '--'}</div>
@@ -2454,6 +2468,9 @@
                     </div>
                 `;
             }).join('');
+
+            // Upgrade placeholder QR images to real client-side QR codes
+            setTimeout(function() { _upgradeQRCodes('#seedLabelsPreviewGrid'); }, 50);
         }
 
         async function generateAllSeedQRCodes() {
@@ -2515,7 +2532,7 @@
             }
 
             container.innerHTML = html;
-            window.print();
+            TinySeedPrint.report({ orientation: 'portrait' });
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
@@ -2639,8 +2656,11 @@
         }
 
         function getBedQRCodeUrl(bedId) {
-            const detailUrl = `https://toddismyname21.github.io/tiny-seed-os/web_app/greenhouse-dashboard.html?bed=${encodeURIComponent(bedId)}`;
-            return `https://quickchart.io/chart?cht=qr&chs=150x150&chl=${encodeURIComponent(detailUrl)}`;
+            // Client-side QR placeholder (upgraded after render via _upgradeQRCodes)
+            return 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="150" height="150"><text x="50%" y="50%" text-anchor="middle" font-size="10" fill="%23999">QR</text></svg>');
+        }
+        function _getBedTrackUrl(bedId) {
+            return TinySeedPrint.config.baseTrackingUrl + 'web_app/greenhouse-dashboard.html?bed=' + encodeURIComponent(bedId);
         }
 
         function generateFieldLabels() {
@@ -2725,10 +2745,11 @@
                                 ${label.variety ? ` - ${label.variety}` : ''}
                             </div>
                             ${plantDateFormatted ? `<div style="font-size: 10px; color: #888;">Planted: ${plantDateFormatted}</div>` : ''}
-                            <div class="qr"><img src="${qrUrl}" alt="QR" loading="lazy"></div>
+                            <div class="qr"><img src="${qrUrl}" alt="QR" loading="lazy" data-qr-url="${_getBedTrackUrl(label.bedId)}"></div>
                         </div>
                     `;
                 }).join('');
+                setTimeout(function() { _upgradeQRCodes('#fieldLabelsPreviewGrid'); }, 50);
             } else if (labelType === 'row-marker') {
                 grid.className = 'row-markers-preview-grid';
                 grid.innerHTML = AppState.fieldLabels.map((label, idx) => {
@@ -2786,10 +2807,11 @@
                                 ${label.variety ? ` - ${label.variety}` : ''}
                             </div>
                             ${plantDateFormatted ? `<div class="planting-date">Planted: ${plantDateFormatted}</div>` : ''}
-                            <div class="qr"><img src="${qrUrl}" alt="QR"></div>
+                            <div class="qr"><img src="${qrUrl}" alt="QR" data-qr-url="${_getBedTrackUrl(label.bedId)}"></div>
                         </div>
                     `;
                 }).join('');
+                setTimeout(function() { _upgradeQRCodes('#printFieldLabels'); }, 50);
             } else if (labelType === 'row-marker') {
                 // 2 per page side by side (4in x 2in each, 2 across on 8.5" page)
                 let html = '';
@@ -2833,7 +2855,7 @@
                 container.innerHTML = html;
             }
 
-            window.print();
+            TinySeedPrint.report({ orientation: 'portrait' });
         }
     </script>
 </body>

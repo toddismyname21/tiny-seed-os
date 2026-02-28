@@ -806,6 +806,7 @@
             background: rgba(239, 68, 68, 0.1);
         }
     </style>
+    <script src="print-engine.js"></script>
 </head>
 <body>
     <div class="app-container">
@@ -1488,7 +1489,7 @@
         }
 
         function printHarvestPlan() {
-            window.print();
+            TinySeedPrint.report();
         }
 
         async function startSettlement() {
@@ -1698,7 +1699,7 @@ Sales are pulled from your Shopify POS for the market time window.`);
         }
 
         function printSettlement() {
-            window.print();
+            TinySeedPrint.report();
         }
 
         let currentAnalyticsData = null;

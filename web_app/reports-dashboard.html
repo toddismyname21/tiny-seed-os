@@ -616,6 +616,7 @@
         @keyframes spin { to { transform: rotate(360deg); } }
         .loading-text { margin-top: 16px; color: #57534e; font-size: 14px; }
     </style>
+    <script src="print-engine.js"></script>
 </head>
 <body>
     <div class="loading-overlay" id="loadingOverlay">
@@ -1626,7 +1627,7 @@
         async function printLoanPackage() {
             // Open loan package in viewer for print
             await viewReport('generateLoanPackage', 'Complete Loan Package');
-            setTimeout(() => window.print(), 500);
+            setTimeout(() => TinySeedPrint.report(), 500);
         }
 
         function closeModal() {

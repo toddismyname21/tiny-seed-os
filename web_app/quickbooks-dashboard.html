@@ -740,6 +740,7 @@
         ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 100px; }
         ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
     </style>
+    <script src="print-engine.js"></script>
 </head>
 <body>
     <!-- Navigation -->
@@ -1247,7 +1248,7 @@
 
             switch (key) {
                 case 'r': refreshDashboard(); break;
-                case 'p': window.print(); break;
+                case 'p': TinySeedPrint.report(); break;
                 case 'h': window.location.href = 'index.html'; break;
                 case 'a': window.location.href = 'accounting.html'; break;
                 case '?': toggleKeyboardHelp(); break;

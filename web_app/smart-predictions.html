@@ -971,6 +971,7 @@
             @page { margin: 0.5in; }
         }
     </style>
+    <script src="print-engine.js"></script>
 </head>
 <body>
     <div class="container">
@@ -1705,7 +1706,7 @@
             const key = e.key.toLowerCase();
             switch (key) {
                 case 'r': loadAllData(); break;
-                case 'p': window.print(); break;
+                case 'p': TinySeedPrint.report(); break;
                 case 'h': window.location.href = '../index.html'; break;
                 case '?': toggleKeyboardHelp(); break;
                 case 'escape': document.getElementById('keyboardHelp')?.classList.remove('visible'); break;

@@ -735,6 +735,7 @@
             @page { margin: 0.5in; }
         }
     </style>
+    <script src="web_app/print-engine.js"></script>
 </head>
 <body>
     <!-- Header -->
@@ -2331,7 +2332,7 @@
                 case 'c': if (typeof calculateQuantities === 'function') calculateQuantities(); break;
                 case 's': if (typeof savePlanting === 'function') savePlanting(); break;
                 case 'r': if (typeof resetForm === 'function') resetForm(); break;
-                case 'p': window.print(); break;
+                case 'p': TinySeedPrint.report(); break;
                 case 'h': window.location.href = 'index.html'; break;
                 case '?': toggleKeyboardHelp(); break;
                 case 'escape': document.getElementById('keyboardHelp')?.classList.remove('visible'); break;

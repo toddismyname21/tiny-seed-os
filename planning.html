@@ -1012,6 +1012,7 @@
             @page { margin: 0.5in; size: landscape; }
         }
     </style>
+    <script src="web_app/print-engine.js"></script>
 </head>
 <body>
     <!-- Header -->
@@ -2757,7 +2758,7 @@
             switch (key) {
                 case 'n': if (typeof openAddModal === 'function') openAddModal(); break;
                 case 'r': if (typeof loadData === 'function') loadData(); break;
-                case 'p': window.print(); break;
+                case 'p': TinySeedPrint.report(); break;
                 case 'h': window.location.href = 'index.html'; break;
                 case '?': toggleKeyboardHelp(); break;
             }

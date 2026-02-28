@@ -815,6 +815,7 @@
             @page { margin: 0.5in; }
         }
     </style>
+    <script src="print-engine.js"></script>
 </head>
 <body>
     <div class="container">
@@ -1653,7 +1654,7 @@ drift = current_percent - target_percent
             if (e.target.matches('input, textarea, select')) return;
             const key = e.key.toLowerCase();
             switch (key) {
-                case 'p': window.print(); break;
+                case 'p': TinySeedPrint.report(); break;
                 case 'h': window.location.href = '../index.html'; break;
                 case '1': showSpec('adaptive'); break;
                 case '2': showSpec('core'); break;

@@ -2575,6 +2575,7 @@
             }
         }
     </style>
+    <script src="web_app/print-engine.js"></script>
 </head>
 <body>
     <a href="#ganttChart" class="skip-link" style="position:absolute;top:-40px;left:0;background:var(--primary);color:white;padding:8px 16px;z-index:10000;transition:top 0.3s;">Skip to calendar</a>
@@ -3285,7 +3286,7 @@
                     showToast('Refreshing calendar data...', 'info');
                     break;
                 case 'p':
-                    window.print();
+                    TinySeedPrint.report();
                     break;
                 case 'f':
                     toggleFullscreen();
