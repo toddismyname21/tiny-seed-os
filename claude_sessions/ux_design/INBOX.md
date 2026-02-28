@@ -1,4 +1,100 @@
 # INBOX: UX Design Claude
+
+---
+
+## URGENT DIRECTIVE: Greenhouse & Seeding Workflow UX Audit — 2026-02-28
+
+**From:** PM_Architect
+**Priority:** CRITICAL — Owner Directive
+**Requested by:** Owner (direct quote below)
+
+> "THE WORKFLOW FOR SEEDING IS STILL CONVOLUTED AND FULL OF FRICTION... GREENHOUSE MANAGER IS WHERE YOU GO, AND EXPECT TO BE ABLE TO DO ALL OF THE TASKS, BUT I DONT SEE USING THIS AT ALL CURRENTLY. WHAT DOES IT EVEN DO? HOW DOES IT EVEN HELP?"
+>
+> "YOU CANT EVEN DO ANYTHING IN THE OPERATIONS TAB. WHAT IS THE POINT? THE LONG LIST AT THE BEGINNING IS USELESS... I WANT YOU TO GIVE UX CLAUDE THE FULL WORKFLOW AND HAVE UX CLAUDE AUDIT IT."
+
+### What We Found (PM_Architect Audit Results)
+
+The greenhouse/seeding workflow is fragmented across 4+ pages with no clear happy path. Here's the reality:
+
+#### Current Pages & Their Problems
+
+| Page | What It Does | Problem |
+|------|-------------|---------|
+| `web_app/greenhouse-dashboard.html` | 6 tabs: Operations, Today's Tasks, Tray Inventory, Growth Tracking, Seedling Sales, Reports | **Operations tab (default!) is 100% read-only** — zero actionable buttons. User sees a wall of data and can't do anything. |
+| `sowing-sheets.html` | Printable sowing task sheets with date ranges | Planning/printing ONLY — no "Mark Sown" button, no execution |
+| `quick-seed.html` | 3-tap execution: scan/select planting → confirm → done | Execution only — no visibility into what needs to be done today |
+| `labels.html` | Print greenhouse labels, pot tags, field tray labels | Separate utility page — disconnected from the sowing flow |
+| `seedling-admin.html` | Full admin CRUD for seedling varieties, page config, allocations | **Overlaps with greenhouse-dashboard "Seedling Sales" tab** on variety creation and presale management |
+| `seedling-presale-2026.html` | Customer-facing presale orders | Customer page |
+| `seedling-wholesale-2026.html` | Wholesale seedling orders | Wholesale page |
+| `wholesale-seedlings.html` | **LEGACY DUPLICATE** of seedling-wholesale-2026.html | Should be archived |
+
+#### The Actual User Workflow (What Should Happen)
+
+1. **Morning:** Go to greenhouse → "What do I sow today?"
+2. **Plan:** See today's seedings, sorted by priority, with seed availability status
+3. **Print:** Print task sheets (sowing-sheets) AND labels (labels.html) for today's batch
+4. **Execute:** As each tray is sown, mark it done (quick-seed or greenhouse dashboard)
+5. **Track:** See progress — 8 of 12 trays done today
+
+#### What Actually Happens
+
+1. User opens greenhouse-dashboard → lands on **Operations tab** (useless read-only wall)
+2. Has to know to click "Today's Tasks" tab
+3. Today's Tasks shows sowing tasks but...
+4. To print task sheets, must open sowing-sheets.html (separate page)
+5. To print labels, must open labels.html (separate page)
+6. To mark things sown quickly, must open quick-seed.html (separate page)
+7. Sidebar navigation has too many tabs — user gets lost
+
+**Result: 4 page loads minimum for a single morning's seeding session, with no connecting tissue.**
+
+#### Competitive Benchmarks
+
+| Tool | Seeding Flow | Steps |
+|------|-------------|-------|
+| **Tend App** | Select variety → auto-calculates dates → auto-generates task → one-tap mark done | ~3 steps |
+| **farmOS** | Quick form → auto-creates log + task + planting record | ~4 steps |
+| **SBI Grower** | Scan tray barcode → auto-print label → auto-update inventory | ~3 steps |
+| **Our System** | Open greenhouse → switch tab → open sowing-sheets → open labels → open quick-seed | **5+ steps, 4 pages** |
+
+#### Specific Issues to Address
+
+1. **Operations tab must either become actionable or be removed/demoted** — it's the default tab and it does nothing
+2. **Today's Tasks should be the default tab** when opening greenhouse dashboard
+3. **Seedling Sales tab overlaps with seedling-admin.html** — consolidate or clearly differentiate
+4. **wholesale-seedlings.html is a legacy duplicate** — should redirect to seedling-wholesale-2026.html
+5. **Print workflow should be accessible FROM the greenhouse dashboard** — not separate pages
+6. **Sidebar has too many items** — consider progressive disclosure or grouping
+
+### Your Deliverable
+
+**Full UX audit document** covering:
+
+1. **Current-state flow diagram** — map every click from "open greenhouse" to "finished seeding for the day"
+2. **Pain points with severity ratings** (critical/high/medium/low)
+3. **Proposed redesigned flow** — ideally 3 steps or fewer for the core loop
+4. **Wireframe/mockup** of the redesigned greenhouse dashboard
+5. **Consolidation recommendations** — which pages merge, which tabs get removed
+6. **Implementation priority** — what to fix first for maximum impact
+
+### Files to Audit
+
+- `web_app/greenhouse-dashboard.html` (6 tabs, 3000+ lines)
+- `sowing-sheets.html` (printable task sheets)
+- `labels.html` (label printing)
+- `quick-seed.html` (execution)
+- `seedling-admin.html` (variety admin)
+- `seedling-presale-2026.html` (customer presale)
+- `seedling-wholesale-2026.html` (wholesale)
+- `wholesale-seedlings.html` (LEGACY — confirm duplicate, recommend archival)
+
+### Quality Standard
+
+The owner explicitly said: **"State-of-the-art mode. Production-ready perfection."** This audit needs to be thorough, evidence-based, and actionable. Not a surface-level list of suggestions — a complete redesign proposal with clear before/after.
+
+---
+
 ## MARCHING ORDERS - 2026-02-15
 
 **From:** PM_Architect

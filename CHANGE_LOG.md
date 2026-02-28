@@ -38,6 +38,37 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-02-28 — Labels: QR Fix, Date Filtering, Sorting, PDF Thermal Printing
+
+**Role:** PM_Architect
+**Deploy:** Frontend (GitHub Pages)
+
+### Files Modified
+- `labels.html` — 6 critical fixes (details below)
+- `claude_sessions/ux_design/INBOX.md` — Added urgent greenhouse workflow audit directive
+
+### Fixes Applied to `labels.html`
+1. **QR Code CDN broken** — `qrcode@1.5.3` returns HTTP 404. Changed all 4 CDN references to `@1.5.1` (verified 200 OK)
+2. **Date filtering not working** — Date inputs had no change event listeners. Added `addEventListener('change')` to both startDate and endDate
+3. **Labels not alphabetically sorted** — Added `.sort()` by crop → variety in both `renderSeedingsList()` and `generateLabels()`
+4. **Auto-print race condition** — Replaced 500ms setTimeout with callback-based QR completion tracking + 3s safety timeout
+5. **Thermal label paper size** — CSS `@page { size: 4in 1in }` is ignored by all browsers. Added jsPDF library to generate PDFs at exact page dimensions (4"×1" field tray, 1"×4.5" pot tags). Print dialog now shows correct paper size automatically.
+6. **Print preview text** — Updated to reflect PDF approach (no manual "Manage Custom Sizes" step needed)
+
+### Functions Added
+- `executePrintUL247FieldTrayPDF()` in `labels.html` — jsPDF-based field tray label PDF generation (4"×1")
+- `executePrintUL247PotTagsPDF()` in `labels.html` — jsPDF-based pot tag PDF generation (1"×4.5")
+
+### Reason
+Owner reported: labels missing QR codes, wrong date range, not sorted, thermal paper size missing from print dialog. All 6 issues traced to root causes and fixed.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions (old HTML-based functions preserved as fallback, new PDF functions added alongside)
+- [x] No duplicates created
+
+---
+
 ## 2026-02-28 — Overdue Tasks Fix + Garage API Fix + Flower Inventory Tab
 
 **Role:** PM_Architect
