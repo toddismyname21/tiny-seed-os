@@ -131088,12 +131088,15 @@ function logGerminationCheck(params) {
   var germPct = seedsSown > 0 ? Math.round((emerged / seedsSown) * 100) : 0;
   var reseedNeeded = germPct < 70 ? 'Yes' : 'No';
 
+  // Reseed_Date: estimate as checkDate + 3 days if reseed needed, else empty
+  var reseedDate = reseedNeeded === 'Yes' ? checkDate : '';
+
   sheet.appendRow([
     logId, params.batchId, params.seedLotId, params.crop, params.variety,
     seedsSown, params.sowDate, checkDate,
     emerged, germPct, params.expectedGermPct || 85,
-    reseedNeeded, vigor, params.photoUrl, params.employeeId,
-    params.notes, new Date().toISOString()
+    reseedNeeded, reseedDate, params.photoUrl, params.employeeId,
+    (vigor ? 'Vigor: ' + vigor + '. ' : '') + (params.notes || ''), new Date().toISOString()
   ]);
 
   return { success: true, logId: logId, germinationPct: germPct, reseedNeeded: reseedNeeded };

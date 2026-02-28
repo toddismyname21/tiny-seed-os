@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://maps.googleapis.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; img-src 'self' data: blob: https:; connect-src 'self' https://script.google.com https://maps.googleapis.com https://*.supabase.co; frame-src 'self' https://www.google.com;">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Greenhouse Manager - Tiny Seed Farm</title>
@@ -11,9 +12,9 @@
     <script src="api-config.js"></script>
     <style>
         :root {
-            --bg-dark: var(--ts-bg-base, #0a0a0f);
-            --bg-card: var(--ts-bg-surface, #1a1a2e);
-            --bg-light: var(--ts-bg-elevated, #16213e);
+            --bg-dark: var(--ts-bg-base, #141211);
+            --bg-card: var(--ts-bg-surface, #1a1816);
+            --bg-light: var(--ts-bg-elevated, #282520);
             --primary: var(--ts-green-400, #4ade80);
             --primary-dim: rgba(74,222,128,0.15);
             --gold: var(--ts-amber-500, #f59e0b);
@@ -24,8 +25,8 @@
             --info-dim: rgba(59,130,246,0.15);
             --purple: var(--ts-purple-400, #a78bfa);
             --purple-dim: rgba(167,139,250,0.15);
-            --text-primary: var(--ts-text, #e2e8f0);
-            --text-secondary: var(--ts-text-secondary, #94a3b8);
+            --text-primary: var(--ts-text, #ece8e1);
+            --text-secondary: var(--ts-text-secondary, #b5a998);
             --border: var(--ts-border, rgba(255,255,255,0.08));
             --border-light: var(--ts-border-strong, rgba(255,255,255,0.12));
             --radius: 12px;
@@ -166,10 +167,10 @@
             transition:all 0.15s ease; font-family:inherit; min-height:44px;
         }
         .btn:active, .gh-tab:active { transform:scale(0.97); }
-        .btn-primary { background:var(--primary); color:#0a0a0f; }
+        .btn-primary { background:var(--primary); color:#141211; }
         .btn-primary:hover { background:#6ee7a0; }
         .btn-primary:disabled { opacity:0.4; cursor:not-allowed; }
-        .btn-gold { background:var(--gold); color:#0a0a0f; }
+        .btn-gold { background:var(--gold); color:#141211; }
         .btn-gold:hover { background:#fbbf24; }
         .btn-danger { background:var(--danger); color:#fff; }
         .btn-danger:hover { background:#f87171; }
@@ -194,7 +195,8 @@
         .table-toolbar input, .table-toolbar select {
             background:var(--bg-light); border:1px solid var(--border);
             border-radius:var(--radius-sm); color:var(--text-primary);
-            padding:0.4rem 0.65rem; font-size:0.78rem; font-family:inherit;
+            padding:0.55rem 0.75rem; font-size:0.78rem; font-family:inherit;
+            min-height:44px;
         }
         .table-toolbar input:focus, .table-toolbar select:focus {
             border-color:var(--primary); outline:2px solid rgba(79,195,247,0.4); outline-offset:1px;
@@ -244,9 +246,12 @@
         .modal-head h3 { font-size:1rem; font-weight:700; }
         .modal-close {
             background:none; border:none; color:var(--text-secondary);
-            cursor:pointer; font-size:1.1rem;
+            cursor:pointer; font-size:1.25rem;
+            min-width:44px; min-height:44px;
+            display:flex; align-items:center; justify-content:center;
+            border-radius:var(--radius-sm);
         }
-        .modal-close:hover { color:var(--text-primary); }
+        .modal-close:hover { color:var(--text-primary); background:var(--bg-light); }
         .modal-body { padding:1.25rem; }
         .modal-foot {
             display:flex; justify-content:flex-end; gap:0.5rem;
@@ -514,7 +519,7 @@
             justify-content: center;
             gap: 0.5rem;
         }
-        .action-card:hover { background: var(--bg-card, #16213e); border-color: var(--primary, #22c55e); transform: translateY(-2px); }
+        .action-card:hover { background: var(--bg-card, #282520); border-color: var(--primary, #22c55e); transform: translateY(-2px); }
         .action-icon { font-size: 1.75rem; }
         .action-title { font-weight: 700; font-size: 1rem; color: var(--text-primary, #edf2f4); }
         .action-sub { font-size: 0.8rem; color: var(--text-secondary, #8d99ae); }
@@ -529,7 +534,7 @@
             bottom: 2rem;
             left: 50%;
             transform: translateX(-50%) translateY(100px);
-            background: var(--bg-card, #16213e);
+            background: var(--bg-card, #282520);
             border: 1px solid var(--border, rgba(255,255,255,0.1));
             border-radius: var(--radius, 12px);
             padding: 0.75rem 1.25rem;
@@ -669,7 +674,7 @@
             .stat-card .stat-value { font-size:1.2rem; }
             /* Phase 6D: Compact tab bar */
             .gh-tabs { justify-content:space-around; padding:0; }
-            .gh-tab { flex-direction:column; padding:0.5rem 0.25rem; font-size:0.65rem; gap:0.15rem; flex:1; text-align:center; justify-content:center; }
+            .gh-tab { flex-direction:column; padding:0.5rem 0.25rem; font-size:0.7rem; gap:0.15rem; flex:1; text-align:center; justify-content:center; }
             .gh-tab i { font-size:1rem; }
             .gh-main { padding:105px 0.5rem 2rem; }
             .action-card { min-height:70px; }
@@ -768,9 +773,9 @@
     <!-- Combined Sowing Schedule -->
     <div class="section-header"><h2><i class="fas fa-calendar-alt"></i> Greenhouse Schedule</h2>
         <div style="display:flex; gap:0.5rem;">
-            <button class="btn btn-outline btn-sm" onclick="filterOpsSchedule('all')" id="filterAll" style="font-size:0.75rem; padding:4px 10px; border-radius:6px;">All</button>
-            <button class="btn btn-outline btn-sm" onclick="filterOpsSchedule('FIELD')" id="filterField" style="font-size:0.75rem; padding:4px 10px; border-radius:6px;">Field</button>
-            <button class="btn btn-outline btn-sm" onclick="filterOpsSchedule('SALE')" id="filterSale" style="font-size:0.75rem; padding:4px 10px; border-radius:6px;">Sale</button>
+            <button class="btn btn-outline btn-sm" onclick="filterOpsSchedule('all')" id="filterAll">All</button>
+            <button class="btn btn-outline btn-sm" onclick="filterOpsSchedule('FIELD')" id="filterField">Field</button>
+            <button class="btn btn-outline btn-sm" onclick="filterOpsSchedule('SALE')" id="filterSale">Sale</button>
         </div>
     </div>
     <div id="opsSchedule" style="margin-bottom:1.5rem;">
@@ -1164,7 +1169,7 @@
         </div>
         <div class="modal-foot">
             <button class="btn btn-outline" onclick="closeModal('germCheckModal')">Cancel</button>
-            <button class="btn btn-primary" onclick="submitGermCheck()"><i class="fas fa-check"></i> Log Check</button>
+            <button class="btn btn-primary" onclick="withLoading(this, submitGermCheck)"><i class="fas fa-check"></i> Log Check</button>
         </div>
     </div>
 </div>
@@ -1193,7 +1198,7 @@
         </div>
         <div class="modal-foot">
             <button class="btn btn-outline" onclick="closeModal('growthStageModal')">Cancel</button>
-            <button class="btn btn-primary" onclick="submitGrowthStage()"><i class="fas fa-check"></i> Record</button>
+            <button class="btn btn-primary" onclick="withLoading(this, submitGrowthStage)"><i class="fas fa-check"></i> Record</button>
         </div>
     </div>
 </div>
@@ -1226,7 +1231,7 @@
         </div>
         <div class="modal-foot">
             <button class="btn btn-outline" onclick="closeModal('problemModal')">Cancel</button>
-            <button class="btn btn-danger" onclick="submitProblem()"><i class="fas fa-exclamation-triangle"></i> Report</button>
+            <button class="btn btn-danger" onclick="withLoading(this, submitProblem)"><i class="fas fa-exclamation-triangle"></i> Report</button>
         </div>
     </div>
 </div>
@@ -1258,7 +1263,7 @@
         </div>
         <div class="modal-foot">
             <button class="btn btn-outline" onclick="closeModal('addTrayModal')">Cancel</button>
-            <button class="btn btn-primary" onclick="submitAddTray()"><i class="fas fa-plus"></i> Add Tray</button>
+            <button class="btn btn-primary" onclick="withLoading(this, submitAddTray)"><i class="fas fa-plus"></i> Add Tray</button>
         </div>
     </div>
 </div>
@@ -1288,7 +1293,7 @@
         </div>
         <div class="modal-foot">
             <button class="btn btn-outline" onclick="closeModal('growthObsModal')">Cancel</button>
-            <button class="btn btn-primary" onclick="submitGrowthObs()"><i class="fas fa-check"></i> Log Observation</button>
+            <button class="btn btn-primary" onclick="withLoading(this, submitGrowthObs)"><i class="fas fa-check"></i> Log Observation</button>
         </div>
     </div>
 </div>
@@ -1314,7 +1319,7 @@
         </div>
         <div class="modal-foot">
             <button class="btn btn-outline" onclick="closeModal('presaleModal')">Cancel</button>
-            <button class="btn btn-primary" onclick="submitPresaleItem()"><i class="fas fa-tag"></i> List for Presale</button>
+            <button class="btn btn-primary" onclick="withLoading(this, submitPresaleItem)"><i class="fas fa-tag"></i> List for Presale</button>
         </div>
     </div>
 </div>
@@ -1344,7 +1349,7 @@
         </div>
         <div class="modal-foot">
             <button class="btn btn-outline" onclick="closeModal('logSaleModal')">Cancel</button>
-            <button class="btn btn-primary" onclick="submitLogSale()"><i class="fas fa-check"></i> Log Sale</button>
+            <button class="btn btn-primary" onclick="withLoading(this, submitLogSale)"><i class="fas fa-check"></i> Log Sale</button>
         </div>
     </div>
 </div>
@@ -1445,7 +1450,7 @@
         </div>
         <div class="modal-foot">
             <button class="btn btn-outline" onclick="closeModal('addVarietyModal')">Cancel</button>
-            <button class="btn btn-primary" onclick="submitAddVariety()"><i class="fas fa-plus"></i> Add to Plan</button>
+            <button class="btn btn-primary" onclick="withLoading(this, submitAddVariety)"><i class="fas fa-plus"></i> Add to Plan</button>
         </div>
     </div>
 </div>
@@ -1471,8 +1476,8 @@
         </div>
         <div class="modal-foot">
             <button class="btn btn-outline" onclick="closeModal('seedLotModal')">Cancel</button>
-            <button class="btn btn-outline" onclick="confirmSownWithoutLot()" style="color:var(--gold);border-color:var(--gold);">Skip (No Lot)</button>
-            <button class="btn btn-primary" onclick="confirmSownWithLot()"><i class="fas fa-check"></i> Confirm & Deduct</button>
+            <button class="btn btn-outline" onclick="withLoading(this, confirmSownWithoutLot)" style="color:var(--gold);border-color:var(--gold);">Skip (No Lot)</button>
+            <button class="btn btn-primary" onclick="withLoading(this, confirmSownWithLot)"><i class="fas fa-check"></i> Confirm & Deduct</button>
         </div>
     </div>
 </div>
@@ -1873,7 +1878,7 @@ function showOnboardingStep() {
         '<span style="font-size:0.7rem;color:var(--text-secondary);">' + (_onboardingStep + 1) + ' of ' + _onboardingSteps.length + '</span>' +
         '<div style="display:flex;gap:0.5rem;">' +
         '<button onclick="skipOnboarding()" style="background:none;border:none;color:var(--text-secondary);cursor:pointer;font-size:0.75rem;padding:4px 8px;">Skip</button>' +
-        '<button onclick="nextOnboardingStep()" style="background:var(--primary);color:#0a0a0f;border:none;border-radius:var(--radius-sm);padding:6px 14px;cursor:pointer;font-size:0.75rem;font-weight:600;">' +
+        '<button onclick="nextOnboardingStep()" style="background:var(--primary);color:#141211;border:none;border-radius:var(--radius-sm);padding:6px 14px;cursor:pointer;font-size:0.75rem;font-weight:600;">' +
         (_onboardingStep < _onboardingSteps.length - 1 ? 'Next' : 'Done') + '</button>' +
         '</div></div>';
 
@@ -2144,7 +2149,8 @@ function printLabelFromModal() {
         '.lbl-variety { font-style: italic; color: #555; } ' +
         '.lbl-detail { font-size: 9px; color: #666; } ' +
         '</style></head><body><div class="label-grid">' + content + '</div>' +
-        '<script>window.onload=function(){setTimeout(function(){window.print();},400);};</' + 'script></body></html>');
+        '<script>window.onload=function(){setTimeout(function(){window.print();},400);};</' + 'script><script src="shared-nav.js"></script>
+</body></html>');
     printWin.document.close();
 }
 
@@ -2210,7 +2216,8 @@ function printSheetFromModal() {
         '.sheet-check { width: 16px; height: 16px; border: 2px solid #333; border-radius: 3px; display: inline-block; } ' +
         '</style></head><body>' + content +
         '<div style="margin-top:30px;padding-top:10px;border-top:1px solid #ddd;font-size:9pt;color:#666;text-align:center;">Tiny Seed Farm — Printed ' + new Date().toLocaleString() + '</div>' +
-        '<script>window.onload=function(){setTimeout(function(){window.print();},400);};</' + 'script></body></html>');
+        '<script>window.onload=function(){setTimeout(function(){window.print();},400);};</' + 'script><script src="shared-nav.js"></script>
+</body></html>');
     printWin.document.close();
 }
 
@@ -2225,6 +2232,14 @@ function openSheetExternal() {
 // DATE HELPERS
 // ═══════════════════════════════════════════════════════════════════
 function todayStr() { return new Date().toISOString().split('T')[0]; }
+// Button loading state helper — prevents double-submits
+function withLoading(btn, asyncFn) {
+    if (!btn || btn.disabled) return;
+    const orig = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+    return asyncFn().finally(() => { btn.disabled = false; btn.innerHTML = orig; });
+}
 function weekFromNow() {
     const d = new Date(); d.setDate(d.getDate() + 7);
     return d.toISOString().split('T')[0];
@@ -4276,5 +4291,6 @@ async function submitAddVariety() {
     }
 }
 </script>
+<script src="shared-nav.js"></script>
 </body>
 </html>

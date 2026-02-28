@@ -38,6 +38,121 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-02-28 — Greenhouse Dashboard Audit: 7 Bug Fixes
+
+**Role:** PM_Architect
+**Deploy:** Backend (clasp push + deploy) + Frontend (git push)
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — Fixed logGerminationCheck column mismatch (vigor→Reseed_Date)
+- `web_app/greenhouse-dashboard.html` — 6 frontend UX fixes
+
+### Backend Fix
+- `logGerminationCheck()` — vigor data was written to Reseed_Date column. Fixed: Reseed_Date now gets checkDate when reseed needed, vigor appended to Notes field
+
+### Frontend Fixes
+1. Filter buttons: Removed inline `padding:4px 10px` override — btn-sm class now applies (44px→48px on mobile)
+2. Tab text at 480px: `0.65rem` (10.4px) → `0.7rem` (11.2px) — readable on small screens
+3. Table toolbar inputs: Added `min-height:44px` + increased padding for touch targets
+4. Modal close buttons: Added `min-width:44px; min-height:44px` with flex centering + hover state
+5. Secondary text contrast: `#a09888` → `#b5a998` — improved WCAG contrast ratio on dark bg
+6. Button loading states: Added `withLoading()` utility + applied to 10 modal submit buttons (spinner + disabled during API calls)
+
+### Functions Added
+- `withLoading(btn, asyncFn)` in greenhouse-dashboard.html — prevents double-submits with spinner
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
+## 2026-02-28 — Full Security Audit: 30 Findings, 25 Fixed
+
+**Role:** PM_Architect (Audit Claude scope)
+**Deploy:** Backend (clasp push + deploy required) + Frontend (git push)
+
+### Audit Report
+`docs/audits/SECURITY_AUDIT_2026-02-28.md` — Full findings, methodology, remediation
+
+### P0 Fixes (5 Critical)
+1. **Hardcoded secrets removed** — `storeAllCredentials()` in MERGED TOTAL.js had plaintext Twilio, Plaid, PayPal, Ayrshare, Maps keys. ALL MUST BE ROTATED.
+2. **setScriptProperty endpoint disabled** — Unauthenticated GET could overwrite any Script Property
+3. **Admin routes secured** — createUser/updateUser/etc now use `*Secured` variants with requireAdmin()
+4. **eval() eliminated** — Replaced with safe function lookup table
+5. **Remote command execution disabled** — POST /api/verify/generate endpoint returns 403
+
+### P1 Fixes (8 High)
+6. Admin PIN `7714` → random generation | Employee PIN `0000` → random
+7. Meta webhook token → PropertiesService (set META_WEBHOOK_VERIFY_TOKEN)
+8. Remote chat hardcoded token → env var TINYPM_CHAT_TOKEN
+9. CSRF fail-open → fail-closed (missing token = rejection)
+10. Client-supplied prices → server-side lookup from CSA_Products sheet
+11. JWT verification skip → throws error if no secret configured
+12. `--dangerously-skip-permissions` removed from 4 agent files
+13. Rate limiting added: 5 failed auth attempts = 15min lockout
+
+### P2 Fixes (8 Medium)
+14. All 5 Python servers: 0.0.0.0 → 127.0.0.1
+15. CORS: `*` → `http://localhost:8000` (web_server, brain_bridge, simple_remote_chat)
+16. XFrameOptionsMode: ALLOWALL → DEFAULT (11 locations)
+17. subprocess.run(shell=True) → shlex.split + shell=False
+18. os.system() → subprocess.run() with list args
+19. CSP meta tags added to 98 HTML files
+20. SRI hashes added to 19 files (13 unique CDN scripts)
+21. Circuit breaker reset endpoints gated (require admin POST)
+
+### P2-P3 Not Fixed (architectural changes needed)
+- innerHTML tech debt (2,215 occurrences) — needs DOMPurify integration
+- LockService coverage (4/1,516 writes) — needs systematic refactoring
+- Error message exposure (162 str(e) in web_server.py) — P3, localhost-only now
+- Gemini API key in localStorage — P3
+- Spreadsheet ID duplication — P3
+
+### Maps API Keys
+- track.html, farm-operations.html: Migrated to load from api-config.js
+- FieldMobileCapture.html: Still hardcoded (Apps Script served, address on key rotation)
+
+### Files Modified (19)
+- `apps_script/MERGED TOTAL.js` — P0-P2 fixes (secrets, auth, CSRF, eval, XFrame, rate limiting, circuit breakers, server-side pricing)
+- `apps_script/EmployeeOnboarding.js` — Default PIN randomized
+- `tinypm/web_server.py` — RCE disabled, CORS restricted, localhost binding
+- `tinypm/auth_middleware.py` — JWT verification required
+- `tinypm/brain_bridge.py` — CORS restricted, localhost binding
+- `tinypm/simple_remote_chat.py` — Token from env, localhost binding, CORS restricted
+- `tinypm/remote_terminal_bridge.py` — Localhost binding
+- `tinypm/a2a_server.py` — Localhost binding
+- `tinypm/builder_autonomous.py` — Removed --dangerously-skip-permissions
+- `tinypm/pm_brain.py` — Removed --dangerously-skip-permissions
+- `tinypm/pm_direct_line.py` — Removed --dangerously-skip-permissions
+- `tinypm/wild_claims_czar.py` — Removed --dangerously-skip-permissions
+- `tinypm/verification_pipeline.py` — shell=True → shell=False
+- `tinypm/start_life_organizer.py` — os.system → subprocess.run
+- `track.html` — Maps API key from config
+- `farm-operations.html` — Maps API key from config
+- 98 HTML files — CSP meta tags added
+- 19 HTML files — SRI hashes added
+- 6 HTML files — Unversioned chart.js pinned to v4.4.1
+
+### Files Created (1)
+- `docs/audits/SECURITY_AUDIT_2026-02-28.md` — Full audit report
+
+### Credential Rotation Required
+- Twilio: SID + Auth Token
+- Plaid: Client ID + Secret (PRODUCTION)
+- PayPal: Client ID + Client Secret (LIVE)
+- Ayrshare: API Key
+- Google Maps: API Key
+- Set new META_WEBHOOK_VERIFY_TOKEN in Script Properties
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] No new app files created
+- [x] Audit report in existing docs/audits/ directory
+
+---
+
 ## 2026-02-28 — Employee App: 20 Bug Fixes (Critical → Medium)
 
 **Role:** PM_Architect
