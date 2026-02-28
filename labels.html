@@ -2992,10 +2992,10 @@
 
             Promise.all(qrPromises).then(function(qrImages) {
                 var W = 288, H = 72; // 4in x 1in in points (72pt/in)
-                var doc = new window.jspdf.jsPDF({ unit: 'pt', format: [W, H] });
+                var doc = new window.jspdf.jsPDF({ unit: 'pt', format: [H, W], orientation: 'landscape' });
 
                 labelsToprint.forEach(function(label, i) {
-                    if (i > 0) doc.addPage([W, H]);
+                    if (i > 0) doc.addPage([H, W], 'landscape');
 
                     // QR code on left
                     var qrSz = 61;
@@ -3083,11 +3083,11 @@
 
             Promise.all(qrPromises).then(function(qrImages) {
                 var W = 72, H = 324; // 1in x 4.5in in points
-                var doc = new window.jspdf.jsPDF({ unit: 'pt', format: [W, H] });
+                var doc = new window.jspdf.jsPDF({ unit: 'pt', format: [W, H], orientation: 'portrait' });
                 var cx = W / 2;
 
                 labelsToprint.forEach(function(label, i) {
-                    if (i > 0) doc.addPage([W, H]);
+                    if (i > 0) doc.addPage([W, H], 'portrait');
 
                     var y = 14;
 
