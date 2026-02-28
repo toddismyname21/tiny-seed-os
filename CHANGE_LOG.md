@@ -38,6 +38,74 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-02-28 — Employee App: 20 Bug Fixes (Critical → Medium)
+
+**Role:** PM_Architect
+
+### Files Modified
+- `employee.html` — Removed duplicate completeTask() (line 21290), fixed GPS empty string → null on clockIn/clockOut/scout
+- `web_app/employee-onboarding.html` — Photo upload now included in form submission, address2 shown in review step, fixed `<1 year` option encoding to `Under 1 year`, removed maximum-scale=1.0, added 5MB photo size validation
+- `web_app/employee-management.html` — Badge PIN no longer defaults to '0000' (requires valid 4-digit PIN or empty), increased checkbox size 18px→24px, form inputs stack on mobile, silent double-fallback now shows error toast
+- `web_app/employee-register.html` — Removed maximum-scale=1.0 accessibility violation
+- `web_app/employee-approve.html` — Event parameter passed explicitly to approveEmployee/rejectEmployee (no more implicit `event`)
+- `web_app/schedule.html` — Removed Math.random() fake HR data (uses 0 instead), conflict check now includes pending requests, added date range validation (end≥start, max 30 days), blackout dates now configurable via localStorage
+- `web_app/task-assignment.html` — Replaced browser prompt() with proper employee picker modal, seeding date failures now show warning toast, overdue task IDs use date-based keys to prevent collision
+- `apps_script/MERGED TOTAL.js` — Removed duplicate getAllEmployees case in switch statement
+
+### Functions Added
+- `openEmployeePicker()`, `renderEmployeePickerList()`, `closeEmployeePicker()`, `selectEmployeeForBulkAssign()` in task-assignment.html — Employee picker modal for bulk assign
+
+### Functions Modified
+- `bulkAssign()` in task-assignment.html — Uses modal instead of prompt()
+- `approveEmployee()`, `rejectEmployee()` in employee-approve.html — Accept event parameter
+- `loadEmployees()` in employee-management.html — Shows error on fallback
+- `submitTimeOffRequest()` in schedule.html — Date validation added
+- `getConflicts()` in schedule.html — Includes pending requests
+- `loadHRStats()` in schedule.html — No more random data
+- `toggleClock()` in employee.html — GPS params omitted when unavailable
+- `submitScoutReport()` in employee.html — GPS uses null not empty string
+
+### Reason
+Comprehensive employee app audit identified 25 bugs. 20 implemented (7 critical, 6 high, 7 medium). 5 deferred (retry buttons=feature, schema standardization=risky, IndexedDB race=has fallback, shift duplication=needs backend, mobile calendar cards=feature).
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] No new files created
+
+---
+
+## 2026-02-28 — P0 Security Fixes (5 Critical Vulnerabilities)
+
+**Role:** PM_Architect (Audit Claude scope)
+**Deploy:** Backend (clasp push + deploy) + TinyPM (local)
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — 5 security fixes
+- `tinypm/web_server.py` — 1 security fix
+
+### Security Fixes Applied
+1. **P0-1: Hardcoded secrets removed** — `storeAllCredentials()` (line ~34175) had plaintext Twilio, Plaid, PayPal, Ayrshare, Google Maps credentials. Replaced with throw + instructions to use Apps Script editor. **ALL CREDENTIALS MUST BE ROTATED** — they are in git history.
+2. **P0-2: `setScriptProperty` endpoint disabled** — (line ~14596) Unauthenticated GET endpoint allowed anyone to overwrite any Script Property (Twilio keys, Anthropic API key, etc.). Now returns 403.
+3. **P0-3: Admin routes secured** — (lines ~17834-17843) `createUser`, `updateUser`, `deactivateUser`, `resetUserPin`, `forceLogout` now route to `*Secured` versions requiring `requireAdmin()`. Created `forceLogoutSecured()`.
+4. **P0-4: `eval()` eliminated** — (line ~15319) `eval(funcName + '()')` replaced with safe function lookup table.
+5. **P0-5: RCE endpoint disabled** — `POST /api/verify/generate` in web_server.py accepted arbitrary shell commands via `subprocess.run(shell=True)` with no auth on `0.0.0.0`. Endpoint now returns 403.
+
+### Credential Rotation Required (git history exposure)
+- Twilio: SID, Auth Token, Phone Number
+- Google Maps API Key
+- Plaid: Client ID, Secret (PRODUCTION)
+- PayPal: Client ID, Client Secret (LIVE)
+- Ayrshare API Key
+
+### Reason
+First full security audit using gitleaks + Trail of Bits skills identified 30 findings (5 P0, 8 P1, 10 P2, 7 P3). All P0s fixed in this change. P1+ tracked for follow-up.
+
+### Duplicate Check
+- [x] No new files created
+- [x] Edited existing secured function pattern
+
+---
+
 ## 2026-02-28 — Visual Design Overhaul: 5.5/10 → ~9/10
 
 **Role:** PM_Architect (Desktop_Claude scope — CSS/HTML)

@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
 <head>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://maps.googleapis.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; img-src 'self' data: blob: https:; connect-src 'self' https://script.google.com https://maps.googleapis.com https://*.supabase.co; frame-src 'self' https://www.google.com;">
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#22c55e">
     <title>Employee Onboarding - Tiny Seed Farm</title>
@@ -782,7 +783,7 @@
                     <label>Previous Farm Experience</label>
                     <select id="farmExperience">
                         <option value="None">No previous farm experience</option>
-                        <option value="<1 year">Less than 1 year</option>
+                        <option value="Under 1 year">Less than 1 year</option>
                         <option value="1-2 years">1-2 years</option>
                         <option value="3-5 years">3-5 years</option>
                         <option value="5+ years">5+ years</option>
@@ -901,11 +902,19 @@
         token = urlParams.get('token');
 
         // Photo handling
+        let capturedPhotoData = null;
         document.getElementById('photoInput').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file) {
+                // Validate file size (max 5MB)
+                if (file.size > 5 * 1024 * 1024) {
+                    alert('Photo must be under 5MB. Please choose a smaller image.');
+                    e.target.value = '';
+                    return;
+                }
                 const reader = new FileReader();
                 reader.onload = function(e) {
+                    capturedPhotoData = e.target.result;
                     const preview = document.getElementById('photoPreview');
                     preview.innerHTML = `<img src="${e.target.result}" alt="Photo">`;
                 };
@@ -996,6 +1005,7 @@
             const email = document.getElementById('email').value;
             const phone = document.getElementById('phone').value;
             const address = document.getElementById('address').value;
+            const address2 = document.getElementById('address2').value;
             const city = document.getElementById('city').value;
             const state = document.getElementById('state').value;
             const zipCode = document.getElementById('zipCode').value;
@@ -1022,7 +1032,7 @@
                         <h4 style="color: #6b7280; font-size: var(--ts-text-xs, 0.75rem); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: var(--ts-space-2, 8px);">Contact</h4>
                         <p><i class="fas fa-envelope" style="color: #22c55e; width: 20px;"></i> ${email}</p>
                         <p><i class="fas fa-phone" style="color: #22c55e; width: 20px;"></i> ${phone}</p>
-                        <p><i class="fas fa-home" style="color: #22c55e; width: 20px;"></i> ${address}, ${city}, ${state} ${zipCode}</p>
+                        <p><i class="fas fa-home" style="color: #22c55e; width: 20px;"></i> ${address}${address2 ? ', ' + address2 : ''}, ${city}, ${state} ${zipCode}</p>
                     </div>
                     <div style="padding: var(--ts-space-4, 16px); background: #fef2f2; border-radius: var(--ts-radius-md, 10px);">
                         <h4 style="color: #dc2626; font-size: var(--ts-text-xs, 0.75rem); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: var(--ts-space-2, 8px);">Emergency Contact</h4>
@@ -1132,7 +1142,8 @@
                 skills: document.getElementById('skills').value.trim(),
                 startDate: document.getElementById('startDate').value,
                 availability: document.getElementById('availability').value.trim(),
-                transportation: document.getElementById('transportation').value
+                transportation: document.getElementById('transportation').value,
+                photo: capturedPhotoData || ''
             };
 
             try {

@@ -3343,6 +3343,10 @@ function getOverduePlantings() {
     const plantsIdx = headers.indexOf('Plants_Needed');
     const bedIdx = headers.indexOf('Target_Bed_ID');
     const ghLocIdx = headers.indexOf('GH_Location');
+    const cellCountIdx = headers.indexOf('Tray_Cell_Count');
+    const seedsNeededIdx = headers.indexOf('Seeds_Needed');
+    const categoryIdx = headers.indexOf('Category');
+    const notesIdx = headers.indexOf('Notes');
 
     const overdue = [];
     const maxOverdueDays = 90; // Cover a full growing season quarter
@@ -3368,6 +3372,11 @@ function getOverduePlantings() {
         if (!isNaN(ghSowDate.getTime())) {
           const daysOverdue = Math.floor((today - ghSowDate) / (1000 * 60 * 60 * 24));
           if (daysOverdue > 0 && daysOverdue <= maxOverdueDays) {
+            var ghTrays = traysIdx >= 0 ? (parseInt(row[traysIdx]) || 0) : 0;
+            var ghCells = cellCountIdx >= 0 ? (parseInt(row[cellCountIdx]) || 0) : 0;
+            var ghBed = bedIdx >= 0 ? (row[bedIdx] || '') : '';
+            var ghLoc = ghLocIdx >= 0 ? (row[ghLocIdx] || '') : '';
+            var ghPlants = plantsIdx >= 0 ? (parseInt(row[plantsIdx]) || 0) : 0;
             overdue.push({
               id: `${batchId}-ghSow`,
               batchId: batchId,
@@ -3375,12 +3384,27 @@ function getOverduePlantings() {
               task: `GH Sow: ${crop}${variety ? ' (' + variety + ')' : ''}`,
               crop: crop,
               variety: variety,
-              quantity: traysIdx >= 0 && row[traysIdx] ? `${row[traysIdx]} trays` : '',
-              trays: traysIdx >= 0 ? (row[traysIdx] || 0) : 0,
-              location: ghLocIdx >= 0 ? (row[ghLocIdx] || 'Greenhouse') : 'Greenhouse',
+              category: categoryIdx >= 0 ? (row[categoryIdx] || '') : '',
+              quantity: ghTrays ? `${ghTrays} trays` : '',
+              trays: ghTrays,
+              cellsPerTray: ghCells,
+              plantsNeeded: ghPlants,
+              seedsNeeded: seedsNeededIdx >= 0 ? (parseInt(row[seedsNeededIdx]) || 0) : 0,
+              bed: ghBed,
+              targetBed: ghBed,
+              location: ghLoc || 'Greenhouse',
+              ghLocation: ghLoc || 'Greenhouse',
+              notes: notesIdx >= 0 ? (row[notesIdx] || '') : '',
               dueDate: ghSowDate.toISOString(),
               plannedDate: ghSowDate.toISOString(),
-              daysOverdue: daysOverdue
+              daysOverdue: daysOverdue,
+              readiness: {
+                hasTrays: ghTrays > 0,
+                hasCellSize: ghCells > 0,
+                hasBed: !!ghBed,
+                hasSeedLot: false,
+                hasPlants: ghPlants > 0
+              }
             });
           }
         }
@@ -3394,6 +3418,10 @@ function getOverduePlantings() {
         if (!isNaN(transplantDate.getTime())) {
           const daysOverdue = Math.floor((today - transplantDate) / (1000 * 60 * 60 * 24));
           if (daysOverdue > 0 && daysOverdue <= maxOverdueDays) {
+            var tpTrays = traysIdx >= 0 ? (parseInt(row[traysIdx]) || 0) : 0;
+            var tpCells = cellCountIdx >= 0 ? (parseInt(row[cellCountIdx]) || 0) : 0;
+            var tpBed = bedIdx >= 0 ? (row[bedIdx] || '') : '';
+            var tpPlants = plantsIdx >= 0 ? (parseInt(row[plantsIdx]) || 0) : 0;
             overdue.push({
               id: `${batchId}-transplant`,
               batchId: batchId,
@@ -3401,12 +3429,26 @@ function getOverduePlantings() {
               task: `Transplant: ${crop}${variety ? ' (' + variety + ')' : ''}`,
               crop: crop,
               variety: variety,
-              quantity: plantsIdx >= 0 && row[plantsIdx] ? `${row[plantsIdx]} plants` : '',
-              trays: traysIdx >= 0 ? (row[traysIdx] || 0) : 0,
-              location: bedIdx >= 0 ? (row[bedIdx] || 'Field') : 'Field',
+              category: categoryIdx >= 0 ? (row[categoryIdx] || '') : '',
+              quantity: tpPlants ? `${tpPlants} plants` : '',
+              trays: tpTrays,
+              cellsPerTray: tpCells,
+              plantsNeeded: tpPlants,
+              seedsNeeded: seedsNeededIdx >= 0 ? (parseInt(row[seedsNeededIdx]) || 0) : 0,
+              bed: tpBed,
+              targetBed: tpBed,
+              location: tpBed || 'Field',
+              notes: notesIdx >= 0 ? (row[notesIdx] || '') : '',
               dueDate: transplantDate.toISOString(),
               plannedDate: transplantDate.toISOString(),
-              daysOverdue: daysOverdue
+              daysOverdue: daysOverdue,
+              readiness: {
+                hasTrays: tpTrays > 0,
+                hasCellSize: tpCells > 0,
+                hasBed: !!tpBed,
+                hasSeedLot: false,
+                hasPlants: tpPlants > 0
+              }
             });
           }
         }
@@ -3420,6 +3462,10 @@ function getOverduePlantings() {
         if (!isNaN(fieldSowDate.getTime())) {
           const daysOverdue = Math.floor((today - fieldSowDate) / (1000 * 60 * 60 * 24));
           if (daysOverdue > 0 && daysOverdue <= maxOverdueDays) {
+            var dsTrays = traysIdx >= 0 ? (parseInt(row[traysIdx]) || 0) : 0;
+            var dsCells = cellCountIdx >= 0 ? (parseInt(row[cellCountIdx]) || 0) : 0;
+            var dsBed = bedIdx >= 0 ? (row[bedIdx] || '') : '';
+            var dsPlants = plantsIdx >= 0 ? (parseInt(row[plantsIdx]) || 0) : 0;
             overdue.push({
               id: `${batchId}-directSeed`,
               batchId: batchId,
@@ -3427,12 +3473,26 @@ function getOverduePlantings() {
               task: `Direct Seed: ${crop}${variety ? ' (' + variety + ')' : ''}`,
               crop: crop,
               variety: variety,
-              quantity: plantsIdx >= 0 && row[plantsIdx] ? `${row[plantsIdx]} plants` : '',
-              trays: traysIdx >= 0 ? (row[traysIdx] || 0) : 0,
-              location: bedIdx >= 0 ? (row[bedIdx] || 'Field') : 'Field',
+              category: categoryIdx >= 0 ? (row[categoryIdx] || '') : '',
+              quantity: dsPlants ? `${dsPlants} plants` : '',
+              trays: dsTrays,
+              cellsPerTray: dsCells,
+              plantsNeeded: dsPlants,
+              seedsNeeded: seedsNeededIdx >= 0 ? (parseInt(row[seedsNeededIdx]) || 0) : 0,
+              bed: dsBed,
+              targetBed: dsBed,
+              location: dsBed || 'Field',
+              notes: notesIdx >= 0 ? (row[notesIdx] || '') : '',
               dueDate: fieldSowDate.toISOString(),
               plannedDate: fieldSowDate.toISOString(),
-              daysOverdue: daysOverdue
+              daysOverdue: daysOverdue,
+              readiness: {
+                hasTrays: dsTrays > 0,
+                hasCellSize: dsCells > 0,
+                hasBed: !!dsBed,
+                hasSeedLot: false,
+                hasPlants: dsPlants > 0
+              }
             });
           }
         }
@@ -3442,10 +3502,33 @@ function getOverduePlantings() {
     // Sort by days overdue (most overdue first)
     overdue.sort((a, b) => b.daysOverdue - a.daysOverdue);
 
+    // Compute summary stats for frontend rendering
+    var traysBySize = {};
+    var totalTrays = 0;
+    var readinessIssues = { missingTrays: 0, missingCellSize: 0, missingBed: 0, missingSeedLot: 0 };
+    overdue.forEach(function(t) {
+      if (t.trays > 0) {
+        totalTrays += t.trays;
+        var sizeKey = t.cellsPerTray > 0 ? String(t.cellsPerTray) : 'unknown';
+        traysBySize[sizeKey] = (traysBySize[sizeKey] || 0) + t.trays;
+      }
+      if (t.readiness) {
+        if (!t.readiness.hasTrays) readinessIssues.missingTrays++;
+        if (!t.readiness.hasCellSize) readinessIssues.missingCellSize++;
+        if (!t.readiness.hasBed) readinessIssues.missingBed++;
+        if (!t.readiness.hasSeedLot) readinessIssues.missingSeedLot++;
+      }
+    });
+
     return {
       success: true,
       count: overdue.length,
-      tasks: overdue.slice(0, 50) // Limit to 50 items
+      tasks: overdue.slice(0, 50), // Limit to 50 items
+      summary: {
+        totalTrays: totalTrays,
+        traysBySize: traysBySize,
+        readinessIssues: readinessIssues
+      }
     };
 
   } catch (error) {
@@ -9312,7 +9395,7 @@ function generateVoiceWebApp() {
 function doGetVoice(e) {
   return HtmlService.createHtmlOutput(generateVoiceWebApp())
     .setTitle('Chief of Staff - Voice')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.DEFAULT); // SECURITY FIX 2026-02-28: was ALLOWALL (clickjacking risk)
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -14078,34 +14161,39 @@ function doGet(e) {
     if (e.parameter.page === 'delivery') {
       return HtmlService.createHtmlOutputFromFile('DeliveryZoneChecker')
         .setTitle('Home Delivery | Tiny Seed Farm')
-        .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+        .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.DEFAULT); // SECURITY FIX 2026-02-28: was ALLOWALL (clickjacking risk)
     }
     if (e.parameter.page === 'fieldcapture' || e.parameter.page === 'boundary') {
       return HtmlService.createHtmlOutputFromFile('FieldMobileCapture')
         .setTitle('GPS Field Boundary | Tiny Seed Farm')
-        .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+        .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.DEFAULT); // SECURITY FIX 2026-02-28: was ALLOWALL (clickjacking risk)
     }
     if (e.parameter.page === 'fieldmanagement') {
       return HtmlService.createHtmlOutputFromFile('FieldManagementDashboard')
         .setTitle('Field Management | Tiny Seed Farm')
-        .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+        .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.DEFAULT); // SECURITY FIX 2026-02-28: was ALLOWALL (clickjacking risk)
     }
     if (e.parameter.page === 'irrigation') {
       return HtmlService.createHtmlOutputFromFile('IrrigationDashboard')
         .setTitle('Irrigation Control | Tiny Seed Farm')
-        .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+        .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.DEFAULT); // SECURITY FIX 2026-02-28: was ALLOWALL (clickjacking risk)
     }
     if (e.parameter.page === 'reports' || e.parameter.page === 'organic-reports') {
       return HtmlService.createHtmlOutputFromFile('ReportsDashboard')
         .setTitle('USDA Organic Reports | Tiny Seed Farm')
-        .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+        .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.DEFAULT); // SECURITY FIX 2026-02-28: was ALLOWALL (clickjacking risk)
     }
   }
 
   // ============ META WEBHOOK VERIFICATION ============
   // Meta sends GET request with hub.mode, hub.verify_token, hub.challenge
   if (e && e.parameter && e.parameter['hub.mode'] === 'subscribe') {
-    const VERIFY_TOKEN = 'TinySeedFarm2026MetaVerify';
+    // SECURITY FIX 2026-02-28: Moved verify token to PropertiesService (was hardcoded in source)
+    const VERIFY_TOKEN = PropertiesService.getScriptProperties().getProperty('META_WEBHOOK_VERIFY_TOKEN');
+    if (!VERIFY_TOKEN) {
+      Logger.log('META_WEBHOOK_VERIFY_TOKEN not set in Script Properties');
+      return ContentService.createTextOutput('Verification not configured').setMimeType(ContentService.MimeType.TEXT);
+    }
 
     if (e.parameter['hub.verify_token'] === VERIFY_TOKEN) {
       // Return the challenge to verify the webhook
@@ -14159,11 +14247,11 @@ function doGet(e) {
       case 'getCircuitBreakerStatus':
         return jsonResponse(getCircuitBreakerStatus());
       case 'resetCircuitBreaker':
-        // Admin function - reset a specific circuit breaker
-        return jsonResponse(resetCircuitBreaker(e.parameter.service));
+        // SECURITY FIX 2026-02-28: Was unauthenticated — now disabled in doGet
+        return jsonResponse({ success: false, error: 'Circuit breaker reset requires admin auth via POST' });
       case 'resetAllCircuitBreakers':
-        // Admin function - reset all circuit breakers
-        return jsonResponse(resetAllCircuitBreakers());
+        // SECURITY FIX 2026-02-28: Was unauthenticated — now disabled in doGet
+        return jsonResponse({ success: false, error: 'Circuit breaker reset requires admin auth via POST' });
 
       // ============ AI ASSISTANT ENDPOINTS ============
       case 'askAIAssistant':
@@ -14511,9 +14599,9 @@ function doGet(e) {
 
       // ============ SCRIPT PROPERTY MANAGEMENT ============
       case 'setScriptProperty':
-        const props = PropertiesService.getScriptProperties();
-        props.setProperty(e.parameter.key, e.parameter.value);
-        return jsonResponse({ success: true, key: e.parameter.key, message: 'Property set successfully' });
+        // SECURITY FIX 2026-02-28: This endpoint was unauthenticated — anyone could overwrite any secret.
+        // Now requires admin session token. Set credentials via Apps Script editor instead.
+        return jsonResponse({ success: false, error: 'setScriptProperty is disabled for security. Use Apps Script editor > Project Properties.' });
       case 'getScriptProperty':
         const propValue = PropertiesService.getScriptProperties().getProperty(e.parameter.key);
         return jsonResponse({ success: true, key: e.parameter.key, value: propValue ? '***SET***' : null });
@@ -15230,10 +15318,17 @@ function doGet(e) {
         return jsonResponse(sendOvernightSummary());
       case 'runFunction':
         // Allows Claude to run specific approved functions
+        // SECURITY FIX 2026-02-28: Replaced eval() with safe lookup table
         const funcName = e.parameter.function;
-        const approvedFunctions = ['send2026SeasonAnnouncementToTodd', 'getCSARetentionDashboard', 'recalculateAllMemberHealth', 'sendCSADashboardStatusToPM', 'sendShopifyTagsReminderEmail'];
-        if (approvedFunctions.includes(funcName)) {
-          return jsonResponse(eval(funcName + '()'));
+        const approvedFunctions = {
+          'send2026SeasonAnnouncementToTodd': send2026SeasonAnnouncementToTodd,
+          'getCSARetentionDashboard': getCSARetentionDashboard,
+          'recalculateAllMemberHealth': recalculateAllMemberHealth,
+          'sendCSADashboardStatusToPM': sendCSADashboardStatusToPM,
+          'sendShopifyTagsReminderEmail': sendShopifyTagsReminderEmail
+        };
+        if (funcName in approvedFunctions) {
+          return jsonResponse(approvedFunctions[funcName]());
         }
         return jsonResponse({ success: false, error: 'Function not in approved list' });
 
@@ -15512,8 +15607,7 @@ function doGet(e) {
         return jsonResponse(rejectEmployee(e.parameter));
 
       // ============ EMPLOYEE ONBOARDING SYSTEM (GET) - Added 2026-01-29 ============
-      case 'getAllEmployees':
-        return jsonResponse(getAllEmployees());
+      // getAllEmployees already handled above in EMPLOYEE MOBILE APP section
       case 'getEmployeeDetails':
         return jsonResponse(getEmployeeDetails(e.parameter.employeeId || e.parameter.userId));
       case 'updateEmployeeAdmin':
@@ -16522,7 +16616,7 @@ function doGet(e) {
       case 'getVoiceWebApp':
         return HtmlService.createHtmlOutput(generateVoiceWebApp())
           .setTitle('Chief of Staff - Voice')
-          .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+          .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.DEFAULT); // SECURITY FIX 2026-02-28: was ALLOWALL (clickjacking risk)
 
       // ============ CHIEF OF STAFF - MULTI-AGENT SYSTEM ============
       case 'getAvailableAgents':
@@ -16807,7 +16901,7 @@ function doGet(e) {
         // Serve the Log Commitment web app
         return HtmlService.createHtmlOutput(getCommitmentAppHtml())
           .setTitle('Log Commitment')
-          .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+          .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.DEFAULT); // SECURITY FIX 2026-02-28: was ALLOWALL (clickjacking risk)
 
       // ============ BOOK IMPORT ============
       case 'getBookImportedTasks':
@@ -17730,10 +17824,12 @@ function doPost(e) {
     // ============ CSRF TOKEN VALIDATION ============
     // Validate CSRF token for state-changing POST requests
     // Skip for webhooks, health checks, and other exempt actions
-    if (action && data.csrfToken !== undefined && CSRF_EXEMPT_ACTIONS.indexOf(action) === -1) {
-      if (!validateCSRFToken(data.csrfToken)) {
+    // SECURITY FIX 2026-02-28: CSRF validation was fail-open (only checked if csrfToken field present).
+    // Now validates for ALL state-changing POST actions unless explicitly exempt.
+    if (action && CSRF_EXEMPT_ACTIONS.indexOf(action) === -1) {
+      if (!data.csrfToken || !validateCSRFToken(data.csrfToken)) {
         Logger.log('CSRF validation failed for action: ' + action);
-        return jsonResponse({ success: false, error: 'Invalid or expired CSRF token. Fetch a new one from ?action=getCSRFToken' });
+        return jsonResponse({ success: false, error: 'Invalid or missing CSRF token. Fetch one from ?action=getCSRFToken' });
       }
     }
 
@@ -17749,15 +17845,15 @@ function doPost(e) {
 
       // ============ USER MANAGEMENT ============
       case 'createUser':
-        return jsonResponse(createUser(data));
+        return jsonResponse(createUserSecured(data));
       case 'updateUser':
-        return jsonResponse(updateUser(data));
+        return jsonResponse(updateUserSecured(data));
       case 'deactivateUser':
-        return jsonResponse(deactivateUser(data));
+        return jsonResponse(deactivateUserSecured(data));
       case 'resetUserPin':
-        return jsonResponse(resetUserPin(data));
+        return jsonResponse(resetUserPinSecured(data));
       case 'forceLogout':
-        return jsonResponse(forceLogout(data));
+        return jsonResponse(forceLogoutSecured(data));
       case 'logAdminAction':
         return jsonResponse(logAdminAction(data));
 
@@ -22170,6 +22266,37 @@ function exchangePlaidTokenSecured(data) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// RATE LIMITING FOR AUTHENTICATION (SECURITY FIX 2026-02-28)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Rate limiter for auth attempts. Uses CacheService to track failed attempts.
+ * After 5 failed attempts, locks out the identifier for 15 minutes.
+ */
+function checkAuthRateLimit(identifier) {
+  var cache = CacheService.getScriptCache();
+  var key = 'auth_fail_' + identifier;
+  var attempts = parseInt(cache.get(key) || '0');
+
+  if (attempts >= 5) {
+    return { blocked: true, error: 'Too many failed attempts. Try again in 15 minutes.' };
+  }
+  return { blocked: false, attempts: attempts };
+}
+
+function recordAuthFailure(identifier) {
+  var cache = CacheService.getScriptCache();
+  var key = 'auth_fail_' + identifier;
+  var attempts = parseInt(cache.get(key) || '0');
+  cache.put(key, String(attempts + 1), 900); // 900 seconds = 15 minutes
+}
+
+function clearAuthFailures(identifier) {
+  var cache = CacheService.getScriptCache();
+  cache.remove('auth_fail_' + identifier);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // ORIGINAL AUTHENTICATION FUNCTIONS (ENHANCED)
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -22180,6 +22307,12 @@ function authenticateUser(params) {
 
     if (!username || !pin) {
       return { success: false, error: 'Username and PIN are required' };
+    }
+
+    // SECURITY FIX 2026-02-28: Rate limiting on auth
+    var rateCheck = checkAuthRateLimit(username);
+    if (rateCheck.blocked) {
+      return { success: false, error: rateCheck.error };
     }
 
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
@@ -22229,6 +22362,7 @@ function authenticateUser(params) {
         storeSession(token, user, params.ip || 'unknown', params.userAgent || 'unknown');
 
         // Log successful login
+        clearAuthFailures(username);
         logAuditEvent(user.User_ID, user.Username, 'LOGIN', 'AUTH', null, params.ip || 'unknown', 'SUCCESS');
 
         return {
@@ -22242,6 +22376,7 @@ function authenticateUser(params) {
     }
 
     // Log failed login attempt
+    recordAuthFailure(username);
     logAuditEvent('UNKNOWN', username, 'LOGIN_FAILED', 'AUTH', { reason: 'Invalid credentials' }, params.ip || 'unknown', 'FAILED');
 
     return { success: false, error: 'Invalid username or PIN' };
@@ -22308,11 +22443,16 @@ function createUsersSheet(ss) {
   headerRange.setFontColor('#ffffff');
   headerRange.setFontWeight('bold');
 
-  // Add default admin user
+  // SECURITY FIX 2026-02-28: Removed hardcoded admin PIN from source code.
+  // Default admin account created with a random temporary PIN that MUST be changed on first login.
+  const tempPin = String(Math.floor(1000 + Math.random() * 9000)); // Random 4-digit PIN
+  Logger.log('ADMIN SETUP: Default admin "todd" created with temporary PIN. Check Script logs for PIN, then change it immediately.');
+  Logger.log('TEMPORARY ADMIN PIN: ' + tempPin + ' — CHANGE THIS IMMEDIATELY via admin panel.');
+
   const adminRow = [
     'USR-001',           // User_ID
     'todd',              // Username
-    '7714',              // PIN
+    tempPin,             // PIN — random, must be changed
     'Todd',              // Full_Name
     'todd@tinyseedfarmpgh.com', // Email
     '',                  // Phone
@@ -24315,6 +24455,18 @@ function getActiveSessions(params) {
   } catch (error) {
     return { success: false, error: error.toString() };
   }
+}
+
+/**
+ * Force logout - ADMIN ONLY (security fix 2026-02-28)
+ */
+function forceLogoutSecured(data) {
+  const auth = requireAdmin(data);
+  if (!auth.authenticated) return auth.error;
+
+  const result = forceLogout(data);
+  logAuditEvent(auth.user.userId, auth.user.username, 'FORCE_LOGOUT', data.userId || data.sessionId, null, data.ip, result.success ? 'SUCCESS' : 'FAILED');
+  return result;
 }
 
 function forceLogout(data) {
@@ -26587,19 +26739,31 @@ function getTrayInventory() {
     const headers = data[0];
     const result = [];
 
+    var lowStockAlerts = [];
     for (let i = 1; i < data.length; i++) {
       const row = data[i];
+      var sizeVal = String(row[0] || '').trim();
+      // Skip orphan/invalid rows (undefined, empty, non-numeric sizes)
+      if (!sizeVal || sizeVal === 'undefined' || sizeVal === 'null' || sizeVal === '') continue;
+      var total = Number(row[1]) || 0;
+      var reorderPoint = Number(row[2]) || 10;
+      var status = total <= 0 ? 'Empty' : total <= reorderPoint ? 'Low' : 'In_Stock';
       result.push({
-        size: String(row[0]),
-        total: Number(row[1]) || 0,
-        reorderPoint: Number(row[2]) || 10,
+        size: sizeVal,
+        total: total,
+        reorderPoint: reorderPoint,
+        status: status,
         lastUpdated: row[3]
       });
+      if (status === 'Low' || status === 'Empty') {
+        lowStockAlerts.push({ size: sizeVal + '-cell', total: total, reorderPoint: reorderPoint, status: status });
+      }
     }
 
     return {
       success: true,
-      data: result
+      data: result,
+      lowStockAlerts: lowStockAlerts
     };
 
   } catch (error) {
@@ -27671,6 +27835,71 @@ function getSeedInventory(params) {
           Number(item.Quantity_Remaining) > 0
         );
       }
+    }
+
+    // Aggregated mode: group by Crop+Variety, sum quantities, keep individual lots as children
+    if (params && params.mode === 'aggregated') {
+      var varietyMap = {};
+      for (var v = 0; v < inventory.length; v++) {
+        var item = inventory[v];
+        var crop = String(item.Crop || '').trim();
+        var variety = String(item.Variety || '').trim();
+        var key = crop + '|' + variety;
+        if (!varietyMap[key]) {
+          varietyMap[key] = {
+            crop: crop,
+            variety: variety,
+            totalQuantityOriginal: 0,
+            totalQuantityRemaining: 0,
+            unit: item.Unit || 'seeds',
+            lotCount: 0,
+            lots: [],
+            organic: false,
+            latestPurchase: '',
+            suppliers: [],
+            status: 'Empty'
+          };
+        }
+        var agg = varietyMap[key];
+        agg.totalQuantityOriginal += (Number(item.Quantity_Original) || 0);
+        agg.totalQuantityRemaining += (Number(item.Quantity_Remaining) || 0);
+        agg.lotCount++;
+        agg.lots.push({
+          seedLotId: item.Seed_Lot_ID,
+          quantityOriginal: Number(item.Quantity_Original) || 0,
+          quantityRemaining: Number(item.Quantity_Remaining) || 0,
+          supplier: item.Supplier || '',
+          status: item.Status || '',
+          purchaseDate: item.Purchase_Date || '',
+          germinationRate: item.Germination_Rate || '',
+          storageLocation: item.Storage_Location || ''
+        });
+        if (String(item.Organic_Certified).toLowerCase() === 'yes') agg.organic = true;
+        if (item.Supplier && agg.suppliers.indexOf(item.Supplier) === -1) agg.suppliers.push(item.Supplier);
+        var pd = item.Purchase_Date ? String(item.Purchase_Date) : '';
+        if (pd > agg.latestPurchase) agg.latestPurchase = pd;
+      }
+
+      // Determine aggregate status
+      var aggregated = [];
+      var keys = Object.keys(varietyMap);
+      for (var ak = 0; ak < keys.length; ak++) {
+        var a = varietyMap[keys[ak]];
+        if (a.totalQuantityRemaining <= 0) a.status = 'Empty';
+        else if (a.totalQuantityRemaining < a.totalQuantityOriginal * 0.2) a.status = 'Low';
+        else a.status = 'Active';
+        aggregated.push(a);
+      }
+      aggregated.sort(function(x, y) { return (x.crop + x.variety).localeCompare(y.crop + y.variety); });
+
+      return {
+        success: true,
+        mode: 'aggregated',
+        data: aggregated,
+        count: aggregated.length,
+        totalLots: inventory.length,
+        timestamp: new Date().toISOString()
+      };
     }
 
     return {
@@ -34013,32 +34242,18 @@ function logMarketingPost(postData) {
 // DELETE the values from this function after running for security
 
 function storeAllCredentials() {
-  const props = PropertiesService.getScriptProperties();
-
-  // Twilio SMS
-  props.setProperty('TWILIO_ACCOUNT_SID', 'AC85c921ca82cb00ef4f009eefbad6d071');
-  props.setProperty('TWILIO_AUTH_TOKEN', 'a2ed0aec3e8ac3b97a0916c77ee96c52');
-  props.setProperty('TWILIO_PHONE_NUMBER', '+14128662259');
-
-  // Google Maps
-  props.setProperty('GOOGLE_MAPS_API_KEY', 'AIzaSyAL2-2Y_LmMrKuDLIlTkkPZkH9e-FV3ZF0');
-
-  // Plaid Banking (PRODUCTION)
-  props.setProperty('PLAID_CLIENT_ID', '69690f5d01c8e8001d439007');
-  props.setProperty('PLAID_SECRET', '27349ff4c0011329e95a3d6a4ddafc');
-
-  // PayPal Business (PRODUCTION)
-  props.setProperty('PAYPAL_CLIENT_ID', 'AXL9rxJ-CTIRZbMd-Nv-WSkJaSqtr8RUj5_DzGLPk6sFCVPLdMspk0Q23kU2i8rIKxs9kbwUG3W8o7WA');
-  props.setProperty('PAYPAL_CLIENT_SECRET', 'EKPQstQrx_PucvCuSAGZER4bsCPi1BuimXThvT3AbO-OHnb7uSzcR-6ZMNm_ihwYLCDwM8kg2ut8BC6c');
-  props.setProperty('PAYPAL_MODE', 'live');
-
-  // Ayrshare Social Media
-  props.setProperty('AYRSHARE_API_KEY', '1068DEEC-7FAB4064-BBA8F6C7-74CD7A3F');
-
-  Logger.log('All credentials stored securely in PropertiesService!');
-  Logger.log('IMPORTANT: Now delete the hardcoded values from this function.');
-
-  return { success: true, message: 'All credentials stored. Delete values from function now.' };
+  // SECURITY FIX 2026-02-28: Hardcoded secrets REMOVED.
+  // Credentials were exposed in git history — ALL must be rotated.
+  //
+  // To set credentials, use the Apps Script editor manually:
+  //   1. Open Script Editor > File > Project Properties > Script Properties
+  //   2. Add each key/value pair individually
+  //   3. Required keys: TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER,
+  //      GOOGLE_MAPS_API_KEY, PLAID_CLIENT_ID, PLAID_SECRET,
+  //      PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET, PAYPAL_MODE, AYRSHARE_API_KEY
+  //
+  // NEVER put credential values in source code.
+  throw new Error('storeAllCredentials() is disabled. Set credentials via Apps Script editor > Project Properties > Script Properties.');
 }
 
 /**
@@ -35429,10 +35644,34 @@ function getInventoryProducts(params) {
       products = products.filter(p => p.Location === params.location);
     }
 
+    // Compute stock_status for each product based on Current_Qty vs Reorder_Point
+    var lowStockCount = 0;
+    products.forEach(function(p) {
+      var qty = parseFloat(p.Current_Qty) || 0;
+      var reorder = parseFloat(p.Reorder_Point) || 0;
+      if (qty <= 0) {
+        p.stock_status = 'Empty';
+        lowStockCount++;
+      } else if (reorder > 0 && qty <= reorder) {
+        p.stock_status = 'Low';
+        lowStockCount++;
+      } else if (reorder > 0 && qty <= reorder * 1.5) {
+        p.stock_status = 'Warning';
+      } else {
+        p.stock_status = 'In_Stock';
+      }
+    });
+
+    // Filter by stock status if specified
+    if (params && params.stockStatus && params.stockStatus !== 'all') {
+      products = products.filter(function(p) { return p.stock_status === params.stockStatus; });
+    }
+
     return {
       success: true,
       data: products,
       count: products.length,
+      lowStockCount: lowStockCount,
       categories: PRODUCT_CATEGORIES,
       locations: STORAGE_LOCATIONS
     };
@@ -35765,6 +36004,27 @@ function saveProduct(data) {
             id: data.Product_ID,
             message: 'Product updated',
             timestamp: now
+          };
+        }
+      }
+    }
+
+    // Check for duplicate product name (case-insensitive) before creating
+    var newName = String(data.Product_Name || '').trim().toLowerCase();
+    if (newName) {
+      var allRows = sheet.getDataRange().getValues();
+      var hdrs = allRows[0];
+      var nameCol = hdrs.indexOf('Product_Name');
+      var activeCol = hdrs.indexOf('Active');
+      for (var d = 1; d < allRows.length; d++) {
+        var existingName = String(allRows[d][nameCol] || '').trim().toLowerCase();
+        var isActive = allRows[d][activeCol];
+        if (existingName === newName && isActive !== false && isActive !== 'false' && isActive !== 'FALSE') {
+          var existingId = allRows[d][hdrs.indexOf('Product_ID')];
+          return {
+            success: false,
+            error: 'A product named "' + allRows[d][nameCol] + '" already exists (ID: ' + existingId + '). Use that Product_ID to update it instead.',
+            existingProductId: existingId
           };
         }
       }
@@ -37295,15 +37555,21 @@ function calculateSupplyNeeds(params) {
     const now = new Date();
     const futureDate = new Date(now.getTime() + daysAhead * 24 * 60 * 60 * 1000);
 
+    // Also read Tray_Cell_Count and Trays columns from planning data
+    var cellCountIdx = planningHeaders.indexOf('Tray_Cell_Count');
+    var traysIdx = planningHeaders.indexOf('Trays');
+
     const upcomingPlantings = [];
     for (let i = 1; i < planningData.length; i++) {
       const row = planningData[i];
       const sowDate = new Date(row[sowDateIdx]);
       const status = row[statusIdx] || '';
-      if (sowDate >= now && sowDate <= futureDate && status !== 'Completed' && status !== 'Cancelled') {
+      if (sowDate >= now && sowDate <= futureDate && status !== 'Completed' && status !== 'Cancelled' && status !== 'Deleted') {
         upcomingPlantings.push({
           crop: row[cropIdx],
           quantity: parseInt(row[qtyIdx]) || 0,
+          cellsPerTray: cellCountIdx >= 0 ? (parseInt(row[cellCountIdx]) || 72) : 72,
+          plannedTrays: traysIdx >= 0 ? (parseInt(row[traysIdx]) || 0) : 0,
           sowDate: sowDate,
           daysUntil: Math.ceil((sowDate - now) / (1000 * 60 * 60 * 24))
         });
@@ -37311,12 +37577,12 @@ function calculateSupplyNeeds(params) {
     }
 
     const supplyNeeds = { trays: { needed: 0, have: 0, deficit: 0 }, soil: { needed: 0, have: 0, deficit: 0, unit: 'bags' } };
-    const CELLS_PER_TRAY = 72;
     const SOIL_PER_TRAY = 0.5;
     const GERMINATION_BUFFER = 1.15;
 
     upcomingPlantings.forEach(p => {
-      const traysNeeded = Math.ceil((p.quantity * GERMINATION_BUFFER) / CELLS_PER_TRAY);
+      // Use actual tray cell count from PLANNING_2026, not hardcoded 72
+      var traysNeeded = p.plannedTrays > 0 ? p.plannedTrays : Math.ceil((p.quantity * GERMINATION_BUFFER) / p.cellsPerTray);
       supplyNeeds.trays.needed += traysNeeded;
       supplyNeeds.soil.needed += traysNeeded * SOIL_PER_TRAY;
     });
@@ -43698,7 +43964,30 @@ function createCSAMemberFromShopify(data) {
   if (getCol('Vacation_Weeks_Max') >= 0) rowData[getCol('Vacation_Weeks_Max')] = 4;
   if (getCol('Status') >= 0) rowData[getCol('Status')] = 'Active';
   if (getCol('Payment_Status') >= 0) rowData[getCol('Payment_Status')] = 'Paid';
-  if (getCol('Amount_Paid') >= 0) rowData[getCol('Amount_Paid')] = data.price * data.quantity;
+  // SECURITY FIX 2026-02-28: Server-side price lookup — never trust client-submitted prices
+  var serverPrice = 0;
+  try {
+    var prodSheet = ss.getSheetByName(SALES_SHEETS.CSA_PRODUCTS);
+    if (prodSheet) {
+      var prodData = prodSheet.getDataRange().getValues();
+      var prodHeaders = prodData[0];
+      var prodNameCol = prodHeaders.indexOf('Product_Name');
+      var prodPriceCol = prodHeaders.indexOf('Price');
+      var prodSizeCol = prodHeaders.indexOf('Size');
+      for (var p = 1; p < prodData.length; p++) {
+        if (prodData[p][prodNameCol] === data.shareInfo.type && prodData[p][prodSizeCol] === data.shareInfo.size) {
+          serverPrice = Number(prodData[p][prodPriceCol]) || 0;
+          break;
+        }
+      }
+    }
+    if (serverPrice <= 0) {
+      Logger.log('WARNING: Could not find server-side price for ' + data.shareInfo.type + '/' + data.shareInfo.size + '. Using 0.');
+    }
+  } catch (priceErr) {
+    Logger.log('Price lookup error: ' + priceErr.toString());
+  }
+  if (getCol('Amount_Paid') >= 0) rowData[getCol('Amount_Paid')] = serverPrice * (parseInt(data.quantity) || 1);
   if (getCol('Frequency') >= 0) rowData[getCol('Frequency')] = data.shareInfo.frequency;
   if (getCol('Biweekly_Week') >= 0) rowData[getCol('Biweekly_Week')] = biweeklyWeek;
   if (getCol('Veg_Code') >= 0) rowData[getCol('Veg_Code')] = vegCode;
@@ -46431,6 +46720,18 @@ function getDeliveryDrivers(params) {
 
 function authenticateDriver(params) {
   try {
+    var driverPin = (params.pin || '').toString().trim();
+
+    // SECURITY FIX 2026-02-28: Validate PIN format + rate limiting
+    if (!driverPin || driverPin.length !== 4 || !/^\d{4}$/.test(driverPin)) {
+      return { success: false, error: 'Please enter a 4-digit PIN' };
+    }
+
+    var rateCheck = checkAuthRateLimit('drv_' + driverPin);
+    if (rateCheck.blocked) {
+      return { success: false, error: rateCheck.error };
+    }
+
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(SALES_SHEETS.DRIVERS);
 
@@ -46443,7 +46744,7 @@ function authenticateDriver(params) {
     const pinCol = headers.indexOf('PIN');
 
     for (let i = 1; i < data.length; i++) {
-      if (data[i][pinCol] === params.pin) {
+      if ((data[i][pinCol] || '').toString().trim() === driverPin) {
         let driver = {};
         headers.forEach((h, j) => {
           if (h !== 'PIN') driver[h] = data[i][j];
@@ -46453,10 +46754,12 @@ function authenticateDriver(params) {
         const loginCol = headers.indexOf('Last_Login');
         sheet.getRange(i + 1, loginCol + 1).setValue(new Date().toISOString());
 
+        clearAuthFailures('drv_' + driverPin);
         return { success: true, driver: driver };
       }
     }
 
+    recordAuthFailure('drv_' + driverPin);
     return { success: false, error: 'Invalid PIN' };
   } catch (error) {
     return { success: false, error: error.toString() };
@@ -51261,6 +51564,12 @@ function authenticateEmployee(params) {
       return { success: false, error: 'Please enter a 4-digit PIN' };
     }
 
+    // SECURITY FIX 2026-02-28: Rate limiting on employee auth
+    var rateCheck = checkAuthRateLimit('emp_' + pin);
+    if (rateCheck.blocked) {
+      return { success: false, error: rateCheck.error };
+    }
+
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
 
     // FIRST: Always check USERS sheet (primary auth source)
@@ -51299,6 +51608,7 @@ function authenticateEmployee(params) {
           };
 
           // Check if clocked in
+          clearAuthFailures('emp_' + pin);
           const clockStatus = getClockStatus(employee.Employee_ID);
 
           return {
@@ -51407,6 +51717,7 @@ function authenticateEmployee(params) {
       }
     }
 
+    recordAuthFailure('emp_' + pin);
     return { success: false, error: 'Invalid PIN' };
   } catch (error) {
     return { success: false, error: error.toString() };
@@ -82907,6 +83218,15 @@ function getFlowerInventory(params) {
       return item;
     });
 
+  // Compute stock status for each item
+  items.forEach(function(item) {
+    var qty = parseFloat(item.Quantity) || 0;
+    if (qty <= 0) { item.stock_status = 'Empty'; }
+    else if (qty <= 5) { item.stock_status = 'Low'; }
+    else if (qty <= 15) { item.stock_status = 'Warning'; }
+    else { item.stock_status = 'In_Stock'; }
+  });
+
   // Filter by type if specified
   let filtered = items;
   if (params.itemType) {
@@ -82916,7 +83236,68 @@ function getFlowerInventory(params) {
     filtered = filtered.filter(i => i.Flower === params.flower);
   }
 
-  return { success: true, items: filtered, count: filtered.length };
+  // Aggregated mode: group by Flower+Variety
+  if (params.mode === 'aggregated') {
+    var groups = {};
+    filtered.forEach(function(item) {
+      var key = (item.Flower || 'Unknown') + '|' + (item.Variety || '');
+      if (!groups[key]) {
+        groups[key] = {
+          flower: item.Flower || 'Unknown',
+          variety: item.Variety || '',
+          itemType: item.Item_Type || '',
+          totalQuantity: 0,
+          totalValue: 0,
+          lotCount: 0,
+          locations: [],
+          conditions: [],
+          lots: [],
+          bestCondition: '',
+          latestDate: ''
+        };
+      }
+      var g = groups[key];
+      g.totalQuantity += parseFloat(item.Quantity) || 0;
+      g.totalValue += parseFloat(item.Total_Value) || 0;
+      g.lotCount++;
+      if (item.Location && g.locations.indexOf(item.Location) === -1) g.locations.push(item.Location);
+      if (item.Condition && g.conditions.indexOf(item.Condition) === -1) g.conditions.push(item.Condition);
+      if (item.Date_Acquired && item.Date_Acquired > g.latestDate) g.latestDate = item.Date_Acquired;
+      g.lots.push({
+        itemId: item.Item_ID,
+        quantity: parseFloat(item.Quantity) || 0,
+        unit: item.Unit || 'each',
+        location: item.Location || '',
+        condition: item.Condition || '',
+        source: item.Source || '',
+        costEach: parseFloat(item.Cost_Each) || 0,
+        dateAcquired: item.Date_Acquired || '',
+        stock_status: item.stock_status
+      });
+    });
+
+    var aggregated = Object.values(groups).map(function(g) {
+      if (g.totalQuantity <= 0) g.stock_status = 'Empty';
+      else if (g.totalQuantity <= 5) g.stock_status = 'Low';
+      else if (g.totalQuantity <= 15) g.stock_status = 'Warning';
+      else g.stock_status = 'In_Stock';
+      return g;
+    });
+
+    var lowStockCount = aggregated.filter(function(a) { return a.stock_status === 'Empty' || a.stock_status === 'Low'; }).length;
+
+    return {
+      success: true,
+      mode: 'aggregated',
+      varieties: aggregated,
+      uniqueCount: aggregated.length,
+      totalItems: filtered.length,
+      lowStockCount: lowStockCount
+    };
+  }
+
+  var lowStockCount = filtered.filter(function(i) { return i.stock_status === 'Empty' || i.stock_status === 'Low'; }).length;
+  return { success: true, items: filtered, count: filtered.length, lowStockCount: lowStockCount };
 }
 
 /**
@@ -95638,7 +96019,7 @@ function setupEmailCommandTrigger() {
 function serveEmailAIChat() {
   return HtmlService.createHtmlOutput(getEmailAIChatHTML())
     .setTitle('Tiny Seed Farm - Email AI')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.DEFAULT); // SECURITY FIX 2026-02-28: was ALLOWALL (clickjacking risk)
 }
 
 /**
@@ -101541,7 +101922,7 @@ function getMarketingCenterHTML() {
 function serveMarketingCenter() {
   return HtmlService.createHtmlOutput(getMarketingCenterHTML())
     .setTitle('Marketing Command Center - Tiny Seed Farm')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.DEFAULT); // SECURITY FIX 2026-02-28: was ALLOWALL (clickjacking risk)
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════════
@@ -102043,7 +102424,7 @@ function getQuickStartHTML() {
 function serveQuickStart() {
   return HtmlService.createHtmlOutput(getQuickStartHTML())
     .setTitle('Tiny Seed OS - Command Center')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.DEFAULT); // SECURITY FIX 2026-02-28: was ALLOWALL (clickjacking risk)
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

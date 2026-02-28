@@ -38,7 +38,7 @@ const TINY_SEED_API = {
     // - API restrictions (Maps JavaScript API only)
     // See: docs/SECURITY_API_KEY_REMEDIATION.md
     // ═══════════════════════════════════════════════════════════════════════════
-    GOOGLE_MAPS_API_KEY: window.TINY_SEED_CONFIG?.GOOGLE_MAPS_API_KEY || '',
+    GOOGLE_MAPS_API_KEY: window.TINY_SEED_CONFIG?.GOOGLE_MAPS_API_KEY || 'AIzaSyBide6XYIFMAhM49Df4fH_7Bdb2P6ZyBZM',
 
     // Farm location - 257 Zeigler Rd, Rochester, PA 15074
     FARM_LOCATION: {

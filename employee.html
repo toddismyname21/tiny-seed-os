@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://maps.googleapis.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; img-src 'self' data: blob: https:; connect-src 'self' https://script.google.com https://maps.googleapis.com https://*.supabase.co; frame-src 'self' https://www.google.com;">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -19,7 +20,18 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="web_app/tiny-seed-design-system.css">
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBide6XYIFMAhM49Df4fH_7Bdb2P6ZyBZM" async defer></script>
+    <script>
+    // Load Google Maps dynamically using key from api-config.js (TINY_SEED_API.GOOGLE_MAPS_API_KEY)
+    (function() {
+        var k = (typeof TINY_SEED_API !== 'undefined' && TINY_SEED_API.GOOGLE_MAPS_API_KEY) || '';
+        if (k) {
+            var s = document.createElement('script');
+            s.src = 'https://maps.googleapis.com/maps/api/js?key=' + k;
+            s.async = true; s.defer = true;
+            document.head.appendChild(s);
+        }
+    })();
+    </script>
     <!-- QR/Barcode Scanner Library -->
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
@@ -15904,7 +15916,8 @@
 
                 if (!AppState.isClockedIn) {
                     // Clock In
-                    const response = await fetch(`${CONFIG.API_URL}?action=clockIn&employeeId=${AppState.employee.Employee_ID}&lat=${gps.lat || ''}&lng=${gps.lng || ''}&mode=${mode}`);
+                    const gpsParams = gps.lat != null ? `&lat=${gps.lat}&lng=${gps.lng}` : '';
+                    const response = await fetch(`${CONFIG.API_URL}?action=clockIn&employeeId=${AppState.employee.Employee_ID}${gpsParams}&mode=${mode}`);
                     const data = await response.json();
 
                     if (data.success) {
@@ -15924,7 +15937,8 @@
                     }
                 } else {
                     // Clock Out
-                    const response = await fetch(`${CONFIG.API_URL}?action=clockOut&employeeId=${AppState.employee.Employee_ID}&lat=${gps.lat || ''}&lng=${gps.lng || ''}&mode=${mode}`);
+                    const gpsParamsOut = gps.lat != null ? `&lat=${gps.lat}&lng=${gps.lng}` : '';
+                    const response = await fetch(`${CONFIG.API_URL}?action=clockOut&employeeId=${AppState.employee.Employee_ID}${gpsParamsOut}&mode=${mode}`);
                     const data = await response.json();
 
                     if (data.success) {
@@ -20001,14 +20015,14 @@
             showLoading();
             try {
                 // Get GPS from hidden fields or capture fresh
-                let lat = document.getElementById('scoutGpsLat')?.value || '';
-                let lng = document.getElementById('scoutGpsLng')?.value || '';
+                let lat = document.getElementById('scoutGpsLat')?.value || null;
+                let lng = document.getElementById('scoutGpsLng')?.value || null;
 
                 // If no cached GPS, capture now
                 if (!lat || !lng) {
                     const gps = await captureGPS();
-                    lat = gps.lat || '';
-                    lng = gps.lng || '';
+                    lat = gps.lat || null;
+                    lng = gps.lng || null;
                 }
 
                 // Get library selection for identification
@@ -21286,10 +21300,9 @@
             AppState.lastCompletedTask = null;
         }
 
-        // Legacy completeTask function (redirect to v2)
-        async function completeTask(taskId) {
-            await completeTaskV2(taskId);
-        }
+        // completeTask is defined at line ~15585 for work order timer flow.
+        // completeTaskV2 handles the standard task completion flow.
+        // Callers should use the appropriate function directly.
 
         // ============================================
         // CAMERA

@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://maps.googleapis.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; img-src 'self' data: blob: https:; connect-src 'self' https://script.google.com https://maps.googleapis.com https://*.supabase.co; frame-src 'self' https://www.google.com;">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#22c55e">
@@ -1311,9 +1312,9 @@
             { hours: 800, bonus: 200, label: 'Season Complete' }
         ];
 
-        // Blackout period (no time off)
-        const BLACKOUT_START = '04-15';
-        const BLACKOUT_END = '06-30';
+        // Blackout period (no time off) — configurable via localStorage
+        const BLACKOUT_START = localStorage.getItem('tsf_blackout_start') || '04-15';
+        const BLACKOUT_END = localStorage.getItem('tsf_blackout_end') || '06-30';
 
         // ====================================
         // INITIALIZATION
@@ -1519,7 +1520,7 @@
                         employeeId: emp.Employee_ID || emp.User_ID || emp.id,
                         name: emp.Full_Name || emp.fullName || emp.name || emp.Name || `${emp.First_Name || emp.firstName || ''} ${emp.Last_Name || emp.lastName || ''}`.trim(),
                         role: emp.Role || emp.role || 'Staff',
-                        totalHours: emp.Total_Hours || emp.totalHours || Math.floor(Math.random() * 500),
+                        totalHours: emp.Total_Hours || emp.totalHours || 0,
                         sickAccrued: emp.Sick_Accrued || Math.floor((emp.Total_Hours || 200) / 40),
                         sickUsed: emp.Sick_Used || 0,
                         vacationUsed: emp.Vacation_Used || 0,
@@ -1751,7 +1752,7 @@
         function getConflicts(employeeId, startDate, endDate) {
             const conflicts = [];
             timeOffRequests.forEach(req => {
-                if (req.employeeId !== employeeId && req.status === 'approved') {
+                if (req.employeeId !== employeeId && (req.status === 'approved' || req.status === 'pending')) {
                     if (startDate <= req.endDate && endDate >= req.startDate) {
                         const emp = employees.find(e => (e.Employee_ID || e.User_ID || e.id) === req.employeeId);
                         if (emp) {
@@ -2290,6 +2291,18 @@
 
             if (!employeeId || !startDate || !endDate) {
                 showToast('Please fill in all required fields', 'error');
+                return;
+            }
+
+            if (new Date(endDate) < new Date(startDate)) {
+                showToast('End date must be on or after start date', 'error');
+                return;
+            }
+
+            // Max 30 days per request
+            const daysDiff = Math.ceil((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24)) + 1;
+            if (daysDiff > 30) {
+                showToast('Time off requests cannot exceed 30 days', 'error');
                 return;
             }
 

@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
 <head>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://maps.googleapis.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; img-src 'self' data: blob: https:; connect-src 'self' https://script.google.com https://maps.googleapis.com https://*.supabase.co; frame-src 'self' https://www.google.com;">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -599,10 +600,10 @@
                                     ${ROLES.map(r => `<option value="${r}">${r}</option>`).join('')}
                                 </select>
                             </div>
-                            <button class="btn btn-approve" onclick="approveEmployee('${emp.userId}')">
+                            <button class="btn btn-approve" onclick="approveEmployee('${emp.userId}', event)">
                                 <i class="fas fa-check"></i> Approve
                             </button>
-                            <button class="btn btn-reject" onclick="rejectEmployee('${emp.userId}')">
+                            <button class="btn btn-reject" onclick="rejectEmployee('${emp.userId}', event)">
                                 <i class="fas fa-times"></i> Reject
                             </button>
                         </div>
@@ -628,7 +629,7 @@
             });
         }
 
-        async function approveEmployee(userId) {
+        async function approveEmployee(userId, e) {
             const roleSelect = document.getElementById(`role-${userId}`);
             const role = roleSelect.value;
 
@@ -638,7 +639,7 @@
                 return;
             }
 
-            const btn = event.target.closest('.btn-approve');
+            const btn = e.target.closest('.btn-approve');
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Approving...';
 
@@ -675,12 +676,12 @@
             }
         }
 
-        async function rejectEmployee(userId) {
+        async function rejectEmployee(userId, e) {
             if (!confirm('Are you sure you want to reject this employee? They will need to be re-invited.')) {
                 return;
             }
 
-            const btn = event.target.closest('.btn-reject');
+            const btn = e.target.closest('.btn-reject');
             btn.disabled = true;
 
             try {

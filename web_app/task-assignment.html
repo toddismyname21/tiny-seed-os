@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://maps.googleapis.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; img-src 'self' data: blob: https:; connect-src 'self' https://script.google.com https://maps.googleapis.com https://*.supabase.co; frame-src 'self' https://www.google.com;">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Task Assignment - Tiny Seed Farm</title>
@@ -1029,6 +1030,16 @@
         <i class="fas fa-plus"></i>
     </button>
 
+    <!-- Employee Picker Modal for Bulk Assign -->
+    <div id="employeePickerModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:200; align-items:center; justify-content:center;">
+        <div style="background:var(--bg-secondary, #201e1b); border-radius:var(--ts-radius-lg, 16px); padding:var(--ts-space-6, 24px); width:min(90vw, 400px); max-height:70vh; display:flex; flex-direction:column; border:1px solid var(--border-color, rgba(255,255,255,0.06));">
+            <h3 style="margin-bottom:var(--ts-space-4, 16px); font-size:var(--ts-text-lg, 1.125rem);">Assign Tasks To</h3>
+            <input type="text" id="employeePickerSearch" placeholder="Search employees..." style="width:100%; padding:10px 12px; border:1px solid var(--border-color); border-radius:var(--ts-radius-sm, 8px); background:var(--bg-input, #141211); color:var(--text-primary); font-size:var(--ts-text-sm, 0.875rem); margin-bottom:var(--ts-space-3, 12px);">
+            <div id="employeePickerList" style="overflow-y:auto; flex:1; min-height:0;"></div>
+            <button onclick="closeEmployeePicker()" style="margin-top:var(--ts-space-3, 12px); padding:10px; border:1px solid var(--border-color); border-radius:var(--ts-radius-sm, 8px); background:transparent; color:var(--text-secondary); cursor:pointer; font-size:var(--ts-text-sm, 0.875rem);">Cancel</button>
+        </div>
+    </div>
+
     <!-- Toast -->
     <div class="toast" id="toast"></div>
 
@@ -1197,7 +1208,7 @@
                 // Add overdue tasks from TASKS sheet (TASKS_2026)
                 if (overdueData.success && overdueData.tasks) {
                     const overdueTasks = overdueData.tasks.map((t, idx) => ({
-                        id: t.taskId || ('OVERDUE-TASK-' + idx),
+                        id: t.taskId || ('OD-' + (t.dueDate || '').replace(/\D/g, '') + '-' + idx),
                         title: t.task || 'Overdue Task',
                         description: `${t.daysOverdue} days overdue`,
                         assignedTo: '',
@@ -1935,12 +1946,49 @@
                 return;
             }
 
-            // Show employee picker modal (reuse existing form)
-            const employeeId = prompt('Enter employee ID to assign tasks to:');
-            if (!employeeId) return;
+            // Show employee picker modal
+            openEmployeePicker(taskIds);
+        }
 
-            const employee = employees.find(e => e.User_ID === employeeId);
-            const employeeName = employee ? (employee.Full_Name || employee.Username) : employeeId;
+        function openEmployeePicker(taskIds) {
+            const modal = document.getElementById('employeePickerModal');
+            modal.style.display = 'flex';
+            modal._taskIds = taskIds;
+
+            const search = document.getElementById('employeePickerSearch');
+            search.value = '';
+            search.focus();
+            search.oninput = () => renderEmployeePickerList(search.value.toLowerCase());
+
+            renderEmployeePickerList('');
+
+            // Close on backdrop click
+            modal.onclick = (e) => { if (e.target === modal) closeEmployeePicker(); };
+        }
+
+        function renderEmployeePickerList(query) {
+            const list = document.getElementById('employeePickerList');
+            const filtered = query
+                ? employees.filter(e => ((e.Full_Name || e.Username || '') + (e.User_ID || '')).toLowerCase().includes(query))
+                : employees;
+
+            list.innerHTML = filtered.map(e => {
+                const name = e.Full_Name || e.Username || e.User_ID;
+                const role = e.Role || '';
+                return `<div onclick="selectEmployeeForBulkAssign('${e.User_ID}', '${(name || '').replace(/'/g, "\\'")}')" style="padding:12px; cursor:pointer; border-radius:var(--ts-radius-sm, 8px); display:flex; justify-content:space-between; align-items:center; transition:background 120ms;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'">
+                    <span style="font-weight:500;">${name}</span>
+                    <span style="font-size:var(--ts-text-xs, 0.75rem); color:var(--text-muted);">${role}</span>
+                </div>`;
+            }).join('') || '<p style="padding:12px; color:var(--text-muted);">No employees found</p>';
+        }
+
+        function closeEmployeePicker() {
+            document.getElementById('employeePickerModal').style.display = 'none';
+        }
+
+        async function selectEmployeeForBulkAssign(employeeId, employeeName) {
+            closeEmployeePicker();
+            const taskIds = document.getElementById('employeePickerModal')._taskIds;
 
             try {
                 showToast(`Assigning ${taskIds.length} tasks...`, 'success');
@@ -2050,7 +2098,7 @@
                     }
                 } catch (error) {
                     console.error('Error recording seeding date for task:', task.title, error);
-                    // Don't fail the whole operation for seeding date recording errors
+                    showToast(`Warning: Could not record seeding date for ${task.title}`, 'error');
                 }
             }
         }

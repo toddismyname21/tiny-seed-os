@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://maps.googleapis.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; img-src 'self' data: blob: https:; connect-src 'self' https://script.google.com https://maps.googleapis.com https://*.supabase.co; frame-src 'self' https://www.google.com;">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="mobile-web-app-capable" content="yes">
@@ -668,6 +669,19 @@
             .quick-link {
                 min-width: 100%;
             }
+
+            .form-row {
+                flex-direction: column;
+            }
+
+            .form-group {
+                min-width: 100%;
+            }
+
+            .approval-form .btn {
+                width: 100%;
+                justify-content: center;
+            }
         }
 
         /* Card hover polish */
@@ -927,19 +941,19 @@
                     <h4 style="font-size: var(--ts-text-xs, 0.75rem); color: var(--info); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: var(--ts-space-3, 12px);"><i class="fas fa-lock"></i> Access Permissions</h4>
                     <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--ts-space-2, 10px);">
                         <label style="display: flex; align-items: center; gap: var(--ts-space-2, 8px); font-size: var(--ts-text-xs, 0.8rem); cursor: pointer;">
-                            <input type="checkbox" id="editTractorMode" style="width: 18px; height: 18px; accent-color: var(--primary);">
+                            <input type="checkbox" id="editTractorMode" style="width: 24px; height: 24px; accent-color: var(--primary); cursor: pointer;">
                             <span>Tractor Mode</span>
                         </label>
                         <label style="display: flex; align-items: center; gap: var(--ts-space-2, 8px); font-size: var(--ts-text-xs, 0.8rem); cursor: pointer;">
-                            <input type="checkbox" id="editGarageMode" style="width: 18px; height: 18px; accent-color: var(--primary);">
+                            <input type="checkbox" id="editGarageMode" style="width: 24px; height: 24px; accent-color: var(--primary); cursor: pointer;">
                             <span>Garage Mode</span>
                         </label>
                         <label style="display: flex; align-items: center; gap: var(--ts-space-2, 8px); font-size: var(--ts-text-xs, 0.8rem); cursor: pointer;">
-                            <input type="checkbox" id="editInventoryMode" style="width: 18px; height: 18px; accent-color: var(--primary);">
+                            <input type="checkbox" id="editInventoryMode" style="width: 24px; height: 24px; accent-color: var(--primary); cursor: pointer;">
                             <span>Inventory Mode</span>
                         </label>
                         <label style="display: flex; align-items: center; gap: var(--ts-space-2, 8px); font-size: var(--ts-text-xs, 0.8rem); cursor: pointer;">
-                            <input type="checkbox" id="editCostingMode" style="width: 18px; height: 18px; accent-color: var(--primary);">
+                            <input type="checkbox" id="editCostingMode" style="width: 24px; height: 24px; accent-color: var(--primary); cursor: pointer;">
                             <span>Costing Mode</span>
                         </label>
                     </div>
@@ -1009,10 +1023,10 @@
                 let response = await fetch(`${API_URL}?action=getAllEmployees`);
                 let data = await response.json();
 
-                if (data.success && data.employees && data.employees.length > 0) {
+                if (data.success && data.employees) {
                     employees = data.employees;
                 } else {
-                    // Fall back to getPendingEmployees
+                    showToast('Employee list unavailable — showing pending only', 'error');
                     response = await fetch(`${API_URL}?action=getPendingEmployees`);
                     data = await response.json();
                     employees = data.employees || [];
@@ -1203,19 +1217,19 @@
                             <h5 style="font-size: var(--ts-text-xs, 0.75rem); color: var(--info); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px;"><i class="fas fa-lock"></i> Access Permissions</h5>
                             <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--ts-space-2, 10px);">
                                 <label style="display: flex; align-items: center; gap: var(--ts-space-2, 8px); font-size: var(--ts-text-xs, 0.8rem); cursor: pointer;">
-                                    <input type="checkbox" id="tractor-${userId}" style="width: 18px; height: 18px; accent-color: var(--primary);">
+                                    <input type="checkbox" id="tractor-${userId}" style="width: 24px; height: 24px; accent-color: var(--primary); cursor: pointer;">
                                     <span>Tractor Mode</span>
                                 </label>
                                 <label style="display: flex; align-items: center; gap: var(--ts-space-2, 8px); font-size: var(--ts-text-xs, 0.8rem); cursor: pointer;">
-                                    <input type="checkbox" id="garage-${userId}" style="width: 18px; height: 18px; accent-color: var(--primary);">
+                                    <input type="checkbox" id="garage-${userId}" style="width: 24px; height: 24px; accent-color: var(--primary); cursor: pointer;">
                                     <span>Garage Mode</span>
                                 </label>
                                 <label style="display: flex; align-items: center; gap: var(--ts-space-2, 8px); font-size: var(--ts-text-xs, 0.8rem); cursor: pointer;">
-                                    <input type="checkbox" id="inventory-${userId}" style="width: 18px; height: 18px; accent-color: var(--primary);">
+                                    <input type="checkbox" id="inventory-${userId}" style="width: 24px; height: 24px; accent-color: var(--primary); cursor: pointer;">
                                     <span>Inventory Mode</span>
                                 </label>
                                 <label style="display: flex; align-items: center; gap: var(--ts-space-2, 8px); font-size: var(--ts-text-xs, 0.8rem); cursor: pointer;">
-                                    <input type="checkbox" id="costing-${userId}" style="width: 18px; height: 18px; accent-color: var(--primary);">
+                                    <input type="checkbox" id="costing-${userId}" style="width: 24px; height: 24px; accent-color: var(--primary); cursor: pointer;">
                                     <span>Costing Mode</span>
                                 </label>
                             </div>
@@ -1266,7 +1280,12 @@
             }
 
             const hourlyRate = rateInput.value || '';
-            const badgePin = pinInput.value || '0000';
+            const badgePin = pinInput.value || '';
+            if (badgePin && !/^\d{4}$/.test(badgePin)) {
+                showToast('Badge PIN must be exactly 4 digits', 'error');
+                pinInput.focus();
+                return;
+            }
 
             // Get mode permissions
             const tractorMode = document.getElementById(`tractor-${userId}`)?.checked || false;
