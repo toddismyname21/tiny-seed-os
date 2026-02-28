@@ -7,7 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
+    <script src="web_app/print-engine.js"></script>
     <script src="web_app/auth-guard.js" data-required-role="Manager"></script>
     <style>
         :root {
@@ -2408,13 +2408,28 @@
 
         // ============ UL-247 THERMAL PRINTER PRINT FUNCTIONS ============
 
-        // Override executePrint to handle thermal printer formats
+        // Override executePrint to use TinySeedPrint engine for thermal labels
         const originalExecutePrint = executePrint;
         executePrint = function() {
-            if (currentLabelType === 'potTag') {
-                executePrintUL247PotTagsPDF();
-            } else if (currentLabelType === 'fieldTray') {
-                executePrintUL247FieldTrayPDF();
+            if (currentLabelType === 'potTag' || currentLabelType === 'fieldTray') {
+                var labelsToprint = labels.filter(function(l) { return selectedLabels.has(l.labelId); });
+                if (labelsToprint.length === 0) { showToast('No labels selected'); return; }
+                // Map label data for print engine (add qrData for QR generation)
+                var printData = labelsToprint.map(function(l) {
+                    var d = Object.assign({}, l);
+                    d.qrData = getQRData(l);
+                    return d;
+                });
+                TinySeedPrint.label({
+                    format: currentLabelType,
+                    data: printData,
+                    preview: true
+                }).then(function() {
+                    closePrintPreview();
+                    showToast(labelsToprint.length + ' ' + currentLabelType + ' labels ready');
+                }).catch(function(err) {
+                    showToast('PDF error: ' + err.message);
+                });
             } else {
                 originalExecutePrint();
             }
