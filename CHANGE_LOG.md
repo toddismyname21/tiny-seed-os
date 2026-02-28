@@ -38,6 +38,51 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-02-28 — QZ Tray Integration: One-Click Thermal Label Printing
+
+**Role:** PM_Architect
+**Deploy:** Frontend (git push)
+
+### Files Modified
+- `labels.html` — Full QZ Tray integration for direct thermal printing (+511 lines)
+
+### Functions Added
+- `QZPrint` module (IIFE) — Connection management, printer discovery, direct PDF printing, test labels, format settings (localStorage)
+- `buildFieldTrayPDF(labelsToprint)` — Returns Promise<base64> for 4"×1" field tray labels
+- `buildPotTagPDF(labelsToprint)` — Returns Promise<base64> for 1"×4.5" pot tag labels
+- `showSetupWizard()` — In-app step-by-step QZ Tray installation guide for any computer
+- `showFormatAdjust()` — Label alignment UI with X/Y offset sliders (-10 to +10pt)
+- `saveFmtSettings()` — Saves alignment offsets to localStorage per label type
+- `saveFmtAndTest()` — Saves alignment + prints test label
+
+### Functions Modified
+- `executePrint` override — Now tries QZ Tray direct print first, falls back to PDF viewer
+- `openPrintPreview` override — Shows QZ Tray status, printer selector, alignment controls when connected; shows setup prompt + PDF info when not connected
+- `switchLabelType` — Wrapped to show/hide printer settings panel for thermal types
+
+### HTML Changes
+- CSP connect-src: Added `wss://localhost:* ws://localhost:* wss://127.0.0.1:* ws://127.0.0.1:*`
+- Script tag: Added `qz-tray@2.2.4/qz-tray.js` CDN
+- Sidebar: Added "Thermal Printer" settings panel (status badge, printer dropdown, setup/alignment links)
+- CSS: Added `.qz-status-badge`, `.printer-settings-panel`, `.setup-step-card` styles
+
+### Architecture
+- Print flow: [Click Print] → QZ Tray connected? → Direct print via WebSocket → No dialog
+- Fallback: QZ Tray not installed → PDF opens in viewer → Manual print
+- QZ Tray bridges web app to local printer via WebSocket (wss://localhost:8181)
+- Alignment offsets saved to localStorage per label type, applied as margins in QZ Tray config
+- Auto-connects to QZ Tray silently on page load (1.5s delay)
+
+### Reason
+User needs to print thermal labels (UL-247 pot tags + field tray labels) from any computer without fighting browser print dialogs or paper size settings. QZ Tray is open-source, free, cross-platform (Mac/Win/Linux), and enables zero-dialog printing from any browser.
+
+### Duplicate Check
+- [x] Checked SYSTEM_INVENTORY.md — no existing QZ Tray integration
+- [x] Searched for similar functions — buildFieldTrayPDF/buildPotTagPDF are new; existing executePrintUL247*PDF functions kept as fallback
+- [x] No duplicates created
+
+---
+
 ## 2026-02-28 — Greenhouse Dashboard Audit: 7 Bug Fixes
 
 **Role:** PM_Architect
