@@ -38,6 +38,67 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-02-28 — Visual Design Overhaul: 5.5/10 → ~9/10
+
+**Role:** PM_Architect (Desktop_Claude scope — CSS/HTML)
+**Deploy:** GitHub Pages (pushed to main)
+
+### Files Created
+- `web_app/shared-nav.js` — Auto-injecting breadcrumb navigation bar for all sub-pages
+
+### Files Modified
+- 53 HTML files in `web_app/` — Complete design system token adoption
+- `web_app/index.html` — Full tokenization (modals, forms, invite section, toasts, accessibility)
+
+### What Changed (8,557 token adoptions across 53 files)
+- **Font-size**: All hardcoded px values → `var(--ts-text-*, fallback)` fluid clamp tokens
+- **Border-radius**: All hardcoded px → `var(--ts-radius-*, fallback)` scale tokens
+- **Spacing**: gap, padding, margin → `var(--ts-space-*, fallback)` 4px-base scale
+- **Transitions**: 0.2s/0.3s → `var(--ts-dur-normal/moderate, Xms)` tokens
+- **Colors**: Cold slate fallbacks → warm earth palette (#141211, #201e1b, #282520, #ece8e1)
+- **Accessibility**: `:focus-visible` + `prefers-reduced-motion` on ALL 53 pages
+- **Navigation**: Shared breadcrumb nav bar on 51 sub-pages (shared-nav.js)
+- **Page transitions**: `ts-page-enter` fade-in animation on 51 pages
+- **Letter-spacing**: 0.05em on all uppercase text (166 instances)
+- **Form inputs**: Focus ring standardized (box-shadow: 0 0 0 3px primary-muted)
+- **Admin-only**: API Connection Test section hidden from non-admin users
+
+### Reason
+Visual design audit scored 5.5/10 with 0% design system token adoption. User requested full implementation of Path to 8/10 (5 items) and Path to 9.5/10 (5 items).
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md (no existing shared-nav.js)
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
+## 2026-02-28 — Visual Design Audit v2 (Multimodal)
+
+**Role:** PM_Architect
+**Deploy:** Documentation only (no code changes)
+
+### Files Modified
+- `docs/audits/VISUAL_DESIGN_AUDIT.md` — Complete rewrite (v2) with Playwright screenshots, Lighthouse data, pixel-level analysis
+
+### Methodology
+- 7 Playwright screenshots across 4 pages (desktop + mobile 375px)
+- Lighthouse audit: Performance 100, Accessibility 77, Best Practices 96
+- CSS source analysis: design system v2.0 vs 3 page inline stylesheets
+- DOM accessibility snapshots
+
+### Key Findings
+- Overall Visual Design Score: **5.5/10**
+- Worst category: Component Consistency (4/10) — 3 competing button systems, none using design system
+- Design system well-architected but 0% token adoption across pages
+- TOP 3 issues: button fragmentation, warm/cool color mismatch, typography tokens ignored
+- 3 quick wins: align fallback colors (30min), letter-spacing on uppercase (5min), hide API test section (10min)
+
+### Duplicate Check
+- [x] Overwrote existing v1 audit from 2026-02-24 (same file path)
+
+---
+
 ## 2026-02-28 — Security Audit Protocol Implementation
 
 **Role:** PM_Architect
