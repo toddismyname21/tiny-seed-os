@@ -6,7 +6,8 @@
     <title>Greenhouse Labels - Tiny Seed OS</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
     <script src="web_app/auth-guard.js" data-required-role="Manager"></script>
     <style>
         :root {
@@ -1269,6 +1270,14 @@
             document.getElementById('startDate').value = today.toISOString().split('T')[0];
             document.getElementById('endDate').value = sixtyDays.toISOString().split('T')[0];
 
+            // Reload seedings when date range changes
+            document.getElementById('startDate').addEventListener('change', function() {
+                loadSeedings();
+            });
+            document.getElementById('endDate').addEventListener('change', function() {
+                loadSeedings();
+            });
+
             // Check for auto-print URL params (from greenhouse dashboard mark-sown flow)
             const urlParams = new URLSearchParams(window.location.search);
             const autoBatch = urlParams.get('batch');
@@ -1402,6 +1411,13 @@
                 return;
             }
 
+            // Sort alphabetically by crop name, then variety
+            seedingData.sort(function(a, b) {
+                var cropCmp = (a.crop || '').localeCompare(b.crop || '');
+                if (cropCmp !== 0) return cropCmp;
+                return (a.variety || '').localeCompare(b.variety || '');
+            });
+
             let html = '';
             seedingData.forEach(seeding => {
                 const isSelected = selectedSeedings.has(seeding.id);
@@ -1502,6 +1518,15 @@
                     }
                     totalTrays += seeding.trays;
                 }
+            });
+
+            // Sort labels alphabetically by crop, then variety, then tray number
+            labels.sort(function(a, b) {
+                var cropCmp = (a.crop || '').localeCompare(b.crop || '');
+                if (cropCmp !== 0) return cropCmp;
+                var varCmp = (a.variety || '').localeCompare(b.variety || '');
+                if (varCmp !== 0) return varCmp;
+                return (a.trayNumber || 0) - (b.trayNumber || 0);
             });
 
             document.getElementById('totalLabelsCount').textContent = labels.length;
@@ -1780,7 +1805,7 @@
                             body { padding: 0; }
                         }
                     </style>
-                    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"><\/script>
+                    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"><\/script>
                 </head>
                 <body>
                     <div class="labels-grid">
@@ -1809,6 +1834,17 @@
                         })))};
 
                         window.onload = function() {
+                            var qrTotal = labelsData.length;
+                            var qrDone = 0;
+                            var printTriggered = false;
+                            function checkAndPrint() {
+                                qrDone++;
+                                if (qrDone >= qrTotal && !printTriggered) {
+                                    printTriggered = true;
+                                    setTimeout(function() { window.print(); }, 200);
+                                }
+                            }
+
                             labelsData.forEach(item => {
                                 const container = document.getElementById('qr-' + item.index);
                                 if (container && item.qrData) {
@@ -1820,14 +1856,17 @@
                                         if (!error) {
                                             container.appendChild(canvas);
                                         }
+                                        checkAndPrint();
                                     });
+                                } else {
+                                    checkAndPrint();
                                 }
                             });
 
-                            // Auto-print after QR codes are generated
+                            // Safety: if QR rendering takes too long, print anyway after 3s
                             setTimeout(function() {
-                                window.print();
-                            }, 500);
+                                if (!printTriggered) { printTriggered = true; window.print(); }
+                            }, 3000);
                         };
                     <\/script>
                 </body>
@@ -2373,9 +2412,9 @@
         const originalExecutePrint = executePrint;
         executePrint = function() {
             if (currentLabelType === 'potTag') {
-                executePrintUL247PotTags();
+                executePrintUL247PotTagsPDF();
             } else if (currentLabelType === 'fieldTray') {
-                executePrintUL247FieldTray();
+                executePrintUL247FieldTrayPDF();
             } else {
                 originalExecutePrint();
             }
@@ -2553,7 +2592,7 @@
                             }
                         }
                     </style>
-                    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"><\/script>
+                    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"><\/script>
                 </head>
                 <body>
                     <div class="print-setup" id="printSetup">
@@ -2822,7 +2861,7 @@
                             }
                         }
                     </style>
-                    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"><\/script>
+                    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"><\/script>
                 </head>
                 <body>
                     <div class="print-setup" id="printSetup">
@@ -2924,6 +2963,202 @@
             closePrintPreview();
         }
 
+        // ============ jsPDF-BASED THERMAL LABEL PRINTING ============
+        // Generates PDFs at exact label dimensions so the print dialog
+        // shows the correct page size automatically — no custom paper setup needed.
+
+        function executePrintUL247FieldTrayPDF() {
+            var labelsToprint = labels.filter(function(l) { return selectedLabels.has(l.labelId); });
+            if (labelsToprint.length === 0) { showToast('No labels selected'); return; }
+            if (!window.jspdf) { showToast('PDF library loading -- try again in a moment'); return; }
+
+            // Open window synchronously (within click gesture) to avoid popup blocker
+            var printWindow = window.open('', '_blank');
+            if (!printWindow) { showToast('Popup blocked -- allow popups for this site'); return; }
+            printWindow.document.write('<html><body style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#666"><p>Generating labels PDF...</p></body></html>');
+
+            var qrPromises = labelsToprint.map(function(label) {
+                return new Promise(function(resolve) {
+                    var qrData = getQRData(label);
+                    if (!qrData) { resolve(null); return; }
+                    var canvas = document.createElement('canvas');
+                    QRCode.toCanvas(canvas, String(qrData), {
+                        width: 164, margin: 0, errorCorrectionLevel: 'M'
+                    }, function(error) {
+                        resolve(error ? null : canvas.toDataURL('image/png'));
+                    });
+                });
+            });
+
+            Promise.all(qrPromises).then(function(qrImages) {
+                var W = 288, H = 72; // 4in x 1in in points (72pt/in)
+                var doc = new window.jspdf.jsPDF({ unit: 'pt', format: [W, H] });
+
+                labelsToprint.forEach(function(label, i) {
+                    if (i > 0) doc.addPage([W, H]);
+
+                    // QR code on left
+                    var qrSz = 61;
+                    if (qrImages[i]) {
+                        doc.addImage(qrImages[i], 'PNG', 6, (H - qrSz) / 2, qrSz, qrSz);
+                    }
+
+                    var tx = 75; // text start (after QR + gap)
+                    var rx = W - 6; // right edge
+
+                    // Crop - bold 13pt
+                    doc.setTextColor(0, 0, 0);
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(13);
+                    doc.text(label.crop || '', tx, 17);
+
+                    // Variety - 9pt
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(9);
+                    doc.setTextColor(51, 51, 51);
+                    doc.text(label.variety || '', tx, 29);
+
+                    // Batch - 7pt monospace
+                    doc.setFont('courier', 'normal');
+                    doc.setFontSize(7);
+                    doc.setTextColor(85, 85, 85);
+                    doc.text((label.batchNumber || '') + ' T' + (label.trayNumber || ''), tx, 40);
+
+                    // Dates - 7pt
+                    doc.setFont('helvetica', 'normal');
+                    doc.setTextColor(68, 68, 68);
+                    var ds = 'Sow: ' + formatDate(label.seedDate) + '  ->  TP: ' + formatDate(label.transplantDate);
+                    if (label.field) ds += '  @  ' + label.field;
+                    doc.text(ds, tx, 51);
+
+                    // Right column - tray info
+                    var tsd = formatTraySize(label.cellsPerTray, label.paperpotSpacing);
+                    doc.setTextColor(0, 0, 0);
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(12);
+                    doc.text(tsd, rx, 19, { align: 'right' });
+
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(8);
+                    doc.setTextColor(68, 68, 68);
+                    doc.text('Tray ' + (label.trayNumber || '') + '/' + (label.trays || ''), rx, 33, { align: 'right' });
+
+                    if (label.field) {
+                        doc.setFontSize(7);
+                        doc.setTextColor(85, 85, 85);
+                        doc.text(label.field, rx, 45, { align: 'right' });
+                    }
+                });
+
+                printWindow.location.href = doc.output('bloburl');
+                closePrintPreview();
+                showToast(labelsToprint.length + ' field tray labels ready -- print from PDF viewer');
+            }).catch(function(err) {
+                printWindow.close();
+                showToast('PDF error: ' + err.message);
+            });
+        }
+
+        function executePrintUL247PotTagsPDF() {
+            var labelsToprint = labels.filter(function(l) { return selectedLabels.has(l.labelId); });
+            if (labelsToprint.length === 0) { showToast('No labels selected'); return; }
+            if (!window.jspdf) { showToast('PDF library loading -- try again in a moment'); return; }
+
+            var printWindow = window.open('', '_blank');
+            if (!printWindow) { showToast('Popup blocked -- allow popups for this site'); return; }
+            printWindow.document.write('<html><body style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#666"><p>Generating pot tag PDF...</p></body></html>');
+
+            var qrPromises = labelsToprint.map(function(label) {
+                return new Promise(function(resolve) {
+                    var qrData = getQRData(label);
+                    if (!qrData) { resolve(null); return; }
+                    var canvas = document.createElement('canvas');
+                    QRCode.toCanvas(canvas, String(qrData), {
+                        width: 140, margin: 0, errorCorrectionLevel: 'M'
+                    }, function(error) {
+                        resolve(error ? null : canvas.toDataURL('image/png'));
+                    });
+                });
+            });
+
+            Promise.all(qrPromises).then(function(qrImages) {
+                var W = 72, H = 324; // 1in x 4.5in in points
+                var doc = new window.jspdf.jsPDF({ unit: 'pt', format: [W, H] });
+                var cx = W / 2;
+
+                labelsToprint.forEach(function(label, i) {
+                    if (i > 0) doc.addPage([W, H]);
+
+                    var y = 14;
+
+                    // Crop - bold 11pt, centered, may wrap on narrow tag
+                    doc.setTextColor(0, 0, 0);
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(11);
+                    var cropLines = doc.splitTextToSize(label.crop || '', 62);
+                    doc.text(cropLines, cx, y, { align: 'center' });
+                    y += cropLines.length * 13 + 3;
+
+                    // Variety - 8pt
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(8);
+                    doc.setTextColor(51, 51, 51);
+                    var varLines = doc.splitTextToSize(label.variety || '', 62);
+                    doc.text(varLines, cx, y, { align: 'center' });
+                    y += varLines.length * 10 + 8;
+
+                    // Farm name between lines
+                    doc.setDrawColor(153, 153, 153);
+                    doc.setLineWidth(0.5);
+                    doc.line(5, y, W - 5, y);
+                    y += 10;
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(6);
+                    doc.setTextColor(85, 85, 85);
+                    doc.text('TINY SEED FARM', cx, y, { align: 'center' });
+                    y += 6;
+                    doc.line(5, y, W - 5, y);
+                    y += 12;
+
+                    // Sow date - 7pt
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(7);
+                    doc.setTextColor(68, 68, 68);
+                    doc.text('Sown: ' + formatDate(label.seedDate), cx, y, { align: 'center' });
+                    y += 11;
+
+                    // Batch - 6pt mono
+                    doc.setFont('courier', 'normal');
+                    doc.setFontSize(6);
+                    doc.setTextColor(102, 102, 102);
+                    doc.text(label.batchNumber || '', cx, y, { align: 'center' });
+                    y += 14;
+
+                    // QR code - centered
+                    var qrSz = 50;
+                    if (qrImages[i]) {
+                        doc.addImage(qrImages[i], 'PNG', (W - qrSz) / 2, y, qrSz, qrSz);
+                    }
+
+                    // Soil marker at bottom
+                    doc.setDrawColor(200, 200, 200);
+                    doc.setLineWidth(0.3);
+                    doc.line(5, H - 14, W - 5, H - 14);
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(5);
+                    doc.setTextColor(187, 187, 187);
+                    doc.text('insert in soil', cx, H - 6, { align: 'center' });
+                });
+
+                printWindow.location.href = doc.output('bloburl');
+                closePrintPreview();
+                showToast(labelsToprint.length + ' pot tag labels ready -- print from PDF viewer');
+            }).catch(function(err) {
+                printWindow.close();
+                showToast('PDF error: ' + err.message);
+            });
+        }
+
         // Override openPrintPreview to show appropriate preview for thermal labels
         const originalOpenPrintPreview = openPrintPreview;
         openPrintPreview = function() {
@@ -2949,11 +3184,11 @@
                         <div style="background: #e8f5e9; border: 1px solid #4caf50; border-radius: 8px; padding: 1rem; margin: 1rem auto; max-width: 420px; text-align: left;">
                             <strong style="color: #2e7d32;">What happens next:</strong>
                             <p style="margin-top: 0.5rem; font-size: 0.9rem; color: #333; line-height: 1.5;">
-                                A new window will open with your labels and <strong>step-by-step instructions</strong> for setting up the printer correctly. Follow the numbered steps to create a custom paper size (${dimensions}) if you haven't already.
+                                A PDF will open with labels at exactly <strong>${dimensions}</strong>. Click the print icon in the PDF viewer, select your thermal printer, and print. The page size is set automatically.
                             </p>
                         </div>
                         <p style="font-size: 0.85rem; color: #888; margin-top: 1rem;">
-                            You only need to create the custom paper size once — it saves for future prints.
+                            No custom paper size setup needed — the PDF defines the exact dimensions.
                         </p>
                     </div>
                 `;
