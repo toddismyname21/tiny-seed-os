@@ -384,7 +384,7 @@ async def call_claude(prompt: str, timeout: int = 120) -> Tuple[str, bool]:
         str(CLAUDE_BIN),
         "-p",
         prompt,
-        "--dangerously-skip-permissions"
+        # SECURITY FIX 2026-02-28: Removed --dangerously-skip-permissions
     ]
 
     try:

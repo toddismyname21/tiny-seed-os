@@ -64,7 +64,8 @@ except ImportError:
         log("A2A authentication module not available", "WARN")
     PUBLIC_ENDPOINTS = {"/.well-known/agent.json", "/a2a/health"}
 A2A_PORT = int(os.environ.get("A2A_PORT", "9000"))
-A2A_HOST = os.environ.get("A2A_HOST", "0.0.0.0")
+# SECURITY FIX 2026-02-28: Default to localhost (was 0.0.0.0)
+A2A_HOST = os.environ.get("A2A_HOST", "127.0.0.1")
 A2A_BASE_URL = os.environ.get("A2A_BASE_URL", f"http://localhost:{A2A_PORT}")
 
 # Load .env

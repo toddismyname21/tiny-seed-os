@@ -16,14 +16,19 @@ from urllib.parse import parse_qs, urlparse
 messages = []
 output_queue = queue.Queue()
 claude_process = None
-TOKEN = "tinypm2026"  # Simple token
+# SECURITY FIX 2026-02-28: Token must come from environment, not hardcoded
+TOKEN = os.environ.get("TINYPM_CHAT_TOKEN", "")
+if not TOKEN:
+    import secrets
+    TOKEN = secrets.token_urlsafe(24)
+    print(f"[SECURITY] No TINYPM_CHAT_TOKEN set. Generated temporary token: {TOKEN}")
 
 class ChatHandler(BaseHTTPRequestHandler):
     def log_message(self, format, *args):
         pass  # Suppress logging
     
     def send_cors_headers(self):
-        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Origin', 'http://localhost:8888')
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
         self.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
     
@@ -198,7 +203,7 @@ CHAT_HTML = '''<!DOCTYPE html>
     <div class="chat" id="chat"></div>
     <div class="input-area">
         <div class="token-input" id="token-area">
-            <input type="password" id="token" placeholder="Enter token: tinypm2026" value="">
+            <input type="password" id="token" placeholder="Enter authentication token" value="">
             <button onclick="connect()">Connect</button>
         </div>
         <div class="message-input hidden" id="message-area">
@@ -212,7 +217,8 @@ CHAT_HTML = '''<!DOCTYPE html>
         let connected = false;
         
         function connect() {
-            token = document.getElementById('token').value || 'tinypm2026';
+            token = document.getElementById('token').value;
+            if (!token) { addMessage('system', 'Token is required'); return; }
             fetch('/start', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -263,7 +269,9 @@ CHAT_HTML = '''<!DOCTYPE html>
 
 if __name__ == '__main__':
     print("Starting Simple Remote Chat on port 8888...")
-    print("Token: tinypm2026")
-    server = HTTPServer(('0.0.0.0', 8888), ChatHandler)
-    print("Server ready!")
+    print(f"Token: {TOKEN}")
+    # SECURITY FIX 2026-02-28: Bind to localhost only (was 0.0.0.0)
+    host = os.environ.get("TINYPM_CHAT_HOST", "127.0.0.1")
+    server = HTTPServer((host, 8888), ChatHandler)
+    print(f"Server ready on {host}:8888!")
     server.serve_forever()

@@ -125,10 +125,11 @@ if FASTAPI_AVAILABLE:
     # CORS for Chief of Staff frontend
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],  # Allow all origins for development
+        # SECURITY FIX 2026-02-28: Restrict CORS to localhost only (was allow_origins=["*"] with credentials)
+        allow_origins=["http://localhost:8000", "http://127.0.0.1:8000", "http://localhost:3000"],
         allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=["GET", "POST"],
+        allow_headers=["Content-Type", "Authorization"],
     )
 
     # Connection tracking
@@ -731,7 +732,8 @@ Current context:
 def main():
     parser = argparse.ArgumentParser(description="TinyPM Brain Bridge Server")
     parser.add_argument("--port", type=int, default=DEFAULT_PORT, help="Server port")
-    parser.add_argument("--host", default="0.0.0.0", help="Server host")
+    # SECURITY FIX 2026-02-28: Default to localhost (was 0.0.0.0)
+    parser.add_argument("--host", default="127.0.0.1", help="Server host")
     parser.add_argument("--health", action="store_true", help="Check health and exit")
     parser.add_argument("--reload", action="store_true", help="Enable auto-reload")
     args = parser.parse_args()

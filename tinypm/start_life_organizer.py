@@ -409,7 +409,9 @@ def cmd_with_web(args):
         run_server(port=args.port or 8000)
     except ImportError:
         print("[INFO] Running web_server.py directly...")
-        os.system(f"python3 {APP_DIR / 'web_server.py'} --port {args.port or 8000}")
+        # SECURITY FIX 2026-02-28: Use subprocess.run instead of os.system
+        import subprocess
+        subprocess.run(["python3", str(APP_DIR / "web_server.py"), "--port", str(args.port or 8000)])
 
     # Cleanup
     if is_running():

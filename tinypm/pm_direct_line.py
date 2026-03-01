@@ -148,7 +148,8 @@ To delegate to Builder, say: DELEGATE TO BUILDER: [task description]
 
     try:
         result = subprocess.run(
-            [CLAUDE_CLI, "-p", prompt, "--dangerously-skip-permissions"],
+            # SECURITY FIX 2026-02-28: Removed --dangerously-skip-permissions
+            [CLAUDE_CLI, "-p", prompt],
             capture_output=True,
             text=True,
             timeout=180,  # 3 minute timeout

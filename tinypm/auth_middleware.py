@@ -142,9 +142,8 @@ def verify_jwt(token: str) -> Dict[str, Any]:
                 raise
             raise AuthError(f"Signature verification failed: {e}", 401)
     else:
-        # No secret configured - verify via Supabase API
-        # This is a fallback for when JWT_SECRET isn't available
-        print("[AUTH] Warning: No JWT_SECRET configured, skipping signature verification")
+        # SECURITY FIX 2026-02-28: No secret = reject token (was silently skipping verification)
+        raise AuthError("JWT_SECRET not configured — cannot verify token signature. Set SUPABASE_JWT_SECRET in environment.", 500)
 
     # Check expiration
     exp = payload.get("exp", 0)

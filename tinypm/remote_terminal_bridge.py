@@ -79,7 +79,8 @@ PID_FILE = APP_DIR / ".remote_bridge.pid"
 LOG_FILE = APP_DIR / ".remote_bridge.log"
 
 DEFAULT_PORT = 8765
-DEFAULT_HOST = "0.0.0.0"
+# SECURITY FIX 2026-02-28: Default to localhost (was 0.0.0.0)
+DEFAULT_HOST = "127.0.0.1"
 MAX_CONNECTIONS = 5
 HEARTBEAT_INTERVAL = 30  # seconds
 TOKEN_EXPIRY_HOURS = 24 * 7  # 1 week
