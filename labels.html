@@ -2800,33 +2800,49 @@
 
         // ============ UL-247 THERMAL PRINTER PRINT FUNCTIONS ============
 
-        // Override executePrint: QZ Tray direct print → PDF viewer fallback
+        // Override executePrint: QZ Tray direct print → TinySeedPrint.label() fallback
         const originalExecutePrint = executePrint;
         executePrint = function() {
             if (currentLabelType === 'potTag' || currentLabelType === 'fieldTray') {
                 var labelsToprint = labels.filter(function(l) { return selectedLabels.has(l.labelId); });
                 if (labelsToprint.length === 0) { showToast('No labels selected'); return; }
 
-                // Path 1: QZ Tray direct print (no dialog)
+                // Map label data for print engine (add qrData for QR generation)
+                var printData = labelsToprint.map(function(l) {
+                    var d = Object.assign({}, l);
+                    d.qrData = getQRData(l);
+                    return d;
+                });
+
+                // Path 1: QZ Tray direct print (no dialog) — only when QZ Tray is running
                 if (QZPrint.isConnected()) {
                     showToast('Sending ' + labelsToprint.length + ' labels to ' + (QZPrint.getPrinter() || 'printer') + '...');
-                    var buildFn = currentLabelType === 'potTag' ? buildPotTagPDF : buildFieldTrayPDF;
-                    var w = currentLabelType === 'potTag' ? 1 : 4;
-                    var h = currentLabelType === 'potTag' ? 4.5 : 1;
-                    buildFn(labelsToprint).then(function(base64) {
-                        return QZPrint.printPDF(base64, w, h, currentLabelType);
+                    // Use TinySeedPrint to generate the PDF (it lazy-loads jsPDF), then send to QZ Tray
+                    TinySeedPrint.directPrint({
+                        format: currentLabelType,
+                        data: printData
                     }).then(function() {
                         closePrintPreview();
                         showToast(labelsToprint.length + ' labels printed!');
                     }).catch(function(err) {
-                        showToast('Direct print failed (' + err.message + ') — opening PDF instead');
-                        if (currentLabelType === 'potTag') executePrintUL247PotTagsPDF();
-                        else executePrintUL247FieldTrayPDF();
+                        showToast('Direct print failed (' + err.message + ') — opening PDF preview');
+                        // Fallback to preview
+                        TinySeedPrint.label({ format: currentLabelType, data: printData, preview: true })
+                            .then(function() { closePrintPreview(); })
+                            .catch(function(e) { showToast('PDF error: ' + e.message); });
                     });
                 } else {
-                    // Path 2: PDF viewer (existing behavior)
-                    if (currentLabelType === 'potTag') executePrintUL247PotTagsPDF();
-                    else executePrintUL247FieldTrayPDF();
+                    // Path 2: PDF preview via TinySeedPrint (lazy-loads jsPDF, shows preview modal)
+                    TinySeedPrint.label({
+                        format: currentLabelType,
+                        data: printData,
+                        preview: true
+                    }).then(function() {
+                        closePrintPreview();
+                        showToast(labelsToprint.length + ' ' + currentLabelType + ' labels ready');
+                    }).catch(function(err) {
+                        showToast('PDF error: ' + err.message);
+                    });
                 }
             } else {
                 originalExecutePrint();
