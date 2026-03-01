@@ -1868,8 +1868,12 @@
             }
 
             try {
-                // Call API to record usage
-                const response = await fetch(`${API_URL}?action=useSeedFromLot&seedLotId=${encodeURIComponent(seed.seedLotId)}&quantityUsed=${num}`);
+                // Call API to record usage (POST — mutation)
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({ action: 'useSeedFromLot', seedLotId: seed.seedLotId, quantityUsed: num })
+                });
                 const result = await response.json();
 
                 if (result.success) {
@@ -1912,8 +1916,12 @@
             }
 
             try {
-                // Call API to add stock
-                const response = await fetch(`${API_URL}?action=restockSeed&seedLotId=${encodeURIComponent(seed.seedLotId)}&quantity=${num}`);
+                // Call API to add stock (POST — mutation)
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({ action: 'restockSeed', seedLotId: seed.seedLotId, quantity: num })
+                });
                 const result = await response.json();
 
                 if (result.success) {

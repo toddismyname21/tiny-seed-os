@@ -15936,6 +15936,12 @@ function doGet(e) {
       case 'deleteBoundary':
         return jsonResponse(deleteBoundary(e.parameter));
 
+      // ============ SOIL SAMPLING SESSIONS ============
+      case 'getSoilSamplingSessions':
+        return jsonResponse(getSoilSamplingSessions(e.parameter));
+      case 'getSoilSamplingSession':
+        return jsonResponse(getSoilSamplingSession(e.parameter));
+
       // ============ FIELD SCOUTING MAP ============
       case 'getScoutingMapData':
         return jsonResponse(getScoutingMapData(e.parameter));
@@ -18802,6 +18808,8 @@ function doPost(e) {
         return jsonResponse(uploadSeedPhoto(data));
       case 'useSeedFromLot':
         return jsonResponse(useSeedFromLot(data));
+      case 'restockSeed':
+        return jsonResponse(restockSeed(data));
       case 'createSeedOrder':
         return jsonResponse(createSeedOrder(data));
       case 'updateSeedOrder':
@@ -18810,6 +18818,10 @@ function doPost(e) {
         return jsonResponse(linkSeedToOrder(data));
       case 'parseSeedInvoice':
         return jsonResponse(parseSeedInvoice(data));
+
+      // ============ SOIL SAMPLING SESSIONS ============
+      case 'saveSoilSamplingSession':
+        return jsonResponse(saveSoilSamplingSession(data));
 
       // ============ FARM INVENTORY POST ENDPOINTS (Asset Tracking) ============
       case 'addFarmInventoryItem':
@@ -28294,6 +28306,73 @@ function logSeedUsage(usage) {
 
   } catch (error) {
     Logger.log('Error logging seed usage: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Restock seeds to an existing lot
+ */
+function restockSeed(params) {
+  try {
+    const { seedLotId, quantity, notes } = params;
+    if (!seedLotId || !quantity) {
+      return { success: false, error: 'Seed Lot ID and quantity required' };
+    }
+    const addQty = Number(quantity);
+    if (isNaN(addQty) || addQty <= 0) {
+      return { success: false, error: 'Quantity must be a positive number' };
+    }
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName('SEED_INVENTORY');
+    if (!sheet) return { success: false, error: 'Seed inventory not found' };
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const lotIdCol = headers.indexOf('Seed_Lot_ID');
+    const remainingCol = headers.indexOf('Quantity_Remaining');
+    const statusCol = headers.indexOf('Status');
+
+    let rowIndex = -1;
+    let currentRemaining = 0;
+    let currentStatus = '';
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][lotIdCol]).trim() === String(seedLotId).trim()) {
+        rowIndex = i + 1;
+        currentRemaining = Number(data[i][remainingCol]) || 0;
+        currentStatus = data[i][statusCol];
+        break;
+      }
+    }
+    if (rowIndex === -1) return { success: false, error: 'Seed lot not found: ' + seedLotId };
+
+    const newRemaining = currentRemaining + addQty;
+    sheet.getRange(rowIndex, remainingCol + 1).setValue(newRemaining);
+
+    let newStatus = currentStatus;
+    if (currentStatus === 'Empty' || currentStatus === 'Low') {
+      newStatus = 'Active';
+      sheet.getRange(rowIndex, statusCol + 1).setValue(newStatus);
+    }
+
+    logSeedUsage({
+      seedLotId: seedLotId,
+      quantityUsed: -addQty,
+      batchId: '',
+      notes: 'RESTOCK' + (notes ? ': ' + notes : ''),
+      usedBy: 'system',
+      usedAt: new Date()
+    });
+
+    return {
+      success: true,
+      message: 'Added ' + addQty + ' to lot ' + seedLotId,
+      previousQuantity: currentRemaining,
+      newQuantity: newRemaining,
+      status: newStatus
+    };
+  } catch (error) {
     return { success: false, error: error.toString() };
   }
 }
@@ -60218,6 +60297,114 @@ function calculatePolygonStats(coordinates) {
     perimeterFt: Math.round(perimeter),
     acres: Math.round(area / 43560 * 100) / 100
   };
+}
+
+// ============================================================================
+// SOIL SAMPLING SESSIONS - GPS-Tagged Soil Sample Collection
+// ============================================================================
+
+const SOIL_SAMPLING_HEADERS = [
+  'Session_ID', 'Field_Boundary_ID', 'Field_Name', 'Collector',
+  'Sample_Date', 'Sample_Depth', 'Num_Samples', 'Sample_Points',
+  'Composite_ID', 'Lab_Number', 'Status', 'Notes', 'Created_At', 'Updated_At'
+];
+
+function saveSoilSamplingSession(params) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName('SOIL_SAMPLING_SESSIONS');
+    if (!sheet) {
+      sheet = ss.insertSheet('SOIL_SAMPLING_SESSIONS');
+      sheet.appendRow(SOIL_SAMPLING_HEADERS);
+      sheet.setFrozenRows(1);
+    }
+
+    const { sessionId, fieldBoundaryId, fieldName, collector, sampleDate,
+            sampleDepth, numSamples, samplePoints, compositeId, labNumber,
+            status, notes } = params;
+    const now = new Date().toISOString();
+
+    let points = samplePoints;
+    if (typeof points === 'string') {
+      try { points = JSON.parse(points); } catch(e) { points = []; }
+    }
+
+    if (sessionId) {
+      const data = sheet.getDataRange().getValues();
+      for (let i = 1; i < data.length; i++) {
+        if (data[i][0] === sessionId) {
+          sheet.getRange(i + 1, 1, 1, 14).setValues([[
+            sessionId, fieldBoundaryId || data[i][1], fieldName || data[i][2],
+            collector || data[i][3], sampleDate || data[i][4],
+            sampleDepth || data[i][5], numSamples || data[i][6],
+            JSON.stringify(points || []),
+            compositeId || data[i][8], labNumber || data[i][9],
+            status || data[i][10], notes !== undefined ? notes : data[i][11],
+            data[i][12], now
+          ]]);
+          return { success: true, sessionId: sessionId, message: 'Session updated' };
+        }
+      }
+    }
+
+    const newId = 'SOIL-' + Utilities.getUuid().substring(0, 8).toUpperCase();
+    sheet.appendRow([
+      newId, fieldBoundaryId || '', fieldName || '', collector || '',
+      sampleDate || new Date().toISOString().split('T')[0],
+      sampleDepth || '0-6"', numSamples || 0,
+      JSON.stringify(points || []),
+      compositeId || '', labNumber || '',
+      status || 'In Progress', notes || '', now, now
+    ]);
+
+    return { success: true, sessionId: newId, message: 'Session created' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function getSoilSamplingSessions(params) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName('SOIL_SAMPLING_SESSIONS');
+    if (!sheet) return { success: true, sessions: [], count: 0 };
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    let sessions = data.slice(1).map(row => {
+      const obj = {};
+      headers.forEach((h, i) => { obj[h] = row[i]; });
+      if (obj.Sample_Points) {
+        try { obj.Sample_Points = JSON.parse(obj.Sample_Points); }
+        catch(e) { obj.Sample_Points = []; }
+      }
+      return obj;
+    }).filter(s => s.Session_ID);
+
+    const { fieldBoundaryId, status } = params || {};
+    if (fieldBoundaryId) sessions = sessions.filter(s => s.Field_Boundary_ID === fieldBoundaryId);
+    if (status) sessions = sessions.filter(s => s.Status === status);
+    sessions.sort((a, b) => new Date(b.Created_At) - new Date(a.Created_At));
+
+    return { success: true, sessions: sessions, count: sessions.length };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function getSoilSamplingSession(params) {
+  try {
+    const { sessionId } = params;
+    if (!sessionId) return { success: false, error: 'Session ID required' };
+    const result = getSoilSamplingSessions({});
+    if (!result.success) return result;
+    const session = result.sessions.find(s => s.Session_ID === sessionId);
+    if (!session) return { success: false, error: 'Session not found' };
+    return { success: true, session: session };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
 }
 
 // ============================================================================
@@ -128436,11 +128623,11 @@ function initializeParserCorrectionSheets() {
       results.skipped.push(PARSER_SHEETS.PARSER_RULES);
     }
 
-    console.log('Parser correction sheets initialized:', JSON.stringify(results));
+    Logger.log('Parser correction sheets initialized: created=' + results.created.length + ', skipped=' + results.skipped.length);
     return results;
 
   } catch (error) {
-    console.error('Error initializing parser correction sheets:', error);
+    Logger.log('Error initializing parser correction sheets: ' + error.toString());
     return { success: false, error: error.toString() };
   }
 }
@@ -128459,8 +128646,6 @@ function initializeParserCorrectionSheets() {
  */
 function saveParserCorrection(params) {
   try {
-    console.log('saveParserCorrection called with:', JSON.stringify(params));
-
     // Validate required parameters
     if (!params.productTitle) {
       return { success: false, error: 'productTitle is required' };
@@ -128544,11 +128729,11 @@ function saveParserCorrection(params) {
     // Also update the category cache for immediate use
     updateCategoryCache(params.productTitle, params.correctedCategory, '', 1.0, 'user_correction');
 
-    console.log('Correction saved:', JSON.stringify(result));
+    Logger.log('Correction saved: ' + result.correctionId);
     return result;
 
   } catch (error) {
-    console.error('Error saving parser correction:', error);
+    Logger.log('Error saving parser correction: ' + error.toString());
     return { success: false, error: error.toString() };
   }
 }
@@ -128563,8 +128748,6 @@ function saveParserCorrection(params) {
  */
 function getParserCorrections(params) {
   try {
-    console.log('getParserCorrections called with:', JSON.stringify(params));
-
     const ss = SpreadsheetApp.openById(PARSER_SPREADSHEET_ID);
     const sheet = ss.getSheetByName(PARSER_SHEETS.PARSER_CORRECTIONS);
 
@@ -128631,7 +128814,6 @@ function getParserCorrections(params) {
     const limit = parseInt(params.limit) || 50;
     corrections = corrections.slice(0, limit);
 
-    console.log(`Found ${corrections.length} corrections`);
     return {
       success: true,
       corrections: corrections,
@@ -128639,7 +128821,7 @@ function getParserCorrections(params) {
     };
 
   } catch (error) {
-    console.error('Error getting parser corrections:', error);
+    Logger.log('Error getting parser corrections: ' + error.toString());
     return { success: false, error: error.toString(), corrections: [] };
   }
 }

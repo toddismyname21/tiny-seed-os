@@ -38,6 +38,37 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-03-01 — Field GPS Mapping, Soil Sampling, Blank Soil Form, Seed Bug Fixes
+
+**Role:** PM_Architect
+**Deploy:** Requires `git push` (frontend) + `clasp push` + `clasp deploy` (backend)
+
+### Files Modified
+
+- `soil-tests.html` — Added "Print Blank Form" button + `printBlankSoilTestForm()` function (15-row collection form with Penn State info)
+- `employee.html` — Replaced dead `openFieldCapture()` with full GPS boundary mapping panel; added Soil Sampling panel with GPS-tagged sample collection; added "Soil Sampling" item to More menu
+- `apps_script/MERGED TOTAL.js` — Added `restockSeed()` function (60 lines), added 3 soil sampling API functions (`saveSoilSamplingSession`, `getSoilSamplingSessions`, `getSoilSamplingSession`), added 5 router entries (2 doGet, 3 doPost), new `SOIL_SAMPLING_SESSIONS` sheet auto-created
+- `seed_inventory_PRODUCTION.html` — Fixed `useSeedFromLot` GET→POST (was calling doPost action via GET), fixed `restockSeed` GET→POST
+- `web_app/satellite-map.html` — Added `renderFieldPolygonsWithColor()` for real boundary display; `loadDemoData()` now tries `getBoundaries` API first before falling back to demo polygons
+
+### Functions Added
+- `printBlankSoilTestForm()` in `soil-tests.html` — Popup print window with blank 15-sample collection form
+- `openFieldCapture()`, `startFieldBoundaryTrace()`, `stopFieldBoundaryTrace()`, `saveFcBoundary()`, `loadFieldBoundaries()`, `renderFcPolygons()` + helpers in `employee.html` — Full GPS boundary mapping (ported from farm-operations.html)
+- `openSoilSampling()`, `markSoilSample()`, `completeSoilSampling()`, `printSoilSubmissionForm()` + helpers in `employee.html` — GPS-tagged soil sampling workflow
+- `restockSeed(params)` in `MERGED TOTAL.js` — Adds quantity to seed lot, updates status, logs usage
+- `saveSoilSamplingSession(params)`, `getSoilSamplingSessions(params)`, `getSoilSamplingSession(params)` in `MERGED TOTAL.js` — CRUD for soil sampling sessions
+- `renderFieldPolygonsWithColor(fields)` in `satellite-map.html` — Renders real boundaries with saved colors
+
+### Reason
+User heading to farm needs: (1) printable soil test form, (2) GPS field mapping on mobile, (3) soil sampling tool, (4) working seed inventory. All 4 workflows verified before building.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions — boundary tracing ported from farm-operations.html (not duplicated, uses same backend APIs)
+- [x] No new HTML files created — all changes in existing files
+
+---
+
 ## 2026-03-01 — Competitive Analysis: Data Integrity Audit & Corrections
 
 **Role:** UX_Design Claude

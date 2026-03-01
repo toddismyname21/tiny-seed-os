@@ -1197,8 +1197,43 @@
             }
         }
 
-        function loadDemoData() {
-            // Demo fields with satellite data for development
+        async function loadDemoData() {
+            // Try loading REAL boundaries from FARM_BOUNDARIES first
+            try {
+                const bndResponse = await fetch(`${API_URL}?action=getBoundaries`);
+                const bndResult = await bndResponse.json();
+                if (bndResult.success && bndResult.boundaries && bndResult.boundaries.length > 0) {
+                    const realFields = bndResult.boundaries.map((b, idx) => {
+                        const coords = b.Coordinates || b.coordinates || [];
+                        return {
+                            id: b.Boundary_ID || b.boundaryId || 'BND_' + idx,
+                            name: b.Name || b.name || 'Field ' + (idx + 1),
+                            crop: b.Type || b.type || 'Mapped Field',
+                            stage: '--',
+                            acres: parseFloat(b.Acres || b.acres || 0),
+                            polygonId: b.Boundary_ID || '',
+                            ndvi: null,
+                            ndmi: null,
+                            trend: '--',
+                            lastReading: b.Updated_At || b.Created_At || '',
+                            color: b.Color || b.color || '#3b82f6',
+                            coordinates: coords.map(c => [parseFloat(c.lat), parseFloat(c.lng)])
+                        };
+                    });
+                    fieldsData = realFields;
+                    renderFieldPolygonsWithColor(realFields);
+                    updateStats(realFields);
+                    populateFieldFilter(realFields);
+                    loadAlerts();
+                    document.getElementById('lastUpdated').textContent =
+                        `Last updated: ${new Date().toLocaleTimeString()} (Real Boundaries)`;
+                    return;
+                }
+            } catch (e) {
+                console.log('Boundary load failed, falling back to demo:', e);
+            }
+
+            // Fallback: demo fields with satellite data for development
             const demoFields = [
                 {
                     id: 'FIELD_001',
@@ -1286,6 +1321,61 @@
         // ============================================================================
         // MAP RENDERING
         // ============================================================================
+
+        function renderFieldPolygonsWithColor(fields) {
+            // Renders REAL boundaries with their saved colors (no NDVI data yet)
+            fieldLayers.forEach(layer => map.removeLayer(layer));
+            fieldLayers = [];
+
+            fields.forEach(field => {
+                if (field.coordinates && field.coordinates.length > 0) {
+                    const color = field.color || '#3b82f6';
+                    const polygon = L.polygon(field.coordinates, {
+                        color: color,
+                        fillColor: color,
+                        fillOpacity: 0.2,
+                        weight: 3
+                    });
+
+                    const popupContent = `
+                        <div class="field-popup">
+                            <h4>${field.name}</h4>
+                            <div class="popup-stat"><span class="label">Type:</span><span>${field.crop}</span></div>
+                            <div class="popup-stat"><span class="label">Acres:</span><span>${field.acres || '?'}</span></div>
+                            <div class="popup-stat"><span class="label">NDVI:</span><span>${field.ndvi !== null ? field.ndvi.toFixed(2) : 'No data'}</span></div>
+                        </div>`;
+                    polygon.bindPopup(popupContent);
+                    polygon.on('click', () => showFieldDetails(field));
+
+                    // Add field name label
+                    if (field.coordinates.length >= 3) {
+                        const bounds = L.polygon(field.coordinates).getBounds();
+                        const center = bounds.getCenter();
+                        const label = L.marker(center, {
+                            icon: L.divIcon({
+                                className: 'field-label-icon',
+                                html: `<div style="color:white;font-size:12px;font-weight:600;text-shadow:0 1px 3px rgba(0,0,0,0.8);white-space:nowrap;">${field.name}</div>`,
+                                iconSize: [100, 20],
+                                iconAnchor: [50, 10]
+                            })
+                        });
+                        label.addTo(map);
+                        fieldLayers.push(label);
+                    }
+
+                    polygon.addTo(map);
+                    fieldLayers.push(polygon);
+                }
+            });
+
+            if (fieldLayers.length > 0) {
+                const polygons = fieldLayers.filter(l => l instanceof L.Polygon);
+                if (polygons.length) {
+                    const group = new L.featureGroup(polygons);
+                    map.fitBounds(group.getBounds().pad(0.1));
+                }
+            }
+        }
 
         function renderFieldPolygons(fields) {
             // Clear existing layers

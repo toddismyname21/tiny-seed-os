@@ -10400,12 +10400,23 @@
                     </div>
 
                     <div class="more-item" onclick="openFieldCapture()">
-                        <div class="more-item-icon fieldcapture">
-                            <i class="fas fa-map-marker-alt"></i>
+                        <div class="more-item-icon" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8);">
+                            <i class="fas fa-draw-polygon"></i>
                         </div>
                         <div class="more-item-text">
-                            <h3 data-i18n="more.fieldcapture">GPS Field Capture</h3>
-                            <p data-i18n="more.fieldcaptureDesc">Walk boundaries to map fields</p>
+                            <h3>Map Fields</h3>
+                            <p>Walk boundaries to map fields on satellite</p>
+                        </div>
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+
+                    <div class="more-item" onclick="openSoilSampling()">
+                        <div class="more-item-icon" style="background: linear-gradient(135deg, #7c3aed, #6d28d9);">
+                            <i class="fas fa-flask"></i>
+                        </div>
+                        <div class="more-item-text">
+                            <h3>Soil Sampling</h3>
+                            <p>GPS-tagged soil sample collection</p>
                         </div>
                         <i class="fas fa-chevron-right"></i>
                     </div>
@@ -12717,6 +12728,115 @@
                     <span class="sync-time" id="lastSyncTime">Last synced: --</span>
                 </div>
                 <span class="sync-badge" id="syncBadge">Pending</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- FIELD CAPTURE PANEL - GPS Boundary Mapping   -->
+    <!-- ============================================ -->
+    <div class="slide-panel" id="fieldCapturePanel">
+        <div class="panel-header" style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); padding: 16px; display: flex; align-items: center; gap: 12px;">
+            <button onclick="closeFieldCapture()" style="background: rgba(255,255,255,0.2); border: none; color: white; width: 36px; height: 36px; border-radius: 8px; font-size: 1.1rem; cursor: pointer;">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <h2 style="margin: 0; color: white; font-size: 1.1rem; flex: 1;"><i class="fas fa-draw-polygon"></i> Map Fields</h2>
+            <button onclick="fieldCaptureMyLocation()" style="background: rgba(255,255,255,0.2); border: none; color: white; width: 36px; height: 36px; border-radius: 8px; cursor: pointer;" title="My Location">
+                <i class="fas fa-crosshairs"></i>
+            </button>
+        </div>
+        <div style="display: flex; flex-direction: column; flex: 1; overflow: hidden;">
+            <!-- Map -->
+            <div id="fieldCaptureMap" style="flex: 1; min-height: 300px; background: #1a1a2e;"></div>
+
+            <!-- Trace Status Bar (hidden until tracing) -->
+            <div id="fcTraceStatus" style="display: none; background: #ef4444; color: white; padding: 10px 16px; align-items: center; justify-content: space-between; font-size: 0.9rem;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="width: 8px; height: 8px; background: white; border-radius: 50%; animation: pulse 1s infinite;"></div>
+                    <span>Recording &bull; <strong id="fcPointCount">0</strong> pts &bull; <strong id="fcTraceDistance">0</strong> ft</span>
+                </div>
+                <span id="fcAccuracy" style="font-size: 0.75rem; opacity: 0.8;"></span>
+            </div>
+
+            <!-- Controls -->
+            <div style="padding: 14px 16px; background: var(--bg-card, #1e1e2e);">
+                <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+                    <button id="fcStartBtn" onclick="startFieldBoundaryTrace()" style="flex: 1; padding: 14px; border-radius: 12px; border: none; background: #22c55e; color: white; font-size: 1rem; font-weight: 600; cursor: pointer;">
+                        <i class="fas fa-play"></i> Start Walking
+                    </button>
+                    <button id="fcStopBtn" onclick="stopFieldBoundaryTrace()" style="flex: 1; padding: 14px; border-radius: 12px; border: none; background: #ef4444; color: white; font-size: 1rem; font-weight: 600; cursor: pointer; display: none;">
+                        <i class="fas fa-stop"></i> Stop &amp; Save
+                    </button>
+                </div>
+                <div id="fcBoundaryList" style="max-height: 220px; overflow-y: auto;">
+                    <div style="color: var(--text-secondary, #94a3b8); text-align: center; padding: 20px; font-size: 0.85rem;">
+                        <i class="fas fa-draw-polygon" style="font-size: 1.8rem; display: block; margin-bottom: 8px; opacity: 0.5;"></i>
+                        Walk your field borders to map them.<br>
+                        <span style="font-size: 0.75rem; opacity: 0.7;">Tip: Start with property line, then field outlines.</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- SOIL SAMPLING PANEL - GPS Sample Collection  -->
+    <!-- ============================================ -->
+    <div class="slide-panel" id="soilSamplingPanel">
+        <div class="panel-header" style="background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); padding: 16px; display: flex; align-items: center; gap: 12px;">
+            <button onclick="closeSoilSampling()" style="background: rgba(255,255,255,0.2); border: none; color: white; width: 36px; height: 36px; border-radius: 8px; font-size: 1.1rem; cursor: pointer;">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <h2 style="margin: 0; color: white; font-size: 1.1rem; flex: 1;"><i class="fas fa-flask"></i> Soil Sampling</h2>
+            <button onclick="soilSamplingMyLocation()" style="background: rgba(255,255,255,0.2); border: none; color: white; width: 36px; height: 36px; border-radius: 8px; cursor: pointer;" title="My Location">
+                <i class="fas fa-crosshairs"></i>
+            </button>
+        </div>
+        <div style="display: flex; flex-direction: column; flex: 1; overflow: hidden;">
+            <!-- Field Selection View -->
+            <div id="ssFieldSelect" style="padding: 16px; flex: 1; overflow-y: auto;">
+                <h3 style="margin: 0 0 4px; color: var(--text-primary, #e2e8f0); font-size: 1rem;">Select a Field</h3>
+                <p style="margin: 0 0 12px; color: var(--text-secondary, #94a3b8); font-size: 0.8rem;">Choose a mapped field to begin sampling</p>
+                <div id="ssFieldList">
+                    <div style="color: var(--text-secondary, #94a3b8); text-align: center; padding: 30px;">
+                        <i class="fas fa-spinner fa-spin" style="font-size: 1.5rem;"></i>
+                        <p style="margin-top: 8px;">Loading fields...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sampling View (hidden until field selected) -->
+            <div id="ssSamplingView" style="display: none; flex: 1; flex-direction: column;">
+                <!-- Map -->
+                <div id="soilSamplingMap" style="flex: 1; min-height: 280px; background: #1a1a2e;"></div>
+
+                <!-- Status + Controls -->
+                <div style="padding: 14px 16px; background: var(--bg-card, #1e1e2e);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <div>
+                            <div style="font-weight: 600; color: var(--text-primary, #e2e8f0); font-size: 0.95rem;" id="ssFieldName">--</div>
+                            <div style="font-size: 0.75rem; color: var(--text-secondary, #94a3b8);" id="ssDepthInfo">0–6" depth</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 1.5rem; font-weight: 700; color: #7c3aed;" id="ssSampleCount">0/15</div>
+                            <div style="font-size: 0.7rem; color: var(--text-secondary, #94a3b8);">samples</div>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button onclick="markSoilSample()" style="flex: 2; padding: 14px; border-radius: 12px; border: none; background: #7c3aed; color: white; font-size: 1rem; font-weight: 600; cursor: pointer;">
+                            <i class="fas fa-map-pin"></i> Mark Sample
+                        </button>
+                        <button onclick="undoLastSoilSample()" style="flex: 1; padding: 14px; border-radius: 12px; border: 1px solid var(--border, #374151); background: transparent; color: var(--text-primary, #e2e8f0); cursor: pointer;">
+                            <i class="fas fa-undo"></i> Undo
+                        </button>
+                    </div>
+                    <button id="ssCompleteBtn" onclick="showCompleteSoilSampling()" style="width: 100%; margin-top: 10px; padding: 14px; border-radius: 12px; border: none; background: #16a34a; color: white; font-size: 1rem; font-weight: 600; cursor: pointer; display: none;">
+                        <i class="fas fa-check-circle"></i> Complete Composite
+                    </button>
+                    <button onclick="backToFieldSelect()" style="width: 100%; margin-top: 8px; padding: 10px; border-radius: 8px; border: none; background: transparent; color: var(--text-secondary, #94a3b8); font-size: 0.85rem; cursor: pointer;">
+                        <i class="fas fa-arrow-left"></i> Change Field
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -21946,10 +22066,784 @@
             showToast('Settings coming soon!', 'info');
         }
 
+        // ============================================
+        // FIELD CAPTURE - GPS BOUNDARY MAPPING
+        // ============================================
+        let fcMap = null;
+        let fcTracePoints = [];
+        let fcTracePath = null;
+        let fcTraceMarkers = [];
+        let fcTraceWatchId = null;
+        let fcIsTracing = false;
+        let fcBoundaries = [];
+        let fcBoundaryPolygons = [];
+        let fcCurrentLocationMarker = null;
+
         function openFieldCapture() {
-            // Navigate to the Field Boundary Capture tool
-            const baseUrl = window.location.href.split('?')[0];
-            window.location.href = baseUrl + '?page=fieldcapture';
+            document.getElementById('fieldCapturePanel').classList.add('active');
+            initFieldCaptureMap();
+            loadFieldBoundaries();
+        }
+
+        function closeFieldCapture() {
+            if (fcIsTracing) stopFieldBoundaryTrace();
+            document.getElementById('fieldCapturePanel').classList.remove('active');
+        }
+
+        function initFieldCaptureMap() {
+            if (fcMap) { google.maps.event.trigger(fcMap, 'resize'); return; }
+            const container = document.getElementById('fieldCaptureMap');
+            if (!container || !window.google || !google.maps) {
+                setTimeout(initFieldCaptureMap, 500);
+                return;
+            }
+            fcMap = new google.maps.Map(container, {
+                center: FARM_CENTER,
+                zoom: 17,
+                mapTypeId: 'hybrid',
+                mapTypeControl: false,
+                streetViewControl: false,
+                fullscreenControl: true,
+                zoomControl: true,
+                styles: [{ featureType: 'poi', stylers: [{ visibility: 'off' }] }]
+            });
+        }
+
+        function startFieldBoundaryTrace() {
+            if (!navigator.geolocation) {
+                showToast('GPS not available on this device', 'error');
+                return;
+            }
+            fcTracePoints = [];
+            fcIsTracing = true;
+            clearFcTraceVisuals();
+
+            document.getElementById('fcStartBtn').style.display = 'none';
+            document.getElementById('fcStopBtn').style.display = 'block';
+            document.getElementById('fcTraceStatus').style.display = 'flex';
+            document.getElementById('fcPointCount').textContent = '0';
+            document.getElementById('fcTraceDistance').textContent = '0';
+
+            fcTracePath = new google.maps.Polyline({
+                map: fcMap, path: [], strokeColor: '#22c55e', strokeWeight: 3, strokeOpacity: 0.9
+            });
+
+            fcTraceWatchId = navigator.geolocation.watchPosition(
+                (pos) => {
+                    const point = { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy };
+                    if (fcTracePoints.length > 0) {
+                        const last = fcTracePoints[fcTracePoints.length - 1];
+                        const dist = fcGetDistanceFeet(last, point);
+                        if (dist < 10) return; // noise filter
+                    }
+                    fcTracePoints.push(point);
+                    const path = fcTracePath.getPath();
+                    path.push(new google.maps.LatLng(point.lat, point.lng));
+
+                    const marker = new google.maps.Marker({
+                        position: { lat: point.lat, lng: point.lng },
+                        map: fcMap,
+                        icon: { path: google.maps.SymbolPath.CIRCLE, scale: 5, fillColor: '#22c55e', fillOpacity: 1, strokeColor: '#fff', strokeWeight: 1 }
+                    });
+                    fcTraceMarkers.push(marker);
+                    fcMap.panTo({ lat: point.lat, lng: point.lng });
+
+                    document.getElementById('fcPointCount').textContent = fcTracePoints.length;
+                    document.getElementById('fcTraceDistance').textContent = fcCalculateTraceDistance();
+                    document.getElementById('fcAccuracy').textContent = '\u00B1' + Math.round(point.accuracy) + 'm';
+                },
+                (err) => { showToast('GPS error: ' + err.message, 'error'); },
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            );
+            if (navigator.vibrate) navigator.vibrate(100);
+            showToast('Walking... stay near the boundary', 'success');
+        }
+
+        function stopFieldBoundaryTrace() {
+            fcIsTracing = false;
+            if (fcTraceWatchId) {
+                navigator.geolocation.clearWatch(fcTraceWatchId);
+                fcTraceWatchId = null;
+            }
+            document.getElementById('fcStartBtn').style.display = 'block';
+            document.getElementById('fcStopBtn').style.display = 'none';
+            document.getElementById('fcTraceStatus').style.display = 'none';
+
+            if (fcTracePoints.length < 3) {
+                showToast('Need at least 3 points to form a boundary', 'error');
+                clearFcTraceVisuals();
+                return;
+            }
+            const stats = fcCalculatePolygonStats(fcTracePoints);
+            showFcSaveModal(stats);
+        }
+
+        function clearFcTraceVisuals() {
+            if (fcTracePath) { fcTracePath.setMap(null); fcTracePath = null; }
+            fcTraceMarkers.forEach(m => m.setMap(null));
+            fcTraceMarkers = [];
+        }
+
+        function showFcSaveModal(stats) {
+            const existing = document.getElementById('fcSaveModal');
+            if (existing) existing.remove();
+
+            const colors = [
+                { hex: '#3b82f6', name: 'Blue' }, { hex: '#22c55e', name: 'Green' },
+                { hex: '#ef4444', name: 'Red' }, { hex: '#f97316', name: 'Orange' },
+                { hex: '#eab308', name: 'Yellow' }, { hex: '#8b5cf6', name: 'Purple' }
+            ];
+            const colorHTML = colors.map((c, i) => `
+                <label style="cursor:pointer;">
+                    <input type="radio" name="fcColor" value="${c.hex}" ${i === 0 ? 'checked' : ''} style="display:none;">
+                    <div style="width:32px;height:32px;border-radius:8px;background:${c.hex};border:3px solid ${i === 0 ? '#fff' : 'transparent'};transition:border 0.2s;"
+                         onclick="this.parentElement.querySelectorAll ? document.querySelectorAll('#fcSaveModal [name=fcColor]').forEach((r,idx)=>{r.parentElement.querySelector('div').style.borderColor=r.checked?'#fff':'transparent'}) : null; this.style.borderColor='#fff';">
+                    </div>
+                </label>
+            `).join('');
+
+            const modal = document.createElement('div');
+            modal.id = 'fcSaveModal';
+            modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.75);z-index:6000;display:flex;align-items:center;justify-content:center;padding:20px;';
+            modal.innerHTML = `
+                <div style="background:var(--bg-card,#1e1e2e);border-radius:16px;width:100%;max-width:400px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+                    <div style="background:linear-gradient(135deg,#3b82f6,#1d4ed8);padding:18px 20px;color:white;">
+                        <h3 style="margin:0;font-size:1.1rem;">Save Field Boundary</h3>
+                        <p style="margin:4px 0 0;opacity:0.85;font-size:0.8rem;">${fcTracePoints.length} points &bull; ${stats.acres} acres &bull; ${stats.perimeterFt} ft</p>
+                    </div>
+                    <div style="padding:18px 20px;">
+                        <div style="margin-bottom:14px;">
+                            <label style="font-size:0.75rem;color:var(--text-secondary,#94a3b8);display:block;margin-bottom:4px;font-weight:600;">Name *</label>
+                            <input type="text" id="fcBndName" placeholder="e.g., North Field" style="width:100%;padding:12px;border-radius:8px;border:1px solid var(--border,#374151);background:var(--bg-input,#0f172a);color:var(--text-primary,#e2e8f0);font-size:1rem;box-sizing:border-box;">
+                        </div>
+                        <div style="margin-bottom:14px;">
+                            <label style="font-size:0.75rem;color:var(--text-secondary,#94a3b8);display:block;margin-bottom:4px;font-weight:600;">Type</label>
+                            <select id="fcBndType" style="width:100%;padding:12px;border-radius:8px;border:1px solid var(--border,#374151);background:var(--bg-input,#0f172a);color:var(--text-primary,#e2e8f0);font-size:1rem;box-sizing:border-box;">
+                                <option value="Field Outline">Field Outline</option>
+                                <option value="Growing Zone">Growing Zone</option>
+                                <option value="High Tunnel Area">High Tunnel Area</option>
+                                <option value="Property Line">Property Line</option>
+                                <option value="Irrigation Zone">Irrigation Zone</option>
+                                <option value="Cover Crop Area">Cover Crop Area</option>
+                                <option value="Buffer Zone">Buffer Zone</option>
+                                <option value="No-Spray Zone">No-Spray Zone</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div style="margin-bottom:16px;">
+                            <label style="font-size:0.75rem;color:var(--text-secondary,#94a3b8);display:block;margin-bottom:6px;font-weight:600;">Color</label>
+                            <div style="display:flex;gap:8px;">${colorHTML}</div>
+                        </div>
+                        <div style="display:flex;gap:10px;">
+                            <button onclick="discardFcBoundary()" style="flex:1;padding:12px;border-radius:10px;border:1px solid var(--border,#374151);background:transparent;color:var(--text-primary,#e2e8f0);cursor:pointer;font-size:0.95rem;">Discard</button>
+                            <button onclick="saveFcBoundary()" style="flex:1;padding:12px;border-radius:10px;border:none;background:#22c55e;color:white;font-weight:600;cursor:pointer;font-size:0.95rem;">Save Field</button>
+                        </div>
+                    </div>
+                </div>`;
+            document.body.appendChild(modal);
+            // Fix color radio behavior
+            setTimeout(() => {
+                modal.querySelectorAll('[name=fcColor]').forEach(radio => {
+                    radio.addEventListener('change', () => {
+                        modal.querySelectorAll('[name=fcColor]').forEach(r => {
+                            r.parentElement.querySelector('div').style.borderColor = r.checked ? '#fff' : 'transparent';
+                        });
+                    });
+                });
+            }, 50);
+        }
+
+        function discardFcBoundary() {
+            clearFcTraceVisuals();
+            fcTracePoints = [];
+            const m = document.getElementById('fcSaveModal');
+            if (m) m.remove();
+        }
+
+        async function saveFcBoundary() {
+            const name = document.getElementById('fcBndName').value.trim();
+            if (!name) { showToast('Please enter a field name', 'error'); return; }
+            const type = document.getElementById('fcBndType').value;
+            const colorRadio = document.querySelector('#fcSaveModal [name=fcColor]:checked');
+            const color = colorRadio ? colorRadio.value : '#3b82f6';
+
+            try {
+                const params = new URLSearchParams({
+                    action: 'saveBoundary',
+                    type: type,
+                    name: name,
+                    color: color,
+                    coordinates: JSON.stringify(fcTracePoints),
+                    createdBy: AppState.employee ? AppState.employee.Name : 'Employee'
+                });
+                const response = await fetch(`${CONFIG.API_URL}?${params.toString()}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast(`"${name}" saved — ${result.stats ? result.stats.acres + ' acres' : ''}`, 'success');
+                    clearFcTraceVisuals();
+                    fcTracePoints = [];
+                    const m = document.getElementById('fcSaveModal');
+                    if (m) m.remove();
+                    loadFieldBoundaries();
+                } else {
+                    showToast('Error: ' + (result.error || 'Save failed'), 'error');
+                }
+            } catch (err) {
+                showToast('Network error saving boundary', 'error');
+                console.error('saveFcBoundary error:', err);
+            }
+        }
+
+        async function loadFieldBoundaries() {
+            try {
+                const response = await fetch(`${CONFIG.API_URL}?action=getBoundaries`);
+                const result = await response.json();
+                if (result.success && result.boundaries) {
+                    fcBoundaries = result.boundaries;
+                    renderFcPolygons();
+                    renderFcBoundaryList();
+                }
+            } catch (err) {
+                console.error('loadFieldBoundaries error:', err);
+            }
+        }
+
+        function renderFcPolygons() {
+            fcBoundaryPolygons.forEach(p => p.setMap(null));
+            fcBoundaryPolygons = [];
+            if (!fcMap) return;
+
+            fcBoundaries.forEach(b => {
+                const coords = b.Coordinates || b.coordinates;
+                if (!coords || !Array.isArray(coords) || coords.length < 3) return;
+                const path = coords.map(c => ({ lat: parseFloat(c.lat), lng: parseFloat(c.lng) }));
+                const color = b.Color || b.color || '#3b82f6';
+
+                const polygon = new google.maps.Polygon({
+                    paths: path,
+                    strokeColor: color, strokeOpacity: 0.9, strokeWeight: 3,
+                    fillColor: color, fillOpacity: 0.15,
+                    map: fcMap
+                });
+
+                // Label
+                const bounds = new google.maps.LatLngBounds();
+                path.forEach(p => bounds.extend(p));
+                const center = bounds.getCenter();
+                const label = new google.maps.Marker({
+                    position: center, map: fcMap,
+                    icon: { path: 'M0,0', scale: 0 },
+                    label: { text: b.Name || b.name || '', color: '#fff', fontSize: '12px', fontWeight: '600',
+                             className: 'fc-field-label' }
+                });
+
+                const info = new google.maps.InfoWindow({
+                    content: `<div style="color:#1e293b;font-size:13px;"><strong>${b.Name || b.name}</strong><br>${b.Type || b.type}<br>${b.Acres || b.acres || '?'} acres &bull; ${b.Perimeter_Ft || b.perimeterFt || '?'} ft</div>`
+                });
+                polygon.addListener('click', () => info.open(fcMap, label));
+                fcBoundaryPolygons.push(polygon);
+                fcBoundaryPolygons.push(label); // track for cleanup
+            });
+        }
+
+        function renderFcBoundaryList() {
+            const container = document.getElementById('fcBoundaryList');
+            if (!fcBoundaries.length) {
+                container.innerHTML = '<div style="color:var(--text-secondary,#94a3b8);text-align:center;padding:20px;font-size:0.85rem;"><i class="fas fa-draw-polygon" style="font-size:1.8rem;display:block;margin-bottom:8px;opacity:0.5;"></i>Walk your field borders to map them.</div>';
+                return;
+            }
+            container.innerHTML = fcBoundaries.map(b => {
+                const color = b.Color || b.color || '#3b82f6';
+                const name = b.Name || b.name || 'Unnamed';
+                const type = b.Type || b.type || '';
+                const acres = b.Acres || b.acres || '?';
+                const id = b.Boundary_ID || b.boundaryId || '';
+                return `<div onclick="zoomToFcBoundary('${id}')" style="display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--border,#374151);border-radius:10px;margin-bottom:6px;cursor:pointer;transition:background 0.2s;">
+                    <div style="width:12px;height:12px;border-radius:3px;background:${color};flex-shrink:0;"></div>
+                    <div style="flex:1;min-width:0;">
+                        <div style="font-weight:600;color:var(--text-primary,#e2e8f0);font-size:0.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${name}</div>
+                        <div style="font-size:0.75rem;color:var(--text-secondary,#94a3b8);">${type} &bull; ${acres} acres</div>
+                    </div>
+                    <button onclick="event.stopPropagation();deleteFcBoundary('${id}','${name}')" style="background:none;border:none;color:var(--text-secondary,#94a3b8);cursor:pointer;padding:4px;font-size:0.85rem;" title="Delete"><i class="fas fa-trash-alt"></i></button>
+                </div>`;
+            }).join('');
+        }
+
+        function zoomToFcBoundary(boundaryId) {
+            const b = fcBoundaries.find(x => (x.Boundary_ID || x.boundaryId) === boundaryId);
+            if (!b || !fcMap) return;
+            const coords = b.Coordinates || b.coordinates;
+            if (!coords || !coords.length) return;
+            const bounds = new google.maps.LatLngBounds();
+            coords.forEach(c => bounds.extend({ lat: parseFloat(c.lat), lng: parseFloat(c.lng) }));
+            fcMap.fitBounds(bounds, 40);
+        }
+
+        async function deleteFcBoundary(id, name) {
+            if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
+            try {
+                const response = await fetch(`${CONFIG.API_URL}?action=deleteBoundary&boundaryId=${encodeURIComponent(id)}`);
+                const result = await response.json();
+                if (result.success) {
+                    showToast(`"${name}" deleted`, 'info');
+                    loadFieldBoundaries();
+                } else {
+                    showToast('Error: ' + (result.error || 'Delete failed'), 'error');
+                }
+            } catch (err) {
+                showToast('Network error', 'error');
+            }
+        }
+
+        function fieldCaptureMyLocation() {
+            if (!navigator.geolocation || !fcMap) return;
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                    fcMap.panTo(loc);
+                    fcMap.setZoom(18);
+                    if (fcCurrentLocationMarker) fcCurrentLocationMarker.setMap(null);
+                    fcCurrentLocationMarker = new google.maps.Marker({
+                        position: loc, map: fcMap,
+                        icon: { path: google.maps.SymbolPath.CIRCLE, scale: 8, fillColor: '#3b82f6', fillOpacity: 1, strokeColor: '#fff', strokeWeight: 3 }
+                    });
+                },
+                () => showToast('Could not get location', 'error'),
+                { enableHighAccuracy: true }
+            );
+        }
+
+        // Geo helpers (ported from farm-operations.html)
+        function fcGetDistanceFeet(p1, p2) {
+            const R = 20902231; // Earth radius in feet
+            const dLat = (p2.lat - p1.lat) * Math.PI / 180;
+            const dLng = (p2.lng - p1.lng) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(p1.lat * Math.PI/180) * Math.cos(p2.lat * Math.PI/180) *
+                      Math.sin(dLng/2) * Math.sin(dLng/2);
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        }
+
+        function fcCalculateTraceDistance() {
+            let total = 0;
+            for (let i = 1; i < fcTracePoints.length; i++) {
+                total += fcGetDistanceFeet(fcTracePoints[i-1], fcTracePoints[i]);
+            }
+            return Math.round(total);
+        }
+
+        function fcCalculatePolygonStats(coords) {
+            if (coords.length < 3) return { areaSqFt: 0, perimeterFt: 0, acres: '0.00' };
+            const refLat = coords[0].lat;
+            const feetPerDegreeLat = 364000;
+            const feetPerDegreeLng = 279000 * Math.cos(refLat * Math.PI / 180);
+            const localCoords = coords.map(c => ({
+                x: (c.lng - coords[0].lng) * feetPerDegreeLng,
+                y: (c.lat - coords[0].lat) * feetPerDegreeLat
+            }));
+            // Shoelace formula for area
+            let area = 0;
+            for (let i = 0; i < localCoords.length; i++) {
+                const j = (i + 1) % localCoords.length;
+                area += localCoords[i].x * localCoords[j].y;
+                area -= localCoords[j].x * localCoords[i].y;
+            }
+            area = Math.abs(area) / 2;
+            // Perimeter
+            let perimeter = 0;
+            for (let i = 0; i < localCoords.length; i++) {
+                const j = (i + 1) % localCoords.length;
+                const dx = localCoords[j].x - localCoords[i].x;
+                const dy = localCoords[j].y - localCoords[i].y;
+                perimeter += Math.sqrt(dx*dx + dy*dy);
+            }
+            return {
+                areaSqFt: Math.round(area),
+                perimeterFt: Math.round(perimeter),
+                acres: (area / 43560).toFixed(2)
+            };
+        }
+
+        // ============================================
+        // SOIL SAMPLING - GPS-Tagged Sample Collection
+        // ============================================
+        let ssMap = null;
+        let ssSamplePoints = [];
+        let ssSampleMarkers = [];
+        let ssFieldPolygon = null;
+        let ssSelectedField = null;
+        let ssCurrentSession = null;
+        let ssCurrentLocationMarker = null;
+
+        function openSoilSampling() {
+            document.getElementById('soilSamplingPanel').classList.add('active');
+            document.getElementById('ssFieldSelect').style.display = 'block';
+            document.getElementById('ssSamplingView').style.display = 'none';
+            loadFieldsForSampling();
+        }
+
+        function closeSoilSampling() {
+            document.getElementById('soilSamplingPanel').classList.remove('active');
+            resetSoilSampling();
+        }
+
+        function backToFieldSelect() {
+            document.getElementById('ssFieldSelect').style.display = 'block';
+            document.getElementById('ssSamplingView').style.display = 'none';
+            resetSoilSampling();
+            loadFieldsForSampling();
+        }
+
+        function resetSoilSampling() {
+            ssSamplePoints = [];
+            ssSampleMarkers.forEach(m => m.setMap(null));
+            ssSampleMarkers = [];
+            if (ssFieldPolygon) { ssFieldPolygon.setMap(null); ssFieldPolygon = null; }
+            ssSelectedField = null;
+            ssCurrentSession = null;
+            document.getElementById('ssSampleCount').textContent = '0/15';
+            document.getElementById('ssCompleteBtn').style.display = 'none';
+        }
+
+        async function loadFieldsForSampling() {
+            const list = document.getElementById('ssFieldList');
+            try {
+                const response = await fetch(`${CONFIG.API_URL}?action=getBoundaries`);
+                const result = await response.json();
+                if (!result.success || !result.boundaries || !result.boundaries.length) {
+                    list.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-secondary,#94a3b8);"><i class="fas fa-draw-polygon" style="font-size:2rem;display:block;margin-bottom:8px;"></i><p>No fields mapped yet.</p><p style="font-size:0.8rem;">Use "Map Fields" first to walk your field boundaries.</p></div>';
+                    return;
+                }
+                const fields = result.boundaries.filter(b => {
+                    const t = (b.Type || b.type || '').toLowerCase();
+                    return t.includes('field') || t.includes('growing') || t.includes('tunnel') || t.includes('zone');
+                });
+                if (!fields.length) {
+                    list.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-secondary,#94a3b8);"><p>No field boundaries found.</p><p style="font-size:0.8rem;">Map some fields first (Field Outline or Growing Zone type).</p></div>';
+                    return;
+                }
+                list.innerHTML = fields.map(b => {
+                    const color = b.Color || b.color || '#3b82f6';
+                    const name = b.Name || b.name || 'Unnamed';
+                    const type = b.Type || b.type || '';
+                    const acres = b.Acres || b.acres || '?';
+                    return `<div onclick='selectFieldForSampling(${JSON.stringify(b).replace(/'/g, "&#39;")})' style="display:flex;align-items:center;gap:14px;padding:14px;border:1px solid var(--border,#374151);border-radius:12px;margin-bottom:8px;cursor:pointer;transition:background 0.2s;">
+                        <div style="width:40px;height:40px;border-radius:10px;background:${color};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                            <i class="fas fa-draw-polygon" style="color:white;font-size:1rem;"></i>
+                        </div>
+                        <div style="flex:1;">
+                            <div style="font-weight:600;color:var(--text-primary,#e2e8f0);font-size:0.95rem;">${name}</div>
+                            <div style="font-size:0.75rem;color:var(--text-secondary,#94a3b8);">${type} &bull; ${acres} acres</div>
+                        </div>
+                        <i class="fas fa-chevron-right" style="color:var(--text-secondary,#94a3b8);"></i>
+                    </div>`;
+                }).join('');
+            } catch (err) {
+                list.innerHTML = '<div style="text-align:center;padding:20px;color:#ef4444;">Error loading fields</div>';
+                console.error('loadFieldsForSampling error:', err);
+            }
+        }
+
+        function selectFieldForSampling(boundary) {
+            ssSelectedField = boundary;
+            ssSamplePoints = [];
+            ssSampleMarkers.forEach(m => m.setMap(null));
+            ssSampleMarkers = [];
+            ssCurrentSession = null;
+
+            document.getElementById('ssFieldSelect').style.display = 'none';
+            document.getElementById('ssSamplingView').style.display = 'flex';
+            document.getElementById('ssFieldName').textContent = boundary.Name || boundary.name || 'Field';
+            document.getElementById('ssSampleCount').textContent = '0/15';
+            document.getElementById('ssCompleteBtn').style.display = 'none';
+
+            initSoilSamplingMap(boundary);
+        }
+
+        function initSoilSamplingMap(boundary) {
+            const container = document.getElementById('soilSamplingMap');
+            if (!container || !window.google || !google.maps) {
+                setTimeout(() => initSoilSamplingMap(boundary), 500);
+                return;
+            }
+            if (!ssMap) {
+                ssMap = new google.maps.Map(container, {
+                    center: FARM_CENTER,
+                    zoom: 17,
+                    mapTypeId: 'hybrid',
+                    mapTypeControl: false,
+                    streetViewControl: false,
+                    fullscreenControl: false,
+                    zoomControl: true,
+                    styles: [{ featureType: 'poi', stylers: [{ visibility: 'off' }] }]
+                });
+            } else {
+                google.maps.event.trigger(ssMap, 'resize');
+            }
+            // Clear existing polygon
+            if (ssFieldPolygon) ssFieldPolygon.setMap(null);
+
+            const coords = boundary.Coordinates || boundary.coordinates;
+            if (coords && Array.isArray(coords) && coords.length >= 3) {
+                const path = coords.map(c => ({ lat: parseFloat(c.lat), lng: parseFloat(c.lng) }));
+                const color = boundary.Color || boundary.color || '#7c3aed';
+                ssFieldPolygon = new google.maps.Polygon({
+                    paths: path,
+                    strokeColor: color, strokeOpacity: 0.9, strokeWeight: 3,
+                    fillColor: color, fillOpacity: 0.1,
+                    map: ssMap
+                });
+                const bounds = new google.maps.LatLngBounds();
+                path.forEach(p => bounds.extend(p));
+                ssMap.fitBounds(bounds, 30);
+            }
+        }
+
+        async function markSoilSample() {
+            const gps = await captureGPS();
+            if (gps.error) {
+                showToast('GPS error: ' + gps.error, 'error');
+                return;
+            }
+            const sampleNum = ssSamplePoints.length + 1;
+            ssSamplePoints.push({
+                lat: gps.lat, lng: gps.lng, accuracy: gps.accuracy,
+                sampleNum: sampleNum, notes: '', timestamp: new Date().toISOString()
+            });
+
+            const marker = new google.maps.Marker({
+                position: { lat: gps.lat, lng: gps.lng },
+                map: ssMap,
+                label: { text: String(sampleNum), color: 'white', fontWeight: 'bold', fontSize: '11px' },
+                icon: {
+                    path: google.maps.SymbolPath.CIRCLE, scale: 14,
+                    fillColor: '#7c3aed', fillOpacity: 1,
+                    strokeColor: '#fff', strokeWeight: 2
+                }
+            });
+            ssSampleMarkers.push(marker);
+            ssMap.panTo({ lat: gps.lat, lng: gps.lng });
+
+            document.getElementById('ssSampleCount').textContent = sampleNum + '/15';
+            if (sampleNum >= 3) document.getElementById('ssCompleteBtn').style.display = 'block';
+
+            if (navigator.vibrate) navigator.vibrate(100);
+            showToast('Sample ' + sampleNum + ' marked', 'success');
+
+            // Auto-save session
+            autoSaveSoilSession();
+        }
+
+        function undoLastSoilSample() {
+            if (!ssSamplePoints.length) return;
+            ssSamplePoints.pop();
+            const marker = ssSampleMarkers.pop();
+            if (marker) marker.setMap(null);
+            document.getElementById('ssSampleCount').textContent = ssSamplePoints.length + '/15';
+            if (ssSamplePoints.length < 3) document.getElementById('ssCompleteBtn').style.display = 'none';
+            showToast('Last sample removed', 'info');
+        }
+
+        async function autoSaveSoilSession() {
+            if (!ssSelectedField) return;
+            try {
+                const body = {
+                    action: 'saveSoilSamplingSession',
+                    sessionId: ssCurrentSession || '',
+                    fieldBoundaryId: ssSelectedField.Boundary_ID || ssSelectedField.boundaryId || '',
+                    fieldName: ssSelectedField.Name || ssSelectedField.name || '',
+                    collector: AppState.employee ? AppState.employee.Name : '',
+                    sampleDate: new Date().toISOString().split('T')[0],
+                    sampleDepth: '0-6"',
+                    numSamples: ssSamplePoints.length,
+                    samplePoints: JSON.stringify(ssSamplePoints),
+                    status: 'In Progress'
+                };
+                const response = await fetch(CONFIG.API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify(body)
+                });
+                const result = await response.json();
+                if (result.success && result.sessionId) {
+                    ssCurrentSession = result.sessionId;
+                }
+            } catch (err) {
+                console.error('autoSaveSoilSession error:', err);
+            }
+        }
+
+        function showCompleteSoilSampling() {
+            const existing = document.getElementById('ssSaveModal');
+            if (existing) existing.remove();
+
+            const fieldName = ssSelectedField ? (ssSelectedField.Name || ssSelectedField.name || 'Field') : 'Field';
+            const modal = document.createElement('div');
+            modal.id = 'ssSaveModal';
+            modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.75);z-index:6000;display:flex;align-items:center;justify-content:center;padding:20px;';
+            modal.innerHTML = `
+                <div style="background:var(--bg-card,#1e1e2e);border-radius:16px;width:100%;max-width:400px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+                    <div style="background:linear-gradient(135deg,#7c3aed,#6d28d9);padding:18px 20px;color:white;">
+                        <h3 style="margin:0;font-size:1.1rem;">Complete Composite Sample</h3>
+                        <p style="margin:4px 0 0;opacity:0.85;font-size:0.8rem;">${fieldName} &bull; ${ssSamplePoints.length} samples collected</p>
+                    </div>
+                    <div style="padding:18px 20px;">
+                        <div style="margin-bottom:14px;">
+                            <label style="font-size:0.75rem;color:var(--text-secondary,#94a3b8);display:block;margin-bottom:4px;font-weight:600;">Composite ID</label>
+                            <input type="text" id="ssCompositeId" placeholder="e.g., COMP-NF-01" value="COMP-${fieldName.replace(/[^A-Za-z]/g,'').substring(0,4).toUpperCase()}-${new Date().toISOString().slice(5,10).replace('-','')}" style="width:100%;padding:12px;border-radius:8px;border:1px solid var(--border,#374151);background:var(--bg-input,#0f172a);color:var(--text-primary,#e2e8f0);font-size:1rem;box-sizing:border-box;">
+                        </div>
+                        <div style="margin-bottom:14px;">
+                            <label style="font-size:0.75rem;color:var(--text-secondary,#94a3b8);display:block;margin-bottom:4px;font-weight:600;">Lab Number (if known)</label>
+                            <input type="text" id="ssLabNumber" placeholder="Assigned by Penn State" style="width:100%;padding:12px;border-radius:8px;border:1px solid var(--border,#374151);background:var(--bg-input,#0f172a);color:var(--text-primary,#e2e8f0);font-size:1rem;box-sizing:border-box;">
+                        </div>
+                        <div style="margin-bottom:14px;">
+                            <label style="font-size:0.75rem;color:var(--text-secondary,#94a3b8);display:block;margin-bottom:4px;font-weight:600;">Sample Depth</label>
+                            <select id="ssSampleDepth" style="width:100%;padding:12px;border-radius:8px;border:1px solid var(--border,#374151);background:var(--bg-input,#0f172a);color:var(--text-primary,#e2e8f0);font-size:1rem;box-sizing:border-box;">
+                                <option value="0-6 inches">0–6 inches</option>
+                                <option value="6-12 inches">6–12 inches</option>
+                                <option value="0-12 inches">0–12 inches</option>
+                            </select>
+                        </div>
+                        <div style="margin-bottom:16px;">
+                            <label style="font-size:0.75rem;color:var(--text-secondary,#94a3b8);display:block;margin-bottom:4px;font-weight:600;">Notes</label>
+                            <textarea id="ssNotes" rows="2" placeholder="Field conditions, observations..." style="width:100%;padding:12px;border-radius:8px;border:1px solid var(--border,#374151);background:var(--bg-input,#0f172a);color:var(--text-primary,#e2e8f0);font-size:0.9rem;resize:vertical;box-sizing:border-box;"></textarea>
+                        </div>
+                        <div style="display:flex;gap:10px;margin-bottom:10px;">
+                            <button onclick="closeSoilSamplingModal()" style="flex:1;padding:12px;border-radius:10px;border:1px solid var(--border,#374151);background:transparent;color:var(--text-primary,#e2e8f0);cursor:pointer;">Cancel</button>
+                            <button onclick="completeSoilSampling()" style="flex:1;padding:12px;border-radius:10px;border:none;background:#16a34a;color:white;font-weight:600;cursor:pointer;">Save &amp; Complete</button>
+                        </div>
+                        <button onclick="printSoilSubmissionForm()" style="width:100%;padding:10px;border-radius:8px;border:1px solid #7c3aed;background:transparent;color:#c4b5fd;cursor:pointer;font-size:0.85rem;">
+                            <i class="fas fa-print"></i> Print Submission Form
+                        </button>
+                    </div>
+                </div>`;
+            document.body.appendChild(modal);
+        }
+
+        function closeSoilSamplingModal() {
+            const m = document.getElementById('ssSaveModal');
+            if (m) m.remove();
+        }
+
+        async function completeSoilSampling() {
+            const compositeId = document.getElementById('ssCompositeId').value.trim();
+            const labNumber = document.getElementById('ssLabNumber').value.trim();
+            const depth = document.getElementById('ssSampleDepth').value;
+            const notes = document.getElementById('ssNotes').value.trim();
+
+            try {
+                const body = {
+                    action: 'saveSoilSamplingSession',
+                    sessionId: ssCurrentSession || '',
+                    fieldBoundaryId: ssSelectedField ? (ssSelectedField.Boundary_ID || ssSelectedField.boundaryId || '') : '',
+                    fieldName: ssSelectedField ? (ssSelectedField.Name || ssSelectedField.name || '') : '',
+                    collector: AppState.employee ? AppState.employee.Name : '',
+                    sampleDate: new Date().toISOString().split('T')[0],
+                    sampleDepth: depth,
+                    numSamples: ssSamplePoints.length,
+                    samplePoints: JSON.stringify(ssSamplePoints),
+                    compositeId: compositeId,
+                    labNumber: labNumber,
+                    status: 'Submitted',
+                    notes: notes
+                };
+                const response = await fetch(CONFIG.API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify(body)
+                });
+                const result = await response.json();
+                if (result.success) {
+                    showToast('Composite sample saved!', 'success');
+                    closeSoilSamplingModal();
+                    resetSoilSampling();
+                    document.getElementById('ssFieldSelect').style.display = 'block';
+                    document.getElementById('ssSamplingView').style.display = 'none';
+                    loadFieldsForSampling();
+                } else {
+                    showToast('Error: ' + (result.error || 'Save failed'), 'error');
+                }
+            } catch (err) {
+                showToast('Network error', 'error');
+                console.error('completeSoilSampling error:', err);
+            }
+        }
+
+        function printSoilSubmissionForm() {
+            const fieldName = ssSelectedField ? (ssSelectedField.Name || ssSelectedField.name || 'Field') : 'Field';
+            const compositeId = document.getElementById('ssCompositeId') ? document.getElementById('ssCompositeId').value : '';
+            const labNumber = document.getElementById('ssLabNumber') ? document.getElementById('ssLabNumber').value : '';
+            const depth = document.getElementById('ssSampleDepth') ? document.getElementById('ssSampleDepth').value : '0-6"';
+            const today = new Date().toLocaleDateString();
+            const collector = AppState.employee ? AppState.employee.Name : '';
+
+            const pdfWindow = window.open('', '_blank');
+            if (!pdfWindow) { alert('Popup blocked'); return; }
+            pdfWindow.document.write(`<!DOCTYPE html><html><head><title>Soil Submission - ${fieldName}</title>
+                <style>
+                    @media print { body{margin:0;padding:10px;} .no-print{display:none!important;} }
+                    body{font-family:'Segoe UI',Arial,sans-serif;max-width:800px;margin:0 auto;padding:20px;color:#1e293b;font-size:13px;line-height:1.3;}
+                    .header{text-align:center;border-bottom:3px solid #7c3aed;padding-bottom:12px;margin-bottom:16px;}
+                    .header h1{color:#7c3aed;margin:0;font-size:1.3rem;}
+                    .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;}
+                    .info-field{border-bottom:1px solid #cbd5e1;padding:5px 4px 3px;}
+                    .info-field label{font-size:0.7rem;color:#64748b;font-weight:600;text-transform:uppercase;}
+                    .info-field .val{font-size:0.85rem;min-height:18px;}
+                    table{width:100%;border-collapse:collapse;margin:12px 0;}
+                    th,td{border:1px solid #cbd5e1;padding:5px;text-align:center;font-size:0.8rem;}
+                    th{background:#f5f3ff;color:#6d28d9;font-size:0.7rem;text-transform:uppercase;}
+                    .lab-info{background:#f5f3ff;padding:10px;border-radius:6px;font-size:0.8rem;margin-top:14px;line-height:1.5;}
+                    .print-btn{position:fixed;top:12px;right:12px;padding:10px 18px;background:#7c3aed;color:white;border:none;border-radius:6px;cursor:pointer;font-size:0.95rem;font-weight:600;}
+                </style></head><body>
+                <button class="print-btn no-print" onclick="window.print()">Print / Save PDF</button>
+                <div class="header">
+                    <h1>Soil Sampling Submission Form</h1>
+                    <p style="color:#64748b;font-size:0.8rem;">Tiny Seed Farm | 257 Zeigler Rd, Rochester, PA 15074</p>
+                </div>
+                <div class="info-grid">
+                    <div class="info-field"><label>Date</label><div class="val">${today}</div></div>
+                    <div class="info-field"><label>Collector</label><div class="val">${collector}</div></div>
+                    <div class="info-field"><label>Field</label><div class="val">${fieldName}</div></div>
+                    <div class="info-field"><label>Sample Depth</label><div class="val">${depth}</div></div>
+                    <div class="info-field"><label>Composite ID</label><div class="val">${compositeId}</div></div>
+                    <div class="info-field"><label>Lab Number</label><div class="val">${labNumber || '(pending)'}</div></div>
+                </div>
+                <h3 style="color:#7c3aed;font-size:0.95rem;border-bottom:1px solid #e2e8f0;padding-bottom:4px;">Sample Points (${ssSamplePoints.length} collected)</h3>
+                <table>
+                    <thead><tr><th>#</th><th>Latitude</th><th>Longitude</th><th>Accuracy</th><th>Time</th></tr></thead>
+                    <tbody>${ssSamplePoints.map(p => `<tr>
+                        <td style="font-weight:700;color:#7c3aed;">${p.sampleNum}</td>
+                        <td>${p.lat.toFixed(6)}</td><td>${p.lng.toFixed(6)}</td>
+                        <td>\u00B1${Math.round(p.accuracy || 0)}m</td>
+                        <td style="font-size:0.75rem;">${p.timestamp ? new Date(p.timestamp).toLocaleTimeString() : ''}</td>
+                    </tr>`).join('')}</tbody>
+                </table>
+                <div class="lab-info">
+                    <strong style="color:#6d28d9;">Penn State Agricultural Analytical Services Laboratory</strong><br>
+                    111 Tower Road, University Park, PA 16802 &bull; 814-863-0841<br>
+                    Mix all sub-samples in a clean bucket. Take ~1 pint. Air dry if moist. Include this form.
+                </div>
+                <div style="text-align:center;margin-top:14px;color:#94a3b8;font-size:0.7rem;">Generated by Tiny Seed Farm OS &bull; ${today}</div>
+                </body></html>`);
+            pdfWindow.document.close();
+        }
+
+        function soilSamplingMyLocation() {
+            if (!navigator.geolocation || !ssMap) return;
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                    ssMap.panTo(loc);
+                    if (ssCurrentLocationMarker) ssCurrentLocationMarker.setMap(null);
+                    ssCurrentLocationMarker = new google.maps.Marker({
+                        position: loc, map: ssMap,
+                        icon: { path: google.maps.SymbolPath.CIRCLE, scale: 8, fillColor: '#7c3aed', fillOpacity: 1, strokeColor: '#fff', strokeWeight: 3 }
+                    });
+                },
+                () => showToast('Could not get location', 'error'),
+                { enableHighAccuracy: true }
+            );
         }
 
         // ============================================

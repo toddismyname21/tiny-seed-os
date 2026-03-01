@@ -536,6 +536,7 @@
             <p style="font-size: 0.75rem; opacity: 0.85; margin-top: 0.25rem;">Farm Learning System - Building 40 Years of Knowledge</p>
         </div>
         <div class="header-actions">
+            <button class="btn btn-secondary" onclick="printBlankSoilTestForm()" style="background:#16a34a;color:white;border-color:#16a34a;">Print Blank Form</button>
             <button class="btn btn-secondary" onclick="showManualEntry()">+ Manual Entry</button>
             <button class="btn btn-primary" onclick="window.location.href='index.html'">Dashboard</button>
         </div>
@@ -8014,6 +8015,154 @@
                             Data sources: University extension services, peer-reviewed agricultural research.<br>
                             See SOIL_TRACKER_PROJECT_SUMMARY.md for full citations.
                         </p>
+                    </div>
+                </body>
+                </html>
+            `);
+            pdfWindow.document.close();
+        }
+
+        // ============================================
+        // PRINTABLE BLANK SOIL TEST COLLECTION FORM
+        // ============================================
+        function printBlankSoilTestForm() {
+            const today = new Date().toLocaleDateString();
+            const pdfWindow = window.open('', '_blank');
+            if (!pdfWindow) {
+                alert('Popup blocked — please allow popups for this site.');
+                return;
+            }
+            pdfWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Soil Test Collection Form - Tiny Seed Farm</title>
+                    <style>
+                        @media print {
+                            body { margin: 0; padding: 10px; }
+                            .no-print { display: none !important; }
+                            table { page-break-inside: avoid; }
+                        }
+                        body {
+                            font-family: 'Segoe UI', Arial, sans-serif;
+                            line-height: 1.3;
+                            max-width: 800px;
+                            margin: 0 auto;
+                            padding: 20px;
+                            color: #1e293b;
+                            font-size: 13px;
+                        }
+                        .header { text-align: center; border-bottom: 3px solid #16a34a; padding-bottom: 12px; margin-bottom: 16px; }
+                        .header h1 { color: #16a34a; margin: 0; font-size: 1.4rem; }
+                        .header p { color: #64748b; margin: 2px 0; font-size: 0.8rem; }
+                        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+                        .info-field { border-bottom: 1px solid #cbd5e1; padding: 6px 4px 3px; }
+                        .info-field label { font-size: 0.7rem; color: #64748b; display: block; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+                        .info-field .value { min-height: 22px; font-size: 0.85rem; }
+                        .info-field.full { grid-column: 1 / -1; }
+                        table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+                        th, td { border: 1px solid #cbd5e1; padding: 6px 5px; text-align: center; font-size: 0.8rem; }
+                        th { background: #f0fdf4; color: #166534; font-weight: 600; font-size: 0.7rem; text-transform: uppercase; }
+                        .sample-row td { min-height: 24px; height: 28px; }
+                        .sample-row td:first-child { font-weight: 700; color: #16a34a; width: 30px; }
+                        .section { margin: 14px 0; }
+                        .section h3 { color: #16a34a; font-size: 0.95rem; margin: 0 0 6px; border-bottom: 1px solid #e2e8f0; padding-bottom: 3px; }
+                        .notes-box { border: 1px solid #cbd5e1; border-radius: 4px; min-height: 60px; padding: 6px; }
+                        .lab-info { background: #f0fdf4; padding: 10px 12px; border-radius: 6px; font-size: 0.8rem; margin-top: 12px; line-height: 1.5; }
+                        .lab-info strong { color: #166534; }
+                        .print-btn { position: fixed; top: 12px; right: 12px; padding: 10px 18px; background: #16a34a; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.95rem; font-weight: 600; z-index: 100; }
+                        .print-btn:hover { background: #15803d; }
+                        .footer { text-align: center; margin-top: 14px; color: #94a3b8; font-size: 0.7rem; border-top: 1px solid #e2e8f0; padding-top: 8px; }
+                        .depth-checks { display: flex; gap: 16px; align-items: center; min-height: 22px; }
+                        .depth-checks span { font-size: 0.85rem; }
+                    </style>
+                </head>
+                <body>
+                    <button class="print-btn no-print" onclick="window.print()">Print / Save PDF</button>
+
+                    <div class="header">
+                        <h1>Soil Test Collection Form</h1>
+                        <p>Tiny Seed Farm | 257 Zeigler Rd, Rochester, PA 15074</p>
+                    </div>
+
+                    <div class="info-grid">
+                        <div class="info-field">
+                            <label>Date</label>
+                            <div class="value"></div>
+                        </div>
+                        <div class="info-field">
+                            <label>Collector Name</label>
+                            <div class="value"></div>
+                        </div>
+                        <div class="info-field">
+                            <label>Field / Zone Name</label>
+                            <div class="value"></div>
+                        </div>
+                        <div class="info-field">
+                            <label>Field Boundary ID (if mapped)</label>
+                            <div class="value"></div>
+                        </div>
+                        <div class="info-field">
+                            <label>Sample Depth</label>
+                            <div class="depth-checks">
+                                <span>&#9744; 0–6"</span>
+                                <span>&#9744; 6–12"</span>
+                                <span>&#9744; Other: ________</span>
+                            </div>
+                        </div>
+                        <div class="info-field">
+                            <label>Composite Sample ID</label>
+                            <div class="value"></div>
+                        </div>
+                        <div class="info-field">
+                            <label>Lab Number (assigned by lab)</label>
+                            <div class="value"></div>
+                        </div>
+                        <div class="info-field">
+                            <label>Current / Previous Crop</label>
+                            <div class="value"></div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <h3>Individual Sample Points — Collect 15, Mix Into One Composite</h3>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th style="width: 40%;">GPS Coordinates / Location Description</th>
+                                    <th style="width: 15%;">Depth</th>
+                                    <th style="width: 35%;">Observations (color, texture, moisture, roots)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${Array.from({length: 15}, (_, i) => `
+                                <tr class="sample-row">
+                                    <td>${i + 1}</td>
+                                    <td style="text-align: left;">&nbsp;</td>
+                                    <td>&nbsp;</td>
+                                    <td style="text-align: left;">&nbsp;</td>
+                                </tr>`).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="section">
+                        <h3>Field Notes</h3>
+                        <div class="notes-box"></div>
+                    </div>
+
+                    <div class="lab-info">
+                        <strong>Penn State Agricultural Analytical Services Laboratory</strong><br>
+                        111 Tower Road, University Park, PA 16802 &bull; 814-863-0841 &bull; aasl@psu.edu<br>
+                        <a href="https://agsci.psu.edu/aasl">agsci.psu.edu/aasl</a><br><br>
+                        <strong>Submission:</strong> Mix all 15 sub-samples in a clean bucket. Take ~1 pint of mixed soil.
+                        Air dry if moist. Ship in a labeled bag with this form or official Penn State submission form.<br>
+                        <strong>Cost:</strong> ~$9–12 basic (pH, P, K, Ca, Mg, CEC) &bull; ~$25 comprehensive
+                    </div>
+
+                    <div class="footer">
+                        Generated by Tiny Seed Farm OS &bull; ${today}
                     </div>
                 </body>
                 </html>
