@@ -2305,18 +2305,102 @@
     <input type="file" id="photoInput" accept="image/*" capture="environment" onchange="handlePhoto(event)">
     <input type="file" id="issuePhotoInput" accept="image/*" capture="environment" onchange="handleIssuePhoto(event)">
 
-    <!-- API configuration removed - using self-contained version -->
-
     <script>
         // ============================================
-        // SELF-CONTAINED DRIVER API (no dependencies)
+        // REAL API (uses api-config.js TINY_SEED_API)
         // ============================================
+        var API_BASE = TINY_SEED_API.MAIN_API;
+
         var api = {
-            authenticateDriver: function(pin) { return Promise.resolve({ success: false }); },
-            getDriverRoute: function(driverId, date) { return Promise.resolve({ success: false }); },
-            getDeliveryHistory: function(driverId, days) { return Promise.resolve({ success: false, deliveries: [] }); },
-            updateDeliveryStatus: function(data) { console.log('Delivery:', data); return Promise.resolve({ success: true }); },
-            updateDriverLocation: function(data) { return Promise.resolve({ success: true }); }
+            // GET — reads from DRIVERS sheet, PIN-based auth with rate limiting
+            authenticateDriver: function(pin) {
+                var params = new URLSearchParams({
+                    action: 'authenticateDriver',
+                    pin: pin
+                });
+                return fetch(API_BASE + '?' + params.toString())
+                    .then(function(r) { return r.json(); });
+            },
+
+            // GET — internally calls authenticateDriver, needs PIN
+            getDriverRoute: function(driverId, date) {
+                var params = new URLSearchParams({
+                    action: 'getDriverRoute',
+                    driverId: driverId,
+                    date: date,
+                    pin: AppState.pin
+                });
+                return fetch(API_BASE + '?' + params.toString())
+                    .then(function(r) { return r.json(); });
+            },
+
+            // GET — reads from DELIVERY_STOPS sheet
+            getDeliveryHistory: function(driverId, days) {
+                var params = new URLSearchParams({
+                    action: 'getDeliveryHistory',
+                    driverId: driverId,
+                    days: days
+                });
+                return fetch(API_BASE + '?' + params.toString())
+                    .then(function(r) { return r.json(); });
+            },
+
+            // POST — maps to recordDeliveryProof (saves photo/signature to Drive)
+            completeDelivery: function(data) {
+                var postData = {
+                    action: 'recordDeliveryProof',
+                    stopId: data.deliveryId,
+                    orderId: data.orderId || '',
+                    driverId: data.driverId || '',
+                    photo: data.photo || '',
+                    signature: data.signature || '',
+                    gpsLat: data.gps ? data.gps.lat : '',
+                    gpsLng: data.gps ? data.gps.lng : '',
+                    notes: data.notes || '',
+                    routeId: data.routeId || ''
+                };
+                return fetch(API_BASE, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify(postData)
+                }).then(function(r) { return r.json(); });
+            },
+
+            // POST — maps to reportDeliveryIssue (saves issue photo to Drive)
+            reportDeliveryIssue: function(data) {
+                var postData = {
+                    action: 'reportDeliveryIssue',
+                    stopId: data.deliveryId,
+                    orderId: data.orderId || '',
+                    issueType: data.issueType || '',
+                    notes: data.notes || '',
+                    photo: data.photo || '',
+                    routeId: data.routeId || ''
+                };
+                return fetch(API_BASE, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify(postData)
+                }).then(function(r) { return r.json(); });
+            },
+
+            // GET — update delivery stop status
+            updateDeliveryStatus: function(data) {
+                var params = new URLSearchParams(
+                    Object.assign({ action: 'updateDeliveryStopStatus' }, data)
+                );
+                return fetch(API_BASE + '?' + params.toString())
+                    .then(function(r) { return r.json(); });
+            },
+
+            // GET — already handled by tracking code
+            updateDriverLocation: function(data) {
+                var params = new URLSearchParams(
+                    Object.assign({ action: 'updateDriverLocation' }, data)
+                );
+                return fetch(API_BASE + '?' + params.toString())
+                    .then(function(r) { return r.json(); });
+            }
         };
 
         // ============================================
@@ -2358,125 +2442,7 @@
             }
         };
 
-        // ============================================
-        // SAMPLE DATA
-        // ============================================
-        const SAMPLE_DRIVERS = [
-            { id: 'DRV-001', name: 'Todd Pollack', pin: '7714', initials: 'TP' },
-            { id: 'DRV-002', name: 'Samantha Pollack', pin: '1234', initials: 'SP' },
-            { id: 'DRV-003', name: 'Sarah Chen', pin: '5678', initials: 'SC' }
-        ];
-
-        const SAMPLE_ROUTE = [
-            {
-                id: 'STOP-001',
-                customer: 'Cafe Aroma',
-                address: '1234 Main St, Pittsburgh PA 15213',
-                phone: '412-555-0101',
-                deliveryWindow: '8:00 AM - 10:00 AM',
-                eta: '8:30 AM',
-                items: [
-                    { name: 'Mixed Salad Greens', qty: '5 lbs' },
-                    { name: 'Cherry Tomatoes', qty: '3 pints' },
-                    { name: 'Fresh Basil', qty: '2 bunches' }
-                ],
-                notes: 'Use side entrance. Ring bell twice.',
-                lat: 40.4406,
-                lng: -79.9959,
-                status: 'pending'
-            },
-            {
-                id: 'STOP-002',
-                customer: 'Green Plate Kitchen',
-                address: '567 Oak Ave, Pittsburgh PA 15232',
-                phone: '412-555-0102',
-                deliveryWindow: '9:00 AM - 11:00 AM',
-                eta: '9:15 AM',
-                items: [
-                    { name: 'Rainbow Chard', qty: '4 bunches' },
-                    { name: 'Baby Kale', qty: '3 lbs' },
-                    { name: 'Microgreens Mix', qty: '1 lb' }
-                ],
-                notes: '',
-                lat: 40.4528,
-                lng: -79.9351,
-                status: 'pending'
-            },
-            {
-                id: 'STOP-003',
-                customer: 'Farm Fresh Bistro',
-                address: '890 Walnut St, Pittsburgh PA 15206',
-                phone: '412-555-0103',
-                deliveryWindow: '10:00 AM - 12:00 PM',
-                eta: '10:00 AM',
-                items: [
-                    { name: 'Heirloom Tomatoes', qty: '8 lbs' },
-                    { name: 'Sweet Peppers', qty: '5 lbs' },
-                    { name: 'Summer Squash', qty: '6 lbs' }
-                ],
-                notes: 'Ask for Chef Maria',
-                lat: 40.4621,
-                lng: -79.9241,
-                status: 'pending'
-            },
-            {
-                id: 'STOP-004',
-                customer: 'The Healthy Table',
-                address: '321 Pine Rd, Pittsburgh PA 15217',
-                phone: '412-555-0104',
-                deliveryWindow: '11:00 AM - 1:00 PM',
-                eta: '11:15 AM',
-                items: [
-                    { name: 'Spinach', qty: '4 lbs' },
-                    { name: 'Arugula', qty: '2 lbs' },
-                    { name: 'Fresh Herbs Mix', qty: '3 bunches' }
-                ],
-                notes: '',
-                lat: 40.4312,
-                lng: -79.9223,
-                status: 'pending'
-            },
-            {
-                id: 'STOP-005',
-                customer: 'Sunrise Market',
-                address: '555 Elm Blvd, Pittsburgh PA 15201',
-                phone: '412-555-0105',
-                deliveryWindow: '12:00 PM - 2:00 PM',
-                eta: '12:30 PM',
-                items: [
-                    { name: 'CSA Box - Large', qty: '10 boxes' },
-                    { name: 'Seasonal Flowers', qty: '5 bouquets' }
-                ],
-                notes: 'Loading dock in back',
-                lat: 40.4789,
-                lng: -79.9512,
-                status: 'pending'
-            },
-            {
-                id: 'STOP-HOME',
-                customer: 'Todd Pollack (Home)',
-                address: '102 N Pittsburgh St, Zelienople PA 16063',
-                phone: '7177255177',
-                deliveryWindow: '1:00 PM - 3:00 PM',
-                eta: '1:30 PM',
-                items: [
-                    { name: 'Test Veg CSA Box', qty: '1 box' },
-                    { name: 'Test Flower Bouquet', qty: '1 bouquet' }
-                ],
-                notes: 'SMS test delivery - send to both numbers',
-                lat: 40.7945,
-                lng: -80.1393,
-                status: 'pending',
-                sendSmsOnComplete: true,
-                smsRecipients: ['7177255177', '5612364638']
-            }
-        ];
-
-        const SAMPLE_HISTORY = [
-            { customer: 'Cafe Aroma', time: '8:32 AM', status: 'delivered' },
-            { customer: 'Green Plate Kitchen', time: '9:18 AM', status: 'delivered' },
-            { customer: 'Quick Stop Deli', time: '10:05 AM', status: 'issue', issueType: 'not_home' }
-        ];
+        // Sample data removed — using real API
 
         // ============================================
         // INITIALIZATION
@@ -2493,6 +2459,7 @@
                 const data = JSON.parse(session);
                 AppState.isLoggedIn = true;
                 AppState.driver = data.driver;
+                AppState.pin = data.pin || '';
                 showApp();
                 loadRoute();
             }
@@ -2587,44 +2554,59 @@
             }
         }
 
-        function validatePin() {
+        async function validatePin() {
             var pin = window.pinValue || AppState.pin || '';
+            if (!pin || pin.length !== 4) return;
 
-            // Try sample drivers first for demo mode
-            var driver = SAMPLE_DRIVERS.find(function(d) { return d.pin === pin; });
-            if (driver) {
-                AppState.driver = driver;
-                AppState.isLoggedIn = true;
-                localStorage.setItem('driverSession', JSON.stringify({
-                    driver: driver,
-                    loginTime: new Date().toISOString()
-                }));
+            // Show loading state
+            var errorEl = document.getElementById('loginError');
+            if (errorEl) errorEl.textContent = 'Authenticating...';
 
-                // Check if already clocked in today
-                var clockData = localStorage.getItem('driverClock_' + driver.id);
-                if (clockData) {
-                    var clock = JSON.parse(clockData);
-                    var clockDate = new Date(clock.clockInTime).toDateString();
-                    var today = new Date().toDateString();
-                    if (clockDate === today && !clock.clockOutTime) {
-                        // Already clocked in today, go straight to app
-                        AppState.clock.isClockedIn = true;
-                        AppState.clock.clockInTime = clock.clockInTime;
-                        AppState.clock.clockInGPS = clock.gps;
-                        AppState.clock.entryId = clock.entryId;
-                        showApp();
-                        loadRoute();
-                        return;
+            try {
+                var result = await api.authenticateDriver(pin);
+
+                if (result.success && result.driver) {
+                    var driverName = result.driver.Driver_Name || result.driver.Name || 'Driver';
+                    AppState.driver = {
+                        id: result.driver.Driver_ID,
+                        name: driverName,
+                        initials: driverName.split(' ').map(function(n) { return n[0]; }).join(''),
+                        pin: pin
+                    };
+                    AppState.isLoggedIn = true;
+                    AppState.pin = pin;
+
+                    localStorage.setItem('driverSession', JSON.stringify({
+                        driver: AppState.driver,
+                        pin: pin,
+                        loginTime: new Date().toISOString()
+                    }));
+
+                    // Check if already clocked in today
+                    var clockData = localStorage.getItem('driverClock_' + AppState.driver.id);
+                    if (clockData) {
+                        var clock = JSON.parse(clockData);
+                        var clockDate = new Date(clock.clockInTime).toDateString();
+                        var today = new Date().toDateString();
+                        if (clockDate === today && !clock.clockOutTime) {
+                            AppState.clock.isClockedIn = true;
+                            AppState.clock.clockInTime = clock.clockInTime;
+                            AppState.clock.clockInGPS = clock.gps;
+                            AppState.clock.entryId = clock.entryId;
+                            showApp();
+                            loadRoute();
+                            return;
+                        }
                     }
+
+                    showClockInScreen();
+                } else {
+                    showLoginError(result.error || 'Invalid PIN. Please try again.');
                 }
-
-                // Show clock-in screen
-                showClockInScreen();
-                return;
+            } catch (error) {
+                console.error('Auth error:', error);
+                showLoginError('Connection error — check network');
             }
-
-            // If no sample driver matched, show error
-            showLoginError('Invalid PIN. Please try again.');
         }
 
         function showLoginError(message) {
@@ -2867,48 +2849,58 @@
                 const today = new Date().toISOString().split('T')[0];
                 const result = await api.getDriverRoute(AppState.driver?.id, today);
 
-                if (result.success && result.stops) {
+                // Backend returns { success, route: { stops: [...] }, driver }
+                var stops = [];
+                if (result.success && result.route && result.route.stops) {
+                    stops = result.route.stops;
+                    AppState.route.routeId = result.route.Route_ID || null;
+                } else if (result.success && result.stops) {
+                    // Alternate response format
+                    stops = result.stops;
+                }
+
+                if (stops.length > 0) {
                     // Transform API response to app format
-                    AppState.route.stops = result.stops.map(stop => ({
-                        id: stop.Delivery_ID || stop.Stop_ID,
-                        orderId: stop.Order_ID,
-                        customer: stop.Customer_Name,
-                        address: stop.Delivery_Address || stop.Address,
-                        phone: stop.Customer_Phone || stop.Phone || '',
-                        email: stop.Customer_Email || '',
-                        customerType: stop.Customer_Type || 'Retail',
-                        company: stop.Customer_Company || '',
-                        deliveryWindow: stop.Delivery_Window || 'Flexible',
-                        eta: stop.ETA || '--:--',
-                        items: stop.items || [],
-                        notes: stop.Delivery_Notes || '',
-                        lat: stop.GPS_Lat,
-                        lng: stop.GPS_Lng,
-                        status: (stop.Status || 'pending').toLowerCase(),
-                        // CSA specific
-                        boxCount: stop.Box_Count || 1,
-                        shareType: stop.Share_Type || 'Veggie',
-                        // Wholesale specific
-                        itemCount: stop.Item_Count || 0,
-                        totalUnits: stop.Total_Units || 0
-                    }));
+                    AppState.route.stops = stops.map(function(stop) {
+                        return {
+                            id: stop.Delivery_ID || stop.Stop_ID,
+                            orderId: stop.Order_ID,
+                            customer: stop.Customer_Name,
+                            address: stop.Delivery_Address || stop.Address,
+                            phone: stop.Customer_Phone || stop.Phone || '',
+                            email: stop.Customer_Email || '',
+                            customerType: stop.Customer_Type || 'Retail',
+                            company: stop.Customer_Company || '',
+                            deliveryWindow: stop.Delivery_Window || 'Flexible',
+                            eta: stop.ETA || '--:--',
+                            items: stop.items || [],
+                            notes: stop.Delivery_Notes || '',
+                            lat: stop.GPS_Lat,
+                            lng: stop.GPS_Lng,
+                            status: (stop.Status || 'pending').toLowerCase(),
+                            boxCount: stop.Box_Count || 1,
+                            shareType: stop.Share_Type || 'Veggie',
+                            itemCount: stop.Item_Count || 0,
+                            totalUnits: stop.Total_Units || 0
+                        };
+                    });
 
                     // Load delivery history
-                    const historyResult = await api.getDeliveryHistory(AppState.driver?.id, 7);
+                    var historyResult = await api.getDeliveryHistory(AppState.driver?.id, 7);
                     if (historyResult.success) {
                         AppState.history = historyResult.deliveries || [];
                     }
                 } else {
-                    // Fallback to sample data for demo
-                    console.log('Using sample route data');
-                    AppState.route.stops = [...SAMPLE_ROUTE];
-                    AppState.history = [...SAMPLE_HISTORY];
+                    // No route assigned for today
+                    AppState.route.stops = [];
+                    AppState.history = [];
+                    console.log('No route assigned for today');
                 }
             } catch (error) {
                 console.error('Error loading route:', error);
-                // Fallback to sample data for offline/demo mode
-                AppState.route.stops = [...SAMPLE_ROUTE];
-                AppState.history = [...SAMPLE_HISTORY];
+                AppState.route.stops = [];
+                AppState.history = [];
+                showToast('Failed to load route — check connection', 'error');
             }
 
             updateRouteStats();
@@ -3742,6 +3734,7 @@
                 gps: AppState.gpsLocation,
                 signature: AppState.signature,
                 driverId: AppState.driver?.id,
+                routeId: AppState.route.routeId || '',
                 // Include these for SMS and QuickBooks invoice
                 customerPhone: AppState.currentStop.phone || '',
                 customerEmail: AppState.currentStop.email || '',
@@ -4010,7 +4003,9 @@
                 issueType: AppState.selectedIssue,
                 notes: document.getElementById('issueNotes').value,
                 photo: AppState.issuePhoto,
-                driverId: AppState.driver?.id
+                driverId: AppState.driver?.id,
+                orderId: AppState.currentStop.orderId || '',
+                routeId: AppState.route.routeId || ''
             };
 
             try {

@@ -38,6 +38,45 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-03-01 — Driver App: Stub API → Real Production API
+
+**Role:** PM_Architect (Desktop_Claude scope)
+**Deploy:** Frontend only (git push)
+
+### Files Modified
+- `web_app/driver.html` — Replaced stub API object with real fetch calls to backend, removed all sample/demo data
+
+### What Changed
+1. **Replaced stub `api` object** (5 methods returning `Promise.resolve({success: false})`) with real fetch calls to `TINY_SEED_API.MAIN_API`
+2. **Deleted `SAMPLE_DRIVERS`** — contained real PINs (Todd: 7714, Samantha: 1234) and personal info
+3. **Deleted `SAMPLE_ROUTE`** — 6 fake stops with real phone numbers and home address
+4. **Deleted `SAMPLE_HISTORY`** — fake delivery history
+5. **Rewired `validatePin()`** — now calls real `authenticateDriver` API (PIN-based auth with rate limiting)
+6. **Rewired `loadRoute()`** — reads `result.route.stops` (correct backend response format), shows proper empty/error states instead of sample data fallback
+7. **Fixed `checkSession()`** — now restores `AppState.pin` from localStorage for subsequent API calls after page reload
+8. **API routing:** `api.completeDelivery()` → POST to `recordDeliveryProof` (saves photo/signature to Google Drive); `api.reportDeliveryIssue()` → POST to `reportDeliveryIssue` (saves issue photo to Drive)
+9. **Added `routeId`** to `completeDelivery()` and `submitIssue()` data payloads for route progress tracking
+10. **Added `orderId`** to `submitIssue()` data payload for order status updates
+
+### No Backend Changes Required
+All needed backend actions already exist:
+- `authenticateDriver` (doGet:15410) — PIN auth with rate limiting
+- `getDriverRoute` (doGet:15408) — returns today's route with stops
+- `getDeliveryHistory` (doGet:15414) — last N days of deliveries
+- `recordDeliveryProof` (doPost:18189) — saves photo/signature to Drive
+- `reportDeliveryIssue` (doPost:18191) — saves issue photo to Drive
+
+### Security Improvement
+- Removed hardcoded personal PINs and phone numbers from source code
+- Authentication now goes through rate-limited backend
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
 ## 2026-02-28 — Sales Dashboard: Fix 5 Broken API Routing Calls
 
 **Role:** PM_Architect (Desktop_Claude scope)
