@@ -21210,18 +21210,22 @@
                     localStorage.setItem('tsf_seed_traceability', JSON.stringify(stored));
                 } catch (e) { console.warn('Seed traceability localStorage save failed:', e); }
 
-                // Send to backend
-                if (AppState.isOnline && CONFIG.API_URL) {
-                    const payload = {
-                        action: 'saveSeedTraceability',
-                        ...record,
-                        photo: data.photo || ''
-                    };
+                // Link seed lot to planting in PLANNING_2026 via updatePlanningFields
+                if (AppState.isOnline && CONFIG.API_URL && record.batchId && record.lotId) {
                     fetch(CONFIG.API_URL, {
                         method: 'POST',
                         headers: { 'Content-Type': 'text/plain' },
-                        body: JSON.stringify(payload)
-                    }).catch(err => console.warn('Seed traceability API save failed:', err));
+                        body: JSON.stringify({
+                            action: 'updatePlanningFields',
+                            batchId: record.batchId,
+                            fields: { Seed_Lot_Used: record.lotId }
+                        })
+                    }).then(function(r) { return r.json(); })
+                      .then(function(res) {
+                          if (res.success) console.log('Seed lot linked to planting:', record.batchId, '->', record.lotId);
+                          else console.warn('Seed lot link failed:', res.error);
+                      })
+                      .catch(err => console.warn('Seed traceability API save failed:', err));
                 }
             }
         };
