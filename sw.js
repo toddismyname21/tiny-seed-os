@@ -8,9 +8,10 @@
  * - Fixed: Response clone race condition in staleWhileRevalidate
  * - v8: Force cache refresh for Voice Profile modal fix
  * - v9: Added sync-market-sales for offline farmers market sales
+ * - v10: Force cache refresh for CSP fix + auth token injection
  */
 
-const CACHE_VERSION = 'v10';
+const CACHE_VERSION = 'v11';
 const CACHE_NAME = `tiny-seed-mobile-${CACHE_VERSION}`;
 const STATIC_CACHE_NAME = `tiny-seed-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE_NAME = `tiny-seed-dynamic-${CACHE_VERSION}`;

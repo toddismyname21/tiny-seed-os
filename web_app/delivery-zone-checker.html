@@ -1059,7 +1059,7 @@
         // Send the request
         const response = await fetch(API_BASE, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'text/plain' },
           body: JSON.stringify(emailData)
         });
 

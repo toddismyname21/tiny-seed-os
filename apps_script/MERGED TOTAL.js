@@ -14243,7 +14243,9 @@ function doGet(e) {
     // Customer-facing (uses customer token, not admin session)
     'verifyChefToken', 'getChefPortal',
     // Weather/public data (no PII)
-    'getWeatherSummary', 'getWeatherData'
+    'getWeatherSummary', 'getWeatherData',
+    // Shopify-embedded customer-facing pages (no auth — public visitors)
+    'checkDeliveryZone', 'validateDeliveryAddress', 'getBaseRouteConfig'
   ]);
 
   if (!PUBLIC_GET_ACTIONS.has(action)) {
@@ -17897,7 +17899,9 @@ function doPost(e) {
       // Customer-facing actions (use customer-specific tokens)
       'submitWholesaleOrder', 'verifyChefToken',
       // Employee self-service (uses invite token)
-      'registerEmployee', 'completeOnboarding'
+      'registerEmployee', 'completeOnboarding',
+      // Shopify-embedded customer-facing (public visitors send delivery requests)
+      'sendDeliveryRequest'
     ]);
 
     if (action && !PUBLIC_POST_ACTIONS.has(action)) {
