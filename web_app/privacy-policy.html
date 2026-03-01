@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
 <head>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://maps.googleapis.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; img-src 'self' data: blob: https:; connect-src 'self' https://script.google.com https://maps.googleapis.com https://*.supabase.co; frame-src 'self' https://www.google.com;">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Privacy Policy - Tiny Seed Farm OS</title>
@@ -28,7 +29,7 @@
             margin: 0 auto;
             background: white;
             padding: 3rem;
-            border-radius: 12px;
+            border-radius: var(--ts-radius-md, 12px);
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
         .header {
@@ -71,14 +72,14 @@
         .highlight {
             background: #e8f5e9;
             padding: 1rem;
-            border-radius: 8px;
+            border-radius: var(--ts-radius-sm, 8px);
             border-left: 4px solid var(--primary);
             margin: 1rem 0;
         }
         .contact {
             background: #f5f5f5;
             padding: 1.5rem;
-            border-radius: 8px;
+            border-radius: var(--ts-radius-sm, 8px);
             margin-top: 2rem;
         }
         .contact h3 {

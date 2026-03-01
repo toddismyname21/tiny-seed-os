@@ -2012,7 +2012,7 @@ async function flushOfflineQueue() {
     while (_offlineQueue.length > 0) {
         var item = _offlineQueue.shift();
         try {
-            await fetch(API_URL + '?action=' + item.action, {
+            await fetch(API + '?action=' + item.action, {
                 method: 'POST', headers: {'Content-Type':'text/plain'},
                 body: JSON.stringify(item.params)
             });
@@ -2544,7 +2544,7 @@ async function loadTodayTab(forceRefresh) {
 
 async function loadSeedWarnings() {
     try {
-        var res = await fetch(API_URL + '?action=checkSeedProcurement').then(function(r) { return r.json(); });
+        var res = await fetch(API + '?action=checkSeedProcurement').then(function(r) { return r.json(); });
         var banner = document.getElementById('seedWarningBanner');
         if (res.success && res.needsCount > 0) {
             var urgCount = res.urgentCount || 0;
@@ -2679,7 +2679,7 @@ async function saveInlineEdit(inputEl, batchId, fieldName) {
     try {
         var params = { action: 'updatePlanting', batchId: batchId };
         params[fieldName] = Number(newVal);
-        var res = await fetch(API_URL, { method: 'POST', headers: {'Content-Type': 'text/plain'}, body: JSON.stringify(params) }).then(r => r.json());
+        var res = await fetch(API, { method: 'POST', headers: {'Content-Type': 'text/plain'}, body: JSON.stringify(params) }).then(r => r.json());
         if (res.success) {
             toast('Updated ' + fieldName.replace(/_/g, ' '));
             invalidateCache('today'); loadTodayTab(true);
@@ -2853,7 +2853,7 @@ async function confirmSownWithLot() {
     _undoState.serverTimer = setTimeout(async function() {
         clearUndoToast();
         try {
-            const url = API_URL + '?action=updateTaskCompletion&batchId=' + encodeURIComponent(batchId) + '&completed=true' + (seedLotId ? '&seedLotId=' + encodeURIComponent(seedLotId) : '') + (seedsUsed ? '&seedsUsed=' + encodeURIComponent(seedsUsed) : '');
+            const url = API + '?action=updateTaskCompletion&batchId=' + encodeURIComponent(batchId) + '&completed=true' + (seedLotId ? '&seedLotId=' + encodeURIComponent(seedLotId) : '') + (seedsUsed ? '&seedsUsed=' + encodeURIComponent(seedsUsed) : '');
             await fetch(url);
 
             // Offer to print tray labels
@@ -2900,7 +2900,7 @@ async function confirmSownWithoutLot() {
     _undoState.serverTimer = setTimeout(async function() {
         clearUndoToast();
         try {
-            await fetch(API_URL + '?action=updateTaskCompletion&batchId=' + encodeURIComponent(batchId) + '&completed=true');
+            await fetch(API + '?action=updateTaskCompletion&batchId=' + encodeURIComponent(batchId) + '&completed=true');
             invalidateCache('today'); loadTodayTab(true);
         } catch (err) {
             console.error(err);

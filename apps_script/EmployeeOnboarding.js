@@ -202,7 +202,9 @@ function completeEmployeeOnboarding(data) {
     setEmpCol('Start_Date', data.startDate || '');
     setEmpCol('Availability_Notes', data.availability || '');
     setEmpCol('Transportation', data.transportation || '');
-    setEmpCol('Badge_PIN', '0000'); // Default, changed on approval
+    // SECURITY FIX 2026-02-28: No more default '0000' PIN — generate random temporary PIN
+    var tempPin = String(Math.floor(1000 + Math.random() * 9000));
+    setEmpCol('Badge_PIN', tempPin); // Random PIN, must be changed on approval
     setEmpCol('Role', ''); // Set on approval
     setEmpCol('Status', 'Pending Approval');
     setEmpCol('Is_Active', false);

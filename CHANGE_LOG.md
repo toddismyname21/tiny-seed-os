@@ -38,6 +38,40 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-02-28 — Label Printing System Full Audit + Seed Lot Traceability
+
+**Role:** PM_Architect
+**Deploy:** Frontend (git push) + Backend (clasp deploy @710)
+
+### Files Modified
+- `labels.html` — Seed lot traceability UI + CSS
+- `employee.html` — Fix SeedTraceability._save() to use existing API
+- `apps_script/MERGED TOTAL.js` — Return seedLotNum/category from getGreenhouseSeedings
+
+### Features Added
+1. **Seed lot status badges** in seedings list (green "linked" / red "No Seed Lot")
+2. **Inline seed lot entry** — click "No Seed Lot" → enter lot ID → saves to PLANNING_2026
+3. **Backend returns Seed_Lot_Used** in getGreenhouseSeedings response for traceability display
+
+### Bugs Fixed
+1. **SeedTraceability._save() called non-existent API** — Was calling `action=saveSeedTraceability` which doesn't exist. Changed to `updatePlanningFields` with `Seed_Lot_Used` field.
+2. **seedLot field always had value** — Fallback `|| s.batchNumber` meant "No Seed Lot" badge never showed. Removed fallback so empty seed lots display correctly.
+
+### Audit Verification
+- Label type routing: 4 types dispatch correctly ✅
+- Print flow: jsPDF lazy-loads properly via both QZ Tray and PDF paths ✅
+- Dimensions match hardware: fieldTray 4"x1" (FT40101WH) ✅, potTag 1"x4.5" (ZX5141T) ✅
+- QR codes: batch number = permanent traceability ID, seed lot included when available ✅
+- Date filtering: backend + client-side both work ✅
+- API returns 139 seedings with seedLotNum field ✅
+- Live site verified: all traceability code deployed ✅
+
+### Known Issue (systemic, not addressed)
+- 96 HTML files have CSP meta tags missing `script.googleusercontent.com` in `connect-src`
+- This blocks API calls on pages that have CSP. Separate fix needed.
+
+---
+
 ## 2026-02-28 — Greenhouse Dashboard Audit Round 2 (Bugs #8-11)
 
 **Role:** PM_Architect
