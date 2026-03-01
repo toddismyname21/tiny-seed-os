@@ -38,6 +38,37 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-02-28 — Greenhouse Dashboard Audit Round 4: Critical API Routing Fixes
+
+**Role:** PM_Architect (Desktop_Claude scope)
+**Deploy:** Frontend only (git push)
+
+### Files Modified
+- `web_app/greenhouse-dashboard.html` — Fixed 2 P0 critical API routing bugs + 3 additional fixes
+
+### Bugs Fixed (Round 4, continuing from Round 3)
+1. **Bug #16 (P0 CRITICAL): `markTransplanted()` used `api.post()` for GET-only actions** — `recordSeedingDate` and `updateTaskCompletion` are routed in `doGet` only. `api.post()` sent them to `doPost` which returns 400 "Unknown action". **Transplant marking was completely broken.** Fixed: changed to `api.get()`.
+2. **Bug #17 (P0 CRITICAL): `bulkMarkSown()` used `api.post()` AND wrong type name** — Called `api.post('recordSeedingDate', { type: 'ghSow' })` but backend only accepts `'gh_sow'`. Double failure: wrong HTTP method + wrong type string. **All bulk sow operations failed silently.** Fixed: `api.get('recordSeedingDate', { type: 'gh_sow' })`.
+3. **Bug #12 (P0): `API_URL` undefined** — 5 functions referenced `API_URL` which was never defined. Fixed: replaced with `API` (the actual constant).
+4. **Bug #13: Hardcoded year 2026** in `renderAccuracyReport`. Fixed: `new Date().getFullYear()`.
+5. **Bug #14: Hardcoded year 2026** in `renderRevenueReport`. Fixed: `new Date().getFullYear()`.
+6. **Bug #15: `shared-nav.js` injected into print popups** — Navigation bar appeared in label/sheet print windows. Removed from both popup builders.
+7. **Bug #18 (Known): `syncSeedlingPresaleToShopify`** called on line 3416 but does not exist in backend. Non-critical stretch feature — not fixed this round.
+
+### Verification
+- All `api.post()` calls verified against `doPost` case statements — all valid ✅
+- All `api.get()` calls for seeding workflow verified against `doGet` routing ✅
+- `API_URL` references: 0 remaining ✅
+- `getFullYear()`: 9 dynamic year references ✅
+- `shared-nav.js`: only 1 reference (legitimate main page include) ✅
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
 ## 2026-02-28 — Label Printing System Full Audit + Seed Lot Traceability
 
 **Role:** PM_Architect

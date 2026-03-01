@@ -2932,8 +2932,8 @@ async function markTransplanted(batchId) {
     _undoState.serverTimer = setTimeout(async function() {
         clearUndoToast();
         try {
-            await api.post('recordSeedingDate', { batchId: batchId, type: 'transplant', actualDate: todayStr() });
-            await api.post('updateTaskCompletion', { batchId: batchId, taskType: 'transplant', completed: true });
+            await api.get('recordSeedingDate', { batchId: batchId, type: 'transplant', actualDate: todayStr() });
+            await api.get('updateTaskCompletion', { batchId: batchId, completed: 'true' });
             invalidateCache('today'); loadTodayTab(true);
         } catch (err) {
             console.error(err);
@@ -2975,8 +2975,8 @@ async function bulkMarkSown(section) {
     let failCount = 0;
     for (const t of toMark) {
         try {
-            await api.post('recordSeedingDate', { batchId: t.batchId, type: 'ghSow', actualDate: todayStr() });
-            await api.post('updateTaskCompletion', { batchId: t.batchId, taskType: 'sowing', completed: true });
+            await api.get('recordSeedingDate', { batchId: t.batchId, type: 'gh_sow', actualDate: todayStr() });
+            await api.get('updateTaskCompletion', { batchId: t.batchId, completed: 'true' });
         } catch (err) {
             console.error('Bulk sow failed for ' + t.batchId, err);
             failCount++;
