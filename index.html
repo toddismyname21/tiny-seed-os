@@ -28,6 +28,8 @@
     <!-- Design System -->
     <link rel="stylesheet" href="web_app/tiny-seed-design-system.css">
 
+    <!-- API config + auth token interceptor must load before any fetch calls -->
+    <script src="web_app/api-config.js"></script>
     <!-- Auth guard must load early -->
     <script src="web_app/auth-guard.js" data-required-role="Employee"></script>
 

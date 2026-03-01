@@ -1106,4 +1106,54 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
+// ═══════════════════════════════════════════════════════════════════════════
+// GLOBAL AUTH TOKEN INTERCEPTOR
+// ═══════════════════════════════════════════════════════════════════════════
+// Auto-injects session token into ALL fetch calls to the Apps Script API.
+// This covers pages that use raw fetch() instead of the TinySeedAPI class.
+// ═══════════════════════════════════════════════════════════════════════════
+
+(function() {
+    const _originalFetch = window.fetch;
+    const API_DOMAIN = 'script.google.com/macros/s/';
+
+    function _getToken() {
+        try {
+            const s = JSON.parse(localStorage.getItem('tinyseed_session') || 'null');
+            return s?.token || null;
+        } catch(e) { return null; }
+    }
+
+    window.fetch = function(input, init) {
+        const url = (typeof input === 'string') ? input : (input instanceof Request ? input.url : '');
+
+        // Only intercept Apps Script API calls
+        if (url && url.includes(API_DOMAIN)) {
+            const token = _getToken();
+            if (token) {
+                // GET requests: append token to URL
+                if (!init || !init.method || init.method.toUpperCase() === 'GET') {
+                    if (!url.includes('token=')) {
+                        const sep = url.includes('?') ? '&' : '?';
+                        const newUrl = url + sep + 'token=' + encodeURIComponent(token);
+                        return _originalFetch.call(this, newUrl, init);
+                    }
+                }
+                // POST requests: inject token into JSON body
+                else if (init.method.toUpperCase() === 'POST' && init.body) {
+                    try {
+                        const body = JSON.parse(init.body);
+                        if (!body.token && !body.sessionToken) {
+                            body.token = token;
+                            init = Object.assign({}, init, { body: JSON.stringify(body) });
+                        }
+                    } catch(e) { /* not JSON body, skip */ }
+                }
+            }
+        }
+
+        return _originalFetch.call(this, input, init);
+    };
+})();
+
 console.log('Tiny Seed OS API Config loaded successfully');

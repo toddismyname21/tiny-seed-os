@@ -11,7 +11,7 @@
  * - v10: Force cache refresh for CSP fix + auth token injection
  */
 
-const CACHE_VERSION = 'v11';
+const CACHE_VERSION = 'v12';
 const CACHE_NAME = `tiny-seed-mobile-${CACHE_VERSION}`;
 const STATIC_CACHE_NAME = `tiny-seed-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE_NAME = `tiny-seed-dynamic-${CACHE_VERSION}`;
@@ -29,15 +29,7 @@ const STATIC_ASSETS = [
   // Offline task management
   '/web_app/offline-task-manager.js',
   '/web_app/api-config.js',
-  // Icons
-  '/icons/icon-72.png',
-  '/icons/icon-96.png',
-  '/icons/icon-128.png',
-  '/icons/icon-144.png',
-  '/icons/icon-152.png',
-  '/icons/icon-192.png',
-  '/icons/icon-384.png',
-  '/icons/icon-512.png',
+  // Icons (only cache icons that exist)
   '/icons/icon.svg'
 ];
 
