@@ -38,6 +38,33 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-02-28 — Sales Dashboard: Fix 5 Broken API Routing Calls
+
+**Role:** PM_Architect (Desktop_Claude scope)
+**Deploy:** Frontend only (git push)
+
+### Files Modified
+- `web_app/sales.html` — Fixed 5 broken API calls (POST→GET routing + wrong action name)
+
+### Bugs Fixed
+1. **Bug #19: `bulkUpdateOrderStatus` used wrong action name** — Called `updateOrderStatus` which doesn't exist. Changed to `updateSalesOrder` (exists in doPost:18084).
+2. **Bug #20: `bulkDeleteOrders` used `api.post()` for GET-only action** — `deleteOrder` is in doGet:15378 only. Changed to `api.get()`.
+3. **Bug #21: `deleteOrder()` function used raw `fetch` with POST** — Same routing issue as #20 but via raw `fetch()`. Changed to `api.get()`.
+4. **Bug #22: `updateCustomer` used raw `fetch` with POST for GET-only action** — `updateCustomer` is in doGet:15384. Changed to `api.get()`.
+5. **Bug #23: `deleteCustomer` used raw `fetch` with POST for GET-only action** — `deleteCustomer` is in doGet:15382. Changed to `api.get()`.
+
+### Verification
+- All `api.post()` calls in sales.html verified against doPost case statements
+- All `api.get()` calls verified against doGet routing
+- Only remaining raw `fetch()` calls are `sendCSAConfirmationReminder` — correctly routed to doPost
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
 ## 2026-02-28 — Greenhouse Dashboard Audit Round 4: Critical API Routing Fixes
 
 **Role:** PM_Architect (Desktop_Claude scope)

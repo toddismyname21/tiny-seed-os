@@ -4597,7 +4597,7 @@
 
             for (const orderId of selectedOrders) {
                 try {
-                    const result = await api.post('updateOrderStatus', { orderId, status: newStatus });
+                    const result = await api.post('updateSalesOrder', { orderId, status: newStatus });
                     if (result.success) {
                         successCount++;
                     } else {
@@ -4635,7 +4635,7 @@
 
             for (const orderId of selectedOrders) {
                 try {
-                    const result = await api.post('deleteOrder', { orderId });
+                    const result = await api.get('deleteOrder', { orderId });
                     if (result.success) {
                         successCount++;
                     } else {
@@ -6762,12 +6762,7 @@
 
             try {
                 showToast('Saving...', 'info');
-                const response = await fetch(`${API_URL}?action=updateCustomer`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(updates)
-                });
-                const result = await response.json();
+                const result = await api.get('updateCustomer', updates);
 
                 if (result.success) {
                     showToast('Customer updated!', 'success');
@@ -6939,12 +6934,7 @@
         async function deleteOrder(orderId) {
             try {
                 showToast('Deleting order...', 'info');
-                const response = await fetch(`${API_URL}?action=deleteOrder`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ orderId: orderId })
-                });
-                const result = await response.json();
+                const result = await api.get('deleteOrder', { orderId: orderId });
 
                 if (result.success) {
                     showToast('Order deleted successfully', 'success');
@@ -6970,12 +6960,7 @@
         async function deleteCustomer(customerId) {
             try {
                 showToast('Deleting customer...', 'info');
-                const response = await fetch(`${API_URL}?action=deleteCustomer`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ customerId: customerId })
-                });
-                const result = await response.json();
+                const result = await api.get('deleteCustomer', { customerId: customerId });
 
                 if (result.success) {
                     showToast('Customer deleted successfully', 'success');
