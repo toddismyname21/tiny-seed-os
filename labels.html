@@ -1396,7 +1396,7 @@
                 const data = await response.json();
 
                 if (data.success && data.data && data.data.length > 0) {
-                    seedings = data.data.map((s, index) => ({
+                    var allSeedings = data.data.map((s, index) => ({
                         id: s.batchNumber || s.id || `seeding-${index}`,
                         crop: s.crop || 'Unknown',
                         variety: s.variety || '',
@@ -1411,7 +1411,13 @@
                         field: s.field || s.bedId || s.bed || '',
                         category: getCropCategory(s.crop || 'Unknown', s.category)
                     }));
-                    showToast(`Loaded ${seedings.length} seedings`);
+                    // Client-side date filtering (backend doesn't filter by startDate/endDate)
+                    seedings = allSeedings.filter(function(s) {
+                        var sd = s.seedDate;
+                        if (!sd) return true; // keep if no date
+                        return sd >= startDate && sd <= endDate;
+                    });
+                    showToast(`Loaded ${seedings.length} seedings (${allSeedings.length} total in plan)`);
                 } else {
                     seedings = [];
                     showToast('No seedings found for date range');
