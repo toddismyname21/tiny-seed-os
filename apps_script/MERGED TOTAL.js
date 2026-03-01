@@ -10580,7 +10580,7 @@ function getRecentInteractions(ss, phoneNumber, email, limit) {
         }
       }
     }
-  } catch (e) {}
+  } catch (e) { /* SMS interaction stats - non-critical */ }
 
   // Could add email interactions here too
 
@@ -10609,7 +10609,7 @@ function getCommitmentStats(ss, phoneNumber) {
         }
       }
     }
-  } catch (e) {}
+  } catch (e) { /* Email interaction stats - non-critical */ }
 
   return stats;
 }
@@ -11479,7 +11479,7 @@ function collectDailyMetrics() {
       if (w.success) {
         weather.high = w.current.temp;
       }
-    } catch (e) {}
+    } catch (e) { /* Weather fetch optional */ }
   }
 
   // Get focus time from calendar
@@ -13402,7 +13402,7 @@ function predictStaffingNeeds(daysAhead = 7) {
         reasoning.push(`Heavy harvest: ${harvestReady.length} crops ready`);
         tasks.push('Priority harvesting');
       }
-    } catch (e) {}
+    } catch (e) { /* Harvest check optional */ }
 
     // Check calendar for events
     try {
@@ -13420,7 +13420,7 @@ function predictStaffingNeeds(daysAhead = 7) {
           tasks.push('Prepare for visitors');
         }
       });
-    } catch (e) {}
+    } catch (e) { /* Calendar access optional */ }
 
     // Check weather forecast impact
     try {
@@ -13439,7 +13439,7 @@ function predictStaffingNeeds(daysAhead = 7) {
           reasoning.push('Heat advisory - early morning work only');
         }
       }
-    } catch (e) {}
+    } catch (e) { /* Weather forecast optional */ }
 
     // Calculate workers needed (assume 8hr workday)
     const workersNeeded = Math.ceil(laborHours / 8);
@@ -13704,7 +13704,7 @@ function getLaborWeatherContext(date) {
     try {
       const weather = getWeatherRecommendations();
       return { condition: weather.condition || 'clear', temperature: weather.temperature || 70, rainIn24h: weather.precipitation > 50, frostWarning: weather.temperature < 35, heatWave: weather.temperature > 90 };
-    } catch (e) {}
+    } catch (e) { /* Weather API optional — return defaults */ }
   }
   return { condition: 'clear', temperature: 65, rainIn24h: false, frostWarning: false, heatWave: false };
 }
@@ -22319,7 +22319,7 @@ function cleanupExpiredSessions() {
       sheet.deleteRow(row);
     }
 
-    console.log(`Cleaned up ${toDelete.length} expired sessions`);
+    Logger.log('Cleaned up ' + toDelete.length + ' expired sessions');
     return { success: true, removed: toDelete.length };
   } catch (error) {
     return { success: false, error: error.toString() };
@@ -29365,7 +29365,7 @@ function updatePlanningLaborTotals(ss, batchId, durationMinutes, laborCost) {
     }
   } catch (e) {
     // Don't fail the main operation if planning update fails
-    console.log('Planning update warning: ' + e.toString());
+    Logger.log('Planning update warning: ' + e.toString());
   }
 }
 
@@ -31581,7 +31581,7 @@ function setupAllTables() {
       const trays = traySheet.getRange(2, 1, traySheet.getLastRow()-1, 1);
       const rule = SpreadsheetApp.newDataValidation().requireValueInRange(trays).build();
       profileSheet.getRange("P2:P1000").setDataValidation(rule);
-    } catch(e) { console.log("Validation error: " + e); }
+    } catch(e) { Logger.log("Validation error: " + e); }
   }
 }
 
@@ -31806,7 +31806,7 @@ function generateFieldTabs(runMath) {
   const ui = SpreadsheetApp.getUi();
   
   if (runMath === true && typeof recalculateAllFieldMath === 'function') {
-    try { recalculateAllFieldMath(); } catch (e) { console.log("Math Error: " + e) }
+    try { recalculateAllFieldMath(); } catch (e) { Logger.log("Math Error: " + e) }
   }
 
   const srcSheet = ss.getSheetByName('REF_Fields');
@@ -31900,7 +31900,7 @@ function generateFieldTabs(runMath) {
     applyFieldColors();
     applyBedDropdown(ss);
   } catch (e) {
-    console.log("Visuals Error: " + e);
+    Logger.log("Visuals Error: " + e);
   }
   
   ss.toast("Field data synced successfully.", "Done");
@@ -32463,7 +32463,7 @@ function getDuplicateInitData() {
         });
       });
     }
-  } catch(e) {}
+  } catch(e) { /* Bed/booking parse optional */ }
 
   return { beds: beds, bookings: bookings, selectedCrops: selectedCrops };
 }
@@ -33093,7 +33093,7 @@ function generateVisualMap() {
           if (duration > 5) {
             mapSheet.getRange(r, colIndex).setValue(crop).setFontSize(8);
           }
-        } catch (e) { console.log("Paint error: " + e); }
+        } catch (e) { Logger.log("Paint error: " + e); }
       }
     }
   }
@@ -33166,10 +33166,10 @@ function logDailyWeather() {
       const precip = data.daily.precipitation_sum[0];
       const gdd = Math.max(0, ((maxT + minT) / 2) - 50);
       logSheet.appendRow([yesterday, maxT, minT, precip, gdd.toFixed(1), "Auto-Logged"]);
-      console.log(`Weather logged for ${dateStr}`);
+      Logger.log('Weather logged for ' + dateStr);
     }
   } catch (e) {
-    console.error("Weather Fetch Failed: " + e.toString());
+    Logger.log("Weather Fetch Failed: " + e.toString());
   }
 }
 
@@ -33314,7 +33314,7 @@ function updateTrayDropdowns() {
     try {
       SpreadsheetApp.getUi().alert("✅ Tray Dropdown Updated (Using Names).");
     } catch (e) {
-      console.log("Tray Dropdown Updated (Background Mode).");
+      Logger.log("Tray Dropdown Updated (Background Mode).");
     }
   }
 }
@@ -33382,7 +33382,7 @@ function logOrAlert(msg) {
   try {
     SpreadsheetApp.getUi().alert(msg);
   } catch (e) {
-    console.log(msg);
+    Logger.log(msg);
   }
 }
 
@@ -52140,7 +52140,7 @@ function registerEmployee(data) {
       });
     } catch (e) {
       // Silently fail if email fails - registration still succeeds
-      console.log('Email notification failed:', e);
+      Logger.log('Email notification failed: ' + e.toString());
     }
 
     // Send SMS notification to admins (optional - if Twilio is configured)
@@ -56942,7 +56942,7 @@ function logSMSToSheet(data) {
       data.type || 'general'
     ]);
   } catch (e) {
-    console.log('Failed to log SMS: ' + e.toString());
+    Logger.log('Failed to log SMS: ' + e.toString());
   }
 }
 
@@ -59776,7 +59776,7 @@ function createIrrigationAlert(alertData) {
         sendSMS('+1XXXXXXXXXX', `IRRIGATION ALERT: ${alertData.Message}`);
       }
     } catch(e) {
-      console.log('SMS not configured: ' + e.toString());
+      Logger.log('SMS not configured: ' + e.toString());
     }
   }
 
@@ -81002,7 +81002,7 @@ function createCapitalReconciliationReminder() {
     });
   } catch (e) {
     // Email might fail if not configured
-    console.log('Email reminder failed:', e);
+    Logger.log('Email reminder failed: ' + e.toString());
   }
 
   logIntegration('Shopify', 'Capital Reconcile', 'REMINDER', 'Created reconciliation task');
@@ -81467,14 +81467,14 @@ function createInvoiceFromOrder(orderId, orderType = 'Sales') {
       if (orderIdCol >= 0) {
         for (let i = 1; i < invoiceData.length; i++) {
           if (invoiceData[i][orderIdCol] === orderId) {
-            console.log(`Invoice already exists for order ${orderId}, skipping duplicate creation`);
+            Logger.log('Invoice already exists for order ' + orderId + ', skipping duplicate creation');
             return { success: true, duplicate: true, message: `Invoice already exists for order ${orderId}` };
           }
         }
       }
     }
   } catch (e) {
-    console.log('Duplicate invoice check skipped (sheet may not exist yet):', e.message);
+    Logger.log('Duplicate invoice check skipped: ' + e.message);
   }
 
   // Get order from SALES_Orders sheet
@@ -82922,7 +82922,7 @@ function logFlexTransaction(params) {
     return { success: true };
 
   } catch (e) {
-    console.log('Failed to log flex transaction:', e);
+    Logger.log('Failed to log flex transaction: ' + e.toString());
     return { success: false, error: e.toString() };
   }
 }
@@ -97110,7 +97110,7 @@ function addLinkedPreHarvestInspection(data) {
         });
       } catch (e) {
         // Log but don't fail
-        console.log('Failed to create corrective action: ' + e.toString());
+        Logger.log('Failed to create corrective action: ' + e.toString());
       }
     }
 
@@ -97126,7 +97126,7 @@ function addLinkedPreHarvestInspection(data) {
         performedBy: data.inspectedBy
       });
     } catch (e) {
-      console.log('Failed to log traceability: ' + e.toString());
+      Logger.log('Failed to log traceability: ' + e.toString());
     }
 
     return {
@@ -97463,7 +97463,7 @@ function logHarvestWithValidation(params) {
                               quantity: params.quantity, unit: params.unit,
                               details: `Quality: ${params.quality}, Inspection: ${inspectionStatus}`,
                               performedBy: params.employeeId, gpsLat: params.lat, gpsLng: params.lng });
-    } catch (e) { console.log('CTE failed: ' + e); }
+    } catch (e) { Logger.log('CTE failed: ' + e); }
 
     const response = { success: true, harvestId: harvestId, lotNumber: lotNumber, timestamp: now.toISOString(),
                        inspection: { status: inspectionStatus, valid: inspectionStatus === 'VALID', warning: inspectionWarning }};
@@ -97626,7 +97626,7 @@ function logFieldSafetyObservation(data) {
           }
         }
       } catch (e) {
-        console.log('Could not check harvest predictions: ' + e.toString());
+        Logger.log('Could not check harvest predictions: ' + e.toString());
       }
     }
 
@@ -98761,10 +98761,10 @@ function createEquipmentCorrectiveAction(item, alert, criticalCategory) {
     // Add to corrective actions using existing food safety system
     addCorrectiveAction(correctiveAction);
 
-    console.log(`Created corrective action for ${item.Item_Name}`);
+    Logger.log('Created corrective action for ' + item.Item_Name);
     return true;
   } catch (error) {
-    console.error('Failed to create corrective action:', error);
+    Logger.log('Failed to create corrective action: ' + error.toString());
     return false;
   }
 }
@@ -100959,7 +100959,7 @@ function clearAllCaches() {
   ];
   
   keysToInvalidate.forEach(key => {
-    try { cache.remove(key); } catch(e) {}
+    try { cache.remove(key); } catch(e) { /* Cache miss OK */ }
   });
   
   return { success: true, message: 'All caches cleared' };
@@ -115497,7 +115497,7 @@ function getTasksWithAIPriority(params) {
     try {
       const todayTasks = typeof getTodaysTasks === 'function' ? getTodaysTasks() : [];
       todayTasks.forEach(t => tasks.push({ ...t, source: 'TODAY' }));
-    } catch (e) {}
+    } catch (e) { /* Task fetch optional */ }
 
     // Get overdue tasks
     try {
@@ -115507,7 +115507,7 @@ function getTasksWithAIPriority(params) {
           tasks.push({ ...t, source: 'OVERDUE' });
         }
       });
-    } catch (e) {}
+    } catch (e) { /* Overdue task fetch optional */ }
 
     // Build context once for all tasks
     const context = {
@@ -116397,7 +116397,7 @@ function generateWaypointsForTask(fieldId, problems, taskId) {
                 fieldLon = sumLon / coords.length;
               }
             }
-          } catch (e) { }
+          } catch (e) { /* Coordinate parse optional */ }
         }
         break;
       }
@@ -118057,7 +118057,7 @@ function processSatelliteAlertQueue() {
             }
           }
         }
-      } catch (e) {}
+      } catch (e) { /* Alert data parse optional */ }
 
       // Find the most severe alert to send
       let mostSevereAlert = fieldAlerts[0];
@@ -125276,7 +125276,7 @@ Return ONLY valid JSON, no explanation.`;
       if (typeof sheet !== 'undefined' && typeof rowIndex !== 'undefined') {
         sheet.getRange(rowIndex, 5).setValue('error: ' + error.message);
       }
-    } catch (e) {}
+    } catch (e) { /* Error logging to sheet optional */ }
     return generatePostsFromToddInput_NoAI(toddInput, targetAccount, senderName);
   }
 }
@@ -128838,8 +128838,6 @@ function getParserCorrections(params) {
  */
 function saveParserRule(params) {
   try {
-    console.log('saveParserRule called with:', JSON.stringify(params));
-
     // Validate required parameters
     if (!params.ruleType) {
       return { success: false, error: 'ruleType is required' };
@@ -128898,7 +128896,6 @@ function saveParserRule(params) {
     // Append to sheet
     sheet.appendRow(rowData);
 
-    console.log('Rule saved:', ruleId);
     return {
       success: true,
       ruleId: ruleId,
@@ -128907,7 +128904,7 @@ function saveParserRule(params) {
     };
 
   } catch (error) {
-    console.error('Error saving parser rule:', error);
+    Logger.log('Error saving parser rule: ' + error.toString());
     return { success: false, error: error.toString() };
   }
 }
@@ -128922,8 +128919,6 @@ function saveParserRule(params) {
  */
 function getParserRules(params) {
   try {
-    console.log('getParserRules called with:', JSON.stringify(params));
-
     const ss = SpreadsheetApp.openById(PARSER_SPREADSHEET_ID);
     const sheet = ss.getSheetByName(PARSER_SHEETS.PARSER_RULES);
 
@@ -128981,7 +128976,6 @@ function getParserRules(params) {
     // Sort by priority descending (highest first)
     rules.sort((a, b) => (parseInt(b.Priority) || 0) - (parseInt(a.Priority) || 0));
 
-    console.log(`Found ${rules.length} rules`);
     return {
       success: true,
       rules: rules,
@@ -128989,7 +128983,7 @@ function getParserRules(params) {
     };
 
   } catch (error) {
-    console.error('Error getting parser rules:', error);
+    Logger.log('Error getting parser rules: ' + error.toString());
     return { success: false, error: error.toString(), rules: [] };
   }
 }
@@ -129003,8 +128997,6 @@ function getParserRules(params) {
  */
 function applyParserRules(params) {
   try {
-    console.log('applyParserRules called with:', JSON.stringify(params));
-
     if (!params.productTitle) {
       return { success: false, error: 'productTitle is required' };
     }
@@ -129076,7 +129068,7 @@ function applyParserRules(params) {
                 matchConfidence = 0.85;
               }
             } catch (e) {
-              console.error('Invalid regex pattern:', conditions.pattern);
+              Logger.log('Invalid regex pattern: ' + conditions.pattern);
             }
           } else if (conditions.keywords) {
             // Fallback to keyword matching
@@ -129101,7 +129093,7 @@ function applyParserRules(params) {
           break;
 
         default:
-          console.log('Unknown rule type:', rule.RuleType);
+          Logger.log('Unknown rule type: ' + rule.RuleType);
       }
 
       if (isMatch) {
@@ -129133,7 +129125,7 @@ function applyParserRules(params) {
     };
 
   } catch (error) {
-    console.error('Error applying parser rules:', error);
+    Logger.log('Error applying parser rules: ' + error.toString());
     return { success: false, error: error.toString() };
   }
 }
@@ -129179,10 +129171,8 @@ function updateRuleStats(ruleId, wasSuccessful) {
 
     statsRange.setValues([[newCount, Math.round(newRate * 1000) / 1000]]);
 
-    console.log(`Updated rule ${ruleId} stats: count=${newCount}, rate=${newRate}`);
-
   } catch (error) {
-    console.error('Error updating rule stats:', error);
+    Logger.log('Error updating rule stats: ' + error.toString());
   }
 }
 
@@ -129222,7 +129212,7 @@ function updateCategoryCache(productName, category, subcategory, confidence, sou
             new Date().toISOString(),
             source
           ]]);
-          console.log('Updated existing cache entry for:', productName);
+          Logger.log('Updated cache entry: ' + productName);
           return;
         }
       }
@@ -129237,10 +129227,8 @@ function updateCategoryCache(productName, category, subcategory, confidence, sou
       new Date().toISOString(),
       source
     ]);
-    console.log('Added new cache entry for:', productName);
-
   } catch (error) {
-    console.error('Error updating category cache:', error);
+    Logger.log('Error updating category cache: ' + error.toString());
   }
 }
 
@@ -129281,7 +129269,7 @@ function deactivateParserRule(params) {
     return { success: false, error: `Rule ${params.ruleId} not found` };
 
   } catch (error) {
-    console.error('Error deactivating parser rule:', error);
+    Logger.log('Error deactivating parser rule: ' + error.toString());
     return { success: false, error: error.toString() };
   }
 }
@@ -129360,7 +129348,7 @@ function getParserRuleReport() {
     };
 
   } catch (error) {
-    console.error('Error generating rule report:', error);
+    Logger.log('Error generating rule report: ' + error.toString());
     return { success: false, error: error.toString() };
   }
 }

@@ -38,6 +38,34 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-03-01 — Security Audit Phase 4: Code Quality Hardening
+
+**Role:** PM_Architect (Security / Code Quality)
+**Deploy:** Requires `clasp push` + `clasp deploy` + `git push`
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — Console.log cleanup (35→0), empty catch block documentation (29→16 intentional)
+- `web_app/financial-dashboard.html` — Added SRI hash to Font Awesome CDN
+- `web_app/greenhouse-dashboard.html` — Added SRI hash to Font Awesome CDN
+- `web_app/loan-readiness.html` — Added SRI hashes to Font Awesome + SheetJS CDN
+- `.git/hooks/pre-commit` — Fixed 5 integer expression bugs (`|| echo "0"` → `|| true`)
+
+### Changes
+- **P2-10 (console.log):** Converted all 35 `console.log` to `Logger.log` or removed. Zero `console.log` statements remain. 35 `console.error` kept (proper error logging in catch blocks).
+- **P2-8 (empty catches):** Documented 14 intentional empty catch blocks (all JSON.parse fallbacks or optional service calls). Added explanatory comments to 8 non-obvious empty catches.
+- **SRI hashes:** Added `integrity` + `crossorigin` attributes to 4 CDN resources missing them (Font Awesome 6.4.0, 6.5.1, SheetJS xlsx).
+- **Pre-commit hook:** Fixed `grep -c` double-output bug causing `[: 0\n0: integer expression expected` on 5 checks.
+
+### Reason
+Phase 4 items from the 5-pass security audit remediation roadmap. Improves debuggability, supply chain security (SRI), and developer experience.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
 ## 2026-03-01 — Field GPS Mapping, Soil Sampling, Blank Soil Form, Seed Bug Fixes
 
 **Role:** PM_Architect
