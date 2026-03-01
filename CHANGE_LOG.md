@@ -38,6 +38,62 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-03-01 — CRITICAL: Fix Auth Token Injection + CSP Fix (PM_Architect)
+**Role:** PM_Architect
+**Severity:** CRITICAL — all API calls system-wide were failing
+
+### Root Cause
+The 2026-02-28 security fix added auth middleware requiring tokens on all non-public endpoints. No frontend code was sending tokens. Every API call returned "No token provided".
+
+### Fix 1: CSP — Add script.googleusercontent.com (73 files)
+- Google Apps Script redirects responses through `script.googleusercontent.com`
+- This domain was missing from `connect-src` in ALL HTML files
+- Login was completely blocked by CSP
+
+### Fix 2: Auth Token Auto-Injection (6 files)
+- `web_app/api-config.js`: `TinySeedAPI.get()` and `post()` now auto-inject session token from localStorage. Also fixed POST `Content-Type` from `application/json` to `text/plain`
+- `employee.html`: Added `getAuthToken()` and `apiUrl()` helpers, injected token in all boundary/soil sampling fetch calls
+- `soil-tests.html`: Added `_getToken()` and `apiUrlWithToken()`, injected in all fetch calls
+- `web_app/satellite-map.html`: Added `smApiUrl()` helper, injected in 3 fetch calls
+- `web_app/greenhouse-dashboard.html`: Added `ghApiUrl()` helper, injected in 5 raw fetch calls
+- `apps_script/MERGED TOTAL.js`: Added `authenticateEmployee` and `authenticateDriver` to `PUBLIC_GET_ACTIONS` whitelist (PIN auth needs to work before token exists)
+
+### Verification
+- Login API: PASS
+- Employee PIN auth (no token): PASS
+- 10/10 authenticated GET endpoints: ALL PASS
+- Frontend token code deployed on all 5 critical pages
+- Backend deployed @714
+
+---
+
+## 2026-03-01 — Competitive Analysis v5.0: Market Wagon + Blue Ocean Strategy
+
+**Role:** UX_Design Claude (PM_Architect)
+
+### Files Modified
+- `docs/research/COMPETITIVE_ANALYSIS_2026.md` — Added Sections 31-34 (1,998 → 2,549 lines, v4.0 → v5.0)
+
+### Sections Added
+- **Section 31: MARKET WAGON** — Full competitive intelligence on Market Wagon (online farmers market platform, 118 Pittsburgh vendors, ~25% commission). Includes Trojan Horse 2.0 playbook adapted for Market Wagon's vendor-packing model (insert cards, branded stickers, recipe cards in every customer order). Includes legal risk assessment of non-compete clause.
+- **Section 32: BLUE OCEAN #1 — Garden-in-a-Box Subscription** — 3-box seedling subscription (April/May/June), $55 single / $149 season. Detailed product design, pricing analysis, COGS breakdown (40-68% gross margin), competitive landscape (15+ competitors analyzed), fulfillment logistics, launch plan, revenue projections ($5K-$27K Year 1).
+- **Section 33: BLUE OCEAN #2 — Restaurant Seedling Partnerships** — "Restaurant Garden Program" targeting 11 Pittsburgh farm-to-table restaurants (EYV, One by Spork, Altius, Hyeholde, Cafe at the Frick, etc.). Three product tiers ($75-$400/mo). B2B pricing, sales approach, revenue projections ($4.5K-$30K/year).
+- **Section 34: BLUE OCEAN #3 — Pittsburgh's Organic Gardening Authority** — Content marketing hub strategy. 20-article content cluster targeting 20+ SEO keywords. Current ranking analysis, E-E-A-T scorecard, seasonal publishing calendar, email capture engine, 24-month traffic projection. Includes "compounding flywheel" showing how all three Blue Oceans feed each other.
+
+### Research Conducted
+- 3 parallel research agents: Pittsburgh restaurants (15+ farm-to-table targets), SEO keywords (20+ rankings analyzed), garden subscription market (15+ competitors, market sizing, fulfillment logistics, millennial gardener demographics)
+- Key findings: "organic pest control western pa" has ZERO competition. No Pittsburgh organic gardening authority exists. Garden subscription market is $22B with 18.3M new gardeners since COVID.
+
+### Reason
+Owner directive to add Market Wagon analysis and plan all three Blue Ocean opportunities with full action plans.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
 ## 2026-03-01 — Security Audit Phase 4: Code Quality Hardening
 
 **Role:** PM_Architect (Security / Code Quality)
