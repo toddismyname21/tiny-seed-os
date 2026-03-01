@@ -72,6 +72,28 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-02-28 — Greenhouse Dashboard Audit Round 3 (Bugs #12-15)
+
+**Role:** PM_Architect
+**Deploy:** Frontend (git push)
+
+### Files Modified
+- `web_app/greenhouse-dashboard.html` — 4 critical bug fixes
+
+### Bugs Fixed
+1. **Bug #12 CRITICAL: `API_URL` undefined** — 5 functions (`flushOfflineQueue`, `loadSeedWarnings`, `saveInlineEdit`, `confirmSownWithLot`, `confirmSownWithoutLot`) used `API_URL` which was never defined. Would throw `ReferenceError` at runtime. Fixed: changed all 5 references to `API` (the actual defined variable on line 1533).
+2. **Bug #13: `renderAccuracyReport` hardcoded year** — Used `'2026-01-01'`/`'2026-12-31'` string literals. Fixed: dynamic `new Date().getFullYear()` + string concatenation.
+3. **Bug #14: `renderRevenueReport` hardcoded year** — Used `{ year: 2026 }`. Fixed: `{ year: new Date().getFullYear() }`.
+4. **Bug #15: `shared-nav.js` in print popups** — Two `window.open()` print popup builders injected `<script src="shared-nav.js">` which would fail to load in popup context (wrong relative path, wrong context). Removed from both print windows. Main page retains the legitimate include.
+
+### Verification
+- `API_URL` grep: 0 results (was 5) ✅
+- Hardcoded 2026 dates: 0 results in dynamic code (only historical year table headers remain, correct) ✅
+- `shared-nav.js`: only 1 remaining at line 4303 (main page include, correct) ✅
+- All function names resolve to existing definitions ✅
+
+---
+
 ## 2026-02-28 — Greenhouse Dashboard Audit Round 2 (Bugs #8-11)
 
 **Role:** PM_Architect

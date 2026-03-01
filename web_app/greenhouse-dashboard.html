@@ -2153,8 +2153,8 @@ function printLabelFromModal() {
         '.lbl-variety { font-style: italic; color: #555; } ' +
         '.lbl-detail { font-size: 9px; color: #666; } ' +
         '</style></head><body><div class="label-grid">' + content + '</div>' +
-        '<script>window.onload=function(){setTimeout(function(){window.print();},400);};</' + 'script><script src="shared-nav.js"></script>
-</body></html>');
+        '<script>window.onload=function(){setTimeout(function(){window.print();},400);};</' + 'script>' +
+'</body></html>');
     printWin.document.close();
 }
 
@@ -2220,8 +2220,8 @@ function printSheetFromModal() {
         '.sheet-check { width: 16px; height: 16px; border: 2px solid #333; border-radius: 3px; display: inline-block; } ' +
         '</style></head><body>' + content +
         '<div style="margin-top:30px;padding-top:10px;border-top:1px solid #ddd;font-size:9pt;color:#666;text-align:center;">Tiny Seed Farm — Printed ' + new Date().toLocaleString() + '</div>' +
-        '<script>window.onload=function(){setTimeout(function(){window.print();},400);};</' + 'script><script src="shared-nav.js"></script>
-</body></html>');
+        '<script>window.onload=function(){setTimeout(function(){window.print();},400);};</' + 'script>' +
+'</body></html>');
     printWin.document.close();
 }
 
@@ -3895,7 +3895,7 @@ async function renderUtilizationReport(container) {
 
 async function renderRevenueReport(container) {
     try {
-        const res = await api.get('getSeedlingSales', { year: 2026 });
+        const res = await api.get('getSeedlingSales', { year: new Date().getFullYear() });
         const sales = (res && res.sales) ? res.sales : (res && res.data) ? res.data : [];
         const byVariety = {};
         const byChannel = {};
@@ -3942,8 +3942,9 @@ async function renderRevenueReport(container) {
 // ═══════════════════════════════════════════════════════════════════
 async function renderAccuracyReport(container) {
     // Fetch wider date range to find completed tasks with actual dates
-    const startOfYear = '2026-01-01';
-    const endOfYear = '2026-12-31';
+    const yr = new Date().getFullYear();
+    const startOfYear = yr + '-01-01';
+    const endOfYear = yr + '-12-31';
     const res = await api.get('getGreenhouseSowingTasks', { startDate: startOfYear, endDate: endOfYear, category: 'all' });
     const allTasks = (res && res.tasks) ? res.tasks : [];
 
