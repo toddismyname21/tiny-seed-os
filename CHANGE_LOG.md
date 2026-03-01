@@ -38,6 +38,33 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-02-28 — Greenhouse Dashboard Audit Round 2 (Bugs #8-11)
+
+**Role:** PM_Architect
+**Deploy:** Frontend (git push)
+
+### Files Modified
+- `web_app/greenhouse-dashboard.html` — 4 bug fixes
+
+### Bugs Fixed
+1. **CRITICAL: Undo timer race condition (Bug #8)** — `confirmSownWithLot()`, `confirmSownWithoutLot()`, `markTransplanted()` overwrote `_undoState.timer` with the server call timer, causing the UI countdown timer's `clearUndoToast()` to cancel the server call. Tasks appeared complete locally but never persisted. Fix: separate `serverTimer` property + `cancelServerTimer()` calls in undo callbacks and `showUndoToast()`.
+2. **Error banner retry calls nonexistent function (Bug #9)** — `loadOpsOverview()` → `loadOperationsTab()` in Operations tab error handler.
+3. **Header/tab bar uses old blue-dark colors (Bug #10)** — `rgba(10,10,15,...)` → `rgba(20,18,17,...)` to match warm design system palette.
+4. **Hardcoded year in batch select (Bug #11)** — `'2026-01-01'` → `new Date().getFullYear() + '-01-01'` for future-proofing.
+
+### Functions Modified
+- `showUndoToast()` — Added `cancelServerTimer()` call to clear previous server timer
+- `confirmSownWithLot()` — Uses `_undoState.serverTimer`, undo callback calls `cancelServerTimer()`
+- `confirmSownWithoutLot()` — Same
+- `markTransplanted()` — Same
+- `populateBatchSelects()` — Dynamic year calculation
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] No duplicates created
+
+---
+
 ## 2026-02-28 — Seed Packet Photo Capture + Print Engine QZ Tray Support
 
 **Role:** PM_Architect

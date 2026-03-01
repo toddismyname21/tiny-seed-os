@@ -57,7 +57,7 @@
         /* ── Header ── */
         .gh-header {
             position:fixed; top:0; left:0; right:0; z-index:100;
-            background:rgba(10,10,15,0.92); backdrop-filter:blur(16px);
+            background:rgba(20,18,17,0.92); backdrop-filter:blur(16px);
             border-bottom:1px solid var(--border);
             padding:0.75rem 1.25rem;
             display:flex; align-items:center; justify-content:space-between;
@@ -85,7 +85,7 @@
         /* ── Tabs ── */
         .gh-tabs {
             position:fixed; top:52px; left:0; right:0; z-index:99;
-            background:rgba(10,10,15,0.95); backdrop-filter:blur(12px);
+            background:rgba(20,18,17,0.95); backdrop-filter:blur(12px);
             border-bottom:1px solid var(--border);
             display:flex; overflow-x:auto; padding:0 0.5rem;
             -webkit-overflow-scrolling:touch;
@@ -2033,11 +2033,12 @@ async function flushOfflineQueue() {
 // ═══════════════════════════════════════════════════════════════════
 // UNDO TOAST (Phase 1C)
 // ═══════════════════════════════════════════════════════════════════
-var _undoState = { timer: null, countdown: null, callback: null, seconds: 0 };
+var _undoState = { timer: null, countdown: null, callback: null, seconds: 0, serverTimer: null };
 
 function showUndoToast(msg, undoCallback, seconds) {
     seconds = seconds || 5;
-    // Clear any existing undo
+    // Clear any existing undo + pending server call from previous action
+    cancelServerTimer();
     clearUndoToast();
     _undoState.callback = undoCallback;
     _undoState.seconds = seconds;
@@ -2060,6 +2061,9 @@ function clearUndoToast() {
     _undoState.countdown = null;
     _undoState.callback = null;
     document.getElementById('undoToast').classList.remove('show');
+}
+function cancelServerTimer() {
+    if (_undoState.serverTimer) { clearTimeout(_undoState.serverTimer); _undoState.serverTimer = null; }
 }
 
 function undoLastAction() {
@@ -2312,7 +2316,7 @@ async function loadOperationsTab() {
         renderOpsSeedStatus(res.seed_status);
 
     } catch (err) {
-        showErrorBanner('ops', 'Failed to load overview: ' + err.message, function() { loadOpsOverview(); });
+        showErrorBanner('ops', 'Failed to load overview: ' + err.message, function() { loadOperationsTab(); });
         document.getElementById('opsSchedule').innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Could not load schedule data.</p></div>';
     }
 }
@@ -2837,7 +2841,8 @@ async function confirmSownWithLot() {
 
     const cropLabel = task ? (task.crop || '') + (task.variety ? ' — ' + task.variety : '') : batchId;
     showUndoToast('Sown: ' + cropLabel, function() {
-        // Undo: restore local state
+        // Undo: restore local state and cancel server call
+        cancelServerTimer();
         if (task) task.completed = false;
         renderSowingTasks();
         renderTodayStats();
@@ -2845,7 +2850,7 @@ async function confirmSownWithLot() {
     }, 5);
 
     // Send to server after delay (gives user time to undo)
-    _undoState.timer = setTimeout(async function() {
+    _undoState.serverTimer = setTimeout(async function() {
         clearUndoToast();
         try {
             const url = API_URL + '?action=updateTaskCompletion&batchId=' + encodeURIComponent(batchId) + '&completed=true' + (seedLotId ? '&seedLotId=' + encodeURIComponent(seedLotId) : '') + (seedsUsed ? '&seedsUsed=' + encodeURIComponent(seedsUsed) : '');
@@ -2885,13 +2890,14 @@ async function confirmSownWithoutLot() {
 
     const cropLabel = task ? (task.crop || '') + (task.variety ? ' — ' + task.variety : '') : batchId;
     showUndoToast('Sown: ' + cropLabel + ' (no lot)', function() {
+        cancelServerTimer();
         if (task) task.completed = false;
         renderSowingTasks();
         renderTodayStats();
         toast('Undo — sowing reverted');
     }, 5);
 
-    _undoState.timer = setTimeout(async function() {
+    _undoState.serverTimer = setTimeout(async function() {
         clearUndoToast();
         try {
             await fetch(API_URL + '?action=updateTaskCompletion&batchId=' + encodeURIComponent(batchId) + '&completed=true');
@@ -2916,13 +2922,14 @@ async function markTransplanted(batchId) {
 
     const cropLabel = task ? (task.crop || '') + (task.variety ? ' — ' + task.variety : '') : batchId;
     showUndoToast('Transplanted: ' + cropLabel, function() {
+        cancelServerTimer();
         if (task) task.completed = false;
         renderTransplantTasks();
         renderTodayStats();
         toast('Undo — transplant reverted');
     }, 5);
 
-    _undoState.timer = setTimeout(async function() {
+    _undoState.serverTimer = setTimeout(async function() {
         clearUndoToast();
         try {
             await api.post('recordSeedingDate', { batchId: batchId, type: 'transplant', actualDate: todayStr() });
@@ -4054,7 +4061,8 @@ async function populateBatchSelects() {
     let batches = state.batches;
     if (!batches.length) {
         try {
-            const res = await api.get('getGreenhouseSowingTasks', { startDate: '2026-01-01', endDate: '2026-12-31', category: 'veg-herb' });
+            const yr = new Date().getFullYear();
+            const res = await api.get('getGreenhouseSowingTasks', { startDate: yr + '-01-01', endDate: yr + '-12-31', category: 'veg-herb' });
             batches = (res && res.tasks) ? res.tasks : [];
             state.batches = batches;
         } catch (e) { /* ignore */ }
