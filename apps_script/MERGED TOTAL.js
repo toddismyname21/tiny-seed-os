@@ -14660,7 +14660,7 @@ function doGet(e) {
           return jsonResponse({ success: false, insights: [], error: err.toString() });
         }
       case 'getGreenhouseSeedings':
-        return getGreenhouseSeedings();
+        return getGreenhouseSeedings(e.parameter);
       case 'getSeedInventory':
         return jsonResponse(getSeedInventory(e.parameter));
       case 'checkSeedProcurement':
@@ -26894,8 +26894,9 @@ function getDashboardStats() {
   }
 }
 
-function getGreenhouseSeedings() {
+function getGreenhouseSeedings(params) {
   try {
+    params = params || {};
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const planSheet = ss.getSheetByName('PLANNING_2026');
     const profileSheet = ss.getSheetByName('REF_CropProfiles');
@@ -26919,7 +26920,9 @@ function getGreenhouseSeedings() {
       ghSow: headers.indexOf('Plan_GH_Sow') !== -1 ? headers.indexOf('Plan_GH_Sow') : headers.indexOf('GH_Sow_Date'),
       transplant: headers.indexOf('Plan_Transplant') !== -1 ? headers.indexOf('Plan_Transplant') : headers.indexOf('Transplant_Date'),
       trays: headers.indexOf('Trays_Needed'),
-      bed: headers.indexOf('Target_Bed_ID') !== -1 ? headers.indexOf('Target_Bed_ID') : headers.indexOf('Bed_ID')
+      bed: headers.indexOf('Target_Bed_ID') !== -1 ? headers.indexOf('Target_Bed_ID') : headers.indexOf('Bed_ID'),
+      seedLotUsed: headers.indexOf('Seed_Lot_Used'),
+      category: headers.indexOf('Category')
     };
 
     let cropProfiles = {};
@@ -26936,10 +26939,23 @@ function getGreenhouseSeedings() {
       }
     }
 
+    // Use client-provided date range, fall back to today → +60 days
+    var startFilter, endFilter;
+    if (params.startDate) {
+      startFilter = new Date(params.startDate + 'T00:00:00');
+    } else {
+      startFilter = new Date();
+      startFilter.setHours(0, 0, 0, 0);
+    }
+    if (params.endDate) {
+      endFilter = new Date(params.endDate + 'T23:59:59');
+    } else {
+      endFilter = new Date();
+      endFilter.setDate(endFilter.getDate() + 60);
+      endFilter.setHours(23, 59, 59, 999);
+    }
+
     const seedings = [];
-    const today = new Date();
-    const futureLimit = new Date();
-    futureLimit.setDate(today.getDate() + 60);
 
     for (let i = 1; i < data.length; i++) {
       const row = data[i];
@@ -26954,7 +26970,7 @@ function getGreenhouseSeedings() {
         const traysNeeded = cols.trays >= 0 ? Number(row[cols.trays]) || 1 : 1;
         const bedId = cols.bed >= 0 ? row[cols.bed] : '';
 
-        if (ghSowDate instanceof Date && ghSowDate <= futureLimit) {
+        if (ghSowDate instanceof Date && ghSowDate >= startFilter && ghSowDate <= endFilter) {
           const profile = cropProfiles[crop] || { nurseryDays: 28, traySize: 128 };
 
           seedings.push({
@@ -26967,7 +26983,9 @@ function getGreenhouseSeedings() {
             cellsPerTray: profile.traySize,
             batchNumber: batchId || `BATCH-${i}`,
             nurseryDays: profile.nurseryDays,
-            field: bedId || ''
+            field: bedId || '',
+            seedLotNum: cols.seedLotUsed >= 0 ? (row[cols.seedLotUsed] || '') : '',
+            category: cols.category >= 0 ? (row[cols.category] || '') : ''
           });
         }
       }

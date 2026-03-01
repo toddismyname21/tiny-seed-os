@@ -279,6 +279,72 @@
             background: #db2777;
         }
 
+        /* Seed Lot Traceability */
+        .seedlot-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 4px;
+        }
+        .seedlot-badge {
+            font-size: 0.65rem;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            white-space: nowrap;
+        }
+        .seedlot-badge.linked {
+            background: rgba(34, 197, 94, 0.15);
+            color: #16a34a;
+        }
+        .seedlot-badge.missing {
+            background: rgba(239, 68, 68, 0.15);
+            color: #dc2626;
+            cursor: pointer;
+        }
+        .seedlot-badge.missing:hover {
+            background: rgba(239, 68, 68, 0.25);
+        }
+        .seedlot-input-row {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-top: 4px;
+        }
+        .seedlot-input-row input {
+            flex: 1;
+            padding: 4px 8px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            font-size: 0.75rem;
+            font-family: monospace;
+        }
+        .seedlot-input-row button {
+            padding: 4px 10px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .seedlot-input-row .save-btn {
+            background: var(--primary);
+            color: white;
+        }
+        .seedlot-input-row .cancel-btn {
+            background: var(--bg-light);
+            color: var(--text-secondary);
+        }
+        .seedlot-saving {
+            font-size: 0.7rem;
+            color: var(--primary-light);
+            font-style: italic;
+        }
+
         /* Selection Actions */
         .selection-actions {
             display: flex;
@@ -1406,7 +1472,7 @@
                         cellsPerTray: s.cellsPerTray || 128,
                         paperpotSpacing: s.paperpotSpacing || 0,
                         batchNumber: s.batchNumber || '',
-                        seedLot: s.seedLotNum || s.seedLot || s.batchNumber || '',
+                        seedLot: s.seedLotNum || s.seedLot || '',
                         nurseryDays: s.nurseryDays || 0,
                         field: s.field || s.bedId || s.bed || '',
                         category: getCropCategory(s.crop || 'Unknown', s.category)
@@ -1494,6 +1560,10 @@
                 const isSelected = selectedSeedings.has(seeding.id);
                 const traySizeDisplay = formatTraySize(seeding.cellsPerTray, seeding.paperpotSpacing);
                 const categoryClass = seeding.category === 'Florals' ? 'category-floral' : '';
+                const hasSeedLot = !!(seeding.seedLot && seeding.seedLot !== seeding.batchNumber);
+                const seedLotDisplay = hasSeedLot
+                    ? '<span class="seedlot-badge linked"><i class="fas fa-link"></i> ' + seeding.seedLot + '</span>'
+                    : '<span class="seedlot-badge missing" onclick="event.stopPropagation(); showSeedLotInput(\'' + seeding.id + '\')" title="Click to link seed lot"><i class="fas fa-exclamation-triangle"></i> No Seed Lot</span>';
                 html += `
                     <div class="seeding-item ${isSelected ? 'selected' : ''} ${categoryClass}" onclick="toggleSeeding('${seeding.id}')">
                         <input type="checkbox" class="seeding-checkbox"
@@ -1503,6 +1573,9 @@
                             <div class="seeding-crop">${seeding.crop}</div>
                             <div class="seeding-meta">
                                 ${seeding.variety} | ${formatDate(seeding.seedDate)} | ${traySizeDisplay}
+                            </div>
+                            <div class="seedlot-row" id="seedlot-row-${seeding.id}">
+                                ${seedLotDisplay}
                             </div>
                         </div>
                         <span class="seeding-badge">${seeding.trays} trays</span>
@@ -1554,6 +1627,71 @@
                 if (seeding) totalTrays += seeding.trays;
             });
             document.getElementById('totalTraysCount').textContent = totalTrays;
+        }
+
+        // ============ SEED LOT LINKING (USDA Organic Traceability) ============
+
+        function showSeedLotInput(seedingId) {
+            var row = document.getElementById('seedlot-row-' + seedingId);
+            if (!row) return;
+            row.innerHTML = '<div class="seedlot-input-row">'
+                + '<input type="text" id="seedlot-input-' + seedingId + '" placeholder="Enter seed lot ID..." '
+                + 'onkeydown="if(event.key===\'Enter\'){event.stopPropagation();saveSeedLot(\'' + seedingId + '\')}">'
+                + '<button class="save-btn" onclick="event.stopPropagation(); saveSeedLot(\'' + seedingId + '\')"><i class="fas fa-check"></i></button>'
+                + '<button class="cancel-btn" onclick="event.stopPropagation(); cancelSeedLotInput(\'' + seedingId + '\')"><i class="fas fa-times"></i></button>'
+                + '</div>';
+            var input = document.getElementById('seedlot-input-' + seedingId);
+            if (input) { input.focus(); input.addEventListener('click', function(e) { e.stopPropagation(); }); }
+        }
+
+        function cancelSeedLotInput(seedingId) {
+            var seeding = seedings.find(function(s) { return s.id === seedingId; });
+            if (!seeding) return;
+            var row = document.getElementById('seedlot-row-' + seedingId);
+            if (row) {
+                row.innerHTML = '<span class="seedlot-badge missing" onclick="event.stopPropagation(); showSeedLotInput(\'' + seedingId + '\')" title="Click to link seed lot"><i class="fas fa-exclamation-triangle"></i> No Seed Lot</span>';
+            }
+        }
+
+        function saveSeedLot(seedingId) {
+            var input = document.getElementById('seedlot-input-' + seedingId);
+            var lotId = input ? input.value.trim() : '';
+            if (!lotId) { showToast('Enter a seed lot ID'); return; }
+
+            var seeding = seedings.find(function(s) { return s.id === seedingId; });
+            if (!seeding) return;
+
+            var row = document.getElementById('seedlot-row-' + seedingId);
+            if (row) row.innerHTML = '<span class="seedlot-saving"><i class="fas fa-spinner fa-spin"></i> Saving...</span>';
+
+            // Update local data immediately
+            seeding.seedLot = lotId;
+
+            // Save to PLANNING_2026 via updatePlanningFields
+            var batchId = seeding.batchNumber || seeding.id;
+            fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain' },
+                body: JSON.stringify({
+                    action: 'updatePlanningFields',
+                    batchId: batchId,
+                    fields: { Seed_Lot_Used: lotId }
+                })
+            }).then(function(r) { return r.json(); })
+              .then(function(res) {
+                  if (res.success) {
+                      if (row) row.innerHTML = '<span class="seedlot-badge linked"><i class="fas fa-link"></i> ' + lotId + '</span>';
+                      showToast('Seed lot linked: ' + lotId + ' → ' + seeding.crop + ' ' + seeding.variety);
+                  } else {
+                      showToast('Save failed: ' + (res.error || 'Unknown error'));
+                      if (row) row.innerHTML = '<span class="seedlot-badge linked"><i class="fas fa-link"></i> ' + lotId + ' (local only)</span>';
+                  }
+              })
+              .catch(function(err) {
+                  console.warn('Seed lot save error:', err);
+                  showToast('Saved locally — will sync when online');
+                  if (row) row.innerHTML = '<span class="seedlot-badge linked"><i class="fas fa-link"></i> ' + lotId + ' (local)</span>';
+              });
         }
 
         function generateLabels() {
