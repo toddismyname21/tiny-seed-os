@@ -17946,6 +17946,10 @@ function doPost(e) {
       case 'rejectRegistration':
         return jsonResponse(rejectRegistration(data));
 
+      // ============ SHOPIFY-EMBEDDED DELIVERY REQUEST (PUBLIC) ============
+      case 'sendDeliveryRequest':
+        return jsonResponse(sendDeliveryRequest(data));
+
       // ============ EMPLOYEE SCHEDULING ============
       case 'createSchedule':
         return jsonResponse(createSchedule(data.schedule || data));
