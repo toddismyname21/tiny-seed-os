@@ -14234,6 +14234,10 @@ function doGet(e) {
     // Public-facing pages served via ?page= are handled above, before this point
     // Employee self-service (uses magic link auth, not session tokens)
     'validateMagicLink', 'validateInviteToken',
+    // Employee app PIN auth (no session token yet — PIN is the credential)
+    'authenticateEmployee',
+    // Driver app PIN auth (no session token yet — PIN is the credential)
+    'authenticateDriver',
     // Webhook verification
     'verifyShopifyWebhook',
     // Customer-facing (uses customer token, not admin session)

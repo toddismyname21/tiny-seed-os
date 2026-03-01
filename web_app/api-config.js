@@ -103,6 +103,11 @@ class TinySeedAPI {
      * @returns {Promise<object>} - API response
      */
     async get(action, params = {}) {
+        // Auto-inject session token if not already provided
+        if (!params.token && !params.sessionToken) {
+            const token = this._getSessionToken();
+            if (token) params.token = token;
+        }
         const queryParams = new URLSearchParams({ action, ...params });
         const url = `${this.baseUrl}?${queryParams.toString()}`;
 
@@ -121,14 +126,31 @@ class TinySeedAPI {
      * @returns {Promise<object>} - API response
      */
     async post(action, data = {}) {
+        // Auto-inject session token if not already provided
+        if (!data.token && !data.sessionToken) {
+            const token = this._getSessionToken();
+            if (token) data.token = token;
+        }
         return this.fetchWithRetry(this.baseUrl, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
+                'Content-Type': 'text/plain',
                 'Accept': 'application/json'
             },
             body: JSON.stringify({ action, ...data })
         });
+    }
+
+    /**
+     * Get session token from localStorage (works with auth-guard.js sessions)
+     */
+    _getSessionToken() {
+        try {
+            const session = JSON.parse(localStorage.getItem('tinyseed_session') || 'null');
+            return session?.token || null;
+        } catch (e) {
+            return null;
+        }
     }
 
     /**

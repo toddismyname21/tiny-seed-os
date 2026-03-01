@@ -14225,6 +14225,27 @@
         };
 
         // ============================================
+        // AUTH TOKEN HELPER
+        // ============================================
+        function getAuthToken() {
+            try {
+                const session = JSON.parse(localStorage.getItem('tinyseed_session') || 'null');
+                return session?.token || '';
+            } catch (e) { return ''; }
+        }
+        function apiUrl(action, extraParams) {
+            let url = `${CONFIG.API_URL}?action=${action}`;
+            const token = getAuthToken();
+            if (token) url += `&token=${encodeURIComponent(token)}`;
+            if (extraParams) {
+                for (const [k, v] of Object.entries(extraParams)) {
+                    url += `&${encodeURIComponent(k)}=${encodeURIComponent(v)}`;
+                }
+            }
+            return url;
+        }
+
+        // ============================================
         // APPLICATION STATE
         // ============================================
         const AppState = {
@@ -22276,6 +22297,8 @@
                     coordinates: JSON.stringify(fcTracePoints),
                     createdBy: AppState.employee ? AppState.employee.Name : 'Employee'
                 });
+                const token = getAuthToken();
+                if (token) params.set('token', token);
                 const response = await fetch(`${CONFIG.API_URL}?${params.toString()}`);
                 const result = await response.json();
 
@@ -22297,7 +22320,7 @@
 
         async function loadFieldBoundaries() {
             try {
-                const response = await fetch(`${CONFIG.API_URL}?action=getBoundaries`);
+                const response = await fetch(apiUrl('getBoundaries'));
                 const result = await response.json();
                 if (result.success && result.boundaries) {
                     fcBoundaries = result.boundaries;
@@ -22383,7 +22406,7 @@
         async function deleteFcBoundary(id, name) {
             if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
             try {
-                const response = await fetch(`${CONFIG.API_URL}?action=deleteBoundary&boundaryId=${encodeURIComponent(id)}`);
+                const response = await fetch(apiUrl('deleteBoundary', { boundaryId: id }));
                 const result = await response.json();
                 if (result.success) {
                     showToast(`"${name}" deleted`, 'info');
@@ -22509,7 +22532,7 @@
         async function loadFieldsForSampling() {
             const list = document.getElementById('ssFieldList');
             try {
-                const response = await fetch(`${CONFIG.API_URL}?action=getBoundaries`);
+                const response = await fetch(apiUrl('getBoundaries'));
                 const result = await response.json();
                 if (!result.success || !result.boundaries || !result.boundaries.length) {
                     list.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-secondary,#94a3b8);"><i class="fas fa-draw-polygon" style="font-size:2rem;display:block;margin-bottom:8px;"></i><p>No fields mapped yet.</p><p style="font-size:0.8rem;">Use "Map Fields" first to walk your field boundaries.</p></div>';
@@ -22650,6 +22673,7 @@
             try {
                 const body = {
                     action: 'saveSoilSamplingSession',
+                    token: getAuthToken(),
                     sessionId: ssCurrentSession || '',
                     fieldBoundaryId: ssSelectedField.Boundary_ID || ssSelectedField.boundaryId || '',
                     fieldName: ssSelectedField.Name || ssSelectedField.name || '',
@@ -22735,6 +22759,7 @@
             try {
                 const body = {
                     action: 'saveSoilSamplingSession',
+                    token: getAuthToken(),
                     sessionId: ssCurrentSession || '',
                     fieldBoundaryId: ssSelectedField ? (ssSelectedField.Boundary_ID || ssSelectedField.boundaryId || '') : '',
                     fieldName: ssSelectedField ? (ssSelectedField.Name || ssSelectedField.name || '') : '',

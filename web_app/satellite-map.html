@@ -1064,6 +1064,17 @@
         // ============================================================================
 
         const API_URL = TINY_SEED_API.MAIN_API;
+        function _smToken() {
+            try { return JSON.parse(localStorage.getItem('tinyseed_session') || 'null')?.token || ''; }
+            catch(e) { return ''; }
+        }
+        function smApiUrl(action, extra) {
+            let url = `${API_URL}?action=${action}`;
+            const t = _smToken();
+            if (t) url += `&token=${encodeURIComponent(t)}`;
+            if (extra) url += `&${extra}`;
+            return url;
+        }
 
         // Farm location - 257 Zeigler Rd, Rochester, PA 15074
         const FARM_CENTER = {
@@ -1200,7 +1211,7 @@
         async function loadDemoData() {
             // Try loading REAL boundaries from FARM_BOUNDARIES first
             try {
-                const bndResponse = await fetch(`${API_URL}?action=getBoundaries`);
+                const bndResponse = await fetch(smApiUrl('getBoundaries'));
                 const bndResult = await bndResponse.json();
                 if (bndResult.success && bndResult.boundaries && bndResult.boundaries.length > 0) {
                     const realFields = bndResult.boundaries.map((b, idx) => {
@@ -1544,7 +1555,7 @@
 
         async function loadFieldHistory(fieldId) {
             try {
-                const response = await fetch(`${API_URL}?action=getFieldReadings&fieldId=${fieldId}&days=30`);
+                const response = await fetch(smApiUrl('getFieldReadings', `fieldId=${fieldId}&days=30`));
                 const result = await response.json();
 
                 if (result.success && result.readings) {
@@ -1665,7 +1676,7 @@
 
         async function loadAlerts() {
             try {
-                const response = await fetch(`${API_URL}?action=getSatelliteAlerts`);
+                const response = await fetch(smApiUrl('getSatelliteAlerts'));
                 const result = await response.json();
 
                 if (result.success && result.alerts) {

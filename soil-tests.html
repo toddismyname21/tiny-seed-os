@@ -772,7 +772,20 @@
 
     <script>
         // Configuration
-        const API_URL = 'https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec';
+        const API_URL = (typeof TINY_SEED_API !== 'undefined') ? TINY_SEED_API.MAIN_API : 'https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec';
+
+        // Auth token helper
+        function _getToken() {
+            try { return JSON.parse(localStorage.getItem('tinyseed_session') || 'null')?.token || ''; }
+            catch(e) { return ''; }
+        }
+        function apiUrlWithToken(action, extra) {
+            let url = `${API_URL}?action=${action}`;
+            const t = _getToken();
+            if (t) url += `&token=${encodeURIComponent(t)}`;
+            if (extra) url += `&${extra}`;
+            return url;
+        }
 
         // ============================================
         // BACKEND SYNC HELPERS
@@ -790,7 +803,7 @@
                 const response = await fetch(API_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'text/plain' },
-                    body: JSON.stringify({ action, ...data }),
+                    body: JSON.stringify({ action, token: _getToken(), ...data }),
                     redirect: 'follow'
                 });
                 const text = await response.text();
@@ -818,7 +831,10 @@
          */
         async function loadFromBackend(action, params = {}) {
             try {
-                const queryString = new URLSearchParams({ action, ...params }).toString();
+                const tokenParam = _getToken();
+                const allParams = { action, ...params };
+                if (tokenParam) allParams.token = tokenParam;
+                const queryString = new URLSearchParams(allParams).toString();
                 const response = await fetch(`${API_URL}?${queryString}`);
                 const result = await response.json();
                 if (result.success) {
@@ -927,7 +943,7 @@
         // Load fields from API
         async function loadFieldsFromAPI() {
             try {
-                const response = await fetch(`${API_URL}?action=getFields`);
+                const response = await fetch(apiUrlWithToken('getFields'));
                 const data = await response.json();
 
                 if (data.success && data.fields && data.fields.length > 0) {
@@ -1354,7 +1370,7 @@
             const container = document.getElementById('testsContainer');
 
             try {
-                const response = await fetch(`${API_URL}?action=getSoilTests`);
+                const response = await fetch(apiUrlWithToken('getSoilTests'));
                 const data = await response.json();
 
                 if (data.success && data.data && data.data.length > 0) {

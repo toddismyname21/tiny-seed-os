@@ -1545,6 +1545,16 @@ function safeHTML(dirty) {
 // ═══════════════════════════════════════════════════════════════════
 const API = TINY_SEED_API.MAIN_API;
 const api = new TinySeedAPI();
+function _ghToken() {
+    try { return JSON.parse(localStorage.getItem('tinyseed_session') || 'null')?.token || ''; } catch(e) { return ''; }
+}
+function ghApiUrl(action, extra) {
+    let url = API + '?action=' + action;
+    const t = _ghToken();
+    if (t) url += '&token=' + encodeURIComponent(t);
+    if (extra) url += '&' + extra;
+    return url;
+}
 
 const state = {
     sowingTasks: [],
@@ -2025,9 +2035,9 @@ async function flushOfflineQueue() {
     while (_offlineQueue.length > 0) {
         var item = _offlineQueue.shift();
         try {
-            await fetch(API + '?action=' + item.action, {
+            await fetch(ghApiUrl(item.action), {
                 method: 'POST', headers: {'Content-Type':'text/plain'},
-                body: JSON.stringify(item.params)
+                body: JSON.stringify({ ...item.params, token: _ghToken() })
             });
         } catch (e) {
             failed.push(item);
@@ -2557,7 +2567,7 @@ async function loadTodayTab(forceRefresh) {
 
 async function loadSeedWarnings() {
     try {
-        var res = await fetch(API + '?action=checkSeedProcurement').then(function(r) { return r.json(); });
+        var res = await fetch(ghApiUrl('checkSeedProcurement')).then(function(r) { return r.json(); });
         var banner = document.getElementById('seedWarningBanner');
         if (res.success && res.needsCount > 0) {
             var urgCount = res.urgentCount || 0;
@@ -2690,7 +2700,7 @@ async function saveInlineEdit(inputEl, batchId, fieldName) {
     var newVal = inputEl.value;
     if (!newVal) { invalidateCache('today'); loadTodayTab(true); return; }
     try {
-        var params = { action: 'updatePlanting', batchId: batchId };
+        var params = { action: 'updatePlanting', batchId: batchId, token: _ghToken() };
         params[fieldName] = Number(newVal);
         var res = await fetch(API, { method: 'POST', headers: {'Content-Type': 'text/plain'}, body: JSON.stringify(params) }).then(r => r.json());
         if (res.success) {
@@ -2866,7 +2876,7 @@ async function confirmSownWithLot() {
     _undoState.serverTimer = setTimeout(async function() {
         clearUndoToast();
         try {
-            const url = API + '?action=updateTaskCompletion&batchId=' + encodeURIComponent(batchId) + '&completed=true' + (seedLotId ? '&seedLotId=' + encodeURIComponent(seedLotId) : '') + (seedsUsed ? '&seedsUsed=' + encodeURIComponent(seedsUsed) : '');
+            const url = ghApiUrl('updateTaskCompletion', 'batchId=' + encodeURIComponent(batchId) + '&completed=true' + (seedLotId ? '&seedLotId=' + encodeURIComponent(seedLotId) : '') + (seedsUsed ? '&seedsUsed=' + encodeURIComponent(seedsUsed) : ''));
             await fetch(url);
 
             // Offer to print tray labels
@@ -2913,7 +2923,7 @@ async function confirmSownWithoutLot() {
     _undoState.serverTimer = setTimeout(async function() {
         clearUndoToast();
         try {
-            await fetch(API + '?action=updateTaskCompletion&batchId=' + encodeURIComponent(batchId) + '&completed=true');
+            await fetch(ghApiUrl('updateTaskCompletion', 'batchId=' + encodeURIComponent(batchId) + '&completed=true'));
             invalidateCache('today'); loadTodayTab(true);
         } catch (err) {
             console.error(err);
