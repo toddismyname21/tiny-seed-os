@@ -9,6 +9,8 @@
     <link rel="stylesheet" href="correction-modal.css">
     <link rel="stylesheet" href="lender-crm.css">
     <link rel="stylesheet" href="tiny-seed-design-system.css">
+    <!-- Security: DOMPurify for safe innerHTML -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js" integrity="sha384-irMU3PFyflP2sBiZuBnRkEOFyMjK4VGynFJjQR8PuiJSWF2WxwVYNbYvPwXnEDTd" crossorigin="anonymous"></script>
     <!-- SheetJS for Excel parsing -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <!-- Chart.js for analytics visualizations -->
@@ -8348,6 +8350,17 @@
     </div>
 
     <script>
+        // Security: DOMPurify wrapper for safe innerHTML
+        function safeHTML(dirty) {
+          if (typeof DOMPurify !== 'undefined') {
+            return DOMPurify.sanitize(dirty, { USE_PROFILES: { html: true } });
+          }
+          // Fallback: strip all HTML tags
+          const div = document.createElement('div');
+          div.textContent = dirty;
+          return div.innerHTML;
+        }
+
         const API_URL = TINY_SEED_API.MAIN_API;
 
         // Lender configurations - updated with consolidated document IDs

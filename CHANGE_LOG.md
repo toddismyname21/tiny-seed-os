@@ -38,6 +38,190 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-03-01 — Competitive Analysis: Data Integrity Audit & Corrections
+
+**Role:** UX_Design Claude
+**Deploy:** No deployment needed (documentation only)
+
+### Files Modified
+- `docs/research/COMPETITIVE_ANALYSIS_2026.md` — 20+ corrections
+
+### What Changed
+Sections 1-22 were written BEFORE scraping tinyseedfarm.com. Section 23 contradicted multiple claims. Full verification audit performed.
+
+**Corrections made:**
+1. **USDA Certified Organic** — all Tiny Seed references changed to "organic practices (on USDA Certified Organic land)" pending owner verification. The website says NOT USDA Certified.
+2. **CSA pricing** — was "$150-$360" throughout, corrected to "$150-$990" (full range)
+3. **"UNDERPRICED" claim** — corrected: competitively priced, not dramatically underpriced. Summer Small Weekly ($540) is only 17% below Who Cooks For You ($648).
+4. **Variety count** — was "90+" throughout, corrected to "50+ vegetable + 100+ flower varieties (150+ total)"
+5. **Seedling delivery** — clarified: seedlings are market/farm only. Delivery is for CSA boxes and flowers.
+6. **Flower Bouquet CSA** — was listed as "new idea." Already exists (Full Bloom $400-$640, Petite $150-$540). Changed to "expand marketing."
+7. **Mushroom & Partner Add-Ons** — were listed as "new ideas." Already exist in CSA catalog. Corrected.
+8. **Revenue projections** — adjusted Year 2 CSA price increase from +$100/member to +$35/member, total reduced from $115K-$138K to $112K-$134K.
+
+### Reason
+Original report was written backwards (competitors researched before Tiny Seed Farm's own website). After adding Section 23 with actual website data, comparison claims were not verified against the new data. This audit corrects all discrepancies.
+
+### Duplicate Check
+- [x] No new files created
+- [x] Corrections applied to existing document only
+
+### OWNER CONFIRMED (March 1, 2026)
+Tiny Seed Farm IS USDA Certified Organic. Website undersells this — says "organic methods" but certification is real. All USDA references restored. **Recommendation added: Update tinyseedfarm.com to prominently display USDA Certified Organic status.**
+
+### New Sections Added (March 1, 2026)
+- **Section 28: HARVIE** — Pittsburgh local food delivery company, in Chapter 11 bankruptcy ($2.4M debt) but STILL OPERATING. $1M USDA grant at risk from Trump admin cuts. Wounded competitor — market opportunity to position as stable alternative.
+- **Section 29: THREE RIVERS GROWN** — Wholesale food aggregator supplying all 6 Giant Eagle Market Districts, East End Food Co-Op, Parkhurst Dining. Tiny Seed is NOT a member. Potential channel for surplus wholesale volume.
+- **Section 28 expanded: OPERATION TROJAN HORSE** — Full 6-phase playbook to siphon Harvie's customers while selling through them. QR codes on all Harvie-bound produce → dedicated landing page → email capture → SEO + ad warfare → independence in 12 months. Includes QR sticker specs, landing page copy, content calendar, ad budgets, and exit strategy.
+- **Section 30: SEO COMPETITOR CONQUESTING** — Strategy and specific blog posts to rank #1 when competitors are searched. 10 competitor keyword targets + 3 priority blog posts + technical SEO actions.
+
+---
+
+## 2026-03-01 — 5-Pass Security Audit: Full Remediation (Phase 1-4)
+
+**Role:** PM_Architect (Security)
+**Deploy:** Requires `clasp push` + `clasp deploy` + `git push`
+
+### Audit Report Created
+- `docs/audits/SECURITY_AUDIT_2026_02_28.md` — 42 findings (8 P0, 12 P1, 14 P2, 8 P3)
+
+### Files Modified — `apps_script/MERGED TOTAL.js` (30+ security fixes)
+
+**Phase 1: Emergency (P0-2, P1-3, P1-5, P1-6, P0-4, P0-7, P0-8, P0-5, P0-6, P1-8, P1-9)**
+- Removed admin auth fallback paths (createUser, updateUser, deactivateUser, resetUserPin, forceLogout)
+- Removed error.stack from 4 catch blocks (doGet, doPost, SMS handler, time log handler)
+- Disabled test/diagnostic endpoints (insertSampleCustomers, diagnoseSheets, getSheetSchema, etc.)
+- Disabled listScriptProperties and getScriptProperty endpoints
+- Added requireAdmin auth to ALL Alpaca trading endpoints (25 GET + 10 POST)
+- Added requireAdmin auth to ALL Plaid banking endpoints (8 GET + 2 POST)
+- Added requireAdmin auth to ALL messaging endpoints (sendBulkSMS, sendBulkEmail, publishSocialPost, inviteChef, etc.)
+- Added requireAuth to customer PII endpoints (getCSAMembers, getCustomerProfile, getCustomerById, etc.)
+- Fixed callClaudeAPI duplicate definition bug (renamed to callClaudeAPIWithModel, updated 4 callers)
+
+**Phase 2: Critical (P0-1, P0-3, P1-7, P1-4, P1-1)**
+- Added global auth middleware to doGet (whitelist-based, 18 public actions)
+- Added global auth middleware to doPost (whitelist-based, 6 public actions)
+- Added server-side price validation to createSalesOrder (rejects negative, <$0.10, validates tax/fee)
+- Added Shopify webhook HMAC-SHA256 verification
+- Created sanitizeForSheet() and sanitizeRowForSheet() utility functions for formula injection prevention
+- Applied sanitization to createSalesOrder appendRow calls
+- Created hashPin() and verifyPin() functions for PIN hashing (SHA-256 + salt)
+- Updated authenticateUser to use verifyPin() (backwards-compatible with plaintext PINs)
+- Updated createUser and resetUserPin to hash PINs before storage
+
+**Phase 3: Important (P1-11, duplicate resolution)**
+- Resolved 10 duplicate function name collisions by renaming shadowed versions
+- Renamed: getActiveAlerts (3→1), getTimeBasedGreeting (3→1), getSeason (2→1), generateDailyTasks (2→1), getSmartDashboard (2→1), calculateTaskPriority (2→1), predictHarvestDate (2→1), draftEmailReply (2→1), getInboxZeroStats (2→1), logSMSToSheet (2→1)
+- Created withLock() wrapper utility for concurrent write protection
+- Applied withLock to completeTask, completeTaskWithTimeLog, createSalesOrder, updateSalesOrder, createUser, updateUser, deactivateUser, resetUserPin
+
+### Files Modified — HTML (DOMPurify rollout)
+- `web_app/chief-of-staff.html` — Added DOMPurify CDN + safeHTML() utility
+- `web_app/loan-readiness.html` — Added DOMPurify CDN + safeHTML() utility
+- `web_app/greenhouse-dashboard.html` — Added DOMPurify CDN + safeHTML() utility
+- `web_app/financial-dashboard.html` — Added DOMPurify CDN + safeHTML() utility
+
+### Functions Added
+- `hashPin(pin, salt)` — SHA-256 PIN hashing with salt
+- `verifyPin(inputPin, storedValue)` — PIN verification (supports legacy plaintext + hashed)
+- `sanitizeForSheet(value)` — Formula injection prevention for individual values
+- `sanitizeRowForSheet(row)` — Formula injection prevention for appendRow arrays
+- `withLock(fn, timeoutMs)` — LockService wrapper for concurrent write protection
+- `callClaudeAPIWithModel(prompt, model)` — Renamed from duplicate callClaudeAPI (model-routing variant)
+
+### Reason
+Comprehensive 5-pass security audit found 42 vulnerabilities including 8 P0 critical issues. The most severe: ~1,890 API endpoints accessible without authentication. This change implements all 4 phases of the remediation roadmap.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
+## 2026-03-01 — Competitive Domination Analysis Report (v3.0 — Delivery Route Prospecting + CSA Stop Prospects)
+
+**Role:** PM_Architect (Research)
+**Deploy:** N/A (research documents)
+
+### Files Modified
+- `docs/research/COMPETITIVE_ANALYSIS_2026.md` — Expanded from 1,153 to 1,568 lines (v3.0)
+
+### New Sections Added (v3.0)
+- **Section 23: What Tiny Seed Farm Sells Today** — Complete product catalog scraped from tinyseedfarm.com with all CSA pricing, flower pricing, add-ons, sales channels
+- **Section 24: Delivery Route Map & Infrastructure** — Full Wednesday route with 8 CSA stops (addresses + coordinates), 8 wholesale/restaurant stops, 3 farmers markets, home delivery pricing model
+- **Section 25: Florist Prospecting** — 30+ florists profiled along delivery route, organized by priority tier:
+  - Tier 1 (5 — actively source locally): greenSinner, Bramble & Blossom, Redolent Floral, The Farmer's Daughter, Bloom Brigade
+  - Tier 2 (5 — high priority): Roots to Petals, Steel City Florals, Studio Fleuraison, Green Hen Farm, Armful of Flowers
+  - Tier 3 (6 — wedding volume): Hearts & Flowers, Gold Dust, Allison McGeary, Squirrel Hill Flower Shop, And Flowers, Hens & Chicks
+  - Outreach strategy with week-by-week plan
+- **Section 26: Restaurant/Chef Prospecting** — 35+ restaurants profiled, top 15 ranked:
+  - Identified 8 EXISTING customers (Cafe Verde, Eleven, Spirit, Driftwood Oven, Morcilla, Fet-Fisk, APTEKA, Mediterra)
+  - Top new prospects: The Vandal, Bar Marco, G's On Liberty, Della Terra, Pusadee's Garden, Local Provisions, Fig & Ash, EYV
+  - Product-specific opportunity mapping (edible flowers, microgreens, herbs, organic produce)
+- **Section 27: CSA Stop Partnership Prospects** — 35+ organic groceries, health food stores, wellness businesses:
+  - Top 10: East End Food Co-op, Mic's Market, Pittsburgh Juice Company, Fresh Thyme, Back to Basics, White Whale Books, Health Naturale, Eden's Market, Soergel Orchards, Penguin Bookshop
+  - Wellness partners: Sneha Yoga, YogaSix, Salt Power Yoga, Schoolhouse Yoga, Nourish and Move
+  - Route-optimized cluster stops (Sewickley 3-business cluster, Mt. Lebanon cluster, Lawrenceville cluster)
+
+### Research Scale
+- 12 parallel research agents across 3 rounds
+- 70+ businesses/organizations analyzed
+- tinyseedfarm.com fully scraped (Shopify)
+- MERGED TOTAL.js delivery route data extracted
+- Delivery route neighborhoods searched for florists, restaurants, organic groceries, and wellness businesses
+
+### Reason
+User requested: (1) scrape tinyseedfarm.com to understand current products, (2) map the delivery route, (3) list all florists and restaurants along the route NOT currently served, focused on those who value local/organic, (4) add organic groceries and health/wellness businesses as potential CSA stop partners.
+
+---
+
+## 2026-03-01 — Competitive Domination Analysis Report (v2.0 — Full Business)
+
+**Role:** PM_Architect (Research)
+**Deploy:** N/A (research documents)
+
+### Files Created
+- `docs/research/COMPETITIVE_ANALYSIS_2026.md` — Master competitive intelligence report (v2.0)
+- `shared_research/flower_market_2026/PITTSBURGH_FLOWER_CHEF_MARKET_RESEARCH.md` — Detailed flower + chef research
+- `shared_research/flower_market_2026/PITTSBURGH_WEDDING_FLOWER_AND_EVENTS_MARKET_RESEARCH.md` — Wedding + events research
+- `shared_research/flower_market_2026/CSA_AND_AGRITOURISM_COMPETITIVE_ANALYSIS.md` — CSA + agritourism research
+- `docs/research/COMPETITIVE_INTELLIGENCE_ONLINE_NATIONAL.md` — Online/national competitor data
+
+### What's In the Master Report (v2.0)
+**Original seedling analysis (v1.0):**
+- 22 seedling competitors across 5 tiers, Porter's Five Forces, SWOT/TOWS, Blue Ocean Strategy, JTBD, SEO/AEO, positioning map
+
+**NEW — All business verticals (v2.0 expansion):**
+- **Cut Flowers:** 9 Pittsburgh flower farm competitors, GPFC wholesale channel, pricing per stem/bunch/CSA
+- **Wedding Flowers:** Slow Flowers movement, 5 local florists who source local, Lewis Family Farms partnership, DIY bucket pricing
+- **Chef/Restaurant:** 8 target chefs (Nik Forsberg of Fet-Fisk WORKED AT TINY SEED FARM), edible flower market ($128M), marketing playbook
+- **CSA Market:** 8 competing CSA programs, Kretschmann customer vacuum (1,300 members), pricing analysis showing Tiny Seed is UNDERPRICED
+- **Farmers Markets:** 7 best markets ranked, vendor economics, CitiParks application info
+- **On-Farm Events:** PYO competitors, workshop pricing ($45-$165/person), farm dinner economics ($3K-$10K/event)
+- **35 brainstormed revenue ideas** across immediate/near-term/medium-term/long-term/wild card categories
+- **Revenue projections:** $47K-$59K Year 1 new revenue, $116K-$138K Year 2, $175K-$225K Year 3
+- **24 updated actionable recommendations** with timeline and revenue impact
+
+### Research Scale
+- 8 parallel research agents deployed
+- 35+ competitors/organizations analyzed
+- Brave Search (60+ queries), Firecrawl (20+ scrapes), WebFetch, WebSearch
+
+### Key Findings
+1. Chef Nik Forsberg (JB finalist, NYT 50 Best) WORKED at Tiny Seed Farm — leverage immediately
+2. Lewis Family Farms (same town!) hosts weddings but has no flower farm — natural partnership
+3. Kretschmann's 1,300 CSA members went to a farm 60 miles away — they're in YOUR backyard
+4. Tiny Seed CSA is underpriced ($150-$360 vs market $400-$700 for organic)
+5. ZERO competitors have FAQ schema — first to implement wins all AI answers
+6. Churchview Farm dinners sell out at $195/person for 13 years straight — model is replicable
+
+### Duplicate Check
+- [x] Checked existing research files
+- [x] No duplicates — unique master report synthesizing all verticals
+
+---
+
 ## 2026-03-01 — Driver App: Stub API → Real Production API
 
 **Role:** PM_Architect (Desktop_Claude scope)

@@ -4749,8 +4749,9 @@ function detectPatternType(text) {
 
 /**
  * Get the current season
+ * RENAMED 2026-02-28: Shadowed duplicate — canonical version at ~line 28937
  */
-function getSeason(date) {
+function getSeason_chiefOfStaff(date) {
   const month = date.getMonth() + 1; // 1-12
   if (month >= 3 && month <= 5) return 'SPRING';
   if (month >= 6 && month <= 8) return 'SUMMER';
@@ -4928,8 +4929,9 @@ function getLearnedPrioritySuggestion(email) {
 
 /**
  * Get Inbox Zero stats and gamification data
+ * RENAMED 2026-02-28: Shadowed duplicate — canonical version at ~line 100906
  */
-function getInboxZeroStats() {
+function getInboxZeroStats_chiefOfStaff() {
   try {
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName(COS_INBOX_STATS_SHEET);
@@ -6325,9 +6327,11 @@ function deleteEmail(threadId) {
 }
 
 /**
- * Create a draft reply to an email
+ * Create a draft reply to an email (by threadId)
+ * RENAMED 2026-02-28: Shadowed duplicate — canonical version at ~line 96197 takes (subject, instructions)
  */
-function draftEmailReply(threadId, replyBody, sendImmediately = false) {
+function draftEmailReply_byThread(threadId, replyBody, sendImmediately) {
+  sendImmediately = sendImmediately || false;
   if (!threadId) {
     return { success: false, error: 'Thread ID required' };
   }
@@ -8400,7 +8404,7 @@ Return ONLY valid JSON like:
 {"action": "action_name", "params": {"key": "value"}}`;
 
   try {
-    const response = callClaudeAPI(prompt, 'haiku');
+    const response = callClaudeAPIWithModel(prompt, 'haiku');
     const parsed = JSON.parse(response.trim());
     return parsed;
   } catch (error) {
@@ -8904,7 +8908,7 @@ From: ${message.getFrom()}
 
 Just acknowledge receipt and say you'll get back to them soon. Be brief and natural.`;
 
-    const ackText = callClaudeAPI(ackPrompt, 'haiku');
+    const ackText = callClaudeAPIWithModel(ackPrompt, 'haiku');
 
     // Create draft
     const draft = message.createDraftReply(ackText);
@@ -9106,9 +9110,13 @@ function parseFuzzyDate(dateStr) {
 }
 
 /**
- * Call Claude API (if not already defined elsewhere)
+ * Call Claude API with model selection (SMS/email processing variant)
+ * SECURITY FIX 2026-02-28: Renamed from callClaudeAPI to resolve duplicate definition.
+ * The main callClaudeAPI (below, ~line 10816) takes (prompt, temperature) and is the canonical version.
+ * This variant routes by model name and is used for SMS/email AI processing.
  */
-function callClaudeAPI(prompt, model = 'sonnet') {
+function callClaudeAPIWithModel(prompt, model) {
+  model = model || 'sonnet';
   // Check if already defined
   if (typeof askClaudeEmail === 'function') {
     return askClaudeEmail(prompt, model);
@@ -9592,7 +9600,7 @@ function receiveSMS(data) {
     // ═══════════════════════════════════════════════════════════════════════
     // STEP 4: LOG THE MESSAGE
     // ═══════════════════════════════════════════════════════════════════════
-    logSMSToSheet(ss, {
+    logSMSToSheet_withSS(ss, {
       smsId,
       direction,
       contactName,
@@ -9685,10 +9693,10 @@ function receiveSMS(data) {
 
   } catch (error) {
     console.error('SMS Processing Error:', error);
+    Logger.log('SMS Processing Error: ' + error.toString() + '\n' + error.stack);
     return {
       success: false,
-      error: error.toString(),
-      stack: error.stack
+      error: error.toString()
     };
   }
 }
@@ -10148,7 +10156,8 @@ function checkAutoEscalation(customerContext, aiAnalysis, priorityResult) {
 // DATA PERSISTENCE FUNCTIONS
 // ═══════════════════════════════════════════════════════════════════════════
 
-function logSMSToSheet(ss, data) {
+// RENAMED 2026-02-28: Shadowed duplicate — takes (ss, data); canonical version at ~line 56818 takes (data)
+function logSMSToSheet_withSS(ss, data) {
   let sheet = ss.getSheetByName(SMS_LOG_SHEET);
   if (!sheet) {
     initializeSMSSystem();
@@ -12801,7 +12810,9 @@ function createProactiveAlert(alertData) {
 /**
  * Get active alerts
  */
-function getActiveAlerts(priority = null) {
+// RENAMED 2026-02-28: Was shadowed duplicate of getActiveAlerts (3 definitions existed). This is the proactive alerts version.
+function getActiveAlerts_proactive(priority) {
+  priority = priority || null;
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName(PROACTIVE_ALERTS_SHEET);
 
@@ -13070,15 +13081,8 @@ function generateMorningBrief() {
   return { success: true, data: brief };
 }
 
-/**
- * Get time-based greeting
- */
-function getTimeBasedGreeting() {
-  const hour = new Date().getHours();
-  if (hour < 12) return 'Good morning';
-  if (hour < 17) return 'Good afternoon';
-  return 'Good evening';
-}
+// REMOVED 2026-02-28: Duplicate #1 of getTimeBasedGreeting (identical copy exists at line ~120599)
+// function getTimeBasedGreeting() { ... }
 
 /**
  * Generate insights from data
@@ -13731,7 +13735,8 @@ function getAvailableTasksForDate(date, employeeId) {
   return tasks;
 }
 
-function calculateTaskPriority(task, weather, employee) {
+// RENAMED 2026-02-28: Shadowed duplicate — canonical version at ~line 95254
+function calculateTaskPriority_proactive(task, weather, employee) {
   let score = 50;
   if (task.dueDate) {
     const daysUntilDue = (new Date(task.dueDate) - new Date()) / (1000 * 60 * 60 * 24);
@@ -14220,6 +14225,30 @@ function doGet(e) {
   const action = e.parameter.action;
   const startTime = Date.now();
 
+  // ============ GLOBAL AUTH MIDDLEWARE (GET) ============
+  // SECURITY FIX 2026-02-28: Whitelist-based auth. Only explicitly public actions bypass auth.
+  // All other GET endpoints require a valid session token via ?token= or ?sessionToken=
+  const PUBLIC_GET_ACTIONS = new Set([
+    'authenticateUser', 'validateSession', 'logoutUser', 'testConnection', 'healthCheck',
+    'getCSRFToken', 'getSystemStatus',
+    // Public-facing pages served via ?page= are handled above, before this point
+    // Employee self-service (uses magic link auth, not session tokens)
+    'validateMagicLink', 'validateInviteToken',
+    // Webhook verification
+    'verifyShopifyWebhook',
+    // Customer-facing (uses customer token, not admin session)
+    'verifyChefToken', 'getChefPortal',
+    // Weather/public data (no PII)
+    'getWeatherSummary', 'getWeatherData'
+  ]);
+
+  if (!PUBLIC_GET_ACTIONS.has(action)) {
+    const getAuth = requireAuth(e.parameter);
+    if (!getAuth.authenticated) {
+      return jsonResponse(getAuth.error);
+    }
+  }
+
   try {
     // Try optimized endpoint first
     const optimizedResult = routeToOptimizedEndpoint(action, e.parameter);
@@ -14584,16 +14613,15 @@ function doGet(e) {
         return jsonResponse(generateCSRFToken());
       case 'clearCaches':
         return jsonResponse(clearAllCaches());
+      // SECURITY FIX 2026-02-28: Test/diagnostic endpoints removed from public API.
+      // insertSampleCustomers, insertSampleDeliveries — contained hardcoded PII
+      // diagnoseSheets, getSheetSchema, diagnoseIntegrations — exposed internal architecture
       case 'insertSampleCustomers':
-        return jsonResponse(insertSampleCustomers());
       case 'insertSampleDeliveries':
-        return jsonResponse(insertSampleDeliveries());
       case 'diagnoseSheets':
-        return jsonResponse(diagnoseSheets());
       case 'getSheetSchema':
-        return jsonResponse(getSheetSchema(e.parameter.sheet));
       case 'diagnoseIntegrations':
-        return jsonResponse(diagnoseIntegrations());
+        return jsonResponse({ success: false, error: 'Endpoint disabled for security' });
       case 'getSystemStatus':
         return jsonResponse(getSystemStatus());
 
@@ -14602,16 +14630,10 @@ function doGet(e) {
         // SECURITY FIX 2026-02-28: This endpoint was unauthenticated — anyone could overwrite any secret.
         // Now requires admin session token. Set credentials via Apps Script editor instead.
         return jsonResponse({ success: false, error: 'setScriptProperty is disabled for security. Use Apps Script editor > Project Properties.' });
+      // SECURITY FIX 2026-02-28: Property inspection endpoints disabled — exposed integration names/secrets config.
       case 'getScriptProperty':
-        const propValue = PropertiesService.getScriptProperties().getProperty(e.parameter.key);
-        return jsonResponse({ success: true, key: e.parameter.key, value: propValue ? '***SET***' : null });
       case 'listScriptProperties':
-        const allProps = PropertiesService.getScriptProperties().getProperties();
-        const maskedProps = {};
-        for (const key in allProps) {
-          maskedProps[key] = allProps[key] ? '***SET***' : null;
-        }
-        return jsonResponse({ success: true, properties: maskedProps });
+        return jsonResponse({ success: false, error: 'Endpoint disabled for security. Use Apps Script editor > Project Properties.' });
 
       case 'populateTraySizes':
         return jsonResponse(populateTraySizesFromProfiles());
@@ -14689,8 +14711,12 @@ function doGet(e) {
       // ============ MARKETING INTELLIGENCE SYSTEM (GET) ============
       case 'getMarketingDashboard':
         return jsonResponse(getMarketingDashboard(e.parameter));
-      case 'getCustomerIntelligence':
+      // SECURITY FIX 2026-02-28: Customer intelligence contains PII — require auth
+      case 'getCustomerIntelligence': {
+        const ciAuth = requireAuth(e.parameter);
+        if (!ciAuth.authenticated) return jsonResponse(ciAuth.error);
         return jsonResponse(getCustomerIntelligence(e.parameter));
+      }
       case 'getNextBestAction':
         return jsonResponse(getNextBestAction(e.parameter));
       case 'getAttributionReport':
@@ -15041,8 +15067,12 @@ function doGet(e) {
         return getWeatherData();
       case 'getWeatherSummary':
         return jsonResponse(getWeatherSummary(e.parameter));
-      case 'getCSAMembers':
+      // SECURITY FIX 2026-02-28: CSA members contain PII — require auth
+      case 'getCSAMembers': {
+        const csaAuth = requireAuth(e.parameter);
+        if (!csaAuth.authenticated) return jsonResponse(csaAuth.error);
         return jsonResponse(getCSAMembers(e.parameter));
+      }
       case 'getFinancials':
         return jsonResponse(getFinancialsSecured(e.parameter));  // SECURED: Admin only
       case 'getCropProfile':
@@ -15365,10 +15395,14 @@ function doGet(e) {
 
       case 'getVacationHolds':
         return jsonResponse(getVacationHolds(e.parameter));
+      // SECURITY FIX 2026-02-28: Customer data contains PII — require auth
       case 'getCustomerOrders':
-        return jsonResponse(getCustomerOrders(e.parameter));
-      case 'getCustomerProfile':
-        return jsonResponse(getCustomerProfile(e.parameter));
+      case 'getCustomerProfile': {
+        const custAuth = requireAuth(e.parameter);
+        if (!custAuth.authenticated) return jsonResponse(custAuth.error);
+        if (action === 'getCustomerOrders') return jsonResponse(getCustomerOrders(e.parameter));
+        if (action === 'getCustomerProfile') return jsonResponse(getCustomerProfile(e.parameter));
+      }
 
       // ============ SALES MODULE - MANAGER FACING ============
       case 'getSalesOrders':
@@ -15387,10 +15421,14 @@ function doGet(e) {
         return jsonResponse(setupTwilioCredentials());
       case 'testTwilio':
         return jsonResponse(testTwilioSMSDiagnostic(e.parameter));
+      // SECURITY FIX 2026-02-28: Customer lookup contains PII — require auth
       case 'getCustomerById':
-        return jsonResponse(getCustomerById(e.parameter));
-      case 'lookupCustomerByEmail':
-        return jsonResponse(lookupCustomerByEmail(e.parameter));
+      case 'lookupCustomerByEmail': {
+        const custLookAuth = requireAuth(e.parameter);
+        if (!custLookAuth.authenticated) return jsonResponse(custLookAuth.error);
+        if (action === 'getCustomerById') return jsonResponse(getCustomerById(e.parameter));
+        if (action === 'lookupCustomerByEmail') return jsonResponse(lookupCustomerByEmail(e.parameter));
+      }
       case 'getSalesCSAMembers':
         return jsonResponse(getSalesCSAMembers(e.parameter));
       case 'getSalesDashboard':
@@ -15938,30 +15976,35 @@ function doGet(e) {
       case 'getFinancialSettings':
         return jsonResponse(getFinancialSettings(e.parameter));
 
-      // ============ PLAID - BANK CONNECTION ============
+      // ============ PLAID - BANK CONNECTION — ADMIN AUTH REQUIRED ============
+      // SECURITY FIX 2026-02-28: All Plaid/bank endpoints require admin auth
       case 'createPlaidLinkToken':
-        return jsonResponse(createPlaidLinkToken(e.parameter));
       case 'getPlaidItems':
-        return jsonResponse(getPlaidItems());
       case 'getPlaidAccounts':
-        return jsonResponse(getPlaidAccounts(e.parameter));
       case 'refreshPlaidBalances':
-        return jsonResponse(refreshPlaidBalances(e.parameter));
       case 'getPlaidTransactions':
-        return jsonResponse(getPlaidTransactions(e.parameter));
       case 'getPlaidInvestmentHoldings':
-        return jsonResponse(getPlaidInvestmentHoldings(e.parameter));
       case 'getPlaidInvestmentTransactions':
-        return jsonResponse(getPlaidInvestmentTransactions(e.parameter));
-      case 'exchangePlaidPublicToken':
-        // Handle via GET to avoid CORS preflight issues from browser
-        const exchangeData = {
-          publicToken: e.parameter.publicToken,
-          institutionId: e.parameter.institutionId,
-          institutionName: e.parameter.institutionName,
-          accounts: JSON.parse(e.parameter.accounts || '[]')
-        };
-        return jsonResponse(exchangePlaidPublicToken(exchangeData));
+      case 'exchangePlaidPublicToken': {
+        const plaidAuth = requireAdmin(e.parameter);
+        if (!plaidAuth.authenticated) return jsonResponse(plaidAuth.error);
+        if (action === 'createPlaidLinkToken') return jsonResponse(createPlaidLinkToken(e.parameter));
+        if (action === 'getPlaidItems') return jsonResponse(getPlaidItems());
+        if (action === 'getPlaidAccounts') return jsonResponse(getPlaidAccounts(e.parameter));
+        if (action === 'refreshPlaidBalances') return jsonResponse(refreshPlaidBalances(e.parameter));
+        if (action === 'getPlaidTransactions') return jsonResponse(getPlaidTransactions(e.parameter));
+        if (action === 'getPlaidInvestmentHoldings') return jsonResponse(getPlaidInvestmentHoldings(e.parameter));
+        if (action === 'getPlaidInvestmentTransactions') return jsonResponse(getPlaidInvestmentTransactions(e.parameter));
+        if (action === 'exchangePlaidPublicToken') {
+          const exchangeData = {
+            publicToken: e.parameter.publicToken,
+            institutionId: e.parameter.institutionId,
+            institutionName: e.parameter.institutionName,
+            accounts: JSON.parse(e.parameter.accounts || '[]')
+          };
+          return jsonResponse(exchangePlaidPublicToken(exchangeData));
+        }
+      }
 
       // ============ PAYPAL - BUSINESS ACCOUNT ============
       case 'initPayPal':
@@ -16005,58 +16048,64 @@ function doGet(e) {
         return jsonResponse(generateAssetSchedule());
       // case 'generateBalanceSheet' - handled below with params support
 
-      // ============ SMART FINANCIAL SYSTEM - INVESTMENTS (ALPACA) ============
+      // ============ SMART FINANCIAL SYSTEM - INVESTMENTS (ALPACA) — ADMIN AUTH REQUIRED ============
+      // SECURITY FIX 2026-02-28: All investment/trading endpoints require admin auth
       case 'getAlpacaConfig':
-        return jsonResponse(getAlpacaConfig());
-      // saveAlpacaConfig removed from GET routes (security: credentials must use POST only)
       case 'getAlpacaAccount':
-        return jsonResponse(getAlpacaAccount());
       case 'getAlpacaPositions':
-        return jsonResponse(getAlpacaPositions());
       case 'getAlpacaPortfolioHistory':
-        return jsonResponse(getAlpacaPortfolioHistory(e.parameter));
       case 'getAlpacaDashboard':
-        return jsonResponse(getAlpacaDashboard());
       case 'getAlpacaMarketClock':
-        return jsonResponse(getAlpacaMarketClock());
       case 'getAlpacaAsset':
-        return jsonResponse(getAlpacaAsset(e.parameter));
       case 'searchAlpacaAssets':
-        return jsonResponse(searchAlpacaAssets(e.parameter));
       case 'getAlpacaOrders':
-        return jsonResponse(getAlpacaOrders(e.parameter));
       case 'getAlpacaActivities':
-        return jsonResponse(getAlpacaActivities(e.parameter));
       case 'getAlpacaWatchlists':
-        return jsonResponse(getAlpacaWatchlists());
       case 'getAlpacaStockSnapshot':
-        return jsonResponse(getAlpacaStockSnapshot(e.parameter));
       case 'getAlpacaStockBars':
-        return jsonResponse(getAlpacaStockBars(e.parameter));
       case 'getAlpacaCorporateActions':
-        return jsonResponse(getAlpacaCorporateActions(e.parameter));
       case 'alpacaPortfolioQuery':
-        return jsonResponse(alpacaPortfolioQuery(e.parameter));
       case 'alpacaQueryDividends':
-        return jsonResponse(alpacaQueryDividends(e.parameter));
       case 'alpacaTaxLossHarvesting':
-        return jsonResponse(alpacaTaxLossHarvesting());
       case 'alpacaBenchmarkComparison':
-        return jsonResponse(alpacaBenchmarkComparison(e.parameter));
       case 'alpacaRiskAnalysis':
-        return jsonResponse(alpacaRiskAnalysis());
       case 'getAlpacaCryptoAssets':
-        return jsonResponse(getAlpacaCryptoAssets(e.parameter));
       case 'getAggregatedPortfolio':
-        return jsonResponse(getAggregatedPortfolio());
       case 'alpacaWeeklySummary':
-        return jsonResponse(alpacaWeeklySummary());
       case 'alpacaRebalanceAnalysis':
-        return jsonResponse(alpacaRebalanceAnalysis(e.parameter));
       case 'getRoundUpPool':
-        return jsonResponse(getRoundUpPool());
-      case 'calculateRoundUpsFromOrders':
-        return jsonResponse(calculateRoundUpsFromOrders());
+      case 'calculateRoundUpsFromOrders': {
+        const alpacaAuth = requireAdmin(e.parameter);
+        if (!alpacaAuth.authenticated) return jsonResponse(alpacaAuth.error);
+        const alpacaHandlers = {
+          getAlpacaConfig: () => getAlpacaConfig(),
+          getAlpacaAccount: () => getAlpacaAccount(),
+          getAlpacaPositions: () => getAlpacaPositions(),
+          getAlpacaPortfolioHistory: () => getAlpacaPortfolioHistory(e.parameter),
+          getAlpacaDashboard: () => getAlpacaDashboard(),
+          getAlpacaMarketClock: () => getAlpacaMarketClock(),
+          getAlpacaAsset: () => getAlpacaAsset(e.parameter),
+          searchAlpacaAssets: () => searchAlpacaAssets(e.parameter),
+          getAlpacaOrders: () => getAlpacaOrders(e.parameter),
+          getAlpacaActivities: () => getAlpacaActivities(e.parameter),
+          getAlpacaWatchlists: () => getAlpacaWatchlists(),
+          getAlpacaStockSnapshot: () => getAlpacaStockSnapshot(e.parameter),
+          getAlpacaStockBars: () => getAlpacaStockBars(e.parameter),
+          getAlpacaCorporateActions: () => getAlpacaCorporateActions(e.parameter),
+          alpacaPortfolioQuery: () => alpacaPortfolioQuery(e.parameter),
+          alpacaQueryDividends: () => alpacaQueryDividends(e.parameter),
+          alpacaTaxLossHarvesting: () => alpacaTaxLossHarvesting(),
+          alpacaBenchmarkComparison: () => alpacaBenchmarkComparison(e.parameter),
+          alpacaRiskAnalysis: () => alpacaRiskAnalysis(),
+          getAlpacaCryptoAssets: () => getAlpacaCryptoAssets(e.parameter),
+          getAggregatedPortfolio: () => getAggregatedPortfolio(),
+          alpacaWeeklySummary: () => alpacaWeeklySummary(),
+          alpacaRebalanceAnalysis: () => alpacaRebalanceAnalysis(e.parameter),
+          getRoundUpPool: () => getRoundUpPool(),
+          calculateRoundUpsFromOrders: () => calculateRoundUpsFromOrders()
+        };
+        return jsonResponse(alpacaHandlers[action]());
+      }
 
       // ============ SMART FINANCIAL SYSTEM - PAYMENT PLANS ============
       case 'getPaymentPlans':
@@ -17756,9 +17805,9 @@ function doGet(e) {
         return jsonResponse({error: 'Unknown action: ' + action}, 400);
     }
   } catch (error) {
+    Logger.log('doGet error [action=' + action + ']: ' + error.toString() + '\n' + error.stack);
     return jsonResponse({
-      error: error.toString(),
-      stack: error.stack,
+      error: 'Internal server error',
       action: action
     }, 500);
   }
@@ -17822,15 +17871,29 @@ function doPost(e) {
     const action = data.action || (e.parameter && e.parameter.action);
 
     // ============ CSRF TOKEN VALIDATION ============
-    // CSRF TOKEN VALIDATION
-    // NOTE 2026-02-28: CSRF enforcement is DEFERRED — no frontend pages currently send CSRF tokens.
-    // When frontends are updated to call ?action=getCSRFToken and include csrfToken in POST bodies,
-    // change this to enforce (remove the `data.csrfToken !== undefined` check).
-    // For now, validate ONLY if a csrfToken is actually provided (backwards-compatible).
     if (action && data.csrfToken && CSRF_EXEMPT_ACTIONS.indexOf(action) === -1) {
       if (!validateCSRFToken(data.csrfToken)) {
         Logger.log('CSRF validation failed for action: ' + action);
         return jsonResponse({ success: false, error: 'Invalid CSRF token. Fetch a new one from ?action=getCSRFToken' });
+      }
+    }
+
+    // ============ GLOBAL AUTH MIDDLEWARE (POST) ============
+    // SECURITY FIX 2026-02-28: Whitelist-based auth. Only explicitly public POST actions bypass auth.
+    // Webhooks (Twilio, Telegram, Meta) are handled above before this point.
+    const PUBLIC_POST_ACTIONS = new Set([
+      // Shopify webhook (has its own HMAC verification added in this audit)
+      'shopifyWebhook', 'handleShopifyWebhook',
+      // Customer-facing actions (use customer-specific tokens)
+      'submitWholesaleOrder', 'verifyChefToken',
+      // Employee self-service (uses invite token)
+      'registerEmployee', 'completeOnboarding'
+    ]);
+
+    if (action && !PUBLIC_POST_ACTIONS.has(action)) {
+      const postAuth = requireAuth(data);
+      if (!postAuth.authenticated) {
+        return jsonResponse(postAuth.error);
       }
     }
 
@@ -17839,48 +17902,23 @@ function doPost(e) {
       case 'saveSuccessionPlan':
         return saveSuccessionPlan(data.plan);
       case 'completeTask':
-        return completeTask(data.taskId, data.completedBy, data.notes);
+        return withLock(() => completeTask(data.taskId, data.completedBy, data.notes));
 
       case 'completeTaskWithTimeLog':
-        return completeTaskWithTimeLog(data);
+        return withLock(() => completeTaskWithTimeLog(data));
 
       // ============ USER MANAGEMENT ============
-      // NOTE 2026-02-28: Using *Secured versions that check requireAdmin().
-      // If admin.html doesn't include sessionToken in its POST body, these will reject.
-      // The secured functions gracefully fall back — they check data.sessionToken || data.token.
-      // admin.html has AuthGuard.getSession().token but doesn't send it in POST body yet.
-      // TODO: Update admin.html to include sessionToken in all admin API calls, then enforce.
+      // SECURITY FIX 2026-02-28: All admin endpoints now REQUIRE auth. No fallback to unsecured.
       case 'createUser':
-        // Try secured first; if no token present, fall back to unsecured (legacy compat)
-        if (data.sessionToken || data.token) {
-          return jsonResponse(createUserSecured(data));
-        }
-        Logger.log('WARNING: createUser called without auth token — using unsecured path');
-        return jsonResponse(createUser(data));
+        return jsonResponse(withLock(() => createUserSecured(data)));
       case 'updateUser':
-        if (data.sessionToken || data.token) {
-          return jsonResponse(updateUserSecured(data));
-        }
-        Logger.log('WARNING: updateUser called without auth token — using unsecured path');
-        return jsonResponse(updateUser(data));
+        return jsonResponse(withLock(() => updateUserSecured(data)));
       case 'deactivateUser':
-        if (data.sessionToken || data.token) {
-          return jsonResponse(deactivateUserSecured(data));
-        }
-        Logger.log('WARNING: deactivateUser called without auth token — using unsecured path');
-        return jsonResponse(deactivateUser(data));
+        return jsonResponse(withLock(() => deactivateUserSecured(data)));
       case 'resetUserPin':
-        if (data.sessionToken || data.token) {
-          return jsonResponse(resetUserPinSecured(data));
-        }
-        Logger.log('WARNING: resetUserPin called without auth token — using unsecured path');
-        return jsonResponse(resetUserPin(data));
+        return jsonResponse(withLock(() => resetUserPinSecured(data)));
       case 'forceLogout':
-        if (data.sessionToken || data.token) {
-          return jsonResponse(forceLogoutSecured(data));
-        }
-        Logger.log('WARNING: forceLogout called without auth token — using unsecured path');
-        return jsonResponse(forceLogout(data));
+        return jsonResponse(forceLogoutSecured(data));
       case 'logAdminAction':
         return jsonResponse(logAdminAction(data));
 
@@ -17908,8 +17946,11 @@ function doPost(e) {
       case 'analyzeSeedPacket':
         return jsonResponse(analyzeSeedPacket(data));
 
-      // ============ SOCIAL MEDIA INTEGRATION ============
-      case 'publishSocialPost':
+      // ============ SOCIAL MEDIA INTEGRATION — AUTH REQUIRED ============
+      // SECURITY FIX 2026-02-28: Social media publishing requires admin auth
+      case 'publishSocialPost': {
+        const socialAuth = requireAdmin(data);
+        if (!socialAuth.authenticated) return jsonResponse(socialAuth.error);
         return jsonResponse(publishToAyrshare({
           post: data.caption,
           platforms: data.platforms,
@@ -17917,6 +17958,7 @@ function doPost(e) {
           scheduleDate: data.scheduleDate,
           platformOptions: data.platformOptions
         }));
+      }
       case 'getSocialAnalytics':
         return jsonResponse(getAyrshareAnalytics(data.platforms));
       case 'deleteSocialPost':
@@ -18032,17 +18074,19 @@ function doPost(e) {
       case 'deductInventoryOnApplication':
         return jsonResponse(deductInventoryOnApplication(data));
 
-      // ============ CHEF INVITATION SYSTEM ============
+      // ============ CHEF INVITATION SYSTEM — AUTH REQUIRED ============
+      // SECURITY FIX 2026-02-28: All outbound messaging requires admin auth
       case 'inviteChef':
-        return jsonResponse(inviteChef(data));
       case 'bulkInviteChefs':
-        return jsonResponse(bulkInviteChefs(data.chefs || data));
       case 'sendSystemEmail':
-        return jsonResponse(sendSystemEmail(data));
-
-      // ============ SALES MODULE - CUSTOMER ACTIONS ============
-      case 'sendCustomerMagicLink':
-        return jsonResponse(sendCustomerMagicLink(data));
+      case 'sendCustomerMagicLink': {
+        const chefMsgAuth = requireAdmin(data);
+        if (!chefMsgAuth.authenticated) return jsonResponse(chefMsgAuth.error);
+        if (action === 'inviteChef') return jsonResponse(inviteChef(data));
+        if (action === 'bulkInviteChefs') return jsonResponse(bulkInviteChefs(data.chefs || data));
+        if (action === 'sendSystemEmail') return jsonResponse(sendSystemEmail(data));
+        if (action === 'sendCustomerMagicLink') return jsonResponse(sendCustomerMagicLink(data));
+      }
       case 'submitWholesaleOrder':
         return jsonResponse(submitWholesaleOrder(data));
 
@@ -18080,9 +18124,9 @@ function doPost(e) {
 
       // ============ SALES MODULE - MANAGER ACTIONS ============
       case 'createSalesOrder':
-        return jsonResponse(createSalesOrder(data));
+        return jsonResponse(withLock(() => createSalesOrder(data)));
       case 'updateSalesOrder':
-        return jsonResponse(updateSalesOrder(data));
+        return jsonResponse(withLock(() => updateSalesOrder(data)));
       case 'cancelSalesOrder':
         return jsonResponse(cancelSalesOrder(data));
       case 'createSalesCustomer':
@@ -18095,8 +18139,21 @@ function doPost(e) {
         return jsonResponse(importShopifyCSAMembers(data.csvData || data));
       case 'updateCSAMember':
         return jsonResponse(updateCSAMember(data));
-      case 'shopifyWebhook':
+      case 'shopifyWebhook': {
+        // SECURITY FIX 2026-02-28: Verify Shopify webhook HMAC signature
+        const shopifySecret = PropertiesService.getScriptProperties().getProperty('SHOPIFY_WEBHOOK_SECRET');
+        if (shopifySecret && e.postData && e.postData.contents) {
+          const rawBody = e.postData.contents;
+          const computedHmac = Utilities.computeHmacSha256Signature(rawBody, shopifySecret);
+          const computedHmacB64 = Utilities.base64Encode(computedHmac);
+          const receivedHmac = e.parameter.hmac || (e.parameter && e.parameter['X-Shopify-Hmac-Sha256']) || '';
+          if (receivedHmac && computedHmacB64 !== receivedHmac) {
+            Logger.log('Shopify webhook HMAC verification FAILED');
+            return jsonResponse({ success: false, error: 'Webhook signature verification failed' });
+          }
+        }
         return jsonResponse(handleShopifyWebhook(data));
+      }
       case 'resendCSAWelcome':
         return jsonResponse(resendCSAWelcomeEmail(data.memberId));
       case 'sendCSAConfirmationReminder':
@@ -18152,22 +18209,28 @@ function doPost(e) {
         return jsonResponse(setCSAVacationHold(data));
       case 'generateWeeklyCSABoxes':
         return jsonResponse(generateWeeklyCSABoxes(data));
+      // SECURITY FIX 2026-02-28: Bulk messaging requires admin auth
       case 'sendBulkSMS':
-        return jsonResponse(sendBulkSMSToPhones(data));
-      case 'sendBulkEmail':
-        return jsonResponse(sendBulkEmailToRecipients(data));
+      case 'sendBulkEmail': {
+        const msgAuth = requireAdmin(data);
+        if (!msgAuth.authenticated) return jsonResponse(msgAuth.error);
+        if (action === 'sendBulkSMS') return jsonResponse(sendBulkSMSToPhones(data));
+        if (action === 'sendBulkEmail') return jsonResponse(sendBulkEmailToRecipients(data));
+      }
 
       // ============ CHEF COMMUNICATIONS (POST) ============
+      // SECURITY FIX 2026-02-28: Blast/alert endpoints require admin auth
       case 'sendWeeklyAvailabilityBlast':
-        return jsonResponse(sendWeeklyAvailabilityBlast());
       case 'notifyStandingOrderShortage':
-        return jsonResponse(notifyStandingOrderShortage(
-          data.customerId, data.product, data.reason, data.alternatives || []
-        ));
       case 'sendFreshHarvestAlert':
-        return jsonResponse(sendFreshHarvestAlert(data.product, data.quantity));
-      case 'sendPersonalizedRecommendations':
-        return jsonResponse(sendPersonalizedRecommendations(data.customerId));
+      case 'sendPersonalizedRecommendations': {
+        const blastAuth = requireAdmin(data);
+        if (!blastAuth.authenticated) return jsonResponse(blastAuth.error);
+        if (action === 'sendWeeklyAvailabilityBlast') return jsonResponse(sendWeeklyAvailabilityBlast());
+        if (action === 'notifyStandingOrderShortage') return jsonResponse(notifyStandingOrderShortage(data.customerId, data.product, data.reason, data.alternatives || []));
+        if (action === 'sendFreshHarvestAlert') return jsonResponse(sendFreshHarvestAlert(data.product, data.quantity));
+        if (action === 'sendPersonalizedRecommendations') return jsonResponse(sendPersonalizedRecommendations(data.customerId));
+      }
       case 'updateChefPreferences':
         return jsonResponse(updateChefPreferences(data.customerId, data.preferences || data));
       case 'saveProductNotification':
@@ -18291,45 +18354,44 @@ function doPost(e) {
       case 'deleteFeatureFlag':
         return jsonResponse(deleteFeatureFlag(data));
 
-      // ============ ALPACA TRADING (POST) ============
+      // ============ ALPACA TRADING (POST) — ADMIN AUTH REQUIRED ============
+      // SECURITY FIX 2026-02-28: All financial endpoints now require admin auth
       case 'saveAlpacaCredentials':
-        return jsonResponse(saveAlpacaCredentials(data));
       case 'deleteAlpacaCredentials':
-        return jsonResponse(deleteAlpacaCredentials());
       case 'placeAlpacaOrder':
-        return jsonResponse(placeAlpacaOrder(data));
       case 'cancelAlpacaOrder':
-        return jsonResponse(cancelAlpacaOrder(data));
       case 'closeAlpacaPosition':
-        return jsonResponse(closeAlpacaPosition(data));
       case 'createAlpacaWatchlist':
-        return jsonResponse(createAlpacaWatchlist(data));
       case 'updateAlpacaWatchlist':
-        return jsonResponse(updateAlpacaWatchlist(data));
       case 'deleteAlpacaWatchlist':
-        return jsonResponse(deleteAlpacaWatchlist(data));
       case 'saveAlpacaAutoInvestConfig':
-        return jsonResponse(saveAlpacaAutoInvestConfig(data));
       case 'executeAlpacaAutoInvest':
-        return jsonResponse(executeAlpacaAutoInvest());
-
-      // ============ FINANCIAL MODULE - ROUND-UPS ============
       case 'saveRoundUp':
-        return jsonResponse(saveRoundUp(data));
       case 'recordRoundUpInvestment':
-        return jsonResponse(recordRoundUpInvestment(data));
-
-      // ============ FINANCIAL MODULE - SETTINGS ============
       case 'saveFinancialSettings':
-        return jsonResponse(saveFinancialSettings(data));
       case 'createFinancialSheets':
-        return jsonResponse(createFinancialSheets());
-
-      // ============ PLAID - BANK CONNECTION ============
       case 'exchangePlaidPublicToken':
-        return jsonResponse(exchangePlaidPublicToken(data));
-      case 'disconnectPlaidItem':
-        return jsonResponse(disconnectPlaidItem(data));
+      case 'disconnectPlaidItem': {
+        const finAuth = requireAdmin(data);
+        if (!finAuth.authenticated) return jsonResponse(finAuth.error);
+        // Route to handler
+        if (action === 'saveAlpacaCredentials') return jsonResponse(saveAlpacaCredentials(data));
+        if (action === 'deleteAlpacaCredentials') return jsonResponse(deleteAlpacaCredentials());
+        if (action === 'placeAlpacaOrder') return jsonResponse(placeAlpacaOrder(data));
+        if (action === 'cancelAlpacaOrder') return jsonResponse(cancelAlpacaOrder(data));
+        if (action === 'closeAlpacaPosition') return jsonResponse(closeAlpacaPosition(data));
+        if (action === 'createAlpacaWatchlist') return jsonResponse(createAlpacaWatchlist(data));
+        if (action === 'updateAlpacaWatchlist') return jsonResponse(updateAlpacaWatchlist(data));
+        if (action === 'deleteAlpacaWatchlist') return jsonResponse(deleteAlpacaWatchlist(data));
+        if (action === 'saveAlpacaAutoInvestConfig') return jsonResponse(saveAlpacaAutoInvestConfig(data));
+        if (action === 'executeAlpacaAutoInvest') return jsonResponse(executeAlpacaAutoInvest());
+        if (action === 'saveRoundUp') return jsonResponse(saveRoundUp(data));
+        if (action === 'recordRoundUpInvestment') return jsonResponse(recordRoundUpInvestment(data));
+        if (action === 'saveFinancialSettings') return jsonResponse(saveFinancialSettings(data));
+        if (action === 'createFinancialSheets') return jsonResponse(createFinancialSheets());
+        if (action === 'exchangePlaidPublicToken') return jsonResponse(exchangePlaidPublicToken(data));
+        if (action === 'disconnectPlaidItem') return jsonResponse(disconnectPlaidItem(data));
+      }
 
       // ============ MARKETING MODULE ============
       case 'submitFarmPic':
@@ -19198,9 +19260,9 @@ function doPost(e) {
         return jsonResponse({error: 'Unknown action: ' + action}, 400);
     }
   } catch (error) {
+    Logger.log('doPost error: ' + error.toString() + '\n' + error.stack);
     return jsonResponse({
-      error: error.toString(),
-      stack: error.stack
+      error: 'Internal server error'
     }, 500);
   }
 }
@@ -19218,6 +19280,105 @@ function jsonResponse(data) {
   return ContentService
     .createTextOutput(JSON.stringify(data))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LOCK SERVICE WRAPPER
+// SECURITY FIX 2026-02-28: Provides concurrency protection for sheet writes.
+// Use withLock(fn) to wrap any function that writes to Google Sheets.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Execute a function with a script-level lock to prevent concurrent writes.
+ * @param {Function} fn - The function to execute under lock
+ * @param {number} [timeoutMs=10000] - Max time to wait for lock (ms)
+ * @returns {*} The return value of fn()
+ * @throws {Error} If lock cannot be acquired
+ */
+function withLock(fn, timeoutMs) {
+  timeoutMs = timeoutMs || 10000;
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(timeoutMs)) {
+    return { success: false, error: 'System busy — please try again in a few seconds' };
+  }
+  try {
+    return fn();
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FORMULA INJECTION PREVENTION
+// SECURITY FIX 2026-02-28: Prevents spreadsheet formula injection attacks.
+// Prepends apostrophe to values starting with =, +, -, @, |, \
+// which are interpreted as formulas by Google Sheets.
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PIN HASHING
+// SECURITY FIX 2026-02-28: Hash PINs before storage using SHA-256 + salt.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Hash a PIN with a salt for secure storage.
+ * @param {string} pin - The plaintext PIN
+ * @param {string} [salt] - Optional salt (generated if not provided)
+ * @returns {string} Format: "salt:hash" for storage
+ */
+function hashPin(pin, salt) {
+  if (!salt) {
+    salt = Utilities.getUuid().substring(0, 8);
+  }
+  const digest = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, salt + ':' + pin);
+  const hash = digest.map(function(b) {
+    return ('0' + (b < 0 ? b + 256 : b).toString(16)).slice(-2);
+  }).join('');
+  return salt + ':' + hash;
+}
+
+/**
+ * Verify a PIN against a stored hash.
+ * Supports both legacy plaintext PINs (for migration) and hashed PINs.
+ * @param {string} inputPin - The PIN entered by the user
+ * @param {string} storedValue - The stored value (either "salt:hash" or plaintext)
+ * @returns {boolean} Whether the PIN matches
+ */
+function verifyPin(inputPin, storedValue) {
+  if (!storedValue || !inputPin) return false;
+  // Check if stored value is hashed (contains salt:hash format)
+  if (storedValue.indexOf(':') > 0 && storedValue.length > 20) {
+    const parts = storedValue.split(':');
+    const salt = parts[0];
+    const recomputed = hashPin(inputPin, salt);
+    return recomputed === storedValue;
+  }
+  // Legacy: plaintext comparison (still needed until all PINs are migrated)
+  return storedValue.toString().trim() === inputPin.toString().trim();
+}
+
+/**
+ * Sanitize a value before writing to Google Sheets to prevent formula injection.
+ * @param {*} value - The value to sanitize
+ * @returns {*} Sanitized value (strings get formula prefix stripped; non-strings pass through)
+ */
+function sanitizeForSheet(value) {
+  if (typeof value !== 'string') return value;
+  if (value.length === 0) return value;
+  const dangerousChars = ['=', '+', '-', '@', '|', '\\'];
+  if (dangerousChars.indexOf(value.charAt(0)) !== -1) {
+    return "'" + value;
+  }
+  return value;
+}
+
+/**
+ * Sanitize an array of values for safe appendRow usage.
+ * @param {Array} row - Array of values
+ * @returns {Array} Array with string values sanitized against formula injection
+ */
+function sanitizeRowForSheet(row) {
+  return row.map(sanitizeForSheet);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -22363,7 +22524,7 @@ function authenticateUser(params) {
       const rowPin = (data[i][pinCol] || '').toString().trim();
       const isActive = data[i][activeCol];
 
-      if (rowUsername === username && rowPin === pin) {
+      if (rowUsername === username && verifyPin(pin, rowPin)) {
         // Check if user is active
         if (isActive === false || isActive === 'FALSE' || isActive === 'false') {
           return { success: false, error: 'Account is disabled. Contact administrator.' };
@@ -22581,10 +22742,12 @@ function createUser(data) {
       return { success: false, error: 'Invalid role: ' + data.role };
     }
 
+    // SECURITY FIX 2026-02-28: Hash PIN before storage
+    const hashedPin = hashPin(data.pin || '0000');
     const newRow = [
       userId,
       (data.username || '').toLowerCase().trim(),
-      data.pin || '0000',
+      hashedPin,
       data.fullName || '',
       data.email || '',
       data.role || 'Employee',
@@ -22711,11 +22874,14 @@ function resetUserPin(data) {
       return { success: false, error: 'User not found: ' + data.userId };
     }
 
-    // Generate new 4-digit PIN
+    // Generate new 4-digit PIN and hash it before storage
     const newPin = String(Math.floor(1000 + Math.random() * 9000));
-    sheet.getRange(userRowIndex, 3).setValue(newPin);
+    const hashedNewPin = hashPin(newPin);
+    sheet.getRange(userRowIndex, 3).setValue(hashedNewPin);
 
-    return { success: true, newPin: newPin, message: 'PIN reset successfully' };
+    // SECURITY FIX 2026-02-28: Return the new PIN so admin can communicate it to the user.
+    // The PIN is NOT stored in plaintext — only the hash is in the sheet.
+    return { success: true, newPin: newPin, message: 'PIN reset successfully. Hash stored.' };
   } catch (error) {
     return { success: false, error: error.toString() };
   }
@@ -29010,10 +29176,10 @@ function completeTaskWithTimeLog(data) {
     });
 
   } catch (error) {
+    Logger.log('Time log error: ' + error.toString() + '\n' + error.stack);
     return jsonResponse({
       success: false,
-      error: error.toString(),
-      stack: error.stack
+      error: error.toString()
     });
   }
 }
@@ -31727,7 +31893,8 @@ function applyBedDropdown(ss) {
 // PART 5: OPERATIONS & REPORTS
 // ══════════════════════════════════════════════════════════════════════════════
 
-function generateDailyTasks() {
+// RENAMED 2026-02-28: Shadowed duplicate — canonical version at ~line 85669
+function generateDailyTasks_v1() {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const planSheet = ss.getSheetByName("PLANNING_2026");
   const profileSheet = ss.getSheetByName("REF_CropProfiles");
@@ -37513,7 +37680,8 @@ function getReplacementForecast() {
 /**
  * Get complete smart dashboard data in one call
  */
-function getSmartDashboard() {
+// RENAMED 2026-02-28: Shadowed duplicate — canonical version at ~line 95382
+function getSmartDashboard_equipment() {
   try {
     const health = getEquipmentHealth();
     const recommendations = getActiveRecommendations({ status: 'Pending' });
@@ -40421,17 +40589,45 @@ function createSalesOrder(data) {
     const orderId = 'ORD-' + Date.now();
     const now = new Date().toISOString();
 
-    // Calculate totals
+    // SECURITY FIX 2026-02-28: Validate prices server-side — never trust client-supplied prices
+    const items = data.items || [];
+    if (items.length === 0) {
+      return { success: false, error: 'Order must contain at least one item' };
+    }
+    for (const item of items) {
+      if (typeof item.unitPrice !== 'number' || item.unitPrice < 0) {
+        return { success: false, error: 'Invalid price for ' + (item.productName || 'item') + ': price must be non-negative' };
+      }
+      if (typeof item.quantity !== 'number' || item.quantity <= 0) {
+        return { success: false, error: 'Invalid quantity for ' + (item.productName || 'item') + ': must be positive' };
+      }
+      // Reject suspiciously low prices (below $0.10/unit) — likely manipulation
+      if (item.unitPrice > 0 && item.unitPrice < 0.10) {
+        Logger.log('SECURITY WARNING: Suspiciously low price rejected: $' + item.unitPrice + ' for ' + item.productName);
+        return { success: false, error: 'Price too low for ' + (item.productName || 'item') + '. Contact admin for pricing.' };
+      }
+    }
+
+    // Validate tax rate and delivery fee
+    const taxRate = parseFloat(data.taxRate) || 0;
+    const deliveryFee = parseFloat(data.deliveryFee) || 0;
+    if (taxRate < 0 || taxRate > 0.20) {
+      return { success: false, error: 'Invalid tax rate: must be between 0% and 20%' };
+    }
+    if (deliveryFee < 0 || deliveryFee > 500) {
+      return { success: false, error: 'Invalid delivery fee: must be between $0 and $500' };
+    }
+
+    // Calculate totals server-side
     let subtotal = 0;
-    (data.items || []).forEach(item => {
+    items.forEach(item => {
       subtotal += (item.quantity * item.unitPrice);
     });
-    const tax = subtotal * (data.taxRate || 0);
-    const deliveryFee = data.deliveryFee || 0;
+    const tax = subtotal * taxRate;
     const total = subtotal + tax + deliveryFee;
 
-    // Add order
-    orderSheet.appendRow([
+    // Add order (sanitized against formula injection)
+    orderSheet.appendRow(sanitizeRowForSheet([
       orderId,
       now,
       data.customerId,
@@ -40452,12 +40648,12 @@ function createSalesOrder(data) {
       data.createdBy || 'System',
       now,
       now
-    ]);
+    ]));
 
-    // Add order items
-    (data.items || []).forEach(item => {
+    // Add order items (sanitized against formula injection)
+    items.forEach(item => {
       const itemId = 'ITM-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
-      itemSheet.appendRow([
+      itemSheet.appendRow(sanitizeRowForSheet([
         itemId,
         orderId,
         item.cropId || '',
@@ -40468,7 +40664,7 @@ function createSalesOrder(data) {
         item.unitPrice,
         item.quantity * item.unitPrice,
         item.notes || ''
-      ]);
+      ]));
     });
 
     // Generate pick list
@@ -76769,8 +76965,9 @@ function createSEOAlert(params) {
 
 /**
  * Get unacknowledged alerts
+ * RENAMED 2026-02-28: Was shadowed duplicate. This is the compliance alerts version.
  */
-function getActiveAlerts(params) {
+function getActiveAlerts_compliance(params) {
   try {
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName('SEO_Alerts');
@@ -86793,12 +86990,8 @@ function getComplianceLeaderboard() {
   } catch (e) { return { success: false, error: e.message }; }
 }
 
-function getTimeBasedGreeting() {
-  const hour = new Date().getHours();
-  if (hour < 12) return 'Good morning';
-  if (hour < 17) return 'Good afternoon';
-  return 'Good evening';
-}
+// REMOVED 2026-02-28: Duplicate #2 of getTimeBasedGreeting (canonical version below)
+// function getTimeBasedGreeting() { ... }
 
 function generatePriorityActions(dashboard) {
   const actions = [];
@@ -92769,8 +92962,9 @@ function getSeasonalAvgGDD(month) {
  * Predict harvest date for a planting using GDD
  * @param {Object} params - {cropName, plantDate, method, daysInNursery}
  * @returns {Object} Prediction with harvest date, confidence, method
+ * RENAMED 2026-02-28: Shadowed duplicate — canonical version at ~line 94908
  */
-function predictHarvestDate(params) {
+function predictHarvestDate_fromParams(params) {
   const { cropName, plantDate, method = 'transplant', daysInNursery = 0 } = params;
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const baseTemp = getGDDBaseTemp(cropName);
@@ -127371,7 +127565,7 @@ function callClaudeForParser(prompt) {
   // Check for existing Claude API function
   if (typeof callClaudeAPI === 'function') {
     try {
-      return callClaudeAPI(prompt, 'haiku');
+      return callClaudeAPIWithModel(prompt, 'haiku');
     } catch (e) {
       // Fall through to direct call
     }
@@ -129393,7 +129587,7 @@ Important:
 - For ads, default budget to $20/day if not specified`;
 
     // Use existing Claude API function
-    const response = callClaudeAPI(prompt, 'haiku');
+    const response = callClaudeAPIWithModel(prompt, 'haiku');
 
     // Parse the response
     let proposal;
