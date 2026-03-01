@@ -4217,49 +4217,72 @@
             }
         }
 
-        function doLogin() {
-            var drivers = [
-                { id: 'DRV-001', name: 'Todd Pollack', pin: '7714', initials: 'TP' },
-                { id: 'DRV-002', name: 'Samantha Pollack', pin: '1234', initials: 'SP' },
-                { id: 'DRV-003', name: 'Sarah Chen', pin: '5678', initials: 'SC' }
-            ];
+        async function doLogin() {
+            if (!pinValue || pinValue.length !== 4) return;
 
-            var driver = null;
-            for (var i = 0; i < drivers.length; i++) {
-                if (drivers[i].pin === pinValue) {
-                    driver = drivers[i];
-                    break;
+            // Show loading state
+            var errorEl = document.getElementById('loginError');
+            if (errorEl) errorEl.textContent = 'Authenticating...';
+
+            try {
+                var result = await api.authenticateDriver(pinValue);
+
+                if (result.success && result.driver) {
+                    var driverName = result.driver.Driver_Name || result.driver.Name || 'Driver';
+                    var driver = {
+                        id: result.driver.Driver_ID,
+                        name: driverName,
+                        initials: driverName.split(' ').map(function(n) { return n[0]; }).join('')
+                    };
+
+                    AppState.driver = driver;
+                    AppState.isLoggedIn = true;
+                    AppState.pin = pinValue;
+
+                    localStorage.setItem('driverSession', JSON.stringify({
+                        driver: driver,
+                        pin: pinValue,
+                        loginTime: new Date().toISOString()
+                    }));
+
+                    // Check if already clocked in today
+                    var clockData = localStorage.getItem('driverClock_' + driver.id);
+                    if (clockData) {
+                        var clock = JSON.parse(clockData);
+                        var clockDate = new Date(clock.clockInTime).toDateString();
+                        var today = new Date().toDateString();
+                        if (clockDate === today && !clock.clockOutTime) {
+                            AppState.clock.isClockedIn = true;
+                            AppState.clock.clockInTime = clock.clockInTime;
+                            AppState.clock.clockInGPS = clock.gps;
+                            AppState.clock.entryId = clock.entryId;
+                            showApp();
+                            loadRoute();
+                            pinValue = '';
+                            updatePinDots();
+                            return;
+                        }
+                    }
+
+                    showClockInScreen();
+                    pinValue = '';
+                    updatePinDots();
+                } else {
+                    if (errorEl) errorEl.textContent = result.error || 'Invalid PIN. Please try again.';
+                    pinValue = '';
+                    updatePinDots();
+                    // Shake animation
+                    var pinDisplay = document.querySelector('.pin-display');
+                    if (pinDisplay) {
+                        pinDisplay.style.animation = 'shake 0.3s';
+                        setTimeout(function() { pinDisplay.style.animation = ''; }, 300);
+                    }
                 }
-            }
-
-            if (driver) {
-                AppState.driver = driver;
-                AppState.isLoggedIn = true;
-
-                document.getElementById('loginScreen').style.display = 'none';
-                document.getElementById('appHeader').style.display = 'flex';
-                document.getElementById('bottomNav').style.display = 'flex';
-                document.getElementById('routeTab').classList.add('active');
-                document.getElementById('driverAvatar').textContent = driver.initials;
-                document.getElementById('driverName').textContent = driver.name;
-
-                // Show welcome message with first name
-                var firstName = driver.name.split(' ')[0];
-                showWelcome('Welcome, ' + firstName + '!');
-
-                loadRoute();
+            } catch (error) {
+                console.error('Auth error:', error);
+                if (errorEl) errorEl.textContent = 'Connection error — check network';
                 pinValue = '';
                 updatePinDots();
-            } else {
-                document.getElementById('loginError').textContent = 'Invalid PIN. Please try again.';
-                pinValue = '';
-                updatePinDots();
-                // Shake animation
-                var pinDisplay = document.querySelector('.pin-display');
-                if (pinDisplay) {
-                    pinDisplay.style.animation = 'shake 0.3s';
-                    setTimeout(function() { pinDisplay.style.animation = ''; }, 300);
-                }
             }
         }
 
