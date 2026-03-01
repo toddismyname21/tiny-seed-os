@@ -38,6 +38,33 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-03-01 — Fix Service Worker Cache + Shopify Route Finder (PM_Architect)
+**Role:** PM_Architect
+**Severity:** CRITICAL — SW cache served stale pages, Shopify route finder blocked by auth
+
+### Root Causes Found
+1. **Service Worker v10 cached OLD pages** — login.html, api-config.js, employee.html cached before CSP fix + auth token injection. Cache-first strategy = users never get updates.
+2. **`checkDeliveryZone` API blocked by auth** — Shopify-embedded delivery-zone-checker.html and csa-unified-finder.html returned "No token provided" to public visitors.
+3. **`sendDeliveryRequest` POST blocked** — Customer contact form (Shopify) couldn't submit delivery requests.
+4. **`sendDeliveryRequest` only in doGet, not doPost** — Frontend sends POST but handler was only in GET router.
+
+### Files Modified
+- `sw.js` — Bumped CACHE_VERSION from v10 to v11 (forces full cache refresh)
+- `apps_script/MERGED TOTAL.js` — Added `checkDeliveryZone`, `validateDeliveryAddress`, `getBaseRouteConfig` to PUBLIC_GET_ACTIONS; added `sendDeliveryRequest` to PUBLIC_POST_ACTIONS; added `sendDeliveryRequest` case to doPost switch
+- `web_app/delivery-zone-checker.html` — Fixed Content-Type from `application/json` to `text/plain` (avoids CORS preflight)
+
+### Backend Deployment
+- @715 (Shopify actions whitelisted)
+- @716 (sendDeliveryRequest in doPost)
+
+### Verification
+- 8/8 API tests pass (login, checkDeliveryZone, getBoundaries, getSeedInventory, getGreenhouseSeedings, getSoilTests, authenticateEmployee)
+- CSP verified on 7 critical pages
+- Auth token injection live on 5 pages
+- SW v11 live on app.tinyseedfarm.com
+
+---
+
 ## 2026-03-01 — CRITICAL: Fix Auth Token Injection + CSP Fix (PM_Architect)
 **Role:** PM_Architect
 **Severity:** CRITICAL — all API calls system-wide were failing
