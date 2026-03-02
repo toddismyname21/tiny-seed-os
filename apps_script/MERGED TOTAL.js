@@ -33596,7 +33596,8 @@ function createDirectSeedingTab() {
       notes: headers.indexOf('Notes'),
       category: headers.indexOf('Category'),
       trayCellCount: headers.indexOf('Tray_Cell_Count'),
-      seedLotUsed: headers.indexOf('Seed_Lot_Used')
+      seedLotUsed: headers.indexOf('Seed_Lot_Used'),
+      trayType: headers.indexOf('Tray_Type')
     };
 
     // Parse date range
@@ -33668,9 +33669,9 @@ function createDirectSeedingTab() {
       const profile = profileMap[crop] || {};
       const category = (cols.category >= 0 && row[cols.category]) ? row[cols.category] : (profile.category || 'Veg');
 
-      // Category filter — normalize category values (sheet may have Floral, Flowers, Flower, etc.)
-      var catNorm = (category || '').toLowerCase().replace(/s$/, '');  // 'Flowers' → 'flower', 'Floral' → 'floral', 'Herbs' → 'herb'
-      var isFloral = (catNorm === 'floral' || catNorm === 'flower');
+      // Category filter — normalize category values (sheet may have Floral, Flowers, Flower, Cut Flowers, Ornamental, etc.)
+      var catNorm = (category || '').toLowerCase().replace(/s$/, '');
+      var isFloral = (catNorm.indexOf('floral') >= 0 || catNorm.indexOf('flower') >= 0 || catNorm === 'ornamental' || catNorm === 'bloom' || catNorm === 'cut flower');
       if (categoryFilter !== 'all') {
         if (categoryFilter === 'veg-herb' && isFloral) continue;
         if (categoryFilter === 'floral' && !isFloral) continue;
@@ -33728,6 +33729,7 @@ function createDirectSeedingTab() {
         seedsNeeded: seedsNeeded,
         bed: cols.bed >= 0 ? row[cols.bed] : '',
         seedLotUsed: seedLotUsed,
+        trayType: cols.trayType >= 0 ? (row[cols.trayType] || '') : '',
         germTemp: profile.germTemp || '',
         notes: cols.notes >= 0 ? row[cols.notes] : '',
         completed: !!isCompleted,
@@ -33926,7 +33928,7 @@ function updatePlanningFields(data) {
   // Whitelist of editable fields
   var EDITABLE_FIELDS = [
     'Crop', 'Variety',
-    'Tray_Cell_Count', 'Trays_Needed', 'Plants_Needed', 'Target_Bed_ID',
+    'Tray_Cell_Count', 'Tray_Type', 'Trays_Needed', 'Plants_Needed', 'Target_Bed_ID',
     'Notes', 'Seed_Lot_Used', 'Plan_GH_Sow', 'Plan_Field_Sow', 'Plan_Transplant',
     'Feet_Used'
   ];

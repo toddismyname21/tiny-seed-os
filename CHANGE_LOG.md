@@ -38,6 +38,28 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-03-02 — Fix 4 Sowing Sheet Bugs + Tray Type Dropdown + Category Filter (PM_ARCHITECT)
+
+### Files Modified
+- `sowing-sheets.html` — Fixed Seeds Needed summary (was empty array, now computed from tasks); Added seed lot preview (`showSeedLotInfo()`, modal, clickable links); Added tray type dropdown (`openTrayTypeDropdown()`, TRAY_TYPES config with paperpot options); Fixed multi-edit save (force-blur active inputs before saving); Added `esc()` XSS-safe helper
+- `apps_script/MERGED TOTAL.js` — Fixed category filter (flowers leaking through veg-herb filter — now catches "Cut Flowers", "Ornamental", any category containing "floral"/"flower"); Added `Tray_Type` to EDITABLE_FIELDS whitelist, cols mapping, and task response
+
+### Functions Added
+- `showSeedLotInfo()` in `sowing-sheets.html` — Fetches seed lot details via getSeedByQR API, shows photo + supplier + qty in modal
+- `openTrayTypeDropdown()` in `sowing-sheets.html` — Replaces plain number input with dropdown of predefined tray types (Open, 50/72/128/200-cell, Paperpot 264 at 2"/4"/6" spacing) plus custom option
+- `esc()` in `sowing-sheets.html` — HTML-escape helper for safe rendering
+- `getAllTrayTypes()` / `getCustomTrayTypes()` in `sowing-sheets.html` — Merge predefined + localStorage custom tray types
+
+### Reason
+User is actively planting and reported: Seeds stat always showing 0, flowers leaking through category filter, no way to preview seed packets, save only capturing first edit, and need for tray type dropdown with paperpot spacing support.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
 ## 2026-03-02 — Remove QZ Tray Code from Labels (PM_ARCHITECT)
 
 ### Files Created

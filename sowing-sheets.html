@@ -804,6 +804,27 @@
         // Farm Logo (base64 or URL)
         const FARM_LOGO = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMDAgODAiPjx0ZXh0IHg9IjEwIiB5PSI1MCIgZm9udC1mYW1pbHk9IkludGVyLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjMmQ1YTI3Ij5UaW55IFNlZWQgRmFybTwvdGV4dD48L3N2Zz4=';
 
+        // Tray Type Configuration — dropdown options for cells column
+        const TRAY_TYPES = [
+            { name: 'Open Tray', cells: 0, type: 'open' },
+            { name: '50-cell', cells: 50, type: 'plug' },
+            { name: '72-cell', cells: 72, type: 'plug' },
+            { name: '128-cell', cells: 128, type: 'plug' },
+            { name: '200-cell', cells: 200, type: 'plug' },
+            { name: 'Paperpot 264 — 2"', cells: 264, type: 'paperpot', spacing: 2 },
+            { name: 'Paperpot 264 — 4"', cells: 264, type: 'paperpot', spacing: 4 },
+            { name: 'Paperpot 264 — 6"', cells: 264, type: 'paperpot', spacing: 6 },
+        ];
+
+        // Load custom tray types from localStorage
+        function getCustomTrayTypes() {
+            try { return JSON.parse(localStorage.getItem('customTrayTypes') || '[]'); }
+            catch(e) { return []; }
+        }
+        function getAllTrayTypes() {
+            return TRAY_TYPES.concat(getCustomTrayTypes());
+        }
+
         // State
         let tasks = [];
         let summary = {};
@@ -998,6 +1019,22 @@
                 if (data.success && data.tasks) {
                     tasks = data.tasks || [];
                     summary = data.summary || {};
+                    // Build seedsNeeded array from tasks if not provided by backend
+                    if (!summary.seedsNeeded || !Array.isArray(summary.seedsNeeded) || summary.seedsNeeded.length === 0) {
+                        const seedMap = {};
+                        tasks.forEach(t => {
+                            const seeds = t.seedsNeeded > 0 ? t.seedsNeeded
+                                : (t.trays > 0 && t.cellsPerTray > 0) ? Math.ceil(t.trays * t.cellsPerTray * 1.05)
+                                : 0;
+                            if (seeds > 0) {
+                                const key = t.crop + '|' + (t.variety || '');
+                                if (!seedMap[key]) seedMap[key] = { crop: t.crop, variety: t.variety || '', totalSeeds: 0, seeds: 0 };
+                                seedMap[key].totalSeeds += seeds;
+                                seedMap[key].seeds += seeds;
+                            }
+                        });
+                        summary.seedsNeeded = Object.values(seedMap).sort((a, b) => b.totalSeeds - a.totalSeeds);
+                    }
                     renderSheet();
                     updateStats();
                     document.getElementById('printBtn').disabled = tasks.length === 0;
@@ -1054,6 +1091,8 @@
                         cellsPerTray: t.cellsPerTray || t.cellCount || 0,
                         plantsNeeded: t.plantsNeeded || 0,
                         seedsNeeded: t.seedsNeeded || 0,
+                        seedLotUsed: t.seedLotUsed || '',
+                        trayType: t.trayType || '',
                         bed: t.bed || t.targetBed || t.location || '',
                         germTemp: t.germTemp || '',
                         notes: t.notes || '',
@@ -1065,11 +1104,24 @@
 
                     // Use backend summary if available, otherwise compute locally
                     var backendSummary = data.summary || {};
+                    // Build seedsNeeded array from tasks
+                    var overdueSeedMap = {};
+                    tasks.forEach(function(t) {
+                        var seeds = t.seedsNeeded > 0 ? t.seedsNeeded
+                            : (t.trays > 0 && t.cellsPerTray > 0) ? Math.ceil(t.trays * t.cellsPerTray * 1.05)
+                            : 0;
+                        if (seeds > 0) {
+                            var key = t.crop + '|' + (t.variety || '');
+                            if (!overdueSeedMap[key]) overdueSeedMap[key] = { crop: t.crop, variety: t.variety || '', totalSeeds: 0, seeds: 0 };
+                            overdueSeedMap[key].totalSeeds += seeds;
+                            overdueSeedMap[key].seeds += seeds;
+                        }
+                    });
                     summary = {
                         totalTasks: tasks.length,
                         totalTrays: backendSummary.totalTrays || tasks.reduce((sum, t) => sum + (t.trays || 0), 0),
                         traysBySize: backendSummary.traysBySize || {},
-                        seedsNeeded: [],
+                        seedsNeeded: Object.values(overdueSeedMap).sort(function(a, b) { return b.totalSeeds - a.totalSeeds; }),
                         readinessIssues: backendSummary.readinessIssues || null
                     };
                     renderSheet();
@@ -1112,6 +1164,10 @@
         }
 
         async function saveFieldEdits() {
+            // Force-save any active editable input (user may click Save while still editing a cell)
+            document.querySelectorAll('.editable-cell input').forEach(function(inp) { inp.blur(); });
+            await new Promise(function(r) { setTimeout(r, 50); }); // Let blur handlers fire
+
             const batches = Object.keys(dirtyFields);
             if (batches.length === 0) return;
 
@@ -1160,6 +1216,45 @@
             document.getElementById('statTotalTrays').textContent = summary.totalTrays || tasks.reduce((sum, t) => sum + (t.trays || 0), 0);
             document.getElementById('statTotalSeeds').textContent = (summary.seedsNeeded || []).reduce((sum, s) => sum + (s.totalSeeds || s.seeds || 0), 0).toLocaleString();
             document.getElementById('statCompleted').textContent = tasks.filter(t => t.completed).length;
+        }
+
+        // HTML-escape helper for safe rendering
+        function esc(s) {
+            var d = document.createElement('div');
+            d.textContent = s;
+            return d.innerHTML;
+        }
+
+        // Show seed lot details popup — lets worker verify which seeds to use
+        async function showSeedLotInfo(seedLotId) {
+            if (!seedLotId) return;
+            try {
+                var res = await fetch(API_URL + '?action=getSeedByQR&seedLotId=' + encodeURIComponent(seedLotId));
+                var data = await res.json();
+                if (data.success && data.found && data.seed) {
+                    var s = data.seed;
+                    var html = '<div style="padding:1.5rem;max-width:420px;margin:0 auto;">';
+                    html += '<h3 style="margin:0 0 12px;color:var(--text-primary);font-size:1.1rem;"><i class="fas fa-seedling" style="color:var(--primary);"></i> ' + esc(s.Crop || '') + ' — ' + esc(s.Variety || '') + '</h3>';
+                    if (s.Receipt_Photo_URL) {
+                        html += '<img src="' + esc(s.Receipt_Photo_URL) + '" style="max-width:100%;max-height:250px;border-radius:8px;margin-bottom:12px;border:1px solid var(--border);display:block;" alt="Seed packet photo">';
+                    }
+                    html += '<table style="width:100%;font-size:0.85rem;border-collapse:collapse;">';
+                    html += '<tr><td style="padding:6px 8px;color:var(--text-secondary);font-weight:600;">Lot ID</td><td style="padding:6px 8px;">' + esc(s.Seed_Lot_ID || '') + '</td></tr>';
+                    html += '<tr><td style="padding:6px 8px;color:var(--text-secondary);font-weight:600;">Supplier</td><td style="padding:6px 8px;">' + esc(s.Supplier || '') + '</td></tr>';
+                    html += '<tr><td style="padding:6px 8px;color:var(--text-secondary);font-weight:600;">Remaining</td><td style="padding:6px 8px;">' + (s.Quantity_Remaining || '?') + ' ' + esc(s.Unit || 'seeds') + '</td></tr>';
+                    if (s.Germination_Rate) html += '<tr><td style="padding:6px 8px;color:var(--text-secondary);font-weight:600;">Germ Rate</td><td style="padding:6px 8px;">' + s.Germination_Rate + '%</td></tr>';
+                    if (s.Storage_Location) html += '<tr><td style="padding:6px 8px;color:var(--text-secondary);font-weight:600;">Location</td><td style="padding:6px 8px;">' + esc(s.Storage_Location) + '</td></tr>';
+                    if (s.Organic_Certified) html += '<tr><td style="padding:6px 8px;color:var(--text-secondary);font-weight:600;">Organic</td><td style="padding:6px 8px;">' + esc(s.Organic_Certified) + (s.Certifier ? ' (' + esc(s.Certifier) + ')' : '') + '</td></tr>';
+                    if (s.Notes) html += '<tr><td style="padding:6px 8px;color:var(--text-secondary);font-weight:600;">Notes</td><td style="padding:6px 8px;">' + esc(s.Notes) + '</td></tr>';
+                    html += '</table></div>';
+                    document.getElementById('seedLotContent').innerHTML = html;
+                    document.getElementById('seedLotModal').style.display = 'flex';
+                } else {
+                    showToast('Seed lot ' + seedLotId + ' not found in inventory', 'error');
+                }
+            } catch (err) {
+                showToast('Error loading seed lot: ' + err.message, 'error');
+            }
         }
 
         // Show Loading State
@@ -1435,13 +1530,18 @@
             let rowContent = '';
 
             if (currentTaskType === 'ghSow') {
+                const isOpenTray = task.cellsPerTray === 0 && (task.trayType || '').toLowerCase().indexOf('open') >= 0;
+                const seedCalc = task.seedsNeeded > 0 ? task.seedsNeeded : isOpenTray ? 'Manual' : (task.trays > 0 && task.cellsPerTray > 0 ? Math.ceil(task.trays * task.cellsPerTray * 1.05) : '-');
+                const seedLotLink = task.seedLotUsed
+                    ? '<br><span style="cursor:pointer;color:#3b82f6;text-decoration:underline;font-size:0.75rem;" onclick="event.stopPropagation();showSeedLotInfo(\'' + esc(task.seedLotUsed) + '\')">' + esc(task.seedLotUsed) + '</span>'
+                    : '';
                 rowContent = `
                     <td>${dateCell}</td>
                     <td>${task.crop} <span class="category-badge ${categoryClass}">GH</span> ${readinessHtml}</td>
                     <td>${task.variety}</td>
                     <td>${editableCell('Trays_Needed', traysDisplay, 'number')}</td>
-                    <td>${editableCell('Tray_Cell_Count', task.cellsPerTray || '-', 'number')}</td>
-                    <td style="font-weight:600;color:#f59e0b;">${task.seedsNeeded > 0 ? task.seedsNeeded : (task.trays > 0 && task.cellsPerTray > 0 ? Math.ceil(task.trays * task.cellsPerTray * 1.05) : '-')}</td>
+                    <td><span class="editable-cell" onclick="openTrayTypeDropdown(this, '${task.batchId}')" style="cursor:pointer;border-bottom:1px dashed rgba(255,255,255,0.3);padding:2px 4px;">${task.trayType || (task.cellsPerTray > 0 ? task.cellsPerTray + '-cell' : (task.cellsPerTray === 0 ? 'Open' : '-'))}</span></td>
+                    <td style="font-weight:600;color:#f59e0b;">${seedCalc}${seedLotLink}</td>
                     <td>${editableCell('Notes', task.notes || '', 'text')}</td>
                 `;
             } else if (currentTaskType === 'transplant') {
@@ -1501,6 +1601,70 @@
             element.appendChild(input);
             input.focus();
             input.select();
+        }
+
+        // Tray Type Dropdown — replaces plain number input for cells column
+        function openTrayTypeDropdown(element, batchId) {
+            if (element.querySelector('select')) return; // Already open
+            var currentText = element.textContent.trim();
+            var allTypes = getAllTrayTypes();
+            var select = document.createElement('select');
+            select.style.cssText = 'width:130px;padding:4px;border:1px solid var(--primary);border-radius:4px;background:var(--bg-light);color:var(--text-primary);font-size:12px;';
+
+            // Add options
+            allTypes.forEach(function(tt) {
+                var opt = document.createElement('option');
+                opt.value = tt.name;
+                opt.textContent = tt.name;
+                if (tt.name === currentText || String(tt.cells) === currentText || (tt.cells > 0 && currentText.indexOf(tt.cells) >= 0)) {
+                    opt.selected = true;
+                }
+                select.appendChild(opt);
+            });
+            // Custom option
+            var customOpt = document.createElement('option');
+            customOpt.value = '__custom__';
+            customOpt.textContent = '+ Custom...';
+            select.appendChild(customOpt);
+
+            select.onchange = function() {
+                if (select.value === '__custom__') {
+                    var name = prompt('Tray type name (e.g. "288-cell deep"):');
+                    if (!name) { element.textContent = currentText; return; }
+                    var cells = parseInt(prompt('Number of cells (0 for open tray):'));
+                    if (isNaN(cells)) { element.textContent = currentText; return; }
+                    var newType = { name: name, cells: cells, type: 'custom' };
+                    var customs = getCustomTrayTypes();
+                    customs.push(newType);
+                    localStorage.setItem('customTrayTypes', JSON.stringify(customs));
+                    element.textContent = name;
+                    element.classList.add('dirty-cell');
+                    element.style.background = 'rgba(249, 158, 11, 0.2)';
+                    markFieldDirty(batchId, 'Tray_Type', name);
+                    markFieldDirty(batchId, 'Tray_Cell_Count', cells);
+                    var task = tasks.find(function(t) { return t.batchId === batchId; });
+                    if (task) { task.cellsPerTray = cells; task.trayType = name; }
+                } else {
+                    var chosen = allTypes.find(function(tt) { return tt.name === select.value; });
+                    if (chosen) {
+                        element.textContent = chosen.name;
+                        element.classList.add('dirty-cell');
+                        element.style.background = 'rgba(249, 158, 11, 0.2)';
+                        markFieldDirty(batchId, 'Tray_Type', chosen.name);
+                        markFieldDirty(batchId, 'Tray_Cell_Count', chosen.cells);
+                        var task = tasks.find(function(t) { return t.batchId === batchId; });
+                        if (task) { task.cellsPerTray = chosen.cells; task.trayType = chosen.name; }
+                    }
+                }
+            };
+            select.onblur = function() {
+                if (element.querySelector('select')) {
+                    element.textContent = currentText;
+                }
+            };
+            element.textContent = '';
+            element.appendChild(select);
+            select.focus();
         }
 
         // Toggle Task Completion
@@ -1571,14 +1735,16 @@
                     { key: 'notes',   label: 'Notes',   width: 90 }
                 ];
                 rowMapper = function(task) {
+                    var isOpen = task.cellsPerTray === 0 && (task.trayType || '').toLowerCase().indexOf('open') >= 0;
                     var seeds = task.seedsNeeded > 0 ? task.seedsNeeded
+                        : isOpen ? 'Manual'
                         : (task.trays > 0 && task.cellsPerTray > 0) ? Math.ceil(task.trays * task.cellsPerTray * 1.05) : '';
                     return {
                         date: formatDateShort(task[dateField]),
                         crop: task.crop,
                         variety: task.variety,
                         trays: String(task.trays || ''),
-                        cells: String(task.cellsPerTray || ''),
+                        cells: task.trayType || (task.cellsPerTray > 0 ? task.cellsPerTray + '-cell' : (isOpen ? 'Open' : '')),
                         seeds: String(seeds),
                         notes: task.notes || '',
                         _groupDate: task[dateField],
@@ -1770,8 +1936,11 @@
             const taskDate = task[config.dateField];
 
             if (currentTaskType === 'ghSow') {
+                const isOpen = task.cellsPerTray === 0 && (task.trayType || '').toLowerCase().indexOf('open') >= 0;
                 const seeds = task.seedsNeeded > 0 ? task.seedsNeeded
+                    : isOpen ? 'Manual'
                     : (task.trays > 0 && task.cellsPerTray > 0) ? Math.ceil(task.trays * task.cellsPerTray * 1.05) : '-';
+                const cellsDisplay = task.trayType || (task.cellsPerTray > 0 ? task.cellsPerTray + '-cell' : (isOpen ? 'Open' : '-'));
                 return `
                     <tr>
                         <td style="text-align: center;"><div class="checkbox"></div></td>
@@ -1779,7 +1948,7 @@
                         <td>${task.crop}</td>
                         <td>${task.variety}</td>
                         <td style="font-weight: 600;">${task.trays}</td>
-                        <td>${task.cellsPerTray}</td>
+                        <td>${cellsDisplay}</td>
                         <td style="font-weight: 600; color: #d97706;">${seeds}</td>
                         <td style="font-size: 9pt; color: #555;">${task.notes || ''}</td>
                     </tr>
@@ -1828,5 +1997,10 @@
             setTimeout(() => toast.classList.remove('show'), 3000);
         }
     </script>
+
+    <!-- Seed Lot Info Modal -->
+    <div id="seedLotModal" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;" onclick="this.style.display='none'">
+        <div id="seedLotContent" style="background:var(--bg-card);border-radius:12px;max-width:450px;width:90%;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.4);border:1px solid var(--border);" onclick="event.stopPropagation()"></div>
+    </div>
 </body>
 </html>
