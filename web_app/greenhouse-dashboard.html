@@ -860,7 +860,21 @@
         <div class="loading-spinner"><i class="fas fa-spinner"></i> Loading transplant tasks...</div>
     </div>
 
+    <!-- Recently Sown — edit dates after the fact -->
+    <div id="recentSownSection" style="display:none; margin-top:1.25rem;">
+        <div class="section-header" style="border-left:3px solid var(--info);padding-left:0.75rem;">
+            <h2 style="color:var(--info);"><i class="fas fa-history"></i> Recently Sown</h2>
+            <div style="display:flex;align-items:center;gap:0.5rem;">
+                <span class="badge" id="recentSownCount" style="background:var(--info);">0</span>
+                <button class="btn btn-outline btn-sm" onclick="document.getElementById('recentSownSection').style.display='none'" style="border-color:var(--text-secondary);color:var(--text-secondary);"><i class="fas fa-eye-slash"></i> Hide</button>
+            </div>
+        </div>
+        <div style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:0.5rem;">Tap any date to correct it</div>
+        <div id="recentSownList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:0.5rem;"></div>
+    </div>
+
     <div class="quick-actions">
+        <button class="btn btn-outline" onclick="toggleRecentSown()"><i class="fas fa-history"></i> Recently Sown</button>
         <button class="btn btn-outline" onclick="openModal('germCheckModal')"><i class="fas fa-search"></i> Log Germination Check</button>
         <button class="btn btn-outline" onclick="openModal('growthStageModal')"><i class="fas fa-chart-bar"></i> Record Growth Stage</button>
         <button class="btn btn-outline btn-danger" onclick="openModal('problemModal')"><i class="fas fa-exclamation-triangle"></i> Report Problem</button>
@@ -1464,6 +1478,11 @@
         <div class="modal-body">
             <div id="seedLotInfo" style="margin-bottom:1rem;">
                 <p style="color:var(--text-secondary);">Searching for matching seed lots...</p>
+            </div>
+            <div class="form-group">
+                <label style="font-weight:600;color:var(--primary);">Actual Sow Date</label>
+                <input type="date" id="seedLotActualDate" style="width:100%;padding:0.5rem;background:var(--bg-light);border:1px solid var(--primary);color:var(--text-primary);border-radius:var(--radius-sm);font-size:1rem;">
+                <div style="font-size:0.75rem;color:var(--text-secondary);margin-top:2px;">Change if sowing on a different day than today</div>
             </div>
             <div class="form-group">
                 <label>Seeds Used</label>
@@ -2796,6 +2815,7 @@ async function markSown(batchId) {
     if (!task) { toast('Task not found', 'error'); return; }
 
     document.getElementById('seedLotBatchId').value = batchId;
+    document.getElementById('seedLotActualDate').value = todayStr();
     document.getElementById('seedLotSeedsUsed').value = task.seedsNeeded || '';
     document.getElementById('seedLotSelectedId').value = '';
     document.getElementById('seedLotNotes').value = '';
@@ -2853,6 +2873,7 @@ async function confirmSownWithLot() {
     const batchId = document.getElementById('seedLotBatchId').value;
     const seedLotId = document.getElementById('seedLotSelectedId').value;
     const seedsUsed = document.getElementById('seedLotSeedsUsed').value;
+    const actualDate = document.getElementById('seedLotActualDate').value || todayStr();
     const task = state.sowingTasks.find(t => t.batchId === batchId);
 
     closeModal('seedLotModal');
@@ -2863,7 +2884,8 @@ async function confirmSownWithLot() {
     renderTodayStats();
 
     const cropLabel = task ? (task.crop || '') + (task.variety ? ' — ' + task.variety : '') : batchId;
-    showUndoToast('Sown: ' + cropLabel, function() {
+    const dateLabel = actualDate !== todayStr() ? ' (sown ' + actualDate + ')' : '';
+    showUndoToast('Sown: ' + cropLabel + dateLabel, function() {
         // Undo: restore local state and cancel server call
         cancelServerTimer();
         if (task) task.completed = false;
@@ -2876,7 +2898,7 @@ async function confirmSownWithLot() {
     _undoState.serverTimer = setTimeout(async function() {
         clearUndoToast();
         try {
-            const url = ghApiUrl('updateTaskCompletion', 'batchId=' + encodeURIComponent(batchId) + '&completed=true' + (seedLotId ? '&seedLotId=' + encodeURIComponent(seedLotId) : '') + (seedsUsed ? '&seedsUsed=' + encodeURIComponent(seedsUsed) : ''));
+            const url = ghApiUrl('updateTaskCompletion', 'batchId=' + encodeURIComponent(batchId) + '&completed=true&actualDate=' + encodeURIComponent(actualDate) + (seedLotId ? '&seedLotId=' + encodeURIComponent(seedLotId) : '') + (seedsUsed ? '&seedsUsed=' + encodeURIComponent(seedsUsed) : ''));
             await fetch(url);
 
             // Offer to print tray labels
@@ -2903,6 +2925,7 @@ async function confirmSownWithLot() {
 
 async function confirmSownWithoutLot() {
     const batchId = document.getElementById('seedLotBatchId').value;
+    const actualDate = document.getElementById('seedLotActualDate').value || todayStr();
     const task = state.sowingTasks.find(t => t.batchId === batchId);
     closeModal('seedLotModal');
 
@@ -2912,7 +2935,8 @@ async function confirmSownWithoutLot() {
     renderTodayStats();
 
     const cropLabel = task ? (task.crop || '') + (task.variety ? ' — ' + task.variety : '') : batchId;
-    showUndoToast('Sown: ' + cropLabel + ' (no lot)', function() {
+    const dateLabel = actualDate !== todayStr() ? ' (sown ' + actualDate + ')' : '';
+    showUndoToast('Sown: ' + cropLabel + ' (no lot)' + dateLabel, function() {
         cancelServerTimer();
         if (task) task.completed = false;
         renderSowingTasks();
@@ -2923,7 +2947,7 @@ async function confirmSownWithoutLot() {
     _undoState.serverTimer = setTimeout(async function() {
         clearUndoToast();
         try {
-            await fetch(ghApiUrl('updateTaskCompletion', 'batchId=' + encodeURIComponent(batchId) + '&completed=true'));
+            await fetch(ghApiUrl('updateTaskCompletion', 'batchId=' + encodeURIComponent(batchId) + '&completed=true&actualDate=' + encodeURIComponent(actualDate)));
             invalidateCache('today'); loadTodayTab(true);
         } catch (err) {
             console.error(err);
@@ -2983,7 +3007,17 @@ async function bulkMarkSown(section) {
 
     const count = toMark.length;
     const label = section === 'overdue' ? count + ' overdue' : count + ' sowing';
-    if (!confirm('Mark ' + label + ' task' + (count > 1 ? 's' : '') + ' as sown today? (No seed lot will be assigned)')) return;
+
+    // Prompt for actual sow date
+    const sowDate = prompt('Actual sow date for ' + label + ' task' + (count > 1 ? 's' : '') + '?\n\nFormat: YYYY-MM-DD (default: today)\nNo seed lot will be assigned — you can link lots individually later.', todayStr());
+    if (sowDate === null) return; // cancelled
+    const actualDate = sowDate.trim() || todayStr();
+
+    // Validate date format
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(actualDate)) {
+        toast('Invalid date format. Use YYYY-MM-DD (e.g. 2026-03-02)', 'error');
+        return;
+    }
 
     // Optimistic UI — mark all completed locally
     const origStates = toMark.map(t => ({ batchId: t.batchId, completed: t.completed }));
@@ -2992,14 +3026,13 @@ async function bulkMarkSown(section) {
     renderTodayStats();
     updateMorningProgress();
 
-    toast('Marking ' + count + ' tasks as sown...', 'success');
+    toast('Marking ' + count + ' tasks as sown on ' + actualDate + '...', 'success');
 
     // Send to server
     let failCount = 0;
     for (const t of toMark) {
         try {
-            await api.get('recordSeedingDate', { batchId: t.batchId, type: 'gh_sow', actualDate: todayStr() });
-            await api.get('updateTaskCompletion', { batchId: t.batchId, completed: 'true' });
+            await api.get('updateTaskCompletion', { batchId: t.batchId, completed: 'true', actualDate: actualDate });
         } catch (err) {
             console.error('Bulk sow failed for ' + t.batchId, err);
             failCount++;
@@ -3009,9 +3042,62 @@ async function bulkMarkSown(section) {
     if (failCount > 0) {
         toast(failCount + ' of ' + count + ' failed — reload to check', 'error');
     } else {
-        toast('All ' + count + ' tasks marked as sown!', 'success');
+        toast('All ' + count + ' tasks marked as sown on ' + actualDate + '!', 'success');
     }
     invalidateCache('today'); loadTodayTab(true);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// RECENTLY SOWN — view and correct sow dates after the fact
+// ═══════════════════════════════════════════════════════════════════
+function toggleRecentSown() {
+    const section = document.getElementById('recentSownSection');
+    if (section.style.display === 'none') {
+        section.style.display = 'block';
+        renderRecentSown();
+    } else {
+        section.style.display = 'none';
+    }
+}
+
+function renderRecentSown() {
+    const completed = state.sowingTasks.filter(t => t.completed);
+    const container = document.getElementById('recentSownList');
+    document.getElementById('recentSownCount').textContent = completed.length;
+
+    if (!completed.length) {
+        container.innerHTML = '<div class="empty-state" style="padding:1rem;"><p>No recently sown items. Mark tasks as sown and they will appear here.</p></div>';
+        return;
+    }
+
+    // Sort by sow date descending (most recent first)
+    completed.sort((a, b) => new Date(b.actualSowDate || b.sowDate || 0) - new Date(a.actualSowDate || a.sowDate || 0));
+
+    container.innerHTML = completed.map(t => {
+        const sowDate = t.actualSowDate || t.Act_GH_Sow || '';
+        const seedLot = t.seedLotUsed || t.Seed_Lot_Used || '';
+        return '<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.75rem;display:flex;align-items:center;justify-content:space-between;">' +
+            '<div>' +
+                '<div style="font-weight:600;">' + esc(t.crop || '') + ' — ' + esc(t.variety || '') + '</div>' +
+                '<div style="font-size:0.8rem;color:var(--text-secondary);">' + esc(t.batchId) + (seedLot ? ' &bull; Lot: ' + esc(seedLot) : ' &bull; <span style="color:var(--gold);">No lot</span>') + '</div>' +
+            '</div>' +
+            '<div style="text-align:right;">' +
+                '<input type="date" value="' + (sowDate || '') + '" style="padding:0.35rem;background:var(--bg-light);border:1px solid var(--border);color:var(--text-primary);border-radius:4px;font-size:0.85rem;width:140px;" onchange="correctSowDate(\'' + esc(t.batchId) + '\', this.value)" title="Tap to correct the sow date">' +
+            '</div>' +
+        '</div>';
+    }).join('');
+}
+
+async function correctSowDate(batchId, newDate) {
+    if (!newDate) return;
+    try {
+        toast('Updating sow date...', 'info');
+        await api.get('recordSeedingDate', { batchId: batchId, type: 'gh_sow', actualDate: newDate });
+        toast('Sow date updated to ' + newDate, 'success');
+        invalidateCache('today');
+    } catch (err) {
+        toast('Failed to update date: ' + err.message, 'error');
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════════

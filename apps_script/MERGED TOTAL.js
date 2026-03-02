@@ -33834,8 +33834,10 @@ function createDirectSeedingTab() {
     const rowData = data[rowIndex - 1];
     const plantingMethod = rowData[plantingMethodCol];
     const isDirectSeed = plantingMethod === 'Direct Seed';
-    const today = new Date();
-    const todayStr = Utilities.formatDate(today, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+    // Use actualDate if provided (lets user record correct sow date when catching up)
+    const actualDateParam = params.actualDate || '';
+    const today = actualDateParam ? new Date(actualDateParam + 'T12:00:00') : new Date();
+    const todayStr = actualDateParam || Utilities.formatDate(today, Session.getScriptTimeZone(), 'yyyy-MM-dd');
 
     // Pre-sow validation warnings (not blocking, but informational)
     const warnings = [];
@@ -34017,6 +34019,38 @@ function findSeedLotsByCropVariety(params) {
       return { success: false, error: 'crop parameter is required' };
     }
 
+    // Crop name aliases — botanical ↔ common names
+    var CROP_ALIASES = {
+      'digitalis': ['foxglove'],
+      'foxglove': ['digitalis'],
+      'campanula': ['canterbury bells'],
+      'canterbury bells': ['campanula'],
+      'achillea': ['yarrow'],
+      'yarrow': ['achillea'],
+      'rudbeckia': ['black-eyed susan', 'black eyed susan'],
+      'black-eyed susan': ['rudbeckia'],
+      'black eyed susan': ['rudbeckia'],
+      'delphiniums': ['delphinium'],
+      'delphinium': ['delphiniums'],
+      'snapdragons': ['snapdragon', 'antirrhinum'],
+      'snapdragon': ['snapdragons', 'antirrhinum'],
+      'pak choi': ['pac choi', 'bok choy'],
+      'pac choi': ['pak choi', 'bok choy'],
+      'bok choy': ['pak choi', 'pac choi']
+    };
+
+    // Build list of crop names to search (original + aliases)
+    var cropLower = crop.toLowerCase();
+    var cropNames = [cropLower];
+    if (CROP_ALIASES[cropLower]) {
+      cropNames = cropNames.concat(CROP_ALIASES[cropLower]);
+    }
+
+    // Strip special chars for matching (™, ®, etc.)
+    function cleanStr(s) {
+      return s.replace(/[\u2122\u00AE\u00A9]/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
+    }
+
     var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     var sheet = ss.getSheetByName('SEED_INVENTORY');
 
@@ -34043,14 +34077,24 @@ function findSeedLotsByCropVariety(params) {
     for (var i = 1; i < data.length; i++) {
       var row = data[i];
 
-      // Match crop (case-insensitive)
-      var rowCrop = String(row[cropCol] || '').trim().toLowerCase();
-      if (rowCrop !== crop.toLowerCase()) continue;
+      // Match crop (case-insensitive, with aliases)
+      var rowCrop = cleanStr(String(row[cropCol] || ''));
+      var cropMatch = false;
+      for (var c = 0; c < cropNames.length; c++) {
+        if (rowCrop === cropNames[c] || rowCrop.indexOf(cropNames[c]) !== -1 || cropNames[c].indexOf(rowCrop) !== -1) {
+          cropMatch = true;
+          break;
+        }
+      }
+      if (!cropMatch) continue;
 
-      // Match variety if provided (case-insensitive, partial match)
-      if (variety) {
-        var rowVariety = String(row[varietyCol] || '').trim().toLowerCase();
-        if (rowVariety.indexOf(variety.toLowerCase()) === -1 && variety.toLowerCase().indexOf(rowVariety) === -1) continue;
+      // Match variety if provided (case-insensitive, partial match, strip special chars)
+      // Skip variety filter for generic names like "Standard", "Mix", "Default"
+      var isGenericVariety = !variety || ['standard', 'mix', 'default', 'unknown', ''].indexOf(variety.toLowerCase()) !== -1;
+      if (!isGenericVariety) {
+        var rowVariety = cleanStr(String(row[varietyCol] || ''));
+        var cleanVariety = cleanStr(variety);
+        if (rowVariety.indexOf(cleanVariety) === -1 && cleanVariety.indexOf(rowVariety) === -1) continue;
       }
 
       // Only active or low status
