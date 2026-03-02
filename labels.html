@@ -1117,6 +1117,11 @@
 
                 <div class="form-group">
                     <label>Date Range</label>
+                    <div style="display:flex;gap:6px;margin-bottom:8px;">
+                        <button class="btn btn-secondary" onclick="setDateRange('today')" style="flex:1;padding:6px 8px;font-size:0.8rem;">Today</button>
+                        <button class="btn btn-secondary" onclick="setDateRange('week')" style="flex:1;padding:6px 8px;font-size:0.8rem;">This Week</button>
+                        <button class="btn btn-secondary" onclick="setDateRange('all')" style="flex:1;padding:6px 8px;font-size:0.8rem;">60 Days</button>
+                    </div>
                     <div class="date-range">
                         <input type="date" class="form-control" id="startDate">
                         <input type="date" class="form-control" id="endDate">
@@ -1393,6 +1398,27 @@
             applyFiltersAndRender();
         }
 
+        // Quick date range shortcuts
+        function setDateRange(preset) {
+            var today = new Date();
+            var start = today.toISOString().split('T')[0];
+            var end;
+            if (preset === 'today') {
+                end = start;
+            } else if (preset === 'week') {
+                var weekEnd = new Date(today);
+                weekEnd.setDate(weekEnd.getDate() + 6);
+                end = weekEnd.toISOString().split('T')[0];
+            } else {
+                var sixtyDays = new Date(today);
+                sixtyDays.setDate(sixtyDays.getDate() + 60);
+                end = sixtyDays.toISOString().split('T')[0];
+            }
+            document.getElementById('startDate').value = start;
+            document.getElementById('endDate').value = end;
+            loadSeedings();
+        }
+
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             const today = new Date();
@@ -1416,6 +1442,16 @@
             const autoType = urlParams.get('type');
             const autoSeedLot = urlParams.get('seedLot');
             const autoPrint = urlParams.get('autoprint');
+            const dateRange = urlParams.get('dateRange');
+
+            // Apply date range preset from URL (e.g. ?dateRange=today)
+            if (dateRange === 'today') {
+                document.getElementById('endDate').value = today.toISOString().split('T')[0];
+            } else if (dateRange === 'week') {
+                var weekEnd = new Date(today);
+                weekEnd.setDate(weekEnd.getDate() + 6);
+                document.getElementById('endDate').value = weekEnd.toISOString().split('T')[0];
+            }
 
             if (autoType) {
                 switchLabelType(autoType);

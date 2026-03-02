@@ -403,6 +403,21 @@
             <span>Approved chefs automatically receive a 10% discount code for their first order!</span>
         </div>
 
+        <!-- Invite Chef Form -->
+        <div style="background:var(--ts-bg-surface, #1e293b);border:1px solid var(--ts-border, rgba(255,255,255,0.1));border-radius:12px;padding:20px;margin-bottom:20px;">
+            <h3 style="margin:0 0 12px;font-size:1rem;color:var(--ts-text, #edf2f4);">Invite a New Chef</h3>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                <input type="text" id="inviteChefName" placeholder="Contact name" style="padding:10px 12px;border-radius:8px;border:1px solid var(--ts-border, rgba(255,255,255,0.1));background:var(--ts-bg-base, #0f172a);color:var(--ts-text, #edf2f4);font-size:0.9rem;">
+                <input type="text" id="inviteChefCompany" placeholder="Restaurant / business" style="padding:10px 12px;border-radius:8px;border:1px solid var(--ts-border, rgba(255,255,255,0.1));background:var(--ts-bg-base, #0f172a);color:var(--ts-text, #edf2f4);font-size:0.9rem;">
+                <input type="email" id="inviteChefEmail" placeholder="Email (required)" style="padding:10px 12px;border-radius:8px;border:1px solid var(--ts-border, rgba(255,255,255,0.1));background:var(--ts-bg-base, #0f172a);color:var(--ts-text, #edf2f4);font-size:0.9rem;">
+                <input type="tel" id="inviteChefPhone" placeholder="Phone (optional)" style="padding:10px 12px;border-radius:8px;border:1px solid var(--ts-border, rgba(255,255,255,0.1));background:var(--ts-bg-base, #0f172a);color:var(--ts-text, #edf2f4);font-size:0.9rem;">
+            </div>
+            <button onclick="sendChefInvite()" style="margin-top:12px;padding:10px 24px;border-radius:8px;border:none;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;font-weight:600;font-size:0.9rem;cursor:pointer;">
+                Send Invitation
+            </button>
+            <span id="inviteChefStatus" style="margin-left:12px;font-size:0.85rem;color:var(--ts-text-secondary, #8d99ae);"></span>
+        </div>
+
         <div class="stats-row">
             <div class="stat-card pending">
                 <div class="number" id="pendingCount">-</div>
@@ -454,6 +469,48 @@
             document.body.appendChild(toast);
 
             setTimeout(() => toast.remove(), 3000);
+        }
+
+        // Send chef invitation
+        async function sendChefInvite() {
+            var email = document.getElementById('inviteChefEmail').value.trim();
+            var name = document.getElementById('inviteChefName').value.trim();
+            var company = document.getElementById('inviteChefCompany').value.trim();
+            var phone = document.getElementById('inviteChefPhone').value.trim();
+            var status = document.getElementById('inviteChefStatus');
+
+            if (!email) { showToast('Email is required', 'error'); return; }
+
+            status.textContent = 'Sending...';
+            try {
+                var response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({
+                        action: 'inviteChef',
+                        email: email,
+                        contactName: name,
+                        companyName: company,
+                        phone: phone
+                    })
+                });
+                var result = await response.json();
+                if (result.success) {
+                    showToast('Invitation sent to ' + (name || email));
+                    status.textContent = 'Sent!';
+                    document.getElementById('inviteChefEmail').value = '';
+                    document.getElementById('inviteChefName').value = '';
+                    document.getElementById('inviteChefCompany').value = '';
+                    document.getElementById('inviteChefPhone').value = '';
+                    loadChefs(); // Refresh the list
+                } else {
+                    showToast(result.error || 'Failed to send invite', 'error');
+                    status.textContent = result.error || 'Failed';
+                }
+            } catch (err) {
+                showToast('Network error: ' + err.message, 'error');
+                status.textContent = 'Error';
+            }
         }
 
         // Load all chef data
