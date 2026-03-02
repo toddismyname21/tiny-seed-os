@@ -38,6 +38,39 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-03-02 — Remove QZ Tray Code from Labels (PM_ARCHITECT)
+
+### Files Created
+- `docs/archive/QZ_TRAY_CODE_ARCHIVE.md` — Archive of all removed QZ Tray code with restoration notes
+
+### Files Modified
+- `labels.html` — Removed QZ Tray script tag, CSS styles, printer settings HTML panel, QZPrint IIFE module, buildFieldTrayPDF/buildPotTagPDF functions, showSetupWizard/showFormatAdjust/saveFmtSettings/saveFmtAndTest functions, executePrintViaQZTray function, QZ Tray initialization IIFE; replaced openPrintPreview override with simpler version showing label count + step-by-step TTP-247 troubleshooting guide (paper size setup, calibration, print dialog settings, hardware calibration)
+
+### Functions Removed
+- `QZPrint` IIFE (connect, disconnect, findPrinters, selectPrinter, printPDF, printTestLabel, etc.)
+- `buildFieldTrayPDF()` and `buildPotTagPDF()` — QZ Tray PDF builders (NOT the UL-247 versions which remain)
+- `showSetupWizard()` — QZ Tray installation wizard
+- `showFormatAdjust()` — QZ Tray alignment offset UI
+- `saveFmtSettings()` and `saveFmtAndTest()` — QZ Tray alignment persistence
+- `executePrintViaQZTray()` — QZ Tray direct-to-printer print function
+
+### Functions Modified
+- `openPrintPreview` override — replaced QZ Tray connected/disconnected logic with simple print dialog showing label count and collapsible TTP-247 troubleshooting guide
+
+### Functions Preserved (NOT touched)
+- `executePrint` override (calls executePrintUL247PotTagsPDF/executePrintUL247FieldTrayPDF)
+- `executePrintUL247FieldTrayPDF()` and `executePrintUL247PotTagsPDF()`
+- `renderFieldTrayPage()` and `renderPotTagPage()`
+
+### Reason
+Farm uses BarTender/Seagull driver with TSC TTP-247. QZ Tray was unused complexity causing confusion in the print workflow. All QZ Tray code archived to docs/archive/ for potential future restoration.
+
+### Duplicate Check
+- [x] No duplicate files or functions created
+- [x] Verified 0 remaining references to QZPrint, qzStatusBadge, qzPrinterSelect, showSetupWizard, showFormatAdjust, saveFmtSettings, saveFmtAndTest, executePrintViaQZTray, printerSettingsSection, buildFieldTrayPDF, buildPotTagPDF
+
+---
+
 ## 2026-03-02 — Fix Label Print Path + Add Overdue Filter (PM_ARCHITECT)
 
 ### Files Modified
