@@ -38,6 +38,22 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-03-02 — Fix Labels Duplicate ID Bug + Backend Hardening (PM_ARCHITECT)
+
+### Files Modified
+- `labels.html` — Fixed seeding ID generation: was `s.batchNumber || s.id || 'seeding-' + index` which collapsed when multiple successions of the same crop had the same Batch_ID. Changed to always append array index: `(batchNumber || id || 'seeding') + '-' + index`. This ensures each seeding has a unique ID even with duplicate batch numbers.
+- `apps_script/MERGED TOTAL.js` — Fixed `getGreenhouseSowingTasks`: `trayType` was referenced as an undeclared variable in traysBySize computation (it only existed as a property key inside the tasks.push() object literal). Extracted to local `const trayType` before use. Also fixed `getGreenhouseSeedings`: crop profile column reading used hardcoded indices `[15]` and `[22]` — replaced with header-based lookup for `Tray_Cell_Count` and `Nursery_Days`.
+
+### Bugs Fixed
+1. Selecting 4 Salanova plantings of 11 trays each generated only 11 labels instead of 44 — duplicate IDs in selectedSeedings Set
+2. `traysBySize` summary in sowing sheets always showed cell count fallback, never tray type name — undeclared variable bug
+3. Crop profile defaults in `getGreenhouseSeedings` could read wrong columns if profile sheet structure changed — hardcoded index fragility
+
+### Duplicate Check
+- [x] No duplicates created
+
+---
+
 ## 2026-03-02 — Fix Labels/Sowing-Sheets Data Consistency + Add Crop/Variety Filtering (PM_ARCHITECT)
 
 ### Files Modified
