@@ -703,6 +703,19 @@
                 </div>
             </div>
 
+            <!-- Crop/Variety Search -->
+            <div class="panel-section">
+                <h3 class="panel-title">
+                    <i class="fas fa-search"></i>
+                    Search Crops
+                </h3>
+                <input type="text" id="cropSearch" class="form-control" placeholder="Type crop or variety name..." oninput="filterTasks()" style="margin-bottom: 8px;">
+                <select id="cropDropdown" class="form-control" onchange="filterTasks()" style="font-size: 0.85rem;">
+                    <option value="">All Crops</option>
+                </select>
+                <div id="filterCount" style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 6px;"></div>
+            </div>
+
             <!-- Sort Order -->
             <div class="panel-section">
                 <h3 class="panel-title">
@@ -831,6 +844,51 @@
         let currentCategory = 'all';
         let currentSort = 'date';
         let currentTaskType = 'ghSow';
+        let currentCropFilter = '';
+        let currentSearchText = '';
+
+        // Get tasks filtered by crop search/dropdown
+        function getVisibleTasks() {
+            var visible = tasks;
+            if (currentSearchText) {
+                var q = currentSearchText.toLowerCase();
+                visible = visible.filter(function(t) {
+                    return (t.crop || '').toLowerCase().indexOf(q) >= 0 ||
+                           (t.variety || '').toLowerCase().indexOf(q) >= 0;
+                });
+            }
+            if (currentCropFilter) {
+                visible = visible.filter(function(t) { return t.crop === currentCropFilter; });
+            }
+            return visible;
+        }
+
+        // Called when search input or crop dropdown changes
+        function filterTasks() {
+            currentSearchText = (document.getElementById('cropSearch').value || '').trim();
+            currentCropFilter = document.getElementById('cropDropdown').value || '';
+            var visible = getVisibleTasks();
+            var countEl = document.getElementById('filterCount');
+            if (currentSearchText || currentCropFilter) {
+                countEl.textContent = 'Showing ' + visible.length + ' of ' + tasks.length + ' tasks';
+            } else {
+                countEl.textContent = '';
+            }
+            renderSheet();
+            updateStats();
+        }
+
+        // Populate crop dropdown from loaded tasks
+        function updateCropDropdown() {
+            var crops = {};
+            tasks.forEach(function(t) { if (t.crop) crops[t.crop] = true; });
+            var sorted = Object.keys(crops).sort();
+            var dd = document.getElementById('cropDropdown');
+            dd.innerHTML = '<option value="">All Crops</option>';
+            sorted.forEach(function(c) {
+                dd.innerHTML += '<option value="' + c + '">' + c + '</option>';
+            });
+        }
 
         // Task Type Configuration
         const taskTypeConfig = {
@@ -976,9 +1034,17 @@
             element.classList.add('selected');
             element.querySelector('input').checked = true;
             currentTaskType = value;
-            // Clear current tasks when switching types
+            // Clear current tasks and reset filters when switching types
             tasks = [];
             summary = {};
+            currentSearchText = '';
+            currentCropFilter = '';
+            var searchEl = document.getElementById('cropSearch');
+            var ddEl = document.getElementById('cropDropdown');
+            var countEl = document.getElementById('filterCount');
+            if (searchEl) searchEl.value = '';
+            if (ddEl) { ddEl.innerHTML = '<option value="">All Crops</option>'; ddEl.value = ''; }
+            if (countEl) countEl.textContent = '';
             document.getElementById('sheetContainer').innerHTML = `
                 <div class="empty-state">
                     <i class="fas ${taskTypeConfig[value].icon}"></i>
@@ -1035,6 +1101,7 @@
                         });
                         summary.seedsNeeded = Object.values(seedMap).sort((a, b) => b.totalSeeds - a.totalSeeds);
                     }
+                    updateCropDropdown();
                     renderSheet();
                     updateStats();
                     document.getElementById('printBtn').disabled = tasks.length === 0;
@@ -1124,6 +1191,7 @@
                         seedsNeeded: Object.values(overdueSeedMap).sort(function(a, b) { return b.totalSeeds - a.totalSeeds; }),
                         readinessIssues: backendSummary.readinessIssues || null
                     };
+                    updateCropDropdown();
                     renderSheet();
                     updateStats();
                     document.getElementById('printBtn').disabled = tasks.length === 0;
@@ -1212,10 +1280,19 @@
 
         // Update Statistics
         function updateStats() {
-            document.getElementById('statTotalTasks').textContent = tasks.length;
-            document.getElementById('statTotalTrays').textContent = summary.totalTrays || tasks.reduce((sum, t) => sum + (t.trays || 0), 0);
-            document.getElementById('statTotalSeeds').textContent = (summary.seedsNeeded || []).reduce((sum, s) => sum + (s.totalSeeds || s.seeds || 0), 0).toLocaleString();
-            document.getElementById('statCompleted').textContent = tasks.filter(t => t.completed).length;
+            var visible = getVisibleTasks();
+            var isFiltered = !!(currentSearchText || currentCropFilter);
+            document.getElementById('statTotalTasks').textContent = isFiltered ? visible.length + '/' + tasks.length : tasks.length;
+            document.getElementById('statTotalTrays').textContent = visible.reduce((sum, t) => sum + (t.trays || 0), 0);
+            // Recompute seeds from visible tasks
+            var seedTotal = 0;
+            visible.forEach(function(t) {
+                var seeds = t.seedsNeeded > 0 ? t.seedsNeeded
+                    : (t.trays > 0 && t.cellsPerTray > 0) ? Math.ceil(t.trays * t.cellsPerTray * 1.05) : 0;
+                seedTotal += seeds;
+            });
+            document.getElementById('statTotalSeeds').textContent = seedTotal.toLocaleString();
+            document.getElementById('statCompleted').textContent = visible.filter(t => t.completed).length;
         }
 
         // HTML-escape helper for safe rendering
@@ -1271,19 +1348,21 @@
         function renderSheet() {
             const config = taskTypeConfig[currentTaskType];
 
-            if (tasks.length === 0) {
+            var visibleTasks = getVisibleTasks();
+
+            if (visibleTasks.length === 0) {
                 document.getElementById('sheetContainer').innerHTML = `
                     <div class="empty-state">
                         <i class="fas fa-calendar-times"></i>
                         <h3>No Tasks Found</h3>
-                        <p>No ${config.title.toLowerCase()} found for the selected date range.</p>
+                        <p>${(currentSearchText || currentCropFilter) ? 'No tasks match your filter. Try clearing the search.' : 'No ' + config.title.toLowerCase() + ' found for the selected date range.'}</p>
                     </div>
                 `;
                 return;
             }
 
             // Sort tasks by appropriate date field
-            let sortedTasks = [...tasks];
+            let sortedTasks = [...visibleTasks];
             const dateField = config.dateField;
             if (currentSort === 'date') {
                 sortedTasks.sort((a, b) => new Date(a[dateField]) - new Date(b[dateField]) || a.crop.localeCompare(b.crop));
@@ -1352,7 +1431,7 @@
 
             // Germination Notes (only for GH Sowing)
             if (currentTaskType === 'ghSow') {
-                const uniqueGermNotes = [...new Map(tasks.filter(t => t.germInstructions).map(t => [t.crop, t])).values()];
+                const uniqueGermNotes = [...new Map(visibleTasks.filter(t => t.germInstructions).map(t => [t.crop, t])).values()];
                 if (uniqueGermNotes.length > 0) {
                     html += `
                         <div class="germ-notes">
@@ -1375,31 +1454,50 @@
 
         // Render Summary Section based on task type
         function renderSummarySection() {
+            // Recompute summary from visible tasks so filtering updates correctly
+            var visible = getVisibleTasks();
+            var vTraysBySize = {};
+            var vTotalTrays = 0;
+            var vSeedMap = {};
+            visible.forEach(function(t) {
+                var size = t.trayType || (t.cellsPerTray > 0 ? t.cellsPerTray + '-cell' : 'unknown');
+                vTraysBySize[size] = (vTraysBySize[size] || 0) + (t.trays || 0);
+                vTotalTrays += (t.trays || 0);
+                var seeds = t.seedsNeeded > 0 ? t.seedsNeeded
+                    : (t.trays > 0 && t.cellsPerTray > 0) ? Math.ceil(t.trays * t.cellsPerTray * 1.05) : 0;
+                if (seeds > 0) {
+                    var key = t.crop + '|' + (t.variety || '');
+                    if (!vSeedMap[key]) vSeedMap[key] = { crop: t.crop, variety: t.variety || '', totalSeeds: 0 };
+                    vSeedMap[key].totalSeeds += seeds;
+                }
+            });
+            var vSeedsNeeded = Object.values(vSeedMap).sort(function(a, b) { return b.totalSeeds - a.totalSeeds; });
+
             if (currentTaskType === 'ghSow') {
                 return `
                     <div class="summary-section">
                         <div class="summary-box">
                             <div class="summary-box-title">Tray Counts</div>
-                            ${Object.entries(summary.traysBySize || {}).map(([size, count]) => `
+                            ${Object.entries(vTraysBySize).map(([size, count]) => `
                                 <div class="summary-item">
-                                    <span>${size}-cell trays</span>
+                                    <span>${size}${size.indexOf('-cell') < 0 && size !== 'unknown' ? '' : ' trays'}</span>
                                     <span>${count}</span>
                                 </div>
                             `).join('')}
                             <div class="summary-item summary-total">
                                 <span>TOTAL TRAYS</span>
-                                <span>${summary.totalTrays || 0}</span>
+                                <span>${vTotalTrays}</span>
                             </div>
                         </div>
                         <div class="summary-box">
                             <div class="summary-box-title">Seeds Needed</div>
-                            ${(summary.seedsNeeded || []).slice(0, 6).map(s => `
+                            ${vSeedsNeeded.slice(0, 6).map(s => `
                                 <div class="summary-item">
                                     <span>${s.crop} (${(s.variety || '').substring(0, 15)}${(s.variety || '').length > 15 ? '...' : ''})</span>
-                                    <span>${(s.totalSeeds || s.seeds || 0).toLocaleString()}</span>
+                                    <span>${(s.totalSeeds || 0).toLocaleString()}</span>
                                 </div>
                             `).join('')}
-                            ${(summary.seedsNeeded || []).length === 0 ? '<div class="summary-item" style="opacity:0.6;"><span>No seed data</span><span>--</span></div>' : ''}
+                            ${vSeedsNeeded.length === 0 ? '<div class="summary-item" style="opacity:0.6;"><span>No seed data</span><span>--</span></div>' : ''}
                         </div>
                         ${summary.readinessIssues ? `
                         <div class="summary-box" style="border-left: 3px solid var(--danger);">
@@ -1414,11 +1512,18 @@
                     </div>
                 `;
             } else if (currentTaskType === 'transplant') {
+                // Recompute by-location from visible tasks
+                var vByLocation = {};
+                visible.forEach(function(t) {
+                    var loc = t.bed || t.location || 'Unassigned';
+                    vByLocation[loc] = (vByLocation[loc] || 0) + (t.plantsNeeded || t.plants || 0);
+                });
+                var vTotalPlants = visible.reduce(function(sum, t) { return sum + (t.plantsNeeded || t.plants || 0); }, 0);
                 return `
                     <div class="summary-section">
                         <div class="summary-box">
                             <div class="summary-box-title">Plants by Location</div>
-                            ${Object.entries(summary.byLocation || {}).map(([loc, count]) => `
+                            ${Object.entries(vByLocation).map(([loc, count]) => `
                                 <div class="summary-item">
                                     <span>${loc}</span>
                                     <span>${count.toLocaleString()}</span>
@@ -1426,53 +1531,55 @@
                             `).join('')}
                             <div class="summary-item summary-total">
                                 <span>TOTAL PLANTS</span>
-                                <span>${summary.totalPlants || tasks.reduce((sum, t) => sum + (t.plants || 0), 0)}</span>
+                                <span>${vTotalPlants}</span>
                             </div>
                         </div>
                         <div class="summary-box">
                             <div class="summary-box-title">Task Overview</div>
                             <div class="summary-item">
                                 <span>Total Tasks</span>
-                                <span>${tasks.length}</span>
+                                <span>${visible.length}</span>
                             </div>
                             <div class="summary-item">
                                 <span>Unique Crops</span>
-                                <span>${summary.uniqueCrops || [...new Set(tasks.map(t => t.crop))].length}</span>
+                                <span>${[...new Set(visible.map(t => t.crop))].length}</span>
                             </div>
                             <div class="summary-item">
                                 <span>Completed</span>
-                                <span>${tasks.filter(t => t.completed).length}</span>
+                                <span>${visible.filter(t => t.completed).length}</span>
                             </div>
                         </div>
                     </div>
                 `;
             } else if (currentTaskType === 'directSeed') {
+                var vFeet = visible.reduce(function(sum, t) { return sum + (t.feet || 0); }, 0);
+                var vSeeds = visible.reduce(function(sum, t) { return sum + (t.seedsNeeded || 0); }, 0);
                 return `
                     <div class="summary-section">
                         <div class="summary-box">
                             <div class="summary-box-title">Bed Feet Summary</div>
                             <div class="summary-item summary-total">
                                 <span>TOTAL BED FEET</span>
-                                <span>${summary.totalFeet || tasks.reduce((sum, t) => sum + (t.feet || 0), 0)}</span>
+                                <span>${vFeet}</span>
                             </div>
                             <div class="summary-item">
                                 <span>Total Seeds</span>
-                                <span>${(summary.totalSeeds || tasks.reduce((sum, t) => sum + (t.seedsNeeded || 0), 0)).toLocaleString()}</span>
+                                <span>${vSeeds.toLocaleString()}</span>
                             </div>
                         </div>
                         <div class="summary-box">
                             <div class="summary-box-title">Task Overview</div>
                             <div class="summary-item">
                                 <span>Total Tasks</span>
-                                <span>${tasks.length}</span>
+                                <span>${visible.length}</span>
                             </div>
                             <div class="summary-item">
                                 <span>Unique Crops</span>
-                                <span>${summary.uniqueCrops || [...new Set(tasks.map(t => t.crop))].length}</span>
+                                <span>${[...new Set(visible.map(t => t.crop))].length}</span>
                             </div>
                             <div class="summary-item">
                                 <span>Completed</span>
-                                <span>${tasks.filter(t => t.completed).length}</span>
+                                <span>${visible.filter(t => t.completed).length}</span>
                             </div>
                         </div>
                     </div>
@@ -1749,7 +1856,7 @@
 
             // Assign via backend
             if (empIds.length > 0) {
-                var batchIds = tasks.map(function(t) { return t.batchId; }).filter(Boolean);
+                var batchIds = getVisibleTasks().map(function(t) { return t.batchId; }).filter(Boolean);
                 try {
                     await fetch(API_URL, {
                         method: 'POST',
@@ -1787,8 +1894,8 @@
             const config = taskTypeConfig[currentTaskType];
             const dateField = config.dateField;
 
-            // Sort tasks for print
-            let sortedTasks = [...tasks];
+            // Print only visible (filtered) tasks
+            let sortedTasks = [...getVisibleTasks()];
             if (currentSort === 'date') {
                 sortedTasks.sort((a, b) => new Date(a[dateField]) - new Date(b[dateField]) || a.crop.localeCompare(b.crop));
             } else {
@@ -1878,7 +1985,7 @@
             // Build germination notes as an extra section (GH Sowing only)
             const sections = [];
             if (currentTaskType === 'ghSow') {
-                const uniqueGermNotes = [...new Map(tasks.filter(t => t.germInstructions).map(t => [t.crop, t])).values()];
+                const uniqueGermNotes = [...new Map(sortedTasks.filter(t => t.germInstructions).map(t => [t.crop, t])).values()];
                 if (uniqueGermNotes.length > 0) {
                     sections.push({
                         title: 'GERMINATION NOTES',
@@ -1889,8 +1996,13 @@
                 }
             }
 
-            // Build subtitle with optional assigned names
+            // Build subtitle with optional filter info and assigned names
             var subtitle = formatDateDisplay(startDate) + ' - ' + formatDateDisplay(endDate);
+            if (currentCropFilter) {
+                subtitle += '  |  Crop: ' + currentCropFilter;
+            } else if (currentSearchText) {
+                subtitle += '  |  Filter: "' + currentSearchText + '"';
+            }
             if (window._assignedNames) {
                 subtitle += '  |  Assigned to: ' + window._assignedNames;
             }

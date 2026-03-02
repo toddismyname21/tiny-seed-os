@@ -27259,9 +27259,13 @@ function getGreenhouseSeedings(params) {
       ghSow: headers.indexOf('Plan_GH_Sow') !== -1 ? headers.indexOf('Plan_GH_Sow') : headers.indexOf('GH_Sow_Date'),
       transplant: headers.indexOf('Plan_Transplant') !== -1 ? headers.indexOf('Plan_Transplant') : headers.indexOf('Transplant_Date'),
       trays: headers.indexOf('Trays_Needed'),
+      trayCellCount: headers.indexOf('Tray_Cell_Count'),
+      trayType: headers.indexOf('Tray_Type'),
+      plantsNeeded: headers.indexOf('Plants_Needed'),
       bed: headers.indexOf('Target_Bed_ID') !== -1 ? headers.indexOf('Target_Bed_ID') : headers.indexOf('Bed_ID'),
       seedLotUsed: headers.indexOf('Seed_Lot_Used'),
-      category: headers.indexOf('Category')
+      category: headers.indexOf('Category'),
+      notes: headers.indexOf('Notes')
     };
 
     let cropProfiles = {};
@@ -27312,19 +27316,42 @@ function getGreenhouseSeedings(params) {
         if (ghSowDate instanceof Date && ghSowDate >= startFilter && ghSowDate <= endFilter) {
           const profile = cropProfiles[crop] || { nurseryDays: 28, traySize: 128 };
 
+          // Row-level data takes priority over profile defaults (matches getGreenhouseSowingTasks)
+          var rowCellCount = cols.trayCellCount >= 0 ? (parseInt(row[cols.trayCellCount]) || 0) : 0;
+          var cellsPerTray = rowCellCount || profile.traySize || 128;
+          var trayType = cols.trayType >= 0 ? (row[cols.trayType] || '') : '';
+          var plantsNeeded = cols.plantsNeeded >= 0 ? (parseInt(row[cols.plantsNeeded]) || 0) : 0;
+
+          // Auto-calculate trays if Trays_Needed=0 but Plants_Needed>0 (matches sowing-sheets logic)
+          var effectiveTrays = traysNeeded;
+          if (effectiveTrays <= 0 && plantsNeeded > 0 && cellsPerTray > 0) {
+            effectiveTrays = Math.ceil(plantsNeeded / cellsPerTray);
+          }
+          if (effectiveTrays <= 0) effectiveTrays = 1;
+
+          // Parse paperpot spacing from tray type name
+          var paperpotSpacing = 0;
+          if (trayType && trayType.indexOf('Paperpot') >= 0) {
+            var spacingMatch = trayType.match(/(\d+)["″]/);
+            if (spacingMatch) paperpotSpacing = parseInt(spacingMatch[1]);
+          }
+
           seedings.push({
             crop: crop,
             variety: variety,
             seedDate: ghSowDate.toISOString().split('T')[0],
             transplantDate: transplantDate instanceof Date ?
               transplantDate.toISOString().split('T')[0] : '',
-            traysNeeded: traysNeeded,
-            cellsPerTray: profile.traySize,
+            traysNeeded: effectiveTrays,
+            cellsPerTray: cellsPerTray,
+            trayType: trayType,
+            paperpotSpacing: paperpotSpacing,
             batchNumber: batchId || `BATCH-${i}`,
             nurseryDays: profile.nurseryDays,
             field: bedId || '',
             seedLotNum: cols.seedLotUsed >= 0 ? (row[cols.seedLotUsed] || '') : '',
-            category: cols.category >= 0 ? (row[cols.category] || '') : ''
+            category: cols.category >= 0 ? (row[cols.category] || '') : '',
+            notes: cols.notes >= 0 ? (row[cols.notes] || '') : ''
           });
         }
       }

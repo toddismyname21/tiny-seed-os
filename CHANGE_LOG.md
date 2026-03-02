@@ -38,6 +38,32 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-03-02 — Fix Labels/Sowing-Sheets Data Consistency + Add Crop/Variety Filtering (PM_ARCHITECT)
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — Fixed `getGreenhouseSeedings` to use row-level data from PLANNING_2026 (`Tray_Cell_Count`, `Tray_Type`, `Plants_Needed`, `Notes`) instead of crop profile defaults. Matches `getGreenhouseSowingTasks` resolution logic. Adds `trayType`, `paperpotSpacing`, `notes` to response. Auto-calculates trays from Plants_Needed when Trays_Needed=0.
+- `sowing-sheets.html` — Added crop search input + crop dropdown filter to control panel. Added `getVisibleTasks()` filter function that all rendering, stats, summaries, and printing now reference. `renderSheet()`, `updateStats()`, `renderSummarySection()` (all 3 task types), `executePrint()`, `doPrintWithAssignment()` all use filtered tasks. Filter resets on task type switch. Crop dropdown populates after task load. Print subtitle shows active filter. Transplant and directSeed summary sections recompute from visible tasks instead of pre-computed summary.
+
+### Functions Added
+- `getVisibleTasks()` in `sowing-sheets.html` — Returns tasks filtered by search text and/or crop dropdown
+- `filterTasks()` in `sowing-sheets.html` — Called on search input/dropdown change; updates count display and re-renders
+- `updateCropDropdown()` in `sowing-sheets.html` — Populates crop dropdown from loaded tasks
+
+### Bugs Fixed
+1. `getGreenhouseSeedings` used crop profile defaults for tray size — labels showed different data than sowing-sheets for the same planting (sowing-sheets used row-level values)
+2. `renderSummarySection()` for transplant and directSeed referenced `tasks` array directly instead of filtered results — summary wouldn't update when filtering
+3. No way to filter/search tasks to print a subset (e.g., just Salanova) — now has search box + crop dropdown
+
+### Reason
+User found that labels.html and sowing-sheets.html show different data for the same planting. Root cause: two different API endpoints (`getGreenhouseSeedings` vs `getGreenhouseSowingTasks`) processed PLANNING_2026 with different resolution logic. Also, user needed to print crop-specific sowing sheets and labels.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
 ## 2026-03-02 — Fix Employee Registration/Onboarding Flow (PM_ARCHITECT)
 
 ### Files Modified
