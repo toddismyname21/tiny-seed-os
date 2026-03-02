@@ -1463,7 +1463,7 @@
 
                 if (data.success && data.data && data.data.length > 0) {
                     var allSeedings = data.data.map((s, index) => ({
-                        id: s.batchNumber || s.id || `seeding-${index}`,
+                        id: (s.batchNumber || s.id || 'seeding') + '-' + index,
                         crop: s.crop || 'Unknown',
                         variety: s.variety || '',
                         seedDate: s.seedDate || '',
