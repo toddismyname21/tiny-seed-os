@@ -13,7 +13,7 @@
     // ═══════════════════════════════════════════════════════════════
     var LABEL_FORMATS = {
         fieldTray:      { w: 288, h: 72,  orient: 'landscape', desc: '4" x 1" thermal' },
-        potTag:         { w: 72,  h: 324, orient: 'portrait',  desc: '1" x 4.5" pot tag' },
+        potTag:         { w: 72,  h: 288, orient: 'portrait',  desc: '1" x 4" pot tag' },
         seedPacket:     { w: 144, h: 216, orient: 'portrait',  desc: '2" x 3" seed label' },
         marketSign:     { w: 612, h: 792, orient: 'portrait',  desc: '8.5" x 11" (6 signs)' },
         csaLabel:       { w: 288, h: 216, orient: 'landscape', desc: '4" x 3" CSA label' },

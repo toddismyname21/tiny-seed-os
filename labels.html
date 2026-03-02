@@ -654,7 +654,7 @@
             color: #78350f;
         }
 
-        /* Pot Tag Preview (ZX5141T - 1" x 4.5" vertical stake tag, ~0.65x scale) */
+        /* Pot Tag Preview (ZX5141T - 1" x 4" vertical stake tag, ~0.65x scale) */
         .pot-tag {
             background: white;
             border: 1px solid #555;
@@ -2149,7 +2149,7 @@
             // Update type description
             const descs = {
                 greenhouse: '<strong>2.5" x 0.75"</strong> — Standard printer, clips to tray lip',
-                potTag: '<strong>1" x 4.5"</strong> — UL-247 thermal, ZX5141T stake tags for sale pots',
+                potTag: '<strong>1" x 4"</strong> — UL-247 thermal, ZX5141T stake tags for sale pots',
                 fieldTray: '<strong>4" x 1"</strong> — UL-247 thermal, FT40101WH stickers for field trays',
                 seed: '<strong>Seed inventory</strong> — Labels for seed lot storage containers'
             };
@@ -2158,7 +2158,7 @@
             // Update preview subtitle
             const subtitles = {
                 greenhouse: 'Labels sized for tray lip (0.75" tall x 2.5" wide)',
-                potTag: 'Pot tags for UL-247 printer (1" x 4.5" ZX5141T)',
+                potTag: 'Pot tags for UL-247 printer (1" x 4" ZX5141T)',
                 fieldTray: 'Tray labels for UL-247 printer (4" x 1" FT40101WH)',
                 seed: 'Seed lot inventory labels'
             };
@@ -2435,7 +2435,7 @@
                 this.value === 'custom' ? 'block' : 'none';
         });
 
-        // ============ POT TAG FUNCTIONS (ZX5141T - 1" x 4.5") ============
+        // ============ POT TAG FUNCTIONS (ZX5141T - 1" x 4") ============
 
         function getPotTagCount(seeding) {
             const qty = document.getElementById('potTagQty').value;
@@ -2718,7 +2718,7 @@
                 });
                 var testHtml;
                 if (labelType === 'potTag') {
-                    testHtml = '<html><body style="margin:0;padding:4px;font-family:Arial;width:1in;height:4.5in;text-align:center;">'
+                    testHtml = '<html><body style="margin:0;padding:4px;font-family:Arial;width:1in;height:4in;text-align:center;">'
                         + '<div style="font-weight:900;font-size:11pt;margin-top:8px;">TEST LABEL</div>'
                         + '<div style="font-size:8pt;color:#333;margin-top:4px;">Alignment Check</div>'
                         + '<div style="font-size:6pt;font-weight:700;text-transform:uppercase;color:#555;margin-top:8px;border-top:0.5pt solid #999;border-bottom:0.5pt solid #999;padding:2px 0;">TINY SEED FARM</div>'
@@ -2835,7 +2835,7 @@
                     });
                 });
                 Promise.all(qrPromises).then(function(qrImages) {
-                    var W = 72, H = 324;
+                    var W = 72, H = 288; // 1in x 4in (printable area)
                     var doc = new window.jspdf.jsPDF({ unit: 'pt', format: [W, H], orientation: 'portrait' });
                     var cx = W / 2;
                     labelsToprint.forEach(function(label, i) {
@@ -2909,7 +2909,7 @@
 
         function showFormatAdjust() {
             var fmt = QZPrint.getFormatSettings(currentLabelType);
-            var dims = currentLabelType === 'potTag' ? '1" x 4.5"' : '4" x 1"';
+            var dims = currentLabelType === 'potTag' ? '1" x 4"' : '4" x 1"';
             var html = '<div style="padding:1.5rem;text-align:left;max-width:420px;margin:0 auto;">'
                 + '<h3 style="text-align:center;margin-bottom:0.5rem;"><i class="fas fa-sliders-h"></i> Label Alignment</h3>'
                 + '<p style="text-align:center;font-size:0.85rem;color:#666;margin-bottom:1.5rem;">' + dims + ' &mdash; adjust if labels print off-center on your label stock.</p>'
@@ -2945,50 +2945,13 @@
 
         // ============ UL-247 THERMAL PRINTER PRINT FUNCTIONS ============
 
-        // Override executePrint: QZ Tray direct print → TinySeedPrint.label() fallback
+        // Override executePrint: direct PDF generation for thermal labels
         const originalExecutePrint = executePrint;
         executePrint = function() {
-            if (currentLabelType === 'potTag' || currentLabelType === 'fieldTray') {
-                var labelsToprint = labels.filter(function(l) { return selectedLabels.has(l.labelId); });
-                if (labelsToprint.length === 0) { showToast('No labels selected'); return; }
-
-                // Map label data for print engine (add qrData for QR generation)
-                var printData = labelsToprint.map(function(l) {
-                    var d = Object.assign({}, l);
-                    d.qrData = getQRData(l);
-                    return d;
-                });
-
-                // Path 1: QZ Tray direct print (no dialog) — only when QZ Tray is running
-                if (QZPrint.isConnected()) {
-                    showToast('Sending ' + labelsToprint.length + ' labels to ' + (QZPrint.getPrinter() || 'printer') + '...');
-                    // Use TinySeedPrint to generate the PDF (it lazy-loads jsPDF), then send to QZ Tray
-                    TinySeedPrint.directPrint({
-                        format: currentLabelType,
-                        data: printData
-                    }).then(function() {
-                        closePrintPreview();
-                        showToast(labelsToprint.length + ' labels printed!');
-                    }).catch(function(err) {
-                        showToast('Direct print failed (' + err.message + ') — opening PDF preview');
-                        // Fallback to preview
-                        TinySeedPrint.label({ format: currentLabelType, data: printData, preview: true })
-                            .then(function() { closePrintPreview(); })
-                            .catch(function(e) { showToast('PDF error: ' + e.message); });
-                    });
-                } else {
-                    // Path 2: PDF preview via TinySeedPrint (lazy-loads jsPDF, shows preview modal)
-                    TinySeedPrint.label({
-                        format: currentLabelType,
-                        data: printData,
-                        preview: true
-                    }).then(function() {
-                        closePrintPreview();
-                        showToast(labelsToprint.length + ' ' + currentLabelType + ' labels ready');
-                    }).catch(function(err) {
-                        showToast('PDF error: ' + err.message);
-                    });
-                }
+            if (currentLabelType === 'potTag') {
+                executePrintUL247PotTagsPDF();
+            } else if (currentLabelType === 'fieldTray') {
+                executePrintUL247FieldTrayPDF();
             } else {
                 originalExecutePrint();
             }
@@ -3005,7 +2968,7 @@
                     <title>Pot Tags - UL-247 Print</title>
                     <style>
                         @page {
-                            size: 1in 4.5in;
+                            size: 1in 4in;
                             margin: 0;
                         }
                         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -3016,7 +2979,7 @@
                         }
                         .tag {
                             width: 1in;
-                            height: 4.5in;
+                            height: 4in;
                             padding: 0.05in;
                             display: flex;
                             flex-direction: column;
@@ -3624,9 +3587,14 @@
                     }
                 });
 
-                printWindow.location.href = doc.output('bloburl');
+                var blobUrl = doc.output('bloburl');
+                printWindow.location.href = blobUrl;
+                // Auto-trigger print dialog after PDF loads
+                printWindow.addEventListener('load', function() {
+                    setTimeout(function() { try { printWindow.print(); } catch(e) {} }, 500);
+                });
                 closePrintPreview();
-                showToast(labelsToprint.length + ' field tray labels ready -- print from PDF viewer');
+                showToast(labelsToprint.length + ' field tray labels — print dialog opening');
             }).catch(function(err) {
                 printWindow.close();
                 showToast('PDF error: ' + err.message);
@@ -3656,7 +3624,7 @@
             });
 
             Promise.all(qrPromises).then(function(qrImages) {
-                var W = 72, H = 324; // 1in x 4.5in in points
+                var W = 72, H = 288; // 1in x 4in in points (printable area of 4.5in label)
                 var doc = new window.jspdf.jsPDF({ unit: 'pt', format: [W, H], orientation: 'portrait' });
                 var cx = W / 2;
 
@@ -3717,16 +3685,21 @@
                     // Soil marker at bottom
                     doc.setDrawColor(200, 200, 200);
                     doc.setLineWidth(0.3);
-                    doc.line(5, H - 14, W - 5, H - 14);
+                    doc.line(5, H - 12, W - 5, H - 12);
                     doc.setFont('helvetica', 'normal');
                     doc.setFontSize(5);
                     doc.setTextColor(187, 187, 187);
-                    doc.text('insert in soil', cx, H - 6, { align: 'center' });
+                    doc.text('insert in soil', cx, H - 5, { align: 'center' });
                 });
 
-                printWindow.location.href = doc.output('bloburl');
+                var blobUrl = doc.output('bloburl');
+                printWindow.location.href = blobUrl;
+                // Auto-trigger print dialog after PDF loads
+                printWindow.addEventListener('load', function() {
+                    setTimeout(function() { try { printWindow.print(); } catch(e) {} }, 500);
+                });
                 closePrintPreview();
-                showToast(labelsToprint.length + ' pot tag labels ready -- print from PDF viewer');
+                showToast(labelsToprint.length + ' pot tag labels — print dialog opening');
             }).catch(function(err) {
                 printWindow.close();
                 showToast('PDF error: ' + err.message);
@@ -3741,7 +3714,7 @@
                 var labelsToprint = labels.filter(function(l) { return selectedLabels.has(l.labelId); });
                 document.getElementById('printLabelCount').textContent = labelsToprint.length;
                 var printerName = currentLabelType === 'potTag' ? 'ZX5141T pot tags' : 'FT40101WH tray labels';
-                var dimensions = currentLabelType === 'potTag' ? '1" x 4.5"' : '4" x 1"';
+                var dimensions = currentLabelType === 'potTag' ? '1" x 4"' : '4" x 1"';
                 var connected = QZPrint.isConnected();
                 var printer = QZPrint.getPrinter();
                 var fmt = QZPrint.getFormatSettings(currentLabelType);
