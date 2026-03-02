@@ -1706,8 +1706,82 @@
             }
         }
 
-        // Print Sheet
+        // Print Sheet — shows assignment modal first
         function printSheet() {
+            showAssignModal();
+        }
+
+        // Load employees for assignment modal
+        async function loadEmployeesForAssign() {
+            try {
+                var res = await fetch(API_URL + '?action=getAllEmployees');
+                var data = await res.json();
+                if (data.success && data.employees) {
+                    var html = '';
+                    data.employees.filter(function(e) { return e.Status === 'Active'; }).forEach(function(emp) {
+                        html += '<label style="display:flex;align-items:center;gap:8px;padding:8px;border-radius:6px;cursor:pointer;margin-bottom:4px;" onmouseover="this.style.background=\'var(--bg-light)\'" onmouseout="this.style.background=\'transparent\'">';
+                        html += '<input type="checkbox" class="assign-emp-check" value="' + esc(emp.Employee_ID || emp.User_ID || '') + '" data-name="' + esc(emp.Full_Name || emp.First_Name || '') + '" style="width:18px;height:18px;">';
+                        html += '<span style="color:var(--text-primary);font-size:0.9rem;">' + esc(emp.Full_Name || emp.First_Name || 'Unknown') + '</span>';
+                        html += '</label>';
+                    });
+                    document.getElementById('assignEmployeeList').innerHTML = html || '<div style="color:var(--text-secondary);">No active employees found</div>';
+                }
+            } catch (e) {
+                document.getElementById('assignEmployeeList').innerHTML = '<div style="color:var(--danger);">Could not load employees</div>';
+            }
+        }
+
+        // Show assignment modal before printing
+        function showAssignModal() {
+            document.getElementById('assignModal').style.display = 'flex';
+            loadEmployeesForAssign();
+        }
+
+        // Print with assignment
+        async function doPrintWithAssignment() {
+            var checks = document.querySelectorAll('.assign-emp-check:checked');
+            var empIds = [];
+            var empNames = [];
+            checks.forEach(function(c) {
+                empIds.push(c.value);
+                empNames.push(c.getAttribute('data-name'));
+            });
+
+            // Assign via backend
+            if (empIds.length > 0) {
+                var batchIds = tasks.map(function(t) { return t.batchId; }).filter(Boolean);
+                try {
+                    await fetch(API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain' },
+                        body: JSON.stringify({
+                            action: 'assignSowingSheet',
+                            batchIds: batchIds,
+                            employeeIds: empIds,
+                            employeeNames: empNames
+                        })
+                    });
+                    showToast('Assigned to ' + empNames.join(', '), 'success');
+                } catch (e) {
+                    showToast('Assignment failed: ' + e.message, 'error');
+                }
+            }
+
+            document.getElementById('assignModal').style.display = 'none';
+            // Store assigned names for print header
+            window._assignedNames = empNames.length > 0 ? empNames.join(', ') : '';
+            executePrint();
+        }
+
+        // Print without assignment
+        function doPrintOnly() {
+            document.getElementById('assignModal').style.display = 'none';
+            window._assignedNames = '';
+            executePrint();
+        }
+
+        // Actual print logic (formerly the body of printSheet)
+        function executePrint() {
             const startDate = document.getElementById('startDate').value;
             const endDate = document.getElementById('endDate').value;
             const config = taskTypeConfig[currentTaskType];
@@ -1741,7 +1815,7 @@
                         : (task.trays > 0 && task.cellsPerTray > 0) ? Math.ceil(task.trays * task.cellsPerTray * 1.05) : '';
                     return {
                         date: formatDateShort(task[dateField]),
-                        crop: task.crop,
+                        crop: task.crop + (task.batchId ? ' (' + task.batchId.slice(-6) + ')' : ''),
                         variety: task.variety,
                         trays: String(task.trays || ''),
                         cells: task.trayType || (task.cellsPerTray > 0 ? task.cellsPerTray + '-cell' : (isOpen ? 'Open' : '')),
@@ -1763,7 +1837,7 @@
                 rowMapper = function(task) {
                     return {
                         date: formatDateShort(task[dateField]),
-                        crop: task.crop,
+                        crop: task.crop + (task.batchId ? ' (' + task.batchId.slice(-6) + ')' : ''),
                         variety: task.variety,
                         plants: String(task.plants || ''),
                         location: task.location || '-',
@@ -1784,7 +1858,7 @@
                 rowMapper = function(task) {
                     return {
                         date: formatDateShort(task[dateField]),
-                        crop: task.crop,
+                        crop: task.crop + (task.batchId ? ' (' + task.batchId.slice(-6) + ')' : ''),
                         variety: task.variety,
                         feet: (task.feet || '') + (task.feet ? ' ft' : ''),
                         seeds: (task.seedsNeeded || 0).toLocaleString(),
@@ -1815,10 +1889,16 @@
                 }
             }
 
+            // Build subtitle with optional assigned names
+            var subtitle = formatDateDisplay(startDate) + ' - ' + formatDateDisplay(endDate);
+            if (window._assignedNames) {
+                subtitle += '  |  Assigned to: ' + window._assignedNames;
+            }
+
             // Call TinySeedPrint.sheet() with structured data
             TinySeedPrint.sheet({
                 title: config.title,
-                subtitle: formatDateDisplay(startDate) + ' - ' + formatDateDisplay(endDate),
+                subtitle: subtitle,
                 columns: columns,
                 rows: rows,
                 groupBy: groupBy,
@@ -1934,6 +2014,7 @@
         function printTaskRow(task) {
             const config = taskTypeConfig[currentTaskType];
             const taskDate = task[config.dateField];
+            const batchRef = task.batchId ? ' <span style="font-size:7pt;color:#888;">(' + task.batchId.slice(-6) + ')</span>' : '';
 
             if (currentTaskType === 'ghSow') {
                 const isOpen = task.cellsPerTray === 0 && (task.trayType || '').toLowerCase().indexOf('open') >= 0;
@@ -1945,7 +2026,7 @@
                     <tr>
                         <td style="text-align: center;"><div class="checkbox"></div></td>
                         <td>${formatDateShort(taskDate)}</td>
-                        <td>${task.crop}</td>
+                        <td>${task.crop}${batchRef}</td>
                         <td>${task.variety}</td>
                         <td style="font-weight: 600;">${task.trays}</td>
                         <td>${cellsDisplay}</td>
@@ -1958,7 +2039,7 @@
                     <tr>
                         <td style="text-align: center;"><div class="checkbox"></div></td>
                         <td>${formatDateShort(taskDate)}</td>
-                        <td>${task.crop}</td>
+                        <td>${task.crop}${batchRef}</td>
                         <td>${task.variety}</td>
                         <td style="font-weight: 600;">${task.plants}</td>
                         <td>${task.location || '-'}</td>
@@ -1970,7 +2051,7 @@
                     <tr>
                         <td style="text-align: center;"><div class="checkbox"></div></td>
                         <td>${formatDateShort(taskDate)}</td>
-                        <td>${task.crop}</td>
+                        <td>${task.crop}${batchRef}</td>
                         <td>${task.variety}</td>
                         <td style="font-weight: 600;">${task.feet} ft</td>
                         <td>${(task.seedsNeeded || 0).toLocaleString()}</td>
@@ -2001,6 +2082,21 @@
     <!-- Seed Lot Info Modal -->
     <div id="seedLotModal" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;" onclick="this.style.display='none'">
         <div id="seedLotContent" style="background:var(--bg-card);border-radius:12px;max-width:450px;width:90%;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.4);border:1px solid var(--border);" onclick="event.stopPropagation()"></div>
+    </div>
+
+    <!-- Print Assignment Modal -->
+    <div id="assignModal" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;" onclick="this.style.display='none'">
+        <div style="background:var(--bg-card);border-radius:12px;max-width:450px;width:90%;padding:1.5rem;box-shadow:0 20px 60px rgba(0,0,0,0.4);border:1px solid var(--border);" onclick="event.stopPropagation()">
+            <h3 style="margin:0 0 12px;color:var(--text-primary);font-size:1.1rem;"><i class="fas fa-users"></i> Assign Sowing Sheet</h3>
+            <p style="font-size:0.85rem;color:var(--text-secondary);margin:0 0 16px;">Optional — leave blank and all employees can access these tasks.</p>
+            <div id="assignEmployeeList" style="max-height:200px;overflow-y:auto;margin-bottom:16px;">
+                <div style="color:var(--text-secondary);font-size:0.85rem;">Loading employees...</div>
+            </div>
+            <div style="display:flex;gap:12px;">
+                <button onclick="doPrintWithAssignment()" style="flex:1;padding:10px;background:var(--primary);color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;"><i class="fas fa-print"></i> Print & Assign</button>
+                <button onclick="doPrintOnly()" style="flex:1;padding:10px;background:var(--bg-light);color:var(--text-primary);border:1px solid var(--border);border-radius:8px;font-weight:600;cursor:pointer;"><i class="fas fa-print"></i> Print Only</button>
+            </div>
+        </div>
     </div>
 </body>
 </html>

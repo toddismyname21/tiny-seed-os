@@ -9828,6 +9828,15 @@
                     </div>
                 </div>
 
+                <!-- Greenhouse Sowing Companion -->
+                <div id="ghSowingSection" style="margin-top:20px;display:none;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                        <h3 style="margin:0;font-size:1rem;color:var(--text-primary);"><i class="fas fa-seedling" style="color:#22c55e;"></i> Greenhouse Sowing</h3>
+                        <span id="ghSowingCount" style="font-size:0.8rem;color:var(--text-secondary);"></span>
+                    </div>
+                    <div id="ghSowingList" style="display:flex;flex-direction:column;gap:8px;"></div>
+                </div>
+
                 <!-- Work Mode Selector (Permission-based) -->
                 <div class="mode-selector scrollable" id="modeSelector">
                     <!-- Modes rendered dynamically based on user permissions -->
@@ -15429,6 +15438,9 @@
             // Load Smart Work Order (AI Prescription)
             loadWorkOrder();
 
+            // Load Greenhouse Sowing tasks
+            loadGHSowingTasks();
+
             // Render mode selector based on permissions
             renderModeSelector();
 
@@ -16052,6 +16064,172 @@
         }
 
         // ============================================
+        // GREENHOUSE SOWING COMPANION
+        // ============================================
+
+        var ghSowTasks = [];
+
+        async function loadGHSowingTasks() {
+            if (!AppState.employee || !AppState.employee.Employee_ID) return;
+            try {
+                var empId = AppState.employee.Employee_ID;
+                var res = await fetch(CONFIG.API_URL + '?action=getMyGHSowingTasks&employeeId=' + encodeURIComponent(empId));
+                var data = await res.json();
+                if (data.success && data.tasks) {
+                    ghSowTasks = data.tasks;
+                    renderGHSowingTasks();
+                    // Show the section
+                    var section = document.getElementById('ghSowingSection');
+                    if (section) section.style.display = data.tasks.length > 0 ? 'block' : 'none';
+                }
+            } catch (e) {
+                console.error('GH Sowing load error:', e);
+            }
+        }
+
+        function renderGHSowingTasks() {
+            var list = document.getElementById('ghSowingList');
+            var countEl = document.getElementById('ghSowingCount');
+            if (!list) return;
+
+            var pending = ghSowTasks.filter(function(t) { return !t.completed; });
+            var done = ghSowTasks.filter(function(t) { return t.completed; });
+
+            if (countEl) {
+                countEl.textContent = pending.length + ' pending' + (done.length > 0 ? ' \u2022 ' + done.length + ' done' : '');
+            }
+
+            var html = '';
+
+            // Pending tasks first
+            pending.forEach(function(t) {
+                var assignBadge = t.assignedToMe
+                    ? '<span style="background:#3b82f6;color:white;font-size:0.65rem;padding:2px 6px;border-radius:4px;margin-left:6px;">ASSIGNED TO YOU</span>'
+                    : '';
+                var trayInfo = t.trayType || (t.cellsPerTray > 0 ? t.cellsPerTray + '-cell' : 'Open');
+                var seedsDisplay = t.seedsNeeded > 0 ? t.seedsNeeded.toLocaleString() + ' seeds' : '';
+                var overdue = new Date(t.plannedDate) < new Date(new Date().toISOString().split('T')[0]);
+
+                html += '<div onclick="openGHSowConfirm(\'' + t.batchId + '\')" style="background:var(--bg-light,#2a2a3e);border-radius:10px;padding:14px;cursor:pointer;border-left:4px solid ' + (overdue ? '#ef4444' : '#22c55e') + ';">';
+                html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;">';
+                html += '<div><strong style="color:var(--text-primary,#fff);font-size:0.95rem;">' + escapeHtml(t.crop) + '</strong><span style="color:var(--text-secondary,#999);font-size:0.85rem;margin-left:6px;">' + escapeHtml(t.variety) + '</span>' + assignBadge + '</div>';
+                html += '<span style="font-size:0.75rem;color:' + (overdue ? '#ef4444' : 'var(--text-secondary,#999)') + ';">' + t.plannedDate + '</span>';
+                html += '</div>';
+                html += '<div style="font-size:0.8rem;color:var(--text-secondary,#999);margin-top:6px;">' + t.trays + ' trays \u2022 ' + trayInfo + (seedsDisplay ? ' \u2022 ' + seedsDisplay : '') + '</div>';
+                if (t.seedLotUsed) html += '<div style="font-size:0.75rem;color:#3b82f6;margin-top:4px;"><i class="fas fa-tag"></i> ' + escapeHtml(t.seedLotUsed) + '</div>';
+                html += '</div>';
+            });
+
+            // Completed tasks (collapsed)
+            if (done.length > 0) {
+                html += '<div style="margin-top:12px;padding:8px;background:var(--bg-light,#2a2a3e);border-radius:8px;opacity:0.7;">';
+                html += '<div style="font-size:0.8rem;color:var(--text-secondary,#999);font-weight:600;margin-bottom:8px;"><i class="fas fa-check-circle" style="color:#22c55e;"></i> Completed (' + done.length + ')</div>';
+                done.forEach(function(t) {
+                    html += '<div style="font-size:0.8rem;color:var(--text-secondary,#999);padding:4px 0;display:flex;justify-content:space-between;">';
+                    html += '<span>' + escapeHtml(t.crop) + ' — ' + escapeHtml(t.variety) + (t.substituted ? ' <span style="color:#f59e0b;">\u26A0 Subst</span>' : '') + '</span>';
+                    html += '<span>' + (t.completedBy || '') + ' ' + (t.actualDate || '') + '</span>';
+                    html += '</div>';
+                });
+                html += '</div>';
+            }
+
+            list.innerHTML = html || '<div style="color:var(--text-secondary);font-size:0.85rem;padding:12px;">No greenhouse sowing tasks in range</div>';
+        }
+
+        function openGHSowConfirm(batchId) {
+            var task = ghSowTasks.find(function(t) { return t.batchId === batchId; });
+            if (!task || task.completed) return;
+
+            // Fill the form
+            document.getElementById('ghConfirmTitle').innerHTML = '<i class="fas fa-seedling" style="color:#22c55e;"></i> ' + escapeHtml(task.crop) + ' — ' + escapeHtml(task.variety) + '<br><span style="font-size:0.8rem;color:var(--text-secondary,#999);">' + task.trays + ' trays \u00D7 ' + (task.trayType || task.cellsPerTray + '-cell') + '</span>';
+
+            // Default date to today
+            document.getElementById('ghConfirmDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('ghConfirmTrays').value = task.trays || '';
+            document.getElementById('ghConfirmSubstituted').checked = false;
+            document.getElementById('ghSubVarietyRow').style.display = 'none';
+            document.getElementById('ghConfirmVariety').value = '';
+            document.getElementById('ghConfirmSeedLot').value = task.seedLotUsed || '';
+            document.getElementById('ghConfirmNotes').value = '';
+
+            // Store batchId for submission
+            document.getElementById('ghConfirmBtn').setAttribute('data-batch-id', batchId);
+
+            document.getElementById('ghSowConfirmModal').style.display = 'flex';
+        }
+
+        async function submitGHSowConfirm() {
+            var batchId = document.getElementById('ghConfirmBtn').getAttribute('data-batch-id');
+            if (!batchId) return;
+
+            var task = ghSowTasks.find(function(t) { return t.batchId === batchId; });
+            var emp = AppState.employee || {};
+
+            var payload = {
+                action: 'confirmGHSowing',
+                batchId: batchId,
+                employeeId: emp.Employee_ID || '',
+                employeeName: (emp.First_Name || '') + ' ' + (emp.Last_Name || ''),
+                actualDate: document.getElementById('ghConfirmDate').value || new Date().toISOString().split('T')[0],
+                actualTrays: parseInt(document.getElementById('ghConfirmTrays').value) || (task ? task.trays : 0),
+                actualVariety: document.getElementById('ghConfirmSubstituted').checked ? document.getElementById('ghConfirmVariety').value : (task ? task.variety : ''),
+                substituted: document.getElementById('ghConfirmSubstituted').checked,
+                seedLotId: document.getElementById('ghConfirmSeedLot').value || '',
+                notes: document.getElementById('ghConfirmNotes').value || ''
+            };
+
+            // Disable button while saving
+            var btn = document.getElementById('ghConfirmBtn');
+            btn.disabled = true;
+            btn.textContent = 'Saving...';
+
+            try {
+                // Try online first
+                if (navigator.onLine) {
+                    var res = await fetch(CONFIG.API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain' },
+                        body: JSON.stringify(payload)
+                    });
+                    var data = await res.json();
+                    if (data.success) {
+                        // Update local state
+                        if (task) {
+                            task.completed = true;
+                            task.actualDate = payload.actualDate;
+                            task.completedBy = payload.employeeName;
+                            if (payload.substituted) task.substituted = true;
+                            if (payload.substituted) task.actualVariety = payload.actualVariety;
+                        }
+                        renderGHSowingTasks();
+                        document.getElementById('ghSowConfirmModal').style.display = 'none';
+                        showToast('Sowing confirmed for ' + (task ? task.crop : batchId), 'success');
+                        // Haptic feedback
+                        if (navigator.vibrate) navigator.vibrate(100);
+                    } else {
+                        showToast('Save failed: ' + (data.error || 'Unknown error'), 'error');
+                    }
+                } else {
+                    // Queue offline
+                    if (typeof OfflineDB !== 'undefined' && OfflineDB.queueOperation) {
+                        await OfflineDB.queueOperation('confirmGHSowing', payload);
+                        if (task) { task.completed = true; task.actualDate = payload.actualDate; }
+                        renderGHSowingTasks();
+                        document.getElementById('ghSowConfirmModal').style.display = 'none';
+                        showToast('Saved offline \u2014 will sync when connected', 'warning');
+                    } else {
+                        showToast('No connection and offline storage unavailable', 'error');
+                    }
+                }
+            } catch (e) {
+                showToast('Error: ' + e.message, 'error');
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-check-circle"></i> Mark Complete';
+        }
+
+        // ============================================
         // MODE PERMISSIONS SYSTEM
         // ============================================
         // Base modes everyone has: field, driver, packhouse
@@ -16320,6 +16498,11 @@
             if (tabId === 'fuel') {
                 loadFuelLogs();
             }
+
+            // Refresh greenhouse sowing tasks when switching to home tab
+            if (tabId === 'home') {
+                loadGHSowingTasks();
+            }
         }
 
         // ============================================
@@ -16448,6 +16631,8 @@
                 // Re-trigger the mode to show full screen now that clocked in
                 setWorkMode(AppState.workMode);
             }
+            // Refresh greenhouse sowing tasks on clock-in
+            loadGHSowingTasks();
         }
 
         // Driver Mode State
@@ -28790,6 +28975,45 @@
         VoiceCommand.cancel();
     }
     </script>
+
+<!-- GH Sowing Confirmation Modal -->
+<div id="ghSowConfirmModal" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.7);align-items:flex-end;justify-content:center;" onclick="this.style.display='none'">
+    <div style="background:var(--bg-card,#1e1e2e);border-radius:16px 16px 0 0;width:100%;max-width:500px;max-height:85vh;overflow-y:auto;padding:1.5rem;box-shadow:0 -10px 40px rgba(0,0,0,0.5);" onclick="event.stopPropagation()">
+        <div style="width:40px;height:4px;background:var(--border,#333);border-radius:2px;margin:0 auto 16px;"></div>
+        <h3 id="ghConfirmTitle" style="margin:0 0 16px;font-size:1.1rem;color:var(--text-primary,#fff);"></h3>
+
+        <div style="display:flex;flex-direction:column;gap:12px;">
+            <div>
+                <label style="font-size:0.8rem;color:var(--text-secondary,#999);font-weight:600;">Date Done</label>
+                <input type="date" id="ghConfirmDate" style="width:100%;padding:10px;background:var(--bg-light,#2a2a3e);border:1px solid var(--border,#333);border-radius:8px;color:var(--text-primary,#fff);font-size:1rem;margin-top:4px;">
+            </div>
+            <div>
+                <label style="font-size:0.8rem;color:var(--text-secondary,#999);font-weight:600;">Actual Trays</label>
+                <input type="number" id="ghConfirmTrays" style="width:100%;padding:10px;background:var(--bg-light,#2a2a3e);border:1px solid var(--border,#333);border-radius:8px;color:var(--text-primary,#fff);font-size:1rem;margin-top:4px;">
+            </div>
+            <div>
+                <label style="display:flex;align-items:center;gap:8px;font-size:0.85rem;color:var(--text-secondary,#999);cursor:pointer;margin-bottom:4px;">
+                    <input type="checkbox" id="ghConfirmSubstituted" onchange="document.getElementById('ghSubVarietyRow').style.display=this.checked?'block':'none'" style="width:18px;height:18px;">
+                    Substituted different variety
+                </label>
+                <div id="ghSubVarietyRow" style="display:none;margin-top:4px;">
+                    <input type="text" id="ghConfirmVariety" placeholder="Actual variety used" style="width:100%;padding:10px;background:var(--bg-light,#2a2a3e);border:1px solid var(--border,#333);border-radius:8px;color:var(--text-primary,#fff);font-size:1rem;">
+                </div>
+            </div>
+            <div>
+                <label style="font-size:0.8rem;color:var(--text-secondary,#999);font-weight:600;">Seed Lot ID</label>
+                <input type="text" id="ghConfirmSeedLot" placeholder="e.g. LOT-2026-001" style="width:100%;padding:10px;background:var(--bg-light,#2a2a3e);border:1px solid var(--border,#333);border-radius:8px;color:var(--text-primary,#fff);font-size:1rem;margin-top:4px;">
+            </div>
+            <div>
+                <label style="font-size:0.8rem;color:var(--text-secondary,#999);font-weight:600;">Notes</label>
+                <textarea id="ghConfirmNotes" rows="2" placeholder="Any notes about this sowing" style="width:100%;padding:10px;background:var(--bg-light,#2a2a3e);border:1px solid var(--border,#333);border-radius:8px;color:var(--text-primary,#fff);font-size:1rem;margin-top:4px;resize:vertical;"></textarea>
+            </div>
+        </div>
+
+        <button id="ghConfirmBtn" onclick="submitGHSowConfirm()" style="width:100%;padding:14px;background:#22c55e;color:white;border:none;border-radius:10px;font-size:1rem;font-weight:700;cursor:pointer;margin-top:20px;"><i class="fas fa-check-circle"></i> Mark Complete</button>
+    </div>
+</div>
+
 </body>
 </html>
 

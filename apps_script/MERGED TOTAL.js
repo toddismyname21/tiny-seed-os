@@ -14703,6 +14703,8 @@ function doGet(e) {
         return getDTMLearningData();
   case 'getGreenhouseSowingTasks':
     return jsonResponse(getGreenhouseSowingTasks(e.parameter));
+  case 'getMyGHSowingTasks':
+    return jsonResponse(getMyGHSowingTasks(e.parameter));
   case 'getTransplantTasks':
     return jsonResponse(getTransplantTasks(e.parameter));
   case 'getDirectSeedTasks':
@@ -18809,6 +18811,10 @@ function doPost(e) {
       // ============ PLANNING FIELD EDITING ============
       case 'updatePlanningFields':
         return jsonResponse(updatePlanningFields(data));
+      case 'confirmGHSowing':
+        return jsonResponse(confirmGHSowing(data));
+      case 'assignSowingSheet':
+        return jsonResponse(assignSowingSheet(data));
 
       // ============ SEED INVENTORY & TRACEABILITY ============
       case 'addSeedLot':
@@ -33744,9 +33750,9 @@ function createDirectSeedingTab() {
         }
       });
 
-      // Track trays by size
-      const size = cellsPerTray + '-cell';
-      traysBySize[size] = (traysBySize[size] || 0) + trays;
+      // Track trays by size — use tray type name if available for paperpot spacing visibility
+      const size = trayType || (cellsPerTray + '-cell');
+      traysBySize[size] = (traysBySize[size] || 0) + effectiveTrays;
     }
 
     // Sort by date
@@ -33930,7 +33936,7 @@ function updatePlanningFields(data) {
     'Crop', 'Variety',
     'Tray_Cell_Count', 'Tray_Type', 'Trays_Needed', 'Plants_Needed', 'Target_Bed_ID',
     'Notes', 'Seed_Lot_Used', 'Plan_GH_Sow', 'Plan_Field_Sow', 'Plan_Transplant',
-    'Feet_Used'
+    'Feet_Used', 'Assigned_To', 'Completed_By', 'Actual_Variety', 'Act_GH_Sow', 'Act_Field_Sow', 'Act_Transplant'
   ];
 
   try {
@@ -34006,6 +34012,287 @@ function updatePlanningFields(data) {
       updatedFields: updated
     };
 
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// EMPLOYEE GREENHOUSE SOWING COMPANION
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Get GH sowing tasks for employee companion app.
+ * Returns ALL pending tasks (not just assigned) — assignment is optional, not a gate.
+ * Tasks assigned to this employee are flagged and sorted to top.
+ */
+function getMyGHSowingTasks(params) {
+  try {
+    var ss = SpreadsheetApp.openById('128O56X_FN9_U-s0ENHBBRyLpae_yvWHPYbBheVlR3Vc');
+    var sheet = ss.getSheetByName('PLANNING_2026');
+    if (!sheet) return { success: false, error: 'PLANNING_2026 sheet not found' };
+
+    var data = sheet.getDataRange().getValues();
+    var headers = data[0].map(function(h) { return String(h).trim(); });
+    var employeeId = params.employeeId || '';
+
+    var cols = {
+      batchId: headers.indexOf('Batch_ID'),
+      crop: headers.indexOf('Crop'),
+      variety: headers.indexOf('Variety'),
+      category: headers.indexOf('Category'),
+      status: headers.indexOf('STATUS'),
+      plantingMethod: headers.indexOf('Planting_Method'),
+      ghSow: headers.indexOf('Plan_GH_Sow'),
+      actGhSow: headers.indexOf('Act_GH_Sow'),
+      trays: headers.indexOf('Trays_Needed'),
+      plantsNeeded: headers.indexOf('Plants_Needed'),
+      trayCellCount: headers.indexOf('Tray_Cell_Count'),
+      trayType: headers.indexOf('Tray_Type'),
+      seedLotUsed: headers.indexOf('Seed_Lot_Used'),
+      notes: headers.indexOf('Notes'),
+      assignedTo: headers.indexOf('Assigned_To'),
+      completedBy: headers.indexOf('Completed_By'),
+      actualVariety: headers.indexOf('Actual_Variety'),
+      bed: headers.indexOf('Target_Bed_ID'),
+      feetUsed: headers.indexOf('Feet_Used')
+    };
+
+    // Date window: 2 weeks ago through 1 week ahead (generous for backdating)
+    var now = new Date();
+    var startDate = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+    var endDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+    var tasks = [];
+    for (var i = 1; i < data.length; i++) {
+      var row = data[i];
+      var status = cols.status >= 0 ? String(row[cols.status] || '').toLowerCase() : '';
+      var method = cols.plantingMethod >= 0 ? String(row[cols.plantingMethod] || '') : '';
+
+      // Skip direct seed and completed
+      if (method.toLowerCase().indexOf('direct') >= 0) continue;
+      if (status === 'completed' || status === 'cancelled') continue;
+
+      var ghSowRaw = cols.ghSow >= 0 ? row[cols.ghSow] : null;
+      if (!ghSowRaw) continue;
+      var ghSowDate = new Date(ghSowRaw);
+      if (isNaN(ghSowDate.getTime())) continue;
+      if (ghSowDate < startDate || ghSowDate > endDate) continue;
+
+      var batchId = cols.batchId >= 0 ? row[cols.batchId] : '';
+      if (!batchId) continue;
+
+      var assignedTo = cols.assignedTo >= 0 ? String(row[cols.assignedTo] || '') : '';
+      var assignedToMe = employeeId && assignedTo.indexOf(employeeId) >= 0;
+      var isCompleted = cols.actGhSow >= 0 && row[cols.actGhSow];
+
+      var cellsPerTray = cols.trayCellCount >= 0 ? (parseInt(row[cols.trayCellCount]) || 0) : 128;
+      var trays = cols.trays >= 0 ? (parseInt(row[cols.trays]) || 0) : 0;
+      var plantsNeeded = cols.plantsNeeded >= 0 ? (parseInt(row[cols.plantsNeeded]) || 0) : 0;
+      var seedsNeeded = (plantsNeeded > 0) ? Math.ceil(plantsNeeded * 1.05) : (trays > 0 && cellsPerTray > 0 ? Math.ceil(trays * cellsPerTray * 1.05) : 0);
+
+      tasks.push({
+        batchId: batchId,
+        crop: cols.crop >= 0 ? row[cols.crop] : '',
+        variety: cols.variety >= 0 ? row[cols.variety] : '',
+        category: cols.category >= 0 ? (row[cols.category] || 'Veg') : 'Veg',
+        plannedDate: ghSowDate.toISOString().split('T')[0],
+        trays: trays,
+        cellsPerTray: cellsPerTray,
+        trayType: cols.trayType >= 0 ? (row[cols.trayType] || '') : '',
+        plantsNeeded: plantsNeeded,
+        seedsNeeded: seedsNeeded,
+        seedLotUsed: cols.seedLotUsed >= 0 ? (row[cols.seedLotUsed] || '') : '',
+        bed: cols.bed >= 0 ? (row[cols.bed] || '') : '',
+        notes: cols.notes >= 0 ? (row[cols.notes] || '') : '',
+        assignedTo: assignedTo,
+        assignedToMe: assignedToMe,
+        completed: !!isCompleted,
+        actualDate: isCompleted ? new Date(row[cols.actGhSow]).toISOString().split('T')[0] : '',
+        completedBy: cols.completedBy >= 0 ? (row[cols.completedBy] || '') : '',
+        actualVariety: cols.actualVariety >= 0 ? (row[cols.actualVariety] || '') : '',
+        substituted: cols.actualVariety >= 0 && row[cols.actualVariety] && cols.variety >= 0 && row[cols.actualVariety] !== row[cols.variety]
+      });
+    }
+
+    // Sort: assigned-to-me first, then by date
+    tasks.sort(function(a, b) {
+      if (a.assignedToMe && !b.assignedToMe) return -1;
+      if (!a.assignedToMe && b.assignedToMe) return 1;
+      if (a.completed && !b.completed) return 1;
+      if (!a.completed && b.completed) return -1;
+      return new Date(a.plannedDate) - new Date(b.plannedDate);
+    });
+
+    return {
+      success: true,
+      tasks: tasks,
+      totalTasks: tasks.length,
+      completedCount: tasks.filter(function(t) { return t.completed; }).length,
+      pendingCount: tasks.filter(function(t) { return !t.completed; }).length
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Confirm a greenhouse sowing task from the employee companion app.
+ * Writes actual date, variety, seed lot, and completion info to PLANNING_2026.
+ * Supports backdating for accurate historical records.
+ */
+function confirmGHSowing(data) {
+  try {
+    var batchId = data.batchId;
+    var employeeId = data.employeeId || '';
+    var employeeName = data.employeeName || employeeId;
+    var actualDate = data.actualDate || new Date().toISOString().split('T')[0];
+    var actualVariety = data.actualVariety || '';
+    var seedLotId = data.seedLotId || '';
+    var actualTrays = data.actualTrays;
+    var notes = data.notes || '';
+    var substituted = data.substituted || false;
+
+    if (!batchId) return { success: false, error: 'batchId is required' };
+
+    var ss = SpreadsheetApp.openById('128O56X_FN9_U-s0ENHBBRyLpae_yvWHPYbBheVlR3Vc');
+    var sheet = ss.getSheetByName('PLANNING_2026');
+    if (!sheet) return { success: false, error: 'PLANNING_2026 sheet not found' };
+
+    var allData = sheet.getDataRange().getValues();
+    var headers = allData[0].map(function(h) { return String(h).trim(); });
+    var batchCol = headers.indexOf('Batch_ID');
+    if (batchCol < 0) return { success: false, error: 'Batch_ID column not found' };
+
+    // Find row
+    var rowIndex = -1;
+    for (var i = 1; i < allData.length; i++) {
+      if (String(allData[i][batchCol]) === String(batchId)) {
+        rowIndex = i + 1; // 1-indexed for Sheets
+        break;
+      }
+    }
+    if (rowIndex < 0) return { success: false, error: 'Batch ' + batchId + ' not found' };
+
+    var lock = LockService.getScriptLock();
+    lock.waitLock(10000);
+
+    var updated = [];
+
+    // Helper to write a field, auto-creating column if needed
+    function writeField(fieldName, value) {
+      if (!value && value !== 0) return;
+      var colIdx = headers.indexOf(fieldName);
+      if (colIdx < 0) {
+        // Auto-create column
+        var lastCol = headers.length;
+        sheet.getRange(1, lastCol + 1).setValue(fieldName);
+        sheet.getRange(rowIndex, lastCol + 1).setValue(value);
+        headers.push(fieldName);
+      } else {
+        sheet.getRange(rowIndex, colIdx + 1).setValue(value);
+      }
+      updated.push(fieldName);
+    }
+
+    // Write actual sowing date (backdatable)
+    writeField('Act_GH_Sow', actualDate);
+
+    // Write status
+    writeField('STATUS', 'Seeded');
+
+    // Write who completed it
+    writeField('Completed_By', employeeName);
+
+    // Write seed lot
+    if (seedLotId) writeField('Seed_Lot_Used', seedLotId);
+
+    // Write actual variety (for substitution tracking)
+    if (substituted && actualVariety) {
+      writeField('Actual_Variety', actualVariety);
+    }
+
+    // Write actual trays if different
+    if (actualTrays !== undefined && actualTrays !== null) {
+      writeField('Trays_Needed', actualTrays);
+    }
+
+    // Append notes (don't overwrite existing)
+    if (notes) {
+      var notesCol = headers.indexOf('Notes');
+      var existingNotes = '';
+      if (notesCol >= 0) existingNotes = String(allData[rowIndex - 1][notesCol] || '');
+      var newNotes = existingNotes ? existingNotes + ' | ' + notes : notes;
+      writeField('Notes', newNotes);
+    }
+
+    lock.releaseLock();
+
+    return {
+      success: true,
+      message: 'Sowing confirmed for ' + batchId,
+      batchId: batchId,
+      actualDate: actualDate,
+      completedBy: employeeName,
+      updatedFields: updated
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Assign a sowing sheet (batch of tasks) to employees.
+ * Writes Assigned_To to each PLANNING_2026 row. Optional — leaving blank means everyone can access.
+ */
+function assignSowingSheet(data) {
+  try {
+    var batchIds = data.batchIds || [];
+    var employeeIds = data.employeeIds || [];
+    var employeeNames = data.employeeNames || [];
+
+    if (batchIds.length === 0) return { success: false, error: 'No batch IDs provided' };
+
+    var ss = SpreadsheetApp.openById('128O56X_FN9_U-s0ENHBBRyLpae_yvWHPYbBheVlR3Vc');
+    var sheet = ss.getSheetByName('PLANNING_2026');
+    if (!sheet) return { success: false, error: 'PLANNING_2026 sheet not found' };
+
+    var allData = sheet.getDataRange().getValues();
+    var headers = allData[0].map(function(h) { return String(h).trim(); });
+    var batchCol = headers.indexOf('Batch_ID');
+    if (batchCol < 0) return { success: false, error: 'Batch_ID column not found' };
+
+    // Find or create Assigned_To column
+    var assignCol = headers.indexOf('Assigned_To');
+    if (assignCol < 0) {
+      assignCol = headers.length;
+      sheet.getRange(1, assignCol + 1).setValue('Assigned_To');
+      headers.push('Assigned_To');
+    }
+
+    var assignValue = employeeIds.join(',');
+    var assignNames = employeeNames.join(', ');
+
+    var lock = LockService.getScriptLock();
+    lock.waitLock(10000);
+
+    var assigned = 0;
+    for (var i = 1; i < allData.length; i++) {
+      var rowBatchId = String(allData[i][batchCol] || '');
+      if (batchIds.indexOf(rowBatchId) >= 0) {
+        sheet.getRange(i + 1, assignCol + 1).setValue(assignValue);
+        assigned++;
+      }
+    }
+
+    lock.releaseLock();
+
+    return {
+      success: true,
+      message: 'Assigned ' + assigned + ' task(s) to ' + (assignNames || 'employees'),
+      assignedCount: assigned,
+      employeeNames: assignNames
+    };
   } catch (error) {
     return { success: false, error: error.toString() };
   }
@@ -53445,13 +53732,13 @@ function completeTaskWithGPS(params) {
         if (taskType === 'sow') {
           newStatus = 'Seeded';
           // Update actual sow date
-          const actualSowCol = headers.indexOf('Actual_Sow');
+          const actualSowCol = headers.indexOf('Act_GH_Sow');
           if (actualSowCol >= 0) {
             planSheet.getRange(i + 1, actualSowCol + 1).setValue(new Date().toISOString().split('T')[0]);
           }
         } else if (taskType === 'transplant') {
           newStatus = 'In Field';
-          const actualTransCol = headers.indexOf('Actual_Transplant');
+          const actualTransCol = headers.indexOf('Act_Transplant');
           if (actualTransCol >= 0) {
             planSheet.getRange(i + 1, actualTransCol + 1).setValue(new Date().toISOString().split('T')[0]);
           }

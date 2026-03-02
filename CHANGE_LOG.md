@@ -38,6 +38,41 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-03-02 — Employee Greenhouse Sowing Companion + Print Assignment + Backend Fixes (PM_ARCHITECT)
+
+### Files Modified
+- `employee.html` — Added Greenhouse Sowing section to Home tab (task cards with crop/variety/tray info, overdue indicators, assigned-to-you badges); Added confirmation modal with backdatable date picker, variety substitution checkbox, seed lot, notes; Added offline queueing via OfflineDB; Integrated at login, Home tab switch, and clock-in
+- `sowing-sheets.html` — Added print assignment modal (employee multi-select before printing); Split `printSheet()` into modal display + `executePrint()`; Added batch ID (last 6 chars) to printed rows for cross-referencing; Added assigned employee names to print subtitle
+- `apps_script/MERGED TOTAL.js` — Added 3 new endpoints: `getMyGHSowingTasks` (returns all pending GH sow tasks, assigned ones flagged at top), `confirmGHSowing` (writes Act_GH_Sow, Completed_By, Seed_Lot_Used, STATUS, Actual_Variety with LockService), `assignSowingSheet` (writes Assigned_To column for batch of tasks); Fixed `traysBySize` key to use trayType when available (was lumping all 264s as "264-cell"); Fixed `completeTaskWithGPS` column names (Actual_Sow→Act_GH_Sow, Actual_Transplant→Act_Transplant); Added Assigned_To, Completed_By, Actual_Variety, Act_GH_Sow, Act_Field_Sow, Act_Transplant to EDITABLE_FIELDS whitelist
+
+### Functions Added
+- `loadGHSowingTasks()` in `employee.html` — Fetches pending sowing tasks via getMyGHSowingTasks API
+- `renderGHSowingTasks()` in `employee.html` — Renders task cards with completion status
+- `openGHSowConfirm(batchId)` in `employee.html` — Opens confirmation modal pre-filled with task data
+- `submitGHSowConfirm()` in `employee.html` — POSTs confirmGHSowing to backend, offline-capable
+- `doPrintWithAssignment()` in `sowing-sheets.html` — Assigns selected employees then prints
+- `doPrintOnly()` in `sowing-sheets.html` — Prints without assignment (backward compatible)
+- `loadEmployeesForAssign()` in `sowing-sheets.html` — Fetches employee list for assignment modal
+- `getMyGHSowingTasks()` in `MERGED TOTAL.js` — Returns all pending GH sow tasks for employee companion
+- `confirmGHSowing()` in `MERGED TOTAL.js` — Confirms sowing task with backdatable date and substitutions
+- `assignSowingSheet()` in `MERGED TOTAL.js` — Assigns batch IDs to employees
+
+### Key Design Decisions
+- **Assignment is OPTIONAL, not a gate** — if blank, ALL employees see tasks. Assignment highlights "this is for you" but never locks anyone out
+- **Agile reassignment** — any employee can pick up any unfinished task. `Completed_By` tracks who actually did it, not who was assigned
+- **Backdatable dates** — date picker allows any past date for historical accuracy over years/decades
+- **Variety substitutions** — if only partial seed available, employee logs actual variety used + original variety for audit trail
+
+### Reason
+Farm employees need a digital companion to the printed sowing sheet so actual work gets logged in real-time. Owner said: "WE NEED WHAT WE ACTUALLY DO TO GET LOGGED WHEN WE ARE DOING IT" and dates must be accurate "OVER MANY YEARS AND DECADES."
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions (no duplicate GH sowing companion exists)
+- [x] No duplicates created
+
+---
+
 ## 2026-03-02 — Fix 4 Sowing Sheet Bugs + Tray Type Dropdown + Category Filter (PM_ARCHITECT)
 
 ### Files Modified
