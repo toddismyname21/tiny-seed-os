@@ -38,6 +38,61 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-03-01 — Quick-Add Seed Inventory + Variety Change from Greenhouse (PM_ARCHITECT)
+
+### Files Modified
+- `web_app/greenhouse-dashboard.html` — Added quick-add seed lot form (add seeds to inventory right from the sow modal), variety change feature (swap crop/variety last-second), refactored seed lot search results into reusable `renderSeedLotResults()` function, crop/variety header with edit button in seed lot modal
+- `apps_script/MERGED TOTAL.js` — Added `Crop` and `Variety` to `updatePlanningFields` EDITABLE_FIELDS whitelist so variety can be changed from the greenhouse dashboard
+
+### Functions Added
+- `toggleVarietyEdit()` in `greenhouse-dashboard.html` — Shows/hides variety edit form in seed lot modal
+- `applyVarietyChange()` in `greenhouse-dashboard.html` — Updates planting record crop/variety via API, re-searches seed lots
+- `quickAddSeedLot()` in `greenhouse-dashboard.html` — Adds new seed lot to inventory via `addSeedLot` API, auto-selects it
+- `renderSeedLotResults(res, crop, variety)` in `greenhouse-dashboard.html` — Reusable renderer for seed lot search results with auto quick-add form on no results
+
+### Functions Modified
+- `markSown()` in `greenhouse-dashboard.html` — Now populates crop/variety header, edit fields, and resets quick-add/variety-edit state; uses `renderSeedLotResults()` for display
+
+### Reason
+User needs seamless workflow: if marking sown with no seeds inventoried, quick-add them on the spot. If variety changed last-second (couldn't get planned seeds), swap variety and re-search lots — all without leaving the greenhouse dashboard.
+
+### Duplicate Check
+- [x] Uses existing `addSeedLot` backend (line 27331) — no new backend function
+- [x] Uses existing `updatePlanningFields` backend (line 33920) — only added to whitelist
+- [x] No duplicate files created
+
+---
+
+## 2026-03-01 — Seed Procurement Upgrades: Order Prompts + Supplier Links (PM_ARCHITECT)
+
+### Files Modified
+- `web_app/greenhouse-dashboard.html` — Upgraded seed warning banner with "Order Seeds" button, supplier-grouped order panel with urgency badges and website links, SUPPLIER_URLS map, "SEEDS NOT IN INVENTORY" alert when marking sown with no lots
+- `apps_script/MERGED TOTAL.js` — Fixed `checkSeedProcurementNeeds()` to include overdue plantings (removed `ghDate >= today` filter)
+- `FUNCTIONALITY_MAP.md` — Added AI Seed Procurement Agent roadmap entry (back burner)
+
+### Functions Added
+- `loadSeedWarnings()` upgrade in `greenhouse-dashboard.html` — Stores warning data, builds supplier-grouped order panel
+- `renderSeedOrderPanel(items)` in `greenhouse-dashboard.html` — Groups procurement items by supplier with urgency badges and links
+
+### Reason
+User needs to be prompted to order seeds when inventory is empty, with a 3-week lookahead window and supplier links for easy ordering. AI cart-building documented as future feature.
+
+---
+
+## 2026-03-01 — Fix Seeding Workflow: Accurate Date Recording + Seed Lot Matching (PM_ARCHITECT)
+
+### Files Modified
+- `web_app/greenhouse-dashboard.html` — Added date picker to seed lot modal, "Recently Sown" section with editable dates for corrections, crop aliases in `findSeedLotsByCropVariety` frontend call
+- `apps_script/MERGED TOTAL.js` — `updateTaskCompletion` now accepts `actualDate` parameter instead of hardcoding today; `findSeedLotsByCropVariety` upgraded with CROP_ALIASES map (Digitalis↔Foxglove, Campanula↔Canterbury Bells, etc.), `cleanStr()` for ™® stripping, generic variety bypass
+
+### Functions Added
+- `toggleRecentSown()`, `renderRecentSown()`, `correctSowDate()` in `greenhouse-dashboard.html` — View and correct sow dates after the fact
+
+### Reason
+User sows ahead of schedule or catches up on overdue plantings — date must reflect actual sow day, not recording day. Seed lot matching was failing for ~50% of varieties due to exact matching, special characters, and crop name mismatches.
+
+---
+
 ## 2026-03-01 — Fix Label Printing + System Functionality Map (PM_ARCHITECT)
 
 ### Files Modified

@@ -33923,6 +33923,7 @@ function updatePlanningFields(data) {
 
   // Whitelist of editable fields
   var EDITABLE_FIELDS = [
+    'Crop', 'Variety',
     'Tray_Cell_Count', 'Trays_Needed', 'Plants_Needed', 'Target_Bed_ID',
     'Notes', 'Seed_Lot_Used', 'Plan_GH_Sow', 'Plan_Field_Sow', 'Plan_Transplant',
     'Feet_Used'

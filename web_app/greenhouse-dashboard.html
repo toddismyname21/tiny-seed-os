@@ -1474,12 +1474,55 @@
 
 <!-- Seed Lot Confirmation Modal (Phase 3B) -->
 <div class="modal-overlay" id="seedLotModal" role="dialog" aria-modal="true" aria-label="Select Seed Lot">
-    <div class="modal" style="max-width:480px;">
+    <div class="modal" style="max-width:520px;">
         <div class="modal-head"><h3><i class="fas fa-box-open"></i> Confirm Seed Lot</h3><button class="modal-close" onclick="closeModal('seedLotModal')" aria-label="Close">&times;</button></div>
         <div class="modal-body">
+            <!-- Crop/Variety header — editable -->
+            <div id="seedLotCropHeader" style="background:var(--primary-dim);padding:0.6rem 0.75rem;border-radius:var(--radius-sm);margin-bottom:0.75rem;display:flex;align-items:center;justify-content:space-between;">
+                <div>
+                    <span id="seedLotCropLabel" style="font-weight:600;color:var(--primary);"></span>
+                    <span style="color:var(--text-secondary);"> — </span>
+                    <span id="seedLotVarietyLabel" style="color:var(--text-primary);"></span>
+                </div>
+                <button class="btn btn-outline btn-sm" onclick="toggleVarietyEdit()" style="font-size:0.7rem;padding:0.2rem 0.5rem;" title="Change variety"><i class="fas fa-edit"></i> Change</button>
+            </div>
+            <!-- Variety edit form (hidden by default) -->
+            <div id="seedLotVarietyEdit" style="display:none;background:var(--bg-light);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.75rem;margin-bottom:0.75rem;">
+                <div style="font-size:0.8rem;font-weight:600;color:var(--gold);margin-bottom:0.5rem;"><i class="fas fa-exchange-alt"></i> Change Variety (last-second swap)</div>
+                <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;">
+                    <div class="form-group" style="margin-bottom:0;"><label style="font-size:0.75rem;">Crop</label><input type="text" id="seedLotEditCrop" style="width:100%;padding:0.4rem;background:var(--bg-dark);border:1px solid var(--border);color:var(--text-primary);border-radius:4px;font-size:0.85rem;"></div>
+                    <div class="form-group" style="margin-bottom:0;"><label style="font-size:0.75rem;">Variety</label><input type="text" id="seedLotEditVariety" style="width:100%;padding:0.4rem;background:var(--bg-dark);border:1px solid var(--border);color:var(--text-primary);border-radius:4px;font-size:0.85rem;"></div>
+                </div>
+                <button class="btn btn-sm" onclick="applyVarietyChange()" style="margin-top:0.5rem;background:var(--gold);color:#000;border:none;padding:0.3rem 0.75rem;border-radius:4px;font-weight:600;font-size:0.8rem;"><i class="fas fa-check"></i> Apply & Re-search Lots</button>
+            </div>
+
             <div id="seedLotInfo" style="margin-bottom:1rem;">
                 <p style="color:var(--text-secondary);">Searching for matching seed lots...</p>
             </div>
+
+            <!-- Quick-add to inventory (hidden by default, shown when no lots found) -->
+            <div id="seedLotQuickAdd" style="display:none;background:var(--bg-light);border:1px solid var(--primary);border-radius:var(--radius-sm);padding:0.75rem;margin-bottom:0.75rem;">
+                <div style="font-size:0.8rem;font-weight:600;color:var(--primary);margin-bottom:0.5rem;"><i class="fas fa-plus-circle"></i> Quick-Add to Seed Inventory</div>
+                <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;">
+                    <div class="form-group" style="margin-bottom:0;"><label style="font-size:0.75rem;">Supplier</label><input type="text" id="quickAddSupplier" placeholder="e.g. Johnny's" style="width:100%;padding:0.4rem;background:var(--bg-dark);border:1px solid var(--border);color:var(--text-primary);border-radius:4px;font-size:0.85rem;"></div>
+                    <div class="form-group" style="margin-bottom:0;"><label style="font-size:0.75rem;">Quantity</label>
+                        <div style="display:flex;gap:4px;">
+                            <input type="number" id="quickAddQty" value="1" min="1" style="width:60px;padding:0.4rem;background:var(--bg-dark);border:1px solid var(--border);color:var(--text-primary);border-radius:4px;font-size:0.85rem;">
+                            <select id="quickAddUnit" style="flex:1;padding:0.4rem;background:var(--bg-dark);border:1px solid var(--border);color:var(--text-primary);border-radius:4px;font-size:0.85rem;">
+                                <option value="packets">packets</option>
+                                <option value="seeds">seeds</option>
+                                <option value="grams">grams</option>
+                                <option value="oz">oz</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div style="display:flex;align-items:center;gap:0.75rem;margin-top:0.5rem;">
+                    <label style="font-size:0.8rem;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="quickAddOrganic"> Organic</label>
+                    <button class="btn btn-sm" onclick="withLoading(this, quickAddSeedLot)" style="background:var(--primary);color:#000;border:none;padding:0.3rem 0.75rem;border-radius:4px;font-weight:600;font-size:0.8rem;"><i class="fas fa-plus"></i> Add & Select</button>
+                </div>
+            </div>
+
             <div class="form-group">
                 <label style="font-weight:600;color:var(--primary);">Actual Sow Date</label>
                 <input type="date" id="seedLotActualDate" style="width:100%;padding:0.5rem;background:var(--bg-light);border:1px solid var(--primary);color:var(--text-primary);border-radius:var(--radius-sm);font-size:1rem;">
@@ -2908,76 +2951,37 @@ async function markSown(batchId) {
     const task = state.sowingTasks.find(t => t.batchId === batchId);
     if (!task) { toast('Task not found', 'error'); return; }
 
+    // Reset modal state
     document.getElementById('seedLotBatchId').value = batchId;
     document.getElementById('seedLotActualDate').value = todayStr();
     document.getElementById('seedLotSeedsUsed').value = task.seedsNeeded || '';
     document.getElementById('seedLotSelectedId').value = '';
     document.getElementById('seedLotNotes').value = '';
     document.getElementById('seedLotInfo').innerHTML = '<p style="color:var(--text-secondary);"><i class="fas fa-spinner fa-spin"></i> Searching for seed lots...</p>';
+    document.getElementById('seedLotQuickAdd').style.display = 'none';
+    document.getElementById('seedLotVarietyEdit').style.display = 'none';
+
+    // Populate crop/variety header
+    document.getElementById('seedLotCropLabel').textContent = task.crop || '';
+    document.getElementById('seedLotVarietyLabel').textContent = task.variety || '(any)';
+    document.getElementById('seedLotEditCrop').value = task.crop || '';
+    document.getElementById('seedLotEditVariety').value = task.variety || '';
 
     openModal('seedLotModal');
 
     // Auto-search for matching seed lots
     try {
         const res = await api.get('findSeedLotsByCropVariety', { crop: task.crop, variety: task.variety || '' });
-        if (res && res.lots && res.lots.length > 0) {
-            const best = res.lots[0];
-            document.getElementById('seedLotSelectedId').value = best.seedLotId;
-            document.getElementById('seedLotInfo').innerHTML = `
-                <div style="background:var(--primary-dim);padding:0.75rem;border-radius:var(--radius-sm);margin-bottom:0.5rem;">
-                    <strong style="color:var(--primary);">${esc(task.crop)} — ${esc(task.variety || 'Any')}</strong>
-                </div>
-                <div style="background:var(--bg-light);padding:0.75rem;border-radius:var(--radius-sm);">
-                    <div style="font-weight:600;">Best Match: ${esc(best.seedLotId)}</div>
-                    <div style="font-size:0.85rem;color:var(--text-secondary);margin-top:4px;">
-                        ${esc(best.supplier || 'Unknown supplier')} &bull; ${best.quantityRemaining} ${best.unit || 'seeds'} remaining &bull; Status: ${best.status}
-                        ${best.organic ? ' &bull; <span style="color:var(--primary);">Organic</span>' : ''}
-                    </div>
-                </div>
-                ${res.lots.length > 1 ? `
-                <div style="margin-top:0.5rem;">
-                    <label style="font-size:0.8rem;color:var(--text-secondary);">Other lots (${res.lots.length - 1} more):</label>
-                    <select onchange="document.getElementById('seedLotSelectedId').value=this.value" style="width:100%;padding:0.4rem;background:var(--bg-light);border:1px solid var(--border);color:var(--text-primary);border-radius:var(--radius-sm);margin-top:4px;">
-                        ${res.lots.map(l => `<option value="${esc(l.seedLotId)}" ${l.seedLotId === best.seedLotId ? 'selected' : ''}>${esc(l.seedLotId)} — ${l.quantityRemaining} ${l.unit || 'seeds'} (${l.supplier || '?'})</option>`).join('')}
-                    </select>
-                </div>` : ''}
-            `;
-        } else {
-            // No seeds in inventory — prompt to order
-            var supplierUrl = '';
-            var supplierName = '';
-            // Check if we know a supplier for this crop from the warning data
-            if (_seedWarningData && _seedWarningData.items) {
-                var matchItem = _seedWarningData.items.find(function(wi) {
-                    return wi.crop.toLowerCase() === task.crop.toLowerCase();
-                });
-                if (matchItem && matchItem.knownSuppliers && matchItem.knownSuppliers.length > 0) {
-                    supplierName = matchItem.knownSuppliers[0];
-                    supplierUrl = SUPPLIER_URLS[supplierName.toLowerCase()] || '';
-                }
-            }
-            var orderHtml = supplierUrl
-                ? '<a href="' + supplierUrl + '" target="_blank" rel="noopener" style="display:inline-block;margin-top:8px;background:var(--danger);color:#fff;padding:0.4rem 0.8rem;border-radius:var(--radius-sm);text-decoration:none;font-weight:600;font-size:0.85rem;"><i class="fas fa-shopping-cart"></i> Order from ' + esc(supplierName) + '</a>'
-                : '<div style="margin-top:6px;font-size:0.8rem;color:var(--text-secondary);">Check your seed suppliers — this variety is not in inventory.</div>';
-            document.getElementById('seedLotInfo').innerHTML = `
-                <div style="background:rgba(239,68,68,0.15);padding:0.75rem;border-radius:var(--radius-sm);border:1px solid var(--danger);">
-                    <strong style="color:var(--danger);"><i class="fas fa-exclamation-triangle"></i> SEEDS NOT IN INVENTORY</strong>
-                    <div style="font-size:0.85rem;color:var(--text-primary);margin-top:4px;">
-                        <strong>${esc(task.crop)}${task.variety ? ' — ' + esc(task.variety) : ''}</strong> has no seed lots available.
-                    </div>
-                    ${orderHtml}
-                    <div style="margin-top:8px;font-size:0.8rem;color:var(--text-secondary);">You can still mark sown if you have seeds on hand that aren't inventoried yet.</div>
-                </div>
-            `;
-        }
+        renderSeedLotResults(res, task.crop, task.variety);
     } catch (err) {
         console.error('Seed lot search error:', err);
-        document.getElementById('seedLotInfo').innerHTML = `
-            <div style="background:var(--danger-dim);padding:0.75rem;border-radius:var(--radius-sm);">
-                <strong style="color:var(--danger);">Could not search seed lots</strong>
-                <div style="font-size:0.85rem;color:var(--text-secondary);margin-top:4px;">${err.message}. You can still mark sown without a lot.</div>
-            </div>
-        `;
+        document.getElementById('seedLotInfo').innerHTML =
+            '<div style="background:var(--danger-dim);padding:0.75rem;border-radius:var(--radius-sm);">' +
+                '<strong style="color:var(--danger);">Could not search seed lots</strong>' +
+                '<div style="font-size:0.85rem;color:var(--text-secondary);margin-top:4px;">' + err.message + '. You can still mark sown without a lot.</div>' +
+            '</div>';
+        // Show quick-add as fallback
+        document.getElementById('seedLotQuickAdd').style.display = 'block';
     }
 }
 
@@ -3209,6 +3213,126 @@ async function correctSowDate(batchId, newDate) {
         invalidateCache('today');
     } catch (err) {
         toast('Failed to update date: ' + err.message, 'error');
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// SEED LOT MODAL: Quick-Add Inventory & Variety Change
+// ═══════════════════════════════════════════════════════════════════
+
+function toggleVarietyEdit() {
+    const el = document.getElementById('seedLotVarietyEdit');
+    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+async function applyVarietyChange() {
+    const batchId = document.getElementById('seedLotBatchId').value;
+    const newCrop = document.getElementById('seedLotEditCrop').value.trim();
+    const newVariety = document.getElementById('seedLotEditVariety').value.trim();
+    if (!newCrop) { toast('Crop name is required', 'error'); return; }
+
+    toast('Updating variety...', 'info');
+    try {
+        // Update the planting record in PLANNING_2026
+        await api.post('updatePlanningFields', { batchId: batchId, fields: { Crop: newCrop, Variety: newVariety } });
+
+        // Update local state
+        const task = state.sowingTasks.find(t => t.batchId === batchId);
+        if (task) { task.crop = newCrop; task.variety = newVariety; }
+
+        // Update modal header
+        document.getElementById('seedLotCropLabel').textContent = newCrop;
+        document.getElementById('seedLotVarietyLabel').textContent = newVariety || '(any)';
+        document.getElementById('seedLotVarietyEdit').style.display = 'none';
+
+        // Re-search for seed lots with new crop/variety
+        document.getElementById('seedLotInfo').innerHTML = '<p style="color:var(--text-secondary);"><i class="fas fa-spinner fa-spin"></i> Searching for seed lots...</p>';
+        document.getElementById('seedLotQuickAdd').style.display = 'none';
+        const res = await api.get('findSeedLotsByCropVariety', { crop: newCrop, variety: newVariety });
+        renderSeedLotResults(res, newCrop, newVariety);
+        toast('Variety updated to ' + newCrop + ' — ' + (newVariety || 'any'), 'success');
+    } catch (err) {
+        toast('Failed to update variety: ' + err.message, 'error');
+    }
+}
+
+async function quickAddSeedLot() {
+    const batchId = document.getElementById('seedLotBatchId').value;
+    const task = state.sowingTasks.find(t => t.batchId === batchId);
+    const crop = document.getElementById('seedLotCropLabel').textContent;
+    const variety = document.getElementById('seedLotVarietyLabel').textContent;
+    const supplier = document.getElementById('quickAddSupplier').value.trim();
+    const qty = document.getElementById('quickAddQty').value || 1;
+    const unit = document.getElementById('quickAddUnit').value;
+    const organic = document.getElementById('quickAddOrganic').checked;
+
+    if (!supplier) { toast('Enter a supplier name', 'error'); return; }
+
+    toast('Adding to seed inventory...', 'info');
+    try {
+        const res = await api.post('addSeedLot', {
+            crop: crop,
+            variety: variety === '(any)' ? '' : variety,
+            supplier: supplier,
+            quantity: qty,
+            unit: unit,
+            organic: organic ? 'Yes' : 'No'
+        });
+
+        if (res && res.success && res.seedLotId) {
+            // Auto-select the new lot
+            document.getElementById('seedLotSelectedId').value = res.seedLotId;
+            document.getElementById('seedLotQuickAdd').style.display = 'none';
+            document.getElementById('seedLotInfo').innerHTML =
+                '<div style="background:var(--primary-dim);padding:0.75rem;border-radius:var(--radius-sm);">' +
+                    '<div style="font-weight:600;color:var(--primary);"><i class="fas fa-check-circle"></i> New lot added & selected</div>' +
+                    '<div style="font-size:0.85rem;color:var(--text-secondary);margin-top:4px;">' +
+                        esc(res.seedLotId) + ' &bull; ' + esc(supplier) + ' &bull; ' + qty + ' ' + unit +
+                        (organic ? ' &bull; <span style="color:var(--primary);">Organic</span>' : '') +
+                    '</div>' +
+                '</div>';
+            toast('Seed lot ' + res.seedLotId + ' added to inventory!', 'success');
+        } else {
+            toast('Failed: ' + (res ? res.error : 'Unknown error'), 'error');
+        }
+    } catch (err) {
+        toast('Failed to add seed lot: ' + err.message, 'error');
+    }
+}
+
+// Renders seed lot search results in the modal (reusable for initial search + re-search after variety change)
+function renderSeedLotResults(res, crop, variety) {
+    if (res && res.lots && res.lots.length > 0) {
+        const best = res.lots[0];
+        document.getElementById('seedLotSelectedId').value = best.seedLotId;
+        document.getElementById('seedLotQuickAdd').style.display = 'none';
+        document.getElementById('seedLotInfo').innerHTML =
+            '<div style="background:var(--bg-light);padding:0.75rem;border-radius:var(--radius-sm);">' +
+                '<div style="font-weight:600;">Best Match: ' + esc(best.seedLotId) + '</div>' +
+                '<div style="font-size:0.85rem;color:var(--text-secondary);margin-top:4px;">' +
+                    esc(best.supplier || 'Unknown supplier') + ' &bull; ' + best.quantityRemaining + ' ' + (best.unit || 'seeds') + ' remaining &bull; Status: ' + best.status +
+                    (best.organic ? ' &bull; <span style="color:var(--primary);">Organic</span>' : '') +
+                '</div>' +
+            '</div>' +
+            (res.lots.length > 1 ?
+                '<div style="margin-top:0.5rem;">' +
+                    '<label style="font-size:0.8rem;color:var(--text-secondary);">Other lots (' + (res.lots.length - 1) + ' more):</label>' +
+                    '<select onchange="document.getElementById(\'seedLotSelectedId\').value=this.value" style="width:100%;padding:0.4rem;background:var(--bg-light);border:1px solid var(--border);color:var(--text-primary);border-radius:var(--radius-sm);margin-top:4px;">' +
+                        res.lots.map(function(l) { return '<option value="' + esc(l.seedLotId) + '"' + (l.seedLotId === best.seedLotId ? ' selected' : '') + '>' + esc(l.seedLotId) + ' — ' + l.quantityRemaining + ' ' + (l.unit || 'seeds') + ' (' + (l.supplier || '?') + ')</option>'; }).join('') +
+                    '</select>' +
+                '</div>' : '');
+    } else {
+        // No lots found — show quick-add form
+        document.getElementById('seedLotSelectedId').value = '';
+        document.getElementById('seedLotQuickAdd').style.display = 'block';
+        document.getElementById('seedLotInfo').innerHTML =
+            '<div style="background:rgba(239,68,68,0.15);padding:0.75rem;border-radius:var(--radius-sm);border:1px solid var(--danger);">' +
+                '<strong style="color:var(--danger);"><i class="fas fa-exclamation-triangle"></i> SEEDS NOT IN INVENTORY</strong>' +
+                '<div style="font-size:0.85rem;color:var(--text-primary);margin-top:4px;">' +
+                    '<strong>' + esc(crop) + (variety ? ' — ' + esc(variety) : '') + '</strong> has no seed lots available.' +
+                '</div>' +
+                '<div style="margin-top:8px;font-size:0.8rem;color:var(--text-secondary);">Use the form below to quick-add to inventory, or skip without a lot.</div>' +
+            '</div>';
     }
 }
 
