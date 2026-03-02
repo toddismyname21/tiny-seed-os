@@ -1119,6 +1119,7 @@
                 <div class="form-group">
                     <label>Date Range</label>
                     <div style="display:flex;gap:6px;margin-bottom:8px;">
+                        <button class="btn btn-secondary" onclick="setDateRange('overdue')" style="flex:1;padding:6px 8px;font-size:0.8rem;color:#ef4444;font-weight:600;">Overdue</button>
                         <button class="btn btn-secondary" onclick="setDateRange('today')" style="flex:1;padding:6px 8px;font-size:0.8rem;">Today</button>
                         <button class="btn btn-secondary" onclick="setDateRange('week')" style="flex:1;padding:6px 8px;font-size:0.8rem;">This Week</button>
                         <button class="btn btn-secondary" onclick="setDateRange('all')" style="flex:1;padding:6px 8px;font-size:0.8rem;">60 Days</button>
@@ -1401,15 +1402,23 @@
         // Quick date range shortcuts
         function setDateRange(preset) {
             var today = new Date();
-            var start = today.toISOString().split('T')[0];
-            var end;
-            if (preset === 'today') {
+            var start, end;
+            if (preset === 'overdue') {
+                // Season start (Jan 1) through yesterday — shows only past-due seedings
+                start = today.getFullYear() + '-01-01';
+                var yesterday = new Date(today);
+                yesterday.setDate(yesterday.getDate() - 1);
+                end = yesterday.toISOString().split('T')[0];
+            } else if (preset === 'today') {
+                start = today.toISOString().split('T')[0];
                 end = start;
             } else if (preset === 'week') {
+                start = today.toISOString().split('T')[0];
                 var weekEnd = new Date(today);
                 weekEnd.setDate(weekEnd.getDate() + 6);
                 end = weekEnd.toISOString().split('T')[0];
             } else {
+                start = today.toISOString().split('T')[0];
                 var sixtyDays = new Date(today);
                 sixtyDays.setDate(sixtyDays.getDate() + 60);
                 end = sixtyDays.toISOString().split('T')[0];
@@ -1444,8 +1453,13 @@
             const autoPrint = urlParams.get('autoprint');
             const dateRange = urlParams.get('dateRange');
 
-            // Apply date range preset from URL (e.g. ?dateRange=today)
-            if (dateRange === 'today') {
+            // Apply date range preset from URL (e.g. ?dateRange=today or ?dateRange=overdue)
+            if (dateRange === 'overdue') {
+                document.getElementById('startDate').value = today.getFullYear() + '-01-01';
+                var yesterday = new Date(today);
+                yesterday.setDate(yesterday.getDate() - 1);
+                document.getElementById('endDate').value = yesterday.toISOString().split('T')[0];
+            } else if (dateRange === 'today') {
                 document.getElementById('endDate').value = today.toISOString().split('T')[0];
             } else if (dateRange === 'week') {
                 var weekEnd = new Date(today);

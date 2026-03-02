@@ -38,6 +38,20 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-03-02 — Fix Label Print Path + Add Overdue Filter (PM_ARCHITECT)
+
+### Files Modified
+- `labels.html` — Fixed about:blank bug in executePrint() (was calling nonexistent functions, now calls proven executePrintUL247PotTagsPDF/executePrintUL247FieldTrayPDF); added "Overdue" quick-filter button (shows Jan 1 through yesterday); added overdue support to setDateRange() and ?dateRange=overdue URL param
+
+### Root Cause
+My previous rewrite of executePrint() called buildAndPrintPotTagPDF() and buildAndPrintFieldTrayPDF() — functions that were never created. This opened a blank tab and errored silently. Fix reverts to calling the original working PDF functions.
+
+### Duplicate Check
+- [x] No duplicate files or functions created
+- [x] Overdue logic modeled after greenhouse-dashboard.html overdue filter
+
+---
+
 ## 2026-03-02 — Batch Label Printing + Chef Onboarding (PM_ARCHITECT)
 
 ### Files Modified
