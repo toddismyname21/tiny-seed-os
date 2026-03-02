@@ -4969,10 +4969,6 @@
                     <i class="fas fa-bullhorn"></i>
                     <span>Marketing Center</span>
                 </a>
-                <a class="nav-item" href="web_app/marketing-command-center.html">
-                    <i class="fas fa-brain"></i>
-                    <span>Social Intelligence</span>
-                </a>
                 <a class="nav-item" href="web_app/seo_dashboard.html">
                     <i class="fas fa-search"></i>
                     <span>SEO Dashboard</span>
@@ -11093,6 +11089,74 @@
                 case 'goto-task-sheets':
                     window.location.href = 'sowing-sheets.html';
                     break;
+                case 'log-harvest': {
+                    // Scroll to today's tasks and highlight harvest group
+                    const harvestGroup = document.querySelector('.task-group[data-type="harvest"]');
+                    const todaysSection = document.getElementById('todaysTasks');
+                    if (harvestGroup) {
+                        harvestGroup.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        harvestGroup.style.boxShadow = '0 0 20px rgba(34, 197, 94, 0.5)';
+                        setTimeout(() => { harvestGroup.style.boxShadow = ''; }, 2500);
+                        showToast('Harvest tasks highlighted below', 'info');
+                    } else if (todaysSection) {
+                        todaysSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        showToast('No harvest tasks scheduled for today', 'info');
+                    } else {
+                        showToast('No harvest tasks found — load data first', 'info');
+                    }
+                    break;
+                }
+                case 'complete-task': {
+                    // Scroll to today's tasks and focus the first incomplete task
+                    const tasksSection = document.getElementById('todaysTasks');
+                    if (tasksSection) {
+                        tasksSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        // After scroll, highlight the first incomplete task
+                        setTimeout(() => {
+                            const firstTask = document.querySelector('.task-item:not(.completed)');
+                            if (firstTask) {
+                                firstTask.style.boxShadow = '0 0 16px rgba(99, 102, 241, 0.6)';
+                                firstTask.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                setTimeout(() => { firstTask.style.boxShadow = ''; }, 2500);
+                                showToast('First incomplete task highlighted', 'info');
+                            } else {
+                                showToast('All tasks are complete!', 'success');
+                            }
+                        }, 400);
+                    } else {
+                        showToast('Tasks section not found — load data first', 'info');
+                    }
+                    break;
+                }
+                case 'search-crop': {
+                    // Focus the search input for crop filtering
+                    const cropSearch = document.getElementById('searchInput');
+                    if (cropSearch) {
+                        cropSearch.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        setTimeout(() => {
+                            cropSearch.value = '';
+                            cropSearch.focus();
+                            cropSearch.placeholder = 'Type a crop name to filter...';
+                        }, 400);
+                        showToast('Search by crop — start typing below', 'info');
+                    }
+                    break;
+                }
+                case 'search-location': {
+                    // Switch to location view and focus the search input
+                    setView('location');
+                    const locSearch = document.getElementById('searchInput');
+                    if (locSearch) {
+                        locSearch.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        setTimeout(() => {
+                            locSearch.value = '';
+                            locSearch.focus();
+                            locSearch.placeholder = 'Type a bed or field name to filter...';
+                        }, 400);
+                    }
+                    showToast('Switched to Location View — type to filter by bed/field', 'info');
+                    break;
+                }
                 default:
                     console.log('Command:', action);
             }

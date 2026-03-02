@@ -570,6 +570,59 @@
             min-width: 20px;
             text-align: center;
         }
+        /* ── Print Prompt Toast ── */
+        .print-prompt-toast {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: var(--bg-card, #282520);
+            border: 1px solid var(--border, rgba(255,255,255,0.1));
+            border-radius: var(--radius, 12px);
+            padding: 0.75rem 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            z-index: 9999;
+            opacity: 0;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+            min-width: 280px;
+        }
+        .print-prompt-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        .print-prompt-toast .print-prompt-msg { flex: 1; font-size: 0.9rem; color: var(--text-primary, #edf2f4); }
+        .print-prompt-toast .print-prompt-btn {
+            background: var(--primary-dim, rgba(34,197,94,0.15));
+            color: var(--primary, #22c55e);
+            border: none;
+            border-radius: var(--radius-sm, 8px);
+            padding: 8px 16px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            cursor: pointer;
+            min-height: 40px;
+            white-space: nowrap;
+        }
+        .print-prompt-toast .print-prompt-btn:hover { background: rgba(34,197,94,0.25); }
+        .print-prompt-toast .print-dismiss-btn {
+            background: rgba(255,255,255,0.08);
+            color: var(--text-secondary, #8d99ae);
+            border: none;
+            border-radius: var(--radius-sm, 8px);
+            padding: 8px 12px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            min-height: 40px;
+            white-space: nowrap;
+        }
+        .print-prompt-toast .print-dismiss-btn:hover { background: rgba(255,255,255,0.14); }
+        .print-prompt-toast .print-prompt-countdown {
+            font-size: 0.75rem;
+            color: var(--text-secondary, #8d99ae);
+            min-width: 20px;
+            text-align: center;
+        }
         /* ── Card Action Buttons ── */
         .card-actions {
             display: flex;
@@ -628,7 +681,7 @@
         .sheet-preview-table .sheet-check { width:16px; height:16px; border:2px solid #333; border-radius:3px; display:inline-block; }
         /* ── Print ── */
         @media print {
-            .gh-header, .gh-tabs, .toast, .btn, .quick-actions, .table-toolbar, .undo-toast { display:none !important; }
+            .gh-header, .gh-tabs, .toast, .btn, .quick-actions, .table-toolbar, .undo-toast, .print-prompt-toast { display:none !important; }
             .gh-main { padding:0 !important; }
             body { background:#fff !important; color:#000 !important; }
             .stat-card, .table-wrap, .task-card { border:1px solid #ccc !important; background:#fff !important; }
@@ -1590,6 +1643,12 @@
     <span class="undo-countdown" id="undoCountdown">5</span>
     <button class="undo-btn" onclick="undoLastAction()">Undo</button>
 </div>
+<div class="print-prompt-toast" id="printPromptToast">
+    <span class="print-prompt-msg" id="printPromptMsg"></span>
+    <span class="print-prompt-countdown" id="printPromptCountdown">8</span>
+    <button class="print-prompt-btn" id="printPromptBtn" onclick="acceptPrintPrompt()">Print Labels</button>
+    <button class="print-dismiss-btn" onclick="dismissPrintPrompt()">Dismiss</button>
+</div>
 
 <script>
 // Security: DOMPurify wrapper for safe innerHTML
@@ -2158,6 +2217,43 @@ function undoLastAction() {
         clearUndoToast();
         cb();
     }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// PRINT PROMPT TOAST (non-blocking label print prompt)
+// ═══════════════════════════════════════════════════════════════════
+var _printPromptState = { timer: null, countdown: null, seconds: 0, labelUrl: null };
+
+function showPrintPrompt(msg, labelUrl, seconds) {
+    seconds = seconds || 8;
+    dismissPrintPrompt();
+    _printPromptState.labelUrl = labelUrl;
+    _printPromptState.seconds = seconds;
+    document.getElementById('printPromptMsg').textContent = msg;
+    document.getElementById('printPromptCountdown').textContent = seconds;
+    var el = document.getElementById('printPromptToast');
+    el.classList.add('show');
+    _printPromptState.countdown = setInterval(function() {
+        _printPromptState.seconds--;
+        document.getElementById('printPromptCountdown').textContent = _printPromptState.seconds;
+        if (_printPromptState.seconds <= 0) dismissPrintPrompt();
+    }, 1000);
+    _printPromptState.timer = setTimeout(function() { dismissPrintPrompt(); }, seconds * 1000);
+}
+
+function dismissPrintPrompt() {
+    if (_printPromptState.timer) clearTimeout(_printPromptState.timer);
+    if (_printPromptState.countdown) clearInterval(_printPromptState.countdown);
+    _printPromptState.timer = null;
+    _printPromptState.countdown = null;
+    _printPromptState.labelUrl = null;
+    document.getElementById('printPromptToast').classList.remove('show');
+}
+
+function acceptPrintPrompt() {
+    var url = _printPromptState.labelUrl;
+    dismissPrintPrompt();
+    if (url) window.open(url, '_blank');
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -3017,14 +3113,13 @@ async function confirmSownWithLot() {
             const url = ghApiUrl('updateTaskCompletion', 'batchId=' + encodeURIComponent(batchId) + '&completed=true&actualDate=' + encodeURIComponent(actualDate) + (seedLotId ? '&seedLotId=' + encodeURIComponent(seedLotId) : '') + (seedsUsed ? '&seedsUsed=' + encodeURIComponent(seedsUsed) : ''));
             await fetch(url);
 
-            // Offer to print tray labels
+            // Offer to print tray labels (non-blocking toast prompt)
             if (task && task.trays) {
                 const cropName = (task.crop || '') + (task.variety ? ' - ' + task.variety : '');
-                if (confirm('Print tray labels for ' + cropName + '?\n' + task.trays + ' trays')) {
-                    const labelParams = new URLSearchParams({ batch: batchId, type: 'fieldTray', autoprint: '1' });
-                    if (seedLotId) labelParams.set('seedLot', seedLotId);
-                    window.open('../labels.html?' + labelParams.toString(), '_blank');
-                }
+                const labelParams = new URLSearchParams({ batch: batchId, type: 'fieldTray', autoprint: '1' });
+                if (seedLotId) labelParams.set('seedLot', seedLotId);
+                const labelUrl = '../labels.html?' + labelParams.toString();
+                showPrintPrompt('Print labels for ' + cropName + '? (' + task.trays + ' trays)', labelUrl, 8);
             }
 
             invalidateCache('today'); loadTodayTab(true);
