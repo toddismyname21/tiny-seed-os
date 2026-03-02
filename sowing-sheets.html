@@ -1840,8 +1840,16 @@
 
         // Show assignment modal before printing
         function showAssignModal() {
-            document.getElementById('assignModal').style.display = 'flex';
+            var modal = document.getElementById('assignModal');
+            if (!modal) { console.error('assignModal not found'); executePrint(); return; }
+            modal.style.display = 'flex';
+            modal.offsetHeight; // force reflow so display:flex is painted
+            modal.classList.add('open');
             loadEmployeesForAssign();
+        }
+        function hideAssignModal() {
+            var modal = document.getElementById('assignModal');
+            if (modal) { modal.classList.remove('open'); modal.style.display = 'none'; }
         }
 
         // Print with assignment
@@ -1874,7 +1882,7 @@
                 }
             }
 
-            document.getElementById('assignModal').style.display = 'none';
+            hideAssignModal();
             // Store assigned names for print header
             window._assignedNames = empNames.length > 0 ? empNames.join(', ') : '';
             executePrint();
@@ -1882,7 +1890,7 @@
 
         // Print without assignment
         function doPrintOnly() {
-            document.getElementById('assignModal').style.display = 'none';
+            hideAssignModal();
             window._assignedNames = '';
             executePrint();
         }
@@ -2197,8 +2205,14 @@
     </div>
 
     <!-- Print Assignment Modal -->
-    <div id="assignModal" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;" onclick="this.style.display='none'">
-        <div style="background:var(--bg-card);border-radius:12px;max-width:450px;width:90%;padding:1.5rem;box-shadow:0 20px 60px rgba(0,0,0,0.4);border:1px solid var(--border);" onclick="event.stopPropagation()">
+    <style>
+        #assignModal { display:none;position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,0);align-items:center;justify-content:center;transition:background 0.2s; }
+        #assignModal.open { background:rgba(0,0,0,0.6); }
+        #assignModal .assign-card { background:var(--bg-card,#16213e);border-radius:12px;max-width:450px;width:90%;padding:1.5rem;box-shadow:0 20px 60px rgba(0,0,0,0.4);border:1px solid var(--border,rgba(255,255,255,0.1));transform:scale(0.95);opacity:0;transition:transform 0.2s,opacity 0.2s; }
+        #assignModal.open .assign-card { transform:scale(1);opacity:1; }
+    </style>
+    <div id="assignModal">
+        <div class="assign-card">
             <h3 style="margin:0 0 12px;color:var(--text-primary);font-size:1.1rem;"><i class="fas fa-users"></i> Assign Sowing Sheet</h3>
             <p style="font-size:0.85rem;color:var(--text-secondary);margin:0 0 16px;">Optional — leave blank and all employees can access these tasks.</p>
             <div id="assignEmployeeList" style="max-height:200px;overflow-y:auto;margin-bottom:16px;">
@@ -2206,9 +2220,15 @@
             </div>
             <div style="display:flex;gap:12px;">
                 <button onclick="doPrintWithAssignment()" style="flex:1;padding:10px;background:var(--primary);color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;"><i class="fas fa-print"></i> Print & Assign</button>
-                <button onclick="doPrintOnly()" style="flex:1;padding:10px;background:var(--bg-light);color:var(--text-primary);border:1px solid var(--border);border-radius:8px;font-weight:600;cursor:pointer;"><i class="fas fa-print"></i> Print Only</button>
+                <button onclick="doPrintOnly()" style="flex:1;padding:10px;background:var(--bg-light,#1a2744);color:var(--text-primary);border:1px solid var(--border);border-radius:8px;font-weight:600;cursor:pointer;"><i class="fas fa-print"></i> Print Only</button>
             </div>
         </div>
     </div>
+    <script>
+    // Backdrop click to close (only if click is directly on backdrop, not the card)
+    document.getElementById('assignModal').addEventListener('click', function(e) {
+        if (e.target === this) hideAssignModal();
+    });
+    </script>
 </body>
 </html>
