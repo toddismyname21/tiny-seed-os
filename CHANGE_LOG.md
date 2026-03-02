@@ -38,6 +38,24 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-03-02 — Fix Assignment Modal + CSP + Label Layout (PM_ARCHITECT)
+
+### Files Modified
+- `sowing-sheets.html` — Fixed assignment modal not appearing when clicking Print. Replaced fragile inline `onclick="this.style.display='none'"` on backdrop div with proper `addEventListener` + `e.target===this` check. Added CSS fade-in animation, bumped z-index to 100000 (above print-engine's 99999), added force reflow before animation, graceful fallback if element missing.
+- `sowing-sheets.html` + 17 other HTML files — Fixed CSP `frame-src` to include `blob:` for PDF print preview (TinySeedPrint uses blob URL iframes).
+- `labels.html` — Swapped variety/crop order on all 6 tray label rendering paths (screen, print preview, HTML print, field tray, 2x jsPDF). Variety now at top in 13pt bold, crop below in 9pt. Increased batch/date line fonts from 7pt to 8.5pt for readability.
+
+### Bugs Fixed
+1. Assignment modal appeared to not show — inline onclick handler could close it via event propagation before user sees it
+2. CSP blocked PDF print preview — `frame-src` missing `blob:` for TinySeedPrint iframe previews
+3. Tray labels: variety (what workers look for first) was below crop name instead of at top
+4. Tray label batch/date lines were too small to read (7pt → 8.5pt)
+
+### Reason
+User-reported bugs: "this content is blocked" when printing, "it goes straight to print without allowing me to assign", "variety should be at the top", "third and fourth line is very hard to read".
+
+---
+
 ## 2026-03-02 — Fix Labels Duplicate ID Bug + Backend Hardening (PM_ARCHITECT)
 
 ### Files Modified
