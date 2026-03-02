@@ -38,6 +38,27 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-03-02 — Batch Label Printing + Chef Onboarding (PM_ARCHITECT)
+
+### Files Modified
+- `labels.html` — Added Today/Week/60-Day quick-filter buttons for date range; added `?dateRange=today` URL param support for pre-filtered batch printing; added `setDateRange()` function
+- `web_app/greenhouse-dashboard.html` — "Print Labels" card now opens labels.html pre-filtered to today's seedings (`?dateRange=today`)
+- `web_app/chef-approve.html` — Added "Invite a New Chef" form (name, company, email, phone) with `sendChefInvite()` function that calls existing `inviteChef` backend API
+- `web_app/wholesale.html` — Login footer now shows "Register as a Chef" link to `chef-register.html` for self-serve signup (was mailto:sales link only)
+
+### Functions Added
+- `setDateRange(preset)` in `labels.html` — Quick date filter (today/week/60-day)
+- `sendChefInvite()` in `chef-approve.html` — Sends chef invitation via API
+
+### Reason
+User's workflow is to batch-print all labels + sowing sheet BEFORE seeding, not one-by-one. Added quick date filters so labels page can show just today's tasks instantly. Chef onboarding was blocked because chef-register.html was orphaned with no links and chef-approve.html had no invite form — both now connected.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md — inviteChef API already existed in backend
+- [x] No duplicate files created
+
+---
+
 ## 2026-03-01 — UX Friction Fixes + Master Action Plan (PM_ARCHITECT)
 
 ### Files Modified
