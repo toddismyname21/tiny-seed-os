@@ -818,7 +818,7 @@
                 icon: 'fa-seedling',
                 dateField: 'sowDate',  // API returns 'sowDate' for all task types
                 apiAction: 'getGreenhouseSowingTasks',
-                columns: ['Date', 'Crop', 'Variety', 'Trays', 'Cells', 'Seeds', 'Bed']
+                columns: ['Date', 'Crop', 'Variety', 'Trays', 'Cells', 'Seeds', 'Notes']
             },
             transplant: {
                 title: 'TRANSPLANTING TASKS',
@@ -1441,8 +1441,8 @@
                     <td>${task.variety}</td>
                     <td>${editableCell('Trays_Needed', traysDisplay, 'number')}</td>
                     <td>${editableCell('Tray_Cell_Count', task.cellsPerTray || '-', 'number')}</td>
-                    <td style="font-weight:600;color:#f59e0b;">${task.seedsNeeded || '-'}</td>
-                    <td>${editableCell('Target_Bed_ID', task.bed || '-', 'text')}</td>
+                    <td style="font-weight:600;color:#f59e0b;">${task.seedsNeeded > 0 ? task.seedsNeeded : (task.trays > 0 && task.cellsPerTray > 0 ? Math.ceil(task.trays * task.cellsPerTray * 1.05) : '-')}</td>
+                    <td>${editableCell('Notes', task.notes || '', 'text')}</td>
                 `;
             } else if (currentTaskType === 'transplant') {
                 rowContent = `
@@ -1567,16 +1567,20 @@
                     { key: 'variety', label: 'Variety' },
                     { key: 'trays',   label: 'Trays',   width: 50 },
                     { key: 'cells',   label: 'Cells',   width: 50 },
-                    { key: 'bed',     label: 'Bed',     width: 70 }
+                    { key: 'seeds',   label: 'Seeds',   width: 55 },
+                    { key: 'notes',   label: 'Notes',   width: 90 }
                 ];
                 rowMapper = function(task) {
+                    var seeds = task.seedsNeeded > 0 ? task.seedsNeeded
+                        : (task.trays > 0 && task.cellsPerTray > 0) ? Math.ceil(task.trays * task.cellsPerTray * 1.05) : '';
                     return {
                         date: formatDateShort(task[dateField]),
                         crop: task.crop,
                         variety: task.variety,
                         trays: String(task.trays || ''),
                         cells: String(task.cellsPerTray || ''),
-                        bed: task.bed || '-',
+                        seeds: String(seeds),
+                        notes: task.notes || '',
                         _groupDate: task[dateField],
                         _groupCrop: task.crop
                     };
@@ -1766,6 +1770,8 @@
             const taskDate = task[config.dateField];
 
             if (currentTaskType === 'ghSow') {
+                const seeds = task.seedsNeeded > 0 ? task.seedsNeeded
+                    : (task.trays > 0 && task.cellsPerTray > 0) ? Math.ceil(task.trays * task.cellsPerTray * 1.05) : '-';
                 return `
                     <tr>
                         <td style="text-align: center;"><div class="checkbox"></div></td>
@@ -1774,7 +1780,8 @@
                         <td>${task.variety}</td>
                         <td style="font-weight: 600;">${task.trays}</td>
                         <td>${task.cellsPerTray}</td>
-                        <td>${task.bed || '-'}</td>
+                        <td style="font-weight: 600; color: #d97706;">${seeds}</td>
+                        <td style="font-size: 9pt; color: #555;">${task.notes || ''}</td>
                     </tr>
                 `;
             } else if (currentTaskType === 'transplant') {
