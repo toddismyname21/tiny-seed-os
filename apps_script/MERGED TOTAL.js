@@ -27271,12 +27271,18 @@ function getGreenhouseSeedings(params) {
     let cropProfiles = {};
     if (profileSheet) {
       const profData = profileSheet.getDataRange().getValues();
+      const profHeaders = profData[0];
+      // Header-based lookup — never hardcode column indices
+      var profCropCol = profHeaders.indexOf('Crop_Name') >= 0 ? profHeaders.indexOf('Crop_Name') : profHeaders.indexOf('Crop');
+      if (profCropCol < 0) profCropCol = 0; // fallback to first column
+      var profNurseryCol = profHeaders.indexOf('Nursery_Days') >= 0 ? profHeaders.indexOf('Nursery_Days') : profHeaders.indexOf('Days_In_Nursery');
+      var profTraySizeCol = profHeaders.indexOf('Tray_Cell_Count') >= 0 ? profHeaders.indexOf('Tray_Cell_Count') : profHeaders.indexOf('Default_Tray_Size');
       for (let i = 1; i < profData.length; i++) {
-        const crop = profData[i][0];
+        const crop = profData[i][profCropCol];
         if (crop) {
           cropProfiles[crop] = {
-            nurseryDays: Number(profData[i][22]) || 28,
-            traySize: Number(profData[i][15]) || 128
+            nurseryDays: profNurseryCol >= 0 ? (Number(profData[i][profNurseryCol]) || 28) : 28,
+            traySize: profTraySizeCol >= 0 ? (Number(profData[i][profTraySizeCol]) || 128) : 128
           };
         }
       }
@@ -33858,6 +33864,7 @@ function createDirectSeedingTab() {
 
       // Seed lot used (if tracked)
       const seedLotUsed = cols.seedLotUsed >= 0 ? (row[cols.seedLotUsed] || '') : '';
+      const trayType = cols.trayType >= 0 ? (row[cols.trayType] || '') : '';
 
       tasks.push({
         batchId: cols.batchId >= 0 ? row[cols.batchId] : 'ROW-' + i,
@@ -33878,7 +33885,7 @@ function createDirectSeedingTab() {
         seedsNeeded: seedsNeeded,
         bed: cols.bed >= 0 ? row[cols.bed] : '',
         seedLotUsed: seedLotUsed,
-        trayType: cols.trayType >= 0 ? (row[cols.trayType] || '') : '',
+        trayType: trayType,
         germTemp: profile.germTemp || '',
         notes: cols.notes >= 0 ? row[cols.notes] : '',
         completed: !!isCompleted,
