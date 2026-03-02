@@ -495,15 +495,15 @@
         }
 
         .label-batch {
-            font-size: 8px;
+            font-size: 9px;
             font-family: monospace;
-            color: #666;
+            color: #555;
             margin-top: 2px;
         }
 
         .label-date {
-            font-size: 8px;
-            color: #666;
+            font-size: 9px;
+            color: #555;
         }
 
         /* Empty State */
@@ -993,14 +993,14 @@
         }
 
         .print-label-batch {
-            font-size: 7pt;
+            font-size: 8.5pt;
             font-family: monospace;
-            color: #666;
+            color: #555;
         }
 
         .print-label-date {
-            font-size: 7pt;
-            color: #666;
+            font-size: 8.5pt;
+            color: #555;
         }
 
         .modal-footer {
@@ -1775,8 +1775,8 @@
                                onclick="event.stopPropagation(); toggleLabel('${label.labelId}', ${index})">
                         <div class="label-qr" id="qr-${index}"></div>
                         <div class="label-content">
-                            <div class="label-crop">${label.crop}</div>
-                            <div class="label-variety">${label.variety}</div>
+                            <div class="label-crop">${label.variety}</div>
+                            <div class="label-variety">${label.crop}</div>
                             <div class="label-batch">${label.batchNumber} T${label.trayNumber} | ${label.traySizeDisplay}</div>
                             <div class="label-date">Sow: ${formatDate(label.seedDate)} → TP: ${formatDate(label.transplantDate)}${label.field ? ' @ ' + label.field : ''}</div>
                         </div>
@@ -1898,8 +1898,8 @@
                     <div class="print-label">
                         <div class="print-label-qr" id="print-qr-${index}"></div>
                         <div class="print-label-content">
-                            <div class="print-label-crop">${label.crop}</div>
-                            <div class="print-label-variety">${label.variety}</div>
+                            <div class="print-label-crop">${label.variety}</div>
+                            <div class="print-label-variety">${label.crop}</div>
                             <div class="print-label-batch">${label.batchNumber} T${label.trayNumber} | ${label.traySizeDisplay}</div>
                             <div class="print-label-date">Sow: ${formatDate(label.seedDate)} → TP: ${formatDate(label.transplantDate)}${label.field ? ' @ ' + label.field : ''}</div>
                         </div>
@@ -2029,8 +2029,8 @@
                     <div class="label">
                         <div class="label-qr" id="qr-${index}"></div>
                         <div class="label-content">
-                            <div class="label-crop">${label.crop}</div>
-                            <div class="label-variety">${label.variety}</div>
+                            <div class="label-crop">${label.variety}</div>
+                            <div class="label-variety">${label.crop}</div>
                             <div class="label-batch">${label.batchNumber} T${label.trayNumber} | ${label.traySizeDisplay}</div>
                             <div class="label-date">Sow: ${formatDate(label.seedDate)} → TP: ${formatDate(label.transplantDate)}${label.field ? ' @ ' + label.field : ''}</div>
                         </div>
@@ -2963,14 +2963,14 @@
                             text-overflow: ellipsis;
                         }
                         .label-batch {
-                            font-size: 7pt;
+                            font-size: 8.5pt;
                             font-family: 'Courier New', monospace;
-                            color: #555;
+                            color: #444;
                             margin-top: 0.02in;
                         }
                         .label-dates {
-                            font-size: 7pt;
-                            color: #444;
+                            font-size: 8.5pt;
+                            color: #333;
                         }
                         .label-right {
                             text-align: right;
@@ -3133,8 +3133,8 @@
                     <div class="label">
                         <div class="label-qr" id="qr-${index}"></div>
                         <div class="label-main">
-                            <div class="label-crop">${label.crop}</div>
-                            <div class="label-variety">${label.variety}</div>
+                            <div class="label-crop">${label.variety}</div>
+                            <div class="label-variety">${label.crop}</div>
                             <div class="label-batch">${label.batchNumber} T${label.trayNumber}</div>
                             <div class="label-dates">Sow: ${formatDate(label.seedDate)} → TP: ${formatDate(label.transplantDate)}${label.field ? ' @ ' + label.field : ''}</div>
                         </div>
@@ -3190,12 +3190,12 @@
             }
             var tx = 75, rx = W - 6;
             doc.setTextColor(0, 0, 0); doc.setFont('helvetica', 'bold'); doc.setFontSize(13);
-            doc.text(label.crop || '', tx, 17);
+            doc.text(label.variety || '', tx, 17);
             doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(51, 51, 51);
-            doc.text(label.variety || '', tx, 29);
-            doc.setFont('courier', 'normal'); doc.setFontSize(7); doc.setTextColor(85, 85, 85);
+            doc.text(label.crop || '', tx, 29);
+            doc.setFont('courier', 'normal'); doc.setFontSize(8.5); doc.setTextColor(68, 68, 68);
             doc.text((label.batchNumber || '') + ' T' + (label.trayNumber || ''), tx, 40);
-            doc.setFont('helvetica', 'normal'); doc.setTextColor(68, 68, 68);
+            doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(68, 68, 68);
             var ds = 'Sow: ' + formatDate(label.seedDate) + '  ->  TP: ' + formatDate(label.transplantDate);
             if (label.field) ds += '  @  ' + label.field;
             doc.text(ds, tx, 51);
@@ -3274,26 +3274,27 @@
                     var tx = 75; // text start (after QR + gap)
                     var rx = W - 6; // right edge
 
-                    // Crop - bold 13pt
+                    // Variety - bold 13pt (top line — what you look for first)
                     doc.setTextColor(0, 0, 0);
                     doc.setFont('helvetica', 'bold');
                     doc.setFontSize(13);
-                    doc.text(label.crop || '', tx, 17);
+                    doc.text(label.variety || '', tx, 17);
 
-                    // Variety - 9pt
+                    // Crop - 9pt
                     doc.setFont('helvetica', 'normal');
                     doc.setFontSize(9);
                     doc.setTextColor(51, 51, 51);
-                    doc.text(label.variety || '', tx, 29);
+                    doc.text(label.crop || '', tx, 29);
 
-                    // Batch - 7pt monospace
+                    // Batch - 8.5pt monospace
                     doc.setFont('courier', 'normal');
-                    doc.setFontSize(7);
-                    doc.setTextColor(85, 85, 85);
+                    doc.setFontSize(8.5);
+                    doc.setTextColor(68, 68, 68);
                     doc.text((label.batchNumber || '') + ' T' + (label.trayNumber || ''), tx, 40);
 
-                    // Dates - 7pt
+                    // Dates - 8.5pt
                     doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(8.5);
                     doc.setTextColor(68, 68, 68);
                     var ds = 'Sow: ' + formatDate(label.seedDate) + '  ->  TP: ' + formatDate(label.transplantDate);
                     if (label.field) ds += '  @  ' + label.field;
