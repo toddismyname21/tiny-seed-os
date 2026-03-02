@@ -145,6 +145,50 @@ This is the OWNER-APPROVED map of what to use, what to build, and what to archiv
 
 ---
 
+## BUILD — AI Seed Procurement Agent (Back Burner)
+
+**Owner decision:** "I want the AI to use all suppliers, get organic at the best prices, and build carts up to the point of sale without placing orders."
+
+### What it does
+- AI scans the 3-week sow window (already built: `checkSeedProcurementNeeds`)
+- Searches ALL supplier websites for each needed variety
+- Prioritizes **organic** varieties
+- Compares prices across suppliers
+- Builds optimized carts per supplier (fewest orders, best prices, organic preference)
+- Presents a review screen: "Here's what I'd order from Johnny's, High Mowing, Fedco..."
+- Owner confirms → system places the order (or owner places manually)
+
+### Suppliers to support
+- Johnny's Selected Seeds (johnnyseeds.com)
+- High Mowing Organic Seeds (highmowingseeds.com)
+- Fedco Seeds (fedcoseeds.com)
+- Osborne Quality Seeds (osborneseed.com)
+- Outsidepride (outsidepride.com)
+- (add more as needed)
+
+### Technical approach
+- **Browser automation** (Playwright/Puppeteer) to search supplier catalogs
+- **Price scraping** per variety per supplier
+- **Organic flag detection** from product listings
+- **Cart building** via browser automation (add to cart, stop before checkout)
+- **Review UI** in greenhouse dashboard or chief of staff
+
+### What's already built
+- 3-week window scanning with urgency levels (backend)
+- Supplier grouping with website links (frontend)
+- Seed lot matching with crop aliases (backend)
+- "SEEDS NOT IN INVENTORY" alerts when marking sown (frontend)
+- Daily trigger for procurement checks (backend)
+
+### What needs building
+- Supplier catalog scraping / price lookup
+- Cross-supplier price comparison with organic weighting
+- Cart building automation per supplier
+- Owner review + confirm UI
+- Saved supplier account credentials (secure storage)
+
+---
+
 ## EMPLOYEE WORKFLOW — Ready for Staff
 
 ### Setup (Do Once)
