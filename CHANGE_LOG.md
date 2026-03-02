@@ -38,6 +38,32 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-03-02 — Fix Employee Registration/Onboarding Flow (PM_ARCHITECT)
+
+### Files Modified
+- `web_app/employee-onboarding.html` — Added PIN creation fields (create + confirm) to Step 1; Added PIN validation; Fixed Content-Type from `application/json` to `text/plain` (was causing CORS failure); Updated success screen to tell employee to use their chosen PIN
+- `apps_script/MERGED TOTAL.js` — Renamed `completeEmployeeRegistration` → `completeEmployeeOnboarding` (function name didn't match router); Added PIN storage to onboarding completion; Added all onboarding fields storage (DOB, address, shirt size, experience, etc.); Created `registerEmployee` backend function for employee.html self-registration; Fixed `approveEmployee` to preserve employee's self-chosen PIN instead of always generating random; Added `verifyEmployeeToken` to GET whitelist, `completeEmployeeOnboarding` to POST whitelist
+
+### Functions Added
+- `registerEmployee()` in `MERGED TOTAL.js` — Self-registration from employee.html (no invite token needed). Creates USERS row with PIN, status='Pending Approval', notifies owner by email. Duplicate phone check with LockService.
+
+### Bugs Fixed
+1. `completeEmployeeOnboarding` function didn't exist — router called it but function was named `completeEmployeeRegistration` (runtime crash)
+2. No PIN field in onboarding form — employee could complete onboarding but had no way to log in
+3. `registerEmployee` endpoint missing — employee.html registration form submitted to nonexistent backend
+4. Content-Type `application/json` caused CORS errors on Apps Script POST — changed to `text/plain`
+5. `approveEmployee` always overwrote PIN with random — now preserves employee's self-chosen PIN
+
+### Reason
+User invited Ben Finley but he had no way to sign up for a PIN. The entire employee registration pipeline was broken at multiple points.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
 ## 2026-03-02 — Employee Greenhouse Sowing Companion + Print Assignment + Backend Fixes (PM_ARCHITECT)
 
 ### Files Modified

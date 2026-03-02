@@ -591,6 +591,22 @@
                     </div>
                 </div>
 
+                <div class="section-divider"></div>
+
+                <h3 style="font-size: var(--ts-text-base, 1rem); margin-bottom: var(--ts-space-4, 16px); color: #374151;"><i class="fas fa-lock"></i> Create Your Login PIN</h3>
+                <p style="color: #6b7280; font-size: 0.875rem; margin-bottom: 12px;">You'll use this 4-digit PIN to log into the employee app on your phone.</p>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Create PIN <span class="required">*</span></label>
+                        <input type="tel" id="createPin" required maxlength="4" pattern="[0-9]{4}" inputmode="numeric" placeholder="••••" style="text-align:center;font-size:1.5rem;letter-spacing:8px;">
+                    </div>
+                    <div class="form-group">
+                        <label>Confirm PIN <span class="required">*</span></label>
+                        <input type="tel" id="confirmPin" required maxlength="4" pattern="[0-9]{4}" inputmode="numeric" placeholder="••••" style="text-align:center;font-size:1.5rem;letter-spacing:8px;">
+                    </div>
+                </div>
+
                 <div class="btn-row">
                     <button type="button" class="btn btn-primary" onclick="nextStep(2)">
                         Continue <i class="fas fa-arrow-right"></i>
@@ -878,9 +894,9 @@
             <br>
             <p><strong>What happens next?</strong></p>
             <ul style="text-align: left; margin: 16px auto; max-width: 300px; color: #4b5563;">
-                <li>Your manager will review your submission</li>
-                <li>You'll receive your login credentials by email</li>
-                <li>You can then access the Employee App to clock in/out</li>
+                <li>Your manager will review and approve your account</li>
+                <li>You'll get an email when you're approved</li>
+                <li>Then log in to the <a href="../employee.html" style="color:#22c55e;">Employee App</a> with the PIN you just created</li>
             </ul>
             <p style="margin-top: var(--ts-space-5, 20px); font-size: var(--ts-text-sm, 0.875rem); color: #6b7280;">
                 Questions? Contact <a href="mailto:todd@tinyseedfarmpgh.com" style="color: #22c55e;">todd@tinyseedfarmpgh.com</a>
@@ -989,6 +1005,26 @@
                     input.style.borderColor = '#e5e7eb';
                 }
             });
+
+            // PIN validation for step 1
+            if (step === 1) {
+                const pin = document.getElementById('createPin').value.trim();
+                const confirmPin = document.getElementById('confirmPin').value.trim();
+                if (pin.length !== 4 || !/^\d{4}$/.test(pin)) {
+                    valid = false;
+                    document.getElementById('createPin').style.borderColor = '#ef4444';
+                    alert('PIN must be exactly 4 digits');
+                    if (!firstInvalid) firstInvalid = document.getElementById('createPin');
+                } else if (pin !== confirmPin) {
+                    valid = false;
+                    document.getElementById('confirmPin').style.borderColor = '#ef4444';
+                    alert('PINs do not match');
+                    if (!firstInvalid) firstInvalid = document.getElementById('confirmPin');
+                } else {
+                    document.getElementById('createPin').style.borderColor = '#e5e7eb';
+                    document.getElementById('confirmPin').style.borderColor = '#e5e7eb';
+                }
+            }
 
             if (!valid && firstInvalid) {
                 firstInvalid.focus();
@@ -1114,6 +1150,7 @@
             // Collect all form data
             const formData = {
                 token: token,
+                pin: document.getElementById('createPin').value.trim(),
                 firstName: document.getElementById('firstName').value.trim(),
                 lastName: document.getElementById('lastName').value.trim(),
                 preferredName: document.getElementById('preferredName').value.trim(),
@@ -1149,7 +1186,7 @@
             try {
                 const response = await fetch(`${API_URL}?action=completeEmployeeOnboarding`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify(formData)
                 });
 

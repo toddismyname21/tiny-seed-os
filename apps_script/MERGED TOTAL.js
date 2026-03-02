@@ -14233,7 +14233,7 @@ function doGet(e) {
     'getCSRFToken', 'getSystemStatus',
     // Public-facing pages served via ?page= are handled above, before this point
     // Employee self-service (uses magic link auth, not session tokens)
-    'validateMagicLink', 'validateInviteToken',
+    'validateMagicLink', 'validateInviteToken', 'verifyEmployeeToken',
     // Employee app PIN auth (no session token yet — PIN is the credential)
     'authenticateEmployee',
     // Driver app PIN auth (no session token yet — PIN is the credential)
@@ -17900,8 +17900,8 @@ function doPost(e) {
       'shopifyWebhook', 'handleShopifyWebhook',
       // Customer-facing actions (use customer-specific tokens)
       'submitWholesaleOrder', 'verifyChefToken',
-      // Employee self-service (uses invite token)
-      'registerEmployee', 'completeOnboarding',
+      // Employee self-service (uses invite token or self-registration)
+      'registerEmployee', 'completeOnboarding', 'completeEmployeeOnboarding',
       // Shopify-embedded customer-facing (public visitors send delivery requests)
       'sendDeliveryRequest'
     ]);
@@ -18353,6 +18353,8 @@ function doPost(e) {
       // ============ EMPLOYEE ONBOARDING SYSTEM (POST) - Added 2026-01-29 ============
       case 'completeEmployeeOnboarding':
         return jsonResponse(completeEmployeeOnboarding(data));
+      case 'registerEmployee':
+        return jsonResponse(registerEmployee(data));
       case 'approveEmployeeComplete':
         return jsonResponse(approveEmployeeComplete(data));
       case 'updateEmployee':
@@ -23220,7 +23222,7 @@ function verifyEmployeeToken(token) {
  * @param {Object} data - { token, fullName, phone, emergencyName, emergencyPhone, emergencyRelation }
  * @returns {Object} { success, message }
  */
-function completeEmployeeRegistration(data) {
+function completeEmployeeOnboarding(data) {
   try {
     // Verify the token first
     const verification = verifyEmployeeToken(data.token);
@@ -23259,11 +23261,29 @@ function completeEmployeeRegistration(data) {
     const registrationDateCol = getOrCreateCol('Registration_Completed');
 
     // Set values
-    if (data.fullName) sheet.getRange(rowIndex, fullNameCol).setValue(data.fullName);
+    var fullName = data.fullName || ((data.firstName || '') + ' ' + (data.lastName || '')).trim();
+    if (fullName) sheet.getRange(rowIndex, fullNameCol).setValue(fullName);
     if (data.phone) sheet.getRange(rowIndex, phoneCol).setValue(data.phone);
     if (data.emergencyName) sheet.getRange(rowIndex, emergencyNameCol).setValue(data.emergencyName);
     if (data.emergencyPhone) sheet.getRange(rowIndex, emergencyPhoneCol).setValue(data.emergencyPhone);
     if (data.emergencyRelation) sheet.getRange(rowIndex, emergencyRelationCol).setValue(data.emergencyRelation);
+
+    // Store the employee-chosen PIN (they set it during onboarding)
+    if (data.pin && /^\d{4}$/.test(data.pin)) {
+      var pinCol = getOrCreateCol('PIN');
+      sheet.getRange(rowIndex, pinCol).setValue(data.pin);
+    }
+
+    // Store additional onboarding fields
+    if (data.dateOfBirth) { var c = getOrCreateCol('Date_of_Birth'); sheet.getRange(rowIndex, c).setValue(data.dateOfBirth); }
+    if (data.language) { var c = getOrCreateCol('Language_Pref'); sheet.getRange(rowIndex, c).setValue(data.language); }
+    if (data.address) { var c = getOrCreateCol('Address'); sheet.getRange(rowIndex, c).setValue(data.address + (data.address2 ? ', ' + data.address2 : '') + ', ' + (data.city || '') + ', ' + (data.state || '') + ' ' + (data.zipCode || '')); }
+    if (data.shirtSize) { var c = getOrCreateCol('Shirt_Size'); sheet.getRange(rowIndex, c).setValue(data.shirtSize); }
+    if (data.farmExperience) { var c = getOrCreateCol('Farm_Experience'); sheet.getRange(rowIndex, c).setValue(data.farmExperience); }
+    if (data.skills) { var c = getOrCreateCol('Skills'); sheet.getRange(rowIndex, c).setValue(data.skills); }
+    if (data.startDate) { var c = getOrCreateCol('Start_Date'); sheet.getRange(rowIndex, c).setValue(data.startDate); }
+    if (data.availability) { var c = getOrCreateCol('Availability'); sheet.getRange(rowIndex, c).setValue(data.availability); }
+    if (data.transportation) { var c = getOrCreateCol('Transportation'); sheet.getRange(rowIndex, c).setValue(data.transportation); }
 
     sheet.getRange(rowIndex, statusCol).setValue('Pending Approval');
     sheet.getRange(rowIndex, registrationDateCol).setValue(new Date().toISOString());
@@ -23324,6 +23344,99 @@ function completeEmployeeRegistration(data) {
     };
   } catch (error) {
     Logger.log('completeEmployeeRegistration error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Register a new employee (self-registration from employee.html — no invite token)
+ * Creates a USERS row with status 'Pending Approval' and notifies the owner.
+ *
+ * @param {Object} data - { firstName, lastName, phone, email, pin, language, timestamp }
+ * @returns {Object} { success, message }
+ */
+function registerEmployee(data) {
+  try {
+    if (!data.firstName || !data.lastName || !data.phone || !data.pin) {
+      return { success: false, error: 'First name, last name, phone, and PIN are required' };
+    }
+    if (!/^\d{4}$/.test(data.pin)) {
+      return { success: false, error: 'PIN must be exactly 4 digits' };
+    }
+
+    var lock = LockService.getScriptLock();
+    lock.waitLock(10000);
+
+    try {
+      var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+      var sheet = ss.getSheetByName(USERS_SHEET_NAME);
+      if (!sheet) {
+        sheet = createUsersSheet(ss);
+      }
+
+      var sheetData = sheet.getDataRange().getValues();
+      var headers = sheetData[0];
+
+      // Check for duplicate phone
+      var phoneCol = headers.indexOf('Phone');
+      if (phoneCol >= 0) {
+        for (var i = 1; i < sheetData.length; i++) {
+          if ((sheetData[i][phoneCol] || '').toString().replace(/\D/g, '') === data.phone.replace(/\D/g, '')) {
+            return { success: false, error: 'An account with this phone number already exists. Try logging in or contact your manager.' };
+          }
+        }
+      }
+
+      // Generate User ID
+      var lastRow = sheet.getLastRow();
+      var userId = 'USR-' + String(lastRow).padStart(3, '0');
+      var fullName = data.firstName + ' ' + data.lastName;
+      var username = fullName.toLowerCase().replace(/\s+/g, '.').replace(/[^a-z.]/g, '');
+
+      // Ensure all required columns exist
+      function getOrCreateCol(name) {
+        var col = headers.indexOf(name);
+        if (col === -1) {
+          col = headers.length;
+          sheet.getRange(1, col + 1).setValue(name);
+          headers.push(name);
+        }
+        return col + 1;
+      }
+
+      var newRow = sheet.getLastRow() + 1;
+
+      sheet.getRange(newRow, getOrCreateCol('User_ID')).setValue(userId);
+      sheet.getRange(newRow, getOrCreateCol('Username')).setValue(username);
+      sheet.getRange(newRow, getOrCreateCol('PIN')).setValue(data.pin);
+      sheet.getRange(newRow, getOrCreateCol('Full_Name')).setValue(fullName);
+      sheet.getRange(newRow, getOrCreateCol('Email')).setValue(data.email || '');
+      sheet.getRange(newRow, getOrCreateCol('Phone')).setValue(data.phone);
+      sheet.getRange(newRow, getOrCreateCol('Role')).setValue('');
+      sheet.getRange(newRow, getOrCreateCol('Status')).setValue('Pending Approval');
+      sheet.getRange(newRow, getOrCreateCol('Is_Active')).setValue(false);
+      sheet.getRange(newRow, getOrCreateCol('Language_Pref')).setValue(data.language || 'en');
+      sheet.getRange(newRow, getOrCreateCol('Created_At')).setValue(new Date().toISOString());
+      sheet.getRange(newRow, getOrCreateCol('Registration_Completed')).setValue(new Date().toISOString());
+
+      // Notify owner
+      try {
+        var ownerEmail = 'todd@tinyseedfarmpgh.com';
+        GmailApp.sendEmail(ownerEmail,
+          '👤 New Employee Self-Registration — ' + fullName,
+          fullName + ' registered via the employee app and needs approval. Check the USERS sheet.',
+          { htmlBody: '<div style="font-family:sans-serif;max-width:500px;margin:0 auto;"><h2 style="background:#f59e0b;color:white;padding:16px;border-radius:8px 8px 0 0;margin:0;">New Employee Registration</h2><div style="padding:16px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;"><p><strong>' + fullName + '</strong> self-registered and is awaiting approval.</p><p>Phone: ' + data.phone + '</p><p>Email: ' + (data.email || 'Not provided') + '</p><a href="https://docs.google.com/spreadsheets/d/' + SPREADSHEET_ID + '/edit" style="display:inline-block;background:#22c55e;color:white;padding:10px 20px;border-radius:6px;text-decoration:none;margin-top:12px;">Open Users Sheet →</a></div></div>' }
+        );
+      } catch (emailErr) {
+        Logger.log('registerEmployee email error: ' + emailErr.toString());
+      }
+
+      return { success: true, message: 'Registration submitted! A manager will review and approve your account.' };
+    } finally {
+      lock.releaseLock();
+    }
+  } catch (error) {
+    Logger.log('registerEmployee error: ' + error.toString());
     return { success: false, error: error.toString() };
   }
 }
@@ -23462,8 +23575,11 @@ function approveEmployee(data) {
     setCol('Status', 'Active');
     setCol('Is_Active', true);
 
-    // Use provided PIN or generate a random 4-digit PIN
-    const pin = data.badgePin && data.badgePin.length === 4 ? data.badgePin : String(Math.floor(1000 + Math.random() * 9000));
+    // Use provided PIN, keep employee's existing PIN, or generate a random 4-digit PIN
+    const existingPin = (sheetData[rowIndex - 1][headers.indexOf('PIN')] || '').toString().trim();
+    const pin = data.badgePin && data.badgePin.length === 4 ? data.badgePin
+              : existingPin.length === 4 ? existingPin
+              : String(Math.floor(1000 + Math.random() * 9000));
 
     // Set both PIN and Pin columns (handle case sensitivity)
     setCol('PIN', pin);
