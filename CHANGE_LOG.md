@@ -38,6 +38,23 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-03-01 — Fix Label Printing + System Functionality Map (PM_ARCHITECT)
+
+### Files Modified
+- `labels.html` — Fixed pot tag dimensions from 4.5" to 4" (printable area), rewrote executePrint override to use direct PDF generation (no more preview modal intermediary), added auto-print dialog trigger, updated all dimension display text
+- `web_app/print-engine.js` — Fixed LABEL_FORMATS potTag height from 324pt to 288pt (4.5" → 4")
+
+### Files Created
+- `FUNCTIONALITY_MAP.md` — Complete system functionality map organized by daily workflow, with recommendations for what to use, what to archive, and employee onboarding checklist
+
+### Reason
+User needs to print tray labels for planting (broken: wrong dimensions caused 11% scale-down, preview modal caused "reversion to PDF"). User also needs a digestible map of the 51-page system to prioritize workflow with staff starting this week.
+
+### Duplicate Check
+- [x] Checked SYSTEM_INVENTORY.md — FUNCTIONALITY_MAP is a new user-facing workflow guide, not a duplicate of the technical inventory
+
+---
+
 ## 2026-03-01 — Agent Teams Migration: INBOX/OUTBOX → Native Agent Teams (PM_ARCHITECT)
 
 ### Files Modified
