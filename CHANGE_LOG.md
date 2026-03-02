@@ -38,6 +38,66 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-03-01 — Agent Teams Migration: INBOX/OUTBOX → Native Agent Teams (PM_ARCHITECT)
+
+### Files Modified
+- `.claude/agents/pm-coordinator.md` — Added YAML frontmatter, replaced INBOX reference with TaskList
+- `.claude/agents/fullstack-builder.md` — Added YAML frontmatter (name, tools, model, memory)
+- `.claude/agents/verifier.md` — Added YAML frontmatter, removed session dir ownership
+- `.claude/agents/audit_claude.md` — Added YAML frontmatter, replaced INBOX with team messaging
+- `.claude/agents/ux-designer.md` — Added YAML frontmatter, removed session dir ownership
+- `.claude/agents/researcher.md` — Added YAML frontmatter (haiku model, WebSearch/WebFetch tools)
+- `.claude/agents/file-organizer.md` — Added YAML frontmatter, deprecated claude_sessions ref
+- `.claude/agents/integration-watcher.md` — Added YAML frontmatter
+- `.claude/settings.local.json` — Added TeammateIdle and TaskCompleted hooks
+- `CLAUDE.md` — Removed INBOX/OUTBOX refs, removed role table, added Agent Teams section
+- `SYSTEM_INVENTORY.md` — Added Agent Coordination Architecture section with roster
+- `claude_sessions/pm_architect/INBOX.md` — Added deprecation notice
+- `claude_sessions/pm_architect/OUTBOX.md` — Added deprecation notice
+- `claude_sessions/backend/OUTBOX.md` — Added deprecation notice
+- `claude_sessions/ux_design/OUTBOX.md` — Added deprecation notice
+
+### Files Created
+- `scripts/hooks/teammate-idle-check.sh` — Validates agents update CHANGE_LOG before going idle
+- `scripts/hooks/task-completed-verify.sh` — Runs validation scripts before task completion
+- `.claude/skills/deploy-backend/SKILL.md` — Safe backend deployment workflow
+- `.claude/skills/deploy-frontend/SKILL.md` — GitHub Pages deployment workflow
+- `.claude/skills/verify-html/SKILL.md` — HTML validation suite
+- `.claude/skills/pre-work-check/SKILL.md` — Pre-development validation
+
+### Reason
+Completed migration from file-based INBOX/OUTBOX coordination (24 pairs + 1.3MB intercom JSON)
+to Claude Code's native Agent Teams system. Research was done Feb 24 but execution stalled.
+This commit finishes the migration: YAML frontmatter on all 8 agents, 2 lifecycle hooks,
+4 reusable skills, updated CLAUDE.md, deprecated old files.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
+## 2026-03-01 — Competitive Analysis v5.1: Accuracy Audit (UX_Design)
+**Role:** UX_Design Claude
+**File:** `docs/research/COMPETITIVE_ANALYSIS_2026.md`
+
+### What Changed
+Verified all 40+ businesses referenced in the competitive analysis report for current operating status. Three parallel verification agents checked 23 restaurants, 15 farm organizations, and 2 restaurant groups.
+
+### Corrections Applied
+- **REMOVED:** Bitter Ends (closed April 2022), Whitfield (closed — replaced with Hey Babe)
+- **UPDATED:** Penn's Corner (no longer independent cooperative — absorbed by Paragon Foods Dec 2019). All 7 references updated.
+- **CORRECTED:** Gi-Jin location (Cultural District, not Strip District), The Porch ownership (Eat'n Park, not Big Burrito), DeShantz Group (13 concepts, not 9), Big Burrito (added 2 Alta Via locations, noted Umi temporarily closed)
+- **FLAGGED:** Edible Earth Farm as possibly defunct (no activity since 2023). All 7 references flagged.
+- **ADDED:** Section 35 — Accuracy Audit Log with full correction table and verified business lists
+
+### Duplicate Check
+- [x] No new files created
+- [x] Edits to existing report only
+
+---
+
 ## 2026-03-01 — Fix Service Worker Cache + Shopify Route Finder (PM_Architect)
 **Role:** PM_Architect
 **Severity:** CRITICAL — SW cache served stale pages, Shopify route finder blocked by auth

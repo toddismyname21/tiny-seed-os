@@ -15,39 +15,36 @@ These rules are loaded at session start. They are NON-NEGOTIABLE.
 
 ---
 
-## STEP 0: READ CONTEXT SNAPSHOT
+## STEP 0: READ SYSTEM INVENTORY (MANDATORY)
 
-Read `/tmp/TINYSEED_CONTEXT_SNAPSHOT.md` (backup: `CONTEXT_SNAPSHOT.md`) for session continuity.
+Read `SYSTEM_INVENTORY.md` — this is the ONE authoritative inventory of everything in Tiny Seed OS. It maps every page, every backend module, every integration. If you skip this, you WILL make false claims about what exists or doesn't exist.
+
+Also read `/tmp/TINYSEED_CONTEXT_SNAPSHOT.md` (backup: `CONTEXT_SNAPSHOT.md`) for session continuity.
+
+**If you don't know something, SAY SO.** Do not guess. Do not assume. Verify or ask.
 
 ## STEP 0B: LOAD PM RULES
 
-Read `.pm_rules.json` for enforceable rules.
-
-| ID | Rule |
-|----|------|
-| NO_DUPLICATE_FILES | Search for existing similar files before creating ANY file |
-| READ_BEFORE_EDIT | Must read a file before editing it |
-| NO_HALLUCINATION | Never make up information — verify or ask |
-| VERIFY_BEFORE_DONE | Test/verify changes before claiming done |
-| CHECK_MANIFEST | Check SYSTEM_MANIFEST.md before building new features |
-| UPDATE_CHANGELOG | Update CHANGE_LOG.md after modifications |
-| DEPLOY_BOTH | Frontend changes need backend check, and vice versa |
+Read `.pm_rules.json` for enforceable rules: NO_DUPLICATE_FILES, READ_BEFORE_EDIT, NO_HALLUCINATION, VERIFY_BEFORE_DONE, CHECK_MANIFEST, UPDATE_CHANGELOG, DEPLOY_BOTH.
 
 ---
 
-## STEP 1: IDENTIFY YOUR ROLE
+## AGENT TEAMS COORDINATION
 
-| Role | Scope | Files You Can Touch |
-|------|-------|---------------------|
-| **PM_Architect** | Coordination, architecture | Documentation, coordination files |
-| **Backend_Claude** | Apps Script ONLY | `/apps_script/*.js` ONLY |
-| **Desktop_Claude** | Desktop HTML | Root `.html`, `web_app/` admin files |
-| **Mobile_Claude** | Mobile apps | Mobile `.html`, PWA manifests |
-| **UX_Design_Claude** | Design system | CSS, design documentation |
-| **Sales_Claude** | Sales features | Sales-related files only |
-| **Security_Claude** | Auth, permissions | Auth files only |
+Agents coordinate via Claude Code's **native Agent Teams**, NOT file-based INBOX/OUTBOX.
 
-Agent role definitions: `.claude/agents/*.md`
+| Mechanism | Purpose |
+|-----------|---------|
+| `TaskCreate` / `TaskList` | Shared task board for all agents |
+| `SendMessage` | Direct messages between agents |
+| `TeamCreate` / `TeamDelete` | Create and clean up teams |
+| `TeammateIdle` hook | Validates work before agent goes idle |
+| `TaskCompleted` hook | Runs verification before task closes |
+
+Agent definitions (8 agents with YAML frontmatter): `.claude/agents/*.md`
+Skills: `.claude/skills/` (`/deploy-backend`, `/deploy-frontend`, `/verify-html`, `/pre-work-check`)
+
+**DEPRECATED:** `claude_sessions/*/INBOX.md`, `claude_sessions/*/OUTBOX.md`, `tinypm/.claude_intercom.json`
 
 ---
 
@@ -68,9 +65,7 @@ Run `Glob **/*[keyword]*.html` before creating ANY new `.html` file.
 
 ## STEP 5: LOG YOUR CHANGES
 
-After completing ANY work:
-1. Update `CHANGE_LOG.md` (date, role, files, why)
-2. Update your session's `OUTBOX.md`
+After completing ANY work, update `CHANGE_LOG.md` (date, role, files, why).
 
 ---
 
@@ -204,7 +199,7 @@ NEVER run bare `clasp deploy` (creates NEW deployment, breaks everything). Valid
 | `CHANGE_LOG.md` | Central change tracking |
 | `claude_sessions/pm_architect/SYSTEM_MANIFEST.md` | Complete system inventory |
 | `claude_sessions/CLAUDE_INTEGRATION_STANDARDS.md` | Coding standards + frontend/backend sync |
-| `.claude/agents/*.md` | Agent role definitions (6 agents) |
+| `.claude/agents/*.md` | Agent role definitions (8 agents with YAML frontmatter) |
 | `docs/CLAUDE_MD_REFERENCE.md` | Extended tables: dashboards, UX audit, preflight scripts, verification tools |
 | `docs/system/EXTERNAL_SITE_RULES.md` | Shopify/external site rules |
 | `docs/system/SESSION_CONTEXT.md` | Owner info, CSA stops, key files |
