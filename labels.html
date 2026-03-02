@@ -3697,10 +3697,12 @@
 
             Promise.all(qrPromises).then(function(qrImages) {
                 var W = 288, H = 72; // 4in x 1in in points (72pt/in)
-                var doc = new window.jspdf.jsPDF({ unit: 'pt', format: [H, W], orientation: 'landscape' });
+                var GAP = 9; // ~3mm inter-label gap on roll (0.12" = 8.64pt, rounded to 9)
+                var PAGE_H = H + GAP; // total page = label + gap so printer advances correctly
+                var doc = new window.jspdf.jsPDF({ unit: 'pt', format: [PAGE_H, W], orientation: 'landscape' });
 
                 labelsToprint.forEach(function(label, i) {
-                    if (i > 0) doc.addPage([H, W], 'landscape');
+                    if (i > 0) doc.addPage([PAGE_H, W], 'landscape');
 
                     // QR code on left
                     var qrSz = 61;
@@ -3793,11 +3795,13 @@
 
             Promise.all(qrPromises).then(function(qrImages) {
                 var W = 72, H = 288; // 1in x 4in in points (printable area of 4.5in label)
-                var doc = new window.jspdf.jsPDF({ unit: 'pt', format: [W, H], orientation: 'portrait' });
+                var GAP = 9; // ~3mm inter-label gap on roll (0.12" = 8.64pt, rounded to 9)
+                var PAGE_H = H + GAP; // total page = label + gap so printer advances correctly
+                var doc = new window.jspdf.jsPDF({ unit: 'pt', format: [W, PAGE_H], orientation: 'portrait' });
                 var cx = W / 2;
 
                 labelsToprint.forEach(function(label, i) {
-                    if (i > 0) doc.addPage([W, H], 'portrait');
+                    if (i > 0) doc.addPage([W, PAGE_H], 'portrait');
 
                     var y = 14;
 
