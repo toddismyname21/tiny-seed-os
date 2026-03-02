@@ -38,6 +38,30 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-03-01 — UX Friction Fixes + Master Action Plan (PM_ARCHITECT)
+
+### Files Modified
+- `web_app/greenhouse-dashboard.html` — Replaced jarring `window.confirm()` print dialog with inline toast prompt (new `printPromptToast` element + `showPrintPrompt/dismissPrintPrompt/acceptPrintPrompt` functions)
+- `web_app/financial-dashboard.html` — Added fixed home button (escapes finance cluster)
+- `web_app/chief-of-staff.html` — Added "Dashboard" link to sidebar nav
+- `web_app/loan-readiness.html` — Added fixed home button
+- `web_app/sales.html` — Added "Home Dashboard" link to sidebar nav
+- `web_app/csa.html` — Added fixed home button (CSA portal was a dead end)
+- `web_app/chef-order.html` — Added fixed home button (chef portal was a dead end)
+- `index.html` — Removed duplicate "Social Intelligence" sidebar link; wired 4 dead command palette items (Log Harvest, Complete Task, Search by Crop, Search by Location) to actual UI actions
+
+### Files Created
+- `MASTER_ACTION_PLAN.md` — Comprehensive accountability tracker: system audit results, competitive analysis → actionable objectives, employee/chef/CSA checklists, revenue projections, daily workflow
+
+### Reason
+Workflow friction audit identified 5 systemic problems. Fixed the immediate ones: navigation dead ends (6 pages), command palette dead ends (4 items), jarring print dialog. Created master action plan from competitive analysis and full system audit to give the owner one place to track everything.
+
+### Duplicate Check
+- [x] No duplicate files created
+- [x] No duplicate functions — all new functions are unique (printPromptToast pattern)
+
+---
+
 ## 2026-03-01 — Quick-Add Seed Inventory + Variety Change from Greenhouse (PM_ARCHITECT)
 
 ### Files Modified
