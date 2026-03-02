@@ -28514,12 +28514,12 @@ function checkSeedProcurementNeeds() {
       var batchId = col.batch >= 0 ? row[col.batch] : 'ROW-' + i;
       var variety = col.variety >= 0 ? (row[col.variety] || '') : '';
 
-      // Check GH Sow: planned in next 21 days AND not yet sown
+      // Check GH Sow: overdue OR planned in next 21 days, AND not yet sown
       var ghPlan = col.ghSowPlan >= 0 ? row[col.ghSowPlan] : null;
       var ghAct = col.ghSowAct >= 0 ? row[col.ghSowAct] : null;
       if (ghPlan && !ghAct) {
         var ghDate = ghPlan instanceof Date ? ghPlan : new Date(ghPlan);
-        if (!isNaN(ghDate.getTime()) && ghDate >= today && ghDate <= lookAhead) {
+        if (!isNaN(ghDate.getTime()) && ghDate <= lookAhead) {
           var trays = col.trays >= 0 ? (parseInt(row[col.trays]) || 0) : 0;
           var cells = col.cellCount >= 0 ? (parseInt(row[col.cellCount]) || 128) : 128;
           var plants = col.plantsNeeded >= 0 ? (parseInt(row[col.plantsNeeded]) || 0) : 0;
@@ -28532,12 +28532,12 @@ function checkSeedProcurementNeeds() {
         }
       }
 
-      // Check Field Sow: planned in next 21 days AND not yet sown
+      // Check Field Sow: overdue OR planned in next 21 days, AND not yet sown
       var fsPlan = col.fieldSowPlan >= 0 ? row[col.fieldSowPlan] : null;
       var fsAct = col.fieldSowAct >= 0 ? row[col.fieldSowAct] : null;
       if (fsPlan && !fsAct) {
         var fsDate = fsPlan instanceof Date ? fsPlan : new Date(fsPlan);
-        if (!isNaN(fsDate.getTime()) && fsDate >= today && fsDate <= lookAhead) {
+        if (!isNaN(fsDate.getTime()) && fsDate <= lookAhead) {
           var fsTrays = col.trays >= 0 ? (parseInt(row[col.trays]) || 0) : 0;
           var fsCells = col.cellCount >= 0 ? (parseInt(row[col.cellCount]) || 0) : 0;
           var fsPlants = col.plantsNeeded >= 0 ? (parseInt(row[col.plantsNeeded]) || 0) : 0;
