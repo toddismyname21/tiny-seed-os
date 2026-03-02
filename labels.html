@@ -7,6 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js" integrity="sha384-HGmnkDZJy7mRkoARekrrj0VjEFSh9a0Z8qxGri/kTTAJkgR8hqD1lHsYSh3JdzRi" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/qz-tray@2.2.4/qz-tray.js" async></script>
     <script src="web_app/print-engine.js"></script>
     <script src="web_app/api-config.js"></script>
@@ -2984,25 +2985,65 @@
 
         // ============ UL-247 THERMAL PRINTER PRINT FUNCTIONS ============
 
-        // Override executePrint: QZ Tray direct print when connected, PDF fallback otherwise
+        // Override executePrint: close the modal FIRST, then generate PDF
         const originalExecutePrint = executePrint;
         executePrint = function() {
             if (currentLabelType === 'potTag' || currentLabelType === 'fieldTray') {
-                // Check if QZ Tray is connected — send directly to printer (no popup needed)
-                if (QZPrint.isConnected()) {
-                    executePrintViaQZTray();
+                // ALWAYS close the modal first so popups aren't blocked and toasts are visible
+                closePrintPreview();
+
+                // Open the print window synchronously (must be in click handler)
+                var printWindow = window.open('', '_blank');
+                if (!printWindow) {
+                    // Popup blocked — generate as downloadable blob instead
+                    showToast('Popup blocked — generating download link...', 'warning');
+                    generateLabelPDFDownload();
+                    return;
+                }
+                printWindow.document.write('<html><body style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#666"><p>Generating labels...</p></body></html>');
+
+                if (currentLabelType === 'potTag') {
+                    buildAndPrintPotTagPDF(printWindow);
                 } else {
-                    // PDF fallback — open BEFORE async work to avoid popup blocker
-                    if (currentLabelType === 'potTag') {
-                        executePrintUL247PotTagsPDF();
-                    } else {
-                        executePrintUL247FieldTrayPDF();
-                    }
+                    buildAndPrintFieldTrayPDF(printWindow);
                 }
             } else {
                 originalExecutePrint();
             }
         };
+
+        // Fallback: generate PDF as a download link when popups are blocked
+        function generateLabelPDFDownload() {
+            var labelsToprint = labels.filter(function(l) { return selectedLabels.has(l.labelId); });
+            if (labelsToprint.length === 0) { showToast('No labels selected'); return; }
+            if (!window.jspdf) { showToast('PDF library loading — try again'); return; }
+
+            var isPotTag = (currentLabelType === 'potTag');
+            var W = isPotTag ? 72 : 288;
+            var H = isPotTag ? 288 : 72;
+            var fmt = isPotTag ? [W, H] : [H, W];
+            var orient = isPotTag ? 'portrait' : 'landscape';
+
+            var qrPromises = labelsToprint.map(function(label) {
+                return new Promise(function(resolve) {
+                    var qrData = getQRData(label);
+                    if (!qrData) { resolve(null); return; }
+                    var canvas = document.createElement('canvas');
+                    QRCode.toCanvas(canvas, String(qrData), { width: isPotTag ? 140 : 164, margin: 0, errorCorrectionLevel: 'M' }, function(err) { resolve(err ? null : canvas.toDataURL('image/png')); });
+                });
+            });
+
+            Promise.all(qrPromises).then(function(qrImages) {
+                var doc = new window.jspdf.jsPDF({ unit: 'pt', format: fmt, orientation: orient });
+                labelsToprint.forEach(function(label, i) {
+                    if (i > 0) doc.addPage(fmt, orient);
+                    if (isPotTag) { renderPotTagPage(doc, label, qrImages[i], W, H); }
+                    else { renderFieldTrayPage(doc, label, qrImages[i], W, H); }
+                });
+                doc.save('tiny-seed-labels.pdf');
+                showToast('PDF downloaded — open it and print to your TTP-247');
+            });
+        }
 
         // QZ Tray direct print — generates PDF then sends to thermal printer, no browser dialog
         function executePrintViaQZTray() {
