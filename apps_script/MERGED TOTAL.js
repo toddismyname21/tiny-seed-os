@@ -33668,10 +33668,12 @@ function createDirectSeedingTab() {
       const profile = profileMap[crop] || {};
       const category = (cols.category >= 0 && row[cols.category]) ? row[cols.category] : (profile.category || 'Veg');
 
-      // Category filter
+      // Category filter — normalize category values (sheet may have Floral, Flowers, Flower, etc.)
+      var catNorm = (category || '').toLowerCase().replace(/s$/, '');  // 'Flowers' → 'flower', 'Floral' → 'floral', 'Herbs' → 'herb'
+      var isFloral = (catNorm === 'floral' || catNorm === 'flower');
       if (categoryFilter !== 'all') {
-        if (categoryFilter === 'veg-herb' && category === 'Floral') continue;
-        if (categoryFilter === 'floral' && category !== 'Floral') continue;
+        if (categoryFilter === 'veg-herb' && isFloral) continue;
+        if (categoryFilter === 'floral' && !isFloral) continue;
       }
 
       const variety = cols.variety >= 0 ? row[cols.variety] : '';

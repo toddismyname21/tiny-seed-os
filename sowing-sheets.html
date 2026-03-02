@@ -818,7 +818,7 @@
                 icon: 'fa-seedling',
                 dateField: 'sowDate',  // API returns 'sowDate' for all task types
                 apiAction: 'getGreenhouseSowingTasks',
-                columns: ['Date', 'Crop', 'Variety', 'Trays', 'Cells', 'Bed']
+                columns: ['Date', 'Crop', 'Variety', 'Trays', 'Cells', 'Seeds', 'Bed']
             },
             transplant: {
                 title: 'TRANSPLANTING TASKS',
@@ -1441,6 +1441,7 @@
                     <td>${task.variety}</td>
                     <td>${editableCell('Trays_Needed', traysDisplay, 'number')}</td>
                     <td>${editableCell('Tray_Cell_Count', task.cellsPerTray || '-', 'number')}</td>
+                    <td style="font-weight:600;color:#f59e0b;">${task.seedsNeeded || '-'}</td>
                     <td>${editableCell('Target_Bed_ID', task.bed || '-', 'text')}</td>
                 `;
             } else if (currentTaskType === 'transplant') {

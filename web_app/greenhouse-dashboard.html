@@ -2372,6 +2372,7 @@ function showSheetPreviewModal() {
             '<td>' + esc(t.variety || '') + '</td>' +
             '<td style="text-align:center;font-weight:600;">' + (t.trays || '-') + '</td>' +
             '<td style="text-align:center;">' + (t.cellsPerTray || '-') + '</td>' +
+            '<td style="text-align:center;font-weight:600;color:#f59e0b;">' + (t.seedsNeeded || '-') + '</td>' +
             '<td>' + esc(t.bed || '-') + '</td>' +
         '</tr>';
     }).join('');
@@ -2381,7 +2382,7 @@ function showSheetPreviewModal() {
         '<div style="font-size:0.8rem;color:var(--text-secondary);">' + formatDate(today) + ' | ' + tasks.length + ' tasks</div>' +
         '</div>' +
         '<table class="sheet-preview-table">' +
-        '<thead><tr><th style="width:30px;"></th><th>Date</th><th>Crop</th><th>Variety</th><th style="text-align:center;">Trays</th><th style="text-align:center;">Cells</th><th>Bed</th></tr></thead>' +
+        '<thead><tr><th style="width:30px;"></th><th>Date</th><th>Crop</th><th>Variety</th><th style="text-align:center;">Trays</th><th style="text-align:center;">Cells</th><th style="text-align:center;">Seeds</th><th>Bed</th></tr></thead>' +
         '<tbody>' + rows + '</tbody>' +
         '</table>';
 

@@ -1132,9 +1132,8 @@
                     <label>Category</label>
                     <select class="form-control" id="categoryFilter" onchange="updateCropsByCategory()">
                         <option value="">All</option>
-                        <option value="Vegetable">Vegetables</option>
-                        <option value="Floral">Florals</option>
-                        <option value="Herb">Herbs</option>
+                        <option value="veg-herb">Vegetables & Herbs</option>
+                        <option value="Floral">Flowers</option>
                     </select>
                 </div>
 
@@ -1541,7 +1540,9 @@
 
             // Filter seedings by category first, then get unique crops
             let filteredSeedings = seedings;
-            if (categoryFilter) {
+            if (categoryFilter === 'veg-herb') {
+                filteredSeedings = seedings.filter(s => s.category !== 'Floral');
+            } else if (categoryFilter) {
                 filteredSeedings = seedings.filter(s => s.category === categoryFilter);
             }
 
@@ -1560,7 +1561,9 @@
             let filtered = seedings;
 
             // Apply category filter first
-            if (categoryFilter) {
+            if (categoryFilter === 'veg-herb') {
+                filtered = filtered.filter(s => s.category !== 'Floral');
+            } else if (categoryFilter) {
                 filtered = filtered.filter(s => s.category === categoryFilter);
             }
 
@@ -2745,7 +2748,7 @@
             function printTestLabel(labelType) {
                 if (!isConnected() || !_printer) return Promise.reject(new Error('Printer not connected'));
                 var w, h;
-                if (labelType === 'potTag') { w = 1; h = 4.5; } else { w = 4; h = 1; }
+                if (labelType === 'potTag') { w = 1; h = 4; } else { w = 4; h = 1; }
                 var fmt = getFormatSettings(labelType);
                 var config = qz.configs.create(_printer, {
                     size: { width: w, height: h }, units: 'in',
@@ -2981,17 +2984,86 @@
 
         // ============ UL-247 THERMAL PRINTER PRINT FUNCTIONS ============
 
-        // Override executePrint: direct PDF generation for thermal labels
+        // Override executePrint: QZ Tray direct print when connected, PDF fallback otherwise
         const originalExecutePrint = executePrint;
         executePrint = function() {
-            if (currentLabelType === 'potTag') {
-                executePrintUL247PotTagsPDF();
-            } else if (currentLabelType === 'fieldTray') {
-                executePrintUL247FieldTrayPDF();
+            if (currentLabelType === 'potTag' || currentLabelType === 'fieldTray') {
+                // Check if QZ Tray is connected — send directly to printer (no popup needed)
+                if (QZPrint.isConnected()) {
+                    executePrintViaQZTray();
+                } else {
+                    // PDF fallback — open BEFORE async work to avoid popup blocker
+                    if (currentLabelType === 'potTag') {
+                        executePrintUL247PotTagsPDF();
+                    } else {
+                        executePrintUL247FieldTrayPDF();
+                    }
+                }
             } else {
                 originalExecutePrint();
             }
         };
+
+        // QZ Tray direct print — generates PDF then sends to thermal printer, no browser dialog
+        function executePrintViaQZTray() {
+            var labelsToprint = labels.filter(function(l) { return selectedLabels.has(l.labelId); });
+            if (labelsToprint.length === 0) { showToast('No labels selected'); return; }
+            if (!window.jspdf) { showToast('PDF library loading — try again in a moment'); return; }
+
+            showToast('Generating ' + labelsToprint.length + ' labels for direct print...');
+            closePrintPreview();
+
+            var isPotTag = (currentLabelType === 'potTag');
+            var W = isPotTag ? 72 : 288;
+            var H = isPotTag ? 288 : 72;
+            var widthIn = isPotTag ? 1 : 4;
+            var heightIn = isPotTag ? 4 : 1;
+            var orient = isPotTag ? 'portrait' : 'landscape';
+            var fmt = isPotTag ? [W, H] : [H, W];
+
+            // Generate QR codes
+            var qrPromises = labelsToprint.map(function(label) {
+                return new Promise(function(resolve) {
+                    var qrData = getQRData(label);
+                    if (!qrData) { resolve(null); return; }
+                    var canvas = document.createElement('canvas');
+                    QRCode.toCanvas(canvas, String(qrData), {
+                        width: isPotTag ? 140 : 164, margin: 0, errorCorrectionLevel: 'M'
+                    }, function(error) {
+                        resolve(error ? null : canvas.toDataURL('image/png'));
+                    });
+                });
+            });
+
+            Promise.all(qrPromises).then(function(qrImages) {
+                var doc = new window.jspdf.jsPDF({ unit: 'pt', format: fmt, orientation: orient });
+
+                labelsToprint.forEach(function(label, i) {
+                    if (i > 0) doc.addPage(fmt, orient);
+
+                    if (isPotTag) {
+                        renderPotTagPage(doc, label, qrImages[i], W, H);
+                    } else {
+                        renderFieldTrayPage(doc, label, qrImages[i], W, H);
+                    }
+                });
+
+                // Send PDF directly to printer via QZ Tray
+                var base64 = doc.output('datauristring').split(',')[1];
+                return QZPrint.printPDF(base64, widthIn, heightIn, currentLabelType);
+            }).then(function() {
+                showToast(labelsToprint.length + ' labels sent to ' + (QZPrint.getPrinter() || 'printer') + '!');
+            }).catch(function(err) {
+                console.error('QZ Tray print failed:', err);
+                showToast('Direct print failed: ' + err.message + ' — trying PDF fallback...', 'warning');
+                // Fallback to PDF-in-new-window
+                if (isPotTag) {
+                    executePrintUL247PotTagsPDF();
+                } else {
+                    executePrintUL247FieldTrayPDF();
+                }
+            });
+        }
 
         function executePrintUL247PotTags() {
             const labelsToprint = labels.filter(l => selectedLabels.has(l.labelId));
@@ -3539,6 +3611,57 @@
         // ============ jsPDF-BASED THERMAL LABEL PRINTING ============
         // Generates PDFs at exact label dimensions so the print dialog
         // shows the correct page size automatically — no custom paper setup needed.
+
+        // Shared rendering: draw one field tray label page onto a jsPDF doc
+        function renderFieldTrayPage(doc, label, qrImage, W, H) {
+            var qrSz = 61;
+            if (qrImage) {
+                doc.addImage(qrImage, 'PNG', 6, (H - qrSz) / 2, qrSz, qrSz);
+            }
+            var tx = 75, rx = W - 6;
+            doc.setTextColor(0, 0, 0); doc.setFont('helvetica', 'bold'); doc.setFontSize(13);
+            doc.text(label.crop || '', tx, 17);
+            doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(51, 51, 51);
+            doc.text(label.variety || '', tx, 29);
+            doc.setFont('courier', 'normal'); doc.setFontSize(7); doc.setTextColor(85, 85, 85);
+            doc.text((label.batchNumber || '') + ' T' + (label.trayNumber || ''), tx, 40);
+            doc.setFont('helvetica', 'normal'); doc.setTextColor(68, 68, 68);
+            var ds = 'Sow: ' + formatDate(label.seedDate) + '  ->  TP: ' + formatDate(label.transplantDate);
+            if (label.field) ds += '  @  ' + label.field;
+            doc.text(ds, tx, 51);
+            var tsd = formatTraySize(label.cellsPerTray, label.paperpotSpacing);
+            doc.setTextColor(0, 0, 0); doc.setFont('helvetica', 'bold'); doc.setFontSize(12);
+            doc.text(tsd, rx, 19, { align: 'right' });
+            doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(68, 68, 68);
+            doc.text('Tray ' + (label.trayNumber || '') + '/' + (label.trays || ''), rx, 33, { align: 'right' });
+            if (label.field) { doc.setFontSize(7); doc.setTextColor(85, 85, 85); doc.text(label.field, rx, 45, { align: 'right' }); }
+        }
+
+        // Shared rendering: draw one pot tag page onto a jsPDF doc
+        function renderPotTagPage(doc, label, qrImage, W, H) {
+            var cx = W / 2, y = 14;
+            doc.setTextColor(0, 0, 0); doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
+            var cropLines = doc.splitTextToSize(label.crop || '', 62);
+            doc.text(cropLines, cx, y, { align: 'center' }); y += cropLines.length * 13 + 3;
+            doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(51, 51, 51);
+            var varLines = doc.splitTextToSize(label.variety || '', 62);
+            doc.text(varLines, cx, y, { align: 'center' }); y += varLines.length * 10 + 8;
+            doc.setDrawColor(153, 153, 153); doc.setLineWidth(0.5);
+            doc.line(5, y, W - 5, y); y += 10;
+            doc.setFont('helvetica', 'bold'); doc.setFontSize(6); doc.setTextColor(85, 85, 85);
+            doc.text('TINY SEED FARM', cx, y, { align: 'center' }); y += 6;
+            doc.line(5, y, W - 5, y); y += 12;
+            doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(68, 68, 68);
+            doc.text('Sown: ' + formatDate(label.seedDate), cx, y, { align: 'center' }); y += 11;
+            doc.setFont('courier', 'normal'); doc.setFontSize(6); doc.setTextColor(102, 102, 102);
+            doc.text(label.batchNumber || '', cx, y, { align: 'center' }); y += 14;
+            var qrSz = 50;
+            if (qrImage) { doc.addImage(qrImage, 'PNG', (W - qrSz) / 2, y, qrSz, qrSz); }
+            doc.setDrawColor(200, 200, 200); doc.setLineWidth(0.3);
+            doc.line(5, H - 12, W - 5, H - 12);
+            doc.setFont('helvetica', 'normal'); doc.setFontSize(5); doc.setTextColor(187, 187, 187);
+            doc.text('insert in soil', cx, H - 5, { align: 'center' });
+        }
 
         function executePrintUL247FieldTrayPDF() {
             var labelsToprint = labels.filter(function(l) { return selectedLabels.has(l.labelId); });
