@@ -1362,19 +1362,29 @@
                 <div class="panel-field-row">
                     <div class="panel-field">
                         <label>Tray Size (cells)</label>
-                        <select id="panelTraySize" onchange="panelFieldChange('Tray_Cell_Count', this.value)">
+                        <select id="panelTraySize" onchange="panelTrayChange(this.value)">
                             <option value="">-- Select --</option>
-                            <option value="6">6 cell</option>
-                            <option value="12">12 cell</option>
-                            <option value="18">18 cell</option>
-                            <option value="32">32 cell</option>
-                            <option value="50">50 cell</option>
-                            <option value="72">72 cell</option>
-                            <option value="98">98 cell</option>
-                            <option value="128">128 cell</option>
-                            <option value="162">162 cell</option>
-                            <option value="200">200 cell</option>
-                            <option value="288">288 cell</option>
+                            <optgroup label="Open Trays">
+                                <option value="open:0:Open Flat">Open Flat</option>
+                            </optgroup>
+                            <optgroup label="Plug Trays">
+                                <option value="plug:6:6-cell">6 cell</option>
+                                <option value="plug:12:12-cell">12 cell</option>
+                                <option value="plug:18:18-cell">18 cell</option>
+                                <option value="plug:32:32-cell">32 cell</option>
+                                <option value="plug:50:50-cell">50 cell</option>
+                                <option value="plug:72:72-cell">72 cell</option>
+                                <option value="plug:98:98-cell">98 cell</option>
+                                <option value="plug:128:128-cell">128 cell</option>
+                                <option value="plug:162:162-cell">162 cell</option>
+                                <option value="plug:200:200-cell">200 cell</option>
+                                <option value="plug:288:288-cell">288 cell</option>
+                            </optgroup>
+                            <optgroup label="Paperpot 264">
+                                <option value="paperpot:264:Paperpot 264 — 2&quot;">Paperpot 264 — 2"</option>
+                                <option value="paperpot:264:Paperpot 264 — 4&quot;">Paperpot 264 — 4"</option>
+                                <option value="paperpot:264:Paperpot 264 — 6&quot;">Paperpot 264 — 6"</option>
+                            </optgroup>
                         </select>
                     </div>
                     <div class="panel-field">
@@ -1556,6 +1566,20 @@
             const fieldSelect = document.getElementById('fieldFilter');
             fieldSelect.innerHTML = '<option value="">All Fields</option>' +
                 fields.map(f => `<option value="${f}">${f}</option>`).join('');
+        }
+
+        // Format tray display for table cell
+        function formatTrayDisplay(p) {
+            var trayType = p.Tray_Type || '';
+            var cells = p.Tray_Cell_Count || '';
+            if (trayType) {
+                // If Tray_Type is set, use it (handles Open, Paperpot, etc.)
+                return trayType;
+            }
+            if (cells) {
+                return cells + ' cell';
+            }
+            return '--';
         }
 
         // Get crop category - use stored Category if available, otherwise infer from name
@@ -1827,7 +1851,7 @@
                         <td class="editable-cell" onclick="startInlineEdit(this, '${p.Batch_ID}', 'Planting_Method', 'select')" data-field="Planting_Method" data-value="${p.Planting_Method || ''}">${p.Planting_Method || '--'}</td>
                         <td class="editable-cell" onclick="startInlineEdit(this, '${p.Batch_ID}', 'Target_Bed_ID', 'text')" data-field="Target_Bed_ID" data-value="${p.Target_Bed_ID || ''}">${p.Target_Bed_ID || 'Unassigned'}</td>
                         <td class="editable-cell" onclick="startInlineEdit(this, '${p.Batch_ID}', 'Feet_Used', 'number')" data-field="Feet_Used" data-value="${p.Feet_Used || ''}">${p.Feet_Used || '--'}</td>
-                        <td class="editable-cell" onclick="startInlineEdit(this, '${p.Batch_ID}', 'Tray_Cell_Count', 'tray')" data-field="Tray_Cell_Count" data-value="${p.Tray_Cell_Count || ''}">${p.Tray_Cell_Count ? p.Tray_Cell_Count + ' cell' : '--'}</td>
+                        <td class="editable-cell" onclick="startInlineEdit(this, '${p.Batch_ID}', 'Tray_Cell_Count', 'tray')" data-field="Tray_Cell_Count" data-value="${p.Tray_Cell_Count || ''}" data-tray-type="${p.Tray_Type || ''}">${formatTrayDisplay(p)}</td>
                         <td class="editable-cell" onclick="startInlineEdit(this, '${p.Batch_ID}', 'Plan_GH_Sow', 'date')" data-field="Plan_GH_Sow" data-value="${ghSowValue}">
                             <div class="date-cell">
                                 <span class="date-main">${formatDate(actGhSow || ghSowDate)}</span>
@@ -2024,20 +2048,32 @@
                     </select>
                 `;
             } else if (type === 'tray') {
+                // Tray type dropdown with Open + Paperpot + standard cells
+                var trayTypeVal = cell.dataset.trayType || '';
                 inputHtml = `
-                    <select onchange="finishInlineEdit(this.value)" onblur="cancelInlineEdit()" onkeydown="handleInlineKeydown(event)">
+                    <select onchange="finishTrayEdit(this.value)" onblur="cancelInlineEdit()" onkeydown="handleInlineKeydown(event)">
                         <option value="">--</option>
-                        <option value="6" ${currentValue === '6' ? 'selected' : ''}>6 cell</option>
-                        <option value="12" ${currentValue === '12' ? 'selected' : ''}>12 cell</option>
-                        <option value="18" ${currentValue === '18' ? 'selected' : ''}>18 cell</option>
-                        <option value="32" ${currentValue === '32' ? 'selected' : ''}>32 cell</option>
-                        <option value="50" ${currentValue === '50' ? 'selected' : ''}>50 cell</option>
-                        <option value="72" ${currentValue === '72' ? 'selected' : ''}>72 cell</option>
-                        <option value="98" ${currentValue === '98' ? 'selected' : ''}>98 cell</option>
-                        <option value="128" ${currentValue === '128' ? 'selected' : ''}>128 cell</option>
-                        <option value="162" ${currentValue === '162' ? 'selected' : ''}>162 cell</option>
-                        <option value="200" ${currentValue === '200' ? 'selected' : ''}>200 cell</option>
-                        <option value="288" ${currentValue === '288' ? 'selected' : ''}>288 cell</option>
+                        <optgroup label="Open Trays">
+                            <option value="open:0:Open Flat" ${trayTypeVal === 'Open Flat' ? 'selected' : ''}>Open Flat</option>
+                        </optgroup>
+                        <optgroup label="Plug Trays">
+                            <option value="plug:6:6-cell" ${currentValue === '6' && !trayTypeVal.includes('Paperpot') ? 'selected' : ''}>6 cell</option>
+                            <option value="plug:12:12-cell" ${currentValue === '12' && !trayTypeVal.includes('Paperpot') ? 'selected' : ''}>12 cell</option>
+                            <option value="plug:18:18-cell" ${currentValue === '18' && !trayTypeVal.includes('Paperpot') ? 'selected' : ''}>18 cell</option>
+                            <option value="plug:32:32-cell" ${currentValue === '32' && !trayTypeVal.includes('Paperpot') ? 'selected' : ''}>32 cell</option>
+                            <option value="plug:50:50-cell" ${currentValue === '50' && !trayTypeVal.includes('Paperpot') ? 'selected' : ''}>50 cell</option>
+                            <option value="plug:72:72-cell" ${currentValue === '72' && !trayTypeVal.includes('Paperpot') ? 'selected' : ''}>72 cell</option>
+                            <option value="plug:98:98-cell" ${currentValue === '98' && !trayTypeVal.includes('Paperpot') ? 'selected' : ''}>98 cell</option>
+                            <option value="plug:128:128-cell" ${currentValue === '128' && !trayTypeVal.includes('Paperpot') ? 'selected' : ''}>128 cell</option>
+                            <option value="plug:162:162-cell" ${currentValue === '162' && !trayTypeVal.includes('Paperpot') ? 'selected' : ''}>162 cell</option>
+                            <option value="plug:200:200-cell" ${currentValue === '200' && !trayTypeVal.includes('Paperpot') ? 'selected' : ''}>200 cell</option>
+                            <option value="plug:288:288-cell" ${currentValue === '288' && !trayTypeVal.includes('Paperpot') ? 'selected' : ''}>288 cell</option>
+                        </optgroup>
+                        <optgroup label="Paperpot 264">
+                            <option value="paperpot:264:Paperpot 264 — 2&quot;" ${trayTypeVal.includes('Paperpot') && trayTypeVal.includes('2') ? 'selected' : ''}>Paperpot 264 — 2"</option>
+                            <option value="paperpot:264:Paperpot 264 — 4&quot;" ${trayTypeVal.includes('Paperpot') && trayTypeVal.includes('4') ? 'selected' : ''}>Paperpot 264 — 4"</option>
+                            <option value="paperpot:264:Paperpot 264 — 6&quot;" ${trayTypeVal.includes('Paperpot') && trayTypeVal.includes('6') ? 'selected' : ''}>Paperpot 264 — 6"</option>
+                        </optgroup>
                     </select>
                 `;
             } else if (type === 'date') {
@@ -2087,13 +2123,41 @@
                     const dateStr = formatDate(date);
                     cell.innerHTML = `<div class="date-cell"><span class="date-main">${dateStr}</span></div>`;
                 } else if (field === 'Tray_Cell_Count') {
-                    cell.textContent = planting[field] ? planting[field] + ' cell' : '--';
+                    cell.textContent = formatTrayDisplay(planting);
                 } else {
                     cell.textContent = planting[field] || '--';
                 }
             }
 
             editingCell = null;
+        }
+
+        // Special handler for tray edits: writes both Tray_Cell_Count and Tray_Type
+        async function finishTrayEdit(compositeValue) {
+            if (!editingCell) return;
+            var parts = compositeValue.split(':');
+            // format: "type:cells:displayName" e.g. "paperpot:264:Paperpot 264 — 4""
+            var trayKind = parts[0] || '';
+            var cellCount = parts[1] || '0';
+            var trayTypeName = parts.slice(2).join(':') || '';
+
+            var { cell, batchId, field } = editingCell;
+            var planting = allPlantings.find(p => p.Batch_ID === batchId);
+            if (planting) {
+                planting.Tray_Cell_Count = cellCount;
+                planting.Tray_Type = trayTypeName;
+            }
+
+            // Update cell display
+            cell.dataset.value = cellCount;
+            cell.dataset.trayType = trayTypeName;
+            cell.classList.remove('editing');
+            cell.textContent = trayTypeName || (cellCount > 0 ? cellCount + ' cell' : '--');
+            editingCell = null;
+
+            // Save both fields
+            await autoSave(batchId, 'Tray_Cell_Count', cellCount);
+            await autoSave(batchId, 'Tray_Type', trayTypeName);
         }
 
         async function finishInlineEdit(value, moveToNext = false) {
@@ -2126,7 +2190,7 @@
                 const dateStr = formatDate(date);
                 cell.innerHTML = `<div class="date-cell"><span class="date-main">${dateStr}</span></div>`;
             } else if (field === 'Tray_Cell_Count') {
-                cell.textContent = value ? value + ' cell' : '--';
+                cell.textContent = planting ? formatTrayDisplay(planting) : (value ? value + ' cell' : '--');
             } else {
                 cell.textContent = value || '--';
             }
@@ -2277,7 +2341,26 @@
             document.getElementById('panelCategory').value = planting.Category || '';
             document.getElementById('panelMethod').value = planting.Planting_Method || 'Transplant';
             document.getElementById('panelFeet').value = planting.Feet_Used || '';
-            document.getElementById('panelTraySize').value = planting.Tray_Cell_Count || '';
+            // Set tray dropdown to composite value matching the option format
+            var traySelect = document.getElementById('panelTraySize');
+            traySelect.value = ''; // reset
+            if (planting.Tray_Type) {
+                // Find matching option by tray type name
+                for (var i = 0; i < traySelect.options.length; i++) {
+                    if (traySelect.options[i].value.indexOf(planting.Tray_Type) >= 0) {
+                        traySelect.value = traySelect.options[i].value;
+                        break;
+                    }
+                }
+            } else if (planting.Tray_Cell_Count) {
+                // Fallback: match by cell count for plug trays
+                for (var i = 0; i < traySelect.options.length; i++) {
+                    if (traySelect.options[i].value === 'plug:' + planting.Tray_Cell_Count + ':' + planting.Tray_Cell_Count + '-cell') {
+                        traySelect.value = traySelect.options[i].value;
+                        break;
+                    }
+                }
+            }
             document.getElementById('panelTraysNeeded').value = planting.Trays_Needed || '';
             document.getElementById('panelBed').value = planting.Target_Bed_ID || '';
             document.getElementById('panelGHSow').value = formatDateForInput(planting.Plan_GH_Sow);
@@ -2515,6 +2598,28 @@
                 showError('Error duplicating planting: ' + error.message);
                 updatePanelSaveStatus('saved');
             }
+        }
+
+        // Special handler for panel tray dropdown — saves both Tray_Cell_Count and Tray_Type
+        async function panelTrayChange(compositeValue) {
+            if (!currentEditId) return;
+            var parts = compositeValue.split(':');
+            var cellCount = parts[1] || '0';
+            var trayTypeName = parts.slice(2).join(':') || '';
+
+            var planting = allPlantings.find(p => p.Batch_ID === currentEditId);
+            if (planting) {
+                planting.Tray_Cell_Count = cellCount;
+                planting.Tray_Type = trayTypeName;
+            }
+
+            updatePanelSaveStatus('saving');
+            await autoSave(currentEditId, 'Tray_Cell_Count', cellCount);
+            await autoSave(currentEditId, 'Tray_Type', trayTypeName);
+            updatePanelSaveStatus('saved');
+
+            // Refresh the table row
+            filterPlantings();
         }
 
         async function panelFieldChange(field, value) {

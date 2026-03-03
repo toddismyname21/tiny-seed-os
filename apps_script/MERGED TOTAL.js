@@ -25003,51 +25003,60 @@ function getPlanningData() {
       return { success: true, data: [], message: 'No planning data found' };
     }
 
-    // FIXED 2026-01-23: Sheet has NO header row - data starts at row 1
-    // FIXED 2026-01-23: Added Plan_Field_Sow and Act_Field_Sow columns for Direct Seed crops
-    // Column mapping (0-indexed):
-    // 0=Status, 1=Batch_ID, 2=Crop, 3=Variety, 4=Method, 5=Target_Bed_ID,
-    // 6=Bed_Feet, 7=Total_Plants, 8=Successions,
-    // 9=Plan_GH_Sow, 10=Act_GH_Sow,
-    // 11=Plan_Field_Sow, 12=Act_Field_Sow,  <-- For Direct Seed crops
-    // 13=Plan_Transplant, 14=Act_Transplant,
-    // 15=First_Harvest, 16=Last_Harvest,
-    // ...28=DTM
+    // Header-based column lookup for reliability
+    var headers = data[0].map(function(h) { return String(h).trim(); });
 
-    const plantings = data.map((row, rowIndex) => {
-      // Skip completely empty rows
-      if (!row[2] || String(row[2]).trim() === '') return null;
+    // Build column index map from headers
+    var col = function(name) { return headers.indexOf(name); };
 
-      const formatDate = (val) => {
-        if (!val) return '';
-        if (val instanceof Date) return val.toISOString().split('T')[0];
-        if (typeof val === 'string' && val.includes('T')) return val.split('T')[0];
-        return String(val);
-      };
+    const formatDate = (val) => {
+      if (!val) return '';
+      if (val instanceof Date) return val.toISOString().split('T')[0];
+      if (typeof val === 'string' && val.includes('T')) return val.split('T')[0];
+      return String(val);
+    };
 
-      return {
-        Status: row[0] || 'Planned',
-        Batch_ID: row[1] || '',
-        Crop: row[2] || '',
-        Variety: row[3] || '',
-        Method: row[4] || '',
-        Planting_Method: row[4] || '',  // Alias for frontend compatibility
-        Target_Bed_ID: row[5] || '',
-        Bed_Feet: row[6] || 0,
-        Total_Plants: row[7] || 0,
-        Successions: row[8] || 1,
-        Plan_GH_Sow: formatDate(row[9]),
-        Act_GH_Sow: formatDate(row[10]),
-        Plan_Field_Sow: formatDate(row[11]),  // FIXED: Direct Seed date
-        Act_Field_Sow: formatDate(row[12]),   // FIXED: Actual Direct Seed date
-        Plan_Transplant: formatDate(row[13]),
-        Act_Transplant: formatDate(row[14]),  // FIXED: Was missing
-        First_Harvest: formatDate(row[15]),
-        Last_Harvest: formatDate(row[16]),
-        DTM: row[28] || row[row.length - 1] || 0,
-        rowIndex: rowIndex + 1
-      };
-    }).filter(p => p !== null);
+    var getVal = function(row, name, fallback) {
+      var idx = col(name);
+      return idx >= 0 ? (row[idx] || fallback) : fallback;
+    };
+
+    const plantings = [];
+    for (var i = 1; i < data.length; i++) {
+      var row = data[i];
+      var crop = getVal(row, 'Crop', '');
+      if (!crop || String(crop).trim() === '') continue;
+
+      plantings.push({
+        STATUS: getVal(row, 'STATUS', 'Planned'),
+        Status: getVal(row, 'STATUS', 'Planned'),
+        Batch_ID: getVal(row, 'Batch_ID', ''),
+        Crop: crop,
+        Variety: getVal(row, 'Variety', ''),
+        Method: getVal(row, 'Planting_Method', ''),
+        Planting_Method: getVal(row, 'Planting_Method', ''),
+        Target_Bed_ID: getVal(row, 'Target_Bed_ID', ''),
+        Bed_Feet: getVal(row, 'Bed_Feet', 0),
+        Feet_Used: getVal(row, 'Feet_Used', ''),
+        Total_Plants: getVal(row, 'Total_Plants', '') || getVal(row, 'Plants_Needed', 0),
+        Successions: getVal(row, 'Successions', 1),
+        Plan_GH_Sow: formatDate(getVal(row, 'Plan_GH_Sow', '')),
+        Act_GH_Sow: formatDate(getVal(row, 'Act_GH_Sow', '')),
+        Plan_Field_Sow: formatDate(getVal(row, 'Plan_Field_Sow', '')),
+        Act_Field_Sow: formatDate(getVal(row, 'Act_Field_Sow', '')),
+        Plan_Transplant: formatDate(getVal(row, 'Plan_Transplant', '')),
+        Act_Transplant: formatDate(getVal(row, 'Act_Transplant', '')),
+        First_Harvest: formatDate(getVal(row, 'First_Harvest', '')),
+        Last_Harvest: formatDate(getVal(row, 'Last_Harvest', '')),
+        Tray_Cell_Count: getVal(row, 'Tray_Cell_Count', ''),
+        Tray_Type: getVal(row, 'Tray_Type', ''),
+        Trays_Needed: getVal(row, 'Trays_Needed', ''),
+        Plants_Needed: getVal(row, 'Plants_Needed', ''),
+        DTM: getVal(row, 'DTM', 0),
+        Category: getVal(row, 'Category', ''),
+        rowIndex: i + 1
+      });
+    }
 
     return {
       success: true,

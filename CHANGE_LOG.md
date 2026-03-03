@@ -38,6 +38,22 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-03-03 — Planning.html: Tray Types (Open, Paperpot 264) + Backend Header-Based Lookup (PM_ARCHITECT)
+
+### Files Modified
+- `planning.html` — Tray column dropdown now includes Open Flat, all plug tray sizes (6-288 cell), and Paperpot 264 with 2"/4"/6" spacings. Both inline edit and side panel dropdowns updated. Writes BOTH `Tray_Cell_Count` AND `Tray_Type` to PLANNING_2026. Added `formatTrayDisplay()` helper for consistent display.
+- `apps_script/MERGED TOTAL.js` — `getPlanningData()`: Converted from fragile positional column mapping to header-based lookup. Now returns `Tray_Cell_Count`, `Tray_Type`, `Trays_Needed`, `Plants_Needed`, `Feet_Used`, `Category` fields that were previously missing. Stats cards should now populate correctly.
+
+### Functions Added
+- `formatTrayDisplay(p)` in `planning.html` — Shows Tray_Type if set, falls back to cells display
+- `panelTrayChange(compositeValue)` in `planning.html` — Panel tray handler that saves both Tray_Cell_Count and Tray_Type
+- `finishTrayEdit(compositeValue)` in `planning.html` — Inline tray edit handler for dual field save
+
+### Reason
+Planning page was missing Open Flat and Paperpot 264 tray types. Backend getPlanningData() used hardcoded column positions and didn't return tray/feet/plants fields, making the planning table incomplete.
+
+---
+
 ## 2026-03-03 — Fix GH Sowing Missing Overdue Tasks + Editable Variety in Sowing Sheets (PM_ARCHITECT)
 
 ### Files Modified
