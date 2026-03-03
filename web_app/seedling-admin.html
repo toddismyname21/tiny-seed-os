@@ -1336,11 +1336,11 @@
                 <div class="alloc-stat-value" id="allocStatWholesale">0</div>
             </div>
             <div class="alloc-stat" style="border-left:3px solid var(--orange);">
-                <div class="alloc-stat-label">Presale Avail</div>
+                <div class="alloc-stat-label">Presale Orders</div>
                 <div class="alloc-stat-value" id="allocStatPresale">0</div>
             </div>
             <div class="alloc-stat" style="border-left:3px solid #06b6d4;">
-                <div class="alloc-stat-label">Presale Sold</div>
+                <div class="alloc-stat-label">Total Committed</div>
                 <div class="alloc-stat-value" id="allocStatSold">0</div>
             </div>
         </div>
@@ -1392,8 +1392,8 @@
                         <th style="text-align:center;">Market</th>
                         <th style="text-align:center;">Wholesale</th>
                         <th style="text-align:center;">CityGROWN</th>
-                        <th style="text-align:center;">Presale Avail</th>
-                        <th style="text-align:center;">Presale Sold</th>
+                        <th style="text-align:center;">Presale Orders</th>
+                        <th style="text-align:center;">Total Committed</th>
                         <th style="text-align:center;">Remaining</th>
                         <th>Status</th>
                     </tr>
@@ -1405,9 +1405,10 @@
         </div>
 
         <p style="margin-top:16px;font-size:0.8rem;color:var(--text-muted);text-align:center;">
-            Presale Available = Total Units - Phipps - Market - Wholesale - CityGROWN &nbsp;|&nbsp;
-            Presale Sold updates live from orders &nbsp;|&nbsp;
-            Allocations logged to SEEDLING_LIFECYCLE for year-over-year tracking
+            Presale Orders = actual customer pre-orders (no limit until cutoff) &nbsp;|&nbsp;
+            Total Committed = outlet allocations + presale orders &nbsp;|&nbsp;
+            Remaining = Total Units - Total Committed &nbsp;|&nbsp;
+            Allocations logged to SEEDLING_LIFECYCLE
         </p>
     </div><!-- end allocationsPanel -->
 
@@ -2632,17 +2633,18 @@ function renderAllocTable() {
         var market = Number(item.Alloc_Market) || 0;
         var wholesale = Number(item.Alloc_Wholesale) || 0;
         var citygrown = Number(item.Alloc_CityGROWN) || 0;
-        var presaleAvail = total - phipps - market - wholesale - citygrown;
+        var outletTotal = phipps + market + wholesale + citygrown;
 
-        // Get actual presale orders from sales data
+        // Presale orders are tracked from actual sales data (starts at 0, increases with orders)
         var salesInfo = allocSales[item.Item_ID] || { total: 0, byChannel: {} };
-        var presaleSold = Number(salesInfo.byChannel['Presale'] || salesInfo.byChannel['presale'] || salesInfo.byChannel['Pre-Order'] || 0);
-        var remaining = presaleAvail - presaleSold;
+        var presaleOrders = Number(salesInfo.byChannel['Presale'] || salesInfo.byChannel['presale'] || salesInfo.byChannel['Pre-Order'] || 0);
+        // Remaining production capacity = total - outlets - presale orders
+        var remaining = total - outletTotal - presaleOrders;
 
         var statusClass = '';
         var statusText = 'OK';
-        if (presaleAvail < 0) { statusClass = 'alloc-over'; statusText = 'OVER!'; }
-        else if (remaining <= 0 && presaleAvail > 0) { statusClass = 'alloc-soldout'; statusText = 'SOLD OUT'; }
+        if (outletTotal > total) { statusClass = 'alloc-over'; statusText = 'OVER!'; }
+        else if (remaining <= 0 && total > 0) { statusClass = 'alloc-soldout'; statusText = 'AT CAPACITY'; }
         else if (total === 0) { statusClass = 'alloc-nostock'; statusText = 'NO STOCK'; }
 
         html += '<tr class="' + statusClass + '" data-item-id="' + item.Item_ID + '">';
@@ -2652,9 +2654,9 @@ function renderAllocTable() {
         html += '<td><input type="number" class="alloc-input" value="' + market + '" min="0" data-field="market" data-id="' + item.Item_ID + '" onchange="onAllocChange(this)"></td>';
         html += '<td><input type="number" class="alloc-input" value="' + wholesale + '" min="0" data-field="wholesale" data-id="' + item.Item_ID + '" onchange="onAllocChange(this)"></td>';
         html += '<td><input type="number" class="alloc-input" value="' + citygrown + '" min="0" data-field="citygrown" data-id="' + item.Item_ID + '" onchange="onAllocChange(this)"></td>';
-        html += '<td class="alloc-presale' + (presaleAvail < 0 ? ' alloc-negative' : '') + '">' + presaleAvail + '</td>';
-        html += '<td class="alloc-sold">' + presaleSold + '</td>';
-        html += '<td class="alloc-remaining' + (remaining <= 0 && presaleAvail > 0 ? ' alloc-negative' : '') + '">' + remaining + '</td>';
+        html += '<td class="alloc-presale">' + presaleOrders + '</td>';
+        html += '<td class="alloc-sold">' + (outletTotal + presaleOrders) + '</td>';
+        html += '<td class="alloc-remaining' + (remaining <= 0 && total > 0 ? ' alloc-negative' : '') + '">' + remaining + '</td>';
         html += '<td class="alloc-status"><span class="alloc-badge ' + statusClass + '">' + statusText + '</span></td>';
         html += '</tr>';
     }
@@ -2687,7 +2689,7 @@ function onAllocChange(input) {
 }
 
 function updateAllocSummary() {
-    var totals = { total: 0, phipps: 0, market: 0, wholesale: 0, citygrown: 0, presale: 0, sold: 0, remaining: 0, overCount: 0 };
+    var totals = { total: 0, phipps: 0, market: 0, wholesale: 0, citygrown: 0, presaleOrders: 0, totalCommitted: 0, remaining: 0, overCount: 0 };
     for (var i = 0; i < allocData.length; i++) {
         var item = allocData[i];
         var t = Number(item.Total_Units) || 0;
@@ -2695,31 +2697,31 @@ function updateAllocSummary() {
         var m = Number(item.Alloc_Market) || 0;
         var w = Number(item.Alloc_Wholesale) || 0;
         var c = Number(item.Alloc_CityGROWN) || 0;
-        var presaleAvail = t - p - m - w - c;
+        var outletTotal = p + m + w + c;
         var salesInfo = allocSales[item.Item_ID] || { total: 0, byChannel: {} };
-        var presaleSold = Number(salesInfo.byChannel['Presale'] || salesInfo.byChannel['presale'] || salesInfo.byChannel['Pre-Order'] || 0);
+        var presaleOrders = Number(salesInfo.byChannel['Presale'] || salesInfo.byChannel['presale'] || salesInfo.byChannel['Pre-Order'] || 0);
 
         totals.total += t;
         totals.phipps += p;
         totals.market += m;
         totals.wholesale += w;
         totals.citygrown += c;
-        totals.presale += Math.max(0, presaleAvail);
-        totals.sold += presaleSold;
-        totals.remaining += (presaleAvail - presaleSold);
-        if (presaleAvail < 0) totals.overCount++;
+        totals.presaleOrders += presaleOrders;
+        totals.totalCommitted += (outletTotal + presaleOrders);
+        totals.remaining += (t - outletTotal - presaleOrders);
+        if (outletTotal > t) totals.overCount++;
     }
 
     document.getElementById('allocStatTotal').textContent = totals.total;
     document.getElementById('allocStatPhipps').textContent = totals.phipps;
     document.getElementById('allocStatMarket').textContent = totals.market;
     document.getElementById('allocStatWholesale').textContent = totals.wholesale;
-    document.getElementById('allocStatPresale').textContent = totals.presale;
-    document.getElementById('allocStatSold').textContent = totals.sold;
+    document.getElementById('allocStatPresale').textContent = totals.presaleOrders;
+    document.getElementById('allocStatSold').textContent = totals.totalCommitted;
     var warnEl = document.getElementById('allocWarnings');
     if (totals.overCount > 0) {
         warnEl.style.display = 'block';
-        warnEl.textContent = totals.overCount + ' item(s) overallocated!';
+        warnEl.textContent = totals.overCount + ' item(s) — outlet allocations exceed production!';
     } else {
         warnEl.style.display = 'none';
     }

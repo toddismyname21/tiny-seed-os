@@ -38,6 +38,17 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-03-03 — Seed Shopping List: Expand to All Unsown Plantings (PM_ARCHITECT)
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — `getSeedShoppingList()`: removed 21-day date cap, now scans ALL unsown plantings (past overdue + future). Added 'later' urgency tier for >21 day items. Updated sort order.
+- `sowing-sheets.html` — Updated modal subtitle from "Next 21 Days" to "All Unsown Plantings". Added blue 'LATER' urgency badge for items >21 days out. Updated print subtitle.
+
+### Reason
+User-requested: "Can you have the seed shopping list also scan any seedings that have not yet been marked as sown? Just a fail safe measure so we do not fall too far behind."
+
+---
+
 ## 2026-03-03 — Fix Batch Save Reliability + Seed Shopping List (PM_ARCHITECT)
 
 ### Files Modified
