@@ -38,6 +38,34 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-03-03 — Fix Duplicate Batch_ID Bug + Auto-Recalculate Trays/Plants + Stats Cards (PM_ARCHITECT)
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — `generateBatchId()`: Expanded from 4-digit random (9000 collisions) to 5-digit random (90000) with existing ID scan for guaranteed uniqueness + timestamp fallback. `addPlanting()`: Added uniqueness check — if incoming Batch_ID already exists in sheet, auto-generates a new unique one. `savePlantingFromWeb()`: Same uniqueness check added. `clonePlanting()`: Now passes existing IDs to generateBatchId for scan-free uniqueness. `getPlanningData()`: Now returns `Rows_Per_Bed`, `In_Row_Spacing_In`, `Seeds_Needed`. Both `EDITABLE_FIELDS` whitelists: Added `Rows_Per_Bed`, `In_Row_Spacing_In`, `Seeds_Needed`.
+- `planning.html` — `duplicatePlanting()`: Uses backend-confirmed Batch_ID (not client-generated), removes `rowIndex` from clones, clears all Act_* fields. `quickDuplicate()`: Same fixes. Added `recalcPlantingGeometry(batchId)` function: auto-calculates `Plants_Needed` and `Trays_Needed` from `Feet_Used × Rows_Per_Bed × (12 / In_Row_Spacing_In)` whenever geometry fields change. Wired into `finishInlineEdit()`, `finishTrayEdit()`, `panelFieldChange()`, `panelTrayChange()`. `filterPlantings()` now calls `updateStats()` to keep stats cards current.
+
+### Functions Added
+- `recalcPlantingGeometry(batchId)` in `planning.html` — Auto-calculates Plants_Needed and Trays_Needed when Feet_Used, Rows_Per_Bed, In_Row_Spacing_In, or Tray_Cell_Count change
+
+### Functions Modified
+- `generateBatchId(cropName, existingIds)` — Now accepts optional existingIds Set, scans sheet if not provided, 5-digit random + uniqueness loop + timestamp fallback
+- `addPlanting(planting)` — Reads all existing Batch_IDs, rejects duplicates, auto-generates new unique ID
+- `savePlantingFromWeb(params)` — Same uniqueness guard
+- `clonePlanting(params)` — Passes existing IDs to generateBatchId
+- `duplicatePlanting()` — Uses backend's confirmed batchId, removes rowIndex, clears all Act_* fields
+- `quickDuplicate()` — Same fixes as duplicatePlanting
+- `filterPlantings()` — Now calls updateStats() at end
+
+### Reason
+CRITICAL BUG: Duplicate planting feature could create plantings with same Batch_ID as existing ones, making the system unable to distinguish between different seedings. Root cause: `generateBatchId()` only had 9000 possible values per crop and no collision check anywhere. Auto-recalc ensures that when geometry fields change, Plants_Needed and Trays_Needed update automatically. Stats cards now refresh after every table update.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
 ## 2026-03-03 — Planning.html: Tray Types (Open, Paperpot 264) + Backend Header-Based Lookup (PM_ARCHITECT)
 
 ### Files Modified

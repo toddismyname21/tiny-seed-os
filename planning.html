@@ -1887,6 +1887,9 @@
 
             tbody.innerHTML = html;
             document.getElementById('countBadge').textContent = `${filteredPlantings.length} plantings`;
+
+            // Keep stats cards in sync with current data
+            updateStats();
         }
 
         function getStatusClass(status) {
@@ -2158,6 +2161,9 @@
             // Save both fields
             await autoSave(batchId, 'Tray_Cell_Count', cellCount);
             await autoSave(batchId, 'Tray_Type', trayTypeName);
+
+            // Recalculate trays needed with new cell count
+            recalcPlantingGeometry(batchId);
         }
 
         async function finishInlineEdit(value, moveToNext = false) {
@@ -2200,6 +2206,11 @@
             // Save to server with auto-save
             await autoSave(batchId, field, value);
 
+            // Auto-recalculate if a geometry field changed
+            if (GEOMETRY_FIELDS.indexOf(field) >= 0) {
+                recalcPlantingGeometry(batchId);
+            }
+
             // Move to next cell if Tab was pressed
             if (moveToNext) {
                 const row = cell.closest('tr');
@@ -2209,6 +2220,48 @@
                     cells[currentIndex + 1].click();
                 }
             }
+        }
+
+        // ========================================
+        // AUTO-RECALCULATE GEOMETRY
+        // ========================================
+        var GEOMETRY_FIELDS = ['Feet_Used', 'Rows_Per_Bed', 'In_Row_Spacing_In', 'Tray_Cell_Count'];
+
+        function recalcPlantingGeometry(batchId) {
+            var planting = allPlantings.find(function(p) { return p.Batch_ID === batchId; });
+            if (!planting) return;
+
+            var feet = parseFloat(planting.Feet_Used) || 0;
+            var rows = parseFloat(planting.Rows_Per_Bed) || 1;
+            var spacing = parseFloat(planting.In_Row_Spacing_In) || 12;
+            var cellCount = parseInt(planting.Tray_Cell_Count) || 0;
+
+            if (feet <= 0 || spacing <= 0) return;
+
+            // Plants = (feet × 12 / spacing) × rows
+            var plantsNeeded = Math.ceil((feet * 12 / spacing) * rows);
+            planting.Plants_Needed = plantsNeeded;
+            planting.Total_Plants = plantsNeeded;
+
+            // Trays = plants / cells per tray (only if tray has cells — not Open Flat)
+            var traysNeeded = '';
+            if (cellCount > 0) {
+                traysNeeded = Math.ceil(plantsNeeded / cellCount);
+                planting.Trays_Needed = traysNeeded;
+            }
+
+            // Update panel fields if this planting is open in the edit panel
+            if (currentEditId === batchId) {
+                document.getElementById('panelTraysNeeded').value = traysNeeded;
+            }
+
+            // Save calculated values to backend
+            autoSave(batchId, 'Plants_Needed', plantsNeeded);
+            if (cellCount > 0) {
+                autoSave(batchId, 'Trays_Needed', traysNeeded);
+            }
+
+            console.log('[Recalc] ' + batchId + ': ' + feet + 'ft × ' + rows + ' rows @ ' + spacing + 'in = ' + plantsNeeded + ' plants, ' + (traysNeeded || 'N/A') + ' trays');
         }
 
         // ========================================
@@ -2541,20 +2594,23 @@
                 return;
             }
 
-            // Generate new batch ID
+            // Generate a candidate batch ID (backend will verify uniqueness)
             const timestamp = Date.now();
-            const random = Math.random().toString(36).substr(2, 4).toUpperCase();
-            const newBatchId = `${original.Crop?.substring(0,3).toUpperCase() || 'NEW'}-${timestamp}-${random}`;
+            const random = Math.random().toString(36).substr(2, 6).toUpperCase();
+            const candidateBatchId = `${original.Crop?.substring(0,3).toUpperCase() || 'NEW'}-26-${timestamp}-${random}`;
 
             // Create copy with new ID and reset status
             const duplicate = {
                 ...original,
-                Batch_ID: newBatchId,
+                Batch_ID: candidateBatchId,
                 STATUS: 'Planned',
                 Act_GH_Sow: '',
                 Act_Transplant: '',
+                Act_Field_Sow: '',
                 Notes: original.Notes ? `[Duplicated from ${currentEditId}] ${original.Notes}` : `[Duplicated from ${currentEditId}]`
             };
+            // Remove rowIndex — this is the original's row, not the new one
+            delete duplicate.rowIndex;
 
             updatePanelSaveStatus('saving');
 
@@ -2569,6 +2625,10 @@
                 const result = await response.json();
 
                 if (result.success) {
+                    // Use the backend's authoritative Batch_ID (it verified uniqueness)
+                    const confirmedBatchId = result.batchId || candidateBatchId;
+                    duplicate.Batch_ID = confirmedBatchId;
+
                     // Set duplicate mode flag IMMEDIATELY before any UI changes
                     isDuplicatedPlanting = true;
 
@@ -2586,8 +2646,8 @@
                     // Small delay to allow UI to update, then open in duplicate mode
                     setTimeout(() => {
                         // isDuplicatedPlanting is already true from above
-                        openEditPanel(newBatchId);
-                        showSuccess(`Planting duplicated! All fields are now editable.`);
+                        openEditPanel(confirmedBatchId);
+                        showSuccess(`Planting duplicated! New ID: ${confirmedBatchId}. All fields are editable.`);
                     }, 100);
                 } else {
                     showError(result.error || 'Failed to create duplicate');
@@ -2616,6 +2676,10 @@
             updatePanelSaveStatus('saving');
             await autoSave(currentEditId, 'Tray_Cell_Count', cellCount);
             await autoSave(currentEditId, 'Tray_Type', trayTypeName);
+
+            // Recalculate trays needed with new cell count
+            recalcPlantingGeometry(currentEditId);
+
             updatePanelSaveStatus('saved');
 
             // Refresh the table row
@@ -2636,6 +2700,11 @@
 
             // Save to server
             await autoSave(currentEditId, field, value);
+
+            // Auto-recalculate if a geometry field changed
+            if (GEOMETRY_FIELDS.indexOf(field) >= 0) {
+                recalcPlantingGeometry(currentEditId);
+            }
 
             // Update save status
             updatePanelSaveStatus('saved');
@@ -2786,20 +2855,23 @@
                 return;
             }
 
-            // Generate new batch ID
+            // Generate a candidate batch ID (backend will verify uniqueness)
             const timestamp = Date.now();
-            const random = Math.random().toString(36).substr(2, 4).toUpperCase();
-            const newBatchId = `${original.Crop?.substring(0,3).toUpperCase() || 'NEW'}-${timestamp}-${random}`;
+            const random = Math.random().toString(36).substr(2, 6).toUpperCase();
+            const candidateBatchId = `${original.Crop?.substring(0,3).toUpperCase() || 'NEW'}-26-${timestamp}-${random}`;
 
             // Create copy with new ID and reset status
             const duplicate = {
                 ...original,
-                Batch_ID: newBatchId,
+                Batch_ID: candidateBatchId,
                 STATUS: 'Planned',
                 Act_GH_Sow: '',
                 Act_Transplant: '',
+                Act_Field_Sow: '',
                 Notes: original.Notes ? `[Duplicated from ${batchId}] ${original.Notes}` : `[Duplicated from ${batchId}]`
             };
+            // Remove rowIndex — this is the original's row, not the new one
+            delete duplicate.rowIndex;
 
             showToast('Duplicating planting...', 'info');
 
@@ -2814,14 +2886,18 @@
                 const result = await response.json();
 
                 if (result.success) {
+                    // Use backend's authoritative Batch_ID (it verified uniqueness)
+                    const confirmedBatchId = result.batchId || candidateBatchId;
+                    duplicate.Batch_ID = confirmedBatchId;
+
                     allPlantings.push(duplicate);
                     filterPlantings();
-                    showSuccess(`Duplicated! Crop & Variety are now editable.`);
+                    showSuccess(`Duplicated! New ID: ${confirmedBatchId}. Crop & Variety are now editable.`);
 
                     setTimeout(() => {
                         // Set duplicate mode BEFORE opening panel
                         isDuplicatedPlanting = true;
-                        openEditPanel(newBatchId);
+                        openEditPanel(confirmedBatchId);
                     }, 300);
                 } else {
                     showError(result.error || 'Failed to duplicate');
