@@ -775,6 +775,14 @@
                     Print Task Sheet
                 </button>
             </div>
+
+            <!-- Seed Shopping List -->
+            <div class="panel-section">
+                <button class="btn btn-block" onclick="showSeedShoppingList()" style="background:#f59e0b;color:#1a1a2e;font-weight:600;">
+                    <i class="fas fa-shopping-cart"></i>
+                    Seed Shopping List
+                </button>
+            </div>
         </div>
 
         <!-- Preview Area -->
@@ -1232,49 +1240,70 @@
         }
 
         async function saveFieldEdits() {
-            // Force-save any active editable input (user may click Save while still editing a cell)
-            document.querySelectorAll('.editable-cell input').forEach(function(inp) { inp.blur(); });
-            await new Promise(function(r) { setTimeout(r, 50); }); // Let blur handlers fire
+            // Force-save any active editable input or select
+            document.querySelectorAll('.editable-cell input, .editable-cell select').forEach(function(inp) { inp.blur(); });
+            await new Promise(function(r) { setTimeout(r, 100); }); // Let blur/change handlers fire
 
-            const batches = Object.keys(dirtyFields);
+            var batches = Object.keys(dirtyFields);
             if (batches.length === 0) return;
 
-            showToast('Saving edits...', 'warning');
-            let saved = 0;
-            let errors = [];
+            // Count total field changes for accurate messaging
+            var totalChanges = 0;
+            var updates = batches.map(function(batchId) {
+                var fieldCount = Object.keys(dirtyFields[batchId]).length;
+                totalChanges += fieldCount;
+                return { batchId: batchId, fields: dirtyFields[batchId] };
+            });
 
-            for (const batchId of batches) {
-                try {
-                    const response = await fetch(API_URL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'text/plain' },
-                        body: JSON.stringify({ action: 'updatePlanningFields', batchId: batchId, fields: dirtyFields[batchId] })
-                    });
-                    const result = await response.json();
-                    if (result.success) {
-                        saved++;
-                        // Update local task data
-                        const task = tasks.find(t => t.batchId === batchId);
-                        if (task) {
-                            Object.assign(task, dirtyFields[batchId]);
+            showToast('Saving ' + totalChanges + ' change(s) across ' + batches.length + ' task(s)...', 'warning');
+
+            try {
+                var response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({ action: 'batchUpdatePlanningFields', updates: updates })
+                });
+                var result = await response.json();
+
+                if (result.success) {
+                    // Only clear successfully-saved entries from dirtyFields
+                    var savedBatches = [];
+                    var failedBatches = [];
+                    (result.results || []).forEach(function(r) {
+                        if (r.success) {
+                            savedBatches.push(r.batchId);
+                            // Update local task data
+                            var task = tasks.find(function(t) { return t.batchId === r.batchId; });
+                            if (task && dirtyFields[r.batchId]) {
+                                Object.assign(task, dirtyFields[r.batchId]);
+                            }
+                            // Clear this entry from dirtyFields
+                            delete dirtyFields[r.batchId];
+                            // Remove dirty styling for this row
+                            var row = document.querySelector('tr[data-batch-id="' + r.batchId + '"]');
+                            if (row) row.querySelectorAll('.dirty-cell').forEach(function(el) { el.classList.remove('dirty-cell'); el.style.background = ''; });
+                        } else {
+                            failedBatches.push(r.batchId + ': ' + (r.error || 'failed'));
                         }
+                    });
+
+                    updateSaveBar();
+
+                    if (failedBatches.length > 0) {
+                        showToast('Saved ' + savedBatches.length + ' task(s), ' + failedBatches.length + ' failed — unsaved changes kept for retry', 'error');
                     } else {
-                        errors.push(batchId + ': ' + (result.error || 'Unknown error'));
+                        // Count total fields saved
+                        var fieldsSaved = 0;
+                        (result.results || []).forEach(function(r) { fieldsSaved += (r.updatedFields || []).length; });
+                        showToast('Saved ' + fieldsSaved + ' change(s) across ' + savedBatches.length + ' task(s)', 'success');
                     }
-                } catch (e) {
-                    errors.push(batchId + ': ' + e.message);
+                } else {
+                    // Entire batch call failed — keep ALL dirtyFields for retry
+                    showToast('Save failed: ' + (result.error || 'Unknown error') + ' — your changes are preserved, try again', 'error');
                 }
-            }
-
-            dirtyFields = {};
-            updateSaveBar();
-
-            if (errors.length > 0) {
-                showToast(`Saved ${saved}, failed ${errors.length}: ${errors[0]}`, 'error');
-            } else {
-                showToast(`Saved ${saved} task(s) successfully`, 'success');
-                // Remove dirty styling
-                document.querySelectorAll('.dirty-cell').forEach(el => el.classList.remove('dirty-cell'));
+            } catch (e) {
+                // Network error — keep ALL dirtyFields for retry
+                showToast('Save failed: ' + e.message + ' — your changes are preserved, try again', 'error');
             }
         }
 
@@ -2183,6 +2212,147 @@
         }
 
         // Toast Notification
+        // ═══════════════════════════════════════════════════
+        // SEED SHOPPING LIST
+        // ═══════════════════════════════════════════════════
+        async function showSeedShoppingList() {
+            var modal = document.getElementById('seedShoppingModal');
+            if (!modal) return;
+            modal.style.display = 'flex';
+            modal.offsetHeight;
+            modal.classList.add('open');
+            document.getElementById('seedShoppingContent').innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-secondary);"><i class="fas fa-spinner fa-spin" style="font-size:2rem;"></i><p style="margin-top:12px;">Loading seed needs for next 21 days...</p></div>';
+
+            try {
+                var res = await fetch(API_URL + '?action=getSeedShoppingList');
+                var data = await res.json();
+                if (data.success) {
+                    renderSeedShoppingList(data);
+                } else {
+                    document.getElementById('seedShoppingContent').innerHTML = '<div style="padding:2rem;color:var(--danger);text-align:center;"><i class="fas fa-exclamation-triangle"></i> ' + (data.error || 'Failed to load') + '</div>';
+                }
+            } catch (e) {
+                document.getElementById('seedShoppingContent').innerHTML = '<div style="padding:2rem;color:var(--danger);text-align:center;"><i class="fas fa-exclamation-triangle"></i> Network error: ' + e.message + '</div>';
+            }
+        }
+
+        function hideSeedShoppingModal() {
+            var modal = document.getElementById('seedShoppingModal');
+            if (modal) { modal.classList.remove('open'); modal.style.display = 'none'; }
+        }
+
+        function renderSeedShoppingList(data) {
+            var items = data.items || [];
+            if (items.length === 0) {
+                document.getElementById('seedShoppingContent').innerHTML = '<div style="padding:2rem;text-align:center;color:var(--text-secondary);"><i class="fas fa-check-circle" style="font-size:2rem;color:var(--primary);"></i><p style="margin-top:12px;">No upcoming seed needs in the next 21 days.</p></div>';
+                return;
+            }
+
+            var needToBuy = items.filter(function(i) { return i.status !== 'in_stock'; });
+            var inStock = items.filter(function(i) { return i.status === 'in_stock'; });
+
+            var html = '<div style="padding:0 4px;">';
+
+            // Summary bar
+            html += '<div style="display:flex;gap:12px;margin-bottom:16px;">';
+            html += '<div style="flex:1;background:rgba(239,68,68,0.15);border-radius:8px;padding:10px;text-align:center;"><div style="font-size:1.5rem;font-weight:700;color:#ef4444;">' + needToBuy.length + '</div><div style="font-size:0.75rem;color:var(--text-secondary);">Need to Buy</div></div>';
+            html += '<div style="flex:1;background:rgba(34,197,94,0.15);border-radius:8px;padding:10px;text-align:center;"><div style="font-size:1.5rem;font-weight:700;color:#22c55e;">' + inStock.length + '</div><div style="font-size:0.75rem;color:var(--text-secondary);">In Stock</div></div>';
+            html += '<div style="flex:1;background:rgba(59,130,246,0.15);border-radius:8px;padding:10px;text-align:center;"><div style="font-size:1.5rem;font-weight:700;color:#3b82f6;">' + items.length + '</div><div style="font-size:0.75rem;color:var(--text-secondary);">Total Varieties</div></div>';
+            html += '</div>';
+
+            // Need to buy section
+            if (needToBuy.length > 0) {
+                html += '<div style="margin-bottom:16px;">';
+                html += '<h4 style="color:#ef4444;margin:0 0 8px;font-size:0.9rem;"><i class="fas fa-exclamation-circle"></i> NEED TO BUY (' + needToBuy.length + ')</h4>';
+                html += '<table style="width:100%;border-collapse:collapse;font-size:0.85rem;">';
+                html += '<tr style="background:rgba(239,68,68,0.1);"><th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);">Crop / Variety</th><th style="text-align:right;padding:6px 8px;border-bottom:1px solid var(--border);">Need</th><th style="text-align:right;padding:6px 8px;border-bottom:1px solid var(--border);">Have</th><th style="text-align:right;padding:6px 8px;border-bottom:1px solid var(--border);">Short</th><th style="padding:6px 8px;border-bottom:1px solid var(--border);">Sow By</th></tr>';
+                needToBuy.forEach(function(item) {
+                    var urgBadge = item.urgency === 'overdue' ? '<span style="background:#ef4444;color:white;padding:1px 6px;border-radius:4px;font-size:0.7rem;font-weight:600;">OVERDUE</span>'
+                        : item.urgency === 'urgent' ? '<span style="background:#ef4444;color:white;padding:1px 6px;border-radius:4px;font-size:0.7rem;font-weight:600;">URGENT</span>'
+                        : item.urgency === 'soon' ? '<span style="background:#f59e0b;color:#1a1a2e;padding:1px 6px;border-radius:4px;font-size:0.7rem;font-weight:600;">SOON</span>'
+                        : '<span style="background:var(--bg-light);color:var(--text-secondary);padding:1px 6px;border-radius:4px;font-size:0.7rem;">UPCOMING</span>';
+                    var statusIcon = item.status === 'low' ? '<span style="color:#f59e0b;" title="Low stock"><i class="fas fa-exclamation-triangle"></i></span>' : '<span style="color:#ef4444;" title="Not in inventory"><i class="fas fa-times-circle"></i></span>';
+                    var suppliers = item.knownSuppliers && item.knownSuppliers.length > 0 ? '<div style="font-size:0.7rem;color:var(--text-secondary);margin-top:2px;">' + item.knownSuppliers.join(', ') + '</div>' : '';
+                    html += '<tr style="border-bottom:1px solid rgba(255,255,255,0.05);">';
+                    html += '<td style="padding:8px;">' + statusIcon + ' <strong>' + esc(item.crop) + '</strong>' + (item.variety ? '<br><span style="color:var(--text-secondary);font-size:0.8rem;padding-left:20px;">' + esc(item.variety) + '</span>' : '') + suppliers + '</td>';
+                    html += '<td style="text-align:right;padding:8px;font-weight:600;">' + item.seedsNeeded.toLocaleString() + '</td>';
+                    html += '<td style="text-align:right;padding:8px;color:' + (item.seedsAvailable > 0 ? '#f59e0b' : '#ef4444') + ';">' + item.seedsAvailable.toLocaleString() + '</td>';
+                    html += '<td style="text-align:right;padding:8px;color:#ef4444;font-weight:600;">' + item.deficit.toLocaleString() + '</td>';
+                    html += '<td style="padding:8px;">' + formatDateShort(item.earliestSowDate) + '<br>' + urgBadge + '</td>';
+                    html += '</tr>';
+                });
+                html += '</table></div>';
+            }
+
+            // In stock section (collapsed by default)
+            if (inStock.length > 0) {
+                html += '<div style="margin-bottom:8px;">';
+                html += '<h4 onclick="var el=document.getElementById(\'inStockList\');el.style.display=el.style.display===\'none\'?\'block\':\'none\';this.querySelector(\'i.fa-chevron-right,i.fa-chevron-down\').classList.toggle(\'fa-chevron-right\');this.querySelector(\'i.fa-chevron-right,i.fa-chevron-down\').classList.toggle(\'fa-chevron-down\');" style="color:#22c55e;margin:0 0 8px;font-size:0.9rem;cursor:pointer;"><i class="fas fa-chevron-right"></i> IN STOCK (' + inStock.length + ') <span style="font-weight:400;font-size:0.75rem;color:var(--text-secondary);">click to expand</span></h4>';
+                html += '<div id="inStockList" style="display:none;">';
+                html += '<table style="width:100%;border-collapse:collapse;font-size:0.85rem;">';
+                html += '<tr style="background:rgba(34,197,94,0.1);"><th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);">Crop / Variety</th><th style="text-align:right;padding:6px 8px;border-bottom:1px solid var(--border);">Need</th><th style="text-align:right;padding:6px 8px;border-bottom:1px solid var(--border);">Have</th><th style="padding:6px 8px;border-bottom:1px solid var(--border);">Sow By</th></tr>';
+                inStock.forEach(function(item) {
+                    html += '<tr style="border-bottom:1px solid rgba(255,255,255,0.05);">';
+                    html += '<td style="padding:8px;"><span style="color:#22c55e;"><i class="fas fa-check-circle"></i></span> ' + esc(item.crop) + (item.variety ? ' <span style="color:var(--text-secondary);">— ' + esc(item.variety) + '</span>' : '') + '</td>';
+                    html += '<td style="text-align:right;padding:8px;">' + item.seedsNeeded.toLocaleString() + '</td>';
+                    html += '<td style="text-align:right;padding:8px;color:#22c55e;">' + item.seedsAvailable.toLocaleString() + '</td>';
+                    html += '<td style="padding:8px;">' + formatDateShort(item.earliestSowDate) + '</td>';
+                    html += '</tr>';
+                });
+                html += '</table></div></div>';
+            }
+
+            html += '</div>';
+            document.getElementById('seedShoppingContent').innerHTML = html;
+
+            // Store data for printing
+            window._seedShoppingData = data;
+        }
+
+        function printSeedShoppingList() {
+            var data = window._seedShoppingData;
+            if (!data || !data.items || data.items.length === 0) { showToast('No data to print', 'error'); return; }
+
+            var needToBuy = data.items.filter(function(i) { return i.status !== 'in_stock'; });
+            var inStock = data.items.filter(function(i) { return i.status === 'in_stock'; });
+            var allItems = needToBuy.concat(inStock);
+
+            var columns = [
+                { key: 'crop', label: 'Crop', width: 90 },
+                { key: 'variety', label: 'Variety' },
+                { key: 'needed', label: 'Need', width: 55 },
+                { key: 'have', label: 'Have', width: 55 },
+                { key: 'short', label: 'Short', width: 55 },
+                { key: 'status', label: 'Status', width: 70 },
+                { key: 'sowBy', label: 'Sow By', width: 65 }
+            ];
+
+            var rows = allItems.map(function(item) {
+                return {
+                    crop: item.crop,
+                    variety: item.variety || '-',
+                    needed: item.seedsNeeded.toLocaleString(),
+                    have: item.seedsAvailable.toLocaleString(),
+                    short: item.deficit > 0 ? item.deficit.toLocaleString() : '-',
+                    status: item.status === 'in_stock' ? 'IN STOCK' : item.status === 'low' ? 'LOW' : 'NEED',
+                    sowBy: formatDateShort(item.earliestSowDate),
+                    _groupStatus: item.status === 'in_stock' ? 'In Stock' : 'Need to Buy'
+                };
+            });
+
+            TinySeedPrint.sheet({
+                title: 'Seed Shopping List',
+                subtitle: 'Next 21 Days — ' + needToBuy.length + ' to buy, ' + inStock.length + ' in stock',
+                columns: columns,
+                rows: rows,
+                groupBy: '_groupStatus',
+                orientation: 'portrait'
+            }).catch(function(err) {
+                console.error('Print failed:', err);
+                showToast('Print failed: ' + err.message, 'error');
+            });
+        }
+
         function showToast(message, type = 'success') {
             const toast = document.getElementById('toast');
             const icon = toast.querySelector('i');
@@ -2228,6 +2398,33 @@
     // Backdrop click to close (only if click is directly on backdrop, not the card)
     document.getElementById('assignModal').addEventListener('click', function(e) {
         if (e.target === this) hideAssignModal();
+    });
+    </script>
+
+    <!-- Seed Shopping List Modal -->
+    <style>
+        #seedShoppingModal { display:none;position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,0);align-items:center;justify-content:center;transition:background 0.2s; }
+        #seedShoppingModal.open { background:rgba(0,0,0,0.7); }
+        #seedShoppingModal .shopping-card { background:var(--bg-card,#16213e);border-radius:12px;max-width:700px;width:95%;max-height:85vh;overflow-y:auto;padding:1.5rem;box-shadow:0 20px 60px rgba(0,0,0,0.5);border:1px solid var(--border,rgba(255,255,255,0.1));transform:scale(0.95);opacity:0;transition:transform 0.2s,opacity 0.2s; }
+        #seedShoppingModal.open .shopping-card { transform:scale(1);opacity:1; }
+    </style>
+    <div id="seedShoppingModal">
+        <div class="shopping-card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                <h3 style="margin:0;color:var(--text-primary);font-size:1.1rem;"><i class="fas fa-shopping-cart" style="color:#f59e0b;"></i> Seed Shopping List <span style="font-size:0.8rem;font-weight:400;color:var(--text-secondary);">Next 21 Days</span></h3>
+                <div style="display:flex;gap:8px;">
+                    <button onclick="printSeedShoppingList()" style="padding:6px 12px;background:var(--primary);color:white;border:none;border-radius:6px;cursor:pointer;font-size:0.8rem;"><i class="fas fa-print"></i> Print</button>
+                    <button onclick="hideSeedShoppingModal()" style="padding:6px 12px;background:var(--bg-light,#1a2744);color:var(--text-primary);border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:0.8rem;"><i class="fas fa-times"></i></button>
+                </div>
+            </div>
+            <div id="seedShoppingContent">
+                <div style="text-align:center;padding:2rem;color:var(--text-secondary);">Click the button to load seed needs.</div>
+            </div>
+        </div>
+    </div>
+    <script>
+    document.getElementById('seedShoppingModal').addEventListener('click', function(e) {
+        if (e.target === this) hideSeedShoppingModal();
     });
     </script>
 </body>

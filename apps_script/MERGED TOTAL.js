@@ -14693,6 +14693,8 @@ function doGet(e) {
         return jsonResponse(getSeedInventory(e.parameter));
       case 'checkSeedProcurement':
         return jsonResponse(checkSeedProcurementNeeds());
+      case 'getSeedShoppingList':
+        return jsonResponse(getSeedShoppingList());
       case 'getSeedOrders':
         return jsonResponse(getSeedOrders(e.parameter));
       case 'getSeedOrderDetail':
@@ -18813,6 +18815,8 @@ function doPost(e) {
       // ============ PLANNING FIELD EDITING ============
       case 'updatePlanningFields':
         return jsonResponse(updatePlanningFields(data));
+      case 'batchUpdatePlanningFields':
+        return jsonResponse(batchUpdatePlanningFields(data));
       case 'confirmGHSowing':
         return jsonResponse(confirmGHSowing(data));
       case 'assignSowingSheet':
@@ -28896,6 +28900,184 @@ function checkSeedProcurementNeeds() {
 }
 
 /**
+ * Seed Shopping List — returns ALL upcoming seed needs with inventory status.
+ * Unlike checkSeedProcurementNeeds (which only returns shortfalls),
+ * this returns every crop/variety needed in the next 21 days,
+ * marking each with inventory status so users know what to buy.
+ */
+function getSeedShoppingList() {
+  try {
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var planSheet = ss.getSheetByName('PLANNING_2026');
+    if (!planSheet) return { success: false, error: 'PLANNING_2026 not found' };
+
+    var data = planSheet.getDataRange().getValues();
+    if (data.length < 2) return { success: true, items: [], message: 'No planning data found' };
+
+    var headers = data[0].map(function(h) { return String(h).trim(); });
+    var today = new Date();
+    today.setHours(0, 0, 0, 0);
+    var lookAhead = new Date(today);
+    lookAhead.setDate(lookAhead.getDate() + 21);
+
+    // Column indices
+    var col = {
+      batch: headers.indexOf('Batch_ID'),
+      crop: headers.indexOf('Crop'),
+      variety: headers.indexOf('Variety'),
+      ghSowPlan: headers.indexOf('Plan_GH_Sow'),
+      ghSowAct: headers.indexOf('Act_GH_Sow'),
+      fieldSowPlan: headers.indexOf('Plan_Field_Sow'),
+      fieldSowAct: headers.indexOf('Act_Field_Sow'),
+      trays: headers.indexOf('Trays_Needed'),
+      cellCount: headers.indexOf('Tray_Cell_Count'),
+      plantsNeeded: headers.indexOf('Plants_Needed'),
+      status: headers.indexOf('STATUS')
+    };
+
+    // Scan for upcoming unsown plantings
+    var needsMap = {};
+
+    for (var i = 1; i < data.length; i++) {
+      var row = data[i];
+      var crop = col.crop >= 0 ? row[col.crop] : '';
+      if (!crop) continue;
+
+      var rowStatus = col.status >= 0 ? String(row[col.status]).toLowerCase() : '';
+      if (rowStatus === 'deleted' || rowStatus === 'cancelled') continue;
+
+      var batchId = col.batch >= 0 ? row[col.batch] : 'ROW-' + i;
+      var variety = col.variety >= 0 ? (row[col.variety] || '') : '';
+
+      // GH Sow: planned in next 21 days (or overdue) AND not yet sown
+      var ghPlan = col.ghSowPlan >= 0 ? row[col.ghSowPlan] : null;
+      var ghAct = col.ghSowAct >= 0 ? row[col.ghSowAct] : null;
+      if (ghPlan && !ghAct) {
+        var ghDate = ghPlan instanceof Date ? ghPlan : new Date(ghPlan);
+        if (!isNaN(ghDate.getTime()) && ghDate <= lookAhead) {
+          var trays = col.trays >= 0 ? (parseInt(row[col.trays]) || 0) : 0;
+          var cells = col.cellCount >= 0 ? (parseInt(row[col.cellCount]) || 128) : 128;
+          var plants = col.plantsNeeded >= 0 ? (parseInt(row[col.plantsNeeded]) || 0) : 0;
+          var seedsNeeded = plants > 0 ? Math.ceil(plants * 1.1) : Math.ceil(trays * cells * 1.1);
+
+          var key = crop + '|' + variety;
+          if (!needsMap[key]) needsMap[key] = { crop: crop, variety: variety, totalSeeds: 0, plantings: [] };
+          needsMap[key].totalSeeds += seedsNeeded;
+          needsMap[key].plantings.push({ batchId: batchId, sowDate: ghDate, seedsNeeded: seedsNeeded, type: 'GH Sow' });
+        }
+      }
+
+      // Field Sow: planned in next 21 days (or overdue) AND not yet sown
+      var fsPlan = col.fieldSowPlan >= 0 ? row[col.fieldSowPlan] : null;
+      var fsAct = col.fieldSowAct >= 0 ? row[col.fieldSowAct] : null;
+      if (fsPlan && !fsAct) {
+        var fsDate = fsPlan instanceof Date ? fsPlan : new Date(fsPlan);
+        if (!isNaN(fsDate.getTime()) && fsDate <= lookAhead) {
+          var fsPlants = col.plantsNeeded >= 0 ? (parseInt(row[col.plantsNeeded]) || 0) : 0;
+          var fsTrays = col.trays >= 0 ? (parseInt(row[col.trays]) || 0) : 0;
+          var fsCells = col.cellCount >= 0 ? (parseInt(row[col.cellCount]) || 0) : 0;
+          var fsSeedsNeeded = fsPlants > 0 ? Math.ceil(fsPlants * 1.2) : Math.ceil(fsTrays * fsCells * 1.2);
+          if (fsSeedsNeeded <= 0) fsSeedsNeeded = 100;
+
+          var fsKey = crop + '|' + variety;
+          if (!needsMap[fsKey]) needsMap[fsKey] = { crop: crop, variety: variety, totalSeeds: 0, plantings: [] };
+          needsMap[fsKey].totalSeeds += fsSeedsNeeded;
+          needsMap[fsKey].plantings.push({ batchId: batchId, sowDate: fsDate, seedsNeeded: fsSeedsNeeded, type: 'Field Sow' });
+        }
+      }
+    }
+
+    // Check each crop/variety against SEED_INVENTORY — return ALL items
+    var items = [];
+    var keys = Object.keys(needsMap);
+    for (var k = 0; k < keys.length; k++) {
+      var need = needsMap[keys[k]];
+      var result = findSeedLotsByCropVariety({ crop: need.crop, variety: need.variety });
+      var totalAvailable = 0;
+      var suppliers = [];
+      var lotDetails = [];
+      if (result && result.success && result.lots) {
+        for (var j = 0; j < result.lots.length; j++) {
+          var lot = result.lots[j];
+          var rem = Number(lot.quantityRemaining) || 0;
+          totalAvailable += rem;
+          if (lot.supplier && suppliers.indexOf(lot.supplier) === -1) {
+            suppliers.push(lot.supplier);
+          }
+          lotDetails.push({
+            lotId: lot.seedLotId,
+            remaining: rem,
+            germRate: lot.germRate || '',
+            supplier: lot.supplier || '',
+            organic: lot.organic || false
+          });
+        }
+      }
+
+      // Determine status
+      var status;
+      if (totalAvailable >= need.totalSeeds) {
+        status = 'in_stock';
+      } else if (totalAvailable > 0) {
+        status = 'low';
+      } else if (lotDetails.length > 0) {
+        status = 'out';
+      } else {
+        status = 'no_inventory';
+      }
+
+      // Sort plantings by date and compute urgency
+      need.plantings.sort(function(a, b) { return a.sowDate - b.sowDate; });
+      var earliest = need.plantings[0].sowDate;
+      var daysUntil = Math.floor((earliest - today) / (1000 * 60 * 60 * 24));
+      var urgency = daysUntil < 0 ? 'overdue' : daysUntil < 7 ? 'urgent' : daysUntil < 14 ? 'soon' : 'upcoming';
+
+      items.push({
+        crop: need.crop,
+        variety: need.variety,
+        seedsNeeded: need.totalSeeds,
+        seedsAvailable: totalAvailable,
+        status: status,
+        deficit: status === 'in_stock' ? 0 : need.totalSeeds - totalAvailable,
+        earliestSowDate: earliest.toISOString().split('T')[0],
+        daysUntilSow: daysUntil,
+        urgency: urgency,
+        plantingCount: need.plantings.length,
+        plantings: need.plantings.map(function(p) {
+          return { batch: p.batchId, date: p.sowDate.toISOString().split('T')[0], seeds: p.seedsNeeded, type: p.type };
+        }),
+        knownSuppliers: suppliers,
+        lotDetails: lotDetails
+      });
+    }
+
+    // Sort: shortfalls first (by urgency), then in-stock
+    var statusOrder = { no_inventory: 0, out: 0, low: 1, in_stock: 2 };
+    var urgOrder = { overdue: 0, urgent: 1, soon: 2, upcoming: 3 };
+    items.sort(function(a, b) {
+      var sd = (statusOrder[a.status] || 9) - (statusOrder[b.status] || 9);
+      if (sd !== 0) return sd;
+      return (urgOrder[a.urgency] || 9) - (urgOrder[b.urgency] || 9);
+    });
+
+    var needToBuy = items.filter(function(i) { return i.status !== 'in_stock'; });
+    var inStock = items.filter(function(i) { return i.status === 'in_stock'; });
+
+    return {
+      success: true,
+      totalItems: items.length,
+      needToBuyCount: needToBuy.length,
+      inStockCount: inStock.length,
+      items: items
+    };
+
+  } catch (error) {
+    Logger.log('getSeedShoppingList error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
  * Setup daily trigger for seed procurement checks (run once from Apps Script editor)
  */
 function setupSeedProcurementTrigger() {
@@ -34163,6 +34345,126 @@ function updatePlanningFields(data) {
     };
 
   } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Batch update multiple rows in PLANNING_2026 in a single call.
+ * Opens the sheet ONCE, finds all rows, updates all fields atomically.
+ *
+ * data.updates = [
+ *   { batchId: 'SAL-26-W10', fields: { Trays_Needed: 5, Notes: 'test' } },
+ *   { batchId: 'TOM-26-001', fields: { Tray_Type: 'Paperpot 264 — 4"' } }
+ * ]
+ *
+ * Returns: { success: true, results: [{ batchId, success, ... }], savedCount, failedCount }
+ */
+function batchUpdatePlanningFields(data) {
+  var EDITABLE_FIELDS = [
+    'Crop', 'Variety',
+    'Tray_Cell_Count', 'Tray_Type', 'Trays_Needed', 'Plants_Needed', 'Target_Bed_ID',
+    'Notes', 'Seed_Lot_Used', 'Plan_GH_Sow', 'Plan_Field_Sow', 'Plan_Transplant',
+    'Feet_Used', 'Assigned_To', 'Completed_By', 'Actual_Variety', 'Act_GH_Sow', 'Act_Field_Sow', 'Act_Transplant'
+  ];
+
+  try {
+    var updates = data.updates;
+    if (!updates || !Array.isArray(updates) || updates.length === 0) {
+      return { success: false, error: 'updates array is required' };
+    }
+
+    var lock = LockService.getScriptLock();
+    lock.waitLock(15000);
+
+    var ss = SpreadsheetApp.openById('128O56X_FN9_U-s0ENHBBRyLpae_yvWHPYbBheVlR3Vc');
+    var sheet = ss.getSheetByName('PLANNING_2026');
+    if (!sheet) {
+      lock.releaseLock();
+      return { success: false, error: 'PLANNING_2026 not found' };
+    }
+
+    var sheetData = sheet.getDataRange().getValues();
+    var headers = sheetData[0].map(function(h) { return String(h).trim(); });
+    var batchIdCol = headers.indexOf('Batch_ID');
+    if (batchIdCol < 0) {
+      lock.releaseLock();
+      return { success: false, error: 'Batch_ID column not found' };
+    }
+
+    // Build batchId→rowIndex map (1-indexed for sheet)
+    var batchRowMap = {};
+    for (var i = 1; i < sheetData.length; i++) {
+      var bid = String(sheetData[i][batchIdCol]).trim();
+      if (bid) batchRowMap[bid] = i + 1;
+    }
+
+    var results = [];
+    var savedCount = 0;
+    var failedCount = 0;
+
+    for (var u = 0; u < updates.length; u++) {
+      var upd = updates[u];
+      var batchId = String(upd.batchId || '').trim();
+      var fields = upd.fields || {};
+
+      if (!batchId) {
+        results.push({ batchId: batchId, success: false, error: 'Empty batchId' });
+        failedCount++;
+        continue;
+      }
+
+      // Validate fields
+      var invalidFields = [];
+      for (var fn in fields) {
+        if (EDITABLE_FIELDS.indexOf(fn) === -1) invalidFields.push(fn);
+      }
+      if (invalidFields.length > 0) {
+        results.push({ batchId: batchId, success: false, error: 'Non-editable: ' + invalidFields.join(', ') });
+        failedCount++;
+        continue;
+      }
+
+      var rowIndex = batchRowMap[batchId];
+      if (!rowIndex) {
+        results.push({ batchId: batchId, success: false, error: 'Batch not found' });
+        failedCount++;
+        continue;
+      }
+
+      // Update each field
+      var updated = [];
+      for (var fieldName in fields) {
+        var colIndex = headers.indexOf(fieldName);
+        if (colIndex >= 0) {
+          sheet.getRange(rowIndex, colIndex + 1).setValue(fields[fieldName]);
+          updated.push(fieldName);
+        } else {
+          // New column
+          var lastCol = headers.length;
+          sheet.getRange(1, lastCol + 1).setValue(fieldName);
+          sheet.getRange(rowIndex, lastCol + 1).setValue(fields[fieldName]);
+          headers.push(fieldName);
+          updated.push(fieldName + ' (new)');
+        }
+      }
+
+      results.push({ batchId: batchId, success: true, updatedFields: updated });
+      savedCount++;
+    }
+
+    lock.releaseLock();
+
+    return {
+      success: true,
+      results: results,
+      savedCount: savedCount,
+      failedCount: failedCount,
+      message: 'Updated ' + savedCount + ' of ' + updates.length + ' task(s)'
+    };
+
+  } catch (error) {
+    try { LockService.getScriptLock().releaseLock(); } catch (e) {}
     return { success: false, error: error.toString() };
   }
 }
