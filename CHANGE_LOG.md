@@ -38,6 +38,20 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-03-03 — Fix GH Sowing Missing Overdue Tasks + Editable Variety in Sowing Sheets (PM_ARCHITECT)
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — `getMyGHSowingTasks()`: Removed hard 14-day cutoff on overdue seedings. Now shows ALL incomplete overdue tasks (no date floor). Expanded future window from 7 days to 21 days. Completed overdue tasks are hidden (done and gone).
+- `sowing-sheets.html` — Variety column now editable (click to edit) for GH Sow, Transplant, and Direct Seed sheets. Uses existing `editableCell()` + `batchUpdatePlanningFields` API which already allows `Variety` field.
+
+### Bugs Fixed
+1. GH Sowing tasks missing overdue seedings > 14 days old — hard date cutoff silently excluded them. Employees couldn't see or complete old seedings.
+
+### Reason
+Employees need to see ALL unsown seedings regardless of age. Sometimes tasks fall behind and they still need to sow them. Variety editing allows real-world substitutions at the bench.
+
+---
+
 ## 2026-03-03 — Employee App: Task Type Filtering, Sowing Confirmation, Skip/Defer, System Alignment (PM_ARCHITECT)
 
 ### Files Modified

@@ -34517,10 +34517,10 @@ function getMyGHSowingTasks(params) {
       feetUsed: headers.indexOf('Feet_Used')
     };
 
-    // Date window: 2 weeks ago through 1 week ahead (generous for backdating)
+    // Date window: all overdue incomplete tasks + 21 days ahead
     var now = new Date();
-    var startDate = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
-    var endDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    now.setHours(0, 0, 0, 0);
+    var endDate = new Date(now.getTime() + 21 * 24 * 60 * 60 * 1000);
 
     var tasks = [];
     for (var i = 1; i < data.length; i++) {
@@ -34536,7 +34536,12 @@ function getMyGHSowingTasks(params) {
       if (!ghSowRaw) continue;
       var ghSowDate = new Date(ghSowRaw);
       if (isNaN(ghSowDate.getTime())) continue;
-      if (ghSowDate < startDate || ghSowDate > endDate) continue;
+
+      // Never hide incomplete overdue tasks — only cap future window
+      var isCompleteCheck = cols.actGhSow >= 0 && row[cols.actGhSow];
+      var isOverdue = ghSowDate < now;
+      if (ghSowDate > endDate) continue;
+      if (isCompleteCheck && isOverdue) continue; // Hide completed overdue (done and gone)
 
       var batchId = cols.batchId >= 0 ? row[cols.batchId] : '';
       if (!batchId) continue;

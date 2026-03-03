@@ -1674,7 +1674,7 @@
                 rowContent = `
                     <td>${dateCell}</td>
                     <td>${task.crop} <span class="category-badge ${categoryClass}">GH</span> ${readinessHtml}</td>
-                    <td>${task.variety}</td>
+                    <td>${editableCell('Variety', task.variety, 'text')}</td>
                     <td>${editableCell('Trays_Needed', traysDisplay, 'number')}</td>
                     <td><span class="editable-cell" onclick="openTrayTypeDropdown(this, '${task.batchId}')" style="cursor:pointer;border-bottom:1px dashed rgba(255,255,255,0.3);padding:2px 4px;">${task.trayType || (task.cellsPerTray > 0 ? task.cellsPerTray + '-cell' : (task.cellsPerTray === 0 ? 'Open' : '-'))}</span></td>
                     <td style="font-weight:600;color:#f59e0b;">${seedCalc}${seedLotLink}</td>
@@ -1684,7 +1684,7 @@
                 rowContent = `
                     <td>${dateCell}</td>
                     <td>${task.crop} <span class="category-badge ${categoryClass}">TP</span> ${readinessHtml}</td>
-                    <td>${task.variety}</td>
+                    <td>${editableCell('Variety', task.variety, 'text')}</td>
                     <td><strong>${task.plantsNeeded || task.plants || 0}</strong></td>
                     <td>${editableCell('Target_Bed_ID', task.bed || task.location || '-', 'text')}</td>
                     <td>${task.fromTray || '-'}</td>
@@ -1693,7 +1693,7 @@
                 rowContent = `
                     <td>${dateCell}</td>
                     <td>${task.crop} <span class="category-badge ${categoryClass}">DS</span> ${readinessHtml}</td>
-                    <td>${task.variety}</td>
+                    <td>${editableCell('Variety', task.variety, 'text')}</td>
                     <td><strong>${editableCell('Feet_Used', (task.feetUsed || task.feet || 0) + ' ft', 'number')}</strong></td>
                     <td>${(task.seedsNeeded || 0).toLocaleString()}</td>
                     <td>${editableCell('Target_Bed_ID', task.bed || task.location || '-', 'text')}</td>
