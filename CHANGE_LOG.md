@@ -38,6 +38,61 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-03-03 — Employee App: Task Type Filtering, Sowing Confirmation, Skip/Defer, System Alignment (PM_ARCHITECT)
+
+### Files Modified
+- `employee.html` — 7 changes:
+  1. **Task type filter buttons** — Added second row of filter buttons (All Types / Sow / Transplant / Harvest / Scout) with color-coded active states matching existing CSS palette. All buttons min-height 44px for mobile.
+  2. **Dual filter state** — `currentDateFilter` + `currentTypeFilter` compose together. `filterTasks()` handles date, `filterTasksByType()` handles type, `renderTasks()` applies both. Sow detection reuses `SeedTraceability.isSowTask()` for all 6 sow type variants.
+  3. **Sowing confirmation modal as default** — All sow tasks intercepted in `completeTaskV2()` → opens GH sowing confirmation modal (date, trays, variety substitution, seed lot, notes). Modal handles dual API calls: `confirmGHSowing` (writes to PLANNING_2026) + `updateUnifiedTask` (marks task complete in UNIFIED_TASKS). Original GH dashboard flow unchanged.
+  4. **Touch target fixes** — All GH sowing modal inputs: `padding:12px; min-height:44px`. Button: `padding:16px; min-height:48px`. Checkbox: `24x24px` with `min-height:44px` label. Meets iOS/Android minimum.
+  5. **Skip/Defer button** — "Not Today" button on every task card. Opens bottom sheet: Tomorrow (primary), Next Monday (with date), Pick Date (native date picker). Uses existing `updateUnifiedTask` API with `dueDate` field. Offline support via `OfflineDB.queueOperation`.
+  6. **Fixed assignee→assigneeId param** — Frontend was sending `assignee` but backend reads `assigneeId`. Employees were seeing ALL tasks instead of only their assigned tasks.
+  7. **Actual_Variety display** — GH completed tasks now show "→ Actual Variety" instead of just "⚠ Subst" flag.
+- `apps_script/MERGED TOTAL.js` — `getGreenhouseSeedings()`: Added `actualVariety` column lookup. Response now prefers `Actual_Variety` over `Variety` when substituted. Added `plannedVariety` and `substituted` fields to response. Labels (`labels.html`) automatically get actual variety since they read `s.variety`.
+
+### Functions Added
+- `filterTasksByType(typeFilter)` in `employee.html` — Type filter handler, highlights correct button, calls renderTasks()
+- `taskMatchesType(task, typeFilter)` in `employee.html` — Type matching using SeedTraceability.isSowTask() for sow, includes() for others
+- `updateTaskCounts(tasks, today)` in `employee.html` — Updates all count badges (date + type), mutes zero-count buttons
+- `openSowingConfirmFromTask(task)` in `employee.html` — Opens GH sowing modal from task list (vs GH dashboard), pre-populates from task._raw
+- `deferTask(taskId)` in `employee.html` — Opens defer bottom sheet with date calculations
+- `confirmDefer(option)` in `employee.html` — Executes defer via updateUnifiedTask API, offline support
+
+### Functions Modified
+- `renderTasks()` in `employee.html` — Now parameterless, reads from dual filter state variables, applies date filter then type filter
+- `completeTaskV2()` in `employee.html` — Intercepts sow tasks → opens sowing confirmation modal instead of standard completion
+- `submitGHSowConfirm()` in `employee.html` — New `source === 'taskList'` branch with dual API calls (confirmGHSowing + updateUnifiedTask in parallel)
+
+### Bugs Fixed
+1. `assignee` vs `assigneeId` parameter name mismatch — employees saw ALL tasks instead of only assigned tasks
+2. Actual_Variety write-only — substitutions recorded but never read by labels or display. Now propagated via getGreenhouseSeedings()
+3. Touch targets below 44px minimum on GH sowing modal — fixed all inputs, buttons, and checkbox
+
+### Reason
+Employees need to log greenhouse sowing in real-time from their phones. Task type filtering lets them focus on sow tasks. Sowing confirmation modal captures deviations (variety substitution, actual trays, seed lot). Skip/defer handles real-world scenarios (out of seed, weather delay). System alignment ensures actual varieties propagate to labels and display.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions — reused SeedTraceability.isSowTask(), updateUnifiedTask API, OfflineDB.queueOperation
+- [x] No duplicates created
+
+---
+
+## 2026-03-03 — Fix Seedling Presale: Unlimited Preorders (PM_ARCHITECT)
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — `validateSeedlingAvailability()`: during pre-order phase (until 2026-03-20), presale orders are unlimited — always available. After cutoff, availability = total - outlet allocations - presale orders. `updateSeedlingAllocations()`: no longer writes zero-sum Alloc_Presale (outlets don't reduce presale).
+- `web_app/seedling-admin.html` — Allocation table: "Presale Avail" → "Presale Orders" (starts at 0, increases with orders). "Presale Sold" → "Total Committed" (outlets + presale). Remaining = Total - Committed. Outlet allocations no longer subtract from presale display.
+
+### Bugs Fixed
+1. Entering Phipps/wholesale allocations subtracted from presale availability — customers saw reduced stock. Root cause: `Alloc_Presale = Total - Phipps - Market - Wholesale - CityGROWN` (zero-sum). Fixed: presale is tracked from actual orders, not allocation math.
+
+### Reason
+User-reported: "I am entering what I want for phipps and my other outlets and it is subtracting from the presale. The presale should just be listed as 0 and increase as we get orders."
+
+---
+
 ## 2026-03-03 — Seed Shopping List: Expand to All Unsown Plantings (PM_ARCHITECT)
 
 ### Files Modified

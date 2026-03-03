@@ -1432,6 +1432,101 @@
             color: white;
         }
 
+        .task-filter {
+            min-height: 44px;
+        }
+
+        .task-type-filters {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 16px;
+            overflow-x: auto;
+            padding-bottom: 4px;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .task-type-filter {
+            padding: 8px 14px;
+            border-radius: 20px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s;
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .task-type-filter.active-sow {
+            background: rgba(74, 124, 67, 0.3);
+            border-color: #4ade80;
+            color: #4ade80;
+        }
+
+        .task-type-filter.active-transplant {
+            background: rgba(42, 157, 143, 0.3);
+            border-color: #2a9d8f;
+            color: #2a9d8f;
+        }
+
+        .task-type-filter.active-harvest {
+            background: rgba(244, 162, 97, 0.3);
+            border-color: #f4a261;
+            color: #f4a261;
+        }
+
+        .task-type-filter.active-scout {
+            background: rgba(59, 130, 246, 0.3);
+            border-color: #3b82f6;
+            color: #3b82f6;
+        }
+
+        .task-type-filter.active-all_types {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        .task-type-filter .count {
+            background: rgba(255,255,255,0.2);
+            padding: 1px 6px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+        }
+
+        .task-type-filter.muted {
+            opacity: 0.4;
+        }
+
+        .task-defer-btn {
+            width: 100%;
+            padding: 10px 16px;
+            border-radius: 12px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            min-height: 44px;
+            margin-top: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .task-defer-btn:active {
+            background: var(--bg-light);
+            transform: scale(0.98);
+        }
+
         .task-filter .count {
             background: rgba(255,255,255,0.2);
             padding: 2px 8px;
@@ -9961,6 +10056,23 @@
                         Today <span class="count" id="taskCountToday">0</span>
                     </button>
                 </div>
+                <div class="task-type-filters">
+                    <button class="task-type-filter active-all_types" onclick="filterTasksByType('all_types')">
+                        All Types <span class="count" id="typeCountAll">0</span>
+                    </button>
+                    <button class="task-type-filter" onclick="filterTasksByType('sow')">
+                        🌱 Sow <span class="count" id="typeCountSow">0</span>
+                    </button>
+                    <button class="task-type-filter" onclick="filterTasksByType('transplant')">
+                        ↔ Transplant <span class="count" id="typeCountTransplant">0</span>
+                    </button>
+                    <button class="task-type-filter" onclick="filterTasksByType('harvest')">
+                        🍎 Harvest <span class="count" id="typeCountHarvest">0</span>
+                    </button>
+                    <button class="task-type-filter" onclick="filterTasksByType('scout')">
+                        🔭 Scout <span class="count" id="typeCountScout">0</span>
+                    </button>
+                </div>
                 <div id="tasksContainer">
                     <div class="empty-state">
                         <i class="fas fa-clipboard-check"></i>
@@ -16126,7 +16238,7 @@
                 html += '<div style="font-size:0.8rem;color:var(--text-secondary,#999);font-weight:600;margin-bottom:8px;"><i class="fas fa-check-circle" style="color:#22c55e;"></i> Completed (' + done.length + ')</div>';
                 done.forEach(function(t) {
                     html += '<div style="font-size:0.8rem;color:var(--text-secondary,#999);padding:4px 0;display:flex;justify-content:space-between;">';
-                    html += '<span>' + escapeHtml(t.crop) + ' — ' + escapeHtml(t.variety) + (t.substituted ? ' <span style="color:#f59e0b;">\u26A0 Subst</span>' : '') + '</span>';
+                    html += '<span>' + escapeHtml(t.crop) + ' — ' + escapeHtml(t.variety) + (t.substituted && t.actualVariety ? ' <span style="color:#f59e0b;">\u2192 ' + escapeHtml(t.actualVariety) + '</span>' : (t.substituted ? ' <span style="color:#f59e0b;">\u26A0 Subst</span>' : '')) + '</span>';
                     html += '<span>' + (t.completedBy || '') + ' ' + (t.actualDate || '') + '</span>';
                     html += '</div>';
                 });
@@ -16152,17 +16264,47 @@
             document.getElementById('ghConfirmSeedLot').value = task.seedLotUsed || '';
             document.getElementById('ghConfirmNotes').value = '';
 
-            // Store batchId for submission
+            // Store batchId for submission (GH dashboard source)
             document.getElementById('ghConfirmBtn').setAttribute('data-batch-id', batchId);
+            document.getElementById('ghConfirmBtn').setAttribute('data-source', 'ghDashboard');
+            document.getElementById('ghConfirmBtn').removeAttribute('data-task-id');
+
+            document.getElementById('ghSowConfirmModal').style.display = 'flex';
+        }
+
+        // Open sowing confirmation modal from the main task list (Priority 2)
+        function openSowingConfirmFromTask(task) {
+            var crop = task.crop || task.Crop_ID || 'Sowing';
+            var variety = task.variety || '';
+            var trays = task._raw ? (task._raw.Trays_Needed || '') : (task.quantity || '');
+            var seedLot = task._raw ? (task._raw.Seed_Lot_Used || '') : '';
+            var batchId = task.batchId || task.Batch_ID || task._raw?.Batch_ID || '';
+
+            document.getElementById('ghConfirmTitle').innerHTML = '<i class="fas fa-seedling" style="color:#22c55e;"></i> ' + escapeHtml(crop) + (variety ? ' — ' + escapeHtml(variety) : '') + (trays ? '<br><span style="font-size:0.8rem;color:var(--text-secondary,#999);">' + trays + ' trays</span>' : '');
+
+            // Default date to today
+            document.getElementById('ghConfirmDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('ghConfirmTrays').value = trays || '';
+            document.getElementById('ghConfirmSubstituted').checked = false;
+            document.getElementById('ghSubVarietyRow').style.display = 'none';
+            document.getElementById('ghConfirmVariety').value = '';
+            document.getElementById('ghConfirmSeedLot').value = seedLot || '';
+            document.getElementById('ghConfirmNotes').value = '';
+
+            // Store both task ID and batch ID
+            var btn = document.getElementById('ghConfirmBtn');
+            btn.setAttribute('data-task-id', task.id);
+            btn.setAttribute('data-batch-id', batchId);
+            btn.setAttribute('data-source', 'taskList');
 
             document.getElementById('ghSowConfirmModal').style.display = 'flex';
         }
 
         async function submitGHSowConfirm() {
-            var batchId = document.getElementById('ghConfirmBtn').getAttribute('data-batch-id');
-            if (!batchId) return;
-
-            var task = ghSowTasks.find(function(t) { return t.batchId === batchId; });
+            var btn = document.getElementById('ghConfirmBtn');
+            var source = btn.getAttribute('data-source') || 'ghDashboard';
+            var batchId = btn.getAttribute('data-batch-id');
+            var taskId = btn.getAttribute('data-task-id');
             var emp = AppState.employee || {};
 
             var payload = {
@@ -16171,54 +16313,107 @@
                 employeeId: emp.Employee_ID || '',
                 employeeName: (emp.First_Name || '') + ' ' + (emp.Last_Name || ''),
                 actualDate: document.getElementById('ghConfirmDate').value || new Date().toISOString().split('T')[0],
-                actualTrays: parseInt(document.getElementById('ghConfirmTrays').value) || (task ? task.trays : 0),
-                actualVariety: document.getElementById('ghConfirmSubstituted').checked ? document.getElementById('ghConfirmVariety').value : (task ? task.variety : ''),
+                actualTrays: parseInt(document.getElementById('ghConfirmTrays').value) || 0,
+                actualVariety: document.getElementById('ghConfirmSubstituted').checked ? document.getElementById('ghConfirmVariety').value : '',
                 substituted: document.getElementById('ghConfirmSubstituted').checked,
                 seedLotId: document.getElementById('ghConfirmSeedLot').value || '',
                 notes: document.getElementById('ghConfirmNotes').value || ''
             };
 
             // Disable button while saving
-            var btn = document.getElementById('ghConfirmBtn');
             btn.disabled = true;
             btn.textContent = 'Saving...';
 
             try {
-                // Try online first
-                if (navigator.onLine) {
-                    var res = await fetch(CONFIG.API_URL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'text/plain' },
-                        body: JSON.stringify(payload)
-                    });
-                    var data = await res.json();
-                    if (data.success) {
-                        // Update local state
-                        if (task) {
-                            task.completed = true;
-                            task.actualDate = payload.actualDate;
-                            task.completedBy = payload.employeeName;
-                            if (payload.substituted) task.substituted = true;
-                            if (payload.substituted) task.actualVariety = payload.actualVariety;
+                if (source === 'taskList') {
+                    // ===== TASK LIST SOURCE: dual API calls =====
+                    var taskCompletePayload = {
+                        action: 'updateUnifiedTask',
+                        taskId: taskId,
+                        status: 'Completed',
+                        completedBy: payload.employeeName,
+                        completedDate: payload.actualDate
+                    };
+
+                    if (navigator.onLine) {
+                        // Fire both API calls in parallel
+                        var [sowRes, taskRes] = await Promise.all([
+                            fetch(CONFIG.API_URL, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'text/plain' },
+                                body: JSON.stringify(payload)
+                            }),
+                            fetch(CONFIG.API_URL, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'text/plain' },
+                                body: JSON.stringify(taskCompletePayload)
+                            })
+                        ]);
+                        var sowData = await sowRes.json();
+                        var taskData = await taskRes.json();
+
+                        if (sowData.success || taskData.success) {
+                            // Remove task from local list
+                            AppState.tasks = AppState.tasks.filter(function(t) { return t.id !== taskId; });
+                            renderTasks();
+                            document.getElementById('ghSowConfirmModal').style.display = 'none';
+
+                            // Show completion overlay with stats
+                            var task = { crop: payload.batchId, type: 'sow' };
+                            showToast('Sowing confirmed & task completed!', 'success');
+                            if (navigator.vibrate) navigator.vibrate([50, 50, 100]);
+                        } else {
+                            showToast('Save failed: ' + (sowData.error || taskData.error || 'Unknown error'), 'error');
                         }
-                        renderGHSowingTasks();
-                        document.getElementById('ghSowConfirmModal').style.display = 'none';
-                        showToast('Sowing confirmed for ' + (task ? task.crop : batchId), 'success');
-                        // Haptic feedback
-                        if (navigator.vibrate) navigator.vibrate(100);
                     } else {
-                        showToast('Save failed: ' + (data.error || 'Unknown error'), 'error');
+                        // Queue both offline
+                        if (typeof OfflineDB !== 'undefined' && OfflineDB.queueOperation) {
+                            await OfflineDB.queueOperation('confirmGHSowing', payload);
+                            await OfflineDB.queueOperation('updateUnifiedTask', taskCompletePayload);
+                            AppState.tasks = AppState.tasks.filter(function(t) { return t.id !== taskId; });
+                            renderTasks();
+                            document.getElementById('ghSowConfirmModal').style.display = 'none';
+                            showToast('Saved offline — will sync when connected', 'warning');
+                        } else {
+                            showToast('No connection and offline storage unavailable', 'error');
+                        }
                     }
                 } else {
-                    // Queue offline
-                    if (typeof OfflineDB !== 'undefined' && OfflineDB.queueOperation) {
-                        await OfflineDB.queueOperation('confirmGHSowing', payload);
-                        if (task) { task.completed = true; task.actualDate = payload.actualDate; }
-                        renderGHSowingTasks();
-                        document.getElementById('ghSowConfirmModal').style.display = 'none';
-                        showToast('Saved offline \u2014 will sync when connected', 'warning');
+                    // ===== GH DASHBOARD SOURCE: original behavior =====
+                    var task = ghSowTasks.find(function(t) { return t.batchId === batchId; });
+
+                    if (navigator.onLine) {
+                        var res = await fetch(CONFIG.API_URL, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'text/plain' },
+                            body: JSON.stringify(payload)
+                        });
+                        var data = await res.json();
+                        if (data.success) {
+                            if (task) {
+                                task.completed = true;
+                                task.actualDate = payload.actualDate;
+                                task.completedBy = payload.employeeName;
+                                if (payload.substituted) task.substituted = true;
+                                if (payload.substituted) task.actualVariety = payload.actualVariety;
+                            }
+                            renderGHSowingTasks();
+                            document.getElementById('ghSowConfirmModal').style.display = 'none';
+                            showToast('Sowing confirmed for ' + (task ? task.crop : batchId), 'success');
+                            if (navigator.vibrate) navigator.vibrate(100);
+                        } else {
+                            showToast('Save failed: ' + (data.error || 'Unknown error'), 'error');
+                        }
                     } else {
-                        showToast('No connection and offline storage unavailable', 'error');
+                        if (typeof OfflineDB !== 'undefined' && OfflineDB.queueOperation) {
+                            await OfflineDB.queueOperation('confirmGHSowing', payload);
+                            if (task) { task.completed = true; task.actualDate = payload.actualDate; }
+                            renderGHSowingTasks();
+                            document.getElementById('ghSowConfirmModal').style.display = 'none';
+                            showToast('Saved offline — will sync when connected', 'warning');
+                        } else {
+                            showToast('No connection and offline storage unavailable', 'error');
+                        }
                     }
                 }
             } catch (e) {
@@ -21145,15 +21340,45 @@
             'default': '📋'
         };
 
-        function filterTasks(filter) {
+        // Dual filter state
+        var currentDateFilter = 'all';
+        var currentTypeFilter = 'all_types';
+
+        function filterTasks(dateFilter) {
+            currentDateFilter = dateFilter;
+            // Highlight the correct date button
             document.querySelectorAll('.task-filter').forEach(btn => {
-                btn.classList.toggle('active', btn.textContent.toLowerCase().includes(filter) ||
-                    (filter === 'all' && btn.textContent.toLowerCase().includes('all')));
+                btn.classList.toggle('active', btn.textContent.toLowerCase().includes(dateFilter) ||
+                    (dateFilter === 'all' && btn.textContent.toLowerCase().includes('all')));
             });
-            renderTasks(filter);
+            renderTasks();
         }
 
-        function renderTasks(filter = 'all') {
+        function filterTasksByType(typeFilter) {
+            currentTypeFilter = typeFilter;
+            // Highlight the correct type button — remove all active-* classes first
+            document.querySelectorAll('.task-type-filter').forEach(btn => {
+                btn.className = 'task-type-filter';
+            });
+            // Find and activate the matching button
+            document.querySelectorAll('.task-type-filter').forEach(btn => {
+                const btnType = btn.getAttribute('onclick').match(/filterTasksByType\('(\w+)'\)/);
+                if (btnType && btnType[1] === typeFilter) {
+                    btn.classList.add('active-' + typeFilter);
+                }
+            });
+            renderTasks();
+        }
+
+        // Helper: check if task matches a type filter
+        function taskMatchesType(task, typeFilter) {
+            if (typeFilter === 'all_types') return true;
+            if (typeFilter === 'sow') return SeedTraceability.isSowTask(task);
+            var t = (task.type || '').toLowerCase();
+            return t.includes(typeFilter);
+        }
+
+        function renderTasks() {
             const container = document.getElementById('tasksContainer');
             const tasks = AppState.tasks;
 
@@ -21165,23 +21390,35 @@
                         <p>All caught up! Great work.</p>
                     </div>
                 `;
+                updateTaskCounts(tasks || [], '');
                 return;
             }
 
             const today = new Date().toISOString().split('T')[0];
-            let filteredTasks = tasks;
 
-            if (filter === 'today') {
+            // Apply date filter first
+            let filteredTasks = tasks;
+            if (currentDateFilter === 'today') {
                 filteredTasks = tasks.filter(t => t.date === today);
-            } else if (filter === 'overdue') {
+            } else if (currentDateFilter === 'overdue') {
                 filteredTasks = tasks.filter(t => t.date < today && t.status !== 'Completed');
             }
 
+            // Apply type filter second
+            if (currentTypeFilter !== 'all_types') {
+                filteredTasks = filteredTasks.filter(t => taskMatchesType(t, currentTypeFilter));
+            }
+
+            // Update count badges
+            updateTaskCounts(tasks, today);
+
             if (filteredTasks.length === 0) {
+                var filterLabel = currentTypeFilter !== 'all_types' ? currentTypeFilter + ' ' : '';
+                filterLabel += currentDateFilter !== 'all' ? currentDateFilter : '';
                 container.innerHTML = `
                     <div class="empty-state">
                         <i class="fas fa-check-circle"></i>
-                        <h3>No ${filter} tasks</h3>
+                        <h3>No ${filterLabel || ''} tasks</h3>
                         <p>You're all caught up!</p>
                     </div>
                 `;
@@ -21300,19 +21537,62 @@
                         <i class="fas fa-check"></i>
                         ${isTimerActive ? 'DONE - STOP TIMER' : 'DONE'}
                     </button>
+
+                    <!-- Not Today / Defer -->
+                    <button class="task-defer-btn" onclick="deferTask('${task.id}')">
+                        <i class="fas fa-calendar-plus"></i> Not Today
+                    </button>
                 </div>
                 `;
             }).join('');
-
-            // Update counts
-            document.getElementById('taskCountAll').textContent = tasks.length;
-            document.getElementById('taskCountToday').textContent = tasks.filter(t => t.date === today).length;
-            document.getElementById('taskCountOverdue').textContent = tasks.filter(t => t.date < today && t.status !== 'Completed').length;
 
             // Update any active timer display
             if (TaskTimer.activeTaskId && TaskTimer.intervalId) {
                 updateTimerDisplay(TaskTimer.activeTaskId);
             }
+        }
+
+        // Update all count badges (date + type)
+        function updateTaskCounts(tasks, today) {
+            if (!today) today = new Date().toISOString().split('T')[0];
+            // Date counts
+            var allEl = document.getElementById('taskCountAll');
+            var todayEl = document.getElementById('taskCountToday');
+            var overdueEl = document.getElementById('taskCountOverdue');
+            if (allEl) allEl.textContent = tasks.length;
+            if (todayEl) todayEl.textContent = tasks.filter(function(t) { return t.date === today; }).length;
+            if (overdueEl) overdueEl.textContent = tasks.filter(function(t) { return t.date < today && t.status !== 'Completed'; }).length;
+
+            // Type counts
+            var sowCount = 0, transplantCount = 0, harvestCount = 0, scoutCount = 0;
+            tasks.forEach(function(t) {
+                if (SeedTraceability.isSowTask(t)) sowCount++;
+                var type = (t.type || '').toLowerCase();
+                if (type.includes('transplant')) transplantCount++;
+                if (type.includes('harvest')) harvestCount++;
+                if (type.includes('scout')) scoutCount++;
+            });
+
+            var typeAllEl = document.getElementById('typeCountAll');
+            var typeSowEl = document.getElementById('typeCountSow');
+            var typeTransEl = document.getElementById('typeCountTransplant');
+            var typeHarvEl = document.getElementById('typeCountHarvest');
+            var typeScoutEl = document.getElementById('typeCountScout');
+            if (typeAllEl) typeAllEl.textContent = tasks.length;
+            if (typeSowEl) typeSowEl.textContent = sowCount;
+            if (typeTransEl) typeTransEl.textContent = transplantCount;
+            if (typeHarvEl) typeHarvEl.textContent = harvestCount;
+            if (typeScoutEl) typeScoutEl.textContent = scoutCount;
+
+            // Mute zero-count type buttons
+            document.querySelectorAll('.task-type-filter').forEach(function(btn) {
+                var countEl = btn.querySelector('.count');
+                if (countEl && parseInt(countEl.textContent) === 0 && !btn.className.includes('active-all_types')) {
+                    btn.classList.add('muted');
+                } else {
+                    btn.classList.remove('muted');
+                }
+            });
         }
 
         // Get days overdue
@@ -21328,6 +21608,98 @@
         function formatDate(dateStr) {
             const date = new Date(dateStr + 'T00:00:00');
             return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+
+        // ============================================================
+        // DEFER / NOT TODAY
+        // ============================================================
+        var _deferTaskId = null;
+
+        function deferTask(taskId) {
+            _deferTaskId = taskId;
+            var task = AppState.tasks.find(function(t) { return t.id === taskId; });
+            var title = task ? (task.crop + (task.variety ? ' - ' + task.variety : '')) : 'Task';
+            document.getElementById('deferTitle').textContent = 'Defer: ' + title;
+
+            // Calculate tomorrow
+            var tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+
+            // Calculate next Monday
+            var nextMonday = new Date();
+            var dayOfWeek = nextMonday.getDay();
+            var daysUntilMon = dayOfWeek === 0 ? 1 : (8 - dayOfWeek);
+            nextMonday.setDate(nextMonday.getDate() + daysUntilMon);
+
+            document.getElementById('deferMondayLabel').textContent = 'Next Monday (' + nextMonday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ')';
+
+            // Set custom date picker min to tomorrow
+            document.getElementById('deferCustomDate').min = tomorrow.toISOString().split('T')[0];
+            document.getElementById('deferCustomDate').value = '';
+
+            document.getElementById('deferModal').style.display = 'flex';
+        }
+
+        async function confirmDefer(option) {
+            if (!_deferTaskId) return;
+            var newDate;
+            var now = new Date();
+
+            if (option === 'tomorrow') {
+                var tomorrow = new Date(now);
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                newDate = tomorrow.toISOString().split('T')[0];
+            } else if (option === 'monday') {
+                var nextMon = new Date(now);
+                var dow = nextMon.getDay();
+                var daysToMon = dow === 0 ? 1 : (8 - dow);
+                nextMon.setDate(nextMon.getDate() + daysToMon);
+                newDate = nextMon.toISOString().split('T')[0];
+            } else if (option === 'custom') {
+                newDate = document.getElementById('deferCustomDate').value;
+                if (!newDate) {
+                    showToast('Please pick a date', 'warning');
+                    return;
+                }
+            }
+
+            document.getElementById('deferModal').style.display = 'none';
+
+            try {
+                // Check offline first
+                if (typeof OfflineDB !== 'undefined' && !navigator.onLine) {
+                    OfflineDB.queueOperation('updateUnifiedTask', { taskId: _deferTaskId, dueDate: newDate });
+                    // Remove from local list
+                    AppState.tasks = AppState.tasks.filter(function(t) { return t.id !== _deferTaskId; });
+                    renderTasks();
+                    showToast('Deferred to ' + newDate + ' (will sync when online)', 'info');
+                    _deferTaskId = null;
+                    return;
+                }
+
+                var response = await fetch(CONFIG.API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({
+                        action: 'updateUnifiedTask',
+                        taskId: _deferTaskId,
+                        dueDate: newDate
+                    })
+                });
+                var result = await response.json();
+                if (result.success) {
+                    // Remove from local list
+                    AppState.tasks = AppState.tasks.filter(function(t) { return t.id !== _deferTaskId; });
+                    renderTasks();
+                    showToast('Deferred to ' + new Date(newDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }), 'success');
+                } else {
+                    showToast('Failed to defer: ' + (result.error || 'Unknown error'), 'error');
+                }
+            } catch (err) {
+                console.error('Defer error:', err);
+                showToast('Error deferring task', 'error');
+            }
+            _deferTaskId = null;
         }
 
         // Start task timer
@@ -21405,7 +21777,7 @@
             TaskTimer.isPaused = false;
 
             // Re-render to reset UI
-            renderTasks(AppState.currentTaskFilter || 'all');
+            renderTasks();
         }
 
         // ============================================
@@ -21572,9 +21944,11 @@
             const task = AppState.tasks.find(t => t.id === taskId);
             if (!task) return;
 
-            // SEED TRACEABILITY: For sow/seeding tasks without a seed lot, prompt for seed packet photo
-            if (SeedTraceability.isSowTask(task) && !SeedTraceability.hasSeedLot(task)) {
-                await SeedTraceability.prompt(task);
+            // For ALL sowing tasks: show confirmation modal with deviation fields
+            // This replaces the old SeedTraceability photo prompt — the modal has seed lot + more
+            if (SeedTraceability.isSowTask(task)) {
+                openSowingConfirmFromTask(task);
+                return;  // Modal handles completion via submitGHSowConfirm
             }
 
             // Calculate time
@@ -21843,7 +22217,7 @@
             }
 
             // Re-render tasks
-            renderTasks(AppState.currentTaskFilter || 'all');
+            renderTasks();
         }
 
         // Undo countdown
@@ -22096,7 +22470,7 @@
                     });
                     // Add assignee filter if we have employee ID
                     if (employeeId) {
-                        params.set('assignee', employeeId);
+                        params.set('assigneeId', employeeId);
                     }
 
                     const tasksResponse = await fetch(`${CONFIG.API_URL}?${params.toString()}`);
@@ -22124,6 +22498,7 @@
                             priorityScore: t.Priority_Score || 50,
                             atRisk: t.At_Risk === true || t.At_Risk === 'TRUE',
                             atRiskReason: t.At_Risk_Reason || '',
+                            batchId: t.Batch_ID || t.Planning_Row_ID || '',
                             _raw: t
                         }));
                         // Cache tasks for offline use
@@ -28985,32 +29360,58 @@
         <div style="display:flex;flex-direction:column;gap:12px;">
             <div>
                 <label style="font-size:0.8rem;color:var(--text-secondary,#999);font-weight:600;">Date Done</label>
-                <input type="date" id="ghConfirmDate" style="width:100%;padding:10px;background:var(--bg-light,#2a2a3e);border:1px solid var(--border,#333);border-radius:8px;color:var(--text-primary,#fff);font-size:1rem;margin-top:4px;">
+                <input type="date" id="ghConfirmDate" style="width:100%;padding:12px;min-height:44px;background:var(--bg-light,#2a2a3e);border:1px solid var(--border,#333);border-radius:8px;color:var(--text-primary,#fff);font-size:1rem;margin-top:4px;box-sizing:border-box;">
             </div>
             <div>
                 <label style="font-size:0.8rem;color:var(--text-secondary,#999);font-weight:600;">Actual Trays</label>
-                <input type="number" id="ghConfirmTrays" style="width:100%;padding:10px;background:var(--bg-light,#2a2a3e);border:1px solid var(--border,#333);border-radius:8px;color:var(--text-primary,#fff);font-size:1rem;margin-top:4px;">
+                <input type="number" id="ghConfirmTrays" style="width:100%;padding:12px;min-height:44px;background:var(--bg-light,#2a2a3e);border:1px solid var(--border,#333);border-radius:8px;color:var(--text-primary,#fff);font-size:1rem;margin-top:4px;box-sizing:border-box;">
             </div>
             <div>
-                <label style="display:flex;align-items:center;gap:8px;font-size:0.85rem;color:var(--text-secondary,#999);cursor:pointer;margin-bottom:4px;">
-                    <input type="checkbox" id="ghConfirmSubstituted" onchange="document.getElementById('ghSubVarietyRow').style.display=this.checked?'block':'none'" style="width:18px;height:18px;">
+                <label style="display:flex;align-items:center;gap:10px;font-size:0.85rem;color:var(--text-secondary,#999);cursor:pointer;min-height:44px;padding:4px 0;">
+                    <input type="checkbox" id="ghConfirmSubstituted" onchange="document.getElementById('ghSubVarietyRow').style.display=this.checked?'block':'none'" style="width:24px;height:24px;min-width:24px;">
                     Substituted different variety
                 </label>
                 <div id="ghSubVarietyRow" style="display:none;margin-top:4px;">
-                    <input type="text" id="ghConfirmVariety" placeholder="Actual variety used" style="width:100%;padding:10px;background:var(--bg-light,#2a2a3e);border:1px solid var(--border,#333);border-radius:8px;color:var(--text-primary,#fff);font-size:1rem;">
+                    <input type="text" id="ghConfirmVariety" placeholder="Actual variety used" style="width:100%;padding:12px;min-height:44px;background:var(--bg-light,#2a2a3e);border:1px solid var(--border,#333);border-radius:8px;color:var(--text-primary,#fff);font-size:1rem;box-sizing:border-box;">
                 </div>
             </div>
             <div>
                 <label style="font-size:0.8rem;color:var(--text-secondary,#999);font-weight:600;">Seed Lot ID</label>
-                <input type="text" id="ghConfirmSeedLot" placeholder="e.g. LOT-2026-001" style="width:100%;padding:10px;background:var(--bg-light,#2a2a3e);border:1px solid var(--border,#333);border-radius:8px;color:var(--text-primary,#fff);font-size:1rem;margin-top:4px;">
+                <input type="text" id="ghConfirmSeedLot" placeholder="e.g. LOT-2026-001" style="width:100%;padding:12px;min-height:44px;background:var(--bg-light,#2a2a3e);border:1px solid var(--border,#333);border-radius:8px;color:var(--text-primary,#fff);font-size:1rem;margin-top:4px;box-sizing:border-box;">
             </div>
             <div>
                 <label style="font-size:0.8rem;color:var(--text-secondary,#999);font-weight:600;">Notes</label>
-                <textarea id="ghConfirmNotes" rows="2" placeholder="Any notes about this sowing" style="width:100%;padding:10px;background:var(--bg-light,#2a2a3e);border:1px solid var(--border,#333);border-radius:8px;color:var(--text-primary,#fff);font-size:1rem;margin-top:4px;resize:vertical;"></textarea>
+                <textarea id="ghConfirmNotes" rows="2" placeholder="Any notes about this sowing" style="width:100%;padding:12px;min-height:44px;background:var(--bg-light,#2a2a3e);border:1px solid var(--border,#333);border-radius:8px;color:var(--text-primary,#fff);font-size:1rem;margin-top:4px;resize:vertical;box-sizing:border-box;"></textarea>
             </div>
         </div>
 
-        <button id="ghConfirmBtn" onclick="submitGHSowConfirm()" style="width:100%;padding:14px;background:#22c55e;color:white;border:none;border-radius:10px;font-size:1rem;font-weight:700;cursor:pointer;margin-top:20px;"><i class="fas fa-check-circle"></i> Mark Complete</button>
+        <button id="ghConfirmBtn" onclick="submitGHSowConfirm()" style="width:100%;padding:16px;min-height:48px;background:#22c55e;color:white;border:none;border-radius:10px;font-size:1rem;font-weight:700;cursor:pointer;margin-top:20px;"><i class="fas fa-check-circle"></i> Mark Complete</button>
+    </div>
+</div>
+
+<!-- Defer / Not Today Bottom Sheet -->
+<div id="deferModal" style="display:none;position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,0.7);align-items:flex-end;justify-content:center;" onclick="this.style.display='none'">
+    <div style="background:var(--bg-card,#1e1e2e);border-radius:16px 16px 0 0;width:100%;max-width:500px;padding:1.5rem;box-shadow:0 -10px 40px rgba(0,0,0,0.5);" onclick="event.stopPropagation()">
+        <div style="width:40px;height:4px;background:var(--border,#333);border-radius:2px;margin:0 auto 16px;"></div>
+        <h3 id="deferTitle" style="margin:0 0 8px;font-size:1.1rem;color:var(--text-primary,#fff);">Defer Task</h3>
+        <p style="margin:0 0 16px;font-size:0.85rem;color:var(--text-secondary,#999);">When should this task be rescheduled?</p>
+
+        <div style="display:flex;flex-direction:column;gap:10px;">
+            <button id="deferTomorrowBtn" onclick="confirmDefer('tomorrow')" style="width:100%;padding:16px;min-height:48px;background:var(--primary,#4a7c43);color:white;border:none;border-radius:10px;font-size:1rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+                <i class="fas fa-sun"></i> Tomorrow
+            </button>
+            <button id="deferMondayBtn" onclick="confirmDefer('monday')" style="width:100%;padding:14px;min-height:48px;background:var(--bg-light,#2a2a3e);color:var(--text-primary,#fff);border:1px solid var(--border,#333);border-radius:10px;font-size:0.95rem;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+                <i class="fas fa-calendar-week"></i> <span id="deferMondayLabel">Next Monday</span>
+            </button>
+            <div style="display:flex;align-items:center;gap:10px;">
+                <input type="date" id="deferCustomDate" style="flex:1;padding:12px;min-height:44px;background:var(--bg-light,#2a2a3e);border:1px solid var(--border,#333);border-radius:8px;color:var(--text-primary,#fff);font-size:1rem;box-sizing:border-box;">
+                <button onclick="confirmDefer('custom')" style="padding:12px 20px;min-height:44px;background:var(--bg-light,#2a2a3e);color:var(--text-primary,#fff);border:1px solid var(--border,#333);border-radius:8px;font-size:0.9rem;font-weight:600;cursor:pointer;white-space:nowrap;">
+                    <i class="fas fa-check"></i> Go
+                </button>
+            </div>
+        </div>
+
+        <button onclick="document.getElementById('deferModal').style.display='none'" style="width:100%;padding:14px;min-height:48px;background:transparent;color:var(--text-secondary,#999);border:none;font-size:0.9rem;cursor:pointer;margin-top:12px;">Cancel</button>
     </div>
 </div>
 

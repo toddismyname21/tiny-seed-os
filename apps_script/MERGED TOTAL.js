@@ -27268,6 +27268,7 @@ function getGreenhouseSeedings(params) {
       plantsNeeded: headers.indexOf('Plants_Needed'),
       bed: headers.indexOf('Target_Bed_ID') !== -1 ? headers.indexOf('Target_Bed_ID') : headers.indexOf('Bed_ID'),
       seedLotUsed: headers.indexOf('Seed_Lot_Used'),
+      actualVariety: headers.indexOf('Actual_Variety'),
       category: headers.indexOf('Category'),
       notes: headers.indexOf('Notes')
     };
@@ -27346,9 +27347,16 @@ function getGreenhouseSeedings(params) {
             if (spacingMatch) paperpotSpacing = parseInt(spacingMatch[1]);
           }
 
+          // Prefer actual variety (from sowing confirmation) over planned variety
+          var actualVar = cols.actualVariety >= 0 ? String(row[cols.actualVariety] || '') : '';
+          var displayVariety = actualVar || variety;
+          var wasSubstituted = actualVar && actualVar !== String(variety);
+
           seedings.push({
             crop: crop,
-            variety: variety,
+            variety: displayVariety,
+            plannedVariety: String(variety),
+            substituted: wasSubstituted,
             seedDate: ghSowDate.toISOString().split('T')[0],
             transplantDate: transplantDate instanceof Date ?
               transplantDate.toISOString().split('T')[0] : '',
@@ -28900,10 +28908,11 @@ function checkSeedProcurementNeeds() {
 }
 
 /**
- * Seed Shopping List — returns ALL upcoming seed needs with inventory status.
- * Unlike checkSeedProcurementNeeds (which only returns shortfalls),
- * this returns every crop/variety needed in the next 21 days,
- * marking each with inventory status so users know what to buy.
+ * Seed Shopping List — returns ALL unsown seed needs with inventory status.
+ * Scans ALL plantings that have a planned sow date but no actual sow date,
+ * regardless of how far out the date is. This is a failsafe so nothing
+ * falls through the cracks. Items are sorted by urgency:
+ * overdue → urgent (<7d) → soon (7-14d) → upcoming (14-21d) → later (>21d)
  */
 function getSeedShoppingList() {
   try {
@@ -28917,8 +28926,6 @@ function getSeedShoppingList() {
     var headers = data[0].map(function(h) { return String(h).trim(); });
     var today = new Date();
     today.setHours(0, 0, 0, 0);
-    var lookAhead = new Date(today);
-    lookAhead.setDate(lookAhead.getDate() + 21);
 
     // Column indices
     var col = {
@@ -28935,7 +28942,7 @@ function getSeedShoppingList() {
       status: headers.indexOf('STATUS')
     };
 
-    // Scan for upcoming unsown plantings
+    // Scan ALL unsown plantings (no date cap — failsafe for anything not yet done)
     var needsMap = {};
 
     for (var i = 1; i < data.length; i++) {
@@ -28944,17 +28951,17 @@ function getSeedShoppingList() {
       if (!crop) continue;
 
       var rowStatus = col.status >= 0 ? String(row[col.status]).toLowerCase() : '';
-      if (rowStatus === 'deleted' || rowStatus === 'cancelled') continue;
+      if (rowStatus === 'deleted' || rowStatus === 'cancelled' || rowStatus === 'completed') continue;
 
       var batchId = col.batch >= 0 ? row[col.batch] : 'ROW-' + i;
       var variety = col.variety >= 0 ? (row[col.variety] || '') : '';
 
-      // GH Sow: planned in next 21 days (or overdue) AND not yet sown
+      // GH Sow: has a planned date AND not yet sown (no date cap)
       var ghPlan = col.ghSowPlan >= 0 ? row[col.ghSowPlan] : null;
       var ghAct = col.ghSowAct >= 0 ? row[col.ghSowAct] : null;
       if (ghPlan && !ghAct) {
         var ghDate = ghPlan instanceof Date ? ghPlan : new Date(ghPlan);
-        if (!isNaN(ghDate.getTime()) && ghDate <= lookAhead) {
+        if (!isNaN(ghDate.getTime())) {
           var trays = col.trays >= 0 ? (parseInt(row[col.trays]) || 0) : 0;
           var cells = col.cellCount >= 0 ? (parseInt(row[col.cellCount]) || 128) : 128;
           var plants = col.plantsNeeded >= 0 ? (parseInt(row[col.plantsNeeded]) || 0) : 0;
@@ -28967,12 +28974,12 @@ function getSeedShoppingList() {
         }
       }
 
-      // Field Sow: planned in next 21 days (or overdue) AND not yet sown
+      // Field Sow: has a planned date AND not yet sown (no date cap)
       var fsPlan = col.fieldSowPlan >= 0 ? row[col.fieldSowPlan] : null;
       var fsAct = col.fieldSowAct >= 0 ? row[col.fieldSowAct] : null;
       if (fsPlan && !fsAct) {
         var fsDate = fsPlan instanceof Date ? fsPlan : new Date(fsPlan);
-        if (!isNaN(fsDate.getTime()) && fsDate <= lookAhead) {
+        if (!isNaN(fsDate.getTime())) {
           var fsPlants = col.plantsNeeded >= 0 ? (parseInt(row[col.plantsNeeded]) || 0) : 0;
           var fsTrays = col.trays >= 0 ? (parseInt(row[col.trays]) || 0) : 0;
           var fsCells = col.cellCount >= 0 ? (parseInt(row[col.cellCount]) || 0) : 0;
@@ -29030,7 +29037,7 @@ function getSeedShoppingList() {
       need.plantings.sort(function(a, b) { return a.sowDate - b.sowDate; });
       var earliest = need.plantings[0].sowDate;
       var daysUntil = Math.floor((earliest - today) / (1000 * 60 * 60 * 24));
-      var urgency = daysUntil < 0 ? 'overdue' : daysUntil < 7 ? 'urgent' : daysUntil < 14 ? 'soon' : 'upcoming';
+      var urgency = daysUntil < 0 ? 'overdue' : daysUntil < 7 ? 'urgent' : daysUntil < 14 ? 'soon' : daysUntil < 21 ? 'upcoming' : 'later';
 
       items.push({
         crop: need.crop,
@@ -29053,7 +29060,7 @@ function getSeedShoppingList() {
 
     // Sort: shortfalls first (by urgency), then in-stock
     var statusOrder = { no_inventory: 0, out: 0, low: 1, in_stock: 2 };
-    var urgOrder = { overdue: 0, urgent: 1, soon: 2, upcoming: 3 };
+    var urgOrder = { overdue: 0, urgent: 1, soon: 2, upcoming: 3, later: 4 };
     items.sort(function(a, b) {
       var sd = (statusOrder[a.status] || 9) - (statusOrder[b.status] || 9);
       if (sd !== 0) return sd;
@@ -133761,14 +133768,36 @@ function validateSeedlingAvailability(params) {
     }
 
     var totalUnits = Number(matchedItem.Total_Units) || 0;
-    var allocPresale = Number(matchedItem.Alloc_Presale) || totalUnits; // default: all available for presale
     var unitsSoldSheet = Number(matchedItem.Units_Sold) || 0;
     // Cross-reference with actual sales data for accuracy
     var unitsSoldActual = salesByItemId[String(matchedItem.Item_ID)] || 0;
     // Use the higher of the two values (sheet may lag behind sales entries)
     var quantityOrdered = Math.max(unitsSoldSheet, unitsSoldActual);
-    var quantityAvailable = Math.max(0, allocPresale - quantityOrdered);
-    var isAvailable = quantityAvailable >= requestedQty;
+
+    // During pre-order phase: no limit on presale orders (customers can always order)
+    // After cutoff: availability = Total_Units - all outlet allocations - presale orders
+    var PRESALE_CUTOFF = '2026-03-20';
+    var today = new Date();
+    today.setHours(0, 0, 0, 0);
+    var cutoff = new Date(PRESALE_CUTOFF + 'T00:00:00');
+    var isPreOrderPhase = today <= cutoff;
+
+    var quantityAvailable;
+    var isAvailable;
+    if (isPreOrderPhase) {
+      // Pre-order phase: unlimited — always available, presale count shown for info only
+      quantityAvailable = 9999;
+      isAvailable = true;
+    } else {
+      // In-stock phase: availability = total production minus everything committed
+      var allocPhipps = Number(matchedItem.Alloc_Phipps) || 0;
+      var allocMarket = Number(matchedItem.Alloc_Market) || 0;
+      var allocWholesale = Number(matchedItem.Alloc_Wholesale) || 0;
+      var allocCitygrown = Number(matchedItem.Alloc_CityGROWN) || 0;
+      var totalAllocated = allocPhipps + allocMarket + allocWholesale + allocCitygrown;
+      quantityAvailable = Math.max(0, totalUnits - totalAllocated - quantityOrdered);
+      isAvailable = quantityAvailable >= requestedQty;
+    }
 
     if (!isAvailable) allAvailable = false;
 
@@ -133984,24 +134013,25 @@ function updateSeedlingAllocations(params) {
     var wholesale = Number(alloc.alloc_wholesale) || 0;
     var citygrown = Number(alloc.alloc_citygrown) || 0;
     var totalUnits = Number(match.data[cols['Total_Units']]) || 0;
-    var presale = totalUnits - phipps - market - wholesale - citygrown;
+    var totalOutletAlloc = phipps + market + wholesale + citygrown;
 
-    // Write allocation values
+    // Write outlet allocation values (presale is NOT constrained by these — it's tracked by actual orders)
     sheet.getRange(match.rowIndex, cols['Alloc_Phipps'] + 1).setValue(phipps);
     sheet.getRange(match.rowIndex, cols['Alloc_Market'] + 1).setValue(market);
     sheet.getRange(match.rowIndex, cols['Alloc_Wholesale'] + 1).setValue(wholesale);
     sheet.getRange(match.rowIndex, cols['Alloc_CityGROWN'] + 1).setValue(citygrown);
-    sheet.getRange(match.rowIndex, cols['Alloc_Presale'] + 1).setValue(presale);
+    // Alloc_Presale now stores outlet total for reference, not a constraint
+    sheet.getRange(match.rowIndex, cols['Alloc_Presale'] + 1).setValue(totalOutletAlloc);
 
-    var isOver = presale < 0;
+    var isOver = totalOutletAlloc > totalUnits;
     if (isOver) {
-      warnings.push({ itemId: itemId, warning: 'OVERALLOCATED', presale: presale, total: totalUnits });
+      warnings.push({ itemId: itemId, warning: 'OUTLET_ALLOC_EXCEEDS_PRODUCTION', outletTotal: totalOutletAlloc, total: totalUnits });
     }
 
     // Log to SEEDLING_LIFECYCLE for historical tracking
     var details = JSON.stringify({
       phipps: phipps, market: market, wholesale: wholesale,
-      citygrown: citygrown, presale: presale, total: totalUnits
+      citygrown: citygrown, outletTotal: totalOutletAlloc, total: totalUnits
     });
     logSeedlingLifecycleEvent_(ss, itemId, '', '', 'ALLOCATION_SET', '', '', details, 'Admin');
 
