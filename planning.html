@@ -2298,6 +2298,7 @@
             saveQueue.clear();
 
             let hasError = false;
+            let lastErrorMsg = '';
 
             for (const [batchId, fields] of entries) {
                 try {
@@ -2310,6 +2311,14 @@
                     for (const [key, val] of Object.entries(fields)) {
                         params.append(key, val);
                     }
+
+                    // Ensure session token is included (belt + suspenders with interceptor)
+                    try {
+                        var sess = JSON.parse(localStorage.getItem('tinyseed_session') || 'null');
+                        if (sess && sess.token && !params.has('token')) {
+                            params.append('token', sess.token);
+                        }
+                    } catch(te) {}
 
                     const response = await fetch(`${API_URL}?${params.toString()}`);
                     const result = await response.json();
@@ -2324,11 +2333,13 @@
                     }
 
                     if (!result.success) {
-                        console.error(`Failed to save ${batchId}:`, result.error);
+                        lastErrorMsg = result.error || result.message || 'Save failed';
+                        console.error(`Failed to save ${batchId}:`, lastErrorMsg);
                         hasError = true;
                     }
                 } catch (error) {
                     console.error(`Error saving ${batchId}:`, error);
+                    lastErrorMsg = error.message || 'Network error';
                     hasError = true;
                     const row = document.querySelector(`tr[data-id="${batchId}"]`);
                     if (row) row.classList.remove('saving');
@@ -2336,6 +2347,15 @@
             }
 
             showSaveIndicator(hasError ? 'error' : 'saved');
+
+            // Show visible error toast if save failed
+            if (hasError) {
+                if (lastErrorMsg.includes('token') || lastErrorMsg.includes('auth') || lastErrorMsg.includes('Authentication')) {
+                    showError('Session expired — please refresh and log in again.');
+                } else {
+                    showError('Save failed: ' + lastErrorMsg);
+                }
+            }
         }
 
         function showSaveIndicator(state) {
