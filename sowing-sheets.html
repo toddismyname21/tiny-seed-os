@@ -2270,7 +2270,8 @@
                     var urgBadge = item.urgency === 'overdue' ? '<span style="background:#ef4444;color:white;padding:1px 6px;border-radius:4px;font-size:0.7rem;font-weight:600;">OVERDUE</span>'
                         : item.urgency === 'urgent' ? '<span style="background:#ef4444;color:white;padding:1px 6px;border-radius:4px;font-size:0.7rem;font-weight:600;">URGENT</span>'
                         : item.urgency === 'soon' ? '<span style="background:#f59e0b;color:#1a1a2e;padding:1px 6px;border-radius:4px;font-size:0.7rem;font-weight:600;">SOON</span>'
-                        : '<span style="background:var(--bg-light);color:var(--text-secondary);padding:1px 6px;border-radius:4px;font-size:0.7rem;">UPCOMING</span>';
+                        : item.urgency === 'upcoming' ? '<span style="background:var(--bg-light);color:var(--text-secondary);padding:1px 6px;border-radius:4px;font-size:0.7rem;">UPCOMING</span>'
+                        : '<span style="background:rgba(59,130,246,0.2);color:#93c5fd;padding:1px 6px;border-radius:4px;font-size:0.7rem;">LATER</span>';
                     var statusIcon = item.status === 'low' ? '<span style="color:#f59e0b;" title="Low stock"><i class="fas fa-exclamation-triangle"></i></span>' : '<span style="color:#ef4444;" title="Not in inventory"><i class="fas fa-times-circle"></i></span>';
                     var suppliers = item.knownSuppliers && item.knownSuppliers.length > 0 ? '<div style="font-size:0.7rem;color:var(--text-secondary);margin-top:2px;">' + item.knownSuppliers.join(', ') + '</div>' : '';
                     html += '<tr style="border-bottom:1px solid rgba(255,255,255,0.05);">';
@@ -2342,7 +2343,7 @@
 
             TinySeedPrint.sheet({
                 title: 'Seed Shopping List',
-                subtitle: 'Next 21 Days — ' + needToBuy.length + ' to buy, ' + inStock.length + ' in stock',
+                subtitle: 'All Unsown Plantings — ' + needToBuy.length + ' to buy, ' + inStock.length + ' in stock',
                 columns: columns,
                 rows: rows,
                 groupBy: '_groupStatus',
@@ -2411,7 +2412,7 @@
     <div id="seedShoppingModal">
         <div class="shopping-card">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-                <h3 style="margin:0;color:var(--text-primary);font-size:1.1rem;"><i class="fas fa-shopping-cart" style="color:#f59e0b;"></i> Seed Shopping List <span style="font-size:0.8rem;font-weight:400;color:var(--text-secondary);">Next 21 Days</span></h3>
+                <h3 style="margin:0;color:var(--text-primary);font-size:1.1rem;"><i class="fas fa-shopping-cart" style="color:#f59e0b;"></i> Seed Shopping List <span style="font-size:0.8rem;font-weight:400;color:var(--text-secondary);">All Unsown Plantings</span></h3>
                 <div style="display:flex;gap:8px;">
                     <button onclick="printSeedShoppingList()" style="padding:6px 12px;background:var(--primary);color:white;border:none;border-radius:6px;cursor:pointer;font-size:0.8rem;"><i class="fas fa-print"></i> Print</button>
                     <button onclick="hideSeedShoppingModal()" style="padding:6px 12px;background:var(--bg-light,#1a2744);color:var(--text-primary);border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:0.8rem;"><i class="fas fa-times"></i></button>
