@@ -38,6 +38,23 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-03-03 — Fix Batch Save Reliability + Seed Shopping List (PM_ARCHITECT)
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — New `batchUpdatePlanningFields()` endpoint: single API call for ALL inline edits with LockService, replaces fragile one-request-per-batch sequential saves. New `getSeedShoppingList()` endpoint: 21-day lookahead scanning PLANNING_2026 vs SEED_INVENTORY, returns all items with status (in_stock/low/out/no_inventory). Both wired to router.
+- `sowing-sheets.html` — Rewrote `saveFieldEdits()` to use batch endpoint (one API call), only clear successfully-saved entries (failed saves preserved for retry), better messages ("5 changes across 2 tasks" vs ambiguous "2 tasks"). Added Seed Shopping List: button, modal with items grouped by need-to-buy (red) / in-stock (green, collapsed), urgency badges, supplier info, printable via TinySeedPrint.
+
+### Bugs Fixed
+1. Inline editing save lost changes — 5 edits saved only 2. Root cause: sequential per-batch API calls + `dirtyFields={}` cleared ALL entries regardless of success/failure. Fixed with single batch API call + selective clearing.
+
+### Features Added
+1. Seed Shopping List — button on sowing-sheets.html opens modal showing all seeds needed for next 21 days, cross-referenced against inventory. "Need to Buy" items shown first with urgency badges and known suppliers.
+
+### Reason
+User-reported: "I made 5 changes and it only saved two. This feature is currently not working." Also requested: "I need to buy seeds. Do we have a way to see seeds needed with inventory status?"
+
+---
+
 ## 2026-03-02 — Fix Assignment Modal + CSP + Label Layout (PM_ARCHITECT)
 
 ### Files Modified
