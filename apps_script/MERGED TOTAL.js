@@ -15042,6 +15042,8 @@ function doGet(e) {
           return updatePlanting(e.parameter);
       case 'fixDuplicateBatchIds':
           return jsonResponse(fixDuplicateBatchIds());
+      case 'backfillPlantingGeometry':
+          return jsonResponse(backfillPlantingGeometry());
       case 'deletePlanting':
           return deletePlantingById(e.parameter.id);
       case 'clonePlanting':
@@ -25057,6 +25059,7 @@ function getPlanningData() {
         Rows_Per_Bed: getVal(row, 'Rows_Per_Bed', ''),
         In_Row_Spacing_In: getVal(row, 'In_Row_Spacing_In', ''),
         Seeds_Needed: getVal(row, 'Seeds_Needed', ''),
+        Seed_Lot_Used: getVal(row, 'Seed_Lot_Used', ''),
         DTM: getVal(row, 'DTM', 0),
         Category: getVal(row, 'Category', ''),
         rowIndex: i + 1
@@ -26373,7 +26376,37 @@ function savePlantingFromWeb(params) {
       ? requestedId
       : generateBatchId(params.Crop, existingIds);
 
-    // Map URL parameters to header columns
+    // Look up crop profile for geometry defaults
+    var cropDefaults = { Rows_Per_Bed: 1, In_Row_Spacing_In: 12, Tray_Cell_Count: 72 };
+    if (params.Crop) {
+      try {
+        var profile = getCropTemplate(params.Crop);
+        if (profile) {
+          cropDefaults.Rows_Per_Bed = profile.Rows_Per_Bed || 1;
+          cropDefaults.In_Row_Spacing_In = profile.In_Row_Spacing_In || 12;
+          cropDefaults.Tray_Cell_Count = profile.Tray_Cell_Count || 72;
+        }
+      } catch (profileErr) {
+        Logger.log('Crop profile lookup for defaults: ' + profileErr.toString());
+      }
+    }
+
+    // Map URL parameters to header columns (with crop defaults for geometry)
+    var rowsPerBed = params.Rows_Per_Bed || cropDefaults.Rows_Per_Bed;
+    var inRowSpacing = params.In_Row_Spacing_In || cropDefaults.In_Row_Spacing_In;
+    var trayCellCount = params.Tray_Cell_Count || cropDefaults.Tray_Cell_Count;
+    var feetUsed = Number(params.Feet_Used) || 0;
+
+    // Auto-calculate plants and trays from geometry if not explicitly provided
+    var plantsNeeded = Number(params.Plants_Needed) || 0;
+    var traysNeeded = Number(params.Trays_Needed) || 0;
+    if (plantsNeeded <= 0 && feetUsed > 0 && Number(inRowSpacing) > 0) {
+      plantsNeeded = Math.ceil((feetUsed * 12 / Number(inRowSpacing)) * Number(rowsPerBed));
+    }
+    if (traysNeeded <= 0 && plantsNeeded > 0 && Number(trayCellCount) > 0) {
+      traysNeeded = Math.ceil(plantsNeeded / Number(trayCellCount));
+    }
+
     const paramMapping = {
       'STATUS': params.STATUS || 'Planned',
       'Batch_ID': safeBatchId,
@@ -26381,10 +26414,12 @@ function savePlantingFromWeb(params) {
       'Variety': params.Variety || 'Standard',
       'Planting_Method': params.Planting_Method || 'Transplant',
       'Target_Bed_ID': params.Target_Bed_ID || 'Unassigned',
-      'Feet_Used': params.Feet_Used || 0,
-      'Plants_Needed': params.Plants_Needed || 0,
-      'Trays_Needed': params.Trays_Needed || 0,
-      'Tray_Cell_Count': params.Tray_Cell_Count || 72,
+      'Feet_Used': feetUsed,
+      'Plants_Needed': plantsNeeded,
+      'Trays_Needed': traysNeeded,
+      'Tray_Cell_Count': trayCellCount,
+      'Rows_Per_Bed': rowsPerBed,
+      'In_Row_Spacing_In': inRowSpacing,
       'Paperpot_Spacing': params.Paperpot_Spacing || '',
       'Plan_GH_Sow': params.Plan_GH_Sow || '',
       'Actual_GH_Sow': '',
@@ -30343,6 +30378,32 @@ function addPlanting(planting) {
   }
   planting.Batch_ID = batchId;
 
+  // Backfill geometry from crop defaults if not provided
+  if (planting.Crop && (!planting.Rows_Per_Bed || !planting.In_Row_Spacing_In)) {
+    try {
+      var cropProfile = getCropTemplate(planting.Crop);
+      if (cropProfile) {
+        if (!planting.Rows_Per_Bed && cropProfile.Rows_Per_Bed) planting.Rows_Per_Bed = cropProfile.Rows_Per_Bed;
+        if (!planting.In_Row_Spacing_In && cropProfile.In_Row_Spacing_In) planting.In_Row_Spacing_In = cropProfile.In_Row_Spacing_In;
+        if (!planting.Tray_Cell_Count && cropProfile.Tray_Cell_Count) planting.Tray_Cell_Count = cropProfile.Tray_Cell_Count;
+      }
+    } catch (profileErr) {
+      Logger.log('addPlanting crop profile lookup: ' + profileErr.toString());
+    }
+  }
+
+  // Auto-calculate plants and trays if geometry is available but counts are not
+  var feet = Number(planting.Feet_Used) || 0;
+  var rpb = Number(planting.Rows_Per_Bed) || 1;
+  var irs = Number(planting.In_Row_Spacing_In) || 12;
+  var tcc = Number(planting.Tray_Cell_Count) || 0;
+  if (feet > 0 && irs > 0 && (!planting.Plants_Needed || Number(planting.Plants_Needed) <= 0)) {
+    planting.Plants_Needed = Math.ceil((feet * 12 / irs) * rpb);
+  }
+  if (Number(planting.Plants_Needed) > 0 && tcc > 0 && (!planting.Trays_Needed || Number(planting.Trays_Needed) <= 0)) {
+    planting.Trays_Needed = Math.ceil(Number(planting.Plants_Needed) / tcc);
+  }
+
   var row = headers.map(function(header) { return planting[header] !== undefined ? planting[header] : ''; });
   // Ensure Batch_ID is set in the row
   if (batchIdCol >= 0) row[batchIdCol] = batchId;
@@ -30442,6 +30503,160 @@ function fixDuplicateBatchIds() {
         ? 'Fixed ' + fixes.length + ' duplicate Batch_ID(s)'
         : 'No duplicate Batch_IDs found',
       fixCount: fixes.length,
+      fixes: fixes
+    };
+  } catch (error) {
+    try { LockService.getScriptLock().releaseLock(); } catch(e) {}
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Backfill geometry fields (Rows_Per_Bed, In_Row_Spacing_In, Tray_Cell_Count, Plants_Needed, Trays_Needed)
+ * from REF_CropProfiles for any PLANNING_2026 rows where these fields are blank.
+ * Also ensures these columns exist in the sheet header.
+ */
+function backfillPlantingGeometry() {
+  try {
+    var lock = LockService.getScriptLock();
+    lock.waitLock(30000);
+
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheet = ss.getSheetByName('PLANNING_2026');
+    if (!sheet) {
+      lock.releaseLock();
+      return { success: false, error: 'PLANNING_2026 sheet not found' };
+    }
+
+    var data = sheet.getDataRange().getValues();
+    var headers = data[0];
+
+    // Ensure geometry columns exist — add if missing
+    var requiredCols = ['Rows_Per_Bed', 'In_Row_Spacing_In', 'Tray_Cell_Count', 'Plants_Needed', 'Trays_Needed'];
+    var colsAdded = [];
+    for (var rc = 0; rc < requiredCols.length; rc++) {
+      if (headers.indexOf(requiredCols[rc]) < 0) {
+        var newColIndex = sheet.getLastColumn() + 1;
+        sheet.getRange(1, newColIndex).setValue(requiredCols[rc]);
+        headers.push(requiredCols[rc]);
+        colsAdded.push(requiredCols[rc]);
+      }
+    }
+    if (colsAdded.length > 0) {
+      // Re-read data with new columns
+      data = sheet.getDataRange().getValues();
+      headers = data[0];
+    }
+
+    var cropCol = headers.indexOf('Crop');
+    var rowsCol = headers.indexOf('Rows_Per_Bed');
+    var spacingCol = headers.indexOf('In_Row_Spacing_In');
+    var trayCountCol = headers.indexOf('Tray_Cell_Count');
+    var plantsCol = headers.indexOf('Plants_Needed');
+    var traysCol = headers.indexOf('Trays_Needed');
+    var feetCol = headers.indexOf('Feet_Used');
+
+    if (cropCol < 0) {
+      lock.releaseLock();
+      return { success: false, error: 'Crop column not found' };
+    }
+
+    // Build crop profile cache
+    var profileCache = {};
+    try {
+      var profileSheet = ss.getSheetByName('REF_CropProfiles');
+      if (profileSheet) {
+        var profileData = profileSheet.getDataRange().getValues();
+        for (var pi = 1; pi < profileData.length; pi++) {
+          var cropName = String(profileData[pi][0] || '').trim();
+          if (cropName) {
+            profileCache[cropName.toLowerCase()] = {
+              Rows_Per_Bed: profileData[pi][13] || '',
+              In_Row_Spacing_In: profileData[pi][14] || '',
+              Tray_Cell_Count: profileData[pi][15] || ''
+            };
+          }
+        }
+      }
+    } catch (pe) {
+      Logger.log('Profile cache build error: ' + pe.toString());
+    }
+
+    var fixes = [];
+    var batchUpdates = []; // collect range/value pairs for batch write
+
+    for (var i = 1; i < data.length; i++) {
+      var crop = String(data[i][cropCol] || '').trim();
+      if (!crop) continue;
+
+      var profile = profileCache[crop.toLowerCase()];
+      if (!profile) continue;
+
+      var rowsVal = rowsCol >= 0 ? data[i][rowsCol] : '';
+      var spacingVal = spacingCol >= 0 ? data[i][spacingCol] : '';
+      var trayCountVal = trayCountCol >= 0 ? data[i][trayCountCol] : '';
+      var feetVal = feetCol >= 0 ? Number(data[i][feetCol]) || 0 : 0;
+      var plantsVal = plantsCol >= 0 ? Number(data[i][plantsCol]) || 0 : 0;
+      var traysVal = traysCol >= 0 ? Number(data[i][traysCol]) || 0 : 0;
+
+      var changed = false;
+      var fixDetail = { row: i + 1, crop: crop };
+
+      // Backfill Rows_Per_Bed
+      if (rowsCol >= 0 && (rowsVal === '' || rowsVal === null || rowsVal === undefined || rowsVal === 0) && profile.Rows_Per_Bed) {
+        sheet.getRange(i + 1, rowsCol + 1).setValue(profile.Rows_Per_Bed);
+        rowsVal = profile.Rows_Per_Bed;
+        fixDetail.Rows_Per_Bed = profile.Rows_Per_Bed;
+        changed = true;
+      }
+
+      // Backfill In_Row_Spacing_In
+      if (spacingCol >= 0 && (spacingVal === '' || spacingVal === null || spacingVal === undefined || spacingVal === 0) && profile.In_Row_Spacing_In) {
+        sheet.getRange(i + 1, spacingCol + 1).setValue(profile.In_Row_Spacing_In);
+        spacingVal = profile.In_Row_Spacing_In;
+        fixDetail.In_Row_Spacing_In = profile.In_Row_Spacing_In;
+        changed = true;
+      }
+
+      // Backfill Tray_Cell_Count
+      if (trayCountCol >= 0 && (trayCountVal === '' || trayCountVal === null || trayCountVal === undefined || trayCountVal === 0) && profile.Tray_Cell_Count) {
+        sheet.getRange(i + 1, trayCountCol + 1).setValue(profile.Tray_Cell_Count);
+        trayCountVal = profile.Tray_Cell_Count;
+        fixDetail.Tray_Cell_Count = profile.Tray_Cell_Count;
+        changed = true;
+      }
+
+      // Recalculate Plants_Needed if blank and we have geometry
+      if (plantsCol >= 0 && plantsVal <= 0 && feetVal > 0 && Number(spacingVal) > 0 && Number(rowsVal) > 0) {
+        var newPlants = Math.ceil((feetVal * 12 / Number(spacingVal)) * Number(rowsVal));
+        sheet.getRange(i + 1, plantsCol + 1).setValue(newPlants);
+        plantsVal = newPlants;
+        fixDetail.Plants_Needed = newPlants;
+        changed = true;
+      }
+
+      // Recalculate Trays_Needed if blank and we have plants + cell count
+      if (traysCol >= 0 && traysVal <= 0 && plantsVal > 0 && Number(trayCountVal) > 0) {
+        var newTrays = Math.ceil(plantsVal / Number(trayCountVal));
+        sheet.getRange(i + 1, traysCol + 1).setValue(newTrays);
+        fixDetail.Trays_Needed = newTrays;
+        changed = true;
+      }
+
+      if (changed) {
+        fixes.push(fixDetail);
+      }
+    }
+
+    lock.releaseLock();
+
+    return {
+      success: true,
+      message: fixes.length > 0
+        ? 'Backfilled geometry for ' + fixes.length + ' planting(s)'
+        : 'All plantings already have geometry data',
+      fixCount: fixes.length,
+      columnsAdded: colsAdded,
       fixes: fixes
     };
   } catch (error) {

@@ -38,6 +38,32 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-03-03 — Seed Inventory Check in Planning View (PM_ARCHITECT)
+
+### Files Modified
+- `planning.html` — Added Seed Inventory Check panel (slide-out from right): shows summary cards (In Stock / Low / Need to Order), filterable list of all crop/variety seed needs cross-referenced against SEED_INVENTORY. Each item shows seeds needed, seeds available, deficit/surplus, urgency. Calls existing `getSeedShoppingList` backend endpoint. Added per-row seed status dots (green/yellow/red) next to crop name in the planning table. Added "Seed Requirements" section to edit panel showing Seeds_Needed (auto-calculated), Seed_Lot_Used field, and inventory status for the selected planting. CSS for all new elements matches existing dark theme design system.
+- `apps_script/MERGED TOTAL.js` — `getPlanningData()`: Now returns `Seed_Lot_Used` field alongside `Seeds_Needed`.
+
+### Functions Added (in planning.html)
+- `loadSeedShoppingList()` — Calls `getSeedShoppingList` API, caches result, builds status map
+- `buildSeedStatusMap()` — Maps crop|variety → {status, seedsNeeded, seedsAvailable, deficit, urgency, lotCount}
+- `getSeedStatus(crop, variety)` — Lookup seed inventory status for a crop/variety pair
+- `getSeedDotHtml(crop, variety)` — Returns colored dot HTML based on inventory status
+- `openSeedInventoryPanel()` / `closeSeedPanel()` — Panel open/close
+- `filterSeedList(mode)` — Filter panel by: all, need_order, low, in_stock
+- `renderSeedPanel()` — Renders summary cards + filtered item list
+- `updatePanelSeedStatus(crop, variety, seedsNeeded)` — Shows inventory status in edit panel
+
+### Reason
+User needs to see what seeds are NOT in inventory while doing planning work. The backend `getSeedShoppingList()` endpoint already cross-references PLANNING_2026 needs vs SEED_INVENTORY — but planning.html never called it. Now the planning view shows at-a-glance seed status per planting and a full inventory check panel.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions — `getSeedShoppingList()` backend already existed, no duplication
+- [x] No duplicates created
+
+---
+
 ## 2026-03-03 — Backfill Planting Geometry from Crop Defaults + Auto-Populate on Create (PM_ARCHITECT)
 
 ### Files Modified

@@ -1012,6 +1012,103 @@
             .status-badge { color: black !important; border: 1px solid #999 !important; }
             @page { margin: 0.5in; size: landscape; }
         }
+
+        /* ═══ SEED INVENTORY PANEL ═══ */
+        .seed-alert-badge {
+            background: var(--danger); color: #fff; font-size: 11px; font-weight: 700;
+            padding: 1px 6px; border-radius: 10px; margin-left: 4px;
+        }
+        #seedInventoryPanel {
+            position: fixed; top: 0; right: -520px; width: 500px; max-width: 90vw;
+            height: 100vh; background: var(--bg-card); z-index: 1100;
+            box-shadow: -4px 0 24px rgba(0,0,0,0.5); transition: right 0.3s ease;
+            display: flex; flex-direction: column; overflow: hidden;
+        }
+        #seedInventoryPanel.active { right: 0; }
+        .seed-panel-header {
+            padding: 20px 24px; border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .seed-panel-header h3 { font-size: 18px; font-weight: 700; color: var(--text-primary); }
+        .seed-panel-close { background: none; border: none; color: var(--text-secondary); font-size: 20px; cursor: pointer; padding: 8px; }
+        .seed-panel-close:hover { color: var(--text-primary); }
+        .seed-panel-summary {
+            padding: 16px 24px; display: flex; gap: 12px; border-bottom: 1px solid var(--border);
+        }
+        .seed-summary-card {
+            flex: 1; padding: 12px; border-radius: 10px; text-align: center;
+        }
+        .seed-summary-card.good { background: rgba(34,197,94,0.15); }
+        .seed-summary-card.low { background: rgba(249,115,22,0.15); }
+        .seed-summary-card.missing { background: rgba(239,68,68,0.15); }
+        .seed-summary-card .num { font-size: 24px; font-weight: 800; }
+        .seed-summary-card.good .num { color: var(--primary); }
+        .seed-summary-card.low .num { color: #f97316; }
+        .seed-summary-card.missing .num { color: var(--danger); }
+        .seed-summary-card .lbl { font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+        .seed-panel-filters {
+            padding: 12px 24px; display: flex; gap: 8px; border-bottom: 1px solid var(--border);
+        }
+        .seed-filter-btn {
+            padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border);
+            background: transparent; color: var(--text-secondary); font-size: 13px;
+            cursor: pointer; transition: all 0.15s;
+        }
+        .seed-filter-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+        .seed-filter-btn:hover:not(.active) { border-color: var(--text-secondary); color: var(--text-primary); }
+        .seed-panel-list {
+            flex: 1; overflow-y: auto; padding: 12px 24px;
+        }
+        .seed-item {
+            padding: 14px 16px; border-radius: 10px; margin-bottom: 8px;
+            border: 1px solid var(--border); background: var(--bg-dark);
+        }
+        .seed-item.out, .seed-item.no_inventory { border-left: 3px solid var(--danger); }
+        .seed-item.low { border-left: 3px solid #f97316; }
+        .seed-item.in_stock { border-left: 3px solid var(--primary); }
+        .seed-item-header {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;
+        }
+        .seed-item-crop { font-weight: 700; font-size: 15px; color: var(--text-primary); }
+        .seed-item-variety { font-size: 13px; color: var(--text-secondary); margin-left: 8px; }
+        .seed-item-status {
+            font-size: 11px; padding: 3px 10px; border-radius: 12px; font-weight: 600;
+            text-transform: uppercase; letter-spacing: 0.3px;
+        }
+        .seed-item-status.in_stock { background: rgba(34,197,94,0.2); color: #22c55e; }
+        .seed-item-status.low { background: rgba(249,115,22,0.2); color: #f97316; }
+        .seed-item-status.out { background: rgba(239,68,68,0.2); color: #ef4444; }
+        .seed-item-status.no_inventory { background: rgba(239,68,68,0.2); color: #ef4444; }
+        .seed-item-details {
+            display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; font-size: 13px;
+        }
+        .seed-detail-label { color: var(--text-secondary); font-size: 11px; }
+        .seed-detail-value { color: var(--text-primary); font-weight: 600; }
+        .seed-detail-value.deficit { color: var(--danger); }
+        .seed-detail-value.surplus { color: var(--primary); }
+        .seed-item-urgency { font-size: 11px; margin-top: 6px; color: var(--text-secondary); }
+        .seed-item-urgency.overdue { color: var(--danger); font-weight: 600; }
+        .seed-item-urgency.urgent { color: #f97316; font-weight: 600; }
+        .seed-panel-loading { text-align: center; padding: 40px; color: var(--text-secondary); }
+        .seed-panel-loading i { font-size: 24px; margin-bottom: 8px; }
+
+        /* Seed status dot on table rows */
+        .seed-dot {
+            display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; vertical-align: middle;
+        }
+        .seed-dot.in-stock { background: var(--primary); }
+        .seed-dot.low-stock { background: #f97316; }
+        .seed-dot.no-stock { background: var(--danger); }
+        .seed-dot.unknown { background: var(--text-secondary); opacity: 0.3; }
+
+        /* Seed info in edit panel */
+        .panel-seed-status {
+            padding: 10px 14px; border-radius: 8px; margin-top: 8px; font-size: 13px;
+        }
+        .panel-seed-status.in-stock { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); color: #22c55e; }
+        .panel-seed-status.low-stock { background: rgba(249,115,22,0.1); border: 1px solid rgba(249,115,22,0.3); color: #f97316; }
+        .panel-seed-status.no-stock { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: #ef4444; }
+        .panel-seed-status .seed-label { font-size: 11px; color: var(--text-secondary); display: block; margin-bottom: 2px; }
     </style>
     <script src="web_app/print-engine.js"></script>
 </head>
@@ -1029,6 +1126,11 @@
             </h1>
         </div>
         <div class="header-actions">
+            <button class="btn btn-secondary" onclick="openSeedInventoryPanel()" id="seedInventoryBtn" title="Seed Inventory Check">
+                <i class="fas fa-seedling"></i>
+                <span>Seeds</span>
+                <span class="seed-alert-badge" id="seedAlertBadge" style="display:none">0</span>
+            </button>
             <button class="btn btn-secondary" onclick="refreshData()">
                 <i class="fas fa-sync-alt"></i>
                 Refresh
@@ -1409,6 +1511,21 @@
             </div>
 
             <div class="panel-section">
+                <div class="panel-section-title">Seed Requirements</div>
+                <div class="panel-field-row">
+                    <div class="panel-field">
+                        <label>Seeds Needed</label>
+                        <input type="number" id="panelSeedsNeeded" readonly style="opacity:0.7;cursor:default;" placeholder="Auto-calculated">
+                    </div>
+                    <div class="panel-field">
+                        <label>Seed Lot Used</label>
+                        <input type="text" id="panelSeedLot" placeholder="e.g., S-TOM-250115-001" onchange="panelFieldChange('Seed_Lot_Used', this.value)">
+                    </div>
+                </div>
+                <div id="panelSeedInventoryStatus"></div>
+            </div>
+
+            <div class="panel-section">
                 <div class="panel-section-title">Planned Dates</div>
                 <div class="panel-field-row">
                     <div class="panel-field">
@@ -1600,6 +1717,11 @@
                     filterPlantings();
                     updateStats();
                     showToast('Loaded ' + allPlantings.length + ' plantings', 'success');
+
+                    // Load seed inventory status in background (don't block UI)
+                    loadSeedShoppingList().then(function() {
+                        if (seedShoppingList) renderTable(); // re-render with seed dots
+                    });
                 } else {
                     showEmptyState(data.error || 'No plantings found');
                 }
@@ -1901,7 +2023,7 @@
                             <div class="crop-cell" style="cursor: pointer;" onclick="openEditPanel('${p.Batch_ID}')">
                                 <span class="crop-icon">${icon}</span>
                                 <div class="crop-info">
-                                    <span class="crop-name">${p.Crop || 'Unknown'}</span>
+                                    <span class="crop-name">${getSeedDotHtml(p.Crop, p.Variety)}${p.Crop || 'Unknown'}</span>
                                     <span class="crop-variety">${p.Variety || ''}</span>
                                 </div>
                             </div>
@@ -2503,6 +2625,11 @@
             document.getElementById('panelStatus').value = planting.STATUS || 'Planned';
             document.getElementById('panelSpacing').value = planting.In_Row_Spacing_In || '';
             document.getElementById('panelRowsPerBed').value = planting.Rows_Per_Bed || '';
+            document.getElementById('panelSeedsNeeded').value = planting.Seeds_Needed || '';
+            document.getElementById('panelSeedLot').value = planting.Seed_Lot_Used || '';
+
+            // Update seed inventory status for this planting
+            updatePanelSeedStatus(planting.Crop, planting.Variety, planting.Seeds_Needed);
 
             // Reset save status
             updatePanelSaveStatus('saved');
@@ -3027,6 +3154,230 @@
         function toggleKeyboardHelp() {
             document.getElementById('keyboardHelp')?.classList.toggle('visible');
         }
+
+        // ═══════════════════════════════════════════════════════════════
+        // SEED INVENTORY CHECK — Cross-reference planning vs inventory
+        // ═══════════════════════════════════════════════════════════════
+
+        var seedShoppingList = null; // cached from API
+        var seedStatusMap = {};      // keyed by "crop|variety" → status
+        var seedFilterMode = 'all';
+
+        async function loadSeedShoppingList() {
+            try {
+                var resp = await fetch(API_URL + '?action=getSeedShoppingList');
+                var data = await resp.json();
+                if (data.success && data.items) {
+                    seedShoppingList = data.items;
+                    buildSeedStatusMap();
+                    updateSeedAlertBadge();
+                    return seedShoppingList;
+                } else {
+                    console.error('[Seeds] Shopping list error:', data.error);
+                    return null;
+                }
+            } catch (err) {
+                console.error('[Seeds] Failed to load shopping list:', err);
+                return null;
+            }
+        }
+
+        function buildSeedStatusMap() {
+            seedStatusMap = {};
+            if (!seedShoppingList) return;
+            seedShoppingList.forEach(function(item) {
+                var key = (item.crop || '').toLowerCase() + '|' + (item.variety || '').toLowerCase();
+                seedStatusMap[key] = {
+                    status: item.status, // in_stock, low, out, no_inventory
+                    seedsNeeded: item.seedsNeeded || 0,
+                    seedsAvailable: item.seedsAvailable || 0,
+                    deficit: item.deficit || 0,
+                    urgency: item.urgency || '',
+                    lotCount: (item.lotDetails ? item.lotDetails.length : 0),
+                    daysUntilSow: item.daysUntilSow
+                };
+                // Also map crop-only key for variety='Standard' or no specific variety
+                var cropOnly = (item.crop || '').toLowerCase() + '|';
+                if (!seedStatusMap[cropOnly]) {
+                    seedStatusMap[cropOnly] = seedStatusMap[key];
+                }
+            });
+        }
+
+        function getSeedStatus(crop, variety) {
+            if (!seedStatusMap || !crop) return null;
+            var key = crop.toLowerCase() + '|' + (variety || '').toLowerCase();
+            return seedStatusMap[key] || seedStatusMap[crop.toLowerCase() + '|'] || null;
+        }
+
+        function updateSeedAlertBadge() {
+            if (!seedShoppingList) return;
+            var needOrder = seedShoppingList.filter(function(i) {
+                return i.status === 'out' || i.status === 'no_inventory';
+            }).length;
+            var badge = document.getElementById('seedAlertBadge');
+            if (needOrder > 0) {
+                badge.textContent = needOrder;
+                badge.style.display = 'inline';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+
+        function getSeedDotHtml(crop, variety) {
+            var info = getSeedStatus(crop, variety);
+            if (!info) return '<span class="seed-dot unknown" title="Inventory not checked"></span>';
+            switch (info.status) {
+                case 'in_stock': return '<span class="seed-dot in-stock" title="Seeds in stock"></span>';
+                case 'low': return '<span class="seed-dot low-stock" title="Low seed stock"></span>';
+                case 'out': return '<span class="seed-dot no-stock" title="OUT — need to order seeds"></span>';
+                case 'no_inventory': return '<span class="seed-dot no-stock" title="NOT IN INVENTORY — need to order"></span>';
+                default: return '<span class="seed-dot unknown"></span>';
+            }
+        }
+
+        // ═══ SEED INVENTORY PANEL ═══
+
+        async function openSeedInventoryPanel() {
+            document.getElementById('seedPanelOverlay').classList.add('active');
+            document.getElementById('seedInventoryPanel').classList.add('active');
+
+            if (!seedShoppingList) {
+                document.getElementById('seedPanelList').innerHTML = '<div class="seed-panel-loading"><i class="fas fa-spinner fa-spin"></i><p>Loading seed inventory...</p></div>';
+                await loadSeedShoppingList();
+            }
+            renderSeedPanel();
+        }
+
+        function closeSeedPanel() {
+            document.getElementById('seedPanelOverlay').classList.remove('active');
+            document.getElementById('seedInventoryPanel').classList.remove('active');
+        }
+
+        function filterSeedList(mode) {
+            seedFilterMode = mode;
+            document.querySelectorAll('.seed-filter-btn').forEach(function(btn) {
+                btn.classList.toggle('active', btn.textContent.trim() === {
+                    'all': 'All', 'need_order': 'Need to Order', 'low': 'Low Stock', 'in_stock': 'In Stock'
+                }[mode]);
+            });
+            renderSeedPanel();
+        }
+
+        function renderSeedPanel() {
+            if (!seedShoppingList) {
+                document.getElementById('seedPanelList').innerHTML = '<div class="seed-panel-loading"><p>No data available. Try refreshing.</p></div>';
+                return;
+            }
+
+            // Summary counts
+            var good = 0, low = 0, missing = 0;
+            seedShoppingList.forEach(function(item) {
+                if (item.status === 'in_stock') good++;
+                else if (item.status === 'low') low++;
+                else missing++; // out or no_inventory
+            });
+            document.getElementById('seedCountGood').textContent = good;
+            document.getElementById('seedCountLow').textContent = low;
+            document.getElementById('seedCountMissing').textContent = missing;
+
+            // Filter items
+            var items = seedShoppingList;
+            if (seedFilterMode === 'need_order') {
+                items = items.filter(function(i) { return i.status === 'out' || i.status === 'no_inventory'; });
+            } else if (seedFilterMode === 'low') {
+                items = items.filter(function(i) { return i.status === 'low'; });
+            } else if (seedFilterMode === 'in_stock') {
+                items = items.filter(function(i) { return i.status === 'in_stock'; });
+            }
+
+            // Sort: shortfalls first, then by urgency
+            var urgencyOrder = { 'overdue': 0, 'urgent': 1, 'soon': 2, 'upcoming': 3, 'later': 4 };
+            items.sort(function(a, b) {
+                var aScore = (a.status === 'out' || a.status === 'no_inventory') ? 0 : (a.status === 'low' ? 1 : 2);
+                var bScore = (b.status === 'out' || b.status === 'no_inventory') ? 0 : (b.status === 'low' ? 1 : 2);
+                if (aScore !== bScore) return aScore - bScore;
+                return (urgencyOrder[a.urgency] || 9) - (urgencyOrder[b.urgency] || 9);
+            });
+
+            if (items.length === 0) {
+                document.getElementById('seedPanelList').innerHTML = '<div class="seed-panel-loading"><p>No items match this filter.</p></div>';
+                return;
+            }
+
+            var html = '';
+            items.forEach(function(item) {
+                var statusLabel = item.status === 'no_inventory' ? 'Not in inventory' :
+                                  item.status === 'out' ? 'Out of stock' :
+                                  item.status === 'low' ? 'Low stock' : 'In stock';
+                var deficitText = '';
+                if (item.deficit > 0) {
+                    deficitText = '<span class="deficit">-' + item.deficit + ' shortage</span>';
+                } else if (item.deficit < 0) {
+                    deficitText = '<span class="surplus">+' + Math.abs(item.deficit) + ' surplus</span>';
+                } else {
+                    deficitText = '<span>Exact match</span>';
+                }
+
+                var urgencyText = '';
+                if (item.urgency === 'overdue') urgencyText = '<span class="seed-item-urgency overdue">OVERDUE — sow date passed!</span>';
+                else if (item.urgency === 'urgent') urgencyText = '<span class="seed-item-urgency urgent">Sow within 7 days</span>';
+                else if (item.urgency === 'soon') urgencyText = '<span class="seed-item-urgency">Sow within 14 days</span>';
+                else if (item.daysUntilSow !== undefined && item.daysUntilSow !== null) urgencyText = '<span class="seed-item-urgency">Sow in ' + item.daysUntilSow + ' days</span>';
+
+                html += '<div class="seed-item ' + item.status + '">' +
+                    '<div class="seed-item-header">' +
+                        '<div><span class="seed-item-crop">' + escapeHtml(item.crop || '') + '</span>' +
+                        '<span class="seed-item-variety">' + escapeHtml(item.variety || '') + '</span></div>' +
+                        '<span class="seed-item-status ' + item.status + '">' + statusLabel + '</span>' +
+                    '</div>' +
+                    '<div class="seed-item-details">' +
+                        '<div><div class="seed-detail-label">Needed</div><div class="seed-detail-value">' + (item.seedsNeeded || 0) + '</div></div>' +
+                        '<div><div class="seed-detail-label">In Stock</div><div class="seed-detail-value">' + (item.seedsAvailable || 0) + '</div></div>' +
+                        '<div><div class="seed-detail-label">Balance</div><div class="seed-detail-value">' + deficitText + '</div></div>' +
+                    '</div>' +
+                    (item.plantingCount ? '<div class="seed-item-urgency">' + item.plantingCount + ' planting(s)' + (urgencyText ? ' &middot; ' : '') + '</div>' : '') +
+                    urgencyText +
+                '</div>';
+            });
+
+            document.getElementById('seedPanelList').innerHTML = html;
+        }
+
+        // ═══ SEED STATUS IN EDIT PANEL ═══
+
+        function updatePanelSeedStatus(crop, variety, seedsNeeded) {
+            var container = document.getElementById('panelSeedInventoryStatus');
+            var seedsField = document.getElementById('panelSeedsNeeded');
+            if (seedsNeeded) seedsField.value = seedsNeeded;
+
+            var info = getSeedStatus(crop, variety);
+            if (!info) {
+                container.innerHTML = '<div class="panel-seed-status no-stock"><span class="seed-label">Inventory Status</span>Not checked — open Seed Inventory to load data</div>';
+                return;
+            }
+
+            var cls = info.status === 'in_stock' ? 'in-stock' :
+                      info.status === 'low' ? 'low-stock' : 'no-stock';
+
+            var msg = '';
+            if (info.status === 'in_stock') {
+                msg = info.seedsAvailable + ' seeds available (' + info.lotCount + ' lot' + (info.lotCount !== 1 ? 's' : '') + ')';
+            } else if (info.status === 'low') {
+                msg = 'LOW: ' + info.seedsAvailable + ' seeds available, need ' + info.seedsNeeded + ' (short ' + info.deficit + ')';
+            } else if (info.status === 'no_inventory') {
+                msg = 'NOT IN INVENTORY — need to order seeds for this crop';
+            } else {
+                msg = 'OUT OF STOCK — need ' + info.seedsNeeded + ', have ' + info.seedsAvailable;
+            }
+
+            container.innerHTML = '<div class="panel-seed-status ' + cls + '"><span class="seed-label">Inventory Status</span>' + msg + '</div>';
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
     </script>
 
     <div class="keyboard-help" id="keyboardHelp">
@@ -3037,6 +3388,41 @@
         <div><kbd>H</kbd> Home</div>
         <div><kbd>?</kbd> Toggle help</div>
         <div><kbd>Esc</kbd> Close panels</div>
+    </div>
+
+    <!-- Seed Inventory Panel -->
+    <div id="seedPanelOverlay" class="side-panel-overlay" onclick="closeSeedPanel()"></div>
+    <div id="seedInventoryPanel">
+        <div class="seed-panel-header">
+            <h3><i class="fas fa-seedling" style="color:var(--primary);margin-right:8px;"></i>Seed Inventory Check</h3>
+            <button class="seed-panel-close" onclick="closeSeedPanel()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="seed-panel-summary">
+            <div class="seed-summary-card good">
+                <div class="num" id="seedCountGood">-</div>
+                <div class="lbl">In Stock</div>
+            </div>
+            <div class="seed-summary-card low">
+                <div class="num" id="seedCountLow">-</div>
+                <div class="lbl">Low</div>
+            </div>
+            <div class="seed-summary-card missing">
+                <div class="num" id="seedCountMissing">-</div>
+                <div class="lbl">Need to Order</div>
+            </div>
+        </div>
+        <div class="seed-panel-filters">
+            <button class="seed-filter-btn active" onclick="filterSeedList('all')">All</button>
+            <button class="seed-filter-btn" onclick="filterSeedList('need_order')">Need to Order</button>
+            <button class="seed-filter-btn" onclick="filterSeedList('low')">Low Stock</button>
+            <button class="seed-filter-btn" onclick="filterSeedList('in_stock')">In Stock</button>
+        </div>
+        <div class="seed-panel-list" id="seedPanelList">
+            <div class="seed-panel-loading">
+                <i class="fas fa-spinner fa-spin"></i>
+                <p>Loading seed inventory...</p>
+            </div>
+        </div>
     </div>
 </body>
 </html>
