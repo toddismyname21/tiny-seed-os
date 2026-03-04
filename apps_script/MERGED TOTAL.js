@@ -15040,6 +15040,8 @@ function doGet(e) {
         return getPlanningById(e.parameter.id);
                 case 'updatePlanting':
           return updatePlanting(e.parameter);
+      case 'fixDuplicateBatchIds':
+          return jsonResponse(fixDuplicateBatchIds());
       case 'deletePlanting':
           return deletePlantingById(e.parameter.id);
       case 'clonePlanting':
@@ -25052,6 +25054,9 @@ function getPlanningData() {
         Tray_Type: getVal(row, 'Tray_Type', ''),
         Trays_Needed: getVal(row, 'Trays_Needed', ''),
         Plants_Needed: getVal(row, 'Plants_Needed', ''),
+        Rows_Per_Bed: getVal(row, 'Rows_Per_Bed', ''),
+        In_Row_Spacing_In: getVal(row, 'In_Row_Spacing_In', ''),
+        Seeds_Needed: getVal(row, 'Seeds_Needed', ''),
         DTM: getVal(row, 'DTM', 0),
         Category: getVal(row, 'Category', ''),
         rowIndex: i + 1
@@ -26350,13 +26355,28 @@ function savePlantingFromWeb(params) {
       return { success: false, error: 'PLANNING_2026 sheet not found' };
     }
 
-    // Get headers to build row in correct order
-    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    // Get headers and existing Batch_IDs for uniqueness
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const batchIdCol = headers.indexOf('Batch_ID');
+    var existingIds = new Set();
+    if (batchIdCol >= 0) {
+      for (var ei = 1; ei < data.length; ei++) {
+        var eid = String(data[ei][batchIdCol]).trim();
+        if (eid) existingIds.add(eid);
+      }
+    }
+
+    // Generate guaranteed unique Batch_ID
+    var requestedId = params.Batch_ID ? String(params.Batch_ID).trim() : '';
+    var safeBatchId = (requestedId && !existingIds.has(requestedId))
+      ? requestedId
+      : generateBatchId(params.Crop, existingIds);
 
     // Map URL parameters to header columns
     const paramMapping = {
       'STATUS': params.STATUS || 'Planned',
-      'Batch_ID': params.Batch_ID || generateBatchId(params.Crop),
+      'Batch_ID': safeBatchId,
       'Crop': params.Crop || '',
       'Variety': params.Variety || 'Standard',
       'Planting_Method': params.Planting_Method || 'Transplant',
@@ -26910,11 +26930,42 @@ function deductSeedsForPlanting(plantingData) {
 /**
  * Generate a batch ID for a planting
  */
-function generateBatchId(cropName) {
-  const year = new Date().getFullYear().toString().slice(-2);
-  const cropCode = (cropName || 'XXX').substring(0, 3).toUpperCase();
-  const uniqueId = Math.floor(Math.random() * 9000) + 1000;
-  return `${year}-${cropCode}-${uniqueId}`;
+function generateBatchId(cropName, existingIds) {
+  var year = new Date().getFullYear().toString().slice(-2);
+  var cropCode = (cropName || 'XXX').substring(0, 3).toUpperCase();
+
+  // If no existing IDs provided, scan the sheet
+  if (!existingIds) {
+    try {
+      var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+      var sheet = ss.getSheetByName('PLANNING_2026');
+      if (sheet && sheet.getLastRow() > 1) {
+        var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+        var batchCol = headers.indexOf('Batch_ID');
+        if (batchCol >= 0) {
+          var colData = sheet.getRange(2, batchCol + 1, sheet.getLastRow() - 1, 1).getValues();
+          existingIds = new Set(colData.map(function(r) { return String(r[0]).trim(); }));
+        }
+      }
+    } catch (e) {
+      Logger.log('generateBatchId scan error: ' + e.toString());
+    }
+    if (!existingIds) existingIds = new Set();
+  }
+
+  // Generate unique ID: year-CROP-NNNNN (5-digit random + timestamp suffix)
+  var maxAttempts = 50;
+  for (var attempt = 0; attempt < maxAttempts; attempt++) {
+    var uniquePart = Math.floor(Math.random() * 90000) + 10000; // 5-digit: 10000-99999
+    var candidate = year + '-' + cropCode + '-' + uniquePart;
+    if (!existingIds.has(candidate)) {
+      return candidate;
+    }
+  }
+
+  // Fallback: use timestamp to guarantee uniqueness
+  var ts = Date.now().toString(36).toUpperCase();
+  return year + '-' + cropCode + '-' + ts;
 }
 
 /**
@@ -30269,12 +30320,32 @@ function getBeds() {
 }
 
 function addPlanting(planting) {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const sheet = ss.getSheetByName('PLANNING_2026');
-  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-  const row = headers.map(header => planting[header] || '');
-  const batchId = planting.Batch_ID || '26-' + new Date().getTime();
-  if (!planting.Batch_ID) row[headers.indexOf('Batch_ID')] = batchId;
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('PLANNING_2026');
+  var data = sheet.getDataRange().getValues();
+  var headers = data[0];
+
+  // Collect existing Batch_IDs for uniqueness check
+  var batchIdCol = headers.indexOf('Batch_ID');
+  var existingIds = new Set();
+  if (batchIdCol >= 0) {
+    for (var i = 1; i < data.length; i++) {
+      var id = String(data[i][batchIdCol]).trim();
+      if (id) existingIds.add(id);
+    }
+  }
+
+  // Generate or validate Batch_ID — MUST be unique
+  var batchId = planting.Batch_ID ? String(planting.Batch_ID).trim() : '';
+  if (!batchId || existingIds.has(batchId)) {
+    // ID is missing or already exists — generate a guaranteed unique one
+    batchId = generateBatchId(planting.Crop || 'NEW', existingIds);
+  }
+  planting.Batch_ID = batchId;
+
+  var row = headers.map(function(header) { return planting[header] !== undefined ? planting[header] : ''; });
+  // Ensure Batch_ID is set in the row
+  if (batchIdCol >= 0) row[batchIdCol] = batchId;
   sheet.appendRow(row);
 
   // Auto-generate tasks for this planting - STATE-OF-THE-ART
@@ -30291,6 +30362,92 @@ function addPlanting(planting) {
   }
 
   return jsonResponse({success: true, message: 'Planting added', batchId: batchId});
+}
+
+/**
+ * Fix duplicate Batch_IDs in PLANNING_2026.
+ * Scans all rows, finds IDs that appear more than once,
+ * and assigns new unique IDs to the 2nd, 3rd, ... occurrence.
+ * Returns a report of all changes made.
+ */
+function fixDuplicateBatchIds() {
+  try {
+    var lock = LockService.getScriptLock();
+    lock.waitLock(30000);
+
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheet = ss.getSheetByName('PLANNING_2026');
+    if (!sheet) {
+      lock.releaseLock();
+      return { success: false, error: 'PLANNING_2026 sheet not found' };
+    }
+
+    var data = sheet.getDataRange().getValues();
+    var headers = data[0];
+    var batchIdCol = headers.indexOf('Batch_ID');
+    var cropCol = headers.indexOf('Crop');
+    var varietyCol = headers.indexOf('Variety');
+
+    if (batchIdCol < 0) {
+      lock.releaseLock();
+      return { success: false, error: 'Batch_ID column not found' };
+    }
+
+    // Pass 1: Find all IDs and track occurrences
+    var idMap = {};  // batchId → [rowIndex, rowIndex, ...]
+    for (var i = 1; i < data.length; i++) {
+      var id = String(data[i][batchIdCol]).trim();
+      if (!id) continue;
+      if (!idMap[id]) idMap[id] = [];
+      idMap[id].push(i);
+    }
+
+    // Collect ALL existing IDs for uniqueness checks
+    var allIds = new Set(Object.keys(idMap));
+
+    // Pass 2: Fix duplicates — keep the FIRST occurrence, rename the rest
+    var fixes = [];
+    for (var origId in idMap) {
+      var rows = idMap[origId];
+      if (rows.length <= 1) continue;  // Not a duplicate
+
+      // Keep the first row's ID, fix all subsequent ones
+      for (var d = 1; d < rows.length; d++) {
+        var rowIdx = rows[d];
+        var cropName = cropCol >= 0 ? String(data[rowIdx][cropCol] || 'XXX') : 'XXX';
+        var variety = varietyCol >= 0 ? String(data[rowIdx][varietyCol] || '') : '';
+
+        // Generate a guaranteed unique new ID
+        var newId = generateBatchId(cropName, allIds);
+        allIds.add(newId);
+
+        // Write the new ID to the sheet
+        sheet.getRange(rowIdx + 1, batchIdCol + 1).setValue(newId);
+
+        fixes.push({
+          row: rowIdx + 1,
+          oldId: origId,
+          newId: newId,
+          crop: cropName,
+          variety: variety
+        });
+      }
+    }
+
+    lock.releaseLock();
+
+    return {
+      success: true,
+      message: fixes.length > 0
+        ? 'Fixed ' + fixes.length + ' duplicate Batch_ID(s)'
+        : 'No duplicate Batch_IDs found',
+      fixCount: fixes.length,
+      fixes: fixes
+    };
+  } catch (error) {
+    try { LockService.getScriptLock().releaseLock(); } catch(e) {}
+    return { success: false, error: error.toString() };
+  }
 }
 
 /**
@@ -30347,9 +30504,16 @@ function clonePlanting(params) {
     // Create the new planting by copying all fields
     const newPlanting = { ...sourcePlanting };
 
-    // Generate a new Batch_ID for the clone
+    // Collect existing Batch_IDs for uniqueness check
+    var existingCloneIds = new Set();
+    for (var ci = 1; ci < data.length; ci++) {
+      var cid = String(data[ci][batchIdCol]).trim();
+      if (cid) existingCloneIds.add(cid);
+    }
+
+    // Generate a guaranteed unique Batch_ID for the clone
     const cropName = overrides.Crop || sourcePlanting.Crop || 'XXX';
-    const newBatchId = generateBatchId(cropName);
+    const newBatchId = generateBatchId(cropName, existingCloneIds);
     newPlanting.Batch_ID = newBatchId;
 
     // Apply any overrides
@@ -30682,10 +30846,10 @@ function generateWeatherAlerts(data) {
 }
 function getFinancials() { return jsonResponse({success: false, message: 'Not implemented'}); }
   function updatePlanting(params) {
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    const sheet = ss.getSheetByName('PLANNING_2026');
-    const data = sheet.getDataRange().getValues();
-    const headers = data[0];
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheet = ss.getSheetByName('PLANNING_2026');
+    var data = sheet.getDataRange().getValues();
+    var headers = data[0];
 
     // Find the Batch_ID column
     const batchIdColIndex = headers.indexOf('Batch_ID');
@@ -34284,7 +34448,8 @@ function updatePlanningFields(data) {
     'Crop', 'Variety',
     'Tray_Cell_Count', 'Tray_Type', 'Trays_Needed', 'Plants_Needed', 'Target_Bed_ID',
     'Notes', 'Seed_Lot_Used', 'Plan_GH_Sow', 'Plan_Field_Sow', 'Plan_Transplant',
-    'Feet_Used', 'Assigned_To', 'Completed_By', 'Actual_Variety', 'Act_GH_Sow', 'Act_Field_Sow', 'Act_Transplant'
+    'Feet_Used', 'Rows_Per_Bed', 'In_Row_Spacing_In', 'Seeds_Needed',
+    'Assigned_To', 'Completed_By', 'Actual_Variety', 'Act_GH_Sow', 'Act_Field_Sow', 'Act_Transplant'
   ];
 
   try {
@@ -34381,7 +34546,8 @@ function batchUpdatePlanningFields(data) {
     'Crop', 'Variety',
     'Tray_Cell_Count', 'Tray_Type', 'Trays_Needed', 'Plants_Needed', 'Target_Bed_ID',
     'Notes', 'Seed_Lot_Used', 'Plan_GH_Sow', 'Plan_Field_Sow', 'Plan_Transplant',
-    'Feet_Used', 'Assigned_To', 'Completed_By', 'Actual_Variety', 'Act_GH_Sow', 'Act_Field_Sow', 'Act_Transplant'
+    'Feet_Used', 'Rows_Per_Bed', 'In_Row_Spacing_In', 'Seeds_Needed',
+    'Assigned_To', 'Completed_By', 'Actual_Variety', 'Act_GH_Sow', 'Act_Field_Sow', 'Act_Transplant'
   ];
 
   try {

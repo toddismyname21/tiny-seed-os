@@ -1538,12 +1538,44 @@
 
                 if (data.success && data.data) {
                     allPlantings = data.data;
+
+                    // Auto-detect duplicate Batch_IDs and fix them
+                    var idCounts = {};
+                    allPlantings.forEach(function(p) {
+                        var id = p.Batch_ID || '';
+                        idCounts[id] = (idCounts[id] || 0) + 1;
+                    });
+                    var hasDupes = Object.values(idCounts).some(function(c) { return c > 1; });
+                    if (hasDupes) {
+                        var dupeCount = Object.values(idCounts).filter(function(c) { return c > 1; }).length;
+                        showToast('Found ' + dupeCount + ' duplicate Batch IDs — fixing now...', 'info');
+                        try {
+                            var fixResp = await fetch(API_URL + '?action=fixDuplicateBatchIds');
+                            var fixResult = await fixResp.json();
+                            if (fixResult.success && fixResult.fixCount > 0) {
+                                showSuccess('Fixed ' + fixResult.fixCount + ' duplicate Batch IDs. Reloading...');
+                                // Reload to get the corrected IDs
+                                var reloadResp = await fetch(API_URL + '?action=getPlanningData');
+                                var reloadData = await reloadResp.json();
+                                if (reloadData.success && reloadData.data) {
+                                    allPlantings = reloadData.data;
+                                }
+                            } else if (fixResult.fixCount === 0) {
+                                console.log('No duplicates needed fixing on server side');
+                            } else if (!fixResult.success) {
+                                console.error('Fix duplicates error:', fixResult.error);
+                            }
+                        } catch(fixErr) {
+                            console.error('Error fixing duplicates:', fixErr);
+                        }
+                    }
+
                     populateFilters();
                     filterPlantings();
                     updateStats();
-                    showToast(`Loaded ${allPlantings.length} plantings`, 'success');
+                    showToast('Loaded ' + allPlantings.length + ' plantings', 'success');
                 } else {
-                    showEmptyState('No plantings found');
+                    showEmptyState(data.error || 'No plantings found');
                 }
             } catch (error) {
                 console.error('Error loading plantings:', error);
