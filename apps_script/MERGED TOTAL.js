@@ -18834,6 +18834,8 @@ function doPost(e) {
         return jsonResponse(updateSeedLot(data));
       case 'uploadSeedPhoto':
         return jsonResponse(uploadSeedPhoto(data));
+      case 'uploadSowingPhoto':
+        return jsonResponse(uploadSowingPhoto(data));
       case 'useSeedFromLot':
         return jsonResponse(useSeedFromLot(data));
       case 'restockSeed':
@@ -31887,6 +31889,7 @@ function recordHarvest(harvest) {
     const batchCol = planHeaders.indexOf('Batch_ID');
     const cropCol = planHeaders.indexOf('Crop');
     const varietyCol = planHeaders.indexOf('Variety');
+    const actualVarietyCol = planHeaders.indexOf('Actual_Variety');
     const methodCol = planHeaders.indexOf('Planting_Method');
     const bedCol = planHeaders.indexOf('Target_Bed_ID');
     const dtmCol = planHeaders.indexOf('DTM') !== -1 ? planHeaders.indexOf('DTM') : planHeaders.indexOf('DTM_Average');
@@ -31912,9 +31915,11 @@ function recordHarvest(harvest) {
       return jsonResponse({ success: false, error: 'Batch ID not found in PLANNING_2026: ' + harvest.batchId });
     }
 
-    // Extract planting data
+    // Extract planting data — use Actual_Variety if substituted, fall back to Variety
     const crop = plantingRow[cropCol] || '';
-    const variety = varietyCol >= 0 ? (plantingRow[varietyCol] || '') : '';
+    const plannedVariety = varietyCol >= 0 ? (plantingRow[varietyCol] || '') : '';
+    const actualVariety = actualVarietyCol >= 0 ? (plantingRow[actualVarietyCol] || '') : '';
+    const variety = actualVariety || plannedVariety;
     const plantingMethod = methodCol >= 0 ? String(plantingRow[methodCol]).toLowerCase() : '';
     const bedId = bedCol >= 0 ? (plantingRow[bedCol] || '') : '';
     const predictedDTM = dtmCol >= 0 ? (Number(plantingRow[dtmCol]) || 0) : 0;
@@ -35089,6 +35094,88 @@ function confirmGHSowing(data) {
       actualDate: actualDate,
       completedBy: employeeName,
       updatedFields: updated
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Upload a seed packet photo during sowing and link it to the batch in PLANNING_2026.
+ * Photo is saved to Google Drive under Sowing_Photos/{batchId}/.
+ * @param {Object} data - { photo (base64), batchId, employeeName }
+ */
+function uploadSowingPhoto(data) {
+  try {
+    if (!data.photo) return { success: false, error: 'photo (base64) is required' };
+    if (!data.batchId) return { success: false, error: 'batchId is required' };
+
+    // Get or create Drive folder
+    var rootFolderName = 'Sowing_Photos';
+    var rootFolder;
+    var rootFolders = DriveApp.getFoldersByName(rootFolderName);
+    if (rootFolders.hasNext()) {
+      rootFolder = rootFolders.next();
+    } else {
+      rootFolder = DriveApp.createFolder(rootFolderName);
+    }
+
+    // Create subfolder per batch
+    var subFolderName = String(data.batchId);
+    var subFolder;
+    var subFolders = rootFolder.getFoldersByName(subFolderName);
+    if (subFolders.hasNext()) {
+      subFolder = subFolders.next();
+    } else {
+      subFolder = rootFolder.createFolder(subFolderName);
+    }
+
+    // Decode base64 and upload
+    var base64Content = data.photo;
+    if (base64Content.indexOf(',') >= 0) {
+      base64Content = base64Content.split(',')[1];
+    }
+    var imageData = Utilities.base64Decode(base64Content);
+    var fileName = 'seed_packet_' + data.batchId + '_' + Date.now() + '.jpg';
+    var blob = Utilities.newBlob(imageData, 'image/jpeg', fileName);
+    var file = subFolder.createFile(blob);
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    var fileUrl = file.getUrl();
+
+    // Update PLANNING_2026 row with photo URL
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheet = ss.getSheetByName('PLANNING_2026');
+    if (sheet) {
+      var sheetData = sheet.getDataRange().getValues();
+      var headers = sheetData[0].map(function(h) { return String(h).trim(); });
+      var batchCol = headers.indexOf('Batch_ID');
+      var photoCol = headers.indexOf('Sowing_Photo_URL');
+
+      // Auto-create column if missing
+      if (photoCol < 0) {
+        var lastCol = headers.length;
+        sheet.getRange(1, lastCol + 1).setValue('Sowing_Photo_URL');
+        photoCol = lastCol;
+      }
+
+      // Find batch row and write URL
+      var lock = LockService.getScriptLock();
+      lock.waitLock(10000);
+      for (var i = 1; i < sheetData.length; i++) {
+        if (String(sheetData[i][batchCol]) === String(data.batchId)) {
+          sheet.getRange(i + 1, photoCol + 1).setValue(fileUrl);
+          break;
+        }
+      }
+      lock.releaseLock();
+    }
+
+    return {
+      success: true,
+      url: fileUrl,
+      batchId: data.batchId,
+      fileName: fileName,
+      message: 'Sowing photo uploaded for batch ' + data.batchId
     };
   } catch (error) {
     return { success: false, error: error.toString() };

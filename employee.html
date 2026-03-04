@@ -15142,6 +15142,7 @@
                 'sow.dateDone': 'Date Done',
                 'sow.actualTrays': 'Actual Trays',
                 'sow.substituted': 'Substituted different variety',
+                'sow.snapSeedPacket': 'Snap Seed Packet',
                 'sow.seedLot': 'Seed Lot ID',
                 'sow.notes': 'Notes',
                 'sow.markComplete': 'Mark Complete',
@@ -15303,6 +15304,7 @@
                 'sow.dateDone': 'Fecha Realizada',
                 'sow.actualTrays': 'Bandejas Reales',
                 'sow.substituted': 'Se sustituyo variedad diferente',
+                'sow.snapSeedPacket': 'Foto del Paquete de Semillas',
                 'sow.seedLot': 'Lote de Semillas',
                 'sow.notes': 'Notas',
                 'sow.markComplete': 'Marcar Completo',
@@ -16508,6 +16510,13 @@
             document.getElementById('ghConfirmSeedLot').value = task.seedLotUsed || '';
             document.getElementById('ghConfirmNotes').value = '';
 
+            // Reset photo state
+            AppState.sowConfirmPhoto = null;
+            var sowPreview = document.getElementById('sowPhotoPreview');
+            var sowBtn = document.getElementById('sowPhotoBtn');
+            if (sowPreview) sowPreview.style.display = 'none';
+            if (sowBtn) sowBtn.innerHTML = '<i class="fas fa-camera"></i> ' + t('sow.snapSeedPacket');
+
             // Store batchId for submission (GH home source — same behavior as ghDashboard)
             document.getElementById('ghConfirmBtn').setAttribute('data-batch-id', batchId);
             document.getElementById('ghConfirmBtn').setAttribute('data-source', 'ghDashboard');
@@ -16592,6 +16601,13 @@
             document.getElementById('ghConfirmVariety').value = '';
             document.getElementById('ghConfirmSeedLot').value = seedLot || '';
             document.getElementById('ghConfirmNotes').value = '';
+
+            // Reset photo state
+            AppState.sowConfirmPhoto = null;
+            var sowPreview = document.getElementById('sowPhotoPreview');
+            var sowBtn = document.getElementById('sowPhotoBtn');
+            if (sowPreview) sowPreview.style.display = 'none';
+            if (sowBtn) sowBtn.innerHTML = '<i class="fas fa-camera"></i> ' + t('sow.snapSeedPacket');
 
             // Store both task ID and batch ID
             var btn = document.getElementById('ghConfirmBtn');
@@ -16720,6 +16736,26 @@
                 }
             } catch (e) {
                 showToast('Error: ' + e.message, 'error');
+            }
+
+            // Upload seed packet photo if captured (non-blocking — don't delay the user)
+            if (AppState.sowConfirmPhoto && batchId && navigator.onLine) {
+                fetch(CONFIG.API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({
+                        action: 'uploadSowingPhoto',
+                        photo: AppState.sowConfirmPhoto,
+                        batchId: batchId,
+                        employeeName: (emp.First_Name || '') + ' ' + (emp.Last_Name || '')
+                    })
+                }).then(function(r) { return r.json(); })
+                  .then(function(res) {
+                      if (res.success) console.log('Sowing photo uploaded:', res.url);
+                      else console.warn('Sowing photo upload failed:', res.error);
+                  })
+                  .catch(function(err) { console.warn('Sowing photo upload error:', err); });
+                AppState.sowConfirmPhoto = null;
             }
 
             btn.disabled = false;
@@ -22770,6 +22806,19 @@
                 return;
             }
 
+            // Sowing confirmation modal — seed packet photo for substitution traceability
+            if (AppState.currentPhotoTarget === 'sowConfirm') {
+                AppState.sowConfirmPhoto = AppState.capturedPhoto;
+                var thumb = document.getElementById('sowPhotoThumb');
+                var preview = document.getElementById('sowPhotoPreview');
+                var btn = document.getElementById('sowPhotoBtn');
+                if (thumb) thumb.src = AppState.capturedPhoto;
+                if (preview) preview.style.display = 'block';
+                if (btn) btn.innerHTML = '<i class="fas fa-check-circle" style="color:#22c55e;"></i> Photo Captured — Tap to Retake';
+                closeCamera();
+                return;
+            }
+
             const targetMap = {
                 'harvest': 'harvestPhotoPreview',
                 'scout': 'scoutPhotoPreview',
@@ -22805,6 +22854,14 @@
             };
             const previewId = targetMap[target] || 'scoutPhotoPreview';
             document.getElementById(previewId).style.display = 'none';
+        }
+
+        function removeSowPhoto() {
+            AppState.sowConfirmPhoto = null;
+            var preview = document.getElementById('sowPhotoPreview');
+            var btn = document.getElementById('sowPhotoBtn');
+            if (preview) preview.style.display = 'none';
+            if (btn) btn.innerHTML = '<i class="fas fa-camera"></i> ' + t('sow.snapSeedPacket');
         }
 
         function closeCamera() {
@@ -29767,6 +29824,11 @@
                 </label>
                 <div id="ghSubVarietyRow" style="display:none;margin-top:4px;">
                     <input type="text" id="ghConfirmVariety" placeholder="Actual variety used" style="width:100%;padding:12px;min-height:44px;background:var(--bg-light,#2a2a3e);border:1px solid var(--border,#333);border-radius:8px;color:var(--text-primary,#fff);font-size:1rem;box-sizing:border-box;">
+                    <button type="button" id="sowPhotoBtn" onclick="capturePhoto('sowConfirm')" style="width:100%;padding:12px;min-height:44px;background:var(--bg-light,#2a2a3e);border:1px dashed var(--border,#555);border-radius:8px;color:var(--text-secondary,#999);font-size:0.9rem;cursor:pointer;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:8px;"><i class="fas fa-camera"></i> <span data-i18n="sow.snapSeedPacket">Snap Seed Packet</span></button>
+                    <div id="sowPhotoPreview" style="display:none;margin-top:8px;position:relative;">
+                        <img id="sowPhotoThumb" style="width:100%;max-height:120px;object-fit:cover;border-radius:8px;border:2px solid #22c55e;" alt="Seed packet photo">
+                        <button type="button" onclick="removeSowPhoto()" style="position:absolute;top:4px;right:4px;width:28px;height:28px;border-radius:50%;background:rgba(0,0,0,0.7);border:none;color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;"><i class="fas fa-times"></i></button>
+                    </div>
                 </div>
             </div>
             <div>

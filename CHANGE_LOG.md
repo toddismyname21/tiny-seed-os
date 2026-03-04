@@ -38,6 +38,38 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-03-04 — Seed Packet Photo + Variety Traceability Fix (PM_ARCHITECT)
+
+### Files Modified
+- `employee.html` — Sowing confirmation modal now has photo capture for seed packet when substituting variety. New `sowConfirm` photo target routing in `confirmPhoto()`. Photo state reset in both `openGHSowConfirm()` and `openSowingConfirmFromTask()`. Non-blocking `uploadSowingPhoto` API call after successful sow confirmation. i18n: `sow.snapSeedPacket` (EN + ES).
+- `apps_script/MERGED TOTAL.js` — 3 changes:
+  1. **CRITICAL FIX**: `recordHarvest()` now reads `Actual_Variety` column and uses it over `Variety` when set. Previously, substituted crops were misidentified in harvest records.
+  2. **New function**: `uploadSowingPhoto(data)` — saves seed packet photo to Google Drive `Sowing_Photos/{batchId}/`, writes `Sowing_Photo_URL` to PLANNING_2026 row.
+  3. **New action**: `uploadSowingPhoto` registered in POST handler.
+
+### Functions Added
+- `uploadSowingPhoto(data)` in MERGED TOTAL.js — Drive upload + PLANNING_2026 link
+- `removeSowPhoto()` in employee.html — clears photo preview in modal
+
+### Reason
+When employees substitute a variety during sowing, they need to photograph the new seed packet for organic traceability. The actual variety must propagate through the entire lifecycle (seeding → harvest → sales). The `recordHarvest()` bug was silently recording the wrong variety for all substituted crops.
+
+---
+
+## 2026-03-04 — Employee App: Critical Bug Fixes (PM_ARCHITECT)
+
+### Files Modified
+- `employee.html` — 4 fixes:
+  1. **Tutorial auto-start KILLED**: Commented out `TutorialMode.init()` hook on `showMainApp()` AND the auto-start in `init()`. Tutorial was popping up on every login for first 3 sessions, frustrating users. Manual `?` button still works.
+  2. **GH sowing render crash FIXED**: `renderGHSowingTasks()` used `forEach(function(t){...})` where `t` shadowed the `t()` i18n translation function. Calling `t('sow.seededAsPlanned')` inside the loop would throw TypeError, silently crashing the entire sowing section. Renamed param to `task`, extracted labels before loop.
+  3. **Tutorial overlay/bubble CSS**: Changed from `opacity:0; pointer-events:none` to `display:none` pattern. Same ghost-overlay bug as the seed prompt overlay. Prevents invisible elements at z-index 9998-10000 from intercepting touch events.
+  4. **GPS speed optimization**: `captureGPS()` changed from `enableHighAccuracy:true, timeout:10000, maximumAge:60000` to `enableHighAccuracy:false, timeout:3000, maximumAge:120000`. Coarse location is sufficient for farm clock-in. Reduces clock-in wait from ~10s to ~3s.
+
+### Reason
+User could not use the app reliably: tutorial popup blocked interaction, greenhouse sowing section was crashing due to variable shadowing, and clock-in was slow due to GPS timeout.
+
+---
+
 ## 2026-03-04 — Employee App: 8-Task Overhaul (PM_ARCHITECT)
 
 ### Files Modified
