@@ -10038,7 +10038,7 @@
                 </div>
 
                 <!-- Greenhouse Sowing Companion -->
-                <div id="ghSowingSection" style="margin-top:20px;display:none;">
+                <div id="ghSowingSection" style="margin-top:20px;">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
                         <h3 style="margin:0;font-size:1rem;color:var(--text-primary);"><i class="fas fa-seedling" style="color:#22c55e;"></i> <span data-i18n="home.ghSowing">Greenhouse Sowing</span></h3>
                         <span id="ghSowingCount" style="font-size:0.8rem;color:var(--text-secondary);"></span>
@@ -16378,9 +16378,6 @@
                 if (data.success && data.tasks) {
                     ghSowTasks = data.tasks;
                     renderGHSowingTasks();
-                    // Show the section
-                    var section = document.getElementById('ghSowingSection');
-                    if (section) section.style.display = data.tasks.length > 0 ? 'block' : 'none';
                 }
             } catch (e) {
                 console.error('GH Sowing load error:', e);
@@ -16436,7 +16433,7 @@
                 html += '</div>';
             }
 
-            list.innerHTML = html || '<div style="color:var(--text-secondary);font-size:0.85rem;padding:12px;">No greenhouse sowing tasks in range</div>';
+            list.innerHTML = html || '<div style="color:var(--text-secondary);font-size:0.85rem;padding:12px;text-align:center;"><i class="fas fa-check-circle" style="color:#22c55e;margin-right:6px;"></i>All seedings complete — nothing pending</div>';
         }
 
         // Quick complete GH sowing from home page — one tap, seeded as planned
