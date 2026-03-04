@@ -38,6 +38,37 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-03-04 — Sowing Sheets: Recalc, Print, Add/Delete, Labels (PM_ARCHITECT)
+
+### Files Modified
+- `sowing-sheets.html` — 6 fixes:
+  1. **Tray recalculation**: `openTrayTypeDropdown()` now recalculates `task.trays` and `task.seedsNeeded` when cell count changes (both custom and dropdown paths). Uses `plantsNeeded / cellsPerTray`. Marks `Trays_Needed` dirty so changes save.
+  2. **Seeds needed list**: Removed `.slice(0, 6)` truncation from `renderSummarySection()` and `getPrintSummaryHTML()` — now shows ALL seedings.
+  3. **Print format**: Added checkbox column (☐) for physical checklist. Removed batch ID parenthetical from crop names. Added `shortTrayType()` helper (abbreviates "Paperpot 264 — 4"" to "PP 264-4in"). Adjusted column widths: Tray Type gets 72pt, reduced Notes to 80pt. All 3 task types updated.
+  4. **Add Planting**: New "Add Planting" button in preview header. Modal form with Crop (with datalist), Variety, Sow Date, Category, Tray Type (populated from TRAY_TYPES), Trays, Bed Feet, Target Bed, Notes. Calls existing `addPlanting` POST endpoint. Auto-reloads tasks on success.
+  5. **Delete Planting**: Trash icon on each task row. Confirmation dialog before delete. Calls `deletePlanting` GET endpoint with batch ID. Removes from local array and re-renders.
+  6. **Print Tray Labels**: Checkbox in assign modal "Also print tray labels (one per tray)". Uses `TinySeedPrint.label()` with `fieldTray` format. Generates one label per tray per visible task. MutationObserver chains label printing after sheet preview closes.
+
+### Functions Added (in sowing-sheets.html)
+- `shortTrayType(task)` — Abbreviates paperpot tray names for print
+- `showAddPlantingModal()` / `hideAddPlantingModal()` — Add planting modal
+- `addPlantingTrayChanged()` — Auto-calc trays when tray type selected in add form
+- `submitAddPlanting()` — POSTs new planting to backend
+- `confirmDeletePlanting(batchId, crop, variety)` — Confirm + delete
+- `deletePlantingById(batchId)` — DELETE API call + local array update
+- `generateTrayLabels()` — Builds label data array from visible tasks
+- `executePrint` override — Chains label printing after sheet preview
+
+### Reason
+User reported: tray type changes didn't recalculate trays/seeds, seeds list was truncated to 6 items, print format lacked checkboxes and cut off tray sizes, no way to add/delete plantings, tray labels needed to print alongside sowing checklist.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Uses existing backend: `addPlanting()`, `deletePlantingById()`, `TinySeedPrint.label()`
+- [x] No duplicate files or functions created
+
+---
+
 ## 2026-03-03 — Seed Inventory Check in Planning View (PM_ARCHITECT)
 
 ### Files Modified
