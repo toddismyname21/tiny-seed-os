@@ -1570,6 +1570,32 @@
                         }
                     }
 
+                    // Auto-detect plantings missing geometry data and backfill from crop defaults
+                    var missingGeometry = allPlantings.filter(function(p) {
+                        return p.Crop && (!p.Rows_Per_Bed || !p.In_Row_Spacing_In);
+                    });
+                    if (missingGeometry.length > 0) {
+                        console.log('[Backfill] ' + missingGeometry.length + ' plantings missing geometry — triggering backfill...');
+                        try {
+                            var geoResp = await fetch(API_URL + '?action=backfillPlantingGeometry');
+                            var geoResult = await geoResp.json();
+                            if (geoResult.success && geoResult.fixCount > 0) {
+                                showSuccess('Filled in spacing/rows for ' + geoResult.fixCount + ' plantings from crop defaults. Reloading...');
+                                var reloadResp2 = await fetch(API_URL + '?action=getPlanningData');
+                                var reloadData2 = await reloadResp2.json();
+                                if (reloadData2.success && reloadData2.data) {
+                                    allPlantings = reloadData2.data;
+                                }
+                            } else if (geoResult.fixCount === 0) {
+                                console.log('[Backfill] All plantings already have geometry data');
+                            } else if (!geoResult.success) {
+                                console.error('[Backfill] Error:', geoResult.error);
+                            }
+                        } catch(geoErr) {
+                            console.error('[Backfill] Error:', geoErr);
+                        }
+                    }
+
                     populateFilters();
                     filterPlantings();
                     updateStats();

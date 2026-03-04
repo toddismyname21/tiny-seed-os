@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://maps.googleapis.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; img-src 'self' data: blob: https:; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://maps.googleapis.com https://*.supabase.co; frame-src 'self' https://www.google.com;">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
@@ -31,22 +32,22 @@
 <title>TinyPM - Life Organizer</title>
 <style>
   :root {
-    --bg-primary: #0f1117;
+    --bg-primary: var(--ts-bg-base, #0f1117);
     --bg-secondary: #1a1d27;
-    --bg-card: #1e2130;
+    --bg-card: var(--ts-bg-surface, #1e2130);
     --bg-hover: #252839;
     --border: #2a2d3e;
-    --text-primary: #f0f0f5;
-    --text-secondary: #a0a4b8;
-    --text-muted: #6b6f82;
-    --accent: #6366f1;
+    --text-primary: var(--ts-text, #f0f0f5);
+    --text-secondary: var(--ts-text-secondary, #a0a4b8);
+    --text-muted: var(--ts-text-muted, #6b6f82);
+    --accent: var(--ts-purple-500, #6366f1);
     --accent-hover: #818cf8;
-    --green: #22c55e;
-    --yellow: #eab308;
-    --red: #ef4444;
+    --green: var(--ts-green-500, #22c55e);
+    --yellow: var(--ts-amber-500, #eab308);
+    --red: var(--ts-red-500, #ef4444);
     --orange: #f97316;
-    --blue: #3b82f6;
-    --purple: #a855f7;
+    --blue: var(--ts-blue-500, #3b82f6);
+    --purple: var(--ts-purple-400, #a855f7);
     --radius: 10px;
     --shadow: 0 2px 8px rgba(0,0,0,0.3);
   }
@@ -6522,11 +6523,7 @@
       const data = await apiGet('/api/agents');
       if (data.agents) {
         dynamicAgents = {};
-        const selector = document.getElementById('agent-selector');
         const agentsList = document.getElementById('agents-list-content');
-
-        // Remove old dynamic agent buttons (keep static PM, Builder, Overseer, Broadcast)
-        selector.querySelectorAll('.agent-btn.spawned').forEach(btn => btn.remove());
 
         // Reset agents list in broadcast modal
         if (agentsList) {
@@ -6538,7 +6535,6 @@
         }
 
         // Add new dynamic agents
-        const broadcastBtn = selector.querySelector('.broadcast-btn');
         for (const agent of data.agents) {
           if (['pm', 'builder', 'overseer'].includes(agent.id)) continue; // Skip built-ins
 
@@ -6552,24 +6548,6 @@
             placeholder: `Message ${agent.name}...`,
             intro: `I am ${agent.name}. ${agent.description || 'Ready to help.'}`
           };
-
-          // Create button
-          const btn = document.createElement('button');
-          btn.className = `agent-btn spawned ${currentAgent === agent.id ? 'active' : ''}`;
-          btn.dataset.agent = agent.id;
-          btn.onclick = () => selectAgent(agent.id);
-          btn.innerHTML = `
-            <span class="agent-dot ${agent.status === 'online' ? 'online' : ''}"></span>
-            ${agent.name}
-            <span class="unread-badge" id="${agent.id}-unread" style="display:none">0</span>
-          `;
-
-          // Insert before broadcast button
-          if (broadcastBtn) {
-            selector.insertBefore(btn, broadcastBtn);
-          } else {
-            selector.appendChild(btn);
-          }
 
           // Add to broadcast modal list
           if (agentsList && agent.status === 'online') {
@@ -6681,10 +6659,7 @@
       stopBuilderPoll();
     }
 
-    // Clear unread badge for this agent
-    if (agent === 'builder') {
-      document.getElementById('builder-unread').style.display = 'none';
-    }
+    // Clear unread badge for this agent (handled by dropdown UI)
   }
 
   // Legacy function for compatibility
@@ -6969,12 +6944,6 @@
           if (currentAgent === 'builder') {
             addChatMsg(m.message, 'assistant');
             agentChatHistory.builder.push({ role: 'assistant', content: m.message });
-          } else {
-            // Show unread badge if not viewing builder
-            const badge = document.getElementById('builder-unread');
-            const count = parseInt(badge.textContent || '0') + 1;
-            badge.textContent = count;
-            badge.style.display = 'inline';
           }
           builderLastSeenId = m.id;
           scrollChat();
@@ -6993,21 +6962,9 @@
     try {
       const res = await fetch('/api/builder/status');
       const data = await res.json();
-      const dot = document.getElementById('builder-status-dot');
-      if (data.online) {
-        dot.classList.add('online');
-        if (data.busy) {
-          dot.classList.add('busy');
-          dot.classList.remove('online');
-        } else {
-          dot.classList.remove('busy');
-        }
-      } else {
-        dot.classList.remove('online', 'busy');
-      }
+      // Builder status is shown in the dropdown agent switcher
     } catch (e) {
-      // Offline
-      document.getElementById('builder-status-dot').classList.remove('online', 'busy');
+      // Offline — silent
     }
   }
 

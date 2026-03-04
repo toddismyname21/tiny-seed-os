@@ -38,6 +38,58 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-03-03 — Backfill Planting Geometry from Crop Defaults + Auto-Populate on Create (PM_ARCHITECT)
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — `savePlantingFromWeb()`: Now looks up `REF_CropProfiles` for `Rows_Per_Bed`, `In_Row_Spacing_In`, `Tray_Cell_Count` defaults when creating new plantings. Auto-calculates `Plants_Needed` and `Trays_Needed` from geometry if not explicitly provided. `addPlanting()`: Same crop profile lookup + auto-calculation for geometry fields. Both functions now include `Rows_Per_Bed` and `In_Row_Spacing_In` in their parameter mappings.
+- `planning.html` — `loadPlantings()`: After loading data, detects plantings missing geometry (Rows_Per_Bed, In_Row_Spacing_In) and triggers `backfillPlantingGeometry` endpoint to fill from crop defaults.
+
+### Functions Added
+- `backfillPlantingGeometry()` in `MERGED TOTAL.js` — Scans all PLANNING_2026 rows, finds blank Rows_Per_Bed/In_Row_Spacing_In/Tray_Cell_Count, fills from `REF_CropProfiles` defaults. Also recalculates Plants_Needed and Trays_Needed where geometry is known but counts are missing. Ensures required columns exist in sheet header. Registered as `backfillPlantingGeometry` action in doGet.
+
+### Reason
+User reported all plantings had blank spacing, rows per bed, and trays needed. Root cause: `savePlantingFromWeb()` and `addPlanting()` never included these fields in their parameter mapping, and never looked up crop profile defaults. Data existed in `REF_CropProfiles` but was never pulled into PLANNING_2026 when creating plantings. Backfill function repairs all existing rows; going forward, all new plantings auto-populate geometry from crop defaults.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions — `runBedCalculations()` at line 32529 exists but is a standalone utility, not integrated into planning workflow
+- [x] No duplicates created
+
+---
+
+## 2026-03-03 — Fix Existing Duplicate Batch_IDs: Auto-Detect and Repair on Page Load (PM_ARCHITECT)
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — Added `fixDuplicateBatchIds()` function: scans PLANNING_2026 for duplicate Batch_IDs, keeps the first occurrence, generates new unique IDs for all duplicates using `generateBatchId()`. Uses LockService for concurrency safety. Registered as `fixDuplicateBatchIds` action in doGet handler.
+- `planning.html` — `loadPlantings()`: After loading data, auto-detects duplicate Batch_IDs. If found, calls `fixDuplicateBatchIds` backend endpoint, then reloads data with corrected IDs. Shows toast notifications during the process.
+
+### Functions Added
+- `fixDuplicateBatchIds()` in `MERGED TOTAL.js` — Backend function that scans sheet for duplicate Batch_IDs, keeps first occurrence, assigns new unique IDs to duplicates
+
+### Reason
+User reported many existing plantings still shared duplicate Batch_IDs after the prevention fix was deployed. Needed a repair function to retroactively fix all existing duplicates. The auto-detect on page load ensures any remaining duplicates are caught and fixed transparently.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
+## 2026-03-03 — Fix Save Failures: Explicit Auth Token + Visible Error Toast (PM_ARCHITECT)
+
+### Files Modified
+- `planning.html` — `executeSave()`: Added explicit session token injection from localStorage (belt+suspenders with the global fetch interceptor). Added visible error toast on save failure — if auth-related, shows "Session expired — please refresh and log in again", otherwise shows the error message. Previously saves could fail silently with no user feedback.
+
+### Reason
+User reported planning.html was not saving — changes appeared to save but did not persist. Root cause: `executeSave()` relied solely on the global fetch interceptor for auth token injection. If the interceptor failed or session expired, saves failed silently. Fix adds explicit token + visible error feedback.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] No duplicates created
+
+---
+
 ## 2026-03-03 — Fix Duplicate Batch_ID Bug + Auto-Recalculate Trays/Plants + Stats Cards (PM_ARCHITECT)
 
 ### Files Modified
