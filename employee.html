@@ -5296,14 +5296,11 @@
             bottom: 0;
             background: rgba(0, 0, 0, 0.7);
             z-index: 9998;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s ease;
+            display: none;
         }
 
         .tutorial-overlay.active {
-            opacity: 1;
-            pointer-events: auto;
+            display: block;
         }
 
         .tutorial-highlight {
@@ -5323,15 +5320,12 @@
             max-width: 280px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
             z-index: 10000;
-            opacity: 0;
-            transform: translateY(10px);
-            transition: all 0.3s ease;
+            display: none;
             border: 1px solid rgba(255, 140, 0, 0.3);
         }
 
         .tutorial-bubble.active {
-            opacity: 1;
-            transform: translateY(0);
+            display: block;
         }
 
         .tutorial-bubble::before {
@@ -16418,23 +16412,25 @@
             var html = '';
 
             // Pending tasks — split buttons like assigned tasks
-            pending.forEach(function(t) {
-                var trayInfo = t.trayType || (t.cellsPerTray > 0 ? t.cellsPerTray + '-cell' : 'Open');
-                var seedsDisplay = t.seedsNeeded > 0 ? t.seedsNeeded.toLocaleString() + ' seeds' : '';
-                var overdue = new Date(t.plannedDate) < new Date(new Date().toISOString().split('T')[0]);
-                var bid = escapeHtml(t.batchId);
+            var seededLabel = t('sow.seededAsPlanned');
+            var changesLabel = t('sow.changesNeeded');
+            pending.forEach(function(task) {
+                var trayInfo = task.trayType || (task.cellsPerTray > 0 ? task.cellsPerTray + '-cell' : 'Open');
+                var seedsDisplay = task.seedsNeeded > 0 ? task.seedsNeeded.toLocaleString() + ' seeds' : '';
+                var overdue = new Date(task.plannedDate) < new Date(new Date().toISOString().split('T')[0]);
+                var bid = escapeHtml(task.batchId);
 
                 html += '<div style="background:var(--bg-light,#2a2a3e);border-radius:12px;padding:14px;border-left:4px solid ' + (overdue ? '#ef4444' : '#22c55e') + ';">';
                 html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;">';
-                html += '<div><strong style="color:var(--text-primary,#fff);font-size:0.95rem;">' + escapeHtml(t.crop) + '</strong><span style="color:var(--text-secondary,#999);font-size:0.85rem;margin-left:6px;">' + escapeHtml(t.variety) + '</span></div>';
-                html += '<span style="font-size:0.75rem;color:' + (overdue ? '#ef4444' : 'var(--text-secondary,#999)') + ';">' + t.plannedDate + '</span>';
+                html += '<div><strong style="color:var(--text-primary,#fff);font-size:0.95rem;">' + escapeHtml(task.crop) + '</strong><span style="color:var(--text-secondary,#999);font-size:0.85rem;margin-left:6px;">' + escapeHtml(task.variety) + '</span></div>';
+                html += '<span style="font-size:0.75rem;color:' + (overdue ? '#ef4444' : 'var(--text-secondary,#999)') + ';">' + task.plannedDate + '</span>';
                 html += '</div>';
-                html += '<div style="font-size:0.8rem;color:var(--text-secondary,#999);margin-top:6px;">' + t.trays + ' trays \u2022 ' + trayInfo + (seedsDisplay ? ' \u2022 ' + seedsDisplay : '') + '</div>';
-                if (t.seedLotUsed) html += '<div style="font-size:0.75rem;color:#3b82f6;margin-top:4px;"><i class="fas fa-tag"></i> ' + escapeHtml(t.seedLotUsed) + '</div>';
+                html += '<div style="font-size:0.8rem;color:var(--text-secondary,#999);margin-top:6px;">' + task.trays + ' trays \u2022 ' + trayInfo + (seedsDisplay ? ' \u2022 ' + seedsDisplay : '') + '</div>';
+                if (task.seedLotUsed) html += '<div style="font-size:0.75rem;color:#3b82f6;margin-top:4px;"><i class="fas fa-tag"></i> ' + escapeHtml(task.seedLotUsed) + '</div>';
                 // Split buttons — same as assigned task cards
                 html += '<div style="margin-top:10px;">';
-                html += '<button class="task-done-btn sow-done" onclick="event.stopPropagation();quickCompleteGHSow(\'' + bid + '\')"><i class="fas fa-seedling"></i> ' + t('sow.seededAsPlanned') + '</button>';
-                html += '<button class="task-changes-btn" onclick="event.stopPropagation();openGHSowConfirm(\'' + bid + '\')"><i class="fas fa-pen"></i> ' + t('sow.changesNeeded') + '</button>';
+                html += '<button class="task-done-btn sow-done" onclick="event.stopPropagation();quickCompleteGHSow(\'' + bid + '\')"><i class="fas fa-seedling"></i> ' + seededLabel + '</button>';
+                html += '<button class="task-changes-btn" onclick="event.stopPropagation();openGHSowConfirm(\'' + bid + '\')"><i class="fas fa-pen"></i> ' + changesLabel + '</button>';
                 html += '</div>';
                 html += '</div>';
             });
@@ -16443,10 +16439,10 @@
             if (done.length > 0) {
                 html += '<div style="margin-top:12px;padding:8px;background:var(--bg-light,#2a2a3e);border-radius:8px;opacity:0.7;">';
                 html += '<div style="font-size:0.8rem;color:var(--text-secondary,#999);font-weight:600;margin-bottom:8px;"><i class="fas fa-check-circle" style="color:#22c55e;"></i> Completed (' + done.length + ')</div>';
-                done.forEach(function(t) {
+                done.forEach(function(task) {
                     html += '<div style="font-size:0.8rem;color:var(--text-secondary,#999);padding:4px 0;display:flex;justify-content:space-between;">';
-                    html += '<span>' + escapeHtml(t.crop) + ' — ' + escapeHtml(t.variety) + (t.substituted && t.actualVariety ? ' <span style="color:#f59e0b;">\u2192 ' + escapeHtml(t.actualVariety) + '</span>' : (t.substituted ? ' <span style="color:#f59e0b;">\u26A0 Subst</span>' : '')) + '</span>';
-                    html += '<span>' + (t.completedBy || '') + ' ' + (t.actualDate || '') + '</span>';
+                    html += '<span>' + escapeHtml(task.crop) + ' — ' + escapeHtml(task.variety) + (task.substituted && task.actualVariety ? ' <span style="color:#f59e0b;">\u2192 ' + escapeHtml(task.actualVariety) + '</span>' : (task.substituted ? ' <span style="color:#f59e0b;">\u26A0 Subst</span>' : '')) + '</span>';
+                    html += '<span>' + (task.completedBy || '') + ' ' + (task.actualDate || '') + '</span>';
                     html += '</div>';
                 });
                 html += '</div>';
@@ -16986,7 +16982,7 @@
                         accuracy: pos.coords.accuracy
                     }),
                     err => resolve({ error: err.message }),
-                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+                    { enableHighAccuracy: false, timeout: 3000, maximumAge: 120000 }
                 );
             });
         }
@@ -27820,12 +27816,12 @@
                     document.body.appendChild(toggle);
                 }
 
-                // Show tutorial for first 3 sessions per employee, then stop
-                const empId = (AppState.employee && AppState.employee.Employee_ID) || 'default';
-                const tutorialCount = parseInt(localStorage.getItem('tsf_tutorial_count_' + empId) || '0', 10);
-                if (tutorialCount < 3) {
-                    setTimeout(() => this.start(), 2000);
-                }
+                // Tutorial auto-start disabled — manual only via ? button
+                // const empId = (AppState.employee && AppState.employee.Employee_ID) || 'default';
+                // const tutorialCount = parseInt(localStorage.getItem('tsf_tutorial_count_' + empId) || '0', 10);
+                // if (tutorialCount < 3) {
+                //     setTimeout(() => this.start(), 2000);
+                // }
             },
 
             start() {
@@ -27951,12 +27947,12 @@
             }
         };
 
-        // Initialize tutorial after app loads
-        const originalShowMainApp = showMainApp;
-        showMainApp = function() {
-            originalShowMainApp.apply(this, arguments);
-            setTimeout(() => TutorialMode.init(), 500);
-        };
+        // Tutorial disabled from auto-start — user can tap ? button manually
+        // const originalShowMainApp = showMainApp;
+        // showMainApp = function() {
+        //     originalShowMainApp.apply(this, arguments);
+        //     setTimeout(() => TutorialMode.init(), 500);
+        // };
     </script>
 
     <!-- ════════════════════════════════════════════════════════════════════════════
