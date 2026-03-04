@@ -9631,14 +9631,12 @@
             top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(0,0,0,0.85);
             z-index: 10000;
-            display: flex;
+            display: none;
             align-items: center;
             justify-content: center;
             padding: 16px;
-            opacity: 0;
-            transition: opacity 0.3s;
         }
-        .seed-prompt-overlay.visible { opacity: 1; }
+        .seed-prompt-overlay.visible { display: flex; }
         .seed-prompt-card {
             background: var(--card-bg, #1e1e2e);
             border-radius: 16px;
