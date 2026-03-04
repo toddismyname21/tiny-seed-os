@@ -38,6 +38,59 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-03-04 — Employee App: 8-Task Overhaul (PM_ARCHITECT)
+
+### Files Modified
+- `employee.html` — 8 changes:
+  1. **Clock-in gate**: Full-screen overlay (`#clockGate`) shown until clocked in. Features large circular clock-in button, time/date display, personalized greeting. Gate hides on clock-in via `updateClockUI()`. New compact clock-out strip (`#clockOutStrip`) shows elapsed time at top of app when clocked in.
+  2. **Heat safety removed**: Deleted HTML (`#heatAlert`), CSS (`.safety-alert`), and JS (`checkHeatSafety()`, `dismissHeatAlert()`, `setInterval`, `setTimeout`).
+  3. **Tutorial 3-time limit**: Changed from boolean localStorage (`tsf_tutorial_completed_`) to counter (`tsf_tutorial_count_`). Tutorial auto-starts for first 3 sessions per employee, then stops. `complete()` increments counter, `reset()` resets to 0.
+  4. **Desktop click fixes**: Added `@media (min-width: 600px)` to constrain `#mainApp` to 500px centered, center tab bars, and constrain gate/strip. Added universal `cursor: pointer` on all interactive elements.
+  5. **Quick photo widget hidden**: Set `display:none` on `#quickPhotoCard` to remove from home tab (user said no photo needed on clock-in).
+  6. **Friction-free sowing**: Sow tasks now show 2 buttons: "SEEDED AS PLANNED" (big green, one-tap via `quickCompleteSow()`) and "CHANGES NEEDED" (outlined amber, opens modal). Non-sow tasks keep standard DONE button. `quickCompleteSow()` fires dual API calls (`confirmGHSowing` + `updateUnifiedTask`) with default values.
+  7. **Spanish translations expanded**: Added 30+ new i18n keys covering tabs, sowing workflow, defer modal, home tab, registration, clock gate. Added `data-i18n` to all 3 tab bars (field/packhouse/tractor), sow modal labels, defer modal, work order header, efficiency label, GH sowing header, manager message.
+  8. **Push notification reminders**: Added `requestNotificationPermission()` (requests on first clock-in), `startClockReminderCheck()` (polls every 5 min), `checkClockReminder()` (compares current time to employee `Start_Time` — notifies if within 15 min before or 30 min after scheduled start), `parseScheduleTime()` (handles "HH:MM" and "H:MM AM/PM" formats). Once-per-day via localStorage key.
+
+### Functions Added (in employee.html)
+- `updateClockGateText()` — Updates gate greeting with employee name and language
+- `quickCompleteSow(taskId)` — One-tap sowing completion, no modal, dual API
+- `requestNotificationPermission()` — Requests Notification API permission
+- `startClockReminderCheck()` — Starts 5-minute interval for schedule checking
+- `checkClockReminder()` — Compares now vs Start_Time, fires browser notification
+- `parseScheduleTime(timeStr)` — Parses "7:30 AM" or "07:30" into Date object
+
+### CSS Added
+- `.clock-gate` / `.clock-gate.hidden` — Full-screen clock-in overlay with animation
+- `.clock-gate-time` / `.clock-gate-date` / `.clock-gate-greeting` / `.clock-gate-btn` / `.clock-gate-lang` — Gate elements
+- `.clock-out-strip` / `.clock-out-strip.visible` — Compact red clock-out bar
+- `.task-changes-btn` — Amber outlined "Changes Needed" button for sow tasks
+- `.task-done-btn.sow-done` — Adjusted font for "Seeded as Planned" text
+- `@media (min-width: 600px)` — Desktop layout constraints
+
+### i18n Keys Added (EN + ES)
+- `tabs.receiving/inventory/fleet/fuel` — Packhouse/tractor tab labels
+- `sow.seededAsPlanned/changesNeeded/confirmed/saveFailed/dateDone/actualTrays/substituted/seedLot/notes/markComplete` — Sowing workflow
+- `tasks.notToday/done/doneStopTimer` — Task action buttons
+- `home.workOrder/efficiency/allCaughtUp/managerMessage/ghSowing` — Home tab
+- `reg.joinTeam/firstName/lastName/phone/email/createPin/confirmPin/language/submitted` — Registration
+- `gate.greeting/clockedIn` — Clock gate
+- `defer.title/when/tomorrow` — Defer modal
+- `common.cancel` — Shared cancel button
+
+### Verification Checklist
+1. Clock gate: App opens → full-screen gate with time/greeting → tap Clock In → gate hides, strip appears, app content visible
+2. Clock out strip: Tap strip → clock out → gate reappears
+3. Heat safety: No heatAlert element, no checkHeatSafety function, no setInterval for it
+4. Tutorial: First 3 logins → tutorial auto-starts. 4th login → no tutorial
+5. Desktop: App centered at 500px, buttons have pointer cursor, no invisible overlapping elements
+6. Quick photo: Not visible on home tab
+7. Sowing DONE: Sow task → 2 buttons. "Seeded as Planned" → one-tap completion. "Changes Needed" → modal opens
+8. Spanish: Toggle to ES → tabs say Inicio/Tareas/Cosecha/Monitoreo/Mas. Sow buttons in Spanish. Modal labels in Spanish
+9. Notifications: Clock in → permission prompt. If granted, reminders fire near scheduled time
+10. All verified live via `curl -s` after deploy
+
+---
+
 ## 2026-03-04 — Sowing Sheets: Recalc, Print, Add/Delete, Labels (PM_ARCHITECT)
 
 ### Files Modified

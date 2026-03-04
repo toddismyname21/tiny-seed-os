@@ -195,6 +195,40 @@
             display: block;
         }
 
+        /* Desktop: constrain to phone-like width + center */
+        @media (min-width: 600px) {
+            #mainApp {
+                max-width: 500px;
+                margin: 0 auto;
+                position: relative;
+                box-shadow: 0 0 40px rgba(0,0,0,0.3);
+            }
+            .tab-bar {
+                max-width: 500px;
+                left: 50% !important;
+                transform: translateX(-50%);
+            }
+            .clock-gate {
+                max-width: 500px;
+                left: 50%;
+                transform: translateX(-50%);
+                right: auto;
+                width: 100%;
+            }
+            .clock-gate.hidden {
+                transform: translateX(-50%) translateY(20px);
+            }
+            .clock-out-strip {
+                max-width: 500px;
+                margin: 0 auto;
+            }
+        }
+
+        /* Ensure all buttons/interactive elements have pointer cursor on desktop */
+        button, .tab-item, [onclick], .clock-btn, .task-card-v2, .mode-option {
+            cursor: pointer;
+        }
+
         /* ========================================
            LOGIN SCREEN
            ======================================== */
@@ -1322,6 +1356,104 @@
         .clock-btn:disabled {
             opacity: 0.6;
             cursor: not-allowed;
+        }
+
+        /* Clock Gate — full-screen overlay until clocked in */
+        .clock-gate {
+            position: fixed;
+            inset: 0;
+            z-index: 9500;
+            background: linear-gradient(180deg, var(--bg-dark, #0f0f1a) 0%, var(--primary-dark, #1a1a3e) 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            transition: opacity 0.3s, transform 0.3s;
+        }
+        .clock-gate.hidden {
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(20px);
+        }
+        .clock-gate-time {
+            font-size: 4rem;
+            font-weight: 700;
+            color: var(--text-primary, #fff);
+            letter-spacing: -1px;
+            margin-bottom: 4px;
+        }
+        .clock-gate-date {
+            font-size: 1.1rem;
+            color: var(--text-secondary, #999);
+            margin-bottom: 32px;
+        }
+        .clock-gate-greeting {
+            font-size: 1.3rem;
+            color: var(--text-primary, #fff);
+            margin-bottom: 40px;
+            text-align: center;
+        }
+        .clock-gate-btn {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            border: 4px solid rgba(34,197,94,0.3);
+            background: var(--success, #22c55e);
+            color: white;
+            font-size: 1.2rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 0 40px rgba(34,197,94,0.25);
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+        .clock-gate-btn:active {
+            transform: scale(0.95);
+        }
+        .clock-gate-btn i {
+            font-size: 2.5rem;
+        }
+        .clock-gate-lang {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            color: #fff;
+            padding: 8px 14px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        /* Compact clock-out strip (visible after clocked in) */
+        .clock-out-strip {
+            display: none;
+            background: var(--danger, #ef4444);
+            color: white;
+            padding: 8px 16px;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            cursor: pointer;
+        }
+        .clock-out-strip.visible {
+            display: flex;
+        }
+        .clock-out-strip .elapsed {
+            font-weight: 600;
+        }
+        .clock-out-strip .clock-out-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 600;
         }
 
         .hours-summary {
@@ -3383,65 +3515,6 @@
             opacity: 0.5;
         }
 
-        /* Safety Alert */
-        .safety-alert {
-            position: fixed;
-            bottom: 80px;
-            left: 16px;
-            right: 16px;
-            z-index: 2000;
-        }
-
-        .safety-alert-content {
-            background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
-            border-radius: 16px;
-            padding: 20px;
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-        }
-
-        .safety-icon {
-            width: 50px;
-            height: 50px;
-            background: rgba(255,255,255,0.2);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            color: white;
-        }
-
-        .safety-message {
-            flex: 1;
-        }
-
-        .safety-message h3 {
-            color: white;
-            font-size: 1rem;
-            margin-bottom: 4px;
-        }
-
-        .safety-message p {
-            color: rgba(255,255,255,0.9);
-            font-size: 0.85rem;
-        }
-
-        .safety-dismiss {
-            background: rgba(255,255,255,0.2);
-            border: none;
-            color: white;
-            padding: 10px 16px;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
         /* =====================================================
            WILDLIFE TRACKER STYLES
            ===================================================== */
@@ -5067,6 +5140,33 @@
 
         .task-done-btn.with-timer {
             background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+        }
+
+        .task-done-btn.sow-done {
+            font-size: 1.15rem;
+            letter-spacing: 0.5px;
+        }
+
+        .task-changes-btn {
+            width: 100%;
+            min-height: 48px;
+            border-radius: 10px;
+            border: 2px solid var(--warning, #f59e0b);
+            background: transparent;
+            color: var(--warning, #f59e0b);
+            font-size: 0.95rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 8px;
+        }
+        .task-changes-btn:active {
+            background: rgba(245,158,11,0.15);
+            transform: scale(0.98);
         }
 
         /* Team Task Badge */
@@ -9761,6 +9861,24 @@
 
     <!-- Main App -->
     <div id="mainApp" class="screen">
+        <!-- Clock Gate — shown until employee clocks in -->
+        <div class="clock-gate" id="clockGate">
+            <button class="clock-gate-lang" onclick="toggleLanguage();updateClockGateText()" id="clockGateLang">EN</button>
+            <div class="clock-gate-time" id="clockGateTime">--:--</div>
+            <div class="clock-gate-date" id="clockGateDate">---</div>
+            <div class="clock-gate-greeting" id="clockGateGreeting" data-i18n="gate.greeting">Ready to start your day?</div>
+            <button class="clock-gate-btn" onclick="toggleClock()" id="clockGateBtn">
+                <i class="fas fa-play"></i>
+                <span data-i18n="clock.clockIn">Clock In</span>
+            </button>
+        </div>
+
+        <!-- Compact clock-out strip (visible after clocked in) -->
+        <div class="clock-out-strip" id="clockOutStrip" onclick="toggleClock()">
+            <span class="elapsed" id="stripElapsed">0:00</span>
+            <span class="clock-out-label"><i class="fas fa-stop"></i> <span data-i18n="clock.clockOut">Clock Out</span></span>
+        </div>
+
         <!-- Header -->
         <header class="app-header">
             <div class="header-left">
@@ -9840,7 +9958,7 @@
                     <div class="work-order-header">
                         <div class="work-order-title">
                             <i class="fas fa-clipboard-list"></i>
-                            <span>YOUR WORK ORDER</span>
+                            <span data-i18n="home.workOrder">YOUR WORK ORDER</span>
                         </div>
                         <div class="work-order-weather" id="workOrderWeather">
                             <i class="fas fa-cloud-sun"></i>
@@ -9852,7 +9970,7 @@
                     <div class="work-order-messages" id="workOrderMessages" style="display: none;">
                         <div class="message-header">
                             <i class="fas fa-comment-dots"></i>
-                            <span>Message from Manager</span>
+                            <span data-i18n="home.managerMessage">Message from Manager</span>
                         </div>
                         <div class="message-content" id="managerMessageContent"></div>
                     </div>
@@ -9863,7 +9981,7 @@
                             <i class="fas fa-bolt"></i>
                         </div>
                         <div class="efficiency-info">
-                            <span class="efficiency-label">Your Efficiency</span>
+                            <span class="efficiency-label" data-i18n="home.efficiency">Your Efficiency</span>
                             <span class="efficiency-value" id="efficiencyValue">--</span>
                         </div>
                         <div class="efficiency-trend" id="efficiencyTrend">
@@ -9926,7 +10044,7 @@
                 <!-- Greenhouse Sowing Companion -->
                 <div id="ghSowingSection" style="margin-top:20px;display:none;">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-                        <h3 style="margin:0;font-size:1rem;color:var(--text-primary);"><i class="fas fa-seedling" style="color:#22c55e;"></i> Greenhouse Sowing</h3>
+                        <h3 style="margin:0;font-size:1rem;color:var(--text-primary);"><i class="fas fa-seedling" style="color:#22c55e;"></i> <span data-i18n="home.ghSowing">Greenhouse Sowing</span></h3>
                         <span id="ghSowingCount" style="font-size:0.8rem;color:var(--text-secondary);"></span>
                     </div>
                     <div id="ghSowingList" style="display:flex;flex-direction:column;gap:8px;"></div>
@@ -9991,8 +10109,8 @@
                     </div>
                 </div>
 
-                <!-- Quick Photo Widget -->
-                <div class="quick-photo-card" id="quickPhotoCard">
+                <!-- Quick Photo Widget — hidden from home tab, accessible via More tab -->
+                <div class="quick-photo-card" id="quickPhotoCard" style="display:none;">
                     <div class="quick-photo-header">
                         <div class="quick-photo-icon">
                             <i class="fas fa-camera"></i>
@@ -11711,23 +11829,23 @@
         <nav class="tab-bar" id="fieldNav">
             <div class="tab-item active" onclick="switchTab('home')" data-tutorial="home-tab" data-tutorial-text="Your dashboard with clock, weather, and quick stats">
                 <i class="fas fa-home"></i>
-                <span>Home</span>
+                <span data-i18n="tabs.home">Home</span>
             </div>
             <div class="tab-item" onclick="switchTab('tasks')" data-tutorial="tasks-tab" data-tutorial-text="View and complete your assigned tasks">
                 <i class="fas fa-clipboard-list"></i>
-                <span>Tasks</span>
+                <span data-i18n="tabs.tasks">Tasks</span>
             </div>
             <div class="tab-item" onclick="switchTab('harvest')" data-tutorial="harvest-tab" data-tutorial-text="Log harvests with quantity and quality">
                 <i class="fas fa-basket-shopping"></i>
-                <span>Harvest</span>
+                <span data-i18n="tabs.harvest">Harvest</span>
             </div>
             <div class="tab-item" onclick="switchTab('scout')" data-tutorial="scout-tab" data-tutorial-text="Scout fields for pests, disease, and crop health">
                 <i class="fas fa-search"></i>
-                <span>Scout</span>
+                <span data-i18n="tabs.scout">Scout</span>
             </div>
             <div class="tab-item" onclick="switchTab('more')" data-tutorial="more-tab" data-tutorial-text="Access all other features: Wildlife, Photos, Treatments, and more">
                 <i class="fas fa-ellipsis-h"></i>
-                <span>More</span>
+                <span data-i18n="tabs.more">More</span>
             </div>
         </nav>
 
@@ -11735,23 +11853,23 @@
         <nav class="tab-bar" id="packhouseNav" style="display: none;">
             <div class="tab-item active" onclick="switchTab('home')" data-tutorial="home-tab" data-tutorial-text="Your dashboard with clock and quick stats">
                 <i class="fas fa-home"></i>
-                <span>Home</span>
+                <span data-i18n="tabs.home">Home</span>
             </div>
             <div class="tab-item" onclick="switchTab('tasks')" data-tutorial="tasks-tab" data-tutorial-text="View packing and processing tasks">
                 <i class="fas fa-clipboard-list"></i>
-                <span>Tasks</span>
+                <span data-i18n="tabs.tasks">Tasks</span>
             </div>
             <div class="tab-item" onclick="switchTab('receiving')" data-tutorial="receiving-tab" data-tutorial-text="Log incoming harvests from the field">
                 <i class="fas fa-truck-loading"></i>
-                <span>Receiving</span>
+                <span data-i18n="tabs.receiving">Receiving</span>
             </div>
             <div class="tab-item" onclick="switchTab('inventory')" data-tutorial="inventory-tab" data-tutorial-text="Check cooler inventory and storage">
                 <i class="fas fa-boxes-stacked"></i>
-                <span>Inventory</span>
+                <span data-i18n="tabs.inventory">Inventory</span>
             </div>
             <div class="tab-item" onclick="switchTab('more')" data-tutorial="more-tab" data-tutorial-text="Access Photos, Orders, and more">
                 <i class="fas fa-ellipsis-h"></i>
-                <span>More</span>
+                <span data-i18n="tabs.more">More</span>
             </div>
         </nav>
 
@@ -11759,23 +11877,23 @@
         <nav class="tab-bar" id="tractorNav" style="display: none;">
             <div class="tab-item active" onclick="switchTab('home')" data-tutorial="home-tab" data-tutorial-text="Your dashboard with clock and equipment status">
                 <i class="fas fa-home"></i>
-                <span>Home</span>
+                <span data-i18n="tabs.home">Home</span>
             </div>
             <div class="tab-item" onclick="switchTab('tasks')" data-tutorial="tasks-tab" data-tutorial-text="View field work and equipment tasks">
                 <i class="fas fa-clipboard-list"></i>
-                <span>Tasks</span>
+                <span data-i18n="tabs.tasks">Tasks</span>
             </div>
             <div class="tab-item" onclick="switchTab('fleet')" data-tutorial="fleet-tab" data-tutorial-text="Check tractor hours and maintenance status">
                 <i class="fas fa-tractor"></i>
-                <span>Fleet</span>
+                <span data-i18n="tabs.fleet">Fleet</span>
             </div>
             <div class="tab-item" onclick="switchTab('fuel')" data-tutorial="fuel-tab" data-tutorial-text="Log fuel purchases and track usage">
                 <i class="fas fa-gas-pump"></i>
-                <span>Fuel</span>
+                <span data-i18n="tabs.fuel">Fuel</span>
             </div>
             <div class="tab-item" onclick="switchTab('more')" data-tutorial="more-tab" data-tutorial-text="Access Photos, Maintenance logs, and more">
                 <i class="fas fa-ellipsis-h"></i>
-                <span>More</span>
+                <span data-i18n="tabs.more">More</span>
             </div>
         </nav>
     </div>
@@ -13989,22 +14107,6 @@
         </div>
     </div>
 
-    <!-- Heat Safety Alert -->
-    <div class="safety-alert" id="heatAlert" style="display: none;">
-        <div class="safety-alert-content">
-            <div class="safety-icon">
-                <i class="fas fa-temperature-high"></i>
-            </div>
-            <div class="safety-message">
-                <h3 data-i18n="safety.heatTitle">Heat Safety Reminder</h3>
-                <p data-i18n="safety.heatMessage">It's hot outside! Remember to take breaks, drink water, and find shade.</p>
-            </div>
-            <button class="safety-dismiss" onclick="dismissHeatAlert()">
-                <i class="fas fa-check"></i> <span data-i18n="safety.gotIt">Got It</span>
-            </button>
-        </div>
-    </div>
-
     <!-- Invite Employee Modal -->
     <div class="feature-modal" id="inviteEmployeeModal">
         <div class="feature-modal-content invite-modal-content">
@@ -15017,8 +15119,50 @@
                 'tabs.harvest': 'Harvest',
                 'tabs.scout': 'Scout',
                 'tabs.more': 'More',
+                'tabs.receiving': 'Receiving',
+                'tabs.inventory': 'Inventory',
+                'tabs.fleet': 'Fleet',
+                'tabs.fuel': 'Fuel',
                 'messages.title': 'Messages',
                 'messages.empty': 'No messages',
+                // Sowing workflow
+                'sow.seededAsPlanned': 'SEEDED AS PLANNED',
+                'sow.changesNeeded': 'CHANGES NEEDED',
+                'sow.confirmed': 'Sowing confirmed!',
+                'sow.saveFailed': 'Save failed',
+                'sow.dateDone': 'Date Done',
+                'sow.actualTrays': 'Actual Trays',
+                'sow.substituted': 'Substituted different variety',
+                'sow.seedLot': 'Seed Lot ID',
+                'sow.notes': 'Notes',
+                'sow.markComplete': 'Mark Complete',
+                'tasks.notToday': 'Not Today',
+                'tasks.done': 'DONE',
+                'tasks.doneStopTimer': 'DONE - STOP TIMER',
+                // Home tab
+                'home.workOrder': 'YOUR WORK ORDER',
+                'home.efficiency': 'Your Efficiency',
+                'home.allCaughtUp': 'All caught up! Great work.',
+                // Registration
+                'reg.joinTeam': 'Join the Team',
+                'reg.firstName': 'First Name *',
+                'reg.lastName': 'Last Name *',
+                'reg.phone': 'Phone *',
+                'reg.email': 'Email (optional)',
+                'reg.createPin': 'Create a 4-digit PIN *',
+                'reg.confirmPin': 'Confirm PIN *',
+                'reg.language': 'Preferred Language',
+                'reg.submitted': 'Registration Submitted!',
+                'home.managerMessage': 'Message from Manager',
+                'home.ghSowing': 'Greenhouse Sowing',
+                // Defer
+                'defer.title': 'Defer Task',
+                'defer.when': 'When should this task be rescheduled?',
+                'defer.tomorrow': 'Tomorrow',
+                'common.cancel': 'Cancel',
+                // Clock Gate
+                'gate.greeting': 'Ready to start your day?',
+                'gate.clockedIn': 'Clocked in',
                 // Quick Photo Widget
                 'photos.snapTitle': 'Snap a Farm Photo',
                 'photos.snapDesc': 'Help with marketing & documentation',
@@ -15135,8 +15279,47 @@
                 'tabs.harvest': 'Cosecha',
                 'tabs.scout': 'Monitoreo',
                 'tabs.more': 'Mas',
+                'tabs.receiving': 'Recepcion',
+                'tabs.inventory': 'Inventario',
+                'tabs.fleet': 'Equipo',
+                'tabs.fuel': 'Combustible',
                 'messages.title': 'Mensajes',
                 'messages.empty': 'Sin mensajes',
+                // Sowing workflow
+                'sow.seededAsPlanned': 'SEMBRADO COMO PLANEADO',
+                'sow.changesNeeded': 'CAMBIOS NECESARIOS',
+                'sow.confirmed': 'Siembra confirmada!',
+                'sow.saveFailed': 'Error al guardar',
+                'sow.dateDone': 'Fecha Realizada',
+                'sow.actualTrays': 'Bandejas Reales',
+                'sow.substituted': 'Se sustituyo variedad diferente',
+                'sow.seedLot': 'Lote de Semillas',
+                'sow.notes': 'Notas',
+                'sow.markComplete': 'Marcar Completo',
+                'tasks.notToday': 'Hoy No',
+                'tasks.done': 'HECHO',
+                'tasks.doneStopTimer': 'HECHO - PARAR TIEMPO',
+                // Home tab
+                'home.workOrder': 'TU ORDEN DE TRABAJO',
+                'home.efficiency': 'Tu Eficiencia',
+                'home.allCaughtUp': 'Todo al dia! Buen trabajo.',
+                // Registration
+                'reg.joinTeam': 'Unete al Equipo',
+                'reg.firstName': 'Nombre *',
+                'reg.lastName': 'Apellido *',
+                'reg.phone': 'Telefono *',
+                'reg.email': 'Correo (opcional)',
+                'reg.createPin': 'Crea un PIN de 4 digitos *',
+                'reg.confirmPin': 'Confirma tu PIN *',
+                'reg.language': 'Idioma Preferido',
+                'reg.submitted': 'Registro Enviado!',
+                'home.managerMessage': 'Mensaje del Gerente',
+                'home.ghSowing': 'Siembra en Invernadero',
+                // Defer
+                'defer.title': 'Posponer Tarea',
+                'defer.when': 'Cuando se debe reprogramar esta tarea?',
+                'defer.tomorrow': 'Manana',
+                'common.cancel': 'Cancelar',
                 // AI Plant Doctor
                 'ai.title': 'Doctor de Plantas IA',
                 'ai.takePhoto': 'Tomar una Foto',
@@ -15169,6 +15352,9 @@
                 // Phase 8: Messages
                 'messages.acknowledge': 'Confirmar',
                 'messages.acknowledged': 'Mensaje confirmado',
+                // Clock Gate
+                'gate.greeting': 'Listo para comenzar tu dia?',
+                'gate.clockedIn': 'Entrada registrada',
                 // Quick Photo Widget
                 'photos.snapTitle': 'Toma una Foto de la Granja',
                 'photos.snapDesc': 'Ayuda con marketing y documentacion',
@@ -15559,8 +15745,15 @@
             // Restore clock state from localStorage
             restoreClockState();
 
+            // Update clock gate greeting with employee name
+            updateClockGateText();
             updateClockUI();
             startClock();
+
+            // Start clock reminder check if notifications already granted
+            if ('Notification' in window && Notification.permission === 'granted') {
+                startClockReminderCheck();
+            }
             loadInitialData();
 
             // Restore saved work mode (only if user has permission)
@@ -16272,6 +16465,64 @@
             document.getElementById('ghSowConfirmModal').style.display = 'flex';
         }
 
+        // Quick complete sowing — one tap, no modal (seeded as planned)
+        async function quickCompleteSow(taskId) {
+            var task = AppState.tasks.find(function(t) { return t.id === taskId; });
+            if (!task) return;
+
+            var emp = AppState.employee || {};
+            var batchId = task.batchId || task.Batch_ID || (task._raw ? task._raw.Batch_ID : '') || '';
+            var trays = task._raw ? (task._raw.Trays_Needed || 0) : (task.quantity || 0);
+            var seedLot = task._raw ? (task._raw.Seed_Lot_Used || '') : '';
+            var todayStr = new Date().toISOString().split('T')[0];
+
+            // Animate card completion
+            var taskCard = document.querySelector('.task-card-v2[data-id="' + taskId + '"]');
+            if (taskCard) taskCard.classList.add('completing');
+            if (navigator.vibrate) navigator.vibrate([50, 50, 100]);
+
+            var sowPayload = {
+                action: 'confirmGHSowing',
+                batchId: batchId,
+                employeeId: emp.Employee_ID || '',
+                employeeName: (emp.First_Name || '') + ' ' + (emp.Last_Name || ''),
+                actualDate: todayStr,
+                actualTrays: parseInt(trays) || 0,
+                actualVariety: '',
+                substituted: false,
+                seedLotId: seedLot,
+                notes: ''
+            };
+
+            var taskPayload = {
+                action: 'updateUnifiedTask',
+                taskId: taskId,
+                status: 'Completed',
+                completedBy: sowPayload.employeeName,
+                completedDate: todayStr
+            };
+
+            try {
+                if (navigator.onLine) {
+                    await Promise.all([
+                        fetch(CONFIG.API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(sowPayload) }),
+                        fetch(CONFIG.API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(taskPayload) })
+                    ]);
+                } else if (typeof OfflineDB !== 'undefined' && OfflineDB.queueOperation) {
+                    await OfflineDB.queueOperation('confirmGHSowing', sowPayload);
+                    await OfflineDB.queueOperation('updateUnifiedTask', taskPayload);
+                }
+
+                AppState.tasks = AppState.tasks.filter(function(t) { return t.id !== taskId; });
+                renderTasks();
+                showToast(t('sow.confirmed'), 'success');
+            } catch (err) {
+                console.error('quickCompleteSow error:', err);
+                showToast(t('sow.saveFailed'), 'error');
+                if (taskCard) taskCard.classList.remove('completing');
+            }
+        }
+
         // Open sowing confirmation modal from the main task list (Priority 2)
         function openSowingConfirmFromTask(task) {
             var crop = task.crop || task.Crop_ID || 'Sowing';
@@ -16522,33 +16773,68 @@
             document.getElementById('clockTime').textContent = timeStr;
             document.getElementById('clockDate').textContent = dateStr;
 
+            // Update clock gate time display
+            var gateTime = document.getElementById('clockGateTime');
+            var gateDate = document.getElementById('clockGateDate');
+            if (gateTime) gateTime.textContent = timeStr;
+            if (gateDate) gateDate.textContent = dateStr;
+
             // Update hours if clocked in
             if (AppState.isClockedIn && AppState.clockInTime) {
                 const elapsed = (now - new Date(AppState.clockInTime)) / 1000 / 60 / 60;
                 document.getElementById('hoursToday').textContent = elapsed.toFixed(1);
+
+                // Update strip elapsed time (H:MM format)
+                var totalMin = Math.floor(elapsed * 60);
+                var hrs = Math.floor(totalMin / 60);
+                var mins = totalMin % 60;
+                var stripEl = document.getElementById('stripElapsed');
+                if (stripEl) stripEl.textContent = hrs + ':' + (mins < 10 ? '0' : '') + mins + ' ' + t('gate.clockedIn');
             }
         }
 
         function updateClockUI() {
             const btn = document.getElementById('clockBtn');
             const status = document.getElementById('headerStatus');
+            const gate = document.getElementById('clockGate');
+            const strip = document.getElementById('clockOutStrip');
 
             if (AppState.isClockedIn) {
                 btn.className = 'clock-btn clock-out';
                 btn.innerHTML = `<i class="fas fa-stop"></i><span>${t('clock.clockOut')}</span>`;
                 status.textContent = t('clock.clockedIn');
                 status.classList.add('clocked-in');
+                // Hide gate, show strip
+                if (gate) gate.classList.add('hidden');
+                if (strip) strip.classList.add('visible');
             } else {
                 btn.className = 'clock-btn clock-in';
                 btn.innerHTML = `<i class="fas fa-play"></i><span>${t('clock.clockIn')}</span>`;
                 status.textContent = t('clock.notClockedIn');
                 status.classList.remove('clocked-in');
+                // Show gate, hide strip
+                if (gate) gate.classList.remove('hidden');
+                if (strip) strip.classList.remove('visible');
             }
+        }
+
+        function updateClockGateText() {
+            var gate = document.getElementById('clockGate');
+            if (!gate) return;
+            var greeting = gate.querySelector('#clockGateGreeting');
+            var name = AppState.employee ? (AppState.employee.First_Name || '') : '';
+            if (greeting) {
+                greeting.textContent = name ? (AppState.language === 'es' ? 'Hola ' + name + '! Listo para comenzar?' : 'Hey ' + name + '! Ready to start?') : t('gate.greeting');
+            }
+            var langBtn = document.getElementById('clockGateLang');
+            if (langBtn) langBtn.textContent = AppState.language.toUpperCase();
         }
 
         async function toggleClock() {
             const btn = document.getElementById('clockBtn');
+            const gateBtn = document.getElementById('clockGateBtn');
             btn.disabled = true;
+            if (gateBtn) gateBtn.disabled = true;
 
             try {
                 const gps = await captureGPS();
@@ -16623,6 +16909,7 @@
             }
 
             btn.disabled = false;
+            if (gateBtn) gateBtn.disabled = false;
         }
 
         // Restore clock state on page load
@@ -16828,6 +17115,84 @@
             }
             // Refresh greenhouse sowing tasks on clock-in
             loadGHSowingTasks();
+
+            // Request notification permission after first successful clock-in
+            requestNotificationPermission();
+        }
+
+        // ============================================
+        // CLOCK-IN REMINDER NOTIFICATIONS
+        // ============================================
+        function requestNotificationPermission() {
+            if ('Notification' in window && Notification.permission === 'default') {
+                Notification.requestPermission().then(function(perm) {
+                    if (perm === 'granted') {
+                        console.log('[Notify] Permission granted');
+                        startClockReminderCheck();
+                    }
+                });
+            } else if ('Notification' in window && Notification.permission === 'granted') {
+                startClockReminderCheck();
+            }
+        }
+
+        var _clockReminderInterval = null;
+        function startClockReminderCheck() {
+            if (_clockReminderInterval) return;
+            // Check every 5 minutes if employee should be clocked in
+            _clockReminderInterval = setInterval(checkClockReminder, 300000);
+            // Also check immediately on load (after a short delay)
+            setTimeout(checkClockReminder, 10000);
+        }
+
+        function checkClockReminder() {
+            if (!AppState.employee || AppState.isClockedIn) return;
+            if (Notification.permission !== 'granted') return;
+
+            // Get employee schedule: Start_Time field (e.g., "07:00", "7:30 AM")
+            var startTime = AppState.employee.Start_Time || AppState.employee.Schedule_Start || '';
+            if (!startTime) return;
+
+            var now = new Date();
+            var scheduled = parseScheduleTime(startTime);
+            if (!scheduled) return;
+
+            // If within 15 minutes before or 30 minutes after scheduled start, remind
+            var diffMin = (now - scheduled) / 60000;
+            if (diffMin >= -15 && diffMin <= 30) {
+                // Only remind once per day
+                var todayKey = 'tsf_clock_reminded_' + now.toISOString().split('T')[0];
+                if (localStorage.getItem(todayKey)) return;
+                localStorage.setItem(todayKey, '1');
+
+                var empName = AppState.employee.First_Name || '';
+                var msg = AppState.language === 'es'
+                    ? 'Hola ' + empName + '! Es hora de registrar entrada.'
+                    : 'Hey ' + empName + '! Time to clock in.';
+
+                new Notification('Tiny Seed Farm', {
+                    body: msg,
+                    icon: 'web_app/favicon-192x192.png',
+                    tag: 'clock-reminder',
+                    requireInteraction: true
+                });
+            }
+        }
+
+        function parseScheduleTime(timeStr) {
+            if (!timeStr) return null;
+            var today = new Date();
+            // Handle "HH:MM" or "H:MM AM/PM"
+            var match = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+            if (!match) return null;
+            var h = parseInt(match[1], 10);
+            var m = parseInt(match[2], 10);
+            if (match[3]) {
+                var ampm = match[3].toUpperCase();
+                if (ampm === 'PM' && h !== 12) h += 12;
+                if (ampm === 'AM' && h === 12) h = 0;
+            }
+            return new Date(today.getFullYear(), today.getMonth(), today.getDate(), h, m, 0);
         }
 
         // Driver Mode State
@@ -21532,15 +21897,26 @@
                     </button>
                     ` : ''}
 
-                    <!-- BIG DONE BUTTON - 72px -->
+                    <!-- Sow tasks get split buttons; others get standard DONE -->
+                    ${SeedTraceability.isSowTask({type: task.type}) ? `
+                    <button class="task-done-btn sow-done ${isTimerActive ? 'with-timer' : ''}" onclick="quickCompleteSow('${task.id}')">
+                        <i class="fas fa-seedling"></i>
+                        ${t('sow.seededAsPlanned')}
+                    </button>
+                    <button class="task-changes-btn" onclick="openSowingConfirmFromTask(AppState.tasks.find(t=>t.id==='${task.id}'))">
+                        <i class="fas fa-pen"></i>
+                        ${t('sow.changesNeeded')}
+                    </button>
+                    ` : `
                     <button class="task-done-btn ${isTimerActive ? 'with-timer' : ''}" onclick="completeTaskV2('${task.id}')">
                         <i class="fas fa-check"></i>
-                        ${isTimerActive ? 'DONE - STOP TIMER' : 'DONE'}
+                        ${isTimerActive ? t('tasks.doneStopTimer') : t('tasks.done')}
                     </button>
+                    `}
 
                     <!-- Not Today / Defer -->
                     <button class="task-defer-btn" onclick="deferTask('${task.id}')">
-                        <i class="fas fa-calendar-plus"></i> Not Today
+                        <i class="fas fa-calendar-plus"></i> ${t('tasks.notToday')}
                     </button>
                 </div>
                 `;
@@ -25708,31 +26084,6 @@
         }
 
         // ============================================
-        // PHASE 8: HEAT SAFETY
-        // ============================================
-        function checkHeatSafety() {
-            // Check every 2 hours during work hours
-            const hour = new Date().getHours();
-            if (hour >= 10 && hour <= 16) {
-                // Show heat reminder if not dismissed recently
-                const lastDismissed = localStorage.getItem('heatAlertDismissed');
-                const now = Date.now();
-                if (!lastDismissed || (now - parseInt(lastDismissed)) > 7200000) { // 2 hours
-                    document.getElementById('heatAlert').style.display = 'block';
-                }
-            }
-        }
-
-        function dismissHeatAlert() {
-            document.getElementById('heatAlert').style.display = 'none';
-            localStorage.setItem('heatAlertDismissed', Date.now().toString());
-        }
-
-        // Start heat safety checks
-        setInterval(checkHeatSafety, 3600000); // Check every hour
-        setTimeout(checkHeatSafety, 5000); // Initial check after 5 seconds
-
-        // ============================================
         // SYNC
         // ============================================
         async function syncData() {
@@ -27424,9 +27775,10 @@
                     document.body.appendChild(toggle);
                 }
 
-                // Check if first time for THIS employee
+                // Show tutorial for first 3 sessions per employee, then stop
                 const empId = (AppState.employee && AppState.employee.Employee_ID) || 'default';
-                if (!localStorage.getItem('tsf_tutorial_completed_' + empId)) {
+                const tutorialCount = parseInt(localStorage.getItem('tsf_tutorial_count_' + empId) || '0', 10);
+                if (tutorialCount < 3) {
                     setTimeout(() => this.start(), 2000);
                 }
             },
@@ -27533,7 +27885,8 @@
             complete() {
                 this.active = false;
                 const empId = (AppState.employee && AppState.employee.Employee_ID) || 'default';
-                localStorage.setItem('tsf_tutorial_completed_' + empId, 'true');
+                var count = parseInt(localStorage.getItem('tsf_tutorial_count_' + empId) || '0', 10);
+                localStorage.setItem('tsf_tutorial_count_' + empId, String(count + 1));
 
                 document.getElementById('tutorialOverlay').classList.remove('active');
                 document.getElementById('tutorialBubble').classList.remove('active');
@@ -27548,7 +27901,7 @@
 
             reset() {
                 const empId = (AppState.employee && AppState.employee.Employee_ID) || 'default';
-                localStorage.removeItem('tsf_tutorial_completed_' + empId);
+                localStorage.setItem('tsf_tutorial_count_' + empId, '0');
                 this.start();
             }
         };
@@ -29359,33 +29712,33 @@
 
         <div style="display:flex;flex-direction:column;gap:12px;">
             <div>
-                <label style="font-size:0.8rem;color:var(--text-secondary,#999);font-weight:600;">Date Done</label>
+                <label style="font-size:0.8rem;color:var(--text-secondary,#999);font-weight:600;" data-i18n="sow.dateDone">Date Done</label>
                 <input type="date" id="ghConfirmDate" style="width:100%;padding:12px;min-height:44px;background:var(--bg-light,#2a2a3e);border:1px solid var(--border,#333);border-radius:8px;color:var(--text-primary,#fff);font-size:1rem;margin-top:4px;box-sizing:border-box;">
             </div>
             <div>
-                <label style="font-size:0.8rem;color:var(--text-secondary,#999);font-weight:600;">Actual Trays</label>
+                <label style="font-size:0.8rem;color:var(--text-secondary,#999);font-weight:600;" data-i18n="sow.actualTrays">Actual Trays</label>
                 <input type="number" id="ghConfirmTrays" style="width:100%;padding:12px;min-height:44px;background:var(--bg-light,#2a2a3e);border:1px solid var(--border,#333);border-radius:8px;color:var(--text-primary,#fff);font-size:1rem;margin-top:4px;box-sizing:border-box;">
             </div>
             <div>
                 <label style="display:flex;align-items:center;gap:10px;font-size:0.85rem;color:var(--text-secondary,#999);cursor:pointer;min-height:44px;padding:4px 0;">
                     <input type="checkbox" id="ghConfirmSubstituted" onchange="document.getElementById('ghSubVarietyRow').style.display=this.checked?'block':'none'" style="width:24px;height:24px;min-width:24px;">
-                    Substituted different variety
+                    <span data-i18n="sow.substituted">Substituted different variety</span>
                 </label>
                 <div id="ghSubVarietyRow" style="display:none;margin-top:4px;">
                     <input type="text" id="ghConfirmVariety" placeholder="Actual variety used" style="width:100%;padding:12px;min-height:44px;background:var(--bg-light,#2a2a3e);border:1px solid var(--border,#333);border-radius:8px;color:var(--text-primary,#fff);font-size:1rem;box-sizing:border-box;">
                 </div>
             </div>
             <div>
-                <label style="font-size:0.8rem;color:var(--text-secondary,#999);font-weight:600;">Seed Lot ID</label>
+                <label style="font-size:0.8rem;color:var(--text-secondary,#999);font-weight:600;" data-i18n="sow.seedLot">Seed Lot ID</label>
                 <input type="text" id="ghConfirmSeedLot" placeholder="e.g. LOT-2026-001" style="width:100%;padding:12px;min-height:44px;background:var(--bg-light,#2a2a3e);border:1px solid var(--border,#333);border-radius:8px;color:var(--text-primary,#fff);font-size:1rem;margin-top:4px;box-sizing:border-box;">
             </div>
             <div>
-                <label style="font-size:0.8rem;color:var(--text-secondary,#999);font-weight:600;">Notes</label>
+                <label style="font-size:0.8rem;color:var(--text-secondary,#999);font-weight:600;" data-i18n="sow.notes">Notes</label>
                 <textarea id="ghConfirmNotes" rows="2" placeholder="Any notes about this sowing" style="width:100%;padding:12px;min-height:44px;background:var(--bg-light,#2a2a3e);border:1px solid var(--border,#333);border-radius:8px;color:var(--text-primary,#fff);font-size:1rem;margin-top:4px;resize:vertical;box-sizing:border-box;"></textarea>
             </div>
         </div>
 
-        <button id="ghConfirmBtn" onclick="submitGHSowConfirm()" style="width:100%;padding:16px;min-height:48px;background:#22c55e;color:white;border:none;border-radius:10px;font-size:1rem;font-weight:700;cursor:pointer;margin-top:20px;"><i class="fas fa-check-circle"></i> Mark Complete</button>
+        <button id="ghConfirmBtn" onclick="submitGHSowConfirm()" style="width:100%;padding:16px;min-height:48px;background:#22c55e;color:white;border:none;border-radius:10px;font-size:1rem;font-weight:700;cursor:pointer;margin-top:20px;"><i class="fas fa-check-circle"></i> <span data-i18n="sow.markComplete">Mark Complete</span></button>
     </div>
 </div>
 
@@ -29393,12 +29746,12 @@
 <div id="deferModal" style="display:none;position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,0.7);align-items:flex-end;justify-content:center;" onclick="this.style.display='none'">
     <div style="background:var(--bg-card,#1e1e2e);border-radius:16px 16px 0 0;width:100%;max-width:500px;padding:1.5rem;box-shadow:0 -10px 40px rgba(0,0,0,0.5);" onclick="event.stopPropagation()">
         <div style="width:40px;height:4px;background:var(--border,#333);border-radius:2px;margin:0 auto 16px;"></div>
-        <h3 id="deferTitle" style="margin:0 0 8px;font-size:1.1rem;color:var(--text-primary,#fff);">Defer Task</h3>
-        <p style="margin:0 0 16px;font-size:0.85rem;color:var(--text-secondary,#999);">When should this task be rescheduled?</p>
+        <h3 id="deferTitle" style="margin:0 0 8px;font-size:1.1rem;color:var(--text-primary,#fff);" data-i18n="defer.title">Defer Task</h3>
+        <p style="margin:0 0 16px;font-size:0.85rem;color:var(--text-secondary,#999);" data-i18n="defer.when">When should this task be rescheduled?</p>
 
         <div style="display:flex;flex-direction:column;gap:10px;">
             <button id="deferTomorrowBtn" onclick="confirmDefer('tomorrow')" style="width:100%;padding:16px;min-height:48px;background:var(--primary,#4a7c43);color:white;border:none;border-radius:10px;font-size:1rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
-                <i class="fas fa-sun"></i> Tomorrow
+                <i class="fas fa-sun"></i> <span data-i18n="defer.tomorrow">Tomorrow</span>
             </button>
             <button id="deferMondayBtn" onclick="confirmDefer('monday')" style="width:100%;padding:14px;min-height:48px;background:var(--bg-light,#2a2a3e);color:var(--text-primary,#fff);border:1px solid var(--border,#333);border-radius:10px;font-size:0.95rem;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
                 <i class="fas fa-calendar-week"></i> <span id="deferMondayLabel">Next Monday</span>
@@ -29411,7 +29764,7 @@
             </div>
         </div>
 
-        <button onclick="document.getElementById('deferModal').style.display='none'" style="width:100%;padding:14px;min-height:48px;background:transparent;color:var(--text-secondary,#999);border:none;font-size:0.9rem;cursor:pointer;margin-top:12px;">Cancel</button>
+        <button onclick="document.getElementById('deferModal').style.display='none'" style="width:100%;padding:14px;min-height:48px;background:transparent;color:var(--text-secondary,#999);border:none;font-size:0.9rem;cursor:pointer;margin-top:12px;" data-i18n="common.cancel">Cancel</button>
     </div>
 </div>
 
