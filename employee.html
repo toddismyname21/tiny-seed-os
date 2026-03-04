@@ -9871,6 +9871,7 @@
         <!-- Compact clock-out strip (visible after clocked in) -->
         <div class="clock-out-strip" id="clockOutStrip" onclick="toggleClock()">
             <span class="elapsed" id="stripElapsed">0:00</span>
+            <span class="strip-hours" id="stripHours" style="font-size:0.75rem;opacity:0.8;"></span>
             <span class="clock-out-label"><i class="fas fa-stop"></i> <span data-i18n="clock.clockOut">Clock Out</span></span>
         </div>
 
@@ -9928,8 +9929,8 @@
                     </div>
                 </div>
 
-                <!-- Morning Brief Card -->
-                <div class="brief-card" id="mobileBrief">
+                <!-- Morning Brief Card — hidden: redundant with Work Order -->
+                <div class="brief-card" id="mobileBrief" style="display:none">
                     <div class="brief-card-header">
                         <span class="brief-card-title">🧠 Today's Brief</span>
                         <span class="brief-card-time" id="mobileBriefTime"></span>
@@ -10050,8 +10051,8 @@
                     <!-- Modes rendered dynamically based on user permissions -->
                 </div>
 
-                <!-- Clock Card -->
-                <div class="clock-card">
+                <!-- Clock Card — hidden: clock gate + strip handle this now -->
+                <div class="clock-card" style="display:none">
                     <div class="clock-time" id="clockTime">--:--</div>
                     <div class="clock-date" id="clockDate">---</div>
                     <button class="clock-btn clock-in" id="clockBtn" onclick="toggleClock()">
@@ -10092,8 +10093,8 @@
                     </div>
                 </div>
 
-                <!-- Hours Summary -->
-                <div class="hours-summary">
+                <!-- Hours Summary — hidden: moved to clock-out strip -->
+                <div class="hours-summary" style="display:none">
                     <div class="hours-card">
                         <div class="hours-value" id="hoursToday">0.0</div>
                         <div class="hours-label" data-i18n="clock.hoursToday">Hours Today</div>
@@ -10141,14 +10142,14 @@
                     <input type="file" id="quickGalleryInput" accept="image/*" style="display: none;" onchange="handleQuickPhotoSelect(event)">
                 </div>
 
-                <!-- Messages -->
-                <div class="section-header">
+                <!-- Messages — hidden: manager messages show in Work Order -->
+                <div class="section-header" style="display:none">
                     <h2 class="section-title">
                         <i class="fas fa-envelope"></i>
                         <span data-i18n="messages.title">Messages</span>
                     </h2>
                 </div>
-                <div id="messagesContainer">
+                <div id="messagesContainer" style="display:none">
                     <div class="empty-state">
                         <i class="fas fa-inbox"></i>
                         <h3 data-i18n="messages.empty">No messages</h3>
@@ -15725,8 +15726,7 @@
             // Initialize welcome banner
             initWelcomeBanner();
 
-            // Load morning brief
-            loadMobileBrief();
+            // Morning brief hidden — redundant with work order
 
             // Load Smart Work Order (AI Prescription)
             loadWorkOrder();
@@ -16401,22 +16401,25 @@
 
             var html = '';
 
-            // Pending tasks first
+            // Pending tasks — split buttons like assigned tasks
             pending.forEach(function(t) {
-                var assignBadge = t.assignedToMe
-                    ? '<span style="background:#3b82f6;color:white;font-size:0.65rem;padding:2px 6px;border-radius:4px;margin-left:6px;">ASSIGNED TO YOU</span>'
-                    : '';
                 var trayInfo = t.trayType || (t.cellsPerTray > 0 ? t.cellsPerTray + '-cell' : 'Open');
                 var seedsDisplay = t.seedsNeeded > 0 ? t.seedsNeeded.toLocaleString() + ' seeds' : '';
                 var overdue = new Date(t.plannedDate) < new Date(new Date().toISOString().split('T')[0]);
+                var bid = escapeHtml(t.batchId);
 
-                html += '<div onclick="openGHSowConfirm(\'' + t.batchId + '\')" style="background:var(--bg-light,#2a2a3e);border-radius:10px;padding:14px;cursor:pointer;border-left:4px solid ' + (overdue ? '#ef4444' : '#22c55e') + ';">';
+                html += '<div style="background:var(--bg-light,#2a2a3e);border-radius:12px;padding:14px;border-left:4px solid ' + (overdue ? '#ef4444' : '#22c55e') + ';">';
                 html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;">';
-                html += '<div><strong style="color:var(--text-primary,#fff);font-size:0.95rem;">' + escapeHtml(t.crop) + '</strong><span style="color:var(--text-secondary,#999);font-size:0.85rem;margin-left:6px;">' + escapeHtml(t.variety) + '</span>' + assignBadge + '</div>';
+                html += '<div><strong style="color:var(--text-primary,#fff);font-size:0.95rem;">' + escapeHtml(t.crop) + '</strong><span style="color:var(--text-secondary,#999);font-size:0.85rem;margin-left:6px;">' + escapeHtml(t.variety) + '</span></div>';
                 html += '<span style="font-size:0.75rem;color:' + (overdue ? '#ef4444' : 'var(--text-secondary,#999)') + ';">' + t.plannedDate + '</span>';
                 html += '</div>';
                 html += '<div style="font-size:0.8rem;color:var(--text-secondary,#999);margin-top:6px;">' + t.trays + ' trays \u2022 ' + trayInfo + (seedsDisplay ? ' \u2022 ' + seedsDisplay : '') + '</div>';
                 if (t.seedLotUsed) html += '<div style="font-size:0.75rem;color:#3b82f6;margin-top:4px;"><i class="fas fa-tag"></i> ' + escapeHtml(t.seedLotUsed) + '</div>';
+                // Split buttons — same as assigned task cards
+                html += '<div style="margin-top:10px;">';
+                html += '<button class="task-done-btn sow-done" onclick="event.stopPropagation();quickCompleteGHSow(\'' + bid + '\')"><i class="fas fa-seedling"></i> ' + t('sow.seededAsPlanned') + '</button>';
+                html += '<button class="task-changes-btn" onclick="event.stopPropagation();openGHSowConfirm(\'' + bid + '\')"><i class="fas fa-pen"></i> ' + t('sow.changesNeeded') + '</button>';
+                html += '</div>';
                 html += '</div>';
             });
 
@@ -16436,6 +16439,47 @@
             list.innerHTML = html || '<div style="color:var(--text-secondary);font-size:0.85rem;padding:12px;">No greenhouse sowing tasks in range</div>';
         }
 
+        // Quick complete GH sowing from home page — one tap, seeded as planned
+        async function quickCompleteGHSow(batchId) {
+            var task = ghSowTasks.find(function(t) { return t.batchId === batchId; });
+            if (!task || task.completed) return;
+
+            var emp = AppState.employee || {};
+            var todayStr = new Date().toISOString().split('T')[0];
+
+            var sowPayload = {
+                action: 'confirmGHSowing',
+                batchId: batchId,
+                employeeId: emp.Employee_ID || '',
+                employeeName: (emp.First_Name || '') + ' ' + (emp.Last_Name || ''),
+                actualDate: todayStr,
+                actualTrays: parseInt(task.trays) || 0,
+                actualVariety: '',
+                substituted: false,
+                seedLotId: task.seedLotUsed || '',
+                notes: ''
+            };
+
+            if (navigator.vibrate) navigator.vibrate([50, 50, 100]);
+
+            try {
+                if (navigator.onLine) {
+                    await fetch(CONFIG.API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(sowPayload) });
+                } else if (typeof OfflineDB !== 'undefined' && OfflineDB.queueOperation) {
+                    await OfflineDB.queueOperation('confirmGHSowing', sowPayload);
+                }
+
+                task.completed = true;
+                task.actualDate = todayStr;
+                task.completedBy = sowPayload.employeeName;
+                renderGHSowingTasks();
+                showToast(t('sow.confirmed'), 'success');
+            } catch (err) {
+                console.error('quickCompleteGHSow error:', err);
+                showToast(t('sow.saveFailed'), 'error');
+            }
+        }
+
         function openGHSowConfirm(batchId) {
             var task = ghSowTasks.find(function(t) { return t.batchId === batchId; });
             if (!task || task.completed) return;
@@ -16452,7 +16496,7 @@
             document.getElementById('ghConfirmSeedLot').value = task.seedLotUsed || '';
             document.getElementById('ghConfirmNotes').value = '';
 
-            // Store batchId for submission (GH dashboard source)
+            // Store batchId for submission (GH home source — same behavior as ghDashboard)
             document.getElementById('ghConfirmBtn').setAttribute('data-batch-id', batchId);
             document.getElementById('ghConfirmBtn').setAttribute('data-source', 'ghDashboard');
             document.getElementById('ghConfirmBtn').removeAttribute('data-task-id');
@@ -16785,6 +16829,10 @@
                 var mins = totalMin % 60;
                 var stripEl = document.getElementById('stripElapsed');
                 if (stripEl) stripEl.textContent = hrs + ':' + (mins < 10 ? '0' : '') + mins + ' ' + t('gate.clockedIn');
+
+                // Update strip hours display
+                var stripHrs = document.getElementById('stripHours');
+                if (stripHrs) stripHrs.textContent = elapsed.toFixed(1) + 'h today';
             }
         }
 
