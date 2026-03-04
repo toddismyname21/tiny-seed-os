@@ -218,7 +218,7 @@
             .clock-gate.hidden {
                 display: none;
             }
-            .clock-out-strip {
+            .clock-strip {
                 max-width: 500px;
                 margin: 0 auto;
             }
@@ -1429,28 +1429,47 @@
             cursor: pointer;
         }
 
-        /* Compact clock-out strip (visible after clocked in) */
-        .clock-out-strip {
-            display: none;
-            background: var(--danger, #ef4444);
+        /* Clock strip — always visible, dual state */
+        .clock-strip {
+            display: flex;
             color: white;
-            padding: 8px 16px;
+            padding: 10px 16px;
             align-items: center;
             justify-content: space-between;
             font-size: 0.85rem;
             cursor: pointer;
+            min-height: 44px;
         }
-        .clock-out-strip.visible {
+        .clock-strip-in {
             display: flex;
+            width: 100%;
+            align-items: center;
+            justify-content: space-between;
         }
-        .clock-out-strip .elapsed {
-            font-weight: 600;
+        .clock-strip-out {
+            display: flex;
+            width: 100%;
+            align-items: center;
+            justify-content: space-between;
         }
-        .clock-out-strip .clock-out-label {
+        .clock-strip-label {
             display: flex;
             align-items: center;
             gap: 6px;
             font-weight: 600;
+        }
+        .clock-strip-hint {
+            font-size: 0.8rem;
+            opacity: 0.85;
+        }
+        .clock-strip .elapsed {
+            font-weight: 600;
+        }
+        .clock-strip.clocked-in {
+            background: var(--danger, #ef4444);
+        }
+        .clock-strip.not-clocked-in {
+            background: var(--success, #22c55e);
         }
 
         .hours-summary {
@@ -9856,24 +9875,23 @@
 
     <!-- Main App -->
     <div id="mainApp" class="screen">
-        <!-- Clock Gate — shown until employee clocks in -->
-        <div class="clock-gate" id="clockGate">
-            <button class="clock-gate-lang" onclick="toggleLanguage();updateClockGateText()" id="clockGateLang">EN</button>
-            <div class="clock-gate-time" id="clockGateTime">--:--</div>
-            <div class="clock-gate-date" id="clockGateDate">---</div>
-            <div class="clock-gate-greeting" id="clockGateGreeting" data-i18n="gate.greeting">Ready to start your day?</div>
-            <button class="clock-gate-btn" onclick="toggleClock()" id="clockGateBtn">
-                <i class="fas fa-play"></i>
-                <span data-i18n="clock.clockIn">Clock In</span>
-            </button>
+        <!-- Clock strip — always visible, changes state based on clock status -->
+        <div class="clock-strip" id="clockStrip" onclick="toggleClock()">
+            <!-- Clock-in state (green) -->
+            <div class="clock-strip-in" id="clockStripIn">
+                <span class="clock-strip-label"><i class="fas fa-play"></i> <span data-i18n="clock.clockIn">Clock In</span></span>
+                <span class="clock-strip-hint" data-i18n="clock.tapToStart">Tap to start your shift</span>
+            </div>
+            <!-- Clock-out state (red) -->
+            <div class="clock-strip-out" id="clockStripOut" style="display:none;">
+                <span class="elapsed" id="stripElapsed">0:00</span>
+                <span class="strip-hours" id="stripHours" style="font-size:0.75rem;opacity:0.8;"></span>
+                <span class="clock-strip-label"><i class="fas fa-stop"></i> <span data-i18n="clock.clockOut">Clock Out</span></span>
+            </div>
         </div>
 
-        <!-- Compact clock-out strip (visible after clocked in) -->
-        <div class="clock-out-strip" id="clockOutStrip" onclick="toggleClock()">
-            <span class="elapsed" id="stripElapsed">0:00</span>
-            <span class="strip-hours" id="stripHours" style="font-size:0.75rem;opacity:0.8;"></span>
-            <span class="clock-out-label"><i class="fas fa-stop"></i> <span data-i18n="clock.clockOut">Clock Out</span></span>
-        </div>
+        <!-- Keep hidden gate elements so existing JS doesn't error -->
+        <div id="clockGate" class="clock-gate hidden" style="display:none;"></div>
 
         <!-- Header -->
         <header class="app-header">
@@ -15067,6 +15085,7 @@
                 'auth.invalid': 'Invalid PIN. Please try again.',
                 'clock.clockIn': 'Clock In',
                 'clock.clockOut': 'Clock Out',
+                'clock.tapToStart': 'Tap to start your shift',
                 'clock.hoursToday': 'Hours Today',
                 'clock.weeklyHours': 'This Week',
                 'clock.notClockedIn': 'Not clocked in',
@@ -15227,6 +15246,7 @@
                 'auth.invalid': 'PIN invalido. Intente de nuevo.',
                 'clock.clockIn': 'Entrada',
                 'clock.clockOut': 'Salida',
+                'clock.tapToStart': 'Toca para iniciar tu turno',
                 'clock.hoursToday': 'Horas Hoy',
                 'clock.weeklyHours': 'Esta Semana',
                 'clock.notClockedIn': 'Sin registrar entrada',
@@ -15740,8 +15760,7 @@
             // Restore clock state from localStorage
             restoreClockState();
 
-            // Update clock gate greeting with employee name
-            updateClockGateText();
+            // Set clock strip state
             updateClockUI();
             startClock();
 
@@ -16809,11 +16828,7 @@
             document.getElementById('clockTime').textContent = timeStr;
             document.getElementById('clockDate').textContent = dateStr;
 
-            // Update clock gate time display
-            var gateTime = document.getElementById('clockGateTime');
-            var gateDate = document.getElementById('clockGateDate');
-            if (gateTime) gateTime.textContent = timeStr;
-            if (gateDate) gateDate.textContent = dateStr;
+            // Gate removed — clock strip handles clock state
 
             // Update hours if clocked in
             if (AppState.isClockedIn && AppState.clockInTime) {
@@ -16836,45 +16851,36 @@
         function updateClockUI() {
             const btn = document.getElementById('clockBtn');
             const status = document.getElementById('headerStatus');
-            const gate = document.getElementById('clockGate');
-            const strip = document.getElementById('clockOutStrip');
+            const clockStrip = document.getElementById('clockStrip');
+            const stripIn = document.getElementById('clockStripIn');
+            const stripOut = document.getElementById('clockStripOut');
 
             if (AppState.isClockedIn) {
                 btn.className = 'clock-btn clock-out';
                 btn.innerHTML = `<i class="fas fa-stop"></i><span>${t('clock.clockOut')}</span>`;
                 status.textContent = t('clock.clockedIn');
                 status.classList.add('clocked-in');
-                // Hide gate, show strip
-                if (gate) gate.classList.add('hidden');
-                if (strip) strip.classList.add('visible');
+                // Strip: show clock-out state
+                if (clockStrip) { clockStrip.className = 'clock-strip clocked-in'; }
+                if (stripIn) stripIn.style.display = 'none';
+                if (stripOut) stripOut.style.display = 'flex';
             } else {
                 btn.className = 'clock-btn clock-in';
                 btn.innerHTML = `<i class="fas fa-play"></i><span>${t('clock.clockIn')}</span>`;
                 status.textContent = t('clock.notClockedIn');
                 status.classList.remove('clocked-in');
-                // Show gate, hide strip
-                if (gate) gate.classList.remove('hidden');
-                if (strip) strip.classList.remove('visible');
+                // Strip: show clock-in state
+                if (clockStrip) { clockStrip.className = 'clock-strip not-clocked-in'; }
+                if (stripIn) stripIn.style.display = 'flex';
+                if (stripOut) stripOut.style.display = 'none';
             }
         }
 
-        function updateClockGateText() {
-            var gate = document.getElementById('clockGate');
-            if (!gate) return;
-            var greeting = gate.querySelector('#clockGateGreeting');
-            var name = AppState.employee ? (AppState.employee.First_Name || '') : '';
-            if (greeting) {
-                greeting.textContent = name ? (AppState.language === 'es' ? 'Hola ' + name + '! Listo para comenzar?' : 'Hey ' + name + '! Ready to start?') : t('gate.greeting');
-            }
-            var langBtn = document.getElementById('clockGateLang');
-            if (langBtn) langBtn.textContent = AppState.language.toUpperCase();
-        }
+        // Gate removed — clock strip is non-blocking
 
         async function toggleClock() {
             const btn = document.getElementById('clockBtn');
-            const gateBtn = document.getElementById('clockGateBtn');
             btn.disabled = true;
-            if (gateBtn) gateBtn.disabled = true;
 
             try {
                 const gps = await captureGPS();
@@ -16949,7 +16955,6 @@
             }
 
             btn.disabled = false;
-            if (gateBtn) gateBtn.disabled = false;
         }
 
         // Restore clock state on page load
