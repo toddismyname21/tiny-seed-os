@@ -1,0 +1,264 @@
+name: Post-Deploy Audit
+
+# Runs after GitHub Pages deploys — validates changed files on the live site
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '*.html'
+      - 'web_app/**/*.html'
+      - 'web_app/**/*.js'
+      - 'web_app/**/*.css'
+      - 'web_app/api-config.js'
+
+jobs:
+  post-deploy-audit:
+    name: Post-Deploy Validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2  # Need HEAD~1 for diff
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Wait for GitHub Pages deploy
+        run: sleep 90
+
+      - name: Get changed files
+        id: changed
+        run: |
+          # Get HTML files changed in this push
+          CHANGED_HTML=$(git diff --name-only HEAD~1 HEAD -- '*.html' 'web_app/*.html' | head -20)
+          echo "html_files<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGED_HTML" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+          # Count for summary
+          HTML_COUNT=$(echo "$CHANGED_HTML" | grep -c '.html$' || echo "0")
+          echo "html_count=$HTML_COUNT" >> $GITHUB_OUTPUT
+
+          # Get all changed code files
+          CHANGED_CODE=$(git diff --name-only HEAD~1 HEAD -- '*.html' '*.js' '*.css' 'web_app/*.html' 'web_app/*.js' 'web_app/*.css')
+          echo "code_files<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGED_CODE" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Validate element references
+        id: element-refs
+        if: steps.changed.outputs.html_count != '0'
+        run: |
+          ERRORS=""
+          while IFS= read -r file; do
+            [ -z "$file" ] && continue
+            [ ! -f "$file" ] && continue
+            if [ -x "./scripts/validate-element-refs.sh" ]; then
+              RESULT=$(./scripts/validate-element-refs.sh "$file" 2>&1) || {
+                ERRORS="${ERRORS}${file}: ${RESULT}\n"
+              }
+            fi
+          done <<< "${{ steps.changed.outputs.html_files }}"
+
+          if [ -n "$ERRORS" ]; then
+            echo "status=FAIL" >> $GITHUB_OUTPUT
+            echo "errors<<EOF" >> $GITHUB_OUTPUT
+            echo -e "$ERRORS" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          else
+            echo "status=PASS" >> $GITHUB_OUTPUT
+          fi
+        continue-on-error: true
+
+      - name: Validate API URLs
+        id: api-urls
+        run: |
+          if [ -x "./scripts/validate-api-urls.sh" ]; then
+            RESULT=$(./scripts/validate-api-urls.sh 2>&1) && {
+              echo "status=PASS" >> $GITHUB_OUTPUT
+            } || {
+              echo "status=FAIL" >> $GITHUB_OUTPUT
+              echo "errors<<EOF" >> $GITHUB_OUTPUT
+              echo "$RESULT" >> $GITHUB_OUTPUT
+              echo "EOF" >> $GITHUB_OUTPUT
+            }
+          else
+            echo "status=SKIP" >> $GITHUB_OUTPUT
+          fi
+        continue-on-error: true
+
+      - name: Verify pages are live (HTTP 200)
+        id: live-check
+        run: |
+          LIVE_URL="https://app.tinyseedfarm.com"
+          ERRORS=""
+          PASS=0
+          FAIL=0
+
+          while IFS= read -r file; do
+            [ -z "$file" ] && continue
+            [[ "$file" != *.html ]] && continue
+
+            # Build the URL path
+            if [[ "$file" == web_app/* ]]; then
+              URL_PATH="${file#web_app/}"
+            else
+              URL_PATH="$file"
+            fi
+
+            HTTP_CODE=$(curl -sL -o /dev/null -w "%{http_code}" "${LIVE_URL}/${URL_PATH}" 2>/dev/null || echo "000")
+
+            if [ "$HTTP_CODE" = "200" ]; then
+              PASS=$((PASS + 1))
+            else
+              FAIL=$((FAIL + 1))
+              ERRORS="${ERRORS}${URL_PATH}: HTTP ${HTTP_CODE}\n"
+            fi
+          done <<< "${{ steps.changed.outputs.html_files }}"
+
+          echo "pass=$PASS" >> $GITHUB_OUTPUT
+          echo "fail=$FAIL" >> $GITHUB_OUTPUT
+
+          if [ -n "$ERRORS" ]; then
+            echo "status=FAIL" >> $GITHUB_OUTPUT
+            echo "errors<<EOF" >> $GITHUB_OUTPUT
+            echo -e "$ERRORS" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          else
+            echo "status=PASS" >> $GITHUB_OUTPUT
+          fi
+        continue-on-error: true
+
+      - name: Spot-check key pages for content
+        id: content-check
+        run: |
+          LIVE_URL="https://app.tinyseedfarm.com"
+          KEY_PAGES="index.html web_app/greenhouse-dashboard.html web_app/sales.html"
+          ERRORS=""
+
+          for page in $KEY_PAGES; do
+            if [[ "$page" == web_app/* ]]; then
+              URL_PATH="${page#web_app/}"
+            else
+              URL_PATH="$page"
+            fi
+
+            CONTENT_LENGTH=$(curl -sL "${LIVE_URL}/${URL_PATH}" 2>/dev/null | wc -c)
+
+            if [ "$CONTENT_LENGTH" -lt 500 ]; then
+              ERRORS="${ERRORS}${URL_PATH}: only ${CONTENT_LENGTH} bytes (expected >500)\n"
+            fi
+          done
+
+          if [ -n "$ERRORS" ]; then
+            echo "status=FAIL" >> $GITHUB_OUTPUT
+            echo "errors<<EOF" >> $GITHUB_OUTPUT
+            echo -e "$ERRORS" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          else
+            echo "status=PASS" >> $GITHUB_OUTPUT
+          fi
+        continue-on-error: true
+
+      - name: Run UX preflight audit
+        id: ux-preflight
+        if: steps.changed.outputs.html_count != '0'
+        run: |
+          WARNINGS=""
+          while IFS= read -r file; do
+            [ -z "$file" ] && continue
+            [ ! -f "$file" ] && continue
+            if [ -x "./scripts/ux-preflight-audit.sh" ]; then
+              RESULT=$(./scripts/ux-preflight-audit.sh "$file" 2>&1) || {
+                WARNINGS="${WARNINGS}${file}: ${RESULT}\n"
+              }
+            fi
+          done <<< "${{ steps.changed.outputs.html_files }}"
+
+          if [ -n "$WARNINGS" ]; then
+            echo "status=WARN" >> $GITHUB_OUTPUT
+            echo "warnings<<EOF" >> $GITHUB_OUTPUT
+            echo -e "$WARNINGS" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          else
+            echo "status=PASS" >> $GITHUB_OUTPUT
+          fi
+        continue-on-error: true
+
+      - name: Generate audit summary
+        run: |
+          echo "## Post-Deploy Audit Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Changed HTML files:** ${{ steps.changed.outputs.html_count }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Check | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Element References | ${{ steps.element-refs.outputs.status || 'SKIP' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| API URL Validation | ${{ steps.api-urls.outputs.status || 'SKIP' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Live Page HTTP 200 | ${{ steps.live-check.outputs.status || 'SKIP' }} (${{ steps.live-check.outputs.pass || 0 }} pass, ${{ steps.live-check.outputs.fail || 0 }} fail) |" >> $GITHUB_STEP_SUMMARY
+          echo "| Content Spot-Check | ${{ steps.content-check.outputs.status || 'SKIP' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| UX Preflight | ${{ steps.ux-preflight.outputs.status || 'SKIP' }} |" >> $GITHUB_STEP_SUMMARY
+
+          # Show errors if any
+          if [ "${{ steps.element-refs.outputs.status }}" = "FAIL" ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Element Reference Errors" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "${{ steps.element-refs.outputs.errors }}" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ steps.live-check.outputs.status }}" = "FAIL" ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Live Page Failures" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "${{ steps.live-check.outputs.errors }}" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Post commit comment with results
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const elementRefs = '${{ steps.element-refs.outputs.status || "SKIP" }}';
+            const apiUrls = '${{ steps.api-urls.outputs.status || "SKIP" }}';
+            const liveCheck = '${{ steps.live-check.outputs.status || "SKIP" }}';
+            const contentCheck = '${{ steps.content-check.outputs.status || "SKIP" }}';
+            const uxPreflight = '${{ steps.ux-preflight.outputs.status || "SKIP" }}';
+            const htmlCount = '${{ steps.changed.outputs.html_count }}';
+
+            const allPass = [elementRefs, apiUrls, liveCheck, contentCheck].every(
+              s => s === 'PASS' || s === 'SKIP'
+            );
+
+            const emoji = allPass ? '✅' : '⚠️';
+            const title = allPass ? 'Post-Deploy Audit PASSED' : 'Post-Deploy Audit has WARNINGS';
+
+            const body = `## ${emoji} ${title}
+
+            **Changed HTML files:** ${htmlCount}
+
+            | Check | Status |
+            |-------|--------|
+            | Element References | ${elementRefs} |
+            | API URL Validation | ${apiUrls} |
+            | Live HTTP 200 | ${liveCheck} |
+            | Content Spot-Check | ${contentCheck} |
+            | UX Preflight | ${uxPreflight} |
+
+            ---
+            *Auto-generated by Post-Deploy Audit*`;
+
+            await github.rest.repos.createCommitComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+              body: body
+            });

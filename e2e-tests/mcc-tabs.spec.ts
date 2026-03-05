@@ -13,21 +13,8 @@
 
 import { test, expect, Page } from '@playwright/test';
 
-// Configure Playwright for this test file
-test.use({
-  // Use Chromium in headless mode
-  browserName: 'chromium',
-  headless: true,
-  // Set viewport for consistent testing
-  viewport: { width: 1280, height: 800 },
-  // Take screenshot on failure
-  screenshot: 'only-on-failure',
-  // Trace on first retry
-  trace: 'on-first-retry',
-});
-
-// Base URL for the MCC page (with test_mode to bypass auth)
-const MCC_URL = process.env.MCC_URL || 'http://localhost:3000/marketing-command-center.html?test_mode=true&ci=true';
+// MCC page path (auth bypassed via localStorage in beforeEach)
+const MCC_PATH = '/web_app/marketing-command-center.html';
 
 // All tabs that should be tested
 const MCC_TABS = [
@@ -83,10 +70,12 @@ async function verifyTabContent(page: Page, tabName: TabName): Promise<void> {
 
 test.describe('MCC Tab Smoke Tests', () => {
   test.beforeEach(async ({ page }) => {
-    // Navigate to the MCC page
-    await page.goto(MCC_URL, { waitUntil: 'domcontentloaded' });
+    // Set localStorage BEFORE any page JS runs — immune to server query-param stripping
+    await page.addInitScript(() => {
+      localStorage.setItem('test_mode', 'true');
+    });
 
-    // Wait for the page to fully load
+    await page.goto(MCC_PATH, { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('.tab-nav', { timeout: 30000 });
   });
 

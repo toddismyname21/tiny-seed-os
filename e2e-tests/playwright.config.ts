@@ -1,28 +1,23 @@
 import { defineConfig, devices } from '@playwright/test';
 
 /**
- * Playwright configuration for MCC Tab Smoke Tests
+ * Playwright configuration for Tiny Seed OS E2E Tests
  *
- * This configuration is optimized for CI/CD environments
- * to catch "black tab" bugs before deployment.
+ * Covers MCC tab smoke tests, all-page smoke tests, and more.
+ * Auth bypass: uses addInitScript to set localStorage.test_mode=true
+ * before any page JS runs (immune to server query-param stripping).
  */
 export default defineConfig({
-  // Look for test files in the e2e-tests directory
   testDir: '.',
 
-  // Run tests in files in parallel
-  fullyParallel: false,
+  fullyParallel: true,
 
-  // Fail the build on CI if you accidentally left test.only in the source code
   forbidOnly: !!process.env.CI,
 
-  // Retry on CI only
   retries: process.env.CI ? 2 : 0,
 
-  // Opt out of parallel tests - run serially for tab tests
-  workers: 1,
+  workers: process.env.CI ? 2 : undefined,
 
-  // Reporter configuration
   reporter: process.env.CI
     ? [
         ['list'],
@@ -31,57 +26,54 @@ export default defineConfig({
       ]
     : [['list']],
 
-  // Shared settings for all the projects below
   use: {
-    // Base URL for the MCC page
-    baseURL: process.env.MCC_URL || 'http://localhost:3000',
+    baseURL: process.env.BASE_URL || 'http://localhost:3000',
 
-    // Collect trace when retrying the failed test
+    // Auth bypass: set localStorage BEFORE any page JS executes
+    // This replaces ?test_mode=true query params which get stripped by some servers
+    storageState: undefined,
+
     trace: 'on-first-retry',
-
-    // Screenshot on failure
     screenshot: 'only-on-failure',
-
-    // Video on failure (CI only for storage reasons)
     video: process.env.CI ? 'on-first-retry' : 'off',
-
-    // Timeout for each action
     actionTimeout: 5000,
-
-    // Timeout for navigation
     navigationTimeout: 30000,
   },
 
-  // Configure projects for major browsers
   projects: [
     {
-      name: 'chromium',
+      name: 'Desktop Chrome',
       use: {
         ...devices['Desktop Chrome'],
-        // Use headless mode
+        headless: true,
+      },
+    },
+    {
+      name: 'Mobile Pixel 5',
+      use: {
+        ...devices['Pixel 5'],
         headless: true,
       },
     },
   ],
 
-  // Global timeout for each test
   timeout: 30000,
 
-  // Expect timeout
   expect: {
     timeout: 5000,
   },
 
-  // Output folder for test artifacts
   outputDir: 'test-results/',
 
-  // Run local dev server before starting the tests (development only)
+  // Serve from project root (not web_app/) so both root HTML and web_app/ are accessible
   webServer: process.env.CI
     ? undefined
     : {
-        command: 'npx serve ../web_app -l 3000',
+        command: 'npx http-server .. -p 3000 --cors -s',
         port: 3000,
-        reuseExistingServer: !process.env.CI,
+        reuseExistingServer: true,
         timeout: 120000,
       },
+
+  globalSetup: undefined,
 });

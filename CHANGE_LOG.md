@@ -38,6 +38,37 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-03-05 — PM_ARCHITECT: Automated Testing & QA System (3-Layer)
+
+### Files Created
+- `e2e-tests/all-pages-smoke.spec.ts` — All-pages smoke test: auto-discovers 55 web_app/ pages + 20 root pages, loads each with auth bypass, verifies HTTP 200, no critical JS errors, non-empty body content
+- `.github/workflows/e2e-smoke-tests.yml` — E2E smoke test CI: runs on push to main + PRs, replaces disabled mcc-tab-smoke-tests.yml with fixed auth and server
+- `.github/workflows/post-deploy-audit.yml` — Post-deploy audit CI: triggers on HTML/JS/CSS pushes, waits for GitHub Pages, validates element refs, API URLs, HTTP 200 on live site, content spot-checks, UX preflight, posts commit comment with results
+- `.claude/skills/full-audit/SKILL.md` — `/full-audit` skill: runs element refs + API URLs + UX preflight + full security audit
+- `.claude/skills/ux-audit/SKILL.md` — `/ux-audit` skill: Lighthouse + a11y + Playwright screenshots + Claude vision analysis with farm-worker persona
+- `.claude/skills/smoke-test/SKILL.md` — `/smoke-test` skill: interactive smoke testing via Playwright MCP with --all and --changed modes
+- `.claude/skills/visual-baseline/SKILL.md` — `/visual-baseline` skill: capture desktop+mobile screenshots of priority pages
+- `.claude/skills/visual-diff/SKILL.md` — `/visual-diff` skill: compare current screenshots vs baselines using image-compare MCP
+
+### Files Modified
+- `e2e-tests/playwright.config.ts` — Fixed auth bypass: removed query param dependency, serves from project root (not web_app/), added Mobile Pixel 5 project, enabled parallel workers
+- `e2e-tests/mcc-tabs.spec.ts` — Fixed auth bypass: uses `addInitScript(() => localStorage.setItem('test_mode', 'true'))` instead of `?test_mode=true` query param
+- `.claude/skills/deploy-frontend/SKILL.md` — Enhanced with 4 post-deploy validation steps: HTTP 200 check, element refs, API URLs, UX preflight
+- `package.json` — Added test scripts (test, test:mcc, test:smoke, test:audit, test:validate) and devDependencies (@playwright/test, http-server)
+
+### Files Deleted
+- `.github/workflows/mcc-tab-smoke-tests.yml` — Replaced by e2e-smoke-tests.yml (was disabled due to auth redirect issue, now fixed)
+
+### Reason
+User requested automated testing to catch bugs before they reach the live site. Research identified 6 MCP testing tools configured but never used, and Playwright smoke tests disabled due to auth param stripping. This implements a 3-layer QA system: Layer 1 (deterministic validation via CI), Layer 2 (behavioral E2E via Playwright), Layer 3 (UX evaluation via MCP tools + Claude vision). The root cause of disabled tests — `npx serve` stripping query params — is fixed by using `addInitScript` to set localStorage before page JS runs.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
 ## 2026-03-05 — PM_ARCHITECT: Summary Updates Live When Rows Unchecked
 
 ### Files Modified
