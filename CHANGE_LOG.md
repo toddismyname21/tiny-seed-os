@@ -38,6 +38,29 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-03-05 - PM_ARCHITECT
+
+### URGENT: Disable All SMS/Twilio (Stop Charges)
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` - Set TWILIO_CONFIG.ENABLED = false; removed hardcoded Twilio credentials from setupTwilioCredentials(); replaced hardcoded TODD_PHONE with Script Properties; added ENABLED check to 3 bypass functions (CSA verification SMS, testTwilioSMSDiagnostic, test SMS sender)
+- `apps_script/ClaudeCoordination.js` - Added TWILIO_CONFIG.ENABLED check to sendTwilioSMS()
+- `employee.html` - Fixed form login page-reload bug (added return false + JS backup listener)
+
+### Reason
+Owner reported $100+ in Twilio charges for SMS that were never received. Audit found 100+ sendSMS call sites, 7+ scheduled triggers, and hardcoded phone numbers/credentials throughout the codebase. All SMS disabled immediately. System must be properly configured with correct phone numbers before re-enabling.
+
+### Security Fixes
+- Removed hardcoded Twilio Account SID + Auth Token from setupTwilioCredentials()
+- Removed hardcoded personal phone numbers (replaced with Script Properties lookup)
+- Credentials exposed in git history — must be rotated in Twilio console
+
+### Deployed
+- Backend: clasp deploy v737
+- Frontend: git push (GitHub Pages)
+
+---
+
 ## 2026-03-05 — Employee App: Dual Login Flow + Push Notifications + Hour Tracking (PM_ARCHITECT)
 
 ### Files Modified
