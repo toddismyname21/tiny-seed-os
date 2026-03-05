@@ -1989,28 +1989,41 @@
             listEl.innerHTML = '<div style="color:var(--text-secondary);text-align:center;padding:12px;"><i class="fas fa-spinner fa-spin"></i> Loading employees...</div>';
             try {
                 var res = await fetch(API_URL + '?action=getAllEmployees', { redirect: 'follow' });
-                var data = await res.json();
+                // Check for non-JSON response (e.g. Google OAuth redirect page)
+                var contentType = res.headers.get('content-type') || '';
+                if (!contentType.includes('json') && !contentType.includes('text/plain')) {
+                    throw new Error('API returned non-JSON response (status ' + res.status + ')');
+                }
+                var text = await res.text();
+                var data;
+                try { data = JSON.parse(text); } catch (parseErr) {
+                    throw new Error('Invalid JSON from API');
+                }
                 if (data.success && data.employees && data.employees.length > 0) {
-                    var active = data.employees.filter(function(e) { return e.Status === 'Active'; });
+                    // Filter active employees — check Status, Is_Active, and role
+                    var active = data.employees.filter(function(e) {
+                        return e.Status === 'Active' || e.Is_Active === true || e.Is_Active === 'TRUE';
+                    });
                     if (active.length === 0) active = data.employees; // Show all if none marked Active
                     var html = '';
                     active.forEach(function(emp) {
-                        var empId = emp.Employee_ID || emp.User_ID || emp.email || '';
+                        var empId = emp.User_ID || emp.Employee_ID || emp.email || '';
                         var empName = emp.Full_Name || emp.First_Name || emp.Name || emp.email || 'Unknown';
+                        var role = emp.Role ? ' <span style="font-size:0.75rem;color:var(--text-secondary);">(' + esc(emp.Role) + ')</span>' : '';
                         html += '<label style="display:flex;align-items:center;gap:8px;padding:8px;border-radius:6px;cursor:pointer;margin-bottom:4px;" onmouseover="this.style.background=\'var(--bg-light)\'" onmouseout="this.style.background=\'transparent\'">';
                         html += '<input type="checkbox" class="assign-emp-check" value="' + esc(empId) + '" data-name="' + esc(empName) + '" style="width:18px;height:18px;">';
-                        html += '<span style="color:var(--text-primary);font-size:0.9rem;">' + esc(empName) + '</span>';
+                        html += '<span style="color:var(--text-primary);font-size:0.9rem;">' + esc(empName) + role + '</span>';
                         html += '</label>';
                     });
                     listEl.innerHTML = html;
                 } else if (data.success) {
-                    listEl.innerHTML = '<div style="color:var(--text-secondary);padding:12px;">No employees found. You can still print without assigning.</div>';
+                    listEl.innerHTML = '<div style="color:var(--text-secondary);padding:12px;">No employees found in the USERS sheet. You can still print without assigning.</div>';
                 } else {
                     listEl.innerHTML = '<div style="color:var(--danger);padding:12px;"><i class="fas fa-exclamation-triangle"></i> ' + esc(data.error || 'Failed to load employees') + '<br><span style="font-size:0.8rem;color:var(--text-secondary);">You can still print without assigning.</span></div>';
                 }
             } catch (e) {
-                listEl.innerHTML = '<div style="color:var(--danger);padding:12px;"><i class="fas fa-exclamation-triangle"></i> Network error loading employees<br><span style="font-size:0.8rem;color:var(--text-secondary);">You can still print without assigning.</span></div>';
                 console.error('loadEmployeesForAssign error:', e);
+                listEl.innerHTML = '<div style="color:var(--danger);padding:12px;"><i class="fas fa-exclamation-triangle"></i> Could not load employees: ' + esc(e.message) + '<br><span style="font-size:0.8rem;color:var(--text-secondary);">You can still print without assigning.</span></div>';
             }
         }
 
@@ -2107,156 +2120,130 @@
             });
         }
 
-        // Actual print logic (formerly the body of printSheet)
+        // WYSIWYG print — prints EXACTLY what you see in the preview
         function executePrint() {
-            const startDate = document.getElementById('startDate').value;
-            const endDate = document.getElementById('endDate').value;
-            const config = taskTypeConfig[currentTaskType];
-            const dateField = config.dateField;
+            flushDirtyToTasks();
 
-            // Print only selected (filtered + not excluded) tasks
-            let sortedTasks = [...getSelectedTasks()];
-            if (currentSort === 'date') {
-                sortedTasks.sort((a, b) => new Date(a[dateField]) - new Date(b[dateField]) || a.crop.localeCompare(b.crop));
-            } else {
-                sortedTasks.sort((a, b) => a.crop.localeCompare(b.crop));
-            }
+            // Clone the sheet container HTML
+            var container = document.getElementById('sheetContainer');
+            var clone = container.cloneNode(true);
 
-            // Build column definitions for TinySeedPrint.sheet()
-            let columns, rowMapper;
-
-            // Helper: shorten tray type for print (e.g. "Paperpot 264 — 4"" → "PP 264-4in")
-            function shortTrayType(task) {
-                var tt = task.trayType || '';
-                if (!tt && task.cellsPerTray > 0) return task.cellsPerTray + '-cell';
-                if (!tt) return task.cellsPerTray === 0 ? 'Open' : '';
-                // Shorten paperpot names
-                var ppMatch = tt.match(/paperpot\s*(\d+)\s*[—–-]\s*(\d+)/i);
-                if (ppMatch) return 'PP ' + ppMatch[1] + '-' + ppMatch[2] + 'in';
-                return tt;
-            }
-
-            if (currentTaskType === 'ghSow') {
-                columns = [
-                    { key: 'check',   label: '\u2610',   width: 20 },
-                    { key: 'date',    label: 'Date',     width: 52 },
-                    { key: 'crop',    label: 'Crop',     width: 85 },
-                    { key: 'variety', label: 'Variety' },
-                    { key: 'trays',   label: 'Trays',    width: 38 },
-                    { key: 'cells',   label: 'Tray Type', width: 68 },
-                    { key: 'seeds',   label: 'Seeds',    width: 48 },
-                    { key: 'notes',   label: 'Notes',    width: 75 }
-                ];
-                rowMapper = function(task) {
-                    var isOpen = task.cellsPerTray === 0 && (task.trayType || '').toLowerCase().indexOf('open') >= 0;
-                    var seeds = task.seedsNeeded > 0 ? task.seedsNeeded
-                        : isOpen ? 'Manual'
-                        : (task.trays > 0 && task.cellsPerTray > 0) ? Math.ceil(task.trays * task.cellsPerTray * 1.05) : '';
-                    return {
-                        check: '\u2610',
-                        date: formatDateShort(task[dateField]),
-                        crop: task.crop,
-                        variety: task.variety,
-                        trays: String(task.trays || ''),
-                        cells: shortTrayType(task),
-                        seeds: String(seeds),
-                        notes: task.notes || '',
-                        _groupDate: task[dateField],
-                        _groupCrop: task.crop
-                    };
-                };
-            } else if (currentTaskType === 'transplant') {
-                columns = [
-                    { key: 'check',    label: '',         width: 22 },
-                    { key: 'date',     label: 'Date',     width: 55 },
-                    { key: 'crop',     label: 'Crop',     width: 100 },
-                    { key: 'variety',  label: 'Variety' },
-                    { key: 'plants',   label: 'Plants',   width: 55 },
-                    { key: 'location', label: 'Location', width: 80 },
-                    { key: 'from',     label: 'From',     width: 70 }
-                ];
-                rowMapper = function(task) {
-                    return {
-                        check: '\u2610',
-                        date: formatDateShort(task[dateField]),
-                        crop: task.crop,
-                        variety: task.variety,
-                        plants: String(task.plants || ''),
-                        location: task.location || '-',
-                        from: task.fromTray || '-',
-                        _groupDate: task[dateField],
-                        _groupCrop: task.crop
-                    };
-                };
-            } else if (currentTaskType === 'directSeed') {
-                columns = [
-                    { key: 'check',    label: '',         width: 22 },
-                    { key: 'date',     label: 'Date',     width: 55 },
-                    { key: 'crop',     label: 'Crop',     width: 100 },
-                    { key: 'variety',  label: 'Variety' },
-                    { key: 'feet',     label: 'Feet',     width: 55 },
-                    { key: 'seeds',    label: 'Seeds',    width: 65 },
-                    { key: 'location', label: 'Location', width: 80 }
-                ];
-                rowMapper = function(task) {
-                    return {
-                        check: '\u2610',
-                        date: formatDateShort(task[dateField]),
-                        crop: task.crop,
-                        variety: task.variety,
-                        feet: (task.feet || '') + (task.feet ? ' ft' : ''),
-                        seeds: (task.seedsNeeded || 0).toLocaleString(),
-                        location: task.location || '-',
-                        _groupDate: task[dateField],
-                        _groupCrop: task.crop
-                    };
-                };
-            }
-
-            // Map sorted tasks to row objects
-            const rows = sortedTasks.map(rowMapper);
-
-            // Determine groupBy key based on current sort
-            const groupBy = currentSort === 'date' ? '_groupDate' : '_groupCrop';
-
-            // Build germination notes as an extra section (GH Sowing only)
-            const sections = [];
-            if (currentTaskType === 'ghSow') {
-                const uniqueGermNotes = [...new Map(sortedTasks.filter(t => t.germInstructions).map(t => [t.crop, t])).values()];
-                if (uniqueGermNotes.length > 0) {
-                    sections.push({
-                        title: 'GERMINATION NOTES',
-                        text: uniqueGermNotes.map(t =>
-                            t.crop + ': ' + (t.germTemp ? t.germTemp + ' - ' : '') + t.germInstructions
-                        ).join('\n')
-                    });
-                }
-            }
-
-            // Build subtitle with optional filter info and assigned names
-            var subtitle = formatDateDisplay(startDate) + ' - ' + formatDateDisplay(endDate);
-            if (currentCropFilter) {
-                subtitle += '  |  Crop: ' + currentCropFilter;
-            } else if (currentSearchText) {
-                subtitle += '  |  Filter: "' + currentSearchText + '"';
-            }
-            if (window._assignedNames) {
-                subtitle += '  |  Assigned to: ' + window._assignedNames;
-            }
-
-            // Call TinySeedPrint.sheet() with structured data
-            TinySeedPrint.sheet({
-                title: config.title,
-                subtitle: subtitle,
-                columns: columns,
-                rows: rows,
-                groupBy: groupBy,
-                sections: sections,
-                orientation: 'portrait'
-            }).catch(function(err) {
-                console.error('Print failed:', err);
-                alert('Print failed: ' + err.message);
+            // Remove interactive elements from clone
+            clone.querySelectorAll('.print-select-check, .group-toggle-check, [id="selectAllPrint"]').forEach(function(el) {
+                var td = el.closest('td');
+                if (td) td.remove();
             });
+            clone.querySelectorAll('.task-checkbox').forEach(function(el) {
+                // Replace with a printable empty checkbox
+                var box = document.createElement('div');
+                box.style.cssText = 'width:16px;height:16px;border:2px solid #333;border-radius:2px;display:inline-block;';
+                el.parentNode.replaceChild(box, el);
+            });
+            clone.querySelectorAll('.row-delete-btn').forEach(function(el) {
+                var td = el.closest('td');
+                if (td) td.remove();
+            });
+            // Remove excluded rows
+            excludedFromPrint.forEach(function(batchId) {
+                var row = clone.querySelector('tr[data-batch-id="' + batchId + '"]');
+                if (row) row.remove();
+            });
+            // Remove empty group headers (all rows removed)
+            clone.querySelectorAll('.date-group-header').forEach(function(gh) {
+                var groupKey = gh.getAttribute('data-group-key');
+                if (groupKey) {
+                    var remaining = clone.querySelectorAll('tr[data-group="' + groupKey + '"]');
+                    if (remaining.length === 0) gh.remove();
+                }
+                // Also remove the group toggle checkbox td
+                var checkTd = gh.querySelector('td:first-child');
+                if (checkTd && checkTd.querySelector('.group-toggle-check')) checkTd.remove();
+            });
+            // Strip editable-cell interactivity
+            clone.querySelectorAll('.editable-cell').forEach(function(el) {
+                el.style.borderBottom = 'none';
+                el.style.cursor = 'default';
+                el.removeAttribute('onclick');
+            });
+            // Strip Font Awesome icons (won't render without the CSS in print)
+            clone.querySelectorAll('i.fas, i.far, i.fab').forEach(function(el) {
+                el.remove();
+            });
+            // Remove first th (select-all column) from header
+            var firstTh = clone.querySelector('.task-table thead th:first-child');
+            if (firstTh) firstTh.remove();
+            // Also remove the last th (delete column)
+            var headerRow = clone.querySelector('.task-table thead tr');
+            if (headerRow && headerRow.lastElementChild) headerRow.lastElementChild.remove();
+
+            // Build assigned-to line (inserted into header area)
+            var assignedLine = '';
+            if (window._assignedNames) {
+                assignedLine = '<div style="font-size:11pt;color:#333;margin-bottom:12px;padding:6px 10px;background:#e3f2fd;border-radius:4px;"><strong>Assigned to:</strong> ' + window._assignedNames + '</div>';
+            }
+
+            // Inject assigned-to line after the sheet header
+            var sheetHeader = clone.querySelector('.sheet-header');
+            if (sheetHeader && assignedLine) {
+                sheetHeader.insertAdjacentHTML('afterend', assignedLine);
+            }
+
+            // Build the full print document
+            var printHTML = '<!DOCTYPE html><html><head><meta charset="UTF-8">'
+                + '<title>' + taskTypeConfig[currentTaskType].title + '</title>'
+                + '<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">'
+                + '<style>'
+                + 'body { font-family: Inter, Arial, sans-serif; margin: 0.4in; color: #1a1a1a; }'
+                + '@page { margin: 0.4in; size: portrait; }'
+                + '.sheet-header { display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #2d5a27;padding-bottom:10px;margin-bottom:12px; }'
+                + '.sheet-logo { width:100px;height:auto; }'
+                + '.sheet-title-block { text-align:right; }'
+                + '.sheet-title { font-size:18pt;font-weight:700;color:#2d5a27; }'
+                + '.sheet-subtitle { font-size:10pt;color:#666;margin-top:4px; }'
+                + '.summary-section { display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px; }'
+                + '.summary-box { background:#f8f9fa;border:1px solid #dee2e6;border-radius:6px;padding:10px; }'
+                + '.summary-box-title { font-weight:700;font-size:9pt;color:#2d5a27;margin-bottom:8px;text-transform:uppercase; }'
+                + '.summary-item { display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #eee;font-size:9pt; }'
+                + '.summary-item:last-child { border-bottom:none; }'
+                + '.summary-total { font-weight:700;background:#e8f5e9;margin-top:6px;padding:6px;border-radius:4px; }'
+                + '.task-table { width:100%;border-collapse:collapse;font-size:10pt; }'
+                + '.task-table th { background:#2d5a27;color:white;padding:8px 6px;text-align:left;font-weight:600;font-size:9pt; }'
+                + '.task-table th:first-child { border-radius:4px 0 0 0; }'
+                + '.task-table th:last-child { border-radius:0 4px 0 0; }'
+                + '.task-table td { padding:7px 6px;border-bottom:1px solid #e0e0e0;vertical-align:middle; }'
+                + '.task-table tr:nth-child(even) { background:#f9f9f9; }'
+                + '.date-group-header { background:#e8f5e9 !important; }'
+                + '.date-group-header td { padding:8px 6px;color:#2d5a27;font-weight:700;font-size:10pt; }'
+                + '.category-badge { display:inline-block;padding:1px 6px;border-radius:3px;font-size:7pt;font-weight:600;text-transform:uppercase; }'
+                + '.category-badge.veg { background:#c8e6c9;color:#2e7d32; }'
+                + '.category-badge.herb { background:#b2dfdb;color:#00695c; }'
+                + '.category-badge.floral { background:#f8bbd9;color:#ad1457; }'
+                + '.germ-notes { background:#fff8e1;border:1px solid #ffcc80;border-radius:6px;padding:10px;margin-top:16px;page-break-inside:avoid; }'
+                + '.germ-notes-title { font-weight:700;color:#e65100;margin-bottom:8px; }'
+                + '.germ-note-item { font-size:9pt;padding:4px 0;border-bottom:1px solid #ffe0b2; }'
+                + '.germ-note-item:last-child { border-bottom:none; }'
+                + '.germ-crop { font-weight:600;color:#333; }'
+                + '.dirty-cell { background:transparent !important; }'
+                + '.completed { opacity:0.6;text-decoration:line-through; }'
+                + '.editable-cell { border-bottom:none !important;cursor:default !important; }'
+                + '.print-footer { margin-top:20px;padding-top:8px;border-top:1px solid #ddd;font-size:8pt;color:#999;display:flex;justify-content:space-between; }'
+                + '</style></head><body>'
+                + clone.innerHTML
+                + '<div class="print-footer"><span>Tiny Seed Farm</span><span>Printed: ' + new Date().toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'}) + '</span></div>'
+                + '</body></html>';
+
+            // Print via hidden iframe (avoids popup blockers entirely)
+            var iframe = document.createElement('iframe');
+            iframe.style.cssText = 'position:fixed;left:-9999px;top:0;width:8.5in;height:11in;border:none;';
+            document.body.appendChild(iframe);
+            iframe.contentDocument.write(printHTML);
+            iframe.contentDocument.close();
+            // Wait for fonts to load, then print
+            setTimeout(function() {
+                iframe.contentWindow.focus();
+                iframe.contentWindow.print();
+                setTimeout(function() { iframe.remove(); }, 3000);
+            }, 600);
         }
 
         // Get print summary HTML based on task type
@@ -2861,50 +2848,33 @@
         return labels;
     }
 
-    // Chain label printing after sheet preview is closed
-    var _pendingLabelPrint = false;
-    var _labelObserverSetUp = false;
-
-    // Override executePrint to set label print flag
+    // Chain tray label printing after sheet print
+    // Override executePrint: after the sheet prints via iframe, trigger tray labels
     var _origExecutePrint = executePrint;
     executePrint = function() {
         var cb = document.getElementById('includeTrayLabels');
-        _pendingLabelPrint = cb && cb.checked && currentTaskType === 'ghSow';
+        var wantLabels = cb && cb.checked && currentTaskType === 'ghSow';
+
+        // Print the sheet first
         _origExecutePrint();
 
-        // Set up observer to detect when user closes the sheet preview
-        if (_pendingLabelPrint && !_labelObserverSetUp) {
-            _labelObserverSetUp = true;
-            // Poll for the preview element (created dynamically on first print)
-            var poll = setInterval(function() {
-                var preview = document.querySelector('#ts-print-preview'); if (!preview) return;
-                clearInterval(poll);
-                new MutationObserver(function(mutations) {
-                    for (var i = 0; i < mutations.length; i++) {
-                        if (mutations[i].attributeName === 'class') {
-                            var el = mutations[i].target;
-                            if (!el.classList.contains('open') && _pendingLabelPrint) {
-                                _pendingLabelPrint = false;
-                                setTimeout(function() {
-                                    var labels = generateTrayLabels();
-                                    if (labels.length === 0) {
-                                        showToast('No tray labels to print', 'warning');
-                                        return;
-                                    }
-                                    showToast('Generating ' + labels.length + ' tray labels...', 'success');
-                                    TinySeedPrint.label({
-                                        format: 'fieldTray',
-                                        data: labels
-                                    }).catch(function(err) {
-                                        showToast('Label print error: ' + err.message, 'error');
-                                    });
-                                }, 400);
-                            }
-                        }
-                    }
-                }).observe(preview, { attributes: true, attributeFilter: ['class'] });
-            }, 150);
-            setTimeout(function() { clearInterval(poll); }, 10000);
+        // If tray labels requested, generate them after a short delay
+        // (gives the sheet print dialog time to appear/complete)
+        if (wantLabels) {
+            setTimeout(function() {
+                var labels = generateTrayLabels();
+                if (labels.length === 0) {
+                    showToast('No tray labels to print', 'warning');
+                    return;
+                }
+                showToast('Generating ' + labels.length + ' tray labels...', 'success');
+                TinySeedPrint.label({
+                    format: 'fieldTray',
+                    data: labels
+                }).catch(function(err) {
+                    showToast('Label print error: ' + err.message, 'error');
+                });
+            }, 2000);
         }
     };
     </script>

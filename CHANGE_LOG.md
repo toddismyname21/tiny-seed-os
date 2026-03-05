@@ -38,6 +38,29 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-03-05 — PM_ARCHITECT: Production-Ready WYSIWYG Print, Maximized Labels, Assignment Hardening
+
+### Files Modified
+- `sowing-sheets.html` — **WYSIWYG print hardened**: `executePrint()` now uses hidden iframe (avoids popup blockers entirely), strips Font Awesome icons (won't render without CDN in print), injects assigned-to line into header (not at bottom), adds `.sheet-logo`, `.sheet-title-block`, `.editable-cell` CSS to print stylesheet, adds `page-break-inside:avoid` to germination notes. **Tray label chain fixed**: Replaced broken MutationObserver approach (was looking for `#ts-print-preview` from old jsPDF flow that no longer exists) with direct 2-second delayed trigger after sheet print. **Assignment hardened**: `loadEmployeesForAssign()` now checks content-type before parsing JSON (catches Google OAuth redirect pages), uses `res.text()` then explicit `JSON.parse()` for better error messages, filters active by both `Status` and `Is_Active` fields, shows employee role in list, displays descriptive error messages.
+- `web_app/print-engine.js` — **Label fonts maximized** in `_renderFieldTray()`: VARIETY 20→**24pt** bold at y=20, Crop 13→**14pt** at y=40, Tray size 15→**16pt** bold at y=40, Batch 7→**8pt** at y=54, Tray # 10→**11pt** at y=54, Dates 8→**9pt** at y=66, Field 8→**9pt** at y=66. These are the maximum sizes that fit the 4"×1" (288×72pt) label without overlap.
+- `labels.html` — **Label fonts maximized** in `renderFieldTrayPage()` to match print-engine.js exactly (24pt variety, 14pt crop, etc.). Updated ALL 4 CSS blocks for label preview: `.label-crop` (actually variety) 14px→18px / 13pt→16pt / 16pt→20pt, `.label-variety` (actually crop) 11px→12px / 10pt→12pt / 11pt→13pt, `.label-batch` 9px→10px / 8pt→9pt, `.label-date` 9px→10px / 7pt→9pt, `.print-label-crop` 13pt→16pt, `.print-label-variety` 10pt→12pt. Also increased `.label-cells` 12pt→14pt, `.label-tray` 8pt→10pt, `.label-bed` 7pt→9pt.
+
+### Functions Modified
+- `executePrint()` in sowing-sheets.html — Complete rewrite: WYSIWYG via hidden iframe, Font Awesome icon stripping, assigned-to in header, full print CSS coverage
+- `loadEmployeesForAssign()` in sowing-sheets.html — Content-type validation, text→JSON parse, dual active filter, role display
+- `_renderFieldTray()` in print-engine.js — All fonts pushed to maximum for 4"×1" label (24/14/16/8/11/9pt layout)
+- `renderFieldTrayPage()` in labels.html — Matched to print-engine.js maximized layout
+
+### Reason
+User demanded production-ready perfection: (1) print must be EXACTLY what preview shows — hardened with iframe, full CSS, icon stripping; (2) label fonts must be as big as possible — recalculated Y-positions and maximized every font; (3) assignment must work reliably — added JSON parse safety and dual active-status filter; (4) tray labels must print after sheet — fixed broken observer chain.
+
+### Duplicate Check
+- [x] No new files created
+- [x] All changes to existing files only
+- [x] web_app/labels.html verified as unused copy — not updated
+
+---
+
 ## 2026-03-05 — PM_ARCHITECT: Task Sheet Overhaul — Labels, Print, Assignment, Day Toggle
 
 ### Files Modified

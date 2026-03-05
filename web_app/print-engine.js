@@ -110,6 +110,8 @@
      */
     function _renderFieldTray(doc, label, qrImg, fmt) {
         var W = fmt.w, H = fmt.h;
+        // Label: 288×72pt (4"×1"). QR 61×61 on left. Text area: x=72 to x=282.
+        // 4 lines of text, fonts maximized to fill vertical space.
 
         // QR code on left
         var qrSz = 61;
@@ -119,59 +121,57 @@
 
         var tx = 72; // text start after QR + gap
         var rx = W - 6; // right edge
+        var maxTextW = rx - tx; // available text width = 210pt
 
-        // VARIETY at top — BIGGEST text, full width
+        // LINE 1 (y=20): VARIETY — largest possible, bold, full width
         doc.setTextColor(0, 0, 0);
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(20);
+        doc.setFontSize(24);
         var varText = label.variety || label.crop || '';
-        // Truncate if too long for label width
-        var maxVarW = W - tx - 6;
-        while (varText.length > 3 && doc.getTextWidth(varText) > maxVarW) {
+        // Truncate with ellipsis if too wide
+        while (varText.length > 3 && doc.getTextWidth(varText) > maxTextW) {
             varText = varText.substring(0, varText.length - 2) + '\u2026';
         }
         doc.text(varText, tx, 20);
 
-        // Crop — second line, left
+        // LINE 2 (y=40): Crop left, Tray size right
         doc.setFont('helvetica', 'normal');
-        doc.setFontSize(13);
+        doc.setFontSize(14);
         doc.setTextColor(51, 51, 51);
-        doc.text(label.crop || '', tx, 37);
+        doc.text(label.crop || '', tx, 40);
 
-        // Tray size — second line, right
         var tsd = _fmtTraySize(label.cellsPerTray, label.paperpotSpacing);
         doc.setTextColor(0, 0, 0);
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(15);
-        doc.text(tsd, rx, 37, { align: 'right' });
+        doc.setFontSize(16);
+        doc.text(tsd, rx, 40, { align: 'right' });
 
-        // Batch + Tray # — third line
+        // LINE 3 (y=54): Batch left, Tray #/total right
         doc.setFont('courier', 'normal');
-        doc.setFontSize(7);
+        doc.setFontSize(8);
         doc.setTextColor(85, 85, 85);
         var batchText = (label.batchNumber || label.batchId || '');
         if (label.trayNumber) batchText += ' T' + label.trayNumber;
-        doc.text(batchText, tx, 50);
+        doc.text(batchText, tx, 54);
 
         doc.setFont('helvetica', 'normal');
-        doc.setFontSize(10);
+        doc.setFontSize(11);
         doc.setTextColor(68, 68, 68);
         var trayStr = 'Tray ' + (label.trayNumber || '') + '/' + (label.trays || '');
-        doc.text(trayStr, rx, 50, { align: 'right' });
+        doc.text(trayStr, rx, 54, { align: 'right' });
 
-        // Dates — bottom line, left
+        // LINE 4 (y=66): Dates left, Field right
         doc.setFont('helvetica', 'normal');
-        doc.setFontSize(8);
+        doc.setFontSize(9);
         doc.setTextColor(68, 68, 68);
         var ds = 'Sow: ' + _fmtDate(label.seedDate || label.sowDate);
         ds += '  \u2192  TP: ' + _fmtDate(label.transplantDate);
-        doc.text(ds, tx, 63);
+        doc.text(ds, tx, 66);
 
-        // Field — bottom line, right
         if (label.field) {
-            doc.setFontSize(8);
+            doc.setFontSize(9);
             doc.setTextColor(85, 85, 85);
-            doc.text(label.field, rx, 63, { align: 'right' });
+            doc.text(label.field, rx, 66, { align: 'right' });
         }
     }
 
