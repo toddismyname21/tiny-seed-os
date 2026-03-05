@@ -41,9 +41,9 @@ jobs:
           echo "$CHANGED_HTML" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
-          # Count for summary
-          HTML_COUNT=$(echo "$CHANGED_HTML" | grep -c '.html$' || echo "0")
-          echo "html_count=$HTML_COUNT" >> $GITHUB_OUTPUT
+          # Count for summary (grep -c exits 1 on no matches, suppress with || true)
+          HTML_COUNT=$(echo "$CHANGED_HTML" | grep -c '\.html$' || true)
+          echo "html_count=${HTML_COUNT:-0}" >> $GITHUB_OUTPUT
 
           # Get all changed code files
           CHANGED_CODE=$(git diff --name-only HEAD~1 HEAD -- '*.html' '*.js' '*.css' 'web_app/*.html' 'web_app/*.js' 'web_app/*.css')
