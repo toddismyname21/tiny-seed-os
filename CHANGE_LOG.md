@@ -38,6 +38,29 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-03-05 — PM_ARCHITECT: Summary Updates Live When Rows Unchecked
+
+### Files Modified
+- `sowing-sheets.html` — **Summary accuracy fix**: When unchecking rows from the print task sheet, tray counts, seeds needed, and readiness issues now update immediately. Previously, `renderSummarySection()` used all visible tasks regardless of print selection — now filters out `excludedFromPrint` batchIds. Readiness issues recomputed client-side from included tasks only (not stale backend data). `updateSummaryDisplay()` swaps the `.summary-section` DOM element in real-time. Wired into `togglePrintSelect()`, `toggleSelectAllPrint()`, and `toggleGroupPrint()`. Since WYSIWYG print clones the live DOM, the printed sheet also reflects correct totals.
+
+### Functions Added
+- `updateSummaryDisplay()` in sowing-sheets.html — Replaces `.summary-section` in the DOM with freshly rendered HTML from `renderSummarySection()`
+
+### Functions Modified
+- `renderSummarySection()` in sowing-sheets.html — Now filters out rows in `excludedFromPrint`; readiness issues computed from filtered task list instead of backend `summary.readinessIssues`
+- `togglePrintSelect()` in sowing-sheets.html — Calls `updateSummaryDisplay()` after toggling
+- `toggleSelectAllPrint()` in sowing-sheets.html — Calls `updateSummaryDisplay()` after toggling
+- `toggleGroupPrint()` in sowing-sheets.html — Calls `updateSummaryDisplay()` via `togglePrintSelect()` per row
+
+### Reason
+User requirement: "When we remove certain plantings from the sheet by unchecking that planting, the tray count and the seeds needed in the same sheet should be updated... WHEN I PRINT AND HAND THIS SHEET TO THE PERSON DOING THE WORK, I WANT IT TO BE ACCURATE."
+
+### Duplicate Check
+- [x] No new files created
+- [x] All changes to existing functions only
+
+---
+
 ## 2026-03-05 — PM_ARCHITECT: Custom Tray Types Persist Across Users/Devices
 
 ### Files Modified
