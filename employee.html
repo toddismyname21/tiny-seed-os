@@ -9906,7 +9906,7 @@
 
             <!-- Form Login (first-time / no stored session) -->
             <div id="formLoginView">
-                <p class="login-subtitle">Sign in to start your shift</p>
+                <p class="login-subtitle">Sign in to clock in &amp; start your shift</p>
                 <form id="employeeLoginForm" onsubmit="handleFormLogin(event); return false;" autocomplete="off">
                     <div class="form-group">
                         <label class="form-label">Name</label>
@@ -9921,16 +9921,17 @@
                     </div>
                     <div class="login-note-toggle">
                         <button type="button" class="note-toggle-btn" onclick="toggleLoginNote()">
-                            <i class="fas fa-sticky-note"></i> Add a note
+                            <i class="fas fa-clock"></i> Signing in late? Add a note
                         </button>
                         <div class="login-note-field" id="loginNoteField" style="display:none;">
                             <textarea class="form-input" id="loginNote" rows="2"
-                                      placeholder="e.g. Forgot to sign in, started at 9am"></textarea>
+                                      placeholder="e.g. Started at 7am, forgot to sign in"></textarea>
+                            <p style="font-size:0.75rem;color:var(--text-muted,#888);margin-top:4px;">Your note will be sent to the manager to correct your clock-in time.</p>
                         </div>
                     </div>
 
                     <button type="submit" class="login-form-btn" id="formLoginBtn">
-                        <i class="fas fa-sign-in-alt"></i> Sign In
+                        <i class="fas fa-clock"></i> Clock In &amp; Start Shift
                     </button>
                 </form>
                 <div id="formLoginError"></div>
@@ -15699,7 +15700,7 @@
             AppState.loginNote = getLoginNote();
 
             btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing in...';
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Clocking in...';
             errEl.textContent = '';
 
             try {
@@ -15755,7 +15756,7 @@
             }
 
             btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Sign In';
+            btn.innerHTML = '<i class="fas fa-clock"></i> Clock In &amp; Start Shift';
         }
 
         // ============================================
@@ -23263,12 +23264,12 @@
             // Sowing confirmation modal — seed packet photo + AI analysis
             if (AppState.currentPhotoTarget === 'sowConfirm') {
                 AppState.sowConfirmPhoto = AppState.capturedPhoto;
-                var thumb = document.getElementById('sowPhotoThumb');
-                var preview = document.getElementById('sowPhotoPreview');
-                var btn = document.getElementById('sowPhotoBtn');
-                if (thumb) thumb.src = AppState.capturedPhoto;
-                if (preview) preview.style.display = 'block';
-                if (btn) btn.innerHTML = '<i class="fas fa-check-circle" style="color:#22c55e;"></i> Photo Captured — Tap to Retake';
+                var sowThumb = document.getElementById('sowPhotoThumb');
+                var sowPreview = document.getElementById('sowPhotoPreview');
+                var sowBtn = document.getElementById('sowPhotoBtn');
+                if (sowThumb) sowThumb.src = AppState.capturedPhoto;
+                if (sowPreview) sowPreview.style.display = 'block';
+                if (sowBtn) sowBtn.innerHTML = '<i class="fas fa-check-circle" style="color:#22c55e;"></i> Photo Captured — Tap to Retake';
                 closeCamera();
                 // Trigger AI analysis + inventory matching
                 analyzeAndMatchSeedPacket(AppState.capturedPhoto);

@@ -1108,6 +1108,8 @@
                 return;
             }
 
+            // Reset print selection when loading fresh tasks
+            excludedFromPrint = new Set();
             showLoading();
 
             const config = taskTypeConfig[currentTaskType];
@@ -1451,6 +1453,7 @@
                 <table class="task-table">
                     <thead>
                         <tr>
+                            <th style="width:36px;"><input type="checkbox" id="selectAllPrint" checked onchange="toggleSelectAllPrint(this.checked)" title="Select all for print"></th>
                             <th><i class="fas fa-check"></i></th>
                             ${config.columns.map(col => `<th>${col}</th>`).join('')}
                             <th style="width:40px;"></th>
@@ -1468,7 +1471,7 @@
                         currentDate = taskDate;
                         html += `
                             <tr class="date-group-header">
-                                <td colspan="${config.columns.length + 2}"><i class="fas fa-calendar-day"></i> ${formatDateDisplay(currentDate)}</td>
+                                <td colspan="${config.columns.length + 3}"><i class="fas fa-calendar-day"></i> ${formatDateDisplay(currentDate)}</td>
                             </tr>
                         `;
                     }
@@ -1481,7 +1484,7 @@
                         currentCrop = task.crop;
                         html += `
                             <tr class="date-group-header">
-                                <td colspan="${config.columns.length + 2}"><i class="fas fa-leaf"></i> ${currentCrop}</td>
+                                <td colspan="${config.columns.length + 3}"><i class="fas fa-leaf"></i> ${currentCrop}</td>
                             </tr>
                         `;
                     }
@@ -1738,6 +1741,7 @@
 
             return `
                 <tr class="${task.completed ? 'completed' : ''}" data-batch-id="${task.batchId}">
+                    <td style="text-align:center;"><input type="checkbox" class="print-select-check" value="${task.batchId}" checked onchange="togglePrintSelect('${task.batchId}', this.checked)" title="Include in print"></td>
                     <td style="text-align: center;">
                         <input type="checkbox" class="task-checkbox" ${task.completed ? 'checked' : ''} onchange="toggleTask('${task.batchId}', this.checked)">
                     </td>
@@ -1860,6 +1864,40 @@
             select.focus();
         }
 
+        // Print selection — track which rows are excluded
+        let excludedFromPrint = new Set();
+
+        function togglePrintSelect(batchId, included) {
+            if (included) {
+                excludedFromPrint.delete(batchId);
+            } else {
+                excludedFromPrint.add(batchId);
+            }
+            // Dim excluded rows
+            var row = document.querySelector('tr[data-batch-id="' + batchId + '"]');
+            if (row) row.style.opacity = included ? '1' : '0.35';
+            // Update select-all checkbox state
+            var allChecks = document.querySelectorAll('.print-select-check');
+            var allChecked = true;
+            allChecks.forEach(function(c) { if (!c.checked) allChecked = false; });
+            var selectAll = document.getElementById('selectAllPrint');
+            if (selectAll) selectAll.checked = allChecked;
+        }
+
+        function toggleSelectAllPrint(checked) {
+            document.querySelectorAll('.print-select-check').forEach(function(c) {
+                c.checked = checked;
+                togglePrintSelect(c.value, checked);
+            });
+        }
+
+        // Get tasks selected for printing (visible minus excluded)
+        function getSelectedTasks() {
+            return getVisibleTasks().filter(function(t) {
+                return !excludedFromPrint.has(t.batchId);
+            });
+        }
+
         // Toggle Task Completion
         async function toggleTask(batchId, completed) {
             const task = tasks.find(t => t.batchId === batchId);
@@ -1948,11 +1986,14 @@
                 empNames.push(c.getAttribute('data-name'));
             });
 
+            // Flush dirty edits into tasks array before printing
+            flushDirtyToTasks();
+
             // Assign via backend
             if (empIds.length > 0) {
-                var batchIds = getVisibleTasks().map(function(t) { return t.batchId; }).filter(Boolean);
+                var batchIds = getSelectedTasks().map(function(t) { return t.batchId; }).filter(Boolean);
                 try {
-                    await fetch(API_URL, {
+                    var response = await fetch(API_URL, {
                         method: 'POST',
                         headers: { 'Content-Type': 'text/plain' },
                         body: JSON.stringify({
@@ -1962,7 +2003,12 @@
                             employeeNames: empNames
                         })
                     });
-                    showToast('Assigned to ' + empNames.join(', '), 'success');
+                    var result = await response.json();
+                    if (result.success) {
+                        showToast('Assigned to ' + empNames.join(', '), 'success');
+                    } else {
+                        showToast('Assignment failed: ' + (result.error || 'Unknown error'), 'error');
+                    }
                 } catch (e) {
                     showToast('Assignment failed: ' + e.message, 'error');
                 }
@@ -1978,7 +2024,20 @@
         function doPrintOnly() {
             hideAssignModal();
             window._assignedNames = '';
+            flushDirtyToTasks();
             executePrint();
+        }
+
+        // Apply any unsaved edits to the in-memory tasks array so print reflects them
+        function flushDirtyToTasks() {
+            var batches = Object.keys(dirtyFields);
+            if (batches.length === 0) return;
+            batches.forEach(function(batchId) {
+                var task = tasks.find(function(t) { return t.batchId === batchId; });
+                if (task) {
+                    Object.assign(task, dirtyFields[batchId]);
+                }
+            });
         }
 
         // Actual print logic (formerly the body of printSheet)
@@ -1988,8 +2047,8 @@
             const config = taskTypeConfig[currentTaskType];
             const dateField = config.dateField;
 
-            // Print only visible (filtered) tasks
-            let sortedTasks = [...getVisibleTasks()];
+            // Print only selected (filtered + not excluded) tasks
+            let sortedTasks = [...getSelectedTasks()];
             if (currentSort === 'date') {
                 sortedTasks.sort((a, b) => new Date(a[dateField]) - new Date(b[dateField]) || a.crop.localeCompare(b.crop));
             } else {
@@ -2708,11 +2767,12 @@
 
     // ─── Print Tray Labels ───────────────────────────────────────
     function generateTrayLabels() {
+        flushDirtyToTasks();
         var config = taskTypeConfig[currentTaskType];
-        var visibleTasks = getVisibleTasks();
+        var selectedTasks = getSelectedTasks();
         var labels = [];
 
-        visibleTasks.forEach(function(task) {
+        selectedTasks.forEach(function(task) {
             if (task.completed) return;
             var trayCount = task.trays || 1;
             for (var i = 1; i <= trayCount; i++) {

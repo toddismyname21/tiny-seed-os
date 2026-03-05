@@ -38,6 +38,40 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-03-05 — PM_ARCHITECT: Fix Employee Login + Sowing Sheet Print/Assign Fixes
+
+### Files Modified
+- `employee.html` — **CRITICAL FIX**: Fixed JavaScript syntax error in `confirmPhoto()` where `var preview` (line 23267) conflicted with `const preview` (line 23284) in same function scope — this broke the ENTIRE main script block, preventing `handleFormLogin()` from loading, causing "nothing happens" on Sign In click. Renamed to `sowPreview`/`sowThumb`/`sowBtn`. Also: Changed "Sign In" button to "Clock In & Start Shift" with clock icon, updated loading text to "Clocking in...", made login note feature more prominent ("Signing in late? Add a note"), added helper text explaining notes go to manager.
+- `sowing-sheets.html` — **FIX 1**: Added `flushDirtyToTasks()` function that applies unsaved inline edits to the tasks array before printing — so variety changes now appear in print output. **FIX 2**: Added response validation to `doPrintWithAssignment()` — now checks `result.success` and shows error toast on failure instead of silently proceeding. **FIX 3**: Added per-row "Include in print" checkboxes with select-all header — users can now exclude specific trays from print and assignment. `executePrint()`, `doPrintWithAssignment()`, and `generateTrayLabels()` all now use `getSelectedTasks()` instead of `getVisibleTasks()`.
+
+### Functions Added
+- `flushDirtyToTasks()` in sowing-sheets.html — Applies dirtyFields edits to tasks array before print
+- `getSelectedTasks()` in sowing-sheets.html — Returns visible tasks minus excluded rows
+- `togglePrintSelect(batchId, included)` in sowing-sheets.html — Toggle row include/exclude for print
+- `toggleSelectAllPrint(checked)` in sowing-sheets.html — Select/deselect all rows for print
+
+### Functions Modified
+- `confirmPhoto()` in employee.html — Fixed variable naming conflict (var preview → var sowPreview)
+- `doPrintWithAssignment()` in sowing-sheets.html — Now validates API response, flushes dirty edits first
+- `doPrintOnly()` in sowing-sheets.html — Now flushes dirty edits before print
+- `executePrint()` in sowing-sheets.html — Uses getSelectedTasks() instead of getVisibleTasks()
+- `generateTrayLabels()` in sowing-sheets.html — Uses getSelectedTasks(), flushes dirty edits first
+- `renderTaskRow()` in sowing-sheets.html — Added print-select checkbox column
+- `renderSheet()` in sowing-sheets.html — Added select-all checkbox header, updated colspans
+- `loadTasks()` in sowing-sheets.html — Resets excludedFromPrint set on reload
+
+### Reason
+1. Employee login was completely broken due to a JS syntax error introduced in the seed traceability changes — `var` and `const` declaring the same name `preview` in the same function scope. This prevented all JS from executing.
+2. Sowing sheet changes not persisting to print because dirty edits were only flushed to tasks on explicit Save, not on Print.
+3. Task assignment showing success without checking API response.
+4. No way to exclude individual rows from print/assign after crop filtering.
+
+### Duplicate Check
+- [x] No new files created
+- [x] All changes to existing files only
+
+---
+
 ## 2026-03-05 — PM_ARCHITECT: Seed-to-Sowing Traceability Pipeline + Tray Label Font Increase
 
 ### Files Modified
