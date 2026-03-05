@@ -16,7 +16,7 @@
     <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
     <title>Tiny Seed - Field App</title>
     <script src="web_app/api-config.js"></script>
-    <script src="web_app/auth-guard.js" data-required-role="Employee"></script>
+    <script src="web_app/auth-guard.js" data-required-role="Employee" data-auto-protect="false"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="web_app/tiny-seed-design-system.css">
@@ -250,8 +250,104 @@
         .login-title {
             font-size: 1.5rem;
             font-weight: 700;
-            margin-bottom: 40px;
+            margin-bottom: 24px;
             color: var(--text-primary);
+        }
+
+        .login-subtitle {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 24px;
+        }
+
+        /* Form Login (username + PIN fields) */
+        #formLoginView .form-group {
+            width: 100%;
+            max-width: 300px;
+            margin-bottom: 16px;
+            text-align: left;
+        }
+
+        #formLoginView .form-label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        #formLoginView .form-input {
+            width: 100%;
+            padding: 14px 16px;
+            border-radius: 10px;
+            border: 2px solid var(--border);
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+            font-size: 1rem;
+            font-family: inherit;
+        }
+
+        #formLoginView .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .login-form-btn {
+            width: 100%;
+            max-width: 300px;
+            padding: 16px;
+            border: none;
+            border-radius: 10px;
+            background: var(--primary);
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 8px;
+            transition: background 0.2s;
+        }
+
+        .login-form-btn:active {
+            background: var(--primary-dark);
+        }
+
+        .login-form-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        #formLoginError, #pinLoginError {
+            color: var(--danger);
+            font-size: 0.85rem;
+            min-height: 20px;
+            margin-top: 12px;
+        }
+
+        .pin-welcome {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 24px;
+        }
+
+        .switch-login-link {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-top: 20px;
+            cursor: pointer;
+            text-decoration: underline;
+            padding: 8px;
+        }
+
+        .switch-login-link:hover {
+            color: var(--primary-light);
         }
 
         .pin-display {
@@ -9765,30 +9861,61 @@
             <div class="login-logo">🌱</div>
             <h1 class="login-title" data-i18n="auth.title">Tiny Seed Farm</h1>
 
-            <div class="pin-display">
-                <div class="pin-dot" id="pin1"></div>
-                <div class="pin-dot" id="pin2"></div>
-                <div class="pin-dot" id="pin3"></div>
-                <div class="pin-dot" id="pin4"></div>
+            <!-- Form Login (first-time / no stored session) -->
+            <div id="formLoginView">
+                <p class="login-subtitle">Sign in to start your shift</p>
+                <form onsubmit="handleFormLogin(event)" autocomplete="off">
+                    <div class="form-group">
+                        <label class="form-label">Name</label>
+                        <input type="text" class="form-input" id="loginName"
+                               placeholder="Your first name" required autocomplete="name">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">PIN</label>
+                        <input type="tel" class="form-input" id="loginPin" inputmode="numeric"
+                               pattern="[0-9]*" maxlength="4" placeholder="4-digit PIN" required
+                               autocomplete="one-time-code">
+                    </div>
+                    <button type="submit" class="login-form-btn" id="formLoginBtn">
+                        <i class="fas fa-sign-in-alt"></i> Sign In
+                    </button>
+                </form>
+                <div id="formLoginError"></div>
             </div>
 
-            <div class="pin-pad">
-                <button class="pin-btn" onclick="enterPin('1')">1</button>
-                <button class="pin-btn" onclick="enterPin('2')">2</button>
-                <button class="pin-btn" onclick="enterPin('3')">3</button>
-                <button class="pin-btn" onclick="enterPin('4')">4</button>
-                <button class="pin-btn" onclick="enterPin('5')">5</button>
-                <button class="pin-btn" onclick="enterPin('6')">6</button>
-                <button class="pin-btn" onclick="enterPin('7')">7</button>
-                <button class="pin-btn" onclick="enterPin('8')">8</button>
-                <button class="pin-btn" onclick="enterPin('9')">9</button>
-                <button class="pin-btn empty"></button>
-                <button class="pin-btn" onclick="enterPin('0')">0</button>
-                <button class="pin-btn delete" onclick="deletePin()"><i class="fas fa-delete-left"></i></button>
-            </div>
+            <!-- PIN Keypad (returning user / quick re-entry) -->
+            <div id="pinLoginView" style="display:none;">
+                <p class="pin-welcome" id="pinWelcomeBack">Welcome back</p>
 
-            <div class="login-error" id="loginError"></div>
-            <div class="login-hint" data-i18n="auth.hint">Enter your 4-digit PIN</div>
+                <div class="pin-display">
+                    <div class="pin-dot" id="pin1"></div>
+                    <div class="pin-dot" id="pin2"></div>
+                    <div class="pin-dot" id="pin3"></div>
+                    <div class="pin-dot" id="pin4"></div>
+                </div>
+
+                <div class="pin-pad">
+                    <button type="button" class="pin-btn" onclick="enterPin('1')">1</button>
+                    <button type="button" class="pin-btn" onclick="enterPin('2')">2</button>
+                    <button type="button" class="pin-btn" onclick="enterPin('3')">3</button>
+                    <button type="button" class="pin-btn" onclick="enterPin('4')">4</button>
+                    <button type="button" class="pin-btn" onclick="enterPin('5')">5</button>
+                    <button type="button" class="pin-btn" onclick="enterPin('6')">6</button>
+                    <button type="button" class="pin-btn" onclick="enterPin('7')">7</button>
+                    <button type="button" class="pin-btn" onclick="enterPin('8')">8</button>
+                    <button type="button" class="pin-btn" onclick="enterPin('9')">9</button>
+                    <button type="button" class="pin-btn empty"></button>
+                    <button type="button" class="pin-btn" onclick="enterPin('0')">0</button>
+                    <button type="button" class="pin-btn delete" onclick="deletePin()"><i class="fas fa-delete-left"></i></button>
+                </div>
+
+                <div class="login-error" id="loginError"></div>
+                <div class="login-hint" data-i18n="auth.hint">Enter your 4-digit PIN</div>
+
+                <button type="button" class="switch-login-link" onclick="showFormLogin()">
+                    Sign in as different user
+                </button>
+            </div>
 
             <button class="register-link" onclick="showRegistration()">
                 New here? <span>Register</span>
@@ -15077,6 +15204,9 @@
                 'auth.title': 'Tiny Seed Farm',
                 'auth.hint': 'Enter your 4-digit PIN',
                 'auth.invalid': 'Invalid PIN. Please try again.',
+                'auth.signInSubtitle': 'Sign in to start your shift',
+                'auth.welcomeBack': 'Welcome back',
+                'auth.differentUser': 'Sign in as different user',
                 'clock.clockIn': 'Clock In',
                 'clock.clockOut': 'Clock Out',
                 'clock.tapToStart': 'Tap to start your shift',
@@ -15239,6 +15369,9 @@
                 'auth.title': 'Granja Tiny Seed',
                 'auth.hint': 'Ingrese su PIN de 4 digitos',
                 'auth.invalid': 'PIN invalido. Intente de nuevo.',
+                'auth.signInSubtitle': 'Inicia sesion para comenzar tu turno',
+                'auth.welcomeBack': 'Bienvenido de nuevo',
+                'auth.differentUser': 'Iniciar sesion como otro usuario',
                 'clock.clockIn': 'Entrada',
                 'clock.clockOut': 'Salida',
                 'clock.tapToStart': 'Toca para iniciar tu turno',
@@ -15411,7 +15544,121 @@
         }
 
         // ============================================
-        // AUTHENTICATION
+        // DUAL LOGIN: Form Login + PIN Keypad
+        // ============================================
+
+        // Show form-based login (first-time users or "different user")
+        function showFormLogin() {
+            document.getElementById('formLoginView').style.display = '';
+            document.getElementById('pinLoginView').style.display = 'none';
+            document.getElementById('formLoginError').textContent = '';
+            var nameInput = document.getElementById('loginName');
+            if (nameInput) nameInput.focus();
+        }
+
+        // Show PIN keypad login (returning users)
+        function showPinLogin(employeeName) {
+            document.getElementById('formLoginView').style.display = 'none';
+            document.getElementById('pinLoginView').style.display = '';
+            var welcome = document.getElementById('pinWelcomeBack');
+            if (welcome && employeeName) {
+                welcome.textContent = 'Welcome back, ' + employeeName;
+            }
+            AppState.enteredPIN = '';
+            updatePinDisplay();
+        }
+
+        // Initialize login view based on stored session
+        function initLoginView() {
+            var stored = localStorage.getItem('employeeSession');
+            if (stored) {
+                try {
+                    var saved = JSON.parse(stored);
+                    var name = (saved.employee && saved.employee.First_Name) || '';
+                    showPinLogin(name);
+                } catch (e) {
+                    showFormLogin();
+                }
+            } else {
+                showFormLogin();
+            }
+        }
+
+        // Form login handler (username + PIN fields)
+        async function handleFormLogin(e) {
+            e.preventDefault();
+            var nameVal = document.getElementById('loginName').value.trim();
+            var pinVal = document.getElementById('loginPin').value.trim();
+            var errEl = document.getElementById('formLoginError');
+            var btn = document.getElementById('formLoginBtn');
+
+            if (!nameVal || !pinVal || pinVal.length !== 4) {
+                errEl.textContent = 'Enter your name and 4-digit PIN';
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing in...';
+            errEl.textContent = '';
+
+            try {
+                var response = await fetch(CONFIG.API_URL + '?action=authenticateEmployee&pin=' + encodeURIComponent(pinVal));
+                var data = await response.json();
+
+                if (data.success && data.employee) {
+                    AppState.employee = data.employee;
+                    AppState.language = data.employee.Language_Pref || 'en';
+                    AppState.isClockedIn = data.isClockedIn || false;
+                    AppState.clockInTime = data.clockInTime || null;
+
+                    var sessionData = {
+                        employee: AppState.employee,
+                        language: AppState.language
+                    };
+
+                    localStorage.setItem('employeeSession', JSON.stringify(sessionData));
+                    await OfflineDB.saveSession(sessionData);
+
+                    // Also set tinyseed_session for auth-guard cross-compatibility
+                    var tsSession = {
+                        userId: data.employee.Employee_ID,
+                        username: data.employee.First_Name,
+                        fullName: (data.employee.First_Name || '') + ' ' + (data.employee.Last_Name || ''),
+                        role: data.employee.Role || 'Employee',
+                        timestamp: Date.now()
+                    };
+                    localStorage.setItem('tinyseed_session', JSON.stringify(tsSession));
+
+                    showMainApp();
+                } else {
+                    errEl.textContent = data.error || 'Invalid name or PIN';
+                }
+            } catch (error) {
+                console.error('Form login error:', error);
+                // Try offline fallback
+                var offlineSession = null;
+                try { offlineSession = await OfflineDB.getSession(); } catch(e) {}
+                if (!offlineSession) {
+                    var lsSession = localStorage.getItem('employeeSession');
+                    if (lsSession) {
+                        try { offlineSession = JSON.parse(lsSession); } catch(e) {}
+                    }
+                }
+                if (offlineSession && offlineSession.employee) {
+                    AppState.employee = offlineSession.employee;
+                    AppState.language = offlineSession.language || 'en';
+                    showMainApp();
+                } else {
+                    errEl.textContent = 'Connection error. Check your signal and try again.';
+                }
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Sign In';
+        }
+
+        // ============================================
+        // AUTHENTICATION (PIN Keypad)
         // ============================================
         function enterPin(digit) {
             if (AppState.enteredPIN.length < 4) {
@@ -15458,6 +15705,16 @@
                     // Save to both localStorage (fallback) and IndexedDB
                     localStorage.setItem('employeeSession', JSON.stringify(sessionData));
                     await OfflineDB.saveSession(sessionData);
+
+                    // Also set tinyseed_session for auth-guard cross-compatibility
+                    var tsSession = {
+                        userId: data.employee.Employee_ID,
+                        username: data.employee.First_Name,
+                        fullName: (data.employee.First_Name || '') + ' ' + (data.employee.Last_Name || ''),
+                        role: data.employee.Role || 'Employee',
+                        timestamp: Date.now()
+                    };
+                    localStorage.setItem('tinyseed_session', JSON.stringify(tsSession));
 
                     showMainApp();
                 } else {
@@ -26352,11 +26609,13 @@
                 updateCombinedSyncBadge();
 
                 // Try to restore session from IndexedDB first
+                let sessionRestored = false;
                 const idbSession = await OfflineDB.getSession();
                 if (idbSession && idbSession.employee) {
                     AppState.employee = idbSession.employee;
                     AppState.language = idbSession.language || 'en';
                     showMainApp();
+                    sessionRestored = true;
                 } else {
                     // Fall back to localStorage
                     const session = localStorage.getItem('employeeSession');
@@ -26368,10 +26627,16 @@
                             // Migrate to IndexedDB
                             await OfflineDB.saveSession(saved);
                             showMainApp();
+                            sessionRestored = true;
                         } catch (e) {
                             console.error('Session parse error:', e);
                         }
                     }
+                }
+
+                // If no session restored, show the correct login view
+                if (!sessionRestored) {
+                    initLoginView();
                 }
 
                 // Start periodic sync
@@ -26380,6 +26645,7 @@
             } catch (error) {
                 console.error('IndexedDB init error:', error);
                 // Fall back to localStorage only
+                let fallbackRestored = false;
                 const session = localStorage.getItem('employeeSession');
                 if (session) {
                     try {
@@ -26387,9 +26653,13 @@
                         AppState.employee = saved.employee;
                         AppState.language = saved.language || 'en';
                         showMainApp();
+                        fallbackRestored = true;
                     } catch (e) {
                         console.error('Session parse error:', e);
                     }
+                }
+                if (!fallbackRestored) {
+                    initLoginView();
                 }
             }
 
