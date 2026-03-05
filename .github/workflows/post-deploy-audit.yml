@@ -220,12 +220,12 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const elementRefs = '${{ steps.element-refs.outputs.status || "SKIP" }}';
-            const apiUrls = '${{ steps.api-urls.outputs.status || "SKIP" }}';
-            const liveCheck = '${{ steps.live-check.outputs.status || "SKIP" }}';
-            const contentCheck = '${{ steps.content-check.outputs.status || "SKIP" }}';
-            const uxPreflight = '${{ steps.ux-preflight.outputs.status || "SKIP" }}';
-            const htmlCount = '${{ steps.changed.outputs.html_count }}';
+            const elementRefs = '${{ steps.element-refs.outputs.status }}' || 'SKIP';
+            const apiUrls = '${{ steps.api-urls.outputs.status }}' || 'SKIP';
+            const liveCheck = '${{ steps.live-check.outputs.status }}' || 'SKIP';
+            const contentCheck = '${{ steps.content-check.outputs.status }}' || 'SKIP';
+            const uxPreflight = '${{ steps.ux-preflight.outputs.status }}' || 'SKIP';
+            const htmlCount = '${{ steps.changed.outputs.html_count }}' || '0';
 
             const allPass = [elementRefs, apiUrls, liveCheck, contentCheck].every(
               s => s === 'PASS' || s === 'SKIP'
