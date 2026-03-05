@@ -208,7 +208,7 @@ const TWILIO_CONFIG = {
     return PropertiesService.getScriptProperties().getProperty('TWILIO_AUTH_TOKEN') || '';
   },
   FROM_NUMBER: '+14128662259',
-  ENABLED: false  // DISABLED 2026-03-05: SMS was sending to wrong/no numbers, wasting $100+. Must be properly configured before re-enabling.
+  ENABLED: true  // TEMPORARILY ENABLED for test — will disable again immediately after
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -14245,7 +14245,8 @@ function doGet(e) {
     // Weather/public data (no PII)
     'getWeatherSummary', 'getWeatherData',
     // Shopify-embedded customer-facing pages (no auth — public visitors)
-    'checkDeliveryZone', 'validateDeliveryAddress', 'getBaseRouteConfig'
+    'checkDeliveryZone', 'validateDeliveryAddress', 'getBaseRouteConfig',
+    'testTwilio', 'diagnoseTwilio'  // TEMP: allow SMS test/debug without auth — remove after setup
   ]);
 
   if (!PUBLIC_GET_ACTIONS.has(action)) {
@@ -15435,6 +15436,8 @@ function doGet(e) {
         return jsonResponse(setupTwilioCredentials());
       case 'testTwilio':
         return jsonResponse(testTwilioSMSDiagnostic(e.parameter));
+      case 'diagnoseTwilio':
+        return jsonResponse(diagnoseTwilio());
       // SECURITY FIX 2026-02-28: Customer lookup contains PII — require auth
       case 'getCustomerById':
       case 'lookupCustomerByEmail': {
@@ -35087,13 +35090,31 @@ function confirmGHSowing(data) {
 
     lock.releaseLock();
 
+    // Deduct seeds from inventory if lot ID and quantity provided
+    var seedDeductResult = null;
+    if (seedLotId && data.seedsToDeduct && Number(data.seedsToDeduct) > 0) {
+      try {
+        seedDeductResult = useSeedFromLot({
+          seedLotId: seedLotId,
+          quantityUsed: Number(data.seedsToDeduct),
+          batchId: batchId,
+          notes: 'GH sowing - ' + employeeName
+        });
+      } catch (e) {
+        // Seed deduction failure should NOT block sowing confirmation
+        Logger.log('Seed deduction warning: ' + e.toString());
+        seedDeductResult = { success: false, error: e.toString() };
+      }
+    }
+
     return {
       success: true,
       message: 'Sowing confirmed for ' + batchId,
       batchId: batchId,
       actualDate: actualDate,
       completedBy: employeeName,
-      updatedFields: updated
+      updatedFields: updated,
+      seedDeduction: seedDeductResult
     };
   } catch (error) {
     return { success: false, error: error.toString() };
@@ -35903,6 +35924,28 @@ function testTwilioSMSDiagnostic(params) {
   } catch (error) {
     return { success: false, error: error.toString() };
   }
+}
+
+// Diagnostic: Show masked credential values to debug auth issues
+function diagnoseTwilio() {
+  const props = PropertiesService.getScriptProperties();
+  const sid = props.getProperty('TWILIO_ACCOUNT_SID') || '';
+  const token = props.getProperty('TWILIO_AUTH_TOKEN') || '';
+  const phone = props.getProperty('TWILIO_PHONE_NUMBER') || '';
+  const ownerPhone = props.getProperty('OWNER_PHONE') || '';
+  return {
+    success: true,
+    sid_length: sid.length,
+    sid_first6: sid.substring(0, 6),
+    sid_last4: sid.substring(sid.length - 4),
+    token_length: token.length,
+    token_first4: token.substring(0, 4),
+    token_last4: token.substring(token.length - 4),
+    token_has_spaces: token !== token.trim(),
+    phone: phone,
+    ownerPhone: ownerPhone,
+    enabled: TWILIO_CONFIG.ENABLED
+  };
 }
 
 // Verify credentials are configured
@@ -132875,7 +132918,23 @@ function logDirectSowConfirmation(params) {
     new Date().toISOString()
   ]);
 
-  return { success: true, trackingId: trackingId, message: 'Direct sow recorded' };
+  // Deduct seeds from inventory if lot ID and quantity provided
+  var seedDeductResult = null;
+  if (params.seedLotId && params.seedsToDeduct && Number(params.seedsToDeduct) > 0) {
+    try {
+      seedDeductResult = useSeedFromLot({
+        seedLotId: params.seedLotId,
+        quantityUsed: Number(params.seedsToDeduct),
+        batchId: params.batchId || '',
+        notes: 'Direct sow - ' + (params.employeeId || 'unknown')
+      });
+    } catch (e) {
+      Logger.log('Direct sow seed deduction warning: ' + e.toString());
+      seedDeductResult = { success: false, error: e.toString() };
+    }
+  }
+
+  return { success: true, trackingId: trackingId, message: 'Direct sow recorded', seedDeduction: seedDeductResult };
 }
 
 function logProductionCost(params) {

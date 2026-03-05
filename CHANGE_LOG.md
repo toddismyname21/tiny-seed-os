@@ -38,6 +38,50 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-03-05 — PM_ARCHITECT: Seed-to-Sowing Traceability Pipeline + Tray Label Font Increase
+
+### Files Modified
+- `employee.html` — **GH sow modal restructured**: Moved seed packet photo capture button and preview OUT of "Substituted" section → now always visible for every sowing. Added AI analysis match result panel (`seedMatchPanel`), seed lot auto-display with manual override, seeds-to-deduct input. New functions: `analyzeAndMatchSeedPacket()` (AI photo analysis + inventory search → 3-outcome match UI), `selectSeedLotForSowing()`, `createAndLinkNewSeedLot()` (auto-creates SEED_INVENTORY lot from photo data), `manualSeedLotEntry()`, `showAllMatchingLots()`, `onDirectSowLotChange()`. Updated `openGHSowConfirm()` and `openSowingConfirmFromTask()` to reset all new state fields. Updated `submitGHSowConfirm()` payload to include `seedsToDeduct`. Updated `removeSowPhoto()` to clear match state. **Direct sow tab**: Added seeds-to-deduct input, `onchange` handler on seed lot dropdown, `seedsToDeduct` in submit payload, reset in `resetDirectSowForm()`.
+- `apps_script/MERGED TOTAL.js` — Added seed deduction to `confirmGHSowing()`: calls `useSeedFromLot()` when seedLotId + seedsToDeduct provided (try/catch, never blocks sowing). Added seed deduction to `logDirectSowConfirmation()`: same pattern. Both return `seedDeduction` result in response.
+- `web_app/print-engine.js` — Increased all font sizes in `_renderFieldTray()` (4"×1" tray labels): Crop 13→16pt, Variety 9→11pt, Batch 7→8pt, Dates 7→8pt, Tray Size 12→14pt, Tray Info 8→10pt, Field 7→8pt. Adjusted Y-positions and text start (tx 75→72) to accommodate larger fonts.
+
+### Functions Added
+- `analyzeAndMatchSeedPacket(photoData)` in `employee.html` — AI-powered seed packet analysis + inventory matching pipeline
+- `selectSeedLotForSowing(lotId, qty, unit)` in `employee.html` — Links matched lot to sowing modal
+- `createAndLinkNewSeedLot()` in `employee.html` — Auto-creates SEED_INVENTORY entry from photo data
+- `manualSeedLotEntry()` in `employee.html` — Manual seed lot ID input fallback
+- `showAllMatchingLots()` in `employee.html` — Displays all matching inventory lots for selection
+- `onDirectSowLotChange()` in `employee.html` — Shows seeds-to-deduct when lot selected in direct sow tab
+
+### Functions Modified
+- `confirmGHSowing()` in MERGED TOTAL.js — Added `useSeedFromLot()` call for seed inventory deduction
+- `logDirectSowConfirmation()` in MERGED TOTAL.js — Added `useSeedFromLot()` call for seed inventory deduction
+- `_renderFieldTray()` in print-engine.js — Increased all font sizes for better readability on 4"×1" thermal labels
+- `confirmPhoto()` in employee.html — Added `analyzeAndMatchSeedPacket()` call after sowConfirm photo capture
+- `removeSowPhoto()` in employee.html — Added match state + panel reset
+- `openGHSowConfirm()` in employee.html — Added reset for match panel, seed lot display, deduct row
+- `openSowingConfirmFromTask()` in employee.html — Same reset additions
+- `submitGHSowConfirm()` in employee.html — Added seedsToDeduct to payload
+- `submitDirectSow()` in employee.html — Added seedsToDeduct to payload
+- `resetDirectSowForm()` in employee.html — Added deduct row reset
+
+### Existing Functions Reused (NOT modified)
+- `analyzeSeedPacket()` — Claude Vision API photo analysis (already registered in POST router)
+- `findSeedLotsByCropVariety()` — Fuzzy inventory search with botanical aliases (already in GET router)
+- `useSeedFromLot()` — Seed deduction + status update + SEED_USAGE_LOG
+- `addSeedLot()` — 30-column seed lot creation with auto QR codes
+- `uploadSowingPhoto()` — Drive upload + PLANNING_2026 URL link
+
+### Reason
+Seed-to-sowing traceability was broken: sowing confirmation never deducted seeds from inventory, seed lot linking was manual free-text, photo capture was hidden behind the "Substituted" checkbox. Now: photo capture is always visible, AI reads the packet and auto-matches to inventory (or creates new lot), seeds are deducted on confirm, and traceability flows from seed packet → SEED_INVENTORY → PLANNING_2026 → SEED_USAGE_LOG. Tray label fonts increased per owner request — 4"×1" labels had room for larger text.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md — all functions reused, no duplicates
+- [x] Searched for similar functions — building blocks existed, just wired together
+- [x] No duplicates created
+
+---
+
 ## 2026-03-05 - PM_ARCHITECT
 
 ### URGENT: Disable All SMS/Twilio (Stop Charges)

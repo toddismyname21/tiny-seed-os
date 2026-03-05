@@ -11952,9 +11952,18 @@
                     <!-- Seed Lot -->
                     <div class="form-group">
                         <label class="form-label">Seed Lot</label>
-                        <select class="form-input" id="sowSeedLot">
+                        <select class="form-input" id="sowSeedLot" onchange="onDirectSowLotChange()">
                             <option value="">Select seed lot...</option>
                         </select>
+                    </div>
+
+                    <!-- Seeds to Deduct (direct sow) -->
+                    <div class="form-group" id="directSowDeductRow" style="display:none;">
+                        <label class="form-label">Seeds to Deduct</label>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <input type="number" class="form-input" id="directSowSeedsToDeduct" min="0" placeholder="0" style="flex:1;">
+                            <span id="directSowSeedsAvailable" style="font-size:0.75rem;color:var(--text-secondary);white-space:nowrap;"></span>
+                        </div>
                     </div>
 
                     <!-- Photo Capture -->
@@ -16866,10 +16875,34 @@
 
             // Reset photo state
             AppState.sowConfirmPhoto = null;
+            AppState.matchedSeedLot = null;
+            AppState.seedPacketAnalysis = null;
             var sowPreview = document.getElementById('sowPhotoPreview');
             var sowBtn = document.getElementById('sowPhotoBtn');
             if (sowPreview) sowPreview.style.display = 'none';
             if (sowBtn) sowBtn.innerHTML = '<i class="fas fa-camera"></i> ' + t('sow.snapSeedPacket');
+
+            // Reset seed match panel
+            var matchPanel = document.getElementById('seedMatchPanel');
+            if (matchPanel) matchPanel.style.display = 'none';
+
+            // Reset seed lot display
+            var lotValue = document.getElementById('ghSeedLotValue');
+            var lotHidden = document.getElementById('ghConfirmSeedLot');
+            var lotManual = document.getElementById('ghManualSeedLotInput');
+            var lotDisplay = document.getElementById('ghSeedLotDisplay');
+            if (lotValue) lotValue.textContent = task.seedLotUsed ? task.seedLotUsed : 'No seed lot linked';
+            if (lotHidden) lotHidden.value = task.seedLotUsed || '';
+            if (lotManual) lotManual.style.display = 'none';
+            if (lotDisplay) lotDisplay.querySelector('div').style.display = 'flex';
+
+            // Reset seeds to deduct
+            var deductRow = document.getElementById('seedsToDeductRow');
+            if (deductRow) deductRow.style.display = 'none';
+            var deductInput = document.getElementById('ghSeedsToDeduct');
+            if (deductInput) deductInput.value = '';
+            var availSpan = document.getElementById('seedsAvailable');
+            if (availSpan) availSpan.textContent = '';
 
             // Store batchId for submission (GH home source — same behavior as ghDashboard)
             document.getElementById('ghConfirmBtn').setAttribute('data-batch-id', batchId);
@@ -16958,10 +16991,34 @@
 
             // Reset photo state
             AppState.sowConfirmPhoto = null;
+            AppState.matchedSeedLot = null;
+            AppState.seedPacketAnalysis = null;
             var sowPreview = document.getElementById('sowPhotoPreview');
             var sowBtn = document.getElementById('sowPhotoBtn');
             if (sowPreview) sowPreview.style.display = 'none';
             if (sowBtn) sowBtn.innerHTML = '<i class="fas fa-camera"></i> ' + t('sow.snapSeedPacket');
+
+            // Reset seed match panel
+            var matchPanel = document.getElementById('seedMatchPanel');
+            if (matchPanel) matchPanel.style.display = 'none';
+
+            // Reset seed lot display
+            var lotValue = document.getElementById('ghSeedLotValue');
+            var lotHidden = document.getElementById('ghConfirmSeedLot');
+            var lotManual = document.getElementById('ghManualSeedLotInput');
+            var lotDisplay = document.getElementById('ghSeedLotDisplay');
+            if (lotValue) lotValue.textContent = seedLot ? seedLot : 'No seed lot linked';
+            if (lotHidden) lotHidden.value = seedLot || '';
+            if (lotManual) lotManual.style.display = 'none';
+            if (lotDisplay) lotDisplay.querySelector('div').style.display = 'flex';
+
+            // Reset seeds to deduct
+            var deductRow = document.getElementById('seedsToDeductRow');
+            if (deductRow) deductRow.style.display = 'none';
+            var deductInput = document.getElementById('ghSeedsToDeduct');
+            if (deductInput) deductInput.value = '';
+            var availSpan = document.getElementById('seedsAvailable');
+            if (availSpan) availSpan.textContent = '';
 
             // Store both task ID and batch ID
             var btn = document.getElementById('ghConfirmBtn');
@@ -16989,6 +17046,7 @@
                 actualVariety: document.getElementById('ghConfirmSubstituted').checked ? document.getElementById('ghConfirmVariety').value : '',
                 substituted: document.getElementById('ghConfirmSubstituted').checked,
                 seedLotId: document.getElementById('ghConfirmSeedLot').value || '',
+                seedsToDeduct: parseInt(document.getElementById('ghSeedsToDeduct')?.value) || 0,
                 notes: document.getElementById('ghConfirmNotes').value || ''
             };
 
@@ -23202,7 +23260,7 @@
                 return;
             }
 
-            // Sowing confirmation modal — seed packet photo for substitution traceability
+            // Sowing confirmation modal — seed packet photo + AI analysis
             if (AppState.currentPhotoTarget === 'sowConfirm') {
                 AppState.sowConfirmPhoto = AppState.capturedPhoto;
                 var thumb = document.getElementById('sowPhotoThumb');
@@ -23212,6 +23270,8 @@
                 if (preview) preview.style.display = 'block';
                 if (btn) btn.innerHTML = '<i class="fas fa-check-circle" style="color:#22c55e;"></i> Photo Captured — Tap to Retake';
                 closeCamera();
+                // Trigger AI analysis + inventory matching
+                analyzeAndMatchSeedPacket(AppState.capturedPhoto);
                 return;
             }
 
@@ -23254,10 +23314,249 @@
 
         function removeSowPhoto() {
             AppState.sowConfirmPhoto = null;
+            AppState.matchedSeedLot = null;
+            AppState.seedPacketAnalysis = null;
             var preview = document.getElementById('sowPhotoPreview');
             var btn = document.getElementById('sowPhotoBtn');
             if (preview) preview.style.display = 'none';
             if (btn) btn.innerHTML = '<i class="fas fa-camera"></i> ' + t('sow.snapSeedPacket');
+            // Clear match panel
+            var matchPanel = document.getElementById('seedMatchPanel');
+            if (matchPanel) matchPanel.style.display = 'none';
+            // Reset seed lot display
+            var lotValue = document.getElementById('ghSeedLotValue');
+            var lotHidden = document.getElementById('ghConfirmSeedLot');
+            if (lotValue) lotValue.textContent = 'No seed lot linked';
+            if (lotHidden) lotHidden.value = '';
+            var deductRow = document.getElementById('seedsToDeductRow');
+            if (deductRow) deductRow.style.display = 'none';
+        }
+
+        // ============================================
+        // SEED PACKET AI ANALYSIS + INVENTORY MATCHING
+        // ============================================
+        async function analyzeAndMatchSeedPacket(photoData) {
+            var panel = document.getElementById('seedMatchPanel');
+            var content = document.getElementById('seedMatchContent');
+            if (!panel || !content) return;
+
+            // Show spinner
+            panel.style.display = 'block';
+            content.innerHTML = '<div style="display:flex;align-items:center;gap:8px;color:var(--text-secondary,#999);"><i class="fas fa-spinner fa-spin"></i> Analyzing seed packet...</div>';
+
+            try {
+                // Step 1: Analyze the photo with Claude Vision
+                var analyzeRes = await fetch(CONFIG.API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({ action: 'analyzeSeedPacket', image: photoData })
+                });
+                var analyzeData = await analyzeRes.json();
+
+                if (!analyzeData.success || !analyzeData.data) {
+                    // AI analysis failed — show manual entry fallback
+                    content.innerHTML = '<div style="color:var(--text-secondary,#999);font-size:0.85rem;">' +
+                        '<i class="fas fa-info-circle"></i> Could not read seed packet automatically.<br>' +
+                        '<span style="font-size:0.8rem;">Use "Enter manually" below to type the seed lot ID.</span></div>';
+                    return;
+                }
+
+                var packetInfo = analyzeData.data;
+                AppState.seedPacketAnalysis = packetInfo;
+
+                // Show what we read from the packet
+                var readSummary = '<div style="font-size:0.8rem;color:var(--text-secondary,#999);margin-bottom:8px;">' +
+                    '<strong style="color:var(--text-primary,#fff);">' + (packetInfo.crop || 'Unknown') + '</strong>' +
+                    (packetInfo.variety ? ' — ' + packetInfo.variety : '') +
+                    (packetInfo.vendor ? '<br>' + packetInfo.vendor : '') +
+                    (packetInfo.seedsPerPacket ? ' · ' + packetInfo.seedsPerPacket + ' seeds/pkt' : '') +
+                    (packetInfo.organic ? ' · <span style="color:#22c55e;">Organic</span>' : '') +
+                    '</div>';
+
+                // Step 2: Search inventory for matching lots
+                content.innerHTML = readSummary + '<div style="display:flex;align-items:center;gap:8px;color:var(--text-secondary,#999);font-size:0.8rem;"><i class="fas fa-search"></i> Searching inventory...</div>';
+
+                var searchRes = await fetch(CONFIG.API_URL + '?action=findSeedLotsByCropVariety&crop=' + encodeURIComponent(packetInfo.crop || '') + '&variety=' + encodeURIComponent(packetInfo.variety || ''));
+                var searchData = await searchRes.json();
+
+                if (!searchData.success) {
+                    content.innerHTML = readSummary + '<div style="font-size:0.8rem;color:var(--text-secondary,#999);">Could not search inventory. Use "Enter manually" below.</div>';
+                    return;
+                }
+
+                var lots = searchData.lots || [];
+
+                // Check for exact supplier lot match
+                var exactMatch = null;
+                if (packetInfo.lotNumber) {
+                    exactMatch = lots.find(function(lot) {
+                        var supplierLot = (lot.supplierLot || lot.supplier_lot || '').toLowerCase().trim();
+                        return supplierLot === String(packetInfo.lotNumber).toLowerCase().trim();
+                    });
+                }
+
+                if (exactMatch) {
+                    // OUTCOME A: Exact lot match
+                    content.innerHTML = readSummary +
+                        '<div style="padding:8px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);border-radius:6px;">' +
+                        '<div style="font-size:0.85rem;color:#22c55e;font-weight:600;"><i class="fas fa-check-circle"></i> Matched: ' + exactMatch.seedLotId + '</div>' +
+                        '<div style="font-size:0.8rem;color:var(--text-secondary,#999);margin-top:2px;">' + exactMatch.crop + (exactMatch.variety ? ' — ' + exactMatch.variety : '') + ' · ' + exactMatch.quantityRemaining + ' ' + (exactMatch.unit || 'seeds') + ' remaining</div>' +
+                        '<div style="display:flex;gap:8px;margin-top:8px;">' +
+                        '<button type="button" onclick="selectSeedLotForSowing(\'' + exactMatch.seedLotId + '\', ' + exactMatch.quantityRemaining + ', \'' + (exactMatch.unit || 'seeds') + '\')" style="flex:1;padding:8px;min-height:36px;background:#22c55e;color:white;border:none;border-radius:6px;font-size:0.85rem;font-weight:600;cursor:pointer;">Use This Lot</button>' +
+                        '<button type="button" onclick="showAllMatchingLots()" style="padding:8px 12px;min-height:36px;background:var(--bg-light,#2a2a3e);color:var(--text-secondary,#999);border:1px solid var(--border,#333);border-radius:6px;font-size:0.8rem;cursor:pointer;">Other</button>' +
+                        '</div></div>';
+                    // Auto-select the exact match
+                    selectSeedLotForSowing(exactMatch.seedLotId, exactMatch.quantityRemaining, exactMatch.unit || 'seeds');
+                } else if (lots.length > 0) {
+                    // OUTCOME B: Crop/variety matches but no exact lot
+                    var lotsHtml = lots.slice(0, 4).map(function(lot) {
+                        return '<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border,#333);">' +
+                            '<div style="font-size:0.8rem;"><strong>' + lot.seedLotId + '</strong><br><span style="color:var(--text-secondary,#999);">' + lot.quantityRemaining + ' ' + (lot.unit || 'seeds') + ' remaining</span></div>' +
+                            '<button type="button" onclick="selectSeedLotForSowing(\'' + lot.seedLotId + '\', ' + lot.quantityRemaining + ', \'' + (lot.unit || 'seeds') + '\')" style="padding:6px 12px;min-height:32px;background:#22c55e;color:white;border:none;border-radius:6px;font-size:0.8rem;cursor:pointer;">Select</button>' +
+                            '</div>';
+                    }).join('');
+                    content.innerHTML = readSummary +
+                        '<div style="font-size:0.85rem;color:var(--text-primary,#fff);margin-bottom:4px;"><i class="fas fa-search"></i> Found ' + lots.length + ' matching lot' + (lots.length > 1 ? 's' : '') + ':</div>' +
+                        lotsHtml +
+                        '<button type="button" onclick="createAndLinkNewSeedLot()" style="width:100%;padding:8px;min-height:36px;margin-top:8px;background:var(--bg-light,#2a2a3e);color:var(--text-secondary,#999);border:1px dashed var(--border,#555);border-radius:6px;font-size:0.8rem;cursor:pointer;"><i class="fas fa-plus"></i> Add as New Seed Lot</button>';
+                } else {
+                    // OUTCOME C: No match — offer to create new lot
+                    content.innerHTML = readSummary +
+                        '<div style="padding:8px;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);border-radius:6px;">' +
+                        '<div style="font-size:0.85rem;color:#3b82f6;font-weight:600;"><i class="fas fa-box"></i> New seed — not in inventory</div>' +
+                        '<div style="display:flex;gap:8px;margin-top:8px;">' +
+                        '<button type="button" onclick="createAndLinkNewSeedLot()" style="flex:1;padding:8px;min-height:36px;background:#3b82f6;color:white;border:none;border-radius:6px;font-size:0.85rem;font-weight:600;cursor:pointer;"><i class="fas fa-plus"></i> Add to Inventory & Link</button>' +
+                        '<button type="button" onclick="document.getElementById(\'seedMatchPanel\').style.display=\'none\'" style="padding:8px 12px;min-height:36px;background:var(--bg-light,#2a2a3e);color:var(--text-secondary,#999);border:1px solid var(--border,#333);border-radius:6px;font-size:0.8rem;cursor:pointer;">Skip</button>' +
+                        '</div></div>';
+                }
+            } catch (err) {
+                console.error('Seed packet analysis error:', err);
+                content.innerHTML = '<div style="font-size:0.85rem;color:var(--text-secondary,#999);"><i class="fas fa-exclamation-triangle" style="color:#f59e0b;"></i> Analysis unavailable. Use "Enter manually" below.</div>';
+            }
+        }
+
+        function showAllMatchingLots() {
+            // Re-trigger search display without the exact match auto-select
+            if (AppState.seedPacketAnalysis) {
+                var panel = document.getElementById('seedMatchPanel');
+                var content = document.getElementById('seedMatchContent');
+                content.innerHTML = '<div style="display:flex;align-items:center;gap:8px;color:var(--text-secondary,#999);font-size:0.8rem;"><i class="fas fa-spinner fa-spin"></i> Loading lots...</div>';
+                var p = AppState.seedPacketAnalysis;
+                fetch(CONFIG.API_URL + '?action=findSeedLotsByCropVariety&crop=' + encodeURIComponent(p.crop || '') + '&variety=' + encodeURIComponent(p.variety || ''))
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        var lots = (data.lots || []);
+                        if (lots.length === 0) {
+                            content.innerHTML = '<div style="font-size:0.85rem;color:var(--text-secondary,#999);">No matching lots found.</div>';
+                            return;
+                        }
+                        var html = lots.slice(0, 6).map(function(lot) {
+                            return '<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border,#333);">' +
+                                '<div style="font-size:0.8rem;"><strong>' + lot.seedLotId + '</strong><br><span style="color:var(--text-secondary,#999);">' + lot.quantityRemaining + ' ' + (lot.unit || 'seeds') + '</span></div>' +
+                                '<button type="button" onclick="selectSeedLotForSowing(\'' + lot.seedLotId + '\', ' + lot.quantityRemaining + ', \'' + (lot.unit || 'seeds') + '\')" style="padding:6px 12px;min-height:32px;background:#22c55e;color:white;border:none;border-radius:6px;font-size:0.8rem;cursor:pointer;">Select</button></div>';
+                        }).join('');
+                        content.innerHTML = '<div style="font-size:0.85rem;color:var(--text-primary,#fff);margin-bottom:4px;">All matching lots:</div>' + html;
+                    });
+            }
+        }
+
+        function selectSeedLotForSowing(lotId, quantityRemaining, unit) {
+            AppState.matchedSeedLot = { lotId: lotId, quantityRemaining: quantityRemaining, unit: unit || 'seeds' };
+            // Update hidden input
+            var lotHidden = document.getElementById('ghConfirmSeedLot');
+            if (lotHidden) lotHidden.value = lotId;
+            // Update display
+            var lotValue = document.getElementById('ghSeedLotValue');
+            if (lotValue) {
+                lotValue.innerHTML = '<strong style="color:#22c55e;">' + lotId + '</strong>';
+            }
+            // Hide manual input if showing
+            var lotManual = document.getElementById('ghManualSeedLotInput');
+            if (lotManual) lotManual.style.display = 'none';
+            var lotDisplay = document.getElementById('ghSeedLotDisplay');
+            if (lotDisplay) lotDisplay.querySelector('div').style.display = 'flex';
+            // Show seeds-to-deduct row with sensible default
+            var deductRow = document.getElementById('seedsToDeductRow');
+            var deductInput = document.getElementById('ghSeedsToDeduct');
+            var availSpan = document.getElementById('seedsAvailable');
+            if (deductRow) deductRow.style.display = 'block';
+            if (availSpan) availSpan.textContent = quantityRemaining + ' ' + (unit || 'seeds') + ' available';
+            // Default deduction: trays × cells if available, else seedsPerPacket from analysis
+            var trays = parseInt(document.getElementById('ghConfirmTrays')?.value) || 0;
+            var seedsPerPacket = AppState.seedPacketAnalysis?.seedsPerPacket || 0;
+            var defaultDeduct = 0;
+            if (trays > 0 && seedsPerPacket > 0) {
+                // Rough estimate: one packet per X trays — but better to use seedsPerPacket as total
+                defaultDeduct = seedsPerPacket;
+            } else if (seedsPerPacket > 0) {
+                defaultDeduct = seedsPerPacket;
+            }
+            if (deductInput) deductInput.value = defaultDeduct || '';
+        }
+
+        async function createAndLinkNewSeedLot() {
+            var analysis = AppState.seedPacketAnalysis;
+            if (!analysis) {
+                showToast('No seed packet data available', 'error');
+                return;
+            }
+            var content = document.getElementById('seedMatchContent');
+            if (content) content.innerHTML = '<div style="display:flex;align-items:center;gap:8px;color:var(--text-secondary,#999);font-size:0.8rem;"><i class="fas fa-spinner fa-spin"></i> Creating seed lot...</div>';
+
+            try {
+                var res = await fetch(CONFIG.API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({
+                        action: 'addSeedLot',
+                        crop: analysis.crop || '',
+                        variety: analysis.variety || '',
+                        vendor: analysis.vendor || '',
+                        lotNumber: analysis.lotNumber || '',
+                        quantity: analysis.seedsPerPacket || 0,
+                        seedsPerPacket: analysis.seedsPerPacket || 0,
+                        unit: 'seeds',
+                        germRate: analysis.germRate || '',
+                        organic: analysis.organic || false,
+                        dtm: analysis.dtm || '',
+                        plantFamily: analysis.plantFamily || '',
+                        latinName: analysis.latinName || '',
+                        notes: 'Auto-created from seed packet photo during sowing'
+                    })
+                });
+                var data = await res.json();
+                if (data.success && data.seedLotId) {
+                    showToast('Seed lot ' + data.seedLotId + ' created!', 'success');
+                    selectSeedLotForSowing(data.seedLotId, analysis.seedsPerPacket || 0, 'seeds');
+                    // Update match panel to show success
+                    if (content) content.innerHTML = '<div style="padding:8px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);border-radius:6px;">' +
+                        '<div style="font-size:0.85rem;color:#22c55e;font-weight:600;"><i class="fas fa-check-circle"></i> Created & linked: ' + data.seedLotId + '</div></div>';
+                } else {
+                    showToast('Failed to create seed lot: ' + (data.error || 'Unknown'), 'error');
+                    if (content) content.innerHTML = '<div style="font-size:0.85rem;color:#ef4444;">Failed: ' + (data.error || 'Unknown error') + '</div>';
+                }
+            } catch (err) {
+                console.error('Create seed lot error:', err);
+                showToast('Error creating seed lot', 'error');
+            }
+        }
+
+        function manualSeedLotEntry() {
+            var display = document.getElementById('ghSeedLotDisplay');
+            var manualInput = document.getElementById('ghManualSeedLotInput');
+            var lotHidden = document.getElementById('ghConfirmSeedLot');
+            if (!display || !manualInput) return;
+            // Hide display, show input
+            display.querySelector('div').style.display = 'none';
+            manualInput.style.display = 'block';
+            manualInput.focus();
+            // On input change, update hidden field
+            manualInput.oninput = function() {
+                if (lotHidden) lotHidden.value = manualInput.value.trim();
+            };
+            // Show deduct row for manual entry too
+            var deductRow = document.getElementById('seedsToDeductRow');
+            if (deductRow) deductRow.style.display = 'block';
         }
 
         function closeCamera() {
@@ -29720,12 +30019,35 @@
         });
     }
 
+    function onDirectSowLotChange() {
+        var select = document.getElementById('sowSeedLot');
+        var lotId = select.value;
+        var deductRow = document.getElementById('directSowDeductRow');
+        var availSpan = document.getElementById('directSowSeedsAvailable');
+        if (!lotId || lotId === '_manual') {
+            if (deductRow) deductRow.style.display = 'none';
+            return;
+        }
+        // Find the selected lot in cached inventory to show available quantity
+        if (deductRow) deductRow.style.display = 'block';
+        if (DirectSowState.seedInventory) {
+            var match = DirectSowState.seedInventory.find(function(s) {
+                return (s.Lot_ID || s.lot_id || s.ID || '') === lotId;
+            });
+            if (match && availSpan) {
+                var qty = match.Quantity || match.qty || match.Quantity_Remaining || '';
+                availSpan.textContent = qty ? qty + ' available' : '';
+            }
+        }
+    }
+
     async function submitDirectSow() {
         const batchId = document.getElementById('sowBatchSelect').value;
         const bedId = document.getElementById('sowBedId').value;
         const feetSown = parseFloat(document.getElementById('sowFeet').value);
         const rowsSown = parseInt(document.getElementById('sowRows').value);
         const seedLotId = document.getElementById('sowSeedLot').value;
+        const seedsToDeduct = parseInt(document.getElementById('directSowSeedsToDeduct')?.value) || 0;
         const notes = document.getElementById('sowNotes').value;
 
         if (!batchId) {
@@ -29754,6 +30076,7 @@
                 feetSown: feetSown,
                 rowsSown: rowsSown || 0,
                 seedLotId: seedLotId || '',
+                seedsToDeduct: seedsToDeduct || 0,
                 photo: DirectSowState.capturedPhoto || '',
                 gpsLat: gps.lat || '',
                 gpsLng: gps.lng || '',
@@ -29851,6 +30174,11 @@
         document.getElementById('directSowPhotoPreview').style.display = 'none';
         document.getElementById('sowGpsIcon').style.color = 'var(--text-muted)';
         document.getElementById('sowGpsStatus').textContent = 'GPS will auto-capture on submit';
+        // Reset seeds to deduct
+        var deductRow = document.getElementById('directSowDeductRow');
+        var deductInput = document.getElementById('directSowSeedsToDeduct');
+        if (deductRow) deductRow.style.display = 'none';
+        if (deductInput) deductInput.value = '';
         DirectSowState.selectedBatch = null;
         DirectSowState.soilCondition = null;
         DirectSowState.capturedPhoto = null;
@@ -30244,16 +30572,40 @@
                 </label>
                 <div id="ghSubVarietyRow" style="display:none;margin-top:4px;">
                     <input type="text" id="ghConfirmVariety" placeholder="Actual variety used" style="width:100%;padding:12px;min-height:44px;background:var(--bg-light,#2a2a3e);border:1px solid var(--border,#333);border-radius:8px;color:var(--text-primary,#fff);font-size:1rem;box-sizing:border-box;">
-                    <button type="button" id="sowPhotoBtn" onclick="capturePhoto('sowConfirm')" style="width:100%;padding:12px;min-height:44px;background:var(--bg-light,#2a2a3e);border:1px dashed var(--border,#555);border-radius:8px;color:var(--text-secondary,#999);font-size:0.9rem;cursor:pointer;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:8px;"><i class="fas fa-camera"></i> <span data-i18n="sow.snapSeedPacket">Snap Seed Packet</span></button>
-                    <div id="sowPhotoPreview" style="display:none;margin-top:8px;position:relative;">
-                        <img id="sowPhotoThumb" style="width:100%;max-height:120px;object-fit:cover;border-radius:8px;border:2px solid #22c55e;" alt="Seed packet photo">
-                        <button type="button" onclick="removeSowPhoto()" style="position:absolute;top:4px;right:4px;width:28px;height:28px;border-radius:50%;background:rgba(0,0,0,0.7);border:none;color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;"><i class="fas fa-times"></i></button>
-                    </div>
                 </div>
             </div>
+            <!-- Seed Packet Photo — always visible (not tied to substitution) -->
+            <div>
+                <label style="font-size:0.8rem;color:var(--text-secondary,#999);font-weight:600;">Seed Packet Photo</label>
+                <button type="button" id="sowPhotoBtn" onclick="capturePhoto('sowConfirm')" style="width:100%;padding:12px;min-height:44px;background:var(--bg-light,#2a2a3e);border:1px dashed var(--border,#555);border-radius:8px;color:var(--text-secondary,#999);font-size:0.9rem;cursor:pointer;margin-top:4px;display:flex;align-items:center;justify-content:center;gap:8px;"><i class="fas fa-camera"></i> <span data-i18n="sow.snapSeedPacket">Snap Seed Packet</span></button>
+                <div id="sowPhotoPreview" style="display:none;margin-top:8px;position:relative;">
+                    <img id="sowPhotoThumb" style="width:100%;max-height:120px;object-fit:cover;border-radius:8px;border:2px solid #22c55e;" alt="Seed packet photo">
+                    <button type="button" onclick="removeSowPhoto()" style="position:absolute;top:4px;right:4px;width:28px;height:28px;border-radius:50%;background:rgba(0,0,0,0.7);border:none;color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;"><i class="fas fa-times"></i></button>
+                </div>
+                <!-- AI Analysis Match Result Panel -->
+                <div id="seedMatchPanel" style="display:none;margin-top:8px;padding:12px;background:var(--bg-light,#2a2a3e);border:1px solid var(--border,#333);border-radius:8px;">
+                    <div id="seedMatchContent"></div>
+                </div>
+            </div>
+            <!-- Seed Lot — auto-populated from photo match or manual entry -->
             <div>
                 <label style="font-size:0.8rem;color:var(--text-secondary,#999);font-weight:600;" data-i18n="sow.seedLot">Seed Lot ID</label>
-                <input type="text" id="ghConfirmSeedLot" placeholder="e.g. LOT-2026-001" style="width:100%;padding:12px;min-height:44px;background:var(--bg-light,#2a2a3e);border:1px solid var(--border,#333);border-radius:8px;color:var(--text-primary,#fff);font-size:1rem;margin-top:4px;box-sizing:border-box;">
+                <div id="ghSeedLotDisplay" style="margin-top:4px;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;min-height:44px;background:var(--bg-light,#2a2a3e);border:1px solid var(--border,#333);border-radius:8px;">
+                        <span id="ghSeedLotValue" style="color:var(--text-secondary,#999);font-size:0.9rem;">No seed lot linked</span>
+                        <a href="#" onclick="manualSeedLotEntry(); return false;" style="color:#22c55e;font-size:0.8rem;text-decoration:none;white-space:nowrap;margin-left:8px;">Enter manually</a>
+                    </div>
+                    <input type="hidden" id="ghConfirmSeedLot" value="">
+                    <input type="text" id="ghManualSeedLotInput" placeholder="e.g. S-TOMATO-260112-001" style="display:none;width:100%;padding:12px;min-height:44px;background:var(--bg-light,#2a2a3e);border:1px solid var(--border,#333);border-radius:8px;color:var(--text-primary,#fff);font-size:1rem;box-sizing:border-box;">
+                </div>
+            </div>
+            <!-- Seeds to Deduct -->
+            <div id="seedsToDeductRow" style="display:none;">
+                <label style="font-size:0.8rem;color:var(--text-secondary,#999);font-weight:600;">Seeds to Deduct</label>
+                <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
+                    <input type="number" id="ghSeedsToDeduct" min="0" placeholder="0" style="flex:1;padding:12px;min-height:44px;background:var(--bg-light,#2a2a3e);border:1px solid var(--border,#333);border-radius:8px;color:var(--text-primary,#fff);font-size:1rem;box-sizing:border-box;">
+                    <span id="seedsAvailable" style="font-size:0.75rem;color:var(--text-secondary,#999);white-space:nowrap;"></span>
+                </div>
             </div>
             <div>
                 <label style="font-size:0.8rem;color:var(--text-secondary,#999);font-weight:600;" data-i18n="sow.notes">Notes</label>

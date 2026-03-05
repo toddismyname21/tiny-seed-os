@@ -117,54 +117,55 @@
             doc.addImage(qrImg, 'PNG', 6, (H - qrSz) / 2, qrSz, qrSz);
         }
 
-        var tx = 75; // text start after QR + gap
+        var tx = 72; // text start after QR + gap (tightened from 75)
         var rx = W - 6; // right edge
 
-        // Crop - bold 13pt
+        // Crop - bold 16pt
         doc.setTextColor(0, 0, 0);
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(13);
-        doc.text(label.crop || '', tx, 17);
+        doc.setFontSize(16);
+        doc.text(label.crop || '', tx, 18);
 
-        // Variety - 9pt
+        // Variety - 11pt
         doc.setFont('helvetica', 'normal');
-        doc.setFontSize(9);
+        doc.setFontSize(11);
         doc.setTextColor(51, 51, 51);
-        doc.text(label.variety || '', tx, 29);
+        doc.text(label.variety || '', tx, 31);
 
-        // Batch - 7pt monospace
+        // Batch - 8pt monospace
         doc.setFont('courier', 'normal');
-        doc.setFontSize(7);
+        doc.setFontSize(8);
         doc.setTextColor(85, 85, 85);
         var batchText = (label.batchNumber || label.batchId || '');
         if (label.trayNumber) batchText += ' T' + label.trayNumber;
-        doc.text(batchText, tx, 40);
+        doc.text(batchText, tx, 42);
 
-        // Dates - 7pt
+        // Dates - 8pt
         doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
         doc.setTextColor(68, 68, 68);
         var ds = 'Sow: ' + _fmtDate(label.seedDate || label.sowDate);
         ds += '  ->  TP: ' + _fmtDate(label.transplantDate);
         if (label.field) ds += '  @  ' + label.field;
-        doc.text(ds, tx, 51);
+        doc.text(ds, tx, 53);
 
         // Right column - tray info
         var tsd = _fmtTraySize(label.cellsPerTray, label.paperpotSpacing);
         doc.setTextColor(0, 0, 0);
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(12);
-        doc.text(tsd, rx, 19, { align: 'right' });
+        doc.setFontSize(14);
+        doc.text(tsd, rx, 20, { align: 'right' });
 
         doc.setFont('helvetica', 'normal');
-        doc.setFontSize(8);
+        doc.setFontSize(10);
         doc.setTextColor(68, 68, 68);
         var trayStr = 'Tray ' + (label.trayNumber || '') + '/' + (label.trays || '');
-        doc.text(trayStr, rx, 33, { align: 'right' });
+        doc.text(trayStr, rx, 35, { align: 'right' });
 
         if (label.field) {
-            doc.setFontSize(7);
+            doc.setFontSize(8);
             doc.setTextColor(85, 85, 85);
-            doc.text(label.field, rx, 45, { align: 'right' });
+            doc.text(label.field, rx, 48, { align: 'right' });
         }
     }
 
