@@ -1075,6 +1075,30 @@ self.addEventListener('message', (event) => {
       }
       break;
 
+    case 'REGISTER_SCHEDULE':
+      // Store employee schedule for background clock-in reminders
+      if (data) {
+        _registeredSchedules[data.employeeId] = {
+          employeeName: data.employeeName,
+          startTime: data.startTime,
+          language: data.language || 'en',
+          registeredAt: Date.now()
+        };
+        console.log('[SW] Schedule registered for', data.employeeName, '- start:', data.startTime);
+        // Start background check if not already running
+        startBackgroundClockCheck();
+      }
+      break;
+
+    case 'CLOCK_STATUS_UPDATE':
+      // Client informs SW that employee clocked in (stop reminders)
+      if (data && data.employeeId) {
+        if (_registeredSchedules[data.employeeId]) {
+          _registeredSchedules[data.employeeId].clockedIn = data.isClockedIn;
+        }
+      }
+      break;
+
     default:
       console.log('[SW] Unknown message type:', type);
   }
@@ -1132,4 +1156,82 @@ async function cleanExpiredCache() {
   console.log('[SW] Cache cleanup triggered');
 }
 
-console.log('[SW] Service worker v3 loaded');
+// ============================================
+// BACKGROUND CLOCK-IN REMINDER SYSTEM
+// ============================================
+
+// In-memory schedule storage (persists as long as SW is alive)
+var _registeredSchedules = {};
+var _clockCheckInterval = null;
+
+function startBackgroundClockCheck() {
+  if (_clockCheckInterval) return;
+  // Check every 5 minutes
+  _clockCheckInterval = setInterval(backgroundClockCheck, 300000);
+  // First check after 30 seconds
+  setTimeout(backgroundClockCheck, 30000);
+  console.log('[SW] Background clock check started');
+}
+
+function backgroundClockCheck() {
+  var now = new Date();
+  var today = now.toISOString().split('T')[0];
+
+  Object.keys(_registeredSchedules).forEach(function(empId) {
+    var sched = _registeredSchedules[empId];
+    if (!sched || sched.clockedIn) return;
+
+    // Only remind once per day
+    var reminderKey = 'sw_reminded_' + empId + '_' + today;
+    if (sched._reminded === today) return;
+
+    var scheduled = parseScheduleTimeSW(sched.startTime);
+    if (!scheduled) return;
+
+    var diffMin = (now - scheduled) / 60000;
+    // Remind if within 15 min before to 30 min after scheduled start
+    if (diffMin >= -15 && diffMin <= 30) {
+      sched._reminded = today;
+
+      var isEs = sched.language === 'es';
+      var body = isEs
+        ? 'Hola ' + (sched.employeeName || '') + '! Es hora de registrar entrada.'
+        : 'Hey ' + (sched.employeeName || '') + '! Time to clock in.';
+
+      self.registration.showNotification('Tiny Seed Farm', {
+        body: body,
+        icon: '/web_app/favicon-192x192.png',
+        badge: '/web_app/favicon-64x64.png',
+        tag: 'clock-reminder-' + empId,
+        requireInteraction: true,
+        vibrate: [200, 100, 200],
+        data: {
+          url: '/employee.html',
+          category: 'clock-reminder'
+        },
+        actions: [
+          { action: 'open', title: isEs ? 'Abrir App' : 'Open App' },
+          { action: 'dismiss', title: isEs ? 'Cerrar' : 'Dismiss' }
+        ]
+      });
+      console.log('[SW] Clock reminder sent to', sched.employeeName);
+    }
+  });
+}
+
+function parseScheduleTimeSW(timeStr) {
+  if (!timeStr) return null;
+  var today = new Date();
+  var match = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+  if (!match) return null;
+  var h = parseInt(match[1], 10);
+  var m = parseInt(match[2], 10);
+  if (match[3]) {
+    var ampm = match[3].toUpperCase();
+    if (ampm === 'PM' && h !== 12) h += 12;
+    if (ampm === 'AM' && h === 12) h = 0;
+  }
+  return new Date(today.getFullYear(), today.getMonth(), today.getDate(), h, m, 0);
+}
+
+console.log('[SW] Service worker v12 loaded');

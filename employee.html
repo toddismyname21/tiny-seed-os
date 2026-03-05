@@ -16017,10 +16017,13 @@
             updateClockUI();
             startClock();
 
-            // Start clock reminder check if notifications already granted
-            if ('Notification' in window && Notification.permission === 'granted') {
-                startClockReminderCheck();
-            }
+            // Request notification permission on first login (prompts user once)
+            // This ensures clock-in reminders work for all employees
+            requestNotificationPermission();
+
+            // Also register schedule with Service Worker for background reminders
+            registerScheduleWithSW();
+
             loadInitialData();
 
             // Restore saved work mode (only if user has permission)
@@ -17189,6 +17192,9 @@
                         localStorage.setItem('tsf_clocked_in', 'true');
                         localStorage.setItem('tsf_clock_in_time', AppState.clockInTime);
 
+                        // Notify SW to stop clock-in reminders
+                        notifySWClockStatus(true);
+
                         showToast(t('clock.clockedInSuccess'), 'success');
 
                         // Trigger mode check - if full-screen mode selected, show it now
@@ -17209,6 +17215,9 @@
                         // Clear persisted clock state
                         localStorage.removeItem('tsf_clocked_in');
                         localStorage.removeItem('tsf_clock_in_time');
+
+                        // Notify SW that employee clocked out (re-enable reminders tomorrow)
+                        notifySWClockStatus(false);
 
                         // Exit any full-screen mode when clocking out
                         exitFullScreenMode();
@@ -17527,6 +17536,38 @@
                 if (ampm === 'AM' && h === 12) h = 0;
             }
             return new Date(today.getFullYear(), today.getMonth(), today.getDate(), h, m, 0);
+        }
+
+        // Notify Service Worker of clock-in/out status changes
+        function notifySWClockStatus(isClockedIn) {
+            if (!('serviceWorker' in navigator) || !navigator.serviceWorker.controller) return;
+            if (!AppState.employee) return;
+            navigator.serviceWorker.controller.postMessage({
+                type: 'CLOCK_STATUS_UPDATE',
+                data: {
+                    employeeId: AppState.employee.Employee_ID,
+                    isClockedIn: isClockedIn
+                }
+            });
+        }
+
+        // Register employee schedule with Service Worker for background notifications
+        function registerScheduleWithSW() {
+            if (!AppState.employee) return;
+            if (!('serviceWorker' in navigator) || !navigator.serviceWorker.controller) return;
+
+            var startTime = AppState.employee.Start_Time || AppState.employee.Schedule_Start || '';
+            if (!startTime) return;
+
+            navigator.serviceWorker.controller.postMessage({
+                type: 'REGISTER_SCHEDULE',
+                data: {
+                    employeeId: AppState.employee.Employee_ID,
+                    employeeName: AppState.employee.First_Name || '',
+                    startTime: startTime,
+                    language: AppState.language || 'en'
+                }
+            });
         }
 
         // Driver Mode State
