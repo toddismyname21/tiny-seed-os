@@ -9907,7 +9907,7 @@
             <!-- Form Login (first-time / no stored session) -->
             <div id="formLoginView">
                 <p class="login-subtitle">Sign in to start your shift</p>
-                <form onsubmit="handleFormLogin(event)" autocomplete="off">
+                <form id="employeeLoginForm" onsubmit="handleFormLogin(event); return false;" autocomplete="off">
                     <div class="form-group">
                         <label class="form-label">Name</label>
                         <input type="text" class="form-input" id="loginName"
@@ -30199,6 +30199,17 @@
         if (savedClockIn) {
             AppState.clockedIn = true;
             AppState.clockInTime = new Date(savedClockIn);
+        }
+
+        // Attach form login handler via JS (backup for inline onsubmit)
+        var loginForm = document.getElementById('employeeLoginForm');
+        if (loginForm) {
+            loginForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                handleFormLogin(e);
+                return false;
+            });
         }
     });
 
