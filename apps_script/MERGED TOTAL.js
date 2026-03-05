@@ -208,7 +208,7 @@ const TWILIO_CONFIG = {
     return PropertiesService.getScriptProperties().getProperty('TWILIO_AUTH_TOKEN') || '';
   },
   FROM_NUMBER: '+14128662259',
-  ENABLED: true
+  ENABLED: false  // DISABLED 2026-03-05: SMS was sending to wrong/no numbers, wasting $100+. Must be properly configured before re-enabling.
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -20094,8 +20094,8 @@ const ALGORITHM_UPDATES_HEADERS = ['Date', 'Platform', 'Update_Type', 'Descripti
 const TRENDING_AUDIO_SHEET = 'Trending_Audio';
 const TRENDING_AUDIO_HEADERS = ['Audio_Name', 'Platform', 'Audio_ID', 'Category', 'Date_Added', 'Still_Trending', 'Use_Count', 'Notes'];
 
-// Todd's phone for alerts
-const TODD_PHONE = '717-725-5177';
+// Owner phone for alerts — read from Script Properties, never hardcode
+const TODD_PHONE = PropertiesService.getScriptProperties().getProperty('OWNER_PHONE') || '';
 
 // Known SEO/social media news sources for algorithm updates
 const ALGORITHM_NEWS_SOURCES = [
@@ -31534,7 +31534,7 @@ function sendFieldNotesWeeklyReminder() {
         message += `  📌 Mark as reviewed\n`;
 
         // Send SMS reminder
-        const ownerPhone = '7177255177'; // Todd's phone
+        const ownerPhone = PropertiesService.getScriptProperties().getProperty('OWNER_PHONE') || '';
         try {
             sendSMS(ownerPhone, message);
             Logger.log('Sent Sunday field notes reminder');
@@ -35840,33 +35840,22 @@ function storeAllCredentials() {
  * Setup Twilio credentials via API call (one-time setup)
  */
 function setupTwilioCredentials() {
-  try {
-    const props = PropertiesService.getScriptProperties();
-    props.setProperty('TWILIO_ACCOUNT_SID', 'AC85c921ca82cb00ef4f009eefbad6d071');
-    props.setProperty('TWILIO_AUTH_TOKEN', 'a2ed0aec3e8ac3b97a0916c77ee96c52');
-    props.setProperty('TWILIO_PHONE_NUMBER', '+14128662259');
-
-    Logger.log('Twilio credentials stored!');
-    return {
-      success: true,
-      message: 'Twilio credentials saved!',
-      configured: {
-        sid: 'AC85c9...set',
-        token: '...set',
-        phone: '+14128662259'
-      }
-    };
-  } catch (error) {
-    return { success: false, error: error.toString() };
-  }
+  // SECURITY FIX 2026-03-05: Hardcoded credentials REMOVED.
+  // Credentials were exposed in source code. They must be rotated.
+  // Set credentials via Apps Script editor > Project Properties > Script Properties.
+  throw new Error('setupTwilioCredentials() is disabled. Set credentials via Apps Script editor > Project Properties > Script Properties.');
 }
 
 /**
  * Test Twilio SMS - returns actual Twilio response for debugging
  */
 function testTwilioSMSDiagnostic(params) {
+  // Check global SMS kill switch
+  if (!TWILIO_CONFIG.ENABLED) {
+    return { success: false, error: 'SMS is currently disabled. Set TWILIO_CONFIG.ENABLED = true to re-enable.' };
+  }
   try {
-    const phone = (params && params.phone) ? params.phone : '7177255177';
+    const phone = (params && params.phone) ? params.phone : (PropertiesService.getScriptProperties().getProperty('OWNER_PHONE') || '');
     let formattedPhone = String(phone).replace(/\D/g, '');
     if (formattedPhone.length === 10) {
       formattedPhone = '+1' + formattedPhone;
@@ -41017,27 +41006,33 @@ function sendCSASMSCode(params) {
         };
       }
 
-      // Send via Twilio
-      const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`;
-      const response = UrlFetchApp.fetch(twilioUrl, {
-        method: 'post',
-        headers: {
-          'Authorization': 'Basic ' + Utilities.base64Encode(twilioSid + ':' + twilioToken)
-        },
-        payload: {
-          To: formattedPhone,
-          From: twilioPhone,
-          Body: smsMessage
-        },
-        muteHttpExceptions: true
-      });
-
-      const responseCode = response.getResponseCode();
-      if (responseCode >= 200 && responseCode < 300) {
-        smsResult = { success: true };
+      // Check global SMS kill switch
+      if (!TWILIO_CONFIG.ENABLED) {
+        Logger.log('SMS DISABLED - would have sent CSA verification to: ' + formattedPhone);
+        smsResult = { success: false, error: 'SMS is currently disabled' };
       } else {
-        Logger.log('Twilio error: ' + response.getContentText());
-        smsResult = { success: false, error: 'SMS delivery failed' };
+        // Send via Twilio
+        const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`;
+        const response = UrlFetchApp.fetch(twilioUrl, {
+          method: 'post',
+          headers: {
+            'Authorization': 'Basic ' + Utilities.base64Encode(twilioSid + ':' + twilioToken)
+          },
+          payload: {
+            To: formattedPhone,
+            From: twilioPhone,
+            Body: smsMessage
+          },
+          muteHttpExceptions: true
+        });
+
+        const responseCode = response.getResponseCode();
+        if (responseCode >= 200 && responseCode < 300) {
+          smsResult = { success: true };
+        } else {
+          Logger.log('Twilio error: ' + response.getContentText());
+          smsResult = { success: false, error: 'SMS delivery failed' };
+        }
       }
     } catch (smsError) {
       Logger.log('SMS error: ' + smsError.toString());
@@ -80988,6 +80983,11 @@ function testTwilioSMS(to) {
     formattedTo = '+1' + formattedTo;
   } else if (!formattedTo.startsWith('+')) {
     formattedTo = '+' + formattedTo;
+  }
+
+  // Check global SMS kill switch
+  if (!TWILIO_CONFIG.ENABLED) {
+    return { success: false, error: 'SMS is currently disabled. Set TWILIO_CONFIG.ENABLED = true to re-enable.' };
   }
 
   try {

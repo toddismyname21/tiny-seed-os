@@ -1109,6 +1109,12 @@ function acknowledgeAlert(alertId) {
  * Send SMS via Twilio
  */
 function sendTwilioSMS(message) {
+  // Check global SMS kill switch from MERGED TOTAL.js
+  if (typeof TWILIO_CONFIG !== 'undefined' && !TWILIO_CONFIG.ENABLED) {
+    console.log('SMS DISABLED globally - not sending');
+    return false;
+  }
+
   const props = PropertiesService.getScriptProperties();
   const accountSid = props.getProperty('TWILIO_ACCOUNT_SID');
   const authToken = props.getProperty('TWILIO_AUTH_TOKEN');
