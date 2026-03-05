@@ -38,6 +38,54 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-03-05 — Employee App: Dual Login Flow + Push Notifications + Hour Tracking (PM_ARCHITECT)
+
+### Files Modified
+- `employee.html` — **Dual login system**: disabled auth-guard auto-redirect (`data-auto-protect="false"`); added form-based login (name + PIN text fields) as primary first-time login screen; preserved PIN keypad for returning users with "Welcome back" greeting; `initLoginView()` picks correct view based on stored session. Both login paths set `tinyseed_session` for cross-system auth compatibility. **Push notifications**: `requestNotificationPermission()` now called on login (not just after clock-in); new `registerScheduleWithSW()` sends employee schedule to Service Worker; new `notifySWClockStatus()` syncs clock state to SW. i18n: added `auth.signInSubtitle`, `auth.welcomeBack`, `auth.differentUser` (EN + ES).
+- `sw.js` — New background clock-in reminder system: `REGISTER_SCHEDULE` + `CLOCK_STATUS_UPDATE` message handlers; `backgroundClockCheck()` runs every 5 min, sends localized push notification if employee should be clocked in (15 min before to 30 min after scheduled start); `parseScheduleTimeSW()` for schedule parsing; one reminder per employee per day deduplication.
+
+### Functions Added
+- `showFormLogin()`, `showPinLogin()`, `initLoginView()` in `employee.html` — Dual login view management
+- `handleFormLogin()` in `employee.html` — Form-based authentication (name + PIN)
+- `registerScheduleWithSW()` in `employee.html` — Sends schedule to Service Worker
+- `notifySWClockStatus()` in `employee.html` — Syncs clock-in/out status to SW
+- `startBackgroundClockCheck()`, `backgroundClockCheck()`, `parseScheduleTimeSW()` in `sw.js` — SW-based clock reminders
+
+### Root Cause Analysis
+**Login broken**: auth-guard.js auto-redirected employee.html to login.html before PIN pad loaded. auth-guard checks `tinyseed_session` (set by login.html), but employee app uses `employeeSession` (set by PIN pad). Two separate session systems, users could never reach the PIN pad.
+
+**Push notifications limited**: only fired for logged-in user from main thread. Now also fires from Service Worker in background. Note: true server-push to closed browsers requires Firebase Cloud Messaging (future enhancement).
+
+### Verification
+- Hour tracking verified end-to-end: `clockIn()` → TIME_CLOCK sheet (12 cols) → `clockOut()` → hours calculated as decimal → `authenticateEmployee()` returns `isClockedIn` + `clockInTime`
+- Deployed to live: `formLoginView` confirmed on live page (7 references), `auto-protect="false"` confirmed
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] No new files created
+- [x] No duplicates
+
+---
+
+## 2026-03-04 — Marketing Claude Agent Created (PM_ARCHITECT)
+
+### Files Created
+- `.claude/agents/marketing-claude.md` — 9th agent definition. Revenue-focused marketing strategist that owns MCC, SEO dashboard, and all marketing shared JS. Embedded knowledge: farm identity, products/pricing, competitive landscape, all 27 SocialIntelligenceAPI methods, brand voice rules, revenue priority actions.
+
+### Files Modified
+- `SYSTEM_INVENTORY.md` — Updated agent count from 8 to 9, added marketing-claude to agent roster table
+- `CHANGE_LOG.md` — This entry
+
+### Reason
+Owner needs cashflow and marketing execution. The Marketing Command Center (42,424 lines, 918 functions) and SocialIntelligenceAPI (27 methods) were built but no agent owned them. Marketing Claude fills that gap with deep knowledge of the farm's competitive advantages, products, and marketing tools.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar agents (grep "marketing" in .claude/agents/ — no prior marketing agent existed)
+- [x] No duplicates created
+
+---
+
 ## 2026-03-04 — Seed Packet Photo + Variety Traceability Fix (PM_ARCHITECT)
 
 ### Files Modified
