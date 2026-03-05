@@ -1564,9 +1564,12 @@
         }
 
         // Render Summary Section based on task type
+        // Filters out rows excluded from print so tray/seed counts are always accurate
         function renderSummarySection() {
-            // Recompute summary from visible tasks so filtering updates correctly
-            var visible = getVisibleTasks();
+            // Recompute summary from visible tasks, excluding unchecked rows
+            var visible = getVisibleTasks().filter(function(t) {
+                return !excludedFromPrint.has(t.batchId);
+            });
             var vTraysBySize = {};
             var vTotalTrays = 0;
             var vSeedMap = {};
@@ -1610,16 +1613,28 @@
                             `).join('')}
                             ${vSeedsNeeded.length === 0 ? '<div class="summary-item" style="opacity:0.6;"><span>No seed data</span><span>--</span></div>' : ''}
                         </div>
-                        ${summary.readinessIssues ? `
+                        ${(function() {
+                            // Recompute readiness from included tasks (not stale backend summary)
+                            var ri = { missingTrays: 0, missingCellSize: 0, missingBed: 0, missingSeedLot: 0 };
+                            visible.forEach(function(t) {
+                                if (!t.trays || t.trays <= 0) ri.missingTrays++;
+                                if (!t.cellsPerTray || t.cellsPerTray <= 0) ri.missingCellSize++;
+                                if (!t.bed) ri.missingBed++;
+                                if (!t.seedLot) ri.missingSeedLot++;
+                            });
+                            var hasIssues = ri.missingTrays > 0 || ri.missingCellSize > 0 || ri.missingBed > 0 || ri.missingSeedLot > 0;
+                            if (!hasIssues && visible.length === 0) return '';
+                            return `
                         <div class="summary-box" style="border-left: 3px solid var(--danger);">
                             <div class="summary-box-title" style="color: var(--danger);"><i class="fas fa-exclamation-triangle"></i> Readiness Issues</div>
-                            ${summary.readinessIssues.missingTrays > 0 ? `<div class="summary-item"><span>Missing Tray Count</span><span style="color:var(--danger);">${summary.readinessIssues.missingTrays}</span></div>` : ''}
-                            ${summary.readinessIssues.missingCellSize > 0 ? `<div class="summary-item"><span>Missing Cell Size</span><span style="color:var(--danger);">${summary.readinessIssues.missingCellSize}</span></div>` : ''}
-                            ${summary.readinessIssues.missingBed > 0 ? `<div class="summary-item"><span>Missing Target Bed</span><span style="color:var(--warning);">${summary.readinessIssues.missingBed}</span></div>` : ''}
-                            ${summary.readinessIssues.missingSeedLot > 0 ? `<div class="summary-item"><span>No Seed Lot Linked</span><span style="color:var(--warning);">${summary.readinessIssues.missingSeedLot}</span></div>` : ''}
-                            ${Object.values(summary.readinessIssues).every(v => v === 0) ? '<div class="summary-item" style="color:var(--success);"><span>All tasks ready!</span><span><i class="fas fa-check-circle"></i></span></div>' : ''}
+                            ${ri.missingTrays > 0 ? '<div class="summary-item"><span>Missing Tray Count</span><span style="color:var(--danger);">' + ri.missingTrays + '</span></div>' : ''}
+                            ${ri.missingCellSize > 0 ? '<div class="summary-item"><span>Missing Cell Size</span><span style="color:var(--danger);">' + ri.missingCellSize + '</span></div>' : ''}
+                            ${ri.missingBed > 0 ? '<div class="summary-item"><span>Missing Target Bed</span><span style="color:var(--warning);">' + ri.missingBed + '</span></div>' : ''}
+                            ${ri.missingSeedLot > 0 ? '<div class="summary-item"><span>No Seed Lot Linked</span><span style="color:var(--warning);">' + ri.missingSeedLot + '</span></div>' : ''}
+                            ${!hasIssues ? '<div class="summary-item" style="color:var(--success);"><span>All tasks ready!</span><span><i class="fas fa-check-circle"></i></span></div>' : ''}
                         </div>
-                        ` : ''}
+                        `;
+                        })()}
                     </div>
                 `;
             } else if (currentTaskType === 'transplant') {
@@ -1697,6 +1712,20 @@
                 `;
             }
             return '';
+        }
+
+        // Live-update the summary section in the DOM (called when rows are toggled)
+        function updateSummaryDisplay() {
+            var oldSummary = document.querySelector('.summary-section');
+            if (!oldSummary) return;
+            var newHTML = renderSummarySection();
+            if (!newHTML) { oldSummary.innerHTML = ''; return; }
+            var temp = document.createElement('div');
+            temp.innerHTML = newHTML;
+            var newSummary = temp.firstElementChild;
+            if (newSummary) {
+                oldSummary.replaceWith(newSummary);
+            }
         }
 
         function renderTaskRow(task, groupValue) {
@@ -1938,6 +1967,7 @@
                     if (groupToggle) groupToggle.checked = groupAllChecked;
                 }
             }
+            updateSummaryDisplay();
         }
 
         function toggleSelectAllPrint(checked) {
@@ -1955,6 +1985,7 @@
             document.querySelectorAll('.group-toggle-check').forEach(function(g) {
                 g.checked = checked;
             });
+            updateSummaryDisplay();
         }
 
         // Toggle all rows in a specific date/crop group
@@ -1969,6 +2000,7 @@
             allChecks.forEach(function(c) { if (!c.checked) allChecked = false; });
             var selectAll = document.getElementById('selectAllPrint');
             if (selectAll) selectAll.checked = allChecked;
+            // Note: updateSummaryDisplay() already called by togglePrintSelect() per row
         }
 
         // Get tasks selected for printing (visible minus excluded)
