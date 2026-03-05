@@ -38,6 +38,28 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-03-05 — PM_ARCHITECT: Custom Tray Types Persist Across Users/Devices
+
+### Files Modified
+- `sowing-sheets.html` — **Custom tray persistence**: Previously, custom tray types were stored in browser localStorage only — lost on cache clear, invisible to other users/devices. Now: `extractCustomTrayTypesFromTasks()` scans loaded tasks for any `trayType` not in the built-in list and auto-adds them to the dropdown. Custom types are derived from PLANNING_2026 sheet data (shared). `getCustomTrayTypes()` merges task-derived + localStorage types with dedup. Both `loadTasks()` and `loadOverdueTasks()` call `extractCustomTrayTypesFromTasks()` after data loads.
+
+### Functions Added
+- `extractCustomTrayTypesFromTasks(taskList)` in sowing-sheets.html — Scans task array for non-built-in tray types, returns array of custom type objects with name + cells
+
+### Functions Modified
+- `getCustomTrayTypes()` in sowing-sheets.html — Now merges task-derived customs + localStorage customs, deduplicates by name
+- `loadTasks()` in sowing-sheets.html — Calls `extractCustomTrayTypesFromTasks()` after tasks load
+- `loadOverdueTasks()` in sowing-sheets.html — Same
+
+### Reason
+User reported: custom tray type entered on task sheet was not saved/available going forward. Root cause: custom types only lived in browser localStorage. Fix: derive custom types from the actual task data in the shared PLANNING_2026 sheet.
+
+### Duplicate Check
+- [x] No new files created
+- [x] All changes to existing files only
+
+---
+
 ## 2026-03-05 — PM_ARCHITECT: Production-Ready WYSIWYG Print, Maximized Labels, Assignment Hardening
 
 ### Files Modified

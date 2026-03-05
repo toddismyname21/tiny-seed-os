@@ -870,13 +870,49 @@
             { name: 'Paperpot 264 — 6"', cells: 264, type: 'paperpot', spacing: 6 },
         ];
 
-        // Load custom tray types from localStorage
+        // Custom tray types — sourced from 3 places (merged, deduplicated):
+        // 1. Previously used types from loaded task data (shared across all users)
+        // 2. Browser localStorage (session-local, for newly created types not yet saved)
+        // 3. Built-in TRAY_TYPES constant
+        var _taskDerivedTrayTypes = []; // populated by loadTasks()
+
         function getCustomTrayTypes() {
-            try { return JSON.parse(localStorage.getItem('customTrayTypes') || '[]'); }
-            catch(e) { return []; }
+            // Merge localStorage customs + task-derived customs, dedup by name
+            var localStorage_customs = [];
+            try { localStorage_customs = JSON.parse(localStorage.getItem('customTrayTypes') || '[]'); }
+            catch(e) { /* ignore */ }
+            var seen = {};
+            var result = [];
+            _taskDerivedTrayTypes.concat(localStorage_customs).forEach(function(tt) {
+                if (tt && tt.name && !seen[tt.name]) {
+                    seen[tt.name] = true;
+                    result.push(tt);
+                }
+            });
+            return result;
         }
         function getAllTrayTypes() {
             return TRAY_TYPES.concat(getCustomTrayTypes());
+        }
+
+        // Extract unique tray types from loaded tasks that aren't built-in
+        function extractCustomTrayTypesFromTasks(taskList) {
+            var builtInNames = {};
+            TRAY_TYPES.forEach(function(tt) { builtInNames[tt.name] = true; });
+            var seen = {};
+            var customs = [];
+            taskList.forEach(function(t) {
+                var name = t.trayType;
+                if (!name || builtInNames[name] || seen[name]) return;
+                // Also skip if it's just a plain number like "128" — that matches a built-in
+                var cellMatch = TRAY_TYPES.find(function(bt) {
+                    return String(bt.cells) === name || name === bt.cells + '-cell';
+                });
+                if (cellMatch) return;
+                seen[name] = true;
+                customs.push({ name: name, cells: t.cellsPerTray || 0, type: 'custom' });
+            });
+            return customs;
         }
 
         // State
@@ -1128,6 +1164,8 @@
                 if (data.success && data.tasks) {
                     tasks = data.tasks || [];
                     summary = data.summary || {};
+                    // Extract custom tray types from loaded tasks (shared across all users)
+                    _taskDerivedTrayTypes = extractCustomTrayTypesFromTasks(tasks);
                     // Build seedsNeeded array from tasks if not provided by backend
                     if (!summary.seedsNeeded || !Array.isArray(summary.seedsNeeded) || summary.seedsNeeded.length === 0) {
                         const seedMap = {};
@@ -1235,6 +1273,7 @@
                         seedsNeeded: Object.values(overdueSeedMap).sort(function(a, b) { return b.totalSeeds - a.totalSeeds; }),
                         readinessIssues: backendSummary.readinessIssues || null
                     };
+                    _taskDerivedTrayTypes = extractCustomTrayTypesFromTasks(tasks);
                     updateCropDropdown();
                     renderSheet();
                     updateStats();
