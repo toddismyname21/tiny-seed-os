@@ -14,21 +14,21 @@ Capture baseline screenshots for visual regression testing.
 
 ## Priority Pages
 
-1. `index.html` (hub)
-2. `greenhouse-dashboard.html`
-3. `sales.html`
-4. `wholesale.html`
-5. `employee-management.html`
-6. `marketing-command-center.html`
-7. `financial-dashboard.html`
-8. `chief-of-staff.html`
-9. `schedule.html`
-10. `farmers-market.html`
+1. `web_app/index.html` (hub)
+2. `web_app/greenhouse-dashboard.html`
+3. `web_app/sales.html`
+4. `web_app/wholesale.html`
+5. `web_app/employee-management.html`
+6. `web_app/marketing-command-center.html`
+7. `web_app/financial-dashboard.html`
+8. `web_app/chief-of-staff.html`
+9. `web_app/schedule.html`
+10. `web_app/farmers-market.html`
 
 ## Steps per Page
 
 ### 1. Navigate
-Use `mcp__playwright__browser_navigate` to load `https://app.tinyseedfarm.com/[page]`
+Use `mcp__playwright__browser_navigate` to load `https://app.tinyseedfarm.com/[page]` (use full path including `web_app/` prefix)
 
 ### 2. Desktop screenshot (1440px)
 - Use `mcp__playwright__browser_resize` to set viewport to 1440x900

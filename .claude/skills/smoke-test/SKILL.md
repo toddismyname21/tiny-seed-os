@@ -38,7 +38,8 @@ git diff --name-only HEAD | grep -E '\.html$'
 ### 1. Navigate via Playwright MCP
 Use `mcp__playwright__browser_navigate` to load the page on the live site:
 - URL: `https://app.tinyseedfarm.com/[path]`
-- For `web_app/` pages, the live URL drops the `web_app/` prefix
+- Use the full file path including `web_app/` prefix (e.g., `https://app.tinyseedfarm.com/web_app/sales.html`)
+- Root pages use just the filename (e.g., `https://app.tinyseedfarm.com/sowing-sheets.html`)
 
 ### 2. Check for console errors
 Use `mcp__playwright__browser_console_messages` to capture all console output.

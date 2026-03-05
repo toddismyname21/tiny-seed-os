@@ -1,6 +1,6 @@
 name: Post-Deploy Audit
 
-# Runs after GitHub Pages deploys — validates changed files on the live site
+# Runs after GitHub Pages deploys - validates changed files on the live site
 on:
   push:
     branches:
@@ -11,6 +11,11 @@ on:
       - 'web_app/**/*.js'
       - 'web_app/**/*.css'
       - 'web_app/api-config.js'
+      - '.github/workflows/post-deploy-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   post-deploy-audit:
@@ -23,11 +28,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 2  # Need HEAD~1 for diff
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
 
       - name: Wait for GitHub Pages deploy
         run: sleep 90
@@ -105,12 +105,8 @@ jobs:
             [ -z "$file" ] && continue
             [[ "$file" != *.html ]] && continue
 
-            # Build the URL path
-            if [[ "$file" == web_app/* ]]; then
-              URL_PATH="${file#web_app/}"
-            else
-              URL_PATH="$file"
-            fi
+            # Use the full file path as the URL path (GitHub Pages serves from repo root)
+            URL_PATH="$file"
 
             HTTP_CODE=$(curl -sL -o /dev/null -w "%{http_code}" "${LIVE_URL}/${URL_PATH}" 2>/dev/null || echo "000")
 
@@ -143,11 +139,8 @@ jobs:
           ERRORS=""
 
           for page in $KEY_PAGES; do
-            if [[ "$page" == web_app/* ]]; then
-              URL_PATH="${page#web_app/}"
-            else
-              URL_PATH="$page"
-            fi
+            # Use full path (GitHub Pages serves from repo root)
+            URL_PATH="$page"
 
             CONTENT_LENGTH=$(curl -sL "${LIVE_URL}/${URL_PATH}" 2>/dev/null | wc -c)
 

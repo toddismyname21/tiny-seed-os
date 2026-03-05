@@ -38,6 +38,30 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-03-05 — PM_ARCHITECT: Fix CI failures + sales.html production JS bug
+
+### Bug Fix (Critical)
+- `web_app/sales.html` — Removed `<script src="shared-nav.js"></script>` from inside a template literal at line 7338. The `</script>` was prematurely closing the 3,500-line inline script block, breaking `generatePickList()`, all campaign functions, and `generateReports()` on the live site. Print popups don't need navigation scripts.
+
+### CI Fixes
+- `.github/workflows/post-deploy-audit.yml` — Fixed 3 issues: (1) removed unnecessary `setup-python` (all audit scripts are bash), (2) fixed URL path stripping that would cause 404s on live site (web_app/ prefix is required), (3) added `permissions: contents: write` for commit comments and `workflow_dispatch` for manual testing
+- `.claude/skills/smoke-test/SKILL.md` — Fixed incorrect claim "live URL drops the web_app/ prefix" (it doesn't)
+- `.claude/skills/deploy-frontend/SKILL.md` — Same URL prefix fix
+- `.claude/skills/visual-baseline/SKILL.md` — Added web_app/ prefix to all 10 priority page paths, clarified URL docs
+- `.claude/skills/visual-diff/SKILL.md` — Clarified URL docs with web_app/ prefix note
+
+### Verification
+- All 5 local audit tools verified functional: validate-element-refs.sh, validate-api-urls.sh, ux-preflight-audit.sh, run-full-audit.sh, npm run test:validate
+- sales.html inline JS validated: all script blocks parse without errors
+- Scanned all HTML files for similar `</script>` inside template literal bug — none found
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
 ## 2026-03-05 — PM_ARCHITECT: Automated Testing & QA System (3-Layer)
 
 ### Files Created

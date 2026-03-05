@@ -25,7 +25,7 @@ Read `visual-baselines/manifest.json` to get the list of baselined pages.
 ### 2. For each page
 
 #### a. Take fresh screenshots
-- Navigate via `mcp__playwright__browser_navigate` to `https://app.tinyseedfarm.com/[page]`
+- Navigate via `mcp__playwright__browser_navigate` to `https://app.tinyseedfarm.com/[page]` (use full path including `web_app/` prefix)
 - Desktop (1440x900): `mcp__playwright__browser_take_screenshot`
 - Mobile (375x812): `mcp__playwright__browser_take_screenshot`
 

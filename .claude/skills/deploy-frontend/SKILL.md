@@ -21,7 +21,7 @@ Push changes to GitHub Pages and automatically validate the deployment.
    ```bash
    curl -sL -o /dev/null -w "%{http_code}" https://app.tinyseedfarm.com/[page]
    ```
-   For `web_app/` pages, the live URL drops the `web_app/` prefix.
+   Use the full file path including `web_app/` prefix (e.g., `https://app.tinyseedfarm.com/web_app/sales.html`).
 
 6. **Element reference validation** — run on each changed HTML file:
    ```bash
