@@ -53724,6 +53724,7 @@ function clockIn(params) {
     const employeeId = params.employeeId;
     const lat = params.lat || '';
     const lng = params.lng || '';
+    const notes = params.notes || '';
 
     if (!employeeId) {
       return { success: false, error: 'Employee ID required' };
@@ -53755,7 +53756,7 @@ function clockIn(params) {
       '', // GPS_Out_Lat
       '', // GPS_Out_Lng
       inGeofence,
-      ''  // Notes
+      notes // Notes (e.g. "Forgot to sign in, started at 9am")
     ];
 
     sheet.appendRow(newRow);

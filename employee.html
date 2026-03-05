@@ -350,6 +350,49 @@
             color: var(--primary-light);
         }
 
+        .login-note-toggle {
+            width: 100%;
+            max-width: 300px;
+            margin-top: 12px;
+        }
+
+        .note-toggle-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            cursor: pointer;
+            padding: 6px 0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .note-toggle-btn:hover {
+            color: var(--primary-light);
+        }
+
+        .login-note-field {
+            margin-top: 8px;
+        }
+
+        .login-note-field textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: 8px;
+            border: 2px solid var(--border);
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            font-family: inherit;
+            resize: none;
+        }
+
+        .login-note-field textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
         .pin-display {
             display: flex;
             gap: 12px;
@@ -9876,6 +9919,16 @@
                                pattern="[0-9]*" maxlength="4" placeholder="4-digit PIN" required
                                autocomplete="one-time-code">
                     </div>
+                    <div class="login-note-toggle">
+                        <button type="button" class="note-toggle-btn" onclick="toggleLoginNote()">
+                            <i class="fas fa-sticky-note"></i> Add a note
+                        </button>
+                        <div class="login-note-field" id="loginNoteField" style="display:none;">
+                            <textarea class="form-input" id="loginNote" rows="2"
+                                      placeholder="e.g. Forgot to sign in, started at 9am"></textarea>
+                        </div>
+                    </div>
+
                     <button type="submit" class="login-form-btn" id="formLoginBtn">
                         <i class="fas fa-sign-in-alt"></i> Sign In
                     </button>
@@ -9907,6 +9960,16 @@
                     <button type="button" class="pin-btn empty"></button>
                     <button type="button" class="pin-btn" onclick="enterPin('0')">0</button>
                     <button type="button" class="pin-btn delete" onclick="deletePin()"><i class="fas fa-delete-left"></i></button>
+                </div>
+
+                <div class="login-note-toggle">
+                    <button type="button" class="note-toggle-btn" onclick="togglePinNote()">
+                        <i class="fas fa-sticky-note"></i> Add a note
+                    </button>
+                    <div class="login-note-field" id="pinNoteField" style="display:none;">
+                        <textarea class="form-input" id="pinNote" rows="2"
+                                  placeholder="e.g. Forgot to sign in, started at 9am"></textarea>
+                    </div>
                 </div>
 
                 <div class="login-error" id="loginError"></div>
@@ -15547,6 +15610,32 @@
         // DUAL LOGIN: Form Login + PIN Keypad
         // ============================================
 
+        // Toggle note field on login screens
+        function toggleLoginNote() {
+            var field = document.getElementById('loginNoteField');
+            field.style.display = field.style.display === 'none' ? '' : 'none';
+            if (field.style.display !== 'none') {
+                document.getElementById('loginNote').focus();
+            }
+        }
+
+        function togglePinNote() {
+            var field = document.getElementById('pinNoteField');
+            field.style.display = field.style.display === 'none' ? '' : 'none';
+            if (field.style.display !== 'none') {
+                document.getElementById('pinNote').focus();
+            }
+        }
+
+        // Get the login note from whichever view is active
+        function getLoginNote() {
+            var formNote = document.getElementById('loginNote');
+            var pinNote = document.getElementById('pinNote');
+            if (formNote && formNote.offsetParent !== null) return formNote.value.trim();
+            if (pinNote && pinNote.offsetParent !== null) return pinNote.value.trim();
+            return '';
+        }
+
         // Show form-based login (first-time users or "different user")
         function showFormLogin() {
             document.getElementById('formLoginView').style.display = '';
@@ -15596,6 +15685,9 @@
                 errEl.textContent = 'Enter your name and 4-digit PIN';
                 return;
             }
+
+            // Capture login note (e.g. "forgot to sign in, started at 9")
+            AppState.loginNote = getLoginNote();
 
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing in...';
@@ -15666,6 +15758,8 @@
                 updatePinDisplay();
 
                 if (AppState.enteredPIN.length === 4) {
+                    // Capture login note before validating
+                    AppState.loginNote = getLoginNote();
                     setTimeout(() => validatePIN(), 200);
                 }
             }
@@ -17181,7 +17275,8 @@
                 if (!AppState.isClockedIn) {
                     // Clock In
                     const gpsParams = gps.lat != null ? `&lat=${gps.lat}&lng=${gps.lng}` : '';
-                    const response = await fetch(`${CONFIG.API_URL}?action=clockIn&employeeId=${AppState.employee.Employee_ID}${gpsParams}&mode=${mode}`);
+                    const noteParam = AppState.loginNote ? `&notes=${encodeURIComponent(AppState.loginNote)}` : '';
+                    const response = await fetch(`${CONFIG.API_URL}?action=clockIn&employeeId=${AppState.employee.Employee_ID}${gpsParams}&mode=${mode}${noteParam}`);
                     const data = await response.json();
 
                     if (data.success) {
@@ -17194,6 +17289,9 @@
 
                         // Notify SW to stop clock-in reminders
                         notifySWClockStatus(true);
+
+                        // Clear login note after successful clock-in
+                        AppState.loginNote = '';
 
                         showToast(t('clock.clockedInSuccess'), 'success');
 
