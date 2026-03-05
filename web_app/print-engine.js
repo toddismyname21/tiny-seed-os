@@ -117,55 +117,61 @@
             doc.addImage(qrImg, 'PNG', 6, (H - qrSz) / 2, qrSz, qrSz);
         }
 
-        var tx = 72; // text start after QR + gap (tightened from 75)
+        var tx = 72; // text start after QR + gap
         var rx = W - 6; // right edge
 
-        // Crop - bold 16pt
+        // VARIETY at top — BIGGEST text, full width
         doc.setTextColor(0, 0, 0);
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(16);
-        doc.text(label.crop || '', tx, 18);
+        doc.setFontSize(20);
+        var varText = label.variety || label.crop || '';
+        // Truncate if too long for label width
+        var maxVarW = W - tx - 6;
+        while (varText.length > 3 && doc.getTextWidth(varText) > maxVarW) {
+            varText = varText.substring(0, varText.length - 2) + '\u2026';
+        }
+        doc.text(varText, tx, 20);
 
-        // Variety - 11pt
+        // Crop — second line, left
         doc.setFont('helvetica', 'normal');
-        doc.setFontSize(11);
+        doc.setFontSize(13);
         doc.setTextColor(51, 51, 51);
-        doc.text(label.variety || '', tx, 31);
+        doc.text(label.crop || '', tx, 37);
 
-        // Batch - 8pt monospace
-        doc.setFont('courier', 'normal');
-        doc.setFontSize(8);
-        doc.setTextColor(85, 85, 85);
-        var batchText = (label.batchNumber || label.batchId || '');
-        if (label.trayNumber) batchText += ' T' + label.trayNumber;
-        doc.text(batchText, tx, 42);
-
-        // Dates - 8pt
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(8);
-        doc.setTextColor(68, 68, 68);
-        var ds = 'Sow: ' + _fmtDate(label.seedDate || label.sowDate);
-        ds += '  ->  TP: ' + _fmtDate(label.transplantDate);
-        if (label.field) ds += '  @  ' + label.field;
-        doc.text(ds, tx, 53);
-
-        // Right column - tray info
+        // Tray size — second line, right
         var tsd = _fmtTraySize(label.cellsPerTray, label.paperpotSpacing);
         doc.setTextColor(0, 0, 0);
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(14);
-        doc.text(tsd, rx, 20, { align: 'right' });
+        doc.setFontSize(15);
+        doc.text(tsd, rx, 37, { align: 'right' });
+
+        // Batch + Tray # — third line
+        doc.setFont('courier', 'normal');
+        doc.setFontSize(7);
+        doc.setTextColor(85, 85, 85);
+        var batchText = (label.batchNumber || label.batchId || '');
+        if (label.trayNumber) batchText += ' T' + label.trayNumber;
+        doc.text(batchText, tx, 50);
 
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(10);
         doc.setTextColor(68, 68, 68);
         var trayStr = 'Tray ' + (label.trayNumber || '') + '/' + (label.trays || '');
-        doc.text(trayStr, rx, 35, { align: 'right' });
+        doc.text(trayStr, rx, 50, { align: 'right' });
 
+        // Dates — bottom line, left
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.setTextColor(68, 68, 68);
+        var ds = 'Sow: ' + _fmtDate(label.seedDate || label.sowDate);
+        ds += '  \u2192  TP: ' + _fmtDate(label.transplantDate);
+        doc.text(ds, tx, 63);
+
+        // Field — bottom line, right
         if (label.field) {
             doc.setFontSize(8);
             doc.setTextColor(85, 85, 85);
-            doc.text(label.field, rx, 48, { align: 'right' });
+            doc.text(label.field, rx, 63, { align: 'right' });
         }
     }
 
@@ -695,52 +701,61 @@
                     // Group header
                     if (group.title) {
                         checkPage(30);
+                        doc.setFillColor(232, 245, 233);
+                        doc.rect(mx, y - 12, contentW, 18, 'F');
                         doc.setFont('helvetica', 'bold');
                         doc.setFontSize(11);
-                        doc.setTextColor(0, 0, 0);
-                        doc.text(group.title, mx, y);
-                        y += 16;
+                        doc.setTextColor(45, 90, 39);
+                        doc.text(group.title, mx + 4, y);
+                        y += 14;
                     }
 
                     // Table header
-                    checkPage(20);
-                    doc.setFillColor(240, 240, 240);
-                    doc.rect(mx, y - 10, contentW, 14, 'F');
+                    checkPage(24);
+                    doc.setFillColor(45, 90, 39);
+                    doc.rect(mx, y - 12, contentW, 16, 'F');
                     doc.setFont('helvetica', 'bold');
-                    doc.setFontSize(8);
-                    doc.setTextColor(60, 60, 60);
+                    doc.setFontSize(9);
+                    doc.setTextColor(255, 255, 255);
                     var hx = mx;
                     cols.forEach(function(c) {
                         doc.text(c.label || c.key || '', hx + 3, y);
                         hx += c.width;
                     });
-                    y += 8;
+                    y += 10;
 
                     // Table rows
                     doc.setFont('helvetica', 'normal');
-                    doc.setFontSize(8);
+                    doc.setFontSize(10);
                     doc.setTextColor(30, 30, 30);
+                    var rowIdx = 0;
 
                     group.rows.forEach(function(row) {
-                        checkPage(14);
+                        checkPage(16);
+                        // Alternating row background
+                        if (rowIdx % 2 === 0) {
+                            doc.setFillColor(248, 248, 248);
+                            doc.rect(mx, y - 10, contentW, 15, 'F');
+                        }
                         var rx = mx;
                         cols.forEach(function(c) {
                             var val = String(row[c.key] != null ? row[c.key] : '');
                             // Truncate if too wide
-                            var maxChars = Math.floor(c.width / 4.5);
-                            if (val.length > maxChars) val = val.substring(0, maxChars - 1) + '…';
+                            var maxChars = Math.floor(c.width / 5.5);
+                            if (val.length > maxChars) val = val.substring(0, maxChars - 1) + '\u2026';
                             doc.text(val, rx + 3, y);
                             rx += c.width;
                         });
-                        y += 12;
+                        y += 15;
 
                         // Light row separator
-                        doc.setDrawColor(230, 230, 230);
-                        doc.setLineWidth(0.2);
-                        doc.line(mx, y - 4, W - mx, y - 4);
+                        doc.setDrawColor(220, 220, 220);
+                        doc.setLineWidth(0.3);
+                        doc.line(mx, y - 5, W - mx, y - 5);
+                        rowIdx++;
                     });
 
-                    y += 8; // gap between groups
+                    y += 10; // gap between groups
                 });
             }
 

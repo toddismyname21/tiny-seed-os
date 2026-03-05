@@ -38,6 +38,25 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-03-05 — PM_ARCHITECT: Task Sheet Overhaul — Labels, Print, Assignment, Day Toggle
+
+### Files Modified
+- `web_app/print-engine.js` — **Label fix**: Swapped variety/crop in `_renderFieldTray()` — VARIETY is now at top in 20pt bold (biggest text), crop below at 13pt. Tray size 15pt bold right-aligned. Maximized all font sizes within 4"×1" label bounds. Added text truncation with ellipsis for long variety names. **Sheet PDF improvement**: Increased body font from 8pt to 10pt, header font to 9pt white-on-green, group headers now have green background matching on-screen, alternating row backgrounds, thicker separators.
+- `sowing-sheets.html` — **CRITICAL FIX**: Fixed `flushDirtyToTasks()` field name mapping — backend column names (Variety, Trays_Needed, Notes) were NOT being mapped to frontend property names (variety, trays, notes), so inline edits were invisible to print. Added `_fieldMap` dictionary for all editable fields. **Day-level toggle**: Added checkbox to each date/crop group header — toggle all tasks for a specific day on/off. `toggleGroupPrint()` function. Group checkboxes auto-update when individual rows change. **Select-all improvement**: `toggleSelectAllPrint()` now also updates all group checkboxes. **Assignment robustness**: `loadEmployeesForAssign()` now shows spinner while loading, tries multiple employee field names (Employee_ID, User_ID, email; Full_Name, First_Name, Name), falls back to all employees if none marked Active, shows clear error messages with "you can still print" fallback. **Print columns**: Rebalanced column widths to give variety more space.
+
+### Functions Added
+- `toggleGroupPrint(groupKey, checked)` in sowing-sheets.html — Toggles all print-select checkboxes for a date/crop group
+
+### Reason
+User reported: (1) variety edits not persisting to print — root cause was field name case mismatch between backend (PascalCase) and frontend (camelCase) in flushDirtyToTasks; (2) labels had crop at top instead of variety — swapped in _renderFieldTray; (3) no way to bulk toggle days — added group checkboxes; (4) print was very different from preview — increased PDF fonts and improved formatting; (5) assignment not working — improved error handling and employee field detection.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
 ## 2026-03-05 — PM_ARCHITECT: Fix Employee Login + Sowing Sheet Print/Assign Fixes
 
 ### Files Modified

@@ -1469,26 +1469,30 @@
                     const taskDate = task[dateField];
                     if (taskDate !== currentDate) {
                         currentDate = taskDate;
+                        const groupKey = currentDate.replace(/[^a-zA-Z0-9]/g, '_');
                         html += `
-                            <tr class="date-group-header">
-                                <td colspan="${config.columns.length + 3}"><i class="fas fa-calendar-day"></i> ${formatDateDisplay(currentDate)}</td>
+                            <tr class="date-group-header" data-group-key="${groupKey}">
+                                <td style="width:36px;text-align:center;"><input type="checkbox" class="group-toggle-check" data-group="${groupKey}" checked onchange="toggleGroupPrint('${groupKey}', this.checked)" title="Toggle all for this day"></td>
+                                <td colspan="${config.columns.length + 2}"><i class="fas fa-calendar-day"></i> ${formatDateDisplay(currentDate)}</td>
                             </tr>
                         `;
                     }
-                    html += renderTaskRow(task);
+                    html += renderTaskRow(task, currentDate);
                 });
             } else {
                 let currentCrop = '';
                 sortedTasks.forEach(task => {
                     if (task.crop !== currentCrop) {
                         currentCrop = task.crop;
+                        const groupKey = currentCrop.replace(/[^a-zA-Z0-9]/g, '_');
                         html += `
-                            <tr class="date-group-header">
-                                <td colspan="${config.columns.length + 3}"><i class="fas fa-leaf"></i> ${currentCrop}</td>
+                            <tr class="date-group-header" data-group-key="${groupKey}">
+                                <td style="width:36px;text-align:center;"><input type="checkbox" class="group-toggle-check" data-group="${groupKey}" checked onchange="toggleGroupPrint('${groupKey}', this.checked)" title="Toggle all for this crop"></td>
+                                <td colspan="${config.columns.length + 2}"><i class="fas fa-leaf"></i> ${currentCrop}</td>
                             </tr>
                         `;
                     }
-                    html += renderTaskRow(task);
+                    html += renderTaskRow(task, currentCrop);
                 });
             }
 
@@ -1656,7 +1660,7 @@
             return '';
         }
 
-        function renderTaskRow(task) {
+        function renderTaskRow(task, groupValue) {
             const categoryClass = task.category === 'Floral' ? 'floral' : (task.category === 'Herb' ? 'herb' : 'veg');
             const config = taskTypeConfig[currentTaskType];
             const taskDate = task.plannedDate || task[config.dateField];
@@ -1739,9 +1743,11 @@
                 `;
             }
 
+            const groupKey = groupValue ? groupValue.replace(/[^a-zA-Z0-9]/g, '_') : '';
+            const isExcluded = excludedFromPrint.has(task.batchId);
             return `
-                <tr class="${task.completed ? 'completed' : ''}" data-batch-id="${task.batchId}">
-                    <td style="text-align:center;"><input type="checkbox" class="print-select-check" value="${task.batchId}" checked onchange="togglePrintSelect('${task.batchId}', this.checked)" title="Include in print"></td>
+                <tr class="${task.completed ? 'completed' : ''}" data-batch-id="${task.batchId}" data-group="${groupKey}" ${isExcluded ? 'style="opacity:0.35"' : ''}>
+                    <td style="text-align:center;"><input type="checkbox" class="print-select-check" value="${task.batchId}" ${isExcluded ? '' : 'checked'} onchange="togglePrintSelect('${task.batchId}', this.checked)" title="Include in print"></td>
                     <td style="text-align: center;">
                         <input type="checkbox" class="task-checkbox" ${task.completed ? 'checked' : ''} onchange="toggleTask('${task.batchId}', this.checked)">
                     </td>
@@ -1882,13 +1888,48 @@
             allChecks.forEach(function(c) { if (!c.checked) allChecked = false; });
             var selectAll = document.getElementById('selectAllPrint');
             if (selectAll) selectAll.checked = allChecked;
+            // Update parent group checkbox state
+            if (row) {
+                var groupKey = row.getAttribute('data-group');
+                if (groupKey) {
+                    var groupChecks = document.querySelectorAll('tr[data-group="' + groupKey + '"] .print-select-check');
+                    var groupAllChecked = true;
+                    groupChecks.forEach(function(c) { if (!c.checked) groupAllChecked = false; });
+                    var groupToggle = document.querySelector('.group-toggle-check[data-group="' + groupKey + '"]');
+                    if (groupToggle) groupToggle.checked = groupAllChecked;
+                }
+            }
         }
 
         function toggleSelectAllPrint(checked) {
             document.querySelectorAll('.print-select-check').forEach(function(c) {
                 c.checked = checked;
+                if (checked) {
+                    excludedFromPrint.delete(c.value);
+                } else {
+                    excludedFromPrint.add(c.value);
+                }
+                var row = document.querySelector('tr[data-batch-id="' + c.value + '"]');
+                if (row) row.style.opacity = checked ? '1' : '0.35';
+            });
+            // Update all group checkboxes too
+            document.querySelectorAll('.group-toggle-check').forEach(function(g) {
+                g.checked = checked;
+            });
+        }
+
+        // Toggle all rows in a specific date/crop group
+        function toggleGroupPrint(groupKey, checked) {
+            document.querySelectorAll('tr[data-group="' + groupKey + '"] .print-select-check').forEach(function(c) {
+                c.checked = checked;
                 togglePrintSelect(c.value, checked);
             });
+            // Update select-all checkbox
+            var allChecks = document.querySelectorAll('.print-select-check');
+            var allChecked = true;
+            allChecks.forEach(function(c) { if (!c.checked) allChecked = false; });
+            var selectAll = document.getElementById('selectAllPrint');
+            if (selectAll) selectAll.checked = allChecked;
         }
 
         // Get tasks selected for printing (visible minus excluded)
@@ -1944,21 +1985,32 @@
 
         // Load employees for assignment modal
         async function loadEmployeesForAssign() {
+            var listEl = document.getElementById('assignEmployeeList');
+            listEl.innerHTML = '<div style="color:var(--text-secondary);text-align:center;padding:12px;"><i class="fas fa-spinner fa-spin"></i> Loading employees...</div>';
             try {
-                var res = await fetch(API_URL + '?action=getAllEmployees');
+                var res = await fetch(API_URL + '?action=getAllEmployees', { redirect: 'follow' });
                 var data = await res.json();
-                if (data.success && data.employees) {
+                if (data.success && data.employees && data.employees.length > 0) {
+                    var active = data.employees.filter(function(e) { return e.Status === 'Active'; });
+                    if (active.length === 0) active = data.employees; // Show all if none marked Active
                     var html = '';
-                    data.employees.filter(function(e) { return e.Status === 'Active'; }).forEach(function(emp) {
+                    active.forEach(function(emp) {
+                        var empId = emp.Employee_ID || emp.User_ID || emp.email || '';
+                        var empName = emp.Full_Name || emp.First_Name || emp.Name || emp.email || 'Unknown';
                         html += '<label style="display:flex;align-items:center;gap:8px;padding:8px;border-radius:6px;cursor:pointer;margin-bottom:4px;" onmouseover="this.style.background=\'var(--bg-light)\'" onmouseout="this.style.background=\'transparent\'">';
-                        html += '<input type="checkbox" class="assign-emp-check" value="' + esc(emp.Employee_ID || emp.User_ID || '') + '" data-name="' + esc(emp.Full_Name || emp.First_Name || '') + '" style="width:18px;height:18px;">';
-                        html += '<span style="color:var(--text-primary);font-size:0.9rem;">' + esc(emp.Full_Name || emp.First_Name || 'Unknown') + '</span>';
+                        html += '<input type="checkbox" class="assign-emp-check" value="' + esc(empId) + '" data-name="' + esc(empName) + '" style="width:18px;height:18px;">';
+                        html += '<span style="color:var(--text-primary);font-size:0.9rem;">' + esc(empName) + '</span>';
                         html += '</label>';
                     });
-                    document.getElementById('assignEmployeeList').innerHTML = html || '<div style="color:var(--text-secondary);">No active employees found</div>';
+                    listEl.innerHTML = html;
+                } else if (data.success) {
+                    listEl.innerHTML = '<div style="color:var(--text-secondary);padding:12px;">No employees found. You can still print without assigning.</div>';
+                } else {
+                    listEl.innerHTML = '<div style="color:var(--danger);padding:12px;"><i class="fas fa-exclamation-triangle"></i> ' + esc(data.error || 'Failed to load employees') + '<br><span style="font-size:0.8rem;color:var(--text-secondary);">You can still print without assigning.</span></div>';
                 }
             } catch (e) {
-                document.getElementById('assignEmployeeList').innerHTML = '<div style="color:var(--danger);">Could not load employees</div>';
+                listEl.innerHTML = '<div style="color:var(--danger);padding:12px;"><i class="fas fa-exclamation-triangle"></i> Network error loading employees<br><span style="font-size:0.8rem;color:var(--text-secondary);">You can still print without assigning.</span></div>';
+                console.error('loadEmployeesForAssign error:', e);
             }
         }
 
@@ -2029,13 +2081,28 @@
         }
 
         // Apply any unsaved edits to the in-memory tasks array so print reflects them
+        // Maps backend column names → frontend task property names
+        var _fieldMap = {
+            'Variety': 'variety',
+            'Trays_Needed': 'trays',
+            'Tray_Type': 'trayType',
+            'Tray_Cell_Count': 'cellsPerTray',
+            'Notes': 'notes',
+            'Target_Bed_ID': 'bed',
+            'Feet_Used': 'feet',
+            'Paperpot_Spacing': 'paperpotSpacing'
+        };
         function flushDirtyToTasks() {
             var batches = Object.keys(dirtyFields);
             if (batches.length === 0) return;
             batches.forEach(function(batchId) {
                 var task = tasks.find(function(t) { return t.batchId === batchId; });
                 if (task) {
-                    Object.assign(task, dirtyFields[batchId]);
+                    var dirty = dirtyFields[batchId];
+                    Object.keys(dirty).forEach(function(key) {
+                        var frontendKey = _fieldMap[key] || key;
+                        task[frontendKey] = dirty[key];
+                    });
                 }
             });
         }
@@ -2071,14 +2138,14 @@
 
             if (currentTaskType === 'ghSow') {
                 columns = [
-                    { key: 'check',   label: '',         width: 22 },
-                    { key: 'date',    label: 'Date',     width: 55 },
-                    { key: 'crop',    label: 'Crop',     width: 100 },
+                    { key: 'check',   label: '\u2610',   width: 20 },
+                    { key: 'date',    label: 'Date',     width: 52 },
+                    { key: 'crop',    label: 'Crop',     width: 85 },
                     { key: 'variety', label: 'Variety' },
-                    { key: 'trays',   label: 'Trays',    width: 45 },
-                    { key: 'cells',   label: 'Tray Type', width: 72 },
-                    { key: 'seeds',   label: 'Seeds',    width: 55 },
-                    { key: 'notes',   label: 'Notes',    width: 80 }
+                    { key: 'trays',   label: 'Trays',    width: 38 },
+                    { key: 'cells',   label: 'Tray Type', width: 68 },
+                    { key: 'seeds',   label: 'Seeds',    width: 48 },
+                    { key: 'notes',   label: 'Notes',    width: 75 }
                 ];
                 rowMapper = function(task) {
                     var isOpen = task.cellsPerTray === 0 && (task.trayType || '').toLowerCase().indexOf('open') >= 0;
