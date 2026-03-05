@@ -38,6 +38,30 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-03-05 — PM_ARCHITECT: Fix api-config.js double-load + MCC mobile test + more CI fixes
+
+### Bug Fix (Critical)
+- `web_app/api-config.js` — Added idempotency guard: `if (typeof window.TINY_SEED_API !== 'undefined') { skip } else { ... }`. 25 HTML pages include api-config.js twice, causing `const TINY_SEED_API` re-declaration SyntaxError. Now safe for double-loading.
+- `farm-operations.html` — Removed duplicate `<script src="web_app/api-config.js">` at line 1764 (already loaded at line 11)
+- `inventory_capture.html` — Removed duplicate `<script src="web_app/api-config.js">` at line 1125 (already loaded at line 12)
+
+### Test Fix
+- `e2e-tests/mcc-tabs.spec.ts` — Skip MCC tab tests on mobile viewport (tab-nav is hidden by responsive CSS on Pixel 5)
+
+### CI Fix
+- `.github/workflows/post-deploy-audit.yml` — Fixed `grep -c` outputting count AND fallback to GITHUB_OUTPUT (double "0" = invalid format)
+
+### Verification
+- api-config.js validated via `node --check` + API URL validation passes
+- All 13 pre-commit checks pass
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
 ## 2026-03-05 — PM_ARCHITECT: Fix CI failures + sales.html production JS bug
 
 ### Bug Fix (Critical)

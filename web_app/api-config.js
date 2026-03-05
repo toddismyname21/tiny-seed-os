@@ -15,6 +15,11 @@
 // API ENDPOINTS CONFIGURATION
 // ═══════════════════════════════════════════════════════════════════════════
 
+// Guard: safe for double-loading (some pages include this file twice)
+if (typeof window.TINY_SEED_API !== 'undefined') {
+    // Already loaded — skip re-declaration
+} else {
+
 const TINY_SEED_API = {
     // ═══════════════════════════════════════════════════════════════════════════
     // SINGLE SOURCE OF TRUTH FOR API URL
@@ -1157,3 +1162,5 @@ document.head.appendChild(style);
 })();
 
 console.log('Tiny Seed OS API Config loaded successfully');
+
+} // end idempotency guard
