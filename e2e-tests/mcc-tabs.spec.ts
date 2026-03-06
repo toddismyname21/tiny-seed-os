@@ -70,9 +70,7 @@ async function verifyTabContent(page: Page, tabName: TabName): Promise<void> {
 
 test.describe('MCC Tab Smoke Tests', () => {
   // Skip on mobile — tab-nav is hidden on small viewports
-  test.skip(({ browserName }, testInfo) => {
-    return testInfo.project.name.includes('Mobile');
-  }, 'MCC tab tests require desktop viewport');
+  test.skip(({ isMobile }) => isMobile, 'MCC tab tests require desktop viewport');
 
   test.beforeEach(async ({ page }) => {
     // Set localStorage BEFORE any page JS runs — immune to server query-param stripping
