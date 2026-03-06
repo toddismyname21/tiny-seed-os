@@ -1471,8 +1471,12 @@
                 const response = await fetch(`${API_URL}?action=getGreenhouseSeedings&startDate=${startDate}&endDate=${endDate}`);
                 const data = await response.json();
 
-                if (data.success && data.data && data.data.length > 0) {
-                    var allSeedings = data.data.map((s, index) => ({
+                if (!data.success) {
+                    console.error('API error:', data.error);
+                    seedings = [];
+                    showToast('Error: ' + (data.error || 'Unknown API error'), 'error');
+                } else if (data.data && data.data.length > 0) {
+                    seedings = data.data.map((s, index) => ({
                         id: (s.batchNumber || s.id || 'seeding') + '-' + index,
                         crop: s.crop || 'Unknown',
                         variety: s.variety || '',
@@ -1487,21 +1491,16 @@
                         field: s.field || s.bedId || s.bed || '',
                         category: getCropCategory(s.crop || 'Unknown', s.category)
                     }));
-                    // Client-side date filtering (backend doesn't filter by startDate/endDate)
-                    seedings = allSeedings.filter(function(s) {
-                        var sd = s.seedDate;
-                        if (!sd) return true; // keep if no date
-                        return sd >= startDate && sd <= endDate;
-                    });
-                    showToast(`Loaded ${seedings.length} seedings (${allSeedings.length} total in plan)`);
+                    showToast(`Loaded ${seedings.length} seedings for ${startDate} to ${endDate}`);
                 } else {
                     seedings = [];
-                    showToast('No seedings found for date range');
+                    var rangeDesc = startDate + ' to ' + endDate;
+                    showToast('No seedings with planned sow dates in range: ' + rangeDesc);
                 }
             } catch (error) {
                 console.error('Error loading seedings:', error);
                 seedings = [];
-                showToast('Error loading seedings');
+                showToast('Network error loading seedings — check connection', 'error');
             } finally {
                 _loadingSeedingsInProgress = false;
             }
@@ -1555,10 +1554,17 @@
             const container = document.getElementById('seedingsList');
 
             if (seedingData.length === 0) {
+                var sd = document.getElementById('startDate').value;
+                var ed = document.getElementById('endDate').value;
+                var today = new Date().toISOString().split('T')[0];
+                var isOverdue = ed < today;
+                var hint = isOverdue
+                    ? 'No seedings have planned sow dates before today. Try "This Week" or "60 Days" to see upcoming seedings.'
+                    : 'No seedings found for ' + sd + ' to ' + ed + '. Try adjusting the date range.';
                 container.innerHTML = `
                     <div class="empty-state" style="padding: 1.5rem;">
                         <i class="fas fa-seedling" style="font-size: 2rem;"></i>
-                        <p style="margin-top: 0.5rem;">No seedings found</p>
+                        <p style="margin-top: 0.5rem;">${hint}</p>
                     </div>
                 `;
                 return;
