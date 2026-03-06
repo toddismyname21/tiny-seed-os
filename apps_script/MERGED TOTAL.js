@@ -27655,7 +27655,7 @@ function getGreenhouseSeedings(params) {
           // Row-level data takes priority over profile defaults (matches getGreenhouseSowingTasks)
           var rowCellCount = cols.trayCellCount >= 0 ? (parseInt(row[cols.trayCellCount]) || 0) : 0;
           var cellsPerTray = rowCellCount || profile.traySize || 128;
-          var trayType = cols.trayType >= 0 ? (row[cols.trayType] || '') : '';
+          var trayType = cols.trayType >= 0 ? String(row[cols.trayType] || '') : '';
           var plantsNeeded = cols.plantsNeeded >= 0 ? (parseInt(row[cols.plantsNeeded]) || 0) : 0;
 
           // Auto-calculate trays if Trays_Needed=0 but Plants_Needed>0 (matches sowing-sheets logic)
@@ -34727,6 +34727,90 @@ function createDirectSeedingTab() {
       // Track trays by size — use tray type name if available for paperpot spacing visibility
       const size = trayType || (cellsPerTray + '-cell');
       traysBySize[size] = (traysBySize[size] || 0) + effectiveTrays;
+    }
+
+    // ── Add seedling sale items from SEEDLING_PRODUCTION ──
+    try {
+    var seedlingSheet = ss.getSheetByName('SEEDLING_PRODUCTION');
+    if (seedlingSheet) {
+      var seedData = seedlingSheet.getDataRange().getValues();
+      var seedHeaders = seedData[0];
+      var seedCols = {};
+      for (var sh = 0; sh < seedHeaders.length; sh++) {
+        seedCols[seedHeaders[sh]] = sh;
+      }
+      for (var s = 1; s < seedData.length; s++) {
+        var seedStatus = String(seedData[s][seedCols['Status']] || '').toLowerCase();
+        if (seedStatus === 'cancelled' || seedStatus === 'deleted' || seedStatus === 'removed') continue;
+
+        var seedingDateRaw = seedCols['Seeding_Date'] !== undefined ? seedData[s][seedCols['Seeding_Date']] : null;
+        if (!seedingDateRaw) continue;
+
+        var seedSowDate = new Date(seedingDateRaw);
+        if (isNaN(seedSowDate.getTime())) continue;
+
+        // Apply same date filtering as PLANNING_2026 tasks
+        var seedIsIncomplete = !(seedStatus === 'seeded' || seedStatus === 'growing' || seedStatus === 'hardening' || seedStatus === 'ready');
+        var seedIsOverdue = seedSowDate < new Date();
+        if (seedSowDate > endDate) continue;
+        if (seedSowDate < startDate && !(seedIsIncomplete && seedIsOverdue)) continue;
+
+        // Category filter
+        var seedCategory = seedCols['Category'] !== undefined ? (seedData[s][seedCols['Category']] || 'Veg') : 'Veg';
+        var seedCatNorm = (seedCategory || '').toLowerCase().replace(/s$/, '');
+        var seedIsFloral = (seedCatNorm.indexOf('floral') >= 0 || seedCatNorm.indexOf('flower') >= 0);
+        if (categoryFilter !== 'all') {
+          if (categoryFilter === 'veg-herb' && seedIsFloral) continue;
+          if (categoryFilter === 'floral' && !seedIsFloral) continue;
+        }
+
+        var seedTotalUnits = Number(seedData[s][seedCols['Total_Units']] || 0);
+        var seedCellsPerTray = 128; // Default for seedling sale bulk sow
+        var seedTrays = seedTotalUnits > 0 ? Math.ceil(seedTotalUnits / seedCellsPerTray) : 0;
+
+        tasks.push({
+          batchId: seedData[s][seedCols['Item_ID']] || 'SDL-' + s,
+          crop: seedCols['Crop'] !== undefined ? (seedData[s][seedCols['Crop']] || '') : '',
+          variety: seedCols['Variety'] !== undefined ? (seedData[s][seedCols['Variety']] || '') : '',
+          category: seedCategory,
+          plantingMethod: 'Transplant',
+          plannedDate: formatDateSimple(seedSowDate),
+          sowDate: formatDateSimple(seedSowDate),
+          actualDate: null,
+          daysVariance: null,
+          trays: seedTrays,
+          traysOriginal: seedTrays,
+          autoCalculatedTrays: true,
+          cellsPerTray: seedCellsPerTray,
+          plantsNeeded: seedTotalUnits,
+          feetUsed: 0,
+          seedsNeeded: seedTotalUnits > 0 ? Math.ceil(seedTotalUnits * 1.05) : 0,
+          bed: '',
+          seedLotUsed: seedCols['Seed_Lot_ID'] !== undefined ? (seedData[s][seedCols['Seed_Lot_ID']] || '') : '',
+          trayType: '',
+          germTemp: '',
+          notes: 'Seedling Sale — ' + (seedCols['Notes'] !== undefined ? (seedData[s][seedCols['Notes']] || '') : ''),
+          completed: !!(seedStatus === 'seeded' || seedStatus === 'growing' || seedStatus === 'hardening' || seedStatus === 'ready'),
+          rowIndex: s + 1,
+          purpose: 'SEEDLING_SALE',
+          source: 'SEEDLING_PRODUCTION',
+          readiness: {
+            hasTrays: seedTrays > 0,
+            hasCellSize: true,
+            hasBed: false,
+            hasSeedLot: !!(seedCols['Seed_Lot_ID'] !== undefined && seedData[s][seedCols['Seed_Lot_ID']]),
+            hasPlants: seedTotalUnits > 0
+          }
+        });
+
+        // Track trays by size
+        var seedTraySize = seedCellsPerTray + '-cell';
+        traysBySize[seedTraySize] = (traysBySize[seedTraySize] || 0) + seedTrays;
+      }
+    }
+    } catch (seedlingErr) {
+      // Fail gracefully — PLANNING_2026 tasks still return even if SEEDLING_PRODUCTION has issues
+      Logger.log('SEEDLING_PRODUCTION processing error in getGreenhouseSowingTasks: ' + seedlingErr.toString());
     }
 
     // Sort by date
@@ -134560,19 +134644,24 @@ function getSeedlingPresaleItems(params) {
     if (status === 'cancelled' || status === 'failed') continue;
 
     var totalUnits = Number(row.Total_Units) || 0;
-    var allocPresale = Number(row.Alloc_Presale) || totalUnits; // default: all available for presale
     var soldUnits = Number(row.Units_Sold) || 0;
-    var available = allocPresale - soldUnits;
+    // Demand-driven: outlet allocations are committed to other channels
+    var outletAlloc = (Number(row.Alloc_Phipps) || 0) + (Number(row.Alloc_Market) || 0) +
+                      (Number(row.Alloc_Wholesale) || 0) + (Number(row.Alloc_CityGROWN) || 0);
 
     if (isPreOrderPhase) {
-      // Phase 1: Show everything, even if sold out (show as waitlist)
-      row.Available = Math.max(0, available);
-      row.Waitlist = available <= 0;
+      // Phase 1: Presale is uncapped — every order adds to production demand
+      // Available = null so frontend skips availability badge (doesn't show "999 available")
+      row.Available = null;
+      row.PreOrder = true;
+      row.Waitlist = false;
       items.push(row);
     } else {
       // Phase 2: Only show items that are actively growing/ready AND have stock
       var growingStatuses = ['seeded', 'growing', 'hardening', 'ready'];
       if (growingStatuses.indexOf(status) === -1) continue;
+      // Available = total produced minus outlet commitments minus already sold
+      var available = Math.max(0, totalUnits - outletAlloc - soldUnits);
       if (available <= 0) continue;
       row.Available = available;
       row.Waitlist = false;
@@ -134906,6 +134995,31 @@ function updateSeedlingAllocations(params) {
     }
   }
 
+  // Ensure Seeding_Date column exists
+  if (cols['Seeding_Date'] === undefined) {
+    var newCol = sheet.getLastColumn() + 1;
+    sheet.getRange(1, newCol).setValue('Seeding_Date');
+    cols['Seeding_Date'] = newCol - 1;
+  }
+
+  // Load SEEDLING_SALES to calculate presale orders per item (for demand-driven totals)
+  var salesByItemId = {};
+  var salesSheet = ss.getSheetByName('SEEDLING_SALES');
+  if (salesSheet) {
+    var salesData = salesSheet.getDataRange().getValues();
+    var salesHeaders = salesData[0];
+    var salesItemIdCol = salesHeaders.indexOf('Item_ID');
+    var salesQtyCol = salesHeaders.indexOf('Quantity_Sold');
+    if (salesItemIdCol >= 0 && salesQtyCol >= 0) {
+      for (var si = 1; si < salesData.length; si++) {
+        var sId = String(salesData[si][salesItemIdCol] || '');
+        if (sId) {
+          salesByItemId[sId] = (salesByItemId[sId] || 0) + (Number(salesData[si][salesQtyCol]) || 0);
+        }
+      }
+    }
+  }
+
   // Build item row lookup
   var rowMap = {};
   for (var i = 1; i < data.length; i++) {
@@ -134935,38 +135049,44 @@ function updateSeedlingAllocations(params) {
     var market = Number(alloc.alloc_market) || 0;
     var wholesale = Number(alloc.alloc_wholesale) || 0;
     var citygrown = Number(alloc.alloc_citygrown) || 0;
-    var totalUnits = Number(match.data[cols['Total_Units']]) || 0;
     var totalOutletAlloc = phipps + market + wholesale + citygrown;
 
-    // Write outlet allocation values (presale is NOT constrained by these — it's tracked by actual orders)
+    // Demand-driven total: outlets + presale orders = how many to produce
+    var presaleOrders = salesByItemId[itemId] || 0;
+    var demandTotal = totalOutletAlloc + presaleOrders;
+
+    // Write outlet allocation values
     sheet.getRange(match.rowIndex, cols['Alloc_Phipps'] + 1).setValue(phipps);
     sheet.getRange(match.rowIndex, cols['Alloc_Market'] + 1).setValue(market);
     sheet.getRange(match.rowIndex, cols['Alloc_Wholesale'] + 1).setValue(wholesale);
     sheet.getRange(match.rowIndex, cols['Alloc_CityGROWN'] + 1).setValue(citygrown);
-    // Alloc_Presale now stores outlet total for reference, not a constraint
-    sheet.getRange(match.rowIndex, cols['Alloc_Presale'] + 1).setValue(totalOutletAlloc);
 
-    var isOver = totalOutletAlloc > totalUnits;
-    if (isOver) {
-      warnings.push({ itemId: itemId, warning: 'OUTLET_ALLOC_EXCEEDS_PRODUCTION', outletTotal: totalOutletAlloc, total: totalUnits });
+    // Total_Units stays as the user's original production target — NOT overwritten
+    // Frontend calculates demand-driven totals in renderAllocTable()
+
+    // Write Seeding_Date if provided
+    if (alloc.seeding_date) {
+      sheet.getRange(match.rowIndex, cols['Seeding_Date'] + 1).setValue(alloc.seeding_date);
     }
 
     // Log to SEEDLING_LIFECYCLE for historical tracking
     var details = JSON.stringify({
       phipps: phipps, market: market, wholesale: wholesale,
-      citygrown: citygrown, outletTotal: totalOutletAlloc, total: totalUnits
+      citygrown: citygrown, outletTotal: totalOutletAlloc, presaleOrders: presaleOrders, demandTotal: demandTotal
     });
     logSeedlingLifecycleEvent_(ss, itemId, '', '', 'ALLOCATION_SET', '', '', details, 'Admin');
 
+    var originalTotal = Number(match.data[cols['Total_Units']]) || 0;
     results.push({
       itemId: itemId,
-      total: totalUnits,
+      total: originalTotal,
+      demandTotal: demandTotal,
       phipps: phipps,
       market: market,
       wholesale: wholesale,
       citygrown: citygrown,
-      presale: presale,
-      overallocated: isOver
+      presaleOrders: presaleOrders,
+      overallocated: totalOutletAlloc > originalTotal
     });
     updated++;
   }
