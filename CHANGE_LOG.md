@@ -38,6 +38,31 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-03-06 — PM_ARCHITECT: Auto-Update AI Models Monthly
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — CLAUDE_CONFIG now reads from ScriptProperties (runtime-updatable); added auto-update system
+
+### Functions Added
+- `checkAndUpdateAIModels()` — Calls Anthropic `/v1/models` API, finds latest sonnet/haiku/opus, updates ScriptProperties if newer found
+- `setupMonthlyModelCheck()` — Creates time-driven trigger for 1st of each month at 2am
+- `_findBestModel()` — Sorts models by version number, prefers non-date-tagged aliases
+- `_extractVersion()` — Parses model IDs into major.minor.date components
+- `_logModelUpdate()` — Writes audit trail to AI_MODEL_UPDATES sheet
+
+### API Routes Added
+- GET `getAIModelStatus` — Returns current model IDs and last check timestamp
+- POST `checkAIModels` — Manually trigger model check
+- POST `setupModelAutoUpdate` — Create the monthly trigger
+
+### One-Time Setup Required
+Run `setupMonthlyModelCheck()` once from Apps Script editor to activate the trigger.
+
+### Deployed
+- Apps Script: @745
+
+---
+
 ## 2026-03-06 — PM_ARCHITECT: Fix Inventory AI Scanner + Backend Save
 
 ### Files Modified

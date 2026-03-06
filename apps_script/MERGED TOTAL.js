@@ -366,18 +366,220 @@ const CLAUDE_CONFIG = {
     return PropertiesService.getScriptProperties().getProperty('ANTHROPIC_API_KEY') || '';
   },
   // ═══════════════════════════════════════════════════════════════════════
-  // CENTRAL MODEL IDS — UPDATE THESE WHEN NEW MODELS RELEASE
-  // Last updated: 2026-03-06
-  // All AI features across the entire codebase read from here.
+  // CENTRAL MODEL IDS — AUTO-UPDATED MONTHLY BY checkAndUpdateAIModels()
+  // ScriptProperties override hardcoded defaults (set by auto-updater).
+  // To force a model: set AI_MODEL_SONNET / AI_MODEL_HAIKU / AI_MODEL_OPUS
+  // in Script Properties. To revert to auto: delete those properties.
   // ═══════════════════════════════════════════════════════════════════════
-  SONNET: 'claude-sonnet-4-6',        // Smart model — vision, analysis, generation
-  HAIKU:  'claude-haiku-4-5-20251001', // Fast/cheap model — classification, short tasks
-  OPUS:   'claude-opus-4-6',           // Most capable — complex reasoning (use sparingly)
-  MODEL:  'claude-sonnet-4-6',         // Default (alias for SONNET)
+  get SONNET() {
+    return PropertiesService.getScriptProperties().getProperty('AI_MODEL_SONNET') || 'claude-sonnet-4-6';
+  },
+  get HAIKU() {
+    return PropertiesService.getScriptProperties().getProperty('AI_MODEL_HAIKU') || 'claude-haiku-4-5-20251001';
+  },
+  get OPUS() {
+    return PropertiesService.getScriptProperties().getProperty('AI_MODEL_OPUS') || 'claude-opus-4-6';
+  },
+  get MODEL() { return this.SONNET; },  // Default = SONNET
   ENDPOINT: 'https://api.anthropic.com/v1/messages',
   MAX_TOKENS: 2048,
   ANTHROPIC_VERSION: '2023-06-01'
 };
+
+// ═══════════════════════════════════════════════════════════════════════════
+// AUTO-UPDATE AI MODELS — Monthly trigger checks Anthropic API for new models
+// Setup: Run setupMonthlyModelCheck() once from the Apps Script editor.
+// Manual: Call checkAndUpdateAIModels() anytime, or POST action=checkAIModels.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Check Anthropic API for latest models and update ScriptProperties if newer found.
+ * Runs automatically on the 1st of each month via time-driven trigger.
+ */
+function checkAndUpdateAIModels() {
+  var props = PropertiesService.getScriptProperties();
+  var apiKey = props.getProperty('ANTHROPIC_API_KEY');
+  if (!apiKey) {
+    Logger.log('checkAndUpdateAIModels: No ANTHROPIC_API_KEY set — skipping');
+    return { success: false, error: 'No API key configured' };
+  }
+
+  try {
+    // Fetch available models from Anthropic
+    var response = UrlFetchApp.fetch('https://api.anthropic.com/v1/models', {
+      method: 'GET',
+      headers: {
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01'
+      },
+      muteHttpExceptions: true
+    });
+
+    if (response.getResponseCode() !== 200) {
+      Logger.log('checkAndUpdateAIModels: API returned ' + response.getResponseCode());
+      return { success: false, error: 'API returned ' + response.getResponseCode() };
+    }
+
+    var result = JSON.parse(response.getContentText());
+    var models = result.data || [];
+    if (models.length === 0) {
+      Logger.log('checkAndUpdateAIModels: No models returned from API');
+      return { success: false, error: 'No models in response' };
+    }
+
+    // Find the best model for each tier (prefer non-date-tagged, then latest date-tagged)
+    var bestSonnet = _findBestModel(models, 'sonnet');
+    var bestHaiku = _findBestModel(models, 'haiku');
+    var bestOpus = _findBestModel(models, 'opus');
+
+    var currentSonnet = CLAUDE_CONFIG.SONNET;
+    var currentHaiku = CLAUDE_CONFIG.HAIKU;
+    var currentOpus = CLAUDE_CONFIG.OPUS;
+    var changes = [];
+
+    if (bestSonnet && bestSonnet !== currentSonnet) {
+      props.setProperty('AI_MODEL_SONNET', bestSonnet);
+      changes.push('SONNET: ' + currentSonnet + ' → ' + bestSonnet);
+    }
+    if (bestHaiku && bestHaiku !== currentHaiku) {
+      props.setProperty('AI_MODEL_HAIKU', bestHaiku);
+      changes.push('HAIKU: ' + currentHaiku + ' → ' + bestHaiku);
+    }
+    if (bestOpus && bestOpus !== currentOpus) {
+      props.setProperty('AI_MODEL_OPUS', bestOpus);
+      changes.push('OPUS: ' + currentOpus + ' → ' + bestOpus);
+    }
+
+    // Record the check timestamp
+    props.setProperty('AI_MODEL_LAST_CHECK', new Date().toISOString());
+
+    var report = {
+      success: true,
+      timestamp: new Date().toISOString(),
+      modelsFound: models.length,
+      current: { sonnet: currentSonnet, haiku: currentHaiku, opus: currentOpus },
+      best: { sonnet: bestSonnet, haiku: bestHaiku, opus: bestOpus },
+      changes: changes,
+      message: changes.length > 0
+        ? 'Updated ' + changes.length + ' model(s): ' + changes.join('; ')
+        : 'All models are already up to date'
+    };
+
+    Logger.log('checkAndUpdateAIModels: ' + report.message);
+
+    // Log to AI_MODEL_UPDATE_LOG sheet for audit trail
+    _logModelUpdate(report);
+
+    return report;
+  } catch (error) {
+    Logger.log('checkAndUpdateAIModels error: ' + error);
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Find the best (latest) model matching a family name (sonnet, haiku, opus).
+ * Prefers non-date-tagged IDs (e.g. claude-sonnet-4-6) over date-tagged ones,
+ * and higher version numbers over lower ones.
+ */
+function _findBestModel(models, family) {
+  var familyLower = family.toLowerCase();
+  var candidates = models.filter(function(m) {
+    var id = (m.id || '').toLowerCase();
+    return id.indexOf(familyLower) !== -1 && id.indexOf('claude') !== -1;
+  });
+
+  if (candidates.length === 0) return null;
+
+  // Sort: prefer higher major.minor version, then non-date-tagged, then latest date
+  candidates.sort(function(a, b) {
+    var aVer = _extractVersion(a.id);
+    var bVer = _extractVersion(b.id);
+    // Higher major version first
+    if (aVer.major !== bVer.major) return bVer.major - aVer.major;
+    // Higher minor version first
+    if (aVer.minor !== bVer.minor) return bVer.minor - aVer.minor;
+    // Prefer non-date-tagged (generic alias = always latest)
+    if (aVer.hasDate !== bVer.hasDate) return aVer.hasDate ? 1 : -1;
+    // If both date-tagged, prefer later date
+    return (bVer.date || '').localeCompare(aVer.date || '');
+  });
+
+  return candidates[0].id;
+}
+
+/**
+ * Extract version info from a model ID like "claude-sonnet-4-6" or "claude-haiku-4-5-20251001"
+ */
+function _extractVersion(modelId) {
+  var parts = modelId.split('-');
+  var major = 0, minor = 0, hasDate = false, date = '';
+
+  for (var i = 0; i < parts.length; i++) {
+    var num = parseInt(parts[i]);
+    if (!isNaN(num)) {
+      if (parts[i].length === 8 && num > 20200000) {
+        // Date component like 20251001
+        hasDate = true;
+        date = parts[i];
+      } else if (major === 0) {
+        major = num;
+      } else if (minor === 0) {
+        minor = num;
+      }
+    }
+  }
+  return { major: major, minor: minor, hasDate: hasDate, date: date };
+}
+
+/**
+ * Log model updates to a sheet for audit trail
+ */
+function _logModelUpdate(report) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName('AI_MODEL_UPDATES');
+    if (!sheet) {
+      sheet = ss.insertSheet('AI_MODEL_UPDATES');
+      sheet.appendRow(['Timestamp', 'Models_Found', 'Sonnet', 'Haiku', 'Opus', 'Changes', 'Message']);
+    }
+    sheet.appendRow([
+      report.timestamp,
+      report.modelsFound,
+      report.best.sonnet || report.current.sonnet,
+      report.best.haiku || report.current.haiku,
+      report.best.opus || report.current.opus,
+      report.changes.join('; ') || 'none',
+      report.message
+    ]);
+  } catch (e) {
+    Logger.log('_logModelUpdate: Could not write to sheet: ' + e);
+  }
+}
+
+/**
+ * Set up the monthly trigger. Run this ONCE from the Apps Script editor.
+ * Creates a time-driven trigger that runs checkAndUpdateAIModels on the 1st of each month.
+ */
+function setupMonthlyModelCheck() {
+  // Remove any existing triggers for this function to avoid duplicates
+  var triggers = ScriptApp.getProjectTriggers();
+  for (var i = 0; i < triggers.length; i++) {
+    if (triggers[i].getHandlerFunction() === 'checkAndUpdateAIModels') {
+      ScriptApp.deleteTrigger(triggers[i]);
+    }
+  }
+
+  // Create new monthly trigger — runs on the 1st at ~2am
+  ScriptApp.newTrigger('checkAndUpdateAIModels')
+    .timeBased()
+    .onMonthDay(1)
+    .atHour(2)
+    .create();
+
+  Logger.log('Monthly AI model check trigger created — runs 1st of each month at ~2am');
+  return { success: true, message: 'Monthly trigger created. Next check: 1st of next month at ~2am.' };
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TELEGRAM WEBHOOK - REAL-TIME MESSAGING VIA WEBHOOK
@@ -14628,6 +14830,15 @@ function doGet(e) {
         return jsonResponse(generateCSRFToken());
       case 'clearCaches':
         return jsonResponse(clearAllCaches());
+      case 'getAIModelStatus':
+        var p = PropertiesService.getScriptProperties();
+        return jsonResponse({
+          success: true,
+          sonnet: CLAUDE_CONFIG.SONNET,
+          haiku: CLAUDE_CONFIG.HAIKU,
+          opus: CLAUDE_CONFIG.OPUS,
+          lastCheck: p.getProperty('AI_MODEL_LAST_CHECK') || 'never'
+        });
       // SECURITY FIX 2026-02-28: Test/diagnostic endpoints removed from public API.
       // insertSampleCustomers, insertSampleDeliveries — contained hardcoded PII
       // diagnoseSheets, getSheetSchema, diagnoseIntegrations — exposed internal architecture
@@ -18112,6 +18323,10 @@ function doPost(e) {
         return jsonResponse(recordInventoryCount(data));
       case 'deductInventoryOnApplication':
         return jsonResponse(deductInventoryOnApplication(data));
+      case 'checkAIModels':
+        return jsonResponse(checkAndUpdateAIModels());
+      case 'setupModelAutoUpdate':
+        return jsonResponse(setupMonthlyModelCheck());
 
       // ============ CHEF INVITATION SYSTEM — AUTH REQUIRED ============
       // SECURITY FIX 2026-02-28: All outbound messaging requires admin auth
