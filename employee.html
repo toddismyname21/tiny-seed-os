@@ -18120,6 +18120,7 @@
                 unit,
                 location,
                 category,
+                brand: currentAIResult?.brand || '',
                 photo: currentInventoryPhoto,
                 aiParsed: currentAIResult ? true : false,
                 timestamp: new Date().toISOString()
@@ -18142,6 +18143,46 @@
         // ============================================
         // AI LABEL SCANNING
         // ============================================
+        function populateInventoryFormFromAI(data) {
+            // Auto-fill form fields from AI result so user can review/adjust before adding
+            if (data.name) {
+                document.getElementById('inventoryItemName').value = data.name;
+            }
+            if (data.quantity) {
+                document.getElementById('inventoryItemQty').value = data.quantity;
+            }
+            // Set unit
+            if (data.unit) {
+                const unitSelect = document.getElementById('inventoryItemUnit');
+                const unitOption = Array.from(unitSelect.options).find(o =>
+                    o.value.toLowerCase() === data.unit.toLowerCase() ||
+                    o.text.toLowerCase().includes(data.unit.toLowerCase())
+                );
+                if (unitOption) unitSelect.value = unitOption.value;
+            }
+            // Set category
+            if (data.category) {
+                const categorySelect = document.getElementById('inventoryCategory');
+                if (categorySelect) {
+                    // Try exact match first, then partial match
+                    const catLower = data.category.toLowerCase().replace(/[-_]/g, ' ');
+                    const catOption = Array.from(categorySelect.options).find(o => {
+                        const optLower = o.value.toLowerCase().replace(/[-_]/g, ' ');
+                        const textLower = o.text.toLowerCase().replace(/[-_]/g, ' ');
+                        return optLower === catLower || textLower === catLower ||
+                               optLower.includes(catLower) || textLower.includes(catLower) ||
+                               catLower.includes(optLower);
+                    });
+                    if (catOption) categorySelect.value = catOption.value;
+                }
+            }
+            // Show photo preview
+            if (data.photo) {
+                currentInventoryPhoto = data.photo;
+                showInventoryPhotoPreview(data.photo);
+            }
+        }
+
         async function captureInventoryPhotoWithAI() {
             const input = document.createElement('input');
             input.type = 'file';
@@ -18167,8 +18208,10 @@
                             if (result.success && result.data) {
                                 currentAIResult = result.data;
                                 currentAIResult.photo = compressed; // Store photo with result
+                                // Auto-populate form fields so user can review and adjust
+                                populateInventoryFormFromAI(result.data);
                                 showAIResultCard(result.data, compressed);
-                                showToast('✨ AI detected: ' + (result.data.name || 'item'), 'success');
+                                showToast('AI detected: ' + (result.data.name || 'item') + ' — review and tap Add Item', 'success');
                             } else {
                                 // AI couldn't parse - show error and photo preview
                                 const errorMsg = result.error || 'Could not read label';
@@ -18688,22 +18731,22 @@
             InventoryState.history.unshift(countRecord);
             localStorage.setItem('tsf_inventory_history', JSON.stringify(InventoryState.history.slice(0, 100)));
 
-            // Sync each item to backend using recordTransaction endpoint
+            // Sync each item to backend using recordInventoryCount (creates/updates product + uploads photo + records transaction)
             let syncedCount = 0;
             let failedItems = [];
 
             for (const item of InventoryState.currentCount) {
                 const transactionData = {
-                    action: 'recordTransaction',
+                    action: 'recordInventoryCount',
                     productName: item.name,
-                    productId: item.productId || '',
-                    type: 'COUNT',
                     qty: item.qty,
                     unit: item.unit,
                     location: item.location,
+                    category: item.category || '',
+                    brand: item.brand || '',
                     appliedBy: AppState.employee?.Name || 'Unknown',
                     notes: `Inventory count by ${AppState.employee?.Name || 'Unknown'} at ${item.location}`,
-                    photo: item.photo || null
+                    photo: item.photo || ''
                 };
 
                 if (AppState.isOnline) {
@@ -18721,17 +18764,17 @@
                             console.error(`[Inventory] Failed to sync item: ${item.name}`, result);
                             failedItems.push(item);
                             // Queue for offline sync
-                            await OfflineDB.queueOperation('recordTransaction', transactionData);
+                            await OfflineDB.queueOperation('recordInventoryCount', transactionData);
                         }
                     } catch (error) {
                         console.error(`[Inventory] Error syncing item: ${item.name}`, error);
                         failedItems.push(item);
                         // Queue for offline sync
-                        await OfflineDB.queueOperation('recordTransaction', transactionData);
+                        await OfflineDB.queueOperation('recordInventoryCount', transactionData);
                     }
                 } else {
                     // Offline: queue all items for later sync
-                    await OfflineDB.queueOperation('recordTransaction', transactionData);
+                    await OfflineDB.queueOperation('recordInventoryCount', transactionData);
                     failedItems.push(item);
                 }
             }

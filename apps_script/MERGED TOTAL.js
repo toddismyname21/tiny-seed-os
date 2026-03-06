@@ -18100,6 +18100,8 @@ function doPost(e) {
         return jsonResponse(adjustInventory(data));
       case 'uploadProductPhoto':
         return jsonResponse(uploadProductPhoto(data));
+      case 'recordInventoryCount':
+        return jsonResponse(recordInventoryCount(data));
       case 'deductInventoryOnApplication':
         return jsonResponse(deductInventoryOnApplication(data));
 
@@ -37756,7 +37758,7 @@ Respond in valid JSON format only:
     Logger.log('parseInventoryLabel: Processing image, base64 length: ' + base64Content.length);
 
     const payload = {
-      model: 'claude-sonnet-4-5-20250929',
+      model: 'claude-sonnet-4-6',
       max_tokens: 1000,
       messages: [
         {
@@ -37926,6 +37928,139 @@ function recordTransaction(data) {
       timestamp: now
     };
   } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Record an inventory count from the employee app.
+ * Handles the full flow: find/create product + upload photo + record transaction.
+ * @param {object} data - { productName, qty, unit, location, category, photo (base64), appliedBy, notes }
+ */
+function recordInventoryCount(data) {
+  try {
+    var now = new Date().toISOString();
+    var productName = (data.productName || '').trim();
+    if (!productName) {
+      return { success: false, error: 'Product name is required' };
+    }
+
+    // Step 1: Find or create product in INVENTORY_PRODUCTS
+    var prodSheet = getOrCreateSheet('INVENTORY_PRODUCTS', INVENTORY_PRODUCTS_HEADERS);
+    var prodData = prodSheet.getDataRange().getValues();
+    var prodHeaders = prodData[0];
+    var nameCol = prodHeaders.indexOf('Product_Name');
+    var idCol = prodHeaders.indexOf('Product_ID');
+    var qtyCol = prodHeaders.indexOf('Current_Qty');
+    var locationCol = prodHeaders.indexOf('Location');
+    var categoryCol = prodHeaders.indexOf('Category');
+    var photoUrlCol = prodHeaders.indexOf('Photo_URL');
+    var updatedAtCol = prodHeaders.indexOf('UpdatedAt');
+    var activeCol = prodHeaders.indexOf('Active');
+
+    var productId = '';
+    var productRow = -1;
+    var lowerName = productName.toLowerCase();
+
+    for (var i = 1; i < prodData.length; i++) {
+      var existing = String(prodData[i][nameCol] || '').trim().toLowerCase();
+      var isActive = prodData[i][activeCol];
+      if (existing === lowerName && isActive !== false && isActive !== 'false') {
+        productId = prodData[i][idCol];
+        productRow = i + 1; // 1-indexed for sheet operations
+        break;
+      }
+    }
+
+    // Step 2: Upload photo to Drive if provided
+    var photoUrl = '';
+    if (data.photo && data.photo.length > 100) {
+      try {
+        var base64Content = data.photo;
+        if (base64Content.includes(',')) {
+          base64Content = base64Content.split(',')[1];
+        }
+        var photoResult = uploadProductPhoto({
+          base64: base64Content,
+          fileName: 'inv_' + productName.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 30) + '_' + Date.now() + '.jpg'
+        });
+        if (photoResult.success) {
+          photoUrl = photoResult.url;
+        }
+      } catch (photoErr) {
+        Logger.log('recordInventoryCount: Photo upload failed: ' + photoErr);
+        // Continue without photo — don't block the inventory count
+      }
+    }
+
+    // Step 3: Create product if not found
+    if (!productId) {
+      productId = generateId('PROD');
+      var newRow = INVENTORY_PRODUCTS_HEADERS.map(function(header) {
+        if (header === 'Product_ID') return productId;
+        if (header === 'Product_Name') return productName;
+        if (header === 'Category') return data.category || '';
+        if (header === 'Unit') return data.unit || 'each';
+        if (header === 'Current_Qty') return parseFloat(data.qty) || 0;
+        if (header === 'Location') return data.location || '';
+        if (header === 'Photo_URL') return photoUrl;
+        if (header === 'Active') return true;
+        if (header === 'CreatedAt') return now;
+        if (header === 'UpdatedAt') return now;
+        if (header === 'Manufacturer') return data.brand || '';
+        if (header === 'Notes') return data.notes || '';
+        return '';
+      });
+      prodSheet.appendRow(newRow);
+      Logger.log('recordInventoryCount: Created product ' + productId + ': ' + productName);
+    } else {
+      // Update existing product with new count and photo
+      var currentQty = parseFloat(prodData[productRow - 1][qtyCol]) || 0;
+      var newQty = parseFloat(data.qty) || 0;
+      // For COUNT type, replace the quantity (this is a count, not an adjustment)
+      prodSheet.getRange(productRow, qtyCol + 1).setValue(newQty);
+      prodSheet.getRange(productRow, updatedAtCol + 1).setValue(now);
+      if (data.location) {
+        prodSheet.getRange(productRow, locationCol + 1).setValue(data.location);
+      }
+      if (photoUrl) {
+        prodSheet.getRange(productRow, photoUrlCol + 1).setValue(photoUrl);
+      }
+      Logger.log('recordInventoryCount: Updated product ' + productId + ': qty ' + currentQty + ' → ' + newQty);
+    }
+
+    // Step 4: Record transaction in INVENTORY_TRANSACTIONS
+    var txnSheet = getOrCreateSheet('INVENTORY_TRANSACTIONS', INVENTORY_TRANSACTIONS_HEADERS);
+    var transactionId = generateId('TXN');
+    var txnRow = INVENTORY_TRANSACTIONS_HEADERS.map(function(header) {
+      if (header === 'Transaction_ID') return transactionId;
+      if (header === 'Date') return now.split('T')[0];
+      if (header === 'Product_ID') return productId;
+      if (header === 'Product_Name') return productName;
+      if (header === 'Transaction_Type') return 'COUNT';
+      if (header === 'Qty') return parseFloat(data.qty) || 0;
+      if (header === 'Unit') return data.unit || 'each';
+      if (header === 'Location') return data.location || '';
+      if (header === 'Applied_By') return data.appliedBy || '';
+      if (header === 'Photo_URL') return photoUrl;
+      if (header === 'Notes') return data.notes || '';
+      if (header === 'CreatedAt') return now;
+      return '';
+    });
+    txnSheet.appendRow(txnRow);
+
+    return {
+      success: true,
+      transactionId: transactionId,
+      productId: productId,
+      productName: productName,
+      qty: parseFloat(data.qty) || 0,
+      photoUrl: photoUrl,
+      isNew: productRow === -1,
+      timestamp: now
+    };
+  } catch (error) {
+    Logger.log('recordInventoryCount error: ' + error);
     return { success: false, error: error.toString() };
   }
 }
