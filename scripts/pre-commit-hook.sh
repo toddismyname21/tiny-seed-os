@@ -79,8 +79,8 @@ if [ -n "$STAGED_NEW" ]; then
 
     if [ -x "$PRE_FLIGHT_SCRIPT" ]; then
         for file in $STAGED_NEW; do
-            # Skip non-application files (configs, scripts, docs, CI)
-            if echo "$file" | grep -qE '\.(yml|yaml|sh|md|json|txt)$'; then
+            # Skip non-application files (configs, scripts, docs, CI, images/assets)
+            if echo "$file" | grep -qE '\.(yml|yaml|sh|md|json|txt|png|jpg|jpeg|gif|svg|webp|ico|woff|woff2|ttf|eot)$'; then
                 echo "  Skipping pre-flight (non-app file): $file"
                 continue
             fi

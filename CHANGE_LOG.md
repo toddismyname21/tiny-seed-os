@@ -38,7 +38,41 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
-## 2026-03-06 — PM_ARCHITECT: Fix last 2 E2E test failures (MCC tab tests)
+## 2026-03-06 — PM_ARCHITECT: Layer 3 UX Evaluation + CI Fixes
+
+### Layer 3 UX Evaluation (new)
+- `docs/audits/LAYER_3_UX_EVALUATION_2026-03-06.md` — Full Layer 3 report: Lighthouse, a11y (axe-core WCAG 2.1 AA), Claude Vision analysis across 5 pages at desktop + mobile
+- `visual-baselines/desktop/*.png` — 5 desktop baseline screenshots (1440x900): index, greenhouse, sales, MCC, chief-of-staff
+- `visual-baselines/mobile/*.png` — 5 mobile baseline screenshots (375x812): same 5 pages
+
+### Key Findings from Layer 3
+- **P0 — Color contrast failure (systemic):** Green #00b961 on white = 2.58:1 (needs 4.5:1) — every green button fails WCAG AA
+- **P0 — user-scalable=no:** Disables zoom on all pages — WCAG 2.1 AA failure
+- **P0 — 7+ icon-only buttons without aria-labels** across employee.html (likely systemic)
+- **P1 — MCC mobile layout:** Unusable at 375px — content density too high for touch targets
+- **P2 — Empty states:** "--" placeholders and blank gray rectangles when data not loaded
+
+### CI Fix
+- `.github/workflows/site-health-monitor.yml` — Pages API reports "errored" for 251MB legacy repos even when site works fine. Changed from hard-fail to warning + fallback live-site HTTP check. All 4 CI workflows now GREEN.
+
+### Test Fixes
+- `e2e-tests/mcc-tabs.spec.ts` — Fixed `test.skip`: use `isMobile` fixture (testInfo undefined at describe level)
+- `e2e-tests/mcc-tabs.spec.ts` — Scoped tab selectors to `.tab-nav` (strict mode violation: 3 elements matched)
+
+### CI Status (all 4 workflows GREEN)
+- E2E Smoke Tests: 165/165 passed
+- Pages Build: SUCCESS
+- Post-Deploy Audit: SUCCESS
+- Site Health Monitor: SUCCESS
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
+## 2026-03-06 (earlier) — PM_ARCHITECT: Fix last 2 E2E test failures (MCC tab tests)
 
 ### Test Fixes
 - `e2e-tests/mcc-tabs.spec.ts` — Fixed `test.skip` callback: use Playwright's `isMobile` fixture instead of `testInfo.project.name` (testInfo is undefined at describe level). Was causing TypeError on both Desktop Chrome and Mobile Pixel 5.
