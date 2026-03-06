@@ -38,6 +38,42 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-03-06 — PM_ARCHITECT: P0 Accessibility Fixes + Sowing Workflow + Labels/Sowing-Sheets Audit
+
+### P0 Accessibility: Remove user-scalable=no (23 files)
+- Removed `maximum-scale=1.0, user-scalable=no` from viewport meta on all 23 HTML files
+- Files: employee.html, quick-seed.html, inventory_capture.html, offline.html, food-safety.html, web_app/market-sales.html, web_app/food-safety.html, web_app/quick-content.html, web_app/manager-dashboard.html, web_app/log-commitment.html, web_app/chef-order.html, web_app/driver.html, web_app/claude-chat.html, web_app/csa.html, tinypm/auth.html, tinypm/onboarding.html, tinypm/offline.html, tinypm_for_tinyseed_os/auth.html, tinypm_for_tinyseed_os/onboarding.html, tinypm_for_tinyseed_os/offline.html, tinypm_for_tinyseed_os/web_dashboard.html, apps_script/FieldMobileCapture.html, apps_script/ChiefOfStaffDashboard.html
+
+### P0 Accessibility: Green button contrast (27 fixes across 15 files)
+- Changed `color:white` → `color:#052e16` on all green (#22c55e / #16a34a) backgrounds
+- Contrast ratio: ~3:1 (fail) → 8.6:1 (WCAG AA pass)
+- HTML files: employee.html (8), seed_inventory_PRODUCTION.html (2), soil-tests.html (3), food-safety.html (1), web_app/greenhouse-dashboard.html (2), web_app/csa.html (1), web_app/csa-unified-finder.html (1), web_app/driver.html (1), web_app/chef-approve.html (1), web_app/marketing-command-center.html (1), web_app/loan-readiness.html (1), apps_script/IrrigationDashboard.html (1), apps_script/DeliveryZoneChecker.html (3)
+- CSS files: web_app/mobile-farm-ux-styles.css (2)
+
+### Labels/Sowing-Sheets Audit Fixes
+- `labels.html` — Replaced hardcoded API URL with `TINY_SEED_API.MAIN_API`
+- `sowing-sheets.html` — Moved api-config.js from body to head (before auth-guard.js), removed duplicate
+
+### Sowing Workflow: Auto-deduct seeds + Photo enforcement
+- `employee.html` `quickCompleteGHSow()` — Added `seedsToDeduct: parseInt(task.seedsNeeded) || 0` to payload; redirects to detailed modal if no seed lot linked
+- `employee.html` `submitGHSowConfirm()` — Added validation: requires seed lot ID or photo before submission
+- `employee.html` `openGHSowConfirm()` + `openSowingConfirmFromTask()` — Disables "Mark Complete" button and shows "Required for traceability" badge when no seed lot linked
+- `employee.html` `updateSowConfirmBtnState()` — New helper that re-enables confirm button when photo is captured or seed lot entered manually
+- `employee.html` `removeSowPhoto()` — Calls updateSowConfirmBtnState() to re-disable button if photo removed
+- `employee.html` `manualSeedLotEntry()` — Calls updateSowConfirmBtnState() on input to enable button
+- Modal HTML: Added `sowPhotoRequiredBadge` element for visual "Required for traceability" indicator
+
+### Traceability Impact
+- **Before:** Quick-complete could skip seed deduction; sowing could be marked done with no seed lot and no photo
+- **After:** Every sow either auto-deducts (linked lot) or requires photo → AI matching → lot creation. SEED_USAGE_LOG always populated. Full organic traceability chain maintained.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
 ## 2026-03-06 — PM_ARCHITECT: Layer 3 UX Evaluation + CI Fixes
 
 ### Layer 3 UX Evaluation (new)

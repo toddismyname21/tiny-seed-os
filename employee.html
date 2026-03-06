@@ -3,7 +3,7 @@
 <head>
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://maps.googleapis.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; img-src 'self' data: blob: https:; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://maps.googleapis.com https://*.supabase.co https://api.open-meteo.com; frame-src 'self' blob: https://www.google.com;">
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#22c55e">
@@ -13208,7 +13208,7 @@
             <!-- Controls -->
             <div style="padding: 14px 16px; background: var(--bg-card, #1e1e2e);">
                 <div style="display: flex; gap: 10px; margin-bottom: 12px;">
-                    <button id="fcStartBtn" onclick="startFieldBoundaryTrace()" style="flex: 1; padding: 14px; border-radius: 12px; border: none; background: #22c55e; color: white; font-size: 1rem; font-weight: 600; cursor: pointer;">
+                    <button id="fcStartBtn" onclick="startFieldBoundaryTrace()" style="flex: 1; padding: 14px; border-radius: 12px; border: none; background: #22c55e; color: #052e16; font-size: 1rem; font-weight: 600; cursor: pointer;">
                         <i class="fas fa-play"></i> Start Walking
                     </button>
                     <button id="fcStopBtn" onclick="stopFieldBoundaryTrace()" style="flex: 1; padding: 14px; border-radius: 12px; border: none; background: #ef4444; color: white; font-size: 1rem; font-weight: 600; cursor: pointer; display: none;">
@@ -13277,7 +13277,7 @@
                             <i class="fas fa-undo"></i> Undo
                         </button>
                     </div>
-                    <button id="ssCompleteBtn" onclick="showCompleteSoilSampling()" style="width: 100%; margin-top: 10px; padding: 14px; border-radius: 12px; border: none; background: #16a34a; color: white; font-size: 1rem; font-weight: 600; cursor: pointer; display: none;">
+                    <button id="ssCompleteBtn" onclick="showCompleteSoilSampling()" style="width: 100%; margin-top: 10px; padding: 14px; border-radius: 12px; border: none; background: #16a34a; color: #052e16; font-size: 1rem; font-weight: 600; cursor: pointer; display: none;">
                         <i class="fas fa-check-circle"></i> Complete Composite
                     </button>
                     <button onclick="backToFieldSelect()" style="width: 100%; margin-top: 8px; padding: 10px; border-radius: 8px; border: none; background: transparent; color: var(--text-secondary, #94a3b8); font-size: 0.85rem; cursor: pointer;">
@@ -16822,6 +16822,12 @@
             var task = ghSowTasks.find(function(t) { return t.batchId === batchId; });
             if (!task || task.completed) return;
 
+            // If no seed lot linked, force detailed modal with photo requirement
+            if (!task.seedLotUsed) {
+                openGHSowConfirm(batchId);
+                return;
+            }
+
             var emp = AppState.employee || {};
             var todayStr = new Date().toISOString().split('T')[0];
 
@@ -16835,6 +16841,7 @@
                 actualVariety: '',
                 substituted: false,
                 seedLotId: task.seedLotUsed || '',
+                seedsToDeduct: parseInt(task.seedsNeeded) || 0,
                 notes: ''
             };
 
@@ -16906,9 +16913,24 @@
             if (availSpan) availSpan.textContent = '';
 
             // Store batchId for submission (GH home source — same behavior as ghDashboard)
-            document.getElementById('ghConfirmBtn').setAttribute('data-batch-id', batchId);
-            document.getElementById('ghConfirmBtn').setAttribute('data-source', 'ghDashboard');
-            document.getElementById('ghConfirmBtn').removeAttribute('data-task-id');
+            var confirmBtn = document.getElementById('ghConfirmBtn');
+            confirmBtn.setAttribute('data-batch-id', batchId);
+            confirmBtn.setAttribute('data-source', 'ghDashboard');
+            confirmBtn.removeAttribute('data-task-id');
+
+            // If no seed lot linked, require photo for traceability
+            var photoRequiredBadge = document.getElementById('sowPhotoRequiredBadge');
+            if (!task.seedLotUsed) {
+                confirmBtn.setAttribute('data-requires-photo', 'true');
+                confirmBtn.disabled = true;
+                confirmBtn.style.opacity = '0.5';
+                if (photoRequiredBadge) photoRequiredBadge.style.display = 'flex';
+            } else {
+                confirmBtn.removeAttribute('data-requires-photo');
+                confirmBtn.disabled = false;
+                confirmBtn.style.opacity = '1';
+                if (photoRequiredBadge) photoRequiredBadge.style.display = 'none';
+            }
 
             document.getElementById('ghSowConfirmModal').style.display = 'flex';
         }
@@ -17027,6 +17049,20 @@
             btn.setAttribute('data-batch-id', batchId);
             btn.setAttribute('data-source', 'taskList');
 
+            // If no seed lot linked, require photo for traceability
+            var photoRequiredBadge = document.getElementById('sowPhotoRequiredBadge');
+            if (!seedLot) {
+                btn.setAttribute('data-requires-photo', 'true');
+                btn.disabled = true;
+                btn.style.opacity = '0.5';
+                if (photoRequiredBadge) photoRequiredBadge.style.display = 'flex';
+            } else {
+                btn.removeAttribute('data-requires-photo');
+                btn.disabled = false;
+                btn.style.opacity = '1';
+                if (photoRequiredBadge) photoRequiredBadge.style.display = 'none';
+            }
+
             document.getElementById('ghSowConfirmModal').style.display = 'flex';
         }
 
@@ -17036,6 +17072,13 @@
             var batchId = btn.getAttribute('data-batch-id');
             var taskId = btn.getAttribute('data-task-id');
             var emp = AppState.employee || {};
+
+            // Require photo or seed lot for organic traceability
+            var seedLotVal = document.getElementById('ghConfirmSeedLot').value || '';
+            if (!seedLotVal && !AppState.sowConfirmPhoto) {
+                showToast('Please photograph the seed packet or enter a seed lot ID for traceability', 'error');
+                return;
+            }
 
             var payload = {
                 action: 'confirmGHSowing',
@@ -23271,6 +23314,8 @@
                 if (sowPreview) sowPreview.style.display = 'block';
                 if (sowBtn) sowBtn.innerHTML = '<i class="fas fa-check-circle" style="color:#22c55e;"></i> Photo Captured — Tap to Retake';
                 closeCamera();
+                // Re-enable confirm button now that photo is captured
+                updateSowConfirmBtnState();
                 // Trigger AI analysis + inventory matching
                 analyzeAndMatchSeedPacket(AppState.capturedPhoto);
                 return;
@@ -23313,6 +23358,24 @@
             document.getElementById(previewId).style.display = 'none';
         }
 
+        // Re-enable/disable sow confirm button based on photo or seed lot
+        function updateSowConfirmBtnState() {
+            var confirmBtn = document.getElementById('ghConfirmBtn');
+            if (!confirmBtn || !confirmBtn.hasAttribute('data-requires-photo')) return;
+            var hasSeedLot = !!(document.getElementById('ghConfirmSeedLot').value);
+            var hasPhoto = !!AppState.sowConfirmPhoto;
+            var badge = document.getElementById('sowPhotoRequiredBadge');
+            if (hasSeedLot || hasPhoto) {
+                confirmBtn.disabled = false;
+                confirmBtn.style.opacity = '1';
+                if (badge) badge.style.display = 'none';
+            } else {
+                confirmBtn.disabled = true;
+                confirmBtn.style.opacity = '0.5';
+                if (badge) badge.style.display = 'flex';
+            }
+        }
+
         function removeSowPhoto() {
             AppState.sowConfirmPhoto = null;
             AppState.matchedSeedLot = null;
@@ -23331,6 +23394,7 @@
             if (lotHidden) lotHidden.value = '';
             var deductRow = document.getElementById('seedsToDeductRow');
             if (deductRow) deductRow.style.display = 'none';
+            updateSowConfirmBtnState();
         }
 
         // ============================================
@@ -23403,7 +23467,7 @@
                         '<div style="font-size:0.85rem;color:#22c55e;font-weight:600;"><i class="fas fa-check-circle"></i> Matched: ' + exactMatch.seedLotId + '</div>' +
                         '<div style="font-size:0.8rem;color:var(--text-secondary,#999);margin-top:2px;">' + exactMatch.crop + (exactMatch.variety ? ' — ' + exactMatch.variety : '') + ' · ' + exactMatch.quantityRemaining + ' ' + (exactMatch.unit || 'seeds') + ' remaining</div>' +
                         '<div style="display:flex;gap:8px;margin-top:8px;">' +
-                        '<button type="button" onclick="selectSeedLotForSowing(\'' + exactMatch.seedLotId + '\', ' + exactMatch.quantityRemaining + ', \'' + (exactMatch.unit || 'seeds') + '\')" style="flex:1;padding:8px;min-height:36px;background:#22c55e;color:white;border:none;border-radius:6px;font-size:0.85rem;font-weight:600;cursor:pointer;">Use This Lot</button>' +
+                        '<button type="button" onclick="selectSeedLotForSowing(\'' + exactMatch.seedLotId + '\', ' + exactMatch.quantityRemaining + ', \'' + (exactMatch.unit || 'seeds') + '\')" style="flex:1;padding:8px;min-height:36px;background:#22c55e;color:#052e16;border:none;border-radius:6px;font-size:0.85rem;font-weight:600;cursor:pointer;">Use This Lot</button>' +
                         '<button type="button" onclick="showAllMatchingLots()" style="padding:8px 12px;min-height:36px;background:var(--bg-light,#2a2a3e);color:var(--text-secondary,#999);border:1px solid var(--border,#333);border-radius:6px;font-size:0.8rem;cursor:pointer;">Other</button>' +
                         '</div></div>';
                     // Auto-select the exact match
@@ -23413,7 +23477,7 @@
                     var lotsHtml = lots.slice(0, 4).map(function(lot) {
                         return '<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border,#333);">' +
                             '<div style="font-size:0.8rem;"><strong>' + lot.seedLotId + '</strong><br><span style="color:var(--text-secondary,#999);">' + lot.quantityRemaining + ' ' + (lot.unit || 'seeds') + ' remaining</span></div>' +
-                            '<button type="button" onclick="selectSeedLotForSowing(\'' + lot.seedLotId + '\', ' + lot.quantityRemaining + ', \'' + (lot.unit || 'seeds') + '\')" style="padding:6px 12px;min-height:32px;background:#22c55e;color:white;border:none;border-radius:6px;font-size:0.8rem;cursor:pointer;">Select</button>' +
+                            '<button type="button" onclick="selectSeedLotForSowing(\'' + lot.seedLotId + '\', ' + lot.quantityRemaining + ', \'' + (lot.unit || 'seeds') + '\')" style="padding:6px 12px;min-height:32px;background:#22c55e;color:#052e16;border:none;border-radius:6px;font-size:0.8rem;cursor:pointer;">Select</button>' +
                             '</div>';
                     }).join('');
                     content.innerHTML = readSummary +
@@ -23454,7 +23518,7 @@
                         var html = lots.slice(0, 6).map(function(lot) {
                             return '<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border,#333);">' +
                                 '<div style="font-size:0.8rem;"><strong>' + lot.seedLotId + '</strong><br><span style="color:var(--text-secondary,#999);">' + lot.quantityRemaining + ' ' + (lot.unit || 'seeds') + '</span></div>' +
-                                '<button type="button" onclick="selectSeedLotForSowing(\'' + lot.seedLotId + '\', ' + lot.quantityRemaining + ', \'' + (lot.unit || 'seeds') + '\')" style="padding:6px 12px;min-height:32px;background:#22c55e;color:white;border:none;border-radius:6px;font-size:0.8rem;cursor:pointer;">Select</button></div>';
+                                '<button type="button" onclick="selectSeedLotForSowing(\'' + lot.seedLotId + '\', ' + lot.quantityRemaining + ', \'' + (lot.unit || 'seeds') + '\')" style="padding:6px 12px;min-height:32px;background:#22c55e;color:#052e16;border:none;border-radius:6px;font-size:0.8rem;cursor:pointer;">Select</button></div>';
                         }).join('');
                         content.innerHTML = '<div style="font-size:0.85rem;color:var(--text-primary,#fff);margin-bottom:4px;">All matching lots:</div>' + html;
                     });
@@ -23551,9 +23615,10 @@
             display.querySelector('div').style.display = 'none';
             manualInput.style.display = 'block';
             manualInput.focus();
-            // On input change, update hidden field
+            // On input change, update hidden field + re-check button state
             manualInput.oninput = function() {
                 if (lotHidden) lotHidden.value = manualInput.value.trim();
+                updateSowConfirmBtnState();
             };
             // Show deduct row for manual entry too
             var deductRow = document.getElementById('seedsToDeductRow');
@@ -23987,7 +24052,7 @@
                         </div>
                         <div style="display:flex;gap:10px;">
                             <button onclick="discardFcBoundary()" style="flex:1;padding:12px;border-radius:10px;border:1px solid var(--border,#374151);background:transparent;color:var(--text-primary,#e2e8f0);cursor:pointer;font-size:0.95rem;">Discard</button>
-                            <button onclick="saveFcBoundary()" style="flex:1;padding:12px;border-radius:10px;border:none;background:#22c55e;color:white;font-weight:600;cursor:pointer;font-size:0.95rem;">Save Field</button>
+                            <button onclick="saveFcBoundary()" style="flex:1;padding:12px;border-radius:10px;border:none;background:#22c55e;color:#052e16;font-weight:600;cursor:pointer;font-size:0.95rem;">Save Field</button>
                         </div>
                     </div>
                 </div>`;
@@ -24465,7 +24530,7 @@
                         </div>
                         <div style="display:flex;gap:10px;margin-bottom:10px;">
                             <button onclick="closeSoilSamplingModal()" style="flex:1;padding:12px;border-radius:10px;border:1px solid var(--border,#374151);background:transparent;color:var(--text-primary,#e2e8f0);cursor:pointer;">Cancel</button>
-                            <button onclick="completeSoilSampling()" style="flex:1;padding:12px;border-radius:10px;border:none;background:#16a34a;color:white;font-weight:600;cursor:pointer;">Save &amp; Complete</button>
+                            <button onclick="completeSoilSampling()" style="flex:1;padding:12px;border-radius:10px;border:none;background:#16a34a;color:#052e16;font-weight:600;cursor:pointer;">Save &amp; Complete</button>
                         </div>
                         <button onclick="printSoilSubmissionForm()" style="width:100%;padding:10px;border-radius:8px;border:1px solid #7c3aed;background:transparent;color:#c4b5fd;cursor:pointer;font-size:0.85rem;">
                             <i class="fas fa-print"></i> Print Submission Form
@@ -30578,6 +30643,7 @@
             <!-- Seed Packet Photo — always visible (not tied to substitution) -->
             <div>
                 <label style="font-size:0.8rem;color:var(--text-secondary,#999);font-weight:600;">Seed Packet Photo</label>
+                <span id="sowPhotoRequiredBadge" style="display:none;align-items:center;gap:4px;font-size:0.7rem;color:#f59e0b;font-weight:600;margin-left:8px;"><i class="fas fa-exclamation-triangle"></i> Required for traceability</span>
                 <button type="button" id="sowPhotoBtn" onclick="capturePhoto('sowConfirm')" style="width:100%;padding:12px;min-height:44px;background:var(--bg-light,#2a2a3e);border:1px dashed var(--border,#555);border-radius:8px;color:var(--text-secondary,#999);font-size:0.9rem;cursor:pointer;margin-top:4px;display:flex;align-items:center;justify-content:center;gap:8px;"><i class="fas fa-camera"></i> <span data-i18n="sow.snapSeedPacket">Snap Seed Packet</span></button>
                 <div id="sowPhotoPreview" style="display:none;margin-top:8px;position:relative;">
                     <img id="sowPhotoThumb" style="width:100%;max-height:120px;object-fit:cover;border-radius:8px;border:2px solid #22c55e;" alt="Seed packet photo">
@@ -30614,7 +30680,7 @@
             </div>
         </div>
 
-        <button id="ghConfirmBtn" onclick="submitGHSowConfirm()" style="width:100%;padding:16px;min-height:48px;background:#22c55e;color:white;border:none;border-radius:10px;font-size:1rem;font-weight:700;cursor:pointer;margin-top:20px;"><i class="fas fa-check-circle"></i> <span data-i18n="sow.markComplete">Mark Complete</span></button>
+        <button id="ghConfirmBtn" onclick="submitGHSowConfirm()" style="width:100%;padding:16px;min-height:48px;background:#22c55e;color:#052e16;border:none;border-radius:10px;font-size:1rem;font-weight:700;cursor:pointer;margin-top:20px;"><i class="fas fa-check-circle"></i> <span data-i18n="sow.markComplete">Mark Complete</span></button>
     </div>
 </div>
 

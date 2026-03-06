@@ -1109,7 +1109,7 @@
               ${zone.Last_Irrigated ? 'Last: ' + formatTime(zone.Last_Irrigated) : ''}
               <br><br>
               <button onclick="toggleValve('${zone.Zone_ID}', '${isIrrigating ? 'CLOSED' : 'OPEN'}')"
-                      style="padding: 8px 16px; cursor: pointer; background: ${isIrrigating ? '#ef4444' : '#22c55e'}; color: white; border: none; border-radius: 4px;">
+                      style="padding: 8px 16px; cursor: pointer; background: ${isIrrigating ? '#ef4444' : '#22c55e'}; color: ${isIrrigating ? 'white' : '#052e16'}; border: none; border-radius: 4px;">
                 ${isIrrigating ? 'Close Valve' : 'Open Valve'}
               </button>
             </div>

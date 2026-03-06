@@ -661,7 +661,7 @@ body.field-mode .mobile-nav-btn.active {
 
 .field-capture-btn-snap {
     background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-    color: white;
+    color: #052e16;
     box-shadow: 0 4px 15px rgba(34, 197, 94, 0.4);
     min-width: 160px;
 }
@@ -751,7 +751,7 @@ body.field-mode .mobile-nav-btn.active {
     border-radius: 16px;
     background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
     border: none;
-    color: white;
+    color: #052e16;
     font-size: 1.25rem;
     font-weight: 800;
     cursor: pointer;

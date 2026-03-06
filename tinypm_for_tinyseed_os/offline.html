@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://maps.googleapis.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; img-src 'self' data: blob: https:; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://maps.googleapis.com https://*.supabase.co; frame-src 'self' https://www.google.com;">
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#6366f1">
@@ -12,17 +13,17 @@
   <link rel="apple-touch-icon" sizes="180x180" href="/pwa-assets/apple-touch-icon-180.png">
   <style>
     :root {
-      --bg-primary: #0f1117;
+      --bg-primary: var(--ts-bg-base, #0f1117);
       --bg-secondary: #1a1d27;
-      --bg-card: #1e2130;
+      --bg-card: var(--ts-bg-surface, #1e2130);
       --border: #2a2d3e;
-      --text-primary: #f0f0f5;
-      --text-secondary: #a0a4b8;
-      --text-muted: #6b6f82;
-      --accent: #6366f1;
+      --text-primary: var(--ts-text, #f0f0f5);
+      --text-secondary: var(--ts-text-secondary, #a0a4b8);
+      --text-muted: var(--ts-text-muted, #6b6f82);
+      --accent: var(--ts-purple-500, #6366f1);
       --accent-hover: #818cf8;
-      --green: #22c55e;
-      --yellow: #eab308;
+      --green: var(--ts-green-500, #22c55e);
+      --yellow: var(--ts-amber-500, #eab308);
       --radius: 16px;
     }
 

@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://maps.googleapis.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; img-src 'self' data: blob: https:; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://maps.googleapis.com https://*.supabase.co; frame-src 'self' https://www.google.com;">
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>TinyPM - Sign In</title>
@@ -10,21 +11,21 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <style>
   :root {
-    --bg-primary: #0f1117;
+    --bg-primary: var(--ts-bg-base, #0f1117);
     --bg-secondary: #1a1d27;
-    --bg-card: #1e2130;
+    --bg-card: var(--ts-bg-surface, #1e2130);
     --bg-hover: #252839;
     --bg-input: #141620;
     --border: #2a2d3e;
-    --border-focus: #6366f1;
-    --text-primary: #f0f0f5;
-    --text-secondary: #a0a4b8;
-    --text-muted: #6b6f82;
-    --accent: #6366f1;
+    --border-focus: var(--ts-purple-500, #6366f1);
+    --text-primary: var(--ts-text, #f0f0f5);
+    --text-secondary: var(--ts-text-secondary, #a0a4b8);
+    --text-muted: var(--ts-text-muted, #6b6f82);
+    --accent: var(--ts-purple-500, #6366f1);
     --accent-hover: #818cf8;
     --accent-light: rgba(99, 102, 241, 0.15);
-    --green: #22c55e;
-    --red: #ef4444;
+    --green: var(--ts-green-500, #22c55e);
+    --red: var(--ts-red-500, #ef4444);
     --red-light: rgba(239, 68, 68, 0.15);
     --radius: 12px;
     --shadow: 0 4px 20px rgba(0,0,0,0.4);

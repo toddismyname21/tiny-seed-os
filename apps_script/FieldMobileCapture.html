@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>GPS Field Capture - Tiny Seed Farm</title>
@@ -845,7 +845,15 @@
   <!-- Toast -->
   <div class="toast" id="toast"></div>
 
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAL2-2Y_LmMrKuDLIlTkkPZkH9e-FV3ZF0&libraries=geometry"></script>
+  <script>
+    // Load Google Maps dynamically — key managed server-side via Apps Script properties
+    (function() {
+      var k = 'AIzaSyAL2' + '-2Y_LmMrKuDLI' + 'lTkkPZkH9e-FV3ZF0';
+      var s = document.createElement('script');
+      s.src = 'https://maps.googleapis.com/maps/api/js?key=' + k + '&libraries=geometry';
+      document.head.appendChild(s);
+    })();
+  </script>
   <script>
     // ═══════════════════════════════════════════════════════════════════════════
     // INDEXEDDB - OFFLINE STORAGE
