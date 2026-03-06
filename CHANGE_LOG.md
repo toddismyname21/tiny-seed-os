@@ -38,6 +38,25 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-03-06 — PM_ARCHITECT: Fix Inventory AI Scanner + Backend Save
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — Updated parseInventoryLabel model to claude-sonnet-4-6; added recordInventoryCount() backend function; added route case
+- `employee.html` — Added populateInventoryFormFromAI(); updated submitInventoryCount to use recordInventoryCount; store brand from AI results
+
+### Functions Added
+- `recordInventoryCount()` in `MERGED TOTAL.js` — Full inventory flow: finds/creates product in INVENTORY_PRODUCTS, uploads photo to Drive, records transaction in INVENTORY_TRANSACTIONS
+- `populateInventoryFormFromAI()` in `employee.html` — Auto-populates form fields (name, qty, unit, category) from AI scan results
+
+### Reason
+User reported AI label scanner not filling in information. Root cause: outdated model ID (claude-sonnet-4-5-20250929 → claude-sonnet-4-6). Also fixed data save flow — previously used recordTransaction which didn't auto-create products or upload photos. New recordInventoryCount handles the complete flow.
+
+### Deployed
+- GitHub Pages: commit 93f1704
+- Apps Script: @743
+
+---
+
 ## 2026-03-06 — PM_ARCHITECT: Deep Audit Fixes — Sowing Workflow Bugs
 
 ### CRITICAL: Frontend Bugs Found by Deep Audit

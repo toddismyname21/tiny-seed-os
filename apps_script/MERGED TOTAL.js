@@ -365,9 +365,17 @@ const CLAUDE_CONFIG = {
   get API_KEY() {
     return PropertiesService.getScriptProperties().getProperty('ANTHROPIC_API_KEY') || '';
   },
-  MODEL: 'claude-sonnet-4-20250514',  // THE SMARTEST - Claude 3.5 Sonnet
+  // ═══════════════════════════════════════════════════════════════════════
+  // CENTRAL MODEL IDS — UPDATE THESE WHEN NEW MODELS RELEASE
+  // Last updated: 2026-03-06
+  // All AI features across the entire codebase read from here.
+  // ═══════════════════════════════════════════════════════════════════════
+  SONNET: 'claude-sonnet-4-6',        // Smart model — vision, analysis, generation
+  HAIKU:  'claude-haiku-4-5-20251001', // Fast/cheap model — classification, short tasks
+  OPUS:   'claude-opus-4-6',           // Most capable — complex reasoning (use sparingly)
+  MODEL:  'claude-sonnet-4-6',         // Default (alias for SONNET)
   ENDPOINT: 'https://api.anthropic.com/v1/messages',
-  MAX_TOKENS: 2048,  // More tokens for detailed analysis
+  MAX_TOKENS: 2048,
   ANTHROPIC_VERSION: '2023-06-01'
 };
 
@@ -1231,7 +1239,7 @@ Keep responses SHORT - this is for mobile/Telegram. 2-3 sentences max unless the
 
   try {
     const payload = {
-      model: 'claude-3-haiku-20240307',  // FAST model for quick responses
+      model: CLAUDE_CONFIG.HAIKU,  // FAST model for quick responses
       max_tokens: 500,
       system: systemPrompt,
       messages: [{ role: 'user', content: userMessage }]
@@ -5601,7 +5609,7 @@ Priority Rules:
         'anthropic-version': '2023-06-01'
       },
       payload: JSON.stringify({
-        model: 'claude-sonnet-4-5-20250929',
+        model: CLAUDE_CONFIG.SONNET,
         max_tokens: 1000,
         messages: [{ role: 'user', content: prompt }]
       }),
@@ -6437,7 +6445,7 @@ ${email.body}`;
         'content-type': 'application/json'
       },
       payload: JSON.stringify({
-        model: 'claude-3-haiku-20240307',
+        model: CLAUDE_CONFIG.HAIKU,
         max_tokens: 1024,
         messages: [{ role: 'user', content: prompt }]
       }),
@@ -8184,7 +8192,7 @@ function callClaudeForCalendar(prompt) {
       'anthropic-version': '2023-06-01'
     },
     payload: JSON.stringify({
-      model: 'claude-3-5-haiku-20241022',
+      model: CLAUDE_CONFIG.HAIKU,
       max_tokens: 500,
       messages: [{ role: 'user', content: prompt }]
     })
@@ -9126,7 +9134,7 @@ function callClaudeAPIWithModel(prompt, model) {
   const apiKey = PropertiesService.getScriptProperties().getProperty('CLAUDE_API_KEY');
   if (!apiKey) throw new Error('Claude API key not configured');
 
-  const modelId = model === 'haiku' ? 'claude-3-5-haiku-20241022' : 'claude-sonnet-4-20250514';
+  const modelId = model === 'haiku' ? CLAUDE_CONFIG.HAIKU : CLAUDE_CONFIG.SONNET;
 
   const response = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
     method: 'post',
@@ -10837,7 +10845,7 @@ function callClaudeAPI(prompt, temperature = 0.3) {
       'anthropic-version': '2023-06-01'
     },
     payload: JSON.stringify({
-      model: 'claude-sonnet-4-5-20250929',
+      model: CLAUDE_CONFIG.SONNET,
       max_tokens: 2000,
       temperature: temperature,
       messages: [{
@@ -37758,7 +37766,7 @@ Respond in valid JSON format only:
     Logger.log('parseInventoryLabel: Processing image, base64 length: ' + base64Content.length);
 
     const payload = {
-      model: 'claude-sonnet-4-6',
+      model: CLAUDE_CONFIG.SONNET,
       max_tokens: 1000,
       messages: [
         {
@@ -40070,7 +40078,7 @@ function analyzeEquipmentPhoto(params) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
       payload: JSON.stringify({
-        model: 'claude-sonnet-4-5-20250929', max_tokens: 1024,
+        model: CLAUDE_CONFIG.SONNET, max_tokens: 1024,
         messages: [{ role: 'user', content: [
           { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: imageBase64 } },
           { type: 'text', text: `Analyze this farm equipment photo (${itemName}). Respond in JSON: { "overallCondition": "Good/Fair/Poor/Needs Repair", "conditionScore": 1-5, "visibleIssues": [], "rustLevel": "None/Light/Moderate/Severe", "maintenancePriority": "Low/Medium/High/Critical", "recommendedActions": [] }` }
@@ -40145,7 +40153,7 @@ Return ONLY the JSON object, no other text.`;
         'anthropic-version': '2023-06-01'
       },
       payload: JSON.stringify({
-        model: 'claude-sonnet-4-5-20250929',
+        model: CLAUDE_CONFIG.SONNET,
         max_tokens: 1024,
         messages: [{
           role: 'user',
@@ -40233,7 +40241,7 @@ function parseSeedInvoice(params) {
         'anthropic-version': '2023-06-01'
       },
       payload: JSON.stringify({
-        model: 'claude-sonnet-4-5-20250929',
+        model: CLAUDE_CONFIG.SONNET,
         max_tokens: 4096,
         messages: [{
           role: 'user',
@@ -72671,7 +72679,7 @@ Provide exactly 5 specific, actionable recommendations to grow Tiny Seed Farm's 
                         'Content-Type': 'application/json'
                     },
                     payload: JSON.stringify({
-                        model: 'claude-sonnet-4-5-20250929',
+                        model: CLAUDE_CONFIG.SONNET,
                         max_tokens: 500,
                         messages: [{ role: 'user', content: prompt }]
                     }),
@@ -72899,7 +72907,7 @@ Return your analysis as JSON in this exact format:
                 'Content-Type': 'application/json'
             },
             payload: JSON.stringify({
-                model: 'claude-sonnet-4-5-20250929',
+                model: CLAUDE_CONFIG.SONNET,
                 max_tokens: 1024,
                 system: systemPrompt,
                 messages: [
@@ -73363,7 +73371,7 @@ function getNextBestPost(params) {
                     'Content-Type': 'application/json'
                 },
                 payload: JSON.stringify({
-                    model: 'claude-sonnet-4-5-20250929',
+                    model: CLAUDE_CONFIG.SONNET,
                     max_tokens: 1000,
                     messages: [{
                         role: 'user',
@@ -73706,7 +73714,7 @@ Return JSON array of 7 days:
                     'Content-Type': 'application/json'
                 },
                 payload: JSON.stringify({
-                    model: 'claude-sonnet-4-5-20250929',
+                    model: CLAUDE_CONFIG.SONNET,
                     max_tokens: 2000,
                     messages: [{ role: 'user', content: prompt }]
                 }),
@@ -73892,7 +73900,7 @@ Return ONLY the enhanced caption, nothing else.`;
                     'anthropic-version': '2023-06-01'
                 },
                 payload: JSON.stringify({
-                    model: 'claude-3-haiku-20240307',
+                    model: CLAUDE_CONFIG.HAIKU,
                     max_tokens: 500,
                     messages: [{ role: 'user', content: prompt }]
                 }),
@@ -74412,7 +74420,7 @@ function generateAIContentBatch(params) {
     try {
         const systemPrompt = params.systemPrompt || '';
         const userPrompt = params.userPrompt || '';
-        const model = params.model || 'claude-sonnet-4-20250514';
+        const model = params.model || CLAUDE_CONFIG.SONNET;
         if (!userPrompt.trim()) return { success: false, error: 'No prompt provided' };
 
         const props = PropertiesService.getScriptProperties();
@@ -74489,7 +74497,7 @@ function regenerateSinglePost(params) {
         const response = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'x-api-key': claudeKey, 'anthropic-version': '2023-06-01' },
-            payload: JSON.stringify({ model: 'claude-3-haiku-20240307', max_tokens: 500, messages: [{ role: 'user', content: prompt }] }),
+            payload: JSON.stringify({ model: CLAUDE_CONFIG.HAIKU, max_tokens: 500, messages: [{ role: 'user', content: prompt }] }),
             muteHttpExceptions: true
         });
         const result = JSON.parse(response.getContentText());
@@ -74748,7 +74756,7 @@ function generateAdvancedContent(params) {
           'anthropic-version': '2023-06-01'
         },
         payload: JSON.stringify({
-          model: 'claude-sonnet-4-5-20250929',
+          model: CLAUDE_CONFIG.SONNET,
           max_tokens: 4000,
           system: systemPrompt,
           messages: [{ role: 'user', content: userPrompt }]
@@ -75149,7 +75157,7 @@ ${additionalContext ? `ADDITIONAL CONTEXT: ${additionalContext}
                     'anthropic-version': '2023-06-01'
                 },
                 payload: JSON.stringify({
-                    model: 'claude-sonnet-4-5-20250929',
+                    model: CLAUDE_CONFIG.SONNET,
                     max_tokens: 500,
                     messages: [{
                         role: 'user',
@@ -75255,7 +75263,7 @@ ${additionalContext ? `TOPIC: ${additionalContext}
                         'anthropic-version': '2023-06-01'
                     },
                     payload: JSON.stringify({
-                        model: 'claude-3-haiku-20240307',
+                        model: CLAUDE_CONFIG.HAIKU,
                         max_tokens: 300,
                         messages: [{ role: 'user', content: textOnlyPrompt }]
                     }),
@@ -75941,7 +75949,7 @@ Return as JSON array:
                         'anthropic-version': '2023-06-01'
                     },
                     payload: JSON.stringify({
-                        model: 'claude-3-haiku-20240307',
+                        model: CLAUDE_CONFIG.HAIKU,
                         max_tokens: 1000,
                         messages: [{ role: 'user', content: prompt }]
                     }),
@@ -77849,7 +77857,7 @@ function callClaudeAPIForKeywords(prompt) {
       'anthropic-version': '2023-06-01'
     },
     payload: JSON.stringify({
-      model: 'claude-3-5-haiku-20241022', // Use Haiku for speed/cost
+      model: CLAUDE_CONFIG.HAIKU, // Use Haiku for speed/cost
       max_tokens: 1000,
       temperature: 0.7, // Slightly creative
       messages: [{
@@ -108888,7 +108896,7 @@ function scrapeLenderRequirements(params) {
     }
 
     const claudePayload = {
-      model: 'claude-sonnet-4-5-20250929',
+      model: CLAUDE_CONFIG.SONNET,
       max_tokens: 2000,
       messages: [{
         role: 'user',
@@ -109365,7 +109373,7 @@ function scrapeGrantRequirements(params) {
     }
 
     const claudePayload = {
-      model: 'claude-opus-4-5-20251101',  // v4.0: Opus for maximum intelligence
+      model: CLAUDE_CONFIG.OPUS,  // v4.0: Opus for maximum intelligence
       max_tokens: 6000,
       messages: [{
         role: 'user',
@@ -109626,7 +109634,7 @@ RETURN ONLY VALID JSON:
               // Debug info
               debugInfo: {
                 method: 'claude_api_v4_opus',
-                model: 'claude-opus-4-5-20251101',
+                model: CLAUDE_CONFIG.OPUS,
                 contentLength: fullContent.length,
                 pdfsFound: pdfResources.length,
                 pdfsExtracted: pdfExtractionResults.filter(p => p.extracted).length,
@@ -110324,7 +110332,7 @@ Return ONLY valid JSON:
 }`;
 
     const claudePayload = {
-      model: 'claude-sonnet-4-5-20250929',
+      model: CLAUDE_CONFIG.SONNET,
       max_tokens: 2000,
       messages: [{ role: 'user', content: prompt }]
     };
@@ -111444,7 +111452,7 @@ Rewrite the email with the requested changes. Keep Todd's voice - direct, friend
         'anthropic-version': '2023-06-01'
       },
       payload: JSON.stringify({
-        model: 'claude-3-haiku-20240307',
+        model: CLAUDE_CONFIG.HAIKU,
         max_tokens: 1024,
         messages: [{ role: 'user', content: prompt }]
       })
@@ -124216,7 +124224,7 @@ Return ONLY the post content, no explanations. Include relevant hashtags at the 
         'anthropic-version': CLAUDE_CONFIG.ANTHROPIC_VERSION
       },
       payload: JSON.stringify({
-        model: 'claude-3-haiku-20240307', // Fast model for content generation
+        model: CLAUDE_CONFIG.HAIKU, // Fast model for content generation
         max_tokens: 500,
         messages: [{ role: 'user', content: prompt }]
       }),
@@ -126693,7 +126701,7 @@ Return ONLY valid JSON, no explanation.`;
         'anthropic-version': CLAUDE_CONFIG.ANTHROPIC_VERSION
       },
       payload: JSON.stringify({
-        model: 'claude-3-haiku-20240307',
+        model: CLAUDE_CONFIG.HAIKU,
         max_tokens: 2000,
         messages: [{ role: 'user', content: prompt }]
       }),
@@ -127240,7 +127248,7 @@ IMPORTANT: Use the ACTUAL revenue numbers provided above throughout the plan. Sh
         'anthropic-version': '2023-06-01'
       },
       payload: JSON.stringify({
-        model: 'claude-sonnet-4-5-20250929',
+        model: CLAUDE_CONFIG.SONNET,
         max_tokens: 8000,
         messages: [{
           role: 'user',
@@ -127457,7 +127465,7 @@ Use the real farm data provided. Make projections realistic but compelling. Show
         'anthropic-version': '2023-06-01'
       },
       payload: JSON.stringify({
-        model: 'claude-sonnet-4-5-20250929',
+        model: CLAUDE_CONFIG.SONNET,
         max_tokens: 8000,
         messages: [{
           role: 'user',
@@ -128194,7 +128202,7 @@ Be conversational and helpful. Understand natural language - users won't always 
         'anthropic-version': '2023-06-01'
       },
       payload: JSON.stringify({
-        model: 'claude-3-5-haiku-20241022',
+        model: CLAUDE_CONFIG.HAIKU,
         max_tokens: 1000,
         messages: [{ role: 'user', content: prompt }]
       }),
@@ -129265,7 +129273,7 @@ function callClaudeForParser(prompt) {
       'anthropic-version': '2023-06-01'
     },
     payload: JSON.stringify({
-      model: 'claude-3-5-haiku-20241022',
+      model: CLAUDE_CONFIG.HAIKU,
       max_tokens: 2000,
       messages: [{ role: 'user', content: prompt }]
     }),
@@ -142487,7 +142495,7 @@ Respond in JSON format only:
         'anthropic-version': '2023-06-01'
       },
       payload: JSON.stringify({
-        model: 'claude-3-haiku-20240307',
+        model: CLAUDE_CONFIG.HAIKU,
         max_tokens: 200,
         messages: [{ role: 'user', content: prompt }]
       }),
@@ -145254,7 +145262,7 @@ function analyzeProducePhoto(imageBase64) {
     if (!ANTHROPIC_API_KEY) return { success: false, error: "Anthropic API key not configured" };
 
     const payload = {
-      model: "claude-3-5-sonnet-20241022",
+      model: CLAUDE_CONFIG.SONNET,
       max_tokens: 1500,
       messages: [{
         role: "user",
@@ -145317,7 +145325,7 @@ function generateProduceContent(produceType, platform) {
     else if (dayOfWeek === 2) marketContext = "See us today at Lawrenceville Farmers Market!";
 
     var payload = {
-      model: "claude-3-5-sonnet-20241022",
+      model: CLAUDE_CONFIG.SONNET,
       max_tokens: 1000,
       messages: [{ role: "user", content: `You are the social media manager for Tiny Seed Farm (Pittsburgh organic farm, owner Todd). Generate a ${platform} post about fresh ${produceType}.
 
@@ -146929,7 +146937,7 @@ function analyzePhoto(params) {
           'Content-Type': 'application/json'
         },
         payload: JSON.stringify({
-          model: 'claude-sonnet-4-5-20250929',
+          model: CLAUDE_CONFIG.SONNET,
           max_tokens: 800,
           messages: [{
             role: 'user',
@@ -147024,7 +147032,7 @@ function generateABVariants(params) {
         method: 'POST',
         headers: { 'x-api-key': claudeKey, 'anthropic-version': '2023-06-01', 'Content-Type': 'application/json' },
         payload: JSON.stringify({
-          model: 'claude-sonnet-4-5-20250929',
+          model: CLAUDE_CONFIG.SONNET,
           max_tokens: 1000,
           messages: [{ role: 'user', content: prompt }]
         }),
