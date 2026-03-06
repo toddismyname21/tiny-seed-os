@@ -38,6 +38,29 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-03-06 — PM_ARCHITECT: Fix last 2 E2E test failures (MCC tab tests)
+
+### Test Fixes
+- `e2e-tests/mcc-tabs.spec.ts` — Fixed `test.skip` callback: use Playwright's `isMobile` fixture instead of `testInfo.project.name` (testInfo is undefined at describe level). Was causing TypeError on both Desktop Chrome and Mobile Pixel 5.
+- `e2e-tests/mcc-tabs.spec.ts` — Scoped tab button selector from `[onclick*="switchTab('create')"]` to `.tab-nav [onclick*="switchTab('create')"]`. The unscoped selector matched 3 elements (tab button + 2 "Create Post" buttons inside tab content), causing Playwright strict mode violation.
+
+### Live Smoke Test Verification
+- All 10 priority pages verified on live site via Playwright MCP: HTTP 200, content renders, no critical JS errors
+- All console errors are expected API fetch failures (no auth in headless browser)
+
+### CI Status (all 4 workflows)
+- Pages Build: PASS
+- Site Health Monitor: PASS
+- Post-Deploy Audit: PASS
+- E2E Smoke Tests: 151 passed, 1 failed → fix pushed (should be 152/152)
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
 ## 2026-03-05 — PM_ARCHITECT: Fix api-config.js double-load + MCC mobile test + more CI fixes
 
 ### Bug Fix (Critical)
