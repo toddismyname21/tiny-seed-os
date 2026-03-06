@@ -1373,6 +1373,9 @@
                 <button class="tab" data-tab="field" onclick="switchTab('field')">
                     Field/Bed Labels
                 </button>
+                <button class="tab" data-tab="seedling" onclick="switchTab('seedling')">
+                    Seedling Sale
+                </button>
             </div>
 
             <!-- Controls Panel -->
@@ -1619,6 +1622,41 @@
         </div>
     </div>
 
+            <!-- Seedling Sale Tab -->
+            <div id="seedlingTab" class="tab-content" style="display: none;">
+                <div class="labels-preview">
+                    <div class="preview-header">
+                        <span class="preview-title">Seedling Sale Labels</span>
+                        <div class="select-all-container">
+                            <input type="checkbox" id="selectAllSeedling" onchange="toggleSelectAll('seedling')">
+                            <label for="selectAllSeedling">Select All</label>
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
+                        <div class="control-group">
+                            <label>Label Type</label>
+                            <select id="seedlingLabelType" onchange="renderSeedlingLabels()">
+                                <option value="tray">Tray Labels (4" x 1")</option>
+                                <option value="pot">Pot Tags (2" x 3")</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label>Quantity Each</label>
+                            <input type="number" id="seedlingLabelQty" value="1" min="1" max="100" style="width:80px;">
+                        </div>
+                        <div style="display:flex;align-items:flex-end;gap:8px;">
+                            <button class="btn btn-primary" onclick="printSeedlingLabels()">Print Selected</button>
+                        </div>
+                    </div>
+                    <div id="seedlingLabelsGrid" class="labels-grid">
+                        <div class="empty-state">
+                            <div class="empty-state-icon">🌱</div>
+                            <p>Loading seedling varieties...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
     <!-- ═══════════════════════════════════════════════════════════════════════════
          PRINT CONTAINERS (hidden on screen, shown when printing)
          ═══════════════════════════════════════════════════════════════════════════ -->
@@ -1664,11 +1702,13 @@
             fieldsList: [],            // Fields from getFieldsDashboard
             bedsList: [],              // Beds from getBedsWithStatus
             fieldLabels: [],           // Generated field/bed labels for preview
+            seedlingItems: [],         // Seedling sale varieties
             selectedMarket: new Set(),
             selectedCSA: new Set(),
             selectedWholesale: new Set(),
             selectedSeed: new Set(),
             selectedField: new Set(),
+            selectedSeedling: new Set(),
             deliveryDate: null
         };
 
@@ -1698,7 +1738,7 @@
             });
 
             // Show/hide tab content
-            const tabs = ['market', 'csa', 'wholesale', 'seed', 'field'];
+            const tabs = ['market', 'csa', 'wholesale', 'seed', 'field', 'seedling'];
             tabs.forEach(t => {
                 const el = document.getElementById(t + 'Tab');
                 if (el) el.style.display = t === tab ? 'block' : 'none';
@@ -1708,12 +1748,15 @@
             document.getElementById('customerTypeControl').style.display =
                 (tab === 'csa' || tab === 'wholesale') ? 'block' : 'none';
 
-            // Load data for seed/field tabs on first switch
+            // Load data for seed/field/seedling tabs on first switch
             if (tab === 'seed' && AppState.seedInventory.length === 0) {
                 loadSeedInventory();
             }
             if (tab === 'field' && AppState.fieldsList.length === 0) {
                 loadFieldsData();
+            }
+            if (tab === 'seedling' && AppState.seedlingItems.length === 0) {
+                loadSeedlingItems();
             }
 
             updateStats();
@@ -1992,6 +2035,7 @@
                                type === 'csa' ? AppState.selectedCSA :
                                type === 'wholesale' ? AppState.selectedWholesale :
                                type === 'seed' ? AppState.selectedSeed :
+                               type === 'seedling' ? AppState.selectedSeedling :
                                AppState.selectedField;
 
             if (selectedSet.has(idx)) {
@@ -2006,23 +2050,26 @@
             else if (type === 'wholesale') renderWholesaleLabels();
             else if (type === 'seed') { renderSeedTable(); renderSeedLabelsPreview(); }
             else if (type === 'field') renderFieldLabelsPreview();
+            else if (type === 'seedling') renderSeedlingLabels();
 
             updateStats();
         }
 
         function toggleSelectAll(type) {
             // Map the type to the correct checkbox ID capitalization
-            const capMap = { market: 'Market', csa: 'CSA', wholesale: 'Wholesale', seed: 'Seed', field: 'Field' };
+            const capMap = { market: 'Market', csa: 'CSA', wholesale: 'Wholesale', seed: 'Seed', field: 'Field', seedling: 'Seedling' };
             const checkbox = document.getElementById(`selectAll${capMap[type] || type}`);
             const items = type === 'market' ? AppState.marketSigns :
                          type === 'csa' ? AppState.csaLabels :
                          type === 'wholesale' ? AppState.wholesaleLabels :
                          type === 'seed' ? AppState.seedInventoryFiltered :
+                         type === 'seedling' ? AppState.seedlingItems :
                          AppState.fieldLabels;
             const selectedSet = type === 'market' ? AppState.selectedMarket :
                                type === 'csa' ? AppState.selectedCSA :
                                type === 'wholesale' ? AppState.selectedWholesale :
                                type === 'seed' ? AppState.selectedSeed :
+                               type === 'seedling' ? AppState.selectedSeedling :
                                AppState.selectedField;
 
             if (checkbox && checkbox.checked) {
@@ -2036,6 +2083,7 @@
             else if (type === 'wholesale') renderWholesaleLabels();
             else if (type === 'seed') { renderSeedTable(); renderSeedLabelsPreview(); }
             else if (type === 'field') renderFieldLabelsPreview();
+            else if (type === 'seedling') renderSeedlingLabels();
 
             updateStats();
         }
@@ -2046,7 +2094,8 @@
                 csa: AppState.csaLabels.length,
                 wholesale: AppState.wholesaleLabels.length,
                 seed: AppState.seedInventoryFiltered.length,
-                field: AppState.fieldLabels.length
+                field: AppState.fieldLabels.length,
+                seedling: AppState.seedlingItems.length
             };
 
             const selectedMap = {
@@ -2054,7 +2103,8 @@
                 csa: AppState.selectedCSA.size,
                 wholesale: AppState.selectedWholesale.size,
                 seed: AppState.selectedSeed.size,
-                field: AppState.selectedField.size
+                field: AppState.selectedField.size,
+                seedling: AppState.selectedSeedling.size
             };
 
             document.getElementById('totalLabels').textContent = totalMap[AppState.currentTab] || 0;
@@ -2174,6 +2224,8 @@
                 printSeedLabels();
             } else if (tab === 'field') {
                 printFieldLabels();
+            } else if (tab === 'seedling') {
+                printSeedlingLabels();
             }
         }
 
@@ -2880,6 +2932,111 @@
             }
 
             TinySeedPrint.report({ orientation: 'portrait' });
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // SEEDLING SALE LABELS
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        async function loadSeedlingItems() {
+            const grid = document.getElementById('seedlingLabelsGrid');
+            grid.innerHTML = '<div class="empty-state"><div class="spinner" style="margin:0 auto;width:30px;height:30px;border:3px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin 0.8s linear infinite;"></div></div>';
+
+            try {
+                const response = await fetch(`${API_URL}?action=getSeedlingProductionPlan`);
+                const data = await response.json();
+
+                if (data.success && data.data && data.data.length > 0) {
+                    AppState.seedlingItems = data.data.filter(item => {
+                        const s = (item.Status || '').toLowerCase();
+                        return s !== 'cancelled' && s !== 'deleted' && s !== 'removed';
+                    });
+                } else {
+                    AppState.seedlingItems = [];
+                }
+            } catch (error) {
+                console.error('Error loading seedling items:', error);
+                AppState.seedlingItems = [];
+            }
+
+            renderSeedlingLabels();
+            updateStats();
+        }
+
+        function renderSeedlingLabels() {
+            const grid = document.getElementById('seedlingLabelsGrid');
+            const labelType = document.getElementById('seedlingLabelType').value;
+
+            if (AppState.seedlingItems.length === 0) {
+                grid.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🌱</div><p>No seedling varieties found. Add varieties in the Seedling Admin page.</p></div>';
+                return;
+            }
+
+            grid.innerHTML = AppState.seedlingItems.map((item, idx) => {
+                const isSelected = AppState.selectedSeedling.has(idx);
+                const totalUnits = Number(item.Total_Units) || 0;
+                const price = Number(item.Price_Each) || 0;
+                const seedingDate = item.Seeding_Date ? new Date(item.Seeding_Date).toLocaleDateString() : '--';
+                const difficulty = item.Difficulty || '';
+                const diffBadge = difficulty ? `<span style="font-size:0.7rem;padding:2px 6px;border-radius:8px;background:${difficulty === 'Easy' ? '#dcfce7' : difficulty === 'Moderate' ? '#fef3c7' : '#fee2e2'};color:${difficulty === 'Easy' ? '#166534' : difficulty === 'Moderate' ? '#92400e' : '#991b1b'};">${difficulty}</span>` : '';
+
+                return `<div class="label-preview ${isSelected ? 'selected' : ''}" onclick="toggleSelection('seedling', ${idx})" style="cursor:pointer;">
+                    <div style="display:flex;justify-content:space-between;align-items:start;">
+                        <div>
+                            <div class="customer-name">${item.Variety || 'Unknown'}</div>
+                            <div class="items-list" style="list-style:none;padding:0;">${item.Crop || ''} ${diffBadge}</div>
+                        </div>
+                        <span style="background:#8b5cf6;color:white;padding:2px 8px;border-radius:10px;font-size:0.7rem;font-weight:700;">${labelType === 'tray' ? 'TRAY' : 'POT TAG'}</span>
+                    </div>
+                    <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;font-size:0.75rem;color:var(--text-secondary);">
+                        <span>$${price.toFixed(2)}</span>
+                        <span>${totalUnits} units</span>
+                        <span>Sow: ${seedingDate}</span>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function printSeedlingLabels() {
+            const labelType = document.getElementById('seedlingLabelType').value;
+            const qty = parseInt(document.getElementById('seedlingLabelQty').value) || 1;
+
+            const selected = AppState.selectedSeedling.size > 0
+                ? [...AppState.selectedSeedling].map(idx => AppState.seedlingItems[idx]).filter(Boolean)
+                : AppState.seedlingItems;
+
+            if (selected.length === 0) {
+                alert('No seedling varieties to print. Load data first.');
+                return;
+            }
+
+            // Build label data array — repeat each item by qty
+            const labels = [];
+            selected.forEach(item => {
+                for (let q = 0; q < qty; q++) {
+                    labels.push({
+                        variety: item.Variety || '',
+                        crop: item.Crop || '',
+                        batchId: item.Item_ID || '',
+                        itemId: item.Item_ID || '',
+                        totalUnits: Number(item.Total_Units) || 0,
+                        plantsNeeded: Number(item.Total_Units) || 0,
+                        price: Number(item.Price_Each) || 0,
+                        seedingDate: item.Seeding_Date || '',
+                        sowDate: item.Seeding_Date || '',
+                        seedDate: item.Seeding_Date || '',
+                        difficulty: item.Difficulty || '',
+                        sunRequirements: item.Sun_Requirements || '',
+                        daysToMaturity: item.Days_to_Maturity || '',
+                        growingTips: item.Growing_Tips || '',
+                        trays: Math.ceil((Number(item.Total_Units) || 0) / 128),
+                        qrData: item.Item_ID || ''
+                    });
+                }
+            });
+
+            const format = labelType === 'tray' ? 'seedlingSaleTray' : 'seedlingPotTag';
+            TinySeedPrint.label({ format: format, data: labels });
         }
     </script>
 <script src="shared-nav.js"></script>

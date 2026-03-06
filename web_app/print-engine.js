@@ -12,14 +12,16 @@
     // LABEL FORMAT REGISTRY (72pt = 1 inch)
     // ═══════════════════════════════════════════════════════════════
     var LABEL_FORMATS = {
-        fieldTray:      { w: 288, h: 72,  orient: 'landscape', desc: '4" x 1" thermal' },
-        potTag:         { w: 72,  h: 288, orient: 'portrait',  desc: '1" x 4" pot tag' },
-        seedPacket:     { w: 144, h: 216, orient: 'portrait',  desc: '2" x 3" seed label' },
-        marketSign:     { w: 612, h: 792, orient: 'portrait',  desc: '8.5" x 11" (6 signs)' },
-        csaLabel:       { w: 288, h: 216, orient: 'landscape', desc: '4" x 3" CSA label' },
-        wholesaleLabel: { w: 288, h: 144, orient: 'landscape', desc: '4" x 2" wholesale' },
-        bedMarker:      { w: 288, h: 432, orient: 'portrait',  desc: '4" x 6" bed sign' },
-        letterFull:     { w: 612, h: 792, orient: 'portrait',  desc: '8.5" x 11" full page' }
+        fieldTray:         { w: 288, h: 72,  orient: 'landscape', desc: '4" x 1" thermal' },
+        potTag:            { w: 72,  h: 288, orient: 'portrait',  desc: '1" x 4" pot tag' },
+        seedPacket:        { w: 144, h: 216, orient: 'portrait',  desc: '2" x 3" seed label' },
+        marketSign:        { w: 612, h: 792, orient: 'portrait',  desc: '8.5" x 11" (6 signs)' },
+        csaLabel:          { w: 288, h: 216, orient: 'landscape', desc: '4" x 3" CSA label' },
+        wholesaleLabel:    { w: 288, h: 144, orient: 'landscape', desc: '4" x 2" wholesale' },
+        bedMarker:         { w: 288, h: 432, orient: 'portrait',  desc: '4" x 6" bed sign' },
+        letterFull:        { w: 612, h: 792, orient: 'portrait',  desc: '8.5" x 11" full page' },
+        seedlingSaleTray:  { w: 288, h: 72,  orient: 'landscape', desc: '4" x 1" seedling sale tray' },
+        seedlingPotTag:    { w: 144, h: 216, orient: 'portrait',  desc: '2" x 3" seedling pot tag' }
     };
 
     // CDN URLs for lazy-loaded libraries
@@ -527,6 +529,180 @@
         doc.text('TINY SEED FARM', cx, H - 15, { align: 'center' });
     }
 
+    /**
+     * Seedling Sale Tray label: 4" x 1" landscape (same as fieldTray)
+     * Layout: "SEEDLING SALE" header bar | Variety | Crop | Units/Trays | Seeding date | QR
+     */
+    function _renderSeedlingSaleTray(doc, label, qrImg, fmt) {
+        var W = fmt.w, H = fmt.h;
+
+        // Purple header bar across full width
+        doc.setFillColor(139, 92, 246); // #8b5cf6
+        doc.rect(0, 0, W, 16, 'F');
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.setTextColor(255, 255, 255);
+        doc.text('SEEDLING SALE', W / 2, 12, { align: 'center' });
+
+        // QR code on left
+        var qrSz = 50;
+        if (qrImg) {
+            doc.addImage(qrImg, 'PNG', 6, 20, qrSz, qrSz);
+        }
+
+        var tx = 62;
+        var rx = W - 6;
+        var maxTextW = rx - tx;
+
+        // Variety name — bold, large
+        doc.setTextColor(0, 0, 0);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(18);
+        var varText = label.variety || label.crop || '';
+        while (varText.length > 3 && doc.getTextWidth(varText) > maxTextW) {
+            varText = varText.substring(0, varText.length - 2) + '\u2026';
+        }
+        doc.text(varText, tx, 33);
+
+        // Crop type
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(10);
+        doc.setTextColor(80, 80, 80);
+        doc.text(label.crop || '', tx, 45);
+
+        // Units / trays on right
+        var unitsStr = (label.plantsNeeded || label.totalUnits || '?') + ' units';
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(11);
+        doc.setTextColor(0, 0, 0);
+        doc.text(unitsStr, rx, 45, { align: 'right' });
+
+        // Seeding date + Item ID at bottom
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.setTextColor(100, 100, 100);
+        doc.text('Sow: ' + _fmtDate(label.seedDate || label.sowDate || label.seedingDate), tx, 58);
+
+        doc.setFont('courier', 'normal');
+        doc.setFontSize(7);
+        doc.text(label.batchId || label.itemId || '', tx, 67);
+
+        // Tray count on right
+        if (label.trays) {
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(9);
+            doc.setTextColor(80, 80, 80);
+            doc.text(label.trays + ' trays', rx, 58, { align: 'right' });
+        }
+    }
+
+    /**
+     * Seedling Pot Tag: 2" x 3" portrait — customer-facing pot stake
+     * Layout: Farm name | Variety (large) | Crop | Price | Difficulty | Growing tips | Sun | DTM | QR
+     */
+    function _renderSeedlingPotTag(doc, label, qrImg, fmt) {
+        var W = fmt.w, H = fmt.h;
+        var cx = W / 2;
+        var y = 12;
+
+        // Farm name at top
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(7);
+        doc.setTextColor(34, 139, 34);
+        doc.text('TINY SEED FARM', cx, y, { align: 'center' });
+        y += 4;
+
+        // Green line separator
+        doc.setDrawColor(34, 197, 94);
+        doc.setLineWidth(1);
+        doc.line(10, y, W - 10, y);
+        y += 12;
+
+        // Variety name — large, bold, centered
+        doc.setTextColor(0, 0, 0);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(14);
+        var varLines = doc.splitTextToSize(label.variety || '', W - 16);
+        doc.text(varLines, cx, y, { align: 'center' });
+        y += varLines.length * 16 + 2;
+
+        // Crop type
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.setTextColor(80, 80, 80);
+        doc.text(label.crop || '', cx, y, { align: 'center' });
+        y += 14;
+
+        // Price — big and bold
+        if (label.price) {
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(18);
+            doc.setTextColor(0, 0, 0);
+            var priceStr = typeof label.price === 'number' ? '$' + label.price.toFixed(2) : '$' + label.price;
+            doc.text(priceStr, cx, y, { align: 'center' });
+            y += 16;
+        }
+
+        // Difficulty badge
+        if (label.difficulty) {
+            var diffColors = {
+                'Easy': { r: 34, g: 197, b: 94 },
+                'Moderate': { r: 234, g: 179, b: 8 },
+                'Expert': { r: 239, g: 68, b: 68 }
+            };
+            var dc = diffColors[label.difficulty] || { r: 100, g: 100, b: 100 };
+            doc.setFillColor(dc.r, dc.g, dc.b);
+            var badgeW = doc.getStringUnitWidth(label.difficulty) * 7 + 16;
+            doc.roundedRect(cx - badgeW / 2, y - 7, badgeW, 12, 3, 3, 'F');
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(7);
+            doc.setTextColor(255, 255, 255);
+            doc.text(label.difficulty, cx, y, { align: 'center' });
+            y += 14;
+        }
+
+        // Sun requirements
+        if (label.sunRequirements) {
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(7);
+            doc.setTextColor(100, 100, 100);
+            doc.text(label.sunRequirements, cx, y, { align: 'center' });
+            y += 10;
+        }
+
+        // Days to maturity
+        if (label.daysToMaturity) {
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(7);
+            doc.setTextColor(100, 100, 100);
+            doc.text('Days to maturity: ' + label.daysToMaturity, cx, y, { align: 'center' });
+            y += 10;
+        }
+
+        // Growing tips (brief, wrapped)
+        if (label.growingTips) {
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(6);
+            doc.setTextColor(80, 80, 80);
+            var tipLines = doc.splitTextToSize(label.growingTips, W - 20);
+            if (tipLines.length > 3) tipLines = tipLines.slice(0, 3);
+            doc.text(tipLines, cx, y, { align: 'center' });
+            y += tipLines.length * 8 + 4;
+        }
+
+        // QR code near bottom
+        var qrSz = 36;
+        if (qrImg && y < H - qrSz - 20) {
+            doc.addImage(qrImg, 'PNG', (W - qrSz) / 2, H - qrSz - 16, qrSz, qrSz);
+        }
+
+        // Farm website at very bottom
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(5);
+        doc.setTextColor(170, 170, 170);
+        doc.text('tinyseedfarm.com', cx, H - 6, { align: 'center' });
+    }
+
     // Renderer dispatch
     var _renderers = {
         fieldTray: _renderFieldTray,
@@ -535,7 +711,9 @@
         marketSign: null, // special: multi-per-page
         csaLabel: _renderCSALabel,
         wholesaleLabel: _renderWholesaleLabel,
-        bedMarker: _renderBedMarker
+        bedMarker: _renderBedMarker,
+        seedlingSaleTray: _renderSeedlingSaleTray,
+        seedlingPotTag: _renderSeedlingPotTag
     };
 
     // ═══════════════════════════════════════════════════════════════

@@ -38,6 +38,44 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-03-06 — PM_ARCHITECT: Seedling Admin Allocations Overhaul + Greenhouse Integration + Labels
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — Fixed undefined `presale` var bug in `updateSeedlingAllocations()`, stopped overwriting `Alloc_Presale`, added seeding date support, demand-driven `Total_Units` recalculation from SEEDLING_SALES, fixed `getSeedlingPresaleItems()` availability logic (uncapped during pre-order phase), added SEEDLING_PRODUCTION as data source in `getGreenhouseSowingTasks()`
+- `web_app/seedling-admin.html` — Allocations tab overhauled: demand-driven Total column (sum of all commitments), replaced Remaining column with Seeding Date input, added Add Variety button, added Delete button per row, updated summary cards, `saveAllocations()` now sends seeding dates, `onAllocChange()` handles date fields
+- `web_app/greenhouse-dashboard.html` — Added purple "SEEDLING SALE" badge to task cards from SEEDLING_PRODUCTION source, plants count chip for seedling sale tasks
+- `web_app/print-engine.js` — Added `seedlingSaleTray` format (4"×1" with purple "SEEDLING SALE" header bar) and `seedlingPotTag` format (2"×3" customer-facing pot tag with price, difficulty badge, growing tips)
+- `web_app/labels.html` — Added "Seedling Sale" tab with variety selection, tray label vs pot tag toggle, quantity input, print functionality
+
+### Functions Added
+- `deleteAllocItem()` in `seedling-admin.html` — Delete variety from allocations tab
+- `_renderSeedlingSaleTray()` in `print-engine.js` — Seedling sale tray label renderer
+- `_renderSeedlingPotTag()` in `print-engine.js` — Customer pot tag renderer
+- `loadSeedlingItems()` in `labels.html` — Load seedling varieties for label tab
+- `renderSeedlingLabels()` in `labels.html` — Render seedling label previews
+- `printSeedlingLabels()` in `labels.html` — Generate and print seedling labels via TinySeedPrint
+
+### Functions Modified
+- `updateSeedlingAllocations()` — Fixed bugs, added seeding date write, demand-driven Total_Units
+- `getSeedlingPresaleItems()` — Demand-driven availability (uncapped during pre-order, capped after cutoff)
+- `getGreenhouseSowingTasks()` — Now reads SEEDLING_PRODUCTION for seedling sale sowing tasks
+- `renderAllocTable()` — Demand-driven totals, seeding date column, delete actions
+- `onAllocChange()` — Handles seeding date field
+- `updateAllocSummary()` — Demand-driven summary stats
+- `saveAllocations()` — Includes seeding dates in payload
+- `createVariety()` — Reloads allocations tab when `pendingAllocReload` is set
+- `renderSowingCard()` — Shows SEEDLING SALE badge for seedling production tasks
+
+### Reason
+Owner needs demand-driven allocation system where Total = SUM of all outlet commitments + presale orders (not a static number). Seedling production items need to flow into greenhouse sowing task system. Two new label types needed for the two-stage seedling production workflow (bulk sow → pot up).
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
 ## 2026-03-06 — PM_ARCHITECT: Auto-Update AI Models Monthly
 
 ### Files Modified

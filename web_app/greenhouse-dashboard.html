@@ -3020,8 +3020,10 @@ function renderSowingCard(t) {
     const isReady = r.hasTrays && r.hasCellSize;
     const autoCalc = t.autoCalculatedTrays ? ' <span style="font-size:0.7rem;color:var(--gold);cursor:help;" title="Auto-calculated — verify">(calc)</span>' : '';
 
+    var saleBadge = t.purpose === 'SEEDLING_SALE' ? '<span style="background:#8b5cf6;color:white;padding:2px 8px;border-radius:10px;font-size:0.7rem;font-weight:700;margin-left:6px;">SEEDLING SALE</span>' : '';
+
     return `<div class="task-card ${urg}">
-        <div class="crop-name">${esc(t.crop || 'Unknown Crop')}</div>
+        <div class="crop-name">${esc(t.crop || 'Unknown Crop')}${saleBadge}</div>
         <div class="variety">${esc(t.variety || '')}</div>
         <div class="task-date ${urg === 'overdue' ? 'overdue-text' : urg === 'today' ? 'today-text' : ''}">
             <i class="far fa-calendar"></i> Sow: ${formatDate(dateStr)} &mdash; ${urgencyText(dateStr)}
@@ -3032,6 +3034,7 @@ function renderSowingCard(t) {
             ${t.seedsNeeded ? '<span class="detail-chip"><i class="fas fa-dot-circle"></i> ' + t.seedsNeeded + ' seeds</span>' : ''}
             ${t.bed ? '<span class="detail-chip"><i class="fas fa-map-marker-alt"></i> ' + esc(t.bed) + '</span>' : ''}
             ${t.germTemp ? '<span class="detail-chip"><i class="fas fa-thermometer-half"></i> ' + esc(t.germTemp) + '</span>' : ''}
+            ${t.plantsNeeded && t.purpose === 'SEEDLING_SALE' ? '<span class="detail-chip"><i class="fas fa-seedling"></i> ' + t.plantsNeeded + ' plants</span>' : ''}
         </div>
         <div style="display:flex;gap:4px;flex-wrap:wrap;margin:6px 0;font-size:0.75rem;">${readinessItems.join(' ')}</div>
         <div class="card-actions">
