@@ -37,8 +37,8 @@ type TabName = typeof MCC_TABS[number];
  * Helper function to switch to a tab and verify it renders content
  */
 async function verifyTabContent(page: Page, tabName: TabName): Promise<void> {
-  // Click the tab button
-  const tabButton = page.locator(`[onclick*="switchTab('${tabName}')"]`);
+  // Click the tab button (scoped to .tab-nav to avoid matching buttons inside tab content)
+  const tabButton = page.locator(`.tab-nav [onclick*="switchTab('${tabName}')"]`);
   await expect(tabButton, `Tab button for '${tabName}' should exist`).toBeVisible();
   await tabButton.click();
 
@@ -158,7 +158,7 @@ test.describe('MCC Tab Smoke Tests', () => {
     for (const tabName of MCC_TABS) {
       const startTime = Date.now();
 
-      const tabButton = page.locator(`[onclick*="switchTab('${tabName}')"]`);
+      const tabButton = page.locator(`.tab-nav [onclick*="switchTab('${tabName}')"]`);
       await tabButton.click();
 
       const tabContent = page.locator(`#${tabName}Tab`);
@@ -175,7 +175,7 @@ test.describe('MCC Tab Smoke Tests', () => {
     const hiddenTabs = ['dashboard', 'schedule', 'connections', 'budget', 'intelligence'];
 
     for (const tabName of hiddenTabs) {
-      const tabButton = page.locator(`[onclick*="switchTab('${tabName}')"]`);
+      const tabButton = page.locator(`.tab-nav [onclick*="switchTab('${tabName}')"]`);
       // Hidden tabs should have their buttons hidden
       await expect(tabButton).toBeHidden();
     }
@@ -186,7 +186,7 @@ test.describe('MCC Tab Smoke Tests', () => {
     const MIN_HEIGHT = 100; // Minimum expected height in pixels
 
     for (const tabName of MCC_TABS) {
-      const tabButton = page.locator(`[onclick*="switchTab('${tabName}')"]`);
+      const tabButton = page.locator(`.tab-nav [onclick*="switchTab('${tabName}')"]`);
       await tabButton.click();
       await page.waitForTimeout(100);
 
