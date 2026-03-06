@@ -15713,6 +15713,15 @@
                     AppState.isClockedIn = data.isClockedIn || false;
                     AppState.clockInTime = data.clockInTime || null;
 
+                    // Sync localStorage from backend (backend is source of truth)
+                    if (AppState.isClockedIn && AppState.clockInTime) {
+                        localStorage.setItem('tsf_clocked_in', 'true');
+                        localStorage.setItem('tsf_clock_in_time', AppState.clockInTime);
+                    } else {
+                        localStorage.removeItem('tsf_clocked_in');
+                        localStorage.removeItem('tsf_clock_in_time');
+                    }
+
                     var sessionData = {
                         employee: AppState.employee,
                         language: AppState.language
@@ -15732,6 +15741,12 @@
                     localStorage.setItem('tinyseed_session', JSON.stringify(tsSession));
 
                     showMainApp();
+
+                    // Auto-clock-in if not already clocked in
+                    // The button says "Clock In & Start Shift" — deliver on that promise
+                    if (!AppState.isClockedIn) {
+                        toggleClock();
+                    }
                 } else {
                     errEl.textContent = data.error || 'Invalid name or PIN';
                 }
@@ -30552,26 +30567,9 @@
         },
 
         executeClock: function(direction) {
-            const now = new Date();
-            const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-
-            if (direction === 'in') {
-                AppState.clockedIn = true;
-                AppState.clockInTime = now;
-                localStorage.setItem('clockInTime', now.toISOString());
-                this.showSuccess(`Clocked in at ${timeStr}`);
-            } else {
-                if (AppState.clockInTime) {
-                    const duration = Math.round((now - new Date(AppState.clockInTime)) / 60000);
-                    const hours = Math.floor(duration / 60);
-                    const mins = duration % 60;
-                    this.showSuccess(`Clocked out. Worked ${hours}h ${mins}m`);
-                } else {
-                    this.showSuccess(`Clocked out at ${timeStr}`);
-                }
-                AppState.clockedIn = false;
-                localStorage.removeItem('clockInTime');
-            }
+            // Delegate to the main clock system (toggleClock) which handles
+            // API calls, GPS, localStorage, and Service Worker notifications
+            toggleClock();
         },
 
         executeCompleteTask: function() {
@@ -30644,12 +30642,8 @@
     document.addEventListener('DOMContentLoaded', () => {
         VoiceCommand.init();
 
-        // Restore clock-in state
-        const savedClockIn = localStorage.getItem('clockInTime');
-        if (savedClockIn) {
-            AppState.clockedIn = true;
-            AppState.clockInTime = new Date(savedClockIn);
-        }
+        // Clean up deprecated clock key from old VoiceCommand system
+        localStorage.removeItem('clockInTime');
 
         // Attach form login handler via JS (backup for inline onsubmit)
         var loginForm = document.getElementById('employeeLoginForm');
