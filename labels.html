@@ -1102,7 +1102,7 @@
 
                 <div class="form-group">
                     <label>Category</label>
-                    <select class="form-control" id="categoryFilter" onchange="updateCropsByCategory()">
+                    <select class="form-control" id="categoryFilter">
                         <option value="">All</option>
                         <option value="veg-herb">Vegetables & Herbs</option>
                         <option value="Floral">Flowers</option>
@@ -1285,6 +1285,7 @@
         let labels = [];
         let selectedLabels = new Set();
         let currentLabelType = 'greenhouse'; // 'greenhouse' or 'seed'
+        let _loadingSeedingsInProgress = false; // Re-entrancy guard for loadSeedings()
         let seedLots = [];
         let selectedSeedLots = new Set();
 
@@ -1417,36 +1418,45 @@
             }
 
             if (autoType) {
+                // switchLabelType calls loadSeedings() internally for seeding types
                 switchLabelType(autoType);
+            } else {
+                // Only call loadSeedings directly if switchLabelType didn't already
+                loadSeedings();
             }
 
-            loadSeedings().then(function() {
-                if (autoBatch) {
-                    // Auto-select the matching seeding by batch ID
-                    var matched = seedings.find(function(s) { return s.batchNumber === autoBatch || s.id === autoBatch; });
-                    if (matched) {
-                        selectedSeedings.add(matched.id);
-                        // Update UI checkbox
-                        var checkbox = document.querySelector('[data-seeding-id="' + matched.id + '"]');
-                        if (checkbox) checkbox.checked = true;
-                        // Set QR to full details for traceability
-                        document.getElementById('qrContent').value = 'full';
-                        // Auto-generate labels
-                        if (currentLabelType === 'fieldTray') {
-                            generateFieldTrayLabels();
-                        } else {
-                            generateLabels();
-                        }
-                        if (autoPrint === '1') {
-                            showToast('Labels generated — ready to print');
+            // Handle auto-batch selection after seedings finish loading
+            if (autoBatch) {
+                var _autoWait = setInterval(function() {
+                    if (!_loadingSeedingsInProgress && seedings.length >= 0) {
+                        clearInterval(_autoWait);
+                        var matched = seedings.find(function(s) { return s.batchNumber === autoBatch || s.id === autoBatch; });
+                        if (matched) {
+                            selectedSeedings.add(matched.id);
+                            var checkbox = document.querySelector('[data-seeding-id="' + matched.id + '"]');
+                            if (checkbox) checkbox.checked = true;
+                            document.getElementById('qrContent').value = 'full';
+                            if (currentLabelType === 'fieldTray') {
+                                generateFieldTrayLabels();
+                            } else {
+                                generateLabels();
+                            }
+                            if (autoPrint === '1') {
+                                showToast('Labels generated — ready to print');
+                            }
                         }
                     }
-                }
-            });
+                }, 300);
+                // Safety timeout: stop polling after 15 seconds
+                setTimeout(function() { clearInterval(_autoWait); }, 15000);
+            }
         });
 
-        // Load Seedings from API
+        // Load Seedings from API (with re-entrancy guard to prevent concurrent corruption)
         async function loadSeedings() {
+            if (_loadingSeedingsInProgress) return;
+            _loadingSeedingsInProgress = true;
+
             const startDate = document.getElementById('startDate').value;
             const endDate = document.getElementById('endDate').value;
 
@@ -1492,6 +1502,8 @@
                 console.error('Error loading seedings:', error);
                 seedings = [];
                 showToast('Error loading seedings');
+            } finally {
+                _loadingSeedingsInProgress = false;
             }
 
             updateCropFilter();

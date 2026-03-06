@@ -4432,7 +4432,7 @@ async function renderAccuracyReport(container) {
     const allTasks = (res && res.tasks) ? res.tasks : [];
 
     // Filter to completed tasks with both planned and actual dates
-    const completed = allTasks.filter(t => t.completed && t.plannedDate && t.actualDate);
+    const completed = allTasks.filter(t => t.completed && t.plannedDate && t.actualDate && t.purpose !== 'SEEDLING_SALE');
 
     if (!completed.length) {
         container.innerHTML = `
