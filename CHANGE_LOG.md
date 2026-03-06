@@ -38,6 +38,39 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-03-06 — PM_ARCHITECT: Fix Cross-System Issues From Seedling Deployment
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — Fix 1: `getSeedlingPresaleItems()` returns `Available: null` + `PreOrder: true` during pre-order (was showing "999 available" to customers). Fix 2: Removed `Total_Units` overwrite in `updateSeedlingAllocations()` (was zeroing production targets when outlets empty). Fix 4: Wrapped SEEDLING_PRODUCTION block in `getGreenhouseSowingTasks()` with try-catch (PLANNING_2026 tasks now always return even if seedling data has issues).
+- `labels.html` (ROOT) — Fix 3: Removed duplicate inline `onchange` on categoryFilter, added `_loadingSeedingsInProgress` re-entrancy guard on `loadSeedings()`, restructured DOMContentLoaded to prevent double-call race condition causing "seedings flash then disappear".
+- `web_app/greenhouse-dashboard.html` — Fix 5: Accuracy report now excludes `SEEDLING_SALE` tasks from completion metrics.
+
+### Functions Modified
+- `getSeedlingPresaleItems()` — Available=null during pre-order phase (frontend skips badge for null)
+- `updateSeedlingAllocations()` — No longer overwrites Total_Units; returns original total + demand total separately
+- `getGreenhouseSowingTasks()` — SEEDLING_PRODUCTION block wrapped in try-catch
+- `loadSeedings()` in labels.html — Re-entrancy guard prevents concurrent fetches
+- `renderAccuracyReport()` in greenhouse-dashboard.html — Filters SEEDLING_SALE from accuracy stats
+
+### Reason
+Post-deployment cross-system audit found 5 issues (2 critical, 1 high, 1 medium, 1 low). CRITICAL: Customer-facing presale page showed "999 available". CRITICAL: Backend would zero Total_Units on save. HIGH: Root labels.html race condition caused seedings to flash then disappear. All consumer pages verified via dependency mapping before fixes applied.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+### Verification Evidence
+- Backend deployed @746, `testConnection` returns success
+- All 4 changed pages return HTTP 200 on live site
+- `curl | grep` confirms: inline onchange removed (0 matches), re-entrancy guard present (5 matches), SEEDLING_SALE filter present (1 match)
+- Pre-commit hook: 13/13 checks passed
+- `validate-api-urls.sh`: passed
+- `validate-element-refs.sh`: passed for both files
+- `ux-preflight-audit.sh`: greenhouse-dashboard passed (0 failures), labels.html 2 pre-existing failures (tab count + design system CSS — not from this change)
+
+---
+
 ## 2026-03-06 — PM_ARCHITECT: Seedling Admin Allocations Overhaul + Greenhouse Integration + Labels
 
 ### Files Modified
