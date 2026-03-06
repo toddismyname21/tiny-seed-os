@@ -16946,10 +16946,20 @@
             var seedLot = task._raw ? (task._raw.Seed_Lot_Used || '') : '';
             var todayStr = new Date().toISOString().split('T')[0];
 
+            // If no seed lot linked, force detailed modal with photo requirement
+            if (!seedLot) {
+                openSowingConfirmFromTask(task);
+                return;
+            }
+
             // Animate card completion
             var taskCard = document.querySelector('.task-card-v2[data-id="' + taskId + '"]');
             if (taskCard) taskCard.classList.add('completing');
             if (navigator.vibrate) navigator.vibrate([50, 50, 100]);
+
+            // Calculate seeds to deduct: trays × cellsPerTray × 1.05 overage
+            var cellsPerTray = task._raw ? (parseInt(task._raw.Tray_Cell_Count) || 128) : 128;
+            var seedsNeeded = task.seedsNeeded || Math.ceil((parseInt(trays) || 0) * cellsPerTray * 1.05);
 
             var sowPayload = {
                 action: 'confirmGHSowing',
@@ -16961,6 +16971,7 @@
                 actualVariety: '',
                 substituted: false,
                 seedLotId: seedLot,
+                seedsToDeduct: parseInt(seedsNeeded) || 0,
                 notes: ''
             };
 
@@ -23377,6 +23388,8 @@
         }
 
         function removeSowPhoto() {
+            // Only clear seed lot if it was auto-populated from photo AI match
+            var wasAutoPopulated = !!AppState.matchedSeedLot;
             AppState.sowConfirmPhoto = null;
             AppState.matchedSeedLot = null;
             AppState.seedPacketAnalysis = null;
@@ -23387,13 +23400,15 @@
             // Clear match panel
             var matchPanel = document.getElementById('seedMatchPanel');
             if (matchPanel) matchPanel.style.display = 'none';
-            // Reset seed lot display
-            var lotValue = document.getElementById('ghSeedLotValue');
-            var lotHidden = document.getElementById('ghConfirmSeedLot');
-            if (lotValue) lotValue.textContent = 'No seed lot linked';
-            if (lotHidden) lotHidden.value = '';
-            var deductRow = document.getElementById('seedsToDeductRow');
-            if (deductRow) deductRow.style.display = 'none';
+            // Only reset seed lot if it was auto-populated from AI (preserve manual entries)
+            if (wasAutoPopulated) {
+                var lotValue = document.getElementById('ghSeedLotValue');
+                var lotHidden = document.getElementById('ghConfirmSeedLot');
+                if (lotValue) lotValue.textContent = 'No seed lot linked';
+                if (lotHidden) lotHidden.value = '';
+                var deductRow = document.getElementById('seedsToDeductRow');
+                if (deductRow) deductRow.style.display = 'none';
+            }
             updateSowConfirmBtnState();
         }
 
@@ -23546,16 +23561,14 @@
             var availSpan = document.getElementById('seedsAvailable');
             if (deductRow) deductRow.style.display = 'block';
             if (availSpan) availSpan.textContent = quantityRemaining + ' ' + (unit || 'seeds') + ' available';
-            // Default deduction: trays × cells if available, else seedsPerPacket from analysis
+            // Default deduction: trays × cellsPerTray × 1.05 (matching backend calculation)
             var trays = parseInt(document.getElementById('ghConfirmTrays')?.value) || 0;
-            var seedsPerPacket = AppState.seedPacketAnalysis?.seedsPerPacket || 0;
-            var defaultDeduct = 0;
-            if (trays > 0 && seedsPerPacket > 0) {
-                // Rough estimate: one packet per X trays — but better to use seedsPerPacket as total
-                defaultDeduct = seedsPerPacket;
-            } else if (seedsPerPacket > 0) {
-                defaultDeduct = seedsPerPacket;
-            }
+            var cellsPerTray = 128; // default, overridden if task data available
+            var currentTask = ghSowTasks.find(function(t) { return t.seedLotUsed === lotId || t.batchId === document.getElementById('ghConfirmBtn')?.getAttribute('data-batch-id'); });
+            if (currentTask && currentTask.cellsPerTray) cellsPerTray = parseInt(currentTask.cellsPerTray) || 128;
+            var defaultDeduct = (trays > 0) ? Math.ceil(trays * cellsPerTray * 1.05) : 0;
+            // Cap at available quantity
+            if (defaultDeduct > quantityRemaining) defaultDeduct = quantityRemaining;
             if (deductInput) deductInput.value = defaultDeduct || '';
         }
 

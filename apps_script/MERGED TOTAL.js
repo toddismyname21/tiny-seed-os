@@ -28469,72 +28469,86 @@ function getSeedByQR(seedLotId) {
  */
 function useSeedFromLot(params) {
   try {
-    const { seedLotId, quantityUsed, batchId, notes } = params;
+    const { seedLotId, quantityUsed, batchId, usedBy, notes } = params;
 
     if (!seedLotId || !quantityUsed) {
       return { success: false, error: 'Seed Lot ID and quantity required' };
     }
 
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    const sheet = ss.getSheetByName('SEED_INVENTORY');
-
-    if (!sheet) {
-      return { success: false, error: 'Seed inventory not found' };
-    }
-
-    const data = sheet.getDataRange().getValues();
-    const headers = data[0];
-    const lotIdCol = headers.indexOf('Seed_Lot_ID');
-    const remainingCol = headers.indexOf('Quantity_Remaining');
-    const statusCol = headers.indexOf('Status');
-    const lastUsedCol = headers.indexOf('Last_Used');
-
-    // Find the seed lot
-    let rowIndex = -1;
-    let currentRemaining = 0;
-    for (let i = 1; i < data.length; i++) {
-      if (String(data[i][lotIdCol]).trim() === String(seedLotId).trim()) {
-        rowIndex = i + 1; // 1-indexed for sheet
-        currentRemaining = Number(data[i][remainingCol]) || 0;
-        break;
-      }
-    }
-
-    if (rowIndex === -1) {
-      return { success: false, error: 'Seed lot not found: ' + seedLotId };
-    }
-
-    // Check if enough seeds available
+    // Validate quantity is positive number
     const used = Number(quantityUsed);
-    if (used > currentRemaining) {
-      return {
-        success: false,
-        error: `Not enough seeds. Available: ${currentRemaining}, Requested: ${used}`
-      };
+    if (isNaN(used) || used <= 0) {
+      return { success: false, error: 'Quantity must be a positive number, got: ' + quantityUsed };
     }
 
-    // Update remaining quantity
-    const newRemaining = currentRemaining - used;
-    sheet.getRange(rowIndex, remainingCol + 1).setValue(newRemaining);
-    sheet.getRange(rowIndex, lastUsedCol + 1).setValue(new Date());
+    // Lock to prevent concurrent deduction race conditions
+    var seedLock = LockService.getScriptLock();
+    seedLock.waitLock(15000);
 
-    // Update status if low or empty
-    let newStatus = 'Active';
-    if (newRemaining === 0) {
-      newStatus = 'Empty';
-    } else if (newRemaining < (currentRemaining * 0.2)) {
-      newStatus = 'Low';
+    try {
+      const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+      const sheet = ss.getSheetByName('SEED_INVENTORY');
+
+      if (!sheet) {
+        return { success: false, error: 'Seed inventory not found' };
+      }
+
+      const data = sheet.getDataRange().getValues();
+      const headers = data[0];
+      const lotIdCol = headers.indexOf('Seed_Lot_ID');
+      const remainingCol = headers.indexOf('Quantity_Remaining');
+      const statusCol = headers.indexOf('Status');
+      const lastUsedCol = headers.indexOf('Last_Used');
+
+      // Find the seed lot
+      let rowIndex = -1;
+      let currentRemaining = 0;
+      for (let i = 1; i < data.length; i++) {
+        if (String(data[i][lotIdCol]).trim() === String(seedLotId).trim()) {
+          rowIndex = i + 1; // 1-indexed for sheet
+          currentRemaining = Number(data[i][remainingCol]) || 0;
+          break;
+        }
+      }
+
+      if (rowIndex === -1) {
+        return { success: false, error: 'Seed lot not found: ' + seedLotId };
+      }
+
+      // Check if enough seeds available
+      if (used > currentRemaining) {
+        return {
+          success: false,
+          error: `Not enough seeds. Available: ${currentRemaining}, Requested: ${used}`
+        };
+      }
+
+      // Update remaining quantity
+      const newRemaining = currentRemaining - used;
+      sheet.getRange(rowIndex, remainingCol + 1).setValue(newRemaining);
+      sheet.getRange(rowIndex, lastUsedCol + 1).setValue(new Date());
+
+      // Update status if low or empty
+      let newStatus = 'Active';
+      if (newRemaining === 0) {
+        newStatus = 'Empty';
+      } else if (newRemaining < (currentRemaining * 0.2)) {
+        newStatus = 'Low';
+      }
+      sheet.getRange(rowIndex, statusCol + 1).setValue(newStatus);
+
+      // Log the usage in SEED_USAGE_LOG for traceability
+      logSeedUsage({
+        seedLotId: seedLotId,
+        quantityUsed: used,
+        batchId: batchId || '',
+        usedBy: usedBy || '',
+        notes: notes || '',
+        usedAt: new Date()
+      });
+    } finally {
+      seedLock.releaseLock();
     }
-    sheet.getRange(rowIndex, statusCol + 1).setValue(newStatus);
-
-    // Log the usage in SEED_USAGE_LOG for traceability
-    logSeedUsage({
-      seedLotId: seedLotId,
-      quantityUsed: used,
-      batchId: batchId || '',
-      notes: notes || '',
-      usedAt: new Date()
-    });
 
     return {
       success: true,
@@ -35036,6 +35050,13 @@ function confirmGHSowing(data) {
     }
     if (rowIndex < 0) return { success: false, error: 'Batch ' + batchId + ' not found' };
 
+    // Idempotency: warn if already sown (but allow re-confirmation with note)
+    var actGhSowCol = headers.indexOf('Act_GH_Sow');
+    var alreadySown = actGhSowCol >= 0 && allData[rowIndex - 1][actGhSowCol];
+    if (alreadySown && !data.forceReconfirm) {
+      Logger.log('WARNING: Batch ' + batchId + ' already sown on ' + alreadySown + ', re-confirming');
+    }
+
     var lock = LockService.getScriptLock();
     lock.waitLock(10000);
 
@@ -35088,16 +35109,16 @@ function confirmGHSowing(data) {
       writeField('Notes', newNotes);
     }
 
-    lock.releaseLock();
-
-    // Deduct seeds from inventory if lot ID and quantity provided
+    // Deduct seeds from inventory INSIDE the lock to prevent race conditions
     var seedDeductResult = null;
-    if (seedLotId && data.seedsToDeduct && Number(data.seedsToDeduct) > 0) {
+    var deductAmount = Number(data.seedsToDeduct);
+    if (seedLotId && deductAmount && deductAmount > 0) {
       try {
         seedDeductResult = useSeedFromLot({
           seedLotId: seedLotId,
-          quantityUsed: Number(data.seedsToDeduct),
+          quantityUsed: deductAmount,
           batchId: batchId,
+          usedBy: employeeName,
           notes: 'GH sowing - ' + employeeName
         });
       } catch (e) {
@@ -35106,6 +35127,8 @@ function confirmGHSowing(data) {
         seedDeductResult = { success: false, error: e.toString() };
       }
     }
+
+    lock.releaseLock();
 
     return {
       success: true,

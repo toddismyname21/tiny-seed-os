@@ -38,6 +38,23 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-03-06 — PM_ARCHITECT: Deep Audit Fixes — Sowing Workflow Bugs
+
+### CRITICAL: Frontend Bugs Found by Deep Audit
+- `employee.html` `quickCompleteSow()` — Was MISSING `seedsToDeduct` entirely (50% of sowing paths skipped seed deduction). Added seedsToDeduct calculation + no-seed-lot redirect to photo modal
+- `employee.html` `selectSeedLotForSowing()` — Deduction default was using packet size instead of `trays × cellsPerTray × 1.05`. Fixed to match backend calculation + cap at available quantity
+- `employee.html` `removeSowPhoto()` — Was clearing manually-entered seed lot ID. Now only clears if auto-populated from AI photo match
+
+### CRITICAL: Backend Bugs Fixed
+- `MERGED TOTAL.js` `useSeedFromLot()` — Added LockService (was completely missing — concurrent deductions could lose updates). Added negative quantity validation
+- `MERGED TOTAL.js` `confirmGHSowing()` — Moved seed deduction INSIDE the lock (was AFTER lock release — race condition window). Added idempotency warning log for re-confirmations. Now passes `usedBy` to logSeedUsage for audit trail
+
+### Duplicate Check
+- [x] No new files created
+- [x] No duplicates
+
+---
+
 ## 2026-03-06 — PM_ARCHITECT: P0 Accessibility Fixes + Sowing Workflow + Labels/Sowing-Sheets Audit
 
 ### P0 Accessibility: Remove user-scalable=no (23 files)
