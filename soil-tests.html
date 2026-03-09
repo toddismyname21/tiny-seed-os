@@ -538,7 +538,19 @@
             <p style="font-size: 0.75rem; opacity: 0.85; margin-top: 0.25rem;">Farm Learning System - Building 40 Years of Knowledge</p>
         </div>
         <div class="header-actions">
-            <button class="btn btn-secondary" onclick="printBlankSoilTestForm()" style="background:#16a34a;color:#052e16;border-color:#16a34a;">Print Blank Form</button>
+            <div style="position:relative;display:inline-block;">
+                <button class="btn btn-secondary" onclick="document.getElementById('soilFormDropdown').style.display = document.getElementById('soilFormDropdown').style.display === 'block' ? 'none' : 'block'" style="background:#16a34a;color:#052e16;border-color:#16a34a;">Soil Test Forms &#9662;</button>
+                <div id="soilFormDropdown" style="display:none;position:absolute;top:100%;right:0;background:white;border:1px solid #e2e8f0;border-radius:0.5rem;box-shadow:0 4px 12px rgba(0,0,0,0.15);z-index:100;min-width:260px;margin-top:4px;">
+                    <button onclick="showLoganLabsSubmitForm(); document.getElementById('soilFormDropdown').style.display='none';" style="display:block;width:100%;text-align:left;padding:0.75rem 1rem;border:none;background:none;cursor:pointer;font-size:0.875rem;border-bottom:1px solid #f1f5f9;" onmouseover="this.style.background='#f0fdf4'" onmouseout="this.style.background='none'">
+                        <strong style="color:#16a34a;">Submit to Logan Labs</strong><br>
+                        <span style="color:#64748b;font-size:0.75rem;">Fill in details, print worksheet &amp; labels</span>
+                    </button>
+                    <button onclick="printBlankSoilTestForm(); document.getElementById('soilFormDropdown').style.display='none';" style="display:block;width:100%;text-align:left;padding:0.75rem 1rem;border:none;background:none;cursor:pointer;font-size:0.875rem;" onmouseover="this.style.background='#f0fdf4'" onmouseout="this.style.background='none'">
+                        <strong style="color:#1e293b;">Print Blank Collection Form</strong><br>
+                        <span style="color:#64748b;font-size:0.75rem;">Field collection sheet (15 sample points)</span>
+                    </button>
+                </div>
+            </div>
             <button class="btn btn-secondary" onclick="showManualEntry()">+ Manual Entry</button>
             <button class="btn btn-primary" onclick="window.location.href='index.html'">Dashboard</button>
         </div>
@@ -1028,6 +1040,14 @@
                 ).join('');
         }
 
+        // Close dropdown on outside click
+        document.addEventListener('click', (e) => {
+            const dd = document.getElementById('soilFormDropdown');
+            if (dd && dd.style.display === 'block' && !e.target.closest('#soilFormDropdown') && !e.target.closest('[onclick*="soilFormDropdown"]')) {
+                dd.style.display = 'none';
+            }
+        });
+
         // Upload Zone Setup
         function setupUploadZone() {
             const zone = document.getElementById('uploadZone');
@@ -1292,6 +1312,20 @@
                 `;
             });
 
+            // Show pending Logan Labs submissions for linking
+            const pendingLL = getPendingSoilSubmissions();
+            if (pendingLL.length > 0) {
+                html += `
+                    <div style="background: #fefce8; padding: 0.75rem 1rem; border-radius: 0.5rem; margin-top: 1rem; border-left: 4px solid #a16207;">
+                        <strong style="color: #854d0e; font-size: 0.875rem;">Link to Logan Labs Submission:</strong>
+                        <select id="linkToSubmission" style="width: 100%; margin-top: 0.5rem; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem; font-size: 0.875rem;">
+                            <option value="">No link (standalone results)</option>
+                            ${pendingLL.map(s => '<option value="' + s.id + '">' + s.submissionId + ' (' + s.collectionDate + ') — ' + s.samples.length + ' sample(s), ' + s.samples.map(x => x.field).join(', ') + '</option>').join('')}
+                        </select>
+                    </div>
+                `;
+            }
+
             html += `
                     <div style="display: flex; gap: 1rem; margin-top: 1rem;">
                         <button class="btn btn-success" onclick="saveAllParsedSamples()">Save All Samples</button>
@@ -1319,13 +1353,20 @@
 
             showToast('Saving samples...', 'info');
 
+            const linkSelect = document.getElementById('linkToSubmission');
+            const linkedSubmissionId = linkSelect ? parseInt(linkSelect.value) : null;
+
             for (const sample of window.parsedSamples) {
                 await saveSoilTestData(sample);
+                // Link to Logan Labs submission if selected
+                if (linkedSubmissionId) {
+                    linkSoilTestToSubmission(sample.id || Date.now(), linkedSubmissionId);
+                }
             }
 
             cancelParse();
             loadSoilTests();
-            showToast(`Saved ${window.parsedSamples.length} soil test(s)`, 'success');
+            showToast(`Saved ${window.parsedSamples.length} soil test(s)${linkedSubmissionId ? ' and linked to Logan Labs submission' : ''}`, 'success');
         }
 
         function editParsedSample(idx) {
@@ -1935,10 +1976,10 @@
             try {
                 const response = await fetch(API_URL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         action: 'saveSoilTest',
-                        data: newTest
+                        ...newTest
                     })
                 });
 
@@ -2604,6 +2645,34 @@
                 }
             }
         };
+
+        // Logan Labs Info for soil test submissions
+        const LOGAN_LABS = {
+            name: 'Logan Labs, LLC',
+            address: '620 North Main Street',
+            city: 'Lakeview',
+            state: 'OH',
+            zip: '43331',
+            phone: '937-842-6100',
+            tollFree: '888-494-7645',
+            email: 'office@loganlabs.com',
+            reportsEmail: 'loganreports@loganlabs.com',
+            website: 'https://www.loganlabs.com',
+            hours: 'Mon-Fri, 8am-3pm EST',
+            tests: {
+                mehlich3: { name: 'Mehlich 3 Standard', price: 25, desc: 'Reserve nutrients: pH, OM, CEC, base sat, S, P, Ca, Mg, K, Na, B, Fe, Cu, Mn, Zn, Al' },
+                basePlus: { name: 'Base Test Plus', price: 30, desc: 'Standard + additional micronutrients' },
+                agDyn3: { name: 'Ag-Dyn 3', price: 35, desc: 'Standard + As, Cd, Co, Cr, EC, ENR, Mo, Ni, Se, Si' },
+                saturatedPaste: { name: 'Saturated Paste', price: 25, desc: 'Available nutrients in soil solution: pH, EC, bicarbonates, S, P, Ca, Mg, K, Na, B, Fe, Cu, Mn, Al' },
+                complete: { name: 'Complete Soil Test', price: 60, desc: 'Mehlich 3 + Saturated Paste + Nitrate/Ammonium + extras (Co, Mo, Se, Si, ENR, EC)' },
+                tissue: { name: 'Plant Tissue Test', price: 60, desc: 'N, P, K, Ca, Mg, S, B, Fe, Na, Mn, Cu, Zn' },
+                water: { name: 'Water Test', price: 83, desc: 'Irrigation water quality' }
+            },
+            recommendationsCost: 30
+        };
+
+        // Pending soil submissions to Logan Labs
+        let pendingSoilSubmissions = JSON.parse(localStorage.getItem('pendingSoilSubmissions') || '[]');
 
         // Penn State Lab Info for tissue test submissions
         const PENN_STATE_LAB = {
@@ -8171,12 +8240,13 @@
                     </div>
 
                     <div class="lab-info">
-                        <strong>Penn State Agricultural Analytical Services Laboratory</strong><br>
-                        111 Tower Road, University Park, PA 16802 &bull; 814-863-0841 &bull; aasl@psu.edu<br>
-                        <a href="https://agsci.psu.edu/aasl">agsci.psu.edu/aasl</a><br><br>
-                        <strong>Submission:</strong> Mix all 15 sub-samples in a clean bucket. Take ~1 pint of mixed soil.
-                        Air dry if moist. Ship in a labeled bag with this form or official Penn State submission form.<br>
-                        <strong>Cost:</strong> ~$9–12 basic (pH, P, K, Ca, Mg, CEC) &bull; ~$25 comprehensive
+                        <strong>Logan Labs, LLC</strong><br>
+                        620 North Main Street, Lakeview, OH 43331 &bull; 937-842-6100 &bull; 888-494-SOIL<br>
+                        office@loganlabs.com &bull; <a href="https://www.loganlabs.com">loganlabs.com</a><br><br>
+                        <strong>Collection:</strong> Take 10-20 sub-samples at 6" depth across the field. Mix in a clean bucket.
+                        Place ~2 cups of mixed soil in a labeled Ziploc bag (Name + Sample ID in permanent marker).<br>
+                        <strong>Tests:</strong> Mehlich 3 Standard $25 &bull; Saturated Paste $25 &bull; Complete (both + N) $60 &bull; Recommendations +$30<br>
+                        <strong>Ship to:</strong> Logan Labs, 620 N Main St, Lakeview, OH 43331 &bull; USPS flat-rate or FedEx
                     </div>
 
                     <div class="footer">
@@ -8186,6 +8256,461 @@
                 </html>
             `);
             pdfWindow.document.close();
+        }
+
+        // ============================================
+        // LOGAN LABS SOIL TEST SUBMISSION WORKFLOW
+        // ============================================
+
+        function showLoganLabsSubmitForm() {
+            const modal = document.getElementById('loganLabsSubmitModal');
+            const fieldOptions = Object.keys(FARM_FIELDS).map(f =>
+                '<option value="' + f + '">' + f + ' (' + FARM_FIELDS[f].acreage + ' ac)</option>'
+            ).join('');
+
+            const testOptions = Object.entries(LOGAN_LABS.tests)
+                .filter(([k]) => k !== 'tissue' && k !== 'water')
+                .map(([key, t]) =>
+                    '<option value="' + key + '" ' + (key === 'complete' ? 'selected' : '') + '>' + t.name + ' ($' + t.price + ') - ' + t.desc + '</option>'
+                ).join('');
+
+            const today = new Date().toISOString().slice(0, 10);
+            const submissionId = 'LL-' + today.replace(/-/g, '') + '-' + Math.random().toString(36).substr(2, 4).toUpperCase();
+
+            modal.innerHTML = `
+                <div style="background: white; border-radius: 1rem; max-width: 700px; width: 95%; max-height: 90vh; overflow-y: auto;">
+                    <div style="background: linear-gradient(135deg, #854d0e 0%, #a16207 100%); color: white; padding: 1.5rem; border-radius: 1rem 1rem 0 0;">
+                        <h3 style="margin: 0;">Submit Soil Samples to Logan Labs</h3>
+                        <p style="font-size: 0.875rem; opacity: 0.9; margin-top: 0.25rem;">
+                            Fill in sample details, print submission worksheet &amp; mailing labels
+                        </p>
+                    </div>
+                    <div style="padding: 1.5rem;">
+                        <form id="loganLabsForm" onsubmit="submitSoilSampleToLogan(event)">
+                            <div id="loganSamples">
+                                <div class="logan-sample-row" data-index="0" style="background: #fefce8; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem; border-left: 4px solid #a16207;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                                        <strong style="color: #854d0e;">Sample 1</strong>
+                                    </div>
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                                        <div>
+                                            <label style="font-size: 0.75rem; color: #64748b; font-weight: 600;">Sample ID *</label>
+                                            <input type="text" name="sampleId_0" value="${submissionId}" required style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem; font-size: 0.875rem;">
+                                        </div>
+                                        <div>
+                                            <label style="font-size: 0.75rem; color: #64748b; font-weight: 600;">Field / Zone *</label>
+                                            <select name="field_0" required style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem; font-size: 0.875rem;">
+                                                <option value="">Select field...</option>
+                                                ${fieldOptions}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label style="font-size: 0.75rem; color: #64748b; font-weight: 600;">Crop / Intended Use</label>
+                                            <input type="text" name="crop_0" placeholder="e.g., Tomatoes, Cover crop mix" style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem; font-size: 0.875rem;">
+                                        </div>
+                                        <div>
+                                            <label style="font-size: 0.75rem; color: #64748b; font-weight: 600;">Sample Depth (inches)</label>
+                                            <input type="number" name="depth_0" value="6" min="1" max="24" style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem; font-size: 0.875rem;">
+                                        </div>
+                                        <div style="grid-column: 1 / -1;">
+                                            <label style="font-size: 0.75rem; color: #64748b; font-weight: 600;">Test Package *</label>
+                                            <select name="test_0" required onchange="updateLoganCostEstimate()" style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem; font-size: 0.875rem;">
+                                                ${testOptions}
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button type="button" onclick="addLoganSampleRow()" style="width: 100%; padding: 0.5rem; border: 2px dashed #cbd5e1; border-radius: 0.5rem; background: none; cursor: pointer; color: #64748b; font-size: 0.875rem; margin-bottom: 1rem;">
+                                + Add Another Sample
+                            </button>
+
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem;">
+                                <div>
+                                    <label style="font-size: 0.75rem; color: #64748b; font-weight: 600;">Collection Date *</label>
+                                    <input type="date" id="loganCollectionDate" required value="${today}" style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem;">
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.75rem; color: #64748b; font-weight: 600;">Collector Name</label>
+                                    <input type="text" id="loganCollector" placeholder="Who collected the samples" style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem;">
+                                </div>
+                            </div>
+
+                            <div style="margin-bottom: 1rem;">
+                                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                                    <input type="checkbox" id="loganRecommendations" onchange="updateLoganCostEstimate()">
+                                    <span style="font-size: 0.875rem;">Include Recommendations (+$${LOGAN_LABS.recommendationsCost}) — amendment suggestions with application rates</span>
+                                </label>
+                            </div>
+
+                            <div style="margin-bottom: 1rem;">
+                                <label style="font-size: 0.75rem; color: #64748b; font-weight: 600;">Notes for Lab</label>
+                                <textarea id="loganNotes" rows="2" placeholder="Any special instructions or concerns..." style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem; font-size: 0.875rem;"></textarea>
+                            </div>
+
+                            <div id="loganCostEstimate" style="background: #fefce8; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem; font-size: 0.875rem;">
+                                <strong style="color: #854d0e;">Estimated Cost:</strong> <span id="loganTotalCost">$60.00</span>
+                            </div>
+
+                            <div style="background: #f0fdf4; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1.5rem;">
+                                <strong style="color: #166534;">What Happens Next:</strong>
+                                <ol style="margin-top: 0.5rem; margin-left: 1.25rem; color: #14532d; font-size: 0.875rem;">
+                                    <li>Click "Generate Submission" — prints worksheet, mailing label &amp; bag labels</li>
+                                    <li>Collect 10-20 sub-samples per field at noted depth, mix well</li>
+                                    <li>Put ~2 cups in a Ziploc bag, label with permanent marker (Name + Sample ID)</li>
+                                    <li>Pack tight in a box with the printed worksheet</li>
+                                    <li>Ship USPS flat-rate or FedEx to Logan Labs</li>
+                                    <li>Results arrive via email in 3-5 business days</li>
+                                    <li>Upload the Logan Labs PDF here — it auto-links to this submission</li>
+                                </ol>
+                            </div>
+
+                            <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                                <button type="button" onclick="closeLoganLabsModal()" class="btn btn-secondary" style="padding: 0.75rem 1.5rem;">Cancel</button>
+                                <button type="submit" class="btn" style="padding: 0.75rem 1.5rem; background: #a16207; color: white; border: none; border-radius: 0.5rem; cursor: pointer; font-weight: 600;">Generate Submission</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+            modal.style.display = 'flex';
+            updateLoganCostEstimate();
+        }
+
+        function closeLoganLabsModal() {
+            document.getElementById('loganLabsSubmitModal').style.display = 'none';
+        }
+
+        let loganSampleCount = 1;
+
+        function addLoganSampleRow() {
+            const idx = loganSampleCount++;
+            const fieldOptions = Object.keys(FARM_FIELDS).map(f =>
+                '<option value="' + f + '">' + f + ' (' + FARM_FIELDS[f].acreage + ' ac)</option>'
+            ).join('');
+
+            const testOptions = Object.entries(LOGAN_LABS.tests)
+                .filter(([k]) => k !== 'tissue' && k !== 'water')
+                .map(([key, t]) =>
+                    '<option value="' + key + '" ' + (key === 'complete' ? 'selected' : '') + '>' + t.name + ' ($' + t.price + ')</option>'
+                ).join('');
+
+            const sampleId = 'LL-' + new Date().toISOString().slice(0, 10).replace(/-/g, '') + '-' + Math.random().toString(36).substr(2, 4).toUpperCase();
+
+            const row = document.createElement('div');
+            row.className = 'logan-sample-row';
+            row.dataset.index = idx;
+            row.style.cssText = 'background: #fefce8; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem; border-left: 4px solid #a16207;';
+            row.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                    <strong style="color: #854d0e;">Sample ${idx + 1}</strong>
+                    <button type="button" onclick="this.closest('.logan-sample-row').remove(); updateLoganCostEstimate();" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 0.875rem;">Remove</button>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                    <div>
+                        <label style="font-size: 0.75rem; color: #64748b; font-weight: 600;">Sample ID *</label>
+                        <input type="text" name="sampleId_${idx}" value="${sampleId}" required style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem; font-size: 0.875rem;">
+                    </div>
+                    <div>
+                        <label style="font-size: 0.75rem; color: #64748b; font-weight: 600;">Field / Zone *</label>
+                        <select name="field_${idx}" required style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem; font-size: 0.875rem;">
+                            <option value="">Select field...</option>
+                            ${fieldOptions}
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size: 0.75rem; color: #64748b; font-weight: 600;">Crop / Intended Use</label>
+                        <input type="text" name="crop_${idx}" placeholder="e.g., Tomatoes" style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem; font-size: 0.875rem;">
+                    </div>
+                    <div>
+                        <label style="font-size: 0.75rem; color: #64748b; font-weight: 600;">Sample Depth (inches)</label>
+                        <input type="number" name="depth_${idx}" value="6" min="1" max="24" style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem; font-size: 0.875rem;">
+                    </div>
+                    <div style="grid-column: 1 / -1;">
+                        <label style="font-size: 0.75rem; color: #64748b; font-weight: 600;">Test Package *</label>
+                        <select name="test_${idx}" required onchange="updateLoganCostEstimate()" style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem; font-size: 0.875rem;">
+                            ${testOptions}
+                        </select>
+                    </div>
+                </div>
+            `;
+            document.getElementById('loganSamples').appendChild(row);
+            updateLoganCostEstimate();
+        }
+
+        function updateLoganCostEstimate() {
+            const rows = document.querySelectorAll('.logan-sample-row');
+            let total = 0;
+            rows.forEach(row => {
+                const idx = row.dataset.index;
+                const testSelect = document.querySelector(`[name="test_${idx}"]`);
+                if (testSelect) {
+                    const testKey = testSelect.value;
+                    total += LOGAN_LABS.tests[testKey]?.price || 0;
+                }
+            });
+            if (document.getElementById('loganRecommendations')?.checked) {
+                total += LOGAN_LABS.recommendationsCost;
+            }
+            const costEl = document.getElementById('loganTotalCost');
+            if (costEl) costEl.textContent = '$' + total.toFixed(2);
+        }
+
+        function submitSoilSampleToLogan(event) {
+            event.preventDefault();
+
+            const rows = document.querySelectorAll('.logan-sample-row');
+            const samples = [];
+            rows.forEach(row => {
+                const idx = row.dataset.index;
+                const form = document.getElementById('loganLabsForm');
+                samples.push({
+                    sampleId: form.querySelector(`[name="sampleId_${idx}"]`).value,
+                    field: form.querySelector(`[name="field_${idx}"]`).value,
+                    crop: form.querySelector(`[name="crop_${idx}"]`)?.value || '',
+                    depth: parseFloat(form.querySelector(`[name="depth_${idx}"]`).value) || 6,
+                    testPackage: form.querySelector(`[name="test_${idx}"]`).value
+                });
+            });
+
+            const submission = {
+                id: Date.now(),
+                submissionId: samples[0].sampleId.split('-').slice(0, 3).join('-'),
+                collectionDate: document.getElementById('loganCollectionDate').value,
+                collector: document.getElementById('loganCollector').value,
+                recommendations: document.getElementById('loganRecommendations').checked,
+                notes: document.getElementById('loganNotes').value,
+                samples: samples,
+                status: 'pending',
+                createdAt: new Date().toISOString(),
+                resultsSoilTestIds: []
+            };
+
+            // Save to pending submissions
+            pendingSoilSubmissions.push(submission);
+            localStorage.setItem('pendingSoilSubmissions', JSON.stringify(pendingSoilSubmissions));
+
+            // Generate printable submission
+            generateLoganLabsSubmissionPDF(submission);
+
+            closeLoganLabsModal();
+            loganSampleCount = 1;
+
+            showToast('Logan Labs submission created! Print the worksheet to include with your samples.', 'success');
+        }
+
+        function generateLoganLabsSubmissionPDF(submission) {
+            const totalCost = submission.samples.reduce((sum, s) => sum + (LOGAN_LABS.tests[s.testPackage]?.price || 0), 0) + (submission.recommendations ? LOGAN_LABS.recommendationsCost : 0);
+
+            const sampleRows = submission.samples.map((s, i) => `
+                <tr>
+                    <td style="font-weight: 700; color: #854d0e;">${i + 1}</td>
+                    <td style="font-weight: 600;">${s.sampleId}</td>
+                    <td>${s.field}</td>
+                    <td>${s.crop || '—'}</td>
+                    <td>${s.depth}"</td>
+                    <td>${LOGAN_LABS.tests[s.testPackage]?.name || s.testPackage}</td>
+                    <td style="text-align: right;">$${(LOGAN_LABS.tests[s.testPackage]?.price || 0).toFixed(2)}</td>
+                </tr>
+            `).join('');
+
+            const bagLabels = submission.samples.map(s => `
+                <div style="border: 2px solid #000; padding: 12px; width: 3.5in; display: inline-block; margin: 8px; page-break-inside: avoid;">
+                    <div style="font-weight: bold; font-size: 1.1rem; border-bottom: 2px solid #000; padding-bottom: 4px; margin-bottom: 6px;">
+                        BAG LABEL
+                    </div>
+                    <div style="font-size: 0.95rem; line-height: 1.6;">
+                        <strong>Tiny Seed Farm</strong><br>
+                        <strong>Sample:</strong> ${s.sampleId}<br>
+                        <strong>Field:</strong> ${s.field}<br>
+                        <strong>Crop:</strong> ${s.crop || '—'}<br>
+                        <strong>Depth:</strong> ${s.depth}"<br>
+                        <strong>Date:</strong> ${submission.collectionDate}
+                    </div>
+                </div>
+            `).join('');
+
+            const pdfWindow = window.open('', '_blank');
+            if (!pdfWindow) {
+                alert('Popup blocked — please allow popups for this site.');
+                return;
+            }
+
+            pdfWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Logan Labs Submission - ${submission.submissionId}</title>
+                    <style>
+                        @media print {
+                            body { margin: 0; padding: 15px; }
+                            .no-print { display: none !important; }
+                            .page-break { page-break-before: always; }
+                            table { page-break-inside: avoid; }
+                        }
+                        body {
+                            font-family: 'Segoe UI', Arial, sans-serif;
+                            line-height: 1.4;
+                            max-width: 800px;
+                            margin: 0 auto;
+                            padding: 20px;
+                            color: #1e293b;
+                            font-size: 13px;
+                        }
+                        .print-btn {
+                            position: fixed; top: 12px; right: 12px; padding: 12px 24px;
+                            background: #a16207; color: white; border: none; border-radius: 6px;
+                            cursor: pointer; font-size: 1rem; font-weight: 600; z-index: 100;
+                        }
+                        .print-btn:hover { background: #854d0e; }
+                        h1 { color: #854d0e; margin: 0; font-size: 1.4rem; }
+                        h2 { color: #854d0e; font-size: 1.1rem; border-bottom: 2px solid #fbbf24; padding-bottom: 4px; margin-top: 1.5rem; }
+                        table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+                        th, td { border: 1px solid #cbd5e1; padding: 6px 8px; font-size: 0.85rem; }
+                        th { background: #fefce8; color: #854d0e; font-weight: 600; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.5px; }
+                        .address-label {
+                            border: 3px solid #000; padding: 20px; width: 4in; height: 2.2in;
+                            display: inline-block; margin: 10px 0;
+                        }
+                        .label-box { border: 3px dashed #374151; padding: 15px; margin: 15px 0; background: #f9fafb; }
+                        .checklist { background: #f0fdf4; padding: 12px 16px; border-radius: 6px; margin: 12px 0; }
+                        .checklist li { margin-bottom: 4px; }
+                        .footer { text-align: center; margin-top: 16px; color: #94a3b8; font-size: 0.7rem; border-top: 1px solid #e2e8f0; padding-top: 8px; }
+                    </style>
+                </head>
+                <body>
+                    <button class="print-btn no-print" onclick="window.print()">Print / Save PDF</button>
+
+                    <div style="text-align: center; border-bottom: 3px solid #a16207; padding-bottom: 12px; margin-bottom: 16px;">
+                        <h1>Logan Labs Soil Test Submission Worksheet</h1>
+                        <p style="color: #64748b; margin: 4px 0; font-size: 0.85rem;">
+                            Tiny Seed Farm | 257 Zeigler Rd, Rochester, PA 15074
+                        </p>
+                        <p style="color: #64748b; margin: 2px 0; font-size: 0.8rem;">
+                            Submission: ${submission.submissionId} | Date: ${submission.collectionDate}
+                            ${submission.collector ? ' | Collector: ' + submission.collector : ''}
+                        </p>
+                    </div>
+
+                    <h2>Client Information</h2>
+                    <table>
+                        <tr>
+                            <td style="width: 25%; font-weight: 600; background: #fefce8;">Name</td>
+                            <td>Tiny Seed Farm (Samantha Pollack)</td>
+                            <td style="width: 25%; font-weight: 600; background: #fefce8;">Phone</td>
+                            <td>&nbsp;</td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight: 600; background: #fefce8;">Address</td>
+                            <td>257 Zeigler Rd, Rochester, PA 15074</td>
+                            <td style="font-weight: 600; background: #fefce8;">Email</td>
+                            <td>&nbsp;</td>
+                        </tr>
+                    </table>
+
+                    <h2>Samples (${submission.samples.length})</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Sample ID</th>
+                                <th>Field / Zone</th>
+                                <th>Crop</th>
+                                <th>Depth</th>
+                                <th>Test Package</th>
+                                <th>Cost</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${sampleRows}
+                        </tbody>
+                        <tfoot>
+                            ${submission.recommendations ? `
+                            <tr>
+                                <td colspan="6" style="text-align: right; font-weight: 600;">Recommendations</td>
+                                <td style="text-align: right;">$${LOGAN_LABS.recommendationsCost.toFixed(2)}</td>
+                            </tr>` : ''}
+                            <tr style="font-weight: 700; background: #fefce8;">
+                                <td colspan="6" style="text-align: right;">TOTAL</td>
+                                <td style="text-align: right;">$${totalCost.toFixed(2)}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+
+                    ${submission.notes ? `
+                    <div style="background: #fefce8; padding: 8px 12px; border-radius: 4px; margin: 8px 0;">
+                        <strong>Notes:</strong> ${submission.notes}
+                    </div>` : ''}
+
+                    <div class="checklist">
+                        <strong style="color: #166534;">Packing Checklist:</strong>
+                        <ul style="margin: 6px 0 0 16px; line-height: 1.8;">
+                            <li>Each sample is ~2 cups of soil in a labeled Ziploc bag</li>
+                            <li>Bag labels match Sample IDs on this worksheet (permanent marker)</li>
+                            <li>10-20 sub-samples were mixed for each composite sample</li>
+                            <li>This worksheet is included in the box</li>
+                            <li>Payment enclosed (check to "Logan Labs") or call 937-842-6100 for credit card</li>
+                            <li>Samples packed tight, box taped securely</li>
+                        </ul>
+                    </div>
+
+                    <h2>Mailing Label (Cut &amp; Attach to Package)</h2>
+                    <div class="label-box">
+                        <div class="address-label">
+                            <div style="font-size: 0.7rem; color: #666;">FROM:</div>
+                            <div style="font-size: 0.9rem; margin-top: 3px;">
+                                Tiny Seed Farm<br>
+                                257 Zeigler Rd<br>
+                                Rochester, PA 15074
+                            </div>
+                            <div style="font-size: 0.7rem; color: #666; margin-top: 12px;">TO:</div>
+                            <div style="font-size: 1.1rem; font-weight: bold; margin-top: 3px;">
+                                ${LOGAN_LABS.name}
+                            </div>
+                            <div style="margin-top: 3px;">
+                                ${LOGAN_LABS.address}<br>
+                                ${LOGAN_LABS.city}, ${LOGAN_LABS.state} ${LOGAN_LABS.zip}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="page-break"></div>
+
+                    <h2>Bag Labels (Cut &amp; Tape to Each Ziploc Bag)</h2>
+                    <p style="color: #64748b; font-size: 0.8rem;">Cut along borders. Write the same Sample ID on the bag in permanent marker.</p>
+                    <div style="display: flex; flex-wrap: wrap;">
+                        ${bagLabels}
+                    </div>
+
+                    <div class="footer">
+                        Generated by Tiny Seed Farm OS | ${new Date().toLocaleDateString()} | Results email to loganreports@loganlabs.com within 3-5 business days
+                    </div>
+                </body>
+                </html>
+            `);
+            pdfWindow.document.close();
+        }
+
+        function getPendingSoilSubmissions() {
+            return pendingSoilSubmissions.filter(s => s.status === 'pending');
+        }
+
+        function linkSoilTestToSubmission(soilTestId, submissionId) {
+            const sub = pendingSoilSubmissions.find(s => s.id === submissionId);
+            if (sub) {
+                sub.resultsSoilTestIds.push(soilTestId);
+                if (sub.resultsSoilTestIds.length >= sub.samples.length) {
+                    sub.status = 'complete';
+                }
+                localStorage.setItem('pendingSoilSubmissions', JSON.stringify(pendingSoilSubmissions));
+                showToast('Soil test linked to Logan Labs submission ' + sub.submissionId, 'success');
+            }
+        }
+
+        function reprintLoganSubmission(submissionId) {
+            const sub = pendingSoilSubmissions.find(s => s.id === submissionId);
+            if (sub) generateLoganLabsSubmissionPDF(sub);
         }
 
         // Helper to find amendment key from material name
@@ -8869,6 +9394,8 @@
                 <!-- Enter Results Modal -->
                 <div id="tissueResultsModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
                 </div>
+
+                <!-- Logan Labs Soil Submission Modal (moved to static body) -->
             `;
         }
 
@@ -13786,6 +14313,10 @@
         <div><kbd>H</kbd> Home</div>
         <div><kbd>?</kbd> Toggle help</div>
         <div><kbd>Esc</kbd> Close modals</div>
+    </div>
+
+    <!-- Logan Labs Soil Submission Modal (static, accessible from all tabs) -->
+    <div id="loganLabsSubmitModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
     </div>
 </body>
 </html>

@@ -802,11 +802,10 @@ const TinySeedUtils = {
     },
 
     /**
-     * Check if within geofence
+     * Check if within geofence — disabled per owner directive 2026-03-09
      */
     isWithinGeofence(location) {
-        const distance = this.calculateDistance(location, TINY_SEED_API.FARM_LOCATION);
-        return distance <= TINY_SEED_API.FARM_LOCATION.radius;
+        return true;
     },
 
     /**

@@ -1076,6 +1076,12 @@
                     <button class="type-btn" id="btnSeedLabels" onclick="switchLabelType('seed')">
                         <i class="fas fa-box"></i> Seed Lots
                     </button>
+                    <button class="type-btn" id="btnSoilSampleLabels" onclick="switchLabelType('soilSample')">
+                        <i class="fas fa-flask"></i> Soil Samples
+                    </button>
+                    <button class="type-btn" id="btnInventoryLabels" onclick="switchLabelType('inventory')">
+                        <i class="fas fa-warehouse"></i> Inventory
+                    </button>
                 </div>
                 <div class="label-type-desc" id="labelTypeDesc">
                     <strong>2.5" x 0.75"</strong> — Standard printer, clips to tray lip
@@ -1122,6 +1128,53 @@
             </div>
 
             <!-- Seed Lot Filter Section (hidden by default) -->
+            <!-- Soil Sample Filters -->
+            <div class="panel-section" id="soilSampleFilters" style="display: none;">
+                <h3 class="panel-title"><i class="fas fa-flask"></i> Soil Sample Labels</h3>
+                <p style="font-size: 0.8rem; color: #64748b; margin-bottom: 0.75rem;">Load pending Logan Labs submissions to generate bag labels and submission labels on FT40101WH (4"x1") stock.</p>
+                <button class="btn btn-primary btn-block" onclick="loadSoilSampleLabels()">
+                    <i class="fas fa-sync"></i> Load Pending Submissions
+                </button>
+            </div>
+
+            <!-- Inventory Filters -->
+            <div class="panel-section" id="inventoryFilters" style="display: none;">
+                <h3 class="panel-title"><i class="fas fa-warehouse"></i> Inventory Labels</h3>
+                <p style="font-size: 0.8rem; color: #64748b; margin-bottom: 0.75rem;">Load inventoried items from the employee app. Each label includes name, category, location, and QR code on FT40101WH (4"x1") stock.</p>
+                <div class="form-group">
+                    <label>Category</label>
+                    <select class="form-control" id="inventoryCategoryFilter">
+                        <option value="">All Categories</option>
+                        <option value="Equipment">Equipment</option>
+                        <option value="Tools">Tools</option>
+                        <option value="Seeds & Transplants">Seeds & Transplants</option>
+                        <option value="Irrigation">Irrigation</option>
+                        <option value="Pest Control">Pest Control</option>
+                        <option value="Soil Amendments">Soil Amendments</option>
+                        <option value="Packaging">Packaging</option>
+                        <option value="Safety">Safety</option>
+                        <option value="Office">Office</option>
+                        <option value="Infrastructure">Infrastructure</option>
+                        <option value="Vehicles">Vehicles</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Location</label>
+                    <select class="form-control" id="inventoryLocationFilter">
+                        <option value="">All Locations</option>
+                        <option value="Barn">Barn</option>
+                        <option value="Greenhouse">Greenhouse</option>
+                        <option value="High Tunnel">High Tunnel</option>
+                        <option value="Field Shed">Field Shed</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary btn-block" onclick="loadInventoryLabels()">
+                    <i class="fas fa-search"></i> Load Inventory Items
+                </button>
+            </div>
+
             <div class="panel-section" id="seedFilters" style="display: none;">
                 <h3 class="panel-title"><i class="fas fa-filter"></i> Filter Seed Lots</h3>
 
@@ -1874,16 +1927,29 @@
 
             if (allSelected) {
                 selectedLabels.clear();
-                document.querySelectorAll('.tray-label').forEach(el => {
+                document.querySelectorAll('.tray-label, .field-tray-label').forEach(el => {
                     el.classList.remove('selected');
-                    el.querySelector('.label-checkbox').checked = false;
+                    const cb = el.querySelector('.label-checkbox');
+                    if (cb) cb.checked = false;
+                });
+                // Also update list items for generic labels
+                document.querySelectorAll('[id^="glist-"]').forEach(el => {
+                    el.classList.remove('selected');
+                    const cb = el.querySelector('.label-checkbox');
+                    if (cb) cb.checked = false;
                 });
                 showToast('Deselected all labels');
             } else {
                 labels.forEach(l => selectedLabels.add(l.labelId));
-                document.querySelectorAll('.tray-label').forEach(el => {
+                document.querySelectorAll('.tray-label, .field-tray-label').forEach(el => {
                     el.classList.add('selected');
-                    el.querySelector('.label-checkbox').checked = true;
+                    const cb = el.querySelector('.label-checkbox');
+                    if (cb) cb.checked = true;
+                });
+                document.querySelectorAll('[id^="glist-"]').forEach(el => {
+                    el.classList.add('selected');
+                    const cb = el.querySelector('.label-checkbox');
+                    if (cb) cb.checked = true;
                 });
                 showToast('Selected all labels');
             }
@@ -2152,11 +2218,15 @@
             document.getElementById('btnPotTagLabels').classList.toggle('active', type === 'potTag');
             document.getElementById('btnFieldTrayLabels').classList.toggle('active', type === 'fieldTray');
             document.getElementById('btnSeedLabels').classList.toggle('active', type === 'seed');
+            document.getElementById('btnSoilSampleLabels').classList.toggle('active', type === 'soilSample');
+            document.getElementById('btnInventoryLabels').classList.toggle('active', type === 'inventory');
 
             // Show/hide filter sections — pot tags and field tray use same seedings filters
             const usesSeedings = (type === 'greenhouse' || type === 'potTag' || type === 'fieldTray');
             document.getElementById('greenhouseFilters').style.display = usesSeedings ? 'block' : 'none';
             document.getElementById('seedFilters').style.display = type === 'seed' ? 'block' : 'none';
+            document.getElementById('soilSampleFilters').style.display = type === 'soilSample' ? 'block' : 'none';
+            document.getElementById('inventoryFilters').style.display = type === 'inventory' ? 'block' : 'none';
 
             // Show/hide label options based on type
             document.getElementById('labelsPerTrayGroup').style.display = (type === 'greenhouse' || type === 'fieldTray') ? 'block' : 'none';
@@ -2164,7 +2234,7 @@
             document.getElementById('potTagCustomGroup').style.display = 'none';
 
             // Update list title
-            const titles = { greenhouse: 'Available Seedings', potTag: 'Available Seedings', fieldTray: 'Available Seedings', seed: 'Available Seed Lots' };
+            const titles = { greenhouse: 'Available Seedings', potTag: 'Available Seedings', fieldTray: 'Available Seedings', seed: 'Available Seed Lots', soilSample: 'Soil Sample Labels', inventory: 'Inventory Items' };
             document.getElementById('listTitle').textContent = titles[type] || 'Available Items';
 
             // Update type description
@@ -2172,7 +2242,9 @@
                 greenhouse: '<strong>2.5" x 0.75"</strong> — Standard printer, clips to tray lip',
                 potTag: '<strong>1" x 4"</strong> — UL-247 thermal, ZX5141T stake tags for sale pots',
                 fieldTray: '<strong>4" x 1"</strong> — UL-247 thermal, FT40101WH stickers for field trays',
-                seed: '<strong>Seed inventory</strong> — Labels for seed lot storage containers'
+                seed: '<strong>Seed inventory</strong> — Labels for seed lot storage containers',
+                soilSample: '<strong>4" x 1"</strong> — UL-247 thermal, FT40101WH. Bag labels + submission labels for Logan Labs',
+                inventory: '<strong>4" x 1"</strong> — UL-247 thermal, FT40101WH. Item name, category, location + QR code'
             };
             document.getElementById('labelTypeDesc').innerHTML = descs[type] || '';
 
@@ -2181,13 +2253,23 @@
                 greenhouse: 'Labels sized for tray lip (0.75" tall x 2.5" wide)',
                 potTag: 'Pot tags for UL-247 printer (1" x 4" ZX5141T)',
                 fieldTray: 'Tray labels for UL-247 printer (4" x 1" FT40101WH)',
-                seed: 'Seed lot inventory labels'
+                seed: 'Seed lot inventory labels',
+                soilSample: 'Soil sample labels for UL-247 printer (4" x 1" FT40101WH)',
+                inventory: 'Inventory labels for UL-247 printer (4" x 1" FT40101WH)'
             };
             document.getElementById('previewSubtitle').textContent = subtitles[type] || '';
 
             // Clear labels and selections
             labels = [];
             selectedLabels.clear();
+
+            // Soil sample and inventory types manage their own rendering
+            if (type === 'soilSample' || type === 'inventory') {
+                if (type === 'soilSample') loadSoilSampleLabels();
+                if (type === 'inventory') loadInventoryLabels();
+                return;
+            }
+
             document.getElementById('labelsContainer').innerHTML = `
                 <div class="empty-state">
                     <i class="fas fa-tag"></i>
@@ -2648,6 +2730,9 @@
             } else if (currentLabelType === 'fieldTray') {
                 closePrintPreview();
                 executePrintUL247FieldTrayPDF();
+            } else if (currentLabelType === 'soilSample' || currentLabelType === 'inventory') {
+                closePrintPreview();
+                executePrintUL247GenericPDF();
             } else {
                 originalExecutePrint();
             }
@@ -3424,6 +3509,11 @@
         // Override openPrintPreview: simple thermal label print dialog with troubleshooting
         const originalOpenPrintPreview = openPrintPreview;
         openPrintPreview = function() {
+            if (currentLabelType === 'soilSample' || currentLabelType === 'inventory') {
+                if (selectedLabels.size === 0) { showToast('Please select labels to print'); return; }
+                executePrintUL247GenericPDF();
+                return;
+            }
             if (currentLabelType === 'potTag' || currentLabelType === 'fieldTray') {
                 if (selectedLabels.size === 0) { showToast('Please select labels to print'); return; }
                 var labelsToprint = labels.filter(function(l) { return selectedLabels.has(l.labelId); });
@@ -3483,6 +3573,273 @@
                 originalOpenPrintPreview();
             }
         };
+        // ============ SOIL SAMPLE LABELS (FT40101WH) ============
+
+        let soilSubmissions = [];
+        let inventoryItems = [];
+
+        // Logan Labs test name lookup (no dependency on soil-tests.html)
+        const LOGAN_LABS_TESTS = {
+            mehlich3: 'Mehlich 3', basePlus: 'Base Plus', agDyn3: 'Ag-Dyn 3',
+            saturatedPaste: 'Sat. Paste', complete: 'Complete', tissue: 'Tissue', water: 'Water'
+        };
+
+        function loadSoilSampleLabels() {
+            // Load from localStorage (shared with soil-tests.html)
+            const raw = localStorage.getItem('pendingSoilSubmissions');
+            soilSubmissions = raw ? JSON.parse(raw) : [];
+
+            labels = [];
+            selectedLabels = new Set();
+
+            soilSubmissions.forEach(sub => {
+                sub.samples.forEach((sample, idx) => {
+                    // Bag label — goes on the Ziploc bag
+                    const bagId = 'soil-bag-' + sub.id + '-' + idx;
+                    labels.push({
+                        labelId: bagId,
+                        labelType: 'soilBag',
+                        line1: sample.sampleId,
+                        line2: sample.field,
+                        line3: (sample.crop || '') + (sample.depth ? '  ' + sample.depth + '"' : ''),
+                        line4: 'Collected: ' + sub.collectionDate,
+                        qrData: JSON.stringify({ type: 'soil-sample', id: sample.sampleId, field: sample.field, date: sub.collectionDate })
+                    });
+                    // Submission label — goes on the box
+                    const subId = 'soil-sub-' + sub.id + '-' + idx;
+                    labels.push({
+                        labelId: subId,
+                        labelType: 'soilSubmission',
+                        line1: 'LOGAN LABS',
+                        line2: sample.sampleId + '  ' + (LOGAN_LABS_TESTS[sample.testPackage] || sample.testPackage),
+                        line3: sample.field + (sample.crop ? ' — ' + sample.crop : ''),
+                        line4: 'Tiny Seed Farm | ' + sub.collectionDate,
+                        qrData: JSON.stringify({ type: 'soil-submission', id: sample.sampleId, field: sample.field, test: sample.testPackage })
+                    });
+                });
+            });
+
+            renderGenericLabels();
+        }
+
+        function loadInventoryLabels() {
+            const category = document.getElementById('inventoryCategoryFilter').value;
+            const location = document.getElementById('inventoryLocationFilter').value;
+
+            document.getElementById('seedingsList').innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Loading inventory...</p></div>';
+
+            const params = new URLSearchParams({ action: 'getInventoryProducts' });
+            if (category) params.append('category', category);
+            if (location) params.append('location', location);
+
+            fetch(API_URL + '?' + params.toString())
+                .then(r => r.json())
+                .then(data => {
+                    if (!data.success || !data.data) {
+                        document.getElementById('seedingsList').innerHTML = '<p style="color: #ef4444; padding: 1rem;">Failed to load inventory: ' + (data.error || 'No items') + '</p>';
+                        return;
+                    }
+
+                    inventoryItems = data.data;
+                    labels = [];
+                    selectedLabels = new Set();
+
+                    inventoryItems.forEach((item, idx) => {
+                        const pid = item.Product_ID || item.Item_ID || idx;
+                        const name = item.Product_Name || item.Item_Name || 'Unknown';
+                        const cat = item.Category || '';
+                        const loc = item.Location || '—';
+                        const qty = item.Current_Qty || item.Quantity || '';
+                        const val = item.Cost_Per_Unit || item.Est_Value || '';
+                        const lid = 'inv-' + pid;
+                        labels.push({
+                            labelId: lid,
+                            labelType: 'inventory',
+                            line1: name,
+                            line2: cat + (item.Manufacturer ? ' | ' + item.Manufacturer : ''),
+                            line3: 'Loc: ' + loc + (qty ? '  Qty: ' + qty : '') + (val ? '  $' + val : ''),
+                            line4: 'ID: ' + pid,
+                            qrData: JSON.stringify({ type: 'inventory', id: pid, name: name, location: loc, category: cat })
+                        });
+                    });
+
+                    renderGenericLabels();
+                })
+                .catch(err => {
+                    document.getElementById('seedingsList').innerHTML = '<p style="color: #ef4444; padding: 1rem;">Error loading inventory: ' + err.message + '</p>';
+                });
+        }
+
+        function renderGenericLabels() {
+            const container = document.getElementById('labelsContainer');
+            const listContainer = document.getElementById('seedingsList');
+
+            if (labels.length === 0) {
+                listContainer.innerHTML = '<p style="color: #64748b; padding: 1rem; text-align: center;">' +
+                    (currentLabelType === 'soilSample' ? 'No pending soil submissions found. Create one from Soil Test Tracker.' : 'No inventory items found matching filters.') + '</p>';
+                container.innerHTML = '';
+                document.getElementById('totalLabelsCount').textContent = '0';
+                return;
+            }
+
+            // Render list (left panel) with checkboxes
+            let listHtml = '';
+            labels.forEach((label, i) => {
+                const isSelected = selectedLabels.has(label.labelId);
+                listHtml += `
+                    <div class="seeding-item ${isSelected ? 'selected' : ''}" onclick="toggleGenericLabel('${label.labelId}', ${i})" id="glist-${i}">
+                        <input type="checkbox" class="label-checkbox" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation(); toggleGenericLabel('${label.labelId}', ${i})">
+                        <div style="flex: 1; min-width: 0;">
+                            <div style="font-weight: 600; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${label.line1}</div>
+                            <div style="font-size: 0.75rem; color: #64748b;">${label.line2}</div>
+                        </div>
+                    </div>
+                `;
+            });
+            listContainer.innerHTML = listHtml;
+
+            // Render preview (right panel) — FT40101WH style
+            let previewHtml = '';
+            labels.forEach((label, i) => {
+                const bgColor = label.labelType === 'soilBag' ? '#fefce8' : label.labelType === 'soilSubmission' ? '#f0fdf4' : '#f8fafc';
+                const borderColor = label.labelType === 'soilBag' ? '#a16207' : label.labelType === 'soilSubmission' ? '#16a34a' : '#3b82f6';
+                previewHtml += `
+                    <div class="field-tray-label ${selectedLabels.has(label.labelId) ? 'selected' : ''}"
+                         id="label-${i}" onclick="toggleGenericLabel('${label.labelId}', ${i})"
+                         style="display: flex; align-items: center; gap: 6px; width: 288px; height: 72px; padding: 4px 6px; border: 1px solid ${borderColor}; border-radius: 4px; background: ${bgColor}; cursor: pointer; margin: 4px; font-family: 'Inter', sans-serif;">
+                        <input type="checkbox" class="label-checkbox" ${selectedLabels.has(label.labelId) ? 'checked' : ''} onclick="event.stopPropagation(); toggleGenericLabel('${label.labelId}', ${i})">
+                        <div id="qr-${i}" style="width: 58px; height: 58px; flex-shrink: 0;"></div>
+                        <div style="flex: 1; min-width: 0; overflow: hidden;">
+                            <div style="font-weight: 700; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${label.line1}</div>
+                            <div style="font-size: 9px; color: #374151; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${label.line2}</div>
+                            <div style="font-size: 8px; color: #6b7280; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${label.line3}</div>
+                            <div style="font-size: 7px; color: #9ca3af; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${label.line4}</div>
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = '<div style="display: flex; flex-wrap: wrap; gap: 8px; padding: 8px;">' + previewHtml + '</div>';
+            document.getElementById('totalLabelsCount').textContent = labels.length;
+
+            // Generate QR codes
+            labels.forEach((label, i) => {
+                generateQRCode('qr-' + i, label.qrData, 58);
+            });
+        }
+
+        function toggleGenericLabel(labelId, index) {
+            if (selectedLabels.has(labelId)) {
+                selectedLabels.delete(labelId);
+            } else {
+                selectedLabels.add(labelId);
+            }
+
+            // Update preview
+            const labelEl = document.getElementById('label-' + index);
+            if (labelEl) {
+                labelEl.classList.toggle('selected', selectedLabels.has(labelId));
+                const cb = labelEl.querySelector('.label-checkbox');
+                if (cb) cb.checked = selectedLabels.has(labelId);
+            }
+
+            // Update list
+            const listEl = document.getElementById('glist-' + index);
+            if (listEl) {
+                listEl.classList.toggle('selected', selectedLabels.has(labelId));
+                const cb = listEl.querySelector('.label-checkbox');
+                if (cb) cb.checked = selectedLabels.has(labelId);
+            }
+
+            // Update print button subtitle with selection count
+            var subtitle = document.querySelector('.print-subtitle');
+            if (subtitle) subtitle.textContent = selectedLabels.size + ' of ' + labels.length + ' selected';
+        }
+
+        // Shared jsPDF renderer for soil sample + inventory labels (FT40101WH 4"×1")
+        function renderGenericLabelPage(doc, label, qrImage, W, H) {
+            var qrSz = 61;
+            if (qrImage) {
+                doc.addImage(qrImage, 'PNG', 6, (H - qrSz) / 2, qrSz, qrSz);
+            }
+            var tx = 72, rx = W - 6, maxTextW = rx - tx;
+
+            // LINE 1 (y=18): Primary text — 20pt bold
+            doc.setTextColor(0, 0, 0); doc.setFont('helvetica', 'bold'); doc.setFontSize(20);
+            var l1 = label.line1 || '';
+            while (l1.length > 3 && doc.getTextWidth(l1) > maxTextW) {
+                l1 = l1.substring(0, l1.length - 2) + '\u2026';
+            }
+            doc.text(l1, tx, 18);
+
+            // LINE 2 (y=34): Secondary — 12pt normal
+            doc.setFont('helvetica', 'normal'); doc.setFontSize(12); doc.setTextColor(51, 51, 51);
+            var l2 = label.line2 || '';
+            while (l2.length > 3 && doc.getTextWidth(l2) > maxTextW) {
+                l2 = l2.substring(0, l2.length - 2) + '\u2026';
+            }
+            doc.text(l2, tx, 34);
+
+            // LINE 3 (y=48): Tertiary — 10pt
+            doc.setFontSize(10); doc.setTextColor(68, 68, 68);
+            var l3 = label.line3 || '';
+            while (l3.length > 3 && doc.getTextWidth(l3) > maxTextW) {
+                l3 = l3.substring(0, l3.length - 2) + '\u2026';
+            }
+            doc.text(l3, tx, 48);
+
+            // LINE 4 (y=62): Meta — 8pt
+            doc.setFont('courier', 'normal'); doc.setFontSize(8); doc.setTextColor(102, 102, 102);
+            var l4 = label.line4 || '';
+            while (l4.length > 3 && doc.getTextWidth(l4) > maxTextW) {
+                l4 = l4.substring(0, l4.length - 2) + '\u2026';
+            }
+            doc.text(l4, tx, 62);
+        }
+
+        function executePrintUL247GenericPDF() {
+            var labelsToprint = labels.filter(function(l) { return selectedLabels.has(l.labelId); });
+            if (labelsToprint.length === 0) { showToast('No labels selected'); return; }
+            if (!window.jspdf) { showToast('PDF library loading -- try again in a moment'); return; }
+
+            var printWindow = window.open('', '_blank');
+            if (!printWindow) { showToast('Popup blocked -- allow popups for this site'); return; }
+            printWindow.document.write('<html><body style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#666"><p>Generating labels PDF...</p></body></html>');
+
+            var qrPromises = labelsToprint.map(function(label) {
+                return new Promise(function(resolve) {
+                    if (!label.qrData) { resolve(null); return; }
+                    var canvas = document.createElement('canvas');
+                    QRCode.toCanvas(canvas, String(label.qrData), {
+                        width: 164, margin: 0, errorCorrectionLevel: 'M'
+                    }, function(error) {
+                        resolve(error ? null : canvas.toDataURL('image/png'));
+                    });
+                });
+            });
+
+            Promise.all(qrPromises).then(function(qrImages) {
+                var W = 288, H = 72;
+                var GAP = 9;
+                var PAGE_H = H + GAP;
+                var doc = new window.jspdf.jsPDF({ unit: 'pt', format: [PAGE_H, W], orientation: 'landscape' });
+
+                labelsToprint.forEach(function(label, i) {
+                    if (i > 0) doc.addPage([PAGE_H, W], 'landscape');
+                    renderGenericLabelPage(doc, label, qrImages[i], W, H);
+                });
+
+                var blobUrl = doc.output('bloburl');
+                printWindow.location.href = blobUrl;
+                printWindow.addEventListener('load', function() {
+                    setTimeout(function() { try { printWindow.print(); } catch(e) {} }, 500);
+                });
+                var typeLabel = currentLabelType === 'soilSample' ? 'soil sample' : 'inventory';
+                showToast(labelsToprint.length + ' ' + typeLabel + ' labels -- print dialog opening');
+            }).catch(function(err) {
+                printWindow.close();
+                showToast('PDF error: ' + err.message);
+            });
+        }
     </script>
 </body>
 </html>

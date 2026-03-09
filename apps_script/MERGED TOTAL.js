@@ -38046,10 +38046,12 @@ Extract the following information from the image:
    PROPAGATION: cell-trays, plug-trays, nursery-pots, potting-mix, heat-mats, grow-lights, humidity-domes
    OTHER: fuel, tarps, rope-twine, tape, batteries, coolers, ice-packs, other
 5. Brand name (if visible - common farm brands: Johnny's, Fedco, High Mowing, Gardener's Supply, etc.)
-6. Additional details (size, variety, model number, organic certification, etc.)
+6. Estimated value in USD (estimate based on product type, brand, size — for farm asset/loan documentation)
+7. Additional details (size, variety, model number, organic certification, etc.)
 
 If you cannot determine a field from the image, use null for that field.
 For quantity, provide just the number. For unit, use the closest match.
+For estimatedValue, give your best estimate as a number (no $ sign).
 
 Respond in valid JSON format only:
 {
@@ -38058,6 +38060,7 @@ Respond in valid JSON format only:
   "unit": "bags",
   "category": "fertilizer",
   "brand": "Brand Name or null",
+  "estimatedValue": 25.99,
   "details": "Any additional info"
 }`;
 
@@ -38134,6 +38137,7 @@ Respond in valid JSON format only:
             unit: parsedData.unit || 'each',
             category: parsedData.category || 'other',
             brand: parsedData.brand || null,
+            estimatedValue: parsedData.estimatedValue || null,
             details: parsedData.details || null
           }
         };
@@ -38315,6 +38319,7 @@ function recordInventoryCount(data) {
         if (header === 'CreatedAt') return now;
         if (header === 'UpdatedAt') return now;
         if (header === 'Manufacturer') return data.brand || '';
+        if (header === 'Cost_Per_Unit') return data.estValue || '';
         if (header === 'Notes') return data.notes || '';
         return '';
       });
@@ -38332,6 +38337,10 @@ function recordInventoryCount(data) {
       }
       if (photoUrl) {
         prodSheet.getRange(productRow, photoUrlCol + 1).setValue(photoUrl);
+      }
+      if (data.estValue) {
+        var costCol = prodHeaders.indexOf('Cost_Per_Unit');
+        if (costCol >= 0) prodSheet.getRange(productRow, costCol + 1).setValue(data.estValue);
       }
       Logger.log('recordInventoryCount: Updated product ' + productId + ': qty ' + currentQty + ' → ' + newQty);
     }
@@ -49113,19 +49122,8 @@ function handleClockIn(params) {
     const timestamp = params.timestamp || new Date().toISOString();
     const dateStr = new Date(timestamp).toLocaleDateString('en-US');
 
-    // Check if within geofence (farm location: 40.7248232, -80.1540297)
-    const FARM_LAT = 40.7248232;
-    const FARM_LNG = -80.1540297;
-    const GEOFENCE_RADIUS_KM = 0.5; // 500 meters
-
-    let inGeofence = false;
-    if (params.gpsLat && params.gpsLng) {
-      const distance = haversineDistance(
-        parseFloat(params.gpsLat), parseFloat(params.gpsLng),
-        FARM_LAT, FARM_LNG
-      );
-      inGeofence = distance <= GEOFENCE_RADIUS_KM;
-    }
+    // Geofence removed per owner directive 2026-03-09
+    const inGeofence = true;
 
     clockSheet.appendRow([
       entryId,
@@ -53631,13 +53629,7 @@ const EMPLOYEE_HEADERS = {
   TEAM_CHECKINS: ['Checkin_ID', 'Timestamp', 'Employee_ID', 'Employee_Name', 'Assignment_ID', 'Task_Description', 'Status', 'Progress_Pct', 'Blocker', 'ETA_Mins', 'Response_Method', 'GPS_Lat', 'GPS_Lng', 'Notes']
 };
 
-// Farm geofence center - Kretschmann Farm, 257 Zeigler Rd, Rochester, PA 15074
-// TODO: Verify exact GPS coordinates on-site for precision
-const FARM_GEOFENCE = {
-  lat: 40.6960,
-  lng: -80.2820,
-  radiusMeters: 750
-};
+// Farm geofence removed per owner directive 2026-03-09 — no purpose served
 
 // ============================================
 // SHEET INITIALIZATION HELPERS
@@ -54338,14 +54330,8 @@ function clockOut(params) {
 }
 
 function isInGeofence(lat, lng) {
-  if (!lat || !lng) return true; // Allow if no GPS
-
-  const distance = haversineDistanceMeters(
-    parseFloat(lat), parseFloat(lng),
-    FARM_GEOFENCE.lat, FARM_GEOFENCE.lng
-  );
-
-  return distance <= FARM_GEOFENCE.radiusMeters;
+  // Geofence removed per owner directive 2026-03-09
+  return true;
 }
 
 function haversineDistanceMeters(lat1, lon1, lat2, lon2) {

@@ -12531,6 +12531,9 @@
                         </button>
                     </div>
                     <div class="inventory-entry-row">
+                        <input type="text" id="inventoryItemBrand" class="inventory-input" placeholder="Brand (optional)" style="flex:1;">
+                    </div>
+                    <div class="inventory-entry-row">
                         <input type="number" id="inventoryItemQty" class="inventory-input qty" placeholder="Qty" inputmode="numeric">
                         <select id="inventoryItemUnit" class="inventory-select unit">
                             <option value="each">Each</option>
@@ -12552,6 +12555,7 @@
                             <option value="bundles">Bundles</option>
                             <option value="sets">Sets</option>
                         </select>
+                        <input type="number" id="inventoryItemValue" class="inventory-input" placeholder="Est. Value $" inputmode="decimal" style="width:90px;">
                         <button class="inventory-add-btn" onclick="addInventoryItem()">
                             <i class="fas fa-plus"></i>
                         </button>
@@ -14646,13 +14650,7 @@
             // Use unified API config - single source of truth
             API_URL: (typeof TINY_SEED_API !== 'undefined') ? TINY_SEED_API.MAIN_API : 'https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec',
             DB_NAME: 'TinySeedEmployee',
-            DB_VERSION: 1,
-            GEOFENCE: {
-                // TODO: Set actual farm coordinates
-                lat: 40.0,
-                lng: -79.0,
-                radiusMeters: 500
-            }
+            DB_VERSION: 1
         };
 
         // ============================================
@@ -18116,12 +18114,16 @@
             const unitSelect = document.getElementById('inventoryItemUnit');
             const locationSelect = document.getElementById('inventoryLocation');
             const categorySelect = document.getElementById('inventoryCategory');
+            const brandInput = document.getElementById('inventoryItemBrand');
+            const valueInput = document.getElementById('inventoryItemValue');
 
             const name = nameInput.value.trim();
             const qty = parseFloat(qtyInput.value);
             const unit = unitSelect.value;
             const location = locationSelect.value;
             const category = categorySelect?.value || '';
+            const brand = brandInput?.value?.trim() || currentAIResult?.brand || '';
+            const estValue = valueInput?.value ? parseFloat(valueInput.value) : '';
 
             if (!name || !qty || !location) {
                 showToast('Please fill in item name, quantity, and location', 'error');
@@ -18135,7 +18137,8 @@
                 unit,
                 location,
                 category,
-                brand: currentAIResult?.brand || '',
+                brand,
+                estValue,
                 photo: currentInventoryPhoto,
                 aiParsed: currentAIResult ? true : false,
                 timestamp: new Date().toISOString()
@@ -18144,6 +18147,8 @@
             // Clear inputs and photo
             nameInput.value = '';
             qtyInput.value = '';
+            if (brandInput) brandInput.value = '';
+            if (valueInput) valueInput.value = '';
             removeInventoryPhoto();
             currentAIResult = null;
 
@@ -18190,6 +18195,16 @@
                     });
                     if (catOption) categorySelect.value = catOption.value;
                 }
+            }
+            // Set brand
+            if (data.brand) {
+                const brandInput = document.getElementById('inventoryItemBrand');
+                if (brandInput) brandInput.value = data.brand;
+            }
+            // Set estimated value
+            if (data.estimatedValue || data.estValue || data.price) {
+                const valueInput = document.getElementById('inventoryItemValue');
+                if (valueInput) valueInput.value = data.estimatedValue || data.estValue || data.price;
             }
             // Show photo preview
             if (data.photo) {
@@ -18759,6 +18774,7 @@
                     location: item.location,
                     category: item.category || '',
                     brand: item.brand || '',
+                    estValue: item.estValue || '',
                     appliedBy: AppState.employee?.Name || 'Unknown',
                     notes: `Inventory count by ${AppState.employee?.Name || 'Unknown'} at ${item.location}`,
                     photo: item.photo || ''
@@ -18874,16 +18890,17 @@
                 let syncedCount = 0;
                 for (const item of record.items) {
                     const transactionData = {
-                        action: 'recordTransaction',
+                        action: 'recordInventoryCount',
                         productName: item.name,
-                        productId: item.productId || '',
-                        type: 'COUNT',
                         qty: item.qty,
                         unit: item.unit,
                         location: item.location,
+                        category: item.category || '',
+                        brand: item.brand || '',
+                        estValue: item.estValue || '',
                         appliedBy: record.user,
-                        date: record.timestamp.split('T')[0],
-                        notes: `Inventory count by ${record.user} at ${item.location} (synced from offline)`
+                        notes: `Inventory count by ${record.user} at ${item.location} (synced from offline)`,
+                        photo: item.photo || ''
                     };
 
                     try {

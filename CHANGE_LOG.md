@@ -32,6 +32,60 @@ Brief explanation of why these changes were made.
 - [ ] No duplicates created
 
 ---
+
+## 2026-03-09 — PM_ARCHITECT: Soil Tests, Inventory System, Geofence Removal, Label Printing
+
+### Files Modified
+- `soil-tests.html` — Converted blank form from Penn State to Logan Labs; added Logan Labs submission workflow (multi-sample entry, field selection, test packages, cost estimates, recommendations checkbox); added PDF generation for submission worksheets, bag labels, mailing labels; fixed saveSoilTestData Content-Type (`application/json` → `text/plain`) and data nesting bug (nested `{data:{...}}` → flat spread); moved loganLabsSubmitModal from renderTissueTests innerHTML to static body; added pendingSoilSubmissions localStorage for cross-page label integration
+- `labels.html` — Added Soil Samples + Inventory label types for FT40101WH (4"×1") UL-247 thermal printer; added loadSoilSampleLabels() from localStorage, loadInventoryLabels() from getInventoryProducts API; added renderGenericLabels(), renderGenericLabelPage(), executePrintUL247GenericPDF() with QR codes; fixed selectAllLabels to query both `.tray-label` and `.field-tray-label`; changed inventory API from getFarmInventory to getInventoryProducts for correct data source
+- `employee.html` — Added Brand text input and Est. Value ($) input to inventory form; updated addInventoryItem() to collect brand + estValue; updated submitInventoryCount() to send estValue to backend; fixed offline sync action name (`recordTransaction` → `recordInventoryCount`); updated populateInventoryFormFromAI() to auto-fill brand + estimated value from AI scan; removed CONFIG.GEOFENCE object
+- `apps_script/MERGED TOTAL.js` — Updated parseInventoryLabel AI prompt to request estimatedValue; added estimatedValue to AI response mapping; updated recordInventoryCount to save estValue in Cost_Per_Unit column (both new and existing products); removed FARM_GEOFENCE constant; simplified isInGeofence() to always return true; removed hardcoded geofence in driver clock-in
+- `web_app/api-config.js` — Disabled isWithinGeofence() (always returns true)
+
+### Functions Added
+- `showLoganLabsSubmitForm()` in soil-tests.html — Multi-sample Logan Labs submission modal
+- `addLoganSampleRow()` in soil-tests.html — Dynamic sample row addition
+- `updateLoganCostEstimate()` in soil-tests.html — Real-time cost calculation
+- `submitSoilSampleToLogan()` in soil-tests.html — Save to localStorage + generate PDF
+- `generateLoganLabsSubmissionPDF()` in soil-tests.html — Full printable submission document
+- `loadSoilSampleLabels()` in labels.html — Load pending soil submissions from localStorage
+- `loadInventoryLabels()` in labels.html — Fetch inventory products from API
+- `renderGenericLabels()` in labels.html — Render label preview cards + list
+- `renderGenericLabelPage()` in labels.html — jsPDF renderer for 4"×1" labels
+- `executePrintUL247GenericPDF()` in labels.html — Multi-page PDF with QR codes
+
+### Functions Modified
+- `addInventoryItem()` in employee.html — Now collects brand + estValue
+- `submitInventoryCount()` in employee.html — Sends estValue to backend
+- `populateInventoryFormFromAI()` in employee.html — Auto-fills brand + estimated value
+- `offline sync loop` in employee.html — Fixed action name to recordInventoryCount
+- `parseInventoryLabel()` in MERGED TOTAL.js — AI now estimates value; response includes estimatedValue
+- `recordInventoryCount()` in MERGED TOTAL.js — Maps estValue → Cost_Per_Unit column
+- `isInGeofence()` in MERGED TOTAL.js — Always returns true (geofence disabled)
+- `isWithinGeofence()` in api-config.js — Always returns true (geofence disabled)
+
+### Reason
+User needs to take soil tests today and do inventory. Logan Labs submission workflow replaces Penn State defaults. Estimated value field needed for loan applications. Geofence serves no purpose per owner. Labels needed for soil sample bags, submission worksheets, and inventory items on FT40101WH thermal printer. Offline sync bug would silently fail (wrong API action name).
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions — no duplicates
+- [x] Cross-system verification: labels.html reads same data employee.html writes
+
+---
+
+## 2026-03-09 - RESEARCH_CLAUDE
+
+### Files Created
+- `docs/research/LOGAN_LABS_SOIL_TESTING_GUIDE_2026.md` - Comprehensive guide for building Logan Labs soil testing submission form. Includes contact info, test packages (5 types, $25–$83), submission form requirements (sample ID, field name, crop, depth), sample handling (2 cups, Ziploc, shipping methods), results format, turnaround (3–5 days), and form field mapping for development.
+
+### Reason
+User requested detailed research on Logan Labs soil testing requirements to build an accurate submission form for farmers. Research covers all 6 requested areas: contact info, test packages & prices, submission form fields, sample handling instructions, results report format, and turnaround time. 3+ independent sources verified for each major claim. Form field mapping and pricing logic included for development team.
+
+### Duplicate Check
+- [x] Checked `docs/research/` — no existing Logan Labs or soil testing research
+- [x] Verified 11+ external sources (Logan Labs official site, BuildASoil, Soil Doctor, Grow Abundant, Living Soil Supplies, Yellow Pages, Lawn Forum, Scribd, Urban Farm Colorado)
+
 ```
 
 ---
