@@ -13211,8 +13211,16 @@
 
             <!-- Controls -->
             <div style="padding: 14px 16px; background: var(--bg-card, #1e1e2e);">
+                <!-- Step 1: Select field BEFORE tracing -->
+                <div id="fcFieldSelectRow" style="margin-bottom: 12px;">
+                    <label style="font-size: 0.75rem; color: var(--text-secondary, #94a3b8); display: block; margin-bottom: 6px; font-weight: 600;">Which field are you mapping? *</label>
+                    <select id="fcFieldSelect" onchange="handleFcFieldSelect(this)" style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border, #374151); background: var(--bg-input, #0f172a); color: var(--text-primary, #e2e8f0); font-size: 1rem; box-sizing: border-box;">
+                        <option value="">Select a field...</option>
+                    </select>
+                    <input type="text" id="fcNewFieldName" placeholder="Enter new field name..." style="display: none; width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #f59e0b; background: var(--bg-input, #0f172a); color: var(--text-primary, #e2e8f0); font-size: 1rem; box-sizing: border-box; margin-top: 8px;">
+                </div>
                 <div style="display: flex; gap: 10px; margin-bottom: 12px;">
-                    <button id="fcStartBtn" onclick="startFieldBoundaryTrace()" style="flex: 1; padding: 14px; border-radius: 12px; border: none; background: #22c55e; color: #052e16; font-size: 1rem; font-weight: 600; cursor: pointer;">
+                    <button id="fcStartBtn" onclick="startFieldBoundaryTrace()" style="flex: 1; padding: 14px; border-radius: 12px; border: none; background: #22c55e; color: #052e16; font-size: 1rem; font-weight: 600; cursor: pointer; opacity: 0.4; pointer-events: none;">
                         <i class="fas fa-play"></i> Start Walking
                     </button>
                     <button id="fcStopBtn" onclick="stopFieldBoundaryTrace()" style="flex: 1; padding: 14px; border-radius: 12px; border: none; background: #ef4444; color: white; font-size: 1rem; font-weight: 600; cursor: pointer; display: none;">
@@ -24001,6 +24009,100 @@
             document.getElementById('fieldCapturePanel').classList.add('active');
             initFieldCaptureMap();
             loadFieldBoundaries();
+            populateFcFieldSelect();
+            // Reset field selector state
+            document.getElementById('fcFieldSelect').value = '';
+            document.getElementById('fcNewFieldName').style.display = 'none';
+            document.getElementById('fcNewFieldName').value = '';
+            document.getElementById('fcStartBtn').style.opacity = '0.4';
+            document.getElementById('fcStartBtn').style.pointerEvents = 'none';
+            document.getElementById('fcFieldSelectRow').style.display = 'block';
+        }
+
+        // Build the field dropdown from system fields + already-mapped boundaries
+        function populateFcFieldSelect() {
+            const select = document.getElementById('fcFieldSelect');
+            let options = '<option value="">Select a field...</option>';
+
+            // System fields from getFields API (loaded at app startup, cached)
+            const cachedFields = OfflineDB ? null : null; // will use AppState or DOM
+            const scoutSelect = document.getElementById('scoutField');
+            if (scoutSelect) {
+                // Reuse field options from the scouting dropdown (already populated from getFields)
+                const fieldOpts = scoutSelect.querySelectorAll('option');
+                const fieldNames = new Set();
+                if (fieldOpts.length > 1) {
+                    options += '<optgroup label="System Fields">';
+                    fieldOpts.forEach(opt => {
+                        if (opt.value) {
+                            fieldNames.add(opt.textContent.trim());
+                            options += '<option value="' + opt.value + '">' + opt.textContent + '</option>';
+                        }
+                    });
+                    options += '</optgroup>';
+                }
+
+                // Already-mapped boundaries that aren't in system fields
+                if (fcBoundaries.length > 0) {
+                    const mapped = fcBoundaries.filter(b => {
+                        const name = b.Name || b.name || '';
+                        return !fieldNames.has(name);
+                    });
+                    if (mapped.length > 0) {
+                        options += '<optgroup label="Already Mapped">';
+                        mapped.forEach(b => {
+                            const name = b.Name || b.name || 'Unnamed';
+                            options += '<option value="mapped_' + (b.Boundary_ID || '') + '">' + name + ' (re-map)</option>';
+                        });
+                        options += '</optgroup>';
+                    }
+                }
+            }
+
+            options += '<option value="__new__">— Add New Field —</option>';
+            select.innerHTML = options;
+        }
+
+        function handleFcFieldSelect(select) {
+            const newFieldInput = document.getElementById('fcNewFieldName');
+            const startBtn = document.getElementById('fcStartBtn');
+
+            if (select.value === '__new__') {
+                newFieldInput.style.display = 'block';
+                newFieldInput.focus();
+                // Enable start only when they type a name
+                newFieldInput.oninput = function() {
+                    if (this.value.trim()) {
+                        startBtn.style.opacity = '1';
+                        startBtn.style.pointerEvents = 'auto';
+                    } else {
+                        startBtn.style.opacity = '0.4';
+                        startBtn.style.pointerEvents = 'none';
+                    }
+                };
+                startBtn.style.opacity = '0.4';
+                startBtn.style.pointerEvents = 'none';
+            } else if (select.value) {
+                newFieldInput.style.display = 'none';
+                newFieldInput.value = '';
+                startBtn.style.opacity = '1';
+                startBtn.style.pointerEvents = 'auto';
+            } else {
+                newFieldInput.style.display = 'none';
+                newFieldInput.value = '';
+                startBtn.style.opacity = '0.4';
+                startBtn.style.pointerEvents = 'none';
+            }
+        }
+
+        // Get the selected field name for saving
+        function getFcSelectedFieldName() {
+            const select = document.getElementById('fcFieldSelect');
+            if (select.value === '__new__') {
+                return document.getElementById('fcNewFieldName').value.trim();
+            }
+            // Get display text of selected option
+            return select.options[select.selectedIndex]?.textContent?.replace(' (re-map)', '') || '';
         }
 
         function closeFieldCapture() {
@@ -24032,11 +24134,20 @@
                 showToast('GPS not available on this device', 'error');
                 return;
             }
+            // Validate field is selected
+            const fieldName = getFcSelectedFieldName();
+            if (!fieldName) {
+                showToast('Please select a field first', 'error');
+                return;
+            }
+
             fcTracePoints = [];
             fcCornerPoints = [];
             fcIsTracing = true;
             clearFcTraceVisuals();
 
+            // Hide field selector during trace, show field name in status
+            document.getElementById('fcFieldSelectRow').style.display = 'none';
             document.getElementById('fcStartBtn').style.display = 'none';
             document.getElementById('fcStopBtn').style.display = 'block';
             document.getElementById('fcCornerBtnRow').style.display = 'block';
@@ -24077,7 +24188,7 @@
                 { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
             );
             if (navigator.vibrate) navigator.vibrate(100);
-            showToast('Walking... stay near the boundary', 'success');
+            showToast('Mapping "' + fieldName + '" — walk the boundary', 'success');
         }
 
         function stopFieldBoundaryTrace() {
@@ -24086,6 +24197,7 @@
                 navigator.geolocation.clearWatch(fcTraceWatchId);
                 fcTraceWatchId = null;
             }
+            document.getElementById('fcFieldSelectRow').style.display = 'block';
             document.getElementById('fcStartBtn').style.display = 'block';
             document.getElementById('fcStopBtn').style.display = 'none';
             document.getElementById('fcCornerBtnRow').style.display = 'none';
@@ -24196,8 +24308,8 @@
                     </div>
                     <div style="padding:18px 20px;">
                         <div style="margin-bottom:14px;">
-                            <label style="font-size:0.75rem;color:var(--text-secondary,#94a3b8);display:block;margin-bottom:4px;font-weight:600;">Name *</label>
-                            <input type="text" id="fcBndName" placeholder="e.g., North Field" style="width:100%;padding:12px;border-radius:8px;border:1px solid var(--border,#374151);background:var(--bg-input,#0f172a);color:var(--text-primary,#e2e8f0);font-size:1rem;box-sizing:border-box;">
+                            <label style="font-size:0.75rem;color:var(--text-secondary,#94a3b8);display:block;margin-bottom:4px;font-weight:600;">Field Name</label>
+                            <input type="text" id="fcBndName" value="${getFcSelectedFieldName()}" style="width:100%;padding:12px;border-radius:8px;border:1px solid var(--border,#374151);background:var(--bg-input,#0f172a);color:var(--text-primary,#e2e8f0);font-size:1rem;box-sizing:border-box;">
                         </div>
                         <div style="margin-bottom:14px;">
                             <label style="font-size:0.75rem;color:var(--text-secondary,#94a3b8);display:block;margin-bottom:4px;font-weight:600;">Type</label>
