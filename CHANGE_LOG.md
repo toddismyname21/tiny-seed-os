@@ -33,6 +33,31 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-03-10 — PM_ARCHITECT: Real field data in GPS mapping + backend field registration
+
+### Root Cause
+Field capture dropdown was scraping DOM elements from the scouting panel instead of calling the API directly. "Add New Field" only saved the name to the boundary — never registered the field in REF_Fields/REF_Beds backend sheets.
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — Added `addField` to `PUBLIC_GET_ACTIONS` whitelist so employee app can register new fields without session tokens
+- `employee.html` — Rewrote field capture panel:
+  - `loadFcFieldsFromAPI()` calls `getFields` API (reads REF_Beds sheet) to populate dropdown with actual farm fields + bed counts
+  - `buildFcFieldDropdown()` shows "Your Fields" (from API) + "Mapped (not in field registry)" (from FARM_BOUNDARIES) + "Add New Field to System"
+  - `registerNewFieldAndSelect()` calls `addField` API which creates the field in REF_Fields AND auto-generates beds in REF_Beds
+  - New field form collects: Field ID, Length (ft), Width (ft), Type (Veg/Floral/Perennial/Cover)
+  - After registration, dropdown refreshes from API and auto-selects the new field
+
+### Verification
+- `curl getFields` — returns 20 actual fields (B, CL, F11M, F3L, F7M, HOL, IL, IOL, JL, JS1, JS10, JS4, JS6, K1, K2, M, SO, Z1, Z3, Z5) with bed counts
+- `curl addField` (no params) — returns `"Required: fieldId/name, length, width"` (passes auth, validates params)
+
+### Cross-System Impact
+- [x] `addField` writes to REF_Fields + REF_Beds — these are read by `getFields`, calendar.html, planning.html
+- [x] `getFields` reads from REF_Beds (same source as scouting dropdown, calendar bed picker)
+- [x] FARM_BOUNDARIES unchanged — `saveBoundary` still works the same way
+
+---
+
 ## 2026-03-10 — PM_ARCHITECT: Field selection required before GPS boundary mapping
 
 ### Files Modified
