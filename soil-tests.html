@@ -8264,9 +8264,7 @@
 
         function showLoganLabsSubmitForm() {
             const modal = document.getElementById('loganLabsSubmitModal');
-            const fieldOptions = Object.keys(FARM_FIELDS).map(f =>
-                '<option value="' + f + '">' + f + ' (' + FARM_FIELDS[f].acreage + ' ac)</option>'
-            ).join('');
+            const fieldOptions = getLoganFieldOptions();
 
             const testOptions = Object.entries(LOGAN_LABS.tests)
                 .filter(([k]) => k !== 'tissue' && k !== 'water')
@@ -8299,10 +8297,12 @@
                                         </div>
                                         <div>
                                             <label style="font-size: 0.75rem; color: #64748b; font-weight: 600;">Field / Zone *</label>
-                                            <select name="field_0" required style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem; font-size: 0.875rem;">
+                                            <select name="field_0" required onchange="handleLoganFieldChange(this)" style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem; font-size: 0.875rem;">
                                                 <option value="">Select field...</option>
                                                 ${fieldOptions}
+                                                <option value="__new__">— Add New Field / Zone —</option>
                                             </select>
+                                            <input type="text" name="newField_0" placeholder="Enter new field name..." style="display:none; width:100%; padding:0.5rem; border:1px solid #a16207; border-radius:0.375rem; font-size:0.875rem; margin-top:0.375rem; background:#fffbeb;">
                                         </div>
                                         <div>
                                             <label style="font-size: 0.75rem; color: #64748b; font-weight: 600;">Crop / Intended Use</label>
@@ -8382,13 +8382,34 @@
             document.getElementById('loganLabsSubmitModal').style.display = 'none';
         }
 
+        // Helper: build field <option> list from FARM_FIELDS + "Add New" option
+        function getLoganFieldOptions() {
+            return Object.keys(FARM_FIELDS).map(f =>
+                '<option value="' + f + '">' + f + ' (' + FARM_FIELDS[f].acreage + ' ac)</option>'
+            ).join('');
+        }
+
+        // Helper: show/hide new-field text input when "Add New" is selected
+        function handleLoganFieldChange(select) {
+            const idx = select.name.replace('field_', '');
+            const newFieldInput = select.closest('.logan-sample-row').querySelector('[name="newField_' + idx + '"]');
+            if (!newFieldInput) return;
+            if (select.value === '__new__') {
+                newFieldInput.style.display = 'block';
+                newFieldInput.required = true;
+                newFieldInput.focus();
+            } else {
+                newFieldInput.style.display = 'none';
+                newFieldInput.required = false;
+                newFieldInput.value = '';
+            }
+        }
+
         let loganSampleCount = 1;
 
         function addLoganSampleRow() {
             const idx = loganSampleCount++;
-            const fieldOptions = Object.keys(FARM_FIELDS).map(f =>
-                '<option value="' + f + '">' + f + ' (' + FARM_FIELDS[f].acreage + ' ac)</option>'
-            ).join('');
+            const fieldOptions = getLoganFieldOptions();
 
             const testOptions = Object.entries(LOGAN_LABS.tests)
                 .filter(([k]) => k !== 'tissue' && k !== 'water')
@@ -8414,10 +8435,12 @@
                     </div>
                     <div>
                         <label style="font-size: 0.75rem; color: #64748b; font-weight: 600;">Field / Zone *</label>
-                        <select name="field_${idx}" required style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem; font-size: 0.875rem;">
+                        <select name="field_${idx}" required onchange="handleLoganFieldChange(this)" style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem; font-size: 0.875rem;">
                             <option value="">Select field...</option>
                             ${fieldOptions}
+                            <option value="__new__">— Add New Field / Zone —</option>
                         </select>
+                        <input type="text" name="newField_${idx}" placeholder="Enter new field name..." style="display:none; width:100%; padding:0.5rem; border:1px solid #a16207; border-radius:0.375rem; font-size:0.875rem; margin-top:0.375rem; background:#fffbeb;">
                     </div>
                     <div>
                         <label style="font-size: 0.75rem; color: #64748b; font-weight: 600;">Crop / Intended Use</label>
@@ -8465,9 +8488,15 @@
             rows.forEach(row => {
                 const idx = row.dataset.index;
                 const form = document.getElementById('loganLabsForm');
+                let fieldVal = form.querySelector(`[name="field_${idx}"]`).value;
+                if (fieldVal === '__new__') {
+                    const newFieldInput = form.querySelector(`[name="newField_${idx}"]`);
+                    fieldVal = newFieldInput ? newFieldInput.value.trim() : '';
+                    if (!fieldVal) { alert('Please enter a name for the new field/zone on Sample ' + (samples.length + 1)); return; }
+                }
                 samples.push({
                     sampleId: form.querySelector(`[name="sampleId_${idx}"]`).value,
-                    field: form.querySelector(`[name="field_${idx}"]`).value,
+                    field: fieldVal,
                     crop: form.querySelector(`[name="crop_${idx}"]`)?.value || '',
                     depth: parseFloat(form.querySelector(`[name="depth_${idx}"]`).value) || 6,
                     testPackage: form.querySelector(`[name="test_${idx}"]`).value

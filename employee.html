@@ -13204,7 +13204,7 @@
             <div id="fcTraceStatus" style="display: none; background: #ef4444; color: white; padding: 10px 16px; align-items: center; justify-content: space-between; font-size: 0.9rem;">
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <div style="width: 8px; height: 8px; background: white; border-radius: 50%; animation: pulse 1s infinite;"></div>
-                    <span>Recording &bull; <strong id="fcPointCount">0</strong> pts &bull; <strong id="fcTraceDistance">0</strong> ft</span>
+                    <span>Recording &bull; <strong id="fcPointCount">0</strong> pts &bull; <span id="fcCornerDisplay" style="display:none"><strong id="fcCornerCountStatus">0</strong> corners &bull; </span><strong id="fcTraceDistance">0</strong> ft</span>
                 </div>
                 <span id="fcAccuracy" style="font-size: 0.75rem; opacity: 0.8;"></span>
             </div>
@@ -13218,6 +13218,14 @@
                     <button id="fcStopBtn" onclick="stopFieldBoundaryTrace()" style="flex: 1; padding: 14px; border-radius: 12px; border: none; background: #ef4444; color: white; font-size: 1rem; font-weight: 600; cursor: pointer; display: none;">
                         <i class="fas fa-stop"></i> Stop &amp; Save
                     </button>
+                </div>
+                <div id="fcCornerBtnRow" style="display: none; margin-bottom: 12px;">
+                    <button id="fcCornerBtn" onclick="markFieldCorner()" style="width: 100%; padding: 16px; border-radius: 12px; border: 2px dashed #f59e0b; background: rgba(245,158,11,0.15); color: #fbbf24; font-size: 1.1rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                        <i class="fas fa-map-pin"></i> Mark Corner (<span id="fcCornerCount">0</span>)
+                    </button>
+                    <div style="text-align: center; font-size: 0.7rem; color: var(--text-secondary, #94a3b8); margin-top: 4px; opacity: 0.7;">
+                        Tap at each corner of the field &bull; Walk trace continues in background
+                    </div>
                 </div>
                 <div id="fcBoundaryList" style="max-height: 220px; overflow-y: auto;">
                     <div style="color: var(--text-secondary, #94a3b8); text-align: center; padding: 20px; font-size: 0.85rem;">
@@ -23985,6 +23993,9 @@
         let fcBoundaries = [];
         let fcBoundaryPolygons = [];
         let fcCurrentLocationMarker = null;
+        let fcCornerPoints = [];     // manually marked corners
+        let fcCornerMarkers = [];    // map markers for corners
+        let fcCornerPath = null;     // polygon preview connecting corners
 
         function openFieldCapture() {
             document.getElementById('fieldCapturePanel').classList.add('active');
@@ -24022,11 +24033,14 @@
                 return;
             }
             fcTracePoints = [];
+            fcCornerPoints = [];
             fcIsTracing = true;
             clearFcTraceVisuals();
 
             document.getElementById('fcStartBtn').style.display = 'none';
             document.getElementById('fcStopBtn').style.display = 'block';
+            document.getElementById('fcCornerBtnRow').style.display = 'block';
+            document.getElementById('fcCornerCount').textContent = '0';
             document.getElementById('fcTraceStatus').style.display = 'flex';
             document.getElementById('fcPointCount').textContent = '0';
             document.getElementById('fcTraceDistance').textContent = '0';
@@ -24074,24 +24088,86 @@
             }
             document.getElementById('fcStartBtn').style.display = 'block';
             document.getElementById('fcStopBtn').style.display = 'none';
+            document.getElementById('fcCornerBtnRow').style.display = 'none';
             document.getElementById('fcTraceStatus').style.display = 'none';
 
-            if (fcTracePoints.length < 3) {
-                showToast('Need at least 3 points to form a boundary', 'error');
+            // If corners were marked, use them as the boundary (minimum 3)
+            // Otherwise fall back to the continuous trace points
+            const hasCorners = fcCornerPoints.length >= 3;
+            const minPoints = hasCorners ? 3 : 3;
+            const pointsToCheck = hasCorners ? fcCornerPoints : fcTracePoints;
+
+            if (pointsToCheck.length < minPoints) {
+                showToast('Need at least 3 ' + (hasCorners ? 'corners' : 'points') + ' to form a boundary', 'error');
                 clearFcTraceVisuals();
                 return;
             }
-            const stats = fcCalculatePolygonStats(fcTracePoints);
-            showFcSaveModal(stats);
+            // Use corner points for polygon if available, trace for visual reference
+            const boundarySource = hasCorners ? fcCornerPoints : fcTracePoints;
+            const stats = fcCalculatePolygonStats(boundarySource);
+            showFcSaveModal(stats, hasCorners);
         }
 
         function clearFcTraceVisuals() {
             if (fcTracePath) { fcTracePath.setMap(null); fcTracePath = null; }
             fcTraceMarkers.forEach(m => m.setMap(null));
             fcTraceMarkers = [];
+            // Clear corner markers
+            fcCornerMarkers.forEach(m => m.setMap(null));
+            fcCornerMarkers = [];
+            if (fcCornerPath) { fcCornerPath.setMap(null); fcCornerPath = null; }
         }
 
-        function showFcSaveModal(stats) {
+        function markFieldCorner() {
+            if (!fcIsTracing) return;
+            // Use most recent GPS trace point as the corner position
+            if (fcTracePoints.length === 0) {
+                showToast('Waiting for GPS fix...', 'error');
+                return;
+            }
+            const latest = fcTracePoints[fcTracePoints.length - 1];
+            const corner = { lat: latest.lat, lng: latest.lng, accuracy: latest.accuracy };
+            fcCornerPoints.push(corner);
+
+            // Big visible corner marker (orange pin)
+            const marker = new google.maps.Marker({
+                position: { lat: corner.lat, lng: corner.lng },
+                map: fcMap,
+                icon: {
+                    path: google.maps.SymbolPath.BACKWARD_CLOSED_ARROW,
+                    scale: 7,
+                    fillColor: '#f59e0b',
+                    fillOpacity: 1,
+                    strokeColor: '#fff',
+                    strokeWeight: 2
+                },
+                label: { text: String(fcCornerPoints.length), color: '#fff', fontSize: '11px', fontWeight: '700' },
+                zIndex: 999
+            });
+            fcCornerMarkers.push(marker);
+
+            // Draw/update polygon preview connecting corners
+            if (fcCornerPath) fcCornerPath.setMap(null);
+            if (fcCornerPoints.length >= 2) {
+                fcCornerPath = new google.maps.Polygon({
+                    map: fcMap,
+                    paths: fcCornerPoints.map(p => ({ lat: p.lat, lng: p.lng })),
+                    strokeColor: '#f59e0b',
+                    strokeWeight: 2,
+                    strokeOpacity: 0.8,
+                    fillColor: '#f59e0b',
+                    fillOpacity: 0.15
+                });
+            }
+
+            document.getElementById('fcCornerCount').textContent = fcCornerPoints.length;
+            document.getElementById('fcCornerCountStatus').textContent = fcCornerPoints.length;
+            document.getElementById('fcCornerDisplay').style.display = 'inline';
+            if (navigator.vibrate) navigator.vibrate([50, 30, 50]); // double tap feedback
+            showToast('Corner ' + fcCornerPoints.length + ' marked', 'success');
+        }
+
+        function showFcSaveModal(stats, hasCorners) {
             const existing = document.getElementById('fcSaveModal');
             if (existing) existing.remove();
 
@@ -24116,7 +24192,7 @@
                 <div style="background:var(--bg-card,#1e1e2e);border-radius:16px;width:100%;max-width:400px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
                     <div style="background:linear-gradient(135deg,#3b82f6,#1d4ed8);padding:18px 20px;color:white;">
                         <h3 style="margin:0;font-size:1.1rem;">Save Field Boundary</h3>
-                        <p style="margin:4px 0 0;opacity:0.85;font-size:0.8rem;">${fcTracePoints.length} points &bull; ${stats.acres} acres &bull; ${stats.perimeterFt} ft</p>
+                        <p style="margin:4px 0 0;opacity:0.85;font-size:0.8rem;">${hasCorners ? fcCornerPoints.length + ' corners' : fcTracePoints.length + ' points'} &bull; ${stats.acres} acres &bull; ${stats.perimeterFt} ft</p>
                     </div>
                     <div style="padding:18px 20px;">
                         <div style="margin-bottom:14px;">
@@ -24163,6 +24239,7 @@
         function discardFcBoundary() {
             clearFcTraceVisuals();
             fcTracePoints = [];
+            fcCornerPoints = [];
             const m = document.getElementById('fcSaveModal');
             if (m) m.remove();
         }
@@ -24175,12 +24252,14 @@
             const color = colorRadio ? colorRadio.value : '#3b82f6';
 
             try {
+                // Use corner points as boundary if available, otherwise use trace
+                const boundaryCoords = fcCornerPoints.length >= 3 ? fcCornerPoints : fcTracePoints;
                 const params = new URLSearchParams({
                     action: 'saveBoundary',
                     type: type,
                     name: name,
                     color: color,
-                    coordinates: JSON.stringify(fcTracePoints),
+                    coordinates: JSON.stringify(boundaryCoords),
                     createdBy: AppState.employee ? AppState.employee.Name : 'Employee'
                 });
                 const token = getAuthToken();
