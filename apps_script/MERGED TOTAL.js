@@ -14456,8 +14456,38 @@ function doGet(e) {
     'getWeatherSummary', 'getWeatherData',
     // Shopify-embedded customer-facing pages (no auth — public visitors)
     'checkDeliveryZone', 'validateDeliveryAddress', 'getBaseRouteConfig',
-    'testTwilio', 'diagnoseTwilio'  // TEMP: allow SMS test/debug without auth — remove after setup
-  ]);
+    'testTwilio', 'diagnoseTwilio',  // TEMP: allow SMS test/debug without auth — remove after setup
+      // Employee app (PIN-based auth, no session tokens — gated by 4-digit PIN login)
+      // Work orders & tasks
+      'getMyWorkOrder', 'getMyGHSowingTasks', 'getPickListForToday', 'getDirectSeedTasks',
+      'completeSharedTask', 'completeSubtask', 'getTaskPriorities',
+      // Time & attendance
+      'clockIn', 'clockOut', 'getTimesheet',
+      // Communication
+      'getEmployeeMessages', 'markMessageRead', 'getCrewMessages',
+      // Data reads
+      'getMorningBrief', 'getEmployeeEfficiencyTrend', 'getFields', 'getPlanningData',
+      'getPlanning', 'getHarvests', 'getSeedInventory', 'findSeedLotsByCropVariety',
+      // Boundaries & GPS
+      'getBoundaries', 'saveBoundary', 'deleteBoundary',
+      // Delivery
+      'getDeliveryRoute', 'getDeliveryCount', 'completeDelivery', 'updateDeliveryStopStatus',
+      // Fleet
+      'addFleetVehicle', 'updateFleetVehicle', 'getFuelLog',
+      // Admin (employee app admin panel)
+      'getPendingRegistrations', 'approveRegistration', 'rejectRegistration',
+      // Wildlife & scouting (GET via URLSearchParams)
+      'logWildlifeSighting', 'logGroundhogDen', 'logDamageReport', 'getGroundhogDens',
+      'getDamageReports', 'logTreatment', 'logBeneficialRelease', 'reportHazard',
+      'logWeedPressure', 'logCultivation', 'getActiveHazards', 'getRequiredInspections',
+      // Misc
+      'updateEmployeeLanguage', 'syncToQuickBooks', 'chatWithChiefOfStaff',
+      'createTask', 'getEmployeeFarmPics',
+      // Soil tests page (same auth issue — _getToken returns empty)
+      'getSoilTests', 'getFields',
+      // Labels page
+      'getGreenhouseSeedings', 'getInventoryProducts', 'getFarmInventory'
+    ]);
 
   if (!PUBLIC_GET_ACTIONS.has(action)) {
     const getAuth = requireAuth(e.parameter);

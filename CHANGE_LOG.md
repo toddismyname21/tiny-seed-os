@@ -33,6 +33,29 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-03-10 — PM_ARCHITECT: Fix auth blocking ALL employee app operations (GET + POST)
+
+### Root Cause
+The 2026-02-28 security audit added global auth middleware to BOTH doGet and doPost requiring session tokens. Employee app uses PIN-based auth (no session tokens). ALL employee operations — clock in/out, GPS boundaries, tasks, scouting, soil sampling, inventory, AI scanner, deliveries — were silently failing with "No token provided". Soil-tests.html and labels.html GET actions were also blocked.
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — Added employee app actions to BOTH `PUBLIC_POST_ACTIONS` (46 actions) and `PUBLIC_GET_ACTIONS` (40+ actions) whitelists.
+
+### Verification Evidence (live curl)
+- `saveBoundary`: `"Boundary created"` (was: `"No token provided"`)
+- `getBoundaries`: returns boundaries array (was: `"No token provided"`)
+- `clockIn`: `{"success":true}` (was: `"No token provided"`)
+- `getSoilTests`: returns data (was: `"No token provided"`)
+- `parseInventoryLabel`: `"No photo provided"` (was: `"No token provided"`)
+- `recordInventoryCount`: `"Product name is required"` (was: `"No token provided"`)
+
+### Duplicate Check
+- [x] No new files created
+- [x] No new functions created
+- [x] Only modified existing whitelist Sets
+
+---
+
 ## 2026-03-10 — PM_ARCHITECT: Fix auth blocking all employee app + soil test POST operations
 
 ### Root Cause
