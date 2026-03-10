@@ -33,6 +33,21 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-03-10 — PM_ARCHITECT: Soil test new field + GPS corner marking
+
+### Files Modified
+- `soil-tests.html` — Added "Add New Field / Zone" option to Logan Labs submission form (both initial and additional samples). Created `getLoganFieldOptions()` helper and `handleLoganFieldChange()` handler. Updated `submitSoilSampleToLogan()` to resolve new field names.
+- `employee.html` — Added "Mark Corner" button to GPS boundary tracing. Users can mark polygon corners while walking; corners appear as labeled orange pins with polygon preview. When 3+ corners marked, they become the saved boundary vertices. Both continuous trace and corner marking work simultaneously.
+
+### Verified
+- `web_app/satellite-map.html` already loads real boundaries via `getBoundaries` API and renders them on satellite map — no changes needed. Accessible from Tiny Seed OS main nav.
+
+### Duplicate Check
+- [x] No new files created
+- [x] Searched for existing map pages — satellite-map.html already exists
+
+---
+
 ## 2026-03-10 — PM_ARCHITECT: Fix auth blocking ALL employee app operations (GET + POST)
 
 ### Root Cause
