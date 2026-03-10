@@ -18297,6 +18297,7 @@
                     headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         action: 'parseInventoryLabel',
+                        token: getAuthToken(),
                         photo: compressedForAPI,
                         context: 'farm inventory label scanning'
                     }),
@@ -18768,6 +18769,7 @@
             for (const item of InventoryState.currentCount) {
                 const transactionData = {
                     action: 'recordInventoryCount',
+                    token: getAuthToken(),
                     productName: item.name,
                     qty: item.qty,
                     unit: item.unit,
@@ -18891,6 +18893,7 @@
                 for (const item of record.items) {
                     const transactionData = {
                         action: 'recordInventoryCount',
+                        token: getAuthToken(),
                         productName: item.name,
                         qty: item.qty,
                         unit: item.unit,
