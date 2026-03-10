@@ -33,6 +33,27 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-03-10 — PM_ARCHITECT: Fix auth blocking all employee app + soil test POST operations
+
+### Root Cause
+The 2026-02-28 security audit added global POST auth middleware requiring session tokens. Employee app uses PIN-based auth (no session tokens). All employee POST operations (AI scanner, inventory submit, field notes, task completion, scouting, etc.) and soil-tests.html POST operations were silently failing with "No token provided".
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — Added 38 employee app POST actions + 8 soil test POST actions to `PUBLIC_POST_ACTIONS` whitelist. These endpoints are gated by PIN login, not session tokens.
+
+### Verification Evidence
+- `parseInventoryLabel` with empty photo: returns `"No photo provided"` (was: `"No token provided"`)
+- `parseInventoryLabel` with real image: returns `"AI error: Could not process image"` (Claude API reached)
+- `recordInventoryCount` with empty name: returns `"Product name is required"` (function executes)
+- `saveSoilTest`: returns `{"success":true}` (function executes)
+
+### Duplicate Check
+- [x] No new files created
+- [x] No new functions created
+- [x] Only modified existing whitelist Set
+
+---
+
 ## 2026-03-09 — PM_ARCHITECT: Soil Tests, Inventory System, Geofence Removal, Label Printing
 
 ### Files Modified

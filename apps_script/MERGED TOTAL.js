@@ -18131,7 +18131,29 @@ function doPost(e) {
       // Employee self-service (uses invite token or self-registration)
       'registerEmployee', 'completeOnboarding', 'completeEmployeeOnboarding',
       // Shopify-embedded customer-facing (public visitors send delivery requests)
-      'sendDeliveryRequest'
+      'sendDeliveryRequest',
+      // Employee app (PIN-based auth, no session tokens — gated by 4-digit PIN login)
+      // Inventory
+      'parseInventoryLabel', 'recordInventoryCount', 'addInventoryLocation',
+      'addInventoryCategory', 'getInventoryLocations', 'getInventoryCategories',
+      'adjustInventory', 'saveProduct', 'uploadProductPhoto',
+      // Tasks & time
+      'checkInTask', 'checkOutTask', 'completeTaskWithTimeLog', 'createTask',
+      'createChainTask', 'updateUnifiedTask', 'undoTaskCompletion', 'updatePlanningFields',
+      'updatePickItemStatus', 'completePackingOrder',
+      // Field operations
+      'confirmGHSowing', 'uploadSowingPhoto', 'saveFieldNote', 'deleteFieldNote',
+      'saveScoutingReport', 'saveBoundary', 'saveSoilSamplingSession',
+      'analyzeImage', 'analyzeSeedPacket', 'addSeedLot',
+      // Logging
+      'logHarvestWithDetails', 'logLaborCost', 'logFuelUsage', 'logTraceability',
+      'logDirectSowConfirmation', 'recordActualYield', 'recordSeedingDate',
+      // Communication
+      'acknowledgeMessage', 'sendRouteSMS', 'submitFarmPic',
+      // Soil tests (soil-tests.html also uses POST without session tokens)
+      'saveSoilTest', 'saveComplianceRecord', 'saveIPMSchedule', 'updateIPMSprayStatus',
+      'saveFertigationData', 'saveFoliarApplication', 'saveSoilAmendment', 'bulkSyncSoilData',
+      'bulkSyncFieldNotes'
     ]);
 
     if (action && !PUBLIC_POST_ACTIONS.has(action)) {
