@@ -33,6 +33,24 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-03-10 — PM_ARCHITECT: Field selection required before GPS boundary mapping
+
+### Files Modified
+- `employee.html` — Added field selection step before "Start Walking" in GPS boundary capture. Dropdown shows:
+  - **System fields** from `getFields` API (REF_Beds sheet, loaded at app startup)
+  - **Already-mapped boundaries** with "(re-map)" suffix
+  - **"Add New Field"** option with free-text input
+  - Start button is disabled until a field is selected. Selected name pre-fills save modal.
+  - Field selector hides during active trace, reappears when done.
+
+### Cross-System Verification
+- [x] `getFields` API returns from REF_Beds — same data as scouting dropdown
+- [x] `saveBoundary` API saves to FARM_BOUNDARIES — name comes from pre-selected field
+- [x] `getBoundaries` API loads saved boundaries — used to populate "Already Mapped" group
+- [x] `satellite-map.html` reads same FARM_BOUNDARIES data — no impact
+
+---
+
 ## 2026-03-10 — PM_ARCHITECT: Soil test new field + GPS corner marking
 
 ### Files Modified
