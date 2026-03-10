@@ -13215,9 +13215,26 @@
                 <div id="fcFieldSelectRow" style="margin-bottom: 12px;">
                     <label style="font-size: 0.75rem; color: var(--text-secondary, #94a3b8); display: block; margin-bottom: 6px; font-weight: 600;">Which field are you mapping? *</label>
                     <select id="fcFieldSelect" onchange="handleFcFieldSelect(this)" style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border, #374151); background: var(--bg-input, #0f172a); color: var(--text-primary, #e2e8f0); font-size: 1rem; box-sizing: border-box;">
-                        <option value="">Select a field...</option>
+                        <option value="">Loading fields...</option>
                     </select>
-                    <input type="text" id="fcNewFieldName" placeholder="Enter new field name..." style="display: none; width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #f59e0b; background: var(--bg-input, #0f172a); color: var(--text-primary, #e2e8f0); font-size: 1rem; box-sizing: border-box; margin-top: 8px;">
+                    <!-- New field registration form (hidden until "Add New" selected) -->
+                    <div id="fcNewFieldForm" style="display: none; margin-top: 10px; padding: 12px; border-radius: 10px; border: 1px solid #f59e0b; background: rgba(245,158,11,0.08);">
+                        <div style="font-size: 0.8rem; color: #fbbf24; font-weight: 600; margin-bottom: 8px;">Register New Field</div>
+                        <input type="text" id="fcNewFieldId" placeholder="Field ID (e.g., F12, NW1)" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border, #374151); background: var(--bg-input, #0f172a); color: var(--text-primary, #e2e8f0); font-size: 0.95rem; box-sizing: border-box; margin-bottom: 6px;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 6px;">
+                            <input type="number" id="fcNewFieldLength" placeholder="Length (ft)" inputmode="numeric" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border, #374151); background: var(--bg-input, #0f172a); color: var(--text-primary, #e2e8f0); font-size: 0.95rem; box-sizing: border-box;">
+                            <input type="number" id="fcNewFieldWidth" placeholder="Width (ft)" inputmode="numeric" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border, #374151); background: var(--bg-input, #0f172a); color: var(--text-primary, #e2e8f0); font-size: 0.95rem; box-sizing: border-box;">
+                        </div>
+                        <select id="fcNewFieldType" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border, #374151); background: var(--bg-input, #0f172a); color: var(--text-primary, #e2e8f0); font-size: 0.95rem; box-sizing: border-box; margin-bottom: 8px;">
+                            <option value="Veg">Vegetable</option>
+                            <option value="Floral">Floral</option>
+                            <option value="Perennial">Perennial</option>
+                            <option value="Cover">Cover Crop / Fallow</option>
+                        </select>
+                        <button onclick="registerNewFieldAndSelect()" style="width: 100%; padding: 10px; border-radius: 8px; border: none; background: #f59e0b; color: #1a1a2e; font-weight: 600; font-size: 0.95rem; cursor: pointer;">
+                            <i class="fas fa-plus-circle"></i> Add Field to System
+                        </button>
+                    </div>
                 </div>
                 <div style="display: flex; gap: 10px; margin-bottom: 12px;">
                     <button id="fcStartBtn" onclick="startFieldBoundaryTrace()" style="flex: 1; padding: 14px; border-radius: 12px; border: none; background: #22c55e; color: #052e16; font-size: 1rem; font-weight: 600; cursor: pointer; opacity: 0.4; pointer-events: none;">
@@ -24005,104 +24022,160 @@
         let fcCornerMarkers = [];    // map markers for corners
         let fcCornerPath = null;     // polygon preview connecting corners
 
+        // Cached fields from API for the field capture dropdown
+        let fcSystemFields = [];
+
         function openFieldCapture() {
             document.getElementById('fieldCapturePanel').classList.add('active');
             initFieldCaptureMap();
             loadFieldBoundaries();
-            populateFcFieldSelect();
-            // Reset field selector state
+            loadFcFieldsFromAPI();
+            // Reset UI state
             document.getElementById('fcFieldSelect').value = '';
-            document.getElementById('fcNewFieldName').style.display = 'none';
-            document.getElementById('fcNewFieldName').value = '';
+            document.getElementById('fcNewFieldForm').style.display = 'none';
             document.getElementById('fcStartBtn').style.opacity = '0.4';
             document.getElementById('fcStartBtn').style.pointerEvents = 'none';
             document.getElementById('fcFieldSelectRow').style.display = 'block';
         }
 
-        // Build the field dropdown from system fields + already-mapped boundaries
-        function populateFcFieldSelect() {
+        // Load actual fields from the backend API (REF_Beds / REF_Fields sheets)
+        async function loadFcFieldsFromAPI() {
             const select = document.getElementById('fcFieldSelect');
-            let options = '<option value="">Select a field...</option>';
+            select.innerHTML = '<option value="">Loading fields...</option>';
 
-            // System fields from getFields API (loaded at app startup, cached)
-            const cachedFields = OfflineDB ? null : null; // will use AppState or DOM
-            const scoutSelect = document.getElementById('scoutField');
-            if (scoutSelect) {
-                // Reuse field options from the scouting dropdown (already populated from getFields)
-                const fieldOpts = scoutSelect.querySelectorAll('option');
-                const fieldNames = new Set();
-                if (fieldOpts.length > 1) {
-                    options += '<optgroup label="System Fields">';
-                    fieldOpts.forEach(opt => {
-                        if (opt.value) {
-                            fieldNames.add(opt.textContent.trim());
-                            options += '<option value="' + opt.value + '">' + opt.textContent + '</option>';
-                        }
-                    });
-                    options += '</optgroup>';
+            try {
+                const response = await fetch(apiUrl('getFields'));
+                const data = await response.json();
+
+                if (data.success && data.fields && data.fields.length > 0) {
+                    fcSystemFields = data.fields;
+                } else {
+                    // Try offline cache
+                    const cached = await OfflineDB.getCachedReferenceData('fields');
+                    fcSystemFields = cached || [];
                 }
-
-                // Already-mapped boundaries that aren't in system fields
-                if (fcBoundaries.length > 0) {
-                    const mapped = fcBoundaries.filter(b => {
-                        const name = b.Name || b.name || '';
-                        return !fieldNames.has(name);
-                    });
-                    if (mapped.length > 0) {
-                        options += '<optgroup label="Already Mapped">';
-                        mapped.forEach(b => {
-                            const name = b.Name || b.name || 'Unnamed';
-                            options += '<option value="mapped_' + (b.Boundary_ID || '') + '">' + name + ' (re-map)</option>';
-                        });
-                        options += '</optgroup>';
-                    }
+            } catch (err) {
+                console.error('loadFcFieldsFromAPI error:', err);
+                // Offline fallback
+                try {
+                    const cached = await OfflineDB.getCachedReferenceData('fields');
+                    fcSystemFields = cached || [];
+                } catch (e) {
+                    fcSystemFields = [];
                 }
             }
 
-            options += '<option value="__new__">— Add New Field —</option>';
+            buildFcFieldDropdown();
+        }
+
+        function buildFcFieldDropdown() {
+            const select = document.getElementById('fcFieldSelect');
+            let options = '<option value="">Select a field...</option>';
+            const fieldNames = new Set();
+
+            // System fields from getFields API (REF_Beds / REF_Fields)
+            if (fcSystemFields.length > 0) {
+                options += '<optgroup label="Your Fields">';
+                fcSystemFields.forEach(f => {
+                    const id = f.Field_ID || f;
+                    const name = f.Field_Name || f.Field_ID || f;
+                    const beds = f.bedCount ? ' (' + f.bedCount + ' beds)' : '';
+                    fieldNames.add(name);
+                    options += '<option value="' + id + '">' + name + beds + '</option>';
+                });
+                options += '</optgroup>';
+            }
+
+            // Already-mapped boundaries not in system fields
+            if (fcBoundaries.length > 0) {
+                const unmatchedBoundaries = fcBoundaries.filter(b => {
+                    const name = b.Name || b.name || '';
+                    return name && !fieldNames.has(name);
+                });
+                if (unmatchedBoundaries.length > 0) {
+                    options += '<optgroup label="Mapped (not in field registry)">';
+                    unmatchedBoundaries.forEach(b => {
+                        const name = b.Name || b.name;
+                        const acres = b.Acres || b.acres;
+                        const suffix = acres ? ' (' + parseFloat(acres).toFixed(2) + ' ac)' : '';
+                        options += '<option value="boundary_' + (b.Boundary_ID || b.boundaryId || '') + '">' + name + suffix + '</option>';
+                    });
+                    options += '</optgroup>';
+                }
+            }
+
+            options += '<option value="__new__">— Add New Field to System —</option>';
             select.innerHTML = options;
         }
 
         function handleFcFieldSelect(select) {
-            const newFieldInput = document.getElementById('fcNewFieldName');
+            const newFieldForm = document.getElementById('fcNewFieldForm');
             const startBtn = document.getElementById('fcStartBtn');
 
             if (select.value === '__new__') {
-                newFieldInput.style.display = 'block';
-                newFieldInput.focus();
-                // Enable start only when they type a name
-                newFieldInput.oninput = function() {
-                    if (this.value.trim()) {
-                        startBtn.style.opacity = '1';
-                        startBtn.style.pointerEvents = 'auto';
-                    } else {
-                        startBtn.style.opacity = '0.4';
-                        startBtn.style.pointerEvents = 'none';
-                    }
-                };
+                newFieldForm.style.display = 'block';
+                document.getElementById('fcNewFieldId').focus();
                 startBtn.style.opacity = '0.4';
                 startBtn.style.pointerEvents = 'none';
             } else if (select.value) {
-                newFieldInput.style.display = 'none';
-                newFieldInput.value = '';
+                newFieldForm.style.display = 'none';
                 startBtn.style.opacity = '1';
                 startBtn.style.pointerEvents = 'auto';
             } else {
-                newFieldInput.style.display = 'none';
-                newFieldInput.value = '';
+                newFieldForm.style.display = 'none';
                 startBtn.style.opacity = '0.4';
                 startBtn.style.pointerEvents = 'none';
+            }
+        }
+
+        // Register a new field in the backend (REF_Fields + REF_Beds sheets)
+        async function registerNewFieldAndSelect() {
+            const fieldId = document.getElementById('fcNewFieldId').value.trim();
+            const length = document.getElementById('fcNewFieldLength').value;
+            const width = document.getElementById('fcNewFieldWidth').value;
+            const type = document.getElementById('fcNewFieldType').value;
+
+            if (!fieldId) { showToast('Enter a field ID (e.g., F12, NW1)', 'error'); return; }
+            if (!length || !width) { showToast('Enter field length and width in feet', 'error'); return; }
+
+            showToast('Adding field to system...', 'info');
+            try {
+                const params = new URLSearchParams({
+                    action: 'addField',
+                    fieldId: fieldId,
+                    name: fieldId,
+                    length: length,
+                    width: width,
+                    type: type
+                });
+                const response = await fetch(CONFIG.API_URL + '?' + params.toString());
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast(result.message || 'Field "' + fieldId + '" added!', 'success');
+                    // Reload fields from API to include the new one
+                    await loadFcFieldsFromAPI();
+                    // Auto-select the newly added field
+                    document.getElementById('fcFieldSelect').value = fieldId;
+                    document.getElementById('fcNewFieldForm').style.display = 'none';
+                    document.getElementById('fcStartBtn').style.opacity = '1';
+                    document.getElementById('fcStartBtn').style.pointerEvents = 'auto';
+                } else {
+                    showToast('Error: ' + (result.error || 'Failed to add field'), 'error');
+                }
+            } catch (err) {
+                showToast('Network error adding field', 'error');
+                console.error('registerNewFieldAndSelect error:', err);
             }
         }
 
         // Get the selected field name for saving
         function getFcSelectedFieldName() {
             const select = document.getElementById('fcFieldSelect');
-            if (select.value === '__new__') {
-                return document.getElementById('fcNewFieldName').value.trim();
-            }
-            // Get display text of selected option
-            return select.options[select.selectedIndex]?.textContent?.replace(' (re-map)', '') || '';
+            if (!select.value || select.value === '__new__') return '';
+            // Strip bed count suffix like " (12 beds)" or " (0.51 ac)"
+            const text = select.options[select.selectedIndex]?.textContent || '';
+            return text.replace(/\s*\(\d+\s*beds?\)/, '').replace(/\s*\([\d.]+ ac\)/, '').trim();
         }
 
         function closeFieldCapture() {

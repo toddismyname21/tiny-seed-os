@@ -14485,6 +14485,8 @@ function doGet(e) {
       'createTask', 'getEmployeeFarmPics',
       // Soil tests page (same auth issue — _getToken returns empty)
       'getSoilTests', 'getFields',
+      // Field management (employee app — add new fields from field capture)
+      'addField',
       // Labels page
       'getGreenhouseSeedings', 'getInventoryProducts', 'getFarmInventory'
     ]);
