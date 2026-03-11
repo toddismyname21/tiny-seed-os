@@ -33,6 +33,38 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-03-11 — PM_ARCHITECT: Fix GH Sowing modal UX (4 issues)
+
+### Files Modified
+- `employee.html`:
+  - **Camera z-index fix**: Changed `.camera-modal` z-index from 3000 → 10001 (above ghSowConfirmModal's 10000). Camera was opening BEHIND the sowing modal, making it invisible after permission grant.
+  - **Back button**: Added visible "Back" button to ghSowConfirmModal header. Previously only closeable via backdrop click (not discoverable).
+  - **"Add photo later" checkbox**: New checkbox below seed packet photo section. When checked, enables Mark Complete without photo, shows warning that a reminder task will be created.
+  - **Auto task generation**: When "Add photo later" is used, creates a High-priority Greenhouse task via `createTask` API assigned to the employee, reminding them to photograph the seed packet.
+
+### Functions Added
+- `closeGHSowConfirmModal()` in `employee.html` — Closes modal and resets photo-later state
+- `onAddPhotoLaterChange(checked)` in `employee.html` — Toggles photo-later note and re-evaluates confirm button state
+
+### Functions Modified
+- `updateSowConfirmBtnState()` — Now considers `ghAddPhotoLater` checkbox in addition to photo/seedLot
+- `submitGHSowConfirm()` — Respects photo-later bypass for traceability check; fires createTask API after successful sowing confirmation when photo deferred
+
+### Reason
+User reported: (1) no way to go back from "Changes Needed" modal, (2) camera asks permission but can't shoot (z-index covered it), (3) need ability to defer photo, (4) deferred photos need task tracking.
+
+### Cross-System Impact
+- Camera z-index change affects ALL camera uses (harvest, scout, direct sow, sowing). All were already below 10000 so raising to 10001 ensures camera always overlays any modal.
+- Task generation uses existing `createTask` API (already in PUBLIC_POST_ACTIONS whitelist).
+- No backend changes required.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
 ## 2026-03-11 — PM_ARCHITECT: Fix employee app infinite loading + session persistence
 
 ### Root Cause

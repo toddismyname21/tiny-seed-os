@@ -2896,7 +2896,7 @@
             right: 0;
             bottom: 0;
             background: #000;
-            z-index: 3000;
+            z-index: 10001;
             display: none;
         }
 
@@ -17145,9 +17145,13 @@
             var taskId = btn.getAttribute('data-task-id');
             var emp = AppState.employee || {};
 
-            // Require photo or seed lot for organic traceability
+            // Check "Add photo later" state
+            var photoLaterCb = document.getElementById('ghAddPhotoLater');
+            var addPhotoLater = photoLaterCb && photoLaterCb.checked;
+
+            // Require photo or seed lot for organic traceability (unless adding photo later)
             var seedLotVal = document.getElementById('ghConfirmSeedLot').value || '';
-            if (!seedLotVal && !AppState.sowConfirmPhoto) {
+            if (!seedLotVal && !AppState.sowConfirmPhoto && !addPhotoLater) {
                 showToast('Please photograph the seed packet or enter a seed lot ID for traceability', 'error');
                 return;
             }
@@ -17285,6 +17289,39 @@
                   .catch(function(err) { console.warn('Sowing photo upload error:', err); });
                 AppState.sowConfirmPhoto = null;
             }
+
+            // Auto-generate task if "Add photo later" was checked
+            if (addPhotoLater && navigator.onLine) {
+                var taskTitle = 'Add seed packet photo: ' + (batchId || 'Unknown batch');
+                fetch(CONFIG.API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({
+                        action: 'createTask',
+                        title: taskTitle,
+                        description: 'Photograph the seed packet for batch ' + (batchId || '') + ' to complete organic traceability records. This photo was deferred during sowing confirmation.',
+                        priority: 'High',
+                        category: 'Greenhouse',
+                        assignedTo: emp.Employee_ID || '',
+                        createdBy: (emp.First_Name || '') + ' ' + (emp.Last_Name || ''),
+                        source: 'gh_sowing_photo_deferred'
+                    })
+                }).then(function(r) { return r.json(); })
+                  .then(function(res) {
+                      if (res.success) {
+                          console.log('Photo reminder task created:', res.taskId || res.id);
+                          showToast('Reminder task created to add seed packet photo', 'info');
+                      } else {
+                          console.warn('Photo reminder task failed:', res.error);
+                      }
+                  })
+                  .catch(function(err) { console.warn('Photo reminder task error:', err); });
+            }
+
+            // Reset photo later checkbox
+            if (photoLaterCb) photoLaterCb.checked = false;
+            var photoLaterNote = document.getElementById('ghPhotoLaterNote');
+            if (photoLaterNote) photoLaterNote.style.display = 'none';
 
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-check-circle"></i> Mark Complete';
@@ -23501,8 +23538,10 @@
             if (!confirmBtn || !confirmBtn.hasAttribute('data-requires-photo')) return;
             var hasSeedLot = !!(document.getElementById('ghConfirmSeedLot').value);
             var hasPhoto = !!AppState.sowConfirmPhoto;
+            var photoLaterCb = document.getElementById('ghAddPhotoLater');
+            var addPhotoLater = photoLaterCb && photoLaterCb.checked;
             var badge = document.getElementById('sowPhotoRequiredBadge');
-            if (hasSeedLot || hasPhoto) {
+            if (hasSeedLot || hasPhoto || addPhotoLater) {
                 confirmBtn.disabled = false;
                 confirmBtn.style.opacity = '1';
                 if (badge) badge.style.display = 'none';
@@ -23511,6 +23550,22 @@
                 confirmBtn.style.opacity = '0.5';
                 if (badge) badge.style.display = 'flex';
             }
+        }
+
+        function closeGHSowConfirmModal() {
+            document.getElementById('ghSowConfirmModal').style.display = 'none';
+            // Reset photo later checkbox
+            var photoLaterCb = document.getElementById('ghAddPhotoLater');
+            if (photoLaterCb) photoLaterCb.checked = false;
+            var photoLaterNote = document.getElementById('ghPhotoLaterNote');
+            if (photoLaterNote) photoLaterNote.style.display = 'none';
+        }
+
+        function onAddPhotoLaterChange(checked) {
+            var note = document.getElementById('ghPhotoLaterNote');
+            if (note) note.style.display = checked ? 'block' : 'none';
+            // Re-evaluate confirm button state — "photo later" counts as having a photo
+            updateSowConfirmBtnState();
         }
 
         function removeSowPhoto() {
@@ -30990,7 +31045,11 @@
 <!-- GH Sowing Confirmation Modal -->
 <div id="ghSowConfirmModal" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.7);align-items:flex-end;justify-content:center;" onclick="this.style.display='none'">
     <div style="background:var(--bg-card,#1e1e2e);border-radius:16px 16px 0 0;width:100%;max-width:500px;max-height:85vh;overflow-y:auto;padding:1.5rem;box-shadow:0 -10px 40px rgba(0,0,0,0.5);" onclick="event.stopPropagation()">
-        <div style="width:40px;height:4px;background:var(--border,#333);border-radius:2px;margin:0 auto 16px;"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <button type="button" onclick="closeGHSowConfirmModal()" style="background:none;border:none;color:var(--text-secondary,#999);font-size:0.9rem;cursor:pointer;padding:8px 12px;min-height:44px;display:flex;align-items:center;gap:6px;"><i class="fas fa-arrow-left"></i> Back</button>
+            <div style="width:40px;height:4px;background:var(--border,#333);border-radius:2px;"></div>
+            <div style="width:60px;"></div>
+        </div>
         <h3 id="ghConfirmTitle" style="margin:0 0 16px;font-size:1.1rem;color:var(--text-primary,#fff);"></h3>
 
         <div style="display:flex;flex-direction:column;gap:12px;">
@@ -31024,6 +31083,14 @@
                 <div id="seedMatchPanel" style="display:none;margin-top:8px;padding:12px;background:var(--bg-light,#2a2a3e);border:1px solid var(--border,#333);border-radius:8px;">
                     <div id="seedMatchContent"></div>
                 </div>
+            </div>
+            <!-- Add Photo Later checkbox -->
+            <div>
+                <label style="display:flex;align-items:center;gap:10px;font-size:0.85rem;color:var(--text-secondary,#999);cursor:pointer;min-height:44px;padding:4px 0;">
+                    <input type="checkbox" id="ghAddPhotoLater" onchange="onAddPhotoLaterChange(this.checked)" style="width:24px;height:24px;min-width:24px;">
+                    <span>Add seed packet photo later</span>
+                </label>
+                <p id="ghPhotoLaterNote" style="display:none;margin:4px 0 0 34px;font-size:0.75rem;color:#f59e0b;">A task will be created to remind you to add the photo.</p>
             </div>
             <!-- Seed Lot — auto-populated from photo match or manual entry -->
             <div>
