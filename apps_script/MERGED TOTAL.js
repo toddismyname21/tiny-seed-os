@@ -14488,7 +14488,13 @@ function doGet(e) {
       // Field management (employee app — add new fields from field capture)
       'addField',
       // Labels page
-      'getGreenhouseSeedings', 'getInventoryProducts', 'getFarmInventory'
+      'getGreenhouseSeedings', 'getInventoryProducts', 'getFarmInventory',
+      // Organic certification / OSP
+      'generateOrganicAuditPackage', 'getOrganicComplianceStatus', 'exportOrganicReportForPDF',
+      'getTraceabilityReport', 'getSeedSourceReport', 'getFieldHistoryReport',
+      'getInputApplicationReport', 'getHarvestReport', 'getOrganicSalesReport',
+      'getPestManagementReport', 'findSeedLotsByCropVariety',
+      'getOSPDraft'
     ]);
 
   if (!PUBLIC_GET_ACTIONS.has(action)) {
@@ -14965,6 +14971,8 @@ function doGet(e) {
     return jsonResponse(getDirectSeedTasks(e.parameter));
   case 'findSeedLotsByCropVariety':
     return jsonResponse(findSeedLotsByCropVariety(e.parameter));
+  case 'getOSPDraft':
+    return jsonResponse(getOSPDraft({ year: parseInt(e.parameter.year) || new Date().getFullYear() }));
   case 'backfillSeedLotIds':
     return jsonResponse(backfillSeedLotIds());
   case 'getSocialStatus':
@@ -18186,7 +18194,8 @@ function doPost(e) {
       // Soil tests (soil-tests.html also uses POST without session tokens)
       'saveSoilTest', 'saveComplianceRecord', 'saveIPMSchedule', 'updateIPMSprayStatus',
       'saveFertigationData', 'saveFoliarApplication', 'saveSoilAmendment', 'bulkSyncSoilData',
-      'bulkSyncFieldNotes',
+      'bulkSyncFieldNotes', 'syncComplianceRecords', 'emailOrganicReportToOEFFA',
+      'saveOSPDraft', 'getOSPDraft',
       // Customer-facing (CSA/wholesale use magic-link auth, not session tokens)
       'submitCSAOrder', 'customizeCSABox', 'updateCustomerProfile'
     ]);
@@ -18356,6 +18365,18 @@ function doPost(e) {
         return jsonResponse(saveSoilTest(data));
       case 'bulkSyncSoilData':
         return jsonResponse(bulkSyncSoilData(data));
+      case 'syncComplianceRecords':
+        return jsonResponse(syncComplianceRecords(data));
+      case 'emailOrganicReportToOEFFA':
+        return jsonResponse(emailOrganicReportToOEFFA({
+          year: parseInt(data.year) || new Date().getFullYear(),
+          email: data.email,
+          cc: data.cc
+        }));
+      case 'saveOSPDraft':
+        return jsonResponse(saveOSPDraft(data));
+      case 'getOSPDraft':
+        return jsonResponse(getOSPDraft(data));
 
       // ============ INVENTORY SYSTEM POST ENDPOINTS ============
       case 'addInventoryLocation':
@@ -36972,6 +36993,91 @@ function saveComplianceRecord(data) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// COMPLIANCE INPUTS BULK SYNC - soil-tests.html syncComplianceRecords
+// ═══════════════════════════════════════════════════════════════════════════
+
+var COMPLIANCE_INPUTS_HEADERS = [
+  'Timestamp', 'Application_Date', 'Field', 'Batch_ID', 'Material',
+  'Product_ID', 'Rate', 'Amount', 'Amount_Unit', 'OMRI_Status',
+  'Applied_By', 'Manufacturer', 'Photo_URL', 'Notes', 'Synced_At'
+];
+
+function syncComplianceRecords(data) {
+  try {
+    var records = data.records || data.Records || [];
+    if (!Array.isArray(records) || records.length === 0) {
+      return { success: false, error: 'No records provided', code: 'MISSING_RECORDS' };
+    }
+
+    var lock = LockService.getScriptLock();
+    if (!lock.tryLock(15000)) {
+      return { success: false, error: 'Could not acquire lock. Try again.', code: 'LOCK_TIMEOUT' };
+    }
+
+    try {
+      var sheet = getOrCreateSheet('COMPLIANCE_INPUTS', COMPLIANCE_INPUTS_HEADERS);
+      var existingData = sheet.getDataRange().getValues();
+
+      // Build set of existing Batch_IDs to skip duplicates
+      var existingIds = {};
+      var batchIdCol = COMPLIANCE_INPUTS_HEADERS.indexOf('Batch_ID');
+      for (var i = 1; i < existingData.length; i++) {
+        var id = String(existingData[i][batchIdCol] || '').trim();
+        if (id) existingIds[id] = true;
+      }
+
+      var synced = 0;
+      var skipped = 0;
+      var now = new Date().toISOString();
+
+      for (var j = 0; j < records.length; j++) {
+        var r = records[j];
+        var batchId = String(r.batchId || r.batch_id || r.Batch_ID || r.id || generateId('CINP')).trim();
+
+        // Skip if already exists
+        if (existingIds[batchId]) {
+          skipped++;
+          continue;
+        }
+
+        var row = [
+          r.timestamp || now,
+          r.applicationDate || r.application_date || r.Application_Date || '',
+          r.field || r.Field || '',
+          batchId,
+          r.material || r.Material || '',
+          r.productId || r.product_id || r.Product_ID || '',
+          r.rate || r.Rate || '',
+          r.amount || r.Amount || '',
+          r.amountUnit || r.amount_unit || r.Amount_Unit || '',
+          r.omriStatus || r.omri_status || r.OMRI_Status || '',
+          r.appliedBy || r.applied_by || r.Applied_By || '',
+          r.manufacturer || r.Manufacturer || '',
+          r.photoUrl || r.photo_url || r.Photo_URL || '',
+          r.notes || r.Notes || '',
+          now
+        ];
+
+        sheet.appendRow(row);
+        existingIds[batchId] = true;
+        synced++;
+      }
+
+      return {
+        success: true,
+        synced: synced,
+        skipped: skipped,
+        message: 'Synced ' + synced + ' records, skipped ' + skipped + ' duplicates'
+      };
+    } finally {
+      lock.releaseLock();
+    }
+  } catch (error) {
+    return { success: false, error: error.toString(), code: 'SYNC_ERROR' };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // IPM SPRAY SCHEDULES - Mandatory Flea Beetle & Leaf Miner Programs
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -40475,19 +40581,29 @@ function analyzeSeedPacket(params) {
     let imageBase64 = params && params.image;
     if (!imageBase64) return { success: false, error: 'image is required' };
 
-    // Remove data URL prefix if present
+    // Detect media type from data URL prefix, then strip it
+    var mediaType = 'image/jpeg'; // default
     if (imageBase64.startsWith('data:')) {
+      var mediaMatch = imageBase64.match(/^data:(image\/[a-z]+);base64,/);
+      if (mediaMatch) mediaType = mediaMatch[1];
       imageBase64 = imageBase64.split(',')[1];
+    }
+
+    // Validate we have actual base64 data
+    if (!imageBase64 || imageBase64.length < 100) {
+      return { success: false, error: 'Image data too small or invalid (length: ' + (imageBase64 ? imageBase64.length : 0) + ')' };
     }
 
     const apiKey = PropertiesService.getScriptProperties().getProperty('ANTHROPIC_API_KEY');
     if (!apiKey) {
       return {
         success: false,
-        error: 'ANTHROPIC_API_KEY not configured',
+        error: 'ANTHROPIC_API_KEY not configured in Script Properties',
         fallback: { method: 'manual' }
       };
     }
+
+    Logger.log('analyzeSeedPacket: image size=' + imageBase64.length + ' chars, mediaType=' + mediaType);
 
     const prompt = `Analyze this seed packet photo and extract all visible information. Return a JSON object with these fields:
 {
@@ -40527,7 +40643,7 @@ Return ONLY the JSON object, no other text.`;
               type: 'image',
               source: {
                 type: 'base64',
-                media_type: 'image/jpeg',
+                media_type: mediaType,
                 data: imageBase64
               }
             },
@@ -120587,7 +120703,8 @@ function getPestManagementReport(year) {
   try {
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
 
-    const pestSheet = ss.getSheetByName('PEST_LOG') ||
+    const pestSheet = ss.getSheetByName('FIELD_SCOUTING') ||
+                      ss.getSheetByName('PEST_LOG') ||
                       ss.getSheetByName('Pest_Management') ||
                       ss.getSheetByName('Scouting') ||
                       ss.getSheetByName('LOG_Pest') ||
@@ -120929,6 +121046,122 @@ function emailOrganicReportToOEFFA(params) {
         };
     } catch (error) {
         Logger.log('Error emailing organic report: ' + error.toString());
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Save OSP draft to OSP_DRAFTS sheet. One row per year.
+ * Stores entire form state as JSON so next year's renewal can pre-fill.
+ */
+function saveOSPDraft(data) {
+    try {
+        var year = parseInt(data.year) || new Date().getFullYear();
+        var formData = data.formData;
+        if (!formData || typeof formData !== 'object') {
+            return { success: false, error: 'formData object is required' };
+        }
+
+        var ss = SpreadsheetApp.openById('128O56X_FN9_U-s0ENHBBRyLpae_yvWHPYbBheVlR3Vc');
+        var sheet = ss.getSheetByName('OSP_DRAFTS');
+        if (!sheet) {
+            sheet = ss.insertSheet('OSP_DRAFTS');
+            sheet.appendRow(['Year', 'FormData_JSON', 'Last_Updated', 'Version']);
+        }
+
+        var lock = LockService.getScriptLock();
+        lock.waitLock(10000);
+
+        try {
+            var dataRange = sheet.getDataRange();
+            var values = dataRange.getValues();
+            var existingRow = -1;
+
+            for (var i = 1; i < values.length; i++) {
+                if (parseInt(values[i][0]) === year) {
+                    existingRow = i + 1;
+                    break;
+                }
+            }
+
+            var jsonStr = JSON.stringify(formData);
+            var now = new Date().toISOString();
+            var version = 1;
+
+            if (existingRow > 0) {
+                version = (parseInt(values[existingRow - 1][3]) || 0) + 1;
+                sheet.getRange(existingRow, 2).setValue(jsonStr);
+                sheet.getRange(existingRow, 3).setValue(now);
+                sheet.getRange(existingRow, 4).setValue(version);
+            } else {
+                sheet.appendRow([year, jsonStr, now, version]);
+            }
+
+            return { success: true, year: year, version: version, savedAt: now };
+        } finally {
+            lock.releaseLock();
+        }
+    } catch (error) {
+        Logger.log('Error saving OSP draft: ' + error.toString());
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Load OSP draft from OSP_DRAFTS sheet.
+ * If no draft for requested year, returns most recent year's data as a starting point.
+ */
+function getOSPDraft(data) {
+    try {
+        var year = parseInt(data.year) || new Date().getFullYear();
+
+        var ss = SpreadsheetApp.openById('128O56X_FN9_U-s0ENHBBRyLpae_yvWHPYbBheVlR3Vc');
+        var sheet = ss.getSheetByName('OSP_DRAFTS');
+        if (!sheet) {
+            return { success: true, found: false, message: 'No OSP drafts saved yet' };
+        }
+
+        var values = sheet.getDataRange().getValues();
+        var exactMatch = null;
+        var latestDraft = null;
+        var latestYear = 0;
+
+        for (var i = 1; i < values.length; i++) {
+            var rowYear = parseInt(values[i][0]);
+            if (rowYear === year) {
+                exactMatch = { year: rowYear, data: values[i][1], updated: values[i][2], version: values[i][3] };
+                break;
+            }
+            if (rowYear > latestYear) {
+                latestYear = rowYear;
+                latestDraft = { year: rowYear, data: values[i][1], updated: values[i][2], version: values[i][3] };
+            }
+        }
+
+        var result = exactMatch || latestDraft;
+        if (!result) {
+            return { success: true, found: false, message: 'No OSP drafts saved yet' };
+        }
+
+        var formData = {};
+        try {
+            formData = JSON.parse(result.data);
+        } catch(e) {
+            return { success: false, error: 'Stored draft data is corrupted' };
+        }
+
+        return {
+            success: true,
+            found: true,
+            year: result.year,
+            requestedYear: year,
+            isFromPriorYear: result.year !== year,
+            formData: formData,
+            lastUpdated: result.updated,
+            version: result.version
+        };
+    } catch (error) {
+        Logger.log('Error loading OSP draft: ' + error.toString());
         return { success: false, error: error.toString() };
     }
 }

@@ -1266,24 +1266,76 @@ function createEditableRow(values, tbody) {
 // ============================================================
 // SAVE / LOAD DRAFT
 // ============================================================
-function saveDraft() {
+var _savePending = false;
+var _saveTimer = null;
+var OSP_YEAR = new Date().getFullYear();
+
+async function saveDraft() {
     var draft = collectFormData();
-    localStorage.setItem('osp_draft_2026', JSON.stringify(draft));
-    showToast('Draft saved', 'success');
+    // Always save to localStorage immediately (instant backup)
+    localStorage.setItem('osp_draft_' + OSP_YEAR, JSON.stringify(draft));
+
+    // Save to backend for cross-year persistence
+    try {
+        var res = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain' },
+            body: JSON.stringify({ action: 'saveOSPDraft', year: OSP_YEAR, formData: draft })
+        });
+        var data = await res.json();
+        if (data.success) {
+            showToast('Saved to farm records (v' + data.version + ')', 'success');
+        } else {
+            showToast('Saved locally. Backend: ' + (data.error || 'error'), 'error');
+        }
+    } catch(e) {
+        showToast('Saved locally (offline)', 'success');
+    }
 }
 
 function autoSaveDraft() {
+    // Debounce: save to localStorage immediately, backend every 30s
     var draft = collectFormData();
-    localStorage.setItem('osp_draft_2026', JSON.stringify(draft));
+    localStorage.setItem('osp_draft_' + OSP_YEAR, JSON.stringify(draft));
+
+    if (_saveTimer) clearTimeout(_saveTimer);
+    _saveTimer = setTimeout(function() {
+        fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain' },
+            body: JSON.stringify({ action: 'saveOSPDraft', year: OSP_YEAR, formData: collectFormData() })
+        }).catch(function() {});
+    }, 30000);
 }
 
-function loadDraft() {
+async function loadDraft() {
+    // Try localStorage first (instant)
     try {
-        var raw = localStorage.getItem('osp_draft_2026');
-        if (!raw) return;
-        var draft = JSON.parse(raw);
-        restoreFormData(draft);
-    } catch(e) { console.log('No draft to restore'); }
+        var raw = localStorage.getItem('osp_draft_' + OSP_YEAR);
+        if (raw) {
+            restoreFormData(JSON.parse(raw));
+        }
+    } catch(e) {}
+
+    // Then try backend (may have data from previous years)
+    try {
+        var res = await fetch(API_URL + '?action=getOSPDraft&year=' + OSP_YEAR);
+        var data = await res.json();
+        if (data.success && data.found && data.formData) {
+            // Only restore from backend if we DON'T have a local draft for this year
+            var hasLocal = !!localStorage.getItem('osp_draft_' + OSP_YEAR);
+            if (!hasLocal || data.isFromPriorYear) {
+                restoreFormData(data.formData);
+                if (data.isFromPriorYear) {
+                    showToast('Loaded ' + data.year + ' OSP as starting point. Update for ' + OSP_YEAR + '.', 'success');
+                } else {
+                    showToast('Restored from farm records (v' + data.version + ')', 'success');
+                }
+            }
+        }
+    } catch(e) {
+        console.log('Backend draft load failed (using local):', e);
+    }
 }
 
 function collectFormData() {
