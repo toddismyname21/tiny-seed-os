@@ -659,125 +659,94 @@
 
     <!-- Main Container -->
     <div class="main-container">
-        <!-- Control Panel -->
+        <!-- Control Panel (simplified: 4 sections instead of 8) -->
         <div class="control-panel">
-            <!-- Task Type -->
+            <!-- 1. Task Type — compact horizontal tabs -->
             <div class="panel-section">
-                <h3 class="panel-title">
-                    <i class="fas fa-tasks"></i>
-                    Task Type
-                </h3>
-                <div class="radio-group">
-                    <label class="radio-option selected" onclick="selectTaskType(this, 'ghSow')">
+                <h3 class="panel-title"><i class="fas fa-tasks"></i> Task Type</h3>
+                <div class="radio-group" style="flex-direction:row;gap:4px;">
+                    <label class="radio-option selected" onclick="selectTaskType(this, 'ghSow')" style="flex:1;justify-content:center;padding:10px 6px;font-size:0.82rem;">
                         <input type="radio" name="taskType" value="ghSow" checked>
-                        <i class="fas fa-seedling" style="color: #4ade80;"></i>
-                        <span>Greenhouse Sowing</span>
+                        <i class="fas fa-seedling" style="color:#4ade80;"></i>
+                        <span>GH Sow</span>
                     </label>
-                    <label class="radio-option" onclick="selectTaskType(this, 'transplant')">
+                    <label class="radio-option" onclick="selectTaskType(this, 'transplant')" style="flex:1;justify-content:center;padding:10px 6px;font-size:0.82rem;">
                         <input type="radio" name="taskType" value="transplant">
-                        <i class="fas fa-exchange-alt" style="color: #2a9d8f;"></i>
-                        <span>Transplanting</span>
+                        <i class="fas fa-exchange-alt" style="color:#2a9d8f;"></i>
+                        <span>Transplant</span>
                     </label>
-                    <label class="radio-option" onclick="selectTaskType(this, 'directSeed')">
+                    <label class="radio-option" onclick="selectTaskType(this, 'directSeed')" style="flex:1;justify-content:center;padding:10px 6px;font-size:0.82rem;">
                         <input type="radio" name="taskType" value="directSeed">
-                        <i class="fas fa-tractor" style="color: #e9c46a;"></i>
-                        <span>Direct Seeding</span>
+                        <i class="fas fa-tractor" style="color:#e9c46a;"></i>
+                        <span>Direct Seed</span>
                     </label>
                 </div>
             </div>
 
-            <!-- Date Range -->
+            <!-- 2. Date Range + Load (the core action) -->
             <div class="panel-section">
-                <h3 class="panel-title">
-                    <i class="fas fa-calendar-alt"></i>
-                    Date Range
-                </h3>
+                <h3 class="panel-title"><i class="fas fa-calendar-alt"></i> Date Range</h3>
                 <div class="date-range">
                     <div class="form-group">
-                        <label>Start Date</label>
+                        <label>Start</label>
                         <input type="date" class="form-control" id="startDate">
                     </div>
                     <div class="form-group">
-                        <label>End Date</label>
+                        <label>End</label>
                         <input type="date" class="form-control" id="endDate">
                     </div>
                 </div>
-                <div style="display: flex; gap: 8px; margin-top: 0.5rem;">
-                    <button class="btn btn-secondary" style="flex:1; padding: 8px;" onclick="setThisWeek()">This Week</button>
-                    <button class="btn btn-secondary" style="flex:1; padding: 8px;" onclick="setNextWeek()">Next Week</button>
+                <div style="display:flex;gap:6px;margin-top:0.5rem;">
+                    <button class="btn btn-secondary" style="flex:1;padding:8px;font-size:0.82rem;" onclick="setThisWeek()">This Week</button>
+                    <button class="btn btn-secondary" style="flex:1;padding:8px;font-size:0.82rem;" onclick="setNextWeek()">Next Week</button>
+                    <button class="btn" style="flex:1;padding:8px;font-size:0.82rem;background:var(--danger);color:white;border:none;border-radius:8px;cursor:pointer;font-weight:600;" onclick="loadOverdueTasks()" title="Load all overdue incomplete tasks">
+                        <i class="fas fa-exclamation-triangle"></i> Overdue
+                    </button>
                 </div>
-                <button class="btn" style="width:100%; margin-top: 8px; padding: 8px; background: var(--danger); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;" onclick="loadOverdueTasks()">
-                    <i class="fas fa-exclamation-triangle"></i> Load Overdue Tasks
+                <button class="btn btn-primary btn-block" onclick="loadTasks()" style="margin-top:10px;">
+                    <i class="fas fa-download"></i> Load Tasks
                 </button>
             </div>
 
-            <!-- Category Filter -->
+            <!-- 3. Filters (category + search + sort — collapsed into one section) -->
             <div class="panel-section">
-                <h3 class="panel-title">
-                    <i class="fas fa-filter"></i>
-                    Category
-                </h3>
-                <div class="radio-group">
-                    <label class="radio-option selected" onclick="selectCategory(this, 'all')">
+                <h3 class="panel-title"><i class="fas fa-filter"></i> Filter & Sort</h3>
+                <!-- Category as compact inline -->
+                <div style="display:flex;gap:4px;margin-bottom:10px;">
+                    <label class="radio-option selected" onclick="selectCategory(this, 'all')" style="flex:1;justify-content:center;padding:8px 4px;font-size:0.8rem;">
                         <input type="radio" name="category" value="all" checked>
-                        <span>All Crops</span>
+                        <span>All</span>
                     </label>
-                    <label class="radio-option" onclick="selectCategory(this, 'veg-herb')">
+                    <label class="radio-option" onclick="selectCategory(this, 'veg-herb')" style="flex:1;justify-content:center;padding:8px 4px;font-size:0.8rem;">
                         <input type="radio" name="category" value="veg-herb">
-                        <span>Vegetables & Herbs</span>
+                        <span>Veg/Herb</span>
                     </label>
-                    <label class="radio-option" onclick="selectCategory(this, 'floral')">
+                    <label class="radio-option" onclick="selectCategory(this, 'floral')" style="flex:1;justify-content:center;padding:8px 4px;font-size:0.8rem;">
                         <input type="radio" name="category" value="floral">
                         <span>Florals</span>
                     </label>
                 </div>
-            </div>
-
-            <!-- Crop/Variety Search -->
-            <div class="panel-section">
-                <h3 class="panel-title">
-                    <i class="fas fa-search"></i>
-                    Search Crops
-                </h3>
-                <input type="text" id="cropSearch" class="form-control" placeholder="Type crop or variety name..." oninput="filterTasks()" style="margin-bottom: 8px;">
-                <select id="cropDropdown" class="form-control" onchange="filterTasks()" style="font-size: 0.85rem;">
+                <!-- Search -->
+                <input type="text" id="cropSearch" class="form-control" placeholder="Search crop or variety..." oninput="filterTasks()" style="margin-bottom:6px;font-size:0.85rem;padding:10px 12px;">
+                <select id="cropDropdown" class="form-control" onchange="filterTasks()" style="font-size:0.85rem;padding:10px 12px;">
                     <option value="">All Crops</option>
                 </select>
-                <div id="filterCount" style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 6px;"></div>
-            </div>
-
-            <!-- Sort Order -->
-            <div class="panel-section">
-                <h3 class="panel-title">
-                    <i class="fas fa-sort"></i>
-                    Sort By
-                </h3>
-                <div class="radio-group">
-                    <label class="radio-option selected" onclick="selectSort(this, 'date')">
+                <div id="filterCount" style="font-size:0.75rem;color:var(--text-secondary);margin-top:6px;"></div>
+                <!-- Sort inline -->
+                <div style="display:flex;gap:4px;margin-top:10px;">
+                    <label class="radio-option selected" onclick="selectSort(this, 'date')" style="flex:1;justify-content:center;padding:8px 4px;font-size:0.8rem;">
                         <input type="radio" name="sortBy" value="date" checked>
-                        <span>Date</span>
+                        <span><i class="fas fa-calendar-day"></i> By Date</span>
                     </label>
-                    <label class="radio-option" onclick="selectSort(this, 'crop')">
+                    <label class="radio-option" onclick="selectSort(this, 'crop')" style="flex:1;justify-content:center;padding:8px 4px;font-size:0.8rem;">
                         <input type="radio" name="sortBy" value="crop">
-                        <span>Crop</span>
+                        <span><i class="fas fa-leaf"></i> By Crop</span>
                     </label>
                 </div>
             </div>
 
-            <!-- Load Button -->
-            <div class="panel-section">
-                <button class="btn btn-primary btn-block" onclick="loadTasks()">
-                    <i class="fas fa-download"></i>
-                    Load Tasks
-                </button>
-            </div>
-
-            <!-- Statistics -->
-            <div class="panel-section">
-                <h3 class="panel-title">
-                    <i class="fas fa-chart-bar"></i>
-                    Summary
-                </h3>
+            <!-- 4. Summary + Actions -->
+            <div class="panel-section" style="border-bottom:none;">
                 <div class="stats-grid">
                     <div class="stat-card">
                         <div class="stat-value" id="statTotalTasks">0</div>
@@ -793,25 +762,17 @@
                     </div>
                     <div class="stat-card">
                         <div class="stat-value" id="statCompleted">0</div>
-                        <div class="stat-label">Completed</div>
+                        <div class="stat-label">Done</div>
                     </div>
                 </div>
-            </div>
-
-            <!-- Print Button -->
-            <div class="panel-section">
-                <button class="btn btn-print btn-block" onclick="printSheet()" id="printBtn" disabled>
-                    <i class="fas fa-print"></i>
-                    Print Task Sheet
-                </button>
-            </div>
-
-            <!-- Seed Shopping List -->
-            <div class="panel-section">
-                <button class="btn btn-block" onclick="showSeedShoppingList()" style="background:#f59e0b;color:#1a1a2e;font-weight:600;">
-                    <i class="fas fa-shopping-cart"></i>
-                    Seed Shopping List
-                </button>
+                <div style="display:flex;flex-direction:column;gap:6px;margin-top:12px;">
+                    <button class="btn btn-print btn-block" onclick="printSheet()" id="printBtn" disabled>
+                        <i class="fas fa-print"></i> Print Task Sheet
+                    </button>
+                    <button class="btn btn-block" onclick="showSeedShoppingList()" style="background:#f59e0b;color:#1a1a2e;font-weight:600;">
+                        <i class="fas fa-shopping-cart"></i> Seed Shopping List
+                    </button>
+                </div>
             </div>
         </div>
 

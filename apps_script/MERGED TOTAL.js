@@ -14489,6 +14489,8 @@ function doGet(e) {
       'addField',
       // Labels page
       'getGreenhouseSeedings', 'getInventoryProducts', 'getFarmInventory',
+      // Sowing sheets page (task sheets for greenhouse/transplant/direct seed)
+      'getGreenhouseSowingTasks', 'getTransplantTasks', 'getDirectSeedTasks', 'getOverduePlantings',
       // Organic certification / OSP
       'generateOrganicAuditPackage', 'getOrganicComplianceStatus', 'exportOrganicReportForPDF',
       'getTraceabilityReport', 'getSeedSourceReport', 'getFieldHistoryReport',
@@ -18196,6 +18198,8 @@ function doPost(e) {
       'saveFertigationData', 'saveFoliarApplication', 'saveSoilAmendment', 'bulkSyncSoilData',
       'bulkSyncFieldNotes', 'syncComplianceRecords', 'emailOrganicReportToOEFFA',
       'saveOSPDraft', 'getOSPDraft',
+      // Sowing sheets page (task sheets write operations)
+      'batchUpdatePlanningFields', 'addPlanting', 'deletePlanting',
       // Customer-facing (CSA/wholesale use magic-link auth, not session tokens)
       'submitCSAOrder', 'customizeCSABox', 'updateCustomerProfile'
     ]);
@@ -34657,9 +34661,19 @@ function createDirectSeedingTab() {
       trayType: headers.indexOf('Tray_Type')
     };
 
-    // Parse date range
-    const startDate = params.startDate ? new Date(params.startDate) : new Date();
-    const endDate = params.endDate ? new Date(params.endDate) : new Date(startDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+    // Parse date range — use midnight LOCAL time to avoid UTC offset bugs
+    // new Date('YYYY-MM-DD') creates UTC midnight, which shifts to previous day in US timezones
+    // Instead, parse as local: new Date(year, month-1, day)
+    function parseLocalDate(dateStr) {
+      if (!dateStr) return null;
+      var parts = String(dateStr).split('-');
+      if (parts.length === 3) return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+      return new Date(dateStr);
+    }
+    const startDate = params.startDate ? parseLocalDate(params.startDate) : new Date();
+    const endDate = params.endDate ? parseLocalDate(params.endDate) : new Date(startDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+    // Set endDate to end of day so tasks ON the end date are included
+    endDate.setHours(23, 59, 59, 999);
     const categoryFilter = params.category || 'all';
 
     // Try to get crop profiles for germination info
@@ -35851,8 +35865,10 @@ function getTransplantTasks(params) {
       category: headers.indexOf('Category')
     };
 
-    const startDate = params.startDate ? new Date(params.startDate) : new Date();
-    const endDate = params.endDate ? new Date(params.endDate) : new Date(startDate.getTime() + 14 * 24 * 60 * 60 * 1000);
+    function parseLocalDate(ds) { if (!ds) return null; var p = String(ds).split('-'); if (p.length === 3) return new Date(parseInt(p[0]), parseInt(p[1])-1, parseInt(p[2])); return new Date(ds); }
+    const startDate = params.startDate ? parseLocalDate(params.startDate) : new Date();
+    const endDate = params.endDate ? parseLocalDate(params.endDate) : new Date(startDate.getTime() + 14 * 24 * 60 * 60 * 1000);
+    endDate.setHours(23, 59, 59, 999);
 
     const tasks = [];
 
@@ -35950,8 +35966,10 @@ function getDirectSeedTasks(params) {
       category: headers.indexOf('Category')
     };
 
-    const startDate = params.startDate ? new Date(params.startDate) : new Date();
-    const endDate = params.endDate ? new Date(params.endDate) : new Date(startDate.getTime() + 14 * 24 * 60 * 60 * 1000);
+    function parseLocalDate(ds) { if (!ds) return null; var p = String(ds).split('-'); if (p.length === 3) return new Date(parseInt(p[0]), parseInt(p[1])-1, parseInt(p[2])); return new Date(ds); }
+    const startDate = params.startDate ? parseLocalDate(params.startDate) : new Date();
+    const endDate = params.endDate ? parseLocalDate(params.endDate) : new Date(startDate.getTime() + 14 * 24 * 60 * 60 * 1000);
+    endDate.setHours(23, 59, 59, 999);
 
     const tasks = [];
 
