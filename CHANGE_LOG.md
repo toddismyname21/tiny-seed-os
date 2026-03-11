@@ -33,6 +33,34 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-03-11 — PM_ARCHITECT: Fix employee app infinite loading (IndexedDB blocking)
+
+### Root Cause
+`validatePIN()` and `handleFormLogin()` both did `await OfflineDB.saveSession()` BEFORE calling `showMainApp()`. If IndexedDB was broken (private browsing, version conflict, storage quota), this `await` threw an error. The code jumped to the catch block, which tried `await OfflineDB.getSession()` — also broken. `showMainApp()` never got called. The loading overlay stayed visible indefinitely.
+
+Additionally, the `DOMContentLoaded` session restore started with IndexedDB (which could hang), and only fell back to localStorage on failure. If IndexedDB hung (never resolved/rejected), the entire init stalled.
+
+### Fixes
+1. **localStorage FIRST, IndexedDB background** — Session save to localStorage is synchronous and always works. `showMainApp()` now fires IMMEDIATELY after localStorage save. IndexedDB save happens in background with `.catch()` (non-blocking).
+2. **DOMContentLoaded: localStorage first** — Session restore now checks localStorage FIRST (instant), then initializes IndexedDB. Previously IndexedDB was checked first, blocking session restore if it hung.
+3. **IndexedDB init timeout** — Added 5-second `Promise.race` timeout on `OfflineDB.init()` so a hanging IndexedDB can't block the app forever.
+4. **Safety net in showMainApp** — `hideLoading()` called at the start of `showMainApp()` to ensure the loading overlay is always dismissed when the main app renders, regardless of what called it.
+
+### Files Modified
+- `employee.html`:
+  - `validatePIN()` — moved `showMainApp()` before IndexedDB save; IndexedDB save is now non-blocking
+  - `handleFormLogin()` — same fix: showMainApp before IndexedDB, non-blocking save
+  - `showMainApp()` — added `hideLoading()` safety net at top
+  - `DOMContentLoaded` handler — reordered to check localStorage FIRST, then IndexedDB with 5s timeout
+  - Catch blocks — simplified; localStorage fallback already happened upfront
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] No new files created
+- [x] No duplicates
+
+---
+
 ## 2026-03-11 — PM_ARCHITECT: Fix seed packet AI analysis pipeline
 
 ### Root Cause

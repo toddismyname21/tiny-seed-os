@@ -15770,7 +15770,6 @@
                     };
 
                     localStorage.setItem('employeeSession', JSON.stringify(sessionData));
-                    await OfflineDB.saveSession(sessionData);
 
                     // Also set tinyseed_session for auth-guard cross-compatibility
                     var tsSession = {
@@ -15782,7 +15781,13 @@
                     };
                     localStorage.setItem('tinyseed_session', JSON.stringify(tsSession));
 
+                    // Show app IMMEDIATELY — don't wait for IndexedDB
                     showMainApp();
+
+                    // Save to IndexedDB in background (non-blocking)
+                    OfflineDB.saveSession(sessionData).catch(function(e) {
+                        console.warn('IndexedDB session save failed (non-blocking):', e);
+                    });
 
                     // Auto-clock-in if not already clocked in
                     // The button says "Clock In & Start Shift" — deliver on that promise
@@ -15868,9 +15873,8 @@
                         language: AppState.language
                     };
 
-                    // Save to both localStorage (fallback) and IndexedDB
+                    // Save to localStorage FIRST (synchronous, always works)
                     localStorage.setItem('employeeSession', JSON.stringify(sessionData));
-                    await OfflineDB.saveSession(sessionData);
 
                     // Also set tinyseed_session for auth-guard cross-compatibility
                     var tsSession = {
@@ -15882,18 +15886,27 @@
                     };
                     localStorage.setItem('tinyseed_session', JSON.stringify(tsSession));
 
+                    // Show the app IMMEDIATELY — don't wait for IndexedDB
                     showMainApp();
+
+                    // Save to IndexedDB in background (non-blocking)
+                    OfflineDB.saveSession(sessionData).catch(function(e) {
+                        console.warn('IndexedDB session save failed (non-blocking):', e);
+                    });
                 } else {
                     showPinError();
                 }
             } catch (error) {
                 console.error('Auth error:', error);
-                // Try offline login from IndexedDB first, then localStorage
-                let offlineSession = await OfflineDB.getSession();
+                // Try offline login from localStorage first (always available), then IndexedDB
+                var offlineSession = null;
+                var lsSession = localStorage.getItem('employeeSession');
+                if (lsSession) {
+                    try { offlineSession = JSON.parse(lsSession); } catch(e) {}
+                }
                 if (!offlineSession) {
-                    const lsSession = localStorage.getItem('employeeSession');
-                    if (lsSession) {
-                        offlineSession = JSON.parse(lsSession);
+                    try { offlineSession = await OfflineDB.getSession(); } catch(e) {
+                        console.warn('IndexedDB getSession failed:', e);
                     }
                 }
 
@@ -16139,6 +16152,9 @@
         function showMainApp() {
             document.getElementById('loginScreen').classList.remove('active');
             document.getElementById('mainApp').classList.add('active');
+
+            // Safety: always dismiss loading overlay when main app shows
+            hideLoading();
 
             // Update header
             if (AppState.employee) {
@@ -27553,9 +27569,29 @@
         // INITIALIZATION
         // ============================================
         document.addEventListener('DOMContentLoaded', async () => {
-            // Initialize IndexedDB
+            // FIRST: Try localStorage session restore (instant, never hangs)
+            let sessionRestored = false;
+            const lsSessionRaw = localStorage.getItem('employeeSession');
+            if (lsSessionRaw) {
+                try {
+                    const saved = JSON.parse(lsSessionRaw);
+                    if (saved && saved.employee) {
+                        AppState.employee = saved.employee;
+                        AppState.language = saved.language || 'en';
+                        showMainApp();
+                        sessionRestored = true;
+                    }
+                } catch (e) {
+                    console.error('Session parse error:', e);
+                }
+            }
+
+            // THEN: Initialize IndexedDB (non-blocking for session restore)
             try {
-                await OfflineDB.init();
+                await Promise.race([
+                    OfflineDB.init(),
+                    new Promise(function(_, reject) { setTimeout(function() { reject(new Error('IndexedDB init timeout')); }, 5000); })
+                ]);
                 console.log('IndexedDB initialized');
 
                 // Initialize OfflineTaskManager
@@ -27566,30 +27602,21 @@
                 updateSyncBadge();
                 updateCombinedSyncBadge();
 
-                // Try to restore session from IndexedDB first
-                let sessionRestored = false;
-                const idbSession = await OfflineDB.getSession();
-                if (idbSession && idbSession.employee) {
-                    AppState.employee = idbSession.employee;
-                    AppState.language = idbSession.language || 'en';
-                    showMainApp();
-                    sessionRestored = true;
-                } else {
-                    // Fall back to localStorage
-                    const session = localStorage.getItem('employeeSession');
-                    if (session) {
-                        try {
-                            const saved = JSON.parse(session);
-                            AppState.employee = saved.employee;
-                            AppState.language = saved.language || 'en';
-                            // Migrate to IndexedDB
-                            await OfflineDB.saveSession(saved);
-                            showMainApp();
-                            sessionRestored = true;
-                        } catch (e) {
-                            console.error('Session parse error:', e);
-                        }
+                // If we didn't restore from localStorage, try IndexedDB
+                if (!sessionRestored) {
+                    const idbSession = await OfflineDB.getSession();
+                    if (idbSession && idbSession.employee) {
+                        AppState.employee = idbSession.employee;
+                        AppState.language = idbSession.language || 'en';
+                        showMainApp();
+                        sessionRestored = true;
                     }
+                } else {
+                    // Migrate localStorage session to IndexedDB (background)
+                    try {
+                        var parsed = JSON.parse(lsSessionRaw);
+                        await OfflineDB.saveSession(parsed);
+                    } catch(e) {}
                 }
 
                 // If no session restored, show the correct login view
@@ -27602,21 +27629,9 @@
 
             } catch (error) {
                 console.error('IndexedDB init error:', error);
-                // Fall back to localStorage only
-                let fallbackRestored = false;
-                const session = localStorage.getItem('employeeSession');
-                if (session) {
-                    try {
-                        const saved = JSON.parse(session);
-                        AppState.employee = saved.employee;
-                        AppState.language = saved.language || 'en';
-                        showMainApp();
-                        fallbackRestored = true;
-                    } catch (e) {
-                        console.error('Session parse error:', e);
-                    }
-                }
-                if (!fallbackRestored) {
+                // localStorage session restore already happened above
+                // Just make sure login view shows if no session was found
+                if (!sessionRestored) {
                     initLoginView();
                 }
             }
