@@ -33,6 +33,34 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-03-11 — PM_ARCHITECT: Fix employee app infinite loading + session persistence
+
+### Root Cause
+Apps Script cold starts take 10-13 seconds per API call. The employee app was making 6+ API calls SEQUENTIALLY after login (authenticateEmployee → getMyWorkOrder → getMyGHSowingTasks → getTaskPriorities → getPlanningData → getFields → getHarvests), resulting in 30-50+ seconds of loading. With no timeouts, a single slow/failed call could hang the app indefinitely.
+
+### Files Modified
+- `employee.html`:
+  - Added `fetchWithTimeout()` helper (15-second default) — prevents indefinite hangs
+  - Rewrote `loadInitialData()` to fire all 4 data fetches in PARALLEL via `Promise.allSettled` — each result processed independently with individual cache fallback
+  - Added 20-second safety timeout on loading overlay — auto-hides with error toast
+  - Login form shows "Server is slow to respond" on timeout instead of generic error
+  - Applied timeouts to: authenticateEmployee, getMyWorkOrder, getMyGHSowingTasks, getTaskPriorities, getPlanningData, getFields
+- `apps_script/MERGED TOTAL.js` — Added `addField` to PUBLIC_GET_ACTIONS whitelist (from previous commit)
+
+### Session Persistence (already implemented)
+- DOMContentLoaded checks IndexedDB → localStorage for saved `employeeSession`
+- If session found, calls `showMainApp()` directly — no re-login required
+- Clock state persisted via `tsf_clocked_in` + `tsf_clock_in_time` in localStorage
+- Session only cleared by explicit `logout()` call
+- Note: Private/incognito mode clears all storage on tab close — session persistence cannot work there
+
+### Verification
+- `curl authenticateEmployee` — 12.9 seconds (cold start confirmed)
+- `curl getMyWorkOrder` — 11.2 seconds (cold start confirmed)
+- With parallel loading: all 4 data calls fire simultaneously → total ~13s instead of ~50s
+
+---
+
 ## 2026-03-10 — PM_ARCHITECT: Real field data in GPS mapping + backend field registration
 
 ### Root Cause
