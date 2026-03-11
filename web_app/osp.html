@@ -1,0 +1,1527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OSP Generator - Tiny Seed Farm</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="api-config.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0f1117;
+            --bg-secondary: #1a1d27;
+            --bg-card: #22252f;
+            --bg-input: #2a2d3a;
+            --border: #333848;
+            --text-primary: #e8eaed;
+            --text-secondary: #9aa0b0;
+            --accent: #22c55e;
+            --accent-dim: rgba(34,197,94,0.15);
+            --warning: #f59e0b;
+            --warning-dim: rgba(245,158,11,0.15);
+            --danger: #ef4444;
+            --info: #3b82f6;
+            --info-dim: rgba(59,130,246,0.15);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+        .container { max-width: 900px; margin: 0 auto; padding: 16px; }
+
+        /* Header */
+        .header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 16px 0; border-bottom: 1px solid var(--border); margin-bottom: 24px;
+            flex-wrap: wrap; gap: 12px;
+        }
+        .header h1 { font-size: 1.4rem; font-weight: 700; }
+        .header h1 span { color: var(--accent); }
+        .header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+        .header-actions button {
+            padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border);
+            background: var(--bg-card); color: var(--text-primary); font-size: 0.85rem;
+            cursor: pointer; display: flex; align-items: center; gap: 6px;
+        }
+        .header-actions button:hover { border-color: var(--accent); }
+        .header-actions .btn-primary {
+            background: var(--accent); color: #000; border-color: var(--accent); font-weight: 600;
+        }
+
+        /* Readiness Banner */
+        .readiness-banner {
+            background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
+            padding: 20px; margin-bottom: 24px;
+        }
+        .readiness-row { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
+        .readiness-score {
+            width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center;
+            justify-content: center; font-size: 1.6rem; font-weight: 700; flex-shrink: 0;
+        }
+        .readiness-details { flex: 1; min-width: 200px; }
+        .readiness-details h2 { font-size: 1.1rem; margin-bottom: 4px; }
+        .readiness-details p { color: var(--text-secondary); font-size: 0.85rem; }
+        .check-list { margin-top: 12px; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 6px; }
+        .check-item { font-size: 0.82rem; display: flex; align-items: center; gap: 6px; }
+        .check-item .pass { color: var(--accent); }
+        .check-item .fail { color: var(--danger); }
+        .check-item .warn { color: var(--warning); }
+
+        /* Section Nav */
+        .section-nav {
+            display: flex; gap: 4px; overflow-x: auto; padding: 8px 0; margin-bottom: 16px;
+            -webkit-overflow-scrolling: touch;
+        }
+        .section-nav button {
+            padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border);
+            background: var(--bg-card); color: var(--text-secondary); font-size: 0.75rem;
+            cursor: pointer; white-space: nowrap; flex-shrink: 0;
+        }
+        .section-nav button.active { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+        .section-nav button.complete { background: var(--accent-dim); color: var(--accent); }
+
+        /* Sections */
+        .osp-section {
+            background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
+            padding: 20px; margin-bottom: 16px; display: none;
+        }
+        .osp-section.active { display: block; }
+        .osp-section h3 {
+            font-size: 1rem; margin-bottom: 4px; display: flex; align-items: center; gap: 8px;
+        }
+        .osp-section .section-subtitle {
+            color: var(--text-secondary); font-size: 0.82rem; margin-bottom: 16px;
+        }
+        .section-num {
+            background: var(--accent); color: #000; width: 24px; height: 24px; border-radius: 50%;
+            display: inline-flex; align-items: center; justify-content: center;
+            font-size: 0.75rem; font-weight: 700; flex-shrink: 0;
+        }
+
+        /* Form Elements */
+        .form-group { margin-bottom: 16px; }
+        .form-group label {
+            display: block; font-size: 0.82rem; color: var(--text-secondary);
+            margin-bottom: 4px; font-weight: 500;
+        }
+        .form-group label .req { color: var(--danger); }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%; padding: 10px 12px; background: var(--bg-input); border: 1px solid var(--border);
+            border-radius: 8px; color: var(--text-primary); font-size: 0.9rem; font-family: inherit;
+        }
+        .form-group textarea { min-height: 100px; resize: vertical; }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none; border-color: var(--accent);
+        }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+        @media (max-width: 600px) {
+            .form-row, .form-row-3 { grid-template-columns: 1fr; }
+        }
+
+        .checkbox-group { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+        .checkbox-group input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--accent); }
+        .checkbox-group label { margin-bottom: 0; color: var(--text-primary); font-size: 0.85rem; }
+
+        .help-text {
+            background: var(--info-dim); border: 1px solid rgba(59,130,246,0.3); border-radius: 8px;
+            padding: 10px 12px; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 16px;
+        }
+        .help-text i { color: var(--info); margin-right: 6px; }
+
+        /* Data Tables */
+        .data-table-wrap { overflow-x: auto; margin-bottom: 16px; }
+        .data-table {
+            width: 100%; border-collapse: collapse; font-size: 0.82rem;
+        }
+        .data-table th {
+            background: var(--bg-input); padding: 8px 10px; text-align: left;
+            font-weight: 600; color: var(--text-secondary); border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+        }
+        .data-table td {
+            padding: 8px 10px; border-bottom: 1px solid var(--border);
+        }
+        .data-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+        .badge {
+            display: inline-block; padding: 2px 8px; border-radius: 4px;
+            font-size: 0.72rem; font-weight: 600;
+        }
+        .badge-green { background: var(--accent-dim); color: var(--accent); }
+        .badge-yellow { background: var(--warning-dim); color: var(--warning); }
+        .badge-red { background: rgba(239,68,68,0.15); color: var(--danger); }
+
+        /* Auto-populated callout */
+        .auto-pop {
+            display: flex; align-items: center; gap: 6px; font-size: 0.75rem;
+            color: var(--accent); margin-bottom: 12px;
+        }
+
+        /* Navigation buttons */
+        .section-footer {
+            display: flex; justify-content: space-between; margin-top: 20px;
+            padding-top: 16px; border-top: 1px solid var(--border);
+        }
+        .section-footer button {
+            padding: 10px 20px; border-radius: 8px; border: 1px solid var(--border);
+            background: var(--bg-input); color: var(--text-primary); font-size: 0.85rem;
+            cursor: pointer; display: flex; align-items: center; gap: 6px;
+        }
+        .section-footer .btn-next { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 600; }
+
+        /* ROP Section */
+        .rop-card {
+            background: linear-gradient(135deg, rgba(34,197,94,0.08), rgba(59,130,246,0.08));
+            border: 1px solid rgba(34,197,94,0.3); border-radius: 12px; padding: 20px;
+            margin-bottom: 16px;
+        }
+        .rop-card h4 { color: var(--accent); margin-bottom: 8px; }
+
+        /* Print styles */
+        @media print {
+            body { background: #fff; color: #000; font-size: 11pt; }
+            .header-actions, .section-nav, .section-footer, .no-print { display: none !important; }
+            .osp-section { display: block !important; border: none; padding: 0; margin-bottom: 24pt; page-break-inside: avoid; }
+            .osp-section h3 { font-size: 14pt; border-bottom: 2pt solid #000; padding-bottom: 4pt; }
+            .container { max-width: 100%; padding: 0; }
+            .readiness-banner { border: 1px solid #ccc; }
+            .form-group input, .form-group select, .form-group textarea {
+                border: 1px solid #999; background: #fff; color: #000;
+            }
+            .data-table th { background: #eee; }
+            .bg-card, .bg-input { background: #fff; }
+            .help-text { background: #f0f0ff; border: 1px solid #99f; }
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            padding: 12px 24px; border-radius: 8px; font-size: 0.85rem; z-index: 9999;
+            animation: slideUp 0.3s ease;
+        }
+        .toast-success { background: var(--accent); color: #000; }
+        .toast-error { background: var(--danger); color: #fff; }
+        @keyframes slideUp { from { transform: translate(-50%, 100%); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+
+        /* Loading */
+        .loading-spinner {
+            display: inline-block; width: 18px; height: 18px; border: 2px solid var(--border);
+            border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+<div class="container">
+    <!-- Header -->
+    <div class="header">
+        <h1><i class="fas fa-leaf" style="color:var(--accent)"></i> OSP <span>Generator</span></h1>
+        <div class="header-actions">
+            <button onclick="saveDraft()"><i class="fas fa-save"></i> Save Draft</button>
+            <button onclick="window.print()"><i class="fas fa-print"></i> Print / PDF</button>
+            <button onclick="exportText()"><i class="fas fa-file-export"></i> Export</button>
+            <button class="btn-primary" onclick="emailToOEFFA()"><i class="fas fa-envelope"></i> Email to OEFFA</button>
+        </div>
+    </div>
+
+    <!-- Readiness Banner -->
+    <div class="readiness-banner" id="readinessBanner">
+        <div class="readiness-row">
+            <div class="readiness-score" id="readinessCircle" style="border: 3px solid var(--warning); color: var(--warning);">
+                <span id="readinessPercent">--</span>%
+            </div>
+            <div class="readiness-details">
+                <h2>OSP Readiness</h2>
+                <p id="readinessSubtitle">Loading farm data...</p>
+                <div class="check-list" id="readinessChecks"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section Navigation -->
+    <div class="section-nav" id="sectionNav"></div>
+
+    <!-- Section 1: Operation Info -->
+    <div class="osp-section active" data-section="1" id="section1">
+        <h3><span class="section-num">1</span> General Operation Information</h3>
+        <p class="section-subtitle">Basic farm identification and certification status</p>
+        <div class="auto-pop"><i class="fas fa-magic"></i> Pre-filled from system data</div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label>Farm Name <span class="req">*</span></label>
+                <input type="text" id="farmName" value="Tiny Seed Farm">
+            </div>
+            <div class="form-group">
+                <label>Operator Name <span class="req">*</span></label>
+                <input type="text" id="operatorName" value="">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Address <span class="req">*</span></label>
+                <input type="text" id="farmAddress" value="257 Zeigler Rd, Rochester, PA 15074">
+            </div>
+            <div class="form-group">
+                <label>Phone</label>
+                <input type="tel" id="farmPhone" value="">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Email <span class="req">*</span></label>
+                <input type="email" id="farmEmail" value="">
+            </div>
+            <div class="form-group">
+                <label>GPS Coordinates</label>
+                <input type="text" id="farmGPS" value="40.7456, -80.1610" readonly>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Type of Operation</label>
+                <select id="opType">
+                    <option value="crop" selected>Crop Only</option>
+                    <option value="livestock">Livestock</option>
+                    <option value="handler">Handler/Processing</option>
+                    <option value="mixed">Mixed (Crop + Livestock)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Is this a renewal? <span class="req">*</span></label>
+                <select id="isRenewal">
+                    <option value="yes" selected>Yes - Renewal</option>
+                    <option value="no">No - New Applicant</option>
+                    <option value="transition">Transitioning</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Certifier</label>
+                <input type="text" id="certifier" value="OEFFA">
+            </div>
+            <div class="form-group">
+                <label>Certification Expiration Date</label>
+                <input type="date" id="certExpDate" value="">
+            </div>
+        </div>
+
+        <div class="section-footer">
+            <div></div>
+            <button class="btn-next" onclick="goToSection(2)">Next: Overview <i class="fas fa-arrow-right"></i></button>
+        </div>
+    </div>
+
+    <!-- Section 2: Operation Overview -->
+    <div class="osp-section" data-section="2" id="section2">
+        <h3><span class="section-num">2</span> Operation Overview & Management</h3>
+        <p class="section-subtitle">Who runs the farm and how it's structured</p>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label>Full-time Employees</label>
+                <input type="number" id="ftEmployees" value="0" min="0">
+            </div>
+            <div class="form-group">
+                <label>Part-time / Seasonal Employees</label>
+                <input type="number" id="ptEmployees" value="0" min="0">
+            </div>
+        </div>
+
+        <div class="checkbox-group">
+            <input type="checkbox" id="usesContractLabor">
+            <label for="usesContractLabor">Uses contract labor</label>
+        </div>
+        <div class="checkbox-group">
+            <input type="checkbox" id="multipleParcelsCb">
+            <label for="multipleParcelsCb">Operates on multiple (non-contiguous) parcels</label>
+        </div>
+        <div class="checkbox-group">
+            <input type="checkbox" id="hasGreenhouseCb" checked>
+            <label for="hasGreenhouseCb">Has greenhouses or high tunnels</label>
+        </div>
+
+        <div class="form-group">
+            <label>Describe your operation (structure, decision-making, business type)</label>
+            <textarea id="opDescription" placeholder="e.g., Sole proprietor small diversified organic vegetable and flower farm. Owner-operated with seasonal crew. Primary markets: farmers markets, CSA, wholesale to restaurants..."></textarea>
+        </div>
+
+        <div class="section-footer">
+            <button onclick="goToSection(1)"><i class="fas fa-arrow-left"></i> Back</button>
+            <button class="btn-next" onclick="goToSection(3)">Next: Farm Map <i class="fas fa-arrow-right"></i></button>
+        </div>
+    </div>
+
+    <!-- Section 3: Farm Map -->
+    <div class="osp-section" data-section="3" id="section3">
+        <h3><span class="section-num">3</span> Farm Map & Field Layout</h3>
+        <p class="section-subtitle">Map showing all production areas, buffer zones, and field IDs</p>
+
+        <div class="help-text">
+            <i class="fas fa-info-circle"></i>
+            Your map must show: all fields with unique IDs, acreage labels, north arrow, scale, buffer zones from non-organic land, water sources, buildings. Hand-drawn is acceptable.
+        </div>
+
+        <div class="form-group">
+            <label>Total Certified Organic Acreage</label>
+            <input type="number" id="totalAcres" step="0.1" min="0" placeholder="e.g., 5.0">
+        </div>
+        <div class="form-group">
+            <label>Number of Production Fields/Areas</label>
+            <input type="number" id="numFields" min="1" placeholder="e.g., 4">
+        </div>
+        <div class="form-group">
+            <label>Map Notes (describe what you'll attach)</label>
+            <textarea id="mapNotes" placeholder="e.g., Attached: hand-drawn map of 4 production fields (1A, 1B, 2A, 2B), two high tunnels, wash station, buffer zones along north property line..."></textarea>
+        </div>
+
+        <div class="checkbox-group">
+            <input type="checkbox" id="mapAttached">
+            <label for="mapAttached">Farm map is attached / will be attached to submission</label>
+        </div>
+
+        <div class="section-footer">
+            <button onclick="goToSection(2)"><i class="fas fa-arrow-left"></i> Back</button>
+            <button class="btn-next" onclick="goToSection(4)">Next: Field History <i class="fas fa-arrow-right"></i></button>
+        </div>
+    </div>
+
+    <!-- Section 4: Field History -->
+    <div class="osp-section" data-section="4" id="section4">
+        <h3><span class="section-num">4</span> Field History</h3>
+        <p class="section-subtitle">Last 12 months of crops and inputs per field (renewal)</p>
+
+        <div class="auto-pop" id="fieldHistoryAuto" style="display:none"><i class="fas fa-magic"></i> Pre-filled from planning data</div>
+
+        <div class="data-table-wrap">
+            <table class="data-table" id="fieldHistoryTable">
+                <thead>
+                    <tr>
+                        <th>Field #</th>
+                        <th>Acres</th>
+                        <th>2025 Crop</th>
+                        <th>2025 Inputs</th>
+                        <th>2026 Planned</th>
+                        <th>Status</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="fieldHistoryBody">
+                </tbody>
+            </table>
+        </div>
+        <button onclick="addFieldHistoryRow()" style="padding:8px 16px;border-radius:8px;border:1px dashed var(--border);background:none;color:var(--accent);cursor:pointer;font-size:0.82rem;width:100%;">
+            <i class="fas fa-plus"></i> Add Field
+        </button>
+
+        <div class="section-footer">
+            <button onclick="goToSection(3)"><i class="fas fa-arrow-left"></i> Back</button>
+            <button class="btn-next" onclick="goToSection(5)">Next: Crops <i class="fas fa-arrow-right"></i></button>
+        </div>
+    </div>
+
+    <!-- Section 5: Crops -->
+    <div class="osp-section" data-section="5" id="section5">
+        <h3><span class="section-num">5</span> Crops Requesting Certification</h3>
+        <p class="section-subtitle">All crops for 2026 certification year</p>
+
+        <div class="auto-pop" id="cropsAuto" style="display:none"><i class="fas fa-magic"></i> Pre-filled from planning & greenhouse data</div>
+
+        <div class="data-table-wrap">
+            <table class="data-table" id="cropsTable">
+                <thead>
+                    <tr>
+                        <th>Crop</th>
+                        <th>Field(s)</th>
+                        <th>Acres</th>
+                        <th>Variety</th>
+                        <th>Plant Date</th>
+                        <th>Harvest</th>
+                        <th>Market</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="cropsBody">
+                </tbody>
+            </table>
+        </div>
+        <button onclick="addCropRow()" style="padding:8px 16px;border-radius:8px;border:1px dashed var(--border);background:none;color:var(--accent);cursor:pointer;font-size:0.82rem;width:100%;">
+            <i class="fas fa-plus"></i> Add Crop
+        </button>
+
+        <div class="section-footer">
+            <button onclick="goToSection(4)"><i class="fas fa-arrow-left"></i> Back</button>
+            <button class="btn-next" onclick="goToSection(6)">Next: Seeds <i class="fas fa-arrow-right"></i></button>
+        </div>
+    </div>
+
+    <!-- Section 6: Seeds -->
+    <div class="osp-section" data-section="6" id="section6">
+        <h3><span class="section-num">6</span> Seeds & Planting Stock</h3>
+        <p class="section-subtitle">Seed sources and organic certification status</p>
+
+        <div class="auto-pop" id="seedsAuto" style="display:none"><i class="fas fa-magic"></i> <span id="seedCount">0</span> seed records loaded from inventory</div>
+
+        <div class="checkbox-group">
+            <input type="checkbox" id="allOrganicSeed">
+            <label for="allOrganicSeed">All seeds used are certified organic</label>
+        </div>
+
+        <div class="form-group" id="nonOrganicJustification" style="display:none;">
+            <label>If using non-organic seed, explain which crops and why (must document 3 supplier searches)</label>
+            <textarea id="nonOrganicSeedNarrative" placeholder="e.g., Organic seed for X variety was unavailable. Contacted Johnny's, Fedco, and High Mowing - none had organic stock available for 2026 season."></textarea>
+        </div>
+
+        <div class="data-table-wrap">
+            <table class="data-table" id="seedTable">
+                <thead>
+                    <tr>
+                        <th>Crop</th>
+                        <th>Variety</th>
+                        <th>Supplier</th>
+                        <th>Organic?</th>
+                        <th>Lot #</th>
+                        <th>Qty</th>
+                    </tr>
+                </thead>
+                <tbody id="seedBody">
+                </tbody>
+            </table>
+        </div>
+
+        <div class="checkbox-group">
+            <input type="checkbox" id="savesSeed">
+            <label for="savesSeed">I save and replant seed from my own crops</label>
+        </div>
+        <div class="checkbox-group">
+            <input type="checkbox" id="usesTransplants" checked>
+            <label for="usesTransplants">I grow transplants on-farm in greenhouse</label>
+        </div>
+
+        <div class="section-footer">
+            <button onclick="goToSection(5)"><i class="fas fa-arrow-left"></i> Back</button>
+            <button class="btn-next" onclick="goToSection(7)">Next: Soil <i class="fas fa-arrow-right"></i></button>
+        </div>
+    </div>
+
+    <!-- Section 7: Soil Management -->
+    <div class="osp-section" data-section="7" id="section7">
+        <h3><span class="section-num">7</span> Soil Management & Fertility</h3>
+        <p class="section-subtitle">Soil health practices, testing, crop rotation, and fertility inputs</p>
+
+        <div class="form-group">
+            <label>Describe your soil (type, pH, organic matter, drainage) <span class="req">*</span></label>
+            <textarea id="soilDescription" placeholder="e.g., Predominantly silt loam with clay subsoil. pH ranges 6.2-6.8 across fields. Organic matter 3.5-4.2%. Good drainage with slight slope to south..."></textarea>
+        </div>
+
+        <div class="checkbox-group">
+            <input type="checkbox" id="annualSoilTest" checked>
+            <label for="annualSoilTest">Annual soil tests performed</label>
+        </div>
+
+        <div class="form-group">
+            <label>Soil testing lab and frequency</label>
+            <input type="text" id="soilTestLab" placeholder="e.g., Penn State Extension lab, annually in March">
+        </div>
+
+        <div class="form-group">
+            <label>Crop rotation plan (describe your rotation pattern) <span class="req">*</span></label>
+            <textarea id="cropRotation" placeholder="e.g., 3-year rotation: Year 1 heavy feeders (tomatoes, peppers), Year 2 light feeders (roots, alliums), Year 3 legumes/cover crops. High tunnels rotate crops within structure on 2-year cycle..."></textarea>
+        </div>
+
+        <div class="form-group">
+            <label>Soil organic matter management (check all that apply)</label>
+        </div>
+        <div class="checkbox-group">
+            <input type="checkbox" id="usesCompost" checked>
+            <label for="usesCompost">Compost (on-farm or purchased)</label>
+        </div>
+        <div class="checkbox-group">
+            <input type="checkbox" id="usesCoverCrops" checked>
+            <label for="usesCoverCrops">Cover crops / green manure</label>
+        </div>
+        <div class="checkbox-group">
+            <input type="checkbox" id="usesMulch" checked>
+            <label for="usesMulch">Mulch</label>
+        </div>
+        <div class="checkbox-group">
+            <input type="checkbox" id="usesManure">
+            <label for="usesManure">Manure (organic or transitional source)</label>
+        </div>
+
+        <h4 style="margin:16px 0 8px;font-size:0.9rem;">Fertility Inputs</h4>
+        <div class="auto-pop" id="inputsAuto" style="display:none"><i class="fas fa-magic"></i> Loaded from input application records</div>
+
+        <div class="data-table-wrap">
+            <table class="data-table" id="fertilityTable">
+                <thead>
+                    <tr>
+                        <th>Input Type</th>
+                        <th>Product Name</th>
+                        <th>Supplier</th>
+                        <th>OMRI?</th>
+                        <th>Rate</th>
+                        <th>Timing</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="fertilityBody">
+                </tbody>
+            </table>
+        </div>
+        <button onclick="addFertilityRow()" style="padding:8px 16px;border-radius:8px;border:1px dashed var(--border);background:none;color:var(--accent);cursor:pointer;font-size:0.82rem;width:100%;">
+            <i class="fas fa-plus"></i> Add Input
+        </button>
+
+        <div class="section-footer">
+            <button onclick="goToSection(6)"><i class="fas fa-arrow-left"></i> Back</button>
+            <button class="btn-next" onclick="goToSection(8)">Next: Pest Mgt <i class="fas fa-arrow-right"></i></button>
+        </div>
+    </div>
+
+    <!-- Section 8: Pest Management -->
+    <div class="osp-section" data-section="8" id="section8">
+        <h3><span class="section-num">8</span> Pest, Disease & Weed Management</h3>
+        <p class="section-subtitle">Your IPM approach and pest monitoring practices</p>
+
+        <div class="form-group">
+            <label>Describe your pest monitoring system <span class="req">*</span></label>
+            <textarea id="pestMonitoring" placeholder="e.g., Weekly field scouting by farm owner during growing season. Visual inspection of all crops for insect damage, disease symptoms, and weed pressure. Scouting reports logged in farm management system (Tiny Seed OS). Treatment threshold: intervene only when pest pressure threatens economic loss..."></textarea>
+        </div>
+
+        <h4 style="margin:16px 0 8px;font-size:0.9rem;">Common Pests & Management</h4>
+        <div class="data-table-wrap">
+            <table class="data-table" id="pestTable">
+                <thead>
+                    <tr>
+                        <th>Pest/Disease</th>
+                        <th>Crops Affected</th>
+                        <th>Frequency</th>
+                        <th>Management Strategy</th>
+                        <th>Input Used</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="pestBody">
+                </tbody>
+            </table>
+        </div>
+        <button onclick="addPestRow()" style="padding:8px 16px;border-radius:8px;border:1px dashed var(--border);background:none;color:var(--accent);cursor:pointer;font-size:0.82rem;width:100%;">
+            <i class="fas fa-plus"></i> Add Pest/Disease
+        </button>
+
+        <h4 style="margin:16px 0 8px;font-size:0.9rem;">Prevention Methods (check all used)</h4>
+        <div class="checkbox-group">
+            <input type="checkbox" id="pmCropRotation" checked>
+            <label for="pmCropRotation">Crop rotation</label>
+        </div>
+        <div class="checkbox-group">
+            <input type="checkbox" id="pmResistantVarieties" checked>
+            <label for="pmResistantVarieties">Resistant varieties</label>
+        </div>
+        <div class="checkbox-group">
+            <input type="checkbox" id="pmRowCovers" checked>
+            <label for="pmRowCovers">Row covers / physical barriers</label>
+        </div>
+        <div class="checkbox-group">
+            <input type="checkbox" id="pmBeneficials">
+            <label for="pmBeneficials">Beneficial insect releases</label>
+        </div>
+        <div class="checkbox-group">
+            <input type="checkbox" id="pmHandPull" checked>
+            <label for="pmHandPull">Hand weeding / cultivation</label>
+        </div>
+        <div class="checkbox-group">
+            <input type="checkbox" id="pmTraps">
+            <label for="pmTraps">Traps (insect, rodent)</label>
+        </div>
+
+        <div class="section-footer">
+            <button onclick="goToSection(7)"><i class="fas fa-arrow-left"></i> Back</button>
+            <button class="btn-next" onclick="goToSection(9)">Next: Materials <i class="fas fa-arrow-right"></i></button>
+        </div>
+    </div>
+
+    <!-- Section 9: Materials List -->
+    <div class="osp-section" data-section="9" id="section9">
+        <h3><span class="section-num">9</span> Materials / Substances List</h3>
+        <p class="section-subtitle">EVERY input used or planned. All must be OMRI-listed or certifier-approved.</p>
+
+        <div class="help-text">
+            <i class="fas fa-exclamation-triangle" style="color:var(--warning)"></i>
+            This section must list ALL substances: fertilizers, pest controls, soil amendments, equipment cleaners, sanitizers. Include product labels with your submission.
+        </div>
+
+        <div class="data-table-wrap">
+            <table class="data-table" id="materialsTable">
+                <thead>
+                    <tr>
+                        <th>Type</th>
+                        <th>Product</th>
+                        <th>Manufacturer</th>
+                        <th>OMRI #</th>
+                        <th>Active Ingredient</th>
+                        <th>Rate</th>
+                        <th>Field(s)</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="materialsBody">
+                </tbody>
+            </table>
+        </div>
+        <button onclick="addMaterialRow()" style="padding:8px 16px;border-radius:8px;border:1px dashed var(--border);background:none;color:var(--accent);cursor:pointer;font-size:0.82rem;width:100%;">
+            <i class="fas fa-plus"></i> Add Material
+        </button>
+
+        <div class="section-footer">
+            <button onclick="goToSection(8)"><i class="fas fa-arrow-left"></i> Back</button>
+            <button class="btn-next" onclick="goToSection(10)">Next: Contamination <i class="fas fa-arrow-right"></i></button>
+        </div>
+    </div>
+
+    <!-- Section 10: Contamination Prevention -->
+    <div class="osp-section" data-section="10" id="section10">
+        <h3><span class="section-num">10</span> Contamination & Commingling Prevention</h3>
+        <p class="section-subtitle">How organic products are protected</p>
+
+        <div class="checkbox-group">
+            <input type="checkbox" id="splitOp">
+            <label for="splitOp">Split operation (both organic and conventional)</label>
+        </div>
+
+        <div id="splitOpDetails" style="display:none;">
+            <div class="form-group">
+                <label>Describe physical separation between organic and conventional</label>
+                <textarea id="splitSeparation" placeholder="e.g., Buffer zones, separate fields, dedicated equipment..."></textarea>
+            </div>
+            <div class="form-group">
+                <label>Equipment cleaning protocol</label>
+                <textarea id="equipmentCleaning" placeholder="e.g., All equipment washed with hot water between uses. Dedicated organic-only tools in greenhouse..."></textarea>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Contamination prevention measures <span class="req">*</span></label>
+            <textarea id="contaminationPrevention" placeholder="e.g., All production is certified organic - no conventional production on farm. Buffer zones maintained along property lines adjacent to neighboring conventional farms. Dedicated wash station. All inputs stored separately and clearly labeled. Equipment cleaned before use in each field..."></textarea>
+        </div>
+
+        <div class="section-footer">
+            <button onclick="goToSection(9)"><i class="fas fa-arrow-left"></i> Back</button>
+            <button class="btn-next" onclick="goToSection(11)">Next: Harvest <i class="fas fa-arrow-right"></i></button>
+        </div>
+    </div>
+
+    <!-- Section 11: Harvest & Post-Harvest -->
+    <div class="osp-section" data-section="11" id="section11">
+        <h3><span class="section-num">11</span> Harvest, Post-Harvest & Transport</h3>
+        <p class="section-subtitle">Handling from field to customer</p>
+
+        <div class="form-group">
+            <label>Describe harvest practices</label>
+            <textarea id="harvestPractices" placeholder="e.g., Hand-harvested by farm crew into clean harvest bins. Immediately cooled in walk-in cooler (38F). Washed in clean water, packed same day..."></textarea>
+        </div>
+        <div class="form-group">
+            <label>Storage & cooling</label>
+            <textarea id="storagePractices" placeholder="e.g., Walk-in cooler at 38F, root cellar for storage crops. Products stored no more than 5 days before delivery. Cooler cleaned weekly..."></textarea>
+        </div>
+        <div class="form-group">
+            <label>Transportation</label>
+            <textarea id="transportPractices" placeholder="e.g., Owner delivers in refrigerated van to farmers markets, CSA drop sites, and restaurant customers. Vehicles cleaned between loads..."></textarea>
+        </div>
+
+        <div class="checkbox-group">
+            <input type="checkbox" id="usesOrganicLabel" checked>
+            <label for="usesOrganicLabel">Products carry organic label</label>
+        </div>
+        <div class="checkbox-group">
+            <input type="checkbox" id="gapsCertified">
+            <label for="gapsCertified">GAP/FSMA food safety practices implemented</label>
+        </div>
+
+        <div class="section-footer">
+            <button onclick="goToSection(10)"><i class="fas fa-arrow-left"></i> Back</button>
+            <button class="btn-next" onclick="goToSection(12)">Next: Records <i class="fas fa-arrow-right"></i></button>
+        </div>
+    </div>
+
+    <!-- Section 12: Recordkeeping -->
+    <div class="osp-section" data-section="12" id="section12">
+        <h3><span class="section-num">12</span> Recordkeeping System</h3>
+        <p class="section-subtitle">How you document compliance and maintain traceability</p>
+
+        <div class="auto-pop"><i class="fas fa-magic"></i> Your farm uses Tiny Seed OS for digital recordkeeping</div>
+
+        <div class="form-group">
+            <label>Describe your recordkeeping system <span class="req">*</span></label>
+            <textarea id="recordkeepingSystem" placeholder="Loading...">Digital farm management system (Tiny Seed OS) maintains all production records including: field activity logs (planting, cultivation, harvest), input purchase records and receipts, supplier organic certificates, pest scouting reports, equipment maintenance logs, sales/shipping records, and soil test results. All records stored digitally with automatic backup. Paper receipts scanned and filed. Records retained minimum 5 years. Full seed-to-sale traceability maintained through lot tracking system.</textarea>
+        </div>
+
+        <h4 style="margin:16px 0 8px;font-size:0.9rem;">Records Maintained (check all)</h4>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;">
+            <div class="checkbox-group"><input type="checkbox" id="recFieldLogs" checked><label for="recFieldLogs">Field activity logs</label></div>
+            <div class="checkbox-group"><input type="checkbox" id="recInputReceipts" checked><label for="recInputReceipts">Input purchase receipts</label></div>
+            <div class="checkbox-group"><input type="checkbox" id="recSupplierCerts" checked><label for="recSupplierCerts">Supplier organic certs</label></div>
+            <div class="checkbox-group"><input type="checkbox" id="recScoutingLogs" checked><label for="recScoutingLogs">Pest scouting logs</label></div>
+            <div class="checkbox-group"><input type="checkbox" id="recEquipLogs"><label for="recEquipLogs">Equipment cleaning logs</label></div>
+            <div class="checkbox-group"><input type="checkbox" id="recSalesRecords" checked><label for="recSalesRecords">Sales/shipping records</label></div>
+            <div class="checkbox-group"><input type="checkbox" id="recCompostLogs"><label for="recCompostLogs">Compost management</label></div>
+            <div class="checkbox-group"><input type="checkbox" id="recSoilTests" checked><label for="recSoilTests">Soil test results</label></div>
+            <div class="checkbox-group"><input type="checkbox" id="recSeedDocs" checked><label for="recSeedDocs">Seed sourcing docs</label></div>
+            <div class="checkbox-group"><input type="checkbox" id="recTraining"><label for="recTraining">Staff training records</label></div>
+        </div>
+
+        <div class="section-footer">
+            <button onclick="goToSection(11)"><i class="fas fa-arrow-left"></i> Back</button>
+            <button class="btn-next" onclick="goToSection(13)">Next: Biodiversity <i class="fas fa-arrow-right"></i></button>
+        </div>
+    </div>
+
+    <!-- Section 13: Biodiversity -->
+    <div class="osp-section" data-section="13" id="section13">
+        <h3><span class="section-num">13</span> Biodiversity & Natural Resources</h3>
+        <p class="section-subtitle">Conservation practices that support organic production</p>
+
+        <h4 style="margin:0 0 8px;font-size:0.9rem;">Conservation Practices (check all)</h4>
+        <div class="checkbox-group"><input type="checkbox" id="bioHedgerows"><label for="bioHedgerows">Hedgerows or windbreaks</label></div>
+        <div class="checkbox-group"><input type="checkbox" id="bioStreamBuffers"><label for="bioStreamBuffers">Stream/water buffers</label></div>
+        <div class="checkbox-group"><input type="checkbox" id="bioNativePlants"><label for="bioNativePlants">Native plantings</label></div>
+        <div class="checkbox-group"><input type="checkbox" id="bioPollinator" checked><label for="bioPollinator">Pollinator habitat (flowers, water, shelter)</label></div>
+        <div class="checkbox-group"><input type="checkbox" id="bioWildlife"><label for="bioWildlife">Wildlife corridors</label></div>
+
+        <div class="form-group">
+            <label>How do conservation practices support your organic production?</label>
+            <textarea id="bioNarrative" placeholder="e.g., Flower rows throughout production fields provide habitat for beneficial insects and pollinators. Native perennial borders serve as windbreaks and beneficial insect overwintering habitat. Cover crop mixtures improve soil biology and reduce erosion..."></textarea>
+        </div>
+
+        <div class="form-group">
+            <label>Water source & irrigation</label>
+            <textarea id="waterSource" placeholder="e.g., Municipal water for greenhouse seedling irrigation. Drip irrigation from well water for field production. Well tested annually..."></textarea>
+        </div>
+
+        <div class="section-footer">
+            <button onclick="goToSection(12)"><i class="fas fa-arrow-left"></i> Back</button>
+            <button class="btn-next" onclick="goToSection(14)">Next: Real Organic <i class="fas fa-arrow-right"></i></button>
+        </div>
+    </div>
+
+    <!-- Section 14: Real Organic Project -->
+    <div class="osp-section" data-section="14" id="section14">
+        <h3><span class="section-num">14</span> Real Organic Project (Add-on)</h3>
+        <p class="section-subtitle">Optional add-on certification - FREE, 30-minute application</p>
+
+        <div class="rop-card">
+            <h4><i class="fas fa-seedling"></i> Real Organic Project Eligibility</h4>
+            <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:12px;">
+                ROP is a farmer-led add-on to USDA Organic. 1,100+ farms certified. Free. OEFFA can combine inspections.
+            </p>
+
+            <div id="ropChecklist">
+                <div class="checkbox-group"><input type="checkbox" id="ropUSDA" checked><label for="ropUSDA">Farm is USDA certified organic (or pursuing)</label></div>
+                <div class="checkbox-group"><input type="checkbox" id="ropIncome" checked><label for="ropIncome">51%+ gross income from certified organic</label></div>
+                <div class="checkbox-group"><input type="checkbox" id="ropNoHydro" checked><label for="ropNoHydro">No hydroponic production (soil-grown only)</label></div>
+                <div class="checkbox-group"><input type="checkbox" id="ropNoParallel" checked><label for="ropNoParallel">No parallel production (same crop organic + conventional)</label></div>
+                <div class="checkbox-group"><input type="checkbox" id="ropNoConfinement" checked><label for="ropNoConfinement">No systemic livestock confinement</label></div>
+                <div class="checkbox-group"><input type="checkbox" id="ropContainer"><label for="ropContainer">Container production &lt;1% of income</label></div>
+            </div>
+
+            <div id="ropResult" style="margin-top:12px;padding:12px;border-radius:8px;background:var(--accent-dim);display:none;">
+                <strong style="color:var(--accent);">Eligible!</strong>
+                <span style="font-size:0.85rem;color:var(--text-secondary);"> Apply free at realorganicproject.org/apply (~30 min). OEFFA can combine inspections.</span>
+            </div>
+        </div>
+
+        <div class="help-text">
+            <i class="fas fa-info-circle"></i>
+            <strong>OEFFA + ROP Partnership:</strong> Since you're OEFFA-certified, both inspections can be done in a single farm visit. Contact: Jessica Roberts, jessica@realorganicproject.org, (814) 208-8038
+        </div>
+
+        <div class="form-group">
+            <label>Notes for ROP application (optional)</label>
+            <textarea id="ropNotes" placeholder="Any additional notes for your Real Organic Project application..."></textarea>
+        </div>
+
+        <div class="section-footer">
+            <button onclick="goToSection(13)"><i class="fas fa-arrow-left"></i> Back</button>
+            <button class="btn-next" onclick="goToSection(15)">Next: Signature <i class="fas fa-arrow-right"></i></button>
+        </div>
+    </div>
+
+    <!-- Section 15: Affirmation & Signature -->
+    <div class="osp-section" data-section="15" id="section15">
+        <h3><span class="section-num">15</span> Affirmation & Signature</h3>
+        <p class="section-subtitle">Certify accuracy and provide contact for inspection</p>
+
+        <div style="background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:16px;font-size:0.85rem;line-height:1.7;">
+            "I certify that I have read and understand the requirements of the National Organic Program and that this operation will comply with all applicable provisions of 7 CFR Part 205. I understand that this Organic System Plan shall be updated if there are changes to the farm operation, and that all records described herein will be available for inspection by my certifier and USDA."
+        </div>
+
+        <div class="checkbox-group">
+            <input type="checkbox" id="affirmAccuracy">
+            <label for="affirmAccuracy"><strong>I affirm this information is accurate and complete</strong></label>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label>Signature (typed) <span class="req">*</span></label>
+                <input type="text" id="signature" placeholder="Type your full legal name" style="font-style:italic;font-size:1.1rem;">
+            </div>
+            <div class="form-group">
+                <label>Date <span class="req">*</span></label>
+                <input type="date" id="signatureDate" value="">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Contact for Inspection Scheduling</label>
+            <input type="text" id="inspectionContact" placeholder="Name and phone/email for scheduling">
+        </div>
+        <div class="form-group">
+            <label>Preferred Inspection Times</label>
+            <input type="text" id="inspectionTimes" placeholder="e.g., Weekday mornings, June-September preferred">
+        </div>
+
+        <div class="section-footer">
+            <button onclick="goToSection(14)"><i class="fas fa-arrow-left"></i> Back</button>
+            <button class="btn-primary" onclick="finalizeOSP()" style="padding:12px 24px;border-radius:8px;border:none;background:var(--accent);color:#000;font-weight:700;font-size:0.95rem;cursor:pointer;">
+                <i class="fas fa-check-circle"></i> Finalize OSP
+            </button>
+        </div>
+    </div>
+
+    <!-- Checklist Summary (hidden until finalize) -->
+    <div class="osp-section" data-section="16" id="section16" style="display:none;">
+        <h3><span class="section-num"><i class="fas fa-clipboard-check"></i></span> Submission Checklist</h3>
+        <p class="section-subtitle">Verify everything is ready before submitting to OEFFA</p>
+
+        <div id="checklistContent"></div>
+
+        <div style="margin-top:20px;padding:16px;background:var(--info-dim);border:1px solid rgba(59,130,246,0.3);border-radius:8px;">
+            <h4 style="color:var(--info);margin-bottom:8px;"><i class="fas fa-paper-plane"></i> Submit to OEFFA</h4>
+            <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:8px;">
+                Email: organic@oeffa.org | Phone: (614) 262-2022
+            </p>
+            <p style="font-size:0.85rem;color:var(--text-secondary);">
+                Print this page (Ctrl/Cmd+P) to create a PDF, then email it along with your farm map, seed labels, and input product labels.
+            </p>
+        </div>
+
+        <div class="section-footer">
+            <button onclick="goToSection(15)"><i class="fas fa-arrow-left"></i> Back to Edit</button>
+            <div style="display:flex;gap:8px;">
+                <button onclick="window.print()" style="background:var(--info);color:#fff;border-color:var(--info);"><i class="fas fa-print"></i> Print / PDF</button>
+                <button onclick="emailToOEFFA()" style="background:var(--accent);color:#000;border-color:var(--accent);font-weight:600;"><i class="fas fa-envelope"></i> Email to OEFFA</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const API_URL = TINY_SEED_API.MAIN_API;
+const SECTIONS = [
+    { id: 1, name: 'Info', label: 'General Info' },
+    { id: 2, name: 'Overview', label: 'Overview' },
+    { id: 3, name: 'Map', label: 'Farm Map' },
+    { id: 4, name: 'Fields', label: 'Field History' },
+    { id: 5, name: 'Crops', label: 'Crops' },
+    { id: 6, name: 'Seeds', label: 'Seeds' },
+    { id: 7, name: 'Soil', label: 'Soil' },
+    { id: 8, name: 'Pest', label: 'Pest Mgt' },
+    { id: 9, name: 'Materials', label: 'Materials' },
+    { id: 10, name: 'Contam', label: 'Contamination' },
+    { id: 11, name: 'Harvest', label: 'Harvest' },
+    { id: 12, name: 'Records', label: 'Records' },
+    { id: 13, name: 'Bio', label: 'Biodiversity' },
+    { id: 14, name: 'ROP', label: 'Real Organic' },
+    { id: 15, name: 'Sign', label: 'Signature' }
+];
+
+let currentSection = 1;
+let farmData = {};
+let auditData = {};
+
+// ============================================================
+// INIT
+// ============================================================
+document.addEventListener('DOMContentLoaded', function() {
+    buildSectionNav();
+    loadDraft();
+    setTodayDate();
+    setupListeners();
+    fetchFarmData();
+    checkROPEligibility();
+});
+
+function setTodayDate() {
+    var today = new Date().toISOString().split('T')[0];
+    var sigDate = document.getElementById('signatureDate');
+    if (sigDate && !sigDate.value) sigDate.value = today;
+}
+
+function buildSectionNav() {
+    var nav = document.getElementById('sectionNav');
+    SECTIONS.forEach(function(s) {
+        var btn = document.createElement('button');
+        btn.textContent = s.name;
+        btn.title = s.label;
+        btn.setAttribute('data-nav', s.id);
+        if (s.id === 1) btn.classList.add('active');
+        btn.onclick = function() { goToSection(s.id); };
+        nav.appendChild(btn);
+    });
+}
+
+function goToSection(num) {
+    // Hide all
+    document.querySelectorAll('.osp-section').forEach(function(s) { s.classList.remove('active'); });
+    // Show target
+    var target = document.getElementById('section' + num);
+    if (target) {
+        target.classList.add('active');
+        target.style.display = 'block';
+    }
+    // Update nav
+    document.querySelectorAll('.section-nav button').forEach(function(b) {
+        b.classList.remove('active');
+        if (parseInt(b.getAttribute('data-nav')) === num) b.classList.add('active');
+    });
+    currentSection = num;
+    window.scrollTo(0, 0);
+    autoSaveDraft();
+}
+
+function setupListeners() {
+    document.getElementById('allOrganicSeed').addEventListener('change', function() {
+        document.getElementById('nonOrganicJustification').style.display = this.checked ? 'none' : 'block';
+    });
+    document.getElementById('splitOp').addEventListener('change', function() {
+        document.getElementById('splitOpDetails').style.display = this.checked ? 'block' : 'none';
+    });
+    // ROP checkbox listeners
+    ['ropUSDA','ropIncome','ropNoHydro','ropNoParallel','ropNoConfinement','ropContainer'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.addEventListener('change', checkROPEligibility);
+    });
+}
+
+function checkROPEligibility() {
+    var required = ['ropUSDA','ropIncome','ropNoHydro','ropNoParallel','ropNoConfinement'];
+    var allPassed = required.every(function(id) {
+        var el = document.getElementById(id);
+        return el && el.checked;
+    });
+    var result = document.getElementById('ropResult');
+    if (result) result.style.display = allPassed ? 'block' : 'none';
+}
+
+// ============================================================
+// FETCH FARM DATA FROM BACKEND
+// ============================================================
+async function fetchFarmData() {
+    try {
+        // Fetch compliance status and seed data in parallel
+        var [complianceRes, seedRes] = await Promise.all([
+            fetch(API_URL + '?action=getOrganicComplianceStatus&year=2026').then(r => r.json()).catch(function() { return null; }),
+            fetch(API_URL + '?action=getSeedInventory&limit=200').then(r => r.json()).catch(function() { return null; })
+        ]);
+
+        if (complianceRes && complianceRes.success) {
+            farmData.compliance = complianceRes;
+            updateReadiness(complianceRes);
+        } else {
+            setReadinessOffline();
+        }
+
+        if (seedRes && seedRes.success && seedRes.seedLots) {
+            farmData.seeds = seedRes.seedLots;
+            populateSeedTable(seedRes.seedLots);
+        }
+
+        // Try to get audit package for more data
+        try {
+            var auditRes = await fetch(API_URL + '?action=generateOrganicAuditPackage&year=2026').then(r => r.json());
+            if (auditRes && auditRes.success) {
+                auditData = auditRes;
+                populateFromAudit(auditRes);
+            }
+        } catch(e) { console.log('Audit package not available:', e); }
+
+    } catch(e) {
+        console.error('Error fetching farm data:', e);
+        setReadinessOffline();
+    }
+}
+
+function updateReadiness(data) {
+    var pct = data.readinessPercent || 0;
+    var el = document.getElementById('readinessPercent');
+    var circle = document.getElementById('readinessCircle');
+    var subtitle = document.getElementById('readinessSubtitle');
+    var checks = document.getElementById('readinessChecks');
+
+    el.textContent = pct;
+
+    if (pct >= 80) {
+        circle.style.borderColor = 'var(--accent)';
+        circle.style.color = 'var(--accent)';
+    } else if (pct >= 40) {
+        circle.style.borderColor = 'var(--warning)';
+        circle.style.color = 'var(--warning)';
+    } else {
+        circle.style.borderColor = 'var(--danger)';
+        circle.style.color = 'var(--danger)';
+    }
+
+    subtitle.textContent = 'Traceability: ' + (data.traceabilityGrade || 'N/A') +
+        ' | Seed records: ' + (data.seedRecordCount || 0) +
+        ' | Checks passed: ' + (data.passedChecks || 0) + '/' + (data.totalChecks || 5);
+
+    var items = data.checkDetails || [];
+    checks.innerHTML = '';
+    items.forEach(function(c) {
+        var div = document.createElement('div');
+        div.className = 'check-item';
+        var icon = c.passed ? '<i class="fas fa-check-circle pass"></i>' : '<i class="fas fa-times-circle fail"></i>';
+        div.innerHTML = icon + ' ' + (c.name || c.check || 'Check');
+        checks.appendChild(div);
+    });
+
+    // Add some computed checks
+    if (!items.length) {
+        var seedCheck = (data.seedRecordCount || 0) > 0;
+        var traceCheck = (data.traceabilityScore || 0) >= 80;
+        [
+            { name: 'Seed inventory', passed: seedCheck },
+            { name: 'Traceability', passed: traceCheck },
+            { name: 'Input records', passed: (data.inputRecordCount || 0) > 0 },
+            { name: 'Harvest records', passed: (data.harvestRecordCount || 0) > 0 },
+            { name: 'Field scouting', passed: (data.pestRecordCount || 0) > 0 }
+        ].forEach(function(c) {
+            var div = document.createElement('div');
+            div.className = 'check-item';
+            var icon = c.passed ? '<i class="fas fa-check-circle pass"></i>' : '<i class="fas fa-times-circle fail"></i>';
+            div.innerHTML = icon + ' ' + c.name;
+            checks.appendChild(div);
+        });
+    }
+}
+
+function setReadinessOffline() {
+    document.getElementById('readinessPercent').textContent = '--';
+    document.getElementById('readinessSubtitle').textContent = 'Could not load farm data. Fill in manually.';
+}
+
+// ============================================================
+// POPULATE FROM DATA
+// ============================================================
+function populateSeedTable(seeds) {
+    var body = document.getElementById('seedBody');
+    body.innerHTML = '';
+    var count = 0;
+
+    seeds.forEach(function(s) {
+        if (!s.crop && !s.Crop) return;
+        count++;
+        var tr = document.createElement('tr');
+        tr.innerHTML =
+            '<td>' + esc(s.crop || s.Crop || '') + '</td>' +
+            '<td>' + esc(s.variety || s.Variety || '') + '</td>' +
+            '<td>' + esc(s.supplier || s.Supplier || s.source || '') + '</td>' +
+            '<td>' + (isOrganic(s) ? '<span class="badge badge-green">Yes</span>' : '<span class="badge badge-yellow">No</span>') + '</td>' +
+            '<td>' + esc(s.lotNumber || s.Lot_Number || s.lotId || '') + '</td>' +
+            '<td>' + esc(s.quantity || s.Quantity || s.seeds_remaining || '') + '</td>';
+        body.appendChild(tr);
+    });
+
+    var autoEl = document.getElementById('seedsAuto');
+    if (autoEl && count > 0) {
+        autoEl.style.display = 'flex';
+        document.getElementById('seedCount').textContent = count;
+    }
+}
+
+function isOrganic(seed) {
+    var cert = (seed.certification || seed.Certification || seed.organic || '').toString().toLowerCase();
+    return cert.includes('organic') || cert === 'true' || cert === 'yes';
+}
+
+function populateFromAudit(data) {
+    // Try to populate from audit package data
+    if (data.inputApplications && data.inputApplications.length > 0) {
+        document.getElementById('inputsAuto').style.display = 'flex';
+        var body = document.getElementById('fertilityBody');
+        data.inputApplications.forEach(function(inp) {
+            var tr = createEditableRow([
+                inp.type || 'Amendment',
+                inp.product || inp.name || '',
+                inp.supplier || '',
+                inp.omri ? 'Yes' : 'No',
+                inp.rate || '',
+                inp.timing || inp.date || ''
+            ], body);
+        });
+    }
+
+    if (data.fieldHistory && data.fieldHistory.length > 0) {
+        document.getElementById('fieldHistoryAuto').style.display = 'flex';
+        var body = document.getElementById('fieldHistoryBody');
+        data.fieldHistory.forEach(function(f) {
+            addFieldHistoryRow(f.field || '', f.acres || '', f.crop2025 || '', f.inputs2025 || '', f.crop2026 || '', f.status || 'Organic');
+        });
+    }
+}
+
+// ============================================================
+// DYNAMIC TABLE ROWS
+// ============================================================
+function addFieldHistoryRow(field, acres, crop25, inputs25, crop26, status) {
+    var body = document.getElementById('fieldHistoryBody');
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+        '<td><input type="text" value="' + esc(field || '') + '" placeholder="1A" style="width:50px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
+        '<td><input type="number" value="' + esc(acres || '') + '" placeholder="0.5" step="0.1" style="width:60px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
+        '<td><input type="text" value="' + esc(crop25 || '') + '" placeholder="Crop" style="width:100px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
+        '<td><input type="text" value="' + esc(inputs25 || '') + '" placeholder="Inputs" style="width:120px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
+        '<td><input type="text" value="' + esc(crop26 || '') + '" placeholder="2026 plan" style="width:100px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
+        '<td><select style="padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"><option' + (status === 'Organic' ? ' selected' : '') + '>Organic</option><option' + (status === 'Transitional' ? ' selected' : '') + '>Transitional</option></select></td>' +
+        '<td><button onclick="this.closest(\'tr\').remove()" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:0.9rem;" title="Remove"><i class="fas fa-trash"></i></button></td>';
+    body.appendChild(tr);
+}
+
+function addCropRow() {
+    var body = document.getElementById('cropsBody');
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+        '<td><input type="text" placeholder="Crop" style="width:80px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
+        '<td><input type="text" placeholder="1A" style="width:50px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
+        '<td><input type="number" placeholder="0.5" step="0.1" style="width:60px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
+        '<td><input type="text" placeholder="Variety" style="width:80px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
+        '<td><input type="text" placeholder="Mar-Apr" style="width:70px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
+        '<td><input type="text" placeholder="Jun-Oct" style="width:70px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
+        '<td><select style="padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"><option>CSA</option><option>Wholesale</option><option>Farmers Market</option><option>Direct</option></select></td>' +
+        '<td><button onclick="this.closest(\'tr\').remove()" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:0.9rem;" title="Remove"><i class="fas fa-trash"></i></button></td>';
+    body.appendChild(tr);
+}
+
+function addFertilityRow() {
+    var body = document.getElementById('fertilityBody');
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+        '<td><select style="padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"><option>Compost</option><option>Fertilizer</option><option>Amendment</option><option>Cover Crop</option></select></td>' +
+        '<td><input type="text" placeholder="Product" style="width:100px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
+        '<td><input type="text" placeholder="Supplier" style="width:80px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
+        '<td><select style="padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"><option>Yes</option><option>No</option><option>Pending</option></select></td>' +
+        '<td><input type="text" placeholder="Rate" style="width:70px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
+        '<td><input type="text" placeholder="Spring" style="width:70px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
+        '<td><button onclick="this.closest(\'tr\').remove()" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:0.9rem;" title="Remove"><i class="fas fa-trash"></i></button></td>';
+    body.appendChild(tr);
+}
+
+function addPestRow() {
+    var body = document.getElementById('pestBody');
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+        '<td><input type="text" placeholder="Pest" style="width:80px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
+        '<td><input type="text" placeholder="Crops" style="width:80px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
+        '<td><select style="padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"><option>Weekly</option><option>Monthly</option><option>Sporadic</option><option>Annual</option></select></td>' +
+        '<td><input type="text" placeholder="Strategy" style="width:100px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
+        '<td><input type="text" placeholder="Input" style="width:80px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
+        '<td><button onclick="this.closest(\'tr\').remove()" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:0.9rem;" title="Remove"><i class="fas fa-trash"></i></button></td>';
+    body.appendChild(tr);
+}
+
+function addMaterialRow() {
+    var body = document.getElementById('materialsBody');
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+        '<td><select style="padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"><option>Fertilizer</option><option>Pest Control</option><option>Amendment</option><option>Cleaner</option><option>Other</option></select></td>' +
+        '<td><input type="text" placeholder="Product" style="width:80px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
+        '<td><input type="text" placeholder="Mfg" style="width:70px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
+        '<td><input type="text" placeholder="OMRI #" style="width:70px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
+        '<td><input type="text" placeholder="Active" style="width:80px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
+        '<td><input type="text" placeholder="Rate" style="width:60px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
+        '<td><input type="text" placeholder="All" style="width:50px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
+        '<td><button onclick="this.closest(\'tr\').remove()" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:0.9rem;" title="Remove"><i class="fas fa-trash"></i></button></td>';
+    body.appendChild(tr);
+}
+
+function createEditableRow(values, tbody) {
+    var tr = document.createElement('tr');
+    var html = '';
+    values.forEach(function(v) {
+        html += '<td>' + esc(v) + '</td>';
+    });
+    html += '<td><button onclick="this.closest(\'tr\').remove()" style="background:none;border:none;color:var(--danger);cursor:pointer;"><i class="fas fa-trash"></i></button></td>';
+    tr.innerHTML = html;
+    tbody.appendChild(tr);
+    return tr;
+}
+
+// ============================================================
+// SAVE / LOAD DRAFT
+// ============================================================
+function saveDraft() {
+    var draft = collectFormData();
+    localStorage.setItem('osp_draft_2026', JSON.stringify(draft));
+    showToast('Draft saved', 'success');
+}
+
+function autoSaveDraft() {
+    var draft = collectFormData();
+    localStorage.setItem('osp_draft_2026', JSON.stringify(draft));
+}
+
+function loadDraft() {
+    try {
+        var raw = localStorage.getItem('osp_draft_2026');
+        if (!raw) return;
+        var draft = JSON.parse(raw);
+        restoreFormData(draft);
+    } catch(e) { console.log('No draft to restore'); }
+}
+
+function collectFormData() {
+    var data = {};
+    // Collect all text inputs and textareas
+    document.querySelectorAll('.osp-section input[type="text"], .osp-section input[type="email"], .osp-section input[type="tel"], .osp-section input[type="number"], .osp-section input[type="date"], .osp-section textarea, .osp-section select').forEach(function(el) {
+        if (el.id) data[el.id] = el.value;
+    });
+    // Collect checkboxes
+    document.querySelectorAll('.osp-section input[type="checkbox"]').forEach(function(el) {
+        if (el.id) data['cb_' + el.id] = el.checked;
+    });
+    return data;
+}
+
+function restoreFormData(data) {
+    Object.keys(data).forEach(function(key) {
+        if (key.startsWith('cb_')) {
+            var el = document.getElementById(key.replace('cb_', ''));
+            if (el) el.checked = data[key];
+        } else {
+            var el = document.getElementById(key);
+            if (el) el.value = data[key];
+        }
+    });
+}
+
+// ============================================================
+// FINALIZE / EXPORT
+// ============================================================
+function finalizeOSP() {
+    // Validate required fields
+    var missing = [];
+    if (!document.getElementById('farmName').value) missing.push('Farm Name');
+    if (!document.getElementById('operatorName').value) missing.push('Operator Name');
+    if (!document.getElementById('farmEmail').value) missing.push('Email');
+    if (!document.getElementById('soilDescription').value) missing.push('Soil Description');
+    if (!document.getElementById('cropRotation').value) missing.push('Crop Rotation');
+    if (!document.getElementById('pestMonitoring').value) missing.push('Pest Monitoring');
+    if (!document.getElementById('contaminationPrevention').value) missing.push('Contamination Prevention');
+    if (!document.getElementById('recordkeepingSystem').value) missing.push('Recordkeeping System');
+    if (!document.getElementById('affirmAccuracy').checked) missing.push('Affirmation checkbox');
+    if (!document.getElementById('signature').value) missing.push('Signature');
+
+    // Build checklist
+    var html = '<div style="margin-bottom:16px;">';
+    if (missing.length > 0) {
+        html += '<div style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:12px;margin-bottom:12px;">';
+        html += '<strong style="color:var(--danger);">Missing required fields:</strong><ul style="margin:8px 0 0 20px;font-size:0.85rem;">';
+        missing.forEach(function(m) { html += '<li>' + m + '</li>'; });
+        html += '</ul></div>';
+    }
+
+    // Checklist items
+    var checks = [
+        { label: 'General Operation Information', done: !!document.getElementById('farmName').value },
+        { label: 'Operation Overview', done: !!document.getElementById('opDescription').value },
+        { label: 'Farm Map noted/attached', done: document.getElementById('mapAttached').checked },
+        { label: 'Field History table', done: document.getElementById('fieldHistoryBody').children.length > 0 },
+        { label: 'Crops table', done: document.getElementById('cropsBody').children.length > 0 },
+        { label: 'Seed records', done: document.getElementById('seedBody').children.length > 0 },
+        { label: 'Soil management narrative', done: !!document.getElementById('soilDescription').value },
+        { label: 'Crop rotation plan', done: !!document.getElementById('cropRotation').value },
+        { label: 'Pest management plan', done: !!document.getElementById('pestMonitoring').value },
+        { label: 'Materials list', done: document.getElementById('materialsBody').children.length > 0 },
+        { label: 'Contamination prevention', done: !!document.getElementById('contaminationPrevention').value },
+        { label: 'Harvest practices', done: !!document.getElementById('harvestPractices').value },
+        { label: 'Recordkeeping system', done: !!document.getElementById('recordkeepingSystem').value },
+        { label: 'Affirmation signed', done: document.getElementById('affirmAccuracy').checked && !!document.getElementById('signature').value }
+    ];
+
+    var completed = checks.filter(function(c) { return c.done; }).length;
+    html += '<p style="font-size:0.9rem;margin-bottom:12px;"><strong>' + completed + '/' + checks.length + '</strong> sections complete</p>';
+
+    checks.forEach(function(c) {
+        var icon = c.done ? '<i class="fas fa-check-circle" style="color:var(--accent)"></i>' : '<i class="fas fa-circle" style="color:var(--border)"></i>';
+        html += '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;font-size:0.85rem;">' + icon + ' ' + c.label + '</div>';
+    });
+
+    html += '<h4 style="margin:16px 0 8px;font-size:0.9rem;">Documents to Attach:</h4>';
+    html += '<div style="font-size:0.85rem;color:var(--text-secondary);line-height:1.8;">';
+    html += '<i class="fas fa-paperclip" style="color:var(--warning)"></i> Farm map with field IDs, acreage, buffer zones<br>';
+    html += '<i class="fas fa-paperclip" style="color:var(--warning)"></i> Seed packet labels / supplier invoices<br>';
+    html += '<i class="fas fa-paperclip" style="color:var(--warning)"></i> Input product labels (OMRI listing visible)<br>';
+    html += '<i class="fas fa-paperclip" style="color:var(--warning)"></i> Most recent soil test results<br>';
+    html += '<i class="fas fa-paperclip" style="color:var(--warning)"></i> Previous certification document (if renewal)<br>';
+    html += '</div>';
+    html += '</div>';
+
+    document.getElementById('checklistContent').innerHTML = html;
+    goToSection(16);
+    saveDraft();
+}
+
+function exportText() {
+    var text = generatePlainText();
+    var blob = new Blob([text], { type: 'text/plain' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'TinySeedFarm_OSP_2026.txt';
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('Exported OSP text file', 'success');
+}
+
+function generatePlainText() {
+    var lines = [];
+    lines.push('='.repeat(60));
+    lines.push('ORGANIC SYSTEM PLAN - ' + (document.getElementById('farmName').value || 'Tiny Seed Farm'));
+    lines.push('Certification Year: 2026');
+    lines.push('Generated: ' + new Date().toLocaleDateString());
+    lines.push('='.repeat(60));
+    lines.push('');
+
+    // Section 1
+    lines.push('SECTION 1: GENERAL OPERATION INFORMATION');
+    lines.push('-'.repeat(40));
+    lines.push('Farm Name: ' + val('farmName'));
+    lines.push('Operator: ' + val('operatorName'));
+    lines.push('Address: ' + val('farmAddress'));
+    lines.push('Phone: ' + val('farmPhone'));
+    lines.push('Email: ' + val('farmEmail'));
+    lines.push('GPS: ' + val('farmGPS'));
+    lines.push('Operation Type: ' + val('opType'));
+    lines.push('Renewal: ' + val('isRenewal'));
+    lines.push('Certifier: ' + val('certifier'));
+    lines.push('');
+
+    // Section 2
+    lines.push('SECTION 2: OPERATION OVERVIEW');
+    lines.push('-'.repeat(40));
+    lines.push('FT Employees: ' + val('ftEmployees'));
+    lines.push('PT Employees: ' + val('ptEmployees'));
+    lines.push('Description: ' + val('opDescription'));
+    lines.push('');
+
+    // Section 7
+    lines.push('SECTION 7: SOIL MANAGEMENT & FERTILITY');
+    lines.push('-'.repeat(40));
+    lines.push('Soil Description: ' + val('soilDescription'));
+    lines.push('Soil Test Lab: ' + val('soilTestLab'));
+    lines.push('Crop Rotation: ' + val('cropRotation'));
+    lines.push('');
+
+    // Section 8
+    lines.push('SECTION 8: PEST MANAGEMENT');
+    lines.push('-'.repeat(40));
+    lines.push('Monitoring: ' + val('pestMonitoring'));
+    lines.push('');
+
+    // Section 10
+    lines.push('SECTION 10: CONTAMINATION PREVENTION');
+    lines.push('-'.repeat(40));
+    lines.push(val('contaminationPrevention'));
+    lines.push('');
+
+    // Section 11
+    lines.push('SECTION 11: HARVEST & POST-HARVEST');
+    lines.push('-'.repeat(40));
+    lines.push('Harvest: ' + val('harvestPractices'));
+    lines.push('Storage: ' + val('storagePractices'));
+    lines.push('Transport: ' + val('transportPractices'));
+    lines.push('');
+
+    // Section 12
+    lines.push('SECTION 12: RECORDKEEPING');
+    lines.push('-'.repeat(40));
+    lines.push(val('recordkeepingSystem'));
+    lines.push('');
+
+    // Section 13
+    lines.push('SECTION 13: BIODIVERSITY');
+    lines.push('-'.repeat(40));
+    lines.push(val('bioNarrative'));
+    lines.push('Water: ' + val('waterSource'));
+    lines.push('');
+
+    // Signature
+    lines.push('AFFIRMATION & SIGNATURE');
+    lines.push('-'.repeat(40));
+    lines.push('Signature: ' + val('signature'));
+    lines.push('Date: ' + val('signatureDate'));
+    lines.push('');
+    lines.push('='.repeat(60));
+
+    return lines.join('\n');
+}
+
+async function emailToOEFFA() {
+    if (!confirm('This will attempt to email the OSP summary to OEFFA (organic@oeffa.org). Continue?')) return;
+
+    try {
+        var text = generatePlainText();
+        var res = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain' },
+            body: JSON.stringify({
+                action: 'emailOrganicReportToOEFFA',
+                farmName: document.getElementById('farmName').value || 'Tiny Seed Farm',
+                year: 2026,
+                reportText: text
+            })
+        });
+        var data = await res.json();
+        if (data.success) {
+            showToast('Email sent to OEFFA!', 'success');
+        } else {
+            showToast('Email failed: ' + (data.error || 'Unknown error'), 'error');
+        }
+    } catch(e) {
+        showToast('Email failed: ' + e.message, 'error');
+    }
+}
+
+// ============================================================
+// UTILITIES
+// ============================================================
+function val(id) {
+    var el = document.getElementById(id);
+    return el ? el.value : '';
+}
+
+function esc(str) {
+    if (!str) return '';
+    var div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+function showToast(msg, type) {
+    document.querySelectorAll('.toast').forEach(function(t) { t.remove(); });
+    var toast = document.createElement('div');
+    toast.className = 'toast toast-' + type;
+    toast.textContent = msg;
+    document.body.appendChild(toast);
+    setTimeout(function() { toast.remove(); }, 3000);
+}
+</script>
+</body>
+</html>
