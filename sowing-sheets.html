@@ -688,11 +688,11 @@
                 <h3 class="panel-title"><i class="fas fa-calendar-alt"></i> Date Range</h3>
                 <div class="date-range">
                     <div class="form-group">
-                        <label>Start</label>
+                        <label for="startDate">Start</label>
                         <input type="date" class="form-control" id="startDate">
                     </div>
                     <div class="form-group">
-                        <label>End</label>
+                        <label for="endDate">End</label>
                         <input type="date" class="form-control" id="endDate">
                     </div>
                 </div>
@@ -807,8 +807,8 @@
     </div>
 
     <!-- Toast Notification -->
-    <div class="toast" id="toast">
-        <i class="fas fa-check-circle"></i>
+    <div class="toast" id="toast" role="status" aria-live="polite">
+        <i class="fas fa-check-circle" aria-hidden="true"></i>
         <span id="toastMessage">Success</span>
     </div>
 
@@ -1745,26 +1745,26 @@
                     : '';
                 rowContent = `
                     <td>${dateCell}</td>
-                    <td>${task.crop} <span class="category-badge ${categoryClass}">GH</span> ${readinessHtml}</td>
+                    <td>${esc(task.crop)} <span class="category-badge ${categoryClass}">GH</span> ${readinessHtml}</td>
                     <td>${editableCell('Variety', task.variety, 'text')}</td>
                     <td>${editableCell('Trays_Needed', traysDisplay, 'number')}</td>
-                    <td><span class="editable-cell" onclick="openTrayTypeDropdown(this, '${task.batchId}')" style="cursor:pointer;border-bottom:1px dashed rgba(255,255,255,0.3);padding:2px 4px;">${task.trayType || (task.cellsPerTray > 0 ? task.cellsPerTray + '-cell' : (task.cellsPerTray === 0 ? 'Open' : '-'))}</span></td>
+                    <td><span class="editable-cell" onclick="openTrayTypeDropdown(this, '${esc(task.batchId)}')" style="cursor:pointer;border-bottom:1px dashed rgba(255,255,255,0.3);padding:2px 4px;">${esc(task.trayType || (task.cellsPerTray > 0 ? task.cellsPerTray + '-cell' : (task.cellsPerTray === 0 ? 'Open' : '-')))}</span></td>
                     <td style="font-weight:600;color:#f59e0b;">${seedCalc}${seedLotLink}</td>
                     <td>${editableCell('Notes', task.notes || '', 'text')}</td>
                 `;
             } else if (currentTaskType === 'transplant') {
                 rowContent = `
                     <td>${dateCell}</td>
-                    <td>${task.crop} <span class="category-badge ${categoryClass}">TP</span> ${readinessHtml}</td>
+                    <td>${esc(task.crop)} <span class="category-badge ${categoryClass}">TP</span> ${readinessHtml}</td>
                     <td>${editableCell('Variety', task.variety, 'text')}</td>
                     <td><strong>${task.plantsNeeded || task.plants || 0}</strong></td>
                     <td>${editableCell('Target_Bed_ID', task.bed || task.location || '-', 'text')}</td>
-                    <td>${task.fromTray || '-'}</td>
+                    <td>${esc(task.fromTray || '-')}</td>
                 `;
             } else if (currentTaskType === 'directSeed') {
                 rowContent = `
                     <td>${dateCell}</td>
-                    <td>${task.crop} <span class="category-badge ${categoryClass}">DS</span> ${readinessHtml}</td>
+                    <td>${esc(task.crop)} <span class="category-badge ${categoryClass}">DS</span> ${readinessHtml}</td>
                     <td>${editableCell('Variety', task.variety, 'text')}</td>
                     <td><strong>${editableCell('Feet_Used', (task.feetUsed || task.feet || 0) + ' ft', 'number')}</strong></td>
                     <td>${(task.seedsNeeded || 0).toLocaleString()}</td>
@@ -1775,13 +1775,13 @@
             const groupKey = groupValue ? groupValue.replace(/[^a-zA-Z0-9]/g, '_') : '';
             const isExcluded = excludedFromPrint.has(task.batchId);
             return `
-                <tr class="${task.completed ? 'completed' : ''}" data-batch-id="${task.batchId}" data-group="${groupKey}" ${isExcluded ? 'style="opacity:0.35"' : ''}>
-                    <td style="text-align:center;"><input type="checkbox" class="print-select-check" value="${task.batchId}" ${isExcluded ? '' : 'checked'} onchange="togglePrintSelect('${task.batchId}', this.checked)" title="Include in print"></td>
+                <tr class="${task.completed ? 'completed' : ''}" data-batch-id="${esc(task.batchId)}" data-group="${groupKey}" ${isExcluded ? 'style="opacity:0.35"' : ''}>
+                    <td style="text-align:center;"><input type="checkbox" class="print-select-check" value="${esc(task.batchId)}" ${isExcluded ? '' : 'checked'} onchange="togglePrintSelect('${esc(task.batchId)}', this.checked)" title="Include in print"></td>
                     <td style="text-align: center;">
-                        <input type="checkbox" class="task-checkbox" ${task.completed ? 'checked' : ''} onchange="toggleTask('${task.batchId}', this.checked)">
+                        <input type="checkbox" class="task-checkbox" ${task.completed ? 'checked' : ''} onchange="toggleTask('${esc(task.batchId)}', this.checked)">
                     </td>
                     ${rowContent}
-                    <td style="text-align:center;"><button class="row-delete-btn" onclick="event.stopPropagation();confirmDeletePlanting('${task.batchId}','${esc(task.crop)}','${esc(task.variety)}')" title="Delete planting"><i class="fas fa-trash-alt"></i></button></td>
+                    <td style="text-align:center;"><button class="row-delete-btn" onclick="event.stopPropagation();confirmDeletePlanting('${esc(task.batchId)}','${esc(task.crop)}','${esc(task.variety)}')" title="Delete planting"><i class="fas fa-trash-alt"></i></button></td>
                 </tr>
             `;
         }
@@ -1988,7 +1988,7 @@
 
                 // Try to sync with API
                 try {
-                    await fetch(`${API_URL}?action=updateTaskCompletion&batchId=${batchId}&completed=${completed}`);
+                    await fetch(`${API_URL}?action=updateTaskCompletion&batchId=${encodeURIComponent(batchId)}&completed=${completed}`);
                 } catch (e) {
                 }
             }
@@ -2001,7 +2001,7 @@
             try {
                 for (const task of tasks) {
                     if (task.completed) {
-                        await fetch(`${API_URL}?action=updateTaskCompletion&batchId=${task.batchId}&completed=true`);
+                        await fetch(`${API_URL}?action=updateTaskCompletion&batchId=${encodeURIComponent(task.batchId)}&completed=true`);
                     }
                 }
                 showToast('Progress saved!', 'success');
@@ -2382,24 +2382,24 @@
         function printTaskRow(task) {
             const config = taskTypeConfig[currentTaskType];
             const taskDate = task[config.dateField];
-            const batchRef = task.batchId ? ' <span style="font-size:7pt;color:#888;">(' + task.batchId.slice(-6) + ')</span>' : '';
+            const batchRef = task.batchId ? ' <span style="font-size:7pt;color:#888;">(' + esc(task.batchId.slice(-6)) + ')</span>' : '';
 
             if (currentTaskType === 'ghSow') {
                 const isOpen = task.cellsPerTray === 0 && (task.trayType || '').toLowerCase().indexOf('open') >= 0;
                 const seeds = task.seedsNeeded > 0 ? task.seedsNeeded
                     : isOpen ? 'Manual'
                     : (task.trays > 0 && task.cellsPerTray > 0) ? Math.ceil(task.trays * task.cellsPerTray * 1.05) : '-';
-                const cellsDisplay = task.trayType || (task.cellsPerTray > 0 ? task.cellsPerTray + '-cell' : (isOpen ? 'Open' : '-'));
+                const cellsDisplay = esc(task.trayType || (task.cellsPerTray > 0 ? task.cellsPerTray + '-cell' : (isOpen ? 'Open' : '-')));
                 return `
                     <tr>
                         <td style="text-align: center;"><div class="checkbox"></div></td>
                         <td>${formatDateShort(taskDate)}</td>
-                        <td>${task.crop}${batchRef}</td>
-                        <td>${task.variety}</td>
+                        <td>${esc(task.crop)}${batchRef}</td>
+                        <td>${esc(task.variety)}</td>
                         <td style="font-weight: 600;">${task.trays}</td>
                         <td>${cellsDisplay}</td>
                         <td style="font-weight: 600; color: #d97706;">${seeds}</td>
-                        <td style="font-size: 9pt; color: #555;">${task.notes || ''}</td>
+                        <td style="font-size: 9pt; color: #555;">${esc(task.notes || '')}</td>
                     </tr>
                 `;
             } else if (currentTaskType === 'transplant') {
@@ -2407,11 +2407,11 @@
                     <tr>
                         <td style="text-align: center;"><div class="checkbox"></div></td>
                         <td>${formatDateShort(taskDate)}</td>
-                        <td>${task.crop}${batchRef}</td>
-                        <td>${task.variety}</td>
+                        <td>${esc(task.crop)}${batchRef}</td>
+                        <td>${esc(task.variety)}</td>
                         <td style="font-weight: 600;">${task.plants}</td>
-                        <td>${task.location || '-'}</td>
-                        <td>${task.fromTray || '-'}</td>
+                        <td>${esc(task.location || '-')}</td>
+                        <td>${esc(task.fromTray || '-')}</td>
                     </tr>
                 `;
             } else if (currentTaskType === 'directSeed') {
@@ -2419,11 +2419,11 @@
                     <tr>
                         <td style="text-align: center;"><div class="checkbox"></div></td>
                         <td>${formatDateShort(taskDate)}</td>
-                        <td>${task.crop}${batchRef}</td>
-                        <td>${task.variety}</td>
+                        <td>${esc(task.crop)}${batchRef}</td>
+                        <td>${esc(task.variety)}</td>
                         <td style="font-weight: 600;">${task.feet} ft</td>
                         <td>${(task.seedsNeeded || 0).toLocaleString()}</td>
-                        <td>${task.location || '-'}</td>
+                        <td>${esc(task.location || '-')}</td>
                     </tr>
                 `;
             }
@@ -2658,22 +2658,22 @@
             <h3 style="margin:0 0 16px;color:var(--text-primary);font-size:1.1rem;"><i class="fas fa-plus-circle" style="color:#3b82f6;"></i> Add Planting</h3>
             <div class="add-form-row">
                 <div class="add-form-group">
-                    <label>Crop *</label>
+                    <label for="addCrop">Crop *</label>
                     <input type="text" id="addCrop" placeholder="e.g. Tomato" list="addCropList">
                     <datalist id="addCropList"></datalist>
                 </div>
                 <div class="add-form-group">
-                    <label>Variety</label>
+                    <label for="addVariety">Variety</label>
                     <input type="text" id="addVariety" placeholder="e.g. Cherokee Purple">
                 </div>
             </div>
             <div class="add-form-row">
                 <div class="add-form-group">
-                    <label>Sow Date *</label>
+                    <label for="addSowDate">Sow Date *</label>
                     <input type="date" id="addSowDate">
                 </div>
                 <div class="add-form-group">
-                    <label>Category</label>
+                    <label for="addCategory">Category</label>
                     <select id="addCategory">
                         <option value="Veg">Vegetable</option>
                         <option value="Floral">Floral</option>
@@ -2683,29 +2683,29 @@
             </div>
             <div class="add-form-row">
                 <div class="add-form-group">
-                    <label>Tray Type</label>
+                    <label for="addTrayType">Tray Type</label>
                     <select id="addTrayType" onchange="addPlantingTrayChanged()">
                         <option value="">Select...</option>
                     </select>
                 </div>
                 <div class="add-form-group">
-                    <label>Trays Needed</label>
+                    <label for="addTrays">Trays Needed</label>
                     <input type="number" id="addTrays" min="0" placeholder="Auto-calculated if possible">
                 </div>
             </div>
             <div class="add-form-row">
                 <div class="add-form-group">
-                    <label>Bed Feet</label>
+                    <label for="addFeet">Bed Feet</label>
                     <input type="number" id="addFeet" min="0" placeholder="Planned bed feet">
                 </div>
                 <div class="add-form-group">
-                    <label>Target Bed</label>
+                    <label for="addBed">Target Bed</label>
                     <input type="text" id="addBed" placeholder="e.g. B1, GH3">
                 </div>
             </div>
             <div class="add-form-row">
                 <div class="add-form-group" style="flex:1;">
-                    <label>Notes</label>
+                    <label for="addNotes">Notes</label>
                     <input type="text" id="addNotes" placeholder="Optional notes">
                 </div>
             </div>

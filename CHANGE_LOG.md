@@ -33,6 +33,75 @@ Brief explanation of why these changes were made.
 
 ---
 
+
+## 2026-03-11 — PM_ARCHITECT: Fix HIGH-severity audit findings in sowing-sheets.html
+
+### Files Modified
+- `sowing-sheets.html` — Fixed 6 HIGH-severity findings from audit
+
+### Changes
+- **XSS fix (S-01):** Wrapped all `task.crop`, `task.variety`, `task.notes`, `task.location`, `task.fromTray`, `task.trayType`, `task.batchId` in `esc()` in both `renderTaskRow()` and `printTaskRow()`
+- **Parameter injection fix (S-04):** Added `encodeURIComponent(batchId)` to `toggleTask()` (line 1991) and `saveProgress()` (line 2004) API fetch URLs
+- **Accessibility fix (A-01/A-02):** Added `for` attributes to all 9 form labels in sidebar date inputs and Add Planting modal
+- **Accessibility fix (A-03):** Added `role="status" aria-live="polite"` to toast notification div, `aria-hidden="true"` to decorative icon
+
+### Reason
+Implementing HIGH-severity fixes identified by 3-part audit. XSS via unescaped API data in innerHTML was the most critical — any crop/variety name containing HTML would execute in user's browser.
+
+---
+
+## 2026-03-11 — AUDIT_CLAUDE: Security and code audit of sowing-sheets.html
+
+### Files Created
+- `AUDIT_SOWING_SHEETS_2026-03-11.md` — Full 3-part audit report (Security, Functional, UX/Accessibility)
+
+### Files Modified
+- `CHANGE_LOG.md` — Added audit findings entry
+
+### Findings Summary
+- 4 HIGH severity security findings (XSS via unescaped API data in innerHTML, document.write in print iframe, unescaped employee name in print DOM, missing encodeURIComponent on batchId)
+- 1 HIGH functional finding (excludedFromPrint let declaration ordering fragility)
+- 3 MEDIUM functional findings (deletePlanting via GET, dead code, serial API loop in saveProgress)
+- 3 HIGH accessibility findings (unassociated form labels, zero ARIA attributes, keyboard radio desyncs)
+- 4 MEDIUM accessibility findings (touch targets, inline edit keyboard gap, color-only status, missing ESC close)
+- Good: no eval/new Function, no hardcoded API URL, esc() helper exists and partially used, auth guard present
+
+### Priority Actions for Builder
+1. Wrap task.crop/task.variety/t.germInstructions in esc() in renderTaskRow() and renderSheet()
+2. Escape window._assignedNames before insertAdjacentHTML (line 2219)
+3. Change deletePlanting to POST
+4. Add encodeURIComponent(batchId) to toggleTask() and saveProgress() fetches
+5. Delete printTaskRow() and getPrintSummaryHTML() dead code
+6. Add for= attributes to all form labels
+7. Add role="status" aria-live="polite" to toast; role="dialog" aria-modal="true" to modals
+
+### Reason
+Requested 3-part audit of sowing-sheets.html per security audit protocol.
+## 2026-03-11 — PM_ARCHITECT: Add OSP Generator page for OEFFA organic certification
+
+### Change
+Built full Organic System Plan (OSP) generator at `web_app/osp.html` for OEFFA certification renewal. 15-section form matching NOP/OEFFA structure (7 CFR 205.201). Pre-populates seed inventory from backend (136 records), shows compliance readiness dashboard, includes Real Organic Project eligibility checker. Draft auto-saves to localStorage. Print/PDF export and email-to-OEFFA functionality.
+
+### Files Created
+- `web_app/osp.html` — Complete OSP generator (15 sections + submission checklist)
+
+### Research Used
+- `docs/research/OEFFA_ORGANIC_SYSTEM_PLAN_2026.md` (21KB, 419 lines)
+- `docs/research/ORGANIC_SYSTEM_PLAN_FORM_STRUCTURE_2026.md` (28KB, 745 lines)
+- `docs/research/REAL_ORGANIC_PROJECT_CERTIFICATION_2026.md` (363 lines)
+
+### API Endpoints Used
+- `getOrganicComplianceStatus` — readiness dashboard
+- `getSeedInventory` — pre-populate seed table
+- `generateOrganicAuditPackage` — field history, inputs, audit data
+- `emailOrganicReportToOEFFA` — email submission
+
+### Duplicate Check
+- [x] Searched for existing organic/osp pages — none found
+- [x] No duplicates created
+
+---
+
 ## 2026-03-11 — PM_ARCHITECT: Add photo upload option for seed packet AI analysis
 
 ### Change
