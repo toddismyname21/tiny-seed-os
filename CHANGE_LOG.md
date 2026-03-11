@@ -33,6 +33,36 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-03-11 — PM_ARCHITECT: Fix seed packet AI analysis pipeline
+
+### Root Cause
+The `analyzeSeedPacket` backend function hardcoded `media_type: 'image/jpeg'` when sending to the Anthropic Vision API, but the actual image format from `canvas.toDataURL()` could vary. If the browser produced a PNG or other format, the Anthropic API rejected it with a media type mismatch error. Additionally, all error messages in the frontend were hidden — users saw generic "Could not read" messages with no way to diagnose the actual failure.
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js`:
+  - `analyzeSeedPacket()` — Auto-detect media type from data URL prefix instead of hardcoding `image/jpeg`. Added base64 size validation. Added Logger.log with image size and detected media type for debugging.
+  - Error messages now include specific details (API key missing, size invalid, etc.)
+- `employee.html`:
+  - `analyzeAndMatchSeedPacket()` — Added console.log for request/response debugging. Error messages now show the actual backend error instead of generic fallback. Inventory search step now logs crop/variety being searched and shows specific error.
+
+### Pipeline Verification (end-to-end)
+1. Camera captures photo → `capturePhoto('sowConfirm')` → camera z-index 10001 (above modal) ✅
+2. Photo confirmed → `confirmPhoto()` routes to `analyzeAndMatchSeedPacket()` ✅
+3. Frontend POSTs `analyzeSeedPacket` with base64 image → backend strips data URL prefix, auto-detects media type ✅
+4. Backend calls Claude Sonnet Vision API → parses JSON response → returns crop, variety, vendor, lotNumber, seedsPerPacket ✅
+5. Frontend GETs `findSeedLotsByCropVariety` with parsed crop/variety → searches SEED_INVENTORY sheet ✅
+6. Match found → `selectSeedLotForSowing()` pre-fills seed lot + calculates seeds to deduct ✅
+7. No match → `createAndLinkNewSeedLot()` calls `addSeedLot` to add full packet quantity to SEED_INVENTORY ✅
+8. On submit → `confirmGHSowing` calls `useSeedFromLot()` to deduct seeds from inventory (with LockService) ✅
+9. `useSeedFromLot` updates Quantity_Remaining, Status (Active/Low/Empty), logs to SEED_USAGE_LOG ✅
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
 ## 2026-03-11 — PM_ARCHITECT: Fix GH Sowing modal UX (4 issues)
 
 ### Files Modified

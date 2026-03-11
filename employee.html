@@ -23607,17 +23607,22 @@
 
             try {
                 // Step 1: Analyze the photo with Claude Vision
+                console.log('analyzeAndMatchSeedPacket: sending image, length=' + (photoData ? photoData.length : 0));
                 var analyzeRes = await fetch(CONFIG.API_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({ action: 'analyzeSeedPacket', image: photoData })
                 });
                 var analyzeData = await analyzeRes.json();
+                console.log('analyzeAndMatchSeedPacket: response=', JSON.stringify(analyzeData).substring(0, 500));
 
                 if (!analyzeData.success || !analyzeData.data) {
-                    // AI analysis failed — show manual entry fallback
+                    // AI analysis failed — show error details + manual entry fallback
+                    var errMsg = analyzeData.error || 'Unknown error';
+                    console.warn('Seed packet analysis failed:', errMsg);
                     content.innerHTML = '<div style="color:var(--text-secondary,#999);font-size:0.85rem;">' +
-                        '<i class="fas fa-info-circle"></i> Could not read seed packet automatically.<br>' +
+                        '<i class="fas fa-exclamation-triangle" style="color:#f59e0b;"></i> Could not read seed packet automatically.<br>' +
+                        '<span style="font-size:0.75rem;color:var(--text-secondary,#777);">' + errMsg + '</span><br>' +
                         '<span style="font-size:0.8rem;">Use "Enter manually" below to type the seed lot ID.</span></div>';
                     return;
                 }
@@ -23637,11 +23642,13 @@
                 // Step 2: Search inventory for matching lots
                 content.innerHTML = readSummary + '<div style="display:flex;align-items:center;gap:8px;color:var(--text-secondary,#999);font-size:0.8rem;"><i class="fas fa-search"></i> Searching inventory...</div>';
 
+                console.log('analyzeAndMatchSeedPacket: searching inventory for crop=' + (packetInfo.crop || '') + ', variety=' + (packetInfo.variety || ''));
                 var searchRes = await fetch(CONFIG.API_URL + '?action=findSeedLotsByCropVariety&crop=' + encodeURIComponent(packetInfo.crop || '') + '&variety=' + encodeURIComponent(packetInfo.variety || ''));
                 var searchData = await searchRes.json();
+                console.log('analyzeAndMatchSeedPacket: inventory search result=', JSON.stringify(searchData).substring(0, 500));
 
                 if (!searchData.success) {
-                    content.innerHTML = readSummary + '<div style="font-size:0.8rem;color:var(--text-secondary,#999);">Could not search inventory. Use "Enter manually" below.</div>';
+                    content.innerHTML = readSummary + '<div style="font-size:0.8rem;color:var(--text-secondary,#999);">Could not search inventory: ' + (searchData.error || 'Unknown') + '. Use "Enter manually" below.</div>';
                     return;
                 }
 
@@ -23692,7 +23699,7 @@
                 }
             } catch (err) {
                 console.error('Seed packet analysis error:', err);
-                content.innerHTML = '<div style="font-size:0.85rem;color:var(--text-secondary,#999);"><i class="fas fa-exclamation-triangle" style="color:#f59e0b;"></i> Analysis unavailable. Use "Enter manually" below.</div>';
+                content.innerHTML = '<div style="font-size:0.85rem;color:var(--text-secondary,#999);"><i class="fas fa-exclamation-triangle" style="color:#f59e0b;"></i> Analysis error: ' + (err.message || 'Network issue') + '<br><span style="font-size:0.8rem;">Use "Enter manually" below to type the seed lot ID.</span></div>';
             }
         }
 
