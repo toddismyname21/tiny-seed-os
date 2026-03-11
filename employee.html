@@ -23568,6 +23568,34 @@
             }
         }
 
+        function handleSowPhotoUpload(input) {
+            if (!input.files || !input.files[0]) return;
+            var file = input.files[0];
+            if (!file.type.startsWith('image/')) {
+                showToast('Please select an image file', 'error');
+                return;
+            }
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                var imageData = e.target.result;
+                AppState.capturedPhoto = imageData;
+                AppState.sowConfirmPhoto = imageData;
+                // Show preview
+                var sowThumb = document.getElementById('sowPhotoThumb');
+                var sowPreview = document.getElementById('sowPhotoPreview');
+                var sowBtn = document.getElementById('sowPhotoBtn');
+                if (sowThumb) sowThumb.src = imageData;
+                if (sowPreview) sowPreview.style.display = 'block';
+                if (sowBtn) sowBtn.innerHTML = '<i class="fas fa-check-circle" style="color:#22c55e;"></i> Photo Uploaded — Tap to Retake';
+                updateSowConfirmBtnState();
+                // Trigger AI analysis
+                analyzeAndMatchSeedPacket(imageData);
+            };
+            reader.readAsDataURL(file);
+            // Reset input so same file can be re-selected
+            input.value = '';
+        }
+
         function closeGHSowConfirmModal() {
             document.getElementById('ghSowConfirmModal').style.display = 'none';
             // Reset photo later checkbox
@@ -31096,7 +31124,11 @@
             <div>
                 <label style="font-size:0.8rem;color:var(--text-secondary,#999);font-weight:600;">Seed Packet Photo</label>
                 <span id="sowPhotoRequiredBadge" style="display:none;align-items:center;gap:4px;font-size:0.7rem;color:#f59e0b;font-weight:600;margin-left:8px;"><i class="fas fa-exclamation-triangle"></i> Required for traceability</span>
-                <button type="button" id="sowPhotoBtn" onclick="capturePhoto('sowConfirm')" style="width:100%;padding:12px;min-height:44px;background:var(--bg-light,#2a2a3e);border:1px dashed var(--border,#555);border-radius:8px;color:var(--text-secondary,#999);font-size:0.9rem;cursor:pointer;margin-top:4px;display:flex;align-items:center;justify-content:center;gap:8px;"><i class="fas fa-camera"></i> <span data-i18n="sow.snapSeedPacket">Snap Seed Packet</span></button>
+                <div style="display:flex;gap:8px;margin-top:4px;">
+                    <button type="button" id="sowPhotoBtn" onclick="capturePhoto('sowConfirm')" style="flex:1;padding:12px;min-height:44px;background:var(--bg-light,#2a2a3e);border:1px dashed var(--border,#555);border-radius:8px;color:var(--text-secondary,#999);font-size:0.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;"><i class="fas fa-camera"></i> <span data-i18n="sow.snapSeedPacket">Snap</span></button>
+                    <button type="button" onclick="document.getElementById('sowPhotoUpload').click()" style="flex:1;padding:12px;min-height:44px;background:var(--bg-light,#2a2a3e);border:1px dashed var(--border,#555);border-radius:8px;color:var(--text-secondary,#999);font-size:0.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;"><i class="fas fa-upload"></i> Upload</button>
+                </div>
+                <input type="file" id="sowPhotoUpload" accept="image/*" onchange="handleSowPhotoUpload(this)" style="display:none;">
                 <div id="sowPhotoPreview" style="display:none;margin-top:8px;position:relative;">
                     <img id="sowPhotoThumb" style="width:100%;max-height:120px;object-fit:cover;border-radius:8px;border:2px solid #22c55e;" alt="Seed packet photo">
                     <button type="button" onclick="removeSowPhoto()" style="position:absolute;top:4px;right:4px;width:28px;height:28px;border-radius:50%;background:rgba(0,0,0,0.7);border:none;color:white;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;"><i class="fas fa-times"></i></button>

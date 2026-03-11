@@ -33,6 +33,23 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-03-11 — PM_ARCHITECT: Add photo upload option for seed packet AI analysis
+
+### Change
+Added "Upload" button alongside the existing "Snap" camera button in the GH Sowing confirmation modal. Users can now upload a previously-taken photo from their phone's gallery instead of only using the live camera. The uploaded photo goes through the same AI analysis pipeline (analyzeSeedPacket → findSeedLotsByCropVariety → inventory match/create).
+
+### Files Modified
+- `employee.html`:
+  - GH Sowing modal: replaced single full-width camera button with side-by-side "Snap" + "Upload" buttons
+  - Added hidden `<input type="file" id="sowPhotoUpload" accept="image/*">`
+  - Added `handleSowPhotoUpload(input)` — reads file as base64 data URL, shows preview, triggers `analyzeAndMatchSeedPacket()`
+
+### Duplicate Check
+- [x] No new files created
+- [x] Reuses existing `analyzeAndMatchSeedPacket()` pipeline
+
+---
+
 ## 2026-03-11 — PM_ARCHITECT: Fix employee app infinite loading (IndexedDB blocking)
 
 ### Root Cause
