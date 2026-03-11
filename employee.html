@@ -15714,6 +15714,17 @@
             }
         }
 
+        // Fetch with timeout — prevents infinite hang on slow/dead API
+        function fetchWithTimeout(url, timeoutMs) {
+            timeoutMs = timeoutMs || 15000;
+            return Promise.race([
+                fetch(url),
+                new Promise(function(_, reject) {
+                    setTimeout(function() { reject(new Error('Request timed out after ' + timeoutMs + 'ms')); }, timeoutMs);
+                })
+            ]);
+        }
+
         // Form login handler (username + PIN fields)
         async function handleFormLogin(e) {
             e.preventDefault();
@@ -15735,7 +15746,7 @@
             errEl.textContent = '';
 
             try {
-                var response = await fetch(CONFIG.API_URL + '?action=authenticateEmployee&pin=' + encodeURIComponent(pinVal));
+                var response = await fetchWithTimeout(CONFIG.API_URL + '?action=authenticateEmployee&pin=' + encodeURIComponent(pinVal), 15000);
                 var data = await response.json();
 
                 if (data.success && data.employee) {
@@ -15797,7 +15808,12 @@
                     AppState.language = offlineSession.language || 'en';
                     showMainApp();
                 } else {
-                    errEl.textContent = 'Connection error. Check your signal and try again.';
+                    var msg = error.message || '';
+                    if (msg.indexOf('timed out') >= 0) {
+                        errEl.textContent = 'Server is slow to respond. Please try again in a moment.';
+                    } else {
+                        errEl.textContent = 'Connection error. Check your signal and try again.';
+                    }
                 }
             }
 
@@ -15838,7 +15854,7 @@
         async function validatePIN() {
             showLoading();
             try {
-                const response = await fetch(`${CONFIG.API_URL}?action=authenticateEmployee&pin=${AppState.enteredPIN}`);
+                const response = await fetchWithTimeout(`${CONFIG.API_URL}?action=authenticateEmployee&pin=${AppState.enteredPIN}`, 15000);
                 const data = await response.json();
 
                 if (data.success && data.employee) {
@@ -16151,10 +16167,9 @@
 
             // Morning brief hidden — redundant with work order
 
-            // Load Smart Work Order (AI Prescription)
+            // Load Work Order + GH Sowing + Initial Data in parallel (not blocking)
+            // Apps Script cold starts take 10-13s — parallel saves 30+ seconds
             loadWorkOrder();
-
-            // Load Greenhouse Sowing tasks
             loadGHSowingTasks();
 
             // Render mode selector based on permissions
@@ -16419,7 +16434,7 @@
 
             try {
                 // Load work order prescription
-                const response = await fetch(`${CONFIG.API_URL}?action=getMyWorkOrder&employeeId=${employeeId}`);
+                const response = await fetchWithTimeout(`${CONFIG.API_URL}?action=getMyWorkOrder&employeeId=${employeeId}`, 15000);
                 const data = await response.json();
 
                 if (data.success && data.tasks && data.tasks.length > 0) {
@@ -16798,7 +16813,7 @@
             if (!AppState.employee || !AppState.employee.Employee_ID) return;
             try {
                 var empId = AppState.employee.Employee_ID;
-                var res = await fetch(CONFIG.API_URL + '?action=getMyGHSowingTasks&employeeId=' + encodeURIComponent(empId));
+                var res = await fetchWithTimeout(CONFIG.API_URL + '?action=getMyGHSowingTasks&employeeId=' + encodeURIComponent(empId), 15000);
                 var data = await res.json();
                 if (data.success && data.tasks) {
                     ghSowTasks = data.tasks;
@@ -23819,76 +23834,90 @@
 
         async function loadInitialData() {
             if (AppState.isOnline) {
-                // Online: fetch from API and cache
-                try {
-                    // Load tasks using Unified Task API (getTaskPriorities for AI-sorted)
-                    const employeeId = AppState.employee?.Employee_ID || '';
-                    const params = new URLSearchParams({
-                        action: 'getTaskPriorities',
-                        limit: 100
-                    });
-                    // Add assignee filter if we have employee ID
-                    if (employeeId) {
-                        params.set('assigneeId', employeeId);
+                // Online: fire ALL data fetches in PARALLEL (not sequentially)
+                // Apps Script cold starts take 10-13 seconds — parallel saves 30+ seconds
+                const employeeId = AppState.employee?.Employee_ID || '';
+                const taskParams = new URLSearchParams({ action: 'getTaskPriorities', limit: 100 });
+                if (employeeId) taskParams.set('assigneeId', employeeId);
+
+                const results = await Promise.allSettled([
+                    fetchWithTimeout(`${CONFIG.API_URL}?${taskParams.toString()}`, 15000).then(r => r.json()),
+                    fetchWithTimeout(`${CONFIG.API_URL}?action=getPlanningData`, 15000).then(r => r.json()),
+                    fetchWithTimeout(`${CONFIG.API_URL}?action=getFields`, 15000).then(r => r.json()),
+                    fetchWithTimeout(`${CONFIG.API_URL}?action=getHarvests&limit=5`, 15000).then(r => r.json())
+                ]);
+
+                // Process tasks (index 0)
+                if (results[0].status === 'fulfilled' && results[0].value.success) {
+                    const tasksData = results[0].value;
+                    AppState.tasks = (tasksData.tasks || []).map(t => ({
+                        id: t.Task_ID,
+                        crop: t.Crop_ID || t.Title || 'Task',
+                        variety: t.Description?.split(' - ')[1] || '',
+                        type: t.Task_Type || 'other',
+                        bed: t.Bed_ID || '',
+                        field: t.Field_ID || '',
+                        date: t.Due_Date || '',
+                        quantity: t.Quantity || '',
+                        status: t.Status || 'scheduled',
+                        benchmarkMin: t.Estimated_Minutes || null,
+                        costingMode: t.Costing_Mode === true || t.Costing_Mode === 'TRUE',
+                        Costing_Mode: t.Costing_Mode === true || t.Costing_Mode === 'TRUE',
+                        isTeamTask: t.Is_Team_Task === true || t.Is_Team_Task === 'TRUE',
+                        subtasks: t.Subtasks || [],
+                        subtasksTotal: t.Subtasks?.length || 0,
+                        subtasksCompleted: t.Subtasks?.filter(s => s.completed).length || 0,
+                        priorityScore: t.Priority_Score || 50,
+                        atRisk: t.At_Risk === true || t.At_Risk === 'TRUE',
+                        atRiskReason: t.At_Risk_Reason || '',
+                        batchId: t.Batch_ID || t.Planning_Row_ID || '',
+                        _raw: t
+                    }));
+                    try { await OfflineDB.cacheTasks(AppState.tasks); } catch(e) {}
+                    renderTasks();
+                } else {
+                    console.warn('Tasks load failed, using cache');
+                    try {
+                        const cached = await OfflineDB.getCachedTasks();
+                        if (cached && cached.length) { AppState.tasks = cached; renderTasks(); }
+                    } catch(e) {}
+                }
+
+                // Process plantings (index 1)
+                if (results[1].status === 'fulfilled' && results[1].value.success) {
+                    AppState.plantings = results[1].value.data || [];
+                    try { await OfflineDB.cachePlantings(AppState.plantings); } catch(e) {}
+                    populateHarvestDropdown();
+                } else {
+                    try {
+                        const cached = await OfflineDB.getCachedPlantings();
+                        if (cached && cached.length) { AppState.plantings = cached; populateHarvestDropdown(); }
+                    } catch(e) {}
+                }
+
+                // Process fields (index 2)
+                if (results[2].status === 'fulfilled' && results[2].value.success) {
+                    const fields = results[2].value.fields || [];
+                    try { await OfflineDB.cacheReferenceData('fields', fields); } catch(e) {}
+                    populateFieldDropdown(fields);
+                } else {
+                    try {
+                        const cached = await OfflineDB.getCachedReferenceData('fields');
+                        if (cached && cached.length) { populateFieldDropdown(cached); }
+                    } catch(e) {}
+                }
+
+                // Process harvests (index 3)
+                if (results[3].status === 'fulfilled' && results[3].value.success && results[3].value.harvests) {
+                    const list = document.getElementById('recentHarvestsList');
+                    if (list) {
+                        list.innerHTML = results[3].value.harvests.map(h => `
+                            <div class="harvest-item">
+                                <div class="harvest-info"><h4>${h.Crop}</h4><span>${h.Bed_ID || 'N/A'}</span></div>
+                                <div class="harvest-qty"><div class="amount">${h.Quantity} ${h.Unit}</div><div class="time">${formatTime(h.Timestamp)}</div></div>
+                            </div>
+                        `).join('');
                     }
-
-                    const tasksResponse = await fetch(`${CONFIG.API_URL}?${params.toString()}`);
-                    const tasksData = await tasksResponse.json();
-                    if (tasksData.success) {
-                        // Map Unified Task schema to local format with priority info
-                        AppState.tasks = (tasksData.tasks || []).map(t => ({
-                            id: t.Task_ID,
-                            crop: t.Crop_ID || t.Title || 'Task',
-                            variety: t.Description?.split(' - ')[1] || '',
-                            type: t.Task_Type || 'other',
-                            bed: t.Bed_ID || '',
-                            field: t.Field_ID || '',
-                            date: t.Due_Date || '',
-                            quantity: t.Quantity || '',
-                            status: t.Status || 'scheduled',
-                            benchmarkMin: t.Estimated_Minutes || null,
-                            costingMode: t.Costing_Mode === true || t.Costing_Mode === 'TRUE',
-                            Costing_Mode: t.Costing_Mode === true || t.Costing_Mode === 'TRUE',
-                            isTeamTask: t.Is_Team_Task === true || t.Is_Team_Task === 'TRUE',
-                            subtasks: t.Subtasks || [],
-                            subtasksTotal: t.Subtasks?.length || 0,
-                            subtasksCompleted: t.Subtasks?.filter(s => s.completed).length || 0,
-                            // AI Priority fields
-                            priorityScore: t.Priority_Score || 50,
-                            atRisk: t.At_Risk === true || t.At_Risk === 'TRUE',
-                            atRiskReason: t.At_Risk_Reason || '',
-                            batchId: t.Batch_ID || t.Planning_Row_ID || '',
-                            _raw: t
-                        }));
-                        // Cache tasks for offline use
-                        await OfflineDB.cacheTasks(AppState.tasks);
-                        renderTasks();
-                    }
-
-                    // Load plantings for harvest dropdown
-                    const plantingsResponse = await fetch(`${CONFIG.API_URL}?action=getPlanningData`);
-                    const plantingsData = await plantingsResponse.json();
-                    if (plantingsData.success) {
-                        AppState.plantings = plantingsData.data || [];
-                        // Cache plantings for offline use
-                        await OfflineDB.cachePlantings(AppState.plantings);
-                        populateHarvestDropdown();
-                    }
-
-                    // Load fields for scouting
-                    const fieldsResponse = await fetch(`${CONFIG.API_URL}?action=getFields`);
-                    const fieldsData = await fieldsResponse.json();
-                    if (fieldsData.success) {
-                        // Cache fields for offline use
-                        await OfflineDB.cacheReferenceData('fields', fieldsData.fields || []);
-                        populateFieldDropdown(fieldsData.fields || []);
-                    }
-
-                    loadRecentHarvests();
-
-                } catch (error) {
-                    console.error('Data load error, falling back to cache:', error);
-                    await loadFromCache();
                 }
             } else {
                 // Offline: load from cache
@@ -27329,11 +27358,19 @@
             setTimeout(() => toast.classList.remove('visible'), 3000);
         }
 
+        var loadingTimeout = null;
         function showLoading() {
             document.getElementById('loadingOverlay').classList.add('visible');
+            // Safety: auto-hide after 20 seconds to prevent infinite loading
+            clearTimeout(loadingTimeout);
+            loadingTimeout = setTimeout(function() {
+                hideLoading();
+                showToast('Loading took too long. Please check your connection and try again.', 'error');
+            }, 20000);
         }
 
         function hideLoading() {
+            clearTimeout(loadingTimeout);
             document.getElementById('loadingOverlay').classList.remove('visible');
         }
 
