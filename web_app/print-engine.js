@@ -126,50 +126,52 @@
         var maxTextW = rx - tx;
 
         if (isSeedlingSale) {
-            // === SEEDLING SALE LAYOUT ===
-            // Blue header bar across full width
-            doc.setFillColor(37, 99, 235); // #2563eb
-            doc.rect(0, 0, W, 15, 'F');
+            // === SEEDLING SALE LAYOUT (thermal printer — no color) ===
+            // LINE 1 (y=13): ★ SEEDLING SALE ★ — bold, prominent, full width
             doc.setFont('helvetica', 'bold');
-            doc.setFontSize(11);
-            doc.setTextColor(255, 255, 255);
-            doc.text('SEEDLING SALE', W / 2, 11.5, { align: 'center' });
+            doc.setFontSize(14);
+            doc.setTextColor(0, 0, 0);
+            doc.text('\u2605 SEEDLING SALE \u2605', tx + maxTextW / 2, 13, { align: 'center' });
+            // Underline for emphasis on thermal
+            doc.setDrawColor(0, 0, 0);
+            doc.setLineWidth(1);
+            doc.line(tx, 16, rx, 16);
 
             // LINE 2 (y=30): VARIETY — bold, prominent
-            doc.setTextColor(0, 0, 0);
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(18);
+            doc.setTextColor(0, 0, 0);
             var varText = label.variety || label.crop || '';
             while (varText.length > 3 && doc.getTextWidth(varText) > maxTextW) {
                 varText = varText.substring(0, varText.length - 2) + '\u2026';
             }
-            doc.text(varText, tx, 30);
+            doc.text(varText, tx, 31);
 
-            // LINE 3 (y=44): Crop left, Tray size right
+            // LINE 3 (y=45): Crop left, Tray size right
             doc.setFont('helvetica', 'normal');
             doc.setFontSize(11);
             doc.setTextColor(51, 51, 51);
-            doc.text(label.crop || '', tx, 44);
+            doc.text(label.crop || '', tx, 45);
 
             var tsd = _fmtTraySize(label.cellsPerTray, label.paperpotSpacing);
             doc.setTextColor(0, 0, 0);
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(13);
-            doc.text(tsd, rx, 44, { align: 'right' });
+            doc.text(tsd, rx, 45, { align: 'right' });
 
-            // LINE 4 (y=56): Batch + Tray #
+            // LINE 4 (y=57): Batch + Tray #
             doc.setFont('courier', 'normal');
             doc.setFontSize(7);
             doc.setTextColor(85, 85, 85);
             var batchText = (label.batchNumber || label.batchId || '');
             if (label.trayNumber) batchText += ' T' + label.trayNumber;
-            doc.text(batchText, tx, 56);
+            doc.text(batchText, tx, 57);
 
             doc.setFont('helvetica', 'normal');
             doc.setFontSize(10);
             doc.setTextColor(68, 68, 68);
             var trayStr = 'Tray ' + (label.trayNumber || '') + '/' + (label.trays || '');
-            doc.text(trayStr, rx, 56, { align: 'right' });
+            doc.text(trayStr, rx, 57, { align: 'right' });
 
             // LINE 5 (y=67): Sow date
             doc.setFont('helvetica', 'normal');
@@ -589,13 +591,14 @@
     function _renderSeedlingSaleTray(doc, label, qrImg, fmt) {
         var W = fmt.w, H = fmt.h;
 
-        // Purple header bar across full width
-        doc.setFillColor(139, 92, 246); // #8b5cf6
-        doc.rect(0, 0, W, 16, 'F');
+        // SEEDLING SALE header — bold black text with underline (thermal printer, no color)
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(10);
-        doc.setTextColor(255, 255, 255);
-        doc.text('SEEDLING SALE', W / 2, 12, { align: 'center' });
+        doc.setFontSize(12);
+        doc.setTextColor(0, 0, 0);
+        doc.text('\u2605 SEEDLING SALE \u2605', W / 2, 12, { align: 'center' });
+        doc.setDrawColor(0, 0, 0);
+        doc.setLineWidth(1);
+        doc.line(6, 15, W - 6, 15);
 
         // QR code on left
         var qrSz = 50;

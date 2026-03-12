@@ -19599,6 +19599,8 @@ function doPost(e) {
         return jsonResponse(addSeedlingItem(data));
       case 'deleteSeedlingItem':
         return jsonResponse(deleteSeedlingItem(data));
+      case 'bulkDeleteSeedlingItems':
+        return jsonResponse(bulkDeleteSeedlingItems(data));
       case 'savePresalePageConfig':
         return jsonResponse(savePresalePageConfig(data));
       case 'updateSeedlingAllocations':
@@ -27782,6 +27784,56 @@ function getGreenhouseSeedings(params) {
       }
     }
 
+    // Also include SEEDLING_PRODUCTION items
+    try {
+      var seedlingSheet = ss.getSheetByName('SEEDLING_PRODUCTION');
+      if (seedlingSheet) {
+        var seedData = seedlingSheet.getDataRange().getValues();
+        var seedHdrs = seedData[0];
+        var sc = {};
+        for (var si = 0; si < seedHdrs.length; si++) sc[seedHdrs[si]] = si;
+
+        for (var si = 1; si < seedData.length; si++) {
+          var seedStatus = String(seedData[si][sc['Status']] || '').toLowerCase();
+          if (seedStatus === 'cancelled' || seedStatus === 'deleted' || seedStatus === 'removed') continue;
+
+          var seedDateRaw = sc['Seeding_Date'] !== undefined ? seedData[si][sc['Seeding_Date']] : null;
+          if (!seedDateRaw) continue;
+          var seedSowDate = new Date(seedDateRaw);
+          if (isNaN(seedSowDate.getTime())) continue;
+          if (seedSowDate < startFilter || seedSowDate > endFilter) continue;
+
+          var seedTrayTypeVal = sc['Seeding_Tray_Type'] !== undefined ? String(seedData[si][sc['Seeding_Tray_Type']] || '') : '';
+          var seedCellsPerTray = seedTrayTypeVal === '200-cell' ? 200 : 128;
+          var seedTotalUnits = Number(seedData[si][sc['Total_Units']] || 0);
+          var seedTrays = seedTotalUnits > 0 ? Math.ceil(seedTotalUnits / seedCellsPerTray) : 0;
+
+          seedings.push({
+            crop: sc['Crop'] !== undefined ? (seedData[si][sc['Crop']] || '') : '',
+            variety: sc['Variety'] !== undefined ? (seedData[si][sc['Variety']] || '') : '',
+            plannedVariety: sc['Variety'] !== undefined ? String(seedData[si][sc['Variety']] || '') : '',
+            substituted: false,
+            seedDate: seedSowDate.toISOString().split('T')[0],
+            transplantDate: '',
+            traysNeeded: seedTrays,
+            cellsPerTray: seedCellsPerTray,
+            trayType: seedTrayTypeVal || '128-cell',
+            paperpotSpacing: 0,
+            batchNumber: seedData[si][sc['Item_ID']] || 'SDL-' + si,
+            nurseryDays: 0,
+            field: '',
+            seedLotNum: sc['Seed_Lot_ID'] !== undefined ? (seedData[si][sc['Seed_Lot_ID']] || '') : '',
+            category: sc['Category'] !== undefined ? (seedData[si][sc['Category']] || '') : '',
+            notes: 'SEEDLING SALE',
+            purpose: 'SEEDLING_SALE',
+            source: 'SEEDLING_PRODUCTION'
+          });
+        }
+      }
+    } catch (seedErr) {
+      // Fail gracefully — PLANNING_2026 seedings still return
+    }
+
     return jsonResponse({
       success: true,
       data: seedings,
@@ -34730,11 +34782,9 @@ function createDirectSeedingTab() {
       const sowDate = new Date(sowDateRaw);
       if (isNaN(sowDate.getTime())) continue;
 
-      // Date filter — but NEVER hide incomplete overdue tasks
-      const isIncomplete = !(cols.actGhSow >= 0 && row[cols.actGhSow]);
-      const isOverdue = sowDate < new Date();
+      // Date filter — strict range. Overdue tasks have their own dedicated endpoint (getOverduePlantings)
       if (sowDate > endDate) continue;
-      if (sowDate < startDate && !(isIncomplete && isOverdue)) continue;
+      if (sowDate < startDate) continue;
 
       const crop = cols.crop >= 0 ? row[cols.crop] : '';
       const profile = profileMap[crop] || {};
@@ -34841,11 +34891,9 @@ function createDirectSeedingTab() {
         var seedSowDate = new Date(seedingDateRaw);
         if (isNaN(seedSowDate.getTime())) continue;
 
-        // Apply same date filtering as PLANNING_2026 tasks
-        var seedIsIncomplete = !(seedStatus === 'seeded' || seedStatus === 'growing' || seedStatus === 'hardening' || seedStatus === 'ready');
-        var seedIsOverdue = seedSowDate < new Date();
+        // Date filter — strict range. Overdue tasks have their own dedicated endpoint (getOverduePlantings)
         if (seedSowDate > endDate) continue;
-        if (seedSowDate < startDate && !(seedIsIncomplete && seedIsOverdue)) continue;
+        if (seedSowDate < startDate) continue;
 
         // Category filter
         var seedCategory = seedCols['Category'] !== undefined ? (seedData[s][seedCols['Category']] || 'Veg') : 'Veg';
@@ -34857,7 +34905,8 @@ function createDirectSeedingTab() {
         }
 
         var seedTotalUnits = Number(seedData[s][seedCols['Total_Units']] || 0);
-        var seedCellsPerTray = 128; // Default for seedling sale bulk sow
+        var seedTrayTypeRaw = seedCols['Seeding_Tray_Type'] !== undefined ? String(seedData[s][seedCols['Seeding_Tray_Type']] || '') : '';
+        var seedCellsPerTray = seedTrayTypeRaw === '200-cell' ? 200 : 128; // Use configured tray type, default 128-cell
         var seedTrays = seedTotalUnits > 0 ? Math.ceil(seedTotalUnits / seedCellsPerTray) : 0;
 
         tasks.push({
@@ -34879,11 +34928,12 @@ function createDirectSeedingTab() {
           seedsNeeded: seedTotalUnits > 0 ? Math.ceil(seedTotalUnits * 1.05) : 0,
           bed: '',
           seedLotUsed: seedCols['Seed_Lot_ID'] !== undefined ? (seedData[s][seedCols['Seed_Lot_ID']] || '') : '',
-          trayType: '',
+          trayType: seedTrayTypeRaw || '128-cell',
           germTemp: '',
-          notes: 'Seedling Sale — ' + (seedCols['Notes'] !== undefined ? (seedData[s][seedCols['Notes']] || '') : ''),
+          notes: 'SEEDLING SALE — ' + (seedCols['Notes'] !== undefined ? (seedData[s][seedCols['Notes']] || '') : ''),
           completed: !!(seedStatus === 'seeded' || seedStatus === 'growing' || seedStatus === 'hardening' || seedStatus === 'ready'),
           rowIndex: s + 1,
+          assignedTo: seedCols['Assigned_To'] !== undefined ? String(seedData[s][seedCols['Assigned_To']] || '') : '',
           purpose: 'SEEDLING_SALE',
           source: 'SEEDLING_PRODUCTION',
           readiness: {
@@ -35392,6 +35442,78 @@ function getMyGHSowingTasks(params) {
       });
     }
 
+    // Also include SEEDLING_PRODUCTION tasks
+    try {
+      var seedSheet = ss.getSheetByName('SEEDLING_PRODUCTION');
+      if (seedSheet) {
+        var seedData = seedSheet.getDataRange().getValues();
+        var seedHeaders = seedData[0].map(function(h) { return String(h).trim(); });
+        var seedCols = {
+          itemId: seedHeaders.indexOf('Item_ID'),
+          crop: seedHeaders.indexOf('Crop'),
+          variety: seedHeaders.indexOf('Variety'),
+          category: seedHeaders.indexOf('Category'),
+          seedingDate: seedHeaders.indexOf('Seeding_Date'),
+          totalUnits: seedHeaders.indexOf('Total_Units'),
+          status: seedHeaders.indexOf('Status'),
+          notes: seedHeaders.indexOf('Notes'),
+          assignedTo: seedHeaders.indexOf('Assigned_To'),
+          seedLotId: seedHeaders.indexOf('Seed_Lot_ID'),
+          seedingTrayType: seedHeaders.indexOf('Seeding_Tray_Type')
+        };
+
+        for (var si = 1; si < seedData.length; si++) {
+          var seedRow = seedData[si];
+          var seedStatus = seedCols.status >= 0 ? String(seedRow[seedCols.status] || '').toLowerCase() : '';
+          if (seedStatus === 'completed' || seedStatus === 'cancelled' || seedStatus === 'seeded' || seedStatus === 'growing' || seedStatus === 'hardening' || seedStatus === 'ready') continue;
+
+          var seedDate = seedCols.seedingDate >= 0 ? seedRow[seedCols.seedingDate] : null;
+          if (!seedDate) continue;
+          var seedDateObj = new Date(seedDate);
+          if (isNaN(seedDateObj.getTime())) continue;
+          if (seedDateObj > endDate) continue;
+
+          var seedItemId = seedCols.itemId >= 0 ? String(seedRow[seedCols.itemId] || '') : '';
+          if (!seedItemId) continue;
+
+          var seedAssignedTo = seedCols.assignedTo >= 0 ? String(seedRow[seedCols.assignedTo] || '') : '';
+          var seedAssignedToMe = employeeId && seedAssignedTo.split(',').indexOf(employeeId) >= 0;
+
+          var seedTrayTypeVal = seedCols.seedingTrayType >= 0 ? String(seedRow[seedCols.seedingTrayType] || '') : '';
+          var seedCellsPerTray = seedTrayTypeVal === '200-cell' ? 200 : 128;
+          var seedTotalUnits = seedCols.totalUnits >= 0 ? (parseInt(seedRow[seedCols.totalUnits]) || 0) : 0;
+          var seedTrays = seedTotalUnits > 0 ? Math.ceil(seedTotalUnits / seedCellsPerTray) : 0;
+
+          tasks.push({
+            batchId: seedItemId,
+            crop: seedCols.crop >= 0 ? (seedRow[seedCols.crop] || '') : '',
+            variety: seedCols.variety >= 0 ? (seedRow[seedCols.variety] || '') : '',
+            category: seedCols.category >= 0 ? (seedRow[seedCols.category] || 'Veg') : 'Veg',
+            plannedDate: seedDateObj.toISOString().split('T')[0],
+            trays: seedTrays,
+            cellsPerTray: seedCellsPerTray,
+            trayType: seedTrayTypeVal || '128-cell',
+            plantsNeeded: seedTotalUnits,
+            seedsNeeded: seedTotalUnits > 0 ? Math.ceil(seedTotalUnits * 1.05) : 0,
+            seedLotUsed: seedCols.seedLotId >= 0 ? (seedRow[seedCols.seedLotId] || '') : '',
+            bed: '',
+            notes: 'SEEDLING SALE — ' + (seedCols.notes >= 0 ? (seedRow[seedCols.notes] || '') : ''),
+            assignedTo: seedAssignedTo,
+            assignedToMe: seedAssignedToMe,
+            completed: false,
+            actualDate: '',
+            completedBy: '',
+            actualVariety: '',
+            substituted: false,
+            purpose: 'SEEDLING_SALE',
+            source: 'SEEDLING_PRODUCTION'
+          });
+        }
+      }
+    } catch (seedErr) {
+      // Fail gracefully — PLANNING_2026 tasks still return
+    }
+
     // Sort: assigned-to-me first, then by date
     tasks.sort(function(a, b) {
       if (a.assignedToMe && !b.assignedToMe) return -1;
@@ -35663,6 +35785,7 @@ function assignSowingSheet(data) {
     lock.waitLock(10000);
 
     var assigned = 0;
+    var unmatchedIds = [];
     for (var i = 1; i < allData.length; i++) {
       var rowBatchId = String(allData[i][batchCol] || '');
       if (batchIds.indexOf(rowBatchId) >= 0) {
@@ -35671,12 +35794,52 @@ function assignSowingSheet(data) {
       }
     }
 
+    // Check for unmatched IDs — they may be SEEDLING_PRODUCTION items
+    var matchedPlanningIds = [];
+    for (var i = 1; i < allData.length; i++) {
+      var rid = String(allData[i][batchCol] || '');
+      if (batchIds.indexOf(rid) >= 0) matchedPlanningIds.push(rid);
+    }
+    for (var b = 0; b < batchIds.length; b++) {
+      if (matchedPlanningIds.indexOf(batchIds[b]) < 0) unmatchedIds.push(batchIds[b]);
+    }
+
+    // Also assign in SEEDLING_PRODUCTION for seedling sale tasks
+    var seedlingAssigned = 0;
+    if (unmatchedIds.length > 0) {
+      var seedSheet = ss.getSheetByName('SEEDLING_PRODUCTION');
+      if (seedSheet) {
+        var seedData = seedSheet.getDataRange().getValues();
+        var seedHeaders = seedData[0].map(function(h) { return String(h).trim(); });
+        var seedIdCol = seedHeaders.indexOf('Item_ID');
+        var seedAssignCol = seedHeaders.indexOf('Assigned_To');
+        if (seedAssignCol < 0) {
+          seedAssignCol = seedHeaders.length;
+          seedSheet.getRange(1, seedAssignCol + 1).setValue('Assigned_To').setFontWeight('bold');
+        }
+        if (seedIdCol >= 0) {
+          for (var j = 1; j < seedData.length; j++) {
+            var seedItemId = String(seedData[j][seedIdCol] || '');
+            if (unmatchedIds.indexOf(seedItemId) >= 0) {
+              seedSheet.getRange(j + 1, seedAssignCol + 1).setValue(assignValue);
+              seedlingAssigned++;
+              assigned++;
+            }
+          }
+        }
+      }
+    }
+
     lock.releaseLock();
+
+    var msg = 'Assigned ' + assigned + ' task(s) to ' + (assignNames || 'employees');
+    if (seedlingAssigned > 0) msg += ' (' + seedlingAssigned + ' seedling sale)';
 
     return {
       success: true,
-      message: 'Assigned ' + assigned + ' task(s) to ' + (assignNames || 'employees'),
+      message: msg,
       assignedCount: assigned,
+      seedlingAssigned: seedlingAssigned,
       employeeNames: assignNames
     };
   } catch (error) {
@@ -35884,12 +36047,9 @@ function getTransplantTasks(params) {
       const transplantDate = new Date(transplantDateRaw);
       if (isNaN(transplantDate.getTime())) continue;
 
-      // Date filter — but NEVER hide incomplete overdue transplant tasks
-      const actualTransplantRaw = cols.actTransplant >= 0 ? row[cols.actTransplant] : null;
-      const isCompleted = !!actualTransplantRaw;
-      const isOverdueTransplant = transplantDate < new Date();
+      // Date filter — strict range. Overdue tasks have their own dedicated endpoint (getOverduePlantings)
       if (transplantDate > endDate) continue;
-      if (transplantDate < startDate && !(! isCompleted && isOverdueTransplant)) continue;
+      if (transplantDate < startDate) continue;
       const actualDate = actualTransplantRaw ? formatDateSimple(new Date(actualTransplantRaw)) : null;
 
       // Calculate days variance
@@ -133802,7 +133962,7 @@ function ensureSeedlingProductionSheet_(ss) {
   if (sheet) {
     // Auto-migrate: add missing columns
     var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-    var newCols = ['Seed_Lot_ID', 'Batch_ID', 'Alloc_Presale', 'Alloc_Wholesale', 'Alloc_Market', 'Alloc_Phipps', 'Alloc_CityGROWN'];
+    var newCols = ['Seed_Lot_ID', 'Batch_ID', 'Alloc_Presale', 'Alloc_Wholesale', 'Alloc_Market', 'Alloc_Phipps', 'Alloc_CityGROWN', 'Seeding_Tray_Type', 'Assigned_To'];
     for (var c = 0; c < newCols.length; c++) {
       if (headers.indexOf(newCols[c]) === -1) {
         var nextCol = sheet.getLastColumn() + 1;
@@ -133818,9 +133978,9 @@ function ensureSeedlingProductionSheet_(ss) {
     'Total_Units', 'Price_Each', 'Ready_Date', 'Status',
     'Units_Sold', 'Revenue', 'Market_Allocation', 'Notes', 'Created_At',
     'Seed_Lot_ID', 'Batch_ID',
-    'Alloc_Presale', 'Alloc_Wholesale', 'Alloc_Market', 'Alloc_Phipps', 'Alloc_CityGROWN'
+    'Alloc_Presale', 'Alloc_Wholesale', 'Alloc_Market', 'Alloc_Phipps', 'Alloc_CityGROWN', 'Seeding_Tray_Type', 'Assigned_To'
   ]);
-  sheet.getRange(1, 1, 1, 26).setFontWeight('bold');
+  sheet.getRange(1, 1, 1, 28).setFontWeight('bold');
   sheet.setFrozenRows(1);
   return sheet;
 }
@@ -135282,7 +135442,7 @@ function updateSeedlingAllocations(params) {
   }
 
   // Verify required columns exist
-  var allocCols = ['Alloc_Phipps', 'Alloc_Market', 'Alloc_Wholesale', 'Alloc_CityGROWN', 'Alloc_Presale', 'Total_Units'];
+  var allocCols = ['Alloc_Phipps', 'Alloc_Market', 'Alloc_Wholesale', 'Alloc_Presale', 'Total_Units'];
   for (var ac = 0; ac < allocCols.length; ac++) {
     if (cols[allocCols[ac]] === undefined) {
       return { success: false, error: 'Missing column: ' + allocCols[ac] + '. Run ensureSeedlingProductionSheet_ first.' };
@@ -135294,6 +135454,13 @@ function updateSeedlingAllocations(params) {
     var newCol = sheet.getLastColumn() + 1;
     sheet.getRange(1, newCol).setValue('Seeding_Date');
     cols['Seeding_Date'] = newCol - 1;
+  }
+
+  // Ensure Seeding_Tray_Type column exists
+  if (cols['Seeding_Tray_Type'] === undefined) {
+    var newCol2 = sheet.getLastColumn() + 1;
+    sheet.getRange(1, newCol2).setValue('Seeding_Tray_Type');
+    cols['Seeding_Tray_Type'] = newCol2 - 1;
   }
 
   // Load SEEDLING_SALES to calculate presale orders per item (for demand-driven totals)
@@ -135342,45 +135509,63 @@ function updateSeedlingAllocations(params) {
     var phipps = Number(alloc.alloc_phipps) || 0;
     var market = Number(alloc.alloc_market) || 0;
     var wholesale = Number(alloc.alloc_wholesale) || 0;
-    var citygrown = Number(alloc.alloc_citygrown) || 0;
-    var totalOutletAlloc = phipps + market + wholesale + citygrown;
+
+    // Phipps and Market must be multiples of 18 (18 seedlings per final tray)
+    if (phipps > 0 && phipps % 18 !== 0) {
+      var roundedPhipps = Math.round(phipps / 18) * 18;
+      warnings.push({ itemId: itemId, warning: 'Phipps rounded from ' + phipps + ' to ' + roundedPhipps + ' (must be multiple of 18 per tray)' });
+      phipps = roundedPhipps;
+    }
+    if (market > 0 && market % 18 !== 0) {
+      var roundedMarket = Math.round(market / 18) * 18;
+      warnings.push({ itemId: itemId, warning: 'Market rounded from ' + market + ' to ' + roundedMarket + ' (must be multiple of 18 per tray)' });
+      market = roundedMarket;
+    }
+
+    var totalOutletAlloc = phipps + market + wholesale;
 
     // Demand-driven total: outlets + presale orders = how many to produce
     var presaleOrders = salesByItemId[itemId] || 0;
     var demandTotal = totalOutletAlloc + presaleOrders;
 
+    // Production total: demand + 10% extra orders + 10% loss = × 1.21
+    var productionTotal = demandTotal > 0 ? Math.ceil(demandTotal * 1.21) : 0;
+
     // Write outlet allocation values
     sheet.getRange(match.rowIndex, cols['Alloc_Phipps'] + 1).setValue(phipps);
     sheet.getRange(match.rowIndex, cols['Alloc_Market'] + 1).setValue(market);
     sheet.getRange(match.rowIndex, cols['Alloc_Wholesale'] + 1).setValue(wholesale);
-    sheet.getRange(match.rowIndex, cols['Alloc_CityGROWN'] + 1).setValue(citygrown);
 
-    // Total_Units stays as the user's original production target — NOT overwritten
-    // Frontend calculates demand-driven totals in renderAllocTable()
+    // Write production total (demand × 1.21 buffer for extra orders + loss)
+    sheet.getRange(match.rowIndex, cols['Total_Units'] + 1).setValue(productionTotal);
 
     // Write Seeding_Date if provided
     if (alloc.seeding_date) {
       sheet.getRange(match.rowIndex, cols['Seeding_Date'] + 1).setValue(alloc.seeding_date);
     }
 
+    // Write Seeding_Tray_Type if provided (128-cell or 200-cell)
+    if (alloc.seeding_tray_type) {
+      sheet.getRange(match.rowIndex, cols['Seeding_Tray_Type'] + 1).setValue(alloc.seeding_tray_type);
+    }
+
     // Log to SEEDLING_LIFECYCLE for historical tracking
     var details = JSON.stringify({
       phipps: phipps, market: market, wholesale: wholesale,
-      citygrown: citygrown, outletTotal: totalOutletAlloc, presaleOrders: presaleOrders, demandTotal: demandTotal
+      outletTotal: totalOutletAlloc, presaleOrders: presaleOrders,
+      demandTotal: demandTotal, productionTotal: productionTotal,
+      seedingTrayType: alloc.seeding_tray_type || ''
     });
     logSeedlingLifecycleEvent_(ss, itemId, '', '', 'ALLOCATION_SET', '', '', details, 'Admin');
 
-    var originalTotal = Number(match.data[cols['Total_Units']]) || 0;
     results.push({
       itemId: itemId,
-      total: originalTotal,
+      productionTotal: productionTotal,
       demandTotal: demandTotal,
       phipps: phipps,
       market: market,
       wholesale: wholesale,
-      citygrown: citygrown,
-      presaleOrders: presaleOrders,
-      overallocated: totalOutletAlloc > originalTotal
+      presaleOrders: presaleOrders
     });
     updated++;
   }
@@ -135483,6 +135668,55 @@ function deleteSeedlingItem(params) {
   }
 
   return { success: false, error: 'Item not found: ' + itemId };
+}
+
+/**
+ * Bulk delete seedling varieties from SEEDLING_PRODUCTION
+ * @param {Object} params - { itemIds: string[] }
+ */
+function bulkDeleteSeedlingItems(params) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('SEEDLING_PRODUCTION');
+  if (!sheet) return { success: false, error: 'SEEDLING_PRODUCTION sheet not found' };
+
+  var itemIds = params.itemIds;
+  if (!itemIds || !Array.isArray(itemIds) || itemIds.length === 0) {
+    return { success: false, error: 'itemIds array is required' };
+  }
+
+  var lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+
+  try {
+    var data = sheet.getDataRange().getValues();
+    var headers = data[0];
+    var idCol = headers.indexOf('Item_ID');
+    if (idCol === -1) return { success: false, error: 'No Item_ID column found' };
+
+    // Build set of IDs to delete
+    var deleteSet = {};
+    for (var d = 0; d < itemIds.length; d++) {
+      deleteSet[String(itemIds[d])] = true;
+    }
+
+    // Collect row indices to delete (reverse order to avoid index shift)
+    var rowsToDelete = [];
+    for (var i = 1; i < data.length; i++) {
+      if (deleteSet[String(data[i][idCol])]) {
+        rowsToDelete.push(i + 1); // 1-indexed for sheet
+      }
+    }
+
+    // Delete in reverse order
+    rowsToDelete.sort(function(a, b) { return b - a; });
+    for (var r = 0; r < rowsToDelete.length; r++) {
+      sheet.deleteRow(rowsToDelete[r]);
+    }
+
+    return { success: true, deleted: rowsToDelete.length, requested: itemIds.length };
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 // ═══════════════════════════════════════════════════

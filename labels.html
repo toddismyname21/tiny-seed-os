@@ -1542,7 +1542,9 @@
                         seedLot: s.seedLotNum || s.seedLot || '',
                         nurseryDays: s.nurseryDays || 0,
                         field: s.field || s.bedId || s.bed || '',
-                        category: getCropCategory(s.crop || 'Unknown', s.category)
+                        category: getCropCategory(s.crop || 'Unknown', s.category),
+                        purpose: s.purpose || '',
+                        source: s.source || ''
                     }));
                     showToast(`Loaded ${seedings.length} seedings for ${startDate} to ${endDate}`);
                 } else {
@@ -2697,6 +2699,7 @@
                                onclick="event.stopPropagation(); toggleLabel('${label.labelId}', ${index})">
                         <div class="ftl-qr" id="qr-${index}"></div>
                         <div class="ftl-content">
+                            ${label.purpose === 'SEEDLING_SALE' ? '<div style="font-weight:800;font-size:0.85rem;letter-spacing:0.05em;border-bottom:2px solid #000;padding-bottom:2px;margin-bottom:2px;">&#9733; SEEDLING SALE &#9733;</div>' : ''}
                             <div class="ftl-crop">${label.crop}</div>
                             <div class="ftl-variety">${label.variety}</div>
                             <div class="ftl-batch">${label.batchNumber} T${label.trayNumber}</div>
@@ -3287,41 +3290,77 @@
 
         // Shared rendering: draw one field tray label page onto a jsPDF doc
         function renderFieldTrayPage(doc, label, qrImage, W, H) {
-            // Label: 288×72pt (4"×1"). QR 61×61 on left. Text: x=72 to x=282.
-            // 4 lines, fonts maximized to fill vertical space.
-            var qrSz = 61;
+            // Label: 288×72pt (4"×1"). QR on left. Text: x=72 to x=282.
+            var isSeedlingSale = label.purpose === 'SEEDLING_SALE';
+            var qrSz = isSeedlingSale ? 48 : 61;
+            var qrY = isSeedlingSale ? (H - qrSz) / 2 + 6 : (H - qrSz) / 2;
             if (qrImage) {
-                doc.addImage(qrImage, 'PNG', 6, (H - qrSz) / 2, qrSz, qrSz);
+                doc.addImage(qrImage, 'PNG', 6, qrY, qrSz, qrSz);
             }
             var tx = 72, rx = W - 6, maxTextW = rx - tx;
 
-            // LINE 1 (y=20): VARIETY — 24pt bold, full width
-            doc.setTextColor(0, 0, 0); doc.setFont('helvetica', 'bold'); doc.setFontSize(24);
-            var varText = label.variety || label.crop || '';
-            while (varText.length > 3 && doc.getTextWidth(varText) > maxTextW) {
-                varText = varText.substring(0, varText.length - 2) + '\u2026';
+            if (isSeedlingSale) {
+                // LINE 1: ★ SEEDLING SALE ★ — bold, underlined (thermal, no color)
+                doc.setFont('helvetica', 'bold'); doc.setFontSize(14); doc.setTextColor(0, 0, 0);
+                doc.text('\u2605 SEEDLING SALE \u2605', tx + maxTextW / 2, 13, { align: 'center' });
+                doc.setDrawColor(0, 0, 0); doc.setLineWidth(1);
+                doc.line(tx, 16, rx, 16);
+
+                // LINE 2: VARIETY — 18pt bold
+                doc.setFont('helvetica', 'bold'); doc.setFontSize(18); doc.setTextColor(0, 0, 0);
+                var varText = label.variety || label.crop || '';
+                while (varText.length > 3 && doc.getTextWidth(varText) > maxTextW) {
+                    varText = varText.substring(0, varText.length - 2) + '\u2026';
+                }
+                doc.text(varText, tx, 31);
+
+                // LINE 3: Crop left, Tray size right
+                doc.setFont('helvetica', 'normal'); doc.setFontSize(11); doc.setTextColor(51, 51, 51);
+                doc.text(label.crop || '', tx, 45);
+                var tsd = formatTraySize(label.cellsPerTray, label.paperpotSpacing);
+                doc.setTextColor(0, 0, 0); doc.setFont('helvetica', 'bold'); doc.setFontSize(13);
+                doc.text(tsd, rx, 45, { align: 'right' });
+
+                // LINE 4: Batch + Tray #
+                doc.setFont('courier', 'normal'); doc.setFontSize(7); doc.setTextColor(85, 85, 85);
+                var batchText = (label.batchNumber || '') + (label.trayNumber ? ' T' + label.trayNumber : '');
+                doc.text(batchText, tx, 57);
+                doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(68, 68, 68);
+                doc.text('Tray ' + (label.trayNumber || '') + '/' + (label.trays || ''), rx, 57, { align: 'right' });
+
+                // LINE 5: Sow date
+                doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(68, 68, 68);
+                doc.text('Sow: ' + formatDate(label.seedDate), tx, 67);
+            } else {
+                // Standard field tray layout
+                // LINE 1 (y=20): VARIETY — 24pt bold, full width
+                doc.setTextColor(0, 0, 0); doc.setFont('helvetica', 'bold'); doc.setFontSize(24);
+                var varText = label.variety || label.crop || '';
+                while (varText.length > 3 && doc.getTextWidth(varText) > maxTextW) {
+                    varText = varText.substring(0, varText.length - 2) + '\u2026';
+                }
+                doc.text(varText, tx, 20);
+
+                // LINE 2 (y=40): Crop 14pt left, Tray size 16pt bold right
+                doc.setFont('helvetica', 'normal'); doc.setFontSize(14); doc.setTextColor(51, 51, 51);
+                doc.text(label.crop || '', tx, 40);
+                var tsd = formatTraySize(label.cellsPerTray, label.paperpotSpacing);
+                doc.setTextColor(0, 0, 0); doc.setFont('helvetica', 'bold'); doc.setFontSize(16);
+                doc.text(tsd, rx, 40, { align: 'right' });
+
+                // LINE 3 (y=54): Batch 8pt left, Tray #/total 11pt right
+                doc.setFont('courier', 'normal'); doc.setFontSize(8); doc.setTextColor(85, 85, 85);
+                var batchText = (label.batchNumber || '') + (label.trayNumber ? ' T' + label.trayNumber : '');
+                doc.text(batchText, tx, 54);
+                doc.setFont('helvetica', 'normal'); doc.setFontSize(11); doc.setTextColor(68, 68, 68);
+                doc.text('Tray ' + (label.trayNumber || '') + '/' + (label.trays || ''), rx, 54, { align: 'right' });
+
+                // LINE 4 (y=66): Dates 9pt left, Field 9pt right
+                doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(68, 68, 68);
+                var ds = 'Sow: ' + formatDate(label.seedDate) + '  \u2192  TP: ' + formatDate(label.transplantDate);
+                doc.text(ds, tx, 66);
+                if (label.field) { doc.setFontSize(9); doc.setTextColor(85, 85, 85); doc.text(label.field, rx, 66, { align: 'right' }); }
             }
-            doc.text(varText, tx, 20);
-
-            // LINE 2 (y=40): Crop 14pt left, Tray size 16pt bold right
-            doc.setFont('helvetica', 'normal'); doc.setFontSize(14); doc.setTextColor(51, 51, 51);
-            doc.text(label.crop || '', tx, 40);
-            var tsd = formatTraySize(label.cellsPerTray, label.paperpotSpacing);
-            doc.setTextColor(0, 0, 0); doc.setFont('helvetica', 'bold'); doc.setFontSize(16);
-            doc.text(tsd, rx, 40, { align: 'right' });
-
-            // LINE 3 (y=54): Batch 8pt left, Tray #/total 11pt right
-            doc.setFont('courier', 'normal'); doc.setFontSize(8); doc.setTextColor(85, 85, 85);
-            var batchText = (label.batchNumber || '') + (label.trayNumber ? ' T' + label.trayNumber : '');
-            doc.text(batchText, tx, 54);
-            doc.setFont('helvetica', 'normal'); doc.setFontSize(11); doc.setTextColor(68, 68, 68);
-            doc.text('Tray ' + (label.trayNumber || '') + '/' + (label.trays || ''), rx, 54, { align: 'right' });
-
-            // LINE 4 (y=66): Dates 9pt left, Field 9pt right
-            doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(68, 68, 68);
-            var ds = 'Sow: ' + formatDate(label.seedDate) + '  \u2192  TP: ' + formatDate(label.transplantDate);
-            doc.text(ds, tx, 66);
-            if (label.field) { doc.setFontSize(9); doc.setTextColor(85, 85, 85); doc.text(label.field, rx, 66, { align: 'right' }); }
         }
 
         // Shared rendering: draw one pot tag page onto a jsPDF doc
