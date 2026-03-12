@@ -131,7 +131,7 @@
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(14);
             doc.setTextColor(0, 0, 0);
-            doc.text('\u2605 SEEDLING SALE \u2605', tx + maxTextW / 2, 13, { align: 'center' });
+            doc.text('SEEDLING SALE', tx + maxTextW / 2, 13, { align: 'center' });
             // Underline for emphasis on thermal
             doc.setDrawColor(0, 0, 0);
             doc.setLineWidth(1);
@@ -595,7 +595,7 @@
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(12);
         doc.setTextColor(0, 0, 0);
-        doc.text('\u2605 SEEDLING SALE \u2605', W / 2, 12, { align: 'center' });
+        doc.text('SEEDLING SALE', W / 2, 12, { align: 'center' });
         doc.setDrawColor(0, 0, 0);
         doc.setLineWidth(1);
         doc.line(6, 15, W - 6, 15);

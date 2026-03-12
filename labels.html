@@ -2699,7 +2699,7 @@
                                onclick="event.stopPropagation(); toggleLabel('${label.labelId}', ${index})">
                         <div class="ftl-qr" id="qr-${index}"></div>
                         <div class="ftl-content">
-                            ${label.purpose === 'SEEDLING_SALE' ? '<div style="font-weight:800;font-size:0.85rem;letter-spacing:0.05em;border-bottom:2px solid #000;padding-bottom:2px;margin-bottom:2px;">&#9733; SEEDLING SALE &#9733;</div>' : ''}
+                            ${label.purpose === 'SEEDLING_SALE' ? '<div style="font-weight:800;font-size:0.85rem;letter-spacing:0.05em;border-bottom:2px solid #000;padding-bottom:2px;margin-bottom:2px;">SEEDLING SALE</div>' : ''}
                             <div class="ftl-crop">${label.crop}</div>
                             <div class="ftl-variety">${label.variety}</div>
                             <div class="ftl-batch">${label.batchNumber} T${label.trayNumber}</div>
@@ -3302,7 +3302,7 @@
             if (isSeedlingSale) {
                 // LINE 1: ★ SEEDLING SALE ★ — bold, underlined (thermal, no color)
                 doc.setFont('helvetica', 'bold'); doc.setFontSize(14); doc.setTextColor(0, 0, 0);
-                doc.text('\u2605 SEEDLING SALE \u2605', tx + maxTextW / 2, 13, { align: 'center' });
+                doc.text('SEEDLING SALE', tx + maxTextW / 2, 13, { align: 'center' });
                 doc.setDrawColor(0, 0, 0); doc.setLineWidth(1);
                 doc.line(tx, 16, rx, 16);
 
