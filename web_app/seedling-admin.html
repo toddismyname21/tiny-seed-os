@@ -1683,7 +1683,7 @@ https://rfrseeds.com/products/ghost-pepper"></textarea>
         </div>
         <div class="modal-footer">
             <button class="btn btn-secondary" onclick="closeAddModal()">Cancel</button>
-            <button class="btn btn-primary" onclick="createVariety()">
+            <button class="btn btn-primary" id="addVarietySubmitBtn" onclick="createVariety()">
                 <i class="fas fa-plus"></i> Add Variety
             </button>
         </div>
@@ -2211,6 +2211,10 @@ function createVariety() {
         return;
     }
 
+    var btn = document.getElementById('addVarietySubmitBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding...';
+
     var payload = {
         action: 'addSeedlingItem',
         name: name,
@@ -2229,24 +2233,29 @@ function createVariety() {
 
     fetch(TINY_SEED_API.MAIN_API, {
         method: 'POST',
-        mode: 'no-cors',
         headers: { 'Content-Type': 'text/plain' },
         body: JSON.stringify(payload)
     })
-    .then(function() {
-        closeAddModal();
-        showToast('Adding variety...');
-        setTimeout(function() {
+    .then(function(r) { return r.json(); })
+    .then(function(result) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-plus"></i> Add Variety';
+        if (result.success) {
+            closeAddModal();
+            showToast('Variety "' + name + '" added successfully!');
             loadVarieties();
             if (pendingAllocReload) {
                 pendingAllocReload = false;
                 loadAllocations();
             }
-            showToast('New variety "' + name + '" added');
-        }, 1500);
+        } else {
+            alert('Failed to add variety: ' + (result.error || 'Unknown error'));
+        }
     })
     .catch(function(err) {
-        showToast('Network error: ' + err.message);
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-plus"></i> Add Variety';
+        alert('Network error: ' + err.message);
     });
 }
 
