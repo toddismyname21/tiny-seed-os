@@ -586,6 +586,7 @@
         .category-badge.veg { background: #c8e6c9; color: #2e7d32; }
         .category-badge.herb { background: #b2dfdb; color: #00695c; }
         .category-badge.floral { background: #f8bbd9; color: #ad1457; }
+        .category-badge.seedling-sale { background: #3b82f6; color: #fff; font-weight: 700; letter-spacing: 0.02em; }
 
         /* Print Checkbox (for print view) */
         .print-checkbox {
@@ -1745,7 +1746,7 @@
                     : '';
                 rowContent = `
                     <td>${dateCell}</td>
-                    <td>${esc(task.crop)} <span class="category-badge ${categoryClass}">GH</span> ${readinessHtml}</td>
+                    <td>${esc(task.crop)} <span class="category-badge ${categoryClass}">GH</span>${task.purpose === 'SEEDLING_SALE' ? ' <span class="category-badge seedling-sale">SEEDLING SALE</span>' : ''} ${readinessHtml}</td>
                     <td>${editableCell('Variety', task.variety, 'text')}</td>
                     <td>${editableCell('Trays_Needed', traysDisplay, 'number')}</td>
                     <td><span class="editable-cell" onclick="openTrayTypeDropdown(this, '${esc(task.batchId)}')" style="cursor:pointer;border-bottom:1px dashed rgba(255,255,255,0.3);padding:2px 4px;">${esc(task.trayType || (task.cellsPerTray > 0 ? task.cellsPerTray + '-cell' : (task.cellsPerTray === 0 ? 'Open' : '-')))}</span></td>
@@ -2250,6 +2251,7 @@
                 + '.category-badge.veg { background:#c8e6c9;color:#2e7d32; }'
                 + '.category-badge.herb { background:#b2dfdb;color:#00695c; }'
                 + '.category-badge.floral { background:#f8bbd9;color:#ad1457; }'
+                + '.category-badge.seedling-sale { background:#3b82f6;color:#fff;font-weight:700; }'
                 + '.germ-notes { background:#fff8e1;border:1px solid #ffcc80;border-radius:6px;padding:10px;margin-top:16px;page-break-inside:avoid; }'
                 + '.germ-notes-title { font-weight:700;color:#e65100;margin-bottom:8px; }'
                 + '.germ-note-item { font-size:9pt;padding:4px 0;border-bottom:1px solid #ffe0b2; }'
@@ -2394,7 +2396,7 @@
                     <tr>
                         <td style="text-align: center;"><div class="checkbox"></div></td>
                         <td>${formatDateShort(taskDate)}</td>
-                        <td>${esc(task.crop)}${batchRef}</td>
+                        <td>${esc(task.crop)}${task.purpose === 'SEEDLING_SALE' ? ' <span class="category-badge seedling-sale">SEEDLING SALE</span>' : ''}${batchRef}</td>
                         <td>${esc(task.variety)}</td>
                         <td style="font-weight: 600;">${task.trays}</td>
                         <td>${cellsDisplay}</td>

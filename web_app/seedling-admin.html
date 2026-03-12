@@ -1384,32 +1384,45 @@
             </div>
         </div>
 
+        <!-- Bulk Action Bar -->
+        <div class="alloc-bulk-bar" id="allocBulkBar" style="display:none;background:#fef3c7;border:1px solid #fbbf24;border-radius:8px;padding:10px 16px;margin-bottom:12px;align-items:center;gap:12px;">
+            <span style="font-weight:600;font-size:0.85rem;color:#92400e;" id="allocSelectedCount">0 selected</span>
+            <button class="btn btn-secondary" onclick="bulkSetAllocDate()" style="font-size:0.82rem;padding:6px 12px;">
+                <i class="fas fa-calendar-alt"></i> Set Seeding Date
+            </button>
+            <button class="btn btn-secondary" onclick="bulkDeleteAllocItems()" style="font-size:0.82rem;padding:6px 12px;color:var(--red);border-color:var(--red);">
+                <i class="fas fa-trash"></i> Delete Selected
+            </button>
+        </div>
+
         <!-- Allocation Table -->
         <div class="alloc-table-wrap">
             <table>
                 <thead>
                     <tr>
+                        <th style="width:36px;text-align:center;"><input type="checkbox" id="allocSelectAll" onchange="toggleAllocSelectAll()" title="Select all"></th>
                         <th>Variety</th>
-                        <th style="text-align:center;">Phipps</th>
-                        <th style="text-align:center;">Market</th>
+                        <th style="text-align:center;">Phipps<br><span style="font-weight:400;font-size:0.7rem;color:var(--text-muted);">×18/tray</span></th>
+                        <th style="text-align:center;">Market<br><span style="font-weight:400;font-size:0.7rem;color:var(--text-muted);">×18/tray</span></th>
                         <th style="text-align:center;">Wholesale</th>
-                        <th style="text-align:center;">CityGROWN</th>
                         <th style="text-align:center;">Presale</th>
-                        <th style="text-align:center;">Total</th>
+                        <th style="text-align:center;">Demand</th>
+                        <th style="text-align:center;">Production<br><span style="font-weight:400;font-size:0.7rem;color:var(--text-muted);">+21% buffer</span></th>
+                        <th style="text-align:center;">Tray Type</th>
                         <th style="text-align:center;">Seeding Date</th>
                         <th style="text-align:center;">Actions</th>
                     </tr>
                 </thead>
                 <tbody id="allocTableBody">
-                    <tr><td colspan="9" style="text-align:center;padding:40px;"><i class="fas fa-spinner fa-spin"></i> Loading...</td></tr>
+                    <tr><td colspan="11" style="text-align:center;padding:40px;"><i class="fas fa-spinner fa-spin"></i> Loading...</td></tr>
                 </tbody>
             </table>
         </div>
 
         <p style="margin-top:16px;font-size:0.8rem;color:var(--text-muted);text-align:center;">
-            Total = Phipps + Market + Wholesale + CityGROWN + Presale Orders (demand-driven) &nbsp;|&nbsp;
-            Seeding Date = when to bulk-sow into trays &nbsp;|&nbsp;
-            Allocations logged to SEEDLING_LIFECYCLE
+            Demand = Phipps + Market + Wholesale + Presale Orders &nbsp;|&nbsp;
+            Production = Demand × 1.21 (10% extra orders + 10% loss) &nbsp;|&nbsp;
+            Phipps/Market must be multiples of 18
         </p>
     </div><!-- end allocationsPanel -->
 
@@ -2555,6 +2568,16 @@ function showToast(message) {
 var allocData = [];       // production items with alloc fields
 var allocSales = {};      // sales by item ID + channel
 var allocDirty = false;   // unsaved changes flag
+var selectedAllocItems = new Set();  // for bulk operations
+var allocOriginalNames = {};          // track original variety names for dirty detection
+
+// Warn before leaving with unsaved changes
+window.addEventListener('beforeunload', function(e) {
+    if (allocDirty) {
+        e.preventDefault();
+        e.returnValue = 'You have unsaved allocation changes. Leave anyway?';
+    }
+});
 
 function switchAdminView(view) {
     var varietiesPanel = document.getElementById('varietiesPanel');
@@ -2575,7 +2598,7 @@ function switchAdminView(view) {
 
 function loadAllocations() {
     var tbody = document.getElementById('allocTableBody');
-    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;"><i class="fas fa-spinner fa-spin"></i> Loading allocation data...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:40px;"><i class="fas fa-spinner fa-spin"></i> Loading allocation data...</td></tr>';
 
     // Load production plan (has alloc columns) and sales data in parallel
     Promise.all([
@@ -2586,7 +2609,7 @@ function loadAllocations() {
         var opsResult = results[1];
 
         if (!prodResult.success) {
-            tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--red);"><i class="fas fa-exclamation-triangle"></i> ' + (prodResult.error || 'Failed to load') + '</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--red);"><i class="fas fa-exclamation-triangle"></i> ' + (prodResult.error || 'Failed to load') + '</td></tr>';
             return;
         }
 
@@ -2602,12 +2625,21 @@ function loadAllocations() {
             allocSales = opsResult.sales_by_item;
         }
 
+        // Store original names for rename detection
+        allocOriginalNames = {};
+        for (var n = 0; n < allocData.length; n++) {
+            allocOriginalNames[allocData[n].Item_ID] = allocData[n].Variety || '';
+        }
+
+        selectedAllocItems.clear();
         populateAllocCategoryFilter();
         renderAllocTable();
         updateAllocSummary();
+        updateAllocBulkBar();
         allocDirty = false;
+        document.getElementById('allocSaveBtn').classList.remove('alloc-dirty');
     }).catch(function(err) {
-        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--red);"><i class="fas fa-exclamation-triangle"></i> Network error: ' + err.message + '</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--red);"><i class="fas fa-exclamation-triangle"></i> Network error: ' + err.message + '</td></tr>';
     });
 }
 
@@ -2626,24 +2658,33 @@ function renderAllocTable() {
     });
 
     if (filtered.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-muted);"><i class="fas fa-inbox"></i> No items match your filter</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--text-muted);"><i class="fas fa-inbox"></i> No items match your filter</td></tr>';
         return;
     }
 
     var html = '';
+    var today = new Date();
+    today.setHours(0, 0, 0, 0);
+
     for (var i = 0; i < filtered.length; i++) {
         var item = filtered[i];
         var phipps = Number(item.Alloc_Phipps) || 0;
         var market = Number(item.Alloc_Market) || 0;
         var wholesale = Number(item.Alloc_Wholesale) || 0;
-        var citygrown = Number(item.Alloc_CityGROWN) || 0;
+
+        // Phipps/Market multiple-of-18 warning
+        var phippsWarn = (phipps > 0 && phipps % 18 !== 0);
+        var marketWarn = (market > 0 && market % 18 !== 0);
 
         // Presale orders from actual sales data
         var salesInfo = allocSales[item.Item_ID] || { total: 0, byChannel: {} };
         var presaleOrders = Number(salesInfo.byChannel['Presale'] || salesInfo.byChannel['presale'] || salesInfo.byChannel['Pre-Order'] || 0);
 
-        // Demand-driven total: all outlet commitments + presale orders
-        var total = phipps + market + wholesale + citygrown + presaleOrders;
+        // Demand total: all outlet commitments + presale orders
+        var demandTotal = phipps + market + wholesale + presaleOrders;
+
+        // Production total with 21% buffer (10% extra orders + 10% loss)
+        var productionTotal = demandTotal > 0 ? Math.ceil(demandTotal * 1.21) : 0;
 
         // Seeding date
         var seedingDate = item.Seeding_Date || '';
@@ -2652,16 +2693,56 @@ function renderAllocTable() {
         } else if (seedingDate && typeof seedingDate === 'string' && seedingDate.length > 10) {
             seedingDate = seedingDate.split('T')[0];
         }
+        var dateIsPast = seedingDate && new Date(seedingDate + 'T00:00:00') < today;
+
+        // Tray type
+        var trayType = item.Seeding_Tray_Type || '128-cell';
+
+        var isSelected = selectedAllocItems.has(item.Item_ID);
 
         html += '<tr data-item-id="' + item.Item_ID + '">';
-        html += '<td class="alloc-name"><strong>' + escapeHtml(item.Variety || '') + '</strong><br><span style="color:var(--text-muted);font-size:0.8rem;">' + escapeHtml(item.Crop || '') + ' &middot; ' + escapeHtml(item.Category || '') + '</span></td>';
-        html += '<td><input type="number" class="alloc-input" value="' + phipps + '" min="0" data-field="phipps" data-id="' + item.Item_ID + '" onchange="onAllocChange(this)"></td>';
-        html += '<td><input type="number" class="alloc-input" value="' + market + '" min="0" data-field="market" data-id="' + item.Item_ID + '" onchange="onAllocChange(this)"></td>';
+
+        // Checkbox
+        html += '<td style="text-align:center;"><input type="checkbox" onchange="toggleAllocSelect(\'' + item.Item_ID + '\')" ' + (isSelected ? 'checked' : '') + '></td>';
+
+        // Editable variety name
+        html += '<td class="alloc-name"><input type="text" class="alloc-input" value="' + escapeHtml(item.Variety || '') + '" style="width:160px;font-weight:600;" data-field="variety" data-id="' + item.Item_ID + '" onchange="onAllocChange(this)">';
+        html += '<br><span style="color:var(--text-muted);font-size:0.8rem;">' + escapeHtml(item.Crop || '') + ' &middot; ' + escapeHtml(item.Category || '') + '</span></td>';
+
+        // Phipps (with 18-multiple warning)
+        html += '<td><input type="number" class="alloc-input" value="' + phipps + '" min="0" step="18" data-field="phipps" data-id="' + item.Item_ID + '" onchange="onAllocChange(this)"';
+        if (phippsWarn) html += ' style="border-color:var(--orange);" title="Should be multiple of 18 (nearest: ' + (Math.round(phipps / 18) * 18) + ')"';
+        html += '></td>';
+
+        // Market (with 18-multiple warning)
+        html += '<td><input type="number" class="alloc-input" value="' + market + '" min="0" step="18" data-field="market" data-id="' + item.Item_ID + '" onchange="onAllocChange(this)"';
+        if (marketWarn) html += ' style="border-color:var(--orange);" title="Should be multiple of 18 (nearest: ' + (Math.round(market / 18) * 18) + ')"';
+        html += '></td>';
+
+        // Wholesale
         html += '<td><input type="number" class="alloc-input" value="' + wholesale + '" min="0" data-field="wholesale" data-id="' + item.Item_ID + '" onchange="onAllocChange(this)"></td>';
-        html += '<td><input type="number" class="alloc-input" value="' + citygrown + '" min="0" data-field="citygrown" data-id="' + item.Item_ID + '" onchange="onAllocChange(this)"></td>';
+
+        // Presale (read-only)
         html += '<td class="alloc-presale" style="text-align:center;">' + presaleOrders + '</td>';
-        html += '<td class="alloc-total" style="text-align:center;font-weight:700;">' + total + '</td>';
-        html += '<td><input type="date" class="alloc-input" value="' + seedingDate + '" style="width:130px;" data-field="seedingDate" data-id="' + item.Item_ID + '" onchange="onAllocChange(this)"></td>';
+
+        // Demand total
+        html += '<td class="alloc-total" style="text-align:center;font-weight:700;">' + demandTotal + '</td>';
+
+        // Production total (read-only, calculated)
+        html += '<td style="text-align:center;font-weight:700;color:var(--green-dark);">' + productionTotal + '</td>';
+
+        // Tray type dropdown
+        html += '<td><select class="alloc-input" data-field="trayType" data-id="' + item.Item_ID + '" onchange="onAllocChange(this)" style="width:100px;">';
+        html += '<option value="128-cell"' + (trayType === '128-cell' ? ' selected' : '') + '>128-cell</option>';
+        html += '<option value="200-cell"' + (trayType === '200-cell' ? ' selected' : '') + '>200-cell</option>';
+        html += '</select></td>';
+
+        // Seeding date
+        html += '<td><input type="date" class="alloc-input" value="' + seedingDate + '" style="width:130px;' + (dateIsPast ? 'border-color:var(--orange);' : '') + '" data-field="seedingDate" data-id="' + item.Item_ID + '" onchange="onAllocChange(this)"';
+        if (dateIsPast) html += ' title="This date is in the past"';
+        html += '></td>';
+
+        // Actions
         html += '<td style="text-align:center;"><button class="action-btn delete" onclick="deleteAllocItem(\'' + item.Item_ID + '\',\'' + escapeHtml(item.Variety || '').replace(/'/g, "\\'") + '\')" title="Delete"><i class="fas fa-trash"></i></button></td>';
         html += '</tr>';
     }
@@ -2677,13 +2758,35 @@ function onAllocChange(input) {
         if (allocData[i].Item_ID === id) {
             if (field === 'seedingDate') {
                 allocData[i].Seeding_Date = input.value;
+            } else if (field === 'variety') {
+                allocData[i].Variety = input.value;
+            } else if (field === 'trayType') {
+                allocData[i].Seeding_Tray_Type = input.value;
             } else {
                 var val = Number(input.value) || 0;
                 if (val < 0) { input.value = 0; val = 0; }
-                if (field === 'phipps') allocData[i].Alloc_Phipps = val;
-                else if (field === 'market') allocData[i].Alloc_Market = val;
-                else if (field === 'wholesale') allocData[i].Alloc_Wholesale = val;
-                else if (field === 'citygrown') allocData[i].Alloc_CityGROWN = val;
+                if (field === 'phipps') {
+                    allocData[i].Alloc_Phipps = val;
+                    // Visual nudge for non-multiple of 18
+                    if (val > 0 && val % 18 !== 0) {
+                        input.style.borderColor = 'var(--orange)';
+                        input.title = 'Should be multiple of 18 (nearest: ' + (Math.round(val / 18) * 18) + ')';
+                    } else {
+                        input.style.borderColor = '';
+                        input.title = '';
+                    }
+                } else if (field === 'market') {
+                    allocData[i].Alloc_Market = val;
+                    if (val > 0 && val % 18 !== 0) {
+                        input.style.borderColor = 'var(--orange)';
+                        input.title = 'Should be multiple of 18 (nearest: ' + (Math.round(val / 18) * 18) + ')';
+                    } else {
+                        input.style.borderColor = '';
+                        input.title = '';
+                    }
+                } else if (field === 'wholesale') {
+                    allocData[i].Alloc_Wholesale = val;
+                }
             }
             break;
         }
@@ -2692,8 +2795,8 @@ function onAllocChange(input) {
     allocDirty = true;
     document.getElementById('allocSaveBtn').classList.add('alloc-dirty');
 
-    // Re-render the row's calculated fields (skip for date changes to avoid cursor jump)
-    if (field !== 'seedingDate') {
+    // Re-render calculated fields (skip for text/date changes to avoid cursor jump)
+    if (field !== 'seedingDate' && field !== 'variety') {
         renderAllocTable();
     }
     updateAllocSummary();
@@ -2706,12 +2809,10 @@ function updateAllocSummary() {
         var p = Number(item.Alloc_Phipps) || 0;
         var m = Number(item.Alloc_Market) || 0;
         var w = Number(item.Alloc_Wholesale) || 0;
-        var c = Number(item.Alloc_CityGROWN) || 0;
         var salesInfo = allocSales[item.Item_ID] || { total: 0, byChannel: {} };
         var presaleOrders = Number(salesInfo.byChannel['Presale'] || salesInfo.byChannel['presale'] || salesInfo.byChannel['Pre-Order'] || 0);
 
-        // Demand-driven: total = all commitments
-        totals.total += (p + m + w + c + presaleOrders);
+        totals.total += (p + m + w + presaleOrders);
         totals.phipps += p;
         totals.market += m;
         totals.wholesale += w;
@@ -2732,6 +2833,23 @@ function saveAllocations() {
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
 
+    // 1. Check for variety renames
+    var renamePromises = [];
+    for (var i = 0; i < allocData.length; i++) {
+        var item = allocData[i];
+        var origName = allocOriginalNames[item.Item_ID];
+        if (origName && item.Variety && item.Variety !== origName) {
+            renamePromises.push(
+                fetch(TINY_SEED_API.MAIN_API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({ action: 'updateSeedlingItem', itemId: item.Item_ID, updates: { Variety: item.Variety } })
+                }).then(function(r) { return r.json(); })
+            );
+        }
+    }
+
+    // 2. Build allocations payload (no CityGROWN, includes tray type)
     var allocations = [];
     for (var i = 0; i < allocData.length; i++) {
         var item = allocData[i];
@@ -2740,7 +2858,7 @@ function saveAllocations() {
             alloc_phipps: Number(item.Alloc_Phipps) || 0,
             alloc_market: Number(item.Alloc_Market) || 0,
             alloc_wholesale: Number(item.Alloc_Wholesale) || 0,
-            alloc_citygrown: Number(item.Alloc_CityGROWN) || 0
+            seeding_tray_type: item.Seeding_Tray_Type || '128-cell'
         };
         if (item.Seeding_Date) {
             allocItem.seeding_date = item.Seeding_Date;
@@ -2748,27 +2866,44 @@ function saveAllocations() {
         allocations.push(allocItem);
     }
 
-    fetch(TINY_SEED_API.MAIN_API + '?action=updateSeedlingAllocations', {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify({ action: 'updateSeedlingAllocations', allocations: allocations })
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(result) {
-        btn.disabled = false;
-        if (result.success) {
+    // 3. Run renames first, then save allocations
+    Promise.all(renamePromises).then(function(renameResults) {
+        var renameFails = renameResults.filter(function(r) { return !r.success; });
+        if (renameFails.length > 0) {
+            btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-save"></i> Save All Allocations';
-            btn.classList.remove('alloc-dirty');
-            allocDirty = false;
-            showToast('Allocations saved! ' + result.updated + ' items updated.');
-            if (result.warnings && result.warnings.length > 0) {
-                var warnMsg = result.warnings.map(function(w) { return w.itemId + ': ' + (w.warning || w.error); }).join(', ');
-                alert('Warnings: ' + warnMsg);
-            }
-        } else {
-            btn.innerHTML = '<i class="fas fa-save"></i> Save All Allocations';
-            alert('Save failed: ' + (result.error || 'Unknown error'));
+            alert('Some variety renames failed. Please try again.');
+            return;
         }
+
+        return fetch(TINY_SEED_API.MAIN_API + '?action=updateSeedlingAllocations', {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain' },
+            body: JSON.stringify({ action: 'updateSeedlingAllocations', allocations: allocations })
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(result) {
+            btn.disabled = false;
+            if (result.success) {
+                btn.innerHTML = '<i class="fas fa-save"></i> Save All Allocations';
+                btn.classList.remove('alloc-dirty');
+                allocDirty = false;
+                for (var j = 0; j < allocData.length; j++) {
+                    allocOriginalNames[allocData[j].Item_ID] = allocData[j].Variety;
+                }
+                var msg = 'Allocations saved! ' + result.updated + ' items updated.';
+                if (renameResults.length > 0) msg += ' ' + renameResults.length + ' varieties renamed.';
+                showToast(msg);
+                if (result.warnings && result.warnings.length > 0) {
+                    var warnMsg = result.warnings.map(function(w) { return w.itemId + ': ' + (w.warning || w.error); }).join('\n');
+                    alert('Warnings:\n' + warnMsg);
+                    loadAllocations();
+                }
+            } else {
+                btn.innerHTML = '<i class="fas fa-save"></i> Save All Allocations';
+                alert('Save failed: ' + (result.error || 'Unknown error'));
+            }
+        });
     })
     .catch(function(err) {
         btn.disabled = false;
@@ -2793,6 +2928,103 @@ function populateAllocCategoryFilter() {
 
 function filterAllocTable() {
     renderAllocTable();
+}
+
+// --- Bulk selection functions ---
+function toggleAllocSelect(itemId) {
+    if (selectedAllocItems.has(itemId)) {
+        selectedAllocItems.delete(itemId);
+    } else {
+        selectedAllocItems.add(itemId);
+    }
+    updateAllocBulkBar();
+}
+
+function toggleAllocSelectAll() {
+    var allCheckbox = document.getElementById('allocSelectAll');
+    var visibleIds = getVisibleAllocIds();
+    if (allCheckbox.checked) {
+        visibleIds.forEach(function(id) { selectedAllocItems.add(id); });
+    } else {
+        visibleIds.forEach(function(id) { selectedAllocItems.delete(id); });
+    }
+    renderAllocTable();
+    updateAllocBulkBar();
+}
+
+function getVisibleAllocIds() {
+    var filter = (document.getElementById('allocCategoryFilter') || {}).value || '';
+    var search = (document.getElementById('allocSearch') || {}).value || '';
+    var searchLower = search.toLowerCase();
+    var ids = [];
+    for (var i = 0; i < allocData.length; i++) {
+        var item = allocData[i];
+        if (filter && (item.Category || 'Other') !== filter) continue;
+        if (searchLower && (item.Variety || '').toLowerCase().indexOf(searchLower) === -1 && (item.Crop || '').toLowerCase().indexOf(searchLower) === -1) continue;
+        ids.push(item.Item_ID);
+    }
+    return ids;
+}
+
+function updateAllocBulkBar() {
+    var bar = document.getElementById('allocBulkBar');
+    if (!bar) return;
+    var count = selectedAllocItems.size;
+    if (count > 0) {
+        bar.style.display = 'flex';
+        var label = document.getElementById('allocSelectedCount');
+        if (label) label.textContent = count + ' selected';
+    } else {
+        bar.style.display = 'none';
+    }
+}
+
+function bulkDeleteAllocItems() {
+    if (selectedAllocItems.size === 0) return;
+    var count = selectedAllocItems.size;
+    if (!confirm('Delete ' + count + ' selected item' + (count > 1 ? 's' : '') + ' from seedling production?\n\nThis cannot be undone.')) return;
+
+    var itemIds = Array.from(selectedAllocItems);
+    fetch(TINY_SEED_API.MAIN_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({ action: 'bulkDeleteSeedlingItems', itemIds: itemIds })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(result) {
+        if (result.success) {
+            showToast(result.deleted + ' items deleted.');
+            selectedAllocItems.clear();
+            updateAllocBulkBar();
+            loadAllocations();
+        } else {
+            alert('Delete failed: ' + (result.error || 'Unknown error'));
+        }
+    })
+    .catch(function(err) { alert('Network error: ' + err.message); });
+}
+
+function bulkSetAllocDate() {
+    if (selectedAllocItems.size === 0) return;
+    var dateStr = prompt('Set seeding date for ' + selectedAllocItems.size + ' selected items (YYYY-MM-DD):');
+    if (!dateStr) return;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+        alert('Invalid date format. Use YYYY-MM-DD.');
+        return;
+    }
+    selectedAllocItems.forEach(function(itemId) {
+        for (var i = 0; i < allocData.length; i++) {
+            if (allocData[i].Item_ID === itemId) {
+                allocData[i].Seeding_Date = dateStr;
+                break;
+            }
+        }
+    });
+    allocDirty = true;
+    var btn = document.getElementById('allocSaveBtn');
+    if (btn) btn.classList.add('alloc-dirty');
+    renderAllocTable();
+    showToast('Seeding date set to ' + dateStr + ' for ' + selectedAllocItems.size + ' items. Save to apply.');
 }
 
 // Pending alloc reload after add variety
