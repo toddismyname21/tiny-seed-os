@@ -112,68 +112,121 @@
      */
     function _renderFieldTray(doc, label, qrImg, fmt) {
         var W = fmt.w, H = fmt.h;
-        // Label: 288×72pt (4"×1"). QR 61×61 on left. Text area: x=72 to x=282.
-        // 4 lines of text, fonts maximized to fill vertical space.
+        var isSeedlingSale = label.purpose === 'SEEDLING_SALE';
 
         // QR code on left
-        var qrSz = 61;
+        var qrSz = isSeedlingSale ? 48 : 61;
+        var qrY = isSeedlingSale ? (H - qrSz) / 2 + 6 : (H - qrSz) / 2;
         if (qrImg) {
-            doc.addImage(qrImg, 'PNG', 6, (H - qrSz) / 2, qrSz, qrSz);
+            doc.addImage(qrImg, 'PNG', 6, qrY, qrSz, qrSz);
         }
 
-        var tx = 72; // text start after QR + gap
-        var rx = W - 6; // right edge
-        var maxTextW = rx - tx; // available text width = 210pt
+        var tx = 72;
+        var rx = W - 6;
+        var maxTextW = rx - tx;
 
-        // LINE 1 (y=20): VARIETY — largest possible, bold, full width
-        doc.setTextColor(0, 0, 0);
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(24);
-        var varText = label.variety || label.crop || '';
-        // Truncate with ellipsis if too wide
-        while (varText.length > 3 && doc.getTextWidth(varText) > maxTextW) {
-            varText = varText.substring(0, varText.length - 2) + '\u2026';
-        }
-        doc.text(varText, tx, 20);
+        if (isSeedlingSale) {
+            // === SEEDLING SALE LAYOUT ===
+            // Blue header bar across full width
+            doc.setFillColor(37, 99, 235); // #2563eb
+            doc.rect(0, 0, W, 15, 'F');
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(11);
+            doc.setTextColor(255, 255, 255);
+            doc.text('SEEDLING SALE', W / 2, 11.5, { align: 'center' });
 
-        // LINE 2 (y=40): Crop left, Tray size right
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(14);
-        doc.setTextColor(51, 51, 51);
-        doc.text(label.crop || '', tx, 40);
+            // LINE 2 (y=30): VARIETY — bold, prominent
+            doc.setTextColor(0, 0, 0);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(18);
+            var varText = label.variety || label.crop || '';
+            while (varText.length > 3 && doc.getTextWidth(varText) > maxTextW) {
+                varText = varText.substring(0, varText.length - 2) + '\u2026';
+            }
+            doc.text(varText, tx, 30);
 
-        var tsd = _fmtTraySize(label.cellsPerTray, label.paperpotSpacing);
-        doc.setTextColor(0, 0, 0);
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(16);
-        doc.text(tsd, rx, 40, { align: 'right' });
+            // LINE 3 (y=44): Crop left, Tray size right
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(11);
+            doc.setTextColor(51, 51, 51);
+            doc.text(label.crop || '', tx, 44);
 
-        // LINE 3 (y=54): Batch left, Tray #/total right
-        doc.setFont('courier', 'normal');
-        doc.setFontSize(8);
-        doc.setTextColor(85, 85, 85);
-        var batchText = (label.batchNumber || label.batchId || '');
-        if (label.trayNumber) batchText += ' T' + label.trayNumber;
-        doc.text(batchText, tx, 54);
+            var tsd = _fmtTraySize(label.cellsPerTray, label.paperpotSpacing);
+            doc.setTextColor(0, 0, 0);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(13);
+            doc.text(tsd, rx, 44, { align: 'right' });
 
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(11);
-        doc.setTextColor(68, 68, 68);
-        var trayStr = 'Tray ' + (label.trayNumber || '') + '/' + (label.trays || '');
-        doc.text(trayStr, rx, 54, { align: 'right' });
-
-        // LINE 4 (y=66): Dates left, Field right
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(9);
-        doc.setTextColor(68, 68, 68);
-        var ds = 'Sow: ' + _fmtDate(label.seedDate || label.sowDate);
-        ds += '  \u2192  TP: ' + _fmtDate(label.transplantDate);
-        doc.text(ds, tx, 66);
-
-        if (label.field) {
-            doc.setFontSize(9);
+            // LINE 4 (y=56): Batch + Tray #
+            doc.setFont('courier', 'normal');
+            doc.setFontSize(7);
             doc.setTextColor(85, 85, 85);
-            doc.text(label.field, rx, 66, { align: 'right' });
+            var batchText = (label.batchNumber || label.batchId || '');
+            if (label.trayNumber) batchText += ' T' + label.trayNumber;
+            doc.text(batchText, tx, 56);
+
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(10);
+            doc.setTextColor(68, 68, 68);
+            var trayStr = 'Tray ' + (label.trayNumber || '') + '/' + (label.trays || '');
+            doc.text(trayStr, rx, 56, { align: 'right' });
+
+            // LINE 5 (y=67): Sow date
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(8);
+            doc.setTextColor(68, 68, 68);
+            doc.text('Sow: ' + _fmtDate(label.seedDate || label.sowDate), tx, 67);
+        } else {
+            // === STANDARD FIELD TRAY LAYOUT ===
+            // LINE 1 (y=20): VARIETY — largest possible, bold, full width
+            doc.setTextColor(0, 0, 0);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(24);
+            var varText = label.variety || label.crop || '';
+            while (varText.length > 3 && doc.getTextWidth(varText) > maxTextW) {
+                varText = varText.substring(0, varText.length - 2) + '\u2026';
+            }
+            doc.text(varText, tx, 20);
+
+            // LINE 2 (y=40): Crop left, Tray size right
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(14);
+            doc.setTextColor(51, 51, 51);
+            doc.text(label.crop || '', tx, 40);
+
+            var tsd = _fmtTraySize(label.cellsPerTray, label.paperpotSpacing);
+            doc.setTextColor(0, 0, 0);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(16);
+            doc.text(tsd, rx, 40, { align: 'right' });
+
+            // LINE 3 (y=54): Batch left, Tray #/total right
+            doc.setFont('courier', 'normal');
+            doc.setFontSize(8);
+            doc.setTextColor(85, 85, 85);
+            var batchText = (label.batchNumber || label.batchId || '');
+            if (label.trayNumber) batchText += ' T' + label.trayNumber;
+            doc.text(batchText, tx, 54);
+
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(11);
+            doc.setTextColor(68, 68, 68);
+            var trayStr = 'Tray ' + (label.trayNumber || '') + '/' + (label.trays || '');
+            doc.text(trayStr, rx, 54, { align: 'right' });
+
+            // LINE 4 (y=66): Dates left, Field right
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(9);
+            doc.setTextColor(68, 68, 68);
+            var ds = 'Sow: ' + _fmtDate(label.seedDate || label.sowDate);
+            ds += '  \u2192  TP: ' + _fmtDate(label.transplantDate);
+            doc.text(ds, tx, 66);
+
+            if (label.field) {
+                doc.setFontSize(9);
+                doc.setTextColor(85, 85, 85);
+                doc.text(label.field, rx, 66, { align: 'right' });
+            }
         }
     }
 
