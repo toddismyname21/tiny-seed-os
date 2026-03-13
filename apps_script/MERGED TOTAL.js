@@ -35571,7 +35571,47 @@ function confirmGHSowing(data) {
         break;
       }
     }
-    if (rowIndex < 0) return { success: false, error: 'Batch ' + batchId + ' not found' };
+    // If not found in PLANNING_2026, check SEEDLING_PRODUCTION
+    if (rowIndex < 0) {
+      var seedSheet = ss.getSheetByName('SEEDLING_PRODUCTION');
+      if (seedSheet) {
+        var seedAllData = seedSheet.getDataRange().getValues();
+        var seedHeaders = seedAllData[0].map(function(h) { return String(h).trim(); });
+        var seedIdCol = seedHeaders.indexOf('Item_ID');
+        if (seedIdCol >= 0) {
+          for (var si = 1; si < seedAllData.length; si++) {
+            if (String(seedAllData[si][seedIdCol]) === String(batchId)) {
+              // Found in SEEDLING_PRODUCTION — update Status to 'Seeded'
+              var seedLock = LockService.getScriptLock();
+              seedLock.waitLock(10000);
+              var seedStatusCol = seedHeaders.indexOf('Status');
+              if (seedStatusCol >= 0) {
+                seedSheet.getRange(si + 1, seedStatusCol + 1).setValue('Seeded');
+              }
+              // Write notes if provided
+              if (notes) {
+                var seedNotesCol = seedHeaders.indexOf('Notes');
+                if (seedNotesCol >= 0) {
+                  var existingSeedNotes = String(seedAllData[si][seedNotesCol] || '');
+                  seedSheet.getRange(si + 1, seedNotesCol + 1).setValue(existingSeedNotes ? existingSeedNotes + ' | Seeded ' + actualDate + ' by ' + employeeName : 'Seeded ' + actualDate + ' by ' + employeeName);
+                }
+              }
+              seedLock.releaseLock();
+              return {
+                success: true,
+                message: 'Seedling sale sowing confirmed for ' + batchId,
+                batchId: batchId,
+                actualDate: actualDate,
+                completedBy: employeeName,
+                updatedFields: ['Status'],
+                source: 'SEEDLING_PRODUCTION'
+              };
+            }
+          }
+        }
+      }
+      return { success: false, error: 'Batch ' + batchId + ' not found in PLANNING_2026 or SEEDLING_PRODUCTION' };
+    }
 
     // Idempotency: warn if already sown (but allow re-confirmation with note)
     var actGhSowCol = headers.indexOf('Act_GH_Sow');
