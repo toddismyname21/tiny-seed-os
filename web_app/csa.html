@@ -5473,7 +5473,7 @@
 
                 closeHoldModal();
 
-                if (result.success || true) { // Demo always succeeds
+                if (result.success) {
                     const message = selectedHoldChoice === 'donate'
                         ? 'Hold scheduled! Your box will be donated.'
                         : 'Hold scheduled! Credit added to your Flex Funds.';
@@ -5485,15 +5485,13 @@
                     }
 
                     loadVacationHolds();
+                } else {
+                    showToast(result.error || 'Failed to schedule hold. Please try again.', 'error');
                 }
             } catch (error) {
                 closeHoldModal();
-                // Demo mode
-                const message = selectedHoldChoice === 'donate'
-                    ? 'Hold scheduled! Your box will be donated.'
-                    : 'Hold scheduled! Credit will be added to your account.';
-                showToast(message, 'success');
-                loadVacationHolds();
+                console.error('Vacation hold error:', error);
+                showToast('Unable to schedule hold. Please try again later.', 'error');
             }
         }
 

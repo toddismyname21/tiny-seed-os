@@ -5483,7 +5483,7 @@
 
             try {
                 showToast('Sending reminder...', 'info');
-                const response = await fetch(`${API_URL}?action=sendCSAConfirmationReminder`, {
+                const response = await fetch(`${TINY_SEED_API.MAIN_API}?action=sendCSAConfirmationReminder`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({ memberId, email })
@@ -5518,7 +5518,7 @@
 
             for (const member of unconfirmed) {
                 try {
-                    const response = await fetch(`${API_URL}?action=sendCSAConfirmationReminder`, {
+                    const response = await fetch(`${TINY_SEED_API.MAIN_API}?action=sendCSAConfirmationReminder`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'text/plain' },
                         body: JSON.stringify({ memberId: member.id, email: member.email })
