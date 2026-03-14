@@ -35,6 +35,46 @@ Brief explanation of why these changes were made.
 
 
 
+## 2026-03-13 — PM_ARCHITECT: P1 Security Hardening (XSS, Formula Injection, SRI, CSP)
+
+### Backend Fixes (apps_script/MERGED TOTAL.js)
+- `savePlantingFromWeb()` — Added `sanitizeRowForSheet()` + `LockService` (was public endpoint with no protection)
+- `approveSuggestion()` — Added `sanitizeForSheet()` + `LockService` on PLANNING_2026 writes
+- `applyOptimalAssignments()` — Added `sanitizeForSheet()` + `LockService`
+- `updateContact()` — Sanitized all 7 user-input fields + `sanitizeRowForSheet()` on create
+- `addSeedLot()` — Added `sanitizeRowForSheet()` on appendRow
+- `createTask()` — Added `sanitizeRowForSheet()` on appendRow
+
+### Frontend XSS Prevention
+- `web_app/api-config.js` — Added `TinySeedUtils.escapeHtml()` shared utility (global)
+- `web_app/sales.html` — 74 `esc()` calls: customer names, emails, order data, CSA members
+- `web_app/admin.html` — 7 `esc()` calls: task import titles, descriptions, sources
+- `web_app/accounting.html` — 50+ `esc()` calls: transactions, receipts, categories, emails
+
+### SRI Hashes Added
+- `labels.html` — jspdf@2.5.2 (was missing integrity attribute)
+- `employee.html` — qrcode@1.5.3 (was missing integrity attribute)
+
+### CSP Meta Tags Added
+- `labels.html`, `seed_track.html`, `web_app/osp.html`, `OEFFA_ORGANIC_CERTIFICATION_CHECKLIST.html`
+
+### P1 Reliability Fixes
+- `web_app/sales.html` — Fixed 2 fetch calls using undefined `API_URL`
+- `web_app/csa.html` — Removed `|| true` always-succeed on vacation hold + fake success in catch
+- `farm-operations.html` — `apiCall()` now catches errors, returns `{success:false}`
+- `web_app/greenhouse-dashboard.html` — `updateTaskCompletion` now validates server response
+- `web_app/smart-predictions.html` — Removed 150-line fake forecast data, shows error state
+
+### Reason
+Comprehensive Gate 2 security audit + code quality audit. Backend formula injection coverage was 0.13% (2 of 1,577 writes). Now covers all critical public endpoints. Frontend XSS protection via shared escapeHtml utility on the 3 highest-risk pages.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] No duplicates created
+- [x] All validation scripts passed
+
+---
+
 ## 2026-03-13 — PM_ARCHITECT: P0 Security & Reliability Fixes (Full Audit)
 
 ### Security Fixes (P0)
