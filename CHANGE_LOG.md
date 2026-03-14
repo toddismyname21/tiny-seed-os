@@ -35,6 +35,152 @@ Brief explanation of why these changes were made.
 
 
 
+## 2026-03-14 — PM_ARCHITECT: CSA & Wholesale P0-P2 Full Fix Deployment
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — Server-side price lookup, GET→POST migration, checkWholesaleAdmin endpoint, LockService + sanitization (12 functions)
+- `web_app/csa.html` — Session expiry, devCode removal, phoneInput fix, false-success fixes, 6 stub implementations
+- `web_app/wholesale.html` — Session expiry, server-side admin check, cart validation, delivery fix
+- `employee.html` — Clock-in UX overhaul (committed earlier)
+
+### Functions Added
+- `lookupServerPrices_(priceType)` — Server-side price lookup from REF_Crops (P0-1 fix)
+- `checkWholesaleAdmin(data)` — Server-side admin role check replacing client-side email list (P1-5 fix)
+- `autoCloseStaleEntry_(status, employeeId)` — Auto-closes forgotten clock-out entries
+
+### Security Fixes (P0)
+- P0-1: Server-side price lookup in createSalesOrder + saveFlexWeeklyOrder (client prices ignored)
+- P0-2: addFlexFunds + addCSAMemberDirect moved from GET to POST handlers (CSRF prevention)
+
+### Security Fixes (P1)
+- P1-1: LockService on all 12 customer write functions
+- P1-2: sanitizeForSheet/sanitizeRowForSheet on 10+ write functions
+- P1-3: CSA session expiry (7-day max)
+- P1-4: Wholesale session expiry (7-day max)
+- P1-5: Admin emails removed from wholesale.html, replaced with server-side check
+- P1-6: Dev SMS code (_devCode) display removed from CSA
+
+### Functionality Fixes (P2)
+- P2-1: cancelHold + submitDispute show error on failure instead of fake success
+- P2-6: saveDeliveryInstructions shows error on failure
+- P2-7: Delivery schedule discrepancy noted with id for future dynamic update
+- P2-8: Wholesale cart validated on localStorage load
+
+### Stubs Implemented (CSA)
+- openCustomizeModal — Full item-by-item swap interface using current box data
+- viewBoxDetails — Detailed view of current week's box contents
+- viewUpcomingBox — Shows upcoming box preview from API
+- showDislikesSettings — Toggle grid for vegetable dislikes preferences
+- contactFarm — Farm contact info (email, phone, address, hours)
+- viewAllUpdates — Slide-in panel showing all farm updates
+
+### Reason
+Full audit identified 3 P0 + 7 P1 + 10 P2 findings across security, functionality, and code quality. This deployment addresses all P0, all P1, and most P2 issues. Audit report: `docs/audits/CSA_WHOLESALE_FULL_AUDIT_2026-03-14.md`
+
+### Deployment
+- Backend: @765 — verified via testConnection
+- Frontend: pushed to main — GitHub Pages
+
+---
+
+## 2026-03-14 — FULLSTACK_BUILDER: Security Hardening — LockService + Formula Injection Protection
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — Added LockService concurrency locks and formula injection sanitization to 12 customer-facing write functions
+
+### Functions Modified
+- `submitWholesaleOrder()` — Added LockService wrapper + finally block
+- `submitCSAOrder()` — Added LockService wrapper + try/catch/finally
+- `createStandingOrder()` — Added LockService + sanitizeRowForSheet on appendRow
+- `updateStandingOrder()` — Added LockService + sanitizeForSheet on all setValue calls
+- `markStandingOrderFulfilled()` — Added LockService + sanitizeForSheet on setValue + sanitizeRowForSheet on appendRow
+- `markStandingOrderShorted()` — Added LockService + sanitizeForSheet on setValue + sanitizeRowForSheet on appendRow
+- `createCSAMember()` — Added LockService + sanitizeRowForSheet on appendRow
+- `updateCSAMember()` — Added LockService + sanitizeForSheet via updateField helper
+- `addCSAMemberDirect()` — Added LockService + sanitizeRowForSheet on both appendRow calls (customer + CSA)
+- `scheduleVacationHold()` — Added LockService wrapper + finally block
+- `cancelVacationHold()` — Added LockService wrapper + finally block
+- `updateCSAMemberPreferences()` — Added LockService + sanitizeForSheet on all setValue calls (CSA sheet + Customers sheet)
+
+### Reason
+Security hardening per CLAUDE.md Step 8 requirements. LockService prevents race conditions on concurrent writes to shared sheets. sanitizeForSheet/sanitizeRowForSheet prevent formula injection attacks (=, +, -, @) on user-supplied values written to Google Sheets. All 12 functions are customer-facing write endpoints accessible from CSA portal, wholesale portal, and standing order management.
+
+### Duplicate Check
+- [x] Verified no existing LockService in any of the 12 functions before adding
+- [x] Verified sanitizeForSheet and sanitizeRowForSheet already exist in codebase (lines 19719, 19734)
+- [x] Did NOT modify saveFlexWeeklyOrder or createSalesOrder (already secured)
+
+---
+
+## 2026-03-14 — FULLSTACK_BUILDER: CSA Portal — Implement 6 Stub Functions
+
+### Files Modified
+- `web_app/csa.html` — Implemented 6 previously-stub functions with full modal UIs:
+  1. `openCustomizeModal()` — Shows all current box items with per-item Swap buttons wired to existing `openSwapModal()`
+  2. `viewBoxDetails()` — Displays current box items in detail modal with date, quantities, units, and notes
+  3. `viewUpcomingBox(date)` — Fetches future box contents via `getBoxContents` API, shows loading/empty/error states
+  4. `showDislikesSettings()` — 16-vegetable toggle grid for marking dislikes, saves via `updateCSAMemberPreferences` API
+  5. `contactFarm()` — Contact modal with farm info + pre-filled message form, submits via `submitCSADispute` API
+  6. `viewAllUpdates()` — Slide panel loading posts from `getRecentSocialPosts` API with static fallback
+
+### Functions Added
+- `closeCustomizeModal()`, `closeBoxDetailsModal()`, `closeDislikesModal()`, `toggleVeggieDislike()`, `saveDislikes()`, `closeContactModal()`, `submitContactMessage()`, `renderFallbackUpdates()`, `closeUpdatesPanel()`
+
+### CSS Added
+- Customize item list styles, veggie toggle grid, contact info blocks, contact divider, updates slide panel
+
+### HTML Added
+- 5 new modals: `customizeModal`, `boxDetailsModal`, `dislikesModal`, `contactModal`, updates slide panel (`updatesPanel` + `updatesPanelOverlay`)
+
+### Reason
+All 6 functions were stubs showing only toast messages. Now each has a real UI with proper loading states, error handling, empty states, API integration, and XSS-safe rendering via `esc()`.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions — no duplicates
+- [x] No duplicates created
+
+---
+
+## 2026-03-14 — FULLSTACK_BUILDER: CSA Portal Security & Quality Fixes
+
+### Files Modified
+- `web_app/csa.html` — 9 fixes applied:
+  1. [P1] Removed dev SMS code exposure (`_devCode` console.log + toast)
+  2. [High] Fixed duplicate `id="phoneInput"` — second instance renamed to `onboardingPhoneInput`, updated `populateConfirmationDetails()` reference
+  3. [P1] Added 7-day session expiry (`expiresAt` in `saveSession()`, expiry check in `checkAuth()`)
+  4. [P2] Fixed `cancelHold()` catch block showing false success — now shows error toast
+  5. [P2] Fixed `submitDispute()` catch block showing false success — now shows error toast
+  6. [P2] Removed duplicate CSS: first `.flex-transactions-list` (200px), first `.modal-overlay`
+  7. [P2] Removed dead code: `togglePreference()` function, hardcoded demo vacation hold (`isHold: i === 3`), gutted unreachable `checkAlerts()` body
+  8. [P3] Removed 5 debug `console.log` statements from auth flow (`sendMagicLink`)
+  9. [P2] Removed duplicate `<script src="api-config.js">` (was loaded in both `<head>` and `<body>`)
+
+### Reason
+Security hardening and code quality cleanup. Dev SMS codes were exposed in production console/toast. Sessions had no expiry. Error catch blocks were showing success messages, masking failures from users. Duplicate IDs caused unpredictable DOM behavior.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] No duplicates created
+
+---
+
+## 2026-03-13 — PM_ARCHITECT: Fix "Forgot to Clock Out" Bug (Backend v764)
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — `clockIn()`: if employee has an open entry from a PREVIOUS day, auto-close it (capped at 12h, marked "AUTO-CLOSED") and proceed with new clock-in. Previously returned "Already clocked in" error with no way to recover.
+
+### Functions Added
+- `autoCloseStaleEntry_()` — Closes stale TIME_CLOCK entries from previous days at 11:59 PM of clock-in date, capped at 12 hours max, adds manager-review note
+
+### Reason
+Employee who forgets to clock out gets stuck the next morning — "Already clocked in" error with no self-service fix. This was the #1 usability blocker for flawless clock-in. Now auto-resolved with audit trail for manager review.
+
+### Deployed
+Backend v764 — verified via testConnection
+
+---
+
 ## 2026-03-13 — PM_ARCHITECT: Clock-In UX Overhaul + Daily Use Roadmap
 
 ### Files Created
