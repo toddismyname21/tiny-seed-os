@@ -1572,12 +1572,18 @@
         .clock-strip {
             display: flex;
             color: white;
-            padding: 10px 16px;
+            padding: 14px 20px;
             align-items: center;
             justify-content: space-between;
-            font-size: 0.85rem;
+            font-size: 1rem;
             cursor: pointer;
-            min-height: 44px;
+            min-height: 56px;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            transition: background 0.2s ease;
+        }
+        .clock-strip:active {
+            opacity: 0.85;
         }
         .clock-strip-in {
             display: flex;
@@ -1594,21 +1600,90 @@
         .clock-strip-label {
             display: flex;
             align-items: center;
-            gap: 6px;
-            font-weight: 600;
+            gap: 8px;
+            font-weight: 700;
+            font-size: 1.05rem;
         }
         .clock-strip-hint {
-            font-size: 0.8rem;
-            opacity: 0.85;
+            font-size: 0.85rem;
+            opacity: 0.9;
         }
         .clock-strip .elapsed {
-            font-weight: 600;
+            font-weight: 700;
+            font-size: 1.1rem;
         }
+        /* GREEN when clocked in = "you're good, working" */
         .clock-strip.clocked-in {
-            background: var(--danger, #ef4444);
-        }
-        .clock-strip.not-clocked-in {
             background: var(--success, #22c55e);
+        }
+        /* NEUTRAL/DARK when not clocked in = "needs action" */
+        .clock-strip.not-clocked-in {
+            background: #475569;
+        }
+
+        /* Clock-out confirmation modal */
+        .clock-out-confirm-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 10000;
+            align-items: flex-end;
+            justify-content: center;
+        }
+        .clock-out-confirm-overlay.active {
+            display: flex;
+        }
+        .clock-out-confirm-sheet {
+            background: white;
+            border-radius: 16px 16px 0 0;
+            padding: 24px 20px calc(24px + env(safe-area-inset-bottom, 0px));
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+            animation: slideUp 0.25s ease-out;
+        }
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+        .clock-out-confirm-sheet h3 {
+            margin: 0 0 8px;
+            font-size: 1.15rem;
+            color: #1e293b;
+        }
+        .clock-out-confirm-sheet .shift-summary {
+            color: #64748b;
+            font-size: 0.95rem;
+            margin-bottom: 20px;
+        }
+        .clock-out-confirm-sheet .confirm-buttons {
+            display: flex;
+            gap: 12px;
+        }
+        .clock-out-confirm-sheet .btn-keep {
+            flex: 1;
+            padding: 14px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            background: white;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #475569;
+            cursor: pointer;
+            min-height: 48px;
+        }
+        .clock-out-confirm-sheet .btn-clockout {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            background: #ef4444;
+            font-size: 1rem;
+            font-weight: 600;
+            color: white;
+            cursor: pointer;
+            min-height: 48px;
         }
 
         .hours-summary {
@@ -10084,6 +10159,18 @@
             </div>
         </div>
 
+        <!-- Clock-out confirmation bottom sheet -->
+        <div class="clock-out-confirm-overlay" id="clockOutConfirm">
+            <div class="clock-out-confirm-sheet">
+                <h3>End your shift?</h3>
+                <div class="shift-summary" id="clockOutSummary">You worked 0h 0m</div>
+                <div class="confirm-buttons">
+                    <button class="btn-keep" onclick="dismissClockOutConfirm()">Keep Working</button>
+                    <button class="btn-clockout" onclick="confirmClockOut()">Clock Out</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Keep hidden gate elements so existing JS doesn't error -->
         <div id="clockGate" class="clock-gate hidden" style="display:none;"></div>
 
@@ -17507,91 +17594,112 @@
 
         async function toggleClock() {
             const btn = document.getElementById('clockBtn');
-            btn.disabled = true;
 
+            if (AppState.isClockedIn) {
+                // Clock OUT — show confirmation first (prevents accidental clock-outs)
+                showClockOutConfirm();
+                return;
+            }
+
+            // Clock IN — no confirmation needed (speed priority: <2 seconds)
+            btn.disabled = true;
+            await doClockIn();
+            btn.disabled = false;
+        }
+
+        function showClockOutConfirm() {
+            const overlay = document.getElementById('clockOutConfirm');
+            const summary = document.getElementById('clockOutSummary');
+            if (AppState.clockInTime) {
+                const elapsed = (Date.now() - new Date(AppState.clockInTime).getTime()) / 1000;
+                const hrs = Math.floor(elapsed / 3600);
+                const mins = Math.floor((elapsed % 3600) / 60);
+                summary.textContent = `You worked ${hrs}h ${mins}m`;
+            }
+            overlay.classList.add('active');
+        }
+
+        function dismissClockOutConfirm() {
+            document.getElementById('clockOutConfirm').classList.remove('active');
+        }
+
+        async function confirmClockOut() {
+            document.getElementById('clockOutConfirm').classList.remove('active');
+            const btn = document.getElementById('clockBtn');
+            btn.disabled = true;
+            await doClockOut();
+            btn.disabled = false;
+        }
+
+        async function doClockIn() {
             try {
                 const gps = await captureGPS();
                 const mode = AppState.workMode || 'field';
+                const gpsParams = gps.lat != null ? `&lat=${gps.lat}&lng=${gps.lng}` : '';
+                const noteParam = AppState.loginNote ? `&notes=${encodeURIComponent(AppState.loginNote)}` : '';
+                const response = await fetch(`${CONFIG.API_URL}?action=clockIn&employeeId=${AppState.employee.Employee_ID}${gpsParams}&mode=${mode}${noteParam}`);
+                const data = await response.json();
 
-                if (!AppState.isClockedIn) {
-                    // Clock In
-                    const gpsParams = gps.lat != null ? `&lat=${gps.lat}&lng=${gps.lng}` : '';
-                    const noteParam = AppState.loginNote ? `&notes=${encodeURIComponent(AppState.loginNote)}` : '';
-                    const response = await fetch(`${CONFIG.API_URL}?action=clockIn&employeeId=${AppState.employee.Employee_ID}${gpsParams}&mode=${mode}${noteParam}`);
-                    const data = await response.json();
-
-                    if (data.success) {
-                        AppState.isClockedIn = true;
-                        AppState.clockInTime = new Date().toISOString();
-
-                        // Persist clock state in localStorage
-                        localStorage.setItem('tsf_clocked_in', 'true');
-                        localStorage.setItem('tsf_clock_in_time', AppState.clockInTime);
-
-                        // Notify SW to stop clock-in reminders
-                        notifySWClockStatus(true);
-
-                        // Clear login note after successful clock-in
-                        AppState.loginNote = '';
-
-                        showToast(t('clock.clockedInSuccess'), 'success');
-
-                        // Trigger mode check - if full-screen mode selected, show it now
-                        onClockIn();
-                    } else {
-                        showToast(data.error || t('common.error'), 'error');
-                    }
-                } else {
-                    // Clock Out
-                    const gpsParamsOut = gps.lat != null ? `&lat=${gps.lat}&lng=${gps.lng}` : '';
-                    const response = await fetch(`${CONFIG.API_URL}?action=clockOut&employeeId=${AppState.employee.Employee_ID}${gpsParamsOut}&mode=${mode}`);
-                    const data = await response.json();
-
-                    if (data.success) {
-                        AppState.isClockedIn = false;
-                        AppState.clockInTime = null;
-
-                        // Clear persisted clock state
-                        localStorage.removeItem('tsf_clocked_in');
-                        localStorage.removeItem('tsf_clock_in_time');
-
-                        // Notify SW that employee clocked out (re-enable reminders tomorrow)
-                        notifySWClockStatus(false);
-
-                        // Exit any full-screen mode when clocking out
-                        exitFullScreenMode();
-
-                        document.getElementById('hoursToday').textContent = data.hoursWorked?.toFixed(1) || '0.0';
-                        showToast(t('clock.clockedOutSuccess'), 'success');
-                    } else {
-                        showToast(data.error || t('common.error'), 'error');
-                    }
-                }
-
-                updateClockUI();
-            } catch (error) {
-                console.error('Clock error:', error);
-
-                // Offline fallback - still allow clock in/out locally
-                if (!AppState.isClockedIn) {
+                if (data.success) {
                     AppState.isClockedIn = true;
                     AppState.clockInTime = new Date().toISOString();
+
                     localStorage.setItem('tsf_clocked_in', 'true');
                     localStorage.setItem('tsf_clock_in_time', AppState.clockInTime);
-                    showToast('Clocked in (offline)', 'info');
+
+                    notifySWClockStatus(true);
+                    AppState.loginNote = '';
+                    showToast(t('clock.clockedInSuccess'), 'success');
                     onClockIn();
                 } else {
+                    showToast(data.error || t('common.error'), 'error');
+                }
+                updateClockUI();
+            } catch (error) {
+                console.error('Clock-in error:', error);
+                // Offline fallback
+                AppState.isClockedIn = true;
+                AppState.clockInTime = new Date().toISOString();
+                localStorage.setItem('tsf_clocked_in', 'true');
+                localStorage.setItem('tsf_clock_in_time', AppState.clockInTime);
+                showToast('Clocked in (offline)', 'info');
+                onClockIn();
+                updateClockUI();
+            }
+        }
+
+        async function doClockOut() {
+            try {
+                const gps = await captureGPS();
+                const mode = AppState.workMode || 'field';
+                const gpsParamsOut = gps.lat != null ? `&lat=${gps.lat}&lng=${gps.lng}` : '';
+                const response = await fetch(`${CONFIG.API_URL}?action=clockOut&employeeId=${AppState.employee.Employee_ID}${gpsParamsOut}&mode=${mode}`);
+                const data = await response.json();
+
+                if (data.success) {
                     AppState.isClockedIn = false;
                     AppState.clockInTime = null;
                     localStorage.removeItem('tsf_clocked_in');
                     localStorage.removeItem('tsf_clock_in_time');
+                    notifySWClockStatus(false);
                     exitFullScreenMode();
-                    showToast('Clocked out (offline)', 'info');
+                    document.getElementById('hoursToday').textContent = data.hoursWorked?.toFixed(1) || '0.0';
+                    showToast(t('clock.clockedOutSuccess'), 'success');
+                } else {
+                    showToast(data.error || t('common.error'), 'error');
                 }
                 updateClockUI();
+            } catch (error) {
+                console.error('Clock-out error:', error);
+                // Offline fallback
+                AppState.isClockedIn = false;
+                AppState.clockInTime = null;
+                localStorage.removeItem('tsf_clocked_in');
+                localStorage.removeItem('tsf_clock_in_time');
+                exitFullScreenMode();
+                showToast('Clocked out (offline)', 'info');
+                updateClockUI();
             }
-
-            btn.disabled = false;
         }
 
         // Restore clock state on page load

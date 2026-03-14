@@ -35,6 +35,42 @@ Brief explanation of why these changes were made.
 
 
 
+## 2026-03-13 — PM_ARCHITECT: Clock-In UX Overhaul + Daily Use Roadmap
+
+### Files Created
+- `DAILY_USE_ROADMAP.md` — Comprehensive roadmap for daily Tiny Seed OS use, clock-in UX improvements, 5-page daily workflow, 3-phase plan
+
+### Files Modified
+- `employee.html` — Clock-in/out UX overhaul:
+  - Fixed color logic: GREEN = clocked in (working), DARK = not clocked in (needs action). Was backwards.
+  - Increased touch target: 56px height (was 44px), 1rem font (was 0.85rem), 700 weight labels
+  - Added clock-out confirmation bottom sheet (prevents accidental clock-outs in field)
+  - Refactored `toggleClock()` into `doClockIn()` + `doClockOut()` for clean separation
+  - Clock-IN has NO confirmation (speed priority: <2 seconds)
+  - Clock-OUT shows "End your shift? You worked Xh Xm" with Keep Working / Clock Out buttons
+  - Added CSS animation (slideUp) for bottom sheet
+  - All existing functionality preserved: offline fallback, GPS, voice commands, auto-clock-in on login
+
+### Functions Added
+- `showClockOutConfirm()` — Shows confirmation bottom sheet with shift duration
+- `dismissClockOutConfirm()` — Closes confirmation without action
+- `confirmClockOut()` — Proceeds with clock-out after confirmation
+- `doClockIn()` — Extracted clock-in logic (API call, GPS, localStorage, offline fallback)
+- `doClockOut()` — Extracted clock-out logic (API call, GPS, localStorage, offline fallback)
+
+### Functions Modified
+- `toggleClock()` — Now routes to confirmation on clock-out, direct clock-in on clock-in
+
+### Reason
+User reported clock-in/out is "not intuitive." Research (39KB, 60+ sources, 8 systems analyzed) identified: color confusion (green=clock-in vs green=active was backwards), small touch targets, no accidental clock-out prevention. Fixes align with UX best practices from Buddy Punch, Homebase, Deputy, and Clockify.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] No duplicates created
+- [x] Element reference validation passed
+
+---
+
 ## 2026-03-13 — PM_ARCHITECT: P1 Security Hardening (XSS, Formula Injection, SRI, CSP)
 
 ### Backend Fixes (apps_script/MERGED TOTAL.js)
