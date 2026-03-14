@@ -729,6 +729,20 @@ class SocialIntelligenceAPI extends TinySeedAPI {
 
 const TinySeedUtils = {
     /**
+     * Escape HTML entities to prevent XSS when inserting into innerHTML.
+     * Use this for ANY value that comes from API responses, Google Sheets,
+     * or user input before placing it in HTML templates.
+     * @param {*} str - The value to escape (non-strings are converted)
+     * @returns {string} HTML-safe string
+     */
+    escapeHtml(str) {
+        if (str == null) return '';
+        const s = String(str);
+        const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+        return s.replace(/[&<>"']/g, c => map[c]);
+    },
+
+    /**
      * Format currency
      */
     formatCurrency(amount) {

@@ -4140,6 +4140,7 @@
         // ════════════════════════════════════════════════════════════════════════════
 
         const API_BASE = TINY_SEED_API.MAIN_API;
+        const esc = TinySeedUtils.escapeHtml;
 
         let importImageData = null;
         let extractedItems = [];
@@ -4243,17 +4244,17 @@
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--ts-space-2, 8px);">
                         <div style="display: flex; align-items: center; gap: var(--ts-space-2, 8px);">
                             <span style="font-size: var(--ts-text-xl, 1.25rem);">${categoryIcons[task.category] || '📋'}</span>
-                            <strong style="color: var(--text-primary);">${task.title || task.task}</strong>
+                            <strong style="color: var(--text-primary);">${esc(task.title || task.task)}</strong>
                         </div>
                         <label style="display: flex; align-items: center; gap: var(--ts-space-1, 6px); cursor: pointer;">
                             <input type="checkbox" checked data-index="${index}" class="import-checkbox" style="width: 18px; height: 18px;">
                             <span style="color: var(--text-secondary); font-size: var(--ts-text-xs, 0.75rem);">Import</span>
                         </label>
                     </div>
-                    ${task.description ? `<p style="color: var(--text-secondary); margin: 8px 0; font-size: var(--ts-text-sm, 0.875rem);">${task.description}</p>` : ''}
+                    ${task.description ? `<p style="color: var(--text-secondary); margin: 8px 0; font-size: var(--ts-text-sm, 0.875rem);">${esc(task.description)}</p>` : ''}
                     <div style="display: flex; flex-wrap: wrap; gap: var(--ts-space-2, 8px); margin-top: var(--ts-space-2, 8px);">
-                        ${task.timing ? `<span style="background: var(--info-bg); color: var(--info); padding: 4px 8px; border-radius: var(--ts-radius-sm, 4px); font-size: var(--ts-text-xs, 0.75rem);">⏰ ${task.timing}</span>` : ''}
-                        ${task.crop ? `<span style="background: var(--success-bg); color: var(--success); padding: 4px 8px; border-radius: var(--ts-radius-sm, 4px); font-size: var(--ts-text-xs, 0.75rem);">🌱 ${task.crop}</span>` : ''}
+                        ${task.timing ? `<span style="background: var(--info-bg); color: var(--info); padding: 4px 8px; border-radius: var(--ts-radius-sm, 4px); font-size: var(--ts-text-xs, 0.75rem);">⏰ ${esc(task.timing)}</span>` : ''}
+                        ${task.crop ? `<span style="background: var(--success-bg); color: var(--success); padding: 4px 8px; border-radius: var(--ts-radius-sm, 4px); font-size: var(--ts-text-xs, 0.75rem);">🌱 ${esc(task.crop)}</span>` : ''}
                         ${task.confidence ? `<span style="background: var(--bg-card); color: var(--text-muted); padding: 4px 8px; border-radius: var(--ts-radius-sm, 4px); font-size: var(--ts-text-xs, 0.75rem);">${Math.round(task.confidence * 100)}% confidence</span>` : ''}
                     </div>
                 </div>
@@ -4317,9 +4318,9 @@
                             align-items: center;
                         ">
                             <div>
-                                <div style="color: var(--text-primary); font-weight: 500;">${task.Title || task.Task}</div>
+                                <div style="color: var(--text-primary); font-weight: 500;">${esc(task.Title || task.Task)}</div>
                                 <div style="color: var(--text-muted); font-size: var(--ts-text-xs, 0.75rem);">
-                                    ${task.Source || 'Unknown source'} • ${task.ImportedAt ? new Date(task.ImportedAt).toLocaleDateString() : 'Unknown date'}
+                                    ${esc(task.Source || 'Unknown source')} • ${task.ImportedAt ? new Date(task.ImportedAt).toLocaleDateString() : 'Unknown date'}
                                 </div>
                             </div>
                             <span style="
@@ -4328,7 +4329,7 @@
                                 padding: 4px 8px;
                                 border-radius: var(--ts-radius-sm, 4px);
                                 font-size: var(--ts-text-xs, 0.75rem);
-                            ">${task.Status || 'Pending'}</span>
+                            ">${esc(task.Status || 'Pending')}</span>
                         </div>
                     `).join('');
                 } else {

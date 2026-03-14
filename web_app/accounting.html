@@ -1516,6 +1516,9 @@
   <div id="alertContainer" style="position: fixed; top: 1rem; right: 1rem; z-index: 2000; max-width: 400px;"></div>
 
   <script>
+    // XSS protection alias
+    const esc = TinySeedUtils.escapeHtml;
+
     // State
     let categories = [];
     let receipts = [];
@@ -1757,9 +1760,9 @@
       const tbody = document.getElementById('laborByCropTable');
       tbody.innerHTML = crops.map(c => `
         <tr>
-          <td><code>${c.batchId}</code></td>
-          <td><strong>${c.crop || 'Unknown'}</strong></td>
-          <td>${c.variety || '-'}</td>
+          <td><code>${esc(c.batchId)}</code></td>
+          <td><strong>${esc(c.crop || 'Unknown')}</strong></td>
+          <td>${esc(c.variety || '-')}</td>
           <td>${(c.totalMinutes / 60).toFixed(1)}h</td>
           <td style="color: var(--success);">$${(c.directCost || 0).toFixed(2)}</td>
           <td style="color: var(--warning);">$${(c.indirectCost || 0).toFixed(2)}</td>
@@ -1807,12 +1810,12 @@
       tbody.innerHTML = entries.map(e => `
         <tr>
           <td>${formatDate(e.Date || e.Timestamp)}</td>
-          <td>${e.Employee || e.Employee_Name || '-'}</td>
-          <td>${e.Task_Type || e.Task || '-'}</td>
-          <td><code>${e.Batch_ID || '-'}</code></td>
+          <td>${esc(e.Employee || e.Employee_Name || '-')}</td>
+          <td>${esc(e.Task_Type || e.Task || '-')}</td>
+          <td><code>${esc(e.Batch_ID || '-')}</code></td>
           <td>${e.Duration_Min ? (e.Duration_Min / 60).toFixed(1) + 'h' : '-'}</td>
           <td>$${(e.Labor_Cost || 0).toFixed(2)}</td>
-          <td><span class="badge ${e.Cost_Type === 'Direct' ? 'badge-success' : 'badge-warning'}">${e.Cost_Type || 'Unknown'}</span></td>
+          <td><span class="badge ${e.Cost_Type === 'Direct' ? 'badge-success' : 'badge-warning'}">${esc(e.Cost_Type || 'Unknown')}</span></td>
         </tr>
       `).join('');
     }
@@ -1832,9 +1835,9 @@
         if (accountsResult.success && accountsResult.accounts && accountsResult.accounts.length > 0) {
           tbody.innerHTML = accountsResult.accounts.map(a => `
             <tr>
-              <td>${a.institution || 'Bank'}</td>
-              <td>${a.name || a.official_name || 'Account'}</td>
-              <td><span class="badge badge-info">${a.type || a.subtype || 'Unknown'}</span></td>
+              <td>${esc(a.institution || 'Bank')}</td>
+              <td>${esc(a.name || a.official_name || 'Account')}</td>
+              <td><span class="badge badge-info">${esc(a.type || a.subtype || 'Unknown')}</span></td>
               <td>${a.balances && a.balances.current !== null ? '$' + a.balances.current.toFixed(2) : '-'}</td>
               <td>${a.lastSynced ? formatDate(a.lastSynced) : 'Just now'}</td>
             </tr>
@@ -1856,12 +1859,12 @@
           tbody.innerHTML = result.transactions.slice(0, 20).map(t => `
             <tr>
               <td>${formatDate(t.date)}</td>
-              <td>${t.name || t.merchant_name || 'Unknown'}</td>
-              <td>${t.category ? t.category.join(', ') : '-'}</td>
+              <td>${esc(t.name || t.merchant_name || 'Unknown')}</td>
+              <td>${t.category ? esc(t.category.join(', ')) : '-'}</td>
               <td style="color: ${t.amount > 0 ? 'var(--danger)' : 'var(--primary)'}">
                 ${t.amount > 0 ? '-' : '+'}$${Math.abs(t.amount).toFixed(2)}
               </td>
-              <td>${t.account_name || '-'}</td>
+              <td>${esc(t.account_name || '-')}</td>
             </tr>
           `).join('');
         } else {
@@ -1883,18 +1886,18 @@
       tbody.innerHTML = receipts.map(r => `
         <tr>
           <td>${formatDate(r.Date)}</td>
-          <td>${r.Vendor || '-'}</td>
+          <td>${esc(r.Vendor || '-')}</td>
           <td>$${parseFloat(r.Amount || 0).toFixed(2)}</td>
-          <td>${r.Category_Name || '-'}</td>
-          <td>${r.Payment_Method || '-'}</td>
+          <td>${esc(r.Category_Name || '-')}</td>
+          <td>${esc(r.Payment_Method || '-')}</td>
           <td>
             ${r.Verified
               ? '<span class="badge badge-success">Verified</span>'
               : '<span class="badge badge-warning">Unverified</span>'}
           </td>
           <td>
-            ${r.Drive_URL ? `<a href="${r.Drive_URL}" target="_blank" class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">View</a>` : ''}
-            ${!r.Verified ? `<button class="btn btn-primary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;" onclick="verifyReceipt('${r.Receipt_ID}')">Verify</button>` : ''}
+            ${r.Drive_URL ? `<a href="${esc(r.Drive_URL)}" target="_blank" class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">View</a>` : ''}
+            ${!r.Verified ? `<button class="btn btn-primary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;" onclick="verifyReceipt('${esc(r.Receipt_ID)}')">Verify</button>` : ''}
           </td>
         </tr>
       `).join('');
@@ -1912,9 +1915,9 @@
       tbody.innerHTML = recent.map(r => `
         <tr>
           <td>${formatDate(r.Date)}</td>
-          <td>${r.Vendor || '-'}</td>
+          <td>${esc(r.Vendor || '-')}</td>
           <td>$${parseFloat(r.Amount || 0).toFixed(2)}</td>
-          <td>${r.Category_Name || '-'}</td>
+          <td>${esc(r.Category_Name || '-')}</td>
           <td>
             ${r.Verified
               ? '<span class="badge badge-success">Verified</span>'
@@ -1928,11 +1931,11 @@
       const tbody = document.getElementById('categoriesTable');
       tbody.innerHTML = categories.map(c => `
         <tr>
-          <td><code>${c.categoryId}</code></td>
-          <td>${c.categoryName}</td>
-          <td><span class="badge ${c.type === 'Income' ? 'badge-success' : 'badge-info'}">${c.type}</span></td>
-          <td>${c.scheduleFLine}</td>
-          <td style="color: var(--text-muted)">${c.description || '-'}</td>
+          <td><code>${esc(c.categoryId)}</code></td>
+          <td>${esc(c.categoryName)}</td>
+          <td><span class="badge ${c.type === 'Income' ? 'badge-success' : 'badge-info'}">${esc(c.type)}</span></td>
+          <td>${esc(c.scheduleFLine)}</td>
+          <td style="color: var(--text-muted)">${esc(c.description || '-')}</td>
         </tr>
       `).join('');
     }
@@ -1942,9 +1945,9 @@
       tbody.innerHTML = docs.map(d => `
         <tr>
           <td>${formatDate(d.Received_Date)}</td>
-          <td>${d.Document_Name}</td>
-          <td><span class="badge badge-info">${d.Document_Type}</span></td>
-          <td>${d.From_Name || d.From_Email}</td>
+          <td>${esc(d.Document_Name)}</td>
+          <td><span class="badge badge-info">${esc(d.Document_Type)}</span></td>
+          <td>${esc(d.From_Name || d.From_Email)}</td>
           <td>
             ${d.Status === 'Pending Review'
               ? '<span class="badge badge-warning">Pending Review</span>'
@@ -1953,7 +1956,7 @@
               : '<span class="badge badge-danger">Action Needed</span>'}
           </td>
           <td>
-            ${d.Drive_URL ? `<a href="${d.Drive_URL}" target="_blank" class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">View</a>` : ''}
+            ${d.Drive_URL ? `<a href="${esc(d.Drive_URL)}" target="_blank" class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">View</a>` : ''}
           </td>
         </tr>
       `).join('');
@@ -1964,10 +1967,10 @@
       tbody.innerHTML = emails.map(e => `
         <tr>
           <td>${formatDate(e.Date)}</td>
-          <td>${e.From_Name || e.From_Email}</td>
-          <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${e.Subject}</td>
+          <td>${esc(e.From_Name || e.From_Email)}</td>
+          <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${esc(e.Subject)}</td>
           <td>${e.Attachment_Count > 0 ? `<span class="badge badge-info">${e.Attachment_Count}</span>` : '-'}</td>
-          <td><span class="badge badge-success">${e.Status}</span></td>
+          <td><span class="badge badge-success">${esc(e.Status)}</span></td>
         </tr>
       `).join('');
     }
@@ -2103,7 +2106,7 @@
           <table>
             <thead><tr><th>Category</th><th>Schedule F</th><th>Amount</th></tr></thead>
             <tbody>
-              ${report.income.map(i => `<tr><td>${i.name}</td><td>${i.scheduleFLine}</td><td>$${i.total.toFixed(2)}</td></tr>`).join('')}
+              ${report.income.map(i => `<tr><td>${esc(i.name)}</td><td>${esc(i.scheduleFLine)}</td><td>$${i.total.toFixed(2)}</td></tr>`).join('')}
             </tbody>
           </table>
 
@@ -2111,7 +2114,7 @@
           <table>
             <thead><tr><th>Category</th><th>Schedule F</th><th>Amount</th></tr></thead>
             <tbody>
-              ${report.expenses.map(e => `<tr><td>${e.name}</td><td>${e.scheduleFLine}</td><td>$${e.total.toFixed(2)}</td></tr>`).join('')}
+              ${report.expenses.map(e => `<tr><td>${esc(e.name)}</td><td>${esc(e.scheduleFLine)}</td><td>$${e.total.toFixed(2)}</td></tr>`).join('')}
             </tbody>
           </table>
 
@@ -2191,18 +2194,18 @@
       tbody.innerHTML = filtered.map(r => `
         <tr>
           <td>${formatDate(r.Date)}</td>
-          <td>${r.Vendor || '-'}</td>
+          <td>${esc(r.Vendor || '-')}</td>
           <td>$${parseFloat(r.Amount || 0).toFixed(2)}</td>
-          <td>${r.Category_Name || '-'}</td>
-          <td>${r.Payment_Method || '-'}</td>
+          <td>${esc(r.Category_Name || '-')}</td>
+          <td>${esc(r.Payment_Method || '-')}</td>
           <td>
             ${r.Verified
               ? '<span class="badge badge-success">Verified</span>'
               : '<span class="badge badge-warning">Unverified</span>'}
           </td>
           <td>
-            ${r.Drive_URL ? `<a href="${r.Drive_URL}" target="_blank" class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">View</a>` : ''}
-            ${!r.Verified ? `<button class="btn btn-primary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;" onclick="verifyReceipt('${r.Receipt_ID}')">Verify</button>` : ''}
+            ${r.Drive_URL ? `<a href="${esc(r.Drive_URL)}" target="_blank" class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">View</a>` : ''}
+            ${!r.Verified ? `<button class="btn btn-primary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;" onclick="verifyReceipt('${esc(r.Receipt_ID)}')">Verify</button>` : ''}
           </td>
         </tr>
       `).join('');
@@ -2289,20 +2292,20 @@
       tbody.innerHTML = tasks.slice(0, 50).map(t => `
         <tr>
           <td>
-            <span class="priority-label ${(t.Priority || 'MEDIUM').toLowerCase()}">${t.Priority || 'MEDIUM'}</span>
+            <span class="priority-label ${(t.Priority || 'MEDIUM').toLowerCase()}">${esc(t.Priority || 'MEDIUM')}</span>
           </td>
-          <td style="max-width: 250px;">${t.Task_Title || t.Description || '-'}</td>
-          <td>${t.Category || '-'}</td>
-          <td style="font-size: 0.8rem; color: var(--text-muted);">${t.Source_Email || t.From || '-'}</td>
+          <td style="max-width: 250px;">${esc(t.Task_Title || t.Description || '-')}</td>
+          <td>${esc(t.Category || '-')}</td>
+          <td style="font-size: 0.8rem; color: var(--text-muted);">${esc(t.Source_Email || t.From || '-')}</td>
           <td>${t.Due_Date ? formatDate(t.Due_Date) : '-'}</td>
           <td>
             <span class="badge ${t.Status === 'COMPLETED' ? 'badge-success' : t.Status === 'IN_PROGRESS' ? 'badge-warning' : 'badge-info'}">
-              ${t.Status || 'PENDING'}
+              ${esc(t.Status || 'PENDING')}
             </span>
           </td>
           <td>
             ${t.Status !== 'COMPLETED' ? `
-              <button class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.7rem;" onclick="updateTaskStatus('${t.Task_ID}', 'COMPLETED')">
+              <button class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.7rem;" onclick="updateTaskStatus('${esc(t.Task_ID)}', 'COMPLETED')">
                 Complete
               </button>
             ` : ''}
@@ -2445,8 +2448,8 @@
             <div style="display:flex;align-items:center;gap:0.75rem;">
               <i class="fas fa-${a.accountType === 'Bank' ? 'university' : 'credit-card'}" style="color:${a.accountType === 'Bank' ? 'var(--secondary)' : 'var(--warning)'}"></i>
               <div>
-                <div style="font-weight:600;">${a.name}</div>
-                <div style="font-size:0.8rem;color:var(--text-muted);">${a.accountSubType || a.accountType}</div>
+                <div style="font-weight:600;">${esc(a.name)}</div>
+                <div style="font-size:0.8rem;color:var(--text-muted);">${esc(a.accountSubType || a.accountType)}</div>
               </div>
             </div>
             <div style="font-weight:700;color:${a.accountType === 'Credit Card' ? 'var(--danger)' : 'var(--text)'};">${qbFormatCurrency(a.balance)}</div>
@@ -2512,7 +2515,7 @@
       el.innerHTML = items.map(item => `
         <div style="display:flex;justify-content:space-between;padding:0.5rem 0;border-bottom:1px solid var(--border);">
           <div>
-            <span style="font-weight:500;">${item[nameField]}</span>
+            <span style="font-weight:500;">${esc(item[nameField])}</span>
             ${item.isOverdue ? '<span style="color:var(--danger);font-size:0.75rem;margin-left:0.5rem;">' + item.daysOverdue + 'd overdue</span>' : ''}
           </div>
           <span style="font-weight:600;">${qbFormatCurrency(item.balance)}</span>

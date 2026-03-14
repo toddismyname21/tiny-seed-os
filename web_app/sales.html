@@ -3860,6 +3860,9 @@
         // TINY SEED SALES DASHBOARD - JAVASCRIPT
         // ========================================
 
+        // XSS protection alias
+        const esc = TinySeedUtils.escapeHtml;
+
         // API Instance - uses unified API config
         const api = new SalesAPI();
 
@@ -4800,18 +4803,18 @@
 
                     tbody.innerHTML = orders.map(order => `
                         <tr>
-                            <td><span class="order-id">${order.id}</span></td>
+                            <td><span class="order-id">${esc(order.id)}</span></td>
                             <td>
                                 <div class="customer-info">
-                                    <div class="customer-avatar">${order.customer.charAt(0)}</div>
+                                    <div class="customer-avatar">${esc(order.customer.charAt(0))}</div>
                                     <div>
-                                        <div class="customer-name">${order.customer}</div>
-                                        <div class="customer-email">${order.email}</div>
+                                        <div class="customer-name">${esc(order.customer)}</div>
+                                        <div class="customer-email">${esc(order.email)}</div>
                                     </div>
                                 </div>
                             </td>
                             <td><strong>$${order.total.toFixed(2)}</strong></td>
-                            <td><span class="status-badge ${order.status}">${capitalizeFirst(order.status)}</span></td>
+                            <td><span class="status-badge ${esc(order.status)}">${capitalizeFirst(esc(order.status))}</span></td>
                         </tr>
                     `).join('');
                 } else {
@@ -4856,23 +4859,23 @@
             const tbody = document.getElementById('ordersTableBody');
             tbody.innerHTML = orders.map(order => `
                 <tr>
-                    <td><span class="order-id">${order.id}</span></td>
+                    <td><span class="order-id">${esc(order.id)}</span></td>
                     <td>
                         <div>
-                            <div style="font-weight: 500;">${order.customer}</div>
-                            <div style="font-size: var(--ts-text-xs, 0.75rem); color: var(--text-secondary);">${order.type}</div>
+                            <div style="font-weight: 500;">${esc(order.customer)}</div>
+                            <div style="font-size: var(--ts-text-xs, 0.75rem); color: var(--text-secondary);">${esc(order.type)}</div>
                         </div>
                     </td>
-                    <td>${order.items} items</td>
+                    <td>${esc(String(order.items))} items</td>
                     <td><strong>$${order.total.toFixed(2)}</strong></td>
                     <td>${formatDate(order.date)}</td>
-                    <td><span class="status-badge ${order.status}">${capitalizeFirst(order.status)}</span></td>
+                    <td><span class="status-badge ${esc(order.status)}">${capitalizeFirst(esc(order.status))}</span></td>
                     <td>
                         <div class="action-btns">
-                            <button class="action-btn" onclick="viewOrder('${order.id}')" title="View">👁</button>
-                            <button class="action-btn edit" onclick="editOrder('${order.id}')" title="Edit">✏️</button>
-                            <button class="action-btn" onclick="updateOrderStatus('${order.id}')" title="Update Status">📦</button>
-                            <button class="action-btn delete" onclick="confirmDeleteOrder('${order.id}')" title="Delete" style="color: var(--danger);">🗑️</button>
+                            <button class="action-btn" onclick="viewOrder('${esc(order.id)}')" title="View">👁</button>
+                            <button class="action-btn edit" onclick="editOrder('${esc(order.id)}')" title="Edit">✏️</button>
+                            <button class="action-btn" onclick="updateOrderStatus('${esc(order.id)}')" title="Update Status">📦</button>
+                            <button class="action-btn delete" onclick="confirmDeleteOrder('${esc(order.id)}')" title="Delete" style="color: var(--danger);">🗑️</button>
                         </div>
                     </td>
                 </tr>
@@ -4962,10 +4965,10 @@
                 return `
                 <div class="customer-card">
                     <div class="customer-card-header">
-                        <div class="customer-card-avatar">${initial}</div>
+                        <div class="customer-card-avatar">${esc(initial)}</div>
                         <div class="customer-card-info">
-                            <h3>${name}${csaBadge}</h3>
-                            <span class="customer-type-badge ${(customer.type || 'direct').toLowerCase()}">${customer.type || 'Direct'}</span>
+                            <h3>${esc(name)}${csaBadge}</h3>
+                            <span class="customer-type-badge ${esc((customer.type || 'direct').toLowerCase())}">${esc(customer.type || 'Direct')}</span>
                         </div>
                     </div>
                     <div class="customer-card-stats">
@@ -4990,13 +4993,13 @@
                         </div>
                     </div>
                     <div class="customer-card-contact">
-                        <p>📧 ${customer.email || 'No email'}${customer.secondaryEmail ? ` <span style="color: var(--text-muted);">/ ${customer.secondaryEmail}</span>` : ''}</p>
-                        <p>📱 ${customer.phone || 'No phone'}${customer.secondaryPhone ? ` <span style="color: var(--text-muted);">/ ${customer.secondaryPhone}</span>` : ''}</p>
+                        <p>📧 ${esc(customer.email || 'No email')}${customer.secondaryEmail ? ` <span style="color: var(--text-muted);">/ ${esc(customer.secondaryEmail)}</span>` : ''}</p>
+                        <p>📱 ${esc(customer.phone || 'No phone')}${customer.secondaryPhone ? ` <span style="color: var(--text-muted);">/ ${esc(customer.secondaryPhone)}</span>` : ''}</p>
                     </div>
                     <div class="customer-card-actions">
-                        <button class="btn btn-secondary" onclick="viewCustomer('${customer.id}')">View</button>
-                        <button class="btn btn-primary" onclick="newOrderForCustomer('${customer.id}')">New Order</button>
-                        <button class="btn btn-danger" onclick="confirmDeleteCustomer('${customer.id}', '${(customer.name || '').replace(/'/g, "\\'")}')" title="Delete" style="padding: var(--ts-space-2, 8px); background: var(--danger);">🗑️</button>
+                        <button class="btn btn-secondary" onclick="viewCustomer('${esc(customer.id)}')">View</button>
+                        <button class="btn btn-primary" onclick="newOrderForCustomer('${esc(customer.id)}')">New Order</button>
+                        <button class="btn btn-danger" onclick="confirmDeleteCustomer('${esc(customer.id)}', '${esc((customer.name || '').replace(/'/g, "\\'"))}')" title="Delete" style="padding: var(--ts-space-2, 8px); background: var(--danger);">🗑️</button>
                     </div>
                 </div>
             `}).join('');
@@ -5258,7 +5261,7 @@
                 if ((member.frequency || '').toLowerCase() === 'biweekly' || (member.frequency || '').toLowerCase() === 'bi-weekly') {
                     if (member.biweeklyWeek === 'A' || member.biweeklyWeek === 'B') {
                         const weekColor = member.biweeklyWeek === 'A' ? '#1976d2' : '#c2185b';
-                        frequencyDisplay = `Biweekly <span style="background: ${weekColor}; color: white; padding: 2px 6px; border-radius: var(--ts-radius-sm, 4px); font-size: var(--ts-text-2xs, 0.625rem); margin-left: 4px;">Week ${member.biweeklyWeek}</span>`;
+                        frequencyDisplay = `Biweekly <span style="background: ${weekColor}; color: white; padding: 2px 6px; border-radius: var(--ts-radius-sm, 4px); font-size: var(--ts-text-2xs, 0.625rem); margin-left: 4px;">Week ${esc(member.biweeklyWeek)}</span>`;
                     } else {
                         frequencyDisplay = `Biweekly <span style="background: #757575; color: white; padding: 2px 6px; border-radius: var(--ts-radius-sm, 4px); font-size: var(--ts-text-2xs, 0.625rem); margin-left: 4px;">Unassigned</span>`;
                     }
@@ -5272,29 +5275,29 @@
                     : '';
 
                 return `
-                <tr data-member-id="${member.id}" data-email="${member.email || ''}" data-phone="${member.phone || ''}" data-customer-id="${member.customerId || ''}">
+                <tr data-member-id="${esc(member.id)}" data-email="${esc(member.email || '')}" data-phone="${esc(member.phone || '')}" data-customer-id="${esc(member.customerId || '')}">
                     <td><input type="checkbox" class="csa-member-checkbox" onchange="updateCSASelectedCount()"></td>
                     <td>
                         <div class="customer-info">
-                            <div class="customer-avatar">${initial}</div>
+                            <div class="customer-avatar">${esc(initial)}</div>
                             <div>
-                                <div class="customer-name">${name}${linkedBadge}</div>
-                                <div class="customer-email">${member.email || ''}</div>
+                                <div class="customer-name">${esc(name)}${linkedBadge}</div>
+                                <div class="customer-email">${esc(member.email || '')}</div>
                             </div>
                         </div>
                     </td>
-                    <td><strong>${shareDisplay}</strong></td>
+                    <td><strong>${esc(shareDisplay)}</strong></td>
                     <td>${frequencyDisplay}</td>
                     <td>
                         <div style="font-size: var(--ts-text-xs, 0.8rem);">
-                            <div>${member.day || 'TBD'}</div>
-                            <div style="color: var(--text-secondary); font-size: var(--ts-text-xs, 0.75rem);">${member.location || ''}</div>
+                            <div>${esc(member.day || 'TBD')}</div>
+                            <div style="color: var(--text-secondary); font-size: var(--ts-text-xs, 0.75rem);">${esc(member.location || '')}</div>
                         </div>
                     </td>
                     <td>
                         <div class="member-status">
-                            <span class="status-dot ${status.toLowerCase()}"></span>
-                            ${status}
+                            <span class="status-dot ${esc(status.toLowerCase())}"></span>
+                            ${esc(status)}
                         </div>
                     </td>
                     <td>${confirmedBadge}</td>
@@ -5303,10 +5306,10 @@
                     </td>
                     <td>
                         <div class="action-btns">
-                            ${!isConfirmed ? '<button class="action-btn" onclick="sendConfirmationReminder(\'' + member.id + '\', \'' + (member.email || '') + '\')" title="Send Reminder" style="color: var(--warning);">📧</button>' : ''}
-                            <button class="action-btn" onclick="viewMember('${member.id}')" title="View Details">👁</button>
-                            <button class="action-btn" onclick="setVacationHold('${member.id}')" title="Vacation Hold">🏖️</button>
-                            <button class="action-btn edit" onclick="editMember('${member.id}')" title="Edit">✏️</button>
+                            ${!isConfirmed ? '<button class="action-btn" onclick="sendConfirmationReminder(\'' + esc(member.id) + '\', \'' + esc(member.email || '') + '\')" title="Send Reminder" style="color: var(--warning);">📧</button>' : ''}
+                            <button class="action-btn" onclick="viewMember('${esc(member.id)}')" title="View Details">👁</button>
+                            <button class="action-btn" onclick="setVacationHold('${esc(member.id)}')" title="Vacation Hold">🏖️</button>
+                            <button class="action-btn edit" onclick="editMember('${esc(member.id)}')" title="Edit">✏️</button>
                         </div>
                     </td>
                 </tr>
@@ -5542,17 +5545,17 @@
             const tbody = document.getElementById('wholesaleTableBody');
             tbody.innerHTML = customers.map(customer => `
                 <tr>
-                    <td><strong>${customer.name}</strong></td>
-                    <td>${customer.email}</td>
-                    <td><span class="customer-type-badge ${customer.type.toLowerCase()}">${customer.type}</span></td>
+                    <td><strong>${esc(customer.name)}</strong></td>
+                    <td>${esc(customer.email)}</td>
+                    <td><span class="customer-type-badge ${esc(customer.type.toLowerCase())}">${esc(customer.type)}</span></td>
                     <td>Tuesday</td>
                     <td>$${Math.round(customer.revenue / customer.orders)}</td>
                     <td>${customer.orders}</td>
                     <td>
                         <div class="action-btns">
-                            <button class="action-btn" onclick="viewCustomer('${customer.id}')" title="View">👁</button>
-                            <button class="action-btn" onclick="sendPriceList('${customer.id}')" title="Send Price List">📧</button>
-                            <button class="action-btn edit" onclick="newOrderForCustomer('${customer.id}')" title="New Order">📦</button>
+                            <button class="action-btn" onclick="viewCustomer('${esc(customer.id)}')" title="View">👁</button>
+                            <button class="action-btn" onclick="sendPriceList('${esc(customer.id)}')" title="Send Price List">📧</button>
+                            <button class="action-btn edit" onclick="newOrderForCustomer('${esc(customer.id)}')" title="New Order">📦</button>
                         </div>
                     </td>
                 </tr>
@@ -5607,8 +5610,8 @@
                             <div class="pick-item">
                                 <div class="pick-checkbox" onclick="togglePicked(this)"></div>
                                 <div class="pick-item-info">
-                                    <div class="pick-item-name">${order.customer}</div>
-                                    <div class="pick-item-location">${order.items}</div>
+                                    <div class="pick-item-name">${esc(order.customer)}</div>
+                                    <div class="pick-item-location">${esc(order.items)}</div>
                                 </div>
                                 <div class="pick-item-qty">📦</div>
                             </div>
@@ -5733,7 +5736,7 @@
                             <li class="top-item">
                                 <span class="top-item-rank">${i + 1}</span>
                                 <div class="top-item-info">
-                                    <div class="top-item-name">${customer.name || 'Unknown'}</div>
+                                    <div class="top-item-name">${esc(customer.name || 'Unknown')}</div>
                                     <div class="top-item-detail">${customer.orders || 0} orders</div>
                                 </div>
                                 <div class="top-item-value">$${(customer.revenue || 0).toLocaleString()}</div>
@@ -6475,8 +6478,8 @@
                                 <tbody>
                                     ${order.items.map(item => `
                                         <tr style="border-bottom: 1px solid var(--border-color);">
-                                            <td style="padding: 12px 8px;">${item.Product_Name || item.productName || 'Unknown'}</td>
-                                            <td style="padding: 12px 8px; text-align: center;">${item.Quantity || item.quantity || 0} ${item.Unit || item.unit || ''}</td>
+                                            <td style="padding: 12px 8px;">${esc(item.Product_Name || item.productName || 'Unknown')}</td>
+                                            <td style="padding: 12px 8px; text-align: center;">${esc(String(item.Quantity || item.quantity || 0))} ${esc(item.Unit || item.unit || '')}</td>
                                             <td style="padding: 12px 8px; text-align: right;">$${(parseFloat(item.Unit_Price || item.unitPrice) || 0).toFixed(2)}</td>
                                             <td style="padding: 12px 8px; text-align: right; font-weight: 600;">$${(parseFloat(item.Line_Total || item.lineTotal) || 0).toFixed(2)}</td>
                                         </tr>
@@ -6491,22 +6494,22 @@
                     content.innerHTML = `
                         <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--ts-space-6, 24px); padding-bottom: 16px; border-bottom: 1px solid var(--border-color);">
                             <div>
-                                <h2 style="margin: 0; font-size: var(--ts-text-xl, 1.25rem); color: var(--primary);">${order.Order_ID || id}</h2>
+                                <h2 style="margin: 0; font-size: var(--ts-text-xl, 1.25rem); color: var(--primary);">${esc(order.Order_ID || id)}</h2>
                                 <p style="margin: 4px 0 0; color: var(--text-secondary);">Created: ${formatDate(order.Created_At || order.Order_Date)}</p>
                             </div>
-                            <span class="status-badge ${(order.Status || 'pending').toLowerCase()}">${order.Status || 'Pending'}</span>
+                            <span class="status-badge ${esc((order.Status || 'pending').toLowerCase())}">${esc(order.Status || 'Pending')}</span>
                         </div>
 
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--ts-space-6, 24px); margin-bottom: var(--ts-space-6, 24px);">
                             <div style="background: var(--bg-elevated); padding: var(--ts-space-4, 16px); border-radius: var(--ts-radius-sm, 8px);">
                                 <h4 style="margin: 0 0 12px; font-size: var(--ts-text-sm, 0.875rem); color: var(--text-secondary);">Customer</h4>
-                                <p style="margin: 0; font-weight: 600;">${order.Customer_Name || 'Unknown'}</p>
-                                <p style="margin: 4px 0 0; font-size: var(--ts-text-xs, 0.8rem); color: var(--text-secondary);">${order.Customer_Type || 'Direct'}</p>
+                                <p style="margin: 0; font-weight: 600;">${esc(order.Customer_Name || 'Unknown')}</p>
+                                <p style="margin: 4px 0 0; font-size: var(--ts-text-xs, 0.8rem); color: var(--text-secondary);">${esc(order.Customer_Type || 'Direct')}</p>
                             </div>
                             <div style="background: var(--bg-elevated); padding: var(--ts-space-4, 16px); border-radius: var(--ts-radius-sm, 8px);">
                                 <h4 style="margin: 0 0 12px; font-size: var(--ts-text-sm, 0.875rem); color: var(--text-secondary);">Delivery</h4>
                                 <p style="margin: 0; font-weight: 600;">${formatDate(order.Delivery_Date) || 'Not scheduled'}</p>
-                                <p style="margin: 4px 0 0; font-size: var(--ts-text-xs, 0.8rem); color: var(--text-secondary);">${order.Delivery_Window || ''} ${order.Delivery_Address || ''}</p>
+                                <p style="margin: 4px 0 0; font-size: var(--ts-text-xs, 0.8rem); color: var(--text-secondary);">${esc(order.Delivery_Window || '')} ${esc(order.Delivery_Address || '')}</p>
                             </div>
                         </div>
 
@@ -6538,7 +6541,7 @@
 
                         ${order.Notes ? `
                             <div style="margin-top: var(--ts-space-4, 16px); padding: var(--ts-space-3, 12px); background: #fef3c7; border-radius: var(--ts-radius-sm, 8px); color: #92400e;">
-                                <strong>Notes:</strong> ${order.Notes}
+                                <strong>Notes:</strong> ${esc(order.Notes)}
                             </div>
                         ` : ''}
                     `;
@@ -6679,17 +6682,17 @@
             content.innerHTML = `
                 <div style="display: flex; align-items: center; gap: var(--ts-space-4, 16px); margin-bottom: var(--ts-space-6, 24px); padding-bottom: 16px; border-bottom: 1px solid var(--border);">
                     <div style="width: 64px; height: 64px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: var(--ts-text-2xl, 1.5rem); font-weight: 600;">
-                        ${(customer.name || 'C').charAt(0).toUpperCase()}
+                        ${esc((customer.name || 'C').charAt(0).toUpperCase())}
                     </div>
                     <div>
-                        <h2 style="margin: 0; font-size: var(--ts-text-xl, 1.25rem);">${customer.name || 'Unknown'}</h2>
-                        <span class="customer-type-badge ${(customer.type || 'direct').toLowerCase()}">${customer.type || 'Direct'}</span>
+                        <h2 style="margin: 0; font-size: var(--ts-text-xl, 1.25rem);">${esc(customer.name || 'Unknown')}</h2>
+                        <span class="customer-type-badge ${esc((customer.type || 'direct').toLowerCase())}">${esc(customer.type || 'Direct')}</span>
                     </div>
                 </div>
 
                 <div class="form-group">
                     <label class="form-label">Name</label>
-                    <input type="text" class="form-input" id="editCustName" value="${customer.name || ''}">
+                    <input type="text" class="form-input" id="editCustName" value="${esc(customer.name || '')}">
                 </div>
 
                 <div style="background: #f0fdf4; border-radius: var(--ts-radius-sm, 8px); padding: var(--ts-space-4, 16px); margin-bottom: var(--ts-space-4, 16px);">
@@ -6698,11 +6701,11 @@
                     </div>
                     <div class="form-group" style="margin-bottom: var(--ts-space-3, 12px);">
                         <label class="form-label" style="font-size: var(--ts-text-xs, 0.75rem);">Primary Email</label>
-                        <input type="email" class="form-input" id="editCustEmail" value="${customer.email || ''}">
+                        <input type="email" class="form-input" id="editCustEmail" value="${esc(customer.email || '')}">
                     </div>
                     <div class="form-group" style="margin-bottom: 0;">
                         <label class="form-label" style="font-size: var(--ts-text-xs, 0.75rem);">Secondary Email</label>
-                        <input type="email" class="form-input" id="editCustSecondaryEmail" value="${customer.secondaryEmail || ''}" placeholder="Partner or backup email">
+                        <input type="email" class="form-input" id="editCustSecondaryEmail" value="${esc(customer.secondaryEmail || '')}" placeholder="Partner or backup email">
                     </div>
                 </div>
 
@@ -6712,21 +6715,21 @@
                     </div>
                     <div class="form-group" style="margin-bottom: var(--ts-space-3, 12px);">
                         <label class="form-label" style="font-size: var(--ts-text-xs, 0.75rem);">Primary Phone</label>
-                        <input type="tel" class="form-input" id="editCustPhone" value="${customer.phone || ''}">
+                        <input type="tel" class="form-input" id="editCustPhone" value="${esc(customer.phone || '')}">
                     </div>
                     <div class="form-group" style="margin-bottom: 0;">
                         <label class="form-label" style="font-size: var(--ts-text-xs, 0.75rem);">Secondary Phone</label>
-                        <input type="tel" class="form-input" id="editCustSecondaryPhone" value="${customer.secondaryPhone || ''}" placeholder="Partner or backup phone">
+                        <input type="tel" class="form-input" id="editCustSecondaryPhone" value="${esc(customer.secondaryPhone || '')}" placeholder="Partner or backup phone">
                     </div>
                 </div>
 
                 <div class="form-group">
                     <label class="form-label">Address</label>
-                    <input type="text" class="form-input" id="editCustAddress" value="${customer.address || ''}">
+                    <input type="text" class="form-input" id="editCustAddress" value="${esc(customer.address || '')}">
                 </div>
                 <div class="form-group">
                     <label class="form-label">City</label>
-                    <input type="text" class="form-input" id="editCustCity" value="${customer.city || ''}">
+                    <input type="text" class="form-input" id="editCustCity" value="${esc(customer.city || '')}">
                 </div>
 
                 <div style="background: #faf5ff; border-radius: var(--ts-radius-sm, 8px); padding: var(--ts-space-4, 16px); margin-top: var(--ts-space-4, 16px);">
@@ -7000,18 +7003,18 @@
             content.innerHTML = `
                 <div style="display: flex; align-items: center; gap: var(--ts-space-4, 16px); margin-bottom: var(--ts-space-6, 24px); padding-bottom: 16px; border-bottom: 1px solid var(--border-color);">
                     <div style="width: 64px; height: 64px; background: linear-gradient(135deg, #8b5cf6, #6d28d9); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: var(--ts-text-2xl, 1.5rem); font-weight: 600;">
-                        ${(member.name || 'M').charAt(0).toUpperCase()}
+                        ${esc((member.name || 'M').charAt(0).toUpperCase())}
                     </div>
                     <div>
-                        <h2 style="margin: 0; font-size: var(--ts-text-xl, 1.25rem);">${member.name || 'Unknown'}</h2>
-                        <span class="status-badge ${member.status || 'active'}" style="margin-top: 4px;">${capitalizeFirst(member.status || 'active')}</span>
+                        <h2 style="margin: 0; font-size: var(--ts-text-xl, 1.25rem);">${esc(member.name || 'Unknown')}</h2>
+                        <span class="status-badge ${esc(member.status || 'active')}" style="margin-top: 4px;">${capitalizeFirst(esc(member.status || 'active'))}</span>
                     </div>
                 </div>
 
                 <div class="form-grid">
                     <div class="form-group">
                         <label class="form-label">Name</label>
-                        <input type="text" class="form-input" id="editMemberName" value="${member.name || ''}">
+                        <input type="text" class="form-input" id="editMemberName" value="${esc(member.name || '')}">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Share Type</label>
@@ -7023,23 +7026,23 @@
                     </div>
                     <div class="form-group">
                         <label class="form-label">Email</label>
-                        <input type="email" class="form-input" id="editMemberEmail" value="${member.email || ''}">
+                        <input type="email" class="form-input" id="editMemberEmail" value="${esc(member.email || '')}">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Phone</label>
-                        <input type="tel" class="form-input" id="editMemberPhone" value="${member.phone || ''}">
+                        <input type="tel" class="form-input" id="editMemberPhone" value="${esc(member.phone || '')}">
                     </div>
                     <div class="form-group full-width">
                         <label class="form-label">Pickup Location</label>
-                        <input type="text" class="form-input" id="editMemberPickup" value="${member.pickupLocation || ''}">
+                        <input type="text" class="form-input" id="editMemberPickup" value="${esc(member.pickupLocation || '')}">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Start Date</label>
-                        <input type="date" class="form-input" id="editMemberStartDate" value="${member.startDate || ''}">
+                        <input type="date" class="form-input" id="editMemberStartDate" value="${esc(member.startDate || '')}">
                     </div>
                     <div class="form-group">
                         <label class="form-label">End Date</label>
-                        <input type="date" class="form-input" id="editMemberEndDate" value="${member.endDate || ''}">
+                        <input type="date" class="form-input" id="editMemberEndDate" value="${esc(member.endDate || '')}">
                     </div>
                 </div>
 
@@ -7324,8 +7327,8 @@
                 const name = item.querySelector('.pick-item-name')?.textContent || '';
                 const qty = item.querySelector('.pick-item-qty')?.textContent || '';
                 return `<div style="border: 2px solid black; padding: var(--ts-space-5, 20px); margin: 10px; page-break-inside: avoid;">
-                    <h2>${name}</h2>
-                    <h1 style="font-size: var(--ts-text-5xl, 3rem);">${qty}</h1>
+                    <h2>${esc(name)}</h2>
+                    <h1 style="font-size: var(--ts-text-5xl, 3rem);">${esc(qty)}</h1>
                 </div>`;
             }).join('');
 
