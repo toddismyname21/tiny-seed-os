@@ -1224,13 +1224,12 @@
                     dashboardData = result.data;
                     renderAllSections();
                 } else {
-                    // Fallback to demo data if API fails
-                    console.warn('API returned error, using demo data:', result.error);
-                    loadDemoData();
+                    console.error('API returned error:', result.error);
+                    showErrorState(result.error || 'Unable to load predictions');
                 }
             } catch (error) {
                 console.error('Error loading data:', error);
-                loadDemoData();
+                showErrorState('Unable to connect. Please check your connection and try again.');
             }
 
             refreshBtn.classList.remove('loading');
@@ -1243,156 +1242,17 @@
         }
 
         // ========================================
-        // DEMO DATA (Fallback)
+        // ERROR STATE
         // ========================================
-        function loadDemoData() {
-            const today = new Date();
-            dashboardData = {
-                weather: {
-                    current: {
-                        temp: 45,
-                        temp_max: 52,
-                        temp_min: 38,
-                        humidity: 65,
-                        precip_prob: 20,
-                        conditions: 'Partly Cloudy'
-                    },
-                    gdd_today: 7.5,
-                    forecast: [
-                        { day: 'Tue', high: 54, low: 40, icon: '☀️', precip: 10 },
-                        { day: 'Wed', high: 58, low: 42, icon: '⛅', precip: 30 },
-                        { day: 'Thu', high: 52, low: 38, icon: '🌧️', precip: 70 },
-                        { day: 'Fri', high: 48, low: 35, icon: '⛅', precip: 20 },
-                        { day: 'Sat', high: 55, low: 40, icon: '☀️', precip: 5 }
-                    ]
-                },
-                morning_brief: {
-                    date: today.toISOString(),
-                    labor_hours_estimated: 8.5,
-                    must_do_today: [
-                        {
-                            type: 'HARVEST',
-                            crop: 'Lettuce - Salanova Mix',
-                            location: 'Tunnel 2, Bed 3-4',
-                            priority: 95,
-                            reason: 'GDD 92% complete, optimal harvest window today',
-                            est_time: 45
-                        },
-                        {
-                            type: 'SCOUT_SPRAY',
-                            crop: 'Tomatoes',
-                            location: 'Field A, Rows 1-8',
-                            priority: 88,
-                            reason: 'Late Blight DSV 15 - Moderate risk after recent rain',
-                            est_time: 30
-                        }
-                    ],
-                    should_do_today: [
-                        {
-                            type: 'TRANSPLANT',
-                            crop: 'Pepper - Carmen',
-                            location: 'Field B, Rows 1-4',
-                            priority: 72,
-                            reason: 'Weather window open, soil temp 58°F',
-                            est_time: 120
-                        },
-                        {
-                            type: 'HARVEST',
-                            crop: 'Snap Beans',
-                            location: 'Field C, Rows 5-8',
-                            priority: 65,
-                            reason: 'GDD 85% complete, good for 2-3 more days',
-                            est_time: 60
-                        }
-                    ],
-                    can_wait: [
-                        {
-                            type: 'CULTIVATION',
-                            crop: 'Carrots',
-                            location: 'Field D',
-                            priority: 45,
-                            reason: 'Weeds emerging, cultivate within 5 days',
-                            est_time: 90
-                        }
-                    ]
-                },
-                disease_risk: {
-                    late_blight: {
-                        dsv: 12,
-                        risk_level: 'MODERATE',
-                        recommendation: 'Scout susceptible crops today. Spray if symptoms found.',
-                        conditions: '6 hrs high humidity, temp 58-72°F'
-                    },
-                    early_blight: {
-                        score: 35,
-                        risk_level: 'LOW',
-                        recommendation: 'Monitor lower leaves on tomatoes.',
-                        conditions: 'Conditions not yet favorable'
-                    },
-                    downy_mildew: {
-                        score: 22,
-                        risk_level: 'LOW',
-                        recommendation: 'No action needed.',
-                        conditions: 'Humidity below threshold'
-                    }
-                },
-                harvest_predictions: [
-                    {
-                        crop: 'Tomato - Cherokee Purple',
-                        batch_id: 'TOM-2024-003',
-                        plant_date: '2024-05-15',
-                        gdd_accumulated: 1650,
-                        gdd_target: 1927,
-                        percent_complete: 86,
-                        predicted_harvest: '2024-08-12',
-                        confidence: 'HIGH',
-                        days_remaining: 8
-                    },
-                    {
-                        crop: 'Pepper - Carmen',
-                        batch_id: 'PEP-2024-002',
-                        plant_date: '2024-05-20',
-                        gdd_accumulated: 980,
-                        gdd_target: 1329,
-                        percent_complete: 74,
-                        predicted_harvest: '2024-08-18',
-                        confidence: 'MEDIUM',
-                        days_remaining: 14
-                    },
-                    {
-                        crop: 'Cucumber - Marketmore',
-                        batch_id: 'CUC-2024-004',
-                        plant_date: '2024-06-01',
-                        gdd_accumulated: 720,
-                        gdd_target: 805,
-                        percent_complete: 89,
-                        predicted_harvest: '2024-08-06',
-                        confidence: 'HIGH',
-                        days_remaining: 2
-                    }
-                ],
-                gdd_summary: {
-                    season_total: 2450,
-                    today: 7.5,
-                    last_7_days: 85,
-                    last_30_days: 380,
-                    season_start: '2024-04-01'
-                },
-                alerts: [
-                    {
-                        type: 'warning',
-                        title: 'Rain Expected Thursday',
-                        message: '70% chance of rain. Plan spray applications for Wed or delay until Fri.'
-                    },
-                    {
-                        type: 'info',
-                        title: 'Cucumber Harvest Window',
-                        message: 'Marketmore batch reaching optimal maturity. Harvest within 3 days for best quality.'
-                    }
-                ]
-            };
-
-            renderAllSections();
+        function showErrorState(message) {
+            const container = document.querySelector('.dashboard-grid');
+            if (container) {
+                container.innerHTML = '<div class="error-state" style="grid-column: 1 / -1; text-align: center; padding: 3rem;">' +
+                    '<div class="error-state-icon">&#x26A0;</div>' +
+                    '<p>' + message + '</p>' +
+                    '<button class="retry-btn" onclick="loadDashboard()">Retry</button>' +
+                    '</div>';
+            }
         }
 
         // ========================================

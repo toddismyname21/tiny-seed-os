@@ -1798,8 +1798,17 @@
       url.searchParams.append('action', action);
       Object.keys(params).forEach(k => url.searchParams.append(k, params[k]));
 
-      const response = await fetch(url);
-      return await response.json();
+      try {
+        const response = await fetch(url);
+        if (!response.ok) {
+          console.error(`API error ${response.status} for ${action}`);
+          return { success: false, error: `Server error (${response.status})` };
+        }
+        return await response.json();
+      } catch (error) {
+        console.error(`API call failed for ${action}:`, error);
+        return { success: false, error: 'Unable to connect. Please try again.' };
+      }
     }
 
     // Modal functions

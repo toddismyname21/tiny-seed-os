@@ -3154,7 +3154,9 @@ async function confirmSownWithLot() {
         clearUndoToast();
         try {
             const url = ghApiUrl('updateTaskCompletion', 'batchId=' + encodeURIComponent(batchId) + '&completed=true&actualDate=' + encodeURIComponent(actualDate) + (seedLotId ? '&seedLotId=' + encodeURIComponent(seedLotId) : '') + (seedsUsed ? '&seedsUsed=' + encodeURIComponent(seedsUsed) : ''));
-            await fetch(url);
+            const resp = await fetch(url);
+            const result = await resp.json();
+            if (!result.success) throw new Error(result.error || 'Server rejected completion');
 
             // Offer to print tray labels (non-blocking toast prompt)
             if (task && task.trays) {
@@ -3201,7 +3203,9 @@ async function confirmSownWithoutLot() {
     _undoState.serverTimer = setTimeout(async function() {
         clearUndoToast();
         try {
-            await fetch(ghApiUrl('updateTaskCompletion', 'batchId=' + encodeURIComponent(batchId) + '&completed=true&actualDate=' + encodeURIComponent(actualDate)));
+            const resp2 = await fetch(ghApiUrl('updateTaskCompletion', 'batchId=' + encodeURIComponent(batchId) + '&completed=true&actualDate=' + encodeURIComponent(actualDate)));
+            const result2 = await resp2.json();
+            if (!result2.success) throw new Error(result2.error || 'Server rejected completion');
             invalidateCache('today'); loadTodayTab(true);
         } catch (err) {
             console.error(err);
