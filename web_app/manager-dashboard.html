@@ -2716,7 +2716,7 @@
                 // API call
                 const response = await fetch(`${API_URL}?action=bulkAssignTasks`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({ taskIds, employeeId, employeeName })
                 });
 
@@ -2748,7 +2748,7 @@
                 // API call
                 await fetch(`${API_URL}?action=bulkCompleteTasks`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({ taskIds })
                 });
 
@@ -2882,7 +2882,7 @@
 
                 const response = await fetch(`${API_URL}?action=${action}`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify(taskData)
                 });
 

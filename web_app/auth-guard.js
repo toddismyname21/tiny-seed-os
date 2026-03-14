@@ -111,9 +111,6 @@
             'api_diagnostic.html'
         ],
 
-        // CI/Test mode flag - checked at runtime by isTestMode()
-        TEST_MODE_KEY: 'test_mode',
-
         // Pages by minimum role required
         PAGE_PERMISSIONS: {
             // Admin only (sensitive)
@@ -362,18 +359,14 @@
         },
 
         /**
-         * Check if running in test/CI mode (runtime check)
-         * Allows automated tests to bypass auth
+         * Check if running in CI mode (localhost only)
+         * Only allows bypass on localhost for automated testing
          */
         isTestMode() {
             try {
-                // Check URL params
                 const urlParams = new URLSearchParams(window.location.search);
-                if (urlParams.get('test_mode') === 'true') return true;
+                // CI mode ONLY on localhost — never on production
                 if (urlParams.get('ci') === 'true' && window.location.hostname === 'localhost') return true;
-
-                // Check localStorage
-                if (localStorage.getItem('test_mode') === 'true') return true;
 
                 return false;
             } catch (e) {
@@ -571,10 +564,9 @@
     const requiredRole = scriptTag?.getAttribute('data-required-role');
     const allowRoles = scriptTag?.getAttribute('data-allow-roles')?.split(',').map(r => r.trim());
 
-    // Early check for test mode - bypass ALL auth if test params present
+    // Early check for CI mode - bypass auth ONLY on localhost for automated tests
     const urlParams = new URLSearchParams(window.location.search);
-    const isTestMode = urlParams.get('test_mode') === 'true' ||
-                       (urlParams.get('ci') === 'true' && window.location.hostname === 'localhost');
+    const isTestMode = urlParams.get('ci') === 'true' && window.location.hostname === 'localhost';
 
     if (isTestMode) {
         console.log('AuthGuard: Test mode detected, skipping all auth checks');

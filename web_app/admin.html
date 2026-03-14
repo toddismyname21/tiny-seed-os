@@ -3714,7 +3714,7 @@
             try {
                 const response = await fetch(API_URL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         action: 'createUser',
                         fullName: fullName,
@@ -4139,6 +4139,8 @@
         // SMART DATA IMPORT
         // ════════════════════════════════════════════════════════════════════════════
 
+        const API_BASE = TINY_SEED_API.MAIN_API;
+
         let importImageData = null;
         let extractedItems = [];
 
@@ -4182,7 +4184,7 @@
             try {
                 const response = await fetch(API_BASE, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         action: 'extractTasksFromImage',
                         imageBase64: importImageData.split(',')[1],
@@ -4274,7 +4276,7 @@
             try {
                 const response = await fetch(API_BASE, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         action: 'importBookTasks',
                         tasks: tasksToImport
@@ -5385,7 +5387,7 @@
             try {
                 const response = await fetch(API_URL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         action: 'markStandingOrderFulfilled',
                         standingOrderId: orderId
@@ -5425,7 +5427,7 @@ Choose one:
             try {
                 const response = await fetch(API_URL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         action: 'markStandingOrderShorted',
                         standingOrderId: orderId,
@@ -5451,7 +5453,7 @@ Choose one:
             try {
                 const response = await fetch(API_URL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         action: 'bulkFulfillStandingOrders'
                     })

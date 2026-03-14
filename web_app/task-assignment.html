@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="tiny-seed-design-system.css">
     <script src="api-config.js"></script>
-    <script src="auth-guard.js" data-required-role="Admin,Manager"></script>
+    <script src="auth-guard.js" data-allow-roles="Admin,Manager"></script>
     <style>
         :root {
             --bg-primary: var(--ts-bg-base, #141211);
@@ -1807,7 +1807,7 @@
 
                     const response = await fetch(API_BASE, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 'Content-Type': 'text/plain' },
                         body: JSON.stringify({
                             action: 'updateUnifiedTask',
                             ...taskData
@@ -1829,7 +1829,7 @@
 
                     const response = await fetch(API_BASE, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 'Content-Type': 'text/plain' },
                         body: JSON.stringify({
                             action: 'createUnifiedTask',
                             ...taskData
@@ -1996,7 +1996,7 @@
                 // Use bulk update endpoint
                 const response = await fetch(API_BASE, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         action: 'bulkUpdateTasks',
                         updates: taskIds.map(id => ({
@@ -2046,7 +2046,7 @@
                 const now = new Date().toISOString();
                 const response = await fetch(API_BASE, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         action: 'bulkUpdateTasks',
                         updates: taskIds.map(id => ({
@@ -2121,7 +2121,7 @@
 
                 const response = await fetch(API_BASE, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         action: 'bulkUpdateTasks',
                         updates: taskIds.map(id => ({

@@ -3882,7 +3882,7 @@
             try {
                 await fetch(`${API_URL}?action=updateCSAMemberPreferences`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         memberId: AppState.membership?.Member_ID,
                         preferences: AppState.preferences,
@@ -4873,7 +4873,7 @@
             try {
                 const response = await fetch(`${API_URL}?action=customizeCSABox`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         memberId: AppState.membership?.Member_ID,
                         weekDate: AppState.currentBox?.weekDate,
@@ -4987,7 +4987,7 @@
             try {
                 const response = await fetch(`${API_URL}?action=optInToFlexSystem`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         memberId: AppState.membership?.Member_ID,
                         email: AppState.customer?.Email || AppState.membership?.Email
@@ -5279,7 +5279,7 @@
             try {
                 const response = await fetch(`${API_URL}?action=saveFlexWeeklyOrder`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         memberId: AppState.membership?.Member_ID,
                         email: AppState.customer?.Email || AppState.membership?.Email,
@@ -5461,7 +5461,7 @@
             try {
                 const response = await fetch(`${API_URL}?action=scheduleVacationHold`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         memberId: AppState.membership?.Member_ID,
                         email: AppState.membership?.Email,
@@ -5501,7 +5501,7 @@
             try {
                 const response = await fetch(`${API_URL}?action=cancelVacationHold`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         memberId: AppState.membership?.Member_ID,
                         weekDate: weekDate
@@ -5641,7 +5641,7 @@
             try {
                 const response = await fetch(`${API_URL}?action=updateCSAMemberPreferences`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         memberId: AppState.membership?.Member_ID,
                         pickupDay: day,
@@ -5692,7 +5692,7 @@
             try {
                 const response = await fetch(`${API_URL}?action=updateCSAMemberPreferences`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         memberId: AppState.membership?.Member_ID,
                         customerId: AppState.customer?.Customer_ID,
@@ -5768,7 +5768,7 @@
             try {
                 await fetch(`${API_URL}?action=updateCSAMemberPreferences`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         memberId: AppState.membership?.Member_ID,
                         preferences: AppState.preferences

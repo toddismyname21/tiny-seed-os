@@ -5485,7 +5485,7 @@
                 showToast('Sending reminder...', 'info');
                 const response = await fetch(`${API_URL}?action=sendCSAConfirmationReminder`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({ memberId, email })
                 });
                 const result = await response.json();
@@ -5520,7 +5520,7 @@
                 try {
                     const response = await fetch(`${API_URL}?action=sendCSAConfirmationReminder`, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 'Content-Type': 'text/plain' },
                         body: JSON.stringify({ memberId: member.id, email: member.email })
                     });
                     const result = await response.json();

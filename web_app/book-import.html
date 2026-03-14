@@ -901,11 +901,10 @@
         }
 
         async function extractFromImage(imageDataUrl) {
-            // Send to API for OCR and parsing
             try {
-                const response = await fetch(API_BASE_URL, {
+                const response = await fetch(TINY_SEED_API.MAIN_API, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         action: 'extractTasksFromImage',
                         imageData: imageDataUrl,
@@ -916,41 +915,9 @@
                 const result = await response.json();
                 return result;
             } catch (err) {
-                // Fallback: simulate extraction for demo
-                return simulateExtraction(selectedContext);
+                console.error('Extract failed:', err);
+                return { success: false, error: 'Unable to extract tasks. Please try again.', tasks: [] };
             }
-        }
-
-        // Simulated extraction (fallback if API not ready)
-        function simulateExtraction(context) {
-            const sampleTasks = {
-                'farming-calendar': [
-                    { title: 'Start tomato seeds indoors', category: 'Greenhouse', timing: '6-8 weeks before last frost', crop: 'Tomatoes' },
-                    { title: 'Direct sow lettuce', category: 'Field', timing: 'As soon as soil can be worked', crop: 'Lettuce' },
-                    { title: 'Transplant peppers', category: 'Field', timing: 'After last frost', crop: 'Peppers' }
-                ],
-                'crop-guide': [
-                    { title: 'Thin seedlings to 12" spacing', category: 'Field', timing: 'When 3" tall', crop: 'Tomatoes' },
-                    { title: 'Side dress with compost', category: 'Field', timing: 'At flowering', crop: 'Tomatoes' }
-                ],
-                'pest-disease': [
-                    { title: 'Scout for aphids', category: 'IPM', timing: 'Weekly', crop: 'All crops' },
-                    { title: 'Apply Bt for cabbage worms', category: 'IPM', timing: 'When larvae spotted', crop: 'Brassicas' }
-                ]
-            };
-
-            const tasks = sampleTasks[context] || sampleTasks['farming-calendar'];
-
-            return {
-                success: true,
-                rawText: 'Sample extracted text from book page...',
-                tasks: tasks.map((t, i) => ({
-                    ...t,
-                    id: Date.now() + i,
-                    selected: true,
-                    source: 'Book page ' + (uploadedImages.length)
-                }))
-            };
         }
 
         function renderTasks() {
@@ -1084,9 +1051,9 @@
             importBtn.disabled = true;
 
             try {
-                const response = await fetch(API_BASE_URL, {
+                const response = await fetch(TINY_SEED_API.MAIN_API, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         action: 'importBookTasks',
                         tasks: selected
@@ -1096,14 +1063,14 @@
                 const result = await response.json();
 
                 if (result.success) {
-                    showToast(`✅ Imported ${selected.length} tasks!`);
+                    showToast(`Imported ${selected.length} tasks!`);
                     clearAll();
                 } else {
-                    showToast('❌ Error: ' + result.error);
+                    showToast('Error: ' + (result.error || 'Import failed'), 'error');
                 }
             } catch (err) {
-                showToast(`✅ Imported ${selected.length} tasks!`);
-                clearAll();
+                console.error('Import failed:', err);
+                showToast('Import failed. Please try again.', 'error');
             } finally {
                 importBtn.innerHTML = originalText;
                 importBtn.disabled = false;

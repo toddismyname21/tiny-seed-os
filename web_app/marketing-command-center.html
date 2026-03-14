@@ -16400,7 +16400,7 @@
                 // Call API to generate AI content
                 const response = await fetch(`${API_URL}?action=generateSmartCaption`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify(context)
                 });
                 const data = await response.json();
@@ -32592,7 +32592,7 @@ Would you like to test posting to Threads?`;
                 // Create task in TinySeed task system using the real createTask API
                 const response = await fetch(API_URL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         action: 'createTask',
                         title: `[Delegated] ${taskTitle}`,
@@ -40607,7 +40607,7 @@ Would you like to test posting to Threads?`;
                     'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=' + apiKey,
                     {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 'Content-Type': 'text/plain' },
                         body: JSON.stringify({
                             contents: [{ parts: [{ text: prompt }] }],
                             generationConfig: {
@@ -40752,7 +40752,7 @@ Would you like to test posting to Threads?`;
                     'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=' + apiKey,
                     {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 'Content-Type': 'text/plain' },
                         body: JSON.stringify({
                             contents: [{ parts: [{ text: prompt }] }],
                             generationConfig: {

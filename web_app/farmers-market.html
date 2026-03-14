@@ -1173,7 +1173,7 @@
         // ========================================
 
         async function apiCall(action, params = {}) {
-            const url = new URL(API_BASE_URL);
+            const url = new URL(TINY_SEED_API.MAIN_API);
             url.searchParams.append('action', action);
             Object.entries(params).forEach(([key, value]) => {
                 url.searchParams.append(key, value);

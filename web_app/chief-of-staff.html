@@ -5853,7 +5853,7 @@ Please help with this email. Be concise and actionable.`;
       try {
         await fetch(API_BASE, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'text/plain' },
           body: JSON.stringify({
             action: 'updateUnifiedTask',
             Task_ID: taskId,

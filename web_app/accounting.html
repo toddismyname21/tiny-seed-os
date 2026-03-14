@@ -1633,7 +1633,7 @@
         } else {
           const response = await fetch(API_URL, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'text/plain' },
             body: JSON.stringify({ action, ...params })
           });
           if (!response.ok) {
@@ -2548,7 +2548,7 @@
       try {
         const response = await fetch(API_URL, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'text/plain' },
           body: JSON.stringify({ action: 'saveQuickBooksCredentials', companyId, clientId, clientSecret })
         });
         const result = await response.json();

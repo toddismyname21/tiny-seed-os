@@ -14104,7 +14104,7 @@
             try {
                 const response = await fetch(`${API_URL}?action=generateFarmBusinessPlan`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         lender: lender,
                         purpose: purpose,
@@ -14168,7 +14168,7 @@
             try {
                 const response = await fetch(`${API_URL}?action=generateFarmMarketingPlan`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         lender: lender,
                         focus: focus,
@@ -15356,7 +15356,7 @@
             try {
                 const response = await fetch(API_URL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         action: 'parserAssistant',
                         question: question,

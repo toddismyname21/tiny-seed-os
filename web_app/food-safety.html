@@ -1936,7 +1936,7 @@
             try {
                 const response = await fetch(`${API_BASE}?action=logComplianceEntry`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         type: 'TEMPERATURE',
                         location: location,
@@ -1963,7 +1963,7 @@
             try {
                 const response = await fetch(`${API_BASE}?action=logComplianceEntry`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         type: 'CLEANING',
                         area: area,
@@ -1996,7 +1996,7 @@
             try {
                 const response = await fetch(`${API_BASE}?action=logComplianceEntry`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         type: 'PRE_HARVEST',
                         field: field,
@@ -2024,7 +2024,7 @@
             try {
                 const response = await fetch(`${API_BASE}?action=logComplianceEntry`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         type: 'WATER_TEST',
                         source: source,

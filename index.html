@@ -8648,7 +8648,7 @@
                     try {
                         const response = await fetch(API_URL, {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: { 'Content-Type': 'text/plain' },
                             body: JSON.stringify({
                                 action: 'updateUnifiedTask',
                                 taskId: unifiedTaskId,
@@ -8730,7 +8730,7 @@
                     try {
                         const response = await fetch(API_URL, {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: { 'Content-Type': 'text/plain' },
                             body: JSON.stringify({
                                 action: 'updateUnifiedTask',
                                 taskId: unifiedTaskId,
@@ -8807,7 +8807,7 @@
                     try {
                         const response = await fetch(API_URL, {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: { 'Content-Type': 'text/plain' },
                             body: JSON.stringify({
                                 action: 'updateUnifiedTask',
                                 taskId: unifiedTaskId,
@@ -9137,7 +9137,7 @@
                 try {
                     const response = await fetch(API_URL, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 'Content-Type': 'text/plain' },
                         body: JSON.stringify({
                             action: 'bulkUpdateTasks',
                             taskIds: unifiedTaskIds,
@@ -9234,7 +9234,7 @@
                 try {
                     const response = await fetch(API_URL, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 'Content-Type': 'text/plain' },
                         body: JSON.stringify({
                             action: 'bulkUpdateTasks',
                             taskIds: unifiedTaskIds,
@@ -9528,7 +9528,7 @@
                     try {
                         const response = await fetch(API_URL, {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: { 'Content-Type': 'text/plain' },
                             body: JSON.stringify({
                                 action: 'updateUnifiedTask',
                                 taskId: unifiedTaskId,
@@ -9548,7 +9548,7 @@
                 try {
                     await fetch(API_URL, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 'Content-Type': 'text/plain' },
                         body: JSON.stringify({
                             action: 'recordTaskTime',
                             taskId: unifiedTaskId || batchId,
@@ -12242,7 +12242,7 @@
             try {
                 const response = await fetch(`${API_URL}`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         action: 'registerPushSubscription',
                         subscription: subscription.toJSON(),
@@ -12268,7 +12268,7 @@
             try {
                 await fetch(`${API_URL}`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         action: 'unregisterPushSubscription',
                         endpoint: subscription.endpoint

@@ -1847,23 +1847,10 @@
                     return;
                 }
             } catch (error) {
-                console.log('API not available, using demo mode');
+                console.error('Login failed:', error);
+                showToast('Unable to connect. Please try again later.', 'error');
+                showLoginForm();
             }
-
-            // For demo, auto-login after 2 seconds
-            setTimeout(() => {
-                // Use portal type selected or default to CSA
-                const customerType = AppState.portalType === 'wholesale' ? 'Wholesale' : 'CSA';
-                loginUser({
-                    id: 'CUST-001',
-                    name: 'Demo Customer',
-                    email: email,
-                    phone: '(412) 555-0123',
-                    type: customerType,
-                    address: '123 Main St, Pittsburgh, PA 15206',
-                    hasMultiplePortals: false // Set true in production if customer has both
-                });
-            }, 2000);
         }
 
         async function sendSMSCode() {
@@ -2027,29 +2014,11 @@
             return PRODUCT_EMOJIS[category] || PRODUCT_EMOJIS.default;
         }
 
-        // Sample products for fallback
-        const SAMPLE_PRODUCTS = [
-            { id: 1, name: 'Basil', unit: 'bunch', price: 4.00, category: 'herbs', emoji: '🌿', stock: 45 },
-            { id: 2, name: 'Tomatoes', unit: 'lb', price: 6.00, category: 'fruiting', emoji: '🍅', stock: 120 },
-            { id: 3, name: 'Lettuce Mix', unit: 'bag', price: 5.00, category: 'leafy', emoji: '🥬', stock: 80 },
-            { id: 4, name: 'Carrots', unit: 'lb', price: 4.50, category: 'root', emoji: '🥕', stock: 150 },
-            { id: 5, name: 'Kale', unit: 'bunch', price: 4.00, category: 'leafy', emoji: '🥬', stock: 60 },
-            { id: 6, name: 'Zucchini', unit: 'lb', price: 3.00, category: 'fruiting', emoji: '🥒', stock: 5 },
-            { id: 7, name: 'Sunflowers', unit: 'bunch', price: 12.00, category: 'flowers', emoji: '🌻', stock: 25 },
-            { id: 8, name: 'Beets', unit: 'bunch', price: 5.00, category: 'root', emoji: '🫐', stock: 40 },
-            { id: 9, name: 'Cilantro', unit: 'bunch', price: 3.00, category: 'herbs', emoji: '🌿', stock: 0 },
-            { id: 10, name: 'Peppers', unit: 'lb', price: 5.00, category: 'fruiting', emoji: '🫑', stock: 85 },
-            { id: 11, name: 'Arugula', unit: 'bag', price: 5.00, category: 'leafy', emoji: '🥗', stock: 35 },
-            { id: 12, name: 'Radishes', unit: 'bunch', price: 4.00, category: 'root', emoji: '🔴', stock: 55 }
-        ];
-
         async function loadProducts() {
             try {
-                // Try to load products from API
                 const result = await api.get('getRetailProducts');
 
                 if (result.success && result.products && result.products.length > 0) {
-                    // Map API products to expected format
                     AppState.products = result.products.map(p => ({
                         id: p.Crop_ID || p.id || p.Product_ID,
                         name: p.Crop_Name || p.name || p.Product_Name,
@@ -2060,13 +2029,13 @@
                         stock: parseInt(p.Available_Qty || p.stock || p.Stock || 100)
                     }));
                 } else {
-                    // Fallback to sample products
-                    AppState.products = SAMPLE_PRODUCTS;
+                    AppState.products = [];
+                    showToast('No products available at this time.', 'info');
                 }
             } catch (error) {
                 console.error('Error loading products:', error);
-                // Fallback to sample products on error
-                AppState.products = SAMPLE_PRODUCTS;
+                AppState.products = [];
+                showToast('Unable to load products. Please try again later.', 'error');
             }
 
             renderProducts(AppState.products);

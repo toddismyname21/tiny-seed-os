@@ -1050,7 +1050,7 @@
                 const response = await fetch(API_URL, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'text/plain'
                     },
                     body: JSON.stringify({
                         action: 'submitFarmPic',
@@ -1151,7 +1151,7 @@
 
                     await fetch(API_URL, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 'Content-Type': 'text/plain' },
                         body: JSON.stringify({
                             action: 'submitFarmPic',
                             imageData: item.imageData,

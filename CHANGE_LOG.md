@@ -34,6 +34,160 @@ Brief explanation of why these changes were made.
 ---
 
 
+
+## 2026-03-13 — PM_ARCHITECT: P0 Security & Reliability Fixes (Full Audit)
+
+### Security Fixes (P0)
+- `web_app/auth-guard.js` — Removed `?test_mode=true` production auth bypass (anyone could skip login)
+- `web_app/customer.html` — Removed demo auto-login that fired after any login attempt + removed SAMPLE_PRODUCTS fake data
+- `web_app/task-assignment.html` — Fixed `data-required-role` → `data-allow-roles` (auth bypass let any role access admin page)
+- `web_app/admin.html` — Fixed undefined `API_BASE` variable (Smart Data Import section broken)
+
+### Broken API Fixes (P0)
+- `web_app/market-sales.html` — Fixed undefined `API_BASE_URL` → `TINY_SEED_API.MAIN_API` + removed fake `defaultProducts`
+- `web_app/farmers-market.html` — Fixed undefined `API_BASE_URL` → `TINY_SEED_API.MAIN_API`
+- `web_app/book-import.html` — Fixed undefined `API_BASE_URL` + removed `simulateExtraction()` fake data + fixed false success toast
+
+### Systemic Content-Type Fix (78 occurrences across 22 files)
+Changed `Content-Type: application/json` → `text/plain` on all POST requests to Apps Script.
+Root cause: `application/json` triggers CORS preflight (OPTIONS), Apps Script has no `doOptions()` → 405 → silent failure.
+- `web_app/wholesale.html`, `web_app/food-safety.html`, `web_app/quick-content.html`, `web_app/seo_dashboard.html`
+- `web_app/manager-dashboard.html`, `web_app/satellite-map.html`, `web_app/seedling-wholesale-2026.html`
+- `web_app/loan-readiness.html`, `web_app/chief-of-staff.html`, `web_app/accounting.html`
+- `web_app/csa.html`, `web_app/quickbooks-dashboard.html`, `web_app/marketing-command-center.html`
+- `web_app/sales.html`, `web_app/chef-register.html`, `web_app/task-assignment.html`, `web_app/admin.html`
+- `smart_learning_DTM.html`, `inventory_capture.html`, `index.html`, `soil-tests.html`
+- `flowers.html`, `food-safety.html` (root)
+
+### Reason
+Comprehensive 3-Gate security audit revealed 8 P0 issues across 56 app pages. All P0s fixed and validated with validate-element-refs.sh and validate-api-urls.sh. Content-Type fix resolves the systemic root cause of POST requests silently failing across the entire app.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
+## 2026-03-13 — AUDIT_CLAUDE: Operations Pages Deep Audit
+
+### Files Created
+- `OPERATIONS_AUDIT_2026-03-13.md` — Full audit of 11 operations pages
+
+### Findings Summary
+- P1: greenhouse-dashboard.html — `updateTaskCompletion` fetch fires and forgets, no response check (sowing records silently lost)
+- P1: seedling-admin.html — 4 save operations use no-cors mode, cannot detect server errors, show false success
+- P1: flowers.html — unsanitized error.message injected into innerHTML (XSS vector)
+- P2 systemic: 9/10 pages have zero fetch timeouts — root cause of "often not working or too slow"
+- P2: soil-tests.html — 5 sequential awaits at load (fixable to Promise.all for 5x improvement)
+- P2: farm-operations.html apiCall() has zero error handling — page goes blank on any API failure
+- P2: 2 pages have hardcoded fallback API URLs (soil-tests, seed_inventory_PRODUCTION)
+- P2: calendar.html falls back to fake demo data on errors (violates CLAUDE.md rule)
+- P2: farm-operations.html and others missing design system CSS
+- ARCH: greenhouse.html is a clean redirect only, not a duplicate
+- ARCH: food-safety.html vs web_app/food-safety.html are distinct pages (manager vs field worker), not duplicates
+- DATA SYNC: PLANNING_2026 schema consistent across pages via API normalization
+- DATA SYNC: flowers.html flowerTypes filter defined but never applied — shows all tasks not flower tasks
+
+### Reason
+Owner-requested deep audit: operations pages "often not working or too slow"
+
+### Duplicate Check
+- [x] No duplicates created
+
+---
+
+## 2026-03-13 — AUDIT_CLAUDE: Admin & Intelligence Pages Security Audit
+
+### Files Created
+- `AUDIT_REPORT_ADMIN_INTEL_2026-03-13.md` — Full audit of 8 admin/intelligence pages
+
+### Findings Summary
+- P0: task-assignment.html auth bypass — data-required-role="Admin,Manager" is parsed as single string, getRoleLevel returns 0, any employee passes
+- P1: admin.html — 42 innerHTML assignments, 0 escapeHtml/DOMPurify calls (highest-value XSS target)
+- P1: schedule.html — 18 innerHTML assignments, 0 escapeHtml calls
+- P1: admin.html authFetch() sends session token in GET query string (visible in Apps Script logs)
+- P1: admin.html resetUserPin() and deactivateUser() are stubs — show "not implemented" toast to users
+- P1: admin.html saveShopifySettings() discards input silently
+- SYNC: 3 different morning brief API actions across index.html/admin.html/chief-of-staff.html
+- SYNC: task status vocabulary inconsistent (lowercase vs UPPERCASE) between pages
+- PERF: chief-of-staff.html fires 7+ API calls on load, 50/53 fetch calls have no timeout
+- MINOR: ai-assistant.html has zero error handling on its only fetch call
+
+### Reason
+Owner-requested audit: pages "often not working or too slow"
+
+### Duplicate Check
+- [x] No duplicates created
+
+---
+## 2026-03-13 — AUDIT_CLAUDE: Sales & Customer Portal Security Audit
+
+### Files Created
+- `AUDIT_REPORT_SALES_2026-03-13.md` — Full audit of 8 sales/customer pages
+
+### Findings Summary
+- P0: customer.html has demo auto-login bypass in production (lines 1850-1866)
+- P0: customer.html falls back to SAMPLE_PRODUCTS with fake prices on API error
+- P1: chef-order.html, wholesale.html, customer.html, seedling-presale-2026.html all send client-supplied prices; backend validates range (>$0.10) but does NOT look up actual price from Sheets
+- P1: market-sales.html — API_BASE_URL is undefined, all apiCall() operations fail silently
+- P1: sales.html bulkDeleteOrders uses GET not POST for a destructive operation
+- P1: csa.html logs customer email to console; uses wrong Content-Type on POSTs
+- P1: chef-order.html cart persisted to localStorage with price data (manipulation vector)
+
+### Reason
+Owner-requested audit: pages "often not working or too slow" and "missing opportunity"
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] No duplicates created
+
+---
+
+
+## 2026-03-12 — PM_ARCHITECT: Seedling sale task assignment + thermal label layout
+
+### Root Cause Fixed
+- `assignSowingSheet` only checked PLANNING_2026 — seedling sale batch IDs from SEEDLING_PRODUCTION never matched, so assignments silently wrote 0 rows
+- `getMyGHSowingTasks` only read PLANNING_2026 — employee app never saw seedling sale tasks
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js`:
+  - `assignSowingSheet` — after PLANNING_2026, checks SEEDLING_PRODUCTION for unmatched batch IDs
+  - `getMyGHSowingTasks` — includes SEEDLING_PRODUCTION tasks with purpose/source fields
+  - `getGreenhouseSowingTasks` — passes `assignedTo` field on seedling sale tasks
+  - `getGreenhouseSeedings` — includes SEEDLING_PRODUCTION items (labels.html can now show them)
+  - `ensureSeedlingProductionSheet_` — adds `Assigned_To` to migration array
+- `web_app/print-engine.js` — `_renderFieldTray` + `_renderSeedlingSaleTray`: replaced color bars with bold black "★ SEEDLING SALE ★" text + underline (thermal printer compatible)
+- `labels.html` — on-screen preview + PDF render show SEEDLING SALE header; seedings data includes purpose
+- `sowing-sheets.html` — passes `purpose` through to label data in `generateTrayLabels()`
+
+### Deployment
+- Backend: @761
+- Frontend: GitHub Pages 93559db
+
+---
+
+
+## 2026-03-12 — PM_ARCHITECT: Seedling allocations upgrade + SEEDLING SALE badge
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — Added Seeding_Tray_Type column migration, updateSeedlingAllocations rewrite (no CityGROWN, tray type, 18-multiple rounding, production total calc), new bulkDeleteSeedlingItems function, getGreenhouseSowingTasks reads tray type from sheet + strict date filtering
+- `web_app/seedling-admin.html` — saveAllocations supports variety renames + tray type + no CityGROWN, bulk select/delete/set-date functions, beforeunload save prompt
+- `sowing-sheets.html` — Blue "SEEDLING SALE" badge on seedling sale greenhouse tasks (screen + print)
+
+### Functions Added
+- `bulkDeleteSeedlingItems` — Bulk delete with LockService, reverse-order row deletion
+- `toggleAllocSelect`, `toggleAllocSelectAll`, `getVisibleAllocIds`, `updateAllocBulkBar` — Bulk selection UI
+- `bulkDeleteAllocItems`, `bulkSetAllocDate` — Frontend bulk operations
+
+### Deployment
+- Backend: @760
+- Frontend: GitHub Pages cf5d178
+
+---
+
+
 ## 2026-03-11 — PM_ARCHITECT: Fix HIGH-severity audit findings in sowing-sheets.html
 
 ### Files Modified
@@ -15634,3 +15788,309 @@ Owner requested full UX audit using deep research framework and implementation o
 - After fixes: 78/100 (projected 85/100 with photos)
 - Key improvements: Phone label clarity, focus states, social proof, quick-add UX
 
+
+---
+
+## 2026-03-13 — AUDIT_CLAUDE: Financial, Marketing & Support Pages Audit
+
+### Files Audited (read-only)
+- `web_app/financial-dashboard.html` (9,254 lines)
+- `web_app/accounting.html` (2,569 lines)
+- `web_app/loan-readiness.html` (19,190 lines)
+- `web_app/marketing-command-center.html` (42,424 lines)
+- `web_app/seo_dashboard.html` (4,352 lines)
+- `web_app/satellite-map.html` (2,587 lines)
+- `web_app/garage.html` (3,241 lines)
+- `web_app/driver.html` (5,413 lines)
+- `web_app/reports-dashboard.html` (1,691 lines)
+- `web_app/delivery-zone-checker.html` (1,089 lines)
+- `web_app/neighbor.html` (1,034 lines)
+- `web_app/smart-predictions.html` (1,759 lines)
+- `web_app/wealth-builder.html` (1,704 lines)
+- `web_app/quickbooks-dashboard.html` (1,433 lines)
+- `web_app/social-intelligence.html` — FILE MISSING
+
+### Files Created
+- `AUDIT_REPORT_FINANCIAL_MARKETING_2026-03-13.md` — Full audit report with findings
+
+### Key Findings
+- P0: auth-guard.js:372 `?test_mode=true` URL param bypasses ALL auth on all pages including financial-dashboard
+- P1: 12 POST calls across 6 pages use `Content-Type: application/json` triggering CORS preflight failure on Apps Script — those features are broken in production
+- P1: accounting.html renders Plaid transaction names (external data) via innerHTML with no sanitization
+- P1: financial-dashboard.html safeHTML() / DOMPurify wrapper defined but called 0 times — 74 innerHTML assignments unsanitized
+- P1: smart-predictions.html shows fake demo data when API fails (violates CLAUDE.md policy)
+- P2: No fetch timeout on any page across all 15 files
+- P2: Duplicate element IDs monthly-income and monthly-expenses in financial-dashboard
+- P2: Plaid CDN script has no SRI hash
+- MISSING: social-intelligence.html referenced in auth-guard.js:125 but file does not exist
+
+### Validation Scripts Run
+- `scripts/validate-element-refs.sh` — PASS on all 14 existing pages
+- `scripts/ux-preflight-audit.sh` — FAIL on driver, satellite-map, garage (CL-001 tab count)
+
+### Duplicate Check
+- [x] No files created that duplicate existing files
+- [x] Audit report only
+
+---
+
+## 2026-03-13 — AUDIT_CLAUDE: Sales, Financial & Marketing Pages Audit
+
+### Files Created
+- `SALES_FINANCIAL_AUDIT_2026-03-13.md` — Full audit of 9 sales/financial/marketing pages
+
+### Findings Summary
+- P0: market-sales.html — Hardcoded fallback price list (20 products with fixed prices) used on API failure; all sales at these prices go to backend with fake prices
+- P0: customer.html — Demo auto-login fires unconditionally after 2s on sendMagicLink() regardless of API success; any email can access the portal (line 1854)
+- P0: market-sales.html — `API_BASE_URL` undefined; all apiCall() hits fail with ReferenceError crash (line 1411)
+- P1: sales.html — `API_URL` undefined at lines 5486, 5521; sendCSAConfirmationReminder() and sendBulkConfirmationReminders() always throw ReferenceError
+- P1: wholesale.html, csa.html, sales.html, chef-order.html — POST requests use `Content-Type: application/json` which triggers CORS preflight; Apps Script requires `text/plain`
+- P1: csa.html — vacation hold always shows success (`result.success || true` at line 5476)
+- P1: csa.html — vacation hold UI uses hardcoded demo data (`isHold: i === 3` at line 5374)
+- P2: seedling-admin.html — `result.error` from API injected into innerHTML without escaping (line 1984); `result.data.description` also unescaped (line 1973)
+- P2: customer.html — fallback SAMPLE_PRODUCTS (12 items, hardcoded prices) used when API fails
+- presale.html — file does not exist (404); referenced in audit request and design docs
+
+### Reason
+Scheduled sales/financial/marketing security audit per AUDIT_PROTOCOL.md
+
+## 2026-03-13 — AUDIT_CLAUDE: Deep audit of 7 core daily-use pages
+
+### Audit Scope
+- login.html, index.html, employee.html, sowing-sheets.html, labels.html, planning.html, succession.html
+- Backend: apps_script/MERGED TOTAL.js (security boundaries)
+- Tools used: validate-element-refs.sh, validate-api-urls.sh, run-full-audit.sh, manual deep inspection
+
+### Files Created
+- `AUDIT_REPORT_2026-03-13.md` — Full audit report with prioritized findings
+
+### Files Read (not modified)
+- All 7 audited HTML files, MERGED TOTAL.js, DATA_CONTRACTS.md, web_app/auth-guard.js
+
+### Key Findings (not fixed — audit only)
+- P1: savePlanting accessible without authentication (in PUBLIC_GET_ACTIONS, routed in doGet)
+- P1: No formula injection sanitization (sanitizeForSheet not called in savePlantingFromWeb or updatePlanningFields)
+- P1: Auth credentials (username+PIN) sent in GET URL query string in login.html and employee.html
+- P1: LockService missing from savePlantingFromWeb and updatePlanningFields
+- P2: labels.html missing CSP meta tag
+- P2: showSeedLotInput() is a called stub — seed lot linking visibly broken in labels.html
+- P2: Unescaped innerHTML in planning.html renderTable() for sheet data (p.Crop, p.Variety, p.Batch_ID)
+- P3: 8 duplicate function definitions in employee.html (different bodies)
+- P3: 20 stub functions called by live UI in employee.html (silent failures)
+- BUG-001 and BUG-005 in DATA_CONTRACTS.md are RESOLVED (not awaiting fix as documented)
+
+### Duplicate Check
+- [x] No new files created except audit report
+- [x] No application code modified
+
+---
+
+## 2026-03-13 — AUDIT_CLAUDE: Operations & Admin Pages Deep Audit (Session 2)
+
+### Files Created
+- `AUDIT_REPORT_OPERATIONS_ADMIN_2026-03-13.md` — Full audit of 7 confirmed pages + 2 missing pages
+
+### Findings Summary
+**P0 (1):**
+- `web_app/admin.html` — `API_BASE` variable used in 7 fetch calls but NEVER DECLARED. Book Import tab and Chief of Staff AI Chat are completely broken. setInterval alert poller throws continuously. Fix: add `const API_BASE = TINY_SEED_API.MAIN_API;` at top of second `<script>` block (line 4803).
+
+**P1 (2):**
+- `web_app/schedule.html` lines 2231-2256 — Silent data loss: shift saves fall back to local memory on API failure, show false success toast. Payroll-critical data silently discarded on backend errors.
+- `soil-tests.html` line 789 — Hardcoded API URL fallback. Violates CLAUDE.md "NEVER hardcode API URLs" rule. Masks api-config.js load failures.
+
+**P2 (2):**
+- `succession.html` lines 10, 1107 — api-config.js loaded at bottom of body while auth-guard.js is in head. Non-standard load order is fragile.
+- `web_app/admin.html` line 5230 — Standing Orders renders empty zero-state on API error instead of error message.
+
+**MISSING PAGES:**
+- `seed-inventory.html` — Does not exist. `seed_inventory_PRODUCTION.html` at root may be the intended file.
+- `harvest.html` — Does not exist anywhere in repo.
+
+**CLEAN (no issues):**
+- `web_app/task-assignment.html` — WORKING, all IDs match, correct API pattern
+- `web_app/employee-management.html` — WORKING, all IDs match, correct API pattern  
+- `web_app/manager-dashboard.html` — WORKING, best mobile coverage (6 @media), no demo data
+
+### Reason
+Owner-requested deep audit of operations and admin pages: API config, JS errors, element ID orphans, demo data, mobile, security.
+
+---
+
+## 2026-03-13 — AUDIT_CLAUDE: Core Daily-Use Pages Deep Audit (Session 3)
+
+### Files Created
+- `AUDIT_REPORT_CORE_PAGES_2026-03-13.md` — Full audit of 7 core pages: index.html, employee.html, greenhouse.html, sowing-sheets.html, labels.html, calendar.html, planning.html
+
+### Findings Summary
+**P1 (3):**
+- `index.html` line 6386 — Hardcoded API URL instead of `TINY_SEED_API.MAIN_API`. Violates CLAUDE.md rule. Currently functional (same URL), but will silently break if deployment rotates.
+- `employee.html` line 25507 — `clearHarvestForm()` references non-existent `harvestQuantity` ID. Actual field is `cteHarvestQuantity`. FSMA 204 compliance form quantity field never cleared between uses. Guarded by `if (el)` so silent — no crash, no error log.
+- `labels.html` — Missing CSP meta tag. Only core page without one. Also has jsPDF CDN without SRI.
+
+**P2 (5):**
+- `employee.html` line 37 — `qrcode@1.5.3` CDN missing SRI hash (1.5.1 on same page HAS SRI)
+- `labels.html` line 10 — `jspdf@2.5.2` CDN missing SRI hash
+- `greenhouse-dashboard.html` — No CSP meta tag on actual rendered page (greenhouse.html redirect has CSP, destination does not)
+- `calendar.html` line 45 — `padding-left: 300px` on header does not match sidebar `width: 280px` (20px visual gap)
+- `greenhouse-dashboard.html` — DOMPurify loaded with SRI but only used on 2 of 89 innerHTML assignments
+
+**P3 (2):**
+- `employee.html` — `getSimulatedResult()` is dead code, never called anywhere
+- `calendar.html`, `planning.html` — `api-config.js` loaded at bottom of body, safe today but fragile
+
+**CLEAN:**
+- 0 eval(), 0 new Function(), 0 setTimeout(string), 0 broken event handler function references
+- 0 missing nav link targets in index.html sidebar (44 hrefs, all files exist)
+- `planning.html` — cleanest page, no issues found
+- All 7 pages use auth-guard.js correctly
+
+### Reason
+Owner-requested deep audit of 7 core daily-use pages: API config pattern, JS errors, element ID orphans, demo/fake data, mobile responsiveness, security. Every function reference, element ID, and API call pattern checked.
+
+### Duplicate Check
+- [x] No new application code created — audit only
+- [x] No application files modified — read-only audit
+
+---
+
+## 2026-03-13 — AUDIT_CLAUDE: Missed Pages Security Audit (19 pages)
+
+### Files Created
+- `AUDIT_REPORT_2026-03-13_MISSED_PAGES.md` — Full audit of 19 pages missed in the 2026-02-28 pass
+
+### Findings Summary
+- **3 BROKEN pages** (all API calls dead at runtime):
+  - `farmers-market.html` — `API_BASE_URL` undefined, entire dashboard non-functional (P1)
+  - `book-import.html` — `API_BASE_URL` undefined + demo fallback silently masks failure + no auth-guard (P1)
+  - `chef-register.html` — `api-config.js` not loaded, `TINY_SEED_API` undefined on init (P1)
+- **4 DEGRADED pages** (partial functionality broken):
+  - `seedling-wholesale-2026.html` — `Content-Type: application/json` on wholesale order POST (P1)
+  - `quick-content.html` — `Content-Type: application/json` on both POST calls (P1)
+  - `osp.html` — No CSP meta tag + no auth-guard on organic certification data (P2)
+  - `seed_inventory_PRODUCTION.html` — Hardcoded deployment URL fallback (P2)
+- **1 UNCONFIRMED** (needs manual check):
+  - `employee-register.html` — `api-config.js` include not found in grep, `TINY_SEED_API` referenced
+- New pattern identified: `Content-Type: application/json` on Apps Script POSTs found in 5 pages — causes CORS preflight failure. This was not in baseline.
+- New pattern identified: `API_BASE_URL` (undefined variable) used instead of `TINY_SEED_API.MAIN_API`
+- `wholesale-seedlings.html`, `remote-dashboard.html`, `command-center.html`, `claude-chat.html`, `log-commitment.html`, `chef-approve.html`, `employee-approve.html`, `csa-location-finder.html`, `csa-location-widget.html`, `csa-unified-finder.html` all WORKING
+
+### Reason
+Owner identified these 19 pages were missed in the first audit pass. Audit completed with full per-page findings.
+
+### Duplicate Check
+- [x] No code modified — audit only
+
+---
+
+## 2026-03-13 — AUDIT_CLAUDE: Frontend Code Quality Audit (6 Mega-Pages)
+
+### Files Created
+- `AUDIT_REPORT_CODE_QUALITY_2026-03-13.md` — 25-finding code quality audit of 6 largest frontend files
+
+### Files Audited (no code changes made)
+- `web_app/marketing-command-center.html` (42,423 lines, 906 named functions)
+- `employee.html` (27,566 lines, 545 named functions)
+- `web_app/chief-of-staff.html` (8,871 lines, 151 named functions)
+- `web_app/sales.html` (7,444 lines, 140 named functions)
+- `web_app/csa.html` (5,882 lines, 111 named functions)
+- `index.html` (12,435 lines, 192 named functions)
+
+### Findings Summary (25 total)
+- CQ-18 FUNCTIONAL BUG: chief-of-staff.html L6486 — `action=` URL parameter appears twice in setAutonomyLevelUI(); the autonomy action name is always dropped, making the autonomy settings feature non-functional at API level
+- CQ-11 FUNCTIONAL BUG: employee.html — `formatDate()` defined twice (L22763, L29052) with incompatible signatures; second definition silently overwrites first, drops UTC timezone guard
+- CQ-01 HIGH: publishAll() in MCC is 557 lines with 8 API calls, 71 DOM operations, 45 branches — highest production bug risk function
+- CQ-05 BEHAVIOR: loadBrainTab() calls autoSendDailyJournalPrompt() on every tab-switch — verify deduplication guard exists
+- CQ-10 DEAD CODE: 9 never-called functions in MCC confirmed (zero references including onclick/string): addToQueueFromSettings, generateAIContentQuick, copyStudioContent, expandInbox, generateStudioContent, generateAdvancedStudioContent, drawBurlapTexture, drawChalkboardLabel, drawWoodTexture (~220 lines deletable)
+- CQ-12 DUPLICATION: showToast() has 6 independent implementations across all 6 files with different dismiss timers (3000ms vs 4000ms), different DOM strategies (singleton vs append), different animations
+- CQ-13 DUPLICATION: escapeHtml() and escapeHtmlEvergreen() in MCC are identical functions (same 5-line body, different names)
+- CQ-16 BUG RISK: csa.html switchTab() uses event.target without null guard — throws if called programmatically
+- CQ-19 SILENT FAILURES: 11 empty catch(e) {} blocks in employee.html, 6 are IndexedDB cache writes — mobile employees get no warning when offline cache fails
+- CQ-17 INCONSISTENCY: chief-of-staff.html mixes 53 await fetch() calls with 14 await fetch().then() calls in same file
+- CQ-20 LEGACY CODE: MCC has 433 var declarations inside functions, employee.html has 232 — both files also use async/await extensively; chief-of-staff/sales/csa have zero var
+- CQ-21 STRUCTURE: chief-of-staff monkey-patches initializeApp with no clearTimeout on 3s/5s delayed calls
+
+### Reason
+Owner-requested code quality audit of the 6 largest frontend files. Focus: god functions, duplication, dead code, magic numbers, error handling patterns. Security findings excluded (covered by separate audit reports).
+
+### Duplicate Check
+- N/A — audit-only session, no new files or functions created in application code
+
+---
+
+## 2026-03-13 — AUDIT_CLAUDE: Code Quality Audit of MERGED TOTAL.js
+
+### Files Created
+- `CODE_QUALITY_AUDIT_2026-03-13.md` — Full code quality audit of the 151,542-line Apps Script backend
+
+### Files Modified
+- None — audit only, no code changes
+
+### Findings Summary
+
+**HIGH SEVERITY (production bugs confirmed):**
+- Finding 1: `generateShortCode` declared twice with different signatures — second declaration (line 49980, delivery route) overwrites first (line 19980, UTM tracking). UTM short codes are currently random instead of URL-derived. Fix: rename delivery version to `generateDeliveryCode`.
+- Finding 2: Current weather API uses coordinates `40.7020, -80.2887` (hardcoded in `getWeather()` line 31359); historical archive uses `FARM_CONFIG.LAT` = `40.7456217`. These are 7.3 miles apart. Weather comparisons are inconsistent.
+- Finding 3: `doGet` is 3,736 lines with 1,360 switch cases; `doPost` is 1,524 lines with 555 cases.
+- Finding 4: `checkOverdueFollowupsAndNotify` (line 7058) is a time-registered trigger with no try/catch. If `EMAIL_FOLLOWUPS_SHEET` doesn't exist, `sheet.getRange()` crashes on null at line 7067 — silent failure, no escalation runs.
+- Finding 5: 7 morning brief generators exist; old `generateMorningBrief` trigger (line 13751) still fires the 172-line old function, not `getUnifiedMorningBrief`.
+
+**MEDIUM SEVERITY:**
+- Finding 6: 4 separate `getOrCreate`-style sheet utility functions with divergent behavior
+- Finding 7: 9 functions with 5–9 positional parameters (worst: `logSeedlingLifecycleEvent_` with 9 params)
+- Finding 8: 5 different error response shapes — stub functions use `{success: false, message: ...}` while real functions use `{success: false, error: ...}`, causing silent frontend failures
+- Finding 9: `registerSelectedPlanting` and `registerHarvest` access row data by hardcoded index (`row[5]`, `row[12]`) — schema changes break silently
+- Finding 10: 141 ID generation call sites using 3 different patterns; 2 patterns have collision risk under concurrent writes
+
+**LOW SEVERITY:**
+- Finding 11: 6 module-level `var` declarations for business config including `PRESALE_CUTOFF_DATE` — should be `const` or read from Script Properties
+- Finding 12: 5 full HTML pages (318–500 lines each) embedded as template literals in backend functions
+
+### Duplicate Check
+- N/A — audit session only
+
+---
+
+---
+
+## 2026-03-13 — AUDIT_CLAUDE: Code Quality Audit — Shared JS + Medium Pages
+
+### Files Created
+- `CODE_QUALITY_AUDIT_2026-03-13.md` — 23-finding code quality audit across 8 files
+
+### Findings Summary (code quality, not security — see prior audit reports for security findings)
+
+**High (7 findings, fix before next push):**
+- CQ-001: `wholesale.html` — `api-config.js` loaded twice (lines 8 and 1622). Every global initialized twice; auth-guard state from first load discarded.
+- CQ-002: `driver.html` — `api-config.js` loaded twice (lines 15 and 1938). Same issue.
+- CQ-007: `soil-tests.html` — 35 functions exceed 80 lines; 9 exceed 150 lines. `renderIPMToolkit` is 260 lines of interleaved HTML+JS with hardcoded crop/product data. Untestable. `calculateAmendments` / `calculateAmendmentsCostEffective` are likely diverged copies (~300 lines of near-duplicate amendment logic).
+- CQ-010: `soil-tests.html` — `updateAmendmentCalc` has cyclomatic complexity ~14 (7 is max recommended). Mixes data fetch, calculation, and DOM update in 205 lines.
+- CQ-012: `soil-tests.html` — 22 localStorage keys used as primary datastore with no TTL or staleness detection. `farmLearn_lastModified` is written but never read. Stale compliance/amendment data silently becomes ground truth after any API failure.
+- CQ-015: `wholesale.html` — `loadProducts().then(() => loadStandingOrders())` has no `.catch()`. Silent failure hides product load errors.
+- CQ-011: `financial-dashboard.html` — `updateFinancialTotals()` and `FinancialManager.renderOverview()` both write to the same DOM elements using different format functions. Display format is non-deterministic based on which async path resolves last.
+
+**Medium (11 findings):**
+- CQ-003: `financial-dashboard.html` — local `formatCurrency` rounds to 0 decimals vs `TinySeedUtils.formatCurrency` (2 decimals) vs inline `toLocaleString()`. Three competing formats on one page.
+- CQ-004: `formatDate()` redefined in greenhouse-dashboard, driver, financial-dashboard, and soil-tests. Only the greenhouse version has the UTC timezone fix (`T12:00:00` append). Other files may display dates one day early for users west of UTC.
+- CQ-005: `showToast()` redefined 3 times across wholesale, driver, soil-tests. Greenhouse uses `toast()` (different name). Four implementations, three timeout durations.
+- CQ-008: `driver.html:renderStops` (124 lines) — inline `onclick` with interpolated `stop.phone`, `stop.email`, `stop.customer`. Special characters in DB-sourced names break the attribute.
+- CQ-009: `print-engine.js:_generateSheetPDF` (183 lines) — inner function definitions mutate outer scope. `_renderFieldTray` redeclares `var varText`, `var batchText`, `var trayStr` in both branches of same function scope.
+- CQ-013: `driver.html` — driver session in 3 competing stores: `localStorage.driverSession`, `localStorage.driverClock_{id}`, and `AppState.driver`. Key for clock state depends on `AppState.driver.id` which is loaded from the first store — orphaned if stores are written in different order.
+- CQ-018: `greenhouse-dashboard.html:editableChip` has 6 positional parameters. Should be options object.
+- CQ-022: 3 PDF generators in `soil-tests.html` share no code despite generating similar documents; `print-engine.js` is already loaded on that page.
+
+**Low (5 findings):**
+- CQ-006: `safeHTML()` redefined in greenhouse-dashboard and financial-dashboard; missing entirely in driver and wholesale.
+- CQ-014: greenhouse-dashboard state scattered across 12 module-level `var` declarations outside the `state` object. `opsData` not invalidated by cache-clearing functions.
+- CQ-016: soil-tests catch handlers use `console.log` not `console.error` for real failures.
+- CQ-017: `print-engine.js` CDN load failure has no user-visible fallback toast.
+- CQ-019: 5 different naming conventions for user feedback functions across files.
+- CQ-020: `print-engine.js` uses ES5 `var` throughout; consuming pages use ES6+.
+- CQ-021: 50 `console.log` calls in driver.html; 22 in the production route optimization engine with no debug flag.
+- CQ-023: `api-config.js:isWithinGeofence()` is a stub returning `true` — inadequately marked as disabled.
+
+### Reason
+Owner-requested code quality audit: shared JS files and medium HTML pages (not previously audited for quality).
+
+### Duplicate Check
+- [x] No new application code created — audit only
+- [x] No application files modified — read-only audit

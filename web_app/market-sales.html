@@ -1281,30 +1281,6 @@
             await offlineManager.syncPendingSales();
         }
 
-        // Default products (will be replaced by API data)
-        const defaultProducts = [
-            { id: 1, name: 'Tomatoes', icon: '🍅', price: 4.00, unit: 'lb', category: 'vegetable' },
-            { id: 2, name: 'Peppers', icon: '🫑', price: 3.50, unit: 'lb', category: 'vegetable' },
-            { id: 3, name: 'Cucumbers', icon: '🥒', price: 2.00, unit: 'each', category: 'vegetable' },
-            { id: 4, name: 'Squash', icon: '🎃', price: 3.00, unit: 'lb', category: 'vegetable' },
-            { id: 5, name: 'Lettuce', icon: '🥬', price: 4.00, unit: 'head', category: 'leafy' },
-            { id: 6, name: 'Kale', icon: '🥗', price: 4.00, unit: 'bunch', category: 'leafy' },
-            { id: 7, name: 'Spinach', icon: '🍃', price: 5.00, unit: 'bag', category: 'leafy' },
-            { id: 8, name: 'Chard', icon: '🥬', price: 4.00, unit: 'bunch', category: 'leafy' },
-            { id: 9, name: 'Carrots', icon: '🥕', price: 4.00, unit: 'bunch', category: 'root' },
-            { id: 10, name: 'Beets', icon: '🔴', price: 4.00, unit: 'bunch', category: 'root' },
-            { id: 11, name: 'Radishes', icon: '🔴', price: 3.00, unit: 'bunch', category: 'root' },
-            { id: 12, name: 'Turnips', icon: '⚪', price: 3.50, unit: 'bunch', category: 'root' },
-            { id: 13, name: 'Basil', icon: '🌿', price: 3.00, unit: 'bunch', category: 'herb' },
-            { id: 14, name: 'Cilantro', icon: '🌿', price: 2.50, unit: 'bunch', category: 'herb' },
-            { id: 15, name: 'Parsley', icon: '🌿', price: 2.50, unit: 'bunch', category: 'herb' },
-            { id: 16, name: 'Dill', icon: '🌿', price: 2.50, unit: 'bunch', category: 'herb' },
-            { id: 17, name: 'Sunflowers', icon: '🌻', price: 8.00, unit: 'bunch', category: 'flower' },
-            { id: 18, name: 'Zinnias', icon: '💐', price: 8.00, unit: 'bunch', category: 'flower' },
-            { id: 19, name: 'Mixed Bouquet', icon: '💐', price: 12.00, unit: 'each', category: 'flower' },
-            { id: 20, name: 'Eggs', icon: '🥚', price: 7.00, unit: 'dozen', category: 'other' }
-        ];
-
         // Initialize
         document.addEventListener('DOMContentLoaded', async () => {
             // Initialize offline manager first
@@ -1336,26 +1312,25 @@
                     products = cachedProducts;
                     console.log('[MarketSales] Loaded', products.length, 'products from cache');
                 } else {
-                    products = defaultProducts;
-                    console.log('[MarketSales] No cached products, using defaults');
+                    products = [];
+                    console.warn('[MarketSales] Offline with no cached products');
+                    showToast('No cached products available offline. Connect to sync.', 'error');
                 }
             } else {
-                // Try to fetch from API, fall back to defaults
                 try {
                     const result = await apiCall('getMarketProducts');
                     if (result.success && result.products && result.products.length > 0) {
                         products = result.products;
-                        // Cache for offline use
                         await offlineManager.cacheProducts(products);
                         console.log('[MarketSales] Loaded', products.length, 'products from API');
                     } else {
-                        products = defaultProducts;
-                        // Cache defaults for offline
-                        await offlineManager.cacheProducts(defaultProducts);
+                        products = [];
+                        showToast('No products found. Check inventory setup.', 'info');
                     }
                 } catch (e) {
-                    products = defaultProducts;
-                    await offlineManager.cacheProducts(defaultProducts);
+                    products = [];
+                    console.error('[MarketSales] Failed to load products:', e);
+                    showToast('Unable to load products. Check your connection.', 'error');
                 }
             }
         }
@@ -1408,7 +1383,7 @@ Time window: ${new Date(result.timeWindow?.start).toLocaleTimeString()} - ${new 
         // ========================================
 
         async function apiCall(action, params = {}) {
-            const url = new URL(API_BASE_URL);
+            const url = new URL(TINY_SEED_API.MAIN_API);
             url.searchParams.append('action', action);
             Object.entries(params).forEach(([key, value]) => {
                 if (typeof value === 'object') {

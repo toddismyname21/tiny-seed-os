@@ -3570,7 +3570,7 @@
                 // Use POST for write operations
                 response = await fetch(`${TINY_SEED_API.MAIN_API}?action=${action}`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify(params)
                 });
             }
