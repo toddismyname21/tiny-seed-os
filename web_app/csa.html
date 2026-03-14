@@ -987,17 +987,6 @@
         }
 
         /* Hold Options Modal */
-        .modal-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.5);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            padding: var(--ts-space-5, 20px);
-        }
-
         .modal-content {
             background: white;
             border-radius: var(--radius-lg);
@@ -1137,11 +1126,6 @@
             background: rgba(255,255,255,0.1);
             border-radius: var(--ts-radius-md, 12px);
             padding: var(--ts-space-3, 12px);
-        }
-
-        .flex-transactions-list {
-            max-height: 200px;
-            overflow-y: auto;
         }
 
         .flex-history-section {
@@ -2113,6 +2097,252 @@
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: var(--border, #e7e5e4); border-radius: var(--ts-radius-full, 9999px); }
         ::-webkit-scrollbar-thumb:hover { background: #a8a29e; }
+
+        /* ═══════════════════════════════════════════════════════════════════════════
+           CUSTOMIZE / BOX DETAILS / UPCOMING / DISLIKES / CONTACT / UPDATES MODALS
+           ═══════════════════════════════════════════════════════════════════════════ */
+
+        .customize-item {
+            display: flex;
+            align-items: center;
+            gap: var(--ts-space-3, 12px);
+            padding: var(--ts-space-3, 12px) var(--ts-space-4, 16px);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .customize-item:last-child { border-bottom: none; }
+
+        .customize-item-emoji { font-size: var(--ts-text-2xl, 1.5rem); flex-shrink: 0; }
+
+        .customize-item-info { flex: 1; min-width: 0; }
+
+        .customize-item-name { font-weight: 600; font-size: var(--ts-text-sm, 0.875rem); }
+
+        .customize-item-qty { font-size: var(--ts-text-xs, 0.75rem); color: var(--text-secondary); }
+
+        .customize-swap-btn {
+            background: var(--primary-bg);
+            color: var(--primary-dark);
+            border: none;
+            padding: var(--ts-space-2, 8px) var(--ts-space-3, 12px);
+            border-radius: var(--radius-sm);
+            font-size: var(--ts-text-xs, 0.75rem);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--ts-dur-normal, 200ms) ease;
+            white-space: nowrap;
+        }
+
+        .customize-swap-btn:hover { background: var(--primary); color: white; }
+        .customize-swap-btn:active { transform: scale(0.97); }
+        .customize-swap-btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+        .detail-note {
+            display: flex;
+            align-items: center;
+            gap: var(--ts-space-2, 8px);
+            padding: var(--ts-space-3, 12px) var(--ts-space-4, 16px);
+            background: var(--primary-bg);
+            border-radius: var(--radius-sm);
+            margin: var(--ts-space-3, 12px) var(--ts-space-5, 20px);
+            font-size: var(--ts-text-sm, 0.875rem);
+            color: var(--primary-darker);
+        }
+
+        .detail-note i { flex-shrink: 0; }
+
+        .veggie-toggle-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: var(--ts-space-2, 8px);
+        }
+
+        @media (max-width: 360px) {
+            .veggie-toggle-grid { grid-template-columns: 1fr; }
+        }
+
+        .veggie-toggle {
+            display: flex;
+            align-items: center;
+            gap: var(--ts-space-2, 8px);
+            padding: var(--ts-space-3, 12px);
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: all var(--ts-dur-normal, 200ms) ease;
+            font-size: var(--ts-text-sm, 0.875rem);
+            user-select: none;
+            min-height: 44px;
+        }
+
+        .veggie-toggle:hover { border-color: var(--danger); background: #fef2f2; }
+        .veggie-toggle:active { transform: scale(0.98); }
+        .veggie-toggle.active { border-color: var(--danger); background: #fef2f2; color: var(--danger); }
+        .veggie-toggle.active .veggie-toggle-icon { opacity: 1; }
+
+        .veggie-toggle-emoji { font-size: var(--ts-text-lg, 1.125rem); flex-shrink: 0; }
+
+        .veggie-toggle-name { flex: 1; font-weight: 500; }
+
+        .veggie-toggle-icon {
+            opacity: 0;
+            color: var(--danger);
+            font-size: var(--ts-text-sm, 0.875rem);
+            transition: opacity var(--ts-dur-normal, 200ms) ease;
+        }
+
+        .dislikes-hint {
+            font-size: var(--ts-text-xs, 0.75rem);
+            color: var(--text-muted);
+            text-align: center;
+            margin-top: var(--ts-space-4, 16px);
+            line-height: 1.5;
+        }
+
+        .contact-info-block {
+            display: flex;
+            align-items: center;
+            gap: var(--ts-space-3, 12px);
+            padding: var(--ts-space-4, 16px);
+            background: var(--bg-elevated);
+            border-radius: var(--radius-md);
+            margin-bottom: var(--ts-space-3, 12px);
+        }
+
+        .contact-info-block i {
+            font-size: var(--ts-text-lg, 1.125rem);
+            color: var(--primary);
+            width: 24px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        .contact-info-text {
+            font-size: var(--ts-text-sm, 0.875rem);
+            color: var(--text-primary);
+        }
+
+        .contact-info-text a {
+            color: var(--primary-dark);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .contact-divider {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: var(--ts-text-xs, 0.75rem);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin: var(--ts-space-5, 20px) 0;
+            position: relative;
+        }
+
+        .contact-divider::before,
+        .contact-divider::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            width: calc(50% - 40px);
+            height: 1px;
+            background: var(--border-color);
+        }
+
+        .contact-divider::before { left: 0; }
+        .contact-divider::after { right: 0; }
+
+        .updates-panel-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 200;
+            display: none;
+            animation: fadeIn 0.2s ease;
+        }
+
+        .updates-panel-overlay.open { display: block; }
+
+        .updates-panel {
+            position: fixed;
+            top: 0;
+            right: -100%;
+            width: 100%;
+            max-width: 400px;
+            height: 100%;
+            background: var(--bg-card);
+            z-index: 201;
+            transition: right 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .updates-panel.open { right: 0; }
+
+        .updates-panel-header {
+            padding: var(--ts-space-5, 20px);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .updates-panel-title { font-size: var(--ts-text-lg, 1.125rem); font-weight: 700; }
+
+        .updates-panel-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: var(--ts-space-5, 20px);
+        }
+
+        .update-panel-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: var(--ts-space-4, 16px);
+            margin-bottom: var(--ts-space-4, 16px);
+        }
+
+        .update-panel-card:last-child { margin-bottom: 0; }
+
+        .update-panel-date {
+            font-size: var(--ts-text-xs, 0.75rem);
+            color: var(--text-muted);
+            margin-bottom: var(--ts-space-2, 8px);
+            font-weight: 500;
+        }
+
+        .update-panel-title {
+            font-size: var(--ts-text-base, 1rem);
+            font-weight: 600;
+            margin-bottom: var(--ts-space-2, 8px);
+        }
+
+        .update-panel-text {
+            font-size: var(--ts-text-sm, 0.875rem);
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .update-panel-emoji {
+            font-size: var(--ts-text-3xl, 2rem);
+            margin-bottom: var(--ts-space-3, 12px);
+        }
+
+        .updates-empty {
+            text-align: center;
+            padding: var(--ts-space-8, 32px) var(--ts-space-5, 20px);
+            color: var(--text-muted);
+        }
+
+        .updates-empty i {
+            font-size: var(--ts-text-4xl, 2.5rem);
+            margin-bottom: var(--ts-space-4, 16px);
+            display: block;
+            color: var(--border-color);
+        }
     </style>
 </head>
 <body>
@@ -2335,7 +2565,7 @@
 
                     <div class="form-group" id="phoneGroup" style="margin-top: var(--ts-space-4, 16px); display: none;">
                         <label class="form-label">Mobile Phone Number</label>
-                        <input type="tel" class="form-input" id="phoneInput" placeholder="(412) 555-1234">
+                        <input type="tel" class="form-input" id="onboardingPhoneInput" placeholder="(412) 555-1234">
                     </div>
                 </div>
 
@@ -3320,11 +3550,141 @@
         </div>
     </div>
 
+    <!-- Customize Box Modal -->
+    <div class="modal-overlay" id="customizeModal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Customize Your Box</h2>
+                <button class="modal-close" onclick="closeCustomizeModal()" aria-label="Close customize modal"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body" style="padding: 0;">
+                <div class="detail-note">
+                    <i class="fas fa-info-circle"></i>
+                    <span>Tap "Swap" on any item to replace it with something you prefer.</span>
+                </div>
+                <div id="customizeItemsList">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+            <div class="modal-footer" style="padding: var(--ts-space-4, 16px); display: flex; gap: var(--ts-space-3, 12px);">
+                <button class="btn btn-primary" style="flex: 1;" onclick="closeCustomizeModal()">
+                    <i class="fas fa-check"></i> Done Customizing
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Box Details Modal -->
+    <div class="modal-overlay" id="boxDetailsModal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="boxDetailsTitle">Box Details</h2>
+                <button class="modal-close" onclick="closeBoxDetailsModal()" aria-label="Close box details modal"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body" style="padding: 0;">
+                <div id="boxDetailsDate" class="detail-note">
+                    <i class="fas fa-calendar"></i>
+                    <span></span>
+                </div>
+                <div id="boxDetailsList">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+            <div class="modal-footer" style="padding: var(--ts-space-4, 16px);">
+                <button class="btn btn-secondary" style="flex: 1;" onclick="closeBoxDetailsModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dislikes / Item Preferences Modal -->
+    <div class="modal-overlay" id="dislikesModal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Item Preferences</h2>
+                <button class="modal-close" onclick="closeDislikesModal()" aria-label="Close item preferences modal"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size: var(--ts-text-sm, 0.875rem); color: var(--text-secondary); margin-bottom: var(--ts-space-4, 16px);">
+                    Tap items you'd prefer <strong>not</strong> to receive. We'll try to swap them automatically or flag them for you.
+                </p>
+                <div class="veggie-toggle-grid" id="veggieToggleGrid">
+                    <!-- Populated dynamically -->
+                </div>
+                <div class="dislikes-hint">
+                    <i class="fas fa-lightbulb"></i> Your preferences are saved and applied to future boxes.
+                </div>
+            </div>
+            <div class="modal-footer" style="padding: var(--ts-space-4, 16px); display: flex; gap: var(--ts-space-3, 12px);">
+                <button class="btn btn-secondary" style="flex: 1;" onclick="closeDislikesModal()">Cancel</button>
+                <button class="btn btn-primary" style="flex: 1;" id="saveDislikesBtn" onclick="saveDislikes()">
+                    <i class="fas fa-check"></i> Save Preferences
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contact Farm Modal -->
+    <div class="modal-overlay" id="contactModal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Contact the Farm</h2>
+                <button class="modal-close" onclick="closeContactModal()" aria-label="Close contact modal"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="contact-info-block">
+                    <i class="fas fa-envelope"></i>
+                    <div class="contact-info-text">
+                        <a href="mailto:info@tinyseedfarm.com">info@tinyseedfarm.com</a>
+                    </div>
+                </div>
+                <div class="contact-info-block">
+                    <i class="fas fa-phone"></i>
+                    <div class="contact-info-text">
+                        <a href="tel:+14125551234">(412) 555-1234</a>
+                    </div>
+                </div>
+
+                <div class="contact-divider">or send a message</div>
+
+                <div class="form-group">
+                    <label class="form-label">Your Name</label>
+                    <input type="text" class="form-input" id="contactName" placeholder="Your name" readonly>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Your Email</label>
+                    <input type="email" class="form-input" id="contactEmail" placeholder="Your email" readonly>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Message</label>
+                    <textarea class="form-input" id="contactMessage" rows="4" placeholder="How can we help?" style="resize: vertical;"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer" style="padding: var(--ts-space-4, 16px); display: flex; gap: var(--ts-space-3, 12px);">
+                <button class="btn btn-secondary" style="flex: 1;" onclick="closeContactModal()">Cancel</button>
+                <button class="btn btn-primary" style="flex: 1;" id="sendContactBtn" onclick="submitContactMessage()">
+                    <i class="fas fa-paper-plane"></i> Send Message
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Updates Slide Panel -->
+    <div class="updates-panel-overlay" id="updatesPanelOverlay" onclick="closeUpdatesPanel()"></div>
+    <div class="updates-panel" id="updatesPanel">
+        <div class="updates-panel-header">
+            <h2 class="updates-panel-title">From the Field</h2>
+            <button class="modal-close" onclick="closeUpdatesPanel()" aria-label="Close updates panel"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="updates-panel-body" id="updatesPanelBody">
+            <div style="text-align: center; padding: var(--ts-space-8, 32px);">
+                <span class="loading-spinner"></span>
+                <div style="margin-top: var(--ts-space-3, 12px); color: var(--text-muted); font-size: var(--ts-text-sm, 0.875rem);">Loading updates...</div>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast Container -->
     <div class="toast-container" id="toastContainer"></div>
-
-    <!-- API Configuration -->
-    <script src="api-config.js"></script>
 
     <script>
         // ═══════════════════════════════════════════════════════════════════════════
@@ -3385,6 +3745,13 @@
             if (saved) {
                 try {
                     const session = JSON.parse(saved);
+
+                    if (session.expiresAt && Date.now() > session.expiresAt) {
+                        localStorage.removeItem('tsf_csa_session');
+                        showLogin();
+                        return;
+                    }
+
                     AppState.customer = session.customer;
                     AppState.membership = session.membership;
                     AppState.preferences = session.preferences || AppState.preferences;
@@ -3408,9 +3775,7 @@
         // ═══════════════════════════════════════════════════════════════════════════
 
         async function sendMagicLink() {
-            console.log('sendMagicLink called');
             const email = document.getElementById('emailInput').value.trim();
-            console.log('Email:', email);
 
             if (!email) {
                 showToast('Please enter your email', 'error');
@@ -3423,13 +3788,10 @@
 
             try {
                 const url = `${API_URL}?action=sendCSAMagicLink&email=${encodeURIComponent(email)}`;
-                console.log('Fetching:', url);
 
                 const response = await fetch(url);
-                console.log('Response status:', response.status);
 
                 const result = await response.json();
-                console.log('Result:', result);
 
                 if (result.success) {
                     document.getElementById('loginForm').style.display = 'none';
@@ -3483,7 +3845,8 @@
                 customer: AppState.customer,
                 membership: AppState.membership,
                 preferences: AppState.preferences,
-                isOnboarded: AppState.isOnboarded
+                isOnboarded: AppState.isOnboarded,
+                expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000
             }));
         }
 
@@ -3540,12 +3903,6 @@
                     document.getElementById('sentToPhone').textContent = formatPhoneDisplay(phone);
                     document.getElementById('smsCodeInput').focus();
                     showToast('Code sent!', 'success');
-
-                    // For dev/testing - if code is returned, show it
-                    if (result._devCode) {
-                        console.log('DEV MODE - Code:', result._devCode);
-                        showToast(`Dev mode - Code: ${result._devCode}`, 'info');
-                    }
                 } else {
                     showToast(result.error || 'Failed to send code', 'error');
                 }
@@ -3736,16 +4093,13 @@
             }
         }
 
-        function togglePreference(el) {
-            el.classList.toggle('selected');
-        }
 
         function populateConfirmationDetails() {
             const c = AppState.customer || {};
             const m = AppState.membership || {};
             document.getElementById('confirmName').textContent = c.Contact_Name || m.Name || 'Not provided';
             document.getElementById('confirmEmail').textContent = m.Email || c.Email || 'Not provided';
-            const phone = document.getElementById('phoneInput')?.value || c.Phone || '';
+            const phone = document.getElementById('onboardingPhoneInput')?.value || c.Phone || '';
             document.getElementById('confirmPhone').textContent = phone || 'Not provided';
 
             // Populate schedule info based on frequency and week assignment
@@ -4359,14 +4713,8 @@
         // ═══════════════════════════════════════════════════════════════════════════
 
         function checkAlerts() {
-            // Check for customization deadline
-            const deadlineHours = 48; // Demo: 48 hours until deadline
-
-            if (deadlineHours <= 24) {
-                showAlert('urgent', `Customization closes in ${deadlineHours} hours!`, 'Customize', () => openCustomizeModal());
-            } else if (AppState.membership?.Swap_Credits > 2) {
-                showAlert('info', `You have ${AppState.membership.Swap_Credits} unused swap credits`, 'Use Now', () => openCustomizeModal());
-            }
+            // Placeholder - will be wired to real deadline data from API
+            return;
         }
 
         function showAlert(type, text, actionText, actionFn) {
@@ -4614,14 +4962,16 @@
                         }
                     })
                 });
+                const result = await response.json();
 
-                hideDisputeForm();
-                showToast('Thanks! We\'ll review and get back to you shortly.', 'success');
-
+                if (result.success) {
+                    hideDisputeForm();
+                    showToast('Thanks! We\'ll review and get back to you shortly.', 'success');
+                } else {
+                    showToast(result.error || 'Failed to submit dispute. Please try again.', 'error');
+                }
             } catch (error) {
-                console.log('Error submitting dispute:', error);
-                hideDisputeForm();
-                showToast('Received! We\'ll be in touch soon.', 'success');
+                showToast('Unable to submit dispute. Please try again.', 'error');
             }
         }
 
@@ -4903,16 +5253,122 @@
         }
 
         function openCustomizeModal() {
-            showToast('Opening full customization...', 'info');
-            // Could open a more comprehensive customization view
+            const box = AppState.currentBox;
+            if (!box || !box.items || box.items.length === 0) {
+                showToast('No box contents available to customize yet.', 'warning');
+                return;
+            }
+
+            const credits = AppState.membership?.Swap_Credits || 0;
+            const container = document.getElementById('customizeItemsList');
+            container.innerHTML = box.items.map(item => {
+                const canSwap = item.Is_Swappable && credits > 0;
+                return `
+                    <div class="customize-item">
+                        <div class="customize-item-emoji">${esc(item.emoji || '🥬')}</div>
+                        <div class="customize-item-info">
+                            <div class="customize-item-name">${esc(item.Product_Name)}</div>
+                            <div class="customize-item-qty">${esc(item.Quantity)} ${esc(item.Unit)}</div>
+                        </div>
+                        ${item.Is_Swappable ? `
+                            <button class="customize-swap-btn" onclick="closeCustomizeModal(); openSwapModal('${esc(item.Product_Name)}', '${esc(item.emoji || '🥬')}')" ${!canSwap ? 'disabled title="No swap credits remaining"' : ''}>
+                                <i class="fas fa-exchange-alt"></i> Swap
+                            </button>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('customizeModal').style.display = 'flex';
         }
 
-        function viewBoxDetails() {
-            showToast('Box details', 'info');
+        function closeCustomizeModal() {
+            document.getElementById('customizeModal').style.display = 'none';
         }
 
-        function viewUpcomingBox(date) {
-            showToast(`Viewing box for ${date}`, 'info');
+        function viewBoxDetails(date) {
+            const box = AppState.currentBox;
+            if (!box || !box.items || box.items.length === 0) {
+                showToast('No box contents available yet.', 'warning');
+                return;
+            }
+
+            const weekLabel = box.weekDate ? formatWeekDate(box.weekDate) : 'This Week';
+            document.getElementById('boxDetailsTitle').textContent = 'This Week\'s Box';
+            document.getElementById('boxDetailsDate').querySelector('span').textContent = `Week of ${esc(weekLabel)}`;
+
+            const container = document.getElementById('boxDetailsList');
+            container.innerHTML = box.items.map(item => `
+                <div class="customize-item">
+                    <div class="customize-item-emoji">${esc(item.emoji || '🥬')}</div>
+                    <div class="customize-item-info">
+                        <div class="customize-item-name">${esc(item.Product_Name)}</div>
+                        <div class="customize-item-qty">${esc(item.Quantity)} ${esc(item.Unit)}</div>
+                    </div>
+                </div>
+            `).join('');
+
+            if (box.notes) {
+                container.insertAdjacentHTML('beforeend', `
+                    <div class="detail-note" style="margin: var(--ts-space-3, 12px) var(--ts-space-4, 16px);">
+                        <i class="fas fa-sticky-note"></i>
+                        <span>${esc(box.notes)}</span>
+                    </div>
+                `);
+            }
+
+            document.getElementById('boxDetailsModal').style.display = 'flex';
+        }
+
+        function closeBoxDetailsModal() {
+            document.getElementById('boxDetailsModal').style.display = 'none';
+        }
+
+        async function viewUpcomingBox(date) {
+            // Open details modal with loading state
+            document.getElementById('boxDetailsTitle').textContent = 'Upcoming Box';
+            document.getElementById('boxDetailsDate').querySelector('span').textContent = `Week of ${esc(date)}`;
+            document.getElementById('boxDetailsList').innerHTML = `
+                <div style="text-align: center; padding: var(--ts-space-8, 32px);">
+                    <span class="loading-spinner"></span>
+                    <div style="margin-top: var(--ts-space-3, 12px); color: var(--text-muted); font-size: var(--ts-text-sm, 0.875rem);">Loading box contents...</div>
+                </div>
+            `;
+            document.getElementById('boxDetailsModal').style.display = 'flex';
+
+            try {
+                const response = await fetch(`${API_URL}?action=getBoxContents&weekDate=${encodeURIComponent(date)}&shareType=${encodeURIComponent(AppState.membership?.Share_Type || '')}`);
+                const result = await response.json();
+
+                if (result.success && result.items && result.items.length > 0) {
+                    document.getElementById('boxDetailsList').innerHTML = result.items.map(item => `
+                        <div class="customize-item">
+                            <div class="customize-item-emoji">${esc(item.emoji || '🥬')}</div>
+                            <div class="customize-item-info">
+                                <div class="customize-item-name">${esc(item.Product_Name)}</div>
+                                <div class="customize-item-qty">${esc(item.Quantity)} ${esc(item.Unit)}</div>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    document.getElementById('boxDetailsList').innerHTML = `
+                        <div class="empty-state" style="padding: var(--ts-space-8, 32px);">
+                            <div class="empty-state-icon">📋</div>
+                            <div class="empty-state-title">Not Yet Available</div>
+                            <div class="empty-state-text">Box contents for this week haven't been finalized yet. Check back closer to the pickup date.</div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Failed to load upcoming box:', error);
+                document.getElementById('boxDetailsList').innerHTML = `
+                    <div class="empty-state" style="padding: var(--ts-space-8, 32px);">
+                        <div class="empty-state-icon">⚠️</div>
+                        <div class="empty-state-title">Unable to Load</div>
+                        <div class="empty-state-text">Box contents not yet available for this week. Please try again later.</div>
+                    </div>
+                `;
+            }
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
@@ -5373,8 +5829,8 @@
                     date: weekDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
                     week: `Week ${10 + i}`,
                     fullDate: weekDate.toISOString().split('T')[0],
-                    isHold: i === 3, // Demo: one already scheduled
-                    holdType: i === 3 ? 'credit' : null // Demo: show what type was selected
+                    isHold: false,
+                    holdType: null
                 });
             }
 
@@ -5512,10 +5968,11 @@
                 if (result.success) {
                     showToast('Hold cancelled', 'success');
                     loadVacationHolds();
+                } else {
+                    showToast(result.error || 'Failed to cancel hold', 'error');
                 }
             } catch (error) {
-                showToast('Hold cancelled', 'success');
-                loadVacationHolds();
+                showToast('Unable to cancel hold. Please try again.', 'error');
             }
         }
 
@@ -5783,15 +6240,221 @@
         }
 
         function showDislikesSettings() {
-            showToast('Opening item preferences...', 'info');
+            const commonVeggies = [
+                { name: 'Beets', emoji: '🟣' },
+                { name: 'Radishes', emoji: '🔴' },
+                { name: 'Turnips', emoji: '🤍' },
+                { name: 'Kale', emoji: '🥬' },
+                { name: 'Cilantro', emoji: '🌿' },
+                { name: 'Arugula', emoji: '🥗' },
+                { name: 'Eggplant', emoji: '🍆' },
+                { name: 'Okra', emoji: '🟢' },
+                { name: 'Swiss Chard', emoji: '🥬' },
+                { name: 'Collard Greens', emoji: '🥬' },
+                { name: 'Hot Peppers', emoji: '🌶️' },
+                { name: 'Fennel', emoji: '🌱' },
+                { name: 'Kohlrabi', emoji: '🟣' },
+                { name: 'Parsnips', emoji: '🤍' },
+                { name: 'Celery', emoji: '🟢' },
+                { name: 'Brussels Sprouts', emoji: '🟢' }
+            ];
+
+            const currentDislikes = (AppState.preferences?.dislikes || []).map(d => d.toLowerCase());
+            const grid = document.getElementById('veggieToggleGrid');
+
+            grid.innerHTML = commonVeggies.map(v => {
+                const isActive = currentDislikes.some(d => v.name.toLowerCase().includes(d) || d.includes(v.name.toLowerCase()));
+                return `
+                    <div class="veggie-toggle ${isActive ? 'active' : ''}" onclick="toggleVeggieDislike(this)" data-veggie="${esc(v.name)}" role="checkbox" aria-checked="${isActive}" tabindex="0">
+                        <span class="veggie-toggle-emoji">${v.emoji}</span>
+                        <span class="veggie-toggle-name">${esc(v.name)}</span>
+                        <i class="fas fa-times-circle veggie-toggle-icon"></i>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('dislikesModal').style.display = 'flex';
+        }
+
+        function toggleVeggieDislike(el) {
+            el.classList.toggle('active');
+            el.setAttribute('aria-checked', el.classList.contains('active'));
+        }
+
+        function closeDislikesModal() {
+            document.getElementById('dislikesModal').style.display = 'none';
+        }
+
+        async function saveDislikes() {
+            const activeToggles = document.querySelectorAll('#veggieToggleGrid .veggie-toggle.active');
+            const dislikes = Array.from(activeToggles).map(el => el.dataset.veggie);
+
+            AppState.preferences.dislikes = dislikes;
+
+            const btn = document.getElementById('saveDislikesBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading-spinner" style="width: 16px; height: 16px;"></span> Saving...';
+
+            try {
+                await fetch(`${API_URL}?action=updateCSAMemberPreferences`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({
+                        memberId: AppState.membership?.Member_ID,
+                        preferences: AppState.preferences
+                    })
+                });
+
+                saveSession();
+                closeDislikesModal();
+                showToast('Item preferences saved!', 'success');
+
+                // Refresh box display to highlight newly disliked items
+                if (AppState.currentBox?.items) {
+                    renderBoxItems(AppState.currentBox.items);
+                }
+            } catch (error) {
+                console.error('Failed to save dislikes:', error);
+                showToast('Preferences saved locally. Will sync when connected.', 'warning');
+                saveSession();
+                closeDislikesModal();
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-check"></i> Save Preferences';
+            }
         }
 
         function contactFarm() {
-            showToast('Opening contact form...', 'info');
+            // Pre-fill form fields from AppState
+            const nameEl = document.getElementById('contactName');
+            const emailEl = document.getElementById('contactEmail');
+
+            nameEl.value = AppState.customer?.Contact_Name || AppState.membership?.Name || '';
+            emailEl.value = AppState.customer?.Email || AppState.membership?.Email || '';
+            document.getElementById('contactMessage').value = '';
+
+            document.getElementById('contactModal').style.display = 'flex';
         }
 
-        function viewAllUpdates() {
-            showToast('Opening farm updates...', 'info');
+        function closeContactModal() {
+            document.getElementById('contactModal').style.display = 'none';
+        }
+
+        async function submitContactMessage() {
+            const message = document.getElementById('contactMessage').value.trim();
+            if (!message) {
+                showToast('Please enter a message.', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('sendContactBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading-spinner" style="width: 16px; height: 16px;"></span> Sending...';
+
+            try {
+                const email = AppState.customer?.Email || AppState.membership?.Email || '';
+                const name = AppState.customer?.Contact_Name || AppState.membership?.Name || '';
+
+                await fetch(`${API_URL}?action=submitCSADispute`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        email: email,
+                        name: name,
+                        dispute: message,
+                        type: 'contact',
+                        memberData: {
+                            shareType: AppState.membership?.Share_Type,
+                            season: AppState.membership?.Season,
+                            pickupLocation: AppState.membership?.Pickup_Location
+                        }
+                    })
+                });
+
+                closeContactModal();
+                showToast('Message sent! We\'ll get back to you soon.', 'success');
+
+            } catch (error) {
+                console.error('Failed to send contact message:', error);
+                showToast('Unable to send message. Please try emailing us directly.', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Message';
+            }
+        }
+
+        async function viewAllUpdates() {
+            // Open slide panel
+            document.getElementById('updatesPanelOverlay').classList.add('open');
+            document.getElementById('updatesPanel').classList.add('open');
+
+            // Show existing hardcoded updates first
+            const body = document.getElementById('updatesPanelBody');
+            body.innerHTML = `
+                <div style="text-align: center; padding: var(--ts-space-8, 32px);">
+                    <span class="loading-spinner"></span>
+                    <div style="margin-top: var(--ts-space-3, 12px); color: var(--text-muted); font-size: var(--ts-text-sm, 0.875rem);">Loading updates...</div>
+                </div>
+            `;
+
+            try {
+                const response = await fetch(`${API_URL}?action=getRecentSocialPosts`);
+                const result = await response.json();
+
+                if (result.success && result.posts && result.posts.length > 0) {
+                    body.innerHTML = result.posts.map(post => `
+                        <div class="update-panel-card">
+                            ${post.image ? `<div class="update-panel-emoji"><img src="${esc(post.image)}" alt="Farm update" style="width: 100%; border-radius: var(--radius-sm); max-height: 180px; object-fit: cover;" onerror="this.style.display='none'"></div>` : ''}
+                            <div class="update-panel-date">
+                                <i class="fab fa-${esc(post.platform || 'instagram')}" style="margin-right: 4px;"></i>
+                                ${esc(post.date || '')}
+                            </div>
+                            ${post.title ? `<div class="update-panel-title">${esc(post.title)}</div>` : ''}
+                            <div class="update-panel-text">${esc(post.content || post.caption || '')}</div>
+                        </div>
+                    `).join('');
+                } else {
+                    renderFallbackUpdates(body);
+                }
+            } catch (error) {
+                console.error('Failed to load updates:', error);
+                renderFallbackUpdates(body);
+            }
+        }
+
+        function renderFallbackUpdates(container) {
+            // Show the static updates from the page as fallback
+            const feedEl = document.getElementById('updatesFeed');
+            if (feedEl && feedEl.children.length > 0) {
+                const updates = Array.from(feedEl.querySelectorAll('.update-card'));
+                if (updates.length > 0) {
+                    container.innerHTML = updates.map(card => {
+                        const text = card.querySelector('.update-text')?.textContent || '';
+                        const meta = card.querySelector('.update-meta span')?.textContent || '';
+                        const emojiEl = card.querySelector('.update-image');
+                        const emoji = emojiEl ? emojiEl.textContent.trim() : '🌱';
+                        return `
+                            <div class="update-panel-card">
+                                <div class="update-panel-emoji">${esc(emoji)}</div>
+                                <div class="update-panel-date">${esc(meta)}</div>
+                                <div class="update-panel-text">${esc(text)}</div>
+                            </div>
+                        `;
+                    }).join('');
+                    return;
+                }
+            }
+            container.innerHTML = `
+                <div class="updates-empty">
+                    <i class="fas fa-newspaper"></i>
+                    <div style="font-weight: 600; margin-bottom: var(--ts-space-2, 8px);">No Updates Available</div>
+                    <div style="font-size: var(--ts-text-sm, 0.875rem);">Check back soon for the latest from the farm!</div>
+                </div>
+            `;
+        }
+
+        function closeUpdatesPanel() {
+            document.getElementById('updatesPanelOverlay').classList.remove('open');
+            document.getElementById('updatesPanel').classList.remove('open');
         }
 
         // ═══════════════════════════════════════════════════════════════════════════

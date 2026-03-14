@@ -14451,7 +14451,7 @@ function doGet(e) {
     // Webhook verification
     'verifyShopifyWebhook',
     // Customer-facing (uses customer token, not admin session)
-    'verifyChefToken', 'getChefPortal',
+    'verifyChefToken', 'getChefPortal', 'checkWholesaleAdmin',
     // Weather/public data (no PII)
     'getWeatherSummary', 'getWeatherData',
     // Shopify-embedded customer-facing pages (no auth — public visitors)
@@ -15579,6 +15579,8 @@ function doGet(e) {
         return jsonResponse({ success: true, minimumOrder: getCustomerMinimumOrder(e.parameter.customerId) });
       case 'getWholesaleDeliveryStatus':
         return jsonResponse(getWholesaleDeliveryStatus(e.parameter.customerId));
+      case 'checkWholesaleAdmin':
+        return jsonResponse(checkWholesaleAdmin(e.parameter));
 
       case 'getCSAProducts':
         return jsonResponse(getCSAProducts(e.parameter));
@@ -15602,8 +15604,7 @@ function doGet(e) {
       // ============ FLEX CSA GIFT CARD ENDPOINTS ============
       case 'getFlexBalance':
         return jsonResponse(getCustomerFlexBalance(e.parameter.email));
-      case 'addFlexFunds':
-        return jsonResponse(addFlexFunds(e.parameter));
+      // SECURITY: addFlexFunds moved to POST handler (P0-2 — state-changing via GET is CSRF-able)
       case 'getFlexCheckoutUrl':
         return jsonResponse(getFlexFundsCheckoutUrl(e.parameter.email, e.parameter.amount));
       case 'adminAddFlexCredits':
@@ -16611,9 +16612,7 @@ function doGet(e) {
         return jsonResponse(clearShopifyCustomers());
       case 'autoCleanupCustomers':
         return jsonResponse(autoCleanupCustomers());
-      case 'addCSAMemberDirect':
-        // MCP direct import endpoint - creates customer and CSA member in one call
-        return jsonResponse(addCSAMemberDirect(e.parameter));
+      // SECURITY: addCSAMemberDirect moved to POST handler (P0-2 — state-changing via GET is CSRF-able)
       case 'fullCSAImport':
         return jsonResponse(fullCSAImportFromShopify(e.parameter));
 
@@ -18201,7 +18200,11 @@ function doPost(e) {
       // Sowing sheets page (task sheets write operations)
       'batchUpdatePlanningFields', 'addPlanting', 'deletePlanting',
       // Customer-facing (CSA/wholesale use magic-link auth, not session tokens)
-      'submitCSAOrder', 'customizeCSABox', 'updateCustomerProfile'
+      'submitCSAOrder', 'customizeCSABox', 'updateCustomerProfile',
+      // Flex CSA / CSA member write (moved from GET — P0-2 fix)
+      'addFlexFunds', 'addCSAMemberDirect',
+      // Wholesale admin check (uses customer token)
+      'checkWholesaleAdmin'
     ]);
 
     if (action && !PUBLIC_POST_ACTIONS.has(action)) {
@@ -18457,6 +18460,16 @@ function doPost(e) {
         return jsonResponse(customizeCSABox(data));
       case 'updateCustomerProfile':
         return jsonResponse(updateCustomerProfile(data));
+
+      // ============ FLEX CSA / CSA MEMBER WRITE ENDPOINTS (moved from GET — P0-2 fix) ============
+      case 'addFlexFunds':
+        return jsonResponse(addFlexFunds(data));
+      case 'addCSAMemberDirect':
+        return jsonResponse(addCSAMemberDirect(data));
+
+      // ============ WHOLESALE ADMIN CHECK ============
+      case 'checkWholesaleAdmin':
+        return jsonResponse(checkWholesaleAdmin(data));
 
       // ============ SALES MODULE - MANAGER ACTIONS ============
       case 'createSalesOrder':
@@ -42875,6 +42888,50 @@ function getOrderItems(orderId) {
   return items;
 }
 
+/**
+ * Look up authoritative prices from REF_Crops by cropId.
+ * Returns a map of cropId → { price, unit, name } for the given price type.
+ * @param {string} priceType - 'Wholesale', 'CSA', or 'Retail'
+ * @returns {Object} Map of cropId to price data
+ */
+function lookupServerPrices_(priceType) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('REF_Crops');
+  if (!sheet) return {};
+
+  var data = sheet.getDataRange().getValues();
+  var headers = data[0];
+  var cropIdCol = headers.indexOf('Crop_ID');
+  var nameCol = headers.indexOf('Crop_Name') !== -1 ? headers.indexOf('Crop_Name') : headers.indexOf('Item_Name');
+  var unitCol = headers.indexOf('Sales_Unit') !== -1 ? headers.indexOf('Sales_Unit') : headers.indexOf('Unit');
+  var wholesalePriceCol = headers.indexOf('Wholesale_Price');
+  var retailPriceCol = headers.indexOf('Retail_Price');
+  var csaPriceCol = headers.indexOf('CSA_Price') !== -1 ? headers.indexOf('CSA_Price') : wholesalePriceCol;
+
+  var priceMap = {};
+  for (var i = 1; i < data.length; i++) {
+    var row = data[i];
+    var id = cropIdCol !== -1 ? String(row[cropIdCol]).trim() : '';
+    if (!id) continue;
+
+    var price = 0;
+    if (priceType === 'Wholesale' && wholesalePriceCol !== -1) {
+      price = parseFloat(row[wholesalePriceCol]) || 0;
+    } else if (priceType === 'CSA' && csaPriceCol !== -1) {
+      price = parseFloat(row[csaPriceCol]) || 0;
+    } else if (retailPriceCol !== -1) {
+      price = parseFloat(row[retailPriceCol]) || 0;
+    }
+
+    priceMap[id] = {
+      price: price,
+      unit: unitCol !== -1 ? row[unitCol] : 'each',
+      name: nameCol !== -1 ? row[nameCol] : ''
+    };
+  }
+  return priceMap;
+}
+
 function createSalesOrder(data) {
   try {
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
@@ -42884,22 +42941,41 @@ function createSalesOrder(data) {
     const orderId = 'ORD-' + Date.now();
     const now = new Date().toISOString();
 
-    // SECURITY FIX 2026-02-28: Validate prices server-side — never trust client-supplied prices
+    // SECURITY: Server-side price lookup — NEVER trust client-supplied prices
     const items = data.items || [];
     if (items.length === 0) {
       return { success: false, error: 'Order must contain at least one item' };
     }
+
+    // Determine price type based on customer type
+    var priceType = 'Retail';
+    if (data.customerType === 'Wholesale' || data.customerType === 'Chef') {
+      priceType = 'Wholesale';
+    } else if (data.customerType === 'CSA') {
+      priceType = 'CSA';
+    }
+
+    // Look up authoritative prices from REF_Crops
+    var serverPrices = lookupServerPrices_(priceType);
+
     for (const item of items) {
-      if (typeof item.unitPrice !== 'number' || item.unitPrice < 0) {
-        return { success: false, error: 'Invalid price for ' + (item.productName || 'item') + ': price must be non-negative' };
-      }
       if (typeof item.quantity !== 'number' || item.quantity <= 0) {
         return { success: false, error: 'Invalid quantity for ' + (item.productName || 'item') + ': must be positive' };
       }
-      // Reject suspiciously low prices (below $0.10/unit) — likely manipulation
-      if (item.unitPrice > 0 && item.unitPrice < 0.10) {
-        Logger.log('SECURITY WARNING: Suspiciously low price rejected: $' + item.unitPrice + ' for ' + item.productName);
-        return { success: false, error: 'Price too low for ' + (item.productName || 'item') + '. Contact admin for pricing.' };
+      // Override client price with server-side price
+      var cropId = String(item.cropId || '').trim();
+      if (cropId && serverPrices[cropId]) {
+        var serverPrice = serverPrices[cropId].price;
+        if (item.unitPrice !== undefined && Math.abs(item.unitPrice - serverPrice) > 0.01) {
+          Logger.log('SECURITY: Price mismatch for ' + cropId + ': client sent $' + item.unitPrice + ', server price is $' + serverPrice + '. Using server price.');
+        }
+        item.unitPrice = serverPrice;
+      } else if (typeof item.unitPrice !== 'number' || item.unitPrice < 0) {
+        return { success: false, error: 'Invalid price for ' + (item.productName || 'item') + ': product not found in catalog' };
+      }
+      // Reject zero-price items (unless intentionally free)
+      if (item.unitPrice <= 0) {
+        return { success: false, error: 'No price found for ' + (item.productName || 'item') + '. Contact admin for pricing.' };
       }
     }
 
@@ -42982,6 +43058,9 @@ function createSalesOrder(data) {
  * - 1.4 Minimum Order Validation
  */
 function submitWholesaleOrder(data) {
+  var lock = LockService.getScriptLock();
+  try { lock.waitLock(15000); }
+  catch (lockErr) { return { success: false, error: 'System busy — please try again in a few seconds.' }; }
   try {
     // ═══════════════════════════════════════════════════════════════════════════
     // PRIORITY 1.4: MINIMUM ORDER VALIDATION
@@ -43080,6 +43159,8 @@ function submitWholesaleOrder(data) {
 
   } catch (error) {
     return { success: false, error: error.toString() };
+  } finally {
+    lock.releaseLock();
   }
 }
 
@@ -43149,7 +43230,16 @@ function getCustomerPhone(customerId) {
 }
 
 function submitCSAOrder(data) {
-  return createSalesOrder({ ...data, customerType: 'CSA', source: 'CSA Portal' });
+  var lock = LockService.getScriptLock();
+  try { lock.waitLock(15000); }
+  catch (lockErr) { return { success: false, error: 'System busy — please try again in a few seconds.' }; }
+  try {
+    return createSalesOrder({ ...data, customerType: 'CSA', source: 'CSA Portal' });
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 /**
@@ -43450,6 +43540,9 @@ function initializeStandingOrdersModule() {
  * Create a new standing order
  */
 function createStandingOrder(data) {
+  var lock = LockService.getScriptLock();
+  try { lock.waitLock(15000); }
+  catch (lockErr) { return { success: false, error: 'System busy — please try again in a few seconds.' }; }
   try {
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName(STANDING_ORDER_SHEETS.STANDING_ORDERS);
@@ -43485,7 +43578,7 @@ function createStandingOrder(data) {
       data.notes || ''
     ];
 
-    sheet.appendRow(row);
+    sheet.appendRow(sanitizeRowForSheet(row));
 
     return {
       success: true,
@@ -43495,6 +43588,8 @@ function createStandingOrder(data) {
     };
   } catch (error) {
     return { success: false, error: error.toString() };
+  } finally {
+    lock.releaseLock();
   }
 }
 
@@ -43607,6 +43702,9 @@ function getStandingOrdersDue(params) {
  * Update a standing order
  */
 function updateStandingOrder(data) {
+  var lock = LockService.getScriptLock();
+  try { lock.waitLock(15000); }
+  catch (lockErr) { return { success: false, error: 'System busy — please try again in a few seconds.' }; }
   try {
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(STANDING_ORDER_SHEETS.STANDING_ORDERS);
@@ -43623,7 +43721,7 @@ function updateStandingOrder(data) {
           if (data[field] !== undefined || data[field.toLowerCase()] !== undefined) {
             const col = headers.indexOf(field);
             if (col !== -1) {
-              sheet.getRange(i + 1, col + 1).setValue(data[field] || data[field.toLowerCase()]);
+              sheet.getRange(i + 1, col + 1).setValue(sanitizeForSheet(data[field] || data[field.toLowerCase()]));
             }
           }
         });
@@ -43634,7 +43732,7 @@ function updateStandingOrder(data) {
           const day = data.dayOfWeek || values[i][headers.indexOf('Day_of_Week')];
           const nextDue = calculateNextDueDate(day, freq, new Date());
           const nextDueCol = headers.indexOf('Next_Due_Date');
-          if (nextDueCol !== -1) sheet.getRange(i + 1, nextDueCol + 1).setValue(nextDue);
+          if (nextDueCol !== -1) sheet.getRange(i + 1, nextDueCol + 1).setValue(sanitizeForSheet(nextDue));
         }
 
         return { success: true, message: 'Standing order updated' };
@@ -43644,6 +43742,8 @@ function updateStandingOrder(data) {
     return { success: false, error: 'Standing order not found' };
   } catch (error) {
     return { success: false, error: error.toString() };
+  } finally {
+    lock.releaseLock();
   }
 }
 
@@ -43691,6 +43791,9 @@ function resumeStandingOrder(data) {
  * Mark standing order as fulfilled
  */
 function markStandingOrderFulfilled(data) {
+  var lock = LockService.getScriptLock();
+  try { lock.waitLock(15000); }
+  catch (lockErr) { return { success: false, error: 'System busy — please try again in a few seconds.' }; }
   try {
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(STANDING_ORDER_SHEETS.STANDING_ORDERS);
@@ -43711,15 +43814,15 @@ function markStandingOrderFulfilled(data) {
         const totalFulfilledCol = headers.indexOf('Total_Fulfilled');
         const nextDueCol = headers.indexOf('Next_Due_Date');
 
-        sheet.getRange(i + 1, lastFulfilledCol + 1).setValue(now.toISOString().split('T')[0]);
+        sheet.getRange(i + 1, lastFulfilledCol + 1).setValue(sanitizeForSheet(now.toISOString().split('T')[0]));
         sheet.getRange(i + 1, totalFulfilledCol + 1).setValue((orderData.Total_Fulfilled || 0) + 1);
 
         // Calculate next due date
         const nextDue = calculateNextDueDateFromFrequency(orderData.Frequency, orderData.Day_of_Week, now);
-        sheet.getRange(i + 1, nextDueCol + 1).setValue(nextDue);
+        sheet.getRange(i + 1, nextDueCol + 1).setValue(sanitizeForSheet(nextDue));
 
         // Log fulfillment
-        logSheet.appendRow([
+        logSheet.appendRow(sanitizeRowForSheet([
           'FL_' + Date.now(),
           data.standingOrderId,
           orderData.Customer_ID,
@@ -43731,7 +43834,7 @@ function markStandingOrderFulfilled(data) {
           '',
           false,
           data.notes || ''
-        ]);
+        ]));
 
         return { success: true, message: 'Standing order marked as fulfilled', nextDueDate: nextDue };
       }
@@ -43740,6 +43843,8 @@ function markStandingOrderFulfilled(data) {
     return { success: false, error: 'Standing order not found' };
   } catch (error) {
     return { success: false, error: error.toString() };
+  } finally {
+    lock.releaseLock();
   }
 }
 
@@ -43779,6 +43884,9 @@ function calculateNextDueDateFromFrequency(frequency, dayOfWeek, fromDate) {
  * Mark standing order as shorted (unable to fulfill) - triggers notifications
  */
 function markStandingOrderShorted(data) {
+  var lock = LockService.getScriptLock();
+  try { lock.waitLock(15000); }
+  catch (lockErr) { return { success: false, error: 'System busy — please try again in a few seconds.' }; }
   try {
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(STANDING_ORDER_SHEETS.STANDING_ORDERS);
@@ -43802,11 +43910,11 @@ function markStandingOrderShorted(data) {
 
         // Calculate next due date (still moves forward)
         const nextDue = calculateNextDueDateFromFrequency(orderData.Frequency, orderData.Day_of_Week, now);
-        sheet.getRange(i + 1, nextDueCol + 1).setValue(nextDue);
+        sheet.getRange(i + 1, nextDueCol + 1).setValue(sanitizeForSheet(nextDue));
 
         // Log shortage
         const logId = 'FL_' + Date.now();
-        logSheet.appendRow([
+        logSheet.appendRow(sanitizeRowForSheet([
           logId,
           data.standingOrderId,
           orderData.Customer_ID,
@@ -43818,7 +43926,7 @@ function markStandingOrderShorted(data) {
           data.reason || 'Unspecified',
           false,
           data.notes || ''
-        ]);
+        ]));
 
         // Send notifications
         const notificationResult = sendShortageNotifications({
@@ -43855,6 +43963,8 @@ function markStandingOrderShorted(data) {
     return { success: false, error: 'Standing order not found' };
   } catch (error) {
     return { success: false, error: error.toString() };
+  } finally {
+    lock.releaseLock();
   }
 }
 
@@ -44517,6 +44627,44 @@ function verifyChefToken_Duplicate_Legacy(token, email) {
 }
 
 /**
+ * Server-side admin check for wholesale portal (P1-5 fix)
+ * Replaces client-side hardcoded admin email list
+ */
+function checkWholesaleAdmin(data) {
+  var email = String(data.email || '').trim().toLowerCase();
+  if (!email) return { success: true, isAdmin: false };
+
+  // Admin list: owner + any users with Admin role in USERS sheet
+  var OWNER_EMAILS = ['samanthapollack@gmail.com', 'sam@tinyseedfarm.com'];
+  if (OWNER_EMAILS.indexOf(email) >= 0) {
+    return { success: true, isAdmin: true };
+  }
+
+  try {
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var usersSheet = ss.getSheetByName('USERS');
+    if (!usersSheet) return { success: true, isAdmin: false };
+    var userData = usersSheet.getDataRange().getValues();
+    var headers = userData[0];
+    var emailCol = headers.indexOf('Email');
+    var roleCol = headers.indexOf('Role');
+    if (emailCol < 0) return { success: true, isAdmin: false };
+
+    for (var i = 1; i < userData.length; i++) {
+      if (String(userData[i][emailCol]).trim().toLowerCase() === email) {
+        var role = String(userData[i][roleCol] || '').toLowerCase();
+        if (role === 'admin' || role === 'owner' || role === 'manager') {
+          return { success: true, isAdmin: true };
+        }
+      }
+    }
+  } catch (e) {
+    Logger.log('checkWholesaleAdmin error: ' + e.toString());
+  }
+  return { success: true, isAdmin: false };
+}
+
+/**
  * Get wholesale customer by ID
  * FIXED 2026-01-28: Use openById for web app context
  */
@@ -44781,6 +44929,9 @@ function addTestCSAMember(params) {
 }
 
 function createCSAMember(data) {
+  var lock = LockService.getScriptLock();
+  try { lock.waitLock(15000); }
+  catch (lockErr) { return { success: false, error: 'System busy — please try again in a few seconds.' }; }
   try {
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
@@ -44788,7 +44939,7 @@ function createCSAMember(data) {
     const memberId = 'CSA-' + Date.now();
     const now = new Date();
 
-    sheet.appendRow([
+    sheet.appendRow(sanitizeRowForSheet([
       memberId,                                           // Member_ID
       data.customerId,                                    // Customer_ID
       data.shareType || 'Vegetable',                      // Share_Type
@@ -44819,7 +44970,7 @@ function createCSAMember(data) {
       now,                                                // Created_Date
       now,                                                // Last_Modified
       data.notes || ''                                    // Notes
-    ]);
+    ]));
 
     // === INTEGRATION: Add CSA member to SALES_Customers for sales dashboard ===
     try {
@@ -44840,6 +44991,8 @@ function createCSAMember(data) {
     return { success: true, memberId: memberId };
   } catch (error) {
     return { success: false, error: error.toString() };
+  } finally {
+    lock.releaseLock();
   }
 }
 
@@ -45393,6 +45546,9 @@ function importCSAFromShopifyCSV(params) {
 }
 
 function updateCSAMember(data) {
+  var lock = LockService.getScriptLock();
+  try { lock.waitLock(15000); }
+  catch (lockErr) { return { success: false, error: 'System busy — please try again in a few seconds.' }; }
   try {
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
@@ -45403,7 +45559,7 @@ function updateCSAMember(data) {
       if (values[i][0] === data.memberId) {
         const updateField = (fieldName, value) => {
           const col = headers.indexOf(fieldName);
-          if (col >= 0) sheet.getRange(i + 1, col + 1).setValue(value);
+          if (col >= 0) sheet.getRange(i + 1, col + 1).setValue(sanitizeForSheet(value));
         };
 
         // Update provided fields
@@ -45428,6 +45584,8 @@ function updateCSAMember(data) {
     return { success: false, error: 'Member not found' };
   } catch (error) {
     return { success: false, error: error.toString() };
+  } finally {
+    lock.releaseLock();
   }
 }
 
@@ -46545,6 +46703,9 @@ function createCSAMemberFromShopify(data) {
  * Expects query params: name, email, phone, shareType, season, status, notes, address, city, state, zip
  */
 function addCSAMemberDirect(params) {
+  var lock = LockService.getScriptLock();
+  try { lock.waitLock(15000); }
+  catch (lockErr) { return { success: false, error: 'System busy — please try again in a few seconds.' }; }
   try {
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
 
@@ -46602,7 +46763,7 @@ function addCSAMemberDirect(params) {
       if (getCustCol('Source') >= 0) custRow[getCustCol('Source')] = 'Shopify MCP Import';
       if (getCustCol('Created_At') >= 0) custRow[getCustCol('Created_At')] = new Date();
 
-      customerSheet.appendRow(custRow);
+      customerSheet.appendRow(sanitizeRowForSheet(custRow));
     }
 
     // Create CSA member
@@ -46628,7 +46789,7 @@ function addCSAMemberDirect(params) {
       csaRow[col] = new Date();
     }
 
-    csaSheet.appendRow(csaRow);
+    csaSheet.appendRow(sanitizeRowForSheet(csaRow));
 
     return {
       success: true,
@@ -46639,6 +46800,8 @@ function addCSAMemberDirect(params) {
 
   } catch (error) {
     return { success: false, error: error.toString() };
+  } finally {
+    lock.releaseLock();
   }
 }
 
@@ -47262,6 +47425,9 @@ function hasVacationHold(member, weekDate) {
  * Adds the date to their preferences.vacation_dates array
  */
 function scheduleVacationHold(data) {
+  var lock = LockService.getScriptLock();
+  try { lock.waitLock(15000); }
+  catch (lockErr) { return { success: false, error: 'System busy — please try again in a few seconds.' }; }
   try {
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
@@ -47327,6 +47493,8 @@ function scheduleVacationHold(data) {
     return { success: false, error: 'Member not found' };
   } catch (error) {
     return { success: false, error: error.toString() };
+  } finally {
+    lock.releaseLock();
   }
 }
 
@@ -47334,6 +47502,9 @@ function scheduleVacationHold(data) {
  * Cancels a vacation hold for a CSA member
  */
 function cancelVacationHold(data) {
+  var lock = LockService.getScriptLock();
+  try { lock.waitLock(15000); }
+  catch (lockErr) { return { success: false, error: 'System busy — please try again in a few seconds.' }; }
   try {
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
@@ -47389,6 +47560,8 @@ function cancelVacationHold(data) {
     return { success: false, error: 'Member not found' };
   } catch (error) {
     return { success: false, error: error.toString() };
+  } finally {
+    lock.releaseLock();
   }
 }
 
@@ -47523,6 +47696,9 @@ function getCSAPickupHistory(params) {
  * Update CSA member preferences (notifications, dislikes, etc.) and contact details
  */
 function updateCSAMemberPreferences(data) {
+  var lock = LockService.getScriptLock();
+  try { lock.waitLock(15000); }
+  catch (lockErr) { return { success: false, error: 'System busy — please try again in a few seconds.' }; }
   try {
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const memberId = data.memberId;
@@ -47579,7 +47755,7 @@ function updateCSAMemberPreferences(data) {
     if (data.secondaryPhone !== undefined) prefs.secondary_phone = data.secondaryPhone;
 
     // Update CSA_Members sheet - preferences
-    csaSheet.getRange(memberRow + 1, prefsIdx + 1).setValue(JSON.stringify(prefs));
+    csaSheet.getRange(memberRow + 1, prefsIdx + 1).setValue(sanitizeForSheet(JSON.stringify(prefs)));
     if (modifiedIdx >= 0) {
       csaSheet.getRange(memberRow + 1, modifiedIdx + 1).setValue(new Date());
     }
@@ -47587,7 +47763,7 @@ function updateCSAMemberPreferences(data) {
     // Handle isOnboarded field
     const isOnboardedIdx = headers.indexOf('Is_Onboarded');
     if (data.isOnboarded !== undefined && isOnboardedIdx >= 0) {
-      csaSheet.getRange(memberRow + 1, isOnboardedIdx + 1).setValue(data.isOnboarded);
+      csaSheet.getRange(memberRow + 1, isOnboardedIdx + 1).setValue(sanitizeForSheet(data.isOnboarded));
     }
 
     // Handle participation confirmation - add columns if needed
@@ -47601,7 +47777,7 @@ function updateCSAMemberPreferences(data) {
         csaSheet.getRange(1, lastCol + 1).setValue('Participation_Confirmed');
         confirmedIdx = lastCol;
       }
-      csaSheet.getRange(memberRow + 1, confirmedIdx + 1).setValue(data.participationConfirmed);
+      csaSheet.getRange(memberRow + 1, confirmedIdx + 1).setValue(sanitizeForSheet(data.participationConfirmed));
 
       // Add Confirmed_At column if it doesn't exist
       if (confirmedAtIdx === -1) {
@@ -47610,7 +47786,7 @@ function updateCSAMemberPreferences(data) {
         confirmedAtIdx = lastCol;
       }
       if (data.confirmedAt) {
-        csaSheet.getRange(memberRow + 1, confirmedAtIdx + 1).setValue(data.confirmedAt);
+        csaSheet.getRange(memberRow + 1, confirmedAtIdx + 1).setValue(sanitizeForSheet(data.confirmedAt));
       }
     }
 
@@ -47646,22 +47822,22 @@ function updateCSAMemberPreferences(data) {
           if (custData[j][custIdIdx] === foundCustomerId) {
             // Update contact details
             if (data.contactName && contactNameIdx >= 0) {
-              custSheet.getRange(j + 1, contactNameIdx + 1).setValue(data.contactName);
+              custSheet.getRange(j + 1, contactNameIdx + 1).setValue(sanitizeForSheet(data.contactName));
             }
             if (data.phone && phoneIdx >= 0) {
-              custSheet.getRange(j + 1, phoneIdx + 1).setValue(data.phone);
+              custSheet.getRange(j + 1, phoneIdx + 1).setValue(sanitizeForSheet(data.phone));
             }
             if (data.address && addressIdx >= 0) {
-              custSheet.getRange(j + 1, addressIdx + 1).setValue(data.address);
+              custSheet.getRange(j + 1, addressIdx + 1).setValue(sanitizeForSheet(data.address));
             }
             if (data.city && cityIdx >= 0) {
-              custSheet.getRange(j + 1, cityIdx + 1).setValue(data.city);
+              custSheet.getRange(j + 1, cityIdx + 1).setValue(sanitizeForSheet(data.city));
             }
             if (data.secondaryEmail !== undefined) {
-              custSheet.getRange(j + 1, secondaryEmailIdx + 1).setValue(data.secondaryEmail);
+              custSheet.getRange(j + 1, secondaryEmailIdx + 1).setValue(sanitizeForSheet(data.secondaryEmail));
             }
             if (data.secondaryPhone !== undefined) {
-              custSheet.getRange(j + 1, secondaryPhoneIdx + 1).setValue(data.secondaryPhone);
+              custSheet.getRange(j + 1, secondaryPhoneIdx + 1).setValue(sanitizeForSheet(data.secondaryPhone));
             }
             break;
           }
@@ -47676,6 +47852,8 @@ function updateCSAMemberPreferences(data) {
     };
   } catch (error) {
     return { success: false, error: error.toString() };
+  } finally {
+    lock.releaseLock();
   }
 }
 
@@ -47903,6 +48081,9 @@ function getFlexWeeklyOrder(data) {
  * Save a Flex member's weekly order
  */
 function saveFlexWeeklyOrder(data) {
+  var lock = LockService.getScriptLock();
+  try { lock.waitLock(15000); }
+  catch (lockErr) { return { success: false, error: 'System busy — please try again in a few seconds.' }; }
   try {
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName(SALES_SHEETS.FLEX_WEEKLY_ORDERS);
@@ -47920,6 +48101,22 @@ function saveFlexWeeklyOrder(data) {
     const weekDate = data.weekDate || getCurrentWeekDate();
     const orderId = `FLEX-${Date.now()}`;
     const items = data.items || [];
+
+    // SECURITY: Server-side price lookup — NEVER trust client-supplied prices
+    var csaPrices = lookupServerPrices_('CSA');
+    for (var fi = 0; fi < items.length; fi++) {
+      var fItem = items[fi];
+      var fCropId = String(fItem.cropId || fItem.id || '').trim();
+      if (fCropId && csaPrices[fCropId]) {
+        if (fItem.price !== undefined && Math.abs(fItem.price - csaPrices[fCropId].price) > 0.01) {
+          Logger.log('SECURITY: Flex price mismatch for ' + fCropId + ': client $' + fItem.price + ' vs server $' + csaPrices[fCropId].price);
+        }
+        fItem.price = csaPrices[fCropId].price;
+      }
+      // Ensure quantity is valid
+      fItem.quantity = Math.max(1, Math.min(50, parseInt(fItem.quantity) || 1));
+    }
+
     const totalValue = items.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || 1)), 0);
 
     // Check if order already exists for this week
@@ -47955,8 +48152,8 @@ function saveFlexWeeklyOrder(data) {
       }
     }
 
-    // Create new order
-    sheet.appendRow([
+    // Create new order (sanitized against formula injection)
+    sheet.appendRow(sanitizeRowForSheet([
       orderId,
       data.memberId || '',
       data.email || '',
@@ -47970,13 +48167,9 @@ function saveFlexWeeklyOrder(data) {
       data.pickupDay || '',
       data.notes || '',
       new Date().toISOString()
-    ]);
+    ]));
 
-    Logger.log(`[saveFlexWeeklyOrder] Created order ${orderId} for ${data.email || data.memberId}`);
-
-    // Deduct from Flex balance (if using Shopify gift card system)
-    // This would call the Shopify API to deduct from their gift card
-    // For now, we'll just log it
+    Logger.log('[saveFlexWeeklyOrder] Created order ' + orderId + ' for ' + (data.email || data.memberId));
 
     return {
       success: true,
@@ -47988,6 +48181,8 @@ function saveFlexWeeklyOrder(data) {
   } catch (error) {
     Logger.log('[saveFlexWeeklyOrder] Error: ' + error.toString());
     return { success: false, error: error.toString() };
+  } finally {
+    lock.releaseLock();
   }
 }
 
@@ -54629,6 +54824,49 @@ function getClockStatus(employeeId) {
   }
 }
 
+/**
+ * Auto-close a stale clock-in entry from a previous day.
+ * Sets Clock_Out to 11:59 PM of the clock-in date and marks notes.
+ * Called when employee tries to clock in but has an unclosed entry from yesterday.
+ */
+function autoCloseStaleEntry_(status, employeeId) {
+  try {
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheet = ss.getSheetByName(EMPLOYEE_SHEETS.TIME_CLOCK);
+    if (!sheet || !status.entryRow) return;
+
+    var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    var clockOutCol = headers.indexOf('Clock_Out');
+    var hoursCol = headers.indexOf('Hours_Worked');
+    var notesCol = headers.indexOf('Notes');
+    if (clockOutCol === -1 || hoursCol === -1) return;
+
+    var rowData = sheet.getRange(status.entryRow, 1, 1, headers.length).getValues()[0];
+
+    // Close at 11:59 PM of the clock-in date (reasonable assumption for forgot-to-clock-out)
+    var clockInDate = new Date(status.clockInTime);
+    var endOfDay = new Date(clockInDate);
+    endOfDay.setHours(23, 59, 0, 0);
+
+    // Cap at 12 hours max (prevents absurd entries)
+    var hoursWorked = (endOfDay - clockInDate) / 1000 / 60 / 60;
+    if (hoursWorked > 12) hoursWorked = 12;
+    if (hoursWorked < 0) hoursWorked = 0;
+
+    rowData[clockOutCol] = endOfDay.toISOString();
+    rowData[hoursCol] = parseFloat(hoursWorked.toFixed(2));
+    if (notesCol !== -1) {
+      var existingNotes = rowData[notesCol] ? String(rowData[notesCol]) + ' | ' : '';
+      rowData[notesCol] = existingNotes + 'AUTO-CLOSED: Employee forgot to clock out. Capped at ' + hoursWorked.toFixed(1) + 'h. Manager should review.';
+    }
+
+    sheet.getRange(status.entryRow, 1, 1, headers.length).setValues([rowData]);
+  } catch (e) {
+    // Log but don't block the new clock-in
+    Logger.log('autoCloseStaleEntry_ error: ' + e.toString());
+  }
+}
+
 function clockIn(params) {
   try {
     const employeeId = params.employeeId;
@@ -54643,7 +54881,20 @@ function clockIn(params) {
     // Check if already clocked in
     const status = getClockStatus(employeeId);
     if (status.isClockedIn) {
-      return { success: false, error: 'Already clocked in' };
+      // If open entry is from a PREVIOUS day, auto-close it and proceed
+      var openDate = '';
+      try {
+        openDate = new Date(status.clockInTime).toISOString().split('T')[0];
+      } catch(e) { /* ignore parse error */ }
+      var todayStr = new Date().toISOString().split('T')[0];
+
+      if (openDate && openDate !== todayStr) {
+        // Auto-close yesterday's entry at 11:59 PM of that day
+        autoCloseStaleEntry_(status, employeeId);
+        // Fall through to create new clock-in below
+      } else {
+        return { success: false, error: 'Already clocked in' };
+      }
     }
 
     // Check geofence (optional - can be enabled later)

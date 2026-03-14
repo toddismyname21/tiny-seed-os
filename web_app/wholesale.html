@@ -1445,7 +1445,10 @@
                     </div>
                 </div>
 
-                <div class="account-card">
+                <!-- NOTE: Delivery schedule discrepancy — this HTML says Tue/Thu/Sat but
+                     api-config.js says Tue/Fri. Verify actual farm schedule and reconcile.
+                     Added id="deliveryScheduleInfo" so this can be dynamically updated from API. -->
+                <div class="account-card" id="deliveryScheduleInfo">
                     <div class="account-section-title">🚚 Delivery Schedule</div>
                     <div style="background: #f0fdf4; border-radius: var(--ts-radius-md, 10px); padding: var(--ts-space-4, 16px); margin-bottom: var(--ts-space-4, 16px);">
                         <div style="font-weight: 600; color: #16a34a; margin-bottom: var(--ts-space-2, 8px);">Delivery Windows</div>
@@ -1618,9 +1621,6 @@
          ═══════════════════════════════════════════════════════════════════════════ -->
     <div class="toast" id="toast"></div>
 
-    <!-- API Configuration -->
-    <script src="api-config.js"></script>
-
     <script>
         // ═══════════════════════════════════════════════════════════════════════════
         // HTML ESCAPING — XSS PREVENTION
@@ -1683,6 +1683,11 @@
             if (savedSession) {
                 try {
                     const session = JSON.parse(savedSession);
+                    if (session.expiresAt && Date.now() > session.expiresAt) {
+                        localStorage.removeItem('tsf_wholesale_session');
+                        showLogin();
+                        return;
+                    }
                     AppState.customer = session;
                     showApp();
                 } catch (e) {
@@ -1730,7 +1735,9 @@
                 const result = await api.verifyMagicLink(token, email);
                 if (result.success) {
                     AppState.customer = result.customer;
-                    localStorage.setItem('tsf_wholesale_session', JSON.stringify(result.customer));
+                    const sessionData = Object.assign({}, result.customer);
+                    sessionData.expiresAt = Date.now() + 7 * 24 * 60 * 60 * 1000; // 7 days
+                    localStorage.setItem('tsf_wholesale_session', JSON.stringify(sessionData));
 
                     // Clean URL
                     window.history.replaceState({}, '', window.location.pathname);
@@ -2023,7 +2030,16 @@
             const saved = localStorage.getItem('tsf_wholesale_cart');
             if (saved) {
                 try {
-                    AppState.cart = JSON.parse(saved);
+                    const parsed = JSON.parse(saved);
+                    // Validate cart is an array with proper structure
+                    if (Array.isArray(parsed)) {
+                        AppState.cart = parsed.filter(item =>
+                            item && typeof item.cropId === 'string' &&
+                            typeof item.qty === 'number' && item.qty > 0
+                        );
+                    } else {
+                        AppState.cart = [];
+                    }
                     updateCartUI();
                 } catch (e) {
                     AppState.cart = [];
@@ -2583,24 +2599,17 @@
         // CHEF MANAGEMENT (Admin Only)
         // ═══════════════════════════════════════════════════════════════════════════
 
-        const ADMIN_EMAILS = [
-            'todd@tinyseedfarm.com',
-            'admin@tinyseedfarm.com',
-            'samanthapollack@gmail.com'
-        ];
-
-        function checkAdminAccess() {
-            if (!AppState.customer) return false;
-            const email = (AppState.customer.Email || '').toLowerCase();
-            // Check if admin by email or by Tags/Role
-            const isAdmin = ADMIN_EMAILS.includes(email) ||
-                           (AppState.customer.Tags || '').toLowerCase().includes('admin') ||
-                           (AppState.customer.Role || '').toLowerCase() === 'admin';
-
-            if (isAdmin) {
-                document.getElementById('manageTab').style.display = 'block';
+        async function checkAdminAccess() {
+            try {
+                const result = await api.call('checkWholesaleAdmin', { email: (AppState.customer?.Email || '').toLowerCase() }, 'GET');
+                if (result.success && result.isAdmin) {
+                    document.getElementById('manageTab').style.display = 'block';
+                    return true;
+                }
+            } catch (e) {
+                // Not admin — hide tab (already hidden by default)
             }
-            return isAdmin;
+            return false;
         }
 
         async function inviteNewChef() {
@@ -2759,8 +2768,7 @@
                     showToast(result.error || 'Failed to save', 'error');
                 }
             } catch (error) {
-                // Demo mode - just show success
-                showToast('✅ Delivery instructions saved!', 'success');
+                showToast('Unable to save instructions. Please try again.', 'error');
             }
         }
 
@@ -2777,10 +2785,10 @@
 
         // Check admin access when app loads
         const originalShowApp = showApp;
-        showApp = function() {
+        showApp = async function() {
             originalShowApp();
-            checkAdminAccess();
-            if (checkAdminAccess()) {
+            const isAdmin = await checkAdminAccess();
+            if (isAdmin) {
                 loadChefs();
             }
         };
