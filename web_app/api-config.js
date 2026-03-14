@@ -159,11 +159,18 @@ class TinySeedAPI {
     }
 
     /**
-     * Fetch with automatic retry on failure
+     * Fetch with automatic retry on failure and timeout protection.
+     * Default timeout: 30s (Apps Script cold starts can take 10-15s).
      */
     async fetchWithRetry(url, options, attempt = 1) {
+        const controller = new AbortController();
+        const timeoutMs = (options && options.timeoutMs) || 30000;
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
         try {
-            const response = await fetch(url, options);
+            const fetchOptions = Object.assign({}, options, { signal: controller.signal });
+            const response = await fetch(url, fetchOptions);
+            clearTimeout(timeoutId);
 
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -172,6 +179,10 @@ class TinySeedAPI {
             const data = await response.json();
             return data;
         } catch (error) {
+            clearTimeout(timeoutId);
+            if (error.name === 'AbortError') {
+                error = new Error('Request timed out after ' + (timeoutMs / 1000) + 's. Please try again.');
+            }
             if (attempt < this.retryAttempts) {
                 console.log(`API attempt ${attempt} failed, retrying in ${this.retryDelay}ms...`);
                 await this.sleep(this.retryDelay);
@@ -1134,6 +1145,7 @@ document.head.appendChild(style);
 (function() {
     const _originalFetch = window.fetch;
     const API_DOMAIN = 'script.google.com/macros/s/';
+    const DEFAULT_API_TIMEOUT_MS = 30000; // 30s — covers Apps Script cold starts (10-15s)
 
     function _getToken() {
         try {
@@ -1143,30 +1155,40 @@ document.head.appendChild(style);
     }
 
     window.fetch = function(input, init) {
-        const url = (typeof input === 'string') ? input : (input instanceof Request ? input.url : '');
+        var url = (typeof input === 'string') ? input : (input instanceof Request ? input.url : '');
+        init = init ? Object.assign({}, init) : {};
 
         // Only intercept Apps Script API calls
         if (url && url.includes(API_DOMAIN)) {
-            const token = _getToken();
+            // 1. Inject auth token
+            var token = _getToken();
             if (token) {
-                // GET requests: append token to URL
-                if (!init || !init.method || init.method.toUpperCase() === 'GET') {
+                if (!init.method || init.method.toUpperCase() === 'GET') {
+                    // GET: append token to URL
                     if (!url.includes('token=')) {
-                        const sep = url.includes('?') ? '&' : '?';
-                        const newUrl = url + sep + 'token=' + encodeURIComponent(token);
-                        return _originalFetch.call(this, newUrl, init);
+                        url = url + (url.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(token);
+                        input = url;
                     }
-                }
-                // POST requests: inject token into JSON body
-                else if (init.method.toUpperCase() === 'POST' && init.body) {
+                } else if (init.method.toUpperCase() === 'POST' && init.body) {
+                    // POST: inject token into JSON body
                     try {
-                        const body = JSON.parse(init.body);
+                        var body = JSON.parse(init.body);
                         if (!body.token && !body.sessionToken) {
                             body.token = token;
-                            init = Object.assign({}, init, { body: JSON.stringify(body) });
+                            init.body = JSON.stringify(body);
                         }
                     } catch(e) { /* not JSON body, skip */ }
                 }
+            }
+
+            // 2. Add timeout if caller didn't provide an AbortSignal
+            if (!init.signal) {
+                var controller = new AbortController();
+                var timeoutId = setTimeout(function() { controller.abort(); }, DEFAULT_API_TIMEOUT_MS);
+                init.signal = controller.signal;
+                return _originalFetch.call(this, input, init).finally(function() {
+                    clearTimeout(timeoutId);
+                });
             }
         }
 

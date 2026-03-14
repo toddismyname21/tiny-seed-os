@@ -1998,6 +1998,8 @@
         // (Using shared KeywordHashtagLibrary for unified data)
         // ============================================
 
+        const esc = TinySeedUtils.escapeHtml;
+
         // Get keyword categories from shared library or use fallback
         function getKeywordCategoriesFromLibrary() {
             if (typeof KeywordHashtagLibrary !== 'undefined') {
@@ -2630,9 +2632,9 @@
                                 <span style="font-weight: 600; font-size: 0.8rem;">${i + 1}</span>
                             </div>
                             <div style="flex: 1; min-width: 0;">
-                                <div style="font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${content.title}</div>
+                                <div style="font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${esc(content.title)}</div>
                                 <div style="font-size: 0.7rem; color: var(--text-secondary);">
-                                    ${content.attribution}
+                                    ${esc(content.attribution)}
                                 </div>
                             </div>
                             <div style="text-align: center; flex-shrink: 0;">

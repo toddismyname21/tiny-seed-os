@@ -724,6 +724,7 @@
     // State
     let currentStatus = 'NEW,TRIAGED';
     let dashboardData = null;
+    const esc = TinySeedUtils.escapeHtml;
 
     // API Helper
     async function apiCall(action, params = {}) {
@@ -833,8 +834,8 @@
             <div class="brief-item">
               <div class="brief-priority high"></div>
               <div class="brief-content">
-                <strong>${a.actiontype}: ${a.draftcontent?.substring(0, 50) || 'Action pending'}...</strong>
-                <small>Expires: ${a.timeRemaining}</small>
+                <strong>${esc(a.actiontype)}: ${esc(a.draftcontent?.substring(0, 50) || 'Action pending')}...</strong>
+                <small>Expires: ${esc(a.timeRemaining)}</small>
               </div>
             </div>
           `;
@@ -888,30 +889,30 @@
       const category = email.category || 'UNKNOWN';
 
       return `
-        <div class="email-card priority-${priority}">
+        <div class="email-card priority-${esc(priority)}">
           <div class="email-header">
-            <span class="priority-badge ${priority}">${email.priority || 'MEDIUM'}</span>
-            <span class="category-tag">${category}</span>
+            <span class="priority-badge ${esc(priority)}">${esc(email.priority || 'MEDIUM')}</span>
+            <span class="category-tag">${esc(category)}</span>
           </div>
-          <div class="email-from">${email.fromname || email.from}</div>
-          <div class="email-subject">${email.subject}</div>
+          <div class="email-from">${esc(email.fromname || email.from)}</div>
+          <div class="email-subject">${esc(email.subject)}</div>
           <div class="email-time">${formatTimeAgo(email.receivedat)}</div>
           ${email.aisummary ? `
             <div class="ai-summary">
-              <strong>AI Summary:</strong> ${email.aisummary}
+              <strong>AI Summary:</strong> ${esc(email.aisummary)}
             </div>
           ` : ''}
           ${email.aisuggestedaction ? `
             <div class="suggested-action">
               <span>Suggested:</span>
-              <button class="btn-suggest">${email.aisuggestedaction}</button>
+              <button class="btn-suggest">${esc(email.aisuggestedaction)}</button>
               <span class="confidence">${Math.round((email.aiconfidence || 0) * 100)}% confident</span>
             </div>
           ` : ''}
           <div class="email-actions">
-            <button class="btn btn-sm btn-primary" onclick="resolveEmail('${email.threadid}')">Resolve</button>
-            <button class="btn btn-sm btn-secondary" onclick="createFollowup('${email.threadid}')">Set Follow-up</button>
-            <button class="btn btn-sm btn-secondary" onclick="openInGmail('${email.threadid}')">Open in Gmail</button>
+            <button class="btn btn-sm btn-primary" onclick="resolveEmail('${esc(email.threadid)}')">Resolve</button>
+            <button class="btn btn-sm btn-secondary" onclick="createFollowup('${esc(email.threadid)}')">Set Follow-up</button>
+            <button class="btn btn-sm btn-secondary" onclick="openInGmail('${esc(email.threadid)}')">Open in Gmail</button>
           </div>
         </div>
       `;
@@ -938,18 +939,18 @@
       return `
         <div class="approval-card">
           <div class="approval-header">
-            <span class="approval-type">${action.actiontype}</span>
-            <span class="expires">Expires: ${action.timeRemaining}</span>
+            <span class="approval-type">${esc(action.actiontype)}</span>
+            <span class="expires">Expires: ${esc(action.timeRemaining)}</span>
           </div>
-          <div class="draft-preview">${action.draftcontent || 'No preview available'}</div>
+          <div class="draft-preview">${esc(action.draftcontent || 'No preview available')}</div>
           <div class="approval-meta">
             <span>Confidence: ${Math.round((action.confidence || 0.8) * 100)}%</span>
-            <span>Suggested by: ${action.suggestedby}</span>
+            <span>Suggested by: ${esc(action.suggestedby)}</span>
           </div>
           <div class="email-actions">
-            <button class="btn btn-sm btn-success" onclick="approveAction('${action.actionid}')">Approve</button>
-            <button class="btn btn-sm btn-secondary" onclick="editAction('${action.actionid}')">Edit</button>
-            <button class="btn btn-sm btn-danger" onclick="rejectAction('${action.actionid}')">Reject</button>
+            <button class="btn btn-sm btn-success" onclick="approveAction('${esc(action.actionid)}')">Approve</button>
+            <button class="btn btn-sm btn-secondary" onclick="editAction('${esc(action.actionid)}')">Edit</button>
+            <button class="btn btn-sm btn-danger" onclick="rejectAction('${esc(action.actionid)}')">Reject</button>
           </div>
         </div>
       `;

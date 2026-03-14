@@ -1623,6 +1623,11 @@
 
     <script>
         // ═══════════════════════════════════════════════════════════════════════════
+        // HTML ESCAPING — XSS PREVENTION
+        // ═══════════════════════════════════════════════════════════════════════════
+        const esc = TinySeedUtils.escapeHtml;
+
+        // ═══════════════════════════════════════════════════════════════════════════
         // APP STATE
         // ═══════════════════════════════════════════════════════════════════════════
 
@@ -1884,7 +1889,7 @@
                         <div style="grid-column: 1/-1; text-align: center; padding: 60px 20px;">
                             <div style="font-size: var(--ts-text-5xl, 3rem); margin-bottom: var(--ts-space-4, 16px);">⚠️</div>
                             <h3 style="color: var(--text-primary); margin-bottom: var(--ts-space-2, 8px);">Unable to Load Products</h3>
-                            <p style="color: var(--text-secondary); margin-bottom: var(--ts-space-4, 16px);">${result.error || 'API connection failed'}</p>
+                            <p style="color: var(--text-secondary); margin-bottom: var(--ts-space-4, 16px);">${esc(result.error || 'API connection failed')}</p>
                             <button onclick="loadProducts()" class="btn btn-primary">Try Again</button>
                         </div>`;
                 }
@@ -1935,18 +1940,18 @@
                 <div class="product-card">
                     <div class="product-image">${product.emoji || '🥬'}</div>
                     <div class="product-info">
-                        <div class="product-name">${product.name}</div>
-                        <div class="product-variety">${product.variety || ''}</div>
+                        <div class="product-name">${esc(product.name)}</div>
+                        <div class="product-variety">${esc(product.variety || '')}</div>
                         <div class="product-pricing">
                             <span class="product-price">$${product.price.toFixed(2)}</span>
-                            <span class="product-unit">per ${product.unit}</span>
+                            <span class="product-unit">per ${esc(product.unit)}</span>
                         </div>
                         <div class="quantity-input">
-                            <button class="qty-btn" onclick="updateProductQty('${product.cropId}', -1)">−</button>
-                            <input type="number" class="qty-value" id="qty-${product.cropId}" value="0" min="0">
-                            <button class="qty-btn" onclick="updateProductQty('${product.cropId}', 1)">+</button>
+                            <button class="qty-btn" onclick="updateProductQty('${esc(product.cropId)}', -1)">−</button>
+                            <input type="number" class="qty-value" id="qty-${esc(product.cropId)}" value="0" min="0">
+                            <button class="qty-btn" onclick="updateProductQty('${esc(product.cropId)}', 1)">+</button>
                         </div>
-                        <button class="add-to-order-btn" onclick="addToCart('${product.cropId}')">
+                        <button class="add-to-order-btn" onclick="addToCart('${esc(product.cropId)}')">
                             Add to Order
                         </button>
                     </div>
@@ -2050,15 +2055,15 @@
                 <div class="cart-item">
                     <div class="cart-item-emoji">${item.emoji || '🥬'}</div>
                     <div class="cart-item-info">
-                        <div class="cart-item-name">${item.name}</div>
-                        <div class="cart-item-price">$${item.price.toFixed(2)} / ${item.unit}</div>
+                        <div class="cart-item-name">${esc(item.name)}</div>
+                        <div class="cart-item-price">$${item.price.toFixed(2)} / ${esc(item.unit)}</div>
                     </div>
                     <div class="cart-item-qty">
-                        <button class="qty-btn" onclick="updateCartItemQty('${item.cropId}', -1)">−</button>
+                        <button class="qty-btn" onclick="updateCartItemQty('${esc(item.cropId)}', -1)">−</button>
                         <span>${item.qty}</span>
-                        <button class="qty-btn" onclick="updateCartItemQty('${item.cropId}', 1)">+</button>
+                        <button class="qty-btn" onclick="updateCartItemQty('${esc(item.cropId)}', 1)">+</button>
                     </div>
-                    <button class="cart-item-remove" onclick="removeCartItem('${item.cropId}')">×</button>
+                    <button class="cart-item-remove" onclick="removeCartItem('${esc(item.cropId)}')">×</button>
                 </div>
             `).join('');
 
@@ -2188,12 +2193,12 @@
                 <div class="order-card">
                     <div class="order-header">
                         <div>
-                            <div class="order-id">${order.Order_ID}</div>
+                            <div class="order-id">${esc(order.Order_ID)}</div>
                             <div class="order-date">${TinySeedUtils.formatDate(order.Order_Date)}</div>
                         </div>
-                        <span class="order-status ${(order.Status || '').toLowerCase()}">${order.Status}</span>
+                        <span class="order-status ${esc((order.Status || '').toLowerCase())}">${esc(order.Status)}</span>
                     </div>
-                    <div class="order-items">${(order.items || []).join(', ')}</div>
+                    <div class="order-items">${(order.items || []).map(i => esc(i)).join(', ')}</div>
                     <div class="order-total">${TinySeedUtils.formatCurrency(order.Total)}</div>
                 </div>
             `).join('');
@@ -2260,7 +2265,7 @@
                     <div class="delivery-card">
                         <div class="delivery-header">
                             <div>
-                                <div class="delivery-order-id">${delivery.orderId}</div>
+                                <div class="delivery-order-id">${esc(delivery.orderId)}</div>
                                 <div class="delivery-date">Ordered: ${TinySeedUtils.formatDate(delivery.orderDate)}</div>
                             </div>
                             <span class="delivery-status-badge ${statusClass}">${status}</span>
@@ -2285,13 +2290,13 @@
                             ${delivery.driverName ? `
                                 <div class="delivery-detail">
                                     <span class="delivery-detail-icon">🚗</span>
-                                    <span>Driver: ${delivery.driverName}</span>
+                                    <span>Driver: ${esc(delivery.driverName)}</span>
                                 </div>
                             ` : ''}
                             ${delivery.eta ? `
                                 <div class="delivery-detail">
                                     <span class="delivery-detail-icon">⏰</span>
-                                    <span>ETA: ${delivery.eta}</span>
+                                    <span>ETA: ${esc(delivery.eta)}</span>
                                 </div>
                             ` : ''}
                             ${delivery.deliveryCompletedAt ? `
@@ -2469,27 +2474,27 @@
                     <div class="standing-order-card">
                         <div class="standing-order-header">
                             <div>
-                                <div class="standing-order-product">${order.Product_Name || order.productName}</div>
-                                <div class="standing-order-details">${order.Quantity || order.quantity} ${order.Unit || order.unit}</div>
+                                <div class="standing-order-product">${esc(order.Product_Name || order.productName)}</div>
+                                <div class="standing-order-details">${order.Quantity || order.quantity} ${esc(order.Unit || order.unit)}</div>
                             </div>
                             <span class="standing-order-status ${status}">${status}</span>
                         </div>
                         <div class="standing-order-schedule">
-                            <span>📅 ${order.Frequency || order.frequency}</span>
-                            <span>📍 ${order.Day_Of_Week || order.dayOfWeek}s</span>
+                            <span>📅 ${esc(order.Frequency || order.frequency)}</span>
+                            <span>📍 ${esc(order.Day_Of_Week || order.dayOfWeek)}s</span>
                             ${order.Next_Due_Date || order.nextDueDate ? `<span class="standing-order-next">Next: ${TinySeedUtils.formatDate(order.Next_Due_Date || order.nextDueDate)}</span>` : ''}
                         </div>
-                        ${order.Notes || order.notes ? `<div style="font-size: var(--ts-text-xs, 0.8rem); color: var(--text-muted);">📝 ${order.Notes || order.notes}</div>` : ''}
+                        ${order.Notes || order.notes ? `<div style="font-size: var(--ts-text-xs, 0.8rem); color: var(--text-muted);">📝 ${esc(order.Notes || order.notes)}</div>` : ''}
                         <div class="standing-order-actions">
                             ${isActive ? `
-                                <button class="so-action-btn pause" onclick="pauseStandingOrder('${order.Standing_Order_ID || order.standingOrderId}')">Pause</button>
+                                <button class="so-action-btn pause" onclick="pauseStandingOrder('${esc(order.Standing_Order_ID || order.standingOrderId)}')">Pause</button>
                             ` : ''}
                             ${isPaused ? `
-                                <button class="so-action-btn resume" onclick="resumeStandingOrder('${order.Standing_Order_ID || order.standingOrderId}')">Resume</button>
+                                <button class="so-action-btn resume" onclick="resumeStandingOrder('${esc(order.Standing_Order_ID || order.standingOrderId)}')">Resume</button>
                             ` : ''}
                             ${(isActive || isPaused) ? `
-                                <button class="so-action-btn edit" onclick="editStandingOrder('${order.Standing_Order_ID || order.standingOrderId}')">Edit Qty</button>
-                                <button class="so-action-btn cancel" onclick="cancelStandingOrder('${order.Standing_Order_ID || order.standingOrderId}')">Cancel</button>
+                                <button class="so-action-btn edit" onclick="editStandingOrder('${esc(order.Standing_Order_ID || order.standingOrderId)}')">Edit Qty</button>
+                                <button class="so-action-btn cancel" onclick="cancelStandingOrder('${esc(order.Standing_Order_ID || order.standingOrderId)}')">Cancel</button>
                             ` : ''}
                         </div>
                     </div>
@@ -2702,17 +2707,17 @@
             container.innerHTML = chefs.map(chef => `
                 <div style="display: flex; justify-content: space-between; align-items: center; padding: var(--ts-space-4, 16px); background: var(--bg-elevated); border-radius: var(--ts-radius-md, 10px); margin-bottom: var(--ts-space-3, 12px);">
                     <div>
-                        <div style="font-weight: 600;">${chef.Company_Name || chef.Contact_Name}</div>
-                        <div style="font-size: var(--ts-text-xs, 0.8rem); color: var(--text-secondary);">${chef.Contact_Name} • ${chef.Email}</div>
-                        <div style="font-size: var(--ts-text-xs, 0.75rem); color: var(--text-muted);">${chef.Phone || 'No phone'}</div>
+                        <div style="font-weight: 600;">${esc(chef.Company_Name || chef.Contact_Name)}</div>
+                        <div style="font-size: var(--ts-text-xs, 0.8rem); color: var(--text-secondary);">${esc(chef.Contact_Name)} • ${esc(chef.Email)}</div>
+                        <div style="font-size: var(--ts-text-xs, 0.75rem); color: var(--text-muted);">${esc(chef.Phone || 'No phone')}</div>
                     </div>
                     <div style="display: flex; align-items: center; gap: var(--ts-space-3, 12px);">
                         <span style="padding: 4px 12px; border-radius: var(--ts-radius-full, 9999px); font-size: var(--ts-text-xs, 0.75rem); font-weight: 600;
                             background: ${chef.Status === 'Active' ? '#dcfce7' : '#fef3c7'};
                             color: ${chef.Status === 'Active' ? '#166534' : '#92400e'};">
-                            ${chef.Status || 'Invited'}
+                            ${esc(chef.Status || 'Invited')}
                         </span>
-                        <button onclick="resendInvite('${chef.Customer_ID}')"
+                        <button onclick="resendInvite('${esc(chef.Customer_ID)}')"
                             style="padding: var(--ts-space-2, 8px) var(--ts-space-3, 12px); background: var(--primary); color: white; border: none; border-radius: var(--ts-radius-sm, 6px); cursor: pointer; font-size: var(--ts-text-xs, 0.75rem);">
                             Resend Invite
                         </button>

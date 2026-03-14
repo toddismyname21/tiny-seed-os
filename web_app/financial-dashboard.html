@@ -4871,6 +4871,9 @@ IF abs(drift) >= 0.05: needs_rebalancing = TRUE</code></pre>
     <!-- JAVASCRIPT -->
     <!-- ============================================= -->
     <script>
+        // Security: HTML escaping for data values injected via innerHTML
+        const esc = TinySeedUtils.escapeHtml;
+
         // Security: DOMPurify wrapper for safe innerHTML
         function safeHTML(dirty) {
           if (typeof DOMPurify !== 'undefined') {
@@ -5010,7 +5013,7 @@ IF abs(drift) >= 0.05: needs_rebalancing = TRUE</code></pre>
                         <div style="display: flex; align-items: center; gap: 1rem; padding: 0.75rem 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
                             <div style="width: 30px; height: 30px; border-radius: 50%; background: ${i === 0 ? 'var(--danger)' : 'var(--text-secondary)'}; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.75rem; flex-shrink: 0;">${i + 1}</div>
                             <div style="flex: 1;">
-                                <div style="font-weight: 600;">${acc.name || 'Account'}</div>
+                                <div style="font-weight: 600;">${esc(acc.name || 'Account')}</div>
                                 <div style="font-size: 0.8rem; color: var(--text-secondary);">$${bal.toLocaleString()} — payoff by ${accDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</div>
                             </div>
                             <div style="width: 100px; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;">
@@ -5917,23 +5920,23 @@ IF abs(drift) >= 0.05: needs_rebalancing = TRUE</code></pre>
                             <div>
                                 <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
                                     <i class="fas ${categoryIcons[item.category] || 'fa-cube'}" style="color: var(--purple);"></i>
-                                    <span class="wishlist-name">${item.name}</span>
-                                    <span class="priority-badge ${item.priority}">${item.priority}</span>
+                                    <span class="wishlist-name">${esc(item.name)}</span>
+                                    <span class="priority-badge ${esc(item.priority)}">${esc(item.priority)}</span>
                                 </div>
-                                <div class="wishlist-category">${item.category.charAt(0).toUpperCase() + item.category.slice(1)}</div>
+                                <div class="wishlist-category">${esc(item.category.charAt(0).toUpperCase() + item.category.slice(1))}</div>
                             </div>
                             <div class="wishlist-price">$${parseFloat(item.cost).toLocaleString()}</div>
                         </div>
 
                         <div class="wishlist-status ${a.statusClass}">
                             <i class="fas ${a.statusClass === 'safe' ? 'fa-check-circle' : a.statusClass === 'wait' ? 'fa-clock' : 'fa-exclamation-triangle'}"></i>
-                            ${a.status}
+                            ${esc(a.status)}
                             ${safeDateStr ? `<span style="font-weight: 400; margin-left: 0.5rem;">(Est. ${safeDateStr})</span>` : ''}
                         </div>
 
                         <div class="wishlist-recommendation">
                             <i class="fas fa-lightbulb" style="color: var(--gold);"></i>
-                            ${a.recommendation}
+                            ${esc(a.recommendation)}
                         </div>
 
                         <div class="wishlist-details">
@@ -6173,12 +6176,12 @@ IF abs(drift) >= 0.05: needs_rebalancing = TRUE</code></pre>
                             <i class="fas ${rec.icon}"></i>
                         </div>
                         <div class="recommendation-content">
-                            <div class="recommendation-title">${rec.title}</div>
-                            <div class="recommendation-desc">${rec.desc}</div>
+                            <div class="recommendation-title">${esc(rec.title)}</div>
+                            <div class="recommendation-desc">${esc(rec.desc)}</div>
                             ${rec.action ? `
                                 <div class="recommendation-action">
                                     <button class="btn btn-sm ${rec.type === 'success' ? 'btn-success' : rec.type === 'danger' ? 'btn-danger' : 'btn-secondary'}">
-                                        ${rec.action}
+                                        ${esc(rec.action)}
                                     </button>
                                 </div>
                             ` : ''}
@@ -6443,8 +6446,8 @@ IF abs(drift) >= 0.05: needs_rebalancing = TRUE</code></pre>
                     return `
                         <tr>
                             <td>
-                                <div style="font-weight: 500;">${bill.vendor}</div>
-                                <div style="font-size: 0.8rem; color: var(--text-secondary);">${bill.category}</div>
+                                <div style="font-weight: 500;">${esc(bill.vendor)}</div>
+                                <div style="font-size: 0.8rem; color: var(--text-secondary);">${esc(bill.category)}</div>
                             </td>
                             <td>
                                 <div>${dueDate.toLocaleDateString()}</div>
@@ -7164,13 +7167,13 @@ IF abs(drift) >= 0.05: needs_rebalancing = TRUE</code></pre>
                     const date = o.filledAt || o.createdAt;
                     return `<div style="display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
                         <div>
-                            <span style="font-weight: 700; color: ${sideColor}; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.75rem;">${o.side}</span>
-                            <span style="font-weight: 600; margin-left: 0.5rem;">${o.symbol}</span>
+                            <span style="font-weight: 700; color: ${sideColor}; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.75rem;">${esc(o.side)}</span>
+                            <span style="font-weight: 600; margin-left: 0.5rem;">${esc(o.symbol)}</span>
                             <span style="color: var(--text-secondary); font-size: 0.8rem; margin-left: 0.25rem;">x${o.filledQty || o.qty}</span>
                         </div>
                         <div style="text-align: right;">
                             <div style="font-size: 0.85rem;">${price}</div>
-                            <div style="font-size: 0.7rem; color: ${statusColor};">${o.status} - ${date ? new Date(date).toLocaleDateString() : '--'}</div>
+                            <div style="font-size: 0.7rem; color: ${statusColor};">${esc(o.status)} - ${date ? new Date(date).toLocaleDateString() : '--'}</div>
                         </div>
                     </div>`;
                 }).join('');
@@ -7223,11 +7226,11 @@ IF abs(drift) >= 0.05: needs_rebalancing = TRUE</code></pre>
                 }
 
                 container.innerHTML = result.watchlists.map(w => {
-                    const symbols = (w.assets || []).map(a => `<span style="padding: 0.2rem 0.5rem; background: rgba(67,97,238,0.15); border-radius: var(--ts-radius-sm, 4px); font-size: 0.75rem; color: var(--info);">${a.symbol}</span>`).join(' ');
+                    const symbols = (w.assets || []).map(a => `<span style="padding: 0.2rem 0.5rem; background: rgba(67,97,238,0.15); border-radius: var(--ts-radius-sm, 4px); font-size: 0.75rem; color: var(--info);">${esc(a.symbol)}</span>`).join(' ');
                     return `<div style="padding: 1rem; background: var(--bg-card); border-radius: var(--ts-radius-sm, 8px); border: 1px solid var(--border); margin-bottom: 0.75rem;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                            <h4 style="font-size: 0.95rem;"><i class="fas fa-star" style="color: var(--gold); margin-right: 0.5rem;"></i>${w.name}</h4>
-                            <button class="btn btn-secondary btn-sm" onclick="deleteWatchlistConfirm('${w.id}')" style="font-size: 0.7rem;"><i class="fas fa-trash"></i></button>
+                            <h4 style="font-size: 0.95rem;"><i class="fas fa-star" style="color: var(--gold); margin-right: 0.5rem;"></i>${esc(w.name)}</h4>
+                            <button class="btn btn-secondary btn-sm" onclick="deleteWatchlistConfirm('${esc(w.id)}')" style="font-size: 0.7rem;"><i class="fas fa-trash"></i></button>
                         </div>
                         <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">${symbols || '<span style="color: var(--text-secondary); font-size: 0.8rem;">Empty watchlist</span>'}</div>
                     </div>`;
@@ -7372,7 +7375,7 @@ IF abs(drift) >= 0.05: needs_rebalancing = TRUE</code></pre>
             const type = result.type || 'unknown';
 
             if (result.summary) {
-                html += '<div style="padding: 0.75rem; background: rgba(67,97,238,0.1); border-radius: var(--ts-radius-sm, 8px); margin-bottom: 1rem; font-weight: 600;"><i class="fas fa-chart-line" style="color: var(--info); margin-right: 0.5rem;"></i>' + result.summary + '</div>';
+                html += '<div style="padding: 0.75rem; background: rgba(67,97,238,0.1); border-radius: var(--ts-radius-sm, 8px); margin-bottom: 1rem; font-weight: 600;"><i class="fas fa-chart-line" style="color: var(--info); margin-right: 0.5rem;"></i>' + esc(result.summary) + '</div>';
             }
 
             if (type === 'performance' && result.periodReturns) {
@@ -7390,7 +7393,7 @@ IF abs(drift) >= 0.05: needs_rebalancing = TRUE</code></pre>
                 result.positions.forEach(p => {
                     const plColor = p.unrealizedPL >= 0 ? 'var(--success)' : 'var(--danger)';
                     const plSign = p.unrealizedPL >= 0 ? '+' : '';
-                    html += '<div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid rgba(255,255,255,0.05);"><span style="font-weight: 600;">' + p.symbol + '</span><span style="color: ' + plColor + ';">' + plSign + '$' + p.unrealizedPL.toFixed(2) + ' (' + plSign + p.unrealizedPLPercent.toFixed(1) + '%)</span></div>';
+                    html += '<div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid rgba(255,255,255,0.05);"><span style="font-weight: 600;">' + esc(p.symbol) + '</span><span style="color: ' + plColor + ';">' + plSign + '$' + p.unrealizedPL.toFixed(2) + ' (' + plSign + p.unrealizedPLPercent.toFixed(1) + '%)</span></div>';
                 });
                 html += '</div>';
             }
@@ -7405,7 +7408,7 @@ IF abs(drift) >= 0.05: needs_rebalancing = TRUE</code></pre>
                     ['Positions', result.positionCount],
                     ['Recent Trades', result.recentTradeCount],
                     ['Dividends (Month)', '$' + (result.dividendsThisMonth||0).toFixed(2)],
-                    ['Season', result.currentSeason || '--']
+                    ['Season', esc(result.currentSeason || '--')]
                 ];
                 items.forEach(([label, val]) => {
                     html += '<div style="padding: 0.5rem; background: var(--bg-card); border-radius: var(--ts-radius-sm, 6px); display: flex; justify-content: space-between;"><span style="font-size: 0.8rem; color: var(--text-secondary);">' + label + '</span><span style="font-weight: 600;">' + val + '</span></div>';
@@ -7427,7 +7430,7 @@ IF abs(drift) >= 0.05: needs_rebalancing = TRUE</code></pre>
 
             // Fallback: show raw data for types we didn't special-case
             if (!html && result.account) {
-                html += '<pre style="font-size: 0.8rem; overflow: auto; background: #0d1117; padding: 0.5rem; border-radius: var(--ts-radius-sm, 6px);">' + JSON.stringify(result, null, 2).substring(0, 2000) + '</pre>';
+                html += '<pre style="font-size: 0.8rem; overflow: auto; background: #0d1117; padding: 0.5rem; border-radius: var(--ts-radius-sm, 6px);">' + esc(JSON.stringify(result, null, 2).substring(0, 2000)) + '</pre>';
             }
 
             container.innerHTML = html || '<div style="color: var(--text-secondary);">No data to display</div>';
@@ -7548,7 +7551,7 @@ IF abs(drift) >= 0.05: needs_rebalancing = TRUE</code></pre>
                 } else {
                     listEl.innerHTML = result.harvestable.map(h => {
                         return '<div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid rgba(255,255,255,0.05);">' +
-                            '<div><span style="font-weight: 600;">' + h.symbol + '</span><span style="font-size: 0.8rem; color: var(--text-secondary); margin-left: 0.5rem;">' + h.shares + ' shares</span></div>' +
+                            '<div><span style="font-weight: 600;">' + esc(h.symbol) + '</span><span style="font-size: 0.8rem; color: var(--text-secondary); margin-left: 0.5rem;">' + h.shares + ' shares</span></div>' +
                             '<div style="text-align: right;"><div style="color: var(--danger);">-$' + Math.abs(h.unrealizedLoss).toFixed(2) + '</div><div style="font-size: 0.7rem; color: var(--text-secondary);">Save ~$' + h.potentialTaxSaving.toFixed(2) + '</div></div></div>';
                     }).join('');
                 }
@@ -7557,7 +7560,7 @@ IF abs(drift) >= 0.05: needs_rebalancing = TRUE</code></pre>
             const recEl = document.getElementById('harvest-recommendation');
             if (recEl && result.recommendation) {
                 recEl.style.display = 'block';
-                recEl.innerHTML = '<i class="fas fa-info-circle" style="color: var(--warning); margin-right: 0.5rem;"></i>' + result.recommendation;
+                recEl.innerHTML = '<i class="fas fa-info-circle" style="color: var(--warning); margin-right: 0.5rem;"></i>' + esc(result.recommendation);
             }
         }
 

@@ -3331,6 +3331,8 @@
         // APP STATE
         // ═══════════════════════════════════════════════════════════════════════════
 
+        const esc = TinySeedUtils.escapeHtml;
+
         const AppState = {
             customer: null,
             membership: null,
@@ -4506,7 +4508,7 @@
                         const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
                         const typeLabel = tx.type === 'ADMIN_CREDIT' ? 'Credit Added' :
                                           tx.type === 'PURCHASE' ? 'Funds Added' :
-                                          tx.type === 'SPENT' ? 'Spent' : tx.type;
+                                          tx.type === 'SPENT' ? 'Spent' : esc(tx.type);
                         const isCredit = tx.type !== 'SPENT';
 
                         return `
@@ -4514,7 +4516,7 @@
                                 <div>
                                     <div style="font-weight: 500; color: var(--text-primary);">${typeLabel}</div>
                                     <div style="font-size: var(--ts-text-xs, 0.8rem); color: var(--text-secondary);">${dateStr}</div>
-                                    ${tx.reason ? `<div style="font-size: var(--ts-text-xs, 0.75rem); color: var(--text-muted); margin-top: 2px;">${tx.reason}</div>` : ''}
+                                    ${tx.reason ? `<div style="font-size: var(--ts-text-xs, 0.75rem); color: var(--text-muted); margin-top: 2px;">${esc(tx.reason)}</div>` : ''}
                                 </div>
                                 <div style="font-weight: 600; font-size: var(--ts-text-base, 1rem); color: ${isCredit ? '#22c55e' : '#ef4444'};">
                                     ${isCredit ? '+' : '-'}$${Math.abs(tx.amount).toFixed(2)}
@@ -4565,9 +4567,9 @@
             const container = document.getElementById('socialThumbs');
             container.innerHTML = posts.slice(0, 5).map(post => `
                 <div class="social-thumb" onclick="window.open('https://instagram.com/tinyseedfarm', '_blank')">
-                    <img src="${post.image}" alt="Farm" onerror="this.src='https://images.unsplash.com/photo-1500651230702-0e2d8a49d4ad?w=200&h=200&fit=crop'">
+                    <img src="${esc(post.image)}" alt="Farm" onerror="this.src='https://images.unsplash.com/photo-1500651230702-0e2d8a49d4ad?w=200&h=200&fit=crop'">
                     <div class="social-thumb-overlay">
-                        <i class="fab fa-${post.platform || 'instagram'}"></i>
+                        <i class="fab fa-${esc(post.platform || 'instagram')}"></i>
                     </div>
                 </div>
             `).join('');
@@ -4680,15 +4682,15 @@
 
                 return `
                     <div class="box-item animate-in">
-                        <div class="box-item-emoji">${item.emoji || '🥬'}</div>
+                        <div class="box-item-emoji">${esc(item.emoji || '🥬')}</div>
                         <div class="box-item-info">
-                            <div class="box-item-name">${item.Product_Name}</div>
-                            <div class="box-item-qty">${item.Quantity} ${item.Unit}</div>
+                            <div class="box-item-name">${esc(item.Product_Name)}</div>
+                            <div class="box-item-qty">${esc(item.Quantity)} ${esc(item.Unit)}</div>
                             ${isDisliked ? '<div class="box-item-note">Consider swapping - you marked this as a dislike</div>' : ''}
                         </div>
                         <div class="box-item-actions">
                             ${item.Is_Swappable ? `
-                                <button class="swap-btn" onclick="openSwapModal('${item.Product_Name}', '${item.emoji}')" ${credits <= 0 ? 'disabled title="No swap credits"' : ''}>
+                                <button class="swap-btn" onclick="openSwapModal('${esc(item.Product_Name)}', '${esc(item.emoji)}')" ${credits <= 0 ? 'disabled title="No swap credits"' : ''}>
                                     Swap
                                 </button>
                             ` : ''}
@@ -4700,10 +4702,10 @@
 
         function renderUpcomingBoxes(boxes) {
             document.getElementById('upcomingList').innerHTML = boxes.map(box => `
-                <div class="upcoming-card ${box.isHold ? 'hold' : ''}" onclick="viewUpcomingBox('${box.date}')">
+                <div class="upcoming-card ${box.isHold ? 'hold' : ''}" onclick="viewUpcomingBox('${esc(box.date)}')">
                     <div>
-                        <div class="upcoming-date">${box.date} - ${box.week}</div>
-                        <div class="upcoming-preview">${box.isHold ? 'Vacation Hold Scheduled' : box.items}</div>
+                        <div class="upcoming-date">${esc(box.date)} - ${esc(box.week)}</div>
+                        <div class="upcoming-preview">${box.isHold ? 'Vacation Hold Scheduled' : esc(box.items)}</div>
                     </div>
                     <span class="upcoming-badge ${box.isHold ? 'hold' : ''}">${box.isHold ? 'On Hold' : box.status === 'upcoming' ? 'Coming Soon' : 'Planned'}</span>
                 </div>
@@ -4766,7 +4768,7 @@
                 const noteHtml = `
                     <div class="swap-note">
                         <i class="fas fa-lightbulb"></i>
-                        <span>${swapOutNote}</span>
+                        <span>${esc(swapOutNote)}</span>
                     </div>
                 `;
                 document.getElementById('popularSwaps').insertAdjacentHTML('beforebegin', noteHtml);
@@ -4775,12 +4777,12 @@
             // Render recommended swaps (personalized based on preferences)
             if (suggestions.recommended && suggestions.recommended.length > 0) {
                 document.getElementById('popularSwaps').innerHTML = suggestions.recommended.map(opt => `
-                    <div class="swap-option recommended" onclick="selectSwap('${opt.name}', '${opt.emoji}')">
-                        <div class="swap-option-emoji">${opt.emoji}</div>
+                    <div class="swap-option recommended" onclick="selectSwap('${esc(opt.name)}', '${esc(opt.emoji)}')">
+                        <div class="swap-option-emoji">${esc(opt.emoji)}</div>
                         <div class="swap-option-info">
-                            <div class="swap-option-name">${opt.name}</div>
+                            <div class="swap-option-name">${esc(opt.name)}</div>
                             <div class="swap-option-meta">
-                                <span class="swap-recommended"><i class="fas fa-thumbs-up"></i> ${opt.reason}</span>
+                                <span class="swap-recommended"><i class="fas fa-thumbs-up"></i> ${esc(opt.reason)}</span>
                                 ${opt.limited ? '<span class="swap-limited">Limited!</span>' : ''}
                             </div>
                         </div>
@@ -4799,10 +4801,10 @@
             // Render other available options
             if (suggestions.other && suggestions.other.length > 0) {
                 document.getElementById('otherSwaps').innerHTML = suggestions.other.map(opt => `
-                    <div class="swap-option" onclick="selectSwap('${opt.name}', '${opt.emoji}')">
-                        <div class="swap-option-emoji">${opt.emoji}</div>
+                    <div class="swap-option" onclick="selectSwap('${esc(opt.name)}', '${esc(opt.emoji)}')">
+                        <div class="swap-option-emoji">${esc(opt.emoji)}</div>
                         <div class="swap-option-info">
-                            <div class="swap-option-name">${opt.name}</div>
+                            <div class="swap-option-name">${esc(opt.name)}</div>
                             <div class="swap-option-meta">
                                 ${opt.limited ? '<span class="swap-limited">Limited!</span>' : '<span>Available</span>'}
                             </div>
@@ -5091,9 +5093,9 @@
             container.innerHTML = flexCart.map((item, index) => `
                 <div class="flex-cart-item" style="display: flex; align-items: center; padding: var(--ts-space-3, 12px); background: var(--bg-subtle); border-radius: var(--ts-radius-sm, 8px); margin-bottom: var(--ts-space-2, 8px);">
                     <div style="flex: 1;">
-                        <div style="font-weight: 500;">${item.name}</div>
+                        <div style="font-weight: 500;">${esc(item.name)}</div>
                         <div style="font-size: var(--ts-text-xs, 0.75rem); color: var(--text-secondary);">
-                            ${item.variety ? item.variety + ' · ' : ''}${item.quantity} ${item.unit} · $${(item.price * item.quantity).toFixed(2)}
+                            ${item.variety ? esc(item.variety) + ' · ' : ''}${item.quantity} ${esc(item.unit)} · $${(item.price * item.quantity).toFixed(2)}
                         </div>
                     </div>
                     <div style="display: flex; align-items: center; gap: var(--ts-space-2, 8px);">
@@ -5188,16 +5190,16 @@
             container.innerHTML = Object.entries(categories).map(([category, items]) => `
                 <div style="border-bottom: 1px solid var(--border);">
                     <div style="padding: var(--ts-space-3, 12px) var(--ts-space-4, 16px); background: var(--bg-subtle); font-weight: 600; font-size: var(--ts-text-xs, 0.8rem); color: var(--text-secondary);">
-                        ${category}
+                        ${esc(category)}
                     </div>
                     ${items.map(item => `
-                        <div class="add-item-row" style="display: flex; align-items: center; padding: var(--ts-space-3, 12px) var(--ts-space-4, 16px); border-bottom: 1px solid var(--border); cursor: pointer;" onclick="toggleAddItem('${item.id}')">
-                            <div style="width: 24px; height: 24px; border: 2px solid var(--border); border-radius: var(--ts-radius-sm, 4px); margin-right: 12px; display: flex; align-items: center; justify-content: center; transition: all var(--ts-dur-normal, 200ms);" id="checkbox-${item.id}">
+                        <div class="add-item-row" style="display: flex; align-items: center; padding: var(--ts-space-3, 12px) var(--ts-space-4, 16px); border-bottom: 1px solid var(--border); cursor: pointer;" onclick="toggleAddItem('${esc(item.id)}')">
+                            <div style="width: 24px; height: 24px; border: 2px solid var(--border); border-radius: var(--ts-radius-sm, 4px); margin-right: 12px; display: flex; align-items: center; justify-content: center; transition: all var(--ts-dur-normal, 200ms);" id="checkbox-${esc(item.id)}">
                                 <i class="fas fa-check" style="color: white; font-size: var(--ts-text-xs, 0.75rem); display: none;"></i>
                             </div>
                             <div style="flex: 1;">
-                                <div style="font-weight: 500;">${item.name}</div>
-                                <div style="font-size: var(--ts-text-xs, 0.75rem); color: var(--text-secondary);">${item.unit}</div>
+                                <div style="font-weight: 500;">${esc(item.name)}</div>
+                                <div style="font-size: var(--ts-text-xs, 0.75rem); color: var(--text-secondary);">${esc(item.unit)}</div>
                             </div>
                             <div style="font-weight: 600; color: var(--primary);">$${item.price.toFixed(2)}</div>
                         </div>
@@ -5593,12 +5595,12 @@
                     <div class="order-card animate-in">
                         <div class="order-header">
                             <div>
-                                <div class="order-id">${order.Order_ID}</div>
+                                <div class="order-id">${esc(order.Order_ID)}</div>
                                 <div class="order-date">${formatDate(order.date)}</div>
                             </div>
-                            <span class="order-status ${statusClass}">${order.Status}</span>
+                            <span class="order-status ${esc(statusClass)}">${esc(order.Status)}</span>
                         </div>
-                        <div class="order-items">${order.items}</div>
+                        <div class="order-items">${esc(order.items)}</div>
                     </div>
                 `;
             }).join('');
@@ -5860,7 +5862,7 @@
                 info: 'fa-info-circle'
             };
 
-            toast.innerHTML = `<i class="fas ${icons[type]}"></i> ${message}`;
+            toast.innerHTML = `<i class="fas ${icons[type]}"></i> ${esc(message)}`;
             container.appendChild(toast);
 
             setTimeout(() => {
