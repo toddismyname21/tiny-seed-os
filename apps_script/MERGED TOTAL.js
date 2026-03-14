@@ -4686,17 +4686,17 @@ function updateContactProfile(data) {
 
     if (rowIndex > 0) {
       // Update existing
-      sheet.getRange(rowIndex, 3).setValue(data.name || sheetData[rowIndex-1][2]);
-      sheet.getRange(rowIndex, 4).setValue(data.company || sheetData[rowIndex-1][3]);
-      sheet.getRange(rowIndex, 5).setValue(data.category || sheetData[rowIndex-1][4]);
-      sheet.getRange(rowIndex, 6).setValue(data.relationship || sheetData[rowIndex-1][5]);
-      sheet.getRange(rowIndex, 7).setValue(data.notes || sheetData[rowIndex-1][6]);
-      sheet.getRange(rowIndex, 8).setValue(data.communicationStyle || sheetData[rowIndex-1][7]);
-      sheet.getRange(rowIndex, 9).setValue(data.preferences || sheetData[rowIndex-1][8]);
+      sheet.getRange(rowIndex, 3).setValue(sanitizeForSheet(data.name || sheetData[rowIndex-1][2]));
+      sheet.getRange(rowIndex, 4).setValue(sanitizeForSheet(data.company || sheetData[rowIndex-1][3]));
+      sheet.getRange(rowIndex, 5).setValue(sanitizeForSheet(data.category || sheetData[rowIndex-1][4]));
+      sheet.getRange(rowIndex, 6).setValue(sanitizeForSheet(data.relationship || sheetData[rowIndex-1][5]));
+      sheet.getRange(rowIndex, 7).setValue(sanitizeForSheet(data.notes || sheetData[rowIndex-1][6]));
+      sheet.getRange(rowIndex, 8).setValue(sanitizeForSheet(data.communicationStyle || sheetData[rowIndex-1][7]));
+      sheet.getRange(rowIndex, 9).setValue(sanitizeForSheet(data.preferences || sheetData[rowIndex-1][8]));
       sheet.getRange(rowIndex, 15).setValue(now);
     } else {
       // Create new
-      sheet.appendRow([
+      sheet.appendRow(sanitizeRowForSheet([
         contactId,
         data.email,
         data.name || '',
@@ -4712,7 +4712,7 @@ function updateContactProfile(data) {
         JSON.stringify(data.tags || []),
         now,
         now
-      ]);
+      ]));
     }
 
     return {
@@ -26166,6 +26166,12 @@ function getOptimalBedAssignments(params) {
  * Apply AI-recommended bed assignments to PLANNING_2026
  */
 function applyOptimalAssignments(params) {
+  var lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(15000);
+  } catch (lockErr) {
+    return { success: false, error: 'System busy — please try again.' };
+  }
   try {
     const assignments = params.assignments ? JSON.parse(params.assignments) : [];
 
@@ -26185,7 +26191,7 @@ function applyOptimalAssignments(params) {
     for (const assignment of assignments) {
       if (assignment.rowIndex && assignment.toBed) {
         // Column F (index 6, 1-based) is Target_Bed_ID
-        sheet.getRange(assignment.rowIndex, 6).setValue(assignment.toBed);
+        sheet.getRange(assignment.rowIndex, 6).setValue(sanitizeForSheet(assignment.toBed));
         appliedCount++;
       }
     }
@@ -26193,11 +26199,13 @@ function applyOptimalAssignments(params) {
     return {
       success: true,
       applied: appliedCount,
-      message: `Successfully applied ${appliedCount} bed assignments`
+      message: 'Successfully applied ' + appliedCount + ' bed assignments'
     };
 
   } catch (error) {
     return { success: false, error: error.toString() };
+  } finally {
+    lock.releaseLock();
   }
 }
 
@@ -26243,6 +26251,12 @@ function getFieldPlanSuggestions(params) {
  * Approve a single suggestion
  */
 function approveSuggestion(params) {
+  var lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(10000);
+  } catch (lockErr) {
+    return { success: false, error: 'System busy — please try again.' };
+  }
   try {
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName('PLANNING_2026');
@@ -26252,7 +26266,7 @@ function approveSuggestion(params) {
     }
 
     const rowIndex = parseInt(params.rowIndex);
-    const targetBed = params.targetBed;
+    const targetBed = sanitizeForSheet(params.targetBed);
 
     if (!rowIndex || !targetBed) {
       return { success: false, error: 'Missing rowIndex or targetBed' };
@@ -26262,11 +26276,13 @@ function approveSuggestion(params) {
 
     return {
       success: true,
-      message: `Assigned to ${targetBed}`
+      message: 'Assigned to ' + targetBed
     };
 
   } catch (error) {
     return { success: false, error: error.toString() };
+  } finally {
+    lock.releaseLock();
   }
 }
 
@@ -26664,6 +26680,12 @@ function populateTraySizesFromProfiles() {
  * Accepts URL parameters and creates a row in PLANNING_2026
  */
 function savePlantingFromWeb(params) {
+  var lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(15000);
+  } catch (lockErr) {
+    return { success: false, error: 'System busy — please try again in a few seconds.' };
+  }
   try {
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName('PLANNING_2026');
@@ -26762,8 +26784,8 @@ function savePlantingFromWeb(params) {
       return '';
     });
 
-    // Append the row
-    sheet.appendRow(row);
+    // Append the row (sanitized against formula injection)
+    sheet.appendRow(sanitizeRowForSheet(row));
 
     // Try to deduct seeds from inventory
     let seedDeduction = null;
@@ -26809,6 +26831,8 @@ function savePlantingFromWeb(params) {
       success: false,
       error: error.toString()
     };
+  } finally {
+    lock.releaseLock();
   }
 }
 
@@ -28040,7 +28064,7 @@ function addSeedLot(data) {
       return valueMap.hasOwnProperty(header) ? valueMap[header] : '';
     });
 
-    sheet.appendRow(rowData);
+    sheet.appendRow(sanitizeRowForSheet(rowData));
 
     // Auto-link to matching order if no orderId provided
     if (!valueMap['Order_ID'] && valueMap['Supplier']) {
@@ -31562,7 +31586,7 @@ function createTask(params) {
     let priority = (params.priority || 'Medium').toUpperCase();
     if (priority === 'CRITICAL') priority = 'URGENT';
 
-    taskSheet.appendRow([
+    taskSheet.appendRow(sanitizeRowForSheet([
       taskId,
       params.title || 'Untitled Task',
       params.description || '',
@@ -31576,7 +31600,7 @@ function createTask(params) {
       params.location || '',
       params.assignedTo || '',
       ''
-    ]);
+    ]));
 
     Logger.log('createTask: Created task ' + taskId);
 
