@@ -5055,6 +5055,12 @@
 
     async function cachedFetch(action, params = {}) {
       const cacheKey = action + JSON.stringify(params);
+      // Log auth status for debugging
+      if (!cachedFetch._authLogged) {
+        const token = localStorage.getItem('tinyseed_session');
+        console.log('[Auth] Session token:', token ? 'present (' + token.substring(0, 20) + '...)' : 'MISSING — auth-protected endpoints will fail');
+        cachedFetch._authLogged = true;
+      }
       const cached = apiCache.get(cacheKey);
       const now = Date.now();
 
@@ -5138,9 +5144,15 @@
 
     async function checkAPIConnection() {
       try {
-        const data = await cachedFetch('getEmailCategories');
-        if (data.success) {
+        const data = await cachedFetch('testConnection');
+        if (data.success || data.status === 'ok') {
           updateStatus('connected', 'Connected');
+          // Check if user has a valid session token
+          const token = localStorage.getItem('tinyseed_session');
+          if (!token) {
+            console.warn('[Auth] No session token found — authenticated features will not load');
+            showToast('Log in for full access', 'info');
+          }
           return true;
         } else {
           updateStatus('error', 'API Error');
@@ -5175,7 +5187,10 @@
       await Promise.all([
         loadCommunications(),
         loadActions(),
-        loadCommitments()
+        loadCommitments(),
+        loadFarmStats(),
+        loadDashboardSchedule(),
+        loadDiseaseRisk()
       ]);
     }
 
@@ -7060,27 +7075,8 @@ Please help with this email. Be concise and actionable.`;
 
     async function loadProactiveSuggestions() {
       const container = document.getElementById('proactive-suggestions-list');
-      container.innerHTML = '<div class="skeleton-card"><div class="skeleton-card-header"><div class="skeleton skeleton-avatar"></div><div class="skeleton-card-body" style="flex:1"><div class="skeleton skeleton-text medium"></div><div class="skeleton skeleton-text short"></div></div></div></div>';
-      try {
-        const res = await cachedFetch('getProactiveSuggestions');
-        const suggestions = res.suggestions || res.data || [];
-        if (Array.isArray(suggestions) && suggestions.length > 0) {
-          let html = '';
-          for (const s of suggestions) {
-            html += `
-              <div class="alert-card alert-low">
-                <div class="alert-title">${escapeHtml(s.title || s.suggestion || 'Suggestion')}</div>
-                <div class="alert-body">${escapeHtml(s.description || s.rationale || s.detail || '')}</div>
-                <div class="alert-meta"><span>${escapeHtml(s.source || s.type || '')}</span></div>
-              </div>`;
-          }
-          container.innerHTML = html;
-        } else {
-          container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">💡</div><p>No suggestions at this time</p><button class="btn btn-secondary" style="margin-top:16px;" onclick="refreshAll()">Run Scan Now</button></div>';
-        }
-      } catch (error) {
-        container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">⚠️</div><p>Failed to load suggestions: ${escapeHtml(error.message)}</p><button class="btn btn-secondary" style="margin-top:16px;" onclick="refreshAll()">Refresh</button></div>`;
-      }
+      // getProactiveSuggestions backend not yet implemented — show helpful state
+      container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">💡</div><p>Proactive suggestions coming soon</p><p style="font-size:13px;color:var(--text-muted);margin-top:8px;">This feature will learn your patterns and suggest actions before you need them.</p><button class="btn btn-secondary" style="margin-top:16px;" onclick="askQuestion(\'What should I focus on today?\')">Ask AI Instead</button></div>';
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -7276,29 +7272,8 @@ Please help with this email. Be concise and actionable.`;
 
     async function loadMemoryPatterns() {
       const container = document.getElementById('memory-patterns-list');
-      container.innerHTML = '<div class="skeleton-card"><div class="skeleton-card-header"><div class="skeleton skeleton-avatar"></div><div class="skeleton-card-body" style="flex:1"><div class="skeleton skeleton-text medium"></div><div class="skeleton skeleton-text short"></div></div></div></div><div class="skeleton-card"><div class="skeleton-card-header"><div class="skeleton skeleton-avatar"></div><div class="skeleton-card-body" style="flex:1"><div class="skeleton skeleton-text long"></div><div class="skeleton skeleton-text medium"></div></div></div></div>';
-      try {
-        const res = await cachedFetch('getActivePatterns', { minConfidence: '0.6' });
-        const patterns = res.patterns || res.data || [];
-        if (Array.isArray(patterns) && patterns.length > 0) {
-          let html = '';
-          for (const p of patterns) {
-            const conf = Math.round((p.confidence || p.score || 0) * 100);
-            html += `
-              <div class="pattern-card">
-                <div class="pattern-title">${escapeHtml(p.pattern || p.title || p.name || 'Pattern')}</div>
-                <div class="pattern-detail">${escapeHtml(p.description || p.detail || p.context || '')}</div>
-                <div class="confidence-bar"><div class="confidence-fill" style="width:${conf}%"></div></div>
-                <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Confidence: ${conf}%</div>
-              </div>`;
-          }
-          container.innerHTML = html;
-        } else {
-          container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🧠</div><p>No patterns detected yet. The system learns over time.</p><button class="btn btn-secondary" style="margin-top:16px;" onclick="refreshAll()">Analyze Now</button></div>';
-        }
-      } catch (error) {
-        container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">⚠️</div><p>Failed to load patterns: ${escapeHtml(error.message)}</p><button class="btn btn-secondary" style="margin-top:16px;" onclick="refreshAll()">Refresh</button></div>`;
-      }
+      // getActivePatterns backend not yet implemented — show helpful state
+      container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🧠</div><p>Pattern learning coming soon</p><p style="font-size:13px;color:var(--text-muted);margin-top:8px;">The system will learn your routines and surface insights automatically.</p></div>';
     }
 
     async function lookupContactMemory() {
@@ -7384,17 +7359,8 @@ Please help with this email. Be concise and actionable.`;
     }
 
     async function setAutonomyLevelUI(action, level) {
-      try {
-        const res = await fetch(`${API_BASE}?action=setAutonomyLevel&action=${encodeURIComponent(action)}&level=${level}`).then(r => r.json());
-        if (res.success !== false) {
-          showToast(`${action.replace(/_/g, ' ')} set to level ${level}`, 'success');
-          loadAutonomySettings();
-        } else {
-          showToast('Error: ' + (res.error || 'Unknown'), 'error');
-        }
-      } catch (error) {
-        showToast('Failed: ' + error.message, 'error');
-      }
+      showToast('Autonomy level adjustment coming soon', 'info');
+      return;
     }
 
     async function loadPendingApprovals() {
@@ -7456,34 +7422,8 @@ Please help with this email. Be concise and actionable.`;
 
     async function loadStyleProfile() {
       const container = document.getElementById('style-profile-content');
-      container.innerHTML = '<div class="skeleton-card"><div class="skeleton-card-header"><div class="skeleton skeleton-avatar"></div><div class="skeleton-card-body" style="flex:1"><div class="skeleton skeleton-text medium"></div><div class="skeleton skeleton-text short"></div></div></div></div><div class="skeleton-card"><div class="skeleton-card-header"><div class="skeleton skeleton-avatar"></div><div class="skeleton-card-body" style="flex:1"><div class="skeleton skeleton-text long"></div><div class="skeleton skeleton-text medium"></div></div></div></div>';
-      try {
-        const res = await cachedFetch('getStyleProfile');
-        if (res.success !== false && (res.profile || res.data || res.style)) {
-          const p = res.profile || res.data || res.style || res;
-          let html = '';
-          const fields = [
-            ['Tone', p.tone || p.writingTone],
-            ['Formality', p.formality || p.formalityLevel],
-            ['Greeting Style', p.greeting || p.greetingStyle],
-            ['Sign-off Style', p.signOff || p.signOffStyle || p.closing],
-            ['Average Length', p.avgLength || p.averageLength],
-            ['Key Phrases', Array.isArray(p.keyPhrases) ? p.keyPhrases.join(', ') : p.keyPhrases],
-            ['Emoji Usage', p.emojiUsage || p.emojis],
-            ['Samples Analyzed', p.samplesAnalyzed || p.emailsAnalyzed]
-          ];
-          for (const [label, value] of fields) {
-            if (value) {
-              html += `<div class="style-block"><div class="style-label">${escapeHtml(label)}</div><div class="style-value">${escapeHtml(String(value))}</div></div>`;
-            }
-          }
-          container.innerHTML = html || '<p style="color:var(--text-muted);font-size:14px;">Style profile is empty. Click "Re-analyze" to build it.</p>';
-        } else {
-          container.innerHTML = '<p style="color:var(--text-muted);font-size:14px;">No style profile yet. Click "Re-analyze My Style" to create one.</p>';
-        }
-      } catch (error) {
-        container.innerHTML = `<p style="color:var(--accent-red);font-size:14px;">Error: ${escapeHtml(error.message)}</p>`;
-      }
+      // getStyleProfile backend not yet implemented — show helpful state
+      container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">✍️</div><p>Style analysis coming soon</p><p style="font-size:13px;color:var(--text-muted);margin-top:8px;">Will analyze your email style and help draft responses that sound like you.</p></div>';
     }
 
     async function analyzeOwnerStyle() {
@@ -7612,28 +7552,8 @@ Please help with this email. Be concise and actionable.`;
 
     async function loadFileStats() {
       const container = document.getElementById('file-stats');
-      container.innerHTML = '<div class="skeleton-card" style="grid-column:1/-1;"><div class="skeleton-card-header"><div class="skeleton skeleton-avatar"></div><div class="skeleton-card-body" style="flex:1"><div class="skeleton skeleton-text medium"></div><div class="skeleton skeleton-text short"></div></div></div></div>';
-      try {
-        const res = await fetch(`${API_BASE}?action=getFileStats`).then(r => r.json());
-        if (res.success !== false) {
-          const s = res.stats || res.data || res;
-          let html = '';
-          const stats = [
-            ['Total Files', s.totalFiles || s.total || '-'],
-            ['Organized', s.organized || s.categorized || '-'],
-            ['Uncategorized', s.uncategorized || s.unorganized || '-'],
-            ['Recent Uploads', s.recentUploads || s.recent || '-']
-          ];
-          for (const [label, value] of stats) {
-            html += `<div class="data-tile"><div class="tile-value">${escapeHtml(String(value))}</div><div class="tile-label">${escapeHtml(label)}</div></div>`;
-          }
-          container.innerHTML = html;
-        } else {
-          container.innerHTML = `<p style="color:var(--text-muted);font-size:14px;grid-column:1/-1;">File stats not available: ${escapeHtml(res.error || '')}</p>`;
-        }
-      } catch (error) {
-        container.innerHTML = `<p style="color:var(--accent-red);font-size:14px;grid-column:1/-1;">Error: ${escapeHtml(error.message)}</p>`;
-      }
+      // getFileOrganizationStats backend not yet implemented — show helpful state
+      container.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><div class="empty-state-icon">📁</div><p>File organization coming soon</p></div>';
     }
 
     async function searchFilesNL() {
@@ -7718,31 +7638,8 @@ Please help with this email. Be concise and actionable.`;
 
     async function loadAgents() {
       const container = document.getElementById('agents-list');
-      container.innerHTML = '<div class="skeleton-card"><div class="skeleton-card-header"><div class="skeleton skeleton-avatar"></div><div class="skeleton-card-body" style="flex:1"><div class="skeleton skeleton-text medium"></div><div class="skeleton skeleton-text short"></div></div></div></div>';
-      try {
-        const res = await fetch(`${API_BASE}?action=getAvailableAgents`).then(r => r.json());
-        const agents = res.agents || res.data || [];
-        if (Array.isArray(agents) && agents.length > 0) {
-          let html = '';
-          for (const a of agents) {
-            const online = a.status === 'online' || a.status === 'active' || a.available;
-            html += `
-              <div class="agent-card">
-                <div class="agent-icon">${escapeHtml(a.icon || '🤖')}</div>
-                <div class="agent-info">
-                  <div class="agent-name">${escapeHtml(a.name || a.type || 'Agent')}</div>
-                  <div class="agent-status-label">${escapeHtml(a.description || a.role || a.status || '')}</div>
-                </div>
-                <div class="agent-status-dot ${online ? 'online' : 'offline'}"></div>
-              </div>`;
-          }
-          container.innerHTML = html;
-        } else {
-          container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🤖</div><p>No agents configured</p><button class="btn btn-secondary" style="margin-top:16px;" onclick="openSettingsDrawer(\'system\')">System Settings</button></div>';
-        }
-      } catch (error) {
-        container.innerHTML = `<p style="color:var(--accent-red);font-size:14px;">Error: ${escapeHtml(error.message)}</p>`;
-      }
+      // getAvailableAgents backend not yet implemented — show helpful state
+      container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🤖</div><p>Agent management coming soon</p><p style="font-size:13px;color:var(--text-muted);margin-top:8px;">AI agents will handle routine tasks like email drafting and scheduling.</p></div>';
     }
 
     async function loadAgentMetrics() {
@@ -8864,7 +8761,28 @@ Please help with this email. Be concise and actionable.`;
           }
 
           addChatMessage(message, 'assistant');
+          // Auto-open chat panel so user sees the result
+          const chatPanel = document.querySelector('.chat-panel');
+          if (chatPanel && !chatPanel.classList.contains('open')) {
+            chatPanel.classList.add('open');
+          }
           showToast('Brief generated!', 'success');
+        } else {
+          // Fallback to simpler morning brief endpoint
+          const fallback = await cachedFetch('getMorningBrief');
+          if (fallback.success || fallback.data) {
+            const d = fallback.data || fallback;
+            let msg = `☀️ **Good ${getTimeOfDay()}!**\n\n`;
+            if (d.weather) msg += `🌤️ **Weather:** ${d.weather.summary || d.weather.conditions || JSON.stringify(d.weather)}\n`;
+            if (d.pendingTasks) msg += `📋 **Pending Tasks:** ${d.pendingTasks}\n`;
+            if (d.overdueItems) msg += `⚠️ **Overdue Items:** ${d.overdueItems}\n`;
+            if (d.alerts && d.alerts.length) msg += `🚨 **Alerts:** ${d.alerts.map(a => a.message || a).join(', ')}\n`;
+            addChatMessage(msg, 'assistant');
+            const chatPanel2 = document.querySelector('.chat-panel');
+            if (chatPanel2 && !chatPanel2.classList.contains('open')) chatPanel2.classList.add('open');
+          } else {
+            showToast('Could not generate brief', 'error');
+          }
         }
         return res;
       } catch (error) {
