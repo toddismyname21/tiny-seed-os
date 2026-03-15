@@ -456,10 +456,12 @@
             border-radius: 6px; font-weight: 600; cursor: pointer;
         }
         @media print {
-            #farmMap { height: 400px; page-break-inside: avoid; }
+            /* Hide interactive map, show snapshot image instead */
+            #farmMapContainer { display: none !important; }
+            #mapSnapshotContainer { display: block !important; page-break-inside: avoid; }
+            #mapSnapshotImg { max-height: 500px; object-fit: contain; }
             .map-toolbar, .leaflet-pm-toolbar, .leaflet-control-zoom, .field-name-picker { display: none !important; }
             .field-item .field-source { border: 1px solid #999; }
-            #farmMapContainer.locked #farmMap { display: block; pointer-events: none; }
         }
     </style>
     <div class="osp-section" data-section="3" id="section3">
@@ -494,6 +496,14 @@
         <div id="farmMapContainer">
             <div id="farmMap"></div>
         </div>
+
+        <!-- Map snapshot for print/PDF submission -->
+        <div id="mapSnapshotContainer" style="display:none;margin:12px 0;">
+            <img id="mapSnapshotImg" style="width:100%;border-radius:8px;border:1px solid var(--border);" alt="Farm map snapshot">
+        </div>
+        <button onclick="captureMapSnapshot()" class="no-print" style="margin:8px 0;padding:8px 16px;border-radius:8px;border:1px solid var(--info);background:var(--info-dim);color:var(--info);font-size:0.85rem;cursor:pointer;">
+            <i class="fas fa-camera"></i> Capture Map for Submission
+        </button>
 
         <div class="field-list" id="fieldList"></div>
         <div class="map-total" id="mapTotalAcres"></div>
@@ -1137,6 +1147,7 @@ document.addEventListener('DOMContentLoaded', function() {
     fetchFarmData();
     checkROPEligibility();
     renderArchivedFields();
+    restoreMapSnapshot();
 });
 
 function buildYearSelector() {
@@ -3172,6 +3183,9 @@ function buildOEFFAExactMap(ospData) {
 }
 </script>
 
+<!-- html2canvas for map snapshot capture -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
 <!-- Farm Map Scripts -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/@geoman-io/leaflet-geoman-free@2.17.0/dist/leaflet-geoman.min.js"></script>
@@ -3430,22 +3444,36 @@ function assignFieldName(name) {
 function addFieldLabel(layer) {
     if (layer._label) drawnFields.removeLayer(layer._label);
 
-    var center = layer.getBounds().getCenter();
-    var sourceIcon = layer.fieldSource === 'gps' ? '📡' : '✏️';
-    var borderColor = layer.fieldSource === 'gps' ? '#22c55e' : '#f59e0b';
+    // Place label at polygon centroid (visual center inside the field)
+    var center = getPolygonCentroid(layer);
+    var fillColor = layer.fieldColor || '#22c55e';
 
     var label = L.marker(center, {
         interactive: false,
         icon: L.divIcon({
             className: '',
-            html: '<div style="background:rgba(0,0,0,0.8);color:#fff;padding:4px 10px;border-radius:5px;font-size:13px;font-weight:700;white-space:nowrap;border:2px solid ' + borderColor + ';pointer-events:none;">' +
-                  sourceIcon + ' ' + esc(layer.fieldId) + ' <span style="color:' + borderColor + ';">(' + layer.fieldAcres.toFixed(2) + ' ac)</span></div>',
-            iconSize: null,
-            iconAnchor: [0, 0]
+            html: '<div style="color:#fff;font-size:12px;font-weight:700;text-align:center;line-height:1.3;pointer-events:none;text-shadow:0 1px 4px rgba(0,0,0,0.9),0 0 2px rgba(0,0,0,0.7);">' +
+                  esc(layer.fieldId) + '<br><span style="font-size:10px;font-weight:500;opacity:0.9;">' + layer.fieldAcres.toFixed(2) + ' ac</span></div>',
+            iconSize: [0, 0],
+            iconAnchor: [0, 0],
+            className: 'field-label-icon'
         })
     });
     layer._label = label;
     drawnFields.addLayer(label);
+}
+
+// Get visual centroid of polygon (center of mass, not bounding box center)
+function getPolygonCentroid(polygon) {
+    var latlngs = polygon.getLatLngs();
+    var pts = Array.isArray(latlngs[0]) ? latlngs[0] : latlngs;
+    if (!pts.length) return polygon.getBounds().getCenter();
+    var sumLat = 0, sumLng = 0;
+    for (var i = 0; i < pts.length; i++) {
+        sumLat += pts[i].lat;
+        sumLng += pts[i].lng;
+    }
+    return L.latLng(sumLat / pts.length, sumLng / pts.length);
 }
 
 function updateFieldLabel(layer) {
@@ -3573,6 +3601,61 @@ function clearAllFields() {
     usedFieldNames.clear();
     updateFieldList();
     saveMapData();
+}
+
+// ============================================================
+// MAP SNAPSHOT — capture map as image for print/PDF/submission
+// ============================================================
+async function captureMapSnapshot() {
+    if (!farmMap) { showToast('Map not loaded yet', 'error'); return; }
+    var container = document.getElementById('farmMapContainer');
+    if (!container) return;
+
+    showToast('Capturing map…', 'success');
+    try {
+        var canvas = await html2canvas(container, {
+            useCORS: true,
+            allowTaint: true,
+            backgroundColor: '#1a1d27',
+            scale: 2
+        });
+        var dataUrl = canvas.toDataURL('image/png');
+        var img = document.getElementById('mapSnapshotImg');
+        img.src = dataUrl;
+        document.getElementById('mapSnapshotContainer').style.display = 'block';
+        // Auto-check the "map attached" checkbox
+        var cb = document.getElementById('mapAttached');
+        if (cb) cb.checked = true;
+        // Save snapshot to localStorage so it persists
+        try { localStorage.setItem('osp_map_snapshot_' + getCurrentYear(), dataUrl); } catch(e) {}
+        showToast('Map captured — will be included in print/PDF', 'success');
+    } catch(err) {
+        showToast('Map capture failed: ' + err.message, 'error');
+    }
+}
+
+// Auto-capture map before printing
+window.addEventListener('beforeprint', function() {
+    var img = document.getElementById('mapSnapshotImg');
+    if (img && !img.src) {
+        // Try to load from localStorage if not captured this session
+        var saved = localStorage.getItem('osp_map_snapshot_' + getCurrentYear());
+        if (saved) {
+            img.src = saved;
+            document.getElementById('mapSnapshotContainer').style.display = 'block';
+        }
+    }
+});
+
+// Restore snapshot on page load
+function restoreMapSnapshot() {
+    try {
+        var saved = localStorage.getItem('osp_map_snapshot_' + getCurrentYear());
+        if (saved) {
+            var img = document.getElementById('mapSnapshotImg');
+            if (img) img.src = saved;
+        }
+    } catch(e) {}
 }
 
 // ============================================================
