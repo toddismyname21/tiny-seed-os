@@ -3654,6 +3654,156 @@
       font-weight: 600;
     }
 
+    /* ═══ Settings Drawer ═══ */
+    .settings-drawer-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+      z-index: 101;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--ts-dur-moderate, 300ms) ease;
+    }
+    .settings-drawer-overlay.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .settings-drawer {
+      position: fixed;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      width: 100%;
+      max-width: 520px;
+      background: var(--bg-secondary);
+      border-left: 1px solid var(--border-color);
+      transform: translateX(100%);
+      transition: transform var(--ts-dur-moderate, 300ms) ease;
+      z-index: 102;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .settings-drawer.open {
+      transform: translateX(0);
+    }
+
+    .settings-drawer-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-color);
+      flex-shrink: 0;
+    }
+    .settings-drawer-header h2 {
+      margin: 0;
+      font-size: 1.1rem;
+      color: var(--text-primary);
+    }
+    .settings-drawer-close {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.5rem;
+      cursor: pointer;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: var(--ts-radius-sm, 6px);
+    }
+    .settings-drawer-close:hover {
+      background: var(--bg-card-hover);
+      color: var(--text-primary);
+    }
+
+    .settings-drawer-nav {
+      display: flex;
+      gap: 0;
+      padding: 0 8px;
+      overflow-x: auto;
+      border-bottom: 1px solid var(--border-color);
+      flex-shrink: 0;
+    }
+    .settings-nav-item {
+      padding: 12px 16px;
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all var(--ts-dur-fast, 120ms) ease;
+    }
+    .settings-nav-item:hover {
+      color: var(--text-secondary);
+    }
+    .settings-nav-item.active {
+      color: var(--accent-green);
+      border-bottom-color: var(--accent-green);
+    }
+
+    .settings-drawer-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+    }
+    .settings-drawer-body .tab-content {
+      display: none;
+    }
+    .settings-drawer-body .tab-content.active {
+      display: block;
+    }
+
+    /* Briefing Section (collapsible, above tabs) */
+    .briefing-section {
+      margin: 0 0 16px;
+    }
+    .briefing-toggle {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 16px;
+      cursor: pointer;
+      background: var(--bg-secondary);
+      border-radius: var(--ts-radius-md, 10px);
+      border: 1px solid var(--border-color);
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      user-select: none;
+    }
+    .briefing-toggle:hover {
+      background: var(--bg-card-hover);
+    }
+    .briefing-chevron {
+      transition: transform var(--ts-dur-normal, 200ms) ease;
+      font-size: 0.75rem;
+    }
+    .briefing-section.collapsed .briefing-chevron {
+      transform: rotate(-90deg);
+    }
+    .briefing-content {
+      overflow: hidden;
+      transition: max-height var(--ts-dur-moderate, 300ms) ease, opacity var(--ts-dur-normal, 200ms) ease;
+      max-height: 800px;
+      opacity: 1;
+      padding-top: 12px;
+    }
+    .briefing-section.collapsed .briefing-content {
+      max-height: 0;
+      opacity: 0;
+      padding-top: 0;
+    }
+
     /* ═══ Obligations / Notification Prefs Mobile ═══ */
     @media (max-width: 768px) {
       .obligation-form-grid {
@@ -3692,49 +3842,29 @@
               <span id="status-text">Connecting...</span>
             </span>
           </div>
-          <!-- Brain Status Indicator -->
-          <div class="header-stat" id="brain-status-indicator" title="TinyPM Brain Status">
-            <span class="brain-status-dot" style="width:8px;height:8px;border-radius:50%;display:inline-block;background:var(--text-muted);"></span>
-            <span class="brain-status-text" style="font-size:12px;color:var(--text-muted);">Brain: Connecting...</span>
-          </div>
           <div class="header-stat">
             <span>Critical:</span>
             <span class="count critical" id="critical-count">0</span>
           </div>
-          <div class="header-stat">
+          <!-- Hidden but kept for JS compatibility -->
+          <div class="header-stat" id="brain-status-indicator" title="TinyPM Brain Status" style="display:none;">
+            <span class="brain-status-dot" style="width:8px;height:8px;border-radius:50%;display:inline-block;background:var(--text-muted);"></span>
+            <span class="brain-status-text" style="font-size:12px;color:var(--text-muted);">Brain: Connecting...</span>
+          </div>
+          <div class="header-stat" style="display:none;">
             <span>High:</span>
             <span class="count high" id="high-count">0</span>
           </div>
-          <div class="header-stat">
+          <div class="header-stat" style="display:none;">
             <span>Overdue:</span>
             <span class="count critical" id="overdue-count">0</span>
           </div>
         </div>
       </div>
       <div class="header-actions">
-        <button class="btn btn-secondary" onclick="openCommandPalette()" title="Command Palette" data-shortcut="⌘K">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-          </svg>
-          <span style="font-family:monospace;font-size:12px;">⌘K</span>
-        </button>
-        <button class="btn btn-secondary" onclick="openBrainDump()" title="Dump your thoughts (B)" data-shortcut="B">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 2a10 10 0 1 0 0 20 10 10 0 1 0 0-20z"/><path d="M8 12h8"/><path d="M12 8v8"/>
-          </svg>
-          Brain Dump
-        </button>
-        <button class="btn btn-secondary" onclick="refreshAll()" title="Refresh data (R)" data-shortcut="R">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"/>
-          </svg>
-          Refresh
-        </button>
-        <button class="btn btn-primary" onclick="runTriage()" title="Process Inbox (P)" data-shortcut="P">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-          </svg>
-          Process Inbox
+        <button class="btn btn-icon" onclick="openSettingsDrawer()" title="Settings" aria-label="Settings" style="background:var(--bg-card);border:1px solid var(--border-color);color:var(--text-secondary);padding:10px;border-radius:var(--ts-radius-md,10px);cursor:pointer;font-size:1.1rem;">&#9881;&#65039;</button>
+        <button class="btn btn-primary" onclick="runTriage()" data-shortcut="P">
+          <span>Process Inbox</span>
         </button>
       </div>
     </header>
@@ -3748,231 +3878,167 @@
         <span class="nav-sidebar-logo" aria-hidden="true">🌱</span>
         <span class="nav-sidebar-title">Tiny Seed OS</span>
       </div>
-      <div class="nav-sidebar-items" role="list">
-        <a class="nav-sidebar-item" href="../index.html" role="listitem" tabindex="0" title="Back to Dashboard">
+      <div class="nav-sidebar-section">
+        <a href="../index.html" class="nav-sidebar-item" title="Dashboard">
           <span class="nav-sidebar-item-icon" aria-hidden="true">&#8962;</span>
           <span class="nav-sidebar-item-label">Dashboard</span>
         </a>
-        <button class="nav-sidebar-item active" data-nav="communications" onclick="navTo('communications')" data-shortcut="G C" role="listitem" aria-current="page" tabindex="0">
-          <span class="nav-sidebar-item-icon" aria-hidden="true">📧</span>
-          <span class="nav-sidebar-item-label">Communications</span>
-          <span class="nav-sidebar-badge" id="nav-comms-badge" style="display:none;" aria-label="unread items">0</span>
-        </button>
-        <button class="nav-sidebar-item" data-nav="actions" onclick="navTo('actions')" data-shortcut="G A" role="listitem" tabindex="0">
-          <span class="nav-sidebar-item-icon" aria-hidden="true">⚡</span>
-          <span class="nav-sidebar-item-label">Action Queue</span>
-        </button>
-        <button class="nav-sidebar-item" data-nav="commitments" onclick="navTo('commitments')" role="listitem" tabindex="0">
-          <span class="nav-sidebar-item-icon" aria-hidden="true">🤝</span>
-          <span class="nav-sidebar-item-label">Commitments</span>
-          <span class="nav-sidebar-badge" id="nav-overdue-badge" style="display:none;" aria-label="overdue items">0</span>
-        </button>
-        <button class="nav-sidebar-item" data-nav="proactive" onclick="navTo('proactive')" role="listitem" tabindex="0">
-          <span class="nav-sidebar-item-icon" aria-hidden="true">🚨</span>
-          <span class="nav-sidebar-item-label">Proactive Intel</span>
-          <span class="nav-sidebar-badge" id="nav-alerts-badge" style="display:none;" aria-label="active alerts">0</span>
-        </button>
-        <button class="nav-sidebar-item" data-nav="calendar" onclick="navTo('calendar')" data-shortcut="G L" role="listitem" tabindex="0">
-          <span class="nav-sidebar-item-icon" aria-hidden="true">📅</span>
-          <span class="nav-sidebar-item-label">Calendar AI</span>
-        </button>
-        <button class="nav-sidebar-item" data-nav="predictive" onclick="navTo('predictive')" role="listitem" tabindex="0">
-          <span class="nav-sidebar-item-icon" aria-hidden="true">📈</span>
-          <span class="nav-sidebar-item-label">Predictive</span>
-        </button>
-        <button class="nav-sidebar-item" data-nav="memory" onclick="navTo('memory')" role="listitem" tabindex="0">
-          <span class="nav-sidebar-item-icon" aria-hidden="true">🧠</span>
-          <span class="nav-sidebar-item-label">Memory</span>
-        </button>
-        <button class="nav-sidebar-item" data-nav="autonomy" onclick="navTo('autonomy')" role="listitem" tabindex="0">
-          <span class="nav-sidebar-item-icon" aria-hidden="true">🤖</span>
-          <span class="nav-sidebar-item-label">Autonomy</span>
-        </button>
-        <button class="nav-sidebar-item" data-nav="style-voice" onclick="navTo('style-voice')" role="listitem" tabindex="0">
-          <span class="nav-sidebar-item-icon" aria-hidden="true">✍️</span>
-          <span class="nav-sidebar-item-label">Style & Voice</span>
-        </button>
-        <button class="nav-sidebar-item" data-nav="system" onclick="navTo('system')" role="listitem" tabindex="0">
-          <span class="nav-sidebar-item-icon" aria-hidden="true">⚙️</span>
-          <span class="nav-sidebar-item-label">System</span>
-        </button>
       </div>
+      <div class="nav-sidebar-section" style="flex:1;"></div>
       <div class="nav-sidebar-footer">
-        <button class="nav-sidebar-item" onclick="openShortcutsOverlay()" data-shortcut="?" tabindex="0" aria-label="Show keyboard shortcuts">
-          <span class="nav-sidebar-item-icon" aria-hidden="true">⌨️</span>
-          <span class="nav-sidebar-item-label">Shortcuts</span>
+        <button class="nav-sidebar-item" onclick="openSettingsDrawer()" title="Settings" tabindex="0">
+          <span class="nav-sidebar-item-icon" aria-hidden="true">&#9881;&#65039;</span>
+          <span class="nav-sidebar-item-label">Settings</span>
         </button>
-        <button class="nav-sidebar-item" onclick="openCommandPalette()" data-shortcut="⌘K" tabindex="0" aria-label="Open command palette">
+        <button class="nav-sidebar-item" onclick="openCommandPalette()" title="Search" data-shortcut="⌘K" tabindex="0" aria-label="Open command palette">
           <span class="nav-sidebar-item-icon" aria-hidden="true">🔍</span>
           <span class="nav-sidebar-item-label">Search</span>
         </button>
       </div>
+      <!-- Hidden badges kept for JS compatibility -->
+      <span id="nav-comms-badge" style="display:none;">0</span>
+      <span id="nav-overdue-badge" style="display:none;">0</span>
+      <span id="nav-alerts-badge" style="display:none;">0</span>
     </nav>
 
     <!-- Main Panel -->
     <main class="main-panel">
+
+      <!-- Always-visible briefing section -->
+      <section class="briefing-section" id="briefing-section">
+        <div class="briefing-toggle" onclick="toggleBriefing()" aria-expanded="true" aria-controls="briefing-content">
+          <span>Daily Briefing</span>
+          <span class="briefing-chevron" id="briefing-chevron">&#9660;</span>
+        </div>
+        <div class="briefing-content" id="briefing-content">
+          <!-- Z-Pattern Daily Briefing Dashboard -->
+          <div class="dashboard-z-pattern" id="daily-briefing-dashboard">
+            <!-- Top-Left: Critical Alert/Most Important Metric -->
+            <div class="dashboard-card critical-alert" id="dash-critical">
+              <div class="dashboard-card-header">
+                <span class="dashboard-card-title">🚨 Needs Attention</span>
+                <span class="dashboard-card-action" onclick="setFilter('unread');scrollToComms()">View All</span>
+              </div>
+              <div class="dashboard-metric critical" id="dash-critical-count">0</div>
+              <div class="dashboard-metric-label">critical + high priority items</div>
+            </div>
+
+            <!-- Top-Right: Secondary Status -->
+            <div class="dashboard-card" id="dash-schedule">
+              <div class="dashboard-card-header">
+                <span class="dashboard-card-title">📅 Today's Schedule</span>
+                <span class="dashboard-card-action" onclick="openSettingsDrawer('calendar')">Full Calendar</span>
+              </div>
+              <ul class="dashboard-list" id="dash-schedule-list">
+                <li class="dashboard-list-item">
+                  <span class="dashboard-list-item-icon">⏳</span>
+                  <span class="dashboard-list-item-text">Loading schedule...</span>
+                </li>
+              </ul>
+            </div>
+
+            <!-- Bottom-Left: Supporting Details -->
+            <div class="dashboard-card" id="dash-awaiting">
+              <div class="dashboard-card-header">
+                <span class="dashboard-card-title">⏰ Awaiting Response</span>
+                <span class="dashboard-card-action" onclick="switchTab('commitments')">View All</span>
+              </div>
+              <ul class="dashboard-list" id="dash-awaiting-list">
+                <li class="dashboard-list-item">
+                  <span class="dashboard-list-item-icon">👤</span>
+                  <span class="dashboard-list-item-text">Loading...</span>
+                </li>
+              </ul>
+            </div>
+
+            <!-- Bottom-Right: Calls-to-Action -->
+            <div class="dashboard-card" id="dash-actions">
+              <div class="dashboard-card-header">
+                <span class="dashboard-card-title">⚡ Quick Actions</span>
+              </div>
+              <div style="display:flex;flex-wrap:wrap;gap:8px;">
+                <button class="btn btn-primary" style="font-size:13px;padding:10px 14px;" onclick="runTriage()" data-shortcut="P">
+                  Process Inbox
+                </button>
+                <button class="btn btn-secondary" style="font-size:13px;padding:10px 14px;" onclick="openBrainDump()" data-shortcut="B">
+                  Brain Dump
+                </button>
+                <button class="btn btn-secondary" style="font-size:13px;padding:10px 14px;" onclick="getEnhancedMorningBrief()" data-shortcut="M">
+                  Morning Brief
+                </button>
+                <button class="btn btn-secondary" style="font-size:13px;padding:10px 14px;" onclick="refreshAll()" data-shortcut="R">
+                  Refresh
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Farm Operations Stats - Clickable widgets linking to relevant pages -->
+          <div class="farm-stats-row" id="farm-stats-row">
+            <a href="../planning.html" class="farm-stat-widget" title="View crop planning">
+              <div class="stat-icon">🌱</div>
+              <div class="stat-value" id="active-plantings-count">--</div>
+              <div class="stat-label">Active Plantings</div>
+              <div class="stat-trend">Click to view planning</div>
+            </a>
+            <a href="task-assignment.html" class="farm-stat-widget" title="View task assignments">
+              <div class="stat-icon">📋</div>
+              <div class="stat-value" id="tasks-this-week-count">--</div>
+              <div class="stat-label">Tasks This Week</div>
+              <div class="stat-trend">Click to manage tasks</div>
+            </a>
+            <a href="field-planner.html#harvest" class="farm-stat-widget" title="View harvest schedule">
+              <div class="stat-icon">🥬</div>
+              <div class="stat-value" id="harvest-ready-count">--</div>
+              <div class="stat-label">Harvest Ready</div>
+              <div class="stat-trend">Click to view harvest</div>
+            </a>
+            <a href="field-planner.html" class="farm-stat-widget" title="View field planner">
+              <div class="stat-icon">🗺️</div>
+              <div class="stat-value" id="bed-utilization-pct">--%</div>
+              <div class="stat-label">Bed Utilization</div>
+              <div class="stat-trend">Click to view field planner</div>
+            </a>
+          </div>
+
+          <!-- Disease Risk Widget - Clickable when MEDIUM or above -->
+          <div class="disease-risk-widget" id="disease-risk-widget">
+            <div class="disease-risk-header">
+              <div class="disease-risk-title">
+                <span>🦠</span> Disease Risk
+              </div>
+              <span class="disease-risk-level low" id="disease-risk-level">LOW</span>
+            </div>
+            <div class="disease-risk-body" id="disease-risk-body">
+              Conditions are favorable. No immediate disease concerns.
+            </div>
+          </div>
+        </div>
+      </section>
+
       <!-- Tabs -->
       <div class="tabs" role="tablist" aria-label="Chief of Staff sections">
-        <button class="tab active" data-tab="communications" onclick="switchTab('communications')" role="tab" id="tab-btn-communications" aria-selected="true" aria-controls="tab-communications">
-          <span>Communications</span>
+        <button class="tab active" role="tab" id="tab-btn-communications" aria-selected="true" aria-controls="tab-communications" data-tab="communications" onclick="switchTab('communications')">
+          <span>Command Center</span>
           <span class="tab-badge" id="comms-badge">0</span>
         </button>
-        <button class="tab" data-tab="actions" onclick="switchTab('actions')" role="tab" id="tab-btn-actions" aria-selected="false" aria-controls="tab-actions">
+        <button class="tab" role="tab" id="tab-btn-email" aria-selected="false" aria-controls="tab-email" data-tab="email" onclick="switchTab('email')">
+          <span>Email</span>
+        </button>
+        <button class="tab" role="tab" id="tab-btn-actions" aria-selected="false" aria-controls="tab-actions" data-tab="actions" onclick="switchTab('actions')">
           <span>Action Queue</span>
         </button>
-        <button class="tab" data-tab="commitments" onclick="switchTab('commitments')" role="tab" id="tab-btn-commitments" aria-selected="false" aria-controls="tab-commitments">
+        <button class="tab" role="tab" id="tab-btn-commitments" aria-selected="false" aria-controls="tab-commitments" data-tab="commitments" onclick="switchTab('commitments')">
           <span>Commitments</span>
         </button>
-        <button class="tab" data-tab="obligations" onclick="switchTab('obligations')" role="tab" id="tab-btn-obligations" aria-selected="false" aria-controls="tab-obligations">
-          <span>Obligations</span>
-          <span class="tab-badge" id="obligations-badge" style="display:none;">0</span>
-        </button>
-        <button class="tab" data-tab="proactive" onclick="switchTab('proactive')" role="tab" id="tab-btn-proactive" aria-selected="false" aria-controls="tab-proactive">
-          <span>Proactive Intel</span>
+        <button class="tab" role="tab" id="tab-btn-intel" aria-selected="false" aria-controls="tab-intel" data-tab="intel" onclick="switchTab('intel')">
+          <span>Intel</span>
           <span class="tab-badge" id="alerts-badge" style="display:none;">0</span>
-        </button>
-        <button class="tab" data-tab="calendar" onclick="switchTab('calendar')" role="tab" id="tab-btn-calendar" aria-selected="false" aria-controls="tab-calendar">
-          <span>Calendar AI</span>
-        </button>
-        <button class="tab" data-tab="predictive" onclick="switchTab('predictive')" role="tab" id="tab-btn-predictive" aria-selected="false" aria-controls="tab-predictive">
-          <span>Predictive</span>
-        </button>
-        <button class="tab" data-tab="memory" onclick="switchTab('memory')" role="tab" id="tab-btn-memory" aria-selected="false" aria-controls="tab-memory">
-          <span>Memory</span>
-        </button>
-        <button class="tab" data-tab="autonomy" onclick="switchTab('autonomy')" role="tab" id="tab-btn-autonomy" aria-selected="false" aria-controls="tab-autonomy">
-          <span>Autonomy</span>
-        </button>
-        <button class="tab" data-tab="style-voice" onclick="switchTab('style-voice')" role="tab" id="tab-btn-style-voice" aria-selected="false" aria-controls="tab-style-voice">
-          <span>Style &amp; Voice</span>
-        </button>
-        <button class="tab" data-tab="system" onclick="switchTab('system')" role="tab" id="tab-btn-system" aria-selected="false" aria-controls="tab-system">
-          <span>System</span>
         </button>
       </div>
 
-      <!-- Communications Tab -->
+      <!-- Communications Tab (Command Center) -->
       <div class="tab-content active" id="tab-communications" role="tabpanel" aria-labelledby="tab-btn-communications" tabindex="0">
-        <!-- Z-Pattern Daily Briefing Dashboard -->
-        <div class="dashboard-z-pattern" id="daily-briefing-dashboard">
-          <!-- Top-Left: Critical Alert/Most Important Metric -->
-          <div class="dashboard-card critical-alert" id="dash-critical">
-            <div class="dashboard-card-header">
-              <span class="dashboard-card-title">🚨 Needs Attention</span>
-              <span class="dashboard-card-action" onclick="setFilter('unread');scrollToComms()">View All</span>
-            </div>
-            <div class="dashboard-metric critical" id="dash-critical-count">0</div>
-            <div class="dashboard-metric-label">critical + high priority items</div>
-          </div>
-
-          <!-- Top-Right: Secondary Status -->
-          <div class="dashboard-card" id="dash-schedule">
-            <div class="dashboard-card-header">
-              <span class="dashboard-card-title">📅 Today's Schedule</span>
-              <span class="dashboard-card-action" onclick="switchTab('calendar')">Full Calendar</span>
-            </div>
-            <ul class="dashboard-list" id="dash-schedule-list">
-              <li class="dashboard-list-item">
-                <span class="dashboard-list-item-icon">⏳</span>
-                <span class="dashboard-list-item-text">Loading schedule...</span>
-              </li>
-            </ul>
-          </div>
-
-          <!-- Bottom-Left: Supporting Details -->
-          <div class="dashboard-card" id="dash-awaiting">
-            <div class="dashboard-card-header">
-              <span class="dashboard-card-title">⏰ Awaiting Response</span>
-              <span class="dashboard-card-action" onclick="switchTab('commitments')">View All</span>
-            </div>
-            <ul class="dashboard-list" id="dash-awaiting-list">
-              <li class="dashboard-list-item">
-                <span class="dashboard-list-item-icon">👤</span>
-                <span class="dashboard-list-item-text">Loading...</span>
-              </li>
-            </ul>
-          </div>
-
-          <!-- Bottom-Right: Calls-to-Action -->
-          <div class="dashboard-card" id="dash-actions">
-            <div class="dashboard-card-header">
-              <span class="dashboard-card-title">⚡ Quick Actions</span>
-            </div>
-            <div style="display:flex;flex-wrap:wrap;gap:8px;">
-              <button class="btn btn-primary" style="font-size:13px;padding:10px 14px;" onclick="runTriage()" data-shortcut="P">
-                Process Inbox
-              </button>
-              <button class="btn btn-secondary" style="font-size:13px;padding:10px 14px;" onclick="openBrainDump()" data-shortcut="B">
-                Brain Dump
-              </button>
-              <button class="btn btn-secondary" style="font-size:13px;padding:10px 14px;" onclick="getEnhancedMorningBrief()" data-shortcut="M">
-                Morning Brief
-              </button>
-              <button class="btn btn-secondary" style="font-size:13px;padding:10px 14px;" onclick="refreshAll()" data-shortcut="R">
-                Refresh
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!--
-          AGENT 3 NOTE: ORDER DUPLICATION ASSESSMENT
-          ============================================
-          After reviewing the dashboard, NO orders are currently displayed in the main area
-          or in recommendations. The task mentioned orders being shown twice, but this
-          Chief of Staff dashboard focuses on communications, tasks, and commitments - not orders.
-
-          RECOMMENDATION: If orders need to be displayed, consider adding an "Orders" widget
-          to the farm-stats-row below. Orders would likely come from the Shopify integration
-          or chef-order.html system. Only show orders in ONE location to avoid duplication.
-
-          If orders ARE added in the future, they should:
-          1. Only appear in one primary location (either dashboard OR recommendations, not both)
-          2. Link to the appropriate order management page (chef-order.html or sales.html)
-          3. Show order status, customer name, and delivery date
-        -->
-
-        <!-- Farm Operations Stats - Clickable widgets linking to relevant pages -->
-        <div class="farm-stats-row" id="farm-stats-row">
-          <a href="../planning.html" class="farm-stat-widget" title="View crop planning">
-            <div class="stat-icon">🌱</div>
-            <div class="stat-value" id="active-plantings-count">--</div>
-            <div class="stat-label">Active Plantings</div>
-            <div class="stat-trend">Click to view planning</div>
-          </a>
-          <a href="task-assignment.html" class="farm-stat-widget" title="View task assignments">
-            <div class="stat-icon">📋</div>
-            <div class="stat-value" id="tasks-this-week-count">--</div>
-            <div class="stat-label">Tasks This Week</div>
-            <div class="stat-trend">Click to manage tasks</div>
-          </a>
-          <a href="field-planner.html#harvest" class="farm-stat-widget" title="View harvest schedule">
-            <div class="stat-icon">🥬</div>
-            <div class="stat-value" id="harvest-ready-count">--</div>
-            <div class="stat-label">Harvest Ready</div>
-            <div class="stat-trend">Click to view harvest</div>
-          </a>
-          <a href="field-planner.html" class="farm-stat-widget" title="View field planner">
-            <div class="stat-icon">🗺️</div>
-            <div class="stat-value" id="bed-utilization-pct">--%</div>
-            <div class="stat-label">Bed Utilization</div>
-            <div class="stat-trend">Click to view field planner</div>
-          </a>
-        </div>
-
-        <!-- Disease Risk Widget - Clickable when MEDIUM or above -->
-        <div class="disease-risk-widget" id="disease-risk-widget">
-          <div class="disease-risk-header">
-            <div class="disease-risk-title">
-              <span>🦠</span> Disease Risk
-            </div>
-            <span class="disease-risk-level low" id="disease-risk-level">LOW</span>
-          </div>
-          <div class="disease-risk-body" id="disease-risk-body">
-            Conditions are favorable. No immediate disease concerns.
-          </div>
-        </div>
-
         <!-- NLP Command Bar - Natural Language Interface -->
         <div class="nlp-command-bar" id="nlp-command-bar">
           <div class="nlp-input-wrapper">
@@ -4018,6 +4084,20 @@
         </div>
       </div>
 
+      <!-- Email Tab -->
+      <div class="tab-content" id="tab-email" role="tabpanel" aria-labelledby="tab-btn-email" tabindex="0">
+        <div class="section-header">
+          <h2>Email Triage</h2>
+          <div class="section-actions">
+            <button class="btn btn-secondary btn-sm" onclick="loadCommunications()">Refresh</button>
+          </div>
+        </div>
+        <div id="email-list">
+          <div class="skeleton-card"><div class="skeleton-card-header"><div class="skeleton skeleton-avatar"></div><div class="skeleton-card-body" style="flex:1"><div class="skeleton skeleton-text medium"></div><div class="skeleton skeleton-text short"></div></div></div></div>
+          <div class="skeleton-card"><div class="skeleton-card-header"><div class="skeleton skeleton-avatar"></div><div class="skeleton-card-body" style="flex:1"><div class="skeleton skeleton-text long"></div><div class="skeleton skeleton-text medium"></div></div></div></div>
+        </div>
+      </div>
+
       <!-- Actions Tab -->
       <div class="tab-content" id="tab-actions" role="tabpanel" aria-labelledby="tab-btn-actions" tabindex="0">
         <div id="actions-list">
@@ -4044,84 +4124,8 @@
         </div>
       </div>
 
-      <!-- ═══════════════ OBLIGATIONS TAB ═══════════════ -->
-      <div class="tab-content" id="tab-obligations" role="tabpanel" aria-labelledby="tab-btn-obligations" tabindex="0">
-        <!-- Add Obligation Form -->
-        <div class="obligation-form">
-          <h3><span class="section-icon">➕</span> Add Obligation</h3>
-          <div class="obligation-form-grid">
-            <div class="obligation-form-group">
-              <label for="obl-title">Title</label>
-              <input type="text" id="obl-title" placeholder="e.g. Submit organic certification renewal">
-            </div>
-            <div class="obligation-form-group">
-              <label for="obl-due-date">Due Date</label>
-              <input type="date" id="obl-due-date">
-            </div>
-            <div class="obligation-form-group">
-              <label for="obl-category">Category</label>
-              <select id="obl-category">
-                <option value="lease">Lease</option>
-                <option value="grant">Grant</option>
-                <option value="certification">Certification</option>
-                <option value="vendor">Vendor</option>
-                <option value="csa">CSA</option>
-                <option value="tax">Tax</option>
-                <option value="insurance">Insurance</option>
-                <option value="custom">Custom</option>
-              </select>
-            </div>
-            <div class="obligation-form-group">
-              <label for="obl-recurrence">Recurrence</label>
-              <select id="obl-recurrence">
-                <option value="once">One-time</option>
-                <option value="weekly">Weekly</option>
-                <option value="monthly">Monthly</option>
-                <option value="quarterly">Quarterly</option>
-                <option value="annual">Annual</option>
-              </select>
-            </div>
-            <div class="obligation-form-group">
-              <label for="obl-reminder">Reminder Lead Time</label>
-              <select id="obl-reminder">
-                <option value="1">1 day before</option>
-                <option value="3">3 days before</option>
-                <option value="7" selected>1 week before</option>
-                <option value="14">2 weeks before</option>
-                <option value="30">1 month before</option>
-              </select>
-            </div>
-            <div class="obligation-form-group full-width">
-              <label for="obl-notes">Notes (optional)</label>
-              <textarea id="obl-notes" placeholder="Any additional details..."></textarea>
-            </div>
-          </div>
-          <button class="btn btn-primary" onclick="addObligation()">Add Obligation</button>
-        </div>
-
-        <!-- Active Obligations List -->
-        <div class="module-section">
-          <h3><span class="section-icon">📋</span> Active Obligations</h3>
-          <div id="obligations-active-list">
-            <div class="empty-state">
-              <div class="empty-state-icon">📭</div>
-              <p>No obligations yet. Add one above to start tracking deadlines.</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Completed Obligations (collapsed) -->
-        <div id="obligations-completed-section" style="display:none;">
-          <div class="completed-toggle" id="completed-obl-toggle" onclick="toggleCompletedObligations()">
-            <span class="chevron">&#9654;</span>
-            <span>Completed Obligations (<span id="completed-obl-count">0</span>)</span>
-          </div>
-          <div id="obligations-completed-list" style="display:none; margin-top: 14px;"></div>
-        </div>
-      </div>
-
-      <!-- ═══════════════ PROACTIVE INTEL TAB ═══════════════ -->
-      <div class="tab-content" id="tab-proactive" role="tabpanel" aria-labelledby="tab-btn-proactive" tabindex="0">
+      <!-- ═══════════════ INTEL TAB (was Proactive) ═══════════════ -->
+      <div class="tab-content" id="tab-intel" role="tabpanel" aria-labelledby="tab-btn-intel" tabindex="0">
         <!-- Today's Priorities -->
         <div class="module-section">
           <h3><span class="section-icon">🎯</span> Today's Priorities</h3>
@@ -4163,242 +4167,328 @@
         </div>
       </div>
 
-      <!-- ═══════════════ CALENDAR AI TAB ═══════════════ -->
-      <div class="tab-content" id="tab-calendar" role="tabpanel" aria-labelledby="tab-btn-calendar" tabindex="0">
-        <div class="section-actions">
-          <button class="btn btn-primary" onclick="optimizeSchedule()">Optimize Today</button>
-          <button class="btn btn-secondary" onclick="protectFocusTime()">Protect Focus Time</button>
-          <button class="btn btn-secondary" onclick="findMeetingSlots()">Find Meeting Slots</button>
-        </div>
-        <div class="module-section">
-          <h3><span class="section-icon">📅</span> Today's Schedule</h3>
-          <div id="calendar-schedule">
-            <div class="loading"><div class="spinner"></div><span class="loading-text">Loading schedule...</span></div>
-          </div>
-        </div>
-        <div class="module-section" id="meeting-slots-section" style="display:none;">
-          <h3><span class="section-icon">🕐</span> Available Meeting Slots</h3>
-          <div id="meeting-slots-list"></div>
-        </div>
-      </div>
-
-      <!-- ═══════════════ PREDICTIVE TAB ═══════════════ -->
-      <div class="tab-content" id="tab-predictive" role="tabpanel" aria-labelledby="tab-btn-predictive" tabindex="0">
-        <div class="section-actions">
-          <button class="btn btn-secondary" onclick="loadPredictiveReport()">Refresh Report</button>
-        </div>
-        <div class="module-section">
-          <h3><span class="section-icon">📊</span> Predictive Dashboard</h3>
-          <div id="predictive-tiles" class="data-grid"></div>
-        </div>
-        <div class="module-section">
-          <h3><span class="section-icon">📈</span> Workload Forecast</h3>
-          <div id="workload-forecast">
-            <div class="loading"><div class="spinner"></div><span class="loading-text">Loading forecast...</span></div>
-          </div>
-        </div>
-        <div class="module-section">
-          <h3><span class="section-icon">⚠️</span> Churn Risk</h3>
-          <div id="churn-risk-list">
-            <div class="loading"><div class="spinner"></div><span class="loading-text">Loading churn data...</span></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ═══════════════ MEMORY TAB ═══════════════ -->
-      <div class="tab-content" id="tab-memory" role="tabpanel" aria-labelledby="tab-btn-memory" tabindex="0">
-        <div class="section-actions">
-          <button class="btn btn-secondary" onclick="loadMemoryPatterns()">Refresh Patterns</button>
-        </div>
-        <div class="module-section">
-          <h3><span class="section-icon">🧠</span> Active Patterns</h3>
-          <div id="memory-patterns-list">
-            <div class="loading"><div class="spinner"></div><span class="loading-text">Loading patterns...</span></div>
-          </div>
-        </div>
-        <div class="module-section">
-          <h3><span class="section-icon">👤</span> Contact Memory Lookup</h3>
-          <div style="display:flex;gap:10px;margin-bottom:16px;">
-            <input type="email" id="memory-contact-email" placeholder="Enter contact email..." style="flex:1;background:var(--bg-input);border:2px solid var(--border-color);border-radius:10px;padding:12px 16px;color:var(--text-primary);font-size:14px;font-family:inherit;">
-            <button class="btn btn-primary" onclick="lookupContactMemory()">Recall</button>
-          </div>
-          <div id="contact-memory-result"></div>
-        </div>
-      </div>
-
-      <!-- ═══════════════ AUTONOMY TAB ═══════════════ -->
-      <div class="tab-content" id="tab-autonomy" role="tabpanel" aria-labelledby="tab-btn-autonomy" tabindex="0">
-        <div class="module-section">
-          <h3><span class="section-icon">🤖</span> Autonomy Settings</h3>
-          <p style="color:var(--text-muted);font-size:14px;margin-bottom:20px;">
-            Control how much the Chief of Staff can do autonomously. Level 1 = always ask. Level 5 = fully autonomous.
-          </p>
-          <div id="autonomy-settings">
-            <div class="loading"><div class="spinner"></div><span class="loading-text">Loading autonomy settings...</span></div>
-          </div>
-        </div>
-        <div class="module-section">
-          <h3><span class="section-icon">📋</span> Pending Approvals</h3>
-          <div id="pending-approvals-list">
-            <div class="loading"><div class="spinner"></div><span class="loading-text">Loading approvals...</span></div>
-          </div>
-        </div>
-        <div class="module-section">
-          <h3><span class="section-icon">🔔</span> Notification Preferences</h3>
-          <div class="notification-prefs" id="notification-prefs">
-            <!-- Channel Toggles -->
-            <div class="pref-group">
-              <div class="pref-group-label">Channels</div>
-              <div class="pref-row">
-                <span class="pref-row-label">SMS Notifications</span>
-                <label class="toggle-switch" aria-label="Toggle SMS notifications">
-                  <input type="checkbox" id="pref-sms" onchange="markNotifPrefsDirty()">
-                  <span class="toggle-slider"></span>
-                </label>
-              </div>
-              <div class="pref-row">
-                <span class="pref-row-label">Email Notifications</span>
-                <label class="toggle-switch" aria-label="Toggle email notifications">
-                  <input type="checkbox" id="pref-email" checked onchange="markNotifPrefsDirty()">
-                  <span class="toggle-slider"></span>
-                </label>
-              </div>
-              <div class="pref-row">
-                <span class="pref-row-label">In-App Notifications</span>
-                <label class="toggle-switch" aria-label="Toggle in-app notifications">
-                  <input type="checkbox" id="pref-inapp" checked onchange="markNotifPrefsDirty()">
-                  <span class="toggle-slider"></span>
-                </label>
-              </div>
-            </div>
-
-            <!-- Quiet Hours -->
-            <div class="pref-group">
-              <div class="pref-group-label">Quiet Hours</div>
-              <div class="pref-row">
-                <span class="pref-row-label">Start</span>
-                <div class="pref-inline">
-                  <select id="pref-quiet-start" onchange="markNotifPrefsDirty()">
-                    <option value="18">6:00 PM</option>
-                    <option value="19">7:00 PM</option>
-                    <option value="20">8:00 PM</option>
-                    <option value="21" selected>9:00 PM</option>
-                    <option value="22">10:00 PM</option>
-                    <option value="23">11:00 PM</option>
-                  </select>
-                </div>
-              </div>
-              <div class="pref-row">
-                <span class="pref-row-label">End</span>
-                <div class="pref-inline">
-                  <select id="pref-quiet-end" onchange="markNotifPrefsDirty()">
-                    <option value="5">5:00 AM</option>
-                    <option value="6">6:00 AM</option>
-                    <option value="7" selected>7:00 AM</option>
-                    <option value="8">8:00 AM</option>
-                    <option value="9">9:00 AM</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            <!-- Batch Frequency -->
-            <div class="pref-group">
-              <div class="pref-group-label">Batch Frequency</div>
-              <div class="radio-group" id="batch-frequency-group">
-                <label class="active" onclick="setBatchFrequency(this, 'immediate')">
-                  <input type="radio" name="batch-freq" value="immediate" checked>
-                  <span>Immediate</span>
-                </label>
-                <label onclick="setBatchFrequency(this, 'hourly')">
-                  <input type="radio" name="batch-freq" value="hourly">
-                  <span>Hourly</span>
-                </label>
-                <label onclick="setBatchFrequency(this, 'daily')">
-                  <input type="radio" name="batch-freq" value="daily">
-                  <span>Daily Digest</span>
-                </label>
-              </div>
-            </div>
-
-            <button class="btn btn-primary" id="save-notif-prefs-btn" onclick="saveNotificationPrefs()" style="align-self:flex-start;">
-              Save Preferences
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- ═══════════════ STYLE & VOICE TAB ═══════════════ -->
-      <div class="tab-content" id="tab-style-voice" role="tabpanel" aria-labelledby="tab-btn-style-voice" tabindex="0">
-        <div class="module-section">
-          <h3><span class="section-icon">✍️</span> Writing Style Profile</h3>
-          <div class="section-actions">
-            <button class="btn btn-secondary" onclick="analyzeOwnerStyle()">Re-analyze My Style</button>
-          </div>
-          <div id="style-profile-content">
-            <div class="loading"><div class="spinner"></div><span class="loading-text">Loading style profile...</span></div>
-          </div>
-        </div>
-        <div class="module-section">
-          <h3><span class="section-icon">🎤</span> Voice Commands</h3>
-          <p style="color:var(--text-muted);font-size:14px;margin-bottom:16px;">
-            Speak commands hands-free. Click the microphone to start.
-          </p>
-          <div style="display:flex;gap:12px;align-items:center;margin-bottom:16px;">
-            <button class="btn btn-primary" id="voice-btn" onclick="toggleVoiceListening()" style="border-radius:50%;width:56px;height:56px;padding:0;justify-content:center;">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-            </button>
-            <div id="voice-status" style="font-size:14px;color:var(--text-muted);">Click microphone to start listening</div>
-          </div>
-          <div id="voice-transcript" style="display:none;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:10px;padding:14px;margin-bottom:12px;">
-            <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">Transcript:</div>
-            <div id="voice-transcript-text" style="font-size:15px;color:var(--text-primary);"></div>
-          </div>
-          <div id="voice-response"></div>
-        </div>
-      </div>
-
-      <!-- ═══════════════ SYSTEM TAB ═══════════════ -->
-      <div class="tab-content" id="tab-system" role="tabpanel" aria-labelledby="tab-btn-system" tabindex="0">
-        <div class="module-section">
-          <h3><span class="section-icon">📁</span> File Organization</h3>
-          <div class="section-actions">
-            <button class="btn btn-secondary" onclick="loadFileStats()">Refresh Stats</button>
-          </div>
-          <div id="file-stats" class="data-grid"></div>
-          <div style="display:flex;gap:10px;margin-top:14px;">
-            <input type="text" id="file-search-query" placeholder="Search files (natural language)..." style="flex:1;background:var(--bg-input);border:2px solid var(--border-color);border-radius:10px;padding:12px 16px;color:var(--text-primary);font-size:14px;font-family:inherit;">
-            <button class="btn btn-primary" onclick="searchFilesNL()">Search</button>
-          </div>
-          <div id="file-search-results" style="margin-top:14px;"></div>
-        </div>
-        <div class="module-section">
-          <h3><span class="section-icon">🔗</span> Integrations</h3>
-          <div id="integrations-list">
-            <div class="loading"><div class="spinner"></div><span class="loading-text">Loading integrations...</span></div>
-          </div>
-        </div>
-        <div class="module-section">
-          <h3><span class="section-icon">🤖</span> Multi-Agent System</h3>
-          <div class="section-actions">
-            <button class="btn btn-secondary" onclick="loadAgentMetrics()">Refresh Metrics</button>
-          </div>
-          <div id="agents-list">
-            <div class="loading"><div class="spinner"></div><span class="loading-text">Loading agents...</span></div>
-          </div>
-        </div>
-        <div class="module-section">
-          <h3><span class="section-icon">📜</span> Audit Log</h3>
-          <div class="section-actions">
-            <button class="btn btn-secondary" onclick="loadAuditLog()">Refresh Log</button>
-          </div>
-          <div id="audit-log-list">
-            <div class="loading"><div class="spinner"></div><span class="loading-text">Loading audit log...</span></div>
-          </div>
-        </div>
-      </div>
-
     </main>
+
+    <!-- Settings Drawer -->
+    <div class="settings-drawer-overlay" id="settings-drawer-overlay" onclick="closeSettingsDrawer()"></div>
+    <aside class="settings-drawer" id="settings-drawer">
+      <div class="settings-drawer-header">
+        <h2>Settings &amp; Configuration</h2>
+        <button class="settings-drawer-close" onclick="closeSettingsDrawer()" aria-label="Close settings">&times;</button>
+      </div>
+      <nav class="settings-drawer-nav">
+        <button class="settings-nav-item active" data-settings-tab="obligations" onclick="switchSettingsTab('obligations')">Obligations <span class="tab-badge" id="obligations-badge" style="display:none;">0</span></button>
+        <button class="settings-nav-item" data-settings-tab="calendar" onclick="switchSettingsTab('calendar')">Calendar</button>
+        <button class="settings-nav-item" data-settings-tab="predictive" onclick="switchSettingsTab('predictive')">Predictive</button>
+        <button class="settings-nav-item" data-settings-tab="memory" onclick="switchSettingsTab('memory')">Memory</button>
+        <button class="settings-nav-item" data-settings-tab="autonomy" onclick="switchSettingsTab('autonomy')">Autonomy</button>
+        <button class="settings-nav-item" data-settings-tab="style-voice" onclick="switchSettingsTab('style-voice')">Style &amp; Voice</button>
+        <button class="settings-nav-item" data-settings-tab="system" onclick="switchSettingsTab('system')">System</button>
+      </nav>
+      <div class="settings-drawer-body" id="settings-drawer-body">
+
+        <!-- ═══════════════ OBLIGATIONS ═══════════════ -->
+        <div class="tab-content active" id="tab-obligations">
+          <div class="obligation-form">
+            <h3><span class="section-icon">➕</span> Add Obligation</h3>
+            <div class="obligation-form-grid">
+              <div class="obligation-form-group">
+                <label for="obl-title">Title</label>
+                <input type="text" id="obl-title" placeholder="e.g. Submit organic certification renewal">
+              </div>
+              <div class="obligation-form-group">
+                <label for="obl-due-date">Due Date</label>
+                <input type="date" id="obl-due-date">
+              </div>
+              <div class="obligation-form-group">
+                <label for="obl-category">Category</label>
+                <select id="obl-category">
+                  <option value="lease">Lease</option>
+                  <option value="grant">Grant</option>
+                  <option value="certification">Certification</option>
+                  <option value="vendor">Vendor</option>
+                  <option value="csa">CSA</option>
+                  <option value="tax">Tax</option>
+                  <option value="insurance">Insurance</option>
+                  <option value="custom">Custom</option>
+                </select>
+              </div>
+              <div class="obligation-form-group">
+                <label for="obl-recurrence">Recurrence</label>
+                <select id="obl-recurrence">
+                  <option value="once">One-time</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
+                  <option value="quarterly">Quarterly</option>
+                  <option value="annual">Annual</option>
+                </select>
+              </div>
+              <div class="obligation-form-group">
+                <label for="obl-reminder">Reminder Lead Time</label>
+                <select id="obl-reminder">
+                  <option value="1">1 day before</option>
+                  <option value="3">3 days before</option>
+                  <option value="7" selected>1 week before</option>
+                  <option value="14">2 weeks before</option>
+                  <option value="30">1 month before</option>
+                </select>
+              </div>
+              <div class="obligation-form-group full-width">
+                <label for="obl-notes">Notes (optional)</label>
+                <textarea id="obl-notes" placeholder="Any additional details..."></textarea>
+              </div>
+            </div>
+            <button class="btn btn-primary" onclick="addObligation()">Add Obligation</button>
+          </div>
+          <div class="module-section">
+            <h3><span class="section-icon">📋</span> Active Obligations</h3>
+            <div id="obligations-active-list">
+              <div class="empty-state">
+                <div class="empty-state-icon">📭</div>
+                <p>No obligations yet. Add one above to start tracking deadlines.</p>
+              </div>
+            </div>
+          </div>
+          <div id="obligations-completed-section" style="display:none;">
+            <div class="completed-toggle" id="completed-obl-toggle" onclick="toggleCompletedObligations()">
+              <span class="chevron">&#9654;</span>
+              <span>Completed Obligations (<span id="completed-obl-count">0</span>)</span>
+            </div>
+            <div id="obligations-completed-list" style="display:none; margin-top: 14px;"></div>
+          </div>
+        </div>
+
+        <!-- ═══════════════ CALENDAR AI ═══════════════ -->
+        <div class="tab-content" id="tab-calendar">
+          <div class="section-actions">
+            <button class="btn btn-primary" onclick="optimizeSchedule()">Optimize Today</button>
+            <button class="btn btn-secondary" onclick="protectFocusTime()">Protect Focus Time</button>
+            <button class="btn btn-secondary" onclick="findMeetingSlots()">Find Meeting Slots</button>
+          </div>
+          <div class="module-section">
+            <h3><span class="section-icon">📅</span> Today's Schedule</h3>
+            <div id="calendar-schedule">
+              <div class="loading"><div class="spinner"></div><span class="loading-text">Loading schedule...</span></div>
+            </div>
+          </div>
+          <div class="module-section" id="meeting-slots-section" style="display:none;">
+            <h3><span class="section-icon">🕐</span> Available Meeting Slots</h3>
+            <div id="meeting-slots-list"></div>
+          </div>
+        </div>
+
+        <!-- ═══════════════ PREDICTIVE ═══════════════ -->
+        <div class="tab-content" id="tab-predictive">
+          <div class="section-actions">
+            <button class="btn btn-secondary" onclick="loadPredictiveReport()">Refresh Report</button>
+          </div>
+          <div class="module-section">
+            <h3><span class="section-icon">📊</span> Predictive Dashboard</h3>
+            <div id="predictive-tiles" class="data-grid"></div>
+          </div>
+          <div class="module-section">
+            <h3><span class="section-icon">📈</span> Workload Forecast</h3>
+            <div id="workload-forecast">
+              <div class="loading"><div class="spinner"></div><span class="loading-text">Loading forecast...</span></div>
+            </div>
+          </div>
+          <div class="module-section">
+            <h3><span class="section-icon">⚠️</span> Churn Risk</h3>
+            <div id="churn-risk-list">
+              <div class="loading"><div class="spinner"></div><span class="loading-text">Loading churn data...</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══════════════ MEMORY ═══════════════ -->
+        <div class="tab-content" id="tab-memory">
+          <div class="section-actions">
+            <button class="btn btn-secondary" onclick="loadMemoryPatterns()">Refresh Patterns</button>
+          </div>
+          <div class="module-section">
+            <h3><span class="section-icon">🧠</span> Active Patterns</h3>
+            <div id="memory-patterns-list">
+              <div class="loading"><div class="spinner"></div><span class="loading-text">Loading patterns...</span></div>
+            </div>
+          </div>
+          <div class="module-section">
+            <h3><span class="section-icon">👤</span> Contact Memory Lookup</h3>
+            <div style="display:flex;gap:10px;margin-bottom:16px;">
+              <input type="email" id="memory-contact-email" placeholder="Enter contact email..." style="flex:1;background:var(--bg-input);border:2px solid var(--border-color);border-radius:10px;padding:12px 16px;color:var(--text-primary);font-size:14px;font-family:inherit;">
+              <button class="btn btn-primary" onclick="lookupContactMemory()">Recall</button>
+            </div>
+            <div id="contact-memory-result"></div>
+          </div>
+        </div>
+
+        <!-- ═══════════════ AUTONOMY ═══════════════ -->
+        <div class="tab-content" id="tab-autonomy">
+          <div class="module-section">
+            <h3><span class="section-icon">🤖</span> Autonomy Settings</h3>
+            <p style="color:var(--text-muted);font-size:14px;margin-bottom:20px;">
+              Control how much the Chief of Staff can do autonomously. Level 1 = always ask. Level 5 = fully autonomous.
+            </p>
+            <div id="autonomy-settings">
+              <div class="loading"><div class="spinner"></div><span class="loading-text">Loading autonomy settings...</span></div>
+            </div>
+          </div>
+          <div class="module-section">
+            <h3><span class="section-icon">📋</span> Pending Approvals</h3>
+            <div id="pending-approvals-list">
+              <div class="loading"><div class="spinner"></div><span class="loading-text">Loading approvals...</span></div>
+            </div>
+          </div>
+          <div class="module-section">
+            <h3><span class="section-icon">🔔</span> Notification Preferences</h3>
+            <div class="notification-prefs" id="notification-prefs">
+              <div class="pref-group">
+                <div class="pref-group-label">Channels</div>
+                <div class="pref-row">
+                  <span class="pref-row-label">SMS Notifications</span>
+                  <label class="toggle-switch" aria-label="Toggle SMS notifications">
+                    <input type="checkbox" id="pref-sms" onchange="markNotifPrefsDirty()">
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+                <div class="pref-row">
+                  <span class="pref-row-label">Email Notifications</span>
+                  <label class="toggle-switch" aria-label="Toggle email notifications">
+                    <input type="checkbox" id="pref-email" checked onchange="markNotifPrefsDirty()">
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+                <div class="pref-row">
+                  <span class="pref-row-label">In-App Notifications</span>
+                  <label class="toggle-switch" aria-label="Toggle in-app notifications">
+                    <input type="checkbox" id="pref-inapp" checked onchange="markNotifPrefsDirty()">
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+              <div class="pref-group">
+                <div class="pref-group-label">Quiet Hours</div>
+                <div class="pref-row">
+                  <span class="pref-row-label">Start</span>
+                  <div class="pref-inline">
+                    <select id="pref-quiet-start" onchange="markNotifPrefsDirty()">
+                      <option value="18">6:00 PM</option>
+                      <option value="19">7:00 PM</option>
+                      <option value="20">8:00 PM</option>
+                      <option value="21" selected>9:00 PM</option>
+                      <option value="22">10:00 PM</option>
+                      <option value="23">11:00 PM</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="pref-row">
+                  <span class="pref-row-label">End</span>
+                  <div class="pref-inline">
+                    <select id="pref-quiet-end" onchange="markNotifPrefsDirty()">
+                      <option value="5">5:00 AM</option>
+                      <option value="6">6:00 AM</option>
+                      <option value="7" selected>7:00 AM</option>
+                      <option value="8">8:00 AM</option>
+                      <option value="9">9:00 AM</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="pref-group">
+                <div class="pref-group-label">Batch Frequency</div>
+                <div class="radio-group" id="batch-frequency-group">
+                  <label class="active" onclick="setBatchFrequency(this, 'immediate')">
+                    <input type="radio" name="batch-freq" value="immediate" checked>
+                    <span>Immediate</span>
+                  </label>
+                  <label onclick="setBatchFrequency(this, 'hourly')">
+                    <input type="radio" name="batch-freq" value="hourly">
+                    <span>Hourly</span>
+                  </label>
+                  <label onclick="setBatchFrequency(this, 'daily')">
+                    <input type="radio" name="batch-freq" value="daily">
+                    <span>Daily Digest</span>
+                  </label>
+                </div>
+              </div>
+              <button class="btn btn-primary" id="save-notif-prefs-btn" onclick="saveNotificationPrefs()" style="align-self:flex-start;">
+                Save Preferences
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══════════════ STYLE & VOICE ═══════════════ -->
+        <div class="tab-content" id="tab-style-voice">
+          <div class="module-section">
+            <h3><span class="section-icon">✍️</span> Writing Style Profile</h3>
+            <div class="section-actions">
+              <button class="btn btn-secondary" onclick="analyzeOwnerStyle()">Re-analyze My Style</button>
+            </div>
+            <div id="style-profile-content">
+              <div class="loading"><div class="spinner"></div><span class="loading-text">Loading style profile...</span></div>
+            </div>
+          </div>
+          <div class="module-section">
+            <h3><span class="section-icon">🎤</span> Voice Commands</h3>
+            <p style="color:var(--text-muted);font-size:14px;margin-bottom:16px;">
+              Speak commands hands-free. Click the microphone to start.
+            </p>
+            <div style="display:flex;gap:12px;align-items:center;margin-bottom:16px;">
+              <button class="btn btn-primary" id="voice-btn" onclick="toggleVoiceListening()" style="border-radius:50%;width:56px;height:56px;padding:0;justify-content:center;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+              </button>
+              <div id="voice-status" style="font-size:14px;color:var(--text-muted);">Click microphone to start listening</div>
+            </div>
+            <div id="voice-transcript" style="display:none;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:10px;padding:14px;margin-bottom:12px;">
+              <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">Transcript:</div>
+              <div id="voice-transcript-text" style="font-size:15px;color:var(--text-primary);"></div>
+            </div>
+            <div id="voice-response"></div>
+          </div>
+        </div>
+
+        <!-- ═══════════════ SYSTEM ═══════════════ -->
+        <div class="tab-content" id="tab-system">
+          <div class="module-section">
+            <h3><span class="section-icon">📁</span> File Organization</h3>
+            <div class="section-actions">
+              <button class="btn btn-secondary" onclick="loadFileStats()">Refresh Stats</button>
+            </div>
+            <div id="file-stats" class="data-grid"></div>
+            <div style="display:flex;gap:10px;margin-top:14px;">
+              <input type="text" id="file-search-query" placeholder="Search files (natural language)..." style="flex:1;background:var(--bg-input);border:2px solid var(--border-color);border-radius:10px;padding:12px 16px;color:var(--text-primary);font-size:14px;font-family:inherit;">
+              <button class="btn btn-primary" onclick="searchFilesNL()">Search</button>
+            </div>
+            <div id="file-search-results" style="margin-top:14px;"></div>
+          </div>
+          <div class="module-section">
+            <h3><span class="section-icon">🔗</span> Integrations</h3>
+            <div id="integrations-list">
+              <div class="loading"><div class="spinner"></div><span class="loading-text">Loading integrations...</span></div>
+            </div>
+          </div>
+          <div class="module-section">
+            <h3><span class="section-icon">🤖</span> Multi-Agent System</h3>
+            <div class="section-actions">
+              <button class="btn btn-secondary" onclick="loadAgentMetrics()">Refresh Metrics</button>
+            </div>
+            <div id="agents-list">
+              <div class="loading"><div class="spinner"></div><span class="loading-text">Loading agents...</span></div>
+            </div>
+          </div>
+          <div class="module-section">
+            <h3><span class="section-icon">📜</span> Audit Log</h3>
+            <div class="section-actions">
+              <button class="btn btn-secondary" onclick="loadAuditLog()">Refresh Log</button>
+            </div>
+            <div id="audit-log-list">
+              <div class="loading"><div class="spinner"></div><span class="loading-text">Loading audit log...</span></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </aside>
 
     <!-- Chat Panel - Featured prominently -->
     <aside class="chat-panel">
@@ -4906,6 +4996,14 @@
       initializeApp();
       autoResizeTextarea();
 
+      // Restore briefing collapse state
+      if (localStorage.getItem('cos-briefing-collapsed') === 'true') {
+        var briefingEl = document.getElementById('briefing-section');
+        if (briefingEl) briefingEl.classList.add('collapsed');
+        var toggleEl = document.querySelector('.briefing-toggle');
+        if (toggleEl) toggleEl.setAttribute('aria-expanded', 'false');
+      }
+
       // Arrow-key navigation for ARIA tablist
       document.querySelector('.tabs')?.addEventListener('keydown', function(e) {
         if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
@@ -5316,6 +5414,31 @@
       }
 
       container.innerHTML = html;
+
+      // Also populate the Email tab with email-only items
+      var emailContainer = document.getElementById('email-list');
+      if (emailContainer) {
+        var emailOnly = communications.filter(function(c) { return c.type === 'email'; });
+        if (emailOnly.length === 0) {
+          emailContainer.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📭</div><p>No emails found</p></div>';
+        } else {
+          var emailHtml = '';
+          var emailGroups = {
+            CRITICAL: emailOnly.filter(function(c) { return c.priority === 'CRITICAL'; }),
+            HIGH: emailOnly.filter(function(c) { return c.priority === 'HIGH'; }),
+            MEDIUM: emailOnly.filter(function(c) { return c.priority === 'MEDIUM'; }),
+            LOW: emailOnly.filter(function(c) { return c.priority === 'LOW'; })
+          };
+          for (var pKey of Object.keys(emailGroups)) {
+            var pItems = emailGroups[pKey];
+            if (pItems.length === 0) continue;
+            emailHtml += '<div class="priority-group"><div class="priority-header"><span class="priority-dot ' + pKey.toLowerCase() + '"></span><h3>' + pKey + '</h3><span class="count">' + pItems.length + '</span></div>';
+            for (var eMsg of pItems) { emailHtml += renderMessageCard(eMsg); }
+            emailHtml += '</div>';
+          }
+          emailContainer.innerHTML = emailHtml;
+        }
+      }
     }
 
     function renderMessageCard(msg) {
@@ -6074,11 +6197,24 @@ Please help with this email. Be concise and actionable.`;
 
     const _tabLoadedOnce = {};
     function switchTab(tab) {
-      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      // Map legacy tab names to new names
+      if (tab === 'proactive') tab = 'intel';
 
-      document.querySelector(`.tab[data-tab="${tab}"]`).classList.add('active');
-      document.getElementById(`tab-${tab}`).classList.add('active');
+      // Only handle main 5 tabs; settings tabs go to drawer
+      const settingsTabs = ['obligations', 'calendar', 'predictive', 'memory', 'autonomy', 'style-voice', 'system'];
+      if (settingsTabs.includes(tab)) {
+        openSettingsDrawer(tab);
+        return;
+      }
+
+      // Deactivate all main tabs and content
+      document.querySelectorAll('.tabs .tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('main.main-panel > .tab-content').forEach(c => c.classList.remove('active'));
+
+      const tabBtn = document.querySelector(`.tabs .tab[data-tab="${tab}"]`);
+      if (tabBtn) tabBtn.classList.add('active');
+      const tabPanel = document.getElementById(`tab-${tab}`);
+      if (tabPanel) tabPanel.classList.add('active');
 
       // Update ARIA selected state
       document.querySelectorAll('.tabs [role="tab"]').forEach(t => {
@@ -6095,39 +6231,81 @@ Please help with this email. Be concise and actionable.`;
       if (!_tabLoadedOnce[tab]) {
         _tabLoadedOnce[tab] = true;
         switch (tab) {
-          case 'obligations':
-            loadObligations();
+          case 'email':
+            if (typeof loadCommunications === 'function') loadCommunications();
             break;
-          case 'proactive':
-            loadProactiveAlerts();
-            loadProactiveSuggestions();
-            loadTodaysPriorities();
-            break;
-          case 'calendar':
-            loadTodaySchedule();
-            break;
-          case 'predictive':
-            loadPredictiveReport();
-            break;
-          case 'memory':
-            loadMemoryPatterns();
-            break;
-          case 'autonomy':
-            loadAutonomySettings();
-            loadPendingApprovals();
-            loadNotificationPrefs();
-            break;
-          case 'style-voice':
-            loadStyleProfile();
-            break;
-          case 'system':
-            loadFileStats();
-            loadIntegrationStatus();
-            loadAgents();
-            loadAuditLog();
+          case 'intel':
+            if (typeof loadProactiveAlerts === 'function') loadProactiveAlerts();
+            if (typeof loadProactiveSuggestions === 'function') loadProactiveSuggestions();
+            if (typeof loadTodaysPriorities === 'function') loadTodaysPriorities();
             break;
         }
       }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // SETTINGS DRAWER
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function openSettingsDrawer(initialTab) {
+      initialTab = initialTab || 'obligations';
+      document.getElementById('settings-drawer').classList.add('open');
+      document.getElementById('settings-drawer-overlay').classList.add('open');
+      document.body.style.overflow = 'hidden';
+      switchSettingsTab(initialTab);
+    }
+
+    function closeSettingsDrawer() {
+      document.getElementById('settings-drawer').classList.remove('open');
+      document.getElementById('settings-drawer-overlay').classList.remove('open');
+      document.body.style.overflow = '';
+    }
+
+    function switchSettingsTab(tab) {
+      // Update nav active state
+      document.querySelectorAll('.settings-nav-item').forEach(function(item) {
+        item.classList.toggle('active', item.dataset.settingsTab === tab);
+      });
+
+      // Show/hide content panels in drawer
+      document.querySelectorAll('.settings-drawer-body .tab-content').forEach(function(c) { c.classList.remove('active'); });
+      var panel = document.getElementById('tab-' + tab);
+      if (panel) panel.classList.add('active');
+
+      // Lazy load (reuse existing logic)
+      if (!_tabLoadedOnce[tab]) {
+        _tabLoadedOnce[tab] = true;
+        switch(tab) {
+          case 'obligations': if (typeof loadObligations === 'function') loadObligations(); break;
+          case 'calendar': if (typeof loadTodaySchedule === 'function') loadTodaySchedule(); break;
+          case 'predictive': if (typeof loadPredictiveReport === 'function') loadPredictiveReport(); break;
+          case 'memory': if (typeof loadMemoryPatterns === 'function') loadMemoryPatterns(); break;
+          case 'autonomy':
+            if (typeof loadAutonomySettings === 'function') loadAutonomySettings();
+            if (typeof loadPendingApprovals === 'function') loadPendingApprovals();
+            if (typeof loadNotificationPrefs === 'function') loadNotificationPrefs();
+            break;
+          case 'style-voice': if (typeof loadStyleProfile === 'function') loadStyleProfile(); break;
+          case 'system':
+            if (typeof loadFileStats === 'function') loadFileStats();
+            if (typeof loadIntegrationStatus === 'function') loadIntegrationStatus();
+            if (typeof loadAgents === 'function') loadAgents();
+            if (typeof loadAuditLog === 'function') loadAuditLog();
+            break;
+        }
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // BRIEFING TOGGLE
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function toggleBriefing() {
+      var section = document.getElementById('briefing-section');
+      section.classList.toggle('collapsed');
+      var isCollapsed = section.classList.contains('collapsed');
+      document.querySelector('.briefing-toggle').setAttribute('aria-expanded', !isCollapsed);
+      localStorage.setItem('cos-briefing-collapsed', isCollapsed);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -7471,17 +7649,20 @@ Please help with this email. Be concise and actionable.`;
       { category: 'Actions', name: 'Run Proactive Scan', icon: '🚨', action: () => runProactiveScan() },
       { category: 'Actions', name: 'Optimize Schedule', icon: '📅', action: () => optimizeSchedule() },
       { category: 'Actions', name: 'Protect Focus Time', icon: '🎯', action: () => protectFocusTime() },
-      // Pages
-      { category: 'Pages', name: 'Communications', icon: '📧', shortcut: 'G C', action: () => switchTab('communications') },
+      // Pages (main tabs)
+      { category: 'Pages', name: 'Command Center', icon: '📧', shortcut: 'G C', action: () => switchTab('communications') },
+      { category: 'Pages', name: 'Email', icon: '📧', action: () => switchTab('email') },
       { category: 'Pages', name: 'Action Queue', icon: '⚡', shortcut: 'G A', action: () => switchTab('actions') },
       { category: 'Pages', name: 'Commitments', icon: '🤝', action: () => switchTab('commitments') },
-      { category: 'Pages', name: 'Proactive Intel', icon: '🚨', action: () => switchTab('proactive') },
-      { category: 'Pages', name: 'Calendar AI', icon: '📅', shortcut: 'G L', action: () => switchTab('calendar') },
-      { category: 'Pages', name: 'Predictive', icon: '📈', action: () => switchTab('predictive') },
-      { category: 'Pages', name: 'Memory', icon: '🧠', action: () => switchTab('memory') },
-      { category: 'Pages', name: 'Autonomy', icon: '🤖', action: () => switchTab('autonomy') },
-      { category: 'Pages', name: 'Style & Voice', icon: '✍️', action: () => switchTab('style-voice') },
-      { category: 'Pages', name: 'System', icon: '⚙️', action: () => switchTab('system') },
+      { category: 'Pages', name: 'Intel', icon: '🚨', action: () => switchTab('intel') },
+      // Settings (opens drawer)
+      { category: 'Settings', name: 'Obligations', icon: '📋', action: () => openSettingsDrawer('obligations') },
+      { category: 'Settings', name: 'Calendar AI', icon: '📅', shortcut: 'G L', action: () => openSettingsDrawer('calendar') },
+      { category: 'Settings', name: 'Predictive', icon: '📈', action: () => openSettingsDrawer('predictive') },
+      { category: 'Settings', name: 'Memory', icon: '🧠', action: () => openSettingsDrawer('memory') },
+      { category: 'Settings', name: 'Autonomy', icon: '🤖', action: () => openSettingsDrawer('autonomy') },
+      { category: 'Settings', name: 'Style & Voice', icon: '✍️', action: () => openSettingsDrawer('style-voice') },
+      { category: 'Settings', name: 'System', icon: '⚙️', action: () => openSettingsDrawer('system') },
       // AI Assist
       { category: 'AI Assist', name: 'Morning Brief', icon: '☀️', shortcut: 'M', action: () => getEnhancedMorningBrief() },
       { category: 'AI Assist', name: 'What Should I Do Next?', icon: '🎯', shortcut: '', action: () => getNextPriorityTask() },
@@ -7615,17 +7796,18 @@ Please help with this email. Be concise and actionable.`;
       shortcuts: {
         navigation: {
           'gi': () => switchTab('communications'),
-          'gt': () => switchTab('calendar'),
+          'gt': () => openSettingsDrawer('calendar'),
           'gc': () => switchTab('communications'),
           'ga': () => switchTab('actions'),
-          'gp': () => switchTab('proactive'),
-          'gl': () => switchTab('calendar'),
+          'gp': () => switchTab('intel'),
+          'gl': () => openSettingsDrawer('calendar'),
           'gd': () => switchTab('communications'),
-          'gm': () => switchTab('memory'),
-          'gs': () => switchTab('system'),
+          'gm': () => openSettingsDrawer('memory'),
+          'gs': () => openSettingsDrawer('system'),
           'gk': () => switchTab('commitments'),
           'gf': () => ShortcutManager.activateFocusMode(),
-          'gv': () => switchTab('style-voice'),
+          'gv': () => openSettingsDrawer('style-voice'),
+          'ge': () => switchTab('email'),
           'gg': () => ShortcutManager.navigateToEdge('first'),
         },
         actions: {
@@ -7810,7 +7992,7 @@ Please help with this email. Be concise and actionable.`;
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); openCommandPalette(); return; }
 
       // Cmd/Ctrl + , = Settings
-      if ((e.metaKey || e.ctrlKey) && e.key === ',') { e.preventDefault(); switchTab('system'); return; }
+      if ((e.metaKey || e.ctrlKey) && e.key === ',') { e.preventDefault(); openSettingsDrawer('system'); return; }
 
       // Cmd/Ctrl + / = Toggle hints
       if ((e.metaKey || e.ctrlKey) && e.key === '/') { e.preventDefault(); ShortcutManager.toggleHints(); return; }
@@ -7818,8 +8000,17 @@ Please help with this email. Be concise and actionable.`;
       // Cmd/Ctrl + Z = Undo
       if ((e.metaKey || e.ctrlKey) && e.key === 'z') { e.preventDefault(); ShortcutManager.undo(); return; }
 
-      // Escape closes overlays
-      if (e.key === 'Escape') { ShortcutManager.closeAll(); return; }
+      // Escape closes settings drawer first, then other overlays
+      if (e.key === 'Escape') {
+        var drawer = document.getElementById('settings-drawer');
+        if (drawer && drawer.classList.contains('open')) {
+          closeSettingsDrawer();
+          e.stopPropagation();
+          return;
+        }
+        ShortcutManager.closeAll();
+        return;
+      }
 
       // Skip other shortcuts in inputs
       if (isInput) return;
@@ -7920,11 +8111,7 @@ Please help with this email. Be concise and actionable.`;
     }
 
     function updateNavActive(tab) {
-      document.querySelectorAll('.nav-sidebar-item[data-nav]').forEach(item => {
-        const isActive = item.dataset.nav === tab;
-        item.classList.toggle('active', isActive);
-        item.setAttribute('aria-current', isActive ? 'page' : 'false');
-      });
+      // Sidebar simplified — no tab-matching nav items to update
     }
 
     function toggleSidebar() {
@@ -8924,7 +9111,7 @@ Please help with this email. Be concise and actionable.`;
           switch (tabName) {
             case 'calendar': action = 'getTodaySchedule'; break;
             case 'predictive': action = 'getPredictiveReport'; break;
-            case 'proactive': action = 'getProactiveSuggestions'; break;
+            case 'proactive': case 'intel': action = 'getProactiveSuggestions'; break;
             case 'memory': action = 'getMemoryPatterns'; break;
           }
 
