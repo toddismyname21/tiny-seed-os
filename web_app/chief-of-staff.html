@@ -3804,6 +3804,107 @@
       padding-top: 0;
     }
 
+    /* ═══ Mobile Bottom Navigation ═══ */
+    .cos-bottom-nav {
+      display: none;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(32, 30, 27, 0.98);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-top: 1px solid var(--border-color);
+      padding: 0.5rem 0.25rem;
+      padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
+      z-index: 999;
+      justify-content: space-around;
+      align-items: center;
+    }
+
+    .cos-bottom-nav-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      padding: 6px 12px;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.65rem;
+      font-weight: 600;
+      cursor: pointer;
+      border-radius: 8px;
+      min-height: 48px;
+      min-width: 56px;
+      touch-action: manipulation;
+      transition: color var(--ts-dur-fast, 120ms) ease;
+      position: relative;
+    }
+
+    .cos-bottom-nav-btn.active {
+      color: var(--accent-green);
+    }
+
+    .cos-bottom-nav-btn:active {
+      transform: scale(0.95);
+    }
+
+    .cos-bottom-nav-icon {
+      font-size: 1.25rem;
+      line-height: 1;
+    }
+
+    .cos-bottom-nav-badge {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      background: var(--critical);
+      color: white;
+      font-size: 0.6rem;
+      min-width: 16px;
+      height: 16px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 4px;
+    }
+
+    /* ═══ Mobile Layout (768px) ═══ */
+    @media (max-width: 768px) {
+      .cos-bottom-nav {
+        display: flex;
+      }
+
+      .tabs {
+        display: none;
+      }
+
+      .main-panel {
+        padding-bottom: calc(80px + env(safe-area-inset-bottom));
+      }
+
+      /* Settings drawer full width on mobile */
+      .settings-drawer {
+        max-width: 100%;
+      }
+
+      /* Reposition chat toggle above bottom nav */
+      .mobile-chat-toggle {
+        bottom: max(90px, calc(80px + env(safe-area-inset-bottom))) !important;
+      }
+
+      /* Briefing section tighter on mobile */
+      .briefing-section {
+        margin: 0 12px 12px;
+      }
+
+      .dashboard-z-pattern {
+        gap: 12px;
+      }
+    }
+
     /* ═══ Obligations / Notification Prefs Mobile ═══ */
     @media (max-width: 768px) {
       .obligation-form-grid {
@@ -6223,6 +6324,11 @@ Please help with this email. Be concise and actionable.`;
 
       // Update nav sidebar active state
       updateNavActive(tab);
+
+      // Sync bottom nav active state
+      document.querySelectorAll('.cos-bottom-nav-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tab === tab);
+      });
 
       // Reset list navigation
       currentListIndex = -1;
@@ -10102,6 +10208,25 @@ Please help with this email. Be concise and actionable.`;
       }
     });
   </script>
+<!-- Mobile Bottom Navigation -->
+<nav class="cos-bottom-nav" id="cos-bottom-nav" aria-label="Mobile navigation">
+  <button class="cos-bottom-nav-btn active" data-tab="communications" onclick="switchTab('communications')" aria-label="Command Center">
+    <span class="cos-bottom-nav-icon">&#x1F4E1;</span>
+    <span>Command</span>
+  </button>
+  <button class="cos-bottom-nav-btn" data-tab="email" onclick="switchTab('email')" aria-label="Email">
+    <span class="cos-bottom-nav-icon">&#x1F4E7;</span>
+    <span>Email</span>
+  </button>
+  <button class="cos-bottom-nav-btn" data-tab="actions" onclick="switchTab('actions')" aria-label="Action Queue">
+    <span class="cos-bottom-nav-icon">&#x26A1;</span>
+    <span>Actions</span>
+  </button>
+  <button class="cos-bottom-nav-btn" data-tab="intel" onclick="switchTab('intel')" aria-label="Intel">
+    <span class="cos-bottom-nav-icon">&#x1F52E;</span>
+    <span>Intel</span>
+  </button>
+</nav>
 <script src="shared-nav.js"></script>
 </body>
 </html>
