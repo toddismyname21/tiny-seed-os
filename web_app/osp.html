@@ -1482,6 +1482,11 @@ function populateFieldHistory(fieldsRes, fieldHistoryRes, planningRes) {
         addFieldHistoryRow(fid, acres, priorCrop, priorInputs, plannedCrop, 'Organic');
     });
 
+    updateFieldHistoryTotals();
+
+    // Auto-save so this data persists across refreshes
+    if (fields.length > 0) autoSaveDraft();
+
     var autoEl = document.getElementById('fieldHistoryAuto');
     if (autoEl && fields.length > 0) autoEl.style.display = 'flex';
 }
@@ -2705,10 +2710,11 @@ function downloadDraftBackup() {
 }
 
 function autoSaveDraft() {
-    // Debounce: save to localStorage immediately, backend every 30s
+    // Save to localStorage immediately (survives refresh)
     var draft = collectFormData();
     localStorage.setItem('osp_draft_' + OSP_YEAR, JSON.stringify(draft));
 
+    // Debounce backend save to every 30s
     if (_saveTimer) clearTimeout(_saveTimer);
     _saveTimer = setTimeout(function() {
         fetch(API_URL, {
@@ -2718,6 +2724,14 @@ function autoSaveDraft() {
         }).catch(function() {});
     }, 30000);
 }
+
+// Always save to localStorage before page unload — catches any unsaved edits
+window.addEventListener('beforeunload', function() {
+    try {
+        var draft = collectFormData();
+        localStorage.setItem('osp_draft_' + OSP_YEAR, JSON.stringify(draft));
+    } catch(e) {}
+});
 
 async function loadDraft() {
     var hadLocal = false;
