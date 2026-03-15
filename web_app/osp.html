@@ -391,6 +391,13 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/@geoman-io/leaflet-geoman-free@2.17.0/dist/leaflet-geoman.css" />
     <style>
+        /* Field label tooltips — no bubble, just clean text inside polygons */
+        .field-label-tooltip {
+            background: none !important; border: none !important; box-shadow: none !important;
+            color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,0.95), 0 0 6px rgba(0,0,0,0.7), 1px 1px 0 rgba(0,0,0,0.5);
+            padding: 0 !important; margin: 0 !important;
+        }
+        .field-label-tooltip::before { display: none !important; }
         #farmMapContainer { position: relative; isolation: isolate; z-index: 1; margin-bottom: 16px; overflow: hidden; border-radius: 8px; }
         #farmMap { height: 500px; width: 100%; border-radius: 8px; border: 1px solid var(--border); position: relative; z-index: 0; overflow: hidden; }
         #farmMapContainer.locked #farmMap { pointer-events: none; }
@@ -3295,7 +3302,6 @@ function initFarmMap() {
     // When polygon removed
     farmMap.on('pm:remove', function(e) {
         var layer = e.layer;
-        if (layer._label) drawnFields.removeLayer(layer._label);
         if (layer.fieldId) usedFieldNames.delete(layer.fieldId);
         updateFieldList();
         saveMapData();
@@ -3442,38 +3448,24 @@ function assignFieldName(name) {
 // FIELD LABELS ON MAP
 // ============================================================
 function addFieldLabel(layer) {
-    if (layer._label) drawnFields.removeLayer(layer._label);
+    // Remove old tooltip if re-labeling
+    if (layer.getTooltip()) layer.unbindTooltip();
 
-    // Place label at polygon centroid (visual center inside the field)
-    var center = getPolygonCentroid(layer);
-    var fillColor = layer.fieldColor || '#22c55e';
+    // Scale font based on field size to reduce overlap
+    var acres = layer.fieldAcres || 0;
+    var fontSize = acres >= 2 ? 13 : acres >= 0.5 ? 11 : 9;
+    var acreSize = Math.max(fontSize - 2, 8);
 
-    var label = L.marker(center, {
-        interactive: false,
-        icon: L.divIcon({
-            className: '',
-            html: '<div style="color:#fff;font-size:12px;font-weight:700;text-align:center;line-height:1.3;pointer-events:none;text-shadow:0 1px 4px rgba(0,0,0,0.9),0 0 2px rgba(0,0,0,0.7);">' +
-                  esc(layer.fieldId) + '<br><span style="font-size:10px;font-weight:500;opacity:0.9;">' + layer.fieldAcres.toFixed(2) + ' ac</span></div>',
-            iconSize: [0, 0],
-            iconAnchor: [0, 0],
-            className: 'field-label-icon'
-        })
+    var html = '<div style="text-align:center;line-height:1.2;pointer-events:none;">' +
+        '<div style="font-size:' + fontSize + 'px;font-weight:700;">' + esc(layer.fieldId) + '</div>' +
+        '<div style="font-size:' + acreSize + 'px;font-weight:500;opacity:0.85;">' + acres.toFixed(2) + ' ac</div></div>';
+
+    layer.bindTooltip(html, {
+        permanent: true,
+        direction: 'center',
+        className: 'field-label-tooltip',
+        interactive: false
     });
-    layer._label = label;
-    drawnFields.addLayer(label);
-}
-
-// Get visual centroid of polygon (center of mass, not bounding box center)
-function getPolygonCentroid(polygon) {
-    var latlngs = polygon.getLatLngs();
-    var pts = Array.isArray(latlngs[0]) ? latlngs[0] : latlngs;
-    if (!pts.length) return polygon.getBounds().getCenter();
-    var sumLat = 0, sumLng = 0;
-    for (var i = 0; i < pts.length; i++) {
-        sumLat += pts[i].lat;
-        sumLng += pts[i].lng;
-    }
-    return L.latLng(sumLat / pts.length, sumLng / pts.length);
 }
 
 function updateFieldLabel(layer) {
@@ -3556,7 +3548,6 @@ function removeField(stamp) {
     drawnFields.eachLayer(function(layer) {
         if (L.stamp(layer) === stamp) {
             if (layer.fieldId) usedFieldNames.delete(layer.fieldId);
-            if (layer._label) drawnFields.removeLayer(layer._label);
             drawnFields.removeLayer(layer);
             farmMap.removeLayer(layer);
         }
