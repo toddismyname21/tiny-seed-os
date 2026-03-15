@@ -2544,17 +2544,73 @@ function executeColumnImport() {
         return;
     }
 
-    // Save current state for undo, then replace
+    // Save current state for undo
     var body = document.getElementById('fieldHistoryBody');
     _fieldHistoryUndo = body.innerHTML;
+
     if (body.children.length > 0) {
-        if (!confirm('Replace existing ' + body.children.length + ' rows with ' + fields.length + ' imported fields?')) {
+        // Ask: merge (keep 2026 data) or replace (destructive)
+        var choice = confirm(
+            'You have ' + body.children.length + ' existing rows with planned crops.\n\n' +
+            'OK = MERGE (update acres/prior data from spreadsheet, KEEP your 2026 plans)\n' +
+            'Cancel = abort import'
+        );
+        if (!choice) {
             _fieldHistoryUndo = null;
             return;
         }
+
+        // MERGE MODE: match by field name, update imported columns, preserve user data
+        var existingByName = {};
+        body.querySelectorAll('tr').forEach(function(tr) {
+            var nameInput = tr.querySelector('input[type="text"]');
+            if (nameInput) {
+                var name = nameInput.value.trim().toUpperCase();
+                if (name) existingByName[name] = tr;
+            }
+        });
+
+        var merged = 0, added = 0;
+        fields.forEach(function(f) {
+            var key = f.field.trim().toUpperCase();
+            var existingRow = existingByName[key];
+
+            if (existingRow) {
+                // UPDATE existing row: acres, prior crop, prior inputs, status — but NOT planned crop
+                var inputs = existingRow.querySelectorAll('input, select');
+                // inputs[0]=field, [1]=acres, [2]=prior crop, [3]=prior inputs, [4]=planned crop, [5]=status
+                if (f.acres && inputs[1]) inputs[1].value = f.acres;
+                if (f.priorCrop && inputs[2]) inputs[2].value = f.priorCrop;
+                if (f.priorInputs && inputs[3]) inputs[3].value = f.priorInputs;
+                // SKIP inputs[4] (planned crop) — preserve user's 2026 data
+                if (f.status && inputs[5]) {
+                    for (var opt = 0; opt < inputs[5].options.length; opt++) {
+                        if (inputs[5].options[opt].text === f.status) inputs[5].selectedIndex = opt;
+                    }
+                }
+                // Update data-field attribute
+                existingRow.setAttribute('data-field', f.field.trim());
+                merged++;
+            } else {
+                // NEW field not in existing table — add it
+                addFieldHistoryRow(f.field, f.acres, f.priorCrop, f.priorInputs, f.plannedCrop, f.status);
+                added++;
+            }
+        });
+
+        imported = merged + added;
+        // Override summary
+        var mergeSummary = merged + ' fields updated, ' + added + ' new fields added (2026 plans preserved)';
+        closeColumnMapper();
+        showToast(mergeSummary, 'success');
+        updateFieldHistoryTotals();
+        var undoBtn = document.getElementById('undoImportBtn');
+        if (undoBtn) undoBtn.style.display = '';
+        autoSaveDraft();
+        return;
     }
 
-    body.innerHTML = '';
+    // No existing rows — fresh import
     fields.forEach(function(f) {
         addFieldHistoryRow(f.field, f.acres, f.priorCrop, f.priorInputs, f.plannedCrop, f.status);
     });
