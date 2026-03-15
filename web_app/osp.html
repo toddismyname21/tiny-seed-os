@@ -7,6 +7,7 @@
     <title>OSP Generator - Tiny Seed Farm</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
     <script src="api-config.js"></script>
     <style>
         :root {
@@ -223,9 +224,12 @@
     <div class="header">
         <h1><i class="fas fa-leaf" style="color:var(--accent)"></i> OSP <span>Generator</span></h1>
         <div class="header-actions">
+            <select id="ospYearSelect" onchange="changeOSPYear(parseInt(this.value))" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--accent);font-size:0.85rem;font-weight:600;cursor:pointer;" title="Certification Year"></select>
             <button onclick="saveDraft()"><i class="fas fa-save"></i> Save Draft</button>
             <button onclick="window.print()"><i class="fas fa-print"></i> Print / PDF</button>
             <button onclick="exportText()"><i class="fas fa-file-export"></i> Export</button>
+            <label for="oeffaUpload" style="padding:8px 16px;border-radius:8px;border:1px solid var(--info);background:var(--info-dim);color:var(--info);font-size:0.85rem;cursor:pointer;display:flex;align-items:center;gap:6px;"><i class="fas fa-file-pdf"></i> Fill OEFFA Form</label>
+            <input type="file" id="oeffaUpload" accept=".pdf" onchange="handleOEFFAUpload(event)" style="display:none;">
             <button class="btn-primary" onclick="emailToOEFFA()"><i class="fas fa-envelope"></i> Email to OEFFA</button>
         </div>
     </div>
@@ -500,9 +504,9 @@
                     <tr>
                         <th>Field #</th>
                         <th>Acres</th>
-                        <th>2025 Crop</th>
-                        <th>2025 Inputs</th>
-                        <th>2026 Planned</th>
+                        <th id="thPriorCrop">Prior Crop</th>
+                        <th id="thPriorInputs">Prior Inputs</th>
+                        <th id="thPlannedCrop">Planned Crop</th>
                         <th>Status</th>
                         <th></th>
                     </tr>
@@ -524,7 +528,7 @@
     <!-- Section 5: Crops -->
     <div class="osp-section" data-section="5" id="section5">
         <h3><span class="section-num">5</span> Crops Requesting Certification</h3>
-        <p class="section-subtitle">All crops for 2026 certification year</p>
+        <p class="section-subtitle" id="cropsSubtitle">All crops for certification year</p>
 
         <div class="auto-pop" id="cropsAuto" style="display:none"><i class="fas fa-magic"></i> Pre-filled from planning & greenhouse data</div>
 
@@ -570,7 +574,7 @@
 
         <div class="form-group" id="nonOrganicJustification" style="display:none;">
             <label>If using non-organic seed, explain which crops and why (must document 3 supplier searches)</label>
-            <textarea id="nonOrganicSeedNarrative" placeholder="e.g., Organic seed for X variety was unavailable. Contacted Johnny's, Fedco, and High Mowing - none had organic stock available for 2026 season."></textarea>
+            <textarea id="nonOrganicSeedNarrative" placeholder="e.g., Organic seed for X variety was unavailable. Contacted Johnny's, Fedco, and High Mowing - none had organic stock available."></textarea>
         </div>
 
         <div class="data-table-wrap">
@@ -1040,11 +1044,14 @@ const SECTIONS = [
 let currentSection = 1;
 let farmData = {};
 let auditData = {};
+var OSP_YEAR = new Date().getFullYear();
 
 // ============================================================
 // INIT
 // ============================================================
 document.addEventListener('DOMContentLoaded', function() {
+    buildYearSelector();
+    updateDynamicHeaders();
     buildSectionNav();
     loadDraft();
     setTodayDate();
@@ -1052,6 +1059,42 @@ document.addEventListener('DOMContentLoaded', function() {
     fetchFarmData();
     checkROPEligibility();
 });
+
+function buildYearSelector() {
+    var sel = document.getElementById('ospYearSelect');
+    var thisYear = new Date().getFullYear();
+    for (var y = thisYear - 2; y <= thisYear + 2; y++) {
+        var opt = document.createElement('option');
+        opt.value = y;
+        opt.textContent = y + ' OSP';
+        if (y === OSP_YEAR) opt.selected = true;
+        sel.appendChild(opt);
+    }
+}
+
+function changeOSPYear(year) {
+    OSP_YEAR = year;
+    updateDynamicHeaders();
+    // Clear auto-populated tables (keep manual entries via draft)
+    ['fieldHistoryBody','cropsBody','fertilityBody','pestBody','materialsBody'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.innerHTML = '';
+    });
+    // Re-fetch all data for the new year
+    fetchFarmData();
+    showToast('Switched to ' + year + ' certification year', 'success');
+}
+
+function updateDynamicHeaders() {
+    var th1 = document.getElementById('thPriorCrop');
+    var th2 = document.getElementById('thPriorInputs');
+    var th3 = document.getElementById('thPlannedCrop');
+    if (th1) th1.textContent = (OSP_YEAR - 1) + ' Crop';
+    if (th2) th2.textContent = (OSP_YEAR - 1) + ' Inputs';
+    if (th3) th3.textContent = OSP_YEAR + ' Planned';
+    var sub = document.getElementById('cropsSubtitle');
+    if (sub) sub.textContent = 'All crops for ' + OSP_YEAR + ' certification year';
+}
 
 function setTodayDate() {
     var today = new Date().toISOString().split('T')[0];
@@ -1116,40 +1159,394 @@ function checkROPEligibility() {
 }
 
 // ============================================================
-// FETCH FARM DATA FROM BACKEND
+// FETCH FARM DATA FROM BACKEND — all available APIs
 // ============================================================
 async function fetchFarmData() {
+    var statusEl = document.getElementById('readinessSubtitle');
+    if (statusEl) statusEl.textContent = 'Loading ' + OSP_YEAR + ' farm data...';
+
     try {
-        // Fetch compliance status and seed data in parallel
-        var [complianceRes, seedRes] = await Promise.all([
-            fetch(API_URL + '?action=getOrganicComplianceStatus&year=2026').then(r => r.json()).catch(function() { return null; }),
-            fetch(API_URL + '?action=getSeedInventory&limit=200').then(r => r.json()).catch(function() { return null; })
+        var results = await Promise.all([
+            fetch(API_URL + '?action=getOrganicComplianceStatus&year=' + OSP_YEAR).then(function(r) { return r.json(); }).catch(function() { return null; }),
+            fetch(API_URL + '?action=getSeedInventory&limit=500').then(function(r) { return r.json(); }).catch(function() { return null; }),
+            fetch(API_URL + '?action=getPlanningData').then(function(r) { return r.json(); }).catch(function() { return null; }),
+            fetch(API_URL + '?action=getFields').then(function(r) { return r.json(); }).catch(function() { return null; }),
+            fetch(API_URL + '?action=getSoilTests').then(function(r) { return r.json(); }).catch(function() { return null; }),
+            fetch(API_URL + '?action=getInputApplicationReport&year=' + OSP_YEAR).then(function(r) { return r.json(); }).catch(function() { return null; }),
+            fetch(API_URL + '?action=getPestManagementReport&year=' + OSP_YEAR).then(function(r) { return r.json(); }).catch(function() { return null; }),
+            fetch(API_URL + '?action=getInventoryProducts&activeOnly=true').then(function(r) { return r.json(); }).catch(function() { return null; }),
+            fetch(API_URL + '?action=getHarvestReport&year=' + OSP_YEAR).then(function(r) { return r.json(); }).catch(function() { return null; }),
+            fetch(API_URL + '?action=getFieldHistoryReport&year=' + OSP_YEAR).then(function(r) { return r.json(); }).catch(function() { return null; })
         ]);
 
+        var complianceRes = results[0];
+        var seedRes = results[1];
+        var planningRes = results[2];
+        var fieldsRes = results[3];
+        var soilRes = results[4];
+        var inputRes = results[5];
+        var pestRes = results[6];
+        var inventoryRes = results[7];
+        var harvestRes = results[8];
+        var fieldHistoryRes = results[9];
+
+        // Store for later use
+        farmData.compliance = complianceRes;
+        farmData.seeds = (seedRes && seedRes.seedLots) ? seedRes.seedLots : [];
+        farmData.planning = planningRes;
+        farmData.fields = fieldsRes;
+        farmData.soil = soilRes;
+        farmData.inputs = inputRes;
+        farmData.pest = pestRes;
+        farmData.inventory = inventoryRes;
+        farmData.harvest = harvestRes;
+        farmData.fieldHistory = fieldHistoryRes;
+
+        // Track what loaded for the status banner
+        var loaded = [];
+
+        // Readiness
         if (complianceRes && complianceRes.success) {
-            farmData.compliance = complianceRes;
             updateReadiness(complianceRes);
         } else {
             setReadinessOffline();
         }
 
-        if (seedRes && seedRes.success && seedRes.seedLots) {
-            farmData.seeds = seedRes.seedLots;
-            populateSeedTable(seedRes.seedLots);
+        // Section 4: Field History
+        if (fieldsRes && fieldsRes.success && fieldsRes.fields && fieldsRes.fields.length > 0) {
+            populateFieldHistory(fieldsRes, fieldHistoryRes, planningRes);
+            loaded.push('Fields');
         }
 
-        // Try to get audit package for more data
-        try {
-            var auditRes = await fetch(API_URL + '?action=generateOrganicAuditPackage&year=2026').then(r => r.json());
-            if (auditRes && auditRes.success) {
-                auditData = auditRes;
-                populateFromAudit(auditRes);
-            }
-        } catch(e) { console.log('Audit package not available:', e); }
+        // Section 5: Crops
+        if (planningRes && planningRes.success && planningRes.plantings && planningRes.plantings.length > 0) {
+            populateCrops(planningRes);
+            loaded.push('Crops (' + planningRes.plantings.length + ')');
+        }
+
+        // Section 6: Seeds
+        if (seedRes && seedRes.success && seedRes.seedLots && seedRes.seedLots.length > 0) {
+            populateSeedTable(seedRes.seedLots);
+            loaded.push('Seeds (' + seedRes.seedLots.length + ')');
+        }
+
+        // Section 7: Soil + Fertility
+        if (soilRes && soilRes.success) {
+            populateSoilData(soilRes);
+            loaded.push('Soil tests');
+        }
+        if (inputRes && inputRes.success && inputRes.hasData) {
+            populateFertilityInputs(inputRes);
+            loaded.push('Inputs (' + (inputRes.totalApplications || 0) + ')');
+        }
+
+        // Section 8: Pest Management
+        if (pestRes && pestRes.success && pestRes.hasData) {
+            populatePestManagement(pestRes);
+            loaded.push('Pest records');
+        }
+
+        // Section 9: Materials
+        if (inventoryRes && inventoryRes.success) {
+            populateMaterials(inventoryRes);
+            loaded.push('Materials');
+        }
+
+        // Section 11: Harvest
+        if (harvestRes && harvestRes.success && harvestRes.hasData) {
+            populateHarvestData(harvestRes);
+            loaded.push('Harvest');
+        }
+
+        // Show summary
+        if (loaded.length > 0) {
+            showToast('Auto-populated: ' + loaded.join(', '), 'success');
+        }
 
     } catch(e) {
         console.error('Error fetching farm data:', e);
         setReadinessOffline();
+    }
+}
+
+// ============================================================
+// SECTION 4: FIELD HISTORY — auto-populate from fields + history
+// ============================================================
+function populateFieldHistory(fieldsRes, fieldHistoryRes, planningRes) {
+    var body = document.getElementById('fieldHistoryBody');
+    if (body.children.length > 0) return; // Don't overwrite manual entries
+
+    var fields = fieldsRes.fields || [];
+    var history = (fieldHistoryRes && fieldHistoryRes.success) ? (fieldHistoryRes.fields || {}) : {};
+    var plantings = (planningRes && planningRes.success) ? (planningRes.plantings || []) : [];
+
+    fields.forEach(function(f) {
+        var fid = f.Field_ID || f.fieldId || f.name || '';
+        if (!fid) return;
+
+        var acres = '';
+        if (f.Acreage) acres = f.Acreage;
+        else if (f.bedCount && f.bedCount > 0) acres = (f.bedCount * 100 / 43560).toFixed(2); // rough estimate from bed count
+
+        // Prior year crops from field history
+        var priorCrop = '';
+        var priorInputs = '';
+        if (history[fid]) {
+            var h = history[fid];
+            if (h.plantings && h.plantings.length > 0) {
+                priorCrop = h.plantings.map(function(p) { return p.Crop || p.crop || ''; }).filter(Boolean).join(', ');
+            }
+            if (h.inputs && h.inputs.length > 0) {
+                priorInputs = h.inputs.map(function(p) { return p.Product_Name || p.product || ''; }).filter(Boolean).join(', ');
+            }
+        }
+
+        // Planned crops from planning data
+        var plannedCrop = '';
+        var fieldPlantings = plantings.filter(function(p) {
+            var bed = p.Target_Bed_ID || p.Bed_ID || '';
+            return bed.startsWith(fid + '-') || bed === fid;
+        });
+        if (fieldPlantings.length > 0) {
+            var uniqueCrops = [];
+            fieldPlantings.forEach(function(p) {
+                var c = p.Crop || p.crop || '';
+                if (c && uniqueCrops.indexOf(c) < 0) uniqueCrops.push(c);
+            });
+            plannedCrop = uniqueCrops.join(', ');
+        }
+
+        addFieldHistoryRow(fid, acres, priorCrop, priorInputs, plannedCrop, 'Organic');
+    });
+
+    var autoEl = document.getElementById('fieldHistoryAuto');
+    if (autoEl && fields.length > 0) autoEl.style.display = 'flex';
+}
+
+// ============================================================
+// SECTION 5: CROPS — auto-populate from planning data
+// ============================================================
+function populateCrops(planningRes) {
+    var body = document.getElementById('cropsBody');
+    if (body.children.length > 0) return;
+
+    var plantings = planningRes.plantings || [];
+    // Group by crop+variety for OSP-level summary
+    var grouped = {};
+    plantings.forEach(function(p) {
+        var crop = p.Crop || p.crop || '';
+        var variety = p.Variety || p.variety || '';
+        if (!crop) return;
+        var key = crop + '|' + variety;
+        if (!grouped[key]) {
+            grouped[key] = { crop: crop, variety: variety, fields: [], plantDate: '', harvestDate: '', acres: 0 };
+        }
+        var bed = p.Target_Bed_ID || p.Bed_ID || '';
+        var field = bed.split('-')[0] || '';
+        if (field && grouped[key].fields.indexOf(field) < 0) grouped[key].fields.push(field);
+
+        // Use earliest plant date and latest harvest
+        var pd = p.Plan_GH_Sow || p.GH_Sow_Date || p.Plan_Field_Sow || p.Field_Sow_Date || '';
+        var hd = p.First_Harvest || p.Last_Harvest || '';
+        if (pd && (!grouped[key].plantDate || pd < grouped[key].plantDate)) grouped[key].plantDate = pd;
+        if (hd && (!grouped[key].harvestDate || hd > grouped[key].harvestDate)) grouped[key].harvestDate = hd;
+
+        var feet = parseFloat(p.Feet_Used || p.Bed_Feet || 0);
+        grouped[key].acres += feet / 43560; // rough conversion
+    });
+
+    Object.keys(grouped).forEach(function(key) {
+        var g = grouped[key];
+        var tr = document.createElement('tr');
+        tr.innerHTML =
+            '<td><input type="text" value="' + esc(g.crop) + '" style="width:80px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
+            '<td><input type="text" value="' + esc(g.fields.join(', ')) + '" style="width:50px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
+            '<td><input type="number" value="' + (g.acres > 0 ? g.acres.toFixed(2) : '') + '" step="0.01" style="width:60px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
+            '<td><input type="text" value="' + esc(g.variety) + '" style="width:80px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
+            '<td><input type="text" value="' + esc(formatDateShort(g.plantDate)) + '" style="width:70px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
+            '<td><input type="text" value="' + esc(formatDateShort(g.harvestDate)) + '" style="width:70px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
+            '<td><select style="padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"><option>CSA</option><option>Wholesale</option><option>Farmers Market</option><option>Direct</option></select></td>' +
+            '<td><button onclick="this.closest(\'tr\').remove()" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:0.9rem;" title="Remove"><i class="fas fa-trash"></i></button></td>';
+        body.appendChild(tr);
+    });
+
+    var autoEl = document.getElementById('cropsAuto');
+    if (autoEl && Object.keys(grouped).length > 0) {
+        autoEl.style.display = 'flex';
+        autoEl.innerHTML = '<i class="fas fa-magic"></i> ' + Object.keys(grouped).length + ' crops loaded from planning data — edit any row';
+    }
+}
+
+function formatDateShort(d) {
+    if (!d) return '';
+    try {
+        var dt = new Date(d);
+        if (isNaN(dt.getTime())) return String(d);
+        var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        return months[dt.getMonth()] + ' ' + dt.getDate();
+    } catch(e) { return String(d); }
+}
+
+// ============================================================
+// SECTION 7: SOIL — auto-populate from soil tests + inputs
+// ============================================================
+function populateSoilData(soilRes) {
+    var descEl = document.getElementById('soilDescription');
+    if (descEl && !descEl.value) {
+        var tests = soilRes.soilTests || soilRes.tests || [];
+        if (tests.length > 0) {
+            // Use most recent test
+            var latest = tests[tests.length - 1];
+            var parts = [];
+            if (latest.sampleLocation) parts.push('Location: ' + latest.sampleLocation);
+            if (latest.ph) parts.push('pH ' + latest.ph);
+            if (latest.organicMatter) parts.push('organic matter ' + latest.organicMatter + '%');
+            if (latest.cec) parts.push('CEC ' + latest.cec);
+            if (parts.length > 0) {
+                descEl.value = 'Most recent soil test (' + (latest.testDate || 'date unknown') + '): ' + parts.join(', ') + '. ';
+            }
+        }
+    }
+
+    var labEl = document.getElementById('soilTestLab');
+    if (labEl && !labEl.value) {
+        labEl.value = 'Annual soil testing performed. Results stored in Tiny Seed OS.';
+    }
+}
+
+function populateFertilityInputs(inputRes) {
+    var body = document.getElementById('fertilityBody');
+    if (body.children.length > 0) return;
+
+    var records = inputRes.records || [];
+    // Group by product to avoid duplicates
+    var seen = {};
+    records.forEach(function(inp) {
+        var product = inp.Product_Name || inp.product || inp.name || '';
+        if (!product || seen[product]) return;
+        seen[product] = true;
+
+        var tr = document.createElement('tr');
+        var type = inp.type || inp.Type || 'Amendment';
+        var omri = (inp.OMRI_Listed || inp.omri) ? 'Yes' : 'No';
+        tr.innerHTML =
+            '<td><select style="padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;">' +
+                '<option' + (type === 'Compost' ? ' selected' : '') + '>Compost</option>' +
+                '<option' + (type === 'Fertilizer' ? ' selected' : '') + '>Fertilizer</option>' +
+                '<option' + (type === 'Amendment' ? ' selected' : '') + '>Amendment</option>' +
+                '<option' + (type === 'Cover Crop' ? ' selected' : '') + '>Cover Crop</option></select></td>' +
+            '<td><input type="text" value="' + esc(product) + '" style="width:100px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
+            '<td><input type="text" value="' + esc(inp.supplier || inp.Supplier || '') + '" style="width:80px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
+            '<td><select style="padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;">' +
+                '<option' + (omri === 'Yes' ? ' selected' : '') + '>Yes</option>' +
+                '<option' + (omri === 'No' ? ' selected' : '') + '>No</option>' +
+                '<option>Pending</option></select></td>' +
+            '<td><input type="text" value="' + esc(inp.Application_Rate || inp.rate || '') + '" style="width:70px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
+            '<td><input type="text" value="' + esc(inp.timing || inp.date || inp.Date || '') + '" style="width:70px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
+            '<td><button onclick="this.closest(\'tr\').remove()" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:0.9rem;" title="Remove"><i class="fas fa-trash"></i></button></td>';
+        body.appendChild(tr);
+    });
+
+    var autoEl = document.getElementById('inputsAuto');
+    if (autoEl && Object.keys(seen).length > 0) {
+        autoEl.style.display = 'flex';
+        autoEl.innerHTML = '<i class="fas fa-magic"></i> ' + Object.keys(seen).length + ' inputs loaded from application records — edit any row';
+    }
+}
+
+// ============================================================
+// SECTION 8: PEST MANAGEMENT — auto-populate from pest report
+// ============================================================
+function populatePestManagement(pestRes) {
+    var body = document.getElementById('pestBody');
+    if (body.children.length > 0) return;
+
+    var records = pestRes.records || [];
+    // Group by pest type
+    var byPest = {};
+    records.forEach(function(r) {
+        var pest = r.Pest_Observed || r.pest || r.name || '';
+        if (!pest) return;
+        if (!byPest[pest]) {
+            byPest[pest] = { pest: pest, crops: [], strategy: '', input: '', count: 0 };
+        }
+        byPest[pest].count++;
+        var crop = r.Crop || r.crop || r.Field || '';
+        if (crop && byPest[pest].crops.indexOf(crop) < 0) byPest[pest].crops.push(crop);
+        if (r.Control_Measure || r.control) byPest[pest].strategy = r.Control_Measure || r.control;
+        if (r.Product_Used || r.product) byPest[pest].input = r.Product_Used || r.product;
+    });
+
+    Object.keys(byPest).forEach(function(key) {
+        var p = byPest[key];
+        var freq = p.count >= 10 ? 'Weekly' : (p.count >= 4 ? 'Monthly' : 'Sporadic');
+        var tr = document.createElement('tr');
+        tr.innerHTML =
+            '<td><input type="text" value="' + esc(p.pest) + '" style="width:80px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
+            '<td><input type="text" value="' + esc(p.crops.join(', ')) + '" style="width:80px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
+            '<td><select style="padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;">' +
+                '<option' + (freq === 'Weekly' ? ' selected' : '') + '>Weekly</option>' +
+                '<option' + (freq === 'Monthly' ? ' selected' : '') + '>Monthly</option>' +
+                '<option' + (freq === 'Sporadic' ? ' selected' : '') + '>Sporadic</option>' +
+                '<option>Annual</option></select></td>' +
+            '<td><input type="text" value="' + esc(p.strategy) + '" style="width:100px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
+            '<td><input type="text" value="' + esc(p.input) + '" style="width:80px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
+            '<td><button onclick="this.closest(\'tr\').remove()" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:0.9rem;" title="Remove"><i class="fas fa-trash"></i></button></td>';
+        body.appendChild(tr);
+    });
+}
+
+// ============================================================
+// SECTION 9: MATERIALS — auto-populate from inventory
+// ============================================================
+function populateMaterials(inventoryRes) {
+    var body = document.getElementById('materialsBody');
+    if (body.children.length > 0) return;
+
+    var products = inventoryRes.products || inventoryRes.items || [];
+    // Filter to compliance-relevant categories
+    var relevant = products.filter(function(p) {
+        var cat = (p.Category || '').toUpperCase();
+        return cat === 'AMENDMENT' || cat === 'FERTILIZER' || cat === 'PESTICIDE' || cat === 'BIOLOGICAL';
+    });
+
+    relevant.forEach(function(p) {
+        var tr = document.createElement('tr');
+        var cat = p.Category || 'Other';
+        var omri = p.OMRI_Status || p.omri || '';
+        tr.innerHTML =
+            '<td><select style="padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;">' +
+                '<option' + (cat === 'FERTILIZER' ? ' selected' : '') + '>Fertilizer</option>' +
+                '<option' + (cat === 'PESTICIDE' ? ' selected' : '') + '>Pest Control</option>' +
+                '<option' + (cat === 'AMENDMENT' ? ' selected' : '') + '>Amendment</option>' +
+                '<option' + (cat === 'BIOLOGICAL' ? ' selected' : '') + '>Biological</option>' +
+                '<option>Cleaner</option><option>Other</option></select></td>' +
+            '<td><input type="text" value="' + esc(p.Product_Name || p.name || '') + '" style="width:80px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
+            '<td><input type="text" value="' + esc(p.Manufacturer || '') + '" style="width:70px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
+            '<td><input type="text" value="' + esc(omri) + '" style="width:70px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
+            '<td><input type="text" value="" placeholder="Active" style="width:80px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
+            '<td><input type="text" value="" placeholder="Rate" style="width:60px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
+            '<td><input type="text" value="All" style="width:50px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
+            '<td><button onclick="this.closest(\'tr\').remove()" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:0.9rem;" title="Remove"><i class="fas fa-trash"></i></button></td>';
+        body.appendChild(tr);
+    });
+}
+
+// ============================================================
+// SECTION 11: HARVEST — auto-populate narrative
+// ============================================================
+function populateHarvestData(harvestRes) {
+    var el = document.getElementById('harvestPractices');
+    if (el && !el.value) {
+        var total = harvestRes.totalHarvests || 0;
+        var lotPct = 0;
+        if (total > 0 && harvestRes.withLotNumbers) {
+            lotPct = Math.round((harvestRes.withLotNumbers / total) * 100);
+        }
+        var crops = harvestRes.byCrop ? Object.keys(harvestRes.byCrop).length : 0;
+        if (total > 0) {
+            el.value = total + ' harvests recorded for ' + OSP_YEAR + ' across ' + crops + ' crops. Lot tracking: ' + lotPct + '% of harvests have lot numbers for full traceability. ';
+        }
     }
 }
 
@@ -1246,31 +1643,7 @@ function isOrganic(seed) {
     return cert.includes('organic') || cert === 'true' || cert === 'yes';
 }
 
-function populateFromAudit(data) {
-    // Try to populate from audit package data
-    if (data.inputApplications && data.inputApplications.length > 0) {
-        document.getElementById('inputsAuto').style.display = 'flex';
-        var body = document.getElementById('fertilityBody');
-        data.inputApplications.forEach(function(inp) {
-            var tr = createEditableRow([
-                inp.type || 'Amendment',
-                inp.product || inp.name || '',
-                inp.supplier || '',
-                inp.omri ? 'Yes' : 'No',
-                inp.rate || '',
-                inp.timing || inp.date || ''
-            ], body);
-        });
-    }
-
-    if (data.fieldHistory && data.fieldHistory.length > 0) {
-        document.getElementById('fieldHistoryAuto').style.display = 'flex';
-        var body = document.getElementById('fieldHistoryBody');
-        data.fieldHistory.forEach(function(f) {
-            addFieldHistoryRow(f.field || '', f.acres || '', f.crop2025 || '', f.inputs2025 || '', f.crop2026 || '', f.status || 'Organic');
-        });
-    }
-}
+// populateFromAudit removed — replaced by individual populate functions per section
 
 // ============================================================
 // DYNAMIC TABLE ROWS
@@ -1283,7 +1656,7 @@ function addFieldHistoryRow(field, acres, crop25, inputs25, crop26, status) {
         '<td><input type="number" value="' + esc(acres || '') + '" placeholder="0.5" step="0.1" style="width:60px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
         '<td><input type="text" value="' + esc(crop25 || '') + '" placeholder="Crop" style="width:100px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
         '<td><input type="text" value="' + esc(inputs25 || '') + '" placeholder="Inputs" style="width:120px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
-        '<td><input type="text" value="' + esc(crop26 || '') + '" placeholder="2026 plan" style="width:100px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
+        '<td><input type="text" value="' + esc(crop26 || '') + '" placeholder="' + OSP_YEAR + ' plan" style="width:100px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
         '<td><select style="padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"><option' + (status === 'Organic' ? ' selected' : '') + '>Organic</option><option' + (status === 'Transitional' ? ' selected' : '') + '>Transitional</option></select></td>' +
         '<td><button onclick="this.closest(\'tr\').remove()" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:0.9rem;" title="Remove"><i class="fas fa-trash"></i></button></td>';
     body.appendChild(tr);
@@ -1363,7 +1736,7 @@ function createEditableRow(values, tbody) {
 // ============================================================
 var _savePending = false;
 var _saveTimer = null;
-var OSP_YEAR = new Date().getFullYear();
+// OSP_YEAR defined at top of script block
 
 async function saveDraft() {
     var draft = collectFormData();
@@ -1531,7 +1904,7 @@ function exportText() {
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a');
     a.href = url;
-    a.download = 'TinySeedFarm_OSP_2026.txt';
+    a.download = 'TinySeedFarm_OSP_' + OSP_YEAR + '.txt';
     a.click();
     URL.revokeObjectURL(url);
     showToast('Exported OSP text file', 'success');
@@ -1541,7 +1914,7 @@ function generatePlainText() {
     var lines = [];
     lines.push('='.repeat(60));
     lines.push('ORGANIC SYSTEM PLAN - ' + (document.getElementById('farmName').value || 'Tiny Seed Farm'));
-    lines.push('Certification Year: 2026');
+    lines.push('Certification Year: ' + OSP_YEAR);
     lines.push('Generated: ' + new Date().toLocaleDateString());
     lines.push('='.repeat(60));
     lines.push('');
@@ -1631,7 +2004,7 @@ async function emailToOEFFA() {
             body: JSON.stringify({
                 action: 'emailOrganicReportToOEFFA',
                 farmName: document.getElementById('farmName').value || 'Tiny Seed Farm',
-                year: 2026,
+                year: OSP_YEAR,
                 reportText: text
             })
         });
@@ -1668,6 +2041,205 @@ function showToast(msg, type) {
     toast.textContent = msg;
     document.body.appendChild(toast);
     setTimeout(function() { toast.remove(); }, 3000);
+}
+
+// ============================================================
+// OEFFA PDF FORM FILLER — upload blank form, fill with OSP data
+// ============================================================
+async function handleOEFFAUpload(event) {
+    var file = event.target.files[0];
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith('.pdf')) {
+        showToast('Please upload a PDF file', 'error');
+        return;
+    }
+
+    showToast('Reading OEFFA form...', 'success');
+
+    try {
+        var arrayBuffer = await file.arrayBuffer();
+        var pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
+        var form = pdfDoc.getForm();
+        var fields = form.getFields();
+
+        if (fields.length === 0) {
+            showToast('This PDF has no fillable fields. Make sure you uploaded the OEFFA fillable form.', 'error');
+            return;
+        }
+
+        // Build our data map from the OSP form
+        var ospData = collectFormData();
+        var dataMap = buildOEFFADataMap(ospData);
+
+        // Try to match and fill PDF fields
+        var filled = 0;
+        var fieldNames = [];
+        fields.forEach(function(field) {
+            var name = field.getName();
+            fieldNames.push(name);
+            var nameLower = name.toLowerCase().replace(/[_\s-]+/g, '');
+
+            // Try exact mapping first, then fuzzy matching
+            var value = findBestMatch(nameLower, dataMap);
+            if (value) {
+                try {
+                    if (field instanceof PDFLib.PDFTextField) {
+                        field.setText(String(value));
+                        filled++;
+                    } else if (field instanceof PDFLib.PDFCheckBox) {
+                        if (value === true || value === 'true' || value === 'yes' || value === 'Yes') {
+                            field.check();
+                            filled++;
+                        }
+                    } else if (field instanceof PDFLib.PDFDropdown) {
+                        try { field.select(String(value)); filled++; } catch(e) {}
+                    }
+                } catch(e) { /* field locked or incompatible */ }
+            }
+        });
+
+        // Save filled PDF
+        var pdfBytes = await pdfDoc.save();
+        var blob = new Blob([pdfBytes], { type: 'application/pdf' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = 'TinySeedFarm_OEFFA_OSP_' + OSP_YEAR + '_FILLED.pdf';
+        a.click();
+        URL.revokeObjectURL(url);
+
+        showToast('Filled ' + filled + '/' + fields.length + ' fields. Download started.', 'success');
+
+        // Log unmapped fields for debugging
+        console.log('OEFFA PDF form fields (' + fields.length + ' total, ' + filled + ' filled):', fieldNames);
+
+    } catch(e) {
+        console.error('PDF fill error:', e);
+        showToast('Error filling PDF: ' + e.message, 'error');
+    }
+
+    // Reset file input so same file can be re-uploaded
+    event.target.value = '';
+}
+
+function buildOEFFADataMap(ospData) {
+    // Map our data to common OEFFA field name patterns
+    // Keys are lowercase, no spaces/underscores — for fuzzy matching
+    var map = {};
+
+    // Section 1: General Info
+    map['farmname'] = ospData.farmName || 'Tiny Seed Farm';
+    map['operationname'] = ospData.farmName || 'Tiny Seed Farm';
+    map['operatorname'] = ospData.operatorName || '';
+    map['ownername'] = ospData.operatorName || '';
+    map['name'] = ospData.operatorName || '';
+    map['address'] = ospData.farmAddress || '';
+    map['mailingaddress'] = ospData.farmAddress || '';
+    map['physicaladdress'] = ospData.farmAddress || '';
+    map['city'] = 'Rochester';
+    map['state'] = 'PA';
+    map['zip'] = '15074';
+    map['zipcode'] = '15074';
+    map['phone'] = ospData.farmPhone || '';
+    map['telephone'] = ospData.farmPhone || '';
+    map['email'] = ospData.farmEmail || '';
+    map['emailaddress'] = ospData.farmEmail || '';
+    map['gps'] = ospData.farmGPS || '40.7456, -80.1610';
+    map['coordinates'] = ospData.farmGPS || '40.7456, -80.1610';
+    map['latitude'] = '40.7456';
+    map['longitude'] = '-80.1610';
+    map['certifier'] = ospData.certifier || 'OEFFA';
+    map['certifyingagent'] = ospData.certifier || 'OEFFA';
+
+    // Section 2: Overview
+    map['fulltimeemployees'] = ospData.ftEmployees || '0';
+    map['parttimeemployees'] = ospData.ptEmployees || '0';
+    map['employees'] = (parseInt(ospData.ftEmployees || 0) + parseInt(ospData.ptEmployees || 0)).toString();
+    map['operationdescription'] = ospData.opDescription || '';
+    map['description'] = ospData.opDescription || '';
+
+    // Section 3: Acreage
+    map['totalacres'] = ospData.totalAcres || '';
+    map['totalacreage'] = ospData.totalAcres || '';
+    map['certifiedacres'] = ospData.totalAcres || '';
+    map['numberoffields'] = ospData.numFields || '';
+
+    // Section 7: Soil
+    map['soildescription'] = ospData.soilDescription || '';
+    map['soiltestlab'] = ospData.soilTestLab || '';
+    map['croprotation'] = ospData.cropRotation || '';
+    map['rotationplan'] = ospData.cropRotation || '';
+
+    // Section 8: Pest
+    map['pestmonitoring'] = ospData.pestMonitoring || '';
+    map['pestmanagement'] = ospData.pestMonitoring || '';
+    map['ipm'] = ospData.pestMonitoring || '';
+
+    // Section 10: Contamination
+    map['contaminationprevention'] = ospData.contaminationPrevention || '';
+    map['commingling'] = ospData.contaminationPrevention || '';
+
+    // Section 11: Harvest
+    map['harvestpractices'] = ospData.harvestPractices || '';
+    map['postharvest'] = ospData.storagePractices || '';
+    map['storage'] = ospData.storagePractices || '';
+    map['transportation'] = ospData.transportPractices || '';
+    map['transport'] = ospData.transportPractices || '';
+
+    // Section 12: Records
+    map['recordkeeping'] = ospData.recordkeepingSystem || '';
+    map['recordkeepingsystem'] = ospData.recordkeepingSystem || '';
+
+    // Section 13: Biodiversity
+    map['biodiversity'] = ospData.bioNarrative || '';
+    map['conservation'] = ospData.bioNarrative || '';
+    map['watersource'] = ospData.waterSource || '';
+    map['irrigation'] = ospData.waterSource || '';
+    map['water'] = ospData.waterSource || '';
+
+    // Section 15: Signature
+    map['signature'] = ospData.signature || '';
+    map['signaturedate'] = ospData.signatureDate || '';
+    map['date'] = ospData.signatureDate || '';
+    map['signdate'] = ospData.signatureDate || '';
+
+    // Checkboxes
+    map['organicseed'] = ospData.cb_allOrganicSeed;
+    map['soiltest'] = ospData.cb_annualSoilTest;
+    map['compost'] = ospData.cb_usesCompost;
+    map['covercrops'] = ospData.cb_usesCoverCrops;
+    map['mulch'] = ospData.cb_usesMulch;
+    map['manure'] = ospData.cb_usesManure;
+    map['croprotationcb'] = ospData.cb_pmCropRotation;
+    map['resistantvarieties'] = ospData.cb_pmResistantVarieties;
+    map['rowcovers'] = ospData.cb_pmRowCovers;
+    map['beneficials'] = ospData.cb_pmBeneficials;
+    map['handweeding'] = ospData.cb_pmHandPull;
+    map['traps'] = ospData.cb_pmTraps;
+    map['greenhouse'] = ospData.cb_hasGreenhouseCb;
+
+    return map;
+}
+
+function findBestMatch(fieldName, dataMap) {
+    // Exact match
+    if (dataMap[fieldName] !== undefined) return dataMap[fieldName];
+
+    // Try partial matching — find the longest matching key
+    var bestKey = '';
+    var bestLen = 0;
+    Object.keys(dataMap).forEach(function(key) {
+        if (fieldName.indexOf(key) >= 0 && key.length > bestLen) {
+            bestKey = key;
+            bestLen = key.length;
+        }
+        if (key.indexOf(fieldName) >= 0 && fieldName.length > bestLen) {
+            bestKey = key;
+            bestLen = fieldName.length;
+        }
+    });
+
+    return bestKey ? dataMap[bestKey] : null;
 }
 </script>
 
@@ -2206,12 +2778,12 @@ function saveMapData() {
             });
         }
     });
-    localStorage.setItem('osp_farm_map_2026', JSON.stringify(data));
+    localStorage.setItem('osp_farm_map_' + OSP_YEAR, JSON.stringify(data));
 }
 
 function loadMapData() {
     try {
-        var raw = localStorage.getItem('osp_farm_map_2026');
+        var raw = localStorage.getItem('osp_farm_map_' + OSP_YEAR);
         if (!raw) return;
         var data = JSON.parse(raw);
 
