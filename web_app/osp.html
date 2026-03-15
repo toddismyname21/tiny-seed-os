@@ -527,7 +527,10 @@
                 </tbody>
             </table>
         </div>
-        <button onclick="document.getElementById('oeffaExcelUpload').click()" style="padding:8px 16px;border-radius:8px;border:1px solid var(--info);background:var(--info-dim);color:var(--info);cursor:pointer;font-size:0.82rem;margin-bottom:8px;margin-right:8px;">
+        <div id="fieldHistoryTotals" style="padding:10px 12px;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;margin-top:4px;font-size:0.88rem;display:none;">
+            <strong style="color:var(--accent);">Total:</strong> <span id="fieldHistoryAcreTotal">0</span> acres across <span id="fieldHistoryFieldCount">0</span> fields
+        </div>
+        <button onclick="document.getElementById('oeffaExcelUpload').click()" style="padding:8px 16px;border-radius:8px;border:1px solid var(--info);background:var(--info-dim);color:var(--info);cursor:pointer;font-size:0.82rem;margin-bottom:8px;margin-right:8px;margin-top:8px;">
             <i class="fas fa-file-excel"></i> Import Spreadsheet
         </button>
         <input type="file" id="oeffaExcelUpload" accept=".xlsx,.xls,.csv,.tsv,.txt" onchange="importOEFFAExcel(event)" style="display:none;">
@@ -1715,6 +1718,31 @@ function isOrganic(seed) {
 // populateFromAudit removed — replaced by individual populate functions per section
 
 // ============================================================
+// FIELD HISTORY TOTALS
+// ============================================================
+function updateFieldHistoryTotals() {
+    var body = document.getElementById('fieldHistoryBody');
+    if (!body) return;
+    var rows = body.querySelectorAll('tr');
+    var totalAcres = 0;
+    var count = 0;
+    rows.forEach(function(tr) {
+        var inp = tr.querySelectorAll('input')[1]; // second input is acres
+        if (inp) {
+            var v = parseFloat(inp.value);
+            if (!isNaN(v) && v > 0) totalAcres += v;
+            count++;
+        }
+    });
+    var el = document.getElementById('fieldHistoryTotals');
+    if (el) el.style.display = count > 0 ? '' : 'none';
+    var acreEl = document.getElementById('fieldHistoryAcreTotal');
+    if (acreEl) acreEl.textContent = totalAcres % 1 === 0 ? totalAcres : totalAcres.toFixed(2);
+    var countEl = document.getElementById('fieldHistoryFieldCount');
+    if (countEl) countEl.textContent = count;
+}
+
+// ============================================================
 // DYNAMIC TABLE ROWS
 // ============================================================
 function addFieldHistoryRow(field, acres, crop25, inputs25, crop26, status) {
@@ -1722,12 +1750,12 @@ function addFieldHistoryRow(field, acres, crop25, inputs25, crop26, status) {
     var tr = document.createElement('tr');
     tr.innerHTML =
         '<td><input type="text" value="' + esc(field || '') + '" placeholder="1A" style="width:50px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
-        '<td><input type="number" value="' + esc(acres || '') + '" placeholder="0.5" step="0.1" style="width:60px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
+        '<td><input type="number" value="' + esc(acres || '') + '" placeholder="0.5" step="0.1" oninput="updateFieldHistoryTotals()" style="width:60px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
         '<td><input type="text" value="' + esc(crop25 || '') + '" placeholder="e.g. Mixed Veg, Rye" style="width:150px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;" title="Separate multiple crops with commas"></td>' +
         '<td><input type="text" value="' + esc(inputs25 || '') + '" placeholder="Inputs" style="width:120px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
         '<td><input type="text" value="' + esc(crop26 || '') + '" placeholder="' + OSP_YEAR + ' crops" style="width:150px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;" title="Separate multiple crops with commas"></td>' +
         '<td><select style="padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"><option' + (status === 'Organic' ? ' selected' : '') + '>Organic</option><option' + (status === 'Transitional' ? ' selected' : '') + '>Transitional</option></select></td>' +
-        '<td><button onclick="this.closest(\'tr\').remove()" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:0.9rem;" title="Remove"><i class="fas fa-trash"></i></button></td>';
+        '<td><button onclick="this.closest(\'tr\').remove();updateFieldHistoryTotals()" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:0.9rem;" title="Remove"><i class="fas fa-trash"></i></button></td>';
     body.appendChild(tr);
 }
 
@@ -1972,6 +2000,7 @@ function undoFieldImport() {
     body.innerHTML = _fieldHistoryUndo;
     _fieldHistoryUndo = null;
     document.getElementById('undoImportBtn').style.display = 'none';
+    updateFieldHistoryTotals();
     showToast('Import undone — previous fields restored', 'success');
 }
 
@@ -2157,6 +2186,9 @@ function executeColumnImport() {
     if (skippedTotal > 0) skips.push(skippedTotal + ' summary rows');
     if (skips.length > 0) summary += ' (' + skips.join(', ') + ' skipped)';
     showToast(summary, 'success');
+
+    // Update totals after import
+    updateFieldHistoryTotals();
 
     // Show undo button
     var undoBtn = document.getElementById('undoImportBtn');
