@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
     <script src="api-config.js"></script>
     <style>
         :root {
@@ -508,6 +509,49 @@
 
         <div class="auto-pop" id="fieldHistoryAuto" style="display:none"><i class="fas fa-magic"></i> Pre-filled from planning data</div>
 
+        <div id="bulkUploadPanel" style="margin-bottom:20px;">
+            <button onclick="toggleBulkUpload()" style="padding:10px 16px;border-radius:8px;border:1px solid var(--info);background:var(--info-dim);color:var(--info);font-size:0.85rem;cursor:pointer;display:flex;align-items:center;gap:8px;transition:opacity 0.2s ease-out;" onmouseenter="this.style.opacity='0.85'" onmouseleave="this.style.opacity='1'" onfocus="this.style.outline='2px solid var(--accent)'" onblur="this.style.outline='none'">
+                <i class="fas fa-file-upload"></i> Upload Historical Data (2025 or earlier)
+            </button>
+            <div id="bulkUploadContent" style="display:none;margin-top:12px;padding:16px;background:var(--bg-input);border:1px solid var(--border);border-radius:10px;">
+                <h4 style="margin-bottom:8px;font-size:0.95rem;">Paste or Upload Field History</h4>
+                <p style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:12px;">
+                    Paste data from a spreadsheet (tab-separated) or type it. Minimum columns: <strong>Field, Crop, Date</strong>.
+                    Optional: Variety, Acres, Notes.<br>
+                    <em>Example rows:</em>
+                </p>
+                <div style="background:var(--bg-card);padding:10px;border-radius:6px;font-family:monospace;font-size:0.78rem;margin-bottom:12px;overflow-x:auto;white-space:pre;color:var(--text-secondary);">Field	Crop	Date	Variety	Acres	Notes
+F3L	Tomato	2025-05-15	Cherokee Purple	0.5	Transplanted
+JS1	Lettuce	2025-04-01	Salanova	0.25	Direct seeded
+Z1	Cover Crop	2025-09-15	Crimson Clover	1.0	Fall cover</div>
+                <textarea id="bulkPlantingData" rows="8" placeholder="Paste your spreadsheet data here (tab-separated or comma-separated)..."
+                    style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);font-family:monospace;font-size:0.82rem;resize:vertical;" aria-label="Bulk planting data"></textarea>
+
+                <div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap;">
+                    <label for="bulkUploadFile" style="padding:8px 14px;border-radius:6px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-secondary);font-size:0.82rem;cursor:pointer;transition:opacity 0.2s ease-out;" onmouseenter="this.style.opacity='0.85'" onmouseleave="this.style.opacity='1'"><i class="fas fa-file-csv"></i> Or upload CSV</label>
+                    <input type="file" id="bulkUploadFile" accept=".csv,.tsv,.txt" onchange="handleBulkFile(event)" style="display:none;" aria-label="Upload CSV file">
+                    <button onclick="previewBulkData()" style="padding:8px 14px;border-radius:6px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);font-size:0.82rem;cursor:pointer;transition:opacity 0.2s ease-out;" onmouseenter="this.style.opacity='0.85'" onmouseleave="this.style.opacity='1'" onfocus="this.style.outline='2px solid var(--accent)'" onblur="this.style.outline='none'"><i class="fas fa-eye"></i> Preview</button>
+                    <button onclick="submitBulkPlantings()" style="padding:8px 14px;border-radius:6px;border:none;background:var(--accent);color:#000;font-size:0.82rem;font-weight:600;cursor:pointer;transition:opacity 0.2s ease-out;" onmouseenter="this.style.opacity='0.85'" onmouseleave="this.style.opacity='1'" onfocus="this.style.outline='2px solid var(--accent)'" onblur="this.style.outline='none'"><i class="fas fa-cloud-upload-alt"></i> Upload to System</button>
+                    <span id="bulkUploadStatus" style="font-size:0.82rem;color:var(--text-secondary);"></span>
+                </div>
+                <div id="bulkPreview" style="margin-top:12px;display:none;"></div>
+
+                <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:12px;">
+                    <h4 style="margin-bottom:8px;font-size:0.95rem;">Upload Input Applications</h4>
+                    <p style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:8px;">
+                        Amendments, fertilizers, pest controls applied. Columns: <strong>Date, Field, Product</strong>.
+                        Optional: OMRI Listed, Rate, Method, Notes.
+                    </p>
+                    <textarea id="bulkInputData" rows="5" placeholder="Date	Field	Product	OMRI Listed	Rate	Notes..."
+                        style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);font-family:monospace;font-size:0.82rem;resize:vertical;" aria-label="Bulk input application data"></textarea>
+                    <div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap;">
+                        <button onclick="submitBulkInputs()" style="padding:8px 14px;border-radius:6px;border:none;background:var(--accent);color:#000;font-size:0.82rem;font-weight:600;cursor:pointer;transition:opacity 0.2s ease-out;" onmouseenter="this.style.opacity='0.85'" onmouseleave="this.style.opacity='1'" onfocus="this.style.outline='2px solid var(--accent)'" onblur="this.style.outline='none'"><i class="fas fa-cloud-upload-alt"></i> Upload Inputs</button>
+                        <span id="bulkInputStatus" style="font-size:0.82rem;color:var(--text-secondary);"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="data-table-wrap">
             <table class="data-table" id="fieldHistoryTable">
                 <thead>
@@ -525,6 +569,10 @@
                 </tbody>
             </table>
         </div>
+        <button onclick="document.getElementById('oeffaExcelUpload').click()" style="padding:8px 16px;border-radius:8px;border:1px solid var(--info);background:var(--info-dim);color:var(--info);cursor:pointer;font-size:0.82rem;margin-bottom:8px;margin-right:8px;">
+            <i class="fas fa-file-excel"></i> Import OEFFA Field Data (.xlsx)
+        </button>
+        <input type="file" id="oeffaExcelUpload" accept=".xlsx,.xls,.csv" onchange="importOEFFAExcel(event)" style="display:none;">
         <button onclick="addFieldHistoryRow()" style="padding:8px 16px;border-radius:8px;border:1px dashed var(--border);background:none;color:var(--accent);cursor:pointer;font-size:0.82rem;width:100%;">
             <i class="fas fa-plus"></i> Add Field
         </button>
@@ -1378,6 +1426,176 @@ function populateFieldHistory(fieldsRes, fieldHistoryRes, planningRes) {
 }
 
 // ============================================================
+// BULK UPLOAD — Historical Planting & Input Data
+// ============================================================
+function toggleBulkUpload() {
+    var el = document.getElementById('bulkUploadContent');
+    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function handleBulkFile(event) {
+    var file = event.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(e) {
+        document.getElementById('bulkPlantingData').value = e.target.result;
+        showToast('File loaded — click Preview to check', 'success');
+    };
+    reader.readAsText(file);
+}
+
+function parseBulkData(raw) {
+    if (!raw || !raw.trim()) return [];
+    var lines = raw.trim().split('\n');
+    if (lines.length < 2) return []; // Need header + at least 1 row
+
+    // Detect delimiter: tab, comma, or pipe
+    var delimiter = '\t';
+    if (lines[0].indexOf('\t') < 0) {
+        if (lines[0].indexOf(',') >= 0) delimiter = ',';
+        else if (lines[0].indexOf('|') >= 0) delimiter = '|';
+    }
+
+    var headers = lines[0].split(delimiter).map(function(h) { return h.trim().toLowerCase().replace(/[^a-z0-9]/g, ''); });
+    var rows = [];
+
+    for (var i = 1; i < lines.length; i++) {
+        if (!lines[i].trim()) continue;
+        var cols = lines[i].split(delimiter);
+        var row = {};
+        headers.forEach(function(h, j) {
+            row[h] = (cols[j] || '').trim();
+        });
+        rows.push(row);
+    }
+    return rows;
+}
+
+function mapPlantingRow(row) {
+    return {
+        field: row.field || row.fieldid || row.field_id || row.location || '',
+        crop: row.crop || row.plant || row.species || '',
+        seedDate: row.date || row.seeddate || row.seed_date || row.plantdate || row.plant_date || row.planted || '',
+        variety: row.variety || row.cultivar || '',
+        acres: row.acres || row.acreage || row.area || '',
+        notes: row.notes || row.note || row.comments || '',
+        organicStatus: row.organicstatus || row.organic || row.status || 'Organic'
+    };
+}
+
+function previewBulkData() {
+    var raw = document.getElementById('bulkPlantingData').value;
+    var rows = parseBulkData(raw);
+    var preview = document.getElementById('bulkPreview');
+
+    if (rows.length === 0) {
+        preview.innerHTML = '<p style="color:var(--danger);font-size:0.85rem;">No data found. Make sure you have a header row + data rows.</p>';
+        preview.style.display = 'block';
+        return;
+    }
+
+    var mapped = rows.map(mapPlantingRow);
+    var valid = mapped.filter(function(r) { return r.field && r.crop && r.seedDate; });
+    var invalid = mapped.length - valid.length;
+
+    var html = '<p style="font-size:0.85rem;margin-bottom:8px;"><strong>' + valid.length + '</strong> valid rows' +
+        (invalid > 0 ? ', <span style="color:var(--danger);">' + invalid + ' missing required fields</span>' : '') + '</p>';
+    html += '<table style="width:100%;font-size:0.78rem;border-collapse:collapse;">';
+    html += '<tr style="background:var(--bg-card);"><th style="padding:4px 8px;text-align:left;border-bottom:1px solid var(--border);">Field</th><th style="padding:4px 8px;text-align:left;border-bottom:1px solid var(--border);">Crop</th><th style="padding:4px 8px;text-align:left;border-bottom:1px solid var(--border);">Date</th><th style="padding:4px 8px;text-align:left;border-bottom:1px solid var(--border);">Variety</th><th style="padding:4px 8px;text-align:left;border-bottom:1px solid var(--border);">Acres</th></tr>';
+
+    mapped.slice(0, 10).forEach(function(r) {
+        var rowColor = (r.field && r.crop && r.seedDate) ? '' : 'color:var(--danger);';
+        html += '<tr style="' + rowColor + '"><td style="padding:4px 8px;border-bottom:1px solid var(--border);">' + esc(r.field) + '</td><td style="padding:4px 8px;border-bottom:1px solid var(--border);">' + esc(r.crop) + '</td><td style="padding:4px 8px;border-bottom:1px solid var(--border);">' + esc(r.seedDate) + '</td><td style="padding:4px 8px;border-bottom:1px solid var(--border);">' + esc(r.variety) + '</td><td style="padding:4px 8px;border-bottom:1px solid var(--border);">' + esc(r.acres) + '</td></tr>';
+    });
+    if (mapped.length > 10) html += '<tr><td colspan="5" style="padding:4px 8px;font-style:italic;">...and ' + (mapped.length - 10) + ' more rows</td></tr>';
+    html += '</table>';
+
+    preview.innerHTML = html;
+    preview.style.display = 'block';
+}
+
+async function submitBulkPlantings() {
+    var raw = document.getElementById('bulkPlantingData').value;
+    var rows = parseBulkData(raw);
+    var mapped = rows.map(mapPlantingRow).filter(function(r) { return r.field && r.crop && r.seedDate; });
+
+    if (mapped.length === 0) {
+        showToast('No valid rows to upload. Need Field, Crop, and Date columns.', 'error');
+        return;
+    }
+
+    var statusEl = document.getElementById('bulkUploadStatus');
+    statusEl.textContent = 'Uploading ' + mapped.length + ' plantings...';
+
+    try {
+        var res = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain' },
+            body: JSON.stringify({ action: 'bulkAddPlantings', plantings: mapped })
+        });
+        var data = await res.json();
+
+        if (data.success) {
+            statusEl.innerHTML = '<span style="color:var(--accent);">' + data.imported + ' plantings uploaded!</span>';
+            showToast(data.imported + ' plantings imported successfully', 'success');
+            document.getElementById('fieldHistoryBody').innerHTML = '';
+            fetchFarmData();
+        } else {
+            statusEl.innerHTML = '<span style="color:var(--danger);">Error: ' + esc(data.error || data.message || 'Unknown error') + '</span>';
+            showToast('Upload failed: ' + (data.error || data.message), 'error');
+        }
+    } catch(e) {
+        statusEl.innerHTML = '<span style="color:var(--danger);">Network error</span>';
+        showToast('Upload failed: ' + e.message, 'error');
+    }
+}
+
+async function submitBulkInputs() {
+    var raw = document.getElementById('bulkInputData').value;
+    var rows = parseBulkData(raw);
+
+    var mapped = rows.map(function(row) {
+        return {
+            date: row.date || row.applicationdate || '',
+            field: row.field || row.fieldid || '',
+            product: row.product || row.productname || row.product_name || row.material || '',
+            omriListed: row.omrilisted || row.omri || row.omri_listed || 'Yes',
+            applicationRate: row.rate || row.applicationrate || row.application_rate || '',
+            applicationMethod: row.method || row.applicationmethod || '',
+            notes: row.notes || row.note || ''
+        };
+    }).filter(function(r) { return r.date && r.product; });
+
+    if (mapped.length === 0) {
+        showToast('No valid rows. Need Date and Product columns.', 'error');
+        return;
+    }
+
+    var statusEl = document.getElementById('bulkInputStatus');
+    statusEl.textContent = 'Uploading ' + mapped.length + ' inputs...';
+
+    try {
+        var res = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain' },
+            body: JSON.stringify({ action: 'bulkAddInputs', inputs: mapped })
+        });
+        var data = await res.json();
+
+        if (data.success) {
+            statusEl.innerHTML = '<span style="color:var(--accent);">' + data.imported + ' inputs uploaded!</span>';
+            showToast(data.imported + ' input records imported', 'success');
+        } else {
+            statusEl.innerHTML = '<span style="color:var(--danger);">Error: ' + esc(data.error || data.message || 'Unknown error') + '</span>';
+            showToast('Upload failed: ' + (data.error || data.message), 'error');
+        }
+    } catch(e) {
+        statusEl.innerHTML = '<span style="color:var(--danger);">Network error</span>';
+        showToast('Upload failed: ' + e.message, 'error');
+    }
+}
+
+// ============================================================
 // SECTION 5: CROPS — auto-populate from planning data
 // ============================================================
 function populateCrops(planningRes) {
@@ -1708,12 +1926,133 @@ function addFieldHistoryRow(field, acres, crop25, inputs25, crop26, status) {
     tr.innerHTML =
         '<td><input type="text" value="' + esc(field || '') + '" placeholder="1A" style="width:50px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
         '<td><input type="number" value="' + esc(acres || '') + '" placeholder="0.5" step="0.1" style="width:60px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
-        '<td><input type="text" value="' + esc(crop25 || '') + '" placeholder="Crop" style="width:100px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
+        '<td><input type="text" value="' + esc(crop25 || '') + '" placeholder="e.g. Mixed Veg, Rye" style="width:150px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;" title="Separate multiple crops with commas"></td>' +
         '<td><input type="text" value="' + esc(inputs25 || '') + '" placeholder="Inputs" style="width:120px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
-        '<td><input type="text" value="' + esc(crop26 || '') + '" placeholder="' + OSP_YEAR + ' plan" style="width:100px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
+        '<td><input type="text" value="' + esc(crop26 || '') + '" placeholder="' + OSP_YEAR + ' crops" style="width:150px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;" title="Separate multiple crops with commas"></td>' +
         '<td><select style="padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"><option' + (status === 'Organic' ? ' selected' : '') + '>Organic</option><option' + (status === 'Transitional' ? ' selected' : '') + '>Transitional</option></select></td>' +
         '<td><button onclick="this.closest(\'tr\').remove()" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:0.9rem;" title="Remove"><i class="fas fa-trash"></i></button></td>';
     body.appendChild(tr);
+}
+
+async function importOEFFAExcel(event) {
+    var file = event.target.files[0];
+    if (!file) return;
+
+    // Check if XLSX library is loaded
+    if (typeof XLSX === 'undefined') {
+        showToast('Excel library loading... please try again in a moment', 'error');
+        return;
+    }
+
+    var reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            var workbook = XLSX.read(e.target.result, { type: 'array' });
+            var sheet = workbook.Sheets[workbook.SheetNames[0]];
+            var rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+
+            if (rows.length < 2) {
+                showToast('No data found in Excel file', 'error');
+                return;
+            }
+
+            // Parse fields — skip header, skip empty/duplicate rows, skip TOTAL
+            var fields = [];
+            var lastField = '';
+
+            for (var i = 1; i < rows.length; i++) {
+                var row = rows[i];
+                var fieldName = String(row[0] || '').trim();
+
+                // Skip empty field name rows (these are the duplicate U rows)
+                if (!fieldName) continue;
+                // Skip TOTAL rows
+                if (fieldName.toUpperCase() === 'TOTAL') continue;
+                // Skip if same as last field (duplicate row)
+                if (fieldName === lastField) continue;
+                lastField = fieldName;
+
+                var acres = row[3] || '';
+                if (typeof acres === 'number') acres = acres.toFixed(2);
+                else acres = String(acres).trim();
+
+                var use = String(row[4] || '').trim().toUpperCase();
+                var changeTo25 = String(row[5] || '').trim();
+                var crop26 = String(row[6] || '').trim();
+                var cover26 = String(row[7] || '').trim();
+                var inputs26 = String(row[8] || '').trim();
+
+                // Combine crop + cover for planned crop column
+                var plannedCrop = '';
+                if (crop26 && cover26) {
+                    plannedCrop = crop26 + ', ' + cover26;
+                } else {
+                    plannedCrop = crop26 || cover26 || '';
+                }
+
+                // Prior crop (2025) — use "Change to 25" if it has useful info
+                var priorCrop = '';
+                if (changeTo25 && changeTo25.toLowerCase() !== 'see sprays') {
+                    priorCrop = changeTo25;
+                }
+
+                // Prior inputs
+                var priorInputs = '';
+                if (changeTo25 && changeTo25.toLowerCase() === 'see sprays') {
+                    priorInputs = 'See spray records';
+                }
+
+                // Organic status
+                var status = 'Organic'; // Default
+
+                fields.push({
+                    field: fieldName,
+                    acres: acres,
+                    priorCrop: priorCrop,
+                    priorInputs: priorInputs,
+                    plannedCrop: plannedCrop,
+                    status: status,
+                    use: use
+                });
+            }
+
+            if (fields.length === 0) {
+                showToast('No field data found in file', 'error');
+                return;
+            }
+
+            // Confirm before replacing
+            var body = document.getElementById('fieldHistoryBody');
+            if (body.children.length > 0) {
+                if (!confirm('Replace existing ' + body.children.length + ' field history rows with ' + fields.length + ' fields from Excel?')) {
+                    event.target.value = ''; // Reset file input
+                    return;
+                }
+            }
+
+            body.innerHTML = '';
+
+            fields.forEach(function(f) {
+                addFieldHistoryRow(f.field, f.acres, f.priorCrop, f.priorInputs, f.plannedCrop, f.status);
+            });
+
+            showToast(fields.length + ' fields imported from Excel', 'success');
+
+            // Show auto-populated indicator
+            var autoEl = document.getElementById('fieldHistoryAuto');
+            if (autoEl) {
+                autoEl.style.display = 'flex';
+                autoEl.querySelector('span').textContent = 'Auto-populated from OEFFA Excel \u2014 ' + fields.length + ' fields. Edit any value directly.';
+            }
+
+        } catch(err) {
+            showToast('Error reading Excel: ' + err.message, 'error');
+            console.error('Excel import error:', err);
+        }
+
+        event.target.value = ''; // Reset file input for re-upload
+    };
+    reader.readAsArrayBuffer(file);
 }
 
 function addCropRow() {

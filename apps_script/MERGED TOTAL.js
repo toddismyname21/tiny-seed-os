@@ -18199,6 +18199,8 @@ function doPost(e) {
       'saveOSPDraft', 'getOSPDraft',
       // Sowing sheets page (task sheets write operations)
       'batchUpdatePlanningFields', 'addPlanting', 'deletePlanting',
+      // OSP bulk historical data import
+      'bulkAddPlantings', 'bulkAddInputs',
       // Customer-facing (CSA/wholesale use magic-link auth, not session tokens)
       'submitCSAOrder', 'customizeCSABox', 'updateCustomerProfile',
       // Flex CSA / CSA member write (moved from GET — P0-2 fix)
@@ -18330,7 +18332,9 @@ function doPost(e) {
       case 'deletePlanting':
         return deletePlanting(data.id);
       case 'bulkAddPlantings':
-        return bulkAddPlantings(data.plantings);
+        return bulkAddPlantings(data);
+      case 'bulkAddInputs':
+        return bulkAddInputs(data);
       case 'clonePlanting':
         return jsonResponse(clonePlanting(data));
       case 'bulkClonePlantings':
@@ -31556,7 +31560,148 @@ function deletePlantingById(batchId) {
     });
   }
 }
-function bulkAddPlantings(plantings) { return jsonResponse({success: false, message: 'Not implemented'}); }
+/**
+ * Bulk import historical planting records to PLANTINGS sheet.
+ * Used by OSP field history to auto-populate prior-year data.
+ * Accepts { plantings: [{ field, crop, seedDate, variety?, acres?, notes?, organicStatus? }] }
+ */
+function bulkAddPlantings(data) {
+  var lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheet = ss.getSheetByName('PLANTINGS') || ss.getSheetByName('Plantings');
+
+    // Create sheet if it doesn't exist
+    if (!sheet) {
+      sheet = ss.insertSheet('PLANTINGS');
+      sheet.appendRow(['Planting_ID', 'Seed_Date', 'Field', 'Field_ID', 'Crop', 'Variety', 'Acres', 'Organic_Status', 'Notes', 'Source', 'Created']);
+    }
+
+    var plantings = data.plantings || data;
+    if (!plantings || !Array.isArray(plantings) || plantings.length === 0) {
+      lock.releaseLock();
+      return jsonResponse({ success: false, error: 'No plantings provided. Send {plantings: [...]}' });
+    }
+
+    var imported = 0;
+    var errors = [];
+
+    plantings.forEach(function(p, i) {
+      var field = String(p.field || p.Field || p.Field_ID || p.fieldId || '').trim();
+      var crop = String(p.crop || p.Crop || '').trim();
+      var seedDate = String(p.seedDate || p.Seed_Date || p.plantDate || p.Plant_Date || p.date || '').trim();
+
+      if (!field || !crop || !seedDate) {
+        errors.push('Row ' + (i + 1) + ': missing field, crop, or date');
+        return;
+      }
+
+      var id = 'HIST-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4) + i;
+      var variety = String(p.variety || p.Variety || '').trim();
+      var acres = String(p.acres || p.Acres || '').trim();
+      var organicStatus = String(p.organicStatus || p.Organic_Status || 'Organic').trim();
+      var notes = String(p.notes || p.Notes || '').trim();
+
+      // Sanitize: prefix with apostrophe to prevent formula injection
+      var sanitize = function(v) { return (v && /^[=+\-@]/.test(v)) ? "'" + v : v; };
+
+      sheet.appendRow([
+        id,
+        sanitize(seedDate),
+        sanitize(field),
+        sanitize(field),
+        sanitize(crop),
+        sanitize(variety),
+        acres,
+        sanitize(organicStatus),
+        sanitize(notes),
+        'OSP Bulk Import',
+        new Date().toISOString()
+      ]);
+      imported++;
+    });
+
+    lock.releaseLock();
+    return jsonResponse({
+      success: true,
+      imported: imported,
+      errors: errors,
+      message: imported + ' plantings imported to PLANTINGS sheet'
+    });
+  } catch (e) {
+    try { lock.releaseLock(); } catch (ignored) {}
+    return jsonResponse({ success: false, error: e.toString() });
+  }
+}
+
+/**
+ * Bulk import input application records to INPUT_LOG sheet.
+ * Used by OSP to document amendments, fertilizers, pest controls applied to fields.
+ * Accepts { inputs: [{ date, field, product, omriListed?, applicationRate?, applicationMethod?, appliedBy?, purpose?, notes? }] }
+ */
+function bulkAddInputs(data) {
+  var lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheet = ss.getSheetByName('INPUT_LOG') || ss.getSheetByName('Inputs') || ss.getSheetByName('Applications');
+
+    if (!sheet) {
+      sheet = ss.insertSheet('INPUT_LOG');
+      sheet.appendRow(['Date', 'Field', 'Product_Name', 'OMRI_Listed', 'Application_Rate', 'Application_Method', 'Applied_By', 'Purpose', 'Notes', 'Source', 'Created']);
+    }
+
+    var inputs = data.inputs || data;
+    if (!inputs || !Array.isArray(inputs) || inputs.length === 0) {
+      lock.releaseLock();
+      return jsonResponse({ success: false, error: 'No inputs provided. Send {inputs: [...]}' });
+    }
+
+    var imported = 0;
+    var errors = [];
+
+    // Sanitize: prefix with apostrophe to prevent formula injection
+    var sanitize = function(v) { var s = String(v || '').trim(); return (s && /^[=+\-@]/.test(s)) ? "'" + s : s; };
+
+    inputs.forEach(function(inp, i) {
+      var date = String(inp.date || inp.Date || '').trim();
+      var field = String(inp.field || inp.Field || '').trim();
+      var product = String(inp.product || inp.Product_Name || inp.productName || inp.material || '').trim();
+
+      if (!date || !product) {
+        errors.push('Row ' + (i + 1) + ': missing date or product name');
+        return;
+      }
+
+      sheet.appendRow([
+        sanitize(date),
+        sanitize(field),
+        sanitize(product),
+        sanitize(inp.omriListed || inp.OMRI_Listed || inp.omri || 'Yes'),
+        sanitize(inp.applicationRate || inp.Application_Rate || inp.rate || ''),
+        sanitize(inp.applicationMethod || inp.Application_Method || inp.method || ''),
+        sanitize(inp.appliedBy || inp.Applied_By || ''),
+        sanitize(inp.purpose || inp.Purpose || ''),
+        sanitize(inp.notes || inp.Notes || ''),
+        'OSP Bulk Import',
+        new Date().toISOString()
+      ]);
+      imported++;
+    });
+
+    lock.releaseLock();
+    return jsonResponse({
+      success: true,
+      imported: imported,
+      errors: errors,
+      message: imported + ' input records imported'
+    });
+  } catch (e) {
+    try { lock.releaseLock(); } catch (ignored) {}
+    return jsonResponse({ success: false, error: e.toString() });
+  }
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // QUICK CREATE FUNCTIONS - Create Task, Invoice, Reminder from Chief of Staff
