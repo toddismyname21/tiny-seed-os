@@ -456,10 +456,18 @@
             <button onclick="addMarker('building')" title="Mark a building" class="edit-mode-btn"><i class="fas fa-warehouse"></i> Building</button>
             <button onclick="addMarker('water')" title="Mark a water source" class="edit-mode-btn"><i class="fas fa-tint"></i> Water</button>
             <button onclick="addMarker('greenhouse')" title="Mark greenhouse/tunnel" class="edit-mode-btn"><i class="fas fa-seedling"></i> Greenhouse</button>
-            <button onclick="cropAndLockMap()" id="cropLockBtn" style="background:var(--accent-dim);border-color:var(--accent);color:var(--accent);"><i class="fas fa-crop-alt"></i> Crop &amp; Lock</button>
-            <button onclick="unlockMap()" id="unlockBtn" style="display:none;background:rgba(59,130,246,0.15);border-color:#3b82f6;color:#3b82f6;"><i class="fas fa-lock-open"></i> Unlock &amp; Edit</button>
+            <button onclick="saveMapView()" id="saveViewBtn" style="background:var(--accent-dim);border-color:var(--accent);color:var(--accent);"><i class="fas fa-crop-alt"></i> Save This View</button>
             <button onclick="saveToFarm()" class="edit-mode-btn" style="background:var(--accent-dim);border-color:var(--accent);color:var(--accent);"><i class="fas fa-cloud-upload-alt"></i> Save to Farm</button>
             <button onclick="clearAllFields()" class="edit-mode-btn" style="margin-left:auto;border-color:var(--danger);color:var(--danger);"><i class="fas fa-trash"></i> Clear All</button>
+        </div>
+
+        <!-- Saved Map Views -->
+        <div id="mapViewsBar" style="display:none;margin-bottom:8px;padding:6px 8px;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;">
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                <span style="font-size:0.78rem;color:var(--text-secondary);margin-right:4px;"><i class="fas fa-images"></i> Views:</span>
+                <div id="mapViewsList" style="display:flex;gap:4px;flex-wrap:wrap;"></div>
+                <button onclick="showAllFields()" style="padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:none;color:var(--text-secondary);cursor:pointer;font-size:0.75rem;" title="Zoom to fit all fields"><i class="fas fa-expand-arrows-alt"></i> All</button>
+            </div>
         </div>
 
         <div id="farmMapContainer">
@@ -3658,92 +3666,126 @@ function saveMapData() {
 }
 
 // ============================================================
-// CROP & LOCK / UNLOCK MAP
+// MULTI-VIEW MAP SYSTEM
 // ============================================================
-function cropAndLockMap() {
-    if (!farmMap || !drawnFields) return;
+var _mapViews = []; // { id, name, bounds: {north,south,east,west}, zoom }
+var _activeViewId = null;
 
-    var bounds = drawnFields.getBounds();
-    if (!bounds.isValid()) {
-        showToast('Draw at least one field first', 'error');
-        return;
-    }
-    farmMap.fitBounds(bounds, { padding: [50, 50] });
-
-    setTimeout(function() {
-        var container = document.getElementById('farmMapContainer');
-        container.classList.add('locked');
-
-        // Hide Geoman toolbar
-        var pmToolbar = document.querySelector('.leaflet-pm-toolbar');
-        if (pmToolbar) pmToolbar.style.display = 'none';
-
-        // Disable all map interaction
-        farmMap.dragging.disable();
-        farmMap.touchZoom.disable();
-        farmMap.doubleClickZoom.disable();
-        farmMap.scrollWheelZoom.disable();
-        farmMap.boxZoom.disable();
-        farmMap.keyboard.disable();
-        if (farmMap.tap) farmMap.tap.disable();
-
-        // Keep map div visible but frozen (override CSS that hides it)
-        document.getElementById('farmMap').style.display = 'block';
-        document.getElementById('farmMap').style.pointerEvents = 'none';
-
-        // Hide all Leaflet controls
-        var controls = document.querySelectorAll('#farmMap .leaflet-control-container');
-        controls.forEach(function(c) { c.style.display = 'none'; });
-
-        // Toggle button visibility
-        document.getElementById('cropLockBtn').style.display = 'none';
-        document.getElementById('unlockBtn').style.display = '';
-
-        // Hide drawing toolbar buttons
-        var toolbarBtns = document.querySelectorAll('.map-toolbar .edit-mode-btn');
-        toolbarBtns.forEach(function(b) { b.style.display = 'none'; });
-
-        showToast('Map locked — fields are now static', 'success');
-        saveMapData();
-    }, 600);
+function getMapViews() {
+    try { return JSON.parse(localStorage.getItem('osp_map_views_' + OSP_YEAR) || '[]'); }
+    catch(e) { return []; }
+}
+function saveMapViews() {
+    localStorage.setItem('osp_map_views_' + OSP_YEAR, JSON.stringify(_mapViews));
 }
 
-function unlockMap() {
-    var container = document.getElementById('farmMapContainer');
-    container.classList.remove('locked');
+function saveMapView() {
+    if (!farmMap) return;
+    var name = prompt('Name this view (e.g., "South Fields", "North Fields", "Greenhouse Area"):');
+    if (!name || !name.trim()) return;
+    name = name.trim();
 
-    // Re-enable map interaction
-    farmMap.dragging.enable();
-    farmMap.touchZoom.enable();
-    farmMap.doubleClickZoom.enable();
-    farmMap.scrollWheelZoom.enable();
-    farmMap.boxZoom.enable();
-    farmMap.keyboard.enable();
-    if (farmMap.tap) farmMap.tap.enable();
+    var bounds = farmMap.getBounds();
+    var view = {
+        id: 'view_' + Date.now(),
+        name: name,
+        bounds: {
+            north: bounds.getNorth(),
+            south: bounds.getSouth(),
+            east: bounds.getEast(),
+            west: bounds.getWest()
+        },
+        zoom: farmMap.getZoom()
+    };
+    _mapViews.push(view);
+    saveMapViews();
+    renderMapViews();
+    _activeViewId = view.id;
+    highlightActiveView();
+    showToast('View "' + name + '" saved', 'success');
+}
 
-    document.getElementById('farmMap').style.pointerEvents = '';
+function goToMapView(viewId) {
+    var view = _mapViews.find(function(v) { return v.id === viewId; });
+    if (!view || !farmMap) return;
+    var b = view.bounds;
+    farmMap.fitBounds([[b.south, b.west], [b.north, b.east]]);
+    _activeViewId = viewId;
+    highlightActiveView();
+}
 
-    // Show Leaflet controls
-    var controls = document.querySelectorAll('#farmMap .leaflet-control-container');
-    controls.forEach(function(c) { c.style.display = ''; });
+function deleteMapView(viewId) {
+    var view = _mapViews.find(function(v) { return v.id === viewId; });
+    if (!view) return;
+    if (!confirm('Delete view "' + view.name + '"?')) return;
+    _mapViews = _mapViews.filter(function(v) { return v.id !== viewId; });
+    saveMapViews();
+    renderMapViews();
+    if (_activeViewId === viewId) _activeViewId = null;
+    showToast('View deleted', 'success');
+}
 
-    // Show Geoman toolbar
-    var pmToolbar = document.querySelector('.leaflet-pm-toolbar');
-    if (pmToolbar) pmToolbar.style.display = '';
+function renameMapView(viewId) {
+    var view = _mapViews.find(function(v) { return v.id === viewId; });
+    if (!view) return;
+    var name = prompt('Rename view:', view.name);
+    if (!name || !name.trim()) return;
+    view.name = name.trim();
+    saveMapViews();
+    renderMapViews();
+}
 
-    // Toggle buttons
-    document.getElementById('cropLockBtn').style.display = '';
-    document.getElementById('unlockBtn').style.display = 'none';
+function showAllFields() {
+    if (!farmMap || !drawnFields) return;
+    var bounds = drawnFields.getBounds();
+    if (bounds.isValid()) {
+        farmMap.fitBounds(bounds, { padding: [50, 50] });
+    }
+    _activeViewId = null;
+    highlightActiveView();
+}
 
-    // Show edit toolbar buttons
-    var toolbarBtns = document.querySelectorAll('.map-toolbar .edit-mode-btn');
-    toolbarBtns.forEach(function(b) { b.style.display = ''; });
+function renderMapViews() {
+    var bar = document.getElementById('mapViewsBar');
+    var list = document.getElementById('mapViewsList');
+    if (!bar || !list) return;
+    bar.style.display = _mapViews.length > 0 ? '' : 'none';
+    list.innerHTML = '';
+    _mapViews.forEach(function(v) {
+        var btn = document.createElement('button');
+        btn.className = 'map-view-btn';
+        btn.dataset.viewId = v.id;
+        btn.style.cssText = 'padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:none;color:var(--text-primary);cursor:pointer;font-size:0.78rem;display:flex;align-items:center;gap:4px;';
+        btn.innerHTML = '<span onclick="goToMapView(\'' + v.id + '\')" style="cursor:pointer;">' + esc(v.name) + '</span>' +
+            '<i class="fas fa-times" onclick="event.stopPropagation();deleteMapView(\'' + v.id + '\')" style="color:var(--text-secondary);cursor:pointer;font-size:0.65rem;margin-left:2px;" title="Remove view"></i>';
+        btn.ondblclick = function() { renameMapView(v.id); };
+        list.appendChild(btn);
+    });
+    highlightActiveView();
+}
 
-    farmMap.invalidateSize();
-    showToast('Map unlocked — you can edit fields again', 'success');
+function highlightActiveView() {
+    var btns = document.querySelectorAll('.map-view-btn');
+    btns.forEach(function(b) {
+        if (b.dataset.viewId === _activeViewId) {
+            b.style.background = 'var(--accent-dim)';
+            b.style.borderColor = 'var(--accent)';
+            b.style.color = 'var(--accent)';
+        } else {
+            b.style.background = 'none';
+            b.style.borderColor = 'var(--border)';
+            b.style.color = 'var(--text-primary)';
+        }
+    });
+}
+
+function loadMapViews() {
+    _mapViews = getMapViews();
+    renderMapViews();
 }
 
 function loadMapData() {
+    loadMapViews();
     try {
         var raw = localStorage.getItem('osp_farm_map_' + OSP_YEAR);
         if (!raw) return;
