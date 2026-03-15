@@ -590,6 +590,9 @@
             <button onclick="addFieldHistoryRow()" style="flex:1;padding:8px 16px;border-radius:8px;border:1px dashed var(--border);background:none;color:var(--accent);cursor:pointer;font-size:0.82rem;">
                 <i class="fas fa-plus"></i> Add Field
             </button>
+            <button onclick="sortFieldHistoryAlpha()" style="padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:none;color:var(--text-secondary);cursor:pointer;font-size:0.82rem;">
+                <i class="fas fa-sort-alpha-down"></i> Sort A→Z
+            </button>
             <button id="undoImportBtn" onclick="undoFieldImport()" style="display:none;padding:8px 16px;border-radius:8px;border:1px solid var(--danger);background:none;color:var(--danger);cursor:pointer;font-size:0.82rem;">
                 <i class="fas fa-undo"></i> Undo Import
             </button>
@@ -2568,57 +2571,66 @@ function executeColumnImport() {
         localStorage.setItem('osp_field_backup_' + OSP_YEAR, localStorage.getItem('osp_draft_' + OSP_YEAR) || '');
     } catch(e) {}
 
-    // Normalize field name for matching (strip "Field ", trim, uppercase)
-    function normalizeFieldName(name) {
-        return String(name || '').trim().replace(/^field\s+/i, '').toUpperCase();
-    }
-
     // If rows exist, ALWAYS merge — never replace
     if (body.children.length > 0) {
         // Build lookup of existing rows by normalized field name
+        var existingNames = [];
         var existingByName = {};
         body.querySelectorAll('tr').forEach(function(tr) {
             var nameInput = tr.querySelector('input[type="text"]');
             if (nameInput) {
-                var name = normalizeFieldName(nameInput.value);
-                if (name) existingByName[name] = tr;
+                var raw = nameInput.value.trim();
+                var norm = normalizeFieldName(raw);
+                if (norm) {
+                    existingByName[norm] = tr;
+                    existingNames.push({ raw: raw, norm: norm });
+                }
             }
         });
 
-        var merged = 0, added = 0, skippedNoMatch = [];
+        // Find similar field names (shared prefix or one contains the other)
+        function findSimilar(importName) {
+            var norm = normalizeFieldName(importName);
+            var matches = [];
+            existingNames.forEach(function(e) {
+                if (e.norm === norm) return; // exact match handled separately
+                // Check: one starts with the other (e.g. "Z1" ~ "Z1H", "F3" ~ "F3L")
+                var shorter = e.norm.length <= norm.length ? e.norm : norm;
+                var longer = e.norm.length > norm.length ? e.norm : norm;
+                if (longer.startsWith(shorter) && longer.length - shorter.length <= 2) {
+                    matches.push(e.raw);
+                }
+            });
+            return matches;
+        }
+
+        // Classify each import field: exact match, similar, or new
+        var exactMatches = [];
+        var similarFields = [];
+        var newFields = [];
+
         fields.forEach(function(f) {
             var key = normalizeFieldName(f.field);
-            var existingRow = existingByName[key];
-
-            if (existingRow) {
-                // UPDATE: acres, prior crop, prior inputs, status
-                // NEVER touch planned crop (index 4) — that's the user's 2026 data
-                var inputs = existingRow.querySelectorAll('input, select');
-                if (f.acres && inputs[1]) inputs[1].value = f.acres;
-                if (f.priorCrop && inputs[2]) inputs[2].value = f.priorCrop;
-                if (f.priorInputs && inputs[3]) inputs[3].value = f.priorInputs;
-                // inputs[4] = planned crop — DO NOT TOUCH
-                if (f.status && inputs[5]) {
-                    for (var opt = 0; opt < inputs[5].options.length; opt++) {
-                        if (inputs[5].options[opt].text === f.status) inputs[5].selectedIndex = opt;
-                    }
-                }
-                existingRow.setAttribute('data-field', f.field.trim());
-                merged++;
+            if (existingByName[key]) {
+                exactMatches.push(f);
             } else {
-                // New field — add but mark that it came from import
-                addFieldHistoryRow(f.field, f.acres, f.priorCrop, f.priorInputs, f.plannedCrop, f.status);
-                added++;
+                var similar = findSimilar(f.field);
+                if (similar.length > 0) {
+                    similarFields.push({ field: f, similarTo: similar });
+                } else {
+                    newFields.push(f);
+                }
             }
         });
 
-        imported = merged + added;
-        closeColumnMapper();
-        showToast(merged + ' fields updated from spreadsheet, ' + added + ' new fields added — your 2026 plans are safe', 'success');
-        updateFieldHistoryTotals();
-        var undoBtn = document.getElementById('undoImportBtn');
-        if (undoBtn) undoBtn.style.display = '';
-        autoSaveDraft();
+        // If there are similar fields, show review dialog before importing
+        if (similarFields.length > 0) {
+            showImportReviewDialog(exactMatches, similarFields, newFields, existingByName);
+            return;
+        }
+
+        // No ambiguous fields — merge directly
+        finishMergeImport(exactMatches, [], newFields, existingByName);
         return;
     }
 
@@ -2652,6 +2664,198 @@ function executeColumnImport() {
         if (spanEl) spanEl.textContent = summary + '. Edit any value directly.';
     }
     autoSaveDraft();
+}
+
+// ============================================================
+// IMPORT REVIEW DIALOG — shows similar fields for user approval
+// ============================================================
+var _pendingMergeData = null;
+
+function showImportReviewDialog(exactMatches, similarFields, newFields, existingByName) {
+    _pendingMergeData = { exactMatches: exactMatches, newFields: newFields, existingByName: existingByName, similarFields: similarFields };
+
+    var html = '<div style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:10000;display:flex;align-items:center;justify-content:center;" id="importReviewOverlay">';
+    html += '<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:24px;max-width:700px;width:95%;max-height:80vh;overflow-y:auto;">';
+    html += '<h3 style="margin-bottom:12px;color:var(--accent);"><i class="fas fa-exclamation-triangle" style="color:var(--warning);"></i> Similar Fields Found</h3>';
+    html += '<p style="color:var(--text-secondary);font-size:0.85rem;margin-bottom:16px;">These imported fields look similar to fields you already have. Choose what to do with each:</p>';
+
+    similarFields.forEach(function(item, idx) {
+        var f = item.field;
+        html += '<div style="background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px;">';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">';
+        html += '<div><strong style="color:var(--warning);">"' + esc(f.field) + '"</strong> (' + esc(f.acres || '?') + ' ac)';
+        html += ' <span style="color:var(--text-secondary);font-size:0.8rem;">looks like: <strong>' + item.similarTo.map(esc).join(', ') + '</strong></span></div>';
+        html += '</div>';
+        html += '<div style="display:flex;gap:6px;flex-wrap:wrap;">';
+        html += '<label style="display:flex;align-items:center;gap:4px;padding:6px 10px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:0.82rem;">';
+        html += '<input type="radio" name="sim_' + idx + '" value="skip" checked> Skip (don\'t import)</label>';
+        html += '<label style="display:flex;align-items:center;gap:4px;padding:6px 10px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:0.82rem;">';
+        html += '<input type="radio" name="sim_' + idx + '" value="add"> Add as separate field</label>';
+        // Offer to update acres on the similar existing field
+        item.similarTo.forEach(function(sim) {
+            html += '<label style="display:flex;align-items:center;gap:4px;padding:6px 10px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:0.82rem;">';
+            html += '<input type="radio" name="sim_' + idx + '" value="merge_' + esc(sim) + '"> Update "' + esc(sim) + '" acres</label>';
+        });
+        html += '</div></div>';
+    });
+
+    html += '<div style="display:flex;gap:8px;margin-top:16px;">';
+    html += '<button onclick="executeReviewedImport()" style="padding:10px 18px;border-radius:8px;border:none;background:var(--accent);color:#000;font-weight:600;cursor:pointer;"><i class="fas fa-check"></i> Apply Import</button>';
+    html += '<button onclick="cancelReviewedImport()" style="padding:10px 18px;border-radius:8px;border:1px solid var(--border);background:none;color:var(--text-secondary);cursor:pointer;">Cancel</button>';
+    html += '</div>';
+
+    if (exactMatches.length > 0 || newFields.length > 0) {
+        html += '<p style="color:var(--text-secondary);font-size:0.8rem;margin-top:12px;">';
+        if (exactMatches.length > 0) html += exactMatches.length + ' exact matches will update acres/prior data. ';
+        if (newFields.length > 0) html += newFields.length + ' new fields will be added. ';
+        html += 'Your 2026 planned crops are never touched.</p>';
+    }
+
+    html += '</div></div>';
+
+    var overlay = document.createElement('div');
+    overlay.id = 'importReviewWrapper';
+    overlay.innerHTML = html;
+    document.body.appendChild(overlay);
+}
+
+function cancelReviewedImport() {
+    var el = document.getElementById('importReviewWrapper');
+    if (el) el.remove();
+    _pendingMergeData = null;
+    showToast('Import cancelled', 'success');
+}
+
+function executeReviewedImport() {
+    if (!_pendingMergeData) return;
+    var data = _pendingMergeData;
+
+    // Read user choices for similar fields
+    var resolvedSkip = [];
+    var resolvedAdd = [];
+    var resolvedMerge = [];
+
+    var overlay = document.getElementById('importReviewWrapper');
+    var radios = overlay.querySelectorAll('input[type="radio"]:checked');
+    // _pendingImportRows still has the original fields from executeColumnImport
+    // We need to get the similar fields from the dialog
+    var simItems = overlay.querySelectorAll('[name^="sim_"]');
+    var simGroups = {};
+    simItems.forEach(function(r) {
+        var name = r.getAttribute('name');
+        if (!simGroups[name]) simGroups[name] = [];
+        simGroups[name].push(r);
+    });
+
+    radios.forEach(function(radio, idx) {
+        var val = radio.value;
+        // Find the corresponding field data — we need to extract from the dialog
+        // The idx corresponds to the similar field index
+        if (val === 'skip') {
+            resolvedSkip.push(idx);
+        } else if (val === 'add') {
+            resolvedAdd.push(idx);
+        } else if (val.startsWith('merge_')) {
+            resolvedMerge.push({ idx: idx, targetField: val.replace('merge_', '') });
+        }
+    });
+
+    overlay.remove();
+
+    // Now we need the actual similarFields data — store it
+    // We stored exactMatches, newFields, existingByName in _pendingMergeData
+    // But we need similarFields too — let me fix this
+    finishMergeImport(data.exactMatches, resolvedAdd, data.newFields, data.existingByName, resolvedMerge, data.similarFields);
+    _pendingMergeData = null;
+}
+
+function finishMergeImport(exactMatches, addIdxOrFields, newFields, existingByName, mergeTargets, similarFields) {
+    var body = document.getElementById('fieldHistoryBody');
+    var merged = 0, added = 0, skipped = 0;
+
+    // 1. Process exact matches — update acres/prior, never touch planned crop
+    exactMatches.forEach(function(f) {
+        var key = normalizeFieldName(f.field);
+        var existingRow = existingByName[key];
+        if (!existingRow) return;
+        var inputs = existingRow.querySelectorAll('input, select');
+        if (f.acres && inputs[1]) inputs[1].value = f.acres;
+        if (f.priorCrop && inputs[2]) inputs[2].value = f.priorCrop;
+        if (f.priorInputs && inputs[3]) inputs[3].value = f.priorInputs;
+        if (f.status && inputs[5]) {
+            for (var opt = 0; opt < inputs[5].options.length; opt++) {
+                if (inputs[5].options[opt].text === f.status) inputs[5].selectedIndex = opt;
+            }
+        }
+        existingRow.setAttribute('data-field', f.field.trim());
+        merged++;
+    });
+
+    // 2. Process resolved similar fields
+    if (similarFields && mergeTargets) {
+        mergeTargets.forEach(function(mt) {
+            var f = similarFields[mt.idx].field;
+            var targetName = normalizeFieldName(mt.targetField);
+            var existingRow = existingByName[targetName];
+            if (existingRow) {
+                var inputs = existingRow.querySelectorAll('input, select');
+                if (f.acres && inputs[1]) inputs[1].value = f.acres;
+                merged++;
+            }
+        });
+    }
+
+    // 3. Add fields user chose to add as separate
+    if (Array.isArray(addIdxOrFields) && addIdxOrFields.length > 0) {
+        if (typeof addIdxOrFields[0] === 'number' && similarFields) {
+            // These are indices into similarFields
+            addIdxOrFields.forEach(function(idx) {
+                var f = similarFields[idx].field;
+                addFieldHistoryRow(f.field, f.acres, f.priorCrop, f.priorInputs, f.plannedCrop, f.status);
+                added++;
+            });
+        } else {
+            // These are field objects directly
+            addIdxOrFields.forEach(function(f) {
+                addFieldHistoryRow(f.field, f.acres, f.priorCrop, f.priorInputs, f.plannedCrop, f.status);
+                added++;
+            });
+        }
+    }
+
+    // 4. Add genuinely new fields
+    newFields.forEach(function(f) {
+        addFieldHistoryRow(f.field, f.acres, f.priorCrop, f.priorInputs, f.plannedCrop, f.status);
+        added++;
+    });
+
+    closeColumnMapper();
+    showToast(merged + ' updated, ' + added + ' added — 2026 plans safe', 'success');
+    updateFieldHistoryTotals();
+    var undoBtn = document.getElementById('undoImportBtn');
+    if (undoBtn) undoBtn.style.display = '';
+    autoSaveDraft();
+}
+
+// Normalize field name — used by import merge and elsewhere
+function normalizeFieldName(name) {
+    return String(name || '').trim().replace(/^field\s+/i, '').toUpperCase();
+}
+
+// ============================================================
+// SORT FIELD HISTORY ALPHABETICALLY
+// ============================================================
+function sortFieldHistoryAlpha() {
+    var body = document.getElementById('fieldHistoryBody');
+    var rows = Array.from(body.querySelectorAll('tr'));
+    rows.sort(function(a, b) {
+        var nameA = (a.querySelector('input[type="text"]') || {}).value || '';
+        var nameB = (b.querySelector('input[type="text"]') || {}).value || '';
+        return nameA.localeCompare(nameB, undefined, { numeric: true, sensitivity: 'base' });
+    });
+    rows.forEach(function(tr) { body.appendChild(tr); });
+    autoSaveDraft();
+    showToast('Fields sorted A→Z', 'success');
 }
 
 function addCropRow() {
