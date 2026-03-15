@@ -531,9 +531,14 @@
             <i class="fas fa-file-excel"></i> Import Spreadsheet
         </button>
         <input type="file" id="oeffaExcelUpload" accept=".xlsx,.xls,.csv,.tsv,.txt" onchange="importOEFFAExcel(event)" style="display:none;">
-        <button onclick="addFieldHistoryRow()" style="padding:8px 16px;border-radius:8px;border:1px dashed var(--border);background:none;color:var(--accent);cursor:pointer;font-size:0.82rem;width:100%;">
-            <i class="fas fa-plus"></i> Add Field
-        </button>
+        <div style="display:flex;gap:8px;margin-top:4px;">
+            <button onclick="addFieldHistoryRow()" style="flex:1;padding:8px 16px;border-radius:8px;border:1px dashed var(--border);background:none;color:var(--accent);cursor:pointer;font-size:0.82rem;">
+                <i class="fas fa-plus"></i> Add Field
+            </button>
+            <button id="undoImportBtn" onclick="undoFieldImport()" style="display:none;padding:8px 16px;border-radius:8px;border:1px solid var(--danger);background:none;color:var(--danger);cursor:pointer;font-size:0.82rem;">
+                <i class="fas fa-undo"></i> Undo Import
+            </button>
+        </div>
 
         <div class="section-footer">
             <button onclick="goToSection(3)"><i class="fas fa-arrow-left"></i> Back</button>
@@ -1727,6 +1732,7 @@ function addFieldHistoryRow(field, acres, crop25, inputs25, crop26, status) {
 }
 
 var _pendingImportRows = null;
+var _fieldHistoryUndo = null;
 var _pendingImportHeaders = null;
 
 function importOEFFAExcel(event) {
@@ -1957,6 +1963,18 @@ function closeColumnMapper() {
     _pendingImportHeaders = null;
 }
 
+function undoFieldImport() {
+    if (_fieldHistoryUndo === null) {
+        showToast('Nothing to undo', 'error');
+        return;
+    }
+    var body = document.getElementById('fieldHistoryBody');
+    body.innerHTML = _fieldHistoryUndo;
+    _fieldHistoryUndo = null;
+    document.getElementById('undoImportBtn').style.display = 'none';
+    showToast('Import undone — previous fields restored', 'success');
+}
+
 function normalizeDate(val) {
     // Handle Date objects (from SheetJS cellDates: true)
     if (val instanceof Date && !isNaN(val)) {
@@ -2114,10 +2132,14 @@ function executeColumnImport() {
         return;
     }
 
-    // Confirm before replacing existing rows
+    // Save current state for undo, then replace
     var body = document.getElementById('fieldHistoryBody');
+    _fieldHistoryUndo = body.innerHTML;
     if (body.children.length > 0) {
-        if (!confirm('Replace existing ' + body.children.length + ' rows with ' + fields.length + ' imported fields?')) return;
+        if (!confirm('Replace existing ' + body.children.length + ' rows with ' + fields.length + ' imported fields?')) {
+            _fieldHistoryUndo = null;
+            return;
+        }
     }
 
     body.innerHTML = '';
@@ -2135,6 +2157,10 @@ function executeColumnImport() {
     if (skippedTotal > 0) skips.push(skippedTotal + ' summary rows');
     if (skips.length > 0) summary += ' (' + skips.join(', ') + ' skipped)';
     showToast(summary, 'success');
+
+    // Show undo button
+    var undoBtn = document.getElementById('undoImportBtn');
+    if (undoBtn) undoBtn.style.display = '';
 
     var autoEl = document.getElementById('fieldHistoryAuto');
     if (autoEl) {
