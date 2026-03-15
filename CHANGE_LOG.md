@@ -35,6 +35,33 @@ Brief explanation of why these changes were made.
 
 
 
+## 2026-03-15 — PM_ARCHITECT: Chief of Staff — Make It Functional
+
+### Files Modified
+- `web_app/chief-of-staff.html` — 10 targeted fixes to make page actually load data
+
+### Functions Modified
+- `checkAPIConnection()` — Uses `testConnection` (public) instead of `getEmailCategories` (auth-required). Connection dot now shows green.
+- `loadAllData()` — Added `loadFarmStats()`, `loadDashboardSchedule()`, `loadDiseaseRisk()` to Promise.all. Dashboard cards now populate on page load.
+- `getEnhancedMorningBrief()` — Auto-opens chat panel so user sees result. Falls back to `getMorningBrief` if V2 fails.
+- `cachedFetch()` — Added one-time auth token logging for debugging silent failures.
+- `loadProactiveSuggestions()` — Shows "coming soon" (backend `getProactiveSuggestions` doesn't exist)
+- `loadMemoryPatterns()` — Shows "coming soon" (backend `getActivePatterns` doesn't exist)
+- `loadStyleProfile()` — Shows "coming soon" (backend `getStyleProfile` doesn't exist)
+- `loadAgents()` — Shows "coming soon" (backend `getAvailableAgents` doesn't exist)
+- `loadFileStats()` — Shows "coming soon" (backend `getFileOrganizationStats` doesn't exist)
+- `setAutonomyLevelUI()` — Disabled (backend `setAutonomyLevel` doesn't exist)
+
+### Reason
+User reported Chief of Staff page was "largely worthless" — cards showed nothing, buttons did nothing. Root causes: (1) dashboard data never loaded on init, (2) connection check used auth-required endpoint, (3) 6 UI sections called non-existent backend functions and failed silently. This fix makes all 32+ working endpoints functional and replaces 6 dead UIs with honest "coming soon" states.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] No duplicates created
+- [x] No new files created
+
+---
+
 ## 2026-03-15 — PM_ARCHITECT: OSP Generator Major Upgrade (Self-Service Organic Certification)
 
 ### Files Modified
