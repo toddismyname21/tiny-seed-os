@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: blob: https:; connect-src 'self' https://script.google.com https://script.googleusercontent.com;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: blob: https:; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://server.arcgisonline.com https://*.tile.openstreetmap.org;">
     <title>OSP Generator - Tiny Seed Farm</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -360,26 +360,85 @@
     </div>
 
     <!-- Section 3: Farm Map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
+    <style>
+        #farmMap { height: 500px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 16px; }
+        .map-toolbar { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+        .map-toolbar button {
+            padding: 8px 14px; border-radius: 6px; border: 1px solid var(--border);
+            background: var(--bg-input); color: var(--text-primary); font-size: 0.82rem;
+            cursor: pointer; display: flex; align-items: center; gap: 6px;
+        }
+        .map-toolbar button:hover { border-color: var(--accent); }
+        .map-toolbar button.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+        .field-list { margin-top: 12px; }
+        .field-item {
+            display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+            background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px;
+            margin-bottom: 6px; font-size: 0.85rem;
+        }
+        .field-item .field-color { width: 16px; height: 16px; border-radius: 4px; flex-shrink: 0; }
+        .field-item input { background: transparent; border: none; color: var(--text-primary);
+            font-size: 0.85rem; width: 80px; padding: 2px 4px; border-bottom: 1px solid var(--border); }
+        .field-item input:focus { outline: none; border-bottom-color: var(--accent); }
+        .field-item .field-acres { color: var(--accent); font-weight: 600; min-width: 60px; }
+        .field-item button { background: none; border: none; color: var(--danger); cursor: pointer; padding: 4px; }
+        .map-legend {
+            background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px;
+            padding: 12px; margin-top: 12px; font-size: 0.82rem;
+        }
+        .map-legend h4 { margin-bottom: 8px; font-size: 0.85rem; color: var(--text-secondary); }
+        .map-total { font-size: 1rem; font-weight: 700; color: var(--accent); margin-top: 8px; }
+        @media print {
+            #farmMap { height: 400px; page-break-inside: avoid; }
+            .map-toolbar, .leaflet-draw-toolbar, .leaflet-control-zoom { display: none !important; }
+        }
+    </style>
     <div class="osp-section" data-section="3" id="section3">
         <h3><span class="section-num">3</span> Farm Map & Field Layout</h3>
-        <p class="section-subtitle">Map showing all production areas, buffer zones, and field IDs</p>
+        <p class="section-subtitle">Draw your field boundaries on the satellite map below</p>
 
         <div class="help-text">
             <i class="fas fa-info-circle"></i>
-            Your map must show: all fields with unique IDs, acreage labels, north arrow, scale, buffer zones from non-organic land, water sources, buildings. Hand-drawn is acceptable.
+            <strong>How to use:</strong> Click the polygon tool (pentagon icon) on the left side of the map. Click to place corners around a field, then click the first point to close the shape. Give each field a name. The map auto-calculates acreage. For OEFFA: use Print/PDF to capture this map with your submission.
         </div>
 
-        <div class="form-group">
+        <div class="map-toolbar">
+            <button onclick="toggleMapLayer()" id="mapLayerBtn"><i class="fas fa-map"></i> Toggle Satellite/Street</button>
+            <button onclick="addMarker('building')" title="Mark a building"><i class="fas fa-warehouse"></i> Building</button>
+            <button onclick="addMarker('water')" title="Mark a water source"><i class="fas fa-tint"></i> Water Source</button>
+            <button onclick="addMarker('greenhouse')" title="Mark greenhouse/tunnel"><i class="fas fa-seedling"></i> Greenhouse</button>
+            <button onclick="clearAllFields()" style="margin-left:auto;border-color:var(--danger);color:var(--danger);"><i class="fas fa-trash"></i> Clear All</button>
+        </div>
+
+        <div id="farmMap"></div>
+
+        <div class="field-list" id="fieldList"></div>
+        <div class="map-total" id="mapTotalAcres"></div>
+
+        <div class="map-legend">
+            <h4><i class="fas fa-compass"></i> Map Legend & Notes</h4>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;">
+                <span><span style="display:inline-block;width:12px;height:12px;background:#22c55e;border-radius:2px;"></span> Production field</span>
+                <span><i class="fas fa-warehouse" style="color:#f59e0b;"></i> Building/structure</span>
+                <span><i class="fas fa-tint" style="color:#3b82f6;"></i> Water source</span>
+                <span><i class="fas fa-seedling" style="color:#a855f7;"></i> Greenhouse/tunnel</span>
+            </div>
+            <p style="margin-top:8px;color:var(--text-secondary);">North is up. Scale bar shown on map. Field polygons are GPS-traced with calculated acreage.</p>
+        </div>
+
+        <div class="form-group" style="margin-top:16px;">
             <label>Total Certified Organic Acreage</label>
-            <input type="number" id="totalAcres" step="0.1" min="0" placeholder="e.g., 5.0">
+            <input type="number" id="totalAcres" step="0.1" min="0" placeholder="Auto-calculated from drawn fields">
         </div>
         <div class="form-group">
             <label>Number of Production Fields/Areas</label>
-            <input type="number" id="numFields" min="1" placeholder="e.g., 4">
+            <input type="number" id="numFields" min="1" placeholder="Auto-counted from drawn fields">
         </div>
         <div class="form-group">
-            <label>Map Notes (describe what you'll attach)</label>
-            <textarea id="mapNotes" placeholder="e.g., Attached: hand-drawn map of 4 production fields (1A, 1B, 2A, 2B), two high tunnels, wash station, buffer zones along north property line..."></textarea>
+            <label>Map Notes (buffer zones, adjacent land use, etc.)</label>
+            <textarea id="mapNotes" placeholder="e.g., North property line borders conventional corn farm — 25ft grass buffer maintained. East side is wooded. South is residential. West borders road."></textarea>
         </div>
 
         <div class="checkbox-group">
@@ -1575,6 +1634,331 @@ function showToast(msg, type) {
     document.body.appendChild(toast);
     setTimeout(function() { toast.remove(); }, 3000);
 }
+</script>
+
+<!-- Farm Map Scripts -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+<script>
+// ============================================================
+// INTERACTIVE FARM MAP
+// ============================================================
+var FARM_CENTER = [40.7456, -80.1610]; // 257 Zeigler Rd, Rochester PA
+var farmMap, drawnFields, satelliteLayer, streetLayer, isSatellite = true;
+var fieldColors = ['#22c55e','#3b82f6','#f59e0b','#ef4444','#a855f7','#ec4899','#14b8a6','#f97316'];
+var fieldCounter = 0;
+var markerIcons = {};
+
+function initFarmMap() {
+    if (farmMap) return; // already initialized
+
+    satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Esri Satellite', maxZoom: 20
+    });
+    streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: 'OpenStreetMap', maxZoom: 20
+    });
+
+    farmMap = L.map('farmMap', { layers: [satelliteLayer] }).setView(FARM_CENTER, 17);
+
+    // Scale bar (required by OEFFA)
+    L.control.scale({ imperial: true, metric: false }).addTo(farmMap);
+
+    // Drawing layer
+    drawnFields = new L.FeatureGroup();
+    farmMap.addLayer(drawnFields);
+
+    // Draw control
+    var drawControl = new L.Control.Draw({
+        position: 'topleft',
+        draw: {
+            polygon: {
+                shapeOptions: { color: fieldColors[0], weight: 3, fillOpacity: 0.25 },
+                showArea: true
+            },
+            polyline: false,
+            rectangle: false,
+            circle: false,
+            circlemarker: false,
+            marker: false
+        },
+        edit: { featureGroup: drawnFields }
+    });
+    farmMap.addControl(drawControl);
+
+    // When polygon drawn
+    farmMap.on(L.Draw.Event.CREATED, function(e) {
+        var layer = e.layer;
+        var color = fieldColors[fieldCounter % fieldColors.length];
+        layer.setStyle({ color: color, fillColor: color, weight: 3, fillOpacity: 0.25 });
+
+        fieldCounter++;
+        var fieldId = 'Field ' + fieldCounter;
+        layer.fieldId = fieldId;
+        layer.fieldColor = color;
+
+        // Calculate acreage from polygon
+        var acres = calcPolygonAcres(layer);
+        layer.fieldAcres = acres;
+
+        // Add label to polygon center
+        var center = layer.getBounds().getCenter();
+        var label = L.marker(center, {
+            icon: L.divIcon({
+                className: 'field-label',
+                html: '<div style="background:rgba(0,0,0,0.7);color:#fff;padding:3px 8px;border-radius:4px;font-size:12px;font-weight:700;white-space:nowrap;border:2px solid ' + color + ';">' + esc(fieldId) + ' (' + acres.toFixed(2) + ' ac)</div>',
+                iconSize: null
+            })
+        });
+        layer._label = label;
+        drawnFields.addLayer(label);
+        drawnFields.addLayer(layer);
+
+        updateFieldList();
+        saveMapData();
+    });
+
+    // When polygon edited
+    farmMap.on(L.Draw.Event.EDITED, function() {
+        // Recalculate all acreages
+        drawnFields.eachLayer(function(layer) {
+            if (layer instanceof L.Polygon) {
+                layer.fieldAcres = calcPolygonAcres(layer);
+                updateFieldLabel(layer);
+            }
+        });
+        updateFieldList();
+        saveMapData();
+    });
+
+    farmMap.on(L.Draw.Event.DELETED, function() {
+        updateFieldList();
+        saveMapData();
+    });
+
+    // Marker icons
+    markerIcons.building = L.divIcon({ className: '', html: '<div style="font-size:20px;text-shadow:0 1px 3px rgba(0,0,0,0.5);">🏠</div>', iconSize: [24, 24], iconAnchor: [12, 12] });
+    markerIcons.water = L.divIcon({ className: '', html: '<div style="font-size:20px;text-shadow:0 1px 3px rgba(0,0,0,0.5);">💧</div>', iconSize: [24, 24], iconAnchor: [12, 12] });
+    markerIcons.greenhouse = L.divIcon({ className: '', html: '<div style="font-size:20px;text-shadow:0 1px 3px rgba(0,0,0,0.5);">🌱</div>', iconSize: [24, 24], iconAnchor: [12, 12] });
+
+    // Load saved data
+    loadMapData();
+}
+
+function calcPolygonAcres(polygon) {
+    var latlngs = polygon.getLatLngs()[0];
+    if (!latlngs || latlngs.length < 3) return 0;
+
+    // Shoelace formula in projected coordinates (meters)
+    var area = 0;
+    var points = latlngs.map(function(ll) {
+        // Simple equirectangular projection to meters
+        var x = ll.lng * Math.cos(FARM_CENTER[0] * Math.PI / 180) * 111319.9;
+        var y = ll.lat * 111319.9;
+        return { x: x, y: y };
+    });
+
+    for (var i = 0; i < points.length; i++) {
+        var j = (i + 1) % points.length;
+        area += points[i].x * points[j].y;
+        area -= points[j].x * points[i].y;
+    }
+    area = Math.abs(area) / 2;
+
+    // Square meters to acres (1 acre = 4046.86 m²)
+    return area / 4046.86;
+}
+
+function updateFieldLabel(layer) {
+    if (layer._label) {
+        drawnFields.removeLayer(layer._label);
+    }
+    var center = layer.getBounds().getCenter();
+    var label = L.marker(center, {
+        icon: L.divIcon({
+            className: 'field-label',
+            html: '<div style="background:rgba(0,0,0,0.7);color:#fff;padding:3px 8px;border-radius:4px;font-size:12px;font-weight:700;white-space:nowrap;border:2px solid ' + layer.fieldColor + ';">' + esc(layer.fieldId) + ' (' + layer.fieldAcres.toFixed(2) + ' ac)</div>',
+            iconSize: null
+        })
+    });
+    layer._label = label;
+    drawnFields.addLayer(label);
+}
+
+function updateFieldList() {
+    var list = document.getElementById('fieldList');
+    var totalAcres = 0;
+    var fieldCount = 0;
+    var html = '';
+
+    drawnFields.eachLayer(function(layer) {
+        if (!(layer instanceof L.Polygon)) return;
+        fieldCount++;
+        totalAcres += layer.fieldAcres || 0;
+
+        html += '<div class="field-item">' +
+            '<div class="field-color" style="background:' + (layer.fieldColor || '#22c55e') + '"></div>' +
+            '<input type="text" value="' + esc(layer.fieldId || '') + '" onchange="renameField(this, ' + L.stamp(layer) + ')" title="Click to rename">' +
+            '<span class="field-acres">' + (layer.fieldAcres || 0).toFixed(2) + ' ac</span>' +
+            '<button onclick="removeField(' + L.stamp(layer) + ')" title="Remove field"><i class="fas fa-times"></i></button>' +
+            '</div>';
+    });
+
+    list.innerHTML = html;
+
+    // Update totals
+    var totalEl = document.getElementById('mapTotalAcres');
+    if (fieldCount > 0) {
+        totalEl.textContent = 'Total mapped: ' + totalAcres.toFixed(2) + ' acres across ' + fieldCount + ' field' + (fieldCount > 1 ? 's' : '');
+    } else {
+        totalEl.textContent = '';
+    }
+
+    // Auto-fill the form fields
+    document.getElementById('totalAcres').value = totalAcres.toFixed(1);
+    document.getElementById('numFields').value = fieldCount;
+}
+
+function renameField(input, layerId) {
+    drawnFields.eachLayer(function(layer) {
+        if (L.stamp(layer) === layerId && layer instanceof L.Polygon) {
+            layer.fieldId = input.value;
+            updateFieldLabel(layer);
+            saveMapData();
+        }
+    });
+}
+
+function removeField(layerId) {
+    drawnFields.eachLayer(function(layer) {
+        if (L.stamp(layer) === layerId) {
+            if (layer._label) drawnFields.removeLayer(layer._label);
+            drawnFields.removeLayer(layer);
+        }
+    });
+    updateFieldList();
+    saveMapData();
+}
+
+function toggleMapLayer() {
+    if (isSatellite) {
+        farmMap.removeLayer(satelliteLayer);
+        farmMap.addLayer(streetLayer);
+        document.getElementById('mapLayerBtn').innerHTML = '<i class="fas fa-satellite"></i> Show Satellite';
+    } else {
+        farmMap.removeLayer(streetLayer);
+        farmMap.addLayer(satelliteLayer);
+        document.getElementById('mapLayerBtn').innerHTML = '<i class="fas fa-map"></i> Toggle Satellite/Street';
+    }
+    isSatellite = !isSatellite;
+}
+
+function addMarker(type) {
+    showToast('Click the map to place ' + type, 'success');
+    farmMap.once('click', function(e) {
+        var marker = L.marker(e.latlng, { icon: markerIcons[type], draggable: true });
+        marker.markerType = type;
+        marker.bindPopup('<strong>' + type.charAt(0).toUpperCase() + type.slice(1) + '</strong><br><input type="text" placeholder="Label..." style="padding:4px;width:120px;" onchange="this.parentElement._marker.markerLabel=this.value">');
+        drawnFields.addLayer(marker);
+        marker.on('dragend', saveMapData);
+        saveMapData();
+    });
+}
+
+function clearAllFields() {
+    if (!confirm('Remove all drawn fields and markers?')) return;
+    drawnFields.clearLayers();
+    fieldCounter = 0;
+    updateFieldList();
+    saveMapData();
+}
+
+// ============================================================
+// SAVE / LOAD MAP DATA TO LOCALSTORAGE
+// ============================================================
+function saveMapData() {
+    var data = { fields: [], markers: [] };
+    drawnFields.eachLayer(function(layer) {
+        if (layer instanceof L.Polygon) {
+            data.fields.push({
+                latlngs: layer.getLatLngs()[0].map(function(ll) { return [ll.lat, ll.lng]; }),
+                fieldId: layer.fieldId,
+                fieldColor: layer.fieldColor
+            });
+        } else if (layer instanceof L.Marker && layer.markerType) {
+            data.markers.push({
+                latlng: [layer.getLatLng().lat, layer.getLatLng().lng],
+                type: layer.markerType,
+                label: layer.markerLabel || ''
+            });
+        }
+    });
+    localStorage.setItem('osp_farm_map_2026', JSON.stringify(data));
+}
+
+function loadMapData() {
+    try {
+        var raw = localStorage.getItem('osp_farm_map_2026');
+        if (!raw) return;
+        var data = JSON.parse(raw);
+
+        (data.fields || []).forEach(function(f) {
+            var polygon = L.polygon(f.latlngs, {
+                color: f.fieldColor || fieldColors[fieldCounter % fieldColors.length],
+                fillColor: f.fieldColor || fieldColors[fieldCounter % fieldColors.length],
+                weight: 3, fillOpacity: 0.25
+            });
+            polygon.fieldId = f.fieldId || ('Field ' + (fieldCounter + 1));
+            polygon.fieldColor = f.fieldColor || fieldColors[fieldCounter % fieldColors.length];
+            polygon.fieldAcres = calcPolygonAcres(polygon);
+            fieldCounter++;
+
+            var center = polygon.getBounds().getCenter();
+            var label = L.marker(center, {
+                icon: L.divIcon({
+                    className: 'field-label',
+                    html: '<div style="background:rgba(0,0,0,0.7);color:#fff;padding:3px 8px;border-radius:4px;font-size:12px;font-weight:700;white-space:nowrap;border:2px solid ' + polygon.fieldColor + ';">' + esc(polygon.fieldId) + ' (' + polygon.fieldAcres.toFixed(2) + ' ac)</div>',
+                    iconSize: null
+                })
+            });
+            polygon._label = label;
+            drawnFields.addLayer(label);
+            drawnFields.addLayer(polygon);
+        });
+
+        (data.markers || []).forEach(function(m) {
+            var marker = L.marker(m.latlng, { icon: markerIcons[m.type] || markerIcons.building, draggable: true });
+            marker.markerType = m.type;
+            marker.markerLabel = m.label;
+            marker.on('dragend', saveMapData);
+            drawnFields.addLayer(marker);
+        });
+
+        updateFieldList();
+    } catch(e) { console.log('Map data load failed:', e); }
+}
+
+// Initialize map when Section 3 becomes visible
+var _mapInitObserver = new MutationObserver(function() {
+    var section3 = document.getElementById('section3');
+    if (section3 && (section3.classList.contains('active') || section3.style.display === 'block')) {
+        initFarmMap();
+        farmMap.invalidateSize();
+    }
+});
+_mapInitObserver.observe(document.getElementById('section3'), { attributes: true, attributeFilter: ['class', 'style'] });
+
+// Also init if Section 3 is already active on page load
+var _origGoToSection = goToSection;
+goToSection = function(num) {
+    _origGoToSection(num);
+    if (num === 3) {
+        setTimeout(function() {
+            initFarmMap();
+            farmMap.invalidateSize();
+        }, 100);
+    }
+};
 </script>
 </body>
 </html>
