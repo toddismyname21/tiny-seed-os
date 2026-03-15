@@ -2212,7 +2212,104 @@ function importOEFFAExcel(event) {
     }
 }
 
+// Aggregate activity log (many rows per field) into one row per field
+function aggregateActivityData(rows, fieldCol, cropCol, inputCol) {
+    var fields = {};
+    var fieldOrder = [];
+
+    for (var r = 1; r < rows.length; r++) {
+        var row = rows[r];
+        // Handle multi-field entries like "JS6, F7M"
+        var rawField = String(row[fieldCol] || '').trim();
+        if (!rawField) continue;
+
+        var fieldNames = rawField.indexOf(',') >= 0 ? rawField.split(',') : [rawField];
+        fieldNames.forEach(function(fn) {
+            fn = fn.trim().toUpperCase();
+            if (!fn) return;
+            if (!fields[fn]) {
+                fields[fn] = { crops: [], inputs: [] };
+                fieldOrder.push(fn);
+            }
+            if (cropCol >= 0) {
+                var crop = String(row[cropCol] || '').trim();
+                if (crop && fields[fn].crops.indexOf(crop) < 0) {
+                    fields[fn].crops.push(crop);
+                }
+            }
+            if (inputCol >= 0) {
+                var inp = String(row[inputCol] || '').trim();
+                if (inp && fields[fn].inputs.indexOf(inp) < 0) {
+                    fields[fn].inputs.push(inp);
+                }
+            }
+        });
+    }
+
+    // Build aggregated rows: [Field, Acres, Prior Crop, Prior Inputs]
+    var result = [['Field', 'Acres', 'Prior Crop (' + (OSP_YEAR - 1) + ')', 'Prior Inputs (' + (OSP_YEAR - 1) + ')']];
+    fieldOrder.forEach(function(fn) {
+        var f = fields[fn];
+        result.push([
+            fn,
+            '',
+            f.crops.join(', '),
+            f.inputs.join(', ')
+        ]);
+    });
+
+    return result;
+}
+
 function showColumnMapper(rows, filename) {
+    // Skip leading empty rows to find the real header
+    var startIdx = 0;
+    for (var r = 0; r < rows.length; r++) {
+        var hasContent = rows[r].some(function(c) { return String(c || '').trim() !== ''; });
+        if (hasContent) { startIdx = r; break; }
+    }
+    if (startIdx > 0) rows = rows.slice(startIdx);
+
+    // Detect multi-row-per-field data (activity logs) and offer to aggregate
+    var headerRow = rows[0];
+    var fieldColGuess = -1;
+    for (var c = 0; c < headerRow.length; c++) {
+        if (/field|plot|bed|block|parcel|location/i.test(String(headerRow[c] || ''))) {
+            fieldColGuess = c; break;
+        }
+    }
+    if (fieldColGuess >= 0) {
+        // Count how many rows share the same field name
+        var fieldCounts = {};
+        for (var r = 1; r < rows.length; r++) {
+            var fn = String(rows[r][fieldColGuess] || '').trim().toUpperCase();
+            if (fn) fieldCounts[fn] = (fieldCounts[fn] || 0) + 1;
+        }
+        var uniqueFields = Object.keys(fieldCounts).length;
+        var totalDataRows = rows.length - 1;
+        var avgRowsPerField = totalDataRows / (uniqueFields || 1);
+
+        // If avg > 2 rows per field, this is activity data — aggregate it
+        if (avgRowsPerField > 2 && uniqueFields > 0) {
+            var cropColGuess = -1, inputColGuess = -1;
+            for (var c = 0; c < headerRow.length; c++) {
+                var hdr = String(headerRow[c] || '').toLowerCase();
+                if (cropColGuess < 0 && /^crop/i.test(hdr)) cropColGuess = c;
+                if (inputColGuess < 0 && /input|amendment|spray|material|product/i.test(hdr)) inputColGuess = c;
+            }
+
+            if (confirm(
+                'This looks like a detailed activity log (' + totalDataRows + ' rows across ' + uniqueFields + ' fields).\n\n' +
+                'Aggregate into one row per field?\n' +
+                '• Crops will be combined into Prior Crop\n' +
+                '• Inputs/materials will be combined into Prior Inputs\n\n' +
+                'OK = Aggregate, Cancel = Import rows as-is'
+            )) {
+                rows = aggregateActivityData(rows, fieldColGuess, cropColGuess, inputColGuess);
+            }
+        }
+    }
+
     _pendingImportRows = rows;
 
     // Dynamic IDs created in this function (for validate-element-refs.sh):
