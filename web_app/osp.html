@@ -463,10 +463,12 @@
             border-radius: 6px; font-weight: 600; cursor: pointer;
         }
         @media print {
-            /* Hide interactive map, show snapshot image instead */
+            /* Hide interactive map, show snapshot gallery instead */
             #farmMapContainer { display: none !important; }
-            #mapSnapshotContainer { display: block !important; page-break-inside: avoid; }
-            #mapSnapshotImg { max-height: 500px; object-fit: contain; }
+            #mapSnapshotsGallery { display: flex !important; }
+            .snapshot-card { page-break-inside: avoid; border: 1px solid #999 !important; }
+            .snapshot-card img { max-height: 600px; object-fit: contain; }
+            .snapshot-delete { display: none !important; }
             .map-toolbar, .leaflet-pm-toolbar, .leaflet-control-zoom, .field-name-picker { display: none !important; }
             .field-item .field-source { border: 1px solid #999; }
         }
@@ -504,13 +506,14 @@
             <div id="farmMap"></div>
         </div>
 
-        <!-- Map snapshot for print/PDF submission -->
-        <div id="mapSnapshotContainer" style="display:none;margin:12px 0;">
-            <img id="mapSnapshotImg" style="width:100%;border-radius:8px;border:1px solid var(--border);" alt="Farm map snapshot">
+        <!-- Map snapshots for print/PDF submission -->
+        <div style="margin:8px 0;display:flex;align-items:center;gap:8px;" class="no-print">
+            <button onclick="captureMapSnapshot()" style="padding:8px 16px;border-radius:8px;border:1px solid var(--info);background:var(--info-dim);color:var(--info);font-size:0.85rem;cursor:pointer;">
+                <i class="fas fa-camera"></i> Capture This View
+            </button>
+            <span style="color:var(--text-secondary);font-size:0.8rem;">Pan/zoom to a section, then capture. Repeat for each area of the farm.</span>
         </div>
-        <button onclick="captureMapSnapshot()" class="no-print" style="margin:8px 0;padding:8px 16px;border-radius:8px;border:1px solid var(--info);background:var(--info-dim);color:var(--info);font-size:0.85rem;cursor:pointer;">
-            <i class="fas fa-camera"></i> Capture Map for Submission
-        </button>
+        <div id="mapSnapshotsGallery" style="margin:12px 0;display:flex;flex-direction:column;gap:12px;"></div>
 
         <div class="field-list" id="fieldList"></div>
         <div class="map-total" id="mapTotalAcres"></div>
@@ -3595,14 +3598,29 @@ function clearAllFields() {
 }
 
 // ============================================================
-// MAP SNAPSHOT — capture map as image for print/PDF/submission
+// MAP SNAPSHOTS — multiple captures for print/PDF/submission
 // ============================================================
+var mapSnapshots = []; // array of { dataUrl, label }
+
+function getSnapshotsKey() { return 'osp_map_snapshots_' + getCurrentYear(); }
+
+function loadSnapshots() {
+    try {
+        var raw = localStorage.getItem(getSnapshotsKey());
+        mapSnapshots = raw ? JSON.parse(raw) : [];
+    } catch(e) { mapSnapshots = []; }
+}
+
+function saveSnapshots() {
+    try { localStorage.setItem(getSnapshotsKey(), JSON.stringify(mapSnapshots)); } catch(e) {}
+}
+
 async function captureMapSnapshot() {
     if (!farmMap) { showToast('Map not loaded yet', 'error'); return; }
     var container = document.getElementById('farmMapContainer');
     if (!container) return;
 
-    showToast('Capturing map…', 'success');
+    showToast('Capturing map view…', 'success');
     try {
         var canvas = await html2canvas(container, {
             useCORS: true,
@@ -3611,42 +3629,54 @@ async function captureMapSnapshot() {
             scale: 2
         });
         var dataUrl = canvas.toDataURL('image/png');
-        var img = document.getElementById('mapSnapshotImg');
-        img.src = dataUrl;
-        document.getElementById('mapSnapshotContainer').style.display = 'block';
+        var label = 'Map View ' + (mapSnapshots.length + 1);
+        mapSnapshots.push({ dataUrl: dataUrl, label: label });
+        saveSnapshots();
+        renderSnapshotGallery();
         // Auto-check the "map attached" checkbox
         var cb = document.getElementById('mapAttached');
         if (cb) cb.checked = true;
-        // Save snapshot to localStorage so it persists
-        try { localStorage.setItem('osp_map_snapshot_' + getCurrentYear(), dataUrl); } catch(e) {}
-        showToast('Map captured — will be included in print/PDF', 'success');
+        showToast('Captured "' + label + '" — pan to next area and capture again', 'success');
     } catch(err) {
-        showToast('Map capture failed: ' + err.message, 'error');
+        showToast('Capture failed: ' + err.message, 'error');
     }
 }
 
-// Auto-capture map before printing
-window.addEventListener('beforeprint', function() {
-    var img = document.getElementById('mapSnapshotImg');
-    if (img && !img.src) {
-        // Try to load from localStorage if not captured this session
-        var saved = localStorage.getItem('osp_map_snapshot_' + getCurrentYear());
-        if (saved) {
-            img.src = saved;
-            document.getElementById('mapSnapshotContainer').style.display = 'block';
-        }
+function deleteSnapshot(idx) {
+    if (!confirm('Remove this map snapshot?')) return;
+    mapSnapshots.splice(idx, 1);
+    // Re-number labels
+    mapSnapshots.forEach(function(s, i) { s.label = 'Map View ' + (i + 1); });
+    saveSnapshots();
+    renderSnapshotGallery();
+    if (mapSnapshots.length === 0) {
+        var cb = document.getElementById('mapAttached');
+        if (cb) cb.checked = false;
     }
-});
+}
 
-// Restore snapshot on page load
+function renderSnapshotGallery() {
+    var gallery = document.getElementById('mapSnapshotsGallery');
+    if (!gallery) return;
+    if (mapSnapshots.length === 0) { gallery.innerHTML = ''; return; }
+
+    var html = '';
+    mapSnapshots.forEach(function(snap, i) {
+        html += '<div class="snapshot-card" style="position:relative;border:1px solid var(--border);border-radius:8px;overflow:hidden;">' +
+            '<div style="padding:6px 12px;background:var(--bg-input);display:flex;justify-content:space-between;align-items:center;">' +
+                '<span style="font-weight:600;font-size:0.85rem;">' + esc(snap.label) + '</span>' +
+                '<button class="snapshot-delete" onclick="deleteSnapshot(' + i + ')" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:0.8rem;padding:4px 8px;" title="Remove"><i class="fas fa-trash"></i></button>' +
+            '</div>' +
+            '<img src="' + snap.dataUrl + '" style="width:100%;display:block;" alt="' + esc(snap.label) + '">' +
+        '</div>';
+    });
+    gallery.innerHTML = html;
+}
+
+// Restore snapshots on page load
 function restoreMapSnapshot() {
-    try {
-        var saved = localStorage.getItem('osp_map_snapshot_' + getCurrentYear());
-        if (saved) {
-            var img = document.getElementById('mapSnapshotImg');
-            if (img) img.src = saved;
-        }
-    } catch(e) {}
+    loadSnapshots();
+    renderSnapshotGallery();
 }
 
 // ============================================================
