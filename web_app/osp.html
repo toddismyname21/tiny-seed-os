@@ -1147,11 +1147,11 @@ var OSP_YEAR = new Date().getFullYear();
 // ============================================================
 // INIT
 // ============================================================
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
     buildYearSelector();
     updateDynamicHeaders();
     buildSectionNav();
-    loadDraft();
+    await loadDraft();  // MUST complete before fetchFarmData so saved rows aren't overwritten
     setTodayDate();
     setupListeners();
     fetchFarmData();
@@ -2043,73 +2043,97 @@ function addFieldHistoryRow(field, acres, crop25, inputs25, crop26, status) {
     tr.addEventListener('change', autoSaveDraft);
 }
 
-// Mark acres as manually overridden (user typed a different value)
+// User edited acres — field history is authoritative, sync to map
 function markAcresOverride(input) {
-    input.setAttribute('data-override', '1');
-    var badge = input.parentElement.querySelector('.acres-map-badge');
-    var mapVal = input.getAttribute('data-map-acres');
-    if (badge && mapVal) {
-        var userVal = parseFloat(input.value);
-        var mapNum = parseFloat(mapVal);
-        if (!isNaN(userVal) && !isNaN(mapNum) && Math.abs(userVal - mapNum) > 0.001) {
-            badge.style.display = 'block';
-            badge.textContent = 'map: ' + mapNum.toFixed(2);
-            badge.onclick = function() {
-                input.value = mapNum.toFixed(2);
-                input.removeAttribute('data-override');
-                badge.style.display = 'none';
-                updateFieldHistoryTotals();
-                autoSaveDraft();
-            };
-        } else {
-            badge.style.display = 'none';
-        }
-    }
+    updateFieldHistoryTotals();
+    syncFieldHistoryToMap();
 }
 
-// Sync map polygon acreages → field history rows (respects overrides)
-function syncMapAcresToFieldHistory() {
+// Sync: Field History acreage is AUTHORITATIVE → updates map labels
+// Map polygons show calculated acres but Field History value is what goes in the OSP
+function syncFieldHistoryToMap() {
     if (!drawnFields) return;
-    var mapAcres = {};
-    drawnFields.eachLayer(function(layer) {
-        if (layer instanceof L.Polygon && layer.fieldId) {
-            mapAcres[layer.fieldId] = layer.fieldAcres || 0;
+
+    // Build lookup of field history acreages
+    var historyAcres = {};
+    document.querySelectorAll('#fieldHistoryBody tr').forEach(function(tr) {
+        var fieldName = tr.getAttribute('data-field') || '';
+        var input = tr.querySelector('.acres-input');
+        if (fieldName && input) {
+            var val = parseFloat(input.value);
+            if (!isNaN(val)) historyAcres[fieldName] = val;
         }
     });
 
-    var rows = document.querySelectorAll('#fieldHistoryBody tr');
-    rows.forEach(function(tr) {
-        var fieldName = tr.getAttribute('data-field') || '';
-        if (!fieldName || !(fieldName in mapAcres)) return;
+    // Update map polygon labels to show field history acreage (not calculated)
+    drawnFields.eachLayer(function(layer) {
+        if (!(layer instanceof L.Polygon) || !layer.fieldId) return;
 
-        var input = tr.querySelector('.acres-input');
-        if (!input) return;
+        var calcAcres = layer.fieldAcres || 0;
+        var fieldName = layer.fieldId;
+        var badge = '';
 
-        var mapVal = mapAcres[fieldName];
-        input.setAttribute('data-map-acres', mapVal.toFixed(2));
-        var badge = tr.querySelector('.acres-map-badge');
-
-        // If not manually overridden, auto-fill from map
-        if (!input.getAttribute('data-override')) {
-            input.value = mapVal.toFixed(2);
-            if (badge) badge.style.display = 'none';
+        if (fieldName in historyAcres) {
+            var histVal = historyAcres[fieldName];
+            // Show the field history value as the label
+            layer.fieldAcresDisplay = histVal;
+            if (Math.abs(histVal - calcAcres) > 0.01) {
+                badge = ' (drawn: ' + calcAcres.toFixed(2) + ')';
+            }
         } else {
-            // Show the map value so user can see the difference
+            layer.fieldAcresDisplay = calcAcres;
+        }
+
+        // Update the tooltip
+        if (layer.getTooltip()) layer.unbindTooltip();
+        var displayAcres = layer.fieldAcresDisplay || calcAcres;
+        var fontSize = displayAcres >= 2 ? 13 : displayAcres >= 0.5 ? 11 : 9;
+        var acreSize = Math.max(fontSize - 2, 8);
+        var html = '<div style="text-align:center;line-height:1.2;pointer-events:none;">' +
+            '<div style="font-size:' + fontSize + 'px;font-weight:700;">' + esc(fieldName) + '</div>' +
+            '<div style="font-size:' + acreSize + 'px;font-weight:500;opacity:0.85;">' + displayAcres.toFixed(2) + ' ac</div></div>';
+        layer.bindTooltip(html, {
+            permanent: true,
+            direction: 'center',
+            className: 'field-label-tooltip',
+            interactive: false
+        });
+    });
+
+    // Also update map total and badge displays in field history
+    document.querySelectorAll('#fieldHistoryBody tr').forEach(function(tr) {
+        var fieldName = tr.getAttribute('data-field') || '';
+        var input = tr.querySelector('.acres-input');
+        var badge = tr.querySelector('.acres-map-badge');
+        if (!fieldName || !input || !badge) return;
+
+        // Find matching map polygon
+        var mapVal = null;
+        drawnFields.eachLayer(function(layer) {
+            if (layer instanceof L.Polygon && layer.fieldId === fieldName) {
+                mapVal = layer.fieldAcres || 0;
+            }
+        });
+
+        if (mapVal !== null) {
+            input.setAttribute('data-map-acres', mapVal.toFixed(2));
             var userVal = parseFloat(input.value);
-            if (badge && !isNaN(userVal) && Math.abs(userVal - mapVal) > 0.001) {
+            if (!isNaN(userVal) && Math.abs(userVal - mapVal) > 0.01) {
                 badge.style.display = 'block';
-                badge.textContent = 'map: ' + mapVal.toFixed(2);
+                badge.textContent = 'drawn: ' + mapVal.toFixed(2);
+                badge.title = 'Map polygon measures ' + mapVal.toFixed(2) + ' ac. Your value (' + userVal.toFixed(2) + ') will be used in the OSP.';
                 badge.onclick = function() {
                     input.value = mapVal.toFixed(2);
-                    input.removeAttribute('data-override');
                     badge.style.display = 'none';
                     updateFieldHistoryTotals();
                     autoSaveDraft();
+                    syncFieldHistoryToMap();
                 };
+            } else {
+                badge.style.display = 'none';
             }
         }
     });
-    updateFieldHistoryTotals();
 }
 
 var _pendingImportRows = null;
@@ -2696,32 +2720,35 @@ function autoSaveDraft() {
 }
 
 async function loadDraft() {
-    // Try localStorage first (instant)
+    var hadLocal = false;
+
+    // Try localStorage first (instant, always wins)
     try {
         var raw = localStorage.getItem('osp_draft_' + OSP_YEAR);
         if (raw) {
             restoreFormData(JSON.parse(raw));
+            hadLocal = true;
         }
     } catch(e) {}
 
-    // Then try backend (may have data from previous years)
-    try {
-        var res = await fetch(API_URL + '?action=getOSPDraft&year=' + OSP_YEAR);
-        var data = await res.json();
-        if (data.success && data.found && data.formData) {
-            // Only restore from backend if we DON'T have a local draft for this year
-            var hasLocal = !!localStorage.getItem('osp_draft_' + OSP_YEAR);
-            if (!hasLocal || data.isFromPriorYear) {
+    // Only try backend if NO local draft exists
+    if (!hadLocal) {
+        try {
+            var res = await fetch(API_URL + '?action=getOSPDraft&year=' + OSP_YEAR);
+            var data = await res.json();
+            if (data.success && data.found && data.formData) {
                 restoreFormData(data.formData);
+                // Save to localStorage so it persists locally going forward
+                try { localStorage.setItem('osp_draft_' + OSP_YEAR, JSON.stringify(data.formData)); } catch(e2) {}
                 if (data.isFromPriorYear) {
                     showToast('Loaded ' + data.year + ' OSP as starting point. Update for ' + OSP_YEAR + '.', 'success');
                 } else {
                     showToast('Restored from farm records (v' + data.version + ')', 'success');
                 }
             }
+        } catch(e) {
+            console.log('Backend draft load failed:', e);
         }
-    } catch(e) {
-        console.log('Backend draft load failed (using local):', e);
     }
 }
 
@@ -3612,7 +3639,7 @@ function updateFieldList() {
     document.getElementById('numFields').value = fieldCount > 0 ? fieldCount : '';
 
     // Keep field history acreages in sync with map
-    syncMapAcresToFieldHistory();
+    syncFieldHistoryToMap();
 }
 
 function zoomToField(stamp) {
