@@ -1494,9 +1494,10 @@ function populateFieldHistory(fieldsRes, fieldHistoryRes, planningRes) {
 async function refreshFieldsFromPlan() {
     var body = document.getElementById('fieldHistoryBody');
     if (body.children.length > 0) {
-        if (!confirm('Replace current ' + body.children.length + ' rows with live farm plan data?')) return;
-        // Save current state for undo
+        if (!confirm('This will reload fields from your farm plan. Your 2026 planned crops will be re-populated from the planning system.\n\nContinue?')) return;
+        // Save current state for undo + safety backup
         _fieldHistoryUndo = body.innerHTML;
+        try { localStorage.setItem('osp_field_backup_' + OSP_YEAR, localStorage.getItem('osp_draft_' + OSP_YEAR) || ''); } catch(e) {}
         var undoBtn = document.getElementById('undoImportBtn');
         if (undoBtn) undoBtn.style.display = '';
     }
@@ -2374,13 +2375,28 @@ function closeColumnMapper() {
 }
 
 function undoFieldImport() {
-    if (_fieldHistoryUndo === null) {
-        showToast('Nothing to undo', 'error');
-        return;
+    // Try in-memory undo first, then localStorage backup
+    if (_fieldHistoryUndo !== null) {
+        var body = document.getElementById('fieldHistoryBody');
+        body.innerHTML = _fieldHistoryUndo;
+        _fieldHistoryUndo = null;
+    } else {
+        // Restore from safety backup
+        try {
+            var backup = localStorage.getItem('osp_field_backup_' + OSP_YEAR);
+            if (backup) {
+                var data = JSON.parse(backup);
+                restoreFormData(data);
+                showToast('Restored from safety backup', 'success');
+            } else {
+                showToast('No backup available to undo', 'error');
+                return;
+            }
+        } catch(e) {
+            showToast('Undo failed: ' + e.message, 'error');
+            return;
+        }
     }
-    var body = document.getElementById('fieldHistoryBody');
-    body.innerHTML = _fieldHistoryUndo;
-    _fieldHistoryUndo = null;
     document.getElementById('undoImportBtn').style.display = 'none';
     updateFieldHistoryTotals();
     autoSaveDraft();
@@ -2544,65 +2560,61 @@ function executeColumnImport() {
         return;
     }
 
-    // Save current state for undo
     var body = document.getElementById('fieldHistoryBody');
+
+    // ALWAYS save a safety backup BEFORE touching anything
     _fieldHistoryUndo = body.innerHTML;
+    try {
+        localStorage.setItem('osp_field_backup_' + OSP_YEAR, localStorage.getItem('osp_draft_' + OSP_YEAR) || '');
+    } catch(e) {}
 
+    // Normalize field name for matching (strip "Field ", trim, uppercase)
+    function normalizeFieldName(name) {
+        return String(name || '').trim().replace(/^field\s+/i, '').toUpperCase();
+    }
+
+    // If rows exist, ALWAYS merge — never replace
     if (body.children.length > 0) {
-        // Ask: merge (keep 2026 data) or replace (destructive)
-        var choice = confirm(
-            'You have ' + body.children.length + ' existing rows with planned crops.\n\n' +
-            'OK = MERGE (update acres/prior data from spreadsheet, KEEP your 2026 plans)\n' +
-            'Cancel = abort import'
-        );
-        if (!choice) {
-            _fieldHistoryUndo = null;
-            return;
-        }
-
-        // MERGE MODE: match by field name, update imported columns, preserve user data
+        // Build lookup of existing rows by normalized field name
         var existingByName = {};
         body.querySelectorAll('tr').forEach(function(tr) {
             var nameInput = tr.querySelector('input[type="text"]');
             if (nameInput) {
-                var name = nameInput.value.trim().toUpperCase();
+                var name = normalizeFieldName(nameInput.value);
                 if (name) existingByName[name] = tr;
             }
         });
 
-        var merged = 0, added = 0;
+        var merged = 0, added = 0, skippedNoMatch = [];
         fields.forEach(function(f) {
-            var key = f.field.trim().toUpperCase();
+            var key = normalizeFieldName(f.field);
             var existingRow = existingByName[key];
 
             if (existingRow) {
-                // UPDATE existing row: acres, prior crop, prior inputs, status — but NOT planned crop
+                // UPDATE: acres, prior crop, prior inputs, status
+                // NEVER touch planned crop (index 4) — that's the user's 2026 data
                 var inputs = existingRow.querySelectorAll('input, select');
-                // inputs[0]=field, [1]=acres, [2]=prior crop, [3]=prior inputs, [4]=planned crop, [5]=status
                 if (f.acres && inputs[1]) inputs[1].value = f.acres;
                 if (f.priorCrop && inputs[2]) inputs[2].value = f.priorCrop;
                 if (f.priorInputs && inputs[3]) inputs[3].value = f.priorInputs;
-                // SKIP inputs[4] (planned crop) — preserve user's 2026 data
+                // inputs[4] = planned crop — DO NOT TOUCH
                 if (f.status && inputs[5]) {
                     for (var opt = 0; opt < inputs[5].options.length; opt++) {
                         if (inputs[5].options[opt].text === f.status) inputs[5].selectedIndex = opt;
                     }
                 }
-                // Update data-field attribute
                 existingRow.setAttribute('data-field', f.field.trim());
                 merged++;
             } else {
-                // NEW field not in existing table — add it
+                // New field — add but mark that it came from import
                 addFieldHistoryRow(f.field, f.acres, f.priorCrop, f.priorInputs, f.plannedCrop, f.status);
                 added++;
             }
         });
 
         imported = merged + added;
-        // Override summary
-        var mergeSummary = merged + ' fields updated, ' + added + ' new fields added (2026 plans preserved)';
         closeColumnMapper();
-        showToast(mergeSummary, 'success');
+        showToast(merged + ' fields updated from spreadsheet, ' + added + ' new fields added — your 2026 plans are safe', 'success');
         updateFieldHistoryTotals();
         var undoBtn = document.getElementById('undoImportBtn');
         if (undoBtn) undoBtn.style.display = '';
@@ -2610,7 +2622,7 @@ function executeColumnImport() {
         return;
     }
 
-    // No existing rows — fresh import
+    // No existing rows — fresh import (only path that adds without merge)
     fields.forEach(function(f) {
         addFieldHistoryRow(f.field, f.acres, f.priorCrop, f.priorInputs, f.plannedCrop, f.status);
     });
