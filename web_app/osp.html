@@ -1230,7 +1230,7 @@ async function fetchFarmData() {
             fetch(API_URL + '?action=getPestManagementReport&year=' + OSP_YEAR).then(function(r) { return r.json(); }).catch(function() { return null; }),
             fetch(API_URL + '?action=getInventoryProducts&activeOnly=true').then(function(r) { return r.json(); }).catch(function() { return null; }),
             fetch(API_URL + '?action=getHarvestReport&year=' + OSP_YEAR).then(function(r) { return r.json(); }).catch(function() { return null; }),
-            fetch(API_URL + '?action=getFieldHistoryReport&year=' + OSP_YEAR).then(function(r) { return r.json(); }).catch(function() { return null; })
+            fetch(API_URL + '?action=getFieldHistoryReport&year=' + (OSP_YEAR - 1)).then(function(r) { return r.json(); }).catch(function() { return null; })
         ]);
 
         var complianceRes = results[0];
