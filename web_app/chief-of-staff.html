@@ -4178,10 +4178,9 @@
         </div>
 
         <div id="communications-list">
-          <div class="loading">
-            <div class="spinner"></div>
-            <span class="loading-text">Loading communications...</span>
-          </div>
+          <div class="skeleton-card"><div class="skeleton-card-header"><div class="skeleton skeleton-avatar"></div><div class="skeleton-card-body" style="flex:1"><div class="skeleton skeleton-text medium"></div><div class="skeleton skeleton-text short"></div></div></div></div>
+          <div class="skeleton-card"><div class="skeleton-card-header"><div class="skeleton skeleton-avatar"></div><div class="skeleton-card-body" style="flex:1"><div class="skeleton skeleton-text long"></div><div class="skeleton skeleton-text medium"></div></div></div></div>
+          <div class="skeleton-card"><div class="skeleton-card-header"><div class="skeleton skeleton-avatar"></div><div class="skeleton-card-body" style="flex:1"><div class="skeleton skeleton-text medium"></div><div class="skeleton skeleton-text short"></div></div></div></div>
         </div>
       </div>
 
@@ -4202,10 +4201,8 @@
       <!-- Actions Tab -->
       <div class="tab-content" id="tab-actions" role="tabpanel" aria-labelledby="tab-btn-actions" tabindex="0">
         <div id="actions-list">
-          <div class="loading">
-            <div class="spinner"></div>
-            <span class="loading-text">Loading action queue...</span>
-          </div>
+          <div class="skeleton-card"><div class="skeleton-card-header"><div class="skeleton skeleton-avatar"></div><div class="skeleton-card-body" style="flex:1"><div class="skeleton skeleton-text medium"></div><div class="skeleton skeleton-text short"></div></div></div></div>
+          <div class="skeleton-card"><div class="skeleton-card-header"><div class="skeleton skeleton-avatar"></div><div class="skeleton-card-body" style="flex:1"><div class="skeleton skeleton-text long"></div><div class="skeleton skeleton-text medium"></div></div></div></div>
         </div>
       </div>
 
@@ -4218,10 +4215,8 @@
           <button class="filter-chip" data-filter="theirs" onclick="setCommitmentFilter('theirs')">Their Promises</button>
         </div>
         <div id="commitments-list">
-          <div class="loading">
-            <div class="spinner"></div>
-            <span class="loading-text">Loading commitments...</span>
-          </div>
+          <div class="skeleton-card"><div class="skeleton-card-header"><div class="skeleton skeleton-avatar"></div><div class="skeleton-card-body" style="flex:1"><div class="skeleton skeleton-text medium"></div><div class="skeleton skeleton-text short"></div></div></div></div>
+          <div class="skeleton-card"><div class="skeleton-card-header"><div class="skeleton skeleton-avatar"></div><div class="skeleton-card-body" style="flex:1"><div class="skeleton skeleton-text long"></div><div class="skeleton skeleton-text medium"></div></div></div></div>
         </div>
       </div>
 
@@ -4257,13 +4252,14 @@
         <div class="module-section">
           <h3><span class="section-icon">🚨</span> Active Alerts</h3>
           <div id="proactive-alerts-list">
-            <div class="loading"><div class="spinner"></div><span class="loading-text">Loading alerts...</span></div>
+            <div class="skeleton-card"><div class="skeleton-card-header"><div class="skeleton skeleton-avatar"></div><div class="skeleton-card-body" style="flex:1"><div class="skeleton skeleton-text medium"></div><div class="skeleton skeleton-text short"></div></div></div></div>
+            <div class="skeleton-card"><div class="skeleton-card-header"><div class="skeleton skeleton-avatar"></div><div class="skeleton-card-body" style="flex:1"><div class="skeleton skeleton-text long"></div><div class="skeleton skeleton-text medium"></div></div></div></div>
           </div>
         </div>
         <div class="module-section">
           <h3><span class="section-icon">💡</span> Proactive Suggestions</h3>
           <div id="proactive-suggestions-list">
-            <div class="loading"><div class="spinner"></div><span class="loading-text">Loading suggestions...</span></div>
+            <div class="skeleton-card"><div class="skeleton-card-header"><div class="skeleton skeleton-avatar"></div><div class="skeleton-card-body" style="flex:1"><div class="skeleton skeleton-text medium"></div><div class="skeleton skeleton-text short"></div></div></div></div>
           </div>
         </div>
       </div>
@@ -4347,6 +4343,7 @@
               <div class="empty-state">
                 <div class="empty-state-icon">📭</div>
                 <p>No obligations yet. Add one above to start tracking deadlines.</p>
+                <button class="btn btn-secondary" style="margin-top:16px;" onclick="switchTab('actions')">View Actions</button>
               </div>
             </div>
           </div>
@@ -4369,7 +4366,8 @@
           <div class="module-section">
             <h3><span class="section-icon">📅</span> Today's Schedule</h3>
             <div id="calendar-schedule">
-              <div class="loading"><div class="spinner"></div><span class="loading-text">Loading schedule...</span></div>
+              <div class="skeleton-card"><div class="skeleton-card-header"><div class="skeleton skeleton-avatar"></div><div class="skeleton-card-body" style="flex:1"><div class="skeleton skeleton-text medium"></div><div class="skeleton skeleton-text short"></div></div></div></div>
+              <div class="skeleton-card"><div class="skeleton-card-header"><div class="skeleton skeleton-avatar"></div><div class="skeleton-card-body" style="flex:1"><div class="skeleton skeleton-text long"></div><div class="skeleton skeleton-text medium"></div></div></div></div>
             </div>
           </div>
           <div class="module-section" id="meeting-slots-section" style="display:none;">
@@ -4390,13 +4388,13 @@
           <div class="module-section">
             <h3><span class="section-icon">📈</span> Workload Forecast</h3>
             <div id="workload-forecast">
-              <div class="loading"><div class="spinner"></div><span class="loading-text">Loading forecast...</span></div>
+              <div class="skeleton-card"><div class="skeleton-card-header"><div class="skeleton skeleton-avatar"></div><div class="skeleton-card-body" style="flex:1"><div class="skeleton skeleton-text medium"></div><div class="skeleton skeleton-text short"></div></div></div></div>
             </div>
           </div>
           <div class="module-section">
             <h3><span class="section-icon">⚠️</span> Churn Risk</h3>
             <div id="churn-risk-list">
-              <div class="loading"><div class="spinner"></div><span class="loading-text">Loading churn data...</span></div>
+              <div class="skeleton-card"><div class="skeleton-card-header"><div class="skeleton skeleton-avatar"></div><div class="skeleton-card-body" style="flex:1"><div class="skeleton skeleton-text medium"></div><div class="skeleton skeleton-text short"></div></div></div></div>
             </div>
           </div>
         </div>
@@ -4409,7 +4407,8 @@
           <div class="module-section">
             <h3><span class="section-icon">🧠</span> Active Patterns</h3>
             <div id="memory-patterns-list">
-              <div class="loading"><div class="spinner"></div><span class="loading-text">Loading patterns...</span></div>
+              <div class="skeleton-card"><div class="skeleton-card-header"><div class="skeleton skeleton-avatar"></div><div class="skeleton-card-body" style="flex:1"><div class="skeleton skeleton-text medium"></div><div class="skeleton skeleton-text short"></div></div></div></div>
+              <div class="skeleton-card"><div class="skeleton-card-header"><div class="skeleton skeleton-avatar"></div><div class="skeleton-card-body" style="flex:1"><div class="skeleton skeleton-text long"></div><div class="skeleton skeleton-text medium"></div></div></div></div>
             </div>
           </div>
           <div class="module-section">
@@ -4430,13 +4429,13 @@
               Control how much the Chief of Staff can do autonomously. Level 1 = always ask. Level 5 = fully autonomous.
             </p>
             <div id="autonomy-settings">
-              <div class="loading"><div class="spinner"></div><span class="loading-text">Loading autonomy settings...</span></div>
+              <div class="skeleton-card"><div class="skeleton-card-header"><div class="skeleton skeleton-avatar"></div><div class="skeleton-card-body" style="flex:1"><div class="skeleton skeleton-text medium"></div><div class="skeleton skeleton-text short"></div></div></div></div>
             </div>
           </div>
           <div class="module-section">
             <h3><span class="section-icon">📋</span> Pending Approvals</h3>
             <div id="pending-approvals-list">
-              <div class="loading"><div class="spinner"></div><span class="loading-text">Loading approvals...</span></div>
+              <div class="skeleton-card"><div class="skeleton-card-header"><div class="skeleton skeleton-avatar"></div><div class="skeleton-card-body" style="flex:1"><div class="skeleton skeleton-text medium"></div><div class="skeleton skeleton-text short"></div></div></div></div>
             </div>
           </div>
           <div class="module-section">
@@ -4526,7 +4525,8 @@
               <button class="btn btn-secondary" onclick="analyzeOwnerStyle()">Re-analyze My Style</button>
             </div>
             <div id="style-profile-content">
-              <div class="loading"><div class="spinner"></div><span class="loading-text">Loading style profile...</span></div>
+              <div class="skeleton-card"><div class="skeleton-card-header"><div class="skeleton skeleton-avatar"></div><div class="skeleton-card-body" style="flex:1"><div class="skeleton skeleton-text medium"></div><div class="skeleton skeleton-text short"></div></div></div></div>
+              <div class="skeleton-card"><div class="skeleton-card-header"><div class="skeleton skeleton-avatar"></div><div class="skeleton-card-body" style="flex:1"><div class="skeleton skeleton-text long"></div><div class="skeleton skeleton-text medium"></div></div></div></div>
             </div>
           </div>
           <div class="module-section">
@@ -4565,7 +4565,7 @@
           <div class="module-section">
             <h3><span class="section-icon">🔗</span> Integrations</h3>
             <div id="integrations-list">
-              <div class="loading"><div class="spinner"></div><span class="loading-text">Loading integrations...</span></div>
+              <div class="skeleton-card"><div class="skeleton-card-header"><div class="skeleton skeleton-avatar"></div><div class="skeleton-card-body" style="flex:1"><div class="skeleton skeleton-text medium"></div><div class="skeleton skeleton-text short"></div></div></div></div>
             </div>
           </div>
           <div class="module-section">
@@ -4574,7 +4574,7 @@
               <button class="btn btn-secondary" onclick="loadAgentMetrics()">Refresh Metrics</button>
             </div>
             <div id="agents-list">
-              <div class="loading"><div class="spinner"></div><span class="loading-text">Loading agents...</span></div>
+              <div class="skeleton-card"><div class="skeleton-card-header"><div class="skeleton skeleton-avatar"></div><div class="skeleton-card-body" style="flex:1"><div class="skeleton skeleton-text medium"></div><div class="skeleton skeleton-text short"></div></div></div></div>
             </div>
           </div>
           <div class="module-section">
@@ -4583,7 +4583,8 @@
               <button class="btn btn-secondary" onclick="loadAuditLog()">Refresh Log</button>
             </div>
             <div id="audit-log-list">
-              <div class="loading"><div class="spinner"></div><span class="loading-text">Loading audit log...</span></div>
+              <div class="skeleton-card"><div class="skeleton-card-header"><div class="skeleton skeleton-avatar"></div><div class="skeleton-card-body" style="flex:1"><div class="skeleton skeleton-text medium"></div><div class="skeleton skeleton-text short"></div></div></div></div>
+              <div class="skeleton-card"><div class="skeleton-card-header"><div class="skeleton skeleton-avatar"></div><div class="skeleton-card-body" style="flex:1"><div class="skeleton skeleton-text long"></div><div class="skeleton skeleton-text medium"></div></div></div></div>
             </div>
           </div>
         </div>
@@ -5451,6 +5452,7 @@
           <div class="empty-state">
             <div class="empty-state-icon">📭</div>
             <p>Unable to load communications</p>
+            <button class="btn btn-secondary" style="margin-top:16px;" onclick="refreshAll()">Check Again</button>
           </div>
         `;
       }
@@ -5480,6 +5482,7 @@
           <div class="empty-state">
             <div class="empty-state-icon">📭</div>
             <p>No communications found</p>
+            <button class="btn btn-secondary" style="margin-top:16px;" onclick="refreshAll()">Check Again</button>
           </div>
         `;
         return;
@@ -5521,7 +5524,7 @@
       if (emailContainer) {
         var emailOnly = communications.filter(function(c) { return c.type === 'email'; });
         if (emailOnly.length === 0) {
-          emailContainer.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📭</div><p>No emails found</p></div>';
+          emailContainer.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📭</div><p>No emails found</p><button class="btn btn-secondary" style="margin-top:16px;" onclick="refreshAll()">Check Again</button></div>';
         } else {
           var emailHtml = '';
           var emailGroups = {
@@ -5848,6 +5851,7 @@ Please help with this email. Be concise and actionable.`;
           <div class="empty-state">
             <div class="empty-state-icon">✅</div>
             <p>No pending actions</p>
+            <button class="btn btn-secondary" style="margin-top:16px;" onclick="refreshAll()">Refresh</button>
           </div>
         `;
         return;
@@ -5936,6 +5940,7 @@ Please help with this email. Be concise and actionable.`;
           <div class="empty-state">
             <div class="empty-state-icon">📝</div>
             <p>No commitments found</p>
+            <button class="btn btn-secondary" style="margin-top:16px;" onclick="switchTab('actions')">View Actions</button>
           </div>
         `;
         return;
@@ -6297,6 +6302,48 @@ Please help with this email. Be concise and actionable.`;
     // ═══════════════════════════════════════════════════════════════════════════
 
     const _tabLoadedOnce = {};
+    function updateChatContext(tab) {
+      var quickActions = document.querySelector('.quick-actions');
+      if (!quickActions) return;
+
+      var contexts = {
+        communications: [
+          { icon: '🚨', label: 'Urgent', action: "askQuestion('Show urgent items')" },
+          { icon: '📊', label: 'Stats', action: "askQuestion('Show communication stats')" },
+          { icon: '📧', label: 'Unread', action: "askQuestion('Show unread messages')" }
+        ],
+        email: [
+          { icon: '📧', label: 'Draft reply', action: "askQuestion('Draft a reply')" },
+          { icon: '📋', label: 'Summarize', action: "askQuestion('Summarize this email')" },
+          { icon: '🏷️', label: 'Categorize', action: "askQuestion('Categorize my emails')" }
+        ],
+        actions: [
+          { icon: '✅', label: 'Next action', action: "askQuestion('What should I do next?')" },
+          { icon: '📋', label: 'Summary', action: "askQuestion('Summarize my action queue')" },
+          { icon: '⏰', label: 'Overdue', action: "askQuestion('Show overdue actions')" }
+        ],
+        commitments: [
+          { icon: '📊', label: 'Status', action: "askQuestion('Show commitment status')" },
+          { icon: '⏰', label: 'Overdue', action: "askQuestion('Show overdue commitments')" },
+          { icon: '📝', label: 'Add new', action: "askQuestion('Help me add a commitment')" }
+        ],
+        intel: [
+          { icon: '🔮', label: 'Predict', action: "askQuestion('What should I watch for?')" },
+          { icon: '🌤️', label: 'Weather', action: "askQuestion('Weather forecast for this week')" },
+          { icon: '📈', label: 'Trends', action: "askQuestion('Show farm trends')" }
+        ]
+      };
+
+      var items = contexts[tab] || contexts.communications;
+      var buttons = quickActions.querySelectorAll('.quick-action');
+      for (var i = 0; i < items.length; i++) {
+        if (buttons[i]) {
+          buttons[i].innerHTML = items[i].icon + ' ' + items[i].label;
+          buttons[i].setAttribute('onclick', items[i].action);
+        }
+      }
+    }
+
     function switchTab(tab) {
       // Map legacy tab names to new names
       if (tab === 'proactive') tab = 'intel';
@@ -6332,6 +6379,9 @@ Please help with this email. Be concise and actionable.`;
 
       // Reset list navigation
       currentListIndex = -1;
+
+      // Update chat quick actions for context
+      updateChatContext(tab);
 
       // Lazy-load data for newly opened tabs
       if (!_tabLoadedOnce[tab]) {
@@ -6937,7 +6987,7 @@ Please help with this email. Be concise and actionable.`;
 
     async function loadProactiveAlerts() {
       const container = document.getElementById('proactive-alerts-list');
-      container.innerHTML = '<div class="loading"><div class="spinner"></div><span class="loading-text">Loading alerts...</span></div>';
+      container.innerHTML = '<div class="skeleton-card"><div class="skeleton-card-header"><div class="skeleton skeleton-avatar"></div><div class="skeleton-card-body" style="flex:1"><div class="skeleton skeleton-text medium"></div><div class="skeleton skeleton-text short"></div></div></div></div><div class="skeleton-card"><div class="skeleton-card-header"><div class="skeleton skeleton-avatar"></div><div class="skeleton-card-body" style="flex:1"><div class="skeleton skeleton-text long"></div><div class="skeleton skeleton-text medium"></div></div></div></div>';
       try {
         const res = await cachedFetch('getActiveAlerts');
         if (res.success !== false && (res.alerts || Array.isArray(res))) {
@@ -6952,17 +7002,17 @@ Please help with this email. Be concise and actionable.`;
             badge.style.display = 'none';
           }
         } else {
-          container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">✅</div><p>No active alerts</p></div>';
+          container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">✅</div><p>No active alerts</p><button class="btn btn-secondary" style="margin-top:16px;" onclick="refreshAll()">Run Scan Now</button></div>';
         }
       } catch (error) {
-        container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">⚠️</div><p>Failed to load alerts: ${escapeHtml(error.message)}</p></div>`;
+        container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">⚠️</div><p>Failed to load alerts: ${escapeHtml(error.message)}</p><button class="btn btn-secondary" style="margin-top:16px;" onclick="refreshAll()">Run Scan Now</button></div>`;
       }
     }
 
     function renderProactiveAlerts() {
       const container = document.getElementById('proactive-alerts-list');
       if (proactiveAlerts.length === 0) {
-        container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">✅</div><p>No active alerts</p></div>';
+        container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">✅</div><p>No active alerts</p><button class="btn btn-secondary" style="margin-top:16px;" onclick="refreshAll()">Run Scan Now</button></div>';
         return;
       }
       let html = '';
@@ -7010,7 +7060,7 @@ Please help with this email. Be concise and actionable.`;
 
     async function loadProactiveSuggestions() {
       const container = document.getElementById('proactive-suggestions-list');
-      container.innerHTML = '<div class="loading"><div class="spinner"></div><span class="loading-text">Loading suggestions...</span></div>';
+      container.innerHTML = '<div class="skeleton-card"><div class="skeleton-card-header"><div class="skeleton skeleton-avatar"></div><div class="skeleton-card-body" style="flex:1"><div class="skeleton skeleton-text medium"></div><div class="skeleton skeleton-text short"></div></div></div></div>';
       try {
         const res = await cachedFetch('getProactiveSuggestions');
         const suggestions = res.suggestions || res.data || [];
@@ -7026,10 +7076,10 @@ Please help with this email. Be concise and actionable.`;
           }
           container.innerHTML = html;
         } else {
-          container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">💡</div><p>No suggestions at this time</p></div>';
+          container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">💡</div><p>No suggestions at this time</p><button class="btn btn-secondary" style="margin-top:16px;" onclick="refreshAll()">Run Scan Now</button></div>';
         }
       } catch (error) {
-        container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">⚠️</div><p>Failed to load suggestions: ${escapeHtml(error.message)}</p></div>`;
+        container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">⚠️</div><p>Failed to load suggestions: ${escapeHtml(error.message)}</p><button class="btn btn-secondary" style="margin-top:16px;" onclick="refreshAll()">Refresh</button></div>`;
       }
     }
 
@@ -7041,7 +7091,7 @@ Please help with this email. Be concise and actionable.`;
 
     async function loadTodaySchedule() {
       const container = document.getElementById('calendar-schedule');
-      container.innerHTML = '<div class="loading"><div class="spinner"></div><span class="loading-text">Loading schedule...</span></div>';
+      container.innerHTML = '<div class="skeleton-card"><div class="skeleton-card-header"><div class="skeleton skeleton-avatar"></div><div class="skeleton-card-body" style="flex:1"><div class="skeleton skeleton-text medium"></div><div class="skeleton skeleton-text short"></div></div></div></div><div class="skeleton-card"><div class="skeleton-card-header"><div class="skeleton skeleton-avatar"></div><div class="skeleton-card-body" style="flex:1"><div class="skeleton skeleton-text long"></div><div class="skeleton skeleton-text medium"></div></div></div></div>';
       try {
         const res = await cachedFetch('getTodaySchedule');
         const events = res.events || res.schedule || res.data || [];
@@ -7060,10 +7110,10 @@ Please help with this email. Be concise and actionable.`;
           }
           container.innerHTML = html;
         } else {
-          container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📅</div><p>No events scheduled for today</p></div>';
+          container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📅</div><p>No events scheduled for today</p><button class="btn btn-secondary" style="margin-top:16px;" onclick="openSettingsDrawer(\'calendar\')">Open Calendar</button></div>';
         }
       } catch (error) {
-        container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">⚠️</div><p>Failed to load schedule: ${escapeHtml(error.message)}</p></div>`;
+        container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">⚠️</div><p>Failed to load schedule: ${escapeHtml(error.message)}</p><button class="btn btn-secondary" style="margin-top:16px;" onclick="refreshAll()">Refresh</button></div>`;
       }
     }
 
@@ -7139,8 +7189,8 @@ Please help with this email. Be concise and actionable.`;
       const churnContainer = document.getElementById('churn-risk-list');
 
       tilesContainer.innerHTML = '';
-      workloadContainer.innerHTML = '<div class="loading"><div class="spinner"></div><span class="loading-text">Loading forecast...</span></div>';
-      churnContainer.innerHTML = '<div class="loading"><div class="spinner"></div><span class="loading-text">Loading churn data...</span></div>';
+      workloadContainer.innerHTML = '<div class="skeleton-card"><div class="skeleton-card-header"><div class="skeleton skeleton-avatar"></div><div class="skeleton-card-body" style="flex:1"><div class="skeleton skeleton-text medium"></div><div class="skeleton skeleton-text short"></div></div></div></div>';
+      churnContainer.innerHTML = '<div class="skeleton-card"><div class="skeleton-card-header"><div class="skeleton skeleton-avatar"></div><div class="skeleton-card-body" style="flex:1"><div class="skeleton skeleton-text medium"></div><div class="skeleton skeleton-text short"></div></div></div></div>';
 
       // Load predictive report
       try {
@@ -7189,7 +7239,7 @@ Please help with this email. Be concise and actionable.`;
           }
           workloadContainer.innerHTML = `<div class="data-grid">${html}</div>`;
         } else {
-          workloadContainer.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📈</div><p>No workload forecast data</p></div>';
+          workloadContainer.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📈</div><p>No workload forecast data</p><button class="btn btn-secondary" style="margin-top:16px;" onclick="openSettingsDrawer(\'predictive\')">Configure Predictions</button></div>';
         }
       } catch (error) {
         workloadContainer.innerHTML = `<p style="color:var(--accent-red);font-size:14px;">Error: ${escapeHtml(error.message)}</p>`;
@@ -7211,7 +7261,7 @@ Please help with this email. Be concise and actionable.`;
           }
           churnContainer.innerHTML = html;
         } else {
-          churnContainer.innerHTML = '<div class="empty-state"><div class="empty-state-icon">✅</div><p>No customers at risk of churning</p></div>';
+          churnContainer.innerHTML = '<div class="empty-state"><div class="empty-state-icon">✅</div><p>No customers at risk of churning</p><button class="btn btn-secondary" style="margin-top:16px;" onclick="refreshAll()">Run Analysis</button></div>';
         }
       } catch (error) {
         churnContainer.innerHTML = `<p style="color:var(--accent-red);font-size:14px;">Error: ${escapeHtml(error.message)}</p>`;
@@ -7226,7 +7276,7 @@ Please help with this email. Be concise and actionable.`;
 
     async function loadMemoryPatterns() {
       const container = document.getElementById('memory-patterns-list');
-      container.innerHTML = '<div class="loading"><div class="spinner"></div><span class="loading-text">Loading patterns...</span></div>';
+      container.innerHTML = '<div class="skeleton-card"><div class="skeleton-card-header"><div class="skeleton skeleton-avatar"></div><div class="skeleton-card-body" style="flex:1"><div class="skeleton skeleton-text medium"></div><div class="skeleton skeleton-text short"></div></div></div></div><div class="skeleton-card"><div class="skeleton-card-header"><div class="skeleton skeleton-avatar"></div><div class="skeleton-card-body" style="flex:1"><div class="skeleton skeleton-text long"></div><div class="skeleton skeleton-text medium"></div></div></div></div>';
       try {
         const res = await cachedFetch('getActivePatterns', { minConfidence: '0.6' });
         const patterns = res.patterns || res.data || [];
@@ -7244,10 +7294,10 @@ Please help with this email. Be concise and actionable.`;
           }
           container.innerHTML = html;
         } else {
-          container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🧠</div><p>No patterns detected yet. The system learns over time.</p></div>';
+          container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🧠</div><p>No patterns detected yet. The system learns over time.</p><button class="btn btn-secondary" style="margin-top:16px;" onclick="refreshAll()">Analyze Now</button></div>';
         }
       } catch (error) {
-        container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">⚠️</div><p>Failed to load patterns: ${escapeHtml(error.message)}</p></div>`;
+        container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">⚠️</div><p>Failed to load patterns: ${escapeHtml(error.message)}</p><button class="btn btn-secondary" style="margin-top:16px;" onclick="refreshAll()">Refresh</button></div>`;
       }
     }
 
@@ -7258,7 +7308,7 @@ Please help with this email. Be concise and actionable.`;
         showToast('Enter a contact email first', 'error');
         return;
       }
-      container.innerHTML = '<div class="loading"><div class="spinner"></div><span class="loading-text">Recalling contact...</span></div>';
+      container.innerHTML = '<div class="skeleton-card"><div class="skeleton-card-header"><div class="skeleton skeleton-avatar"></div><div class="skeleton-card-body" style="flex:1"><div class="skeleton skeleton-text medium"></div><div class="skeleton skeleton-text short"></div></div></div></div>';
       try {
         const res = await fetch(`${API_BASE}?action=recallContact&email=${encodeURIComponent(email)}`).then(r => r.json());
         if (res.success !== false && (res.contact || res.data || res.memory)) {
@@ -7297,7 +7347,7 @@ Please help with this email. Be concise and actionable.`;
 
     async function loadAutonomySettings() {
       const container = document.getElementById('autonomy-settings');
-      container.innerHTML = '<div class="loading"><div class="spinner"></div><span class="loading-text">Loading autonomy settings...</span></div>';
+      container.innerHTML = '<div class="skeleton-card"><div class="skeleton-card-header"><div class="skeleton skeleton-avatar"></div><div class="skeleton-card-body" style="flex:1"><div class="skeleton skeleton-text medium"></div><div class="skeleton skeleton-text short"></div></div></div></div>';
       try {
         const res = await cachedFetch('getAutonomyStatus');
         if (res.success !== false) {
@@ -7349,7 +7399,7 @@ Please help with this email. Be concise and actionable.`;
 
     async function loadPendingApprovals() {
       const container = document.getElementById('pending-approvals-list');
-      container.innerHTML = '<div class="loading"><div class="spinner"></div><span class="loading-text">Loading approvals...</span></div>';
+      container.innerHTML = '<div class="skeleton-card"><div class="skeleton-card-header"><div class="skeleton skeleton-avatar"></div><div class="skeleton-card-body" style="flex:1"><div class="skeleton skeleton-text medium"></div><div class="skeleton skeleton-text short"></div></div></div></div>';
       try {
         const res = await cachedFetch('getPendingApprovals');
         const approvals = res.approvals || res.data || res.pending || [];
@@ -7371,7 +7421,7 @@ Please help with this email. Be concise and actionable.`;
           }
           container.innerHTML = html;
         } else {
-          container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">✅</div><p>No pending approvals</p></div>';
+          container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">✅</div><p>No pending approvals</p><button class="btn btn-secondary" style="margin-top:16px;" onclick="openSettingsDrawer(\'autonomy\')">Configure Autonomy</button></div>';
         }
       } catch (error) {
         container.innerHTML = `<p style="color:var(--accent-red);font-size:14px;">Error: ${escapeHtml(error.message)}</p>`;
@@ -7406,7 +7456,7 @@ Please help with this email. Be concise and actionable.`;
 
     async function loadStyleProfile() {
       const container = document.getElementById('style-profile-content');
-      container.innerHTML = '<div class="loading"><div class="spinner"></div><span class="loading-text">Loading style profile...</span></div>';
+      container.innerHTML = '<div class="skeleton-card"><div class="skeleton-card-header"><div class="skeleton skeleton-avatar"></div><div class="skeleton-card-body" style="flex:1"><div class="skeleton skeleton-text medium"></div><div class="skeleton skeleton-text short"></div></div></div></div><div class="skeleton-card"><div class="skeleton-card-header"><div class="skeleton skeleton-avatar"></div><div class="skeleton-card-body" style="flex:1"><div class="skeleton skeleton-text long"></div><div class="skeleton skeleton-text medium"></div></div></div></div>';
       try {
         const res = await cachedFetch('getStyleProfile');
         if (res.success !== false && (res.profile || res.data || res.style)) {
@@ -7526,7 +7576,7 @@ Please help with this email. Be concise and actionable.`;
 
     async function processVoiceCommand(transcript) {
       const responseContainer = document.getElementById('voice-response');
-      responseContainer.innerHTML = '<div class="loading"><div class="spinner"></div><span class="loading-text">Processing command...</span></div>';
+      responseContainer.innerHTML = '<div class="skeleton-card"><div class="skeleton-card-header"><div class="skeleton skeleton-avatar"></div><div class="skeleton-card-body" style="flex:1"><div class="skeleton skeleton-text medium"></div><div class="skeleton skeleton-text short"></div></div></div></div>';
 
       try {
         const res = await fetch(`${API_BASE}?action=voiceCommand&transcript=${encodeURIComponent(transcript)}`).then(r => r.json());
@@ -7562,7 +7612,7 @@ Please help with this email. Be concise and actionable.`;
 
     async function loadFileStats() {
       const container = document.getElementById('file-stats');
-      container.innerHTML = '<div class="loading" style="grid-column:1/-1;"><div class="spinner"></div><span class="loading-text">Loading file stats...</span></div>';
+      container.innerHTML = '<div class="skeleton-card" style="grid-column:1/-1;"><div class="skeleton-card-header"><div class="skeleton skeleton-avatar"></div><div class="skeleton-card-body" style="flex:1"><div class="skeleton skeleton-text medium"></div><div class="skeleton skeleton-text short"></div></div></div></div>';
       try {
         const res = await fetch(`${API_BASE}?action=getFileStats`).then(r => r.json());
         if (res.success !== false) {
@@ -7593,7 +7643,7 @@ Please help with this email. Be concise and actionable.`;
         showToast('Enter a search query', 'error');
         return;
       }
-      container.innerHTML = '<div class="loading"><div class="spinner"></div><span class="loading-text">Searching files...</span></div>';
+      container.innerHTML = '<div class="skeleton-card"><div class="skeleton-card-header"><div class="skeleton skeleton-avatar"></div><div class="skeleton-card-body" style="flex:1"><div class="skeleton skeleton-text medium"></div><div class="skeleton skeleton-text short"></div></div></div></div>';
       try {
         const res = await fetch(`${API_BASE}?action=searchFilesNL&query=${encodeURIComponent(query)}`).then(r => r.json());
         const files = res.files || res.results || res.data || [];
@@ -7623,7 +7673,7 @@ Please help with this email. Be concise and actionable.`;
 
     async function loadIntegrationStatus() {
       const container = document.getElementById('integrations-list');
-      container.innerHTML = '<div class="loading"><div class="spinner"></div><span class="loading-text">Loading integrations...</span></div>';
+      container.innerHTML = '<div class="skeleton-card"><div class="skeleton-card-header"><div class="skeleton skeleton-avatar"></div><div class="skeleton-card-body" style="flex:1"><div class="skeleton skeleton-text medium"></div><div class="skeleton skeleton-text short"></div></div></div></div>';
       try {
         const res = await fetch(`${API_BASE}?action=getIntegrationStatus`).then(r => r.json());
         if (res.success !== false) {
@@ -7668,7 +7718,7 @@ Please help with this email. Be concise and actionable.`;
 
     async function loadAgents() {
       const container = document.getElementById('agents-list');
-      container.innerHTML = '<div class="loading"><div class="spinner"></div><span class="loading-text">Loading agents...</span></div>';
+      container.innerHTML = '<div class="skeleton-card"><div class="skeleton-card-header"><div class="skeleton skeleton-avatar"></div><div class="skeleton-card-body" style="flex:1"><div class="skeleton skeleton-text medium"></div><div class="skeleton skeleton-text short"></div></div></div></div>';
       try {
         const res = await fetch(`${API_BASE}?action=getAvailableAgents`).then(r => r.json());
         const agents = res.agents || res.data || [];
@@ -7688,7 +7738,7 @@ Please help with this email. Be concise and actionable.`;
           }
           container.innerHTML = html;
         } else {
-          container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🤖</div><p>No agents configured</p></div>';
+          container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🤖</div><p>No agents configured</p><button class="btn btn-secondary" style="margin-top:16px;" onclick="openSettingsDrawer(\'system\')">System Settings</button></div>';
         }
       } catch (error) {
         container.innerHTML = `<p style="color:var(--accent-red);font-size:14px;">Error: ${escapeHtml(error.message)}</p>`;
@@ -7718,7 +7768,7 @@ Please help with this email. Be concise and actionable.`;
 
     async function loadAuditLog() {
       const container = document.getElementById('audit-log-list');
-      container.innerHTML = '<div class="loading"><div class="spinner"></div><span class="loading-text">Loading audit log...</span></div>';
+      container.innerHTML = '<div class="skeleton-card"><div class="skeleton-card-header"><div class="skeleton skeleton-avatar"></div><div class="skeleton-card-body" style="flex:1"><div class="skeleton skeleton-text medium"></div><div class="skeleton skeleton-text short"></div></div></div></div><div class="skeleton-card"><div class="skeleton-card-header"><div class="skeleton skeleton-avatar"></div><div class="skeleton-card-body" style="flex:1"><div class="skeleton skeleton-text long"></div><div class="skeleton skeleton-text medium"></div></div></div></div>';
       try {
         const res = await fetch(`${API_BASE}?action=getChiefOfStaffAuditLog&limit=50`).then(r => r.json());
         const entries = res.entries || res.log || res.data || [];
@@ -7734,7 +7784,7 @@ Please help with this email. Be concise and actionable.`;
           }
           container.innerHTML = html;
         } else {
-          container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📜</div><p>No audit log entries</p></div>';
+          container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📜</div><p>No audit log entries</p><button class="btn btn-secondary" style="margin-top:16px;" onclick="refreshAll()">Refresh</button></div>';
         }
       } catch (error) {
         container.innerHTML = `<p style="color:var(--accent-red);font-size:14px;">Error: ${escapeHtml(error.message)}</p>`;
@@ -9752,7 +9802,7 @@ Please help with this email. Be concise and actionable.`;
 
       // Render active
       if (active.length === 0) {
-        activeContainer.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📭</div><p>No active obligations. Add one above to start tracking deadlines.</p></div>';
+        activeContainer.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📭</div><p>No active obligations. Add one above to start tracking deadlines.</p><button class="btn btn-secondary" style="margin-top:16px;" onclick="switchTab(\'actions\')">View Actions</button></div>';
       } else {
         let html = '';
         for (const obl of active) {
