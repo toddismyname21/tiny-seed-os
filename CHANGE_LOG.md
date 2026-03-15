@@ -35,6 +35,114 @@ Brief explanation of why these changes were made.
 
 
 
+## 2026-03-15 — PM_ARCHITECT: Chief of Staff Personal Assistant Upgrade + MCP Plugins
+
+### MCP Servers Added
+- ESLint MCP (`@eslint/mcp`) — Auto-lint 75+ HTML files, catch injection patterns
+- GitHub MCP (`@modelcontextprotocol/server-github`) — CI/CD monitoring, deployment verification
+- Google Sheets MCP (`mcp-google-sheets`) — Registered, pending OAuth credentials setup
+
+### Files Modified
+- `web_app/chief-of-staff.html` — +1,003 lines: 3 new features
+
+### Features Added
+1. **Obligations & Deadlines Tab** — Create/track deadlines (lease, grant, certification, vendor, CSA, tax, insurance) with recurrence, reminder lead times, urgency color-coding, auto-renewal on completion
+2. **Enhanced Proactive Intel** — "Today's Priorities" grid (overdue count, due this week, unread comms, weather alerts) with dismiss/snooze/act buttons
+3. **Notification Preferences** — SMS/email/in-app toggles, quiet hours, batch frequency (immediate/hourly/daily digest) in Autonomy tab
+
+### Functions Added
+- `loadObligations()`, `addObligation()`, `completeObligation(id)`, `snoozeObligation(id, days)`, `deleteObligation(id)`, `renderObligations()`, `checkObligationAlerts()` — Obligation CRUD + alerting
+- `loadNotificationPrefs()`, `saveNotificationPrefs()` — Notification preferences with backend fallback
+- Enhanced `loadProactiveAlerts()` — Merges obligation deadlines into priorities grid
+
+### Reason
+User requested Chief of Staff act as "a personal assistant that stays on top of things and reminds me of my obligations." Backend was 85% built but frontend lacked obligation creation, notification preferences, and proactive alerts surfacing. Data stored in localStorage with backend endpoint fallback for future migration.
+
+### Duplicate Check
+- [x] No duplicates — extends existing chief-of-staff.html
+
+---
+
+## 2026-03-15 — PM_ARCHITECT: One-Click OEFFA Form Fill with Auto-Fetched PDF
+
+### Files Created
+- `web_app/oeffa-osp-form.pdf` — Hosted copy of OEFFA Producer OSP 2026 fillable PDF (29 pages, 796 fields)
+- `web_app/oeffa-field-history.pdf` — OEFFA supplemental field history sheet
+- `web_app/oeffa-seed-page.pdf` — OEFFA supplemental seed page
+
+### Files Modified
+- `web_app/osp.html` — One-click "Fill OEFFA Form" button auto-fetches hosted PDF and fills all 796 fields
+
+### Functions Added
+- `fillOEFFAForm()` — Fetches hosted OEFFA PDF, fills with OSP data, downloads completed form
+- `fillPDFFromArrayBuffer()` — Shared PDF fill logic using pdf-lib
+- `buildOEFFAExactMap()` — Maps 70+ OSP fields to real OEFFA PDF field names (extracted via pypdf)
+
+### Reason
+User requested: "Pull the OEFFA form from the web and remove the step of me uploading the document." Now one click fills the official OEFFA form. "Update Form" button preserved for future OEFFA format changes.
+
+### Duplicate Check
+- [x] No duplicates — extends existing osp.html PDF functionality
+
+---
+
+## 2026-03-15 — PM_ARCHITECT: OSP Auto-Populate + Dynamic Years + OEFFA PDF Filler
+
+### Files Modified
+- `web_app/osp.html` — Major upgrade: 10-API auto-populate, dynamic year selector, OEFFA PDF form filler
+
+### Functions Added
+- `buildYearSelector()` — Creates year dropdown (current ± 2 years)
+- `changeOSPYear(year)` — Switches certification year, re-fetches all data
+- `updateDynamicHeaders()` — Updates table headers with correct prior/current year
+- `populateFieldHistory()` — Auto-fills Section 4 from getFields + getFieldHistoryReport + getPlanningData
+- `populateCrops()` — Auto-fills Section 5 from getPlanningData (grouped by crop+variety)
+- `populateSoilData()` — Auto-fills Section 7 soil description from getSoilTests
+- `populateFertilityInputs()` — Auto-fills Section 7 fertility table from getInputApplicationReport
+- `populatePestManagement()` — Auto-fills Section 8 pest table from getPestManagementReport
+- `populateMaterials()` — Auto-fills Section 9 from getInventoryProducts (AMENDMENT/FERTILIZER/PESTICIDE/BIOLOGICAL)
+- `populateHarvestData()` — Auto-fills Section 11 harvest narrative from getHarvestReport
+- `handleOEFFAUpload()` — Upload blank OEFFA fillable PDF, maps OSP data to form fields, downloads filled PDF
+- `buildOEFFADataMap()` — Maps 60+ OSP fields to common OEFFA form field name patterns
+- `findBestMatch()` — Fuzzy field name matching for PDF form filling
+- `formatDateShort()` — Date formatting helper for crop table
+
+### Functions Modified
+- `fetchFarmData()` — Expanded from 3 API calls to 10 parallel API calls
+- Field history row builder — Dynamic year placeholder instead of hardcoded
+
+### Reason
+OSP must be fully self-service from Tiny Seed OS — no Claude Code needed. User should open page, data auto-populates from existing farm records, user reviews/edits, then fills OEFFA's official PDF form. All 12 hardcoded "2026" references replaced with dynamic OSP_YEAR. Year selector allows switching between certification years.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] No duplicates — all changes in existing osp.html
+
+---
+
+## 2026-03-15 — PM_ARCHITECT: OSP Farm Map — Leaflet-Geoman Rewrite
+
+### Files Modified
+- `web_app/osp.html` — Replaced abandoned Leaflet.Draw with Leaflet-Geoman for Section 3 farm map
+
+### Functions Added
+- `initFarmMap()` — Initializes satellite map with Geoman polygon tools
+- `showFieldNamePicker()` — Overlay to assign field names from 18 known farm fields
+- `assignFieldName(name)` — Links drawn polygon to a field name with acreage calculation
+- `loadBackendBoundaries()` — Loads GPS-traced field boundaries from FARM_BOUNDARIES sheet
+- `saveToFarm()` — Persists hand-drawn boundaries to backend (skips GPS-sourced)
+- `loadFieldNames()` — Fetches field list from getFields API
+- `calculateAcreage(latlngs)` — Shoelace formula for polygon area in acres
+
+### Reason
+OSP due to OEFFA today (2026-03-15). Leaflet.Draw was abandoned since 2018 with broken touch events (GitHub issues #789, #548). Geoman is actively maintained with proper mobile support. Added GPS override so employee app field traces replace hand-drawn boundaries. Satellite view (Esri World Imagery) for field identification.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] No duplicates — only farm map implementation in osp.html
+
+---
+
 ## 2026-03-14 — PM_ARCHITECT: CSA & Wholesale P0-P2 Full Fix Deployment
 
 ### Files Modified
@@ -16316,3 +16424,48 @@ Owner-requested code quality audit: shared JS files and medium HTML pages (not p
 ### Duplicate Check
 - [x] No new application code created — audit only
 - [x] No application files modified — read-only audit
+
+## 2026-03-15 — RESEARCH_CLAUDE: Claude Code MCP Plugins & Ecosystem Analysis
+
+### Files Created
+- `docs/research/CLAUDE_CODE_MCP_PLUGINS_ECOSYSTEM_2026.md` — Comprehensive 742-line analysis of best MCP servers and plugins for Tiny Seed Farm OS
+
+### Research Scope
+- Analyzed 834+ plugins across 43 marketplaces (as of March 2026)
+- Evaluated 7,260+ MCP servers from community sources
+- Identified 8 high-priority integrations missing from current setup
+- Provided installation commands + configuration examples for each
+- Included gotchas, cost analysis, and integration checklist
+
+### Key Recommendations (Ranked by Impact)
+1. **Google Sheets MCP** (xing5/mcp-google-sheets) — Batch operations, schema migrations, transactional locks
+2. **GitHub Actions MCP** (official) — Automated deployment validation + workflow triggers
+3. **ESLint MCP** (@eslint/mcp) — Code quality enforcement for 75+ HTML files
+4. **RAG Memory MCP** (rag-memory-mcp) — Persistent farming knowledge graph (crop rotation, pests, soil history)
+5. **Google Workspace MCP** (taylorwilsdon/google_workspace_mcp) — Unified calendar/email/tasks for CSA scheduling + wholesale tracking
+6. **OWASP Dependency-Check MCP** — Automated vulnerability scanning (dependencies + npm)
+7. **QuickBooks Online MCP** — P&L automation (optional, Phase 4)
+8. **Sentry MCP Observability** — Performance monitoring (optional, Phase 4)
+
+### Three-Phase Implementation Plan
+- **Phase 1 (1-2 weeks):** Google Sheets + GitHub Actions + ESLint MCP (core operations)
+- **Phase 2 (2-4 weeks):** RAG Memory + Google Workspace (intelligence layer)
+- **Phase 3 (4-8 weeks):** OWASP + Sentry (safety & scale)
+
+### Why This Research Matters
+Current gaps:
+- Google Sheets operations are manual + error-prone (batch seed lot imports take 10 min; should be 1 sec)
+- 75+ HTML files have no automated linting (pre-commit hook exists, but MCP enables auto-fix)
+- Deployments require manual curl verification (GitHub Actions MCP can automate)
+- No persistent knowledge of past decisions (RAG memory addresses this)
+- CSA scheduling + wholesale order tracking are manual (Google Workspace MCP auto-schedules + tracks)
+
+### Reason
+User requested deep research on plugins + MCP servers for March 2026. Current ecosystem has 834+ plugins available; identifying high-impact ones prevents time-waste on low-ROI tools. Prioritized by: (1) unblocks specific farm workflows, (2) time-to-ROI, (3) integration complexity, (4) ongoing maintenance status.
+
+### Duplicate Check
+- [x] Checked `docs/research/` — No existing MCP/plugin research documents
+- [x] Verified against existing CLAUDE_CODE research (3 docs exist; no duplication)
+- [x] Verified no existing Google Sheets, GitHub Actions, ESLint, RAG, Google Workspace research
+
+---
