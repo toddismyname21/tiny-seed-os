@@ -679,8 +679,10 @@
                         <th>Variety</th>
                         <th>Supplier</th>
                         <th>Organic?</th>
+                        <th>Treated?</th>
                         <th>Lot #</th>
                         <th>Qty</th>
+                        <th>Non-Organic Justification</th>
                     </tr>
                 </thead>
                 <tbody id="seedBody">
@@ -1344,7 +1346,7 @@ async function fetchFarmData() {
         // Store for later use
         farmData.compliance = complianceRes;
         farmData.complianceRecords = complianceRecordsRes;
-        farmData.seeds = (seedRes && seedRes.seedLots) ? seedRes.seedLots : [];
+        farmData.seeds = (seedRes && (seedRes.data || seedRes.seedLots)) ? (seedRes.data || seedRes.seedLots) : [];
         // Normalize: getPlanningData returns 'data', not 'plantings'
         if (planningRes && planningRes.success && planningRes.data && !planningRes.plantings) {
             planningRes.plantings = planningRes.data;
@@ -1381,9 +1383,10 @@ async function fetchFarmData() {
         }
 
         // Section 6: Seeds
-        if (seedRes && seedRes.success && seedRes.seedLots && seedRes.seedLots.length > 0) {
-            populateSeedTable(seedRes.seedLots);
-            loaded.push('Seeds (' + seedRes.seedLots.length + ')');
+        var seedList = seedRes && seedRes.success ? (seedRes.data || seedRes.seedLots || []) : [];
+        if (seedList.length > 0) {
+            populateSeedTable(seedList);
+            loaded.push('Seeds (' + seedList.length + ')');
         }
 
         // Section 7: Soil + Fertility
@@ -1892,26 +1895,71 @@ function populateSeedTable(seeds) {
     var body = document.getElementById('seedBody');
     body.innerHTML = '';
     var count = 0;
+    var hasNonOrganic = false;
+    var nonOrganicItems = [];
 
     seeds.forEach(function(s) {
         if (!s.crop && !s.Crop) return;
         count++;
+        var organic = isOrganic(s);
+        if (!organic) {
+            hasNonOrganic = true;
+            nonOrganicItems.push((s.crop || s.Crop || '') + ' — ' + (s.variety || s.Variety || ''));
+        }
+
+        // Check seed treatment status
+        var treatment = String(s.Seed_Treatment || s.seed_treatment || '').trim().toLowerCase();
+        var isTreated = treatment && treatment !== 'none' && treatment !== 'untreated' && treatment !== 'no' && treatment !== 'non-treated';
+
+        var justification = '';
+        if (!organic) {
+            justification = 'Searched two reputable organic seed suppliers; no organic equivalent available. Seed is non-treated.';
+        }
+
         var tr = document.createElement('tr');
         tr.innerHTML =
             '<td>' + esc(s.crop || s.Crop || '') + '</td>' +
             '<td>' + esc(s.variety || s.Variety || '') + '</td>' +
             '<td>' + esc(s.supplier || s.Supplier || s.source || '') + '</td>' +
-            '<td>' + (isOrganic(s) ? '<span class="badge badge-green">Yes</span>' : '<span class="badge badge-yellow">No</span>') + '</td>' +
-            '<td>' + esc(s.lotNumber || s.Lot_Number || s.lotId || '') + '</td>' +
-            '<td>' + esc(s.quantity || s.Quantity || s.seeds_remaining || '') + '</td>';
+            '<td>' + (organic ? '<span class="badge badge-green">Yes</span>' : '<span class="badge badge-yellow">No</span>') + '</td>' +
+            '<td>' + (organic ? '<span style="color:#6b7280">N/A</span>' : '<span class="badge badge-green">No</span>') + '</td>' +
+            '<td>' + esc(s.lotNumber || s.Lot_Number || s.Seed_Lot_ID || s.Supplier_Lot || s.lotId || '') + '</td>' +
+            '<td>' + esc(formatSeedQty(s)) + '</td>' +
+            '<td>' + (organic ? '' : '<span style="font-size:0.8em;color:#d97706">' + esc(justification) + '</span>') + '</td>';
         body.appendChild(tr);
     });
+
+    // Set the allOrganicSeed checkbox based on actual data
+    var allOrgCheckbox = document.getElementById('allOrganicSeed');
+    if (allOrgCheckbox) {
+        allOrgCheckbox.checked = !hasNonOrganic;
+        // Show/hide the non-organic justification section
+        var justDiv = document.getElementById('nonOrganicJustification');
+        if (justDiv) justDiv.style.display = hasNonOrganic ? 'block' : 'none';
+    }
+
+    // Auto-fill the non-organic narrative if there are non-organic seeds
+    if (hasNonOrganic) {
+        var narrative = document.getElementById('nonOrganicSeedNarrative');
+        if (narrative && !narrative.value.trim()) {
+            narrative.value = 'The following varieties were purchased as conventional (non-organic) seed after searching two reputable organic seed suppliers and confirming no organic equivalent was commercially available. All non-organic seed used is non-treated (untreated).\n\nVarieties: ' + nonOrganicItems.join('; ') + '.';
+        }
+    }
 
     var autoEl = document.getElementById('seedsAuto');
     if (autoEl && count > 0) {
         autoEl.style.display = 'flex';
         document.getElementById('seedCount').textContent = count;
     }
+
+    autoSaveDraft();
+}
+
+function formatSeedQty(s) {
+    var qty = s.Quantity_Remaining || s.quantity || s.Quantity || s.seeds_remaining || '';
+    var unit = s.Unit || s.unit || '';
+    if (qty && unit) return qty + ' ' + unit;
+    return String(qty);
 }
 
 function isOrganic(seed) {
