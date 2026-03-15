@@ -3206,11 +3206,13 @@ async function loadDraft() {
 
     // Only try backend if NO local draft exists
     if (!hadLocal) {
+        var loadedFromBackend = false;
         try {
             var res = await fetch(API_URL + '?action=getOSPDraft&year=' + OSP_YEAR);
             var data = await res.json();
             if (data.success && data.found && data.formData) {
                 restoreFormData(data.formData);
+                loadedFromBackend = true;
                 // Save to localStorage so it persists locally going forward
                 try { localStorage.setItem('osp_draft_' + OSP_YEAR, JSON.stringify(data.formData)); } catch(e2) {}
                 if (data.isFromPriorYear) {
@@ -3222,7 +3224,82 @@ async function loadDraft() {
         } catch(e) {
             console.log('Backend draft load failed:', e);
         }
+        // If no draft anywhere, apply 2025 baseline data
+        if (!loadedFromBackend) {
+            apply2025Baseline();
+        }
     }
+}
+
+// ============================================================
+// 2025 OSP BASELINE — stable data that carries forward year to year
+// ============================================================
+function apply2025Baseline() {
+    // Section 1: Farm Plan Information
+    setVal('farmName', 'Tiny Seed Farm LLC');
+    setVal('operatorName', 'Todd R Wilson');
+    setVal('farmAddress', '257 Zeigler Rd, Rochester, PA 15074');
+    setVal('farmPhone', '717-725-5177');
+    setVal('farmEmail', 'todd@tinyseedfarmpgh.com');
+    setVal('certifier', 'OEFFA');
+    setSelVal('opType', 'crop');
+    setSelVal('isRenewal', 'yes');
+
+    // Section 2: Operation Description
+    setCb('hasGreenhouseCb', true);
+    setVal('opDescription', 'Corporation/LLC (Tiny Seed Farm LLC). Single legal entity — decision making and finance centralized, one complete set of records. All fields at farm address (257 Zeigler Rd). Produce and CSA operation. Rented land under Don Kretschmann — Operation #770. Greenhouse 30x100 on-farm for seedling production. Contact preference: Email.');
+
+    // Section 7: Soil Management & Fertility
+    setVal('soilDescription', 'Gilpin-Weikert soil type. We intend on continued monitoring through annual, and as needed soil and tissue tests. If deficiencies are detected we may respond with approved synthetic micronutrients in tested fields.');
+    setCb('annualSoilTest', true);
+    setVal('soilTestLab', 'Soil testing, observation of soil, observation of crop health, comparison of crop yields. Annually and as needed.');
+    setVal('cropRotation', 'We have 3 years of production on an individual field followed by soil building/growing. We rotate based on plant family. The production cycle on an individual field will include the use of cover crops. It is our absolute priority to have soil quality. Major components: crop rotation, green manure plowdown/cover crops, incorporation of crop residues, summer fallow, compost, off-farm manure, soil amendments, side dressing.');
+    setCb('usesCompost', true);
+    setCb('usesCoverCrops', true);
+    setCb('usesMulch', true);
+
+    // Section 8: Pest Management
+    setVal('pestMonitoring', 'Testing, visual observation, physical examination of crops/pests, work with consultant or advisor. Monitoring conducted as needed. Program effectiveness: satisfactory. Continually monitoring latest literature.\n\nProblem weeds: mixed annual weeds. Weed control: crop rotation, field preparation, delayed seeding, mowing, use of fast emerging varieties, mechanical cultivation, hand weeding, flame weeding, smother crops. Mulch: plastic mulch (non-biodegradable, removed at end of season).\n\nProblem pests: rodents, gophers, deer, flea beetle, harlequin bug, cabbage looper. Strategies: crop rotation, selection of plant species/varieties, timing of planting, lures/traps/repellants, habitat for natural enemies, physical barriers, Integrated Pest Management (IPM).\n\nNo disease problems currently on site. Disease prevention: crop rotation, field sanitation, selection of plant species/varieties, timing of planting/cultivating, plant spacing, vector management, soil balancing.');
+    setCb('pmCropRotation', true);
+    setCb('pmResistantVarieties', true);
+    setCb('pmRowCovers', true);
+    setCb('pmHandPull', true);
+
+    // Section 10: Contamination Prevention
+    setVal('contaminationPrevention', 'No non-organic production on the certified organic site. Buffer areas are lined with woodlands which act as a natural barrier — refer to Kretschmann Operation #770. Signs posted along roadsides adjoining organic fields. No flooding issues. No contaminated overland flow risk. No GMO sensitive crops — pollen drift N/A. Crops have never tested positive for GMOs. Contamination monitored by walking the field perimeter as needed.\n\nAll equipment is rented and shared with certified operation #770 (Kretschmann). All equipment is regularly cleaned with high pressure wash. Sprayer: Tifone 828 (rented), used on same site as certified operation #770. No equipment contamination from previous uses.');
+
+    // Section 11: Harvest
+    setVal('harvestPractices', 'Harvested by hand into clean containers (wooden totes and plastic containers). Containers are new and used for organic crops only. No potential contamination or commingling problems. No non-organic production on site.');
+    setVal('storagePractices', 'Products stored in dedicated cooler. Containers used for organic crops only.');
+    setVal('transportPractices', 'Farm crew delivers directly to CSA sites, farmers markets, and wholesale customers.');
+
+    // Section 12: Biodiversity & Water
+    setCb('bioPollinator', true);
+    setVal('bioNarrative', 'Conservation practices: contour farming, under-sowing/interplanting, winter cover crops, windbreaks, tree lines, long term sod, avoid steep slopes and Highly Erodible Land. No erosion problems.\n\nBiodiversity: invasive species monitoring/removal, provide habitat for pollinators/native species, hedgerows, maintaining wetlands/prairies/woods, avoiding nests/not mowing during breeding season, ponds, uncultivated areas. Diverse production on same property. Monitoring by visual observation, as needed.');
+    setVal('waterSource', 'Water use: irrigation, foliar sprays, washing crops, greenhouse. Source: on-farm spring, holding pond for irrigation. Irrigation type: drip. Water conservation: drip irrigation/micro-spray.\n\nNo input products applied through irrigation system. No products used to clean irrigation lines & nozzles. System shared with Kretschmann Operation #770.\n\nWater quality practices: prevent nutrient leaching from over-irrigation, manage fertilizers/composts to avoid waterway contamination, increase organic matter for better infiltration. No water contamination problems. We apply amendments responsibly and in conjunction with weather cycles to prevent run-off. We observe water features on the farm for anything visually unusual. Water quality monitoring as needed.');
+
+    // Section 6: Seeds
+    setCb('usesTransplants', true);
+
+    // Compost narrative (if there's a field for it)
+    // Composting: windrow method, monitor temperature, no vermicompost
+    // Manure: none used
+
+    autoSaveDraft();
+    showToast('Pre-filled from 2025 OSP baseline — review and update for ' + OSP_YEAR, 'success');
+}
+
+function setVal(id, val) {
+    var el = document.getElementById(id);
+    if (el) el.value = val;
+}
+function setCb(id, checked) {
+    var el = document.getElementById(id);
+    if (el) el.checked = checked;
+}
+function setSelVal(id, val) {
+    var el = document.getElementById(id);
+    if (el) el.value = val;
 }
 
 function collectFormData() {
