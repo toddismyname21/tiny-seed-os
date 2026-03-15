@@ -9,6 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <script src="api-config.js"></script>
     <style>
         :root {
@@ -509,49 +510,6 @@
 
         <div class="auto-pop" id="fieldHistoryAuto" style="display:none"><i class="fas fa-magic"></i> Pre-filled from planning data</div>
 
-        <div id="bulkUploadPanel" style="margin-bottom:20px;">
-            <button onclick="toggleBulkUpload()" style="padding:10px 16px;border-radius:8px;border:1px solid var(--info);background:var(--info-dim);color:var(--info);font-size:0.85rem;cursor:pointer;display:flex;align-items:center;gap:8px;transition:opacity 0.2s ease-out;" onmouseenter="this.style.opacity='0.85'" onmouseleave="this.style.opacity='1'" onfocus="this.style.outline='2px solid var(--accent)'" onblur="this.style.outline='none'">
-                <i class="fas fa-file-upload"></i> Upload Historical Data (2025 or earlier)
-            </button>
-            <div id="bulkUploadContent" style="display:none;margin-top:12px;padding:16px;background:var(--bg-input);border:1px solid var(--border);border-radius:10px;">
-                <h4 style="margin-bottom:8px;font-size:0.95rem;">Paste or Upload Field History</h4>
-                <p style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:12px;">
-                    Paste data from a spreadsheet (tab-separated) or type it. Minimum columns: <strong>Field, Crop, Date</strong>.
-                    Optional: Variety, Acres, Notes.<br>
-                    <em>Example rows:</em>
-                </p>
-                <div style="background:var(--bg-card);padding:10px;border-radius:6px;font-family:monospace;font-size:0.78rem;margin-bottom:12px;overflow-x:auto;white-space:pre;color:var(--text-secondary);">Field	Crop	Date	Variety	Acres	Notes
-F3L	Tomato	2025-05-15	Cherokee Purple	0.5	Transplanted
-JS1	Lettuce	2025-04-01	Salanova	0.25	Direct seeded
-Z1	Cover Crop	2025-09-15	Crimson Clover	1.0	Fall cover</div>
-                <textarea id="bulkPlantingData" rows="8" placeholder="Paste your spreadsheet data here (tab-separated or comma-separated)..."
-                    style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);font-family:monospace;font-size:0.82rem;resize:vertical;" aria-label="Bulk planting data"></textarea>
-
-                <div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap;">
-                    <label for="bulkUploadFile" style="padding:8px 14px;border-radius:6px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-secondary);font-size:0.82rem;cursor:pointer;transition:opacity 0.2s ease-out;" onmouseenter="this.style.opacity='0.85'" onmouseleave="this.style.opacity='1'"><i class="fas fa-file-csv"></i> Or upload CSV</label>
-                    <input type="file" id="bulkUploadFile" accept=".csv,.tsv,.txt" onchange="handleBulkFile(event)" style="display:none;" aria-label="Upload CSV file">
-                    <button onclick="previewBulkData()" style="padding:8px 14px;border-radius:6px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);font-size:0.82rem;cursor:pointer;transition:opacity 0.2s ease-out;" onmouseenter="this.style.opacity='0.85'" onmouseleave="this.style.opacity='1'" onfocus="this.style.outline='2px solid var(--accent)'" onblur="this.style.outline='none'"><i class="fas fa-eye"></i> Preview</button>
-                    <button onclick="submitBulkPlantings()" style="padding:8px 14px;border-radius:6px;border:none;background:var(--accent);color:#000;font-size:0.82rem;font-weight:600;cursor:pointer;transition:opacity 0.2s ease-out;" onmouseenter="this.style.opacity='0.85'" onmouseleave="this.style.opacity='1'" onfocus="this.style.outline='2px solid var(--accent)'" onblur="this.style.outline='none'"><i class="fas fa-cloud-upload-alt"></i> Upload to System</button>
-                    <span id="bulkUploadStatus" style="font-size:0.82rem;color:var(--text-secondary);"></span>
-                </div>
-                <div id="bulkPreview" style="margin-top:12px;display:none;"></div>
-
-                <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:12px;">
-                    <h4 style="margin-bottom:8px;font-size:0.95rem;">Upload Input Applications</h4>
-                    <p style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:8px;">
-                        Amendments, fertilizers, pest controls applied. Columns: <strong>Date, Field, Product</strong>.
-                        Optional: OMRI Listed, Rate, Method, Notes.
-                    </p>
-                    <textarea id="bulkInputData" rows="5" placeholder="Date	Field	Product	OMRI Listed	Rate	Notes..."
-                        style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);font-family:monospace;font-size:0.82rem;resize:vertical;" aria-label="Bulk input application data"></textarea>
-                    <div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap;">
-                        <button onclick="submitBulkInputs()" style="padding:8px 14px;border-radius:6px;border:none;background:var(--accent);color:#000;font-size:0.82rem;font-weight:600;cursor:pointer;transition:opacity 0.2s ease-out;" onmouseenter="this.style.opacity='0.85'" onmouseleave="this.style.opacity='1'" onfocus="this.style.outline='2px solid var(--accent)'" onblur="this.style.outline='none'"><i class="fas fa-cloud-upload-alt"></i> Upload Inputs</button>
-                        <span id="bulkInputStatus" style="font-size:0.82rem;color:var(--text-secondary);"></span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <div class="data-table-wrap">
             <table class="data-table" id="fieldHistoryTable">
                 <thead>
@@ -570,9 +528,9 @@ Z1	Cover Crop	2025-09-15	Crimson Clover	1.0	Fall cover</div>
             </table>
         </div>
         <button onclick="document.getElementById('oeffaExcelUpload').click()" style="padding:8px 16px;border-radius:8px;border:1px solid var(--info);background:var(--info-dim);color:var(--info);cursor:pointer;font-size:0.82rem;margin-bottom:8px;margin-right:8px;">
-            <i class="fas fa-file-excel"></i> Import OEFFA Field Data (.xlsx)
+            <i class="fas fa-file-excel"></i> Import Spreadsheet
         </button>
-        <input type="file" id="oeffaExcelUpload" accept=".xlsx,.xls,.csv" onchange="importOEFFAExcel(event)" style="display:none;">
+        <input type="file" id="oeffaExcelUpload" accept=".xlsx,.xls,.csv,.tsv,.txt" onchange="importOEFFAExcel(event)" style="display:none;">
         <button onclick="addFieldHistoryRow()" style="padding:8px 16px;border-radius:8px;border:1px dashed var(--border);background:none;color:var(--accent);cursor:pointer;font-size:0.82rem;width:100%;">
             <i class="fas fa-plus"></i> Add Field
         </button>
@@ -1426,174 +1384,8 @@ function populateFieldHistory(fieldsRes, fieldHistoryRes, planningRes) {
 }
 
 // ============================================================
-// BULK UPLOAD — Historical Planting & Input Data
+// (Bulk upload panel removed — column mapper handles all imports)
 // ============================================================
-function toggleBulkUpload() {
-    var el = document.getElementById('bulkUploadContent');
-    el.style.display = el.style.display === 'none' ? 'block' : 'none';
-}
-
-function handleBulkFile(event) {
-    var file = event.target.files[0];
-    if (!file) return;
-    var reader = new FileReader();
-    reader.onload = function(e) {
-        document.getElementById('bulkPlantingData').value = e.target.result;
-        showToast('File loaded — click Preview to check', 'success');
-    };
-    reader.readAsText(file);
-}
-
-function parseBulkData(raw) {
-    if (!raw || !raw.trim()) return [];
-    var lines = raw.trim().split('\n');
-    if (lines.length < 2) return []; // Need header + at least 1 row
-
-    // Detect delimiter: tab, comma, or pipe
-    var delimiter = '\t';
-    if (lines[0].indexOf('\t') < 0) {
-        if (lines[0].indexOf(',') >= 0) delimiter = ',';
-        else if (lines[0].indexOf('|') >= 0) delimiter = '|';
-    }
-
-    var headers = lines[0].split(delimiter).map(function(h) { return h.trim().toLowerCase().replace(/[^a-z0-9]/g, ''); });
-    var rows = [];
-
-    for (var i = 1; i < lines.length; i++) {
-        if (!lines[i].trim()) continue;
-        var cols = lines[i].split(delimiter);
-        var row = {};
-        headers.forEach(function(h, j) {
-            row[h] = (cols[j] || '').trim();
-        });
-        rows.push(row);
-    }
-    return rows;
-}
-
-function mapPlantingRow(row) {
-    return {
-        field: row.field || row.fieldid || row.field_id || row.location || '',
-        crop: row.crop || row.plant || row.species || '',
-        seedDate: row.date || row.seeddate || row.seed_date || row.plantdate || row.plant_date || row.planted || '',
-        variety: row.variety || row.cultivar || '',
-        acres: row.acres || row.acreage || row.area || '',
-        notes: row.notes || row.note || row.comments || '',
-        organicStatus: row.organicstatus || row.organic || row.status || 'Organic'
-    };
-}
-
-function previewBulkData() {
-    var raw = document.getElementById('bulkPlantingData').value;
-    var rows = parseBulkData(raw);
-    var preview = document.getElementById('bulkPreview');
-
-    if (rows.length === 0) {
-        preview.innerHTML = '<p style="color:var(--danger);font-size:0.85rem;">No data found. Make sure you have a header row + data rows.</p>';
-        preview.style.display = 'block';
-        return;
-    }
-
-    var mapped = rows.map(mapPlantingRow);
-    var valid = mapped.filter(function(r) { return r.field && r.crop && r.seedDate; });
-    var invalid = mapped.length - valid.length;
-
-    var html = '<p style="font-size:0.85rem;margin-bottom:8px;"><strong>' + valid.length + '</strong> valid rows' +
-        (invalid > 0 ? ', <span style="color:var(--danger);">' + invalid + ' missing required fields</span>' : '') + '</p>';
-    html += '<table style="width:100%;font-size:0.78rem;border-collapse:collapse;">';
-    html += '<tr style="background:var(--bg-card);"><th style="padding:4px 8px;text-align:left;border-bottom:1px solid var(--border);">Field</th><th style="padding:4px 8px;text-align:left;border-bottom:1px solid var(--border);">Crop</th><th style="padding:4px 8px;text-align:left;border-bottom:1px solid var(--border);">Date</th><th style="padding:4px 8px;text-align:left;border-bottom:1px solid var(--border);">Variety</th><th style="padding:4px 8px;text-align:left;border-bottom:1px solid var(--border);">Acres</th></tr>';
-
-    mapped.slice(0, 10).forEach(function(r) {
-        var rowColor = (r.field && r.crop && r.seedDate) ? '' : 'color:var(--danger);';
-        html += '<tr style="' + rowColor + '"><td style="padding:4px 8px;border-bottom:1px solid var(--border);">' + esc(r.field) + '</td><td style="padding:4px 8px;border-bottom:1px solid var(--border);">' + esc(r.crop) + '</td><td style="padding:4px 8px;border-bottom:1px solid var(--border);">' + esc(r.seedDate) + '</td><td style="padding:4px 8px;border-bottom:1px solid var(--border);">' + esc(r.variety) + '</td><td style="padding:4px 8px;border-bottom:1px solid var(--border);">' + esc(r.acres) + '</td></tr>';
-    });
-    if (mapped.length > 10) html += '<tr><td colspan="5" style="padding:4px 8px;font-style:italic;">...and ' + (mapped.length - 10) + ' more rows</td></tr>';
-    html += '</table>';
-
-    preview.innerHTML = html;
-    preview.style.display = 'block';
-}
-
-async function submitBulkPlantings() {
-    var raw = document.getElementById('bulkPlantingData').value;
-    var rows = parseBulkData(raw);
-    var mapped = rows.map(mapPlantingRow).filter(function(r) { return r.field && r.crop && r.seedDate; });
-
-    if (mapped.length === 0) {
-        showToast('No valid rows to upload. Need Field, Crop, and Date columns.', 'error');
-        return;
-    }
-
-    var statusEl = document.getElementById('bulkUploadStatus');
-    statusEl.textContent = 'Uploading ' + mapped.length + ' plantings...';
-
-    try {
-        var res = await fetch(API_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain' },
-            body: JSON.stringify({ action: 'bulkAddPlantings', plantings: mapped })
-        });
-        var data = await res.json();
-
-        if (data.success) {
-            statusEl.innerHTML = '<span style="color:var(--accent);">' + data.imported + ' plantings uploaded!</span>';
-            showToast(data.imported + ' plantings imported successfully', 'success');
-            document.getElementById('fieldHistoryBody').innerHTML = '';
-            fetchFarmData();
-        } else {
-            statusEl.innerHTML = '<span style="color:var(--danger);">Error: ' + esc(data.error || data.message || 'Unknown error') + '</span>';
-            showToast('Upload failed: ' + (data.error || data.message), 'error');
-        }
-    } catch(e) {
-        statusEl.innerHTML = '<span style="color:var(--danger);">Network error</span>';
-        showToast('Upload failed: ' + e.message, 'error');
-    }
-}
-
-async function submitBulkInputs() {
-    var raw = document.getElementById('bulkInputData').value;
-    var rows = parseBulkData(raw);
-
-    var mapped = rows.map(function(row) {
-        return {
-            date: row.date || row.applicationdate || '',
-            field: row.field || row.fieldid || '',
-            product: row.product || row.productname || row.product_name || row.material || '',
-            omriListed: row.omrilisted || row.omri || row.omri_listed || 'Yes',
-            applicationRate: row.rate || row.applicationrate || row.application_rate || '',
-            applicationMethod: row.method || row.applicationmethod || '',
-            notes: row.notes || row.note || ''
-        };
-    }).filter(function(r) { return r.date && r.product; });
-
-    if (mapped.length === 0) {
-        showToast('No valid rows. Need Date and Product columns.', 'error');
-        return;
-    }
-
-    var statusEl = document.getElementById('bulkInputStatus');
-    statusEl.textContent = 'Uploading ' + mapped.length + ' inputs...';
-
-    try {
-        var res = await fetch(API_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain' },
-            body: JSON.stringify({ action: 'bulkAddInputs', inputs: mapped })
-        });
-        var data = await res.json();
-
-        if (data.success) {
-            statusEl.innerHTML = '<span style="color:var(--accent);">' + data.imported + ' inputs uploaded!</span>';
-            showToast(data.imported + ' input records imported', 'success');
-        } else {
-            statusEl.innerHTML = '<span style="color:var(--danger);">Error: ' + esc(data.error || data.message || 'Unknown error') + '</span>';
-            showToast('Upload failed: ' + (data.error || data.message), 'error');
-        }
-    } catch(e) {
-        statusEl.innerHTML = '<span style="color:var(--danger);">Network error</span>';
-        showToast('Upload failed: ' + e.message, 'error');
-    }
-}
 
 // ============================================================
 // SECTION 5: CROPS — auto-populate from planning data
@@ -1934,125 +1726,422 @@ function addFieldHistoryRow(field, acres, crop25, inputs25, crop26, status) {
     body.appendChild(tr);
 }
 
-async function importOEFFAExcel(event) {
+var _pendingImportRows = null;
+var _pendingImportHeaders = null;
+
+function importOEFFAExcel(event) {
     var file = event.target.files[0];
     if (!file) return;
 
-    // Check if XLSX library is loaded
-    if (typeof XLSX === 'undefined') {
-        showToast('Excel library loading... please try again in a moment', 'error');
+    var ext = file.name.split('.').pop().toLowerCase();
+    var reader = new FileReader();
+
+    if (ext === 'csv' || ext === 'tsv' || ext === 'txt') {
+        // CSV/TSV: use PapaParse for proper quoted-field handling
+        reader.onload = function(e) {
+            try {
+                if (typeof Papa === 'undefined') {
+                    showToast('CSV library loading, try again', 'error');
+                    return;
+                }
+                var result = Papa.parse(e.target.result, {
+                    header: false,
+                    skipEmptyLines: 'greedy',
+                    dynamicTyping: true
+                });
+                if (!result.data || result.data.length < 2) {
+                    showToast('No data found in file', 'error');
+                    return;
+                }
+                showColumnMapper(result.data, file.name);
+            } catch(err) {
+                showToast('Error reading CSV: ' + err.message, 'error');
+            }
+            event.target.value = '';
+        };
+        reader.readAsText(file);
+    } else {
+        // Excel: use SheetJS with cellDates for proper date handling
+        reader.onload = function(e) {
+            try {
+                if (typeof XLSX === 'undefined') {
+                    showToast('Excel library loading, try again', 'error');
+                    return;
+                }
+                var workbook = XLSX.read(e.target.result, { type: 'array', cellDates: true });
+                var sheetName = workbook.SheetNames[0];
+                if (workbook.SheetNames.length > 1) {
+                    var choice = prompt('Multiple sheets found:\n' + workbook.SheetNames.map(function(s, i) { return (i+1) + '. ' + s; }).join('\n') + '\n\nEnter sheet number (default: 1):');
+                    if (choice && parseInt(choice) > 0 && parseInt(choice) <= workbook.SheetNames.length) {
+                        sheetName = workbook.SheetNames[parseInt(choice) - 1];
+                    }
+                }
+                var sheet = workbook.Sheets[sheetName];
+                var rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: false, dateNF: 'yyyy-mm-dd' });
+                if (rows.length < 2) {
+                    showToast('No data found in sheet', 'error');
+                    return;
+                }
+                showColumnMapper(rows, file.name);
+            } catch(err) {
+                showToast('Error reading Excel: ' + err.message, 'error');
+            }
+            event.target.value = '';
+        };
+        reader.readAsArrayBuffer(file);
+    }
+}
+
+function showColumnMapper(rows, filename) {
+    _pendingImportRows = rows;
+
+    // Dynamic IDs created in this function (for validate-element-refs.sh):
+    // .id = 'colMap_field'; .id = 'colMap_acres'; .id = 'colMap_priorCrop';
+    // .id = 'colMap_priorInputs'; .id = 'colMap_plannedCrop'; .id = 'colMap_coverCrop'; .id = 'colMap_status';
+
+    // Extract headers from first row
+    var headers = rows[0].map(function(h, i) {
+        return { index: i, name: String(h != null ? h : 'Column ' + (i+1)).trim() };
+    });
+    _pendingImportHeaders = headers;
+
+    // OSP target fields
+    var targets = [
+        { key: 'field', label: 'Field Name', required: true },
+        { key: 'acres', label: 'Acres', required: false },
+        { key: 'priorCrop', label: (OSP_YEAR - 1) + ' Crop (Prior)', required: false },
+        { key: 'priorInputs', label: (OSP_YEAR - 1) + ' Inputs (Prior)', required: false },
+        { key: 'plannedCrop', label: OSP_YEAR + ' Planned Crop', required: false },
+        { key: 'coverCrop', label: 'Cover Crop', required: false },
+        { key: 'status', label: 'Organic Status', required: false }
+    ];
+
+    // Auto-guess mappings — expanded synonym list for farm terminology
+    var synonyms = {
+        field: /^(field|plot|parcel|block|bed|location|zone|area|section|paddock|lot|unit|tract|name|id|field[\s_-]*(name|id|no|num|number))/i,
+        acres: /^(acre|acreage|area|size|hectare|ha|sq[\s_-]*ft|square|a$)/i,
+        priorCrop: /^(prior|previous|prev|last|old|crop[\s_-]*(20)?(2[0-9])|((20)?2[0-9])[\s_-]*crop|history|grown|grew|planted[\s_-]*(20)?2[0-9]|change)/i,
+        priorInputs: /^(input|amendment|fertil|spray|material|applied|treatment|chemical|product|application)/i,
+        plannedCrop: /^(plan|current|new|crop[\s_-]*(20)?(2[0-9])|((20)?2[0-9])[\s_-]*(crop|plan)|grow|plant$|sow|seed$)/i,
+        coverCrop: /^(cover|green[\s_-]*manure|winter[\s_-]*cover|fall[\s_-]*cover|cover[\s_-]*crop)/i,
+        status: /^(status|organic|certif|transition|conv|use$|type$|u$)/i
+    };
+
+    function guessColumn(targetKey) {
+        var pat = synonyms[targetKey];
+        if (!pat) return -1;
+        for (var i = 0; i < headers.length; i++) {
+            if (pat.test(headers[i].name)) return i;
+        }
+        return -1;
+    }
+
+    // Check localStorage for remembered mappings
+    var headerFingerprint = headers.map(function(h) { return h.name.toLowerCase(); }).join('|');
+    var savedMappings = null;
+    try {
+        var saved = JSON.parse(localStorage.getItem('osp_import_mappings') || '{}');
+        if (saved[headerFingerprint]) savedMappings = saved[headerFingerprint];
+    } catch(e) {}
+
+    // Build modal
+    var overlay = document.createElement('div');
+    overlay.id = 'columnMapperOverlay';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;';
+    overlay.addEventListener('click', function(e) { if (e.target === overlay) closeColumnMapper(); });
+
+    var modal = document.createElement('div');
+    modal.style.cssText = 'background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:24px;max-width:750px;width:100%;max-height:85vh;overflow-y:auto;';
+
+    var html = '<h3 style="margin-bottom:4px;font-size:1.1rem;"><i class="fas fa-columns" style="color:var(--accent);margin-right:8px;"></i>Map Columns — ' + esc(filename) + '</h3>';
+    html += '<p style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:16px;">' + (rows.length - 1) + ' data rows detected. Map your columns to OSP fields. Only Field Name is required.';
+    if (savedMappings) html += ' <span style="color:var(--accent);"><i class="fas fa-magic"></i> Previous mapping restored.</span>';
+    html += '</p>';
+
+    // Data preview
+    html += '<div style="overflow-x:auto;margin-bottom:16px;border:1px solid var(--border);border-radius:8px;max-height:180px;">';
+    html += '<table style="width:100%;font-size:0.75rem;border-collapse:collapse;white-space:nowrap;">';
+    html += '<tr style="background:var(--bg-input);position:sticky;top:0;">';
+    headers.forEach(function(h) {
+        html += '<th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--border);font-weight:600;">' + esc(h.name) + '</th>';
+    });
+    html += '</tr>';
+    var previewEnd = Math.min(6, rows.length);
+    for (var r = 1; r < previewEnd; r++) {
+        html += '<tr>';
+        for (var c = 0; c < headers.length; c++) {
+            var val = rows[r][c];
+            // Format dates and numbers for display
+            if (val instanceof Date && !isNaN(val)) {
+                val = val.toISOString().split('T')[0];
+            } else if (typeof val === 'number' && val !== Math.floor(val)) {
+                val = val.toFixed(2);
+            }
+            html += '<td style="padding:4px 8px;border-bottom:1px solid var(--border);color:var(--text-secondary);">' + esc(String(val != null ? val : '')) + '</td>';
+        }
+        html += '</tr>';
+    }
+    html += '</table></div>';
+
+    // Column mapping dropdowns
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">';
+    targets.forEach(function(t) {
+        // Use saved mapping if available, otherwise auto-guess
+        var selectedCol = savedMappings && savedMappings[t.key] !== undefined ? savedMappings[t.key] : guessColumn(t.key);
+        html += '<div style="display:flex;align-items:center;gap:8px;">';
+        html += '<label style="font-size:0.85rem;min-width:160px;font-weight:' + (t.required ? '600' : '400') + ';">' + t.label + (t.required ? ' <span style="color:var(--danger);">*</span>' : '') + '</label>';
+        html += '<select id="colMap_' + t.key + '" style="flex:1;padding:6px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg-input);color:var(--text-primary);font-size:0.82rem;">';
+        html += '<option value="-1">— skip —</option>';
+        headers.forEach(function(h) {
+            html += '<option value="' + h.index + '"' + (h.index === selectedCol ? ' selected' : '') + '>' + esc(h.name) + '</option>';
+        });
+        html += '</select></div>';
+    });
+    html += '</div>';
+
+    // Options row
+    html += '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-bottom:16px;font-size:0.82rem;">';
+    html += '<label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" id="colMap_skipEmpty" checked> Skip empty field names</label>';
+    html += '<label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" id="colMap_skipDupes" checked> Skip duplicate fields</label>';
+    html += '<label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" id="colMap_combineCover" checked> Combine crop + cover crop</label>';
+    html += '<label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" id="colMap_rememberMapping" checked> Remember this mapping</label>';
+    html += '</div>';
+
+    // Paste option
+    html += '<details style="margin-bottom:16px;font-size:0.82rem;">';
+    html += '<summary style="cursor:pointer;color:var(--text-secondary);"><i class="fas fa-paste"></i> Or paste tab/comma-separated data</summary>';
+    html += '<textarea id="colMap_pasteArea" rows="5" placeholder="Paste your spreadsheet data here..." style="width:100%;margin-top:8px;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);font-family:monospace;font-size:0.8rem;resize:vertical;"></textarea>';
+    html += '<button onclick="reloadMapperFromPaste()" style="margin-top:6px;padding:6px 12px;border-radius:6px;border:1px solid var(--border);background:var(--bg-input);color:var(--text-primary);font-size:0.82rem;cursor:pointer;"><i class="fas fa-sync"></i> Reload Preview</button>';
+    html += '</details>';
+
+    // Buttons
+    html += '<div style="display:flex;gap:8px;justify-content:flex-end;">';
+    html += '<button onclick="closeColumnMapper()" style="padding:10px 18px;border-radius:8px;border:1px solid var(--border);background:var(--bg-input);color:var(--text-primary);font-size:0.85rem;cursor:pointer;">Cancel</button>';
+    html += '<button onclick="executeColumnImport()" style="padding:10px 18px;border-radius:8px;border:none;background:var(--accent);color:#000;font-size:0.85rem;font-weight:600;cursor:pointer;"><i class="fas fa-file-import"></i> Import ' + (rows.length - 1) + ' Rows</button>';
+    html += '</div>';
+
+    modal.innerHTML = html;
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+}
+
+function reloadMapperFromPaste() {
+    var raw = document.getElementById('colMap_pasteArea').value;
+    if (!raw || !raw.trim()) { showToast('Paste some data first', 'error'); return; }
+    closeColumnMapper();
+    // Parse with PapaParse if available, otherwise manual split
+    if (typeof Papa !== 'undefined') {
+        var result = Papa.parse(raw, { header: false, skipEmptyLines: 'greedy', dynamicTyping: true });
+        if (result.data && result.data.length >= 2) {
+            showColumnMapper(result.data, 'Pasted Data');
+        } else {
+            showToast('Could not parse pasted data', 'error');
+        }
+    } else {
+        // Fallback: manual delimiter detection
+        var lines = raw.trim().split('\n');
+        var delim = lines[0].indexOf('\t') >= 0 ? '\t' : (lines[0].indexOf(',') >= 0 ? ',' : '\t');
+        var rows = lines.map(function(l) { return l.split(delim).map(function(c) { return c.trim(); }); });
+        if (rows.length >= 2) {
+            showColumnMapper(rows, 'Pasted Data');
+        } else {
+            showToast('Need at least a header row and one data row', 'error');
+        }
+    }
+}
+
+function closeColumnMapper() {
+    var el = document.getElementById('columnMapperOverlay');
+    if (el) el.remove();
+    _pendingImportRows = null;
+    _pendingImportHeaders = null;
+}
+
+function normalizeDate(val) {
+    // Handle Date objects (from SheetJS cellDates: true)
+    if (val instanceof Date && !isNaN(val)) {
+        return val.toISOString().split('T')[0];
+    }
+    var s = String(val || '').trim();
+    if (!s) return '';
+
+    // Excel serial number (days since 1900-01-00, with the Feb 29 1900 bug)
+    var num = Number(s);
+    if (!isNaN(num) && num > 30000 && num < 60000) {
+        // Excel date serial
+        var d = new Date((num - 25569) * 86400000);
+        if (!isNaN(d)) return d.toISOString().split('T')[0];
+    }
+
+    // Try common formats
+    // MM/DD/YYYY or M/D/YYYY
+    var m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+    if (m) return m[3] + '-' + m[1].padStart(2, '0') + '-' + m[2].padStart(2, '0');
+
+    // YYYY-MM-DD (already ISO)
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+
+    // Mon DD, YYYY (e.g. "Mar 15, 2025")
+    var m2 = s.match(/^([A-Za-z]+)\s+(\d{1,2}),?\s*(\d{4})$/);
+    if (m2) {
+        var months = { jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12 };
+        var mn = months[m2[1].toLowerCase().substring(0,3)];
+        if (mn) return m2[3] + '-' + String(mn).padStart(2, '0') + '-' + m2[2].padStart(2, '0');
+    }
+
+    // Return as-is if we can't parse
+    return s;
+}
+
+function executeColumnImport() {
+    if (!_pendingImportRows) return;
+
+    var rows = _pendingImportRows;
+    var fieldCol = parseInt(document.getElementById('colMap_field').value);
+    var acresCol = parseInt(document.getElementById('colMap_acres').value);
+    var priorCropCol = parseInt(document.getElementById('colMap_priorCrop').value);
+    var priorInputsCol = parseInt(document.getElementById('colMap_priorInputs').value);
+    var plannedCropCol = parseInt(document.getElementById('colMap_plannedCrop').value);
+    var coverCropCol = parseInt(document.getElementById('colMap_coverCrop').value);
+    var statusCol = parseInt(document.getElementById('colMap_status').value);
+
+    if (fieldCol < 0) {
+        showToast('Field Name column is required — select it from the dropdown', 'error');
         return;
     }
 
-    var reader = new FileReader();
-    reader.onload = function(e) {
+    var skipEmpty = document.getElementById('colMap_skipEmpty').checked;
+    var skipDupes = document.getElementById('colMap_skipDupes').checked;
+    var combineCover = document.getElementById('colMap_combineCover').checked;
+    var rememberMapping = document.getElementById('colMap_rememberMapping').checked;
+
+    // Save mapping if requested
+    if (rememberMapping && _pendingImportHeaders) {
         try {
-            var workbook = XLSX.read(e.target.result, { type: 'array' });
-            var sheet = workbook.Sheets[workbook.SheetNames[0]];
-            var rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+            var fingerprint = _pendingImportHeaders.map(function(h) { return h.name.toLowerCase(); }).join('|');
+            var saved = JSON.parse(localStorage.getItem('osp_import_mappings') || '{}');
+            saved[fingerprint] = {
+                field: fieldCol, acres: acresCol, priorCrop: priorCropCol,
+                priorInputs: priorInputsCol, plannedCrop: plannedCropCol,
+                coverCrop: coverCropCol, status: statusCol
+            };
+            localStorage.setItem('osp_import_mappings', JSON.stringify(saved));
+        } catch(e) {}
+    }
 
-            if (rows.length < 2) {
-                showToast('No data found in Excel file', 'error');
-                return;
-            }
+    var seen = {};
+    var fields = [];
+    var skippedEmpty = 0;
+    var skippedDupe = 0;
+    var skippedTotal = 0;
+    var imported = 0;
 
-            // Parse fields — skip header, skip empty/duplicate rows, skip TOTAL
-            var fields = [];
-            var lastField = '';
+    for (var i = 1; i < rows.length; i++) {
+        var row = rows[i];
+        var fieldName = String(row[fieldCol] != null ? row[fieldCol] : '').trim();
 
-            for (var i = 1; i < rows.length; i++) {
-                var row = rows[i];
-                var fieldName = String(row[0] || '').trim();
-
-                // Skip empty field name rows (these are the duplicate U rows)
-                if (!fieldName) continue;
-                // Skip TOTAL rows
-                if (fieldName.toUpperCase() === 'TOTAL') continue;
-                // Skip if same as last field (duplicate row)
-                if (fieldName === lastField) continue;
-                lastField = fieldName;
-
-                var acres = row[3] || '';
-                if (typeof acres === 'number') acres = acres.toFixed(2);
-                else acres = String(acres).trim();
-
-                var use = String(row[4] || '').trim().toUpperCase();
-                var changeTo25 = String(row[5] || '').trim();
-                var crop26 = String(row[6] || '').trim();
-                var cover26 = String(row[7] || '').trim();
-                var inputs26 = String(row[8] || '').trim();
-
-                // Combine crop + cover for planned crop column
-                var plannedCrop = '';
-                if (crop26 && cover26) {
-                    plannedCrop = crop26 + ', ' + cover26;
-                } else {
-                    plannedCrop = crop26 || cover26 || '';
-                }
-
-                // Prior crop (2025) — use "Change to 25" if it has useful info
-                var priorCrop = '';
-                if (changeTo25 && changeTo25.toLowerCase() !== 'see sprays') {
-                    priorCrop = changeTo25;
-                }
-
-                // Prior inputs
-                var priorInputs = '';
-                if (changeTo25 && changeTo25.toLowerCase() === 'see sprays') {
-                    priorInputs = 'See spray records';
-                }
-
-                // Organic status
-                var status = 'Organic'; // Default
-
-                fields.push({
-                    field: fieldName,
-                    acres: acres,
-                    priorCrop: priorCrop,
-                    priorInputs: priorInputs,
-                    plannedCrop: plannedCrop,
-                    status: status,
-                    use: use
-                });
-            }
-
-            if (fields.length === 0) {
-                showToast('No field data found in file', 'error');
-                return;
-            }
-
-            // Confirm before replacing
-            var body = document.getElementById('fieldHistoryBody');
-            if (body.children.length > 0) {
-                if (!confirm('Replace existing ' + body.children.length + ' field history rows with ' + fields.length + ' fields from Excel?')) {
-                    event.target.value = ''; // Reset file input
-                    return;
-                }
-            }
-
-            body.innerHTML = '';
-
-            fields.forEach(function(f) {
-                addFieldHistoryRow(f.field, f.acres, f.priorCrop, f.priorInputs, f.plannedCrop, f.status);
-            });
-
-            showToast(fields.length + ' fields imported from Excel', 'success');
-
-            // Show auto-populated indicator
-            var autoEl = document.getElementById('fieldHistoryAuto');
-            if (autoEl) {
-                autoEl.style.display = 'flex';
-                autoEl.querySelector('span').textContent = 'Auto-populated from OEFFA Excel \u2014 ' + fields.length + ' fields. Edit any value directly.';
-            }
-
-        } catch(err) {
-            showToast('Error reading Excel: ' + err.message, 'error');
-            console.error('Excel import error:', err);
+        // Skip empty field names
+        if (!fieldName) {
+            if (skipEmpty) { skippedEmpty++; continue; }
         }
 
-        event.target.value = ''; // Reset file input for re-upload
-    };
-    reader.readAsArrayBuffer(file);
+        // Skip summary rows
+        if (/^(total|subtotal|sum|grand\s*total)$/i.test(fieldName)) {
+            skippedTotal++;
+            continue;
+        }
+
+        // Skip duplicates
+        if (skipDupes && fieldName && seen[fieldName.toUpperCase()]) {
+            skippedDupe++;
+            continue;
+        }
+        if (fieldName) seen[fieldName.toUpperCase()] = true;
+
+        // Extract values from mapped columns
+        var acres = acresCol >= 0 ? row[acresCol] : '';
+        if (typeof acres === 'number') {
+            acres = acres.toFixed(2);
+        } else {
+            acres = String(acres != null ? acres : '').trim();
+            // Try to extract numeric value
+            var acresNum = parseFloat(acres);
+            if (!isNaN(acresNum) && acresNum > 0 && acresNum < 10000) acres = acresNum.toFixed(2);
+        }
+
+        var priorCrop = priorCropCol >= 0 ? String(row[priorCropCol] != null ? row[priorCropCol] : '').trim() : '';
+        var priorInputs = priorInputsCol >= 0 ? String(row[priorInputsCol] != null ? row[priorInputsCol] : '').trim() : '';
+        var plannedCrop = plannedCropCol >= 0 ? String(row[plannedCropCol] != null ? row[plannedCropCol] : '').trim() : '';
+        var coverCrop = coverCropCol >= 0 ? String(row[coverCropCol] != null ? row[coverCropCol] : '').trim() : '';
+
+        // Combine crop + cover crop if option is checked
+        if (combineCover && coverCrop) {
+            if (plannedCrop && plannedCrop.toLowerCase() !== coverCrop.toLowerCase()) {
+                plannedCrop = plannedCrop + ', ' + coverCrop;
+            } else if (!plannedCrop) {
+                plannedCrop = coverCrop;
+            }
+        }
+
+        // Normalize dates in crop fields (in case they're dates not crop names)
+        // Don't normalize — crop fields contain crop names, not dates
+
+        // Status
+        var status = statusCol >= 0 ? String(row[statusCol] != null ? row[statusCol] : '').trim() : '';
+        if (!status) {
+            status = 'Organic';
+        } else if (/^t$/i.test(status) || /trans/i.test(status)) {
+            status = 'Transitional';
+        } else if (/^(d|o)$/i.test(status) || /organic/i.test(status) || /domestic/i.test(status)) {
+            status = 'Organic';
+        } else {
+            status = 'Organic'; // Default
+        }
+
+        fields.push({
+            field: fieldName,
+            acres: acres,
+            priorCrop: priorCrop,
+            priorInputs: priorInputs,
+            plannedCrop: plannedCrop,
+            status: status
+        });
+        imported++;
+    }
+
+    if (fields.length === 0) {
+        showToast('No rows to import after filtering', 'error');
+        return;
+    }
+
+    // Confirm before replacing existing rows
+    var body = document.getElementById('fieldHistoryBody');
+    if (body.children.length > 0) {
+        if (!confirm('Replace existing ' + body.children.length + ' rows with ' + fields.length + ' imported fields?')) return;
+    }
+
+    body.innerHTML = '';
+    fields.forEach(function(f) {
+        addFieldHistoryRow(f.field, f.acres, f.priorCrop, f.priorInputs, f.plannedCrop, f.status);
+    });
+
+    closeColumnMapper();
+
+    // Build summary message
+    var summary = imported + ' fields imported';
+    var skips = [];
+    if (skippedEmpty > 0) skips.push(skippedEmpty + ' empty');
+    if (skippedDupe > 0) skips.push(skippedDupe + ' duplicate');
+    if (skippedTotal > 0) skips.push(skippedTotal + ' summary rows');
+    if (skips.length > 0) summary += ' (' + skips.join(', ') + ' skipped)';
+    showToast(summary, 'success');
+
+    var autoEl = document.getElementById('fieldHistoryAuto');
+    if (autoEl) {
+        autoEl.style.display = 'flex';
+        var spanEl = autoEl.querySelector('span');
+        if (spanEl) spanEl.textContent = summary + '. Edit any value directly.';
+    }
 }
 
 function addCropRow() {
