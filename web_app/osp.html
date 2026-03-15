@@ -370,8 +370,8 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/@geoman-io/leaflet-geoman-free@2.17.0/dist/leaflet-geoman.css" />
     <style>
-        #farmMapContainer { position: relative; isolation: isolate; z-index: 1; margin-bottom: 16px; }
-        #farmMap { height: 500px; border-radius: 8px; border: 1px solid var(--border); position: relative; z-index: 0; }
+        #farmMapContainer { position: relative; isolation: isolate; z-index: 1; margin-bottom: 16px; overflow: hidden; border-radius: 8px; }
+        #farmMap { height: 500px; width: 100%; border-radius: 8px; border: 1px solid var(--border); position: relative; z-index: 0; overflow: hidden; }
         #farmMapContainer.locked #farmMap { pointer-events: none; }
         #farmMapContainer.locked .leaflet-control-container { display: none; }
         .map-toolbar { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; position: relative; z-index: 2; }
