@@ -1963,7 +1963,7 @@ function formatSeedQty(s) {
 }
 
 function isOrganic(seed) {
-    var cert = (seed.certification || seed.Certification || seed.organic || '').toString().toLowerCase();
+    var cert = (seed.Organic_Certified || seed.organic_certified || seed.certification || seed.Certification || seed.organic || '').toString().toLowerCase();
     return cert.includes('organic') || cert === 'true' || cert === 'yes';
 }
 
