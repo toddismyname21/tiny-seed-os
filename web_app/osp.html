@@ -361,9 +361,9 @@
 
     <!-- Section 3: Farm Map -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
+    <link rel="stylesheet" href="https://unpkg.com/@geoman-io/leaflet-geoman-free@2.17.0/dist/leaflet-geoman.css" />
     <style>
-        #farmMap { height: 500px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 16px; }
+        #farmMap { height: 500px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 16px; z-index: 1; }
         .map-toolbar { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
         .map-toolbar button {
             padding: 8px 14px; border-radius: 6px; border: 1px solid var(--border);
@@ -371,7 +371,6 @@
             cursor: pointer; display: flex; align-items: center; gap: 6px;
         }
         .map-toolbar button:hover { border-color: var(--accent); }
-        .map-toolbar button.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
         .field-list { margin-top: 12px; }
         .field-item {
             display: flex; align-items: center; gap: 10px; padding: 10px 12px;
@@ -379,10 +378,16 @@
             margin-bottom: 6px; font-size: 0.85rem;
         }
         .field-item .field-color { width: 16px; height: 16px; border-radius: 4px; flex-shrink: 0; }
-        .field-item input { background: transparent; border: none; color: var(--text-primary);
-            font-size: 0.85rem; width: 80px; padding: 2px 4px; border-bottom: 1px solid var(--border); }
-        .field-item input:focus { outline: none; border-bottom-color: var(--accent); }
-        .field-item .field-acres { color: var(--accent); font-weight: 600; min-width: 60px; }
+        .field-item select, .field-item input[type="text"] {
+            background: var(--bg-input); border: 1px solid var(--border); color: var(--text-primary);
+            font-size: 0.85rem; padding: 4px 8px; border-radius: 4px;
+        }
+        .field-item select { width: 110px; }
+        .field-item input[type="text"] { width: 100px; }
+        .field-item .field-acres { color: var(--accent); font-weight: 600; min-width: 70px; text-align: right; }
+        .field-item .field-source { font-size: 0.72rem; padding: 2px 6px; border-radius: 3px; }
+        .field-item .field-source.gps { background: rgba(34,197,94,0.2); color: var(--accent); }
+        .field-item .field-source.drawn { background: rgba(245,158,11,0.2); color: #f59e0b; }
         .field-item button { background: none; border: none; color: var(--danger); cursor: pointer; padding: 4px; }
         .map-legend {
             background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px;
@@ -390,9 +395,38 @@
         }
         .map-legend h4 { margin-bottom: 8px; font-size: 0.85rem; color: var(--text-secondary); }
         .map-total { font-size: 1rem; font-weight: 700; color: var(--accent); margin-top: 8px; }
+        /* Field name picker overlay */
+        .field-name-picker {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6); z-index: 10000;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .field-name-picker-inner {
+            background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
+            padding: 20px; width: 320px; max-width: 90vw; max-height: 80vh; overflow-y: auto;
+        }
+        .field-name-picker h4 { margin-bottom: 12px; font-size: 1rem; }
+        .field-name-btn {
+            display: block; width: 100%; text-align: left; padding: 10px 14px;
+            background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px;
+            color: var(--text-primary); font-size: 0.9rem; cursor: pointer; margin-bottom: 6px;
+        }
+        .field-name-btn:hover { border-color: var(--accent); background: var(--accent-dim); }
+        .field-name-btn .bed-count { float: right; color: var(--text-secondary); font-size: 0.8rem; }
+        .field-name-btn.used { opacity: 0.4; pointer-events: none; }
+        .field-name-custom { margin-top: 8px; display: flex; gap: 8px; }
+        .field-name-custom input {
+            flex: 1; padding: 10px 12px; background: var(--bg-input); border: 1px solid var(--border);
+            border-radius: 6px; color: var(--text-primary); font-size: 0.9rem;
+        }
+        .field-name-custom button {
+            padding: 10px 16px; background: var(--accent); color: #000; border: none;
+            border-radius: 6px; font-weight: 600; cursor: pointer;
+        }
         @media print {
             #farmMap { height: 400px; page-break-inside: avoid; }
-            .map-toolbar, .leaflet-draw-toolbar, .leaflet-control-zoom { display: none !important; }
+            .map-toolbar, .leaflet-pm-toolbar, .leaflet-control-zoom, .field-name-picker { display: none !important; }
+            .field-item .field-source { border: 1px solid #999; }
         }
     </style>
     <div class="osp-section" data-section="3" id="section3">
@@ -401,14 +435,16 @@
 
         <div class="help-text">
             <i class="fas fa-info-circle"></i>
-            <strong>How to use:</strong> Click the polygon tool (pentagon icon) on the left side of the map. Click to place corners around a field, then click the first point to close the shape. Give each field a name. The map auto-calculates acreage. For OEFFA: use Print/PDF to capture this map with your submission.
+            <strong>How to use:</strong> Click the <strong>polygon tool</strong> (hexagon icon, left toolbar) to start drawing. Click corners around a field boundary on the satellite image. Double-click or click the first point to close the shape. Then pick the field name from your list. Acreage calculates automatically.<br>
+            <strong>GPS override:</strong> When you walk a field with the employee app's GPS capture, those exact coordinates replace the hand-drawn boundary here automatically.
         </div>
 
         <div class="map-toolbar">
-            <button onclick="toggleMapLayer()" id="mapLayerBtn"><i class="fas fa-map"></i> Toggle Satellite/Street</button>
+            <button onclick="toggleMapLayer()" id="mapLayerBtn"><i class="fas fa-satellite"></i> Satellite View</button>
             <button onclick="addMarker('building')" title="Mark a building"><i class="fas fa-warehouse"></i> Building</button>
-            <button onclick="addMarker('water')" title="Mark a water source"><i class="fas fa-tint"></i> Water Source</button>
+            <button onclick="addMarker('water')" title="Mark a water source"><i class="fas fa-tint"></i> Water</button>
             <button onclick="addMarker('greenhouse')" title="Mark greenhouse/tunnel"><i class="fas fa-seedling"></i> Greenhouse</button>
+            <button onclick="saveToFarm()" style="background:var(--accent-dim);border-color:var(--accent);color:var(--accent);"><i class="fas fa-cloud-upload-alt"></i> Save to Farm</button>
             <button onclick="clearAllFields()" style="margin-left:auto;border-color:var(--danger);color:var(--danger);"><i class="fas fa-trash"></i> Clear All</button>
         </div>
 
@@ -418,14 +454,13 @@
         <div class="map-total" id="mapTotalAcres"></div>
 
         <div class="map-legend">
-            <h4><i class="fas fa-compass"></i> Map Legend & Notes</h4>
+            <h4><i class="fas fa-compass"></i> Map Legend</h4>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;">
-                <span><span style="display:inline-block;width:12px;height:12px;background:#22c55e;border-radius:2px;"></span> Production field</span>
-                <span><i class="fas fa-warehouse" style="color:#f59e0b;"></i> Building/structure</span>
-                <span><i class="fas fa-tint" style="color:#3b82f6;"></i> Water source</span>
-                <span><i class="fas fa-seedling" style="color:#a855f7;"></i> Greenhouse/tunnel</span>
+                <span><span style="display:inline-block;width:12px;height:12px;background:#22c55e;border-radius:2px;"></span> Production field (GPS-traced)</span>
+                <span><span style="display:inline-block;width:12px;height:12px;background:#f59e0b;border-radius:2px;"></span> Production field (hand-drawn)</span>
+                <span style="font-size:16px;">🏠 Building &nbsp; 💧 Water &nbsp; 🌱 Greenhouse</span>
             </div>
-            <p style="margin-top:8px;color:var(--text-secondary);">North is up. Scale bar shown on map. Field polygons are GPS-traced with calculated acreage.</p>
+            <p style="margin-top:8px;color:var(--text-secondary);">North is up. Scale bar on map. GPS-traced fields override hand-drawn boundaries.</p>
         </div>
 
         <div class="form-group" style="margin-top:16px;">
@@ -1638,153 +1673,311 @@ function showToast(msg, type) {
 
 <!-- Farm Map Scripts -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+<script src="https://unpkg.com/@geoman-io/leaflet-geoman-free@2.17.0/dist/leaflet-geoman.min.js"></script>
 <script>
 // ============================================================
-// INTERACTIVE FARM MAP
+// INTERACTIVE FARM MAP — Leaflet + Geoman (replaces Leaflet.Draw)
 // ============================================================
 var FARM_CENTER = [40.7456, -80.1610]; // 257 Zeigler Rd, Rochester PA
-var farmMap, drawnFields, satelliteLayer, streetLayer, isSatellite = true;
-var fieldColors = ['#22c55e','#3b82f6','#f59e0b','#ef4444','#a855f7','#ec4899','#14b8a6','#f97316'];
+var farmMap = null;
+var drawnFields = null;
+var satelliteLayer, streetLayer;
+var isSatellite = true;
+var FIELD_COLORS = ['#22c55e','#3b82f6','#f59e0b','#ef4444','#a855f7','#ec4899','#14b8a6','#f97316',
+                    '#06b6d4','#84cc16','#e879f9','#fb923c','#2dd4bf','#fbbf24','#818cf8','#f472b6'];
 var fieldCounter = 0;
 var markerIcons = {};
+// Known farm fields from getFields() — loaded from API, fallback to defaults
+var knownFields = [];
+var usedFieldNames = new Set();
+// Pending polygon waiting for a name
+var _pendingPolygon = null;
 
+// ============================================================
+// MAP INITIALIZATION
+// ============================================================
 function initFarmMap() {
-    if (farmMap) return; // already initialized
+    if (farmMap) { farmMap.invalidateSize(); return; }
 
     satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-        attribution: 'Esri Satellite', maxZoom: 20
+        attribution: 'Esri', maxZoom: 20
     });
     streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: 'OpenStreetMap', maxZoom: 20
+        attribution: 'OSM', maxZoom: 20
     });
 
-    farmMap = L.map('farmMap', { layers: [satelliteLayer] }).setView(FARM_CENTER, 17);
+    farmMap = L.map('farmMap', {
+        layers: [satelliteLayer],
+        center: FARM_CENTER,
+        zoom: 17,
+        zoomControl: true,
+        tap: false // fixes Leaflet iOS double-tap issue
+    });
 
-    // Scale bar (required by OEFFA)
-    L.control.scale({ imperial: true, metric: false }).addTo(farmMap);
+    // Scale bar (OEFFA requires)
+    L.control.scale({ imperial: true, metric: false, position: 'bottomleft' }).addTo(farmMap);
 
-    // Drawing layer
+    // North arrow (simple CSS control)
+    var northControl = L.control({ position: 'topright' });
+    northControl.onAdd = function() {
+        var div = L.DomUtil.create('div');
+        div.innerHTML = '<div style="background:rgba(0,0,0,0.7);color:#fff;padding:6px 10px;border-radius:6px;font-size:14px;font-weight:700;line-height:1;text-align:center;">N<div style="font-size:8px;margin-top:2px;">&#9650;</div></div>';
+        return div;
+    };
+    northControl.addTo(farmMap);
+
+    // Feature group for all drawn items
     drawnFields = new L.FeatureGroup();
     farmMap.addLayer(drawnFields);
 
-    // Draw control
-    var drawControl = new L.Control.Draw({
+    // Geoman drawing controls — polygon only
+    farmMap.pm.addControls({
         position: 'topleft',
-        draw: {
-            polygon: {
-                shapeOptions: { color: fieldColors[0], weight: 3, fillOpacity: 0.25 },
-                showArea: true
-            },
-            polyline: false,
-            rectangle: false,
-            circle: false,
-            circlemarker: false,
-            marker: false
+        drawMarker: false,
+        drawCircleMarker: false,
+        drawPolyline: false,
+        drawRectangle: false,
+        drawCircle: false,
+        drawText: false,
+        cutPolygon: false,
+        rotateMode: false,
+        drawPolygon: true,
+        editMode: true,
+        dragMode: true,
+        removalMode: true
+    });
+
+    // Style for new polygons
+    farmMap.pm.setGlobalOptions({
+        pathOptions: {
+            color: '#22c55e',
+            fillColor: '#22c55e',
+            weight: 3,
+            fillOpacity: 0.25
         },
-        edit: { featureGroup: drawnFields }
+        snappable: true,
+        snapDistance: 15
     });
-    farmMap.addControl(drawControl);
 
-    // When polygon drawn
-    farmMap.on(L.Draw.Event.CREATED, function(e) {
+    // When polygon created — show field name picker
+    farmMap.on('pm:create', function(e) {
+        if (e.shape !== 'Polygon') return;
+        _pendingPolygon = e.layer;
+        showFieldNamePicker();
+    });
+
+    // When polygon edited — recalculate
+    farmMap.on('pm:edit', function(e) {
         var layer = e.layer;
-        var color = fieldColors[fieldCounter % fieldColors.length];
-        layer.setStyle({ color: color, fillColor: color, weight: 3, fillOpacity: 0.25 });
-
-        fieldCounter++;
-        var fieldId = 'Field ' + fieldCounter;
-        layer.fieldId = fieldId;
-        layer.fieldColor = color;
-
-        // Calculate acreage from polygon
-        var acres = calcPolygonAcres(layer);
-        layer.fieldAcres = acres;
-
-        // Add label to polygon center
-        var center = layer.getBounds().getCenter();
-        var label = L.marker(center, {
-            icon: L.divIcon({
-                className: 'field-label',
-                html: '<div style="background:rgba(0,0,0,0.7);color:#fff;padding:3px 8px;border-radius:4px;font-size:12px;font-weight:700;white-space:nowrap;border:2px solid ' + color + ';">' + esc(fieldId) + ' (' + acres.toFixed(2) + ' ac)</div>',
-                iconSize: null
-            })
-        });
-        layer._label = label;
-        drawnFields.addLayer(label);
-        drawnFields.addLayer(layer);
-
-        updateFieldList();
-        saveMapData();
+        if (layer instanceof L.Polygon && layer.fieldId) {
+            layer.fieldAcres = calcPolygonAcres(layer);
+            updateFieldLabel(layer);
+            updateFieldList();
+            saveMapData();
+        }
     });
 
-    // When polygon edited
-    farmMap.on(L.Draw.Event.EDITED, function() {
-        // Recalculate all acreages
-        drawnFields.eachLayer(function(layer) {
-            if (layer instanceof L.Polygon) {
-                layer.fieldAcres = calcPolygonAcres(layer);
-                updateFieldLabel(layer);
-            }
-        });
-        updateFieldList();
-        saveMapData();
-    });
-
-    farmMap.on(L.Draw.Event.DELETED, function() {
+    // When polygon removed
+    farmMap.on('pm:remove', function(e) {
+        var layer = e.layer;
+        if (layer._label) drawnFields.removeLayer(layer._label);
+        if (layer.fieldId) usedFieldNames.delete(layer.fieldId);
         updateFieldList();
         saveMapData();
     });
 
     // Marker icons
-    markerIcons.building = L.divIcon({ className: '', html: '<div style="font-size:20px;text-shadow:0 1px 3px rgba(0,0,0,0.5);">🏠</div>', iconSize: [24, 24], iconAnchor: [12, 12] });
-    markerIcons.water = L.divIcon({ className: '', html: '<div style="font-size:20px;text-shadow:0 1px 3px rgba(0,0,0,0.5);">💧</div>', iconSize: [24, 24], iconAnchor: [12, 12] });
-    markerIcons.greenhouse = L.divIcon({ className: '', html: '<div style="font-size:20px;text-shadow:0 1px 3px rgba(0,0,0,0.5);">🌱</div>', iconSize: [24, 24], iconAnchor: [12, 12] });
+    markerIcons.building = L.divIcon({ className: '', html: '<div style="font-size:22px;text-shadow:0 2px 4px rgba(0,0,0,0.6);">🏠</div>', iconSize: [28, 28], iconAnchor: [14, 14] });
+    markerIcons.water = L.divIcon({ className: '', html: '<div style="font-size:22px;text-shadow:0 2px 4px rgba(0,0,0,0.6);">💧</div>', iconSize: [28, 28], iconAnchor: [14, 14] });
+    markerIcons.greenhouse = L.divIcon({ className: '', html: '<div style="font-size:22px;text-shadow:0 2px 4px rgba(0,0,0,0.6);">🌱</div>', iconSize: [28, 28], iconAnchor: [14, 14] });
 
-    // Load saved data
-    loadMapData();
+    // Load field names from API, then load saved map data, then load backend boundaries
+    loadFieldNames().then(function() {
+        loadMapData();
+        loadBackendBoundaries();
+    });
 }
 
-function calcPolygonAcres(polygon) {
-    var latlngs = polygon.getLatLngs()[0];
-    if (!latlngs || latlngs.length < 3) return 0;
+// ============================================================
+// LOAD FIELD NAMES FROM BACKEND
+// ============================================================
+async function loadFieldNames() {
+    // Defaults — your 18+ fields from the system
+    knownFields = [
+        'F3L','F7M','F11M','HOL','IL','IOL','JL',
+        'JS1','JS4','JS6','JS10',
+        'M','SO','Z1','Z3','Z5','B','CL','K1','K2'
+    ];
 
-    // Shoelace formula in projected coordinates (meters)
-    var area = 0;
-    var points = latlngs.map(function(ll) {
-        // Simple equirectangular projection to meters
-        var x = ll.lng * Math.cos(FARM_CENTER[0] * Math.PI / 180) * 111319.9;
-        var y = ll.lat * 111319.9;
-        return { x: x, y: y };
+    try {
+        var res = await fetch(API_URL + '?action=getFields');
+        var data = await res.json();
+        if (data.success && data.fields && data.fields.length > 0) {
+            // Use API field names — they're authoritative
+            knownFields = data.fields.map(function(f) {
+                return f.fieldId || f.Field_ID || f.name || f.Name || '';
+            }).filter(function(n) { return n; });
+        }
+    } catch(e) {
+        // Use defaults — that's fine
+    }
+}
+
+// ============================================================
+// FIELD NAME PICKER (shown after polygon drawn)
+// ============================================================
+function showFieldNamePicker() {
+    var overlay = document.createElement('div');
+    overlay.className = 'field-name-picker';
+    overlay.id = 'fieldNamePicker';
+
+    var inner = document.createElement('div');
+    inner.className = 'field-name-picker-inner';
+
+    var h4 = document.createElement('h4');
+    h4.textContent = 'Which field is this?';
+    inner.appendChild(h4);
+
+    // List known field names
+    knownFields.forEach(function(name) {
+        var btn = document.createElement('button');
+        btn.className = 'field-name-btn';
+        if (usedFieldNames.has(name)) {
+            btn.classList.add('used');
+            btn.innerHTML = esc(name) + ' <span class="bed-count">already mapped</span>';
+        } else {
+            btn.textContent = name;
+        }
+        btn.onclick = function() { assignFieldName(name); };
+        inner.appendChild(btn);
     });
 
-    for (var i = 0; i < points.length; i++) {
-        var j = (i + 1) % points.length;
-        area += points[i].x * points[j].y;
-        area -= points[j].x * points[i].y;
-    }
-    area = Math.abs(area) / 2;
+    // Custom name option
+    var customDiv = document.createElement('div');
+    customDiv.className = 'field-name-custom';
+    var customInput = document.createElement('input');
+    customInput.type = 'text';
+    customInput.placeholder = 'Or type a custom name...';
+    customInput.id = 'customFieldNameInput';
+    var customBtn = document.createElement('button');
+    customBtn.textContent = 'Use';
+    customBtn.onclick = function() {
+        var v = customInput.value.trim();
+        if (v) assignFieldName(v);
+    };
+    customInput.onkeydown = function(e) {
+        if (e.key === 'Enter') { var v = this.value.trim(); if (v) assignFieldName(v); }
+    };
+    customDiv.appendChild(customInput);
+    customDiv.appendChild(customBtn);
+    inner.appendChild(customDiv);
 
-    // Square meters to acres (1 acre = 4046.86 m²)
-    return area / 4046.86;
+    // Cancel
+    var cancelBtn = document.createElement('button');
+    cancelBtn.className = 'field-name-btn';
+    cancelBtn.style.cssText = 'margin-top:8px;text-align:center;color:var(--danger);border-color:var(--danger);';
+    cancelBtn.textContent = 'Cancel (remove polygon)';
+    cancelBtn.onclick = function() {
+        if (_pendingPolygon) {
+            farmMap.removeLayer(_pendingPolygon);
+            _pendingPolygon = null;
+        }
+        document.getElementById('fieldNamePicker').remove();
+    };
+    inner.appendChild(cancelBtn);
+
+    overlay.appendChild(inner);
+    document.body.appendChild(overlay);
+
+    // Focus custom input
+    setTimeout(function() { customInput.focus(); }, 100);
 }
 
-function updateFieldLabel(layer) {
-    if (layer._label) {
-        drawnFields.removeLayer(layer._label);
-    }
+function assignFieldName(name) {
+    var picker = document.getElementById('fieldNamePicker');
+    if (picker) picker.remove();
+
+    if (!_pendingPolygon) return;
+
+    var layer = _pendingPolygon;
+    _pendingPolygon = null;
+
+    var color = FIELD_COLORS[fieldCounter % FIELD_COLORS.length];
+    fieldCounter++;
+
+    layer.setStyle({ color: color, fillColor: color, weight: 3, fillOpacity: 0.25 });
+    layer.fieldId = name;
+    layer.fieldColor = color;
+    layer.fieldSource = 'drawn'; // hand-drawn, not GPS
+    layer.fieldAcres = calcPolygonAcres(layer);
+
+    usedFieldNames.add(name);
+
+    // Add to our feature group (Geoman adds to map, we also track in drawnFields)
+    drawnFields.addLayer(layer);
+
+    // Add label
+    addFieldLabel(layer);
+
+    updateFieldList();
+    saveMapData();
+}
+
+// ============================================================
+// FIELD LABELS ON MAP
+// ============================================================
+function addFieldLabel(layer) {
+    if (layer._label) drawnFields.removeLayer(layer._label);
+
     var center = layer.getBounds().getCenter();
+    var sourceIcon = layer.fieldSource === 'gps' ? '📡' : '✏️';
+    var borderColor = layer.fieldSource === 'gps' ? '#22c55e' : '#f59e0b';
+
     var label = L.marker(center, {
+        interactive: false,
         icon: L.divIcon({
-            className: 'field-label',
-            html: '<div style="background:rgba(0,0,0,0.7);color:#fff;padding:3px 8px;border-radius:4px;font-size:12px;font-weight:700;white-space:nowrap;border:2px solid ' + layer.fieldColor + ';">' + esc(layer.fieldId) + ' (' + layer.fieldAcres.toFixed(2) + ' ac)</div>',
-            iconSize: null
+            className: '',
+            html: '<div style="background:rgba(0,0,0,0.8);color:#fff;padding:4px 10px;border-radius:5px;font-size:13px;font-weight:700;white-space:nowrap;border:2px solid ' + borderColor + ';pointer-events:none;">' +
+                  sourceIcon + ' ' + esc(layer.fieldId) + ' <span style="color:' + borderColor + ';">(' + layer.fieldAcres.toFixed(2) + ' ac)</span></div>',
+            iconSize: null,
+            iconAnchor: [0, 0]
         })
     });
     layer._label = label;
     drawnFields.addLayer(label);
 }
 
+function updateFieldLabel(layer) {
+    addFieldLabel(layer);
+}
+
+// ============================================================
+// ACREAGE CALCULATION (Shoelace formula)
+// ============================================================
+function calcPolygonAcres(polygon) {
+    var latlngs = polygon.getLatLngs();
+    if (!latlngs || !latlngs[0] || latlngs[0].length < 3) return 0;
+
+    var ring = latlngs[0];
+    var area = 0;
+    var cosLat = Math.cos(FARM_CENTER[0] * Math.PI / 180);
+
+    for (var i = 0; i < ring.length; i++) {
+        var j = (i + 1) % ring.length;
+        var xi = ring[i].lng * cosLat * 111319.9;
+        var yi = ring[i].lat * 111319.9;
+        var xj = ring[j].lng * cosLat * 111319.9;
+        var yj = ring[j].lat * 111319.9;
+        area += xi * yj;
+        area -= xj * yi;
+    }
+    area = Math.abs(area) / 2;
+    return area / 4046.86; // sq meters to acres
+}
+
+// ============================================================
+// FIELD LIST (below map)
+// ============================================================
 function updateFieldList() {
     var list = document.getElementById('fieldList');
     var totalAcres = 0;
@@ -1793,72 +1986,79 @@ function updateFieldList() {
 
     drawnFields.eachLayer(function(layer) {
         if (!(layer instanceof L.Polygon)) return;
+        if (!layer.fieldId) return;
         fieldCount++;
         totalAcres += layer.fieldAcres || 0;
 
+        var stamp = L.stamp(layer);
+        var sourceClass = layer.fieldSource === 'gps' ? 'gps' : 'drawn';
+        var sourceLabel = layer.fieldSource === 'gps' ? 'GPS' : 'Drawn';
+
         html += '<div class="field-item">' +
             '<div class="field-color" style="background:' + (layer.fieldColor || '#22c55e') + '"></div>' +
-            '<input type="text" value="' + esc(layer.fieldId || '') + '" onchange="renameField(this, ' + L.stamp(layer) + ')" title="Click to rename">' +
+            '<strong style="min-width:50px;">' + esc(layer.fieldId) + '</strong>' +
+            '<span class="field-source ' + sourceClass + '">' + sourceLabel + '</span>' +
             '<span class="field-acres">' + (layer.fieldAcres || 0).toFixed(2) + ' ac</span>' +
-            '<button onclick="removeField(' + L.stamp(layer) + ')" title="Remove field"><i class="fas fa-times"></i></button>' +
+            '<button onclick="zoomToField(' + stamp + ')" title="Zoom to field" style="color:var(--accent);"><i class="fas fa-crosshairs"></i></button>' +
+            '<button onclick="removeField(' + stamp + ')" title="Remove field"><i class="fas fa-times"></i></button>' +
             '</div>';
     });
 
     list.innerHTML = html;
 
-    // Update totals
     var totalEl = document.getElementById('mapTotalAcres');
-    if (fieldCount > 0) {
-        totalEl.textContent = 'Total mapped: ' + totalAcres.toFixed(2) + ' acres across ' + fieldCount + ' field' + (fieldCount > 1 ? 's' : '');
-    } else {
-        totalEl.textContent = '';
-    }
+    totalEl.textContent = fieldCount > 0
+        ? 'Total mapped: ' + totalAcres.toFixed(2) + ' acres across ' + fieldCount + ' field' + (fieldCount > 1 ? 's' : '')
+        : '';
 
-    // Auto-fill the form fields
-    document.getElementById('totalAcres').value = totalAcres.toFixed(1);
-    document.getElementById('numFields').value = fieldCount;
+    document.getElementById('totalAcres').value = fieldCount > 0 ? totalAcres.toFixed(1) : '';
+    document.getElementById('numFields').value = fieldCount > 0 ? fieldCount : '';
 }
 
-function renameField(input, layerId) {
+function zoomToField(stamp) {
     drawnFields.eachLayer(function(layer) {
-        if (L.stamp(layer) === layerId && layer instanceof L.Polygon) {
-            layer.fieldId = input.value;
-            updateFieldLabel(layer);
-            saveMapData();
+        if (L.stamp(layer) === stamp && layer instanceof L.Polygon) {
+            farmMap.fitBounds(layer.getBounds(), { padding: [40, 40] });
         }
     });
 }
 
-function removeField(layerId) {
+function removeField(stamp) {
     drawnFields.eachLayer(function(layer) {
-        if (L.stamp(layer) === layerId) {
+        if (L.stamp(layer) === stamp) {
+            if (layer.fieldId) usedFieldNames.delete(layer.fieldId);
             if (layer._label) drawnFields.removeLayer(layer._label);
             drawnFields.removeLayer(layer);
+            farmMap.removeLayer(layer);
         }
     });
     updateFieldList();
     saveMapData();
 }
 
+// ============================================================
+// MAP LAYER TOGGLE + MARKERS
+// ============================================================
 function toggleMapLayer() {
+    var btn = document.getElementById('mapLayerBtn');
     if (isSatellite) {
         farmMap.removeLayer(satelliteLayer);
         farmMap.addLayer(streetLayer);
-        document.getElementById('mapLayerBtn').innerHTML = '<i class="fas fa-satellite"></i> Show Satellite';
+        btn.innerHTML = '<i class="fas fa-satellite"></i> Satellite';
     } else {
         farmMap.removeLayer(streetLayer);
         farmMap.addLayer(satelliteLayer);
-        document.getElementById('mapLayerBtn').innerHTML = '<i class="fas fa-map"></i> Toggle Satellite/Street';
+        btn.innerHTML = '<i class="fas fa-map"></i> Street View';
     }
     isSatellite = !isSatellite;
 }
 
 function addMarker(type) {
-    showToast('Click the map to place ' + type, 'success');
+    showToast('Tap the map to place ' + type, 'success');
     farmMap.once('click', function(e) {
         var marker = L.marker(e.latlng, { icon: markerIcons[type], draggable: true });
         marker.markerType = type;
-        marker.bindPopup('<strong>' + type.charAt(0).toUpperCase() + type.slice(1) + '</strong><br><input type="text" placeholder="Label..." style="padding:4px;width:120px;" onchange="this.parentElement._marker.markerLabel=this.value">');
+        marker.markerLabel = '';
         drawnFields.addLayer(marker);
         marker.on('dragend', saveMapData);
         saveMapData();
@@ -1866,24 +2066,137 @@ function addMarker(type) {
 }
 
 function clearAllFields() {
-    if (!confirm('Remove all drawn fields and markers?')) return;
+    if (!confirm('Remove ALL drawn fields and markers? This cannot be undone.')) return;
     drawnFields.clearLayers();
     fieldCounter = 0;
+    usedFieldNames.clear();
     updateFieldList();
     saveMapData();
 }
 
 // ============================================================
-// SAVE / LOAD MAP DATA TO LOCALSTORAGE
+// SAVE TO FARM (backend — FARM_BOUNDARIES sheet)
+// ============================================================
+async function saveToFarm() {
+    var count = 0;
+    var errors = 0;
+
+    var promises = [];
+    drawnFields.eachLayer(function(layer) {
+        if (!(layer instanceof L.Polygon) || !layer.fieldId) return;
+        // Don't overwrite GPS-sourced boundaries with hand-drawn
+        if (layer.fieldSource === 'gps') { count++; return; }
+
+        var coords = layer.getLatLngs()[0].map(function(ll) {
+            return { lat: ll.lat, lng: ll.lng };
+        });
+
+        promises.push(
+            fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain' },
+                body: JSON.stringify({
+                    action: 'saveBoundary',
+                    type: 'Field Outline',
+                    name: layer.fieldId,
+                    coordinates: JSON.stringify(coords),
+                    color: layer.fieldColor || '#22c55e',
+                    description: 'OSP farm map — hand-drawn on satellite'
+                })
+            }).then(function(r) { return r.json(); })
+              .then(function(d) { if (d.success) count++; else errors++; })
+              .catch(function() { errors++; })
+        );
+    });
+
+    if (promises.length === 0 && count === 0) {
+        showToast('No fields to save — draw some polygons first', 'error');
+        return;
+    }
+
+    await Promise.all(promises);
+
+    if (errors > 0) {
+        showToast('Saved ' + count + ' fields, ' + errors + ' failed', 'error');
+    } else {
+        showToast('Saved ' + count + ' field boundaries to farm records', 'success');
+    }
+}
+
+// ============================================================
+// LOAD BACKEND BOUNDARIES (GPS overrides hand-drawn)
+// ============================================================
+async function loadBackendBoundaries() {
+    try {
+        var res = await fetch(API_URL + '?action=getBoundaries&type=Field%20Outline');
+        var data = await res.json();
+        if (!data.success || !data.boundaries || data.boundaries.length === 0) return;
+
+        data.boundaries.forEach(function(b) {
+            var name = b.Name || b.name || '';
+            if (!name) return;
+
+            var coords;
+            try { coords = JSON.parse(b.Coordinates || b.coordinates || '[]'); } catch(e) { return; }
+            if (!coords.length) return;
+
+            var latlngs = coords.map(function(c) { return [c.lat, c.lng]; });
+
+            // Check if this field is already on the map (hand-drawn)
+            var existing = null;
+            drawnFields.eachLayer(function(layer) {
+                if (layer instanceof L.Polygon && layer.fieldId === name) {
+                    existing = layer;
+                }
+            });
+
+            if (existing) {
+                // GPS data overrides hand-drawn
+                if (existing.fieldSource !== 'gps') {
+                    existing.setLatLngs([latlngs]);
+                    existing.fieldSource = 'gps';
+                    existing.fieldAcres = calcPolygonAcres(existing);
+                    existing.setStyle({ color: '#22c55e', fillColor: '#22c55e' });
+                    existing.fieldColor = '#22c55e';
+                    updateFieldLabel(existing);
+                }
+            } else {
+                // New field from backend — add it
+                var color = '#22c55e'; // GPS fields are green
+                var polygon = L.polygon(latlngs, {
+                    color: color, fillColor: color, weight: 3, fillOpacity: 0.25
+                });
+                polygon.fieldId = name;
+                polygon.fieldColor = color;
+                polygon.fieldSource = 'gps';
+                polygon.fieldAcres = calcPolygonAcres(polygon);
+                fieldCounter++;
+                usedFieldNames.add(name);
+                drawnFields.addLayer(polygon);
+                addFieldLabel(polygon);
+            }
+        });
+
+        updateFieldList();
+        // Don't save to localStorage here — backend is authoritative for GPS fields
+
+    } catch(e) {
+        // Backend unavailable — that's OK, local data still works
+    }
+}
+
+// ============================================================
+// LOCAL SAVE / LOAD (localStorage for hand-drawn fields)
 // ============================================================
 function saveMapData() {
     var data = { fields: [], markers: [] };
     drawnFields.eachLayer(function(layer) {
-        if (layer instanceof L.Polygon) {
+        if (layer instanceof L.Polygon && layer.fieldId) {
             data.fields.push({
                 latlngs: layer.getLatLngs()[0].map(function(ll) { return [ll.lat, ll.lng]; }),
                 fieldId: layer.fieldId,
-                fieldColor: layer.fieldColor
+                fieldColor: layer.fieldColor,
+                fieldSource: layer.fieldSource || 'drawn'
             });
         } else if (layer instanceof L.Marker && layer.markerType) {
             data.markers.push({
@@ -1903,60 +2216,47 @@ function loadMapData() {
         var data = JSON.parse(raw);
 
         (data.fields || []).forEach(function(f) {
+            if (!f.fieldId) return;
+            var color = f.fieldColor || FIELD_COLORS[fieldCounter % FIELD_COLORS.length];
             var polygon = L.polygon(f.latlngs, {
-                color: f.fieldColor || fieldColors[fieldCounter % fieldColors.length],
-                fillColor: f.fieldColor || fieldColors[fieldCounter % fieldColors.length],
-                weight: 3, fillOpacity: 0.25
+                color: color, fillColor: color, weight: 3, fillOpacity: 0.25
             });
-            polygon.fieldId = f.fieldId || ('Field ' + (fieldCounter + 1));
-            polygon.fieldColor = f.fieldColor || fieldColors[fieldCounter % fieldColors.length];
+            polygon.fieldId = f.fieldId;
+            polygon.fieldColor = color;
+            polygon.fieldSource = f.fieldSource || 'drawn';
             polygon.fieldAcres = calcPolygonAcres(polygon);
             fieldCounter++;
-
-            var center = polygon.getBounds().getCenter();
-            var label = L.marker(center, {
-                icon: L.divIcon({
-                    className: 'field-label',
-                    html: '<div style="background:rgba(0,0,0,0.7);color:#fff;padding:3px 8px;border-radius:4px;font-size:12px;font-weight:700;white-space:nowrap;border:2px solid ' + polygon.fieldColor + ';">' + esc(polygon.fieldId) + ' (' + polygon.fieldAcres.toFixed(2) + ' ac)</div>',
-                    iconSize: null
-                })
-            });
-            polygon._label = label;
-            drawnFields.addLayer(label);
+            usedFieldNames.add(f.fieldId);
             drawnFields.addLayer(polygon);
+            addFieldLabel(polygon);
         });
 
         (data.markers || []).forEach(function(m) {
-            var marker = L.marker(m.latlng, { icon: markerIcons[m.type] || markerIcons.building, draggable: true });
+            var marker = L.marker(m.latlng, {
+                icon: markerIcons[m.type] || markerIcons.building,
+                draggable: true
+            });
             marker.markerType = m.type;
-            marker.markerLabel = m.label;
+            marker.markerLabel = m.label || '';
             marker.on('dragend', saveMapData);
             drawnFields.addLayer(marker);
         });
 
         updateFieldList();
-    } catch(e) { console.log('Map data load failed:', e); }
+    } catch(e) { /* localStorage corrupt — start fresh */ }
 }
 
-// Initialize map when Section 3 becomes visible
-var _mapInitObserver = new MutationObserver(function() {
-    var section3 = document.getElementById('section3');
-    if (section3 && (section3.classList.contains('active') || section3.style.display === 'block')) {
-        initFarmMap();
-        farmMap.invalidateSize();
-    }
-});
-_mapInitObserver.observe(document.getElementById('section3'), { attributes: true, attributeFilter: ['class', 'style'] });
-
-// Also init if Section 3 is already active on page load
+// ============================================================
+// MAP INIT TRIGGER — wait for Section 3 to be visible
+// ============================================================
 var _origGoToSection = goToSection;
 goToSection = function(num) {
     _origGoToSection(num);
     if (num === 3) {
+        // Delay to ensure div is rendered and visible before Leaflet measures it
         setTimeout(function() {
             initFarmMap();
-            farmMap.invalidateSize();
-        }, 100);
+        }, 200);
     }
 };
 </script>
