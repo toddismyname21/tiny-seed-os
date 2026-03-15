@@ -227,7 +227,8 @@
         <h1><i class="fas fa-leaf" style="color:var(--accent)"></i> OSP <span>Generator</span></h1>
         <div class="header-actions">
             <select id="ospYearSelect" onchange="handleYearChange(this)" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--accent);font-size:0.85rem;font-weight:600;cursor:pointer;" title="Certification Year"></select>
-            <button onclick="saveDraft()"><i class="fas fa-save"></i> Save Draft</button>
+            <button onclick="saveDraft()" id="saveDraftBtn"><i class="fas fa-save"></i> Save Draft</button>
+            <button onclick="downloadDraftBackup()" title="Download a backup JSON file of all your OSP data" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-secondary);font-size:0.75rem;cursor:pointer;"><i class="fas fa-download"></i> Backup</button>
             <button onclick="window.print()"><i class="fas fa-print"></i> Print / PDF</button>
             <button onclick="exportText()"><i class="fas fa-file-export"></i> Export</button>
             <button onclick="fillOEFFAForm()" style="padding:8px 16px;border-radius:8px;border:1px solid var(--info);background:var(--info-dim);color:var(--info);font-size:0.85rem;cursor:pointer;display:flex;align-items:center;gap:6px;"><i class="fas fa-file-pdf"></i> Fill OEFFA Form</button>
@@ -2519,9 +2520,21 @@ var _saveTimer = null;
 // OSP_YEAR defined at top of script block
 
 async function saveDraft() {
+    var btn = document.getElementById('saveDraftBtn');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...'; }
+
     var draft = collectFormData();
+    var keys = Object.keys(draft);
+    var tableKeys = keys.filter(function(k) { return k.startsWith('_table_'); });
+
     // Always save to localStorage immediately (instant backup)
-    localStorage.setItem('osp_draft_' + OSP_YEAR, JSON.stringify(draft));
+    try {
+        localStorage.setItem('osp_draft_' + OSP_YEAR, JSON.stringify(draft));
+    } catch(e) {
+        showToast('localStorage save failed: ' + e.message, 'error');
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> Save Draft'; }
+        return;
+    }
 
     // Save to backend for cross-year persistence
     try {
@@ -2532,13 +2545,25 @@ async function saveDraft() {
         });
         var data = await res.json();
         if (data.success) {
-            showToast('Saved to farm records (v' + data.version + ')', 'success');
+            showToast('Saved! ' + keys.length + ' fields, ' + tableKeys.length + ' tables (v' + data.version + ')', 'success');
         } else {
             showToast('Saved locally. Backend: ' + (data.error || 'error'), 'error');
         }
     } catch(e) {
-        showToast('Saved locally (offline)', 'success');
+        showToast('Saved locally (' + keys.length + ' fields) — offline', 'success');
     }
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> Saved <i class="fas fa-check"></i>'; setTimeout(function() { btn.innerHTML = '<i class="fas fa-save"></i> Save Draft'; }, 3000); }
+}
+
+function downloadDraftBackup() {
+    var draft = collectFormData();
+    var blob = new Blob([JSON.stringify(draft, null, 2)], { type: 'application/json' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'osp_backup_' + OSP_YEAR + '_' + new Date().toISOString().split('T')[0] + '.json';
+    a.click();
+    URL.revokeObjectURL(a.href);
+    showToast('Backup downloaded — ' + Object.keys(draft).length + ' fields saved', 'success');
 }
 
 function autoSaveDraft() {
