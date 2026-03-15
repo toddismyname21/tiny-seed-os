@@ -1577,7 +1577,7 @@ function populateCrops(planningRes) {
             '<td><input type="text" value="' + esc(g.variety) + '" style="width:80px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
             '<td><input type="text" value="' + esc(formatDateShort(g.plantDate)) + '" style="width:70px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
             '<td><input type="text" value="' + esc(formatDateShort(g.harvestDate)) + '" style="width:70px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
-            '<td><select style="padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"><option>CSA</option><option>Wholesale</option><option>Farmers Market</option><option>Direct</option></select></td>' +
+            '<td><input type="text" value="CSA, Farmers Market, Direct" style="width:120px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
             '<td><button onclick="this.closest(\'tr\').remove()" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:0.9rem;" title="Remove"><i class="fas fa-trash"></i></button></td>';
         body.appendChild(tr);
     });
@@ -3005,7 +3005,7 @@ function addCropRow() {
         '<td><input type="text" placeholder="Variety" style="width:80px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
         '<td><input type="text" placeholder="Mar-Apr" style="width:70px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
         '<td><input type="text" placeholder="Jun-Oct" style="width:70px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
-        '<td><select style="padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"><option>CSA</option><option>Wholesale</option><option>Farmers Market</option><option>Direct</option></select></td>' +
+        '<td><input type="text" value="CSA, Farmers Market, Direct" style="width:120px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
         '<td><button onclick="this.closest(\'tr\').remove()" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:0.9rem;" title="Remove"><i class="fas fa-trash"></i></button></td>';
     body.appendChild(tr);
 }
