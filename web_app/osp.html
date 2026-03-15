@@ -2024,9 +2024,13 @@ function toggleArchivedFields() {
 function addFieldHistoryRow(field, acres, crop25, inputs25, crop26, status) {
     var body = document.getElementById('fieldHistoryBody');
     var tr = document.createElement('tr');
+    tr.setAttribute('data-field', (field || '').trim());
     tr.innerHTML =
-        '<td><input type="text" value="' + esc(field || '') + '" placeholder="1A" style="width:50px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
-        '<td><input type="number" value="' + esc(acres || '') + '" placeholder="0.5" step="0.1" oninput="updateFieldHistoryTotals()" style="width:60px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
+        '<td><input type="text" value="' + esc(field || '') + '" placeholder="1A" style="width:50px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;" onchange="this.closest(\'tr\').setAttribute(\'data-field\',this.value.trim())"></td>' +
+        '<td style="position:relative;">' +
+            '<input type="number" value="' + esc(acres || '') + '" placeholder="0.5" step="0.01" class="acres-input" oninput="markAcresOverride(this);updateFieldHistoryTotals()" style="width:70px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;">' +
+            '<span class="acres-map-badge" style="display:none;font-size:0.7rem;color:var(--text-secondary);cursor:pointer;" title="Click to reset to map value"></span>' +
+        '</td>' +
         '<td><input type="text" value="' + esc(crop25 || '') + '" placeholder="e.g. Mixed Veg, Rye" style="width:150px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;" title="Separate multiple crops with commas"></td>' +
         '<td><input type="text" value="' + esc(inputs25 || '') + '" placeholder="Inputs" style="width:120px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
         '<td><input type="text" value="' + esc(crop26 || '') + '" placeholder="' + OSP_YEAR + ' crops" style="width:150px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;" title="Separate multiple crops with commas"></td>' +
@@ -2037,6 +2041,75 @@ function addFieldHistoryRow(field, acres, crop25, inputs25, crop26, status) {
     body.appendChild(tr);
     // Auto-save when any input in this row changes
     tr.addEventListener('change', autoSaveDraft);
+}
+
+// Mark acres as manually overridden (user typed a different value)
+function markAcresOverride(input) {
+    input.setAttribute('data-override', '1');
+    var badge = input.parentElement.querySelector('.acres-map-badge');
+    var mapVal = input.getAttribute('data-map-acres');
+    if (badge && mapVal) {
+        var userVal = parseFloat(input.value);
+        var mapNum = parseFloat(mapVal);
+        if (!isNaN(userVal) && !isNaN(mapNum) && Math.abs(userVal - mapNum) > 0.001) {
+            badge.style.display = 'block';
+            badge.textContent = 'map: ' + mapNum.toFixed(2);
+            badge.onclick = function() {
+                input.value = mapNum.toFixed(2);
+                input.removeAttribute('data-override');
+                badge.style.display = 'none';
+                updateFieldHistoryTotals();
+                autoSaveDraft();
+            };
+        } else {
+            badge.style.display = 'none';
+        }
+    }
+}
+
+// Sync map polygon acreages → field history rows (respects overrides)
+function syncMapAcresToFieldHistory() {
+    if (!drawnFields) return;
+    var mapAcres = {};
+    drawnFields.eachLayer(function(layer) {
+        if (layer instanceof L.Polygon && layer.fieldId) {
+            mapAcres[layer.fieldId] = layer.fieldAcres || 0;
+        }
+    });
+
+    var rows = document.querySelectorAll('#fieldHistoryBody tr');
+    rows.forEach(function(tr) {
+        var fieldName = tr.getAttribute('data-field') || '';
+        if (!fieldName || !(fieldName in mapAcres)) return;
+
+        var input = tr.querySelector('.acres-input');
+        if (!input) return;
+
+        var mapVal = mapAcres[fieldName];
+        input.setAttribute('data-map-acres', mapVal.toFixed(2));
+        var badge = tr.querySelector('.acres-map-badge');
+
+        // If not manually overridden, auto-fill from map
+        if (!input.getAttribute('data-override')) {
+            input.value = mapVal.toFixed(2);
+            if (badge) badge.style.display = 'none';
+        } else {
+            // Show the map value so user can see the difference
+            var userVal = parseFloat(input.value);
+            if (badge && !isNaN(userVal) && Math.abs(userVal - mapVal) > 0.001) {
+                badge.style.display = 'block';
+                badge.textContent = 'map: ' + mapVal.toFixed(2);
+                badge.onclick = function() {
+                    input.value = mapVal.toFixed(2);
+                    input.removeAttribute('data-override');
+                    badge.style.display = 'none';
+                    updateFieldHistoryTotals();
+                    autoSaveDraft();
+                };
+            }
+        }
+    });
+    updateFieldHistoryTotals();
 }
 
 var _pendingImportRows = null;
@@ -3537,6 +3610,9 @@ function updateFieldList() {
 
     document.getElementById('totalAcres').value = fieldCount > 0 ? totalAcres.toFixed(1) : '';
     document.getElementById('numFields').value = fieldCount > 0 ? fieldCount : '';
+
+    // Keep field history acreages in sync with map
+    syncMapAcresToFieldHistory();
 }
 
 function zoomToField(stamp) {
