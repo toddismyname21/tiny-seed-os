@@ -3,7 +3,7 @@
 <head>
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://maps.googleapis.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; img-src 'self' data: blob: https:; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://maps.googleapis.com https://*.supabase.co; frame-src 'self' https://www.google.com;">
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Chief of Staff - Tiny Seed Farm</title>
   <!-- Security: DOMPurify for safe innerHTML -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js" integrity="sha384-irMU3PFyflP2sBiZuBnRkEOFyMjK4VGynFJjQR8PuiJSWF2WxwVYNbYvPwXnEDTd" crossorigin="anonymous"></script>
@@ -22,14 +22,15 @@
       --bg-primary: var(--ts-bg-base, #1a1816);
       --bg-secondary: var(--ts-bg-surface, #282520);
       --bg-card: var(--ts-bg-elevated, #282520);
-      --bg-card-hover: #283555;
+      --bg-card-hover: #1e293b;
+      --on-primary: #0a1628;
       --bg-input: #0f1629;
       --bg-elevated: var(--ts-bg-overlay, #243354);
 
       /* High contrast text */
       --text-primary: var(--ts-text, #f5f5f5);
       --text-secondary: var(--ts-text-secondary, #b8c5d6);
-      --text-muted: var(--ts-text-muted, #8899a8);
+      --text-muted: var(--ts-text-muted, #94a3b8);
       --text-dim: #667788;
 
       /* Borders */
@@ -60,6 +61,10 @@
       --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.25);
       --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.35);
       --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.45);
+    }
+
+    button, a, input, select, textarea, [onclick], .tab, .filter-chip, .nav-sidebar-item, .quick-action {
+      touch-action: manipulation;
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -226,7 +231,7 @@
 
     .btn-primary {
       background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-green-dim) 100%);
-      color: #0a1628;
+      color: var(--on-primary);
       box-shadow: 0 2px 12px rgba(74, 222, 128, 0.3);
     }
 
@@ -250,13 +255,13 @@
     .mobile-chat-toggle {
       display: none;
       position: fixed;
-      bottom: 24px;
+      bottom: max(24px, calc(16px + env(safe-area-inset-bottom)));
       right: 24px;
       width: 60px;
       height: 60px;
       border-radius: 50%;
       background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-teal) 100%);
-      color: #0a1628;
+      color: var(--on-primary);
       border: none;
       cursor: pointer;
       box-shadow: var(--shadow-lg);
@@ -296,6 +301,11 @@
     .tab:hover {
       color: var(--text-primary);
       background: rgba(255, 255, 255, 0.05);
+    }
+
+    .tab:active {
+      transform: scale(0.97);
+      transition: transform 50ms ease;
     }
 
     .tab.active {
@@ -357,7 +367,7 @@
 
     .filter-chip.active {
       background: var(--accent-green);
-      color: #0a1628;
+      color: var(--on-primary);
       border-color: var(--accent-green);
       font-weight: 600;
     }
@@ -646,7 +656,7 @@
 
     .chat-message.user .chat-bubble {
       background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-green-dim) 100%);
-      color: #0a1628;
+      color: var(--on-primary);
       border-bottom-right-radius: 6px;
     }
 
@@ -777,7 +787,7 @@
     .chat-send svg {
       width: 22px;
       height: 22px;
-      color: #0a1628;
+      color: var(--on-primary);
     }
 
     .chat-mic {
@@ -922,7 +932,7 @@
 
     .action-btn.complete {
       background: var(--accent-green);
-      color: #0a1628;
+      color: var(--on-primary);
     }
 
     .action-btn.complete:hover {
@@ -1051,7 +1061,7 @@
 
     .task-action-tab.active {
       background: var(--accent-green);
-      color: #0a1628;
+      color: var(--on-primary);
       border-color: var(--accent-green);
     }
 
@@ -1237,7 +1247,7 @@
 
     .optimistic-undo-toast .undo-btn {
       background: var(--accent-green);
-      color: #0a1628;
+      color: var(--on-primary);
       border: none;
       padding: 6px 14px;
       border-radius: var(--ts-radius-sm, 6px);
@@ -1722,7 +1732,7 @@
     }
     .ai-suggestion-btn.accept {
       background: var(--accent-green);
-      color: #0a1628;
+      color: var(--on-primary);
     }
     .ai-suggestion-btn.accept:hover {
       transform: translateY(-1px);
@@ -2489,7 +2499,7 @@
     }
     .autonomy-level .level-dot.active {
       background: var(--accent-green); border-color: var(--accent-green);
-      color: #0a1628;
+      color: var(--on-primary);
     }
     .autonomy-level .level-dot:hover {
       border-color: var(--accent-green);
@@ -3180,7 +3190,7 @@
     .nlp-list-item-action.primary {
       background: var(--accent-green);
       border-color: var(--accent-green);
-      color: #0a1628;
+      color: var(--on-primary);
     }
 
     /* Highlighted Response (for single answers) */
@@ -3310,10 +3320,6 @@
       font-size: var(--ts-text-xs, 0.8rem);
       color: var(--text-secondary);
     }
-        /* ── Accessibility: Focus Visible ── */
-        :focus-visible { outline: 2px solid var(--ts-primary, #22c55e); outline-offset: 2px; }
-        :focus:not(:focus-visible) { outline: none; }
-
         /* ── Accessibility: Reduced Motion ── */
         @media (prefers-reduced-motion: reduce) {
             *, *::before, *::after {
@@ -3588,7 +3594,7 @@
     }
     .toggle-switch input:checked + .toggle-slider::before {
       transform: translateX(20px);
-      background: #0a1628;
+      background: var(--on-primary);
     }
     .toggle-switch input:focus-visible + .toggle-slider {
       outline: 2px solid var(--border-focus);
@@ -3644,7 +3650,7 @@
     }
     .radio-group label.active {
       background: var(--accent-green);
-      color: #0a1628;
+      color: var(--on-primary);
       font-weight: 600;
     }
 
@@ -3806,47 +3812,47 @@
     <!-- Main Panel -->
     <main class="main-panel">
       <!-- Tabs -->
-      <div class="tabs">
-        <button class="tab active" data-tab="communications" onclick="switchTab('communications')">
+      <div class="tabs" role="tablist" aria-label="Chief of Staff sections">
+        <button class="tab active" data-tab="communications" onclick="switchTab('communications')" role="tab" id="tab-btn-communications" aria-selected="true" aria-controls="tab-communications">
           <span>Communications</span>
           <span class="tab-badge" id="comms-badge">0</span>
         </button>
-        <button class="tab" data-tab="actions" onclick="switchTab('actions')">
+        <button class="tab" data-tab="actions" onclick="switchTab('actions')" role="tab" id="tab-btn-actions" aria-selected="false" aria-controls="tab-actions">
           <span>Action Queue</span>
         </button>
-        <button class="tab" data-tab="commitments" onclick="switchTab('commitments')">
+        <button class="tab" data-tab="commitments" onclick="switchTab('commitments')" role="tab" id="tab-btn-commitments" aria-selected="false" aria-controls="tab-commitments">
           <span>Commitments</span>
         </button>
-        <button class="tab" data-tab="obligations" onclick="switchTab('obligations')">
+        <button class="tab" data-tab="obligations" onclick="switchTab('obligations')" role="tab" id="tab-btn-obligations" aria-selected="false" aria-controls="tab-obligations">
           <span>Obligations</span>
           <span class="tab-badge" id="obligations-badge" style="display:none;">0</span>
         </button>
-        <button class="tab" data-tab="proactive" onclick="switchTab('proactive')">
+        <button class="tab" data-tab="proactive" onclick="switchTab('proactive')" role="tab" id="tab-btn-proactive" aria-selected="false" aria-controls="tab-proactive">
           <span>Proactive Intel</span>
           <span class="tab-badge" id="alerts-badge" style="display:none;">0</span>
         </button>
-        <button class="tab" data-tab="calendar" onclick="switchTab('calendar')">
+        <button class="tab" data-tab="calendar" onclick="switchTab('calendar')" role="tab" id="tab-btn-calendar" aria-selected="false" aria-controls="tab-calendar">
           <span>Calendar AI</span>
         </button>
-        <button class="tab" data-tab="predictive" onclick="switchTab('predictive')">
+        <button class="tab" data-tab="predictive" onclick="switchTab('predictive')" role="tab" id="tab-btn-predictive" aria-selected="false" aria-controls="tab-predictive">
           <span>Predictive</span>
         </button>
-        <button class="tab" data-tab="memory" onclick="switchTab('memory')">
+        <button class="tab" data-tab="memory" onclick="switchTab('memory')" role="tab" id="tab-btn-memory" aria-selected="false" aria-controls="tab-memory">
           <span>Memory</span>
         </button>
-        <button class="tab" data-tab="autonomy" onclick="switchTab('autonomy')">
+        <button class="tab" data-tab="autonomy" onclick="switchTab('autonomy')" role="tab" id="tab-btn-autonomy" aria-selected="false" aria-controls="tab-autonomy">
           <span>Autonomy</span>
         </button>
-        <button class="tab" data-tab="style-voice" onclick="switchTab('style-voice')">
+        <button class="tab" data-tab="style-voice" onclick="switchTab('style-voice')" role="tab" id="tab-btn-style-voice" aria-selected="false" aria-controls="tab-style-voice">
           <span>Style &amp; Voice</span>
         </button>
-        <button class="tab" data-tab="system" onclick="switchTab('system')">
+        <button class="tab" data-tab="system" onclick="switchTab('system')" role="tab" id="tab-btn-system" aria-selected="false" aria-controls="tab-system">
           <span>System</span>
         </button>
       </div>
 
       <!-- Communications Tab -->
-      <div class="tab-content active" id="tab-communications">
+      <div class="tab-content active" id="tab-communications" role="tabpanel" aria-labelledby="tab-btn-communications" tabindex="0">
         <!-- Z-Pattern Daily Briefing Dashboard -->
         <div class="dashboard-z-pattern" id="daily-briefing-dashboard">
           <!-- Top-Left: Critical Alert/Most Important Metric -->
@@ -4013,7 +4019,7 @@
       </div>
 
       <!-- Actions Tab -->
-      <div class="tab-content" id="tab-actions">
+      <div class="tab-content" id="tab-actions" role="tabpanel" aria-labelledby="tab-btn-actions" tabindex="0">
         <div id="actions-list">
           <div class="loading">
             <div class="spinner"></div>
@@ -4023,7 +4029,7 @@
       </div>
 
       <!-- Commitments Tab -->
-      <div class="tab-content" id="tab-commitments">
+      <div class="tab-content" id="tab-commitments" role="tabpanel" aria-labelledby="tab-btn-commitments" tabindex="0">
         <div class="filter-bar">
           <button class="filter-chip active" data-filter="all" onclick="setCommitmentFilter('all')">All Open</button>
           <button class="filter-chip" data-filter="overdue" onclick="setCommitmentFilter('overdue')">Overdue</button>
@@ -4039,7 +4045,7 @@
       </div>
 
       <!-- ═══════════════ OBLIGATIONS TAB ═══════════════ -->
-      <div class="tab-content" id="tab-obligations">
+      <div class="tab-content" id="tab-obligations" role="tabpanel" aria-labelledby="tab-btn-obligations" tabindex="0">
         <!-- Add Obligation Form -->
         <div class="obligation-form">
           <h3><span class="section-icon">➕</span> Add Obligation</h3>
@@ -4115,7 +4121,7 @@
       </div>
 
       <!-- ═══════════════ PROACTIVE INTEL TAB ═══════════════ -->
-      <div class="tab-content" id="tab-proactive">
+      <div class="tab-content" id="tab-proactive" role="tabpanel" aria-labelledby="tab-btn-proactive" tabindex="0">
         <!-- Today's Priorities -->
         <div class="module-section">
           <h3><span class="section-icon">🎯</span> Today's Priorities</h3>
@@ -4158,7 +4164,7 @@
       </div>
 
       <!-- ═══════════════ CALENDAR AI TAB ═══════════════ -->
-      <div class="tab-content" id="tab-calendar">
+      <div class="tab-content" id="tab-calendar" role="tabpanel" aria-labelledby="tab-btn-calendar" tabindex="0">
         <div class="section-actions">
           <button class="btn btn-primary" onclick="optimizeSchedule()">Optimize Today</button>
           <button class="btn btn-secondary" onclick="protectFocusTime()">Protect Focus Time</button>
@@ -4177,7 +4183,7 @@
       </div>
 
       <!-- ═══════════════ PREDICTIVE TAB ═══════════════ -->
-      <div class="tab-content" id="tab-predictive">
+      <div class="tab-content" id="tab-predictive" role="tabpanel" aria-labelledby="tab-btn-predictive" tabindex="0">
         <div class="section-actions">
           <button class="btn btn-secondary" onclick="loadPredictiveReport()">Refresh Report</button>
         </div>
@@ -4200,7 +4206,7 @@
       </div>
 
       <!-- ═══════════════ MEMORY TAB ═══════════════ -->
-      <div class="tab-content" id="tab-memory">
+      <div class="tab-content" id="tab-memory" role="tabpanel" aria-labelledby="tab-btn-memory" tabindex="0">
         <div class="section-actions">
           <button class="btn btn-secondary" onclick="loadMemoryPatterns()">Refresh Patterns</button>
         </div>
@@ -4221,7 +4227,7 @@
       </div>
 
       <!-- ═══════════════ AUTONOMY TAB ═══════════════ -->
-      <div class="tab-content" id="tab-autonomy">
+      <div class="tab-content" id="tab-autonomy" role="tabpanel" aria-labelledby="tab-btn-autonomy" tabindex="0">
         <div class="module-section">
           <h3><span class="section-icon">🤖</span> Autonomy Settings</h3>
           <p style="color:var(--text-muted);font-size:14px;margin-bottom:20px;">
@@ -4323,7 +4329,7 @@
       </div>
 
       <!-- ═══════════════ STYLE & VOICE TAB ═══════════════ -->
-      <div class="tab-content" id="tab-style-voice">
+      <div class="tab-content" id="tab-style-voice" role="tabpanel" aria-labelledby="tab-btn-style-voice" tabindex="0">
         <div class="module-section">
           <h3><span class="section-icon">✍️</span> Writing Style Profile</h3>
           <div class="section-actions">
@@ -4353,7 +4359,7 @@
       </div>
 
       <!-- ═══════════════ SYSTEM TAB ═══════════════ -->
-      <div class="tab-content" id="tab-system">
+      <div class="tab-content" id="tab-system" role="tabpanel" aria-labelledby="tab-btn-system" tabindex="0">
         <div class="module-section">
           <h3><span class="section-icon">📁</span> File Organization</h3>
           <div class="section-actions">
@@ -4899,6 +4905,23 @@
     document.addEventListener('DOMContentLoaded', () => {
       initializeApp();
       autoResizeTextarea();
+
+      // Arrow-key navigation for ARIA tablist
+      document.querySelector('.tabs')?.addEventListener('keydown', function(e) {
+        if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
+        const tabs = [...this.querySelectorAll('[role="tab"]')];
+        const current = tabs.findIndex(t => t.getAttribute('aria-selected') === 'true');
+        let next;
+        if (e.key === 'ArrowRight') next = (current + 1) % tabs.length;
+        else if (e.key === 'ArrowLeft') next = (current - 1 + tabs.length) % tabs.length;
+        else if (e.key === 'Home') next = 0;
+        else if (e.key === 'End') next = tabs.length - 1;
+        if (next !== undefined) {
+          e.preventDefault();
+          tabs[next].focus();
+          tabs[next].click();
+        }
+      });
     });
 
     async function initializeApp() {
@@ -6056,6 +6079,11 @@ Please help with this email. Be concise and actionable.`;
 
       document.querySelector(`.tab[data-tab="${tab}"]`).classList.add('active');
       document.getElementById(`tab-${tab}`).classList.add('active');
+
+      // Update ARIA selected state
+      document.querySelectorAll('.tabs [role="tab"]').forEach(t => {
+        t.setAttribute('aria-selected', t.dataset.tab === tab ? 'true' : 'false');
+      });
 
       // Update nav sidebar active state
       updateNavActive(tab);
