@@ -207,8 +207,10 @@ const TWILIO_CONFIG = {
   get AUTH_TOKEN() {
     return PropertiesService.getScriptProperties().getProperty('TWILIO_AUTH_TOKEN') || '';
   },
-  FROM_NUMBER: '+14128662259',
-  ENABLED: true  // TEMPORARILY ENABLED for test — will disable again immediately after
+  get FROM_NUMBER() {
+    return PropertiesService.getScriptProperties().getProperty('TWILIO_PHONE_NUMBER') || '+18773185491';
+  },
+  ENABLED: true
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -18384,6 +18386,8 @@ function doPost(e) {
           email: data.email,
           cc: data.cc
         }));
+      case 'saveBoundary':
+        return jsonResponse(saveBoundary(data));
       case 'saveOSPDraft':
         return jsonResponse(saveOSPDraft(data));
       case 'getOSPDraft':

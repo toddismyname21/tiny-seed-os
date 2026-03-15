@@ -186,10 +186,30 @@
         }
         .rop-card h4 { color: var(--accent); margin-bottom: 8px; }
 
+        /* Floating save button — always visible */
+        .floating-save {
+            position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+            display: flex; gap: 8px; align-items: center;
+        }
+        .floating-save button {
+            padding: 14px 24px; border-radius: 12px; border: none;
+            font-size: 0.95rem; font-weight: 600; cursor: pointer;
+            display: flex; align-items: center; gap: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+        .floating-save button:hover { transform: translateY(-2px); box-shadow: 0 6px 28px rgba(0,0,0,0.5); }
+        .floating-save .btn-save-draft {
+            background: var(--accent); color: #000;
+        }
+        .floating-save .btn-save-farm {
+            background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border);
+        }
+
         /* Print styles */
         @media print {
             body { background: #fff; color: #000; font-size: 11pt; }
-            .header-actions, .section-nav, .section-footer, .no-print { display: none !important; }
+            .header-actions, .section-nav, .section-footer, .no-print, .floating-save { display: none !important; }
             .osp-section { display: block !important; border: none; padding: 0; margin-bottom: 24pt; page-break-inside: avoid; }
             .osp-section h3 { font-size: 14pt; border-bottom: 2pt solid #000; padding-bottom: 4pt; }
             .container { max-width: 100%; padding: 0; }
@@ -3861,5 +3881,15 @@ goToSection = function(num) {
     }
 };
 </script>
+
+<!-- Floating save buttons — always visible -->
+<div class="floating-save no-print">
+    <button class="btn-save-farm" onclick="saveToFarm()" title="Save drawn field boundaries to farm records">
+        <i class="fas fa-tractor"></i> Save to Farm
+    </button>
+    <button class="btn-save-draft" onclick="saveDraft()" title="Save all OSP data as draft">
+        <i class="fas fa-save"></i> Save Draft
+    </button>
+</div>
 </body>
 </html>
