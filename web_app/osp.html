@@ -698,6 +698,9 @@
 
         <h4 style="margin:16px 0 8px;font-size:0.9rem;">Fertility Inputs</h4>
         <div class="auto-pop" id="inputsAuto" style="display:none"><i class="fas fa-magic"></i> Loaded from input application records</div>
+        <div style="margin-bottom:8px;font-size:0.78rem;color:var(--text-secondary);">
+            <i class="fas fa-link"></i> Data synced from <a href="../soil-tests.html" style="color:var(--accent);" onclick="localStorage.setItem('soil_tab','compliance')">USDA Organic Compliance Records</a>. Add new inputs there for automatic tracking.
+        </div>
 
         <div class="data-table-wrap">
             <table class="data-table" id="fertilityTable">
@@ -797,6 +800,10 @@
         <div class="help-text">
             <i class="fas fa-exclamation-triangle" style="color:var(--warning)"></i>
             This section must list ALL substances: fertilizers, pest controls, soil amendments, equipment cleaners, sanitizers. Include product labels with your submission.
+        </div>
+        <div class="auto-pop" id="materialsAuto" style="display:none"><i class="fas fa-magic"></i> <span>Loaded from inventory + compliance records</span></div>
+        <div style="margin-bottom:8px;font-size:0.78rem;color:var(--text-secondary);">
+            <i class="fas fa-link"></i> Products from your <a href="../soil-tests.html" style="color:var(--accent);" onclick="localStorage.setItem('soil_tab','compliance')">USDA Organic tab</a> and <a href="../soil-tests.html" style="color:var(--accent);" onclick="localStorage.setItem('soil_tab','inventory')">Inventory</a> auto-populate here.
         </div>
 
         <div class="data-table-wrap">
@@ -1263,7 +1270,8 @@ async function fetchFarmData() {
             fetch(API_URL + '?action=getPestManagementReport&year=' + OSP_YEAR).then(function(r) { return r.json(); }).catch(function() { return null; }),
             fetch(API_URL + '?action=getInventoryProducts&activeOnly=true').then(function(r) { return r.json(); }).catch(function() { return null; }),
             fetch(API_URL + '?action=getHarvestReport&year=' + OSP_YEAR).then(function(r) { return r.json(); }).catch(function() { return null; }),
-            fetch(API_URL + '?action=getFieldHistoryReport&year=' + (OSP_YEAR - 1)).then(function(r) { return r.json(); }).catch(function() { return null; })
+            fetch(API_URL + '?action=getFieldHistoryReport&year=' + (OSP_YEAR - 1)).then(function(r) { return r.json(); }).catch(function() { return null; }),
+            fetch(API_URL + '?action=getComplianceRecords').then(function(r) { return r.json(); }).catch(function() { return null; })
         ]);
 
         var complianceRes = results[0];
@@ -1276,9 +1284,11 @@ async function fetchFarmData() {
         var inventoryRes = results[7];
         var harvestRes = results[8];
         var fieldHistoryRes = results[9];
+        var complianceRecordsRes = results[10];
 
         // Store for later use
         farmData.compliance = complianceRes;
+        farmData.complianceRecords = complianceRecordsRes;
         farmData.seeds = (seedRes && seedRes.seedLots) ? seedRes.seedLots : [];
         // Normalize: getPlanningData returns 'data', not 'plantings'
         if (planningRes && planningRes.success && planningRes.data && !planningRes.plantings) {
@@ -1327,8 +1337,11 @@ async function fetchFarmData() {
             loaded.push('Soil tests');
         }
         if (inputRes && inputRes.success && inputRes.hasData) {
-            populateFertilityInputs(inputRes);
+            populateFertilityInputs(inputRes, complianceRecordsRes);
             loaded.push('Inputs (' + (inputRes.totalApplications || 0) + ')');
+        } else if (complianceRecordsRes && complianceRecordsRes.success && complianceRecordsRes.data && complianceRecordsRes.data.length > 0) {
+            populateFertilityInputs(null, complianceRecordsRes);
+            loaded.push('Compliance inputs');
         }
 
         // Section 8: Pest Management
@@ -1337,10 +1350,13 @@ async function fetchFarmData() {
             loaded.push('Pest records');
         }
 
-        // Section 9: Materials
+        // Section 9: Materials — merge inventory + compliance records
         if (inventoryRes && inventoryRes.success) {
-            populateMaterials(inventoryRes);
+            populateMaterials(inventoryRes, complianceRecordsRes);
             loaded.push('Materials');
+        } else if (complianceRecordsRes && complianceRecordsRes.success) {
+            populateMaterials(null, complianceRecordsRes);
+            loaded.push('Compliance records');
         }
 
         // Section 11: Harvest
@@ -1551,44 +1567,71 @@ function populateSoilData(soilRes) {
     }
 }
 
-function populateFertilityInputs(inputRes) {
+function populateFertilityInputs(inputRes, complianceRecordsRes) {
     var body = document.getElementById('fertilityBody');
     if (body.children.length > 0) return;
 
-    var records = inputRes.records || [];
-    // Group by product to avoid duplicates
     var seen = {};
+    var count = 0;
+
+    // 1. From input application report
+    var records = (inputRes && inputRes.records) ? inputRes.records : [];
     records.forEach(function(inp) {
         var product = inp.Product_Name || inp.product || inp.name || '';
-        if (!product || seen[product]) return;
-        seen[product] = true;
+        if (!product || seen[product.toUpperCase()]) return;
+        seen[product.toUpperCase()] = true;
 
-        var tr = document.createElement('tr');
         var type = inp.type || inp.Type || 'Amendment';
         var omri = (inp.OMRI_Listed || inp.omri) ? 'Yes' : 'No';
-        tr.innerHTML =
-            '<td><select style="padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;">' +
-                '<option' + (type === 'Compost' ? ' selected' : '') + '>Compost</option>' +
-                '<option' + (type === 'Fertilizer' ? ' selected' : '') + '>Fertilizer</option>' +
-                '<option' + (type === 'Amendment' ? ' selected' : '') + '>Amendment</option>' +
-                '<option' + (type === 'Cover Crop' ? ' selected' : '') + '>Cover Crop</option></select></td>' +
-            '<td><input type="text" value="' + esc(product) + '" style="width:100px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
-            '<td><input type="text" value="' + esc(inp.supplier || inp.Supplier || '') + '" style="width:80px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
-            '<td><select style="padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;">' +
-                '<option' + (omri === 'Yes' ? ' selected' : '') + '>Yes</option>' +
-                '<option' + (omri === 'No' ? ' selected' : '') + '>No</option>' +
-                '<option>Pending</option></select></td>' +
-            '<td><input type="text" value="' + esc(inp.Application_Rate || inp.rate || '') + '" style="width:70px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
-            '<td><input type="text" value="' + esc(inp.timing || inp.date || inp.Date || '') + '" style="width:70px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
-            '<td><button onclick="this.closest(\'tr\').remove()" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:0.9rem;" title="Remove"><i class="fas fa-trash"></i></button></td>';
-        body.appendChild(tr);
+        addFertilityRowData(body, type, product, inp.supplier || inp.Supplier || '', omri, inp.Application_Rate || inp.rate || '', inp.timing || inp.date || inp.Date || '');
+        count++;
+    });
+
+    // 2. Merge from compliance records (products used but not in input report)
+    var compRecords = (complianceRecordsRes && complianceRecordsRes.success) ? (complianceRecordsRes.data || []) : [];
+    // Only include fertility-related categories
+    compRecords.forEach(function(r) {
+        var cat = (r.category || '').toUpperCase();
+        if (cat !== 'AMENDMENT' && cat !== 'FERTILIZER' && cat !== '' && cat !== 'BIOLOGICAL') return;
+        var name = r.material || r.Product_Name || '';
+        if (!name || seen[name.toUpperCase()]) return;
+        seen[name.toUpperCase()] = true;
+
+        var omri = 'No';
+        if (r.omriStatus === 'omri') omri = 'Yes';
+        else if (r.omriStatus === 'approved') omri = 'Yes';
+        else if (r.omriStatus === 'pending') omri = 'Pending';
+        var type = cat === 'FERTILIZER' ? 'Fertilizer' : (cat === 'BIOLOGICAL' ? 'Amendment' : 'Amendment');
+        addFertilityRowData(body, type, name, r.manufacturer || '', omri, r.rate || '', r.applicationDate || '');
+        count++;
     });
 
     var autoEl = document.getElementById('inputsAuto');
-    if (autoEl && Object.keys(seen).length > 0) {
+    if (autoEl && count > 0) {
         autoEl.style.display = 'flex';
-        autoEl.innerHTML = '<i class="fas fa-magic"></i> ' + Object.keys(seen).length + ' inputs loaded from application records — edit any row';
+        autoEl.innerHTML = '<i class="fas fa-magic"></i> ' + count + ' inputs loaded from application + compliance records — edit any row';
     }
+}
+
+function addFertilityRowData(body, type, product, supplier, omri, rate, timing) {
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+        '<td><select style="padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;">' +
+            '<option' + (type === 'Compost' ? ' selected' : '') + '>Compost</option>' +
+            '<option' + (type === 'Fertilizer' ? ' selected' : '') + '>Fertilizer</option>' +
+            '<option' + (type === 'Amendment' ? ' selected' : '') + '>Amendment</option>' +
+            '<option' + (type === 'Cover Crop' ? ' selected' : '') + '>Cover Crop</option></select></td>' +
+        '<td><input type="text" value="' + esc(product) + '" style="width:100px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
+        '<td><input type="text" value="' + esc(supplier) + '" style="width:80px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
+        '<td><select style="padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;">' +
+            '<option' + (omri === 'Yes' ? ' selected' : '') + '>Yes</option>' +
+            '<option' + (omri === 'No' ? ' selected' : '') + '>No</option>' +
+            '<option' + (omri === 'Pending' ? ' selected' : '') + '>Pending</option></select></td>' +
+        '<td><input type="text" value="' + esc(rate) + '" style="width:70px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
+        '<td><input type="text" value="' + esc(timing) + '" style="width:70px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
+        '<td><button onclick="this.closest(\'tr\').remove()" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:0.9rem;" title="Remove"><i class="fas fa-trash"></i></button></td>';
+    body.appendChild(tr);
+    tr.addEventListener('change', autoSaveDraft);
 }
 
 // ============================================================
@@ -1636,37 +1679,72 @@ function populatePestManagement(pestRes) {
 // ============================================================
 // SECTION 9: MATERIALS — auto-populate from inventory
 // ============================================================
-function populateMaterials(inventoryRes) {
+function populateMaterials(inventoryRes, complianceRecordsRes) {
     var body = document.getElementById('materialsBody');
     if (body.children.length > 0) return;
 
-    var products = inventoryRes.products || inventoryRes.items || [];
-    // Filter to compliance-relevant categories
+    var seen = {}; // track by product name to avoid duplicates
+    var count = 0;
+
+    // 1. From inventory products (what you HAVE)
+    var products = (inventoryRes && (inventoryRes.products || inventoryRes.items)) || [];
     var relevant = products.filter(function(p) {
         var cat = (p.Category || '').toUpperCase();
-        return cat === 'AMENDMENT' || cat === 'FERTILIZER' || cat === 'PESTICIDE' || cat === 'BIOLOGICAL';
+        return cat === 'AMENDMENT' || cat === 'FERTILIZER' || cat === 'PESTICIDE' || cat === 'BIOLOGICAL' || cat === 'SUPPLY';
     });
 
     relevant.forEach(function(p) {
-        var tr = document.createElement('tr');
-        var cat = p.Category || 'Other';
-        var omri = p.OMRI_Status || p.omri || '';
-        tr.innerHTML =
-            '<td><select style="padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;">' +
-                '<option' + (cat === 'FERTILIZER' ? ' selected' : '') + '>Fertilizer</option>' +
-                '<option' + (cat === 'PESTICIDE' ? ' selected' : '') + '>Pest Control</option>' +
-                '<option' + (cat === 'AMENDMENT' ? ' selected' : '') + '>Amendment</option>' +
-                '<option' + (cat === 'BIOLOGICAL' ? ' selected' : '') + '>Biological</option>' +
-                '<option>Cleaner</option><option>Other</option></select></td>' +
-            '<td><input type="text" value="' + esc(p.Product_Name || p.name || '') + '" style="width:80px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
-            '<td><input type="text" value="' + esc(p.Manufacturer || '') + '" style="width:70px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
-            '<td><input type="text" value="' + esc(omri) + '" style="width:70px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
-            '<td><input type="text" value="" placeholder="Active" style="width:80px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
-            '<td><input type="text" value="" placeholder="Rate" style="width:60px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
-            '<td><input type="text" value="All" style="width:50px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
-            '<td><button onclick="this.closest(\'tr\').remove()" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:0.9rem;" title="Remove"><i class="fas fa-trash"></i></button></td>';
-        body.appendChild(tr);
+        var name = p.Product_Name || p.name || '';
+        if (!name || seen[name.toUpperCase()]) return;
+        seen[name.toUpperCase()] = true;
+        addMaterialRowData(body, p.Category || 'Other', name, p.Manufacturer || '', p.OMRI_Status || '', '', '', 'All');
+        count++;
     });
+
+    // 2. From compliance records (what you've USED) — merge any not already in inventory
+    var compRecords = (complianceRecordsRes && complianceRecordsRes.success) ? (complianceRecordsRes.data || []) : [];
+    compRecords.forEach(function(r) {
+        var name = r.material || r.Product_Name || '';
+        if (!name || seen[name.toUpperCase()]) return;
+        seen[name.toUpperCase()] = true;
+        var omriLabel = '';
+        if (r.omriStatus === 'omri') omriLabel = 'OMRI Listed';
+        else if (r.omriStatus === 'approved') omriLabel = 'Approved';
+        else if (r.omriStatus === 'restricted') omriLabel = 'Restricted';
+        else if (r.omriStatus === 'not_listed') omriLabel = 'Not Listed';
+        else if (r.omriStatus === 'pending') omriLabel = 'Pending';
+        var cat = r.category || 'Other';
+        addMaterialRowData(body, cat, name, r.manufacturer || '', omriLabel, '', r.rate || '', r.field || '');
+        count++;
+    });
+
+    var autoEl = document.getElementById('materialsAuto');
+    if (autoEl && count > 0) {
+        autoEl.style.display = 'flex';
+        autoEl.querySelector('span').textContent = count + ' materials loaded from inventory + compliance records';
+    }
+}
+
+function addMaterialRowData(body, cat, name, manufacturer, omri, active, rate, fields) {
+    var tr = document.createElement('tr');
+    var catUpper = (cat || '').toUpperCase();
+    tr.innerHTML =
+        '<td><select style="padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;">' +
+            '<option' + (catUpper === 'FERTILIZER' ? ' selected' : '') + '>Fertilizer</option>' +
+            '<option' + (catUpper === 'PESTICIDE' ? ' selected' : '') + '>Pest Control</option>' +
+            '<option' + (catUpper === 'AMENDMENT' ? ' selected' : '') + '>Amendment</option>' +
+            '<option' + (catUpper === 'BIOLOGICAL' ? ' selected' : '') + '>Biological</option>' +
+            '<option' + (catUpper === 'SUPPLY' ? ' selected' : '') + '>Supply</option>' +
+            '<option>Cleaner</option><option>Other</option></select></td>' +
+        '<td><input type="text" value="' + esc(name) + '" style="width:80px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
+        '<td><input type="text" value="' + esc(manufacturer) + '" style="width:70px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
+        '<td><input type="text" value="' + esc(omri) + '" style="width:70px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
+        '<td><input type="text" value="' + esc(active) + '" placeholder="Active" style="width:80px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
+        '<td><input type="text" value="' + esc(rate) + '" placeholder="Rate" style="width:60px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
+        '<td><input type="text" value="' + esc(fields) + '" style="width:50px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
+        '<td><button onclick="this.closest(\'tr\').remove()" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:0.9rem;" title="Remove"><i class="fas fa-trash"></i></button></td>';
+    body.appendChild(tr);
+    tr.addEventListener('change', autoSaveDraft);
 }
 
 // ============================================================

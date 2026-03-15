@@ -1027,6 +1027,12 @@
             loadSoilTests();
             setupUploadZone();
             document.getElementById('testDate').valueAsDate = new Date();
+            // Support deep-linking from OSP cross-links
+            var requestedTab = localStorage.getItem('soil_tab');
+            if (requestedTab) {
+                localStorage.removeItem('soil_tab');
+                switchTab(requestedTab);
+            }
         });
 
         // Populate sample location dropdown from FARM_FIELDS
