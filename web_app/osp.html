@@ -2305,7 +2305,47 @@ function showColumnMapper(rows, filename) {
                 '• Inputs/materials will be combined into Prior Inputs\n\n' +
                 'OK = Aggregate, Cancel = Import rows as-is'
             )) {
-                rows = aggregateActivityData(rows, fieldColGuess, cropColGuess, inputColGuess);
+                var aggregated = aggregateActivityData(rows, fieldColGuess, cropColGuess, inputColGuess);
+                // We know the exact column layout — skip column mapper, go straight to import
+                var body = document.getElementById('fieldHistoryBody');
+                _fieldHistoryUndo = body.innerHTML;
+                try { localStorage.setItem('osp_field_backup_' + OSP_YEAR, localStorage.getItem('osp_draft_' + OSP_YEAR) || ''); } catch(e) {}
+
+                var importedCount = 0;
+                var existingByName = {};
+                body.querySelectorAll('tr').forEach(function(tr) {
+                    var nameInput = tr.querySelector('input[type="text"]');
+                    if (nameInput) {
+                        var name = normalizeFieldName(nameInput.value);
+                        if (name) existingByName[name] = tr;
+                    }
+                });
+
+                for (var a = 1; a < aggregated.length; a++) {
+                    var aRow = aggregated[a];
+                    var aField = normalizeFieldName(aRow[0]);
+                    var aCrops = String(aRow[2] || '');
+                    var aInputs = String(aRow[3] || '');
+
+                    var existingRow = existingByName[aField];
+                    if (existingRow) {
+                        // Merge: update prior crop + prior inputs, NEVER touch planned crop
+                        var inputs = existingRow.querySelectorAll('input, select');
+                        if (aCrops && inputs[2]) inputs[2].value = aCrops;
+                        if (aInputs && inputs[3]) inputs[3].value = aInputs;
+                    } else {
+                        // Add new row
+                        addFieldHistoryRow(aRow[0], '', aCrops, aInputs, '', 'Organic');
+                    }
+                    importedCount++;
+                }
+
+                updateFieldHistoryTotals();
+                var undoBtn = document.getElementById('undoImportBtn');
+                if (undoBtn) undoBtn.style.display = '';
+                autoSaveDraft();
+                showToast(importedCount + ' fields imported from activity log — 2025 crops & inputs filled in, 2026 plans untouched', 'success');
+                return; // done — skip column mapper entirely
             }
         }
     }
