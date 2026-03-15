@@ -224,7 +224,7 @@
     <div class="header">
         <h1><i class="fas fa-leaf" style="color:var(--accent)"></i> OSP <span>Generator</span></h1>
         <div class="header-actions">
-            <select id="ospYearSelect" onchange="changeOSPYear(parseInt(this.value))" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--accent);font-size:0.85rem;font-weight:600;cursor:pointer;" title="Certification Year"></select>
+            <select id="ospYearSelect" onchange="handleYearChange(this)" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--accent);font-size:0.85rem;font-weight:600;cursor:pointer;" title="Certification Year"></select>
             <button onclick="saveDraft()"><i class="fas fa-save"></i> Save Draft</button>
             <button onclick="window.print()"><i class="fas fa-print"></i> Print / PDF</button>
             <button onclick="exportText()"><i class="fas fa-file-export"></i> Export</button>
@@ -368,8 +368,12 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/@geoman-io/leaflet-geoman-free@2.17.0/dist/leaflet-geoman.css" />
     <style>
-        #farmMap { height: 500px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 16px; z-index: 1; }
-        .map-toolbar { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+        #farmMapContainer { position: relative; isolation: isolate; z-index: 1; margin-bottom: 16px; }
+        #farmMap { height: 500px; border-radius: 8px; border: 1px solid var(--border); position: relative; z-index: 0; }
+        #farmMapContainer.locked #farmMap { pointer-events: none; }
+        #farmMapContainer.locked .leaflet-control-container { display: none; }
+        .map-toolbar { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; position: relative; z-index: 2; }
+        #section3 .help-text { position: relative; z-index: 2; }
         .map-toolbar button {
             padding: 8px 14px; border-radius: 6px; border: 1px solid var(--border);
             background: var(--bg-input); color: var(--text-primary); font-size: 0.82rem;
@@ -432,6 +436,7 @@
             #farmMap { height: 400px; page-break-inside: avoid; }
             .map-toolbar, .leaflet-pm-toolbar, .leaflet-control-zoom, .field-name-picker { display: none !important; }
             .field-item .field-source { border: 1px solid #999; }
+            #farmMapContainer.locked #farmMap { display: block; pointer-events: none; }
         }
     </style>
     <div class="osp-section" data-section="3" id="section3">
@@ -446,14 +451,18 @@
 
         <div class="map-toolbar">
             <button onclick="toggleMapLayer()" id="mapLayerBtn"><i class="fas fa-satellite"></i> Satellite View</button>
-            <button onclick="addMarker('building')" title="Mark a building"><i class="fas fa-warehouse"></i> Building</button>
-            <button onclick="addMarker('water')" title="Mark a water source"><i class="fas fa-tint"></i> Water</button>
-            <button onclick="addMarker('greenhouse')" title="Mark greenhouse/tunnel"><i class="fas fa-seedling"></i> Greenhouse</button>
-            <button onclick="saveToFarm()" style="background:var(--accent-dim);border-color:var(--accent);color:var(--accent);"><i class="fas fa-cloud-upload-alt"></i> Save to Farm</button>
-            <button onclick="clearAllFields()" style="margin-left:auto;border-color:var(--danger);color:var(--danger);"><i class="fas fa-trash"></i> Clear All</button>
+            <button onclick="addMarker('building')" title="Mark a building" class="edit-mode-btn"><i class="fas fa-warehouse"></i> Building</button>
+            <button onclick="addMarker('water')" title="Mark a water source" class="edit-mode-btn"><i class="fas fa-tint"></i> Water</button>
+            <button onclick="addMarker('greenhouse')" title="Mark greenhouse/tunnel" class="edit-mode-btn"><i class="fas fa-seedling"></i> Greenhouse</button>
+            <button onclick="cropAndLockMap()" id="cropLockBtn" style="background:var(--accent-dim);border-color:var(--accent);color:var(--accent);"><i class="fas fa-crop-alt"></i> Crop &amp; Lock</button>
+            <button onclick="unlockMap()" id="unlockBtn" style="display:none;background:rgba(59,130,246,0.15);border-color:#3b82f6;color:#3b82f6;"><i class="fas fa-lock-open"></i> Unlock &amp; Edit</button>
+            <button onclick="saveToFarm()" class="edit-mode-btn" style="background:var(--accent-dim);border-color:var(--accent);color:var(--accent);"><i class="fas fa-cloud-upload-alt"></i> Save to Farm</button>
+            <button onclick="clearAllFields()" class="edit-mode-btn" style="margin-left:auto;border-color:var(--danger);color:var(--danger);"><i class="fas fa-trash"></i> Clear All</button>
         </div>
 
-        <div id="farmMap"></div>
+        <div id="farmMapContainer">
+            <div id="farmMap"></div>
+        </div>
 
         <div class="field-list" id="fieldList"></div>
         <div class="map-total" id="mapTotalAcres"></div>
@@ -1063,13 +1072,57 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function buildYearSelector() {
     var sel = document.getElementById('ospYearSelect');
+    sel.innerHTML = '';
     var thisYear = new Date().getFullYear();
-    for (var y = thisYear - 2; y <= thisYear + 2; y++) {
+
+    // Gather all years: default range + any custom years from localStorage
+    var years = [];
+    for (var y = thisYear - 1; y <= thisYear + 3; y++) years.push(y);
+
+    var custom = JSON.parse(localStorage.getItem('osp_custom_years') || '[]');
+    custom.forEach(function(cy) {
+        if (years.indexOf(cy) === -1) years.push(cy);
+    });
+    // Also include current OSP_YEAR if not already there
+    if (years.indexOf(OSP_YEAR) === -1) years.push(OSP_YEAR);
+
+    years.sort(function(a, b) { return a - b; });
+
+    years.forEach(function(y) {
         var opt = document.createElement('option');
         opt.value = y;
         opt.textContent = y + ' OSP';
         if (y === OSP_YEAR) opt.selected = true;
         sel.appendChild(opt);
+    });
+
+    // Add "Add Year..." option
+    var addOpt = document.createElement('option');
+    addOpt.value = 'custom';
+    addOpt.textContent = '+ Add Year\u2026';
+    sel.appendChild(addOpt);
+}
+
+function handleYearChange(sel) {
+    if (sel.value === 'custom') {
+        var input = prompt('Enter certification year (e.g. 2029):');
+        if (!input) { sel.value = OSP_YEAR; return; }
+        var yr = parseInt(input);
+        if (isNaN(yr) || yr < 2020 || yr > 2099) {
+            showToast('Please enter a valid year between 2020 and 2099', 'error');
+            sel.value = OSP_YEAR;
+            return;
+        }
+        // Save custom year to localStorage
+        var custom = JSON.parse(localStorage.getItem('osp_custom_years') || '[]');
+        if (custom.indexOf(yr) === -1) { custom.push(yr); custom.sort(); }
+        localStorage.setItem('osp_custom_years', JSON.stringify(custom));
+        // Rebuild dropdown with new year included, then select it
+        OSP_YEAR = yr;
+        buildYearSelector();
+        changeOSPYear(yr);
+    } else {
+        changeOSPYear(parseInt(sel.value));
     }
 }
 
@@ -2840,6 +2893,92 @@ function saveMapData() {
         }
     });
     localStorage.setItem('osp_farm_map_' + OSP_YEAR, JSON.stringify(data));
+}
+
+// ============================================================
+// CROP & LOCK / UNLOCK MAP
+// ============================================================
+function cropAndLockMap() {
+    if (!farmMap || !drawnFields) return;
+
+    var bounds = drawnFields.getBounds();
+    if (!bounds.isValid()) {
+        showToast('Draw at least one field first', 'error');
+        return;
+    }
+    farmMap.fitBounds(bounds, { padding: [50, 50] });
+
+    setTimeout(function() {
+        var container = document.getElementById('farmMapContainer');
+        container.classList.add('locked');
+
+        // Hide Geoman toolbar
+        var pmToolbar = document.querySelector('.leaflet-pm-toolbar');
+        if (pmToolbar) pmToolbar.style.display = 'none';
+
+        // Disable all map interaction
+        farmMap.dragging.disable();
+        farmMap.touchZoom.disable();
+        farmMap.doubleClickZoom.disable();
+        farmMap.scrollWheelZoom.disable();
+        farmMap.boxZoom.disable();
+        farmMap.keyboard.disable();
+        if (farmMap.tap) farmMap.tap.disable();
+
+        // Keep map div visible but frozen (override CSS that hides it)
+        document.getElementById('farmMap').style.display = 'block';
+        document.getElementById('farmMap').style.pointerEvents = 'none';
+
+        // Hide all Leaflet controls
+        var controls = document.querySelectorAll('#farmMap .leaflet-control-container');
+        controls.forEach(function(c) { c.style.display = 'none'; });
+
+        // Toggle button visibility
+        document.getElementById('cropLockBtn').style.display = 'none';
+        document.getElementById('unlockBtn').style.display = '';
+
+        // Hide drawing toolbar buttons
+        var toolbarBtns = document.querySelectorAll('.map-toolbar .edit-mode-btn');
+        toolbarBtns.forEach(function(b) { b.style.display = 'none'; });
+
+        showToast('Map locked — fields are now static', 'success');
+        saveMapData();
+    }, 600);
+}
+
+function unlockMap() {
+    var container = document.getElementById('farmMapContainer');
+    container.classList.remove('locked');
+
+    // Re-enable map interaction
+    farmMap.dragging.enable();
+    farmMap.touchZoom.enable();
+    farmMap.doubleClickZoom.enable();
+    farmMap.scrollWheelZoom.enable();
+    farmMap.boxZoom.enable();
+    farmMap.keyboard.enable();
+    if (farmMap.tap) farmMap.tap.enable();
+
+    document.getElementById('farmMap').style.pointerEvents = '';
+
+    // Show Leaflet controls
+    var controls = document.querySelectorAll('#farmMap .leaflet-control-container');
+    controls.forEach(function(c) { c.style.display = ''; });
+
+    // Show Geoman toolbar
+    var pmToolbar = document.querySelector('.leaflet-pm-toolbar');
+    if (pmToolbar) pmToolbar.style.display = '';
+
+    // Toggle buttons
+    document.getElementById('cropLockBtn').style.display = '';
+    document.getElementById('unlockBtn').style.display = 'none';
+
+    // Show edit toolbar buttons
+    var toolbarBtns = document.querySelectorAll('.map-toolbar .edit-mode-btn');
+    toolbarBtns.forEach(function(b) { b.style.display = ''; });
+
+    farmMap.invalidateSize();
+    showToast('Map unlocked — you can edit fields again', 'success');
 }
 
 function loadMapData() {
