@@ -543,6 +543,21 @@
             </button>
         </div>
 
+        <!-- Archived Fields -->
+        <div id="archivedFieldsSection" style="margin-top:12px;display:none;">
+            <button id="archivedFieldsToggle" onclick="toggleArchivedFields()" style="padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:none;color:var(--text-secondary);cursor:pointer;font-size:0.8rem;width:100%;text-align:left;">
+                <i class="fas fa-archive"></i> Show Archived (<span id="archivedFieldCount">0</span>)
+            </button>
+            <div id="archivedFieldsList" style="display:none;margin-top:6px;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+                <table class="data-table" style="opacity:0.6;">
+                    <thead><tr style="font-size:0.75rem;">
+                        <th>Field #</th><th>Acres</th><th>Prior Crop</th><th>Planned Crop</th><th>Status</th><th></th>
+                    </tr></thead>
+                    <tbody id="archivedFieldsBody"></tbody>
+                </table>
+            </div>
+        </div>
+
         <div class="section-footer">
             <button onclick="goToSection(3)"><i class="fas fa-arrow-left"></i> Back</button>
             <button class="btn-next" onclick="goToSection(5)">Next: Crops <i class="fas fa-arrow-right"></i></button>
@@ -1082,6 +1097,7 @@ document.addEventListener('DOMContentLoaded', function() {
     setupListeners();
     fetchFarmData();
     checkROPEligibility();
+    renderArchivedFields();
 });
 
 function buildYearSelector() {
@@ -1743,6 +1759,87 @@ function updateFieldHistoryTotals() {
 }
 
 // ============================================================
+// FIELD ARCHIVE
+// ============================================================
+function getArchivedFields() {
+    try { return JSON.parse(localStorage.getItem('osp_archived_fields_' + OSP_YEAR) || '[]'); }
+    catch(e) { return []; }
+}
+function saveArchivedFields(list) {
+    localStorage.setItem('osp_archived_fields_' + OSP_YEAR, JSON.stringify(list));
+}
+
+function archiveFieldRow(btn) {
+    var tr = btn.closest('tr');
+    var inputs = tr.querySelectorAll('input');
+    var sel = tr.querySelector('select');
+    var field = { field: inputs[0].value, acres: inputs[1].value, priorCrop: inputs[2].value, priorInputs: inputs[3].value, plannedCrop: inputs[4].value, status: sel ? sel.value : 'Organic' };
+    if (!field.field && !field.acres) { tr.remove(); updateFieldHistoryTotals(); return; }
+    var archived = getArchivedFields();
+    archived.push(field);
+    saveArchivedFields(archived);
+    tr.remove();
+    updateFieldHistoryTotals();
+    renderArchivedFields();
+    showToast('Field "' + (field.field || 'unnamed') + '" archived', 'success');
+}
+
+function restoreArchivedField(index) {
+    var archived = getArchivedFields();
+    if (index < 0 || index >= archived.length) return;
+    var f = archived.splice(index, 1)[0];
+    saveArchivedFields(archived);
+    addFieldHistoryRow(f.field, f.acres, f.priorCrop, f.priorInputs, f.plannedCrop, f.status);
+    updateFieldHistoryTotals();
+    renderArchivedFields();
+    showToast('Field "' + (f.field || 'unnamed') + '" restored', 'success');
+}
+
+function deleteArchivedField(index) {
+    var archived = getArchivedFields();
+    if (index < 0 || index >= archived.length) return;
+    var name = archived[index].field || 'unnamed';
+    if (!confirm('Permanently delete archived field "' + name + '"?')) return;
+    archived.splice(index, 1);
+    saveArchivedFields(archived);
+    renderArchivedFields();
+    showToast('Archived field "' + name + '" deleted', 'success');
+}
+
+function renderArchivedFields() {
+    var archived = getArchivedFields();
+    var section = document.getElementById('archivedFieldsSection');
+    var countEl = document.getElementById('archivedFieldCount');
+    var body = document.getElementById('archivedFieldsBody');
+    if (countEl) countEl.textContent = archived.length;
+    if (section) section.style.display = archived.length > 0 ? '' : 'none';
+    if (!body) return;
+    body.innerHTML = '';
+    archived.forEach(function(f, i) {
+        var tr = document.createElement('tr');
+        tr.innerHTML =
+            '<td style="font-size:0.8rem;padding:6px 8px;">' + esc(f.field || '') + '</td>' +
+            '<td style="font-size:0.8rem;padding:6px 8px;">' + esc(f.acres || '') + '</td>' +
+            '<td style="font-size:0.8rem;padding:6px 8px;">' + esc(f.priorCrop || '') + '</td>' +
+            '<td style="font-size:0.8rem;padding:6px 8px;">' + esc(f.plannedCrop || '') + '</td>' +
+            '<td style="font-size:0.8rem;padding:6px 8px;">' + esc(f.status || '') + '</td>' +
+            '<td style="white-space:nowrap;padding:6px 8px;">' +
+            '<button onclick="restoreArchivedField(' + i + ')" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:0.85rem;margin-right:4px;" title="Restore to active fields"><i class="fas fa-undo"></i></button>' +
+            '<button onclick="deleteArchivedField(' + i + ')" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:0.85rem;" title="Delete permanently"><i class="fas fa-trash"></i></button></td>';
+        body.appendChild(tr);
+    });
+}
+
+function toggleArchivedFields() {
+    var list = document.getElementById('archivedFieldsList');
+    var btn = document.getElementById('archivedFieldsToggle');
+    if (!list) return;
+    var showing = list.style.display !== 'none';
+    list.style.display = showing ? 'none' : '';
+    if (btn) btn.innerHTML = '<i class="fas fa-archive"></i> ' + (showing ? 'Show' : 'Hide') + ' Archived (<span id="archivedFieldCount">' + getArchivedFields().length + '</span>)';
+}
+
+// ============================================================
 // DYNAMIC TABLE ROWS
 // ============================================================
 function addFieldHistoryRow(field, acres, crop25, inputs25, crop26, status) {
@@ -1755,7 +1852,9 @@ function addFieldHistoryRow(field, acres, crop25, inputs25, crop26, status) {
         '<td><input type="text" value="' + esc(inputs25 || '') + '" placeholder="Inputs" style="width:120px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"></td>' +
         '<td><input type="text" value="' + esc(crop26 || '') + '" placeholder="' + OSP_YEAR + ' crops" style="width:150px;padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;" title="Separate multiple crops with commas"></td>' +
         '<td><select style="padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"><option' + (status === 'Organic' ? ' selected' : '') + '>Organic</option><option' + (status === 'Transitional' ? ' selected' : '') + '>Transitional</option></select></td>' +
-        '<td><button onclick="this.closest(\'tr\').remove();updateFieldHistoryTotals()" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:0.9rem;" title="Remove"><i class="fas fa-trash"></i></button></td>';
+        '<td style="white-space:nowrap;">' +
+        '<button onclick="archiveFieldRow(this)" style="background:none;border:none;color:var(--text-secondary);cursor:pointer;font-size:0.9rem;margin-right:4px;" title="Archive"><i class="fas fa-archive"></i></button>' +
+        '<button onclick="this.closest(\'tr\').remove();updateFieldHistoryTotals()" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:0.9rem;" title="Delete permanently"><i class="fas fa-trash"></i></button></td>';
     body.appendChild(tr);
 }
 
