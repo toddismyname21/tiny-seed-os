@@ -3322,6 +3322,355 @@
             }
         }
 
+    /* ═══ Obligations ═══ */
+    .obligation-form {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--ts-radius-md, 12px);
+      padding: 22px 24px;
+      margin-bottom: var(--ts-space-5, 20px);
+    }
+    .obligation-form h3 {
+      font-size: var(--ts-text-lg, 1.0625rem);
+      font-weight: 700;
+      margin-bottom: var(--ts-space-4, 16px);
+      display: flex;
+      align-items: center;
+      gap: var(--ts-space-2, 10px);
+    }
+    .obligation-form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--ts-space-3, 12px);
+      margin-bottom: var(--ts-space-4, 16px);
+    }
+    .obligation-form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .obligation-form-group.full-width {
+      grid-column: 1 / -1;
+    }
+    .obligation-form-group label {
+      font-size: var(--ts-text-sm, 0.875rem);
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+    .obligation-form-group input,
+    .obligation-form-group select,
+    .obligation-form-group textarea {
+      background: var(--bg-input);
+      border: 2px solid var(--border-color);
+      border-radius: var(--ts-radius-sm, 8px);
+      padding: 10px 14px;
+      color: var(--text-primary);
+      font-size: var(--ts-text-sm, 0.875rem);
+      font-family: inherit;
+      transition: border-color var(--ts-dur-normal, 200ms) ease;
+    }
+    .obligation-form-group input:focus,
+    .obligation-form-group select:focus,
+    .obligation-form-group textarea:focus {
+      border-color: var(--border-focus);
+      outline: none;
+    }
+    .obligation-form-group textarea {
+      resize: vertical;
+      min-height: 60px;
+    }
+    .obligation-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--ts-radius-md, 12px);
+      padding: var(--ts-space-5, 20px);
+      margin-bottom: 14px;
+      transition: all var(--ts-dur-normal, 200ms) ease;
+    }
+    .obligation-card:hover {
+      background: var(--bg-card-hover);
+    }
+    .obligation-card.urgency-overdue {
+      border-left: 4px solid var(--critical);
+      background: var(--critical-bg);
+    }
+    .obligation-card.urgency-soon {
+      border-left: 4px solid var(--accent-amber);
+      background: var(--medium-bg);
+    }
+    .obligation-card.urgency-comfortable {
+      border-left: 4px solid var(--accent-green);
+    }
+    .obligation-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: var(--ts-space-3, 12px);
+    }
+    .obligation-title {
+      font-size: var(--ts-text-base, 1rem);
+      font-weight: 600;
+    }
+    .obligation-due {
+      font-size: var(--ts-text-sm, 0.875rem);
+      font-weight: 600;
+    }
+    .obligation-due.overdue { color: var(--critical); }
+    .obligation-due.soon { color: var(--accent-amber); }
+    .obligation-due.comfortable { color: var(--accent-green); }
+    .obligation-meta {
+      display: flex;
+      align-items: center;
+      gap: var(--ts-space-2, 8px);
+      margin-bottom: var(--ts-space-3, 12px);
+      flex-wrap: wrap;
+    }
+    .category-badge {
+      font-size: var(--ts-text-xs, 0.75rem);
+      padding: 4px 10px;
+      border-radius: var(--ts-radius-lg, 16px);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .category-badge.lease { background: rgba(96, 165, 250, 0.2); color: var(--accent-blue); }
+    .category-badge.grant { background: rgba(167, 139, 250, 0.2); color: var(--accent-purple); }
+    .category-badge.certification { background: rgba(45, 212, 191, 0.2); color: var(--accent-teal); }
+    .category-badge.vendor { background: rgba(251, 191, 36, 0.2); color: var(--accent-amber); }
+    .category-badge.csa { background: rgba(74, 222, 128, 0.2); color: var(--accent-green); }
+    .category-badge.tax { background: rgba(248, 113, 113, 0.2); color: var(--accent-red); }
+    .category-badge.insurance { background: rgba(251, 146, 60, 0.2); color: var(--high); }
+    .category-badge.custom { background: rgba(139, 148, 158, 0.2); color: var(--text-secondary); }
+    .recurrence-badge {
+      font-size: var(--ts-text-xs, 0.75rem);
+      padding: 4px 10px;
+      border-radius: var(--ts-radius-lg, 16px);
+      font-weight: 500;
+      background: rgba(139, 148, 158, 0.15);
+      color: var(--text-muted);
+    }
+    .obligation-notes {
+      font-size: var(--ts-text-sm, 0.875rem);
+      color: var(--text-secondary);
+      line-height: 1.5;
+      margin-bottom: var(--ts-space-3, 12px);
+    }
+    .obligation-actions {
+      display: flex;
+      gap: var(--ts-space-2, 8px);
+      flex-wrap: wrap;
+    }
+    .completed-toggle {
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: var(--ts-space-2, 8px);
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--ts-radius-sm, 8px);
+      padding: var(--ts-space-3, 12px) var(--ts-space-4, 16px);
+      color: var(--text-secondary);
+      font-size: var(--ts-text-sm, 0.875rem);
+      font-weight: 600;
+      transition: all var(--ts-dur-normal, 200ms) ease;
+      margin-top: var(--ts-space-4, 16px);
+    }
+    .completed-toggle:hover {
+      background: var(--bg-card-hover);
+      color: var(--text-primary);
+    }
+    .completed-toggle .chevron {
+      transition: transform var(--ts-dur-normal, 200ms) ease;
+    }
+    .completed-toggle.open .chevron {
+      transform: rotate(90deg);
+    }
+
+    /* ═══ Today's Priorities (Proactive Tab) ═══ */
+    .priorities-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: var(--ts-space-3, 12px);
+      margin-bottom: var(--ts-space-5, 20px);
+    }
+    .priority-tile {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--ts-radius-md, 12px);
+      padding: var(--ts-space-4, 16px);
+      text-align: center;
+      transition: all var(--ts-dur-normal, 200ms) ease;
+    }
+    .priority-tile:hover {
+      background: var(--bg-card-hover);
+      transform: translateY(-2px);
+    }
+    .priority-tile .tile-count {
+      font-size: var(--ts-text-3xl, 2rem);
+      font-weight: 800;
+      line-height: 1.2;
+    }
+    .priority-tile .tile-count.danger { color: var(--critical); }
+    .priority-tile .tile-count.warning { color: var(--accent-amber); }
+    .priority-tile .tile-count.success { color: var(--accent-green); }
+    .priority-tile .tile-count.info { color: var(--accent-blue); }
+    .priority-tile .tile-label {
+      font-size: var(--ts-text-sm, 0.875rem);
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+
+    /* ═══ Notification Preferences ═══ */
+    .notification-prefs {
+      display: flex;
+      flex-direction: column;
+      gap: var(--ts-space-5, 20px);
+    }
+    .pref-group {
+      display: flex;
+      flex-direction: column;
+      gap: var(--ts-space-3, 12px);
+    }
+    .pref-group-label {
+      font-size: var(--ts-text-sm, 0.875rem);
+      font-weight: 700;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .pref-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: var(--ts-space-3, 12px) var(--ts-space-4, 16px);
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--ts-radius-sm, 8px);
+    }
+    .pref-row-label {
+      font-size: var(--ts-text-sm, 0.875rem);
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+    .toggle-switch {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      cursor: pointer;
+    }
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .toggle-slider {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 24px;
+      transition: all var(--ts-dur-normal, 200ms) ease;
+    }
+    .toggle-slider::before {
+      content: '';
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      left: 2px;
+      bottom: 2px;
+      background: var(--text-muted);
+      border-radius: 50%;
+      transition: all var(--ts-dur-normal, 200ms) ease;
+    }
+    .toggle-switch input:checked + .toggle-slider {
+      background: var(--accent-green);
+      border-color: var(--accent-green);
+    }
+    .toggle-switch input:checked + .toggle-slider::before {
+      transform: translateX(20px);
+      background: #0a1628;
+    }
+    .toggle-switch input:focus-visible + .toggle-slider {
+      outline: 2px solid var(--border-focus);
+      outline-offset: 2px;
+    }
+    .pref-inline {
+      display: flex;
+      gap: var(--ts-space-3, 12px);
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .pref-inline select {
+      background: var(--bg-input);
+      border: 2px solid var(--border-color);
+      border-radius: var(--ts-radius-sm, 8px);
+      padding: 8px 12px;
+      color: var(--text-primary);
+      font-size: var(--ts-text-sm, 0.875rem);
+      font-family: inherit;
+      transition: border-color var(--ts-dur-normal, 200ms) ease;
+    }
+    .pref-inline select:focus {
+      border-color: var(--border-focus);
+      outline: none;
+    }
+    .radio-group {
+      display: flex;
+      gap: 0;
+      border: 1px solid var(--border-color);
+      border-radius: var(--ts-radius-sm, 8px);
+      overflow: hidden;
+    }
+    .radio-group label {
+      flex: 1;
+      text-align: center;
+      padding: 10px 16px;
+      font-size: var(--ts-text-sm, 0.875rem);
+      font-weight: 500;
+      color: var(--text-secondary);
+      background: var(--bg-secondary);
+      cursor: pointer;
+      transition: all var(--ts-dur-normal, 200ms) ease;
+      border-right: 1px solid var(--border-color);
+    }
+    .radio-group label:last-child { border-right: none; }
+    .radio-group label:hover {
+      background: var(--bg-card-hover);
+      color: var(--text-primary);
+    }
+    .radio-group input { display: none; }
+    .radio-group input:checked + span {
+      /* parent label gets styled via JS */
+    }
+    .radio-group label.active {
+      background: var(--accent-green);
+      color: #0a1628;
+      font-weight: 600;
+    }
+
+    /* ═══ Obligations / Notification Prefs Mobile ═══ */
+    @media (max-width: 768px) {
+      .obligation-form-grid {
+        grid-template-columns: 1fr;
+      }
+      .priorities-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+      .obligation-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+      }
+      .radio-group {
+        flex-direction: column;
+      }
+      .radio-group label {
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+      }
+      .radio-group label:last-child { border-bottom: none; }
+    }
+
   </style>
 </head>
 <body>
@@ -3467,6 +3816,10 @@
         </button>
         <button class="tab" data-tab="commitments" onclick="switchTab('commitments')">
           <span>Commitments</span>
+        </button>
+        <button class="tab" data-tab="obligations" onclick="switchTab('obligations')">
+          <span>Obligations</span>
+          <span class="tab-badge" id="obligations-badge" style="display:none;">0</span>
         </button>
         <button class="tab" data-tab="proactive" onclick="switchTab('proactive')">
           <span>Proactive Intel</span>
@@ -3685,8 +4038,107 @@
         </div>
       </div>
 
+      <!-- ═══════════════ OBLIGATIONS TAB ═══════════════ -->
+      <div class="tab-content" id="tab-obligations">
+        <!-- Add Obligation Form -->
+        <div class="obligation-form">
+          <h3><span class="section-icon">➕</span> Add Obligation</h3>
+          <div class="obligation-form-grid">
+            <div class="obligation-form-group">
+              <label for="obl-title">Title</label>
+              <input type="text" id="obl-title" placeholder="e.g. Submit organic certification renewal">
+            </div>
+            <div class="obligation-form-group">
+              <label for="obl-due-date">Due Date</label>
+              <input type="date" id="obl-due-date">
+            </div>
+            <div class="obligation-form-group">
+              <label for="obl-category">Category</label>
+              <select id="obl-category">
+                <option value="lease">Lease</option>
+                <option value="grant">Grant</option>
+                <option value="certification">Certification</option>
+                <option value="vendor">Vendor</option>
+                <option value="csa">CSA</option>
+                <option value="tax">Tax</option>
+                <option value="insurance">Insurance</option>
+                <option value="custom">Custom</option>
+              </select>
+            </div>
+            <div class="obligation-form-group">
+              <label for="obl-recurrence">Recurrence</label>
+              <select id="obl-recurrence">
+                <option value="once">One-time</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+                <option value="quarterly">Quarterly</option>
+                <option value="annual">Annual</option>
+              </select>
+            </div>
+            <div class="obligation-form-group">
+              <label for="obl-reminder">Reminder Lead Time</label>
+              <select id="obl-reminder">
+                <option value="1">1 day before</option>
+                <option value="3">3 days before</option>
+                <option value="7" selected>1 week before</option>
+                <option value="14">2 weeks before</option>
+                <option value="30">1 month before</option>
+              </select>
+            </div>
+            <div class="obligation-form-group full-width">
+              <label for="obl-notes">Notes (optional)</label>
+              <textarea id="obl-notes" placeholder="Any additional details..."></textarea>
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="addObligation()">Add Obligation</button>
+        </div>
+
+        <!-- Active Obligations List -->
+        <div class="module-section">
+          <h3><span class="section-icon">📋</span> Active Obligations</h3>
+          <div id="obligations-active-list">
+            <div class="empty-state">
+              <div class="empty-state-icon">📭</div>
+              <p>No obligations yet. Add one above to start tracking deadlines.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Completed Obligations (collapsed) -->
+        <div id="obligations-completed-section" style="display:none;">
+          <div class="completed-toggle" id="completed-obl-toggle" onclick="toggleCompletedObligations()">
+            <span class="chevron">&#9654;</span>
+            <span>Completed Obligations (<span id="completed-obl-count">0</span>)</span>
+          </div>
+          <div id="obligations-completed-list" style="display:none; margin-top: 14px;"></div>
+        </div>
+      </div>
+
       <!-- ═══════════════ PROACTIVE INTEL TAB ═══════════════ -->
       <div class="tab-content" id="tab-proactive">
+        <!-- Today's Priorities -->
+        <div class="module-section">
+          <h3><span class="section-icon">🎯</span> Today's Priorities</h3>
+          <div class="priorities-grid" id="todays-priorities">
+            <div class="priority-tile">
+              <div class="tile-count info" id="priority-overdue">--</div>
+              <div class="tile-label">Overdue</div>
+            </div>
+            <div class="priority-tile">
+              <div class="tile-count warning" id="priority-this-week">--</div>
+              <div class="tile-label">Due This Week</div>
+            </div>
+            <div class="priority-tile">
+              <div class="tile-count info" id="priority-unread">--</div>
+              <div class="tile-label">Unread Comms</div>
+            </div>
+            <div class="priority-tile">
+              <div class="tile-count success" id="priority-weather">--</div>
+              <div class="tile-label">Weather Alerts</div>
+            </div>
+          </div>
+        </div>
+
         <div class="section-actions">
           <button class="btn btn-primary" onclick="runProactiveScan()">Run Proactive Scan</button>
           <button class="btn btn-secondary" onclick="loadProactiveAlerts()">Refresh Alerts</button>
@@ -3783,6 +4235,89 @@
           <h3><span class="section-icon">📋</span> Pending Approvals</h3>
           <div id="pending-approvals-list">
             <div class="loading"><div class="spinner"></div><span class="loading-text">Loading approvals...</span></div>
+          </div>
+        </div>
+        <div class="module-section">
+          <h3><span class="section-icon">🔔</span> Notification Preferences</h3>
+          <div class="notification-prefs" id="notification-prefs">
+            <!-- Channel Toggles -->
+            <div class="pref-group">
+              <div class="pref-group-label">Channels</div>
+              <div class="pref-row">
+                <span class="pref-row-label">SMS Notifications</span>
+                <label class="toggle-switch" aria-label="Toggle SMS notifications">
+                  <input type="checkbox" id="pref-sms" onchange="markNotifPrefsDirty()">
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              <div class="pref-row">
+                <span class="pref-row-label">Email Notifications</span>
+                <label class="toggle-switch" aria-label="Toggle email notifications">
+                  <input type="checkbox" id="pref-email" checked onchange="markNotifPrefsDirty()">
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              <div class="pref-row">
+                <span class="pref-row-label">In-App Notifications</span>
+                <label class="toggle-switch" aria-label="Toggle in-app notifications">
+                  <input type="checkbox" id="pref-inapp" checked onchange="markNotifPrefsDirty()">
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Quiet Hours -->
+            <div class="pref-group">
+              <div class="pref-group-label">Quiet Hours</div>
+              <div class="pref-row">
+                <span class="pref-row-label">Start</span>
+                <div class="pref-inline">
+                  <select id="pref-quiet-start" onchange="markNotifPrefsDirty()">
+                    <option value="18">6:00 PM</option>
+                    <option value="19">7:00 PM</option>
+                    <option value="20">8:00 PM</option>
+                    <option value="21" selected>9:00 PM</option>
+                    <option value="22">10:00 PM</option>
+                    <option value="23">11:00 PM</option>
+                  </select>
+                </div>
+              </div>
+              <div class="pref-row">
+                <span class="pref-row-label">End</span>
+                <div class="pref-inline">
+                  <select id="pref-quiet-end" onchange="markNotifPrefsDirty()">
+                    <option value="5">5:00 AM</option>
+                    <option value="6">6:00 AM</option>
+                    <option value="7" selected>7:00 AM</option>
+                    <option value="8">8:00 AM</option>
+                    <option value="9">9:00 AM</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Batch Frequency -->
+            <div class="pref-group">
+              <div class="pref-group-label">Batch Frequency</div>
+              <div class="radio-group" id="batch-frequency-group">
+                <label class="active" onclick="setBatchFrequency(this, 'immediate')">
+                  <input type="radio" name="batch-freq" value="immediate" checked>
+                  <span>Immediate</span>
+                </label>
+                <label onclick="setBatchFrequency(this, 'hourly')">
+                  <input type="radio" name="batch-freq" value="hourly">
+                  <span>Hourly</span>
+                </label>
+                <label onclick="setBatchFrequency(this, 'daily')">
+                  <input type="radio" name="batch-freq" value="daily">
+                  <span>Daily Digest</span>
+                </label>
+              </div>
+            </div>
+
+            <button class="btn btn-primary" id="save-notif-prefs-btn" onclick="saveNotificationPrefs()" style="align-self:flex-start;">
+              Save Preferences
+            </button>
           </div>
         </div>
       </div>
@@ -5532,9 +6067,13 @@ Please help with this email. Be concise and actionable.`;
       if (!_tabLoadedOnce[tab]) {
         _tabLoadedOnce[tab] = true;
         switch (tab) {
+          case 'obligations':
+            loadObligations();
+            break;
           case 'proactive':
             loadProactiveAlerts();
             loadProactiveSuggestions();
+            loadTodaysPriorities();
             break;
           case 'calendar':
             loadTodaySchedule();
@@ -5548,6 +6087,7 @@ Please help with this email. Be concise and actionable.`;
           case 'autonomy':
             loadAutonomySettings();
             loadPendingApprovals();
+            loadNotificationPrefs();
             break;
           case 'style-voice':
             loadStyleProfile();
@@ -8716,6 +9256,469 @@ Please help with this email. Be concise and actionable.`;
 
       _originalSwitchTab(tabName);
     };
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // OBLIGATIONS — localStorage-backed deadline tracking
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    const OBLIGATIONS_KEY = 'tinyseed_obligations';
+
+    function getObligations() {
+      try {
+        const raw = localStorage.getItem(OBLIGATIONS_KEY);
+        return raw ? JSON.parse(raw) : [];
+      } catch (e) {
+        console.error('[Obligations] Failed to parse localStorage:', e);
+        return [];
+      }
+    }
+
+    function saveObligationsToStorage(obligations) {
+      try {
+        localStorage.setItem(OBLIGATIONS_KEY, JSON.stringify(obligations));
+      } catch (e) {
+        console.error('[Obligations] Failed to save:', e);
+        showToast('Failed to save obligations', 'error');
+      }
+    }
+
+    function loadObligations() {
+      renderObligations();
+      checkObligationAlerts();
+    }
+
+    function addObligation() {
+      const title = (document.getElementById('obl-title').value || '').trim();
+      const dueDate = document.getElementById('obl-due-date').value;
+      const category = document.getElementById('obl-category').value;
+      const recurrence = document.getElementById('obl-recurrence').value;
+      const reminderDays = parseInt(document.getElementById('obl-reminder').value, 10);
+      const notes = (document.getElementById('obl-notes').value || '').trim();
+
+      if (!title) {
+        showToast('Please enter a title for the obligation', 'error');
+        document.getElementById('obl-title').focus();
+        return;
+      }
+      if (!dueDate) {
+        showToast('Please select a due date', 'error');
+        document.getElementById('obl-due-date').focus();
+        return;
+      }
+
+      const obligation = {
+        id: 'obl_' + Date.now(),
+        title: title,
+        dueDate: dueDate,
+        category: category,
+        recurrence: recurrence,
+        reminderDays: reminderDays,
+        notes: notes,
+        status: 'active',
+        completedDate: null,
+        createdAt: new Date().toISOString()
+      };
+
+      const obligations = getObligations();
+      obligations.push(obligation);
+      saveObligationsToStorage(obligations);
+
+      // Reset form
+      document.getElementById('obl-title').value = '';
+      document.getElementById('obl-due-date').value = '';
+      document.getElementById('obl-category').value = 'lease';
+      document.getElementById('obl-recurrence').value = 'once';
+      document.getElementById('obl-reminder').value = '7';
+      document.getElementById('obl-notes').value = '';
+
+      showToast('Obligation added: ' + title, 'success');
+      renderObligations();
+      checkObligationAlerts();
+    }
+
+    function completeObligation(id) {
+      const obligations = getObligations();
+      const obl = obligations.find(o => o.id === id);
+      if (!obl) return;
+
+      obl.status = 'completed';
+      obl.completedDate = new Date().toISOString();
+
+      // If recurring, create the next occurrence
+      if (obl.recurrence !== 'once') {
+        const nextDate = new Date(obl.dueDate);
+        switch (obl.recurrence) {
+          case 'weekly': nextDate.setDate(nextDate.getDate() + 7); break;
+          case 'monthly': nextDate.setMonth(nextDate.getMonth() + 1); break;
+          case 'quarterly': nextDate.setMonth(nextDate.getMonth() + 3); break;
+          case 'annual': nextDate.setFullYear(nextDate.getFullYear() + 1); break;
+        }
+        const nextObl = {
+          id: 'obl_' + Date.now(),
+          title: obl.title,
+          dueDate: nextDate.toISOString().split('T')[0],
+          category: obl.category,
+          recurrence: obl.recurrence,
+          reminderDays: obl.reminderDays,
+          notes: obl.notes,
+          status: 'active',
+          completedDate: null,
+          createdAt: new Date().toISOString()
+        };
+        obligations.push(nextObl);
+        showToast('Completed! Next occurrence created for ' + nextObl.dueDate, 'success');
+      } else {
+        showToast('Obligation completed', 'success');
+      }
+
+      saveObligationsToStorage(obligations);
+      renderObligations();
+      checkObligationAlerts();
+    }
+
+    function snoozeObligation(id, days) {
+      const obligations = getObligations();
+      const obl = obligations.find(o => o.id === id);
+      if (!obl) return;
+
+      const current = new Date(obl.dueDate);
+      current.setDate(current.getDate() + days);
+      obl.dueDate = current.toISOString().split('T')[0];
+      obl.status = 'active';
+
+      saveObligationsToStorage(obligations);
+      showToast('Snoozed ' + days + ' days to ' + obl.dueDate, 'success');
+      renderObligations();
+      checkObligationAlerts();
+    }
+
+    function deleteObligation(id) {
+      const obligations = getObligations().filter(o => o.id !== id);
+      saveObligationsToStorage(obligations);
+      showToast('Obligation removed', 'success');
+      renderObligations();
+      checkObligationAlerts();
+    }
+
+    function getUrgencyInfo(dueDate) {
+      const now = new Date();
+      now.setHours(0, 0, 0, 0);
+      const due = new Date(dueDate);
+      due.setHours(0, 0, 0, 0);
+      const diffMs = due - now;
+      const diffDays = Math.ceil(diffMs / 86400000);
+
+      if (diffDays < 0) {
+        return { class: 'urgency-overdue', dueClass: 'overdue', label: Math.abs(diffDays) + ' day' + (Math.abs(diffDays) !== 1 ? 's' : '') + ' overdue', days: diffDays };
+      } else if (diffDays === 0) {
+        return { class: 'urgency-overdue', dueClass: 'overdue', label: 'Due today', days: 0 };
+      } else if (diffDays <= 7) {
+        return { class: 'urgency-soon', dueClass: 'soon', label: diffDays + ' day' + (diffDays !== 1 ? 's' : '') + ' remaining', days: diffDays };
+      } else {
+        return { class: 'urgency-comfortable', dueClass: 'comfortable', label: diffDays + ' days remaining', days: diffDays };
+      }
+    }
+
+    function renderObligations() {
+      const obligations = getObligations();
+      const active = obligations.filter(o => o.status === 'active').sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+      const completed = obligations.filter(o => o.status === 'completed').sort((a, b) => new Date(b.completedDate) - new Date(a.completedDate));
+
+      const activeContainer = document.getElementById('obligations-active-list');
+      const completedSection = document.getElementById('obligations-completed-section');
+      const completedContainer = document.getElementById('obligations-completed-list');
+      const completedCount = document.getElementById('completed-obl-count');
+
+      // Render active
+      if (active.length === 0) {
+        activeContainer.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📭</div><p>No active obligations. Add one above to start tracking deadlines.</p></div>';
+      } else {
+        let html = '';
+        for (const obl of active) {
+          const urgency = getUrgencyInfo(obl.dueDate);
+          const formattedDate = new Date(obl.dueDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+          html += `
+            <div class="obligation-card ${urgency.class}">
+              <div class="obligation-header">
+                <div class="obligation-title">${escapeHtml(obl.title)}</div>
+                <div class="obligation-due ${urgency.dueClass}">${escapeHtml(urgency.label)}</div>
+              </div>
+              <div class="obligation-meta">
+                <span class="category-badge ${escapeHtml(obl.category)}">${escapeHtml(obl.category)}</span>
+                ${obl.recurrence !== 'once' ? '<span class="recurrence-badge">' + escapeHtml(obl.recurrence) + '</span>' : ''}
+                <span style="font-size:var(--ts-text-xs,0.75rem);color:var(--text-muted);">Due: ${escapeHtml(formattedDate)}</span>
+              </div>
+              ${obl.notes ? '<div class="obligation-notes">' + escapeHtml(obl.notes) + '</div>' : ''}
+              <div class="obligation-actions">
+                <button class="action-btn complete" onclick="completeObligation('${escapeHtml(obl.id)}')">Complete</button>
+                <button class="action-btn dismiss" onclick="snoozeObligation('${escapeHtml(obl.id)}', 7)">Snooze 7d</button>
+                <button class="action-btn dismiss" onclick="snoozeObligation('${escapeHtml(obl.id)}', 1)">+1d</button>
+                <button class="action-btn dismiss" onclick="snoozeObligation('${escapeHtml(obl.id)}', 30)">+30d</button>
+                <button class="action-btn dismiss" onclick="deleteObligation('${escapeHtml(obl.id)}')" style="color:var(--critical);">Delete</button>
+              </div>
+            </div>`;
+        }
+        activeContainer.innerHTML = DOMPurify.sanitize(html);
+      }
+
+      // Render completed
+      if (completed.length > 0) {
+        completedSection.style.display = 'block';
+        completedCount.textContent = completed.length;
+        let cHtml = '';
+        for (const obl of completed) {
+          const completedDateStr = obl.completedDate ? new Date(obl.completedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+          cHtml += `
+            <div class="obligation-card" style="opacity:0.7;">
+              <div class="obligation-header">
+                <div class="obligation-title" style="text-decoration:line-through;">${escapeHtml(obl.title)}</div>
+                <div style="font-size:var(--ts-text-sm,0.875rem);color:var(--accent-green);">Completed ${escapeHtml(completedDateStr)}</div>
+              </div>
+              <div class="obligation-meta">
+                <span class="category-badge ${escapeHtml(obl.category)}">${escapeHtml(obl.category)}</span>
+              </div>
+            </div>`;
+        }
+        completedContainer.innerHTML = DOMPurify.sanitize(cHtml);
+      } else {
+        completedSection.style.display = 'none';
+      }
+    }
+
+    function toggleCompletedObligations() {
+      const toggle = document.getElementById('completed-obl-toggle');
+      const list = document.getElementById('obligations-completed-list');
+      const isOpen = toggle.classList.toggle('open');
+      list.style.display = isOpen ? 'block' : 'none';
+    }
+
+    function checkObligationAlerts() {
+      const obligations = getObligations();
+      const active = obligations.filter(o => o.status === 'active');
+      const now = new Date();
+      now.setHours(0, 0, 0, 0);
+
+      let alertCount = 0;
+      for (const obl of active) {
+        const due = new Date(obl.dueDate);
+        due.setHours(0, 0, 0, 0);
+        const diffDays = Math.ceil((due - now) / 86400000);
+        if (diffDays <= obl.reminderDays) {
+          alertCount++;
+        }
+      }
+
+      const badge = document.getElementById('obligations-badge');
+      if (badge) {
+        if (alertCount > 0) {
+          badge.textContent = alertCount;
+          badge.style.display = 'inline';
+        } else {
+          badge.style.display = 'none';
+        }
+      }
+      return { alertCount, active };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // TODAY'S PRIORITIES — enhanced proactive tab
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function loadTodaysPriorities() {
+      const obligations = getObligations().filter(o => o.status === 'active');
+      const now = new Date();
+      now.setHours(0, 0, 0, 0);
+
+      let overdueCount = 0;
+      let thisWeekCount = 0;
+      for (const obl of obligations) {
+        const due = new Date(obl.dueDate);
+        due.setHours(0, 0, 0, 0);
+        const diffDays = Math.ceil((due - now) / 86400000);
+        if (diffDays < 0) overdueCount++;
+        else if (diffDays <= 7) thisWeekCount++;
+      }
+
+      const overdueEl = document.getElementById('priority-overdue');
+      const weekEl = document.getElementById('priority-this-week');
+      if (overdueEl) {
+        overdueEl.textContent = overdueCount;
+        overdueEl.className = 'tile-count ' + (overdueCount > 0 ? 'danger' : 'success');
+      }
+      if (weekEl) {
+        weekEl.textContent = thisWeekCount;
+        weekEl.className = 'tile-count ' + (thisWeekCount > 0 ? 'warning' : 'success');
+      }
+
+      // Unread comms from badge
+      const commsBadge = document.getElementById('comms-badge');
+      const unreadEl = document.getElementById('priority-unread');
+      if (unreadEl && commsBadge) {
+        const unreadCount = parseInt(commsBadge.textContent, 10) || 0;
+        unreadEl.textContent = unreadCount;
+        unreadEl.className = 'tile-count ' + (unreadCount > 0 ? 'warning' : 'success');
+      }
+
+      // Weather alerts from backend
+      const weatherEl = document.getElementById('priority-weather');
+      if (weatherEl) {
+        cachedFetch('getProactiveAlerts').then(res => {
+          const alerts = res.alerts || res.data || [];
+          const weatherAlerts = Array.isArray(alerts) ? alerts.filter(a => (a.category || a.type || '').toLowerCase().includes('weather')).length : 0;
+          weatherEl.textContent = weatherAlerts;
+          weatherEl.className = 'tile-count ' + (weatherAlerts > 0 ? 'warning' : 'success');
+        }).catch(() => {
+          weatherEl.textContent = '0';
+          weatherEl.className = 'tile-count success';
+        });
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // NOTIFICATION PREFERENCES
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    const NOTIF_PREFS_KEY = 'tinyseed_notification_prefs';
+    let _notifPrefsDirty = false;
+
+    function getDefaultNotifPrefs() {
+      return {
+        sms: false,
+        email: true,
+        inApp: true,
+        quietStart: 21,
+        quietEnd: 7,
+        batchFrequency: 'immediate'
+      };
+    }
+
+    async function loadNotificationPrefs() {
+      let prefs = null;
+
+      // Try backend first
+      try {
+        const res = await cachedFetch('getNotificationPreferences');
+        if (res.success !== false && res.data) {
+          prefs = res.data;
+        }
+      } catch (e) {
+        // Backend not available, fall through to localStorage
+      }
+
+      // Fall back to localStorage
+      if (!prefs) {
+        try {
+          const raw = localStorage.getItem(NOTIF_PREFS_KEY);
+          prefs = raw ? JSON.parse(raw) : null;
+        } catch (e) {
+          // ignore
+        }
+      }
+
+      if (!prefs) {
+        prefs = getDefaultNotifPrefs();
+      }
+
+      // Apply to UI
+      const smsEl = document.getElementById('pref-sms');
+      const emailEl = document.getElementById('pref-email');
+      const inappEl = document.getElementById('pref-inapp');
+      const quietStartEl = document.getElementById('pref-quiet-start');
+      const quietEndEl = document.getElementById('pref-quiet-end');
+
+      if (smsEl) smsEl.checked = !!prefs.sms;
+      if (emailEl) emailEl.checked = prefs.email !== false;
+      if (inappEl) inappEl.checked = prefs.inApp !== false;
+      if (quietStartEl) quietStartEl.value = String(prefs.quietStart || 21);
+      if (quietEndEl) quietEndEl.value = String(prefs.quietEnd || 7);
+
+      // Set batch frequency radio
+      const freq = prefs.batchFrequency || 'immediate';
+      const group = document.getElementById('batch-frequency-group');
+      if (group) {
+        group.querySelectorAll('label').forEach(label => {
+          const radio = label.querySelector('input[type="radio"]');
+          if (radio && radio.value === freq) {
+            radio.checked = true;
+            label.classList.add('active');
+          } else {
+            if (radio) radio.checked = false;
+            label.classList.remove('active');
+          }
+        });
+      }
+
+      _notifPrefsDirty = false;
+    }
+
+    function markNotifPrefsDirty() {
+      _notifPrefsDirty = true;
+    }
+
+    function setBatchFrequency(labelEl, value) {
+      const group = document.getElementById('batch-frequency-group');
+      if (group) {
+        group.querySelectorAll('label').forEach(l => l.classList.remove('active'));
+        group.querySelectorAll('input[type="radio"]').forEach(r => { r.checked = false; });
+      }
+      labelEl.classList.add('active');
+      const radio = labelEl.querySelector('input[type="radio"]');
+      if (radio) radio.checked = true;
+      markNotifPrefsDirty();
+    }
+
+    async function saveNotificationPrefs() {
+      const prefs = {
+        sms: !!document.getElementById('pref-sms').checked,
+        email: !!document.getElementById('pref-email').checked,
+        inApp: !!document.getElementById('pref-inapp').checked,
+        quietStart: parseInt(document.getElementById('pref-quiet-start').value, 10),
+        quietEnd: parseInt(document.getElementById('pref-quiet-end').value, 10),
+        batchFrequency: 'immediate'
+      };
+
+      // Get selected batch frequency
+      const checkedRadio = document.querySelector('#batch-frequency-group input[type="radio"]:checked');
+      if (checkedRadio) {
+        prefs.batchFrequency = checkedRadio.value;
+      }
+
+      // Save to localStorage always
+      try {
+        localStorage.setItem(NOTIF_PREFS_KEY, JSON.stringify(prefs));
+      } catch (e) {
+        console.error('[NotifPrefs] localStorage save failed:', e);
+      }
+
+      // Try backend
+      try {
+        const res = await fetch(`${API_BASE}?action=updateNotificationPreferences`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify(prefs)
+        }).then(r => r.json());
+        if (res.success !== false) {
+          showToast('Notification preferences saved', 'success');
+        } else {
+          showToast('Saved locally (backend unavailable)', 'success');
+        }
+      } catch (e) {
+        showToast('Saved locally (backend unavailable)', 'success');
+      }
+
+      _notifPrefsDirty = false;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // ON PAGE LOAD — check obligations for badge count
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    (function initObligationAlerts() {
+      // Run after a short delay so DOM is ready
+      setTimeout(() => {
+        checkObligationAlerts();
+      }, 500);
+    })();
 
     // Initialize prefetcher on load
     document.addEventListener('DOMContentLoaded', () => {
