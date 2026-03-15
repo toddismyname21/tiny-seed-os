@@ -509,6 +509,9 @@
         <p class="section-subtitle">Last 12 months of crops and inputs per field (renewal)</p>
 
         <div class="auto-pop" id="fieldHistoryAuto" style="display:none"><i class="fas fa-magic"></i> Pre-filled from planning data</div>
+        <button id="refreshFieldsBtn" onclick="refreshFieldsFromPlan()" style="padding:6px 14px;border-radius:8px;border:1px solid var(--accent);background:none;color:var(--accent);cursor:pointer;font-size:0.8rem;margin-bottom:8px;">
+            <i class="fas fa-sync-alt"></i> Refresh from 2026 Farm Plan
+        </button>
 
         <div class="data-table-wrap">
             <table class="data-table" id="fieldHistoryTable">
@@ -1277,6 +1280,10 @@ async function fetchFarmData() {
         // Store for later use
         farmData.compliance = complianceRes;
         farmData.seeds = (seedRes && seedRes.seedLots) ? seedRes.seedLots : [];
+        // Normalize: getPlanningData returns 'data', not 'plantings'
+        if (planningRes && planningRes.success && planningRes.data && !planningRes.plantings) {
+            planningRes.plantings = planningRes.data;
+        }
         farmData.planning = planningRes;
         farmData.fields = fieldsRes;
         farmData.soil = soilRes;
@@ -1358,7 +1365,13 @@ async function fetchFarmData() {
 // ============================================================
 function populateFieldHistory(fieldsRes, fieldHistoryRes, planningRes) {
     var body = document.getElementById('fieldHistoryBody');
-    if (body.children.length > 0) return; // Don't overwrite manual entries
+    // Skip if user has draft-restored rows (they chose to save these)
+    var hasDraftRows = body.children.length > 0;
+    if (hasDraftRows) {
+        // Still update totals for restored draft rows
+        updateFieldHistoryTotals();
+        return;
+    }
 
     var fields = fieldsRes.fields || [];
     var history = (fieldHistoryRes && fieldHistoryRes.success) ? (fieldHistoryRes.fields || {}) : {};
@@ -1388,7 +1401,7 @@ function populateFieldHistory(fieldsRes, fieldHistoryRes, planningRes) {
         // Planned crops from planning data
         var plannedCrop = '';
         var fieldPlantings = plantings.filter(function(p) {
-            var bed = p.Target_Bed_ID || p.Bed_ID || '';
+            var bed = (p.Target_Bed_ID || p.Bed_ID || '').replace(/^Field\s+/i, '');
             return bed.startsWith(fid + '-') || bed === fid;
         });
         if (fieldPlantings.length > 0) {
@@ -1405,6 +1418,42 @@ function populateFieldHistory(fieldsRes, fieldHistoryRes, planningRes) {
 
     var autoEl = document.getElementById('fieldHistoryAuto');
     if (autoEl && fields.length > 0) autoEl.style.display = 'flex';
+}
+
+async function refreshFieldsFromPlan() {
+    var body = document.getElementById('fieldHistoryBody');
+    if (body.children.length > 0) {
+        if (!confirm('Replace current ' + body.children.length + ' rows with live farm plan data?')) return;
+        // Save current state for undo
+        _fieldHistoryUndo = body.innerHTML;
+        var undoBtn = document.getElementById('undoImportBtn');
+        if (undoBtn) undoBtn.style.display = '';
+    }
+    body.innerHTML = '';
+    showToast('Loading farm plan...', 'success');
+    try {
+        var results = await Promise.all([
+            fetch(API_URL + '?action=getFields').then(function(r) { return r.json(); }).catch(function() { return null; }),
+            fetch(API_URL + '?action=getPlanningData').then(function(r) { return r.json(); }).catch(function() { return null; }),
+            fetch(API_URL + '?action=getFieldHistoryReport&year=' + (OSP_YEAR - 1)).then(function(r) { return r.json(); }).catch(function() { return null; })
+        ]);
+        var fieldsRes = results[0];
+        var planningRes = results[1];
+        var fieldHistoryRes = results[2];
+        if (planningRes && planningRes.success && planningRes.data && !planningRes.plantings) {
+            planningRes.plantings = planningRes.data;
+        }
+        if (fieldsRes && fieldsRes.success && fieldsRes.fields && fieldsRes.fields.length > 0) {
+            populateFieldHistory(fieldsRes, fieldHistoryRes, planningRes);
+            updateFieldHistoryTotals();
+            autoSaveDraft();
+            showToast('Loaded ' + fieldsRes.fields.length + ' fields with ' + ((planningRes && planningRes.plantings) ? planningRes.plantings.length : 0) + ' planned crops', 'success');
+        } else {
+            showToast('No fields found in farm data', 'error');
+        }
+    } catch(e) {
+        showToast('Error loading farm data: ' + e.message, 'error');
+    }
 }
 
 // ============================================================
@@ -1429,7 +1478,7 @@ function populateCrops(planningRes) {
         if (!grouped[key]) {
             grouped[key] = { crop: crop, variety: variety, fields: [], plantDate: '', harvestDate: '', acres: 0 };
         }
-        var bed = p.Target_Bed_ID || p.Bed_ID || '';
+        var bed = (p.Target_Bed_ID || p.Bed_ID || '').replace(/^Field\s+/i, '');
         var field = bed.split('-')[0] || '';
         if (field && grouped[key].fields.indexOf(field) < 0) grouped[key].fields.push(field);
 
