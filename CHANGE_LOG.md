@@ -35,6 +35,44 @@ Brief explanation of why these changes were made.
 
 
 
+## 2026-03-15 — PM_ARCHITECT: OSP Generator Major Upgrade (Self-Service Organic Certification)
+
+### Files Modified
+- `web_app/osp.html` — Massive overhaul for self-service organic certification
+- `apps_script/MERGED TOTAL.js` — Added `saveBoundary` to POST switch (was GET-only, silent failure)
+
+### Features Added
+- **Map labels inside polygons**: Switched to Leaflet `bindTooltip` with `direction: 'center'`, font scales by acreage, removed pencil emoji
+- **Portrait map orientation**: Map height 500px→800px for better field coverage
+- **Multi-snapshot capture**: Array-based gallery for multiple map captures per submission
+- **Floating save buttons**: Fixed-position Save Draft + Save to Farm (always visible)
+- **Field History ↔ Map sync**: Field History is authoritative, shows "drawn: X.XX" badge when map differs
+- **Data persistence fix**: `await loadDraft()` before `fetchFarmData()` — race condition was wiping user data
+- **Import merge (never replace)**: Spreadsheet imports always merge, never overwrite planned crops
+- **Similar field detection**: Prefix matching (Z1 vs Z1H) with review dialog for user approval
+- **Activity log aggregation**: Multi-row-per-field CSV → one-row-per-field, auto-detects format
+- **Alphabetical sort**: Sort A→Z button for field history rows
+- **Crops tab market default**: Changed to "CSA, Farmers Market, Direct" for all crops (editable text input)
+- **beforeunload handler**: Auto-saves all form data before page close/refresh
+- **Safety backup**: localStorage backup before any import, undo button restores from backup
+
+### Bug Fixes
+- `saveBoundary` POST routing: Action was in GET switch + POST whitelist but missing from POST switch case
+- Data loss on refresh: Race condition between async `loadDraft()` and `fetchFarmData()`
+- Import destroying planned crops: `executeColumnImport()` did `body.innerHTML = ''` — now always merges
+- Blank leading rows in CSV: Auto-skips to first row with content
+- Field name normalization: Strips "Field " prefix for matching Don's vs user's naming conventions
+
+### Reason
+User needs OSP to work entirely self-service for OEFFA organic certification — no Claude assistance needed. Multiple critical data-loss bugs fixed. Import flow redesigned to safely merge property owner's field data without destroying user's 2026 crop plans.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
 ## 2026-03-15 — PM_ARCHITECT: Chief of Staff UX Overhaul (4 phases, UX audit 6.1→8.5+)
 
 ### UX Audit

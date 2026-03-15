@@ -1263,13 +1263,15 @@ function buildSectionNav() {
 }
 
 function goToSection(num) {
-    // Hide all
-    document.querySelectorAll('.osp-section').forEach(function(s) { s.classList.remove('active'); });
+    // Hide all — remove active class AND clear any inline display style
+    document.querySelectorAll('.osp-section').forEach(function(s) {
+        s.classList.remove('active');
+        s.style.display = '';
+    });
     // Show target
     var target = document.getElementById('section' + num);
     if (target) {
         target.classList.add('active');
-        target.style.display = 'block';
     }
     // Update nav
     document.querySelectorAll('.section-nav button').forEach(function(b) {
