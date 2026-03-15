@@ -1774,13 +1774,14 @@ function archiveFieldRow(btn) {
     var inputs = tr.querySelectorAll('input');
     var sel = tr.querySelector('select');
     var field = { field: inputs[0].value, acres: inputs[1].value, priorCrop: inputs[2].value, priorInputs: inputs[3].value, plannedCrop: inputs[4].value, status: sel ? sel.value : 'Organic' };
-    if (!field.field && !field.acres) { tr.remove(); updateFieldHistoryTotals(); return; }
+    if (!field.field && !field.acres) { tr.remove(); updateFieldHistoryTotals(); autoSaveDraft(); return; }
     var archived = getArchivedFields();
     archived.push(field);
     saveArchivedFields(archived);
     tr.remove();
     updateFieldHistoryTotals();
     renderArchivedFields();
+    autoSaveDraft();
     showToast('Field "' + (field.field || 'unnamed') + '" archived', 'success');
 }
 
@@ -1792,6 +1793,7 @@ function restoreArchivedField(index) {
     addFieldHistoryRow(f.field, f.acres, f.priorCrop, f.priorInputs, f.plannedCrop, f.status);
     updateFieldHistoryTotals();
     renderArchivedFields();
+    autoSaveDraft();
     showToast('Field "' + (f.field || 'unnamed') + '" restored', 'success');
 }
 
@@ -1854,8 +1856,10 @@ function addFieldHistoryRow(field, acres, crop25, inputs25, crop26, status) {
         '<td><select style="padding:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:0.82rem;"><option' + (status === 'Organic' ? ' selected' : '') + '>Organic</option><option' + (status === 'Transitional' ? ' selected' : '') + '>Transitional</option></select></td>' +
         '<td style="white-space:nowrap;">' +
         '<button onclick="archiveFieldRow(this)" style="background:none;border:none;color:var(--text-secondary);cursor:pointer;font-size:0.9rem;margin-right:4px;" title="Archive"><i class="fas fa-archive"></i></button>' +
-        '<button onclick="this.closest(\'tr\').remove();updateFieldHistoryTotals()" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:0.9rem;" title="Delete permanently"><i class="fas fa-trash"></i></button></td>';
+        '<button onclick="this.closest(\'tr\').remove();updateFieldHistoryTotals();autoSaveDraft()" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:0.9rem;" title="Delete permanently"><i class="fas fa-trash"></i></button></td>';
     body.appendChild(tr);
+    // Auto-save when any input in this row changes
+    tr.addEventListener('change', autoSaveDraft);
 }
 
 var _pendingImportRows = null;
@@ -2100,6 +2104,7 @@ function undoFieldImport() {
     _fieldHistoryUndo = null;
     document.getElementById('undoImportBtn').style.display = 'none';
     updateFieldHistoryTotals();
+    autoSaveDraft();
     showToast('Import undone — previous fields restored', 'success');
 }
 
@@ -2299,6 +2304,7 @@ function executeColumnImport() {
         var spanEl = autoEl.querySelector('span');
         if (spanEl) spanEl.textContent = summary + '. Edit any value directly.';
     }
+    autoSaveDraft();
 }
 
 function addCropRow() {
@@ -2455,17 +2461,61 @@ function collectFormData() {
     document.querySelectorAll('.osp-section input[type="checkbox"]').forEach(function(el) {
         if (el.id) data['cb_' + el.id] = el.checked;
     });
+    // Collect dynamic table rows (no IDs on these inputs)
+    ['fieldHistoryBody','cropsBody','fertilityBody','pestBody','materialsBody'].forEach(function(tbodyId) {
+        var tbody = document.getElementById(tbodyId);
+        if (!tbody) return;
+        var rows = [];
+        tbody.querySelectorAll('tr').forEach(function(tr) {
+            var vals = [];
+            tr.querySelectorAll('input, select, textarea').forEach(function(inp) {
+                vals.push(inp.type === 'checkbox' ? inp.checked : inp.value);
+            });
+            if (vals.length > 0) rows.push(vals);
+        });
+        if (rows.length > 0) data['_table_' + tbodyId] = rows;
+    });
     return data;
 }
 
 function restoreFormData(data) {
+    // Restore simple inputs
     Object.keys(data).forEach(function(key) {
+        if (key.startsWith('_table_')) return; // handled below
         if (key.startsWith('cb_')) {
             var el = document.getElementById(key.replace('cb_', ''));
             if (el) el.checked = data[key];
         } else {
             var el = document.getElementById(key);
             if (el) el.value = data[key];
+        }
+    });
+    // Restore dynamic table rows
+    var tableAdders = {
+        fieldHistoryBody: function(v) { addFieldHistoryRow(v[0], v[1], v[2], v[3], v[4], v[5]); },
+        cropsBody: function(v) { addCropRow(); restoreLastRow('cropsBody', v); },
+        fertilityBody: function(v) { addFertilityRow(); restoreLastRow('fertilityBody', v); },
+        pestBody: function(v) { addPestRow(); restoreLastRow('pestBody', v); },
+        materialsBody: function(v) { addMaterialRow(); restoreLastRow('materialsBody', v); }
+    };
+    Object.keys(tableAdders).forEach(function(tbodyId) {
+        var rows = data['_table_' + tbodyId];
+        if (!rows || !rows.length) return;
+        var tbody = document.getElementById(tbodyId);
+        if (tbody) tbody.innerHTML = ''; // clear before restoring
+        rows.forEach(function(vals) { tableAdders[tbodyId](vals); });
+    });
+    updateFieldHistoryTotals();
+}
+
+function restoreLastRow(tbodyId, vals) {
+    var tbody = document.getElementById(tbodyId);
+    if (!tbody || !tbody.lastElementChild) return;
+    var inputs = tbody.lastElementChild.querySelectorAll('input, select, textarea');
+    inputs.forEach(function(inp, i) {
+        if (i < vals.length) {
+            if (inp.type === 'checkbox') inp.checked = !!vals[i];
+            else inp.value = vals[i] != null ? vals[i] : '';
         }
     });
 }
