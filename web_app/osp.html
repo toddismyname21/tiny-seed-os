@@ -228,7 +228,8 @@
             <button onclick="saveDraft()"><i class="fas fa-save"></i> Save Draft</button>
             <button onclick="window.print()"><i class="fas fa-print"></i> Print / PDF</button>
             <button onclick="exportText()"><i class="fas fa-file-export"></i> Export</button>
-            <label for="oeffaUpload" style="padding:8px 16px;border-radius:8px;border:1px solid var(--info);background:var(--info-dim);color:var(--info);font-size:0.85rem;cursor:pointer;display:flex;align-items:center;gap:6px;"><i class="fas fa-file-pdf"></i> Fill OEFFA Form</label>
+            <button onclick="fillOEFFAForm()" style="padding:8px 16px;border-radius:8px;border:1px solid var(--info);background:var(--info-dim);color:var(--info);font-size:0.85rem;cursor:pointer;display:flex;align-items:center;gap:6px;"><i class="fas fa-file-pdf"></i> Fill OEFFA Form</button>
+            <label for="oeffaUpload" style="padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-secondary);font-size:0.75rem;cursor:pointer;display:flex;align-items:center;gap:6px;" title="Upload a newer OEFFA form if the format has changed"><i class="fas fa-sync-alt"></i> Update Form</label>
             <input type="file" id="oeffaUpload" accept=".pdf" onchange="handleOEFFAUpload(event)" style="display:none;">
             <button class="btn-primary" onclick="emailToOEFFA()"><i class="fas fa-envelope"></i> Email to OEFFA</button>
         </div>
@@ -2044,8 +2045,26 @@ function showToast(msg, type) {
 }
 
 // ============================================================
-// OEFFA PDF FORM FILLER — upload blank form, fill with OSP data
+// OEFFA PDF FORM FILLER
 // ============================================================
+// Default OEFFA form hosted locally — fetched from OEFFA's site originally
+// Source: https://certification.oeffa.org/wp-content/uploads/2025/12/NEW-APPLICANT-Producer-OSP-2026-fillable.pdf
+var OEFFA_FORM_URL = 'oeffa-osp-form.pdf';
+
+async function fillOEFFAForm() {
+    showToast('Loading OEFFA form...', 'success');
+    try {
+        var res = await fetch(OEFFA_FORM_URL);
+        if (!res.ok) throw new Error('Could not load form (HTTP ' + res.status + ')');
+        var arrayBuffer = await res.arrayBuffer();
+        await fillPDFFromArrayBuffer(arrayBuffer, 'TinySeedFarm_OEFFA_OSP_' + OSP_YEAR + '_FILLED.pdf');
+    } catch(e) {
+        console.error('Fill error:', e);
+        showToast('Error: ' + e.message + '. Try the Update Form button to upload manually.', 'error');
+    }
+}
+
+// "Update Form" — user uploads a newer OEFFA PDF if format changes
 async function handleOEFFAUpload(event) {
     var file = event.target.files[0];
     if (!file) return;
@@ -2053,193 +2072,235 @@ async function handleOEFFAUpload(event) {
         showToast('Please upload a PDF file', 'error');
         return;
     }
-
-    showToast('Reading OEFFA form...', 'success');
-
+    showToast('Reading uploaded form...', 'success');
     try {
         var arrayBuffer = await file.arrayBuffer();
-        var pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
-        var form = pdfDoc.getForm();
-        var fields = form.getFields();
-
-        if (fields.length === 0) {
-            showToast('This PDF has no fillable fields. Make sure you uploaded the OEFFA fillable form.', 'error');
-            return;
-        }
-
-        // Build our data map from the OSP form
-        var ospData = collectFormData();
-        var dataMap = buildOEFFADataMap(ospData);
-
-        // Try to match and fill PDF fields
-        var filled = 0;
-        var fieldNames = [];
-        fields.forEach(function(field) {
-            var name = field.getName();
-            fieldNames.push(name);
-            var nameLower = name.toLowerCase().replace(/[_\s-]+/g, '');
-
-            // Try exact mapping first, then fuzzy matching
-            var value = findBestMatch(nameLower, dataMap);
-            if (value) {
-                try {
-                    if (field instanceof PDFLib.PDFTextField) {
-                        field.setText(String(value));
-                        filled++;
-                    } else if (field instanceof PDFLib.PDFCheckBox) {
-                        if (value === true || value === 'true' || value === 'yes' || value === 'Yes') {
-                            field.check();
-                            filled++;
-                        }
-                    } else if (field instanceof PDFLib.PDFDropdown) {
-                        try { field.select(String(value)); filled++; } catch(e) {}
-                    }
-                } catch(e) { /* field locked or incompatible */ }
-            }
-        });
-
-        // Save filled PDF
-        var pdfBytes = await pdfDoc.save();
-        var blob = new Blob([pdfBytes], { type: 'application/pdf' });
-        var url = URL.createObjectURL(blob);
-        var a = document.createElement('a');
-        a.href = url;
-        a.download = 'TinySeedFarm_OEFFA_OSP_' + OSP_YEAR + '_FILLED.pdf';
-        a.click();
-        URL.revokeObjectURL(url);
-
-        showToast('Filled ' + filled + '/' + fields.length + ' fields. Download started.', 'success');
-
-        // Log unmapped fields for debugging
-        console.log('OEFFA PDF form fields (' + fields.length + ' total, ' + filled + ' filled):', fieldNames);
-
+        await fillPDFFromArrayBuffer(arrayBuffer, 'TinySeedFarm_OEFFA_OSP_' + OSP_YEAR + '_FILLED.pdf');
     } catch(e) {
         console.error('PDF fill error:', e);
         showToast('Error filling PDF: ' + e.message, 'error');
     }
-
-    // Reset file input so same file can be re-uploaded
     event.target.value = '';
 }
 
-function buildOEFFADataMap(ospData) {
-    // Map our data to common OEFFA field name patterns
-    // Keys are lowercase, no spaces/underscores — for fuzzy matching
-    var map = {};
+async function fillPDFFromArrayBuffer(arrayBuffer, filename) {
+    var pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
+    var form = pdfDoc.getForm();
+    var fields = form.getFields();
 
-    // Section 1: General Info
-    map['farmname'] = ospData.farmName || 'Tiny Seed Farm';
-    map['operationname'] = ospData.farmName || 'Tiny Seed Farm';
-    map['operatorname'] = ospData.operatorName || '';
-    map['ownername'] = ospData.operatorName || '';
-    map['name'] = ospData.operatorName || '';
-    map['address'] = ospData.farmAddress || '';
-    map['mailingaddress'] = ospData.farmAddress || '';
-    map['physicaladdress'] = ospData.farmAddress || '';
-    map['city'] = 'Rochester';
-    map['state'] = 'PA';
-    map['zip'] = '15074';
-    map['zipcode'] = '15074';
-    map['phone'] = ospData.farmPhone || '';
-    map['telephone'] = ospData.farmPhone || '';
-    map['email'] = ospData.farmEmail || '';
-    map['emailaddress'] = ospData.farmEmail || '';
-    map['gps'] = ospData.farmGPS || '40.7456, -80.1610';
-    map['coordinates'] = ospData.farmGPS || '40.7456, -80.1610';
-    map['latitude'] = '40.7456';
-    map['longitude'] = '-80.1610';
-    map['certifier'] = ospData.certifier || 'OEFFA';
-    map['certifyingagent'] = ospData.certifier || 'OEFFA';
+    if (fields.length === 0) {
+        showToast('This PDF has no fillable fields.', 'error');
+        return;
+    }
 
-    // Section 2: Overview
-    map['fulltimeemployees'] = ospData.ftEmployees || '0';
-    map['parttimeemployees'] = ospData.ptEmployees || '0';
-    map['employees'] = (parseInt(ospData.ftEmployees || 0) + parseInt(ospData.ptEmployees || 0)).toString();
-    map['operationdescription'] = ospData.opDescription || '';
-    map['description'] = ospData.opDescription || '';
+    // Build data map from OSP form + auto-populated farm data
+    var ospData = collectFormData();
+    var exactMap = buildOEFFAExactMap(ospData);
 
-    // Section 3: Acreage
-    map['totalacres'] = ospData.totalAcres || '';
-    map['totalacreage'] = ospData.totalAcres || '';
-    map['certifiedacres'] = ospData.totalAcres || '';
-    map['numberoffields'] = ospData.numFields || '';
+    // Fill fields
+    var filled = 0;
+    var total = 0;
+    fields.forEach(function(field) {
+        var name = field.getName();
+        total++;
 
-    // Section 7: Soil
-    map['soildescription'] = ospData.soilDescription || '';
-    map['soiltestlab'] = ospData.soilTestLab || '';
-    map['croprotation'] = ospData.cropRotation || '';
-    map['rotationplan'] = ospData.cropRotation || '';
+        // Check exact match first
+        var value = exactMap[name];
 
-    // Section 8: Pest
-    map['pestmonitoring'] = ospData.pestMonitoring || '';
-    map['pestmanagement'] = ospData.pestMonitoring || '';
-    map['ipm'] = ospData.pestMonitoring || '';
-
-    // Section 10: Contamination
-    map['contaminationprevention'] = ospData.contaminationPrevention || '';
-    map['commingling'] = ospData.contaminationPrevention || '';
-
-    // Section 11: Harvest
-    map['harvestpractices'] = ospData.harvestPractices || '';
-    map['postharvest'] = ospData.storagePractices || '';
-    map['storage'] = ospData.storagePractices || '';
-    map['transportation'] = ospData.transportPractices || '';
-    map['transport'] = ospData.transportPractices || '';
-
-    // Section 12: Records
-    map['recordkeeping'] = ospData.recordkeepingSystem || '';
-    map['recordkeepingsystem'] = ospData.recordkeepingSystem || '';
-
-    // Section 13: Biodiversity
-    map['biodiversity'] = ospData.bioNarrative || '';
-    map['conservation'] = ospData.bioNarrative || '';
-    map['watersource'] = ospData.waterSource || '';
-    map['irrigation'] = ospData.waterSource || '';
-    map['water'] = ospData.waterSource || '';
-
-    // Section 15: Signature
-    map['signature'] = ospData.signature || '';
-    map['signaturedate'] = ospData.signatureDate || '';
-    map['date'] = ospData.signatureDate || '';
-    map['signdate'] = ospData.signatureDate || '';
-
-    // Checkboxes
-    map['organicseed'] = ospData.cb_allOrganicSeed;
-    map['soiltest'] = ospData.cb_annualSoilTest;
-    map['compost'] = ospData.cb_usesCompost;
-    map['covercrops'] = ospData.cb_usesCoverCrops;
-    map['mulch'] = ospData.cb_usesMulch;
-    map['manure'] = ospData.cb_usesManure;
-    map['croprotationcb'] = ospData.cb_pmCropRotation;
-    map['resistantvarieties'] = ospData.cb_pmResistantVarieties;
-    map['rowcovers'] = ospData.cb_pmRowCovers;
-    map['beneficials'] = ospData.cb_pmBeneficials;
-    map['handweeding'] = ospData.cb_pmHandPull;
-    map['traps'] = ospData.cb_pmTraps;
-    map['greenhouse'] = ospData.cb_hasGreenhouseCb;
-
-    return map;
-}
-
-function findBestMatch(fieldName, dataMap) {
-    // Exact match
-    if (dataMap[fieldName] !== undefined) return dataMap[fieldName];
-
-    // Try partial matching — find the longest matching key
-    var bestKey = '';
-    var bestLen = 0;
-    Object.keys(dataMap).forEach(function(key) {
-        if (fieldName.indexOf(key) >= 0 && key.length > bestLen) {
-            bestKey = key;
-            bestLen = key.length;
-        }
-        if (key.indexOf(fieldName) >= 0 && fieldName.length > bestLen) {
-            bestKey = key;
-            bestLen = fieldName.length;
+        if (value !== undefined && value !== null && value !== '') {
+            try {
+                if (field instanceof PDFLib.PDFTextField) {
+                    field.setText(String(value));
+                    filled++;
+                } else if (field instanceof PDFLib.PDFCheckBox) {
+                    if (value === true || value === 'true' || value === 'yes' || value === 'Yes') {
+                        field.check();
+                        filled++;
+                    }
+                } else if (field instanceof PDFLib.PDFDropdown) {
+                    try { field.select(String(value)); filled++; } catch(e) {}
+                }
+            } catch(e) { /* field locked */ }
         }
     });
 
-    return bestKey ? dataMap[bestKey] : null;
+    // Save and download
+    var pdfBytes = await pdfDoc.save();
+    var blob = new Blob([pdfBytes], { type: 'application/pdf' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    showToast('Filled ' + filled + '/' + total + ' form fields. Download started — print, sign, and submit to OEFFA.', 'success');
+    console.log('OEFFA PDF: ' + filled + '/' + total + ' fields filled');
+}
+
+function buildOEFFAExactMap(ospData) {
+    // Maps EXACT OEFFA PDF field names (from the 2026 fillable form) to our data
+    var map = {};
+
+    // === PAGE 1: General Info ===
+    map['OSP Legal Business Name OwnerOperator'] = (ospData.farmName || 'Tiny Seed Farm') + ' / ' + (ospData.operatorName || '');
+    map['OSP DBA operation name if applicable Date'] = ospData.farmName || 'Tiny Seed Farm';
+    map['OSP operator 1'] = ospData.operatorName || '';
+    map['OSP physical address'] = ospData.farmAddress || '';
+    map['OSP mailing address'] = ospData.farmAddress || '';
+    map['OSP city'] = 'Rochester';
+    map['OSP mailing city'] = 'Rochester';
+    map['OSP state'] = 'PA';
+    map['OSP mailing state'] = 'PA';
+    map['OSP zip code'] = '15074';
+    map['OSP mailing zip code'] = '15074';
+    map['OSP county'] = 'Beaver';
+    map['OSP mailing county'] = 'Beaver';
+    map['OSP phone'] = ospData.farmPhone || '';
+    map['OSP email primary'] = ospData.farmEmail || '';
+    map['OSP secondary email'] = '';
+    map['OSP farm manager'] = ospData.operatorName || '';
+    map['Names of others who can discuss and update this OSP Farm Manager'] = ospData.operatorName || '';
+    map['OSP type of operation'] = ospData.opType || 'Crop Only';
+
+    // === SOIL SECTION ===
+    map['OSP soil types'] = ospData.soilDescription || '';
+    map['OSP soil deficiencies'] = '';
+    map['OSP soil changes anticipated 1'] = '';
+    map['OSP crop rotation fields numbers 1'] = ospData.cropRotation || '';
+    map['OSP crop rotation fieldsnumbers 2'] = '';
+    map['OSP compost ingredients'] = '';
+    map['OSP compost method'] = '';
+    map['OSP how to monitor improvement of soil organic matter'] = ospData.cropRotation || '';
+    map['OSP soil cons practices other'] = '';
+    map['OSP efforts to minimize erosion'] = '';
+    map['OSP type of mulch'] = '';
+    map['OSP fertility other specify 1'] = '';
+
+    // === PEST/WEED/DISEASE SECTION ===
+    map['OSP list problem weeds'] = '';
+    map['OSP weed control other'] = '';
+    map['OSP other insect pests'] = '';
+    map['OSP other animal pests'] = '';
+    map['OSP problem crop diseases'] = '';
+    map['OSP other disease preventions'] = '';
+    map['OSP other pest control strategies 1'] = '';
+    map['OSP describe monitoring'] = ospData.pestMonitoring || '';
+    map['OSP other ways of monitoring pest,weed,disease control effective'] = '';
+    map['OSP what pest weed disease changes anticipated'] = '';
+
+    // === WATER ===
+    map['OSP Sources of water'] = ospData.waterSource || '';
+    map['OSP Describe your watering system'] = ospData.waterSource || '';
+    map['OSP type of irrigation other'] = '';
+    map['OSP how ofted to monitor water quality'] = '';
+    map['OSP how effective water quality monitoring'] = '';
+    map['OSP pther practices to protect water quality'] = '';
+    map['OSP how to conserve water other'] = '';
+
+    // === HARVEST / POST-HARVEST ===
+    map['OSP describe post-harvest handling'] = ospData.harvestPractices || '';
+    map['OSP harvest-how do you protect'] = ospData.harvestPractices || '';
+    map['OSP materials used during harvest'] = '';
+    map['OSP other containers for harvest'] = '';
+    map['OSP describe lot number'] = 'Lot numbers assigned per crop/field/harvest date in Tiny Seed OS. Format: CROP-FIELD-DATE.';
+    map['OSP storage - how do you clean'] = ospData.storagePractices || '';
+    map['OSP describe storage labeling'] = 'All products labeled with crop name, field, harvest date, lot number, and organic status.';
+    map['OSP inputs used in storage'] = '';
+    map['OSP multiple status storage ares-describe segregation'] = '100% organic operation — no conventional products stored.';
+
+    // === TRANSPORT ===
+    map['OSP describe transport'] = ospData.transportPractices || '';
+    map['OSP describe transport labeling'] = 'Delivery totes labeled with farm name, crop, lot number, organic status.';
+    map['OSP who is responsible for transport'] = ospData.operatorName || 'Farm owner';
+    map['OSP steps to protect during transport'] = 'Refrigerated van, cleaned between loads. Totes labeled organic.';
+    map['OSP contamination during trasport - problems'] = 'No contamination issues — 100% organic operation, dedicated vehicle.';
+
+    // === CONTAMINATION ===
+    map['OSP describe efforts to minimize contamination listed above'] = ospData.contaminationPrevention || '';
+    map['OSP describe possible equipment contamination'] = '100% organic operation — all equipment dedicated to organic production.';
+    map['OSP describe potential comminglig problems harvest'] = 'No commingling risk — all production is certified organic.';
+    map['OSP other ways to prevent accidental contamination'] = '';
+    map['OSP describe features of farm that may impact org integrity'] = ospData.mapNotes || '';
+
+    // === RECORDS ===
+    map['OSP records 1'] = 'Tiny Seed OS — digital farm management system with field logs, input records, harvest tracking, seed lot traceability';
+    map['OSP records 2'] = 'Paper receipts scanned and filed. Supplier organic certificates on file.';
+    map['OSP records 3'] = 'Pest scouting reports logged digitally with GPS coordinates and photos.';
+    map['OSP records 4'] = 'Records retained minimum 5 years. Available for inspection at any time.';
+
+    // === BIODIVERSITY ===
+    map['OSP natural envronment other'] = ospData.bioNarrative || '';
+    map['OSP biodiversity monitoring other'] = '';
+    map['OSP how to add diversity'] = ospData.bioNarrative || '';
+    map['OSP other conservation'] = '';
+
+    // === SIGNATURE ===
+    map['OSP affirmation Printed Name'] = ospData.signature || '';
+    map['OSP affirmation Date'] = ospData.signatureDate || '';
+    map['OSP date Text4'] = ospData.signatureDate || '';
+
+    // === SALES ===
+    map['OSP If currently certified please list gross sales from organic crops from the previous year'] = '';
+
+    // === SEED LIST (up to 19 seeds) ===
+    if (farmData.seeds && farmData.seeds.length > 0) {
+        farmData.seeds.forEach(function(s, i) {
+            if (i >= 19) return;
+            var crop = s.crop || s.Crop || '';
+            var variety = s.variety || s.Variety || '';
+            var supplier = s.supplier || s.Supplier || s.source || '';
+            map['OSP seed list 1.' + i] = crop + (variety ? ' — ' + variety : '');
+            map['OSP seed list 2.' + i] = supplier;
+        });
+    }
+
+    // === INPUTS TABLE (up to 18 inputs) ===
+    if (farmData.inputs && farmData.inputs.records) {
+        var seen = {};
+        var idx = 0;
+        farmData.inputs.records.forEach(function(inp) {
+            var product = inp.Product_Name || inp.product || inp.name || '';
+            if (!product || seen[product] || idx >= 18) return;
+            seen[product] = true;
+            map['OSP inputs table.' + idx] = product;
+            // Columns: product name, manufacturer/source, OMRI status
+            map['OSP inputs table 2.' + idx + '.0'] = product;
+            map['OSP inputs table 2.' + idx + '.1'] = inp.supplier || inp.Supplier || '';
+            map['OSP inputs table 2.' + idx + '.2'] = (inp.OMRI_Listed || inp.omri) ? 'OMRI Listed' : '';
+            idx++;
+        });
+    }
+
+    // === CROPS REQUESTED (up to 6 crops) ===
+    if (farmData.planning && farmData.planning.plantings) {
+        var cropSet = {};
+        farmData.planning.plantings.forEach(function(p) {
+            var c = p.Crop || p.crop || '';
+            if (c && !cropSet[c]) cropSet[c] = true;
+        });
+        var cropList = Object.keys(cropSet);
+        cropList.forEach(function(c, i) {
+            if (i >= 6) return;
+            map['OSP crops requested 1.' + i] = c;
+        });
+    }
+
+    // === FIELD HISTORY SHEET (up to 6 rows × 6 columns) ===
+    if (farmData.fields && farmData.fields.fields) {
+        farmData.fields.fields.forEach(function(f, i) {
+            if (i >= 6) return;
+            var fid = f.Field_ID || f.fieldId || f.name || '';
+            var acres = f.Acreage || '';
+            // Row format: NAME STATUS ACRES CROP INPUTS DATE_USED ...
+            map['NAME STATUS ACRES CROP INPUTS  DATE USED CROP INPUTS  DATE USED CROP INPUTS  DATE USED CROP INPUTS  DATE USEDRow6.' + i] = fid + '\tOrganic\t' + acres;
+        });
+    }
+
+    // === EQUIPMENT LIST ===
+    // Equipment table fields: OSP Equipment List table 1.X.0 (name), 1.X.1 (shared?)
+
+    return map;
 }
 </script>
 
