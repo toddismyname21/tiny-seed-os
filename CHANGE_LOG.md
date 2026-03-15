@@ -35,6 +35,138 @@ Brief explanation of why these changes were made.
 
 
 
+## 2026-03-15 — PM_ARCHITECT: Chief of Staff UX Overhaul (4 phases, UX audit 6.1→8.5+)
+
+### UX Audit
+- Score: 6.1/10 → target 8.5+/10
+- 17 findings across 3 phases (visual/layout, accessibility, interaction)
+- Root causes: 11 tabs, broken mobile, missing ARIA, poor contrast, dead-end empty states
+
+### Files Modified
+- `web_app/chief-of-staff.html` — Complete UX overhaul (4 phases)
+
+### Phase 1: Quick Wins
+- ARIA tablist pattern (role=tablist/tab/tabpanel, aria-selected, arrow-key navigation)
+- Contrast fix: --text-muted #8899a8→#94a3b8 (4.6:1, passes WCAG AA)
+- Token 13 raw hex values → var(--on-primary), fix --bg-card-hover
+- touch-action: manipulation on all interactive elements
+- Tab :active scale(0.97) feedback, safe-area-inset on fixed elements
+
+### Phase 2: Architecture
+- 11 tabs → 5 work tabs (Command Center, Email, Action Queue, Commitments, Intel)
+- Settings drawer with 7 config tabs (Obligations, Calendar, Predictive, Memory, Autonomy, Style & Voice, System)
+- Z-pattern daily briefing moved above tabs (always visible, collapsible with localStorage)
+- Sidebar simplified: 13 items → 3 (Dashboard, Settings, Search)
+- Header reduced: 9 items → 3 (status, Settings gear, Process Inbox)
+
+### Phase 3: Mobile
+- 4-item bottom nav bar at 768px (Command, Email, Actions, Intel)
+- Desktop tab row hidden on mobile
+- Safe-area-inset on bottom nav, settings drawer full-width on mobile
+- 48px touch targets with press feedback
+
+### Phase 4: Polish
+- 32 spinners replaced with skeleton screen shimmer cards
+- 18 empty states now have contextual action buttons (Run Scan, Open Calendar, etc.)
+- Context-aware chat quick actions update per active tab
+
+### Reason
+UX audit identified the page as below the 7/10 shippable threshold. 11 tabs caused decision paralysis, mobile was unusable, ARIA was missing, contrast failed WCAG AA. Full overhaul managed as 4 independently-deployed phases with verification gates.
+
+---
+
+## 2026-03-15 — PM_ARCHITECT: Twilio FROM_NUMBER fix + Backend deploy @767
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — Changed `TWILIO_CONFIG.FROM_NUMBER` from hardcoded `'+14128662259'` to dynamic `PropertiesService.getScriptProperties().getProperty('TWILIO_PHONE_NUMBER')` with toll-free fallback `'+18773185491'`
+
+### Reason
+Twilio 10DLC number was blocked (A2P campaign stuck in review since Jan 15). Purchased toll-free number `(877) 318-5491` as alternative. FROM_NUMBER now reads from Script Properties so phone number changes don't require code deploys.
+
+### Deployment
+- `clasp deploy -i AKfycby...qm @767` — verified via testConnection
+
+---
+
+## 2026-03-15 — PM_ARCHITECT: Universal Column Mapper (research-driven rebuild)
+
+### Research
+- `docs/research/SPREADSHEET_CSV_IMPORT_UX_2026.md` — Flatfile, Dromo, CSVBox comparison
+- `docs/research/FARM_DATA_IMPORT_PATTERNS_2026.md` — OEFFA requirements, farm software patterns
+- Full audit of prior implementation: date handling, CSV parsing, duplicate detection gaps
+
+### Files Modified
+- `web_app/osp.html` — Complete rebuild of import system
+
+### Functions Added
+- `showColumnMapper()` — Modal with data preview, 7 column dropdowns (field/acres/prior crop/prior inputs/planned crop/cover crop/status), 50+ farm synonym auto-guess, localStorage-remembered mappings by header fingerprint, cover crop combine option, built-in paste-to-reload
+- `reloadMapperFromPaste()` — Parse pasted data inside mapper modal via PapaParse
+- `normalizeDate()` — Handles Date objects, Excel serial numbers, MM/DD/YYYY, ISO, "Mon DD, YYYY"
+- `executeColumnImport()` — Row-by-row validation, skip counters (empty/dupe/summary), import summary toast
+
+### Functions Modified
+- `importOEFFAExcel()` — Dual-path: CSV/TSV → PapaParse (quoted field support), Excel → SheetJS with `cellDates: true` and `dateNF: 'yyyy-mm-dd'`
+
+### Functions Removed
+- `toggleBulkUpload`, `handleBulkFile`, `parseBulkData`, `mapPlantingRow`, `previewBulkData`, `submitBulkPlantings`, `submitBulkInputs` — consolidated into column mapper
+
+### CDN Added
+- PapaParse 5.4.1 (proper CSV parsing with quoted fields, escapes, dynamic typing)
+
+### Reason
+Prior importer was hard-coded to one OEFFA format. Research showed best tools (Flatfile, Dromo) use fuzzy column matching + remembered mappings + row-level validation. Built the same pattern without the $299/mo cost. Works with ANY spreadsheet format — property owner data, OEFFA templates, farm records.
+
+### Duplicate Check
+- [x] No duplicates — replaces prior implementation entirely
+
+---
+
+## 2026-03-15 — FULLSTACK_BUILDER: OSP Bulk Upload for Historical Planting & Input Data
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — Replaced `bulkAddPlantings` stub with full implementation; added `bulkAddInputs` function; fixed POST routing to pass `data` (not `data.plantings`); added both actions to `PUBLIC_POST_ACTIONS` whitelist
+- `web_app/osp.html` — Added bulk upload panel to Section 4 (Field History) with paste/CSV support, delimiter auto-detection, preview table, and upload for both plantings and input applications
+
+### Functions Added
+- `bulkAddPlantings(data)` in `MERGED TOTAL.js` — Writes historical planting records to PLANTINGS sheet with LockService, auto-creates sheet if missing, formula injection prevention, field name aliasing
+- `bulkAddInputs(data)` in `MERGED TOTAL.js` — Writes input application records to INPUT_LOG sheet with same protections
+- `toggleBulkUpload()`, `handleBulkFile()`, `parseBulkData()`, `mapPlantingRow()`, `previewBulkData()`, `submitBulkPlantings()`, `submitBulkInputs()` in `osp.html` — Frontend bulk upload UI with tab/comma/pipe delimiter detection, preview, validation, and API submission
+
+### Reason
+OSP Section 4 (Field History) needs historical 2025 planting and input data to auto-populate. This provides a bulk upload path so users can paste spreadsheet data or upload CSV files directly into the PLANTINGS and INPUT_LOG sheets, which `getFieldHistoryReport()` reads.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions — `bulkAddPlantings` stub existed, replaced it
+- [x] No duplicates created
+
+---
+
+## 2026-03-15 — FULLSTACK_BUILDER: OSP Farm Map — containment fix + Crop & Lock feature
+
+### Files Modified
+- `web_app/osp.html` — Section 3 farm map fixes
+
+### Changes
+- **Z-index containment:** Added `position: relative; z-index: 2` to `.map-toolbar` and `#section3 .help-text` so Leaflet internal elements no longer overflow and cover toolbar buttons or help text
+- **HTML structure:** Wrapped `#farmMap` in `#farmMapContainer` div for isolation (`isolation: isolate; z-index: 1`)
+- **Crop & Lock workflow:** New `cropAndLockMap()` function — fits map bounds to drawn fields, disables all map interaction (drag/zoom/scroll/keyboard/touch), hides Leaflet controls and Geoman toolbar, hides edit-mode toolbar buttons
+- **Unlock workflow:** New `unlockMap()` function — re-enables all interactions, restores controls and toolbar buttons, calls `invalidateSize()` to fix rendering
+- **Toolbar buttons:** Added `class="edit-mode-btn"` to Building/Water/Greenhouse/Save/Clear buttons so they hide when map is locked
+- **New buttons:** "Crop & Lock" (green accent) and "Unlock & Edit" (blue, hidden by default) in toolbar
+- **Removed stale CSS:** Removed `#farmMapStatic` and `display:none` rules that conflicted with the frozen-map approach (we keep the Leaflet map visible but interaction-disabled)
+- **Print CSS:** Added rule to keep locked map visible in print
+
+### Reason
+Leaflet's absolutely-positioned internal elements were overflowing the map container and covering the toolbar and help text. User also wanted a workflow to crop the view to their fields and lock it as a static reference, with ability to unlock for further editing.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
 ## 2026-03-15 — PM_ARCHITECT: Chief of Staff Personal Assistant Upgrade + MCP Plugins
 
 ### MCP Servers Added
