@@ -1423,6 +1423,10 @@ async function fetchFarmData() {
             loaded.push('Harvest');
         }
 
+        // Fill 2025 inputs into field history rows (only fills empty input cells)
+        var inputsFilled = apply2025Inputs();
+        if (inputsFilled > 0) loaded.push('2025 inputs (' + inputsFilled + ' fields)');
+
         // Show summary
         if (loaded.length > 0) {
             showToast('Auto-populated: ' + loaded.join(', '), 'success');
@@ -3287,6 +3291,46 @@ function apply2025Baseline() {
 
     autoSaveDraft();
     showToast('Pre-filled from 2025 OSP baseline — review and update for ' + OSP_YEAR, 'success');
+}
+
+// 2025 field-level inputs from activity log — apply to field history Prior Inputs column
+var INPUTS_2025 = {
+    'F11M': 'Bt, Entrust, Nu Film P, Pyganic, Revita Pro',
+    'F3H': '',
+    'F3M': 'Bt, Feather Meal, Fish Emulsion, Nu Film P, Revita Pro',
+    'F7M': 'Botaniguard, Bt, Entrust, Nu Film P, Revita Pro',
+    'HOL': '',
+    'IL': 'Botaniguard, Bt, Entrust, Nu Film P, Revita Pro',
+    'IOL': 'Revita Pro',
+    'JL': 'Kelp Meal, Revita Pro, Sulfate of Potash',
+    'JS1': 'Feather Meal, Revita Pro',
+    'JS10': '',
+    'JS3': 'Bt, Entrust, Nu Film P, Pyganic, Revita Pro',
+    'JS6': 'Botaniguard, Entrust, Nu Film P, Revita Pro',
+    'M': 'Botaniguard, Entrust, Nu Film P, Pyganic, Revita Pro',
+    'Z3': 'Ag Sulfur, Azomite, Kelp Meal, Revita Pro, Sulfate of Potash',
+    'Z5': ''
+};
+
+function apply2025Inputs() {
+    var rows = document.querySelectorAll('#fieldHistoryBody tr');
+    var filled = 0;
+    rows.forEach(function(tr) {
+        var fieldName = (tr.getAttribute('data-field') || '').trim().toUpperCase();
+        var inputs = tr.querySelectorAll('input');
+        // inputs[0]=field name, [1]=acres, [2]=prior crop, [3]=prior inputs, [4]=planned crop
+        if (inputs.length >= 4 && INPUTS_2025[fieldName] !== undefined) {
+            var priorInputsField = inputs[3];
+            if (!priorInputsField.value.trim()) {
+                priorInputsField.value = INPUTS_2025[fieldName];
+                if (INPUTS_2025[fieldName]) filled++;
+            }
+        }
+    });
+    if (filled > 0) {
+        autoSaveDraft();
+    }
+    return filled;
 }
 
 function setVal(id, val) {
