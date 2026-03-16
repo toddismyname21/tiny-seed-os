@@ -1422,6 +1422,20 @@ async function fetchFarmData() {
         var inputsFilled = apply2025Inputs();
         if (inputsFilled > 0) loaded.push('2025 inputs (' + inputsFilled + ' fields)');
 
+        // Fill fertility inputs table if empty (Section 7)
+        var fertBody = document.getElementById('fertilityBody');
+        if (fertBody && fertBody.children.length === 0) {
+            populateBaselineInputs();
+            loaded.push('Fertility inputs');
+        }
+
+        // Fill materials list if empty (Section 9)
+        var matBody = document.getElementById('materialsBody');
+        if (matBody && matBody.children.length === 0) {
+            populateBaselineMaterials();
+            loaded.push('Materials list');
+        }
+
         // Now calculate OSP form readiness based on what's actually filled
         updateReadiness();
 
@@ -3291,40 +3305,7 @@ function apply2025Baseline() {
     // Composting: windrow method, monitor temperature, no vermicompost
     // Manure: none used
 
-    // Section 7: Fertility Inputs table
-    var fertBody = document.getElementById('fertilityBody');
-    if (fertBody && fertBody.children.length === 0) {
-        addFertilityRowData(fertBody, 'Fertilizer', 'Revita Pro 3-3-2', 'Ohio Earth Foods', 'Yes', 'As needed', 'Pre-plant & side dress');
-        addFertilityRowData(fertBody, 'Fertilizer', 'Feather Meal 13-0-0', 'Ohio Earth Foods', 'Yes', 'As needed', 'Pre-plant');
-        addFertilityRowData(fertBody, 'Amendment', 'Azomite (trace minerals)', 'Azomite Mineral Products', 'Yes', 'As needed', 'Pre-plant');
-        addFertilityRowData(fertBody, 'Fertilizer', 'Fish Emulsion', '', 'Yes', 'As needed', 'Foliar/drench');
-        addFertilityRowData(fertBody, 'Amendment', 'Kelp Meal', '', 'Yes', 'As needed', 'Pre-plant');
-        addFertilityRowData(fertBody, 'Fertilizer', 'Sulfate of Potash (SOP)', 'Ohio Earth Foods', 'Yes', 'As needed', 'Pre-plant');
-        addFertilityRowData(fertBody, 'Fertilizer', 'Allganic Nitrogen Plus (Chilean Nitrate)', 'SQM Industrial S.A.', 'Yes', 'Case by case', 'As needed — restricted');
-        addFertilityRowData(fertBody, 'Amendment', 'Galaxy Sulfur Rocket90 (Ag Sulfur)', 'Galaxy Sulfur', 'Yes', 'As needed', 'Pre-plant');
-    }
-
-    // Section 9: Materials / Substances List
-    var matBody = document.getElementById('materialsBody');
-    if (matBody && matBody.children.length === 0) {
-        // Fertilizers
-        addMaterialRowData(matBody, 'FERTILIZER', 'Revita Pro 3-3-2', 'Ohio Earth Foods', 'OMRI Listed', 'N-P-K 3-3-2, humates', 'Various rates', 'All fields');
-        addMaterialRowData(matBody, 'FERTILIZER', 'Feather Meal 13-0-0', 'Ohio Earth Foods', 'OMRI Listed', 'Nitrogen 13%', 'As needed', 'F3M, JS1');
-        addMaterialRowData(matBody, 'FERTILIZER', 'Fish Emulsion', '', 'OMRI Listed', 'Fish hydrolysate', 'As needed', 'F3M');
-        addMaterialRowData(matBody, 'FERTILIZER', 'Sulfate of Potash (SOP)', 'Ohio Earth Foods', 'OMRI Listed', 'K₂O 50%, S 18%', 'As needed', 'JL, Z3');
-        addMaterialRowData(matBody, 'FERTILIZER', 'Allganic Nitrogen Plus', 'SQM Industrial S.A.', 'OMRI Listed', 'Chilean nitrate — restricted', 'Case by case', 'As needed');
-        addMaterialRowData(matBody, 'FERTILIZER', 'Kelp Meal', '', 'OMRI Listed', 'Trace minerals, K', 'As needed', 'JL, Z3');
-        // Amendments
-        addMaterialRowData(matBody, 'AMENDMENT', 'Azomite', 'Azomite Mineral Products', 'OMRI Listed', 'Trace minerals (70+)', 'As needed', 'Z3');
-        addMaterialRowData(matBody, 'AMENDMENT', 'Galaxy Sulfur Rocket90', 'Galaxy Sulfur', 'OMRI Listed', 'Ag Sulfur 90%', 'As needed', 'Z3');
-        // Pest Control
-        addMaterialRowData(matBody, 'PESTICIDE', 'Dipel DF (Bt)', 'Valent', 'OMRI Listed', 'Bacillus thuringiensis kurstaki', 'As needed', 'F11M, F3M, F7M, IL, JS3, M');
-        addMaterialRowData(matBody, 'PESTICIDE', 'Entrust SC (Spinosad)', 'Corteva Agriscience', 'OMRI Listed', 'Spinosad 22.5%', 'As needed', 'F11M, F7M, IL, JS3, JS6, M');
-        addMaterialRowData(matBody, 'PESTICIDE', 'Pyganic Specialty (Pyrethrin)', 'MGK', 'OMRI Listed', 'Pyrethrins 1.4%', 'As needed', 'F11M, JS3, M');
-        addMaterialRowData(matBody, 'PESTICIDE', 'Nu Film P (Spreader-Sticker)', '', 'OMRI Listed', 'Poly-1-p-menthene', 'With sprays', 'All sprayed fields');
-        addMaterialRowData(matBody, 'BIOLOGICAL', 'BotaniGard (Beauveria)', '', 'OMRI Listed', 'Beauveria bassiana', 'As needed', 'F7M, IL, JS6, M');
-        addMaterialRowData(matBody, 'PESTICIDE', 'Regalia', 'Marrone Bio Innovations', 'OMRI Listed', 'Reynoutria sachalinensis extract', 'Preventative', 'As needed');
-    }
+    // Section 7 & 9 now populated in fetchFarmData via populateBaselineInputs/Materials
 
     autoSaveDraft();
     showToast('Pre-filled from 2025 OSP baseline — review and update for ' + OSP_YEAR, 'success');
@@ -3348,6 +3329,40 @@ var INPUTS_2025 = {
     'Z3': 'Ag Sulfur, Azomite, Kelp Meal, Revita Pro, Sulfate of Potash',
     'Z5': ''
 };
+
+function populateBaselineInputs() {
+    var body = document.getElementById('fertilityBody');
+    if (!body) return;
+    addFertilityRowData(body, 'Fertilizer', 'Revita Pro 3-3-2', 'Ohio Earth Foods', 'Yes', 'As needed', 'Pre-plant & side dress');
+    addFertilityRowData(body, 'Fertilizer', 'Feather Meal 13-0-0', 'Ohio Earth Foods', 'Yes', 'As needed', 'Pre-plant');
+    addFertilityRowData(body, 'Amendment', 'Azomite (trace minerals)', 'Azomite Mineral Products', 'Yes', 'As needed', 'Pre-plant');
+    addFertilityRowData(body, 'Fertilizer', 'Fish Emulsion', '', 'Yes', 'As needed', 'Foliar/drench');
+    addFertilityRowData(body, 'Amendment', 'Kelp Meal', '', 'Yes', 'As needed', 'Pre-plant');
+    addFertilityRowData(body, 'Fertilizer', 'Sulfate of Potash (SOP)', 'Ohio Earth Foods', 'Yes', 'As needed', 'Pre-plant');
+    addFertilityRowData(body, 'Fertilizer', 'Allganic Nitrogen Plus (Chilean Nitrate)', 'SQM Industrial S.A.', 'Yes', 'Case by case', 'As needed — restricted');
+    addFertilityRowData(body, 'Amendment', 'Galaxy Sulfur Rocket90 (Ag Sulfur)', 'Galaxy Sulfur', 'Yes', 'As needed', 'Pre-plant');
+    autoSaveDraft();
+}
+
+function populateBaselineMaterials() {
+    var body = document.getElementById('materialsBody');
+    if (!body) return;
+    addMaterialRowData(body, 'FERTILIZER', 'Revita Pro 3-3-2', 'Ohio Earth Foods', 'OMRI Listed', 'N-P-K 3-3-2, humates', 'Various rates', 'All fields');
+    addMaterialRowData(body, 'FERTILIZER', 'Feather Meal 13-0-0', 'Ohio Earth Foods', 'OMRI Listed', 'Nitrogen 13%', 'As needed', 'F3M, JS1');
+    addMaterialRowData(body, 'FERTILIZER', 'Fish Emulsion', '', 'OMRI Listed', 'Fish hydrolysate', 'As needed', 'F3M');
+    addMaterialRowData(body, 'FERTILIZER', 'Sulfate of Potash (SOP)', 'Ohio Earth Foods', 'OMRI Listed', 'K₂O 50%, S 18%', 'As needed', 'JL, Z3');
+    addMaterialRowData(body, 'FERTILIZER', 'Allganic Nitrogen Plus', 'SQM Industrial S.A.', 'OMRI Listed', 'Chilean nitrate — restricted', 'Case by case', 'As needed');
+    addMaterialRowData(body, 'FERTILIZER', 'Kelp Meal', '', 'OMRI Listed', 'Trace minerals, K', 'As needed', 'JL, Z3');
+    addMaterialRowData(body, 'AMENDMENT', 'Azomite', 'Azomite Mineral Products', 'OMRI Listed', 'Trace minerals (70+)', 'As needed', 'Z3');
+    addMaterialRowData(body, 'AMENDMENT', 'Galaxy Sulfur Rocket90', 'Galaxy Sulfur', 'OMRI Listed', 'Ag Sulfur 90%', 'As needed', 'Z3');
+    addMaterialRowData(body, 'PESTICIDE', 'Dipel DF (Bt)', 'Valent', 'OMRI Listed', 'Bacillus thuringiensis kurstaki', 'As needed', 'F11M, F3M, F7M, IL, JS3, M');
+    addMaterialRowData(body, 'PESTICIDE', 'Entrust SC (Spinosad)', 'Corteva Agriscience', 'OMRI Listed', 'Spinosad 22.5%', 'As needed', 'F11M, F7M, IL, JS3, JS6, M');
+    addMaterialRowData(body, 'PESTICIDE', 'Pyganic Specialty (Pyrethrin)', 'MGK', 'OMRI Listed', 'Pyrethrins 1.4%', 'As needed', 'F11M, JS3, M');
+    addMaterialRowData(body, 'PESTICIDE', 'Nu Film P (Spreader-Sticker)', '', 'OMRI Listed', 'Poly-1-p-menthene', 'With sprays', 'All sprayed fields');
+    addMaterialRowData(body, 'BIOLOGICAL', 'BotaniGard (Beauveria)', '', 'OMRI Listed', 'Beauveria bassiana', 'As needed', 'F7M, IL, JS6, M');
+    addMaterialRowData(body, 'PESTICIDE', 'Regalia', 'Marrone Bio Innovations', 'OMRI Listed', 'Reynoutria sachalinensis extract', 'Preventative', 'As needed');
+    autoSaveDraft();
+}
 
 function apply2025Inputs() {
     var rows = document.querySelectorAll('#fieldHistoryBody tr');
