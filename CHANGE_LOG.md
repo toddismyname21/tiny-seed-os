@@ -35,6 +35,29 @@ Brief explanation of why these changes were made.
 
 
 
+## 2026-03-16 — FULLSTACK_BUILDER: Logan Labs Quick Add Bulk Fields
+
+### Files Modified
+- `soil-tests.html` — Added quick-add buttons and bulk field population to Logan Labs submission modal
+
+### Functions Added
+- `buildLoganQuickAddButtons()` in `soil-tests.html` — Dynamically builds "Quick Add" button bar with field counts by production type (All, Veg, Floral, Perennial)
+- `addAllFieldsSamples(productionType)` in `soil-tests.html` — Clears existing sample rows and creates one pre-filled row per field matching the selected production type
+
+### Functions Modified
+- `addLoganSampleRow()` in `soil-tests.html` — Added optional `preselectedField` parameter to auto-select field dropdown when creating a row
+- `showLoganLabsSubmitForm()` in `soil-tests.html` — Added `#loganQuickAddButtons` container div and `buildLoganQuickAddButtons()` call after modal display
+
+### Reason
+User tests ALL fields at once and needed a faster way to populate the Logan Labs submission form instead of adding one sample at a time. Quick-add buttons let them populate all fields (or by category) in one click.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
 ## 2026-03-16 — FULLSTACK_BUILDER: Logan Labs Submission Workflow — Full Upgrade
 
 ### Files Modified

@@ -8346,6 +8346,7 @@
                     </div>
                     <div style="padding: 1.5rem;">
                         <form id="loganLabsForm" onsubmit="submitSoilSampleToLogan(event)">
+                            <div id="loganQuickAddButtons"></div>
                             <div id="loganSamples">
                                 <div class="logan-sample-row" data-index="0" style="background: #fefce8; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem; border-left: 4px solid #a16207;">
                                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
@@ -8438,6 +8439,7 @@
             `;
             modal.style.display = 'flex';
             updateLoganCostEstimate();
+            buildLoganQuickAddButtons();
 
             // Add "Repeat Last Submission" button if previous submission exists
             if (pendingSoilSubmissions.length > 0) {
@@ -8523,7 +8525,68 @@
 
         let loganSampleCount = 1;
 
-        function addLoganSampleRow() {
+        function buildLoganQuickAddButtons() {
+            const container = document.getElementById('loganQuickAddButtons');
+            if (!container) return;
+
+            // Count fields by production type
+            const counts = { all: 0, vegetable: 0, floral: 0, perennial: 0 };
+            Object.values(FARM_FIELDS).forEach(f => {
+                if (f.production === 'fallow' || f.production === 'seedling') return;
+                counts.all++;
+                if (counts[f.production] !== undefined) counts[f.production]++;
+            });
+
+            if (counts.all === 0) { container.innerHTML = ''; return; }
+
+            const buttons = [];
+            buttons.push('<button type="button" onclick="addAllFieldsSamples(\'all\')" style="padding: 0.375rem 0.75rem; background: #16a34a; color: white; border: none; border-radius: 0.375rem; cursor: pointer; font-size: 0.8rem; font-weight: 500;">All Fields (' + counts.all + ')</button>');
+            if (counts.vegetable > 0) buttons.push('<button type="button" onclick="addAllFieldsSamples(\'vegetable\')" style="padding: 0.375rem 0.75rem; background: #2563eb; color: white; border: none; border-radius: 0.375rem; cursor: pointer; font-size: 0.8rem; font-weight: 500;">Veg Fields (' + counts.vegetable + ')</button>');
+            if (counts.floral > 0) buttons.push('<button type="button" onclick="addAllFieldsSamples(\'floral\')" style="padding: 0.375rem 0.75rem; background: #d946ef; color: white; border: none; border-radius: 0.375rem; cursor: pointer; font-size: 0.8rem; font-weight: 500;">Floral Fields (' + counts.floral + ')</button>');
+            if (counts.perennial > 0) buttons.push('<button type="button" onclick="addAllFieldsSamples(\'perennial\')" style="padding: 0.375rem 0.75rem; background: #ea580c; color: white; border: none; border-radius: 0.375rem; cursor: pointer; font-size: 0.8rem; font-weight: 500;">Perennial (' + counts.perennial + ')</button>');
+
+            container.innerHTML = '<div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; padding: 0.75rem; background: #f0fdf4; border-radius: 0.5rem; border: 1px solid #bbf7d0;">'
+                + '<span style="font-size: 0.8rem; font-weight: 600; color: #166534; display: flex; align-items: center; margin-right: 0.5rem;">Quick Add:</span>'
+                + buttons.join('')
+                + '</div>';
+        }
+
+        function addAllFieldsSamples(productionType) {
+            // Determine which fields to add
+            const fieldsToAdd = [];
+            Object.entries(FARM_FIELDS).forEach(([name, info]) => {
+                if (productionType === 'all') {
+                    if (info.production !== 'fallow' && info.production !== 'seedling') {
+                        fieldsToAdd.push(name);
+                    }
+                } else {
+                    if (info.production === productionType) {
+                        fieldsToAdd.push(name);
+                    }
+                }
+            });
+
+            if (fieldsToAdd.length === 0) {
+                showToast('No fields found for that category', 'warning');
+                return;
+            }
+
+            // Clear all existing sample rows
+            const samplesContainer = document.getElementById('loganSamples');
+            if (!samplesContainer) return;
+            samplesContainer.innerHTML = '';
+            loganSampleCount = 0;
+
+            // Add a row for each field
+            fieldsToAdd.sort().forEach(fieldName => {
+                addLoganSampleRow(fieldName);
+            });
+
+            updateLoganCostEstimate();
+            showToast('Added ' + fieldsToAdd.length + ' fields for testing', 'success');
+        }
+
+        function addLoganSampleRow(preselectedField) {
             const idx = loganSampleCount++;
             const fieldOptions = getLoganFieldOptions();
 
@@ -8576,6 +8639,16 @@
                 </div>
             `;
             document.getElementById('loganSamples').appendChild(row);
+
+            // Pre-select field if provided
+            if (preselectedField) {
+                const fieldSelect = row.querySelector('[name="field_' + idx + '"]');
+                if (fieldSelect) {
+                    const optionExists = Array.from(fieldSelect.options).some(o => o.value === preselectedField);
+                    if (optionExists) fieldSelect.value = preselectedField;
+                }
+            }
+
             updateLoganCostEstimate();
         }
 
