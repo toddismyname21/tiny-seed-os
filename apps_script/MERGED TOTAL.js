@@ -14720,40 +14720,23 @@ function doGet(e) {
         return jsonResponse(testEmailWorkflowEngine());
 
       // ============ CHIEF-OF-STAFF MASTER SYSTEM ============
-      case 'getUltimateMorningBrief':
-        return jsonResponse(typeof generateUltimateMorningBrief === 'function' ? generateUltimateMorningBrief() : { error: 'Not available' });
-      case 'getSystemDashboard':
-        return jsonResponse(typeof getSystemDashboard === 'function' ? getSystemDashboard() : { error: 'Not available' });
-      case 'verifyChiefOfStaff':
-        return jsonResponse(typeof verifySystemComplete === 'function' ? verifySystemComplete() : { error: 'Not available' });
+      // getUltimateMorningBrief, getSystemDashboard, verifyChiefOfStaff — not implemented, removed
 
       // ============ MEMORY SYSTEM ============
-      case 'recallContact':
-        return jsonResponse(typeof recallContact === 'function' ? recallContact(e.parameter.email) : { error: 'Not available' });
-      case 'recallAllContacts':
-        return jsonResponse(typeof recallAllContacts === 'function' ? recallAllContacts(e.parameter) : { error: 'Not available' });
-      case 'getProactiveSuggestions':
-        return jsonResponse(typeof getProactiveSuggestions === 'function' ? getProactiveSuggestions() : { error: 'Not available' });
-      case 'buildContext':
-        return jsonResponse(typeof buildCompleteContext === 'function' ? buildCompleteContext(e.parameter) : { error: 'Not available' });
-      case 'getActivePatterns':
-        return jsonResponse(typeof getActivePatterns === 'function' ? getActivePatterns(parseFloat(e.parameter.minConfidence) || 0.6) : { error: 'Not available' });
+      // recallContact, recallAllContacts, getProactiveSuggestions, buildContext, getActivePatterns — routed to Brain server
 
       // ============ AUTONOMY SYSTEM ============
       case 'getAutonomyStatus':
-        return jsonResponse(typeof getAutonomyStatus === 'function' ? getAutonomyStatus() : { error: 'Not available' });
-      case 'checkPermission':
-        return jsonResponse(typeof checkActionPermission === 'function' ? checkActionPermission(e.parameter.action, e.parameter) : { error: 'Not available' });
-      case 'setAutonomyLevel':
-        return jsonResponse(typeof setAutonomyLevel === 'function' ? setAutonomyLevel(e.parameter.action, e.parameter.level) : { error: 'Not available' });
+        return jsonResponse(getAutonomyStatus());
+      // checkPermission, setAutonomyLevel — handled by later direct-call cases (checkActionPermission @17075, setAutonomyLevel @17085)
 
       // ============ PROACTIVE INTELLIGENCE ============
       case 'getActiveAlerts':
-        return jsonResponse(typeof getActiveAlerts === 'function' ? getActiveAlerts(e.parameter.priority) : { error: 'Not available' });
+        return jsonResponse(getActiveAlerts(e.parameter.priority));
       case 'dismissAlert':
-        return jsonResponse(typeof dismissAlert === 'function' ? dismissAlert(e.parameter.alertId, 'user', e.parameter.actionTaken, e.parameter.wasUseful === 'true') : { error: 'Not available' });
+        return jsonResponse(dismissAlert(e.parameter.alertId, 'user', e.parameter.actionTaken, e.parameter.wasUseful === 'true'));
       case 'runProactiveScan':
-        return jsonResponse(typeof runProactiveScanning === 'function' ? runProactiveScanning() : { error: 'Not available' });
+        return jsonResponse(runProactiveScanning());
 
       // ============ AI RULE ENFORCEMENT ============
       case 'getChiefOfStaffRules':
@@ -14789,32 +14772,27 @@ function doGet(e) {
         }));
 
       // ============ STYLE MIMICRY ============
-      case 'getStyleProfile':
-        return jsonResponse(typeof getStyleProfile === 'function' ? getStyleProfile() : { error: 'Not available' });
-      case 'getStylePrompt':
-        return jsonResponse(typeof getStylePrompt === 'function' ? getStylePrompt() : { error: 'Not available' });
-      case 'analyzeOwnerStyle':
-        return jsonResponse(typeof analyzeOwnerStyle === 'function' ? analyzeOwnerStyle(parseInt(e.parameter.maxEmails) || 500) : { error: 'Not available' });
+      // getStyleProfile, getStylePrompt, analyzeOwnerStyle — not implemented, removed (later direct-call duplicates at ~16902 also non-functional)
 
       // ============ CALENDAR AI ============
       case 'getTodaySchedule':
-        return jsonResponse(typeof getTodaySchedule === 'function' ? getTodaySchedule() : { error: 'Not available' });
+        return jsonResponse(getTodaySchedule());
       case 'findMeetingSlots':
-        return jsonResponse(typeof findMeetingTimes === 'function' ? findMeetingTimes({ duration: parseInt(e.parameter.duration) || 30, days: parseInt(e.parameter.days) || 5 }) : { error: 'Not available' });
+        return jsonResponse(findMeetingTimes({ duration: parseInt(e.parameter.duration) || 30, days: parseInt(e.parameter.days) || 5 }));
       case 'protectFocusTime':
-        return jsonResponse(typeof protectFocusTime === 'function' ? protectFocusTime(parseInt(e.parameter.days) || 7) : { error: 'Not available' });
+        return jsonResponse(protectFocusTime(parseInt(e.parameter.days) || 7));
       case 'optimizeSchedule':
-        return jsonResponse(typeof optimizeTodaySchedule === 'function' ? optimizeTodaySchedule() : { error: 'Not available' });
+        return jsonResponse(optimizeTodaySchedule());
 
       // ============ PREDICTIVE ANALYTICS ============
       case 'predictEmailVolume':
-        return jsonResponse(typeof predictEmailVolume === 'function' ? predictEmailVolume(parseInt(e.parameter.days) || 7) : { error: 'Not available' });
+        return jsonResponse(predictEmailVolume(parseInt(e.parameter.days) || 7));
       case 'predictCustomerChurn':
-        return jsonResponse(typeof predictCustomerChurn === 'function' ? predictCustomerChurn() : { error: 'Not available' });
+        return jsonResponse(predictCustomerChurn());
       case 'forecastWorkload':
-        return jsonResponse(typeof forecastWorkload === 'function' ? forecastWorkload(parseInt(e.parameter.days) || 7) : { error: 'Not available' });
+        return jsonResponse(forecastWorkload(parseInt(e.parameter.days) || 7));
       case 'getPredictiveReport':
-        return jsonResponse(typeof getPredictiveReport === 'function' ? getPredictiveReport() : { error: 'Not available' });
+        return jsonResponse(getPredictiveReport());
 
       // ============ SMS INTELLIGENCE ============
       case 'getSMSActionQueue':
@@ -14823,32 +14801,21 @@ function doGet(e) {
         return jsonResponse(typeof getSMSCommitments === 'function' ? getSMSCommitments() : getSheetData('COS_SMS_Commitments'));
 
       // ============ FILE ORGANIZATION ============
-      case 'organizeFile':
-        return jsonResponse(typeof organizeFile === 'function' ? organizeFile(e.parameter.fileId) : { error: 'Not available' });
-      case 'searchFilesNL':
-        return jsonResponse(typeof searchFilesNaturalLanguage === 'function' ? searchFilesNaturalLanguage(e.parameter.query) : { error: 'Not available' });
-      case 'getFileStats':
-        return jsonResponse(typeof getFileOrganizationStats === 'function' ? getFileOrganizationStats() : { error: 'Not available' });
+      // organizeFile, searchFilesNL, getFileStats — not implemented, removed (later direct-call cases at ~16968 use different action names)
 
       // ============ MULTI-AGENT SYSTEM ============
-      case 'getAvailableAgents':
-        return jsonResponse(typeof getAvailableAgents === 'function' ? getAvailableAgents() : { error: 'Not available' });
-      case 'getAgentMetrics':
-        return jsonResponse(typeof getAgentMetrics === 'function' ? getAgentMetrics(parseInt(e.parameter.days) || 7) : { error: 'Not available' });
-      case 'runAgentTask':
-        return jsonResponse(typeof runAgentTask === 'function' ? runAgentTask(e.parameter.agentType, e.parameter) : { error: 'Not available' });
+      // getAvailableAgents, getAgentMetrics, runAgentTask — not implemented, removed (later direct-call cases at ~16956 also non-functional)
 
       // ============ VOICE INTERFACE ============
       case 'voiceCommand':
-        return jsonResponse(typeof handleVoiceCommand === 'function' ? handleVoiceCommand(e.parameter.transcript) : { error: 'Not available' });
+        return jsonResponse(handleVoiceCommand(e.parameter.transcript));
       case 'parseVoiceCommand':
-        return jsonResponse(typeof parseVoiceCommand === 'function' ? parseVoiceCommand(e.parameter.transcript, e.parameter.userId) : { error: 'Not available' });
+        return jsonResponse(parseVoiceCommand(e.parameter.transcript, e.parameter.userId));
 
       // ============ WEATHER & INTEGRATIONS ============
-      case 'getWeatherRecommendations':
-        return jsonResponse(typeof getWeatherRecommendations === 'function' ? getWeatherRecommendations() : { error: 'Not available' });
+      // getWeatherRecommendations — not implemented, removed
       case 'getIntegrationStatus':
-        return jsonResponse(typeof getIntegrationStatus === 'function' ? getIntegrationStatus() : { error: 'Not available' });
+        return jsonResponse(getIntegrationStatus());
 
       // ============ PRE-FLIGHT VALIDATION SYSTEM ============
       case 'preFlightCheck':
@@ -16895,8 +16862,7 @@ function doGet(e) {
         return jsonResponse(setPreference(e.parameter.category, e.parameter.key, e.parameter.value, e.parameter.source, parseFloat(e.parameter.confidence) || 0.8));
       case 'buildCompleteContext':
         return jsonResponse(buildCompleteContext(e.parameter));
-      case 'getProactiveSuggestions':
-        return jsonResponse(getProactiveSuggestions());
+      // getProactiveSuggestions — removed (duplicate, function not implemented)
 
       // ============ CHIEF OF STAFF - STYLE MIMICRY ============
       case 'analyzeOwnerStyle':
@@ -16915,10 +16881,7 @@ function doGet(e) {
         return jsonResponse(initializeProactiveSystem());
       case 'runProactiveScanning':
         return jsonResponse(runProactiveScanning());
-      case 'getActiveAlerts':
-        return jsonResponse(getActiveAlerts(e.parameter.priority));
-      case 'dismissAlert':
-        return jsonResponse(dismissProactiveAlert(e.parameter.alertId));
+      // getActiveAlerts, dismissAlert — removed (duplicates, handled earlier @14734)
       case 'generateProactiveBrief':
         return jsonResponse(generateMorningBrief());
       case 'checkOverdueItems':
@@ -16953,14 +16916,10 @@ function doGet(e) {
           .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.DEFAULT); // SECURITY FIX 2026-02-28: was ALLOWALL (clickjacking risk)
 
       // ============ CHIEF OF STAFF - MULTI-AGENT SYSTEM ============
-      case 'getAvailableAgents':
-        return jsonResponse(getAvailableAgents());
-      case 'runAgentTask':
-        return jsonResponse(runAgentTask(e.parameter.agentType, e.parameter.task ? JSON.parse(e.parameter.task) : {}));
+      // getAvailableAgents, getAgentMetrics — removed (duplicates, functions not implemented)
+      // runAgentTask — removed (duplicate, function not implemented)
       case 'orchestrateTask':
         return jsonResponse(orchestrateTask(e.parameter.task ? JSON.parse(e.parameter.task) : e.parameter));
-      case 'getAgentMetrics':
-        return jsonResponse(getAgentMetrics(parseInt(e.parameter.days) || 7));
       case 'runCrewMission':
         return jsonResponse(runCrewMission(e.parameter.config ? JSON.parse(e.parameter.config) : {}));
 
@@ -17017,8 +16976,7 @@ function doGet(e) {
         return jsonResponse(scheduleTask(e.parameter.task ? JSON.parse(e.parameter.task) : e.parameter));
       case 'findMeetingTimes':
         return jsonResponse(findMeetingTimes({ duration: parseInt(e.parameter.duration) || 30, days: parseInt(e.parameter.days) || 5 }));
-      case 'getTodaySchedule':
-        return jsonResponse(optimizeTodaySchedule());
+      // getTodaySchedule — removed (duplicate, handled earlier @14778)
       case 'getCalendarContext':
         return jsonResponse(getCalendarContext(parseInt(e.parameter.days) || 3));
       case 'generateAvailabilityText':
@@ -17045,8 +17003,7 @@ function doGet(e) {
         return jsonResponse(detectSeasonalPatterns());
       case 'forecastWorkload':
         return jsonResponse(forecastWorkload(parseInt(e.parameter.days) || 7));
-      case 'getPredictiveReport':
-        return jsonResponse(getPredictiveReport());
+      // getPredictiveReport — removed (duplicate, handled earlier @14794)
       case 'getPredictionAccuracy':
         return jsonResponse(getPredictionAccuracy(e.parameter.type, parseInt(e.parameter.days) || 30));
 
@@ -17084,8 +17041,7 @@ function doGet(e) {
         return jsonResponse(undoAction(e.parameter.executionId));
       case 'setAutonomyLevel':
         return jsonResponse(setAutonomyLevel(e.parameter.action, e.parameter.level));
-      case 'getAutonomyStatus':
-        return jsonResponse(getAutonomyStatus());
+      // getAutonomyStatus — removed (duplicate, handled earlier @14729)
 
       // ============ FIELD COMMAND CENTER - INITIALIZATION ============
       case 'initializeFieldCommandCenter':

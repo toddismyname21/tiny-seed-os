@@ -126,7 +126,7 @@ if FASTAPI_AVAILABLE:
     app.add_middleware(
         CORSMiddleware,
         # SECURITY FIX 2026-02-28: Restrict CORS to localhost only (was allow_origins=["*"] with credentials)
-        allow_origins=["http://localhost:8000", "http://127.0.0.1:8000", "http://localhost:3000"],
+        allow_origins=["http://localhost:8000", "http://127.0.0.1:8000", "http://localhost:3000", "https://toddismyname21.github.io"],
         allow_credentials=True,
         allow_methods=["GET", "POST"],
         allow_headers=["Content-Type", "Authorization"],
@@ -319,6 +319,96 @@ if FASTAPI_AVAILABLE:
                 "error": True,
                 "timestamp": datetime.now().isoformat()
             }
+
+    @app.get("/api/patterns")
+    async def get_patterns():
+        """Get learned patterns for Memory tab."""
+        if not BRAIN_AVAILABLE:
+            return {"patterns": [], "count": 0}
+
+        try:
+            patterns = load_patterns()
+            formatted = []
+
+            # Time patterns
+            if patterns.get("time_patterns"):
+                for key, data in patterns["time_patterns"].items():
+                    if isinstance(data, dict):
+                        formatted.append({
+                            "pattern": key,
+                            "title": f"Time pattern: {key}",
+                            "description": data.get("action", ""),
+                            "confidence": data.get("frequency", 0),
+                            "type": "time"
+                        })
+
+            # Sequence patterns
+            if patterns.get("sequence_patterns"):
+                for key, freq in patterns["sequence_patterns"].items():
+                    if isinstance(freq, (int, float)) and freq > 0.3:
+                        formatted.append({
+                            "pattern": key,
+                            "title": f"Sequence: {key.replace('->', ' → ')}",
+                            "description": f"You often do this sequence",
+                            "confidence": freq,
+                            "type": "sequence"
+                        })
+
+            # Response effectiveness
+            if patterns.get("response_effectiveness"):
+                for key, data in patterns["response_effectiveness"].items():
+                    if isinstance(data, dict) and data.get("trials", 0) > 5:
+                        formatted.append({
+                            "pattern": key,
+                            "title": f"Effectiveness: {key}",
+                            "description": f"Success rate: {data.get('success_rate', 0):.0%} ({data.get('trials', 0)} trials)",
+                            "confidence": data.get("success_rate", 0),
+                            "type": "effectiveness"
+                        })
+
+            # Sort by confidence descending
+            formatted.sort(key=lambda x: x.get("confidence", 0), reverse=True)
+
+            return {
+                "patterns": formatted[:20],
+                "count": len(formatted),
+                "generated_at": datetime.now().isoformat()
+            }
+        except Exception as e:
+            return {"patterns": [], "count": 0, "error": str(e)}
+
+    @app.get("/api/style-profile")
+    async def get_style_profile():
+        """Get owner's communication style profile from StyleLearner."""
+        if not BRAIN_AVAILABLE or not style_learner:
+            return {"success": False, "error": "Style learner not available"}
+
+        try:
+            profile = style_learner.get_profile() if hasattr(style_learner, 'get_profile') else {}
+
+            if not profile:
+                return {
+                    "success": True,
+                    "profile": {
+                        "tone": "Not yet learned — send more emails to train",
+                        "formality": "Unknown",
+                        "greeting": "Unknown",
+                        "signOff": "Unknown",
+                        "avgLength": "Unknown",
+                        "keyPhrases": [],
+                        "emojiUsage": "Unknown",
+                        "status": "learning"
+                    },
+                    "message": "Style profile is still learning from your emails. Send a few more to build your profile."
+                }
+
+            return {
+                "success": True,
+                "profile": profile,
+                "generated_at": datetime.now().isoformat()
+            }
+        except Exception as e:
+            return {"success": False, "error": str(e)}
 
     # ===============================================================================
     # SSE ENDPOINT FOR REAL-TIME SUGGESTIONS

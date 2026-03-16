@@ -7075,8 +7075,33 @@ Please help with this email. Be concise and actionable.`;
 
     async function loadProactiveSuggestions() {
       const container = document.getElementById('proactive-suggestions-list');
-      // getProactiveSuggestions backend not yet implemented — show helpful state
-      container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">💡</div><p>Proactive suggestions coming soon</p><p style="font-size:13px;color:var(--text-muted);margin-top:8px;">This feature will learn your patterns and suggest actions before you need them.</p><button class="btn btn-secondary" style="margin-top:16px;" onclick="askQuestion(\'What should I focus on today?\')">Ask AI Instead</button></div>';
+      container.innerHTML = '<div class="skeleton-card"><div class="skeleton-card-header"><div class="skeleton skeleton-avatar"></div><div class="skeleton-card-body" style="flex:1"><div class="skeleton skeleton-text medium"></div><div class="skeleton skeleton-text short"></div></div></div></div>';
+      try {
+        // Try Brain server first (has AI-powered proactive suggestions)
+        const brainUrl = window.BRAIN_SERVER_URL || 'https://tinypm-brain.onrender.com';
+        const res = await fetch(brainUrl + '/api/suggestions', { signal: AbortSignal.timeout(5000) }).then(r => r.json());
+        if (res.suggestions && res.suggestions.length > 0) {
+          let html = '';
+          for (const s of res.suggestions) {
+            const conf = Math.round((s.confidence || 0.7) * 100);
+            html += `
+              <div class="alert-card alert-low">
+                <div class="alert-title">${escapeHtml(s.message || s.title || 'Suggestion')}</div>
+                <div class="alert-body">${escapeHtml(s.description || s.rationale || '')}</div>
+                <div class="alert-meta">
+                  <span>Confidence: ${conf}%</span>
+                  <span>${s.is_good_time ? 'Good timing' : ''}</span>
+                </div>
+              </div>`;
+          }
+          container.innerHTML = html;
+          return;
+        }
+        // No suggestions available
+        container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">💡</div><p>No suggestions right now</p><p style="font-size:13px;color:var(--text-muted);margin-top:8px;">The AI is learning your patterns. Suggestions will appear as it understands your workflow.</p><button class="btn btn-secondary" style="margin-top:16px;" onclick="askQuestion(\'What should I focus on today?\')">Ask AI Instead</button></div>';
+      } catch (e) {
+        container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">💡</div><p>Brain server offline</p><p style="font-size:13px;color:var(--text-muted);margin-top:8px;">Proactive suggestions require the Brain server.</p><button class="btn btn-secondary" style="margin-top:16px;" onclick="askQuestion(\'What should I focus on today?\')">Ask AI Instead</button></div>';
+      }
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -7272,8 +7297,31 @@ Please help with this email. Be concise and actionable.`;
 
     async function loadMemoryPatterns() {
       const container = document.getElementById('memory-patterns-list');
-      // getActivePatterns backend not yet implemented — show helpful state
-      container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🧠</div><p>Pattern learning coming soon</p><p style="font-size:13px;color:var(--text-muted);margin-top:8px;">The system will learn your routines and surface insights automatically.</p></div>';
+      container.innerHTML = '<div class="skeleton-card"><div class="skeleton-card-header"><div class="skeleton skeleton-avatar"></div><div class="skeleton-card-body" style="flex:1"><div class="skeleton skeleton-text medium"></div><div class="skeleton skeleton-text short"></div></div></div></div>';
+      try {
+        const brainUrl = window.BRAIN_SERVER_URL || 'https://tinypm-brain.onrender.com';
+        const res = await fetch(brainUrl + '/api/patterns', { signal: AbortSignal.timeout(5000) }).then(r => r.json());
+        const patterns = res.patterns || [];
+        if (patterns.length > 0) {
+          let html = '';
+          for (const p of patterns) {
+            const conf = Math.round((p.confidence || 0) * 100);
+            const typeIcon = p.type === 'time' ? '⏰' : p.type === 'sequence' ? '🔄' : '📊';
+            html += `
+              <div class="pattern-card">
+                <div class="pattern-title">${typeIcon} ${escapeHtml(p.title || p.pattern || 'Pattern')}</div>
+                <div class="pattern-detail">${escapeHtml(p.description || '')}</div>
+                <div class="confidence-bar"><div class="confidence-fill" style="width:${conf}%"></div></div>
+                <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Confidence: ${conf}%</div>
+              </div>`;
+          }
+          container.innerHTML = html;
+          return;
+        }
+        container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🧠</div><p>No patterns learned yet</p><p style="font-size:13px;color:var(--text-muted);margin-top:8px;">The Brain is learning your routines. Patterns will appear after a few days of use.</p></div>';
+      } catch (e) {
+        container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🧠</div><p>Brain server offline</p><p style="font-size:13px;color:var(--text-muted);margin-top:8px;">Pattern learning requires the Brain server.</p></div>';
+      }
     }
 
     async function lookupContactMemory() {
@@ -7422,8 +7470,40 @@ Please help with this email. Be concise and actionable.`;
 
     async function loadStyleProfile() {
       const container = document.getElementById('style-profile-content');
-      // getStyleProfile backend not yet implemented — show helpful state
-      container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">✍️</div><p>Style analysis coming soon</p><p style="font-size:13px;color:var(--text-muted);margin-top:8px;">Will analyze your email style and help draft responses that sound like you.</p></div>';
+      container.innerHTML = '<div class="skeleton-card"><div class="skeleton-card-header"><div class="skeleton skeleton-avatar"></div><div class="skeleton-card-body" style="flex:1"><div class="skeleton skeleton-text medium"></div><div class="skeleton skeleton-text short"></div></div></div></div>';
+      try {
+        const brainUrl = window.BRAIN_SERVER_URL || 'https://tinypm-brain.onrender.com';
+        const res = await fetch(brainUrl + '/api/style-profile', { signal: AbortSignal.timeout(5000) }).then(r => r.json());
+        if (res.success && res.profile) {
+          const p = res.profile;
+          let html = '';
+          const fields = [
+            ['Tone', p.tone || p.writingTone],
+            ['Formality', p.formality || p.formalityLevel],
+            ['Greeting Style', p.greeting || p.greetingStyle],
+            ['Sign-off Style', p.signOff || p.signOffStyle || p.closing],
+            ['Average Length', p.avgLength || p.averageLength],
+            ['Key Phrases', Array.isArray(p.keyPhrases) ? p.keyPhrases.join(', ') : p.keyPhrases],
+            ['Emoji Usage', p.emojiUsage || p.emojis],
+          ];
+          for (const [label, value] of fields) {
+            if (value) {
+              html += `<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border-color);">
+                <span style="color:var(--text-muted);font-size:13px;">${escapeHtml(label)}</span>
+                <span style="font-size:13px;font-weight:500;">${escapeHtml(String(value))}</span>
+              </div>`;
+            }
+          }
+          if (res.message) {
+            html += `<p style="font-size:13px;color:var(--text-muted);margin-top:12px;font-style:italic;">${escapeHtml(res.message)}</p>`;
+          }
+          container.innerHTML = html || '<p style="color:var(--text-muted);">No style data available yet.</p>';
+        } else {
+          container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">✍️</div><p>Style profile not available</p><p style="font-size:13px;color:var(--text-muted);margin-top:8px;">The Brain will analyze your emails to learn your writing style.</p></div>';
+        }
+      } catch (e) {
+        container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">✍️</div><p>Brain server offline</p><p style="font-size:13px;color:var(--text-muted);margin-top:8px;">Style analysis requires the Brain server.</p></div>';
+      }
     }
 
     async function analyzeOwnerStyle() {
@@ -7552,8 +7632,7 @@ Please help with this email. Be concise and actionable.`;
 
     async function loadFileStats() {
       const container = document.getElementById('file-stats');
-      // getFileOrganizationStats backend not yet implemented — show helpful state
-      container.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><div class="empty-state-icon">📁</div><p>File organization coming soon</p></div>';
+      container.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><div class="empty-state-icon">📁</div><p>File management moved to Google Drive</p><p style="font-size:13px;color:var(--text-muted);margin-top:8px;">Use Google Drive for file organization. The Brain will integrate with Drive in a future update.</p></div>';
     }
 
     async function searchFilesNL() {
@@ -7638,8 +7717,35 @@ Please help with this email. Be concise and actionable.`;
 
     async function loadAgents() {
       const container = document.getElementById('agents-list');
-      // getAvailableAgents backend not yet implemented — show helpful state
-      container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🤖</div><p>Agent management coming soon</p><p style="font-size:13px;color:var(--text-muted);margin-top:8px;">AI agents will handle routine tasks like email drafting and scheduling.</p></div>';
+      container.innerHTML = '<div class="skeleton-card"><div class="skeleton-card-header"><div class="skeleton skeleton-avatar"></div><div class="skeleton-card-body" style="flex:1"><div class="skeleton skeleton-text medium"></div><div class="skeleton skeleton-text short"></div></div></div></div>';
+      try {
+        const brainUrl = window.BRAIN_SERVER_URL || 'https://tinypm-brain.onrender.com';
+        const res = await fetch(brainUrl + '/api/health', { signal: AbortSignal.timeout(5000) }).then(r => r.json());
+        if (res.status) {
+          let html = '<div style="margin-bottom:12px;"><span style="font-size:13px;color:var(--text-muted);">Brain Server Status: </span><span style="color:' + (res.status === 'healthy' ? 'var(--accent-green)' : 'var(--accent-amber)') + ';font-weight:600;">' + escapeHtml(res.status.toUpperCase()) + '</span></div>';
+          if (res.components) {
+            for (const [name, active] of Object.entries(res.components)) {
+              const displayName = name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+              html += `
+                <div class="agent-card">
+                  <div class="agent-icon">${active ? '🟢' : '🔴'}</div>
+                  <div class="agent-info">
+                    <div class="agent-name">${escapeHtml(displayName)}</div>
+                    <div class="agent-status-label">${active ? 'Active' : 'Inactive'}</div>
+                  </div>
+                </div>`;
+            }
+          }
+          if (res.connected_clients) {
+            html += `<div style="margin-top:12px;font-size:12px;color:var(--text-muted);">Connected: ${res.connected_clients.websocket || 0} WebSocket, ${res.connected_clients.sse || 0} SSE</div>`;
+          }
+          container.innerHTML = html;
+        } else {
+          container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🤖</div><p>Brain server not responding</p></div>';
+        }
+      } catch (e) {
+        container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🤖</div><p>Brain server offline</p><p style="font-size:13px;color:var(--text-muted);margin-top:8px;">Start the Brain server to see AI component status.</p></div>';
+      }
     }
 
     async function loadAgentMetrics() {
