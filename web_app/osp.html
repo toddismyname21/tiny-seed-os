@@ -4319,12 +4319,51 @@ async function captureMapSnapshot() {
 
     showToast('Capturing map view…', 'success');
     try {
+        // Leaflet uses CSS translate3d on panes — html2canvas can't handle that.
+        // Fix: temporarily neutralize all transforms and use top/left instead.
+        farmMap.invalidateSize();
+        var mapPane = farmMap.getPane('mapPane');
+        var savedTransforms = [];
+
+        // Find all panes/elements with transform styles and neutralize them
+        var transformEls = container.querySelectorAll('.leaflet-pane, .leaflet-tile-pane, .leaflet-overlay-pane, .leaflet-map-pane, .leaflet-tile');
+        transformEls.forEach(function(el) {
+            var style = window.getComputedStyle(el);
+            var transform = style.transform || style.webkitTransform;
+            if (transform && transform !== 'none') {
+                // Parse translate values from matrix
+                var match = transform.match(/matrix.*\((.+)\)/);
+                if (match) {
+                    var vals = match[1].split(',').map(Number);
+                    var tx = vals[4] || 0;
+                    var ty = vals[5] || 0;
+                    savedTransforms.push({
+                        el: el,
+                        transform: el.style.transform,
+                        left: el.style.left,
+                        top: el.style.top
+                    });
+                    el.style.transform = 'none';
+                    el.style.left = (parseFloat(el.style.left || 0) + tx) + 'px';
+                    el.style.top = (parseFloat(el.style.top || 0) + ty) + 'px';
+                }
+            }
+        });
+
         var canvas = await html2canvas(container, {
             useCORS: true,
             allowTaint: true,
             backgroundColor: '#1a1d27',
             scale: 2
         });
+
+        // Restore all transforms immediately
+        savedTransforms.forEach(function(saved) {
+            saved.el.style.transform = saved.transform;
+            saved.el.style.left = saved.left;
+            saved.el.style.top = saved.top;
+        });
+
         var dataUrl = canvas.toDataURL('image/png');
         var label = 'Map View ' + (mapSnapshots.length + 1);
         mapSnapshots.push({ dataUrl: dataUrl, label: label });
