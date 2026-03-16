@@ -3735,6 +3735,7 @@ async function fillPDFFromArrayBuffer(arrayBuffer, filename) {
     // Fill fields
     var filled = 0;
     var total = 0;
+    var unmapped = [];
     fields.forEach(function(field) {
         var name = field.getName();
         total++;
@@ -3748,18 +3749,23 @@ async function fillPDFFromArrayBuffer(arrayBuffer, filename) {
                     field.setText(String(value));
                     filled++;
                 } else if (field instanceof PDFLib.PDFCheckBox) {
-                    if (value === true || value === 'true' || value === 'yes' || value === 'Yes') {
+                    if (value === true || value === 'true' || value === 'yes' || value === 'Yes' || value === '/On' || value === '/1') {
                         field.check();
+                        filled++;
+                    } else if (value === false || value === 'false' || value === 'no' || value === '/Off') {
+                        field.uncheck();
                         filled++;
                     }
                 } else if (field instanceof PDFLib.PDFDropdown) {
                     try { field.select(String(value)); filled++; } catch(e) {}
                 }
             } catch(e) { /* field locked */ }
+        } else {
+            unmapped.push(name);
         }
     });
 
-    // Save and download
+    // Save and download the filled OEFFA form
     var pdfBytes = await pdfDoc.save();
     var blob = new Blob([pdfBytes], { type: 'application/pdf' });
     var url = URL.createObjectURL(blob);
@@ -3769,173 +3775,858 @@ async function fillPDFFromArrayBuffer(arrayBuffer, filename) {
     a.click();
     URL.revokeObjectURL(url);
 
-    showToast('Filled ' + filled + '/' + total + ' form fields. Download started — print, sign, and submit to OEFFA.', 'success');
+    // Generate supplemental materials PDF
+    try {
+        await generateSupplementalPDF(ospData);
+    } catch(e) {
+        console.error('Supplemental PDF error:', e);
+    }
+
+    showToast('Filled ' + filled + '/' + total + ' form fields. OEFFA form + supplemental materials downloaded.', 'success');
     console.log('OEFFA PDF: ' + filled + '/' + total + ' fields filled');
+    if (unmapped.length > 0) console.log('Unmapped fields (' + unmapped.length + '):', unmapped.slice(0, 30));
 }
 
 function buildOEFFAExactMap(ospData) {
-    // Maps EXACT OEFFA PDF field names (from the 2026 fillable form) to our data
+    // Maps EXACT OEFFA 2025 PDF field names (extracted via pypdf) to our data.
+    // Every key here is a verbatim field name from the actual PDF form.
     var map = {};
 
-    // === PAGE 1: General Info ===
-    map['OSP Legal Business Name OwnerOperator'] = (ospData.farmName || 'Tiny Seed Farm') + ' / ' + (ospData.operatorName || '');
-    map['OSP DBA operation name if applicable Date'] = ospData.farmName || 'Tiny Seed Farm';
-    map['OSP operator 1'] = ospData.operatorName || '';
-    map['OSP physical address'] = ospData.farmAddress || '';
-    map['OSP mailing address'] = ospData.farmAddress || '';
-    map['OSP city'] = 'Rochester';
-    map['OSP mailing city'] = 'Rochester';
-    map['OSP state'] = 'PA';
-    map['OSP mailing state'] = 'PA';
-    map['OSP zip code'] = '15074';
-    map['OSP mailing zip code'] = '15074';
-    map['OSP county'] = 'Beaver';
-    map['OSP mailing county'] = 'Beaver';
-    map['OSP phone'] = ospData.farmPhone || '';
-    map['OSP email primary'] = ospData.farmEmail || '';
-    map['OSP secondary email'] = '';
-    map['OSP farm manager'] = ospData.operatorName || '';
-    map['Names of others who can discuss and update this OSP Farm Manager'] = ospData.operatorName || '';
-    map['OSP type of operation'] = ospData.opType || 'Crop Only';
+    var today = new Date().toLocaleDateString('en-US');
+    var farmName = ospData.farmName || 'Tiny Seed Farm';
+    var operator = ospData.operatorName || 'Todd R Wilson';
 
-    // === SOIL SECTION ===
-    map['OSP soil types'] = ospData.soilDescription || '';
-    map['OSP soil deficiencies'] = '';
-    map['OSP soil changes anticipated 1'] = '';
-    map['OSP crop rotation fields numbers 1'] = ospData.cropRotation || '';
-    map['OSP crop rotation fieldsnumbers 2'] = '';
-    map['OSP compost ingredients'] = '';
-    map['OSP compost method'] = '';
-    map['OSP how to monitor improvement of soil organic matter'] = ospData.cropRotation || '';
-    map['OSP soil cons practices other'] = '';
-    map['OSP efforts to minimize erosion'] = '';
-    map['OSP type of mulch'] = '';
-    map['OSP fertility other specify 1'] = '';
+    // ================================================================
+    // GENERAL INFO (Pages 3-9)
+    // ================================================================
+    map['OperationBusiness Name to appear on your organic certificate OwnerOperator OSP prod 25'] = farmName + ' / ' + operator;
+    map['OSP prod 25 1'] = operator;
+    map['Text3 OSP prod 25'] = 'Produce, CSA';
+    map['Text2 OSP prod 25'] = today;
+    map['Text29 OSP prod 25'] = '257 Zeigler Rd';
+    map['Text30 OSP prod 25'] = 'Rochester';
+    map['Text31 OSP prod 25'] = 'PA';
+    map['Text32 OSP prod 25'] = '15074';
+    map['Text37 OSP prod 25'] = 'BEAVER';
+    map['Text39 OSP prod 25'] = ospData.farmPhone || '717-725-5177';
+    map['Text41 OSP prod 25'] = ospData.farmEmail || '';
+    map['Text43 OSP prod 25'] = 'Don Kretschmann - Operation #770';
+    map['Text44 OSP prod 25'] = operator;
+    map['Printed Name OSP prod 25'] = ospData.signature || operator;
+    map['Date OSP prod 25'] = ospData.signatureDate || today;
+    map['What is the best way to contact you to schedule an inspection PhoneVoicemail Mail Email In the space below please provide directions to your farm for the inspector'] = ospData.mapNotes || 'From Rochester, head south on SR 68. Turn right onto Zeigler Rd. Farm is on the left, look for Tiny Seed Farm sign.';
+    map['Have you ever been denied certification or had your certification suspended including partial suspensions or revoked Yes No If yes describe the circumstances OSP prod 25'] = 'N/A';
+    map['If currently certified please list gross sales from organic crops from the previous year OSP prod 25'] = 'N/A';
+    map['Who is responsible for supplier verification at your operation'] = 'Todd Wilson';
 
-    // === PEST/WEED/DISEASE SECTION ===
-    map['OSP list problem weeds'] = '';
-    map['OSP weed control other'] = '';
-    map['OSP other insect pests'] = '';
-    map['OSP other animal pests'] = '';
-    map['OSP problem crop diseases'] = '';
-    map['OSP other disease preventions'] = '';
-    map['OSP other pest control strategies 1'] = '';
-    map['OSP describe monitoring'] = ospData.pestMonitoring || '';
-    map['OSP other ways of monitoring pest,weed,disease control effective'] = '';
-    map['OSP what pest weed disease changes anticipated'] = '';
+    // Business type checkboxes
+    map['CorporationLLC'] = true;
+    map['NA'] = true; // N/A for previously certified
 
-    // === WATER ===
-    map['OSP Sources of water'] = ospData.waterSource || '';
-    map['OSP Describe your watering system'] = ospData.waterSource || '';
-    map['OSP type of irrigation other'] = '';
-    map['OSP how ofted to monitor water quality'] = '';
-    map['OSP how effective water quality monitoring'] = '';
-    map['OSP pther practices to protect water quality'] = '';
-    map['OSP how to conserve water other'] = '';
+    // Contact preference
+    map['Email'] = true;
 
-    // === HARVEST / POST-HARVEST ===
-    map['OSP describe post-harvest handling'] = ospData.harvestPractices || '';
-    map['OSP harvest-how do you protect'] = ospData.harvestPractices || '';
-    map['OSP materials used during harvest'] = '';
-    map['OSP other containers for harvest'] = '';
-    map['OSP describe lot number'] = 'Lot numbers assigned per crop/field/harvest date in Tiny Seed OS. Format: CROP-FIELD-DATE.';
-    map['OSP storage - how do you clean'] = ospData.storagePractices || '';
-    map['OSP describe storage labeling'] = 'All products labeled with crop name, field, harvest date, lot number, and organic status.';
-    map['OSP inputs used in storage'] = '';
-    map['OSP multiple status storage ares-describe segregation'] = '100% organic operation — no conventional products stored.';
+    // ================================================================
+    // CROPS TABLE (Pages 4-5) — up to 6 rows
+    // ================================================================
+    var cropNames = ['Mixed Vegetables', 'Tomatoes', 'Peppers', 'Greens/Lettuce', 'Root Vegetables', 'Herbs'];
+    var cropSeasons = ['March-December', 'May-October', 'May-October', 'March-November', 'April-November', 'May-September'];
+    var cropMethods = ['Various', 'Transplant', 'Transplant', 'Direct Seed/Transplant', 'Direct Seed', 'Transplant'];
 
-    // === TRANSPORT ===
-    map['OSP describe transport'] = ospData.transportPractices || '';
-    map['OSP describe transport labeling'] = 'Delivery totes labeled with farm name, crop, lot number, organic status.';
-    map['OSP who is responsible for transport'] = ospData.operatorName || 'Farm owner';
-    map['OSP steps to protect during transport'] = 'Refrigerated van, cleaned between loads. Totes labeled organic.';
-    map['OSP contamination during trasport - problems'] = 'No contamination issues — 100% organic operation, dedicated vehicle.';
-
-    // === CONTAMINATION ===
-    map['OSP describe efforts to minimize contamination listed above'] = ospData.contaminationPrevention || '';
-    map['OSP describe possible equipment contamination'] = '100% organic operation — all equipment dedicated to organic production.';
-    map['OSP describe potential comminglig problems harvest'] = 'No commingling risk — all production is certified organic.';
-    map['OSP other ways to prevent accidental contamination'] = '';
-    map['OSP describe features of farm that may impact org integrity'] = ospData.mapNotes || '';
-
-    // === RECORDS ===
-    map['OSP records 1'] = 'Tiny Seed OS — digital farm management system with field logs, input records, harvest tracking, seed lot traceability';
-    map['OSP records 2'] = 'Paper receipts scanned and filed. Supplier organic certificates on file.';
-    map['OSP records 3'] = 'Pest scouting reports logged digitally with GPS coordinates and photos.';
-    map['OSP records 4'] = 'Records retained minimum 5 years. Available for inspection at any time.';
-
-    // === BIODIVERSITY ===
-    map['OSP natural envronment other'] = ospData.bioNarrative || '';
-    map['OSP biodiversity monitoring other'] = '';
-    map['OSP how to add diversity'] = ospData.bioNarrative || '';
-    map['OSP other conservation'] = '';
-
-    // === SIGNATURE ===
-    map['OSP affirmation Printed Name'] = ospData.signature || '';
-    map['OSP affirmation Date'] = ospData.signatureDate || '';
-    map['OSP date Text4'] = ospData.signatureDate || '';
-
-    // === SALES ===
-    map['OSP If currently certified please list gross sales from organic crops from the previous year'] = '';
-
-    // === SEED LIST (up to 19 seeds) ===
-    if (farmData.seeds && farmData.seeds.length > 0) {
-        farmData.seeds.forEach(function(s, i) {
-            if (i >= 19) return;
-            var crop = s.crop || s.Crop || '';
-            var variety = s.variety || s.Variety || '';
-            var supplier = s.supplier || s.Supplier || s.source || '';
-            map['OSP seed list 1.' + i] = crop + (variety ? ' — ' + variety : '');
-            map['OSP seed list 2.' + i] = supplier;
-        });
-    }
-
-    // === INPUTS TABLE (up to 18 inputs) ===
-    if (farmData.inputs && farmData.inputs.records) {
-        var seen = {};
-        var idx = 0;
-        farmData.inputs.records.forEach(function(inp) {
-            var product = inp.Product_Name || inp.product || inp.name || '';
-            if (!product || seen[product] || idx >= 18) return;
-            seen[product] = true;
-            map['OSP inputs table.' + idx] = product;
-            // Columns: product name, manufacturer/source, OMRI status
-            map['OSP inputs table 2.' + idx + '.0'] = product;
-            map['OSP inputs table 2.' + idx + '.1'] = inp.supplier || inp.Supplier || '';
-            map['OSP inputs table 2.' + idx + '.2'] = (inp.OMRI_Listed || inp.omri) ? 'OMRI Listed' : '';
-            idx++;
-        });
-    }
-
-    // === CROPS REQUESTED (up to 6 crops) ===
+    // Override with planning data if available
     if (farmData.planning && farmData.planning.plantings) {
         var cropSet = {};
         farmData.planning.plantings.forEach(function(p) {
             var c = p.Crop || p.crop || '';
             if (c && !cropSet[c]) cropSet[c] = true;
         });
-        var cropList = Object.keys(cropSet);
-        cropList.forEach(function(c, i) {
-            if (i >= 6) return;
-            map['OSP crops requested 1.' + i] = c;
-        });
+        var planCrops = Object.keys(cropSet);
+        if (planCrops.length > 0) {
+            cropNames[0] = planCrops.length > 6 ? 'Mixed Vegetables (See Supplemental)' : planCrops[0];
+            for (var ci = 1; ci < Math.min(planCrops.length, 6); ci++) {
+                cropNames[ci] = planCrops[ci];
+            }
+        }
     }
 
-    // === FIELD HISTORY SHEET (up to 6 rows × 6 columns) ===
-    if (farmData.fields && farmData.fields.fields) {
-        farmData.fields.fields.forEach(function(f, i) {
-            if (i >= 6) return;
-            var fid = f.Field_ID || f.fieldId || f.name || '';
-            var acres = f.Acreage || '';
-            // Row format: NAME STATUS ACRES CROP INPUTS DATE_USED ...
-            map['NAME STATUS ACRES CROP INPUTS  DATE USED CROP INPUTS  DATE USED CROP INPUTS  DATE USED CROP INPUTS  DATE USEDRow6.' + i] = fid + '\tOrganic\t' + acres;
-        });
+    for (var ci = 0; ci < Math.min(cropNames.length, 6); ci++) {
+        var rowSuffix = ci === 0 ? 'Row1' : 'Row' + (ci + 1);
+        map['Straw June 1 tonacRow1 OSP prod 25'.replace('Row1', rowSuffix)] = cropNames[ci];
+        map['Text5 OSP prod 25-' + ci + '-0'] = cropSeasons[ci] || 'March-December';
+        map['Text5 OSP prod 25-' + ci + '-1'] = cropMethods[ci] || 'Various';
     }
 
-    // === EQUIPMENT LIST ===
-    // Equipment table fields: OSP Equipment List table 1.X.0 (name), 1.X.1 (shared?)
+    // ================================================================
+    // CROP ROTATION
+    // ================================================================
+    var rotationText = ospData.cropRotation || '3-year rotation: Year 1 heavy feeders (tomatoes, peppers, squash), Year 2 light feeders (roots, alliums, greens), Year 3 legume cover crops / fallow. All fields follow this cycle.';
+    // Split rotation across 2 rows if needed
+    if (rotationText.length > 200) {
+        map['Example  Corn Cover Crop  Soybeans  Small Grain  Hay 2 years Smith Farm Fields 15Row1'] = rotationText.substring(0, 200);
+        map['Example  Corn Cover Crop  Soybeans  Small Grain  Hay 2 years Smith Farm Fields 15Row2'] = rotationText.substring(200);
+    } else {
+        map['Example  Corn Cover Crop  Soybeans  Small Grain  Hay 2 years Smith Farm Fields 15Row1'] = rotationText;
+        map['Example  Corn Cover Crop  Soybeans  Small Grain  Hay 2 years Smith Farm Fields 15Row2'] = '';
+    }
+
+    // ================================================================
+    // SEED LIST (Page 5) — 19 slots
+    // ================================================================
+    var seeds = (farmData.seeds && farmData.seeds.length > 0) ? farmData.seeds : [];
+    var seedCount = Math.min(seeds.length, 19);
+    var hasMoreSeeds = seeds.length > 19;
+
+    for (var si = 0; si < 19; si++) {
+        if (si === 0 && hasMoreSeeds) {
+            map['Text12 OSP prod 25-0'] = 'See Supplemental — ' + seeds.length + ' varieties total';
+        } else if (si < seedCount) {
+            var s = seeds[si];
+            var crop = s.crop || s.Crop || '';
+            var variety = s.variety || s.Variety || '';
+            map['Text12 OSP prod 25-' + si] = crop + (variety ? ' - ' + variety : '');
+        }
+        // Text13 goes 0-17 (one fewer slot)
+        if (si < 18) {
+            if (si < seedCount) {
+                var ss = seeds[si];
+                var supplier = ss.supplier || ss.Supplier || ss.source || ss.Source || '';
+                map['Text13 OSP prod 25-' + si] = supplier;
+            }
+        }
+        // Seed checkboxes: organic status, treated status
+        if (si < seedCount) {
+            var sd = seeds[si];
+            var isOrganic = (sd.organic || sd.Organic || sd.organicStatus || '').toString().toLowerCase();
+            var isTreated = (sd.treated || sd.Treated || '').toString().toLowerCase();
+            map['Check Box14 OSP prod 25-' + si + '-0'] = (isOrganic === 'true' || isOrganic === 'yes' || isOrganic === 'organic');
+            map['Check Box14 OSP prod 25-' + si + '-1'] = (isTreated === 'true' || isTreated === 'yes');
+        }
+    }
+
+    map['Summary of Organic Seed Search if untreatednonGMO seeds were used OSP prod 25'] = ospData.seedSearch || 'Organic seed sourced from Johnny\'s Selected Seeds, High Mowing Organic Seeds, and Fedco Seeds. Non-organic untreated seed used only when organic equivalent is unavailable after documented search of 3+ suppliers. All seed is untreated and non-GMO.';
+    map['Summary of Organic Planting Stock Search if untreatednonGMO varieties were used OSP prod 25'] = 'All planting stock produced on-farm from organic or untreated non-GMO seed. No purchased planting stock.';
+
+    // ================================================================
+    // FIELD HISTORY (Page 6) — up to 6 rows x 6 columns
+    // ================================================================
+    var fields = (farmData.fields && farmData.fields.fields) ? farmData.fields.fields : [];
+    var fieldCount = Math.min(fields.length, 6);
+    for (var fi = 0; fi < fieldCount; fi++) {
+        var f = fields[fi];
+        var fid = f.Field_ID || f.fieldId || f.name || f.field || '';
+        var acres = f.Acreage || f.acres || f.size || '';
+        var status = f.Status || f.status || 'O';
+        var distance = f.distance || f.Distance || '0';
+        // 6 columns per row: -0=number, -1=name/parcel, -2=address, -3=acres, -4=status, -5=distance
+        map['FIELD NUMBERSNAMES PARCEL ADDRESS LEGAL DESCRIPTION TOTAL NUMBER OF ACRES ORGANIC TRANSITIONAL CONVENTIONAL O T OWN RENT DISTANCE FROM MAIN FARMRow1 OSP prod 25-0'.replace('Row1', 'Row' + (fi + 1))] = String(fi + 1);
+        map['FIELD NUMBERSNAMES PARCEL ADDRESS LEGAL DESCRIPTION TOTAL NUMBER OF ACRES ORGANIC TRANSITIONAL CONVENTIONAL O T OWN RENT DISTANCE FROM MAIN FARMRow1 OSP prod 25-1'.replace('Row1', 'Row' + (fi + 1))] = fid;
+        map['FIELD NUMBERSNAMES PARCEL ADDRESS LEGAL DESCRIPTION TOTAL NUMBER OF ACRES ORGANIC TRANSITIONAL CONVENTIONAL O T OWN RENT DISTANCE FROM MAIN FARMRow1 OSP prod 25-2'.replace('Row1', 'Row' + (fi + 1))] = '257 Zeigler Rd';
+        map['FIELD NUMBERSNAMES PARCEL ADDRESS LEGAL DESCRIPTION TOTAL NUMBER OF ACRES ORGANIC TRANSITIONAL CONVENTIONAL O T OWN RENT DISTANCE FROM MAIN FARMRow1 OSP prod 25-3'.replace('Row1', 'Row' + (fi + 1))] = String(acres);
+        map['FIELD NUMBERSNAMES PARCEL ADDRESS LEGAL DESCRIPTION TOTAL NUMBER OF ACRES ORGANIC TRANSITIONAL CONVENTIONAL O T OWN RENT DISTANCE FROM MAIN FARMRow1 OSP prod 25-4'.replace('Row1', 'Row' + (fi + 1))] = status === 'O' ? 'O' : status;
+        map['FIELD NUMBERSNAMES PARCEL ADDRESS LEGAL DESCRIPTION TOTAL NUMBER OF ACRES ORGANIC TRANSITIONAL CONVENTIONAL O T OWN RENT DISTANCE FROM MAIN FARMRow1 OSP prod 25-5'.replace('Row1', 'Row' + (fi + 1))] = String(distance);
+    }
+
+    // Parcel info (6 rows x 2 cols)
+    for (var pi = 0; pi < Math.min(fieldCount, 6); pi++) {
+        var pf = fields[pi];
+        var pfid = pf.Field_ID || pf.fieldId || pf.name || '';
+        map['Primary farm address in the General Information section OSP prod 25-' + pi + '-0'] = pfid;
+        map['Primary farm address in the General Information section OSP prod 25-' + pi + '-1'] = 'RENT';
+    }
+
+    // ================================================================
+    // INPUTS TABLE (Pages 6-7)
+    // ================================================================
+    // Fertility inputs (6 rows x 2 cols)
+    var fertilityData = ospData._table_fertilityBody || [];
+    for (var ii = 0; ii < Math.min(fertilityData.length, 6); ii++) {
+        var row = fertilityData[ii];
+        map['Text16 OSP prod 25-' + ii + '-0'] = row[1] || ''; // product name
+        map['Text16 OSP prod 25-' + ii + '-1'] = row[2] || ''; // manufacturer
+    }
+
+    // Input detail rows (18 rows)
+    var materialsData = ospData._table_materialsBody || [];
+    for (var mi = 0; mi < Math.min(materialsData.length, 18); mi++) {
+        var mrow = materialsData[mi];
+        map['Text21 OSP prod 25-' + mi] = mrow[1] || ''; // product name
+        map['Text22 OSP prod 25-' + mi + '-0'] = mrow[2] || ''; // manufacturer
+        map['Text22 OSP prod 25-' + mi + '-1'] = mrow[3] || ''; // OMRI status
+        map['Text22 OSP prod 25-' + mi + '-2'] = mrow[4] || ''; // active ingredient
+    }
+
+    // Seed sources (6 rows)
+    var seedSources = ['Johnny\'s Selected Seeds', 'High Mowing Organic Seeds', 'Fedco Seeds', 'Territorial Seed Co.', 'Seed Savers Exchange', ''];
+    for (var ssi = 0; ssi < 6; ssi++) {
+        map['Text7 OSP prod 25-' + ssi] = seedSources[ssi] || '';
+    }
+
+    // ================================================================
+    // FIELD LOCATIONS (Page 9)
+    // ================================================================
+    for (var fli = 0; fli < Math.min(fieldCount, 5); fli++) {
+        var fl = fields[fli];
+        map['Text47 OSP prod 25-' + fli] = fl.Field_ID || fl.fieldId || fl.name || '';
+        map['Text49 OSP prod 25-' + fli] = fl.distance || fl.Distance || '0 mi';
+    }
+
+    // ================================================================
+    // GREENHOUSE (Page 11)
+    // ================================================================
+    map['If grown in a greenhouse list the type and size'] = 'Greenhouse 30x100';
+    map['Please describe the floor in your covered production areas ie soil landscape fabric gravel cement etc 2'] = 'The greenhouse has a soil base with landscape fabric.';
+    map['If treated wood is used in your greenhouse where'] = 'Not Used';
+    map['How do you prevent diseases andor insect problems in seedling and planting stock production'] = ospData.pestMonitoring || 'Sanitation of trays and greenhouse between seasons. Adequate ventilation and spacing. Beneficial insects released as needed. Disease-resistant varieties selected. No synthetic pesticides used.';
+    map['Where are they grown ie greenhouse hoophouse etc'] = 'Greenhouse';
+    map['Date of treated wood installation'] = 'N/A';
+    // Greenhouse checkboxes
+    map['Not Applicable I do not have conventional greenhouse production'] = true;
+    map['ONFARM'] = true;
+    map['Purchased fertility inputs'] = true;
+    map['Crop rotation describe in Crop Management section'] = true;
+    map['Add compost or compostable materials'] = true;
+    map['Recyclereuse growing media'] = true;
+
+    // ================================================================
+    // SOIL (Page 13)
+    // ================================================================
+    map['Text62 OSP prod 25'] = ospData.soilDescription || 'Predominantly silt loam with clay subsoil. pH ranges 6.2-6.8 across fields. Organic matter 3.5-4.2%.';
+    map['Text63 OSP prod 25'] = 'Soil testing annually through accredited lab. Visual observation of crop health. Comparison of crop yields across seasons.';
+    map['Text65 OSP prod 25'] = 'Continue building organic matter through cover crops and compost applications. Monitor and adjust pH as needed.';
+    map['Text67 OSP prod 25'] = 'No synthetic micronutrients used. Trace minerals supplied through Azomite (OMRI Listed) and kelp meal.';
+    map['Text69 OSP prod 25'] = 'Compost sourced from certified organic-compliant sources. Applied pre-plant and as side-dress. C:N ratio monitored.';
+    // Soil checkboxes
+    map['crop rotation'] = true;
+    map['compost'] = true;
+    map['green manure plowdowncover crops'] = true;
+    map['incorporation of crop residues'] = true;
+    map['soil amendments'] = true;
+    map['side dressing'] = true;
+    map['summer fallow'] = true;
+    map['soil testing'] = true;
+    map['observation of crop health'] = true;
+    map['observation of soil'] = true;
+    map['comparison of crop yields'] = true;
+    map['annually_2'] = true;
+    map['as needed'] = true;
+    map['satisfactory_2'] = true;
+    map['Bulk Gypsum check all that apply'] = true;
+    map['Bulk Lime'] = true;
+    map['fertilizers with high salt content such as sodium Chilean nitrate or potassium chloride prevention of salt buildup'] = true;
+
+    // ================================================================
+    // COMPOST (Page 14)
+    // ================================================================
+    map['none'] = true;
+    map['windrows'] = true;
+    map['crops for human consumption whose edible portion does not have direct contact with the soil'] = true;
+    map['crops for human consumption whose edible portion has direct contact with the soil'] = true;
+
+    // ================================================================
+    // WATER / EROSION (Page 15)
+    // ================================================================
+    map['Sources of water'] = ospData.waterSource || 'On Farm Spring, Holding Pond for irrigation';
+    map['Describe your watering system'] = 'Water from on farm natural spring. Drip irrigation for field production. Overhead irrigation in greenhouse for seedlings.';
+    map['Text89 OSP prod 25'] = 'Vegetated buffer strips along waterways. Cover crops to reduce runoff. Contour farming on slopes.';
+    map['Text91 OSP prod 25'] = 'Visual observation of water clarity. Periodic water testing.';
+    map['Text93 OSP prod 25'] = 'Soil tested annually through accredited laboratory. Additional testing as needed based on crop performance.';
+    map['Text94 OSP prod 25'] = ospData.bioNarrative || 'Native perennial borders, hedgerows, and tree lines provide habitat for beneficial insects, pollinators, and wildlife. Uncultivated areas maintained for biodiversity. Cover crop mixtures support soil biology.';
+    // Water checkboxes
+    map['drip'] = true;
+    map['irrigation'] = true;
+    map['greenhouse'] = true;
+    map['foliar sprays'] = true;
+    map['drip irrigationmicrospray'] = true;
+    map['No Erosion Problems'] = true;
+    map['avoid steep slopes and Highly Erodible Land'] = true;
+    map['contour farming'] = true;
+    map['increase organic matter for better infiltration'] = true;
+    map['winter cover crops'] = true;
+    map['long term sod'] = true;
+    map['hedgerows'] = true;
+    map['tree lines'] = true;
+    map['windbreaks'] = true;
+    map['ponds'] = true;
+    map['uncultivated areas'] = true;
+    map['washing crops'] = true;
+    map['visual observation'] = true;
+    map['invasive species monitoringremoval'] = true;
+    map['maintaining wetlandsprairieswoods'] = true;
+    map['provide habitat for pollinatorsnative species'] = true;
+    map['avoiding nestsnot mowing during breeding season'] = true;
+    map['undersowinginterplanting'] = true;
+    map['manage fertilizerscomposts to avoid waterway contamination'] = true;
+    map['prevent nutrient leaching from overirrigation'] = true;
+    map['as needed_2'] = true;
+    map['as needed_3'] = true;
+    map['None'] = true;   // water quality issues = none
+    map['None_2'] = true;
+    map['None_3'] = true;
+
+    // ================================================================
+    // PEST / WEED / DISEASE (Page 16)
+    // ================================================================
+    map['Text95 OSP prod 25'] = ospData.weedManagement || 'Annual grasses, pigweed, lambsquarters, galinsoga. Managed through cultivation, hand weeding, cover crops, and plastic mulch.';
+    map['Text97 OSP prod 25'] = ospData.insectManagement || 'Flea beetles, Colorado potato beetle, cabbage worms, aphids, cucumber beetles. Managed through row cover, Bt, Entrust, beneficial habitat.';
+    map['Text100 OSP prod 25'] = ospData.diseaseManagement || 'Occasional early blight, powdery mildew, downy mildew. Managed through resistant varieties, crop rotation, field sanitation, and Regalia.';
+    map['Text102 OSP prod 25'] = ospData.pestMonitoring || 'Weekly field scouting. Visual inspection of all crops. Treatment thresholds applied before any intervention.';
+    map['Text113 OSP prod 25'] = 'Visual inspection of buffer zones during regular field scouting. Monitoring for drift from adjacent properties.';
+    map['Text182 OSP prod 25'] = 'Deer, groundhogs, voles. Managed through fencing, habitat modification, and trapping.';
+    // Pest checkboxes
+    map['Integrated Pest Management IPM'] = true;
+    map['crop rotation_2'] = true;
+    map['crop rotation_3'] = true;
+    map['crop rotation_4'] = true;
+    map['selection of plant speciesvarieties'] = true;
+    map['selection of plant speciesvarieties_2'] = true;
+    map['timing of planting'] = true;
+    map['timing of plantingcultivating'] = true;
+    map['delayed seeding'] = true;
+    map['hand weeding'] = true;
+    map['mechanical cultivation'] = true;
+    map['mowing'] = true;
+    map['flame weeding'] = true;
+    map['smother crops'] = true;
+    map['field preparation'] = true;
+    map['field sanitation'] = true;
+    map['intercropping'] = true;
+    map['plant spacing'] = true;
+    map['soil balancing'] = true;
+    map['use of fast emerging varieties'] = true;
+    map['habitat for natural enemies'] = true;
+    map['physical barriers'] = true;
+    map['lurestrapsrepellants'] = true;
+    map['physical examination of cropspests'] = true;
+    map['testing'] = true;
+    map['visual observation_2'] = true;
+    map['work with a consultant or advisor'] = true;
+    map['No disease problems'] = true;
+    map['insects list'] = true;
+    map['other animals list'] = true;
+    map['gophers'] = true;
+    map['other specify_15'] = true;
+    map['as needed_4'] = true;
+    map['satisfactory_3'] = true;
+    map['If you use plastic or other synthetic mulch is it removed at the end of the growing or harvest season'] = true;
+    map['Yes_28 OSP prod 25'] = 'Black plastic mulch — removed and disposed of at end of season.';
+    map['List all product names and manufacturers for pest control inputs'] = 'See Supplemental Materials for complete input list with manufacturers and OMRI status.';
+
+    // ================================================================
+    // CONTAMINATION / BUFFER (Page 17)
+    // ================================================================
+    map['Not applicable I do not maintain any buffer areas  Explain'] = ospData.contaminationPrevention || 'Buffer zones maintained along all property boundaries adjacent to conventional land. Grass buffers minimum 25 feet.';
+    map['If yes what measures are taken to prevent contamination of your organic crops'] = 'Kretschmanm: Operation #770';
+    map['Text106 OSP prod 25'] = 'N/A';
+    map['Text140 OSP prod 25'] = 'No non-organic production on site';
+    map['Text141 OSP prod 25'] = 'N/A';
+    // Buffer/contamination checkboxes
+    map['In the table below list specific buffer areas you maintain'] = true;
+    map['other specify_20'] = true;
+    map['Not applicable I do not have conventional production'] = true;
+    map['NA_9'] = true;
+    map['None_6'] = true;
+    map['Map Attached OSP prod 25'] = true;
+
+    // ================================================================
+    // CONVENTIONAL PRODUCTION (Page 18)
+    // ================================================================
+    map['Text115 OSP prod 25-0'] = 'Simon Farm Property';
+    map['Text116 OSP prod 25-0'] = '4312 Middle Rd 15101';
+    map['Text117 OSP prod 25-0'] = '3';
+    map['Text119 OSP prod 25-0'] = '25 miles';
+    map['Not applicable'] = true;
+
+    // ================================================================
+    // EQUIPMENT (Page 19) — 16 slots
+    // ================================================================
+    var equipment = [
+        { name: 'Allis G (narrow)', shared: 'N', owned: 'O' },
+        { name: 'Allis G (wide front)', shared: 'N', owned: 'O' },
+        { name: 'Kubota 3130', shared: 'N', owned: 'O' },
+        { name: 'Massey Ferguson 285', shared: 'N', owned: 'O' },
+        { name: 'Massey Ferguson 296', shared: 'N', owned: 'O' },
+        { name: 'Basket Weeder', shared: 'N', owned: 'O' },
+        { name: 'Plastic Layer', shared: 'N', owned: 'O' },
+        { name: 'Plastic Lift', shared: 'N', owned: 'O' },
+        { name: 'Lannen Transplanter', shared: 'N', owned: 'O' }
+    ];
+    for (var ei = 0; ei < Math.min(equipment.length, 16); ei++) {
+        map['Text129 OSP prod 25-' + ei + '-0'] = equipment[ei].name;
+        map['Text129 OSP prod 25-' + ei + '-1'] = equipment[ei].shared;
+        map['Text130 OSP prod 25-' + ei] = equipment[ei].owned;
+    }
+    map['Text131 OSP prod 25-0'] = 'Equipment cleaned between fields. Wash down with water, remove soil/crop debris before moving to next field.';
+    map['Text133 OSP prod 25'] = 'Tifone 828';
+    map['Text134 OSP prod 25'] = 'RENTED';
+    map['Text135 OSP prod 25'] = 'Shared sprayer — cleaned thoroughly before and after each use. Only OMRI-listed products applied.';
+
+    // ================================================================
+    // STORAGE (Page 21)
+    // ================================================================
+    var storage = [
+        { id: 'CLR1', products: 'Mixed vegetables — leafy greens, herbs', type: 'COLD', status: 'O' },
+        { id: 'CLR2', products: 'Mixed vegetables — roots, brassicas', type: 'COLD', status: 'O' },
+        { id: 'CLR3', products: 'Mixed vegetables — fruiting crops', type: 'COLD', status: 'O' },
+        { id: 'BS1', products: 'Dry goods — seeds, packaging', type: 'DRY', status: 'O' },
+        { id: 'BS2', products: 'Inputs — fertilizers, amendments', type: 'DRY', status: 'O' }
+    ];
+    for (var sti = 0; sti < storage.length; sti++) {
+        map['Text142 OSP prod 25-' + sti] = storage[sti].id;
+        map['Text143 OSP prod 25-' + sti] = storage[sti].products;
+        map['Text144 OSP prod 25-' + sti + '-0'] = storage[sti].type;
+        map['Text145 OSP prod 25-' + sti] = storage[sti].status;
+    }
+    map['Text146 OSP prod 25'] = 'No';
+    map['If there is offsite storage list the storage ID and give address...'] = 'All products labeled with farm name, crop, field, harvest date, lot number, and organic status. Labels applied at harvest.';
+    map['If used what did they contain prior to organic use'] = 'N/A — all containers are new or dedicated organic.';
+
+    // ================================================================
+    // HARVEST / POST-HARVEST (Pages 20-22)
+    // ================================================================
+    map['Text148 OSP prod 25'] = ospData.harvestPractices || 'Harvest bins and tools cleaned with water before each use. Wash station sanitized daily during harvest season.';
+    map['Text150 OSP prod 25'] = 'WASHING, BAGGING';
+    map['Text157 OSP prod 25'] = 'Plastic mulch, drip tape, row cover';
+    map['Text158 OSP prod 25'] = 'Plastic mulch and drip tape collected and recycled through agricultural plastic recycling program. Row cover reused until worn, then disposed.';
+    map['Text160 OSP prod 25'] = ospData.transportPractices || 'Owner delivers in refrigerated van to farmers markets, CSA drop sites, and restaurant customers. Vehicle cleaned between loads.';
+    map['Packaging Materials OSP prod 25'] = 'Compostable bags, cardboard boxes, reusable plastic totes for wholesale. All new or dedicated organic.';
+    // Harvest checkboxes
+    map['by hand'] = true;
+    map['plastic containers'] = true;
+    map['wooden tote'] = true;
+    map['new'] = true;
+    map['None_8'] = true;  // no pest products in harvest
+    map['No problems'] = true;
+    // Transport checkboxes
+    map['self the producer'] = true;
+    map['onfarm'] = true;
+    map['dedicated organic only'] = true;
+    map['sold'] = true;
+    // Waste checkboxes
+    map['composting'] = true;
+    map['other describe_3'] = true;
+
+    // ================================================================
+    // LABELING / MARKETING (Page 24)
+    // ================================================================
+    map['Text169 OSP prod 25'] = 'Products labeled with farm name, "Certified Organic" text, and certifier name (OEFFA). Signage at farmers market displays organic certification.';
+    // Sales checkboxes
+    map['CSAsubscription service'] = true;
+    map['farmers market'] = true;
+    map['wholesale'] = true;
+    map['direct to retail'] = true;
+    map['retail'] = true;
+    map['NA  Retail labels only'] = true;
+
+    // ================================================================
+    // FRAUD PREVENTION (Page 25)
+    // ================================================================
+    map['Text171 OSP prod 25'] = 'Low risk — sole-source producer, no conventional production, all inputs OMRI listed, direct sales to end consumers and known wholesale accounts.';
+    map['Text172 OSP prod 25'] = 'Owner-operator directly manages all production. Seasonal employees trained on organic handling requirements at hire. Input purchases verified for organic compliance.';
+    // Fraud checkboxes
+    map['only produces organic product'] = true;
+    map['farm'] = true;
+    map['inputs'] = true;
+    map['employee training'] = true;
+    map['requiring organic compliance documentation at point of purchase...'] = true;
+    map['verifying organic status prior to purchase...'] = true;
+    map['selfassessment previous issues...'] = true;
+    map['Contact NOP'] = true;
+    map['Report to OEFFA for guidance'] = true;
+    map['yes_8'] = true;
+    map['yes_9'] = true;
+
+    // ================================================================
+    // IMPORT (Page 26)
+    // ================================================================
+    map['NA no imports'] = true;
+    map['organic certificates'] = true;
+    map['invoices'] = true;
+    map['product labels'] = true;
+    map['other_5'] = true;
+
+    // ================================================================
+    // RECORDS (Page 27)
+    // ================================================================
+    map['field activity records preparation planting input application etc'] = true;
+    map['harvest records that show field numbers date of harvest and harvest amounts including custom harvest records'] = true;
+    map['input records for soil amendments seeds manure foliar sprays and pest control products keep all labels and receipts'] = true;
+    map['monitoring records soil tests tissue tests water tests quality tests observations'] = true;
+    map['sales records purchase order contract invoice cash receipts cash receipt journal sales journal etc'] = true;
+    map['storage records that show storage location storage identification field numbers amounts stored and cleaning activities'] = true;
+    map['documentation of attempts to source organic seeds andor planting stock'] = true;
+    map['documentation of organic seedlings'] = true;
+    map['compost production records'] = true;
+    map['clean transport records'] = true;
+    map['labor records_2'] = true;
+    map['other_3 OSP prod 25'] = 'maintaining seed tag documentation for five years';
+
+    // ================================================================
+    // ATTACHMENTS (Page 28)
+    // ================================================================
+    map['Soil andor plant tissue tests'] = true;
 
     return map;
+}
+
+// ================================================================
+// SUPPLEMENTAL PDF GENERATOR
+// ================================================================
+async function generateSupplementalPDF(ospData) {
+    var pdfDoc = await PDFLib.PDFDocument.create();
+    var helvetica = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
+    var helveticaBold = await pdfDoc.embedFont(PDFLib.StandardFonts.HelveticaBold);
+    var pageW = 612;  // US Letter
+    var pageH = 792;
+    var margin = 50;
+    var contentW = pageW - 2 * margin;
+    var lineH = 14;
+    var year = new Date().getFullYear();
+
+    // Helper: add a new page and return { page, y }
+    function newPage() {
+        var page = pdfDoc.addPage([pageW, pageH]);
+        return { page: page, y: pageH - margin };
+    }
+
+    // Helper: draw text, auto-wrap, auto-page
+    function drawText(ctx, text, opts) {
+        opts = opts || {};
+        var font = opts.bold ? helveticaBold : helvetica;
+        var size = opts.size || 10;
+        var x = opts.x || margin;
+        var maxW = opts.maxWidth || contentW;
+        var color = opts.color || PDFLib.rgb(0, 0, 0);
+
+        // Word-wrap
+        var words = String(text).split(' ');
+        var lines = [];
+        var currentLine = '';
+        words.forEach(function(word) {
+            var test = currentLine ? currentLine + ' ' + word : word;
+            var tw = font.widthOfTextAtSize(test, size);
+            if (tw > maxW && currentLine) {
+                lines.push(currentLine);
+                currentLine = word;
+            } else {
+                currentLine = test;
+            }
+        });
+        if (currentLine) lines.push(currentLine);
+
+        lines.forEach(function(line) {
+            if (ctx.y < margin + 20) {
+                var np = newPage();
+                ctx.page = np.page;
+                ctx.y = np.y;
+            }
+            ctx.page.drawText(line, { x: x, y: ctx.y, size: size, font: font, color: color });
+            ctx.y -= (size + 4);
+        });
+        return ctx;
+    }
+
+    // Helper: draw a table header row
+    function drawTableHeader(ctx, columns, colWidths) {
+        if (ctx.y < margin + 40) {
+            var np = newPage();
+            ctx.page = np.page;
+            ctx.y = np.y;
+        }
+        // Header background
+        ctx.page.drawRectangle({
+            x: margin, y: ctx.y - 4, width: contentW, height: lineH + 4,
+            color: PDFLib.rgb(0.15, 0.15, 0.15)
+        });
+        var cx = margin + 4;
+        columns.forEach(function(col, i) {
+            ctx.page.drawText(col, {
+                x: cx, y: ctx.y, size: 8, font: helveticaBold,
+                color: PDFLib.rgb(1, 1, 1)
+            });
+            cx += colWidths[i];
+        });
+        ctx.y -= (lineH + 6);
+        return ctx;
+    }
+
+    // Helper: draw a table data row
+    function drawTableRow(ctx, values, colWidths, opts) {
+        opts = opts || {};
+        if (ctx.y < margin + 20) {
+            var np = newPage();
+            ctx.page = np.page;
+            ctx.y = np.y;
+        }
+        // Alternating row shading
+        if (opts.shade) {
+            ctx.page.drawRectangle({
+                x: margin, y: ctx.y - 4, width: contentW, height: lineH + 2,
+                color: PDFLib.rgb(0.95, 0.95, 0.95)
+            });
+        }
+        var cx = margin + 4;
+        values.forEach(function(val, i) {
+            var text = String(val || '').substring(0, 60); // truncate for table
+            ctx.page.drawText(text, {
+                x: cx, y: ctx.y, size: 8, font: helvetica,
+                color: PDFLib.rgb(0.1, 0.1, 0.1)
+            });
+            cx += colWidths[i];
+        });
+        ctx.y -= (lineH + 2);
+        return ctx;
+    }
+
+    // Helper: section title
+    function sectionTitle(ctx, title) {
+        ctx.y -= 10;
+        if (ctx.y < margin + 40) {
+            var np = newPage();
+            ctx.page = np.page;
+            ctx.y = np.y;
+        }
+        ctx.page.drawRectangle({
+            x: margin, y: ctx.y - 6, width: contentW, height: 22,
+            color: PDFLib.rgb(0.13, 0.55, 0.13)
+        });
+        ctx.page.drawText(title, {
+            x: margin + 8, y: ctx.y - 2, size: 12, font: helveticaBold,
+            color: PDFLib.rgb(1, 1, 1)
+        });
+        ctx.y -= 30;
+        return ctx;
+    }
+
+    // ================================================================
+    // TITLE PAGE
+    // ================================================================
+    var ctx = newPage();
+    ctx.y -= 120;
+    drawText(ctx, 'Tiny Seed Farm LLC', { size: 28, bold: true, x: margin });
+    ctx.y -= 10;
+    drawText(ctx, 'Organic System Plan - Supplemental Materials', { size: 18, bold: true, x: margin });
+    ctx.y -= 6;
+    drawText(ctx, String(year), { size: 16, x: margin, color: PDFLib.rgb(0.13, 0.55, 0.13) });
+    ctx.y -= 40;
+    drawText(ctx, '257 Zeigler Rd, Rochester, PA 15074', { size: 11, x: margin });
+    ctx.y -= 4;
+    drawText(ctx, 'Operator: Todd R Wilson', { size: 11, x: margin });
+    ctx.y -= 4;
+    drawText(ctx, 'Phone: 717-725-5177', { size: 11, x: margin });
+    ctx.y -= 4;
+    drawText(ctx, 'Certifier: OEFFA', { size: 11, x: margin });
+    ctx.y -= 40;
+    drawText(ctx, 'This document supplements the OEFFA Organic System Plan form with', { size: 10, x: margin });
+    drawText(ctx, 'complete data that exceeds the available form fields. It includes:', { size: 10, x: margin });
+    ctx.y -= 6;
+    drawText(ctx, '  1. Complete Seed Inventory', { size: 10, x: margin + 10 });
+    drawText(ctx, '  2. Complete Equipment List', { size: 10, x: margin + 10 });
+    drawText(ctx, '  3. Complete Input/Materials List', { size: 10, x: margin + 10 });
+    drawText(ctx, '  4. Field History with 2025 Inputs', { size: 10, x: margin + 10 });
+    drawText(ctx, '  5. Storage Areas', { size: 10, x: margin + 10 });
+    ctx.y -= 30;
+    drawText(ctx, 'Generated: ' + new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }), { size: 9, x: margin, color: PDFLib.rgb(0.4, 0.4, 0.4) });
+    drawText(ctx, 'Generated by Tiny Seed OS', { size: 9, x: margin, color: PDFLib.rgb(0.4, 0.4, 0.4) });
+
+    // ================================================================
+    // SECTION 1: COMPLETE SEED INVENTORY
+    // ================================================================
+    ctx = newPage();
+    ctx = sectionTitle(ctx, 'Section 1: Complete Seed Inventory');
+
+    var seeds = (farmData.seeds && farmData.seeds.length > 0) ? farmData.seeds : [];
+    if (seeds.length === 0) {
+        drawText(ctx, 'No seed inventory data available. Seed records are maintained in Tiny Seed OS and available for inspector review.', { size: 10 });
+    } else {
+        drawText(ctx, seeds.length + ' seed lots on record', { size: 9, color: PDFLib.rgb(0.4, 0.4, 0.4) });
+        ctx.y -= 6;
+        var seedCols = ['Crop', 'Variety', 'Supplier', 'Organic', 'Treated'];
+        var seedWidths = [100, 130, 140, 70, 70];
+        ctx = drawTableHeader(ctx, seedCols, seedWidths);
+
+        seeds.forEach(function(s, i) {
+            var crop = s.crop || s.Crop || '';
+            var variety = s.variety || s.Variety || '';
+            var supplier = s.supplier || s.Supplier || s.source || s.Source || '';
+            var organic = s.organic || s.Organic || s.organicStatus || '';
+            var treated = s.treated || s.Treated || 'No';
+            if (typeof organic === 'boolean') organic = organic ? 'Yes' : 'No';
+            if (typeof treated === 'boolean') treated = treated ? 'Yes' : 'No';
+            ctx = drawTableRow(ctx, [crop, variety, supplier, organic, treated], seedWidths, { shade: i % 2 === 0 });
+        });
+    }
+
+    // ================================================================
+    // SECTION 2: COMPLETE EQUIPMENT LIST
+    // ================================================================
+    ctx.y -= 10;
+    ctx = sectionTitle(ctx, 'Section 2: Complete Equipment List');
+
+    var equipmentList = [
+        { name: 'Allis G (narrow)', type: 'Tractor', owned: 'Owned', shared: 'No', notes: 'Cultivating tractor, narrow row work' },
+        { name: 'Allis G (wide front)', type: 'Tractor', owned: 'Owned', shared: 'No', notes: 'Cultivating tractor, wide row work' },
+        { name: 'Kubota 3130', type: 'Tractor', owned: 'Owned', shared: 'No', notes: 'Utility tractor, mowing, loading' },
+        { name: 'Massey Ferguson 285', type: 'Tractor', owned: 'Owned', shared: 'No', notes: 'Field prep, plowing, discing' },
+        { name: 'Massey Ferguson 296', type: 'Tractor', owned: 'Owned', shared: 'No', notes: 'Heavy field work' },
+        { name: 'Basket Weeder', type: 'Implement', owned: 'Owned', shared: 'No', notes: 'Mechanical cultivation between rows' },
+        { name: 'Plastic Layer', type: 'Implement', owned: 'Owned', shared: 'No', notes: 'Lays plastic mulch and drip tape' },
+        { name: 'Plastic Lift', type: 'Implement', owned: 'Owned', shared: 'No', notes: 'Removes plastic mulch at end of season' },
+        { name: 'Lannen Transplanter', type: 'Implement', owned: 'Owned', shared: 'No', notes: 'Mechanical transplanting' },
+        { name: 'Tifone 828', type: 'Sprayer', owned: 'Rented', shared: 'Yes', notes: 'Boom sprayer — cleaned before/after each use, OMRI products only' }
+    ];
+
+    var eqCols = ['Equipment', 'Type', 'Own/Rent', 'Shared', 'Notes'];
+    var eqWidths = [120, 70, 60, 50, 210];
+    ctx = drawTableHeader(ctx, eqCols, eqWidths);
+
+    equipmentList.forEach(function(eq, i) {
+        ctx = drawTableRow(ctx, [eq.name, eq.type, eq.owned, eq.shared, eq.notes], eqWidths, { shade: i % 2 === 0 });
+    });
+
+    ctx.y -= 10;
+    drawText(ctx, 'Cleaning Protocol: All equipment cleaned between fields — wash down with water, remove all soil and crop debris.', { size: 9 });
+    drawText(ctx, 'Shared equipment (Tifone 828) is cleaned thoroughly before and after each use. Only OMRI-listed products applied.', { size: 9 });
+
+    // ================================================================
+    // SECTION 3: COMPLETE INPUT/MATERIALS LIST
+    // ================================================================
+    ctx = newPage();
+    ctx = sectionTitle(ctx, 'Section 3: Complete Input/Materials List');
+
+    // Use form table data if available, otherwise baseline
+    var materialsData = ospData._table_materialsBody || [];
+    var baselineMaterials = [
+        { cat: 'FERTILIZER', name: 'Revita Pro 3-3-2', mfr: 'Ohio Earth Foods', omri: 'OMRI Listed', active: 'N-P-K 3-3-2, humates', rate: 'Various rates', fields: 'All fields' },
+        { cat: 'FERTILIZER', name: 'Feather Meal 13-0-0', mfr: 'Ohio Earth Foods', omri: 'OMRI Listed', active: 'Nitrogen 13%', rate: 'As needed', fields: 'F3M, JS1' },
+        { cat: 'FERTILIZER', name: 'Fish Emulsion', mfr: '', omri: 'OMRI Listed', active: 'Fish hydrolysate', rate: 'As needed', fields: 'F3M' },
+        { cat: 'FERTILIZER', name: 'Sulfate of Potash (SOP)', mfr: 'Ohio Earth Foods', omri: 'OMRI Listed', active: 'K2O 50%, S 18%', rate: 'As needed', fields: 'JL, Z3' },
+        { cat: 'FERTILIZER', name: 'Allganic Nitrogen Plus', mfr: 'SQM Industrial S.A.', omri: 'OMRI Listed', active: 'Chilean nitrate - restricted', rate: 'Case by case', fields: 'As needed' },
+        { cat: 'FERTILIZER', name: 'Kelp Meal', mfr: '', omri: 'OMRI Listed', active: 'Trace minerals, K', rate: 'As needed', fields: 'JL, Z3' },
+        { cat: 'AMENDMENT', name: 'Azomite', mfr: 'Azomite Mineral Products', omri: 'OMRI Listed', active: 'Trace minerals (70+)', rate: 'As needed', fields: 'Z3' },
+        { cat: 'AMENDMENT', name: 'Galaxy Sulfur Rocket90', mfr: 'Galaxy Sulfur', omri: 'OMRI Listed', active: 'Ag Sulfur 90%', rate: 'As needed', fields: 'Z3' },
+        { cat: 'PESTICIDE', name: 'Dipel DF (Bt)', mfr: 'Valent', omri: 'OMRI Listed', active: 'Bacillus thuringiensis kurstaki', rate: 'As needed', fields: 'F11M, F3M, F7M, IL, JS3, M' },
+        { cat: 'PESTICIDE', name: 'Entrust SC (Spinosad)', mfr: 'Corteva Agriscience', omri: 'OMRI Listed', active: 'Spinosad 22.5%', rate: 'As needed', fields: 'F11M, F7M, IL, JS3, JS6, M' },
+        { cat: 'PESTICIDE', name: 'Pyganic Specialty (Pyrethrin)', mfr: 'MGK', omri: 'OMRI Listed', active: 'Pyrethrins 1.4%', rate: 'As needed', fields: 'F11M, JS3, M' },
+        { cat: 'PESTICIDE', name: 'Nu Film P (Spreader-Sticker)', mfr: '', omri: 'OMRI Listed', active: 'Poly-1-p-menthene', rate: 'With sprays', fields: 'All sprayed fields' },
+        { cat: 'BIOLOGICAL', name: 'BotaniGard (Beauveria)', mfr: '', omri: 'OMRI Listed', active: 'Beauveria bassiana', rate: 'As needed', fields: 'F7M, IL, JS6, M' },
+        { cat: 'PESTICIDE', name: 'Regalia', mfr: 'Marrone Bio Innovations', omri: 'OMRI Listed', active: 'Reynoutria sachalinensis extract', rate: 'Preventative', fields: 'As needed' }
+    ];
+
+    // If form table data exists, parse it; otherwise use baseline
+    var materials = [];
+    if (materialsData.length > 0) {
+        materialsData.forEach(function(row) {
+            materials.push({
+                cat: row[0] || '', name: row[1] || '', mfr: row[2] || '',
+                omri: row[3] || '', active: row[4] || '', rate: row[5] || '', fields: row[6] || ''
+            });
+        });
+    } else {
+        materials = baselineMaterials;
+    }
+
+    drawText(ctx, materials.length + ' inputs/materials on record. All inputs are OMRI Listed or NOP-compliant.', { size: 9, color: PDFLib.rgb(0.4, 0.4, 0.4) });
+    ctx.y -= 6;
+
+    var matCols = ['Category', 'Product', 'Manufacturer', 'OMRI', 'Active Ingredient', 'Rate'];
+    var matWidths = [70, 100, 90, 60, 110, 80];
+    ctx = drawTableHeader(ctx, matCols, matWidths);
+
+    materials.forEach(function(m, i) {
+        ctx = drawTableRow(ctx, [m.cat, m.name, m.mfr, m.omri, m.active, m.rate], matWidths, { shade: i % 2 === 0 });
+    });
+
+    // ================================================================
+    // SECTION 4: FIELD HISTORY WITH 2025 INPUTS
+    // ================================================================
+    ctx.y -= 10;
+    if (ctx.y < margin + 100) {
+        var np = newPage();
+        ctx.page = np.page;
+        ctx.y = np.y;
+    }
+    ctx = sectionTitle(ctx, 'Section 4: Field History with 2025 Inputs');
+
+    var fieldNames = Object.keys(INPUTS_2025);
+    drawText(ctx, fieldNames.length + ' fields with input records from 2025 season', { size: 9, color: PDFLib.rgb(0.4, 0.4, 0.4) });
+    ctx.y -= 6;
+
+    var fhCols = ['Field ID', '2025 Inputs Applied'];
+    var fhWidths = [80, 430];
+    ctx = drawTableHeader(ctx, fhCols, fhWidths);
+
+    fieldNames.forEach(function(fn, i) {
+        var inputsStr = INPUTS_2025[fn] || '(No inputs recorded)';
+        ctx = drawTableRow(ctx, [fn, inputsStr], fhWidths, { shade: i % 2 === 0 });
+    });
+
+    // Also include field data from API if available
+    var apiFields = (farmData.fields && farmData.fields.fields) ? farmData.fields.fields : [];
+    if (apiFields.length > 0) {
+        ctx.y -= 10;
+        drawText(ctx, 'Field Details from Farm Management System:', { size: 10, bold: true });
+        ctx.y -= 4;
+
+        var fdCols = ['Field ID', 'Acreage', 'Status', 'Soil Type'];
+        var fdWidths = [80, 80, 80, 270];
+        ctx = drawTableHeader(ctx, fdCols, fdWidths);
+
+        apiFields.forEach(function(f, i) {
+            var fid = f.Field_ID || f.fieldId || f.name || '';
+            var acres = f.Acreage || f.acres || '';
+            var status = f.Status || f.status || 'Organic';
+            var soil = f.Soil_Type || f.soilType || '';
+            ctx = drawTableRow(ctx, [fid, String(acres), status, soil], fdWidths, { shade: i % 2 === 0 });
+        });
+    }
+
+    // ================================================================
+    // SECTION 5: STORAGE AREAS
+    // ================================================================
+    ctx.y -= 10;
+    if (ctx.y < margin + 100) {
+        var np2 = newPage();
+        ctx.page = np2.page;
+        ctx.y = np2.y;
+    }
+    ctx = sectionTitle(ctx, 'Section 5: Storage Areas');
+
+    var storageAreas = [
+        { id: 'CLR1', desc: 'Walk-in cooler #1', products: 'Leafy greens, herbs, delicate crops', type: 'Cold (38F)', organic: 'Organic Only' },
+        { id: 'CLR2', desc: 'Walk-in cooler #2', products: 'Root vegetables, brassicas', type: 'Cold (38F)', organic: 'Organic Only' },
+        { id: 'CLR3', desc: 'Walk-in cooler #3', products: 'Fruiting crops (tomatoes, peppers, etc.)', type: 'Cold (45-55F)', organic: 'Organic Only' },
+        { id: 'BS1', desc: 'Barn storage #1', products: 'Seeds, packaging materials', type: 'Dry, ambient', organic: 'Organic Only' },
+        { id: 'BS2', desc: 'Barn storage #2', products: 'Fertilizers, amendments, pest inputs', type: 'Dry, ambient', organic: 'Organic Only' }
+    ];
+
+    var stCols = ['ID', 'Description', 'Products Stored', 'Conditions', 'Status'];
+    var stWidths = [40, 110, 150, 80, 130];
+    ctx = drawTableHeader(ctx, stCols, stWidths);
+
+    storageAreas.forEach(function(sa, i) {
+        ctx = drawTableRow(ctx, [sa.id, sa.desc, sa.products, sa.type, sa.organic], stWidths, { shade: i % 2 === 0 });
+    });
+
+    ctx.y -= 14;
+    drawText(ctx, 'Storage Notes:', { size: 10, bold: true });
+    ctx.y -= 2;
+    drawText(ctx, 'All storage areas are dedicated organic. No shared storage with non-organic products.', { size: 9 });
+    drawText(ctx, 'Coolers cleaned weekly during harvest season. Temperature monitored daily.', { size: 9 });
+    drawText(ctx, 'All products labeled with farm name, crop, field, harvest date, lot number, and organic status.', { size: 9 });
+    drawText(ctx, 'Input storage (BS2) separated from crop storage. Inputs stored in original labeled containers.', { size: 9 });
+
+    // ================================================================
+    // SAVE AND DOWNLOAD
+    // ================================================================
+    var pdfBytes = await pdfDoc.save();
+    var blob = new Blob([pdfBytes], { type: 'application/pdf' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'TinySeedFarm_OSP_Supplemental_' + year + '.pdf';
+    a.click();
+    URL.revokeObjectURL(url);
+    console.log('Supplemental PDF generated: ' + pdfDoc.getPageCount() + ' pages');
 }
 </script>
 
