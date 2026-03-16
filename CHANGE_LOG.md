@@ -35,6 +35,39 @@ Brief explanation of why these changes were made.
 
 
 
+## 2026-03-15 — PM_ARCHITECT: Phase D+A+B — Backend Cleanup + Brain Integration
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — Removed 26 conditional typeof wrappers (lines 14722-14851), replaced with direct calls for 15 existing functions, deleted 16 non-existent function cases, removed 7 later duplicate case statements
+- `tinypm/brain_bridge.py` — Added GitHub Pages CORS origin, added `/api/patterns` endpoint (Memory tab), added `/api/style-profile` endpoint (Style tab)
+- `web_app/chief-of-staff.html` — Wired 5 "coming soon" sections to Brain server endpoints
+
+### Functions Modified
+- 15 backend switch cases converted from `typeof` guards to direct calls (getAutonomyStatus, getActiveAlerts, dismissAlert, runProactiveScan, getTodaySchedule, findMeetingSlots, protectFocusTime, optimizeSchedule, predictEmailVolume, predictCustomerChurn, forecastWorkload, getPredictiveReport, voiceCommand, parseVoiceCommand, getIntegrationStatus)
+- 16 non-existent function cases removed from switch (were silently returning `{error: 'Not available'}`)
+- 7 later duplicate case statements deleted (dead code that would crash if earlier shadowing cases removed)
+
+### Functions Added
+- `get_patterns()` in `brain_bridge.py` — Returns learned time/sequence/effectiveness patterns
+- `get_style_profile()` in `brain_bridge.py` — Returns owner communication style profile
+
+### Frontend → Brain Wiring
+- `loadProactiveSuggestions()` → Brain `/api/suggestions`
+- `loadMemoryPatterns()` → Brain `/api/patterns`
+- `loadStyleProfile()` → Brain `/api/style-profile`
+- `loadAgents()` → Brain `/api/health` (shows component status)
+- `loadFileStats()` → Simplified (Google Drive message)
+
+### Reason
+Phase D: Backend had 26 conditional wrappers that silently failed and shadowed real implementations. Phase A+B: Instead of building 15 missing Apps Script functions, wired the existing Brain server (already live on Render with style learning, pattern detection, proactive suggestions) to the frontend.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] No duplicates created
+- [x] No new files created
+
+---
+
 ## 2026-03-15 — PM_ARCHITECT: Chief of Staff — Make It Functional
 
 ### Files Modified
