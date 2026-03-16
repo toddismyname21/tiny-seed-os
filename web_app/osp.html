@@ -1839,21 +1839,21 @@ function updateReadiness() {
 
     // Check actual OSP form completion — same checks as finalizeOSP
     var checks = [
-        { name: 'Farm info', passed: !!document.getElementById('farmName').value && !!document.getElementById('operatorName').value },
-        { name: 'Operation description', passed: !!document.getElementById('opDescription').value },
-        { name: 'Farm map', passed: !!(document.getElementById('mapAttached') && document.getElementById('mapAttached').checked) || mapSnapshots.length > 0 },
-        { name: 'Field history', passed: document.getElementById('fieldHistoryBody').children.length > 0 },
-        { name: 'Crops', passed: document.getElementById('cropsBody').children.length > 0 },
-        { name: 'Seeds & planting stock', passed: document.getElementById('seedBody').children.length > 0 },
-        { name: 'Soil & fertility', passed: !!document.getElementById('soilDescription').value && !!document.getElementById('cropRotation').value },
-        { name: 'Fertility inputs', passed: document.getElementById('fertilityBody').children.length > 0 },
-        { name: 'Pest management', passed: !!document.getElementById('pestMonitoring').value },
-        { name: 'Materials list', passed: document.getElementById('materialsBody').children.length > 0 },
-        { name: 'Contamination prevention', passed: !!document.getElementById('contaminationPrevention').value },
-        { name: 'Harvest practices', passed: !!document.getElementById('harvestPractices').value },
-        { name: 'Water & biodiversity', passed: !!document.getElementById('waterSource').value },
-        { name: 'Recordkeeping', passed: !!(document.getElementById('recordkeepingSystem') && document.getElementById('recordkeepingSystem').value) },
-        { name: 'Signed & dated', passed: !!(document.getElementById('signature') && document.getElementById('signature').value) }
+        { name: 'Farm info', section: 1, passed: !!document.getElementById('farmName').value && !!document.getElementById('operatorName').value },
+        { name: 'Operation description', section: 2, passed: !!document.getElementById('opDescription').value },
+        { name: 'Farm map', section: 3, passed: !!(document.getElementById('mapAttached') && document.getElementById('mapAttached').checked) || mapSnapshots.length > 0 },
+        { name: 'Field history', section: 4, passed: document.getElementById('fieldHistoryBody').children.length > 0 },
+        { name: 'Crops', section: 5, passed: document.getElementById('cropsBody').children.length > 0 },
+        { name: 'Seeds & planting stock', section: 6, passed: document.getElementById('seedBody').children.length > 0 },
+        { name: 'Soil & fertility', section: 7, passed: !!document.getElementById('soilDescription').value && !!document.getElementById('cropRotation').value },
+        { name: 'Fertility inputs', section: 7, passed: document.getElementById('fertilityBody').children.length > 0 },
+        { name: 'Pest management', section: 8, passed: !!document.getElementById('pestMonitoring').value },
+        { name: 'Materials list', section: 9, passed: document.getElementById('materialsBody').children.length > 0 },
+        { name: 'Contamination prevention', section: 10, passed: !!document.getElementById('contaminationPrevention').value },
+        { name: 'Harvest practices', section: 11, passed: !!document.getElementById('harvestPractices').value },
+        { name: 'Water & biodiversity', section: 12, passed: !!document.getElementById('waterSource').value },
+        { name: 'Recordkeeping', section: 13, passed: !!(document.getElementById('recordkeepingSystem') && document.getElementById('recordkeepingSystem').value) },
+        { name: 'Signed & dated', section: 14, passed: !!(document.getElementById('signature') && document.getElementById('signature').value) }
     ];
 
     var passed = checks.filter(function(c) { return c.passed; }).length;
@@ -1878,8 +1878,10 @@ function updateReadiness() {
     checks.forEach(function(c) {
         var div = document.createElement('div');
         div.className = 'check-item';
+        div.style.cursor = 'pointer';
         var icon = c.passed ? '<i class="fas fa-check-circle pass"></i>' : '<i class="fas fa-times-circle fail"></i>';
         div.innerHTML = icon + ' ' + c.name;
+        div.onclick = function() { goToSection(c.section); };
         checksEl.appendChild(div);
     });
 }
