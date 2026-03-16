@@ -14486,7 +14486,7 @@ function doGet(e) {
       'updateEmployeeLanguage', 'syncToQuickBooks', 'chatWithChiefOfStaff',
       'createTask', 'getEmployeeFarmPics',
       // Soil tests page (same auth issue — _getToken returns empty)
-      'getSoilTests', 'getFields',
+      'getSoilTests', 'getFields', 'getSoilSubmissions',
       // Field management (employee app — add new fields from field capture)
       'addField',
       // Labels page
@@ -15425,6 +15425,8 @@ function doGet(e) {
         return jsonResponse(getSoilAmendments(e.parameter));
       case 'getSoilTests':
         return jsonResponse(getSoilTests(e.parameter));
+      case 'getSoilSubmissions':
+        return jsonResponse(getSoilSubmissions(e.parameter));
 
       // ============ INVENTORY SYSTEM GET ENDPOINTS ============
       case 'getInventoryProducts':
@@ -18151,7 +18153,8 @@ function doPost(e) {
       // Communication
       'acknowledgeMessage', 'sendRouteSMS', 'submitFarmPic',
       // Soil tests (soil-tests.html also uses POST without session tokens)
-      'saveSoilTest', 'saveComplianceRecord', 'saveIPMSchedule', 'updateIPMSprayStatus',
+      'saveSoilTest', 'saveSoilSubmission', 'updateSoilSubmission', 'addField',
+      'saveComplianceRecord', 'saveIPMSchedule', 'updateIPMSprayStatus',
       'saveFertigationData', 'saveFoliarApplication', 'saveSoilAmendment', 'bulkSyncSoilData',
       'bulkSyncFieldNotes', 'syncComplianceRecords', 'emailOrganicReportToOEFFA',
       'saveOSPDraft', 'getOSPDraft',
@@ -18332,6 +18335,12 @@ function doPost(e) {
         return jsonResponse(saveSoilAmendment(data));
       case 'saveSoilTest':
         return jsonResponse(saveSoilTest(data));
+      case 'saveSoilSubmission':
+        return withLock(function() { return jsonResponse(saveSoilSubmission(data)); });
+      case 'updateSoilSubmission':
+        return withLock(function() { return jsonResponse(updateSoilSubmission(data)); });
+      case 'addField':
+        return jsonResponse(addField(data));
       case 'bulkSyncSoilData':
         return jsonResponse(bulkSyncSoilData(data));
       case 'syncComplianceRecords':
@@ -37960,6 +37969,187 @@ function saveSoilTest(data) {
       message: 'Soil test saved',
       timestamp: now
     };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SOIL SUBMISSIONS - Track Logan Labs sample submissions
+// ═══════════════════════════════════════════════════════════════════════════
+
+var SOIL_SUBMISSION_HEADERS = [
+  'ID', 'Submission_ID', 'Collection_Date', 'Collector', 'Recommendations',
+  'Notes', 'Samples_JSON', 'Status', 'Created_At', 'Result_SoilTest_IDs',
+  'Expected_Results_Date', 'Total_Cost'
+];
+
+/**
+ * GET: Retrieve all soil submissions, optionally filtered by status
+ */
+function getSoilSubmissions(params) {
+  try {
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheet = ss.getSheetByName('SOIL_SUBMISSIONS');
+    if (!sheet) {
+      return { success: true, data: [], count: 0, message: 'No submissions yet' };
+    }
+
+    var data = sheet.getDataRange().getValues();
+    if (data.length <= 1) {
+      return { success: true, data: [], count: 0, message: 'No submissions yet' };
+    }
+
+    var headers = data[0];
+    var statusFilter = params ? (params.status || '') : '';
+    var results = [];
+
+    for (var i = 1; i < data.length; i++) {
+      var row = data[i];
+      var record = {};
+      for (var j = 0; j < headers.length; j++) {
+        record[headers[j]] = row[j];
+      }
+
+      // Parse JSON fields back to arrays
+      try {
+        record.Samples_JSON = record.Samples_JSON ? JSON.parse(record.Samples_JSON) : [];
+      } catch (e) {
+        record.Samples_JSON = [];
+      }
+      try {
+        record.Result_SoilTest_IDs = record.Result_SoilTest_IDs ? JSON.parse(record.Result_SoilTest_IDs) : [];
+      } catch (e) {
+        record.Result_SoilTest_IDs = [];
+      }
+
+      // Normalize to frontend-expected field names
+      var normalized = {
+        id: record.ID,
+        submissionId: record.Submission_ID,
+        collectionDate: record.Collection_Date,
+        collector: record.Collector,
+        recommendations: record.Recommendations === true || record.Recommendations === 'true',
+        notes: record.Notes,
+        samples: record.Samples_JSON,
+        status: record.Status,
+        createdAt: record.Created_At,
+        resultsSoilTestIds: record.Result_SoilTest_IDs,
+        expectedResultsDate: record.Expected_Results_Date,
+        totalCost: parseFloat(record.Total_Cost) || 0
+      };
+
+      if (statusFilter && normalized.status !== statusFilter) continue;
+      results.push(normalized);
+    }
+
+    return { success: true, data: results, count: results.length };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * POST: Save a new soil submission
+ */
+function saveSoilSubmission(data) {
+  try {
+    // Validate required fields
+    var submissionId = data.submissionId || data.Submission_ID;
+    var collectionDate = data.collectionDate || data.Collection_Date;
+    var samples = data.samples || data.Samples_JSON;
+
+    if (!submissionId) {
+      return { success: false, error: 'Missing required field: submissionId' };
+    }
+    if (!collectionDate) {
+      return { success: false, error: 'Missing required field: collectionDate' };
+    }
+    if (!samples || (Array.isArray(samples) && samples.length === 0)) {
+      return { success: false, error: 'Missing required field: samples (must be non-empty array)' };
+    }
+
+    var sheet = getOrCreateSheet('SOIL_SUBMISSIONS', SOIL_SUBMISSION_HEADERS);
+    var id = data.id || generateId('SOILSUB');
+    var now = new Date().toISOString();
+
+    var samplesStr = typeof samples === 'string' ? samples : JSON.stringify(samples);
+    var resultIds = data.resultsSoilTestIds || data.Result_SoilTest_IDs || [];
+    var resultIdsStr = typeof resultIds === 'string' ? resultIds : JSON.stringify(resultIds);
+
+    var row = [
+      id,
+      submissionId,
+      collectionDate,
+      data.collector || data.Collector || '',
+      data.recommendations === true || data.recommendations === 'true',
+      data.notes || data.Notes || '',
+      samplesStr,
+      data.status || 'pending',
+      data.createdAt || now,
+      resultIdsStr,
+      data.expectedResultsDate || data.Expected_Results_Date || '',
+      parseFloat(data.totalCost || data.Total_Cost) || 0
+    ];
+
+    sheet.appendRow(row);
+
+    return {
+      success: true,
+      id: id,
+      message: 'Soil submission saved',
+      timestamp: now
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * POST: Update an existing soil submission (status, result IDs)
+ */
+function updateSoilSubmission(data) {
+  try {
+    var targetId = data.id || data.ID;
+    if (!targetId) {
+      return { success: false, error: 'Missing required field: id' };
+    }
+
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheet = ss.getSheetByName('SOIL_SUBMISSIONS');
+    if (!sheet) {
+      return { success: false, error: 'SOIL_SUBMISSIONS sheet not found' };
+    }
+
+    var allData = sheet.getDataRange().getValues();
+    var headers = allData[0];
+    var idCol = headers.indexOf('ID');
+    var statusCol = headers.indexOf('Status');
+    var resultIdsCol = headers.indexOf('Result_SoilTest_IDs');
+
+    if (idCol === -1) {
+      return { success: false, error: 'ID column not found in SOIL_SUBMISSIONS' };
+    }
+
+    for (var i = 1; i < allData.length; i++) {
+      // Match by either numeric ID or string ID
+      if (String(allData[i][idCol]) === String(targetId)) {
+        // Update status if provided
+        if (data.status !== undefined && statusCol !== -1) {
+          sheet.getRange(i + 1, statusCol + 1).setValue(data.status);
+        }
+        // Update result IDs if provided
+        if (data.resultsSoilTestIds !== undefined && resultIdsCol !== -1) {
+          var idsStr = typeof data.resultsSoilTestIds === 'string'
+            ? data.resultsSoilTestIds
+            : JSON.stringify(data.resultsSoilTestIds);
+          sheet.getRange(i + 1, resultIdsCol + 1).setValue(idsStr);
+        }
+        return { success: true, message: 'Submission updated' };
+      }
+    }
+
+    return { success: false, error: 'Submission not found with id: ' + targetId };
   } catch (error) {
     return { success: false, error: error.toString() };
   }

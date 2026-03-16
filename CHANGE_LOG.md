@@ -35,6 +35,68 @@ Brief explanation of why these changes were made.
 
 
 
+## 2026-03-16 — FULLSTACK_BUILDER: Logan Labs Submission Workflow — Full Upgrade
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — Added SOIL_SUBMISSIONS sheet + 3 new endpoints
+- `soil-tests.html` — 12 feature additions to Logan Labs submission workflow
+
+### Functions Added (Backend)
+- `getSoilSubmissions(params)` — GET: retrieve soil submissions, optional status filter
+- `saveSoilSubmission(data)` — POST: save new submission to SOIL_SUBMISSIONS sheet
+- `updateSoilSubmission(data)` — POST: update submission status and result IDs
+
+### Functions Added (Frontend)
+- `renderSubmissionsTracker()` — Collapsible tracker panel showing pending/shipped submissions with status badges, days waiting, overdue warnings, and action buttons
+- `markSubmissionShipped(id)` — Update submission status to shipped + sync to backend
+- `scrollToTest(testId)` — Scroll to linked soil test card
+- `repeatLastSubmission()` — Pre-fill Logan Labs form from most recent submission
+
+### Functions Modified (Frontend)
+- `parsePDF()` — Multi-page PDF support (loops all pages, not just page 1)
+- `showParsePreview()` — Added parse confidence badges (high/moderate/low)
+- `saveAllParsedSamples()` — Auto-maps parsed field names to submission fields via fuzzy matching
+- `submitSoilSampleToLogan()` — Now async; creates fields via addField API, syncs to backend, calculates expected results date, creates Chief of Staff reminder task
+- `handleLoganFieldChange()` — Expanded from simple text input to full mini-form (name, length, width, type, beds)
+- `showLoganLabsSubmitForm()` — Added "Repeat Last Submission" button; changed default test from Complete to Mehlich 3
+- `addLoganSampleRow()` — Changed default test from Complete to Mehlich 3; added Print Collection Form link
+- `linkSoilTestToSubmission()` — Added backend sync via updateSoilSubmission
+- `initializeSoilData()` — Loads submissions from backend on page load
+- `printBlankSoilTestForm()` — Accepts optional fieldName param, pre-fills field info
+- `renderTests()` — Inserts submissions tracker at top of current tab
+- `renderFarmInsights()` — Added Soil Testing Costs section (totals, by year, by package)
+
+### Reason
+Complete upgrade of Logan Labs soil test submission workflow: backend persistence, multi-page PDF parsing, parse confidence scoring, field creation from modal, submission tracking with overdue alerts, repeat-last-submission convenience, cost analytics, and Chief of Staff auto-reminders.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
+## 2026-03-16 — PM_ARCHITECT: OEFFA PDF Fill Rewrite + Supplemental Materials
+
+### Files Modified
+- `web_app/osp.html` — Rewrote `buildOEFFAExactMap()` (837 insertions, 146 deletions), updated `fillPDFFromArrayBuffer()`, added `generateSupplementalPDF()`
+
+### Functions Modified
+- `buildOEFFAExactMap()` in `osp.html` — Complete rewrite: all 100+ field names replaced with actual OEFFA PDF field names extracted via pypdf. Previous version had 100% guessed names (zero fields filled). Now covers all 28 pages: general info, crops, seeds (19 slots), field history, inputs, greenhouse, soil, compost, water/erosion, pest/weed/disease, contamination, equipment (16 slots), storage, harvest, transport, labeling, fraud prevention, records. 200+ checkboxes mapped.
+- `fillPDFFromArrayBuffer()` in `osp.html` — Added `/On`/`/1`/`/Off` checkbox value handling, unmapped field logging, auto-generates supplemental PDF
+
+### Functions Added
+- `generateSupplementalPDF()` in `osp.html` — Creates standalone PDF with complete seed inventory, equipment list, input/materials list with manufacturers, field history with 2025 inputs, storage areas. For data exceeding OEFFA form row limits.
+
+### Reason
+User reported OEFFA PDF fill "did a really bad job" — root cause was 100% wrong field names. Three-phase approach: Phase 1 extracted all actual field names from the 2025 PDF, Phase 2 planned the rewrite, Phase 3 implemented. Supplemental materials PDF added for overflow data (seeds, equipment, inputs, field history).
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] No duplicates created
+
+---
+
 ## 2026-03-15 — PM_ARCHITECT: Phase D+A+B — Backend Cleanup + Brain Integration
 
 ### Files Modified

@@ -901,6 +901,13 @@
                     localStorage.setItem('plannedAmendments', JSON.stringify(amendResult.data));
                 }
 
+                // Load soil submissions
+                const submissionResult = await loadFromBackend('getSoilSubmissions');
+                if (submissionResult.success && submissionResult.data && submissionResult.data.length > 0) {
+                    pendingSoilSubmissions = submissionResult.data;
+                    localStorage.setItem('pendingSoilSubmissions', JSON.stringify(pendingSoilSubmissions));
+                }
+
                 console.info('Soil data initialized from backend');
             } catch (e) {
                 console.warn('Could not initialize from backend, using localStorage:', e.message);
@@ -1087,29 +1094,40 @@
             });
         }
 
-        // Parse Logan Labs PDF
+        // Parse Logan Labs PDF (multi-page support)
         async function parsePDF(file) {
             showToast('Parsing PDF...', 'info');
 
             try {
                 const arrayBuffer = await file.arrayBuffer();
                 const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-                const page = await pdf.getPage(1);
-                const textContent = await page.getTextContent();
 
-                // Extract all text items with positions
-                const items = textContent.items.map(item => ({
-                    text: item.str.trim(),
-                    x: Math.round(item.transform[4]),
-                    y: Math.round(item.transform[5])
-                })).filter(item => item.text);
+                // Extract text from ALL pages
+                const allItems = [];
+                for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                    const page = await pdf.getPage(pageNum);
+                    const textContent = await page.getTextContent();
+                    const pageItems = textContent.items.map(item => ({
+                        text: item.str.trim(),
+                        x: Math.round(item.transform[4]),
+                        y: Math.round(item.transform[5]) - ((pageNum - 1) * 1000) // Offset Y per page to maintain ordering
+                    })).filter(item => item.text);
+                    allItems.push(...pageItems);
+                }
 
                 // Parse Logan Labs format
-                const samples = parseLoganLabsFormat(items);
+                const samples = parseLoganLabsFormat(allItems);
+
+                // Calculate parse confidence for each sample
+                samples.forEach(sample => {
+                    const criticalFields = ['ph', 'cec', 'organicMatter', 'caPct', 'mgPct', 'kPct'];
+                    const found = criticalFields.filter(f => sample[f] !== null && sample[f] !== undefined).length;
+                    sample._confidence = Math.round((found / criticalFields.length) * 100);
+                });
 
                 if (samples.length > 0) {
                     showParsePreview(samples);
-                    showToast(`Found ${samples.length} sample(s) in PDF`, 'success');
+                    showToast(`Found ${samples.length} sample(s) in ${pdf.numPages} page(s)`, 'success');
                 } else {
                     showToast('Could not parse PDF. Try manual entry.', 'error');
                 }
@@ -1303,9 +1321,21 @@
             `;
 
             samples.forEach((sample, idx) => {
+                // Confidence badge
+                let confBadge = '';
+                if (sample._confidence !== undefined) {
+                    if (sample._confidence >= 80) {
+                        confBadge = '<span style="font-size: 0.7rem; font-weight: 600; padding: 0.15rem 0.5rem; border-radius: 9999px; background: #dcfce7; color: #166534;">High confidence (' + sample._confidence + '%)</span>';
+                    } else if (sample._confidence >= 50) {
+                        confBadge = '<span style="font-size: 0.7rem; font-weight: 600; padding: 0.15rem 0.5rem; border-radius: 9999px; background: #fef3c7; color: #92400e;">Moderate confidence (' + sample._confidence + '%) — review values</span>';
+                    } else {
+                        confBadge = '<span style="font-size: 0.7rem; font-weight: 600; padding: 0.15rem 0.5rem; border-radius: 9999px; background: #fee2e2; color: #991b1b;">Low confidence (' + sample._confidence + '%) — some values could not be extracted, consider manual entry</span>';
+                    }
+                }
+
                 html += `
                     <div class="parse-sample">
-                        <h5>${sample.sampleLocation} - ${sample.testDate}</h5>
+                        <h5>${sample.sampleLocation} - ${sample.testDate} ${confBadge}</h5>
                         <div class="form-grid" style="font-size: 0.875rem;">
                             <div><strong>pH:</strong> ${sample.ph || 'N/A'}</div>
                             <div><strong>CEC:</strong> ${sample.cec || 'N/A'}</div>
@@ -1361,6 +1391,23 @@
 
             const linkSelect = document.getElementById('linkToSubmission');
             const linkedSubmissionId = linkSelect ? parseInt(linkSelect.value) : null;
+
+            // Auto-map field names if linked to a submission
+            if (linkedSubmissionId) {
+                const linkedSub = pendingSoilSubmissions.find(s => s.id === linkedSubmissionId);
+                if (linkedSub) {
+                    window.parsedSamples.forEach((sample, i) => {
+                        if (i < linkedSub.samples.length) {
+                            const subField = linkedSub.samples[i].field;
+                            const normalizedParsed = (sample.sampleLocation || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+                            const normalizedSub = subField.toLowerCase().replace(/[^a-z0-9]/g, '');
+                            if (normalizedParsed.includes(normalizedSub) || normalizedSub.includes(normalizedParsed)) {
+                                sample.sampleLocation = subField; // Use the FARM_FIELDS-compatible name
+                            }
+                        }
+                    });
+                }
+            }
 
             for (const sample of window.parsedSamples) {
                 await saveSoilTestData(sample);
@@ -1569,8 +1616,14 @@
                 return;
             }
 
+            // Submissions tracker at top of current tab
+            let trackerHtml = '';
+            if (currentTab === 'current') {
+                trackerHtml = renderSubmissionsTracker();
+            }
+
             if (filteredTests.length === 0) {
-                container.innerHTML = `
+                container.innerHTML = trackerHtml + `
                     <div class="empty-state">
                         <div class="empty-state-icon">🧪</div>
                         <h3>No soil tests found</h3>
@@ -1580,7 +1633,7 @@
                 return;
             }
 
-            container.innerHTML = `
+            container.innerHTML = trackerHtml + `
                 <div class="tests-grid">
                     ${filteredTests.map(test => renderTestCard(test)).join('')}
                 </div>
@@ -8118,8 +8171,9 @@
         // ============================================
         // PRINTABLE BLANK SOIL TEST COLLECTION FORM
         // ============================================
-        function printBlankSoilTestForm() {
+        function printBlankSoilTestForm(fieldName = null) {
             const today = new Date().toLocaleDateString();
+            const fieldInfo = fieldName && FARM_FIELDS[fieldName] ? FARM_FIELDS[fieldName] : null;
             const pdfWindow = window.open('', '_blank');
             if (!pdfWindow) {
                 alert('Popup blocked — please allow popups for this site.');
@@ -8189,7 +8243,8 @@
                         </div>
                         <div class="info-field">
                             <label>Field / Zone Name</label>
-                            <div class="value"></div>
+                            <div class="value">${fieldInfo ? fieldName : ''}</div>
+                            ${fieldInfo ? '<div style="font-size: 0.7rem; color: #64748b; margin-top: 2px;">' + fieldInfo.acreage + ' ac | ' + (fieldInfo.beds || '?') + ' beds | ' + fieldInfo.lengthFt + ' x ' + fieldInfo.widthFt + ' ft</div>' : ''}
                         </div>
                         <div class="info-field">
                             <label>Field Boundary ID (if mapped)</label>
@@ -8275,7 +8330,7 @@
             const testOptions = Object.entries(LOGAN_LABS.tests)
                 .filter(([k]) => k !== 'tissue' && k !== 'water')
                 .map(([key, t]) =>
-                    '<option value="' + key + '" ' + (key === 'complete' ? 'selected' : '') + '>' + t.name + ' ($' + t.price + ') - ' + t.desc + '</option>'
+                    '<option value="' + key + '" ' + (key === 'mehlich3' ? 'selected' : '') + '>' + t.name + ' ($' + t.price + ') - ' + t.desc + '</option>'
                 ).join('');
 
             const today = new Date().toISOString().slice(0, 10);
@@ -8309,6 +8364,7 @@
                                                 <option value="__new__">— Add New Field / Zone —</option>
                                             </select>
                                             <input type="text" name="newField_0" placeholder="Enter new field name..." style="display:none; width:100%; padding:0.5rem; border:1px solid #a16207; border-radius:0.375rem; font-size:0.875rem; margin-top:0.375rem; background:#fffbeb;">
+                                            <a href="#" onclick="event.preventDefault(); var sel=this.closest('.logan-sample-row').querySelector('[name=field_0]'); var fn=sel&&sel.value&&sel.value!=='__new__'?sel.value:null; printBlankSoilTestForm(fn);" style="font-size: 0.7rem; color: #a16207; text-decoration: underline; display: inline-block; margin-top: 0.25rem;">Print Collection Form</a>
                                         </div>
                                         <div>
                                             <label style="font-size: 0.75rem; color: #64748b; font-weight: 600;">Crop / Intended Use</label>
@@ -8356,7 +8412,7 @@
                             </div>
 
                             <div id="loganCostEstimate" style="background: #fefce8; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem; font-size: 0.875rem;">
-                                <strong style="color: #854d0e;">Estimated Cost:</strong> <span id="loganTotalCost">$60.00</span>
+                                <strong style="color: #854d0e;">Estimated Cost:</strong> <span id="loganTotalCost">$25.00</span>
                             </div>
 
                             <div style="background: #f0fdf4; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1.5rem;">
@@ -8382,6 +8438,18 @@
             `;
             modal.style.display = 'flex';
             updateLoganCostEstimate();
+
+            // Add "Repeat Last Submission" button if previous submission exists
+            if (pendingSoilSubmissions.length > 0) {
+                const lastSub = pendingSoilSubmissions[pendingSoilSubmissions.length - 1];
+                const repeatBtn = document.createElement('button');
+                repeatBtn.type = 'button';
+                repeatBtn.textContent = 'Repeat Last Submission (fields from ' + lastSub.submissionId + ')';
+                repeatBtn.style.cssText = 'width: 100%; padding: 0.6rem; background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; border-radius: 0.5rem; cursor: pointer; font-size: 0.8rem; font-weight: 600; margin-bottom: 1rem;';
+                repeatBtn.onclick = repeatLastSubmission;
+                const formEl = document.getElementById('loganLabsForm');
+                if (formEl) formEl.insertBefore(repeatBtn, formEl.firstChild);
+            }
         }
 
         function closeLoganLabsModal() {
@@ -8395,19 +8463,61 @@
             ).join('');
         }
 
-        // Helper: show/hide new-field text input when "Add New" is selected
+        // Helper: show/hide new-field expanded form when "Add New" is selected
         function handleLoganFieldChange(select) {
             const idx = select.name.replace('field_', '');
-            const newFieldInput = select.closest('.logan-sample-row').querySelector('[name="newField_' + idx + '"]');
-            if (!newFieldInput) return;
+            const row = select.closest('.logan-sample-row');
+            const oldInput = row.querySelector('[name="newField_' + idx + '"]');
+            // Hide legacy simple input if present
+            if (oldInput) { oldInput.style.display = 'none'; oldInput.required = false; }
+
+            let container = row.querySelector('.new-field-form-' + idx);
             if (select.value === '__new__') {
-                newFieldInput.style.display = 'block';
-                newFieldInput.required = true;
-                newFieldInput.focus();
+                if (!container) {
+                    container = document.createElement('div');
+                    container.className = 'new-field-form-' + idx;
+                    container.style.cssText = 'background: #fffbeb; border: 1px solid #a16207; border-radius: 0.5rem; padding: 0.75rem; margin-top: 0.5rem; grid-column: 1 / -1;';
+                    container.innerHTML = `
+                        <div style="font-size: 0.75rem; font-weight: 700; color: #854d0e; margin-bottom: 0.5rem;">Create New Field / Zone</div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                            <div style="grid-column: 1 / -1;">
+                                <label style="font-size: 0.7rem; color: #64748b; font-weight: 600;">Field Name *</label>
+                                <input type="text" name="newFieldName_${idx}" required placeholder="e.g., Field Z6" style="width: 100%; padding: 0.4rem; border: 1px solid #e2e8f0; border-radius: 0.375rem; font-size: 0.875rem;">
+                            </div>
+                            <div>
+                                <label style="font-size: 0.7rem; color: #64748b; font-weight: 600;">Length (ft) *</label>
+                                <input type="number" name="newFieldLength_${idx}" required min="1" placeholder="e.g., 300" style="width: 100%; padding: 0.4rem; border: 1px solid #e2e8f0; border-radius: 0.375rem; font-size: 0.875rem;">
+                            </div>
+                            <div>
+                                <label style="font-size: 0.7rem; color: #64748b; font-weight: 600;">Width (ft) *</label>
+                                <input type="number" name="newFieldWidth_${idx}" required min="1" placeholder="e.g., 50" style="width: 100%; padding: 0.4rem; border: 1px solid #e2e8f0; border-radius: 0.375rem; font-size: 0.875rem;">
+                            </div>
+                            <div>
+                                <label style="font-size: 0.7rem; color: #64748b; font-weight: 600;">Type</label>
+                                <select name="newFieldType_${idx}" style="width: 100%; padding: 0.4rem; border: 1px solid #e2e8f0; border-radius: 0.375rem; font-size: 0.875rem;">
+                                    <option value="Veg" selected>Vegetable</option>
+                                    <option value="Floral">Floral</option>
+                                    <option value="Perennial">Perennial</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="font-size: 0.7rem; color: #64748b; font-weight: 600;">Number of Beds (optional)</label>
+                                <input type="number" name="newFieldBeds_${idx}" min="0" placeholder="Auto-calculated if blank" style="width: 100%; padding: 0.4rem; border: 1px solid #e2e8f0; border-radius: 0.375rem; font-size: 0.875rem;">
+                            </div>
+                        </div>
+                    `;
+                    // Insert after the grid div containing the select
+                    select.closest('.logan-sample-row').querySelector('[style*="grid-template-columns"]').after(container);
+                }
+                container.style.display = 'block';
+                const nameInput = container.querySelector('[name="newFieldName_' + idx + '"]');
+                if (nameInput) nameInput.focus();
             } else {
-                newFieldInput.style.display = 'none';
-                newFieldInput.required = false;
-                newFieldInput.value = '';
+                if (container) {
+                    container.style.display = 'none';
+                    // Remove required from hidden fields
+                    container.querySelectorAll('[required]').forEach(el => el.required = false);
+                }
             }
         }
 
@@ -8420,7 +8530,7 @@
             const testOptions = Object.entries(LOGAN_LABS.tests)
                 .filter(([k]) => k !== 'tissue' && k !== 'water')
                 .map(([key, t]) =>
-                    '<option value="' + key + '" ' + (key === 'complete' ? 'selected' : '') + '>' + t.name + ' ($' + t.price + ')</option>'
+                    '<option value="' + key + '" ' + (key === 'mehlich3' ? 'selected' : '') + '>' + t.name + ' ($' + t.price + ')</option>'
                 ).join('');
 
             const sampleId = 'LL-' + new Date().toISOString().slice(0, 10).replace(/-/g, '') + '-' + Math.random().toString(36).substr(2, 4).toUpperCase();
@@ -8447,6 +8557,7 @@
                             <option value="__new__">— Add New Field / Zone —</option>
                         </select>
                         <input type="text" name="newField_${idx}" placeholder="Enter new field name..." style="display:none; width:100%; padding:0.5rem; border:1px solid #a16207; border-radius:0.375rem; font-size:0.875rem; margin-top:0.375rem; background:#fffbeb;">
+                        <a href="#" onclick="event.preventDefault(); var sel=this.closest('.logan-sample-row').querySelector('[name=field_${idx}]'); var fn=sel&&sel.value&&sel.value!=='__new__'?sel.value:null; printBlankSoilTestForm(fn);" style="font-size: 0.7rem; color: #a16207; text-decoration: underline; display: inline-block; margin-top: 0.25rem;">Print Collection Form</a>
                     </div>
                     <div>
                         <label style="font-size: 0.75rem; color: #64748b; font-weight: 600;">Crop / Intended Use</label>
@@ -8486,20 +8597,188 @@
             if (costEl) costEl.textContent = '$' + total.toFixed(2);
         }
 
-        function submitSoilSampleToLogan(event) {
+        function repeatLastSubmission() {
+            if (pendingSoilSubmissions.length === 0) return;
+            const lastSub = pendingSoilSubmissions[pendingSoilSubmissions.length - 1];
+
+            // Clear existing sample rows
+            const samplesContainer = document.getElementById('loganSamples');
+            if (!samplesContainer) return;
+            samplesContainer.innerHTML = '';
+            loganSampleCount = 0;
+
+            // Recreate rows from previous submission
+            lastSub.samples.forEach((prevSample, i) => {
+                if (i === 0) {
+                    // Build the first row manually (same structure as showLoganLabsSubmitForm)
+                    const fieldOptions = getLoganFieldOptions();
+                    const testOptions = Object.entries(LOGAN_LABS.tests)
+                        .filter(([k]) => k !== 'tissue' && k !== 'water')
+                        .map(([key, t]) =>
+                            '<option value="' + key + '" ' + (key === prevSample.testPackage ? 'selected' : '') + '>' + t.name + ' ($' + t.price + ')</option>'
+                        ).join('');
+
+                    const sampleId = 'LL-' + new Date().toISOString().slice(0, 10).replace(/-/g, '') + '-' + Math.random().toString(36).substr(2, 4).toUpperCase();
+                    const row = document.createElement('div');
+                    row.className = 'logan-sample-row';
+                    row.dataset.index = '0';
+                    row.style.cssText = 'background: #fefce8; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem; border-left: 4px solid #a16207;';
+                    row.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                            <strong style="color: #854d0e;">Sample 1</strong>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                            <div>
+                                <label style="font-size: 0.75rem; color: #64748b; font-weight: 600;">Sample ID *</label>
+                                <input type="text" name="sampleId_0" value="${sampleId}" required style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem; font-size: 0.875rem;">
+                            </div>
+                            <div>
+                                <label style="font-size: 0.75rem; color: #64748b; font-weight: 600;">Field / Zone *</label>
+                                <select name="field_0" required onchange="handleLoganFieldChange(this)" style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem; font-size: 0.875rem;">
+                                    <option value="">Select field...</option>
+                                    ${fieldOptions}
+                                    <option value="__new__">— Add New Field / Zone —</option>
+                                </select>
+                                <input type="text" name="newField_0" placeholder="Enter new field name..." style="display:none; width:100%; padding:0.5rem; border:1px solid #a16207; border-radius:0.375rem; font-size:0.875rem; margin-top:0.375rem; background:#fffbeb;">
+                            </div>
+                            <div>
+                                <label style="font-size: 0.75rem; color: #64748b; font-weight: 600;">Crop / Intended Use</label>
+                                <input type="text" name="crop_0" value="${prevSample.crop || ''}" placeholder="e.g., Tomatoes" style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem; font-size: 0.875rem;">
+                            </div>
+                            <div>
+                                <label style="font-size: 0.75rem; color: #64748b; font-weight: 600;">Sample Depth (inches)</label>
+                                <input type="number" name="depth_0" value="${prevSample.depth || 6}" min="1" max="24" style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem; font-size: 0.875rem;">
+                            </div>
+                            <div style="grid-column: 1 / -1;">
+                                <label style="font-size: 0.75rem; color: #64748b; font-weight: 600;">Test Package *</label>
+                                <select name="test_0" required onchange="updateLoganCostEstimate()" style="width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem; font-size: 0.875rem;">
+                                    ${testOptions}
+                                </select>
+                            </div>
+                        </div>
+                    `;
+                    samplesContainer.appendChild(row);
+                    loganSampleCount = 1;
+
+                    // Set the field dropdown value
+                    const fieldSelect = row.querySelector('[name="field_0"]');
+                    if (fieldSelect) {
+                        // Check if previous field exists in options
+                        const optionExists = Array.from(fieldSelect.options).some(o => o.value === prevSample.field);
+                        if (optionExists) fieldSelect.value = prevSample.field;
+                    }
+                } else {
+                    // Add additional rows
+                    addLoganSampleRow();
+                    const newIdx = loganSampleCount - 1;
+                    const form = document.getElementById('loganLabsForm');
+                    // Pre-fill field
+                    const fieldSelect = form.querySelector(`[name="field_${newIdx}"]`);
+                    if (fieldSelect) {
+                        const optionExists = Array.from(fieldSelect.options).some(o => o.value === prevSample.field);
+                        if (optionExists) fieldSelect.value = prevSample.field;
+                    }
+                    // Pre-fill crop
+                    const cropInput = form.querySelector(`[name="crop_${newIdx}"]`);
+                    if (cropInput) cropInput.value = prevSample.crop || '';
+                    // Pre-fill depth
+                    const depthInput = form.querySelector(`[name="depth_${newIdx}"]`);
+                    if (depthInput) depthInput.value = prevSample.depth || 6;
+                    // Pre-fill test package
+                    const testSelect = form.querySelector(`[name="test_${newIdx}"]`);
+                    if (testSelect) testSelect.value = prevSample.testPackage;
+                }
+            });
+
+            // Pre-fill recommendations checkbox
+            if (lastSub.recommendations) {
+                const recCheckbox = document.getElementById('loganRecommendations');
+                if (recCheckbox) recCheckbox.checked = true;
+            }
+
+            updateLoganCostEstimate();
+            showToast('Loaded fields from previous submission ' + lastSub.submissionId, 'info');
+        }
+
+        async function submitSoilSampleToLogan(event) {
             event.preventDefault();
 
             const rows = document.querySelectorAll('.logan-sample-row');
             const samples = [];
-            rows.forEach(row => {
+            let hasError = false;
+
+            for (const row of rows) {
                 const idx = row.dataset.index;
                 const form = document.getElementById('loganLabsForm');
                 let fieldVal = form.querySelector(`[name="field_${idx}"]`).value;
+
                 if (fieldVal === '__new__') {
-                    const newFieldInput = form.querySelector(`[name="newField_${idx}"]`);
-                    fieldVal = newFieldInput ? newFieldInput.value.trim() : '';
-                    if (!fieldVal) { alert('Please enter a name for the new field/zone on Sample ' + (samples.length + 1)); return; }
+                    // Read expanded new-field form
+                    const container = row.querySelector('.new-field-form-' + idx);
+                    const fieldName = container ? container.querySelector(`[name="newFieldName_${idx}"]`)?.value.trim() : '';
+                    const lengthFt = container ? parseFloat(container.querySelector(`[name="newFieldLength_${idx}"]`)?.value) : 0;
+                    const widthFt = container ? parseFloat(container.querySelector(`[name="newFieldWidth_${idx}"]`)?.value) : 0;
+                    const fieldType = container ? container.querySelector(`[name="newFieldType_${idx}"]`)?.value : 'Veg';
+                    const numBeds = container ? container.querySelector(`[name="newFieldBeds_${idx}"]`)?.value : '';
+
+                    if (!fieldName || !lengthFt || !widthFt) {
+                        alert('Please fill in field name, length, and width for the new field on Sample ' + (samples.length + 1));
+                        hasError = true;
+                        break;
+                    }
+
+                    // Create field via addField endpoint
+                    try {
+                        showToast('Creating field "' + fieldName + '"...', 'info');
+                        const addFieldResult = await syncToBackend('addField', {
+                            name: fieldName,
+                            length: lengthFt,
+                            width: widthFt,
+                            type: fieldType,
+                            numBeds: numBeds || undefined
+                        });
+
+                        if (addFieldResult.success) {
+                            // Add to in-memory FARM_FIELDS
+                            const acreage = (lengthFt * widthFt) / 43560;
+                            let production = 'vegetable';
+                            if (fieldType === 'Floral') production = 'floral';
+                            else if (fieldType === 'Perennial') production = 'perennial';
+
+                            FARM_FIELDS[fieldName] = {
+                                acreage: parseFloat(acreage.toFixed(2)),
+                                lengthFt: lengthFt,
+                                widthFt: widthFt,
+                                beds: numBeds ? parseInt(numBeds) : Math.floor(widthFt / 4),
+                                bedWidthIn: 30,
+                                pathWidthIn: 18,
+                                production: production,
+                                notes: ''
+                            };
+                            fieldVal = fieldName;
+                            showToast('Field "' + fieldName + '" created and added to system', 'success');
+                        } else {
+                            // Field may already exist — use the name anyway
+                            if (addFieldResult.error && addFieldResult.error.includes('already exists')) {
+                                fieldVal = fieldName;
+                                showToast('Field "' + fieldName + '" already exists — using it', 'info');
+                            } else if (addFieldResult.offline) {
+                                // Offline — just use the name locally
+                                fieldVal = fieldName;
+                                showToast('Offline — field will be created when connection is restored', 'info');
+                            } else {
+                                alert('Could not create field: ' + (addFieldResult.error || 'Unknown error'));
+                                hasError = true;
+                                break;
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('addField call failed:', e);
+                        fieldVal = fieldName; // Use name anyway
+                        showToast('Could not reach server — field saved locally', 'info');
+                    }
                 }
+
                 samples.push({
                     sampleId: form.querySelector(`[name="sampleId_${idx}"]`).value,
                     field: fieldVal,
@@ -8507,7 +8786,20 @@
                     depth: parseFloat(form.querySelector(`[name="depth_${idx}"]`).value) || 6,
                     testPackage: form.querySelector(`[name="test_${idx}"]`).value
                 });
-            });
+            }
+
+            if (hasError) return;
+
+            // Calculate expected results date (collection date + 7 days)
+            const expectedResultsDate = (() => {
+                const d = new Date(document.getElementById('loganCollectionDate').value);
+                d.setDate(d.getDate() + 7);
+                return d.toISOString().split('T')[0];
+            })();
+
+            // Calculate total cost
+            const totalCost = samples.reduce((sum, s) => sum + (LOGAN_LABS.tests[s.testPackage]?.price || 0), 0)
+                + (document.getElementById('loganRecommendations').checked ? LOGAN_LABS.recommendationsCost : 0);
 
             const submission = {
                 id: Date.now(),
@@ -8519,12 +8811,31 @@
                 samples: samples,
                 status: 'pending',
                 createdAt: new Date().toISOString(),
-                resultsSoilTestIds: []
+                resultsSoilTestIds: [],
+                expectedResultsDate: expectedResultsDate,
+                totalCost: totalCost
             };
 
-            // Save to pending submissions
+            // Save to pending submissions (localStorage)
             pendingSoilSubmissions.push(submission);
             localStorage.setItem('pendingSoilSubmissions', JSON.stringify(pendingSoilSubmissions));
+
+            // Sync to backend
+            await syncToBackend('saveSoilSubmission', submission);
+
+            // Create Chief of Staff reminder task
+            try {
+                await syncToBackend('createTask', {
+                    title: 'Check for Logan Labs soil test results — ' + submission.submissionId,
+                    description: 'Submission ' + submission.submissionId + ' sent ' + submission.collectionDate + '. Fields: ' + submission.samples.map(s => s.field).join(', ') + '. Check email for PDF results from Logan Labs.',
+                    dueDate: submission.expectedResultsDate,
+                    priority: 'medium',
+                    category: 'soil-testing',
+                    source: 'soil-tests-auto'
+                });
+            } catch(e) {
+                console.warn('Could not create reminder task:', e.message);
+            }
 
             // Generate printable submission
             generateLoganLabsSubmissionPDF(submission);
@@ -8739,6 +9050,12 @@
                     sub.status = 'complete';
                 }
                 localStorage.setItem('pendingSoilSubmissions', JSON.stringify(pendingSoilSubmissions));
+                // Sync update to backend
+                syncToBackend('updateSoilSubmission', {
+                    id: sub.id,
+                    status: sub.status,
+                    resultsSoilTestIds: sub.resultsSoilTestIds
+                });
                 showToast('Soil test linked to Logan Labs submission ' + sub.submissionId, 'success');
             }
         }
@@ -8746,6 +9063,100 @@
         function reprintLoganSubmission(submissionId) {
             const sub = pendingSoilSubmissions.find(s => s.id === submissionId);
             if (sub) generateLoganLabsSubmissionPDF(sub);
+        }
+
+        function renderSubmissionsTracker() {
+            const nonComplete = pendingSoilSubmissions.filter(s => s.status !== 'complete');
+            if (nonComplete.length === 0) return '';
+
+            const today = new Date();
+            const cards = nonComplete.map(sub => {
+                const fields = (sub.samples || []).map(s => s.field).join(', ');
+                const packages = [...new Set((sub.samples || []).map(s => {
+                    const t = LOGAN_LABS.tests[s.testPackage];
+                    return t ? t.name : s.testPackage;
+                }))].join(', ');
+
+                const collDate = new Date(sub.collectionDate);
+                const daysWaiting = Math.max(0, Math.floor((today - collDate) / (1000 * 60 * 60 * 24)));
+                const expectedDate = sub.expectedResultsDate || (() => {
+                    const d = new Date(sub.collectionDate);
+                    d.setDate(d.getDate() + 7);
+                    return d.toISOString().split('T')[0];
+                })();
+                const isOverdue = today > new Date(expectedDate) && sub.status !== 'complete';
+
+                let statusColor, statusLabel;
+                if (sub.status === 'shipped') {
+                    statusColor = '#3b82f6'; statusLabel = 'Shipped';
+                } else if (sub.status === 'complete') {
+                    statusColor = '#10b981'; statusLabel = 'Complete';
+                } else {
+                    statusColor = '#f59e0b'; statusLabel = 'Pending';
+                }
+
+                return `
+                    <div style="background: white; border-radius: 0.75rem; padding: 1rem; border-left: 4px solid ${statusColor}; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+                            <div>
+                                <strong style="font-size: 0.95rem;">${sub.submissionId}</strong>
+                                <span style="font-size: 0.75rem; color: #64748b; margin-left: 0.5rem;">${sub.collectionDate}</span>
+                            </div>
+                            <span style="font-size: 0.7rem; font-weight: 600; padding: 0.2rem 0.6rem; border-radius: 9999px; background: ${statusColor}20; color: ${statusColor};">${statusLabel}</span>
+                        </div>
+                        <div style="font-size: 0.8rem; color: #475569; margin-bottom: 0.25rem;">
+                            <strong>Fields:</strong> ${fields || 'N/A'}
+                        </div>
+                        <div style="font-size: 0.8rem; color: #475569; margin-bottom: 0.25rem;">
+                            <strong>Tests:</strong> ${packages}
+                        </div>
+                        <div style="font-size: 0.8rem; color: #475569; margin-bottom: 0.5rem;">
+                            <strong>Days waiting:</strong> ${daysWaiting} &nbsp;|&nbsp; <strong>Expected:</strong> ${expectedDate}
+                        </div>
+                        ${isOverdue ? `
+                            <div style="background: #fffbeb; border: 1px solid #f59e0b; border-radius: 0.375rem; padding: 0.5rem 0.75rem; font-size: 0.8rem; color: #92400e; margin-bottom: 0.5rem;">
+                                Results may be ready — check email or call Logan Labs (937-842-6100)
+                            </div>
+                        ` : ''}
+                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                            ${sub.status === 'pending' ? `
+                                <button onclick="markSubmissionShipped(${sub.id})" style="font-size: 0.75rem; padding: 0.35rem 0.75rem; background: #3b82f6; color: white; border: none; border-radius: 0.375rem; cursor: pointer; font-weight: 600;">Mark Shipped</button>
+                            ` : ''}
+                            <button onclick="reprintLoganSubmission(${sub.id})" style="font-size: 0.75rem; padding: 0.35rem 0.75rem; background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; border-radius: 0.375rem; cursor: pointer;">Reprint Worksheet</button>
+                            ${sub.status === 'complete' && sub.resultsSoilTestIds && sub.resultsSoilTestIds.length > 0 ? `
+                                <button onclick="scrollToTest('${sub.resultsSoilTestIds[0]}')" style="font-size: 0.75rem; padding: 0.35rem 0.75rem; background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; border-radius: 0.375rem; cursor: pointer;">View Results</button>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            return `
+                <div style="margin-bottom: 1.5rem;">
+                    <div onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'none' ? 'grid' : 'none'; this.querySelector('.toggle-arrow').textContent = this.nextElementSibling.style.display === 'none' ? '&#9654;' : '&#9660;'" style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.75rem 1rem; background: #fffbeb; border-radius: 0.75rem 0.75rem 0 0; border: 1px solid #fde68a;">
+                        <span class="toggle-arrow" style="font-size: 0.7rem;">&#9660;</span>
+                        <strong style="color: #854d0e; font-size: 0.95rem;">Logan Labs Submissions (${nonComplete.length} pending)</strong>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 1rem; padding: 1rem; background: #fefce8; border-radius: 0 0 0.75rem 0.75rem; border: 1px solid #fde68a; border-top: none;">
+                        ${cards}
+                    </div>
+                </div>
+            `;
+        }
+
+        function scrollToTest(testId) {
+            const card = document.querySelector(`[data-test-id="${testId}"]`);
+            if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        async function markSubmissionShipped(id) {
+            const sub = pendingSoilSubmissions.find(s => s.id === id);
+            if (!sub) return;
+            sub.status = 'shipped';
+            localStorage.setItem('pendingSoilSubmissions', JSON.stringify(pendingSoilSubmissions));
+            await syncToBackend('updateSoilSubmission', { id: sub.id, status: 'shipped', resultsSoilTestIds: sub.resultsSoilTestIds });
+            renderTests();
+            showToast('Submission ' + sub.submissionId + ' marked as shipped', 'success');
         }
 
         // Helper to find amendment key from material name
@@ -11472,6 +11883,91 @@
                         <div style="color: #64748b; font-size: 0.875rem;">Field Zones</div>
                     </div>
                 </div>
+
+                <!-- Soil Testing Costs -->
+                ${(() => {
+                    if (!pendingSoilSubmissions || pendingSoilSubmissions.length === 0) return '';
+                    const costsByYear = {};
+                    let totalSamples = 0;
+                    let totalSpend = 0;
+                    const packageCounts = {};
+
+                    pendingSoilSubmissions.forEach(sub => {
+                        const year = (sub.collectionDate || sub.createdAt || '').substring(0, 4) || 'Unknown';
+                        if (!costsByYear[year]) costsByYear[year] = { submissions: 0, samples: 0, cost: 0 };
+                        costsByYear[year].submissions++;
+                        const sampleCount = (sub.samples || []).length;
+                        costsByYear[year].samples += sampleCount;
+                        totalSamples += sampleCount;
+
+                        let subCost = 0;
+                        (sub.samples || []).forEach(s => {
+                            const testPrice = LOGAN_LABS.tests[s.testPackage]?.price || 0;
+                            subCost += testPrice;
+                            const pkgName = LOGAN_LABS.tests[s.testPackage]?.name || s.testPackage;
+                            packageCounts[pkgName] = (packageCounts[pkgName] || 0) + 1;
+                        });
+                        if (sub.recommendations) subCost += LOGAN_LABS.recommendationsCost;
+                        costsByYear[year].cost += subCost;
+                        totalSpend += subCost;
+                    });
+
+                    const avgPerSample = totalSamples > 0 ? (totalSpend / totalSamples).toFixed(2) : '0.00';
+                    const yearRows = Object.entries(costsByYear).sort((a, b) => b[0].localeCompare(a[0]))
+                        .map(([year, d]) => '<tr><td style="font-weight:600;">' + year + '</td><td>' + d.submissions + '</td><td>' + d.samples + '</td><td style="text-align:right;">$' + d.cost.toFixed(2) + '</td></tr>')
+                        .join('');
+                    const pkgRows = Object.entries(packageCounts).sort((a, b) => b[1] - a[1])
+                        .map(([pkg, count]) => '<tr><td>' + pkg + '</td><td style="text-align:right;">' + count + '</td></tr>')
+                        .join('');
+
+                    return `
+                        <div style="background: white; border-radius: 1rem; padding: 1.25rem; margin-bottom: 1.5rem;">
+                            <h4 style="margin-bottom: 1rem;">Soil Testing Costs</h4>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.75rem; margin-bottom: 1rem;">
+                                <div style="text-align: center; padding: 0.75rem; background: #f0fdf4; border-radius: 0.5rem;">
+                                    <div style="font-size: 1.5rem; font-weight: 700; color: #166534;">${pendingSoilSubmissions.length}</div>
+                                    <div style="font-size: 0.75rem; color: #64748b;">Submissions</div>
+                                </div>
+                                <div style="text-align: center; padding: 0.75rem; background: #f0fdf4; border-radius: 0.5rem;">
+                                    <div style="font-size: 1.5rem; font-weight: 700; color: #166534;">${totalSamples}</div>
+                                    <div style="font-size: 0.75rem; color: #64748b;">Samples Sent</div>
+                                </div>
+                                <div style="text-align: center; padding: 0.75rem; background: #fefce8; border-radius: 0.5rem;">
+                                    <div style="font-size: 1.5rem; font-weight: 700; color: #854d0e;">$${totalSpend.toFixed(2)}</div>
+                                    <div style="font-size: 0.75rem; color: #64748b;">Total Spend</div>
+                                </div>
+                                <div style="text-align: center; padding: 0.75rem; background: #fefce8; border-radius: 0.5rem;">
+                                    <div style="font-size: 1.5rem; font-weight: 700; color: #854d0e;">$${avgPerSample}</div>
+                                    <div style="font-size: 0.75rem; color: #64748b;">Avg/Sample</div>
+                                </div>
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                                <div>
+                                    <div style="font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 0.5rem;">By Year</div>
+                                    <table style="width: 100%; border-collapse: collapse; font-size: 0.8rem;">
+                                        <thead><tr style="border-bottom: 2px solid #e2e8f0;">
+                                            <th style="text-align: left; padding: 0.3rem;">Year</th>
+                                            <th style="text-align: left; padding: 0.3rem;">Sub.</th>
+                                            <th style="text-align: left; padding: 0.3rem;">Samples</th>
+                                            <th style="text-align: right; padding: 0.3rem;">Cost</th>
+                                        </tr></thead>
+                                        <tbody>${yearRows}</tbody>
+                                    </table>
+                                </div>
+                                <div>
+                                    <div style="font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 0.5rem;">By Test Package</div>
+                                    <table style="width: 100%; border-collapse: collapse; font-size: 0.8rem;">
+                                        <thead><tr style="border-bottom: 2px solid #e2e8f0;">
+                                            <th style="text-align: left; padding: 0.3rem;">Package</th>
+                                            <th style="text-align: right; padding: 0.3rem;">Count</th>
+                                        </tr></thead>
+                                        <tbody>${pkgRows}</tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                })()}
 
                 <!-- Data Management -->
                 <div style="background: white; border-radius: 1rem; padding: 1.25rem; margin-bottom: 1.5rem;">
