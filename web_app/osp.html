@@ -1363,12 +1363,7 @@ async function fetchFarmData() {
         // Track what loaded for the status banner
         var loaded = [];
 
-        // Readiness
-        if (complianceRes && complianceRes.success) {
-            updateReadiness(complianceRes);
-        } else {
-            setReadinessOffline();
-        }
+        // Readiness — calculated after all sections populated (see below)
 
         // Section 4: Field History
         if (fieldsRes && fieldsRes.success && fieldsRes.fields && fieldsRes.fields.length > 0) {
@@ -1426,6 +1421,9 @@ async function fetchFarmData() {
         // Fill 2025 inputs into field history rows (only fills empty input cells)
         var inputsFilled = apply2025Inputs();
         if (inputsFilled > 0) loaded.push('2025 inputs (' + inputsFilled + ' fields)');
+
+        // Now calculate OSP form readiness based on what's actually filled
+        updateReadiness();
 
         // Show summary
         if (loaded.length > 0) {
@@ -1833,19 +1831,40 @@ function populateHarvestData(harvestRes) {
     }
 }
 
-function updateReadiness(data) {
-    var pct = data.readinessPercent || 0;
+function updateReadiness() {
     var el = document.getElementById('readinessPercent');
     var circle = document.getElementById('readinessCircle');
     var subtitle = document.getElementById('readinessSubtitle');
-    var checks = document.getElementById('readinessChecks');
+    var checksEl = document.getElementById('readinessChecks');
+
+    // Check actual OSP form completion — same checks as finalizeOSP
+    var checks = [
+        { name: 'Farm info', passed: !!document.getElementById('farmName').value && !!document.getElementById('operatorName').value },
+        { name: 'Operation description', passed: !!document.getElementById('opDescription').value },
+        { name: 'Farm map', passed: !!(document.getElementById('mapAttached') && document.getElementById('mapAttached').checked) || mapSnapshots.length > 0 },
+        { name: 'Field history', passed: document.getElementById('fieldHistoryBody').children.length > 0 },
+        { name: 'Crops', passed: document.getElementById('cropsBody').children.length > 0 },
+        { name: 'Seeds & planting stock', passed: document.getElementById('seedBody').children.length > 0 },
+        { name: 'Soil & fertility', passed: !!document.getElementById('soilDescription').value && !!document.getElementById('cropRotation').value },
+        { name: 'Fertility inputs', passed: document.getElementById('fertilityBody').children.length > 0 },
+        { name: 'Pest management', passed: !!document.getElementById('pestMonitoring').value },
+        { name: 'Materials list', passed: document.getElementById('materialsBody').children.length > 0 },
+        { name: 'Contamination prevention', passed: !!document.getElementById('contaminationPrevention').value },
+        { name: 'Harvest practices', passed: !!document.getElementById('harvestPractices').value },
+        { name: 'Water & biodiversity', passed: !!document.getElementById('waterSource').value },
+        { name: 'Recordkeeping', passed: !!(document.getElementById('recordkeepingSystem') && document.getElementById('recordkeepingSystem').value) },
+        { name: 'Signed & dated', passed: !!(document.getElementById('signature') && document.getElementById('signature').value) }
+    ];
+
+    var passed = checks.filter(function(c) { return c.passed; }).length;
+    var pct = Math.round((passed / checks.length) * 100);
 
     el.textContent = pct;
 
     if (pct >= 80) {
         circle.style.borderColor = 'var(--accent)';
         circle.style.color = 'var(--accent)';
-    } else if (pct >= 40) {
+    } else if (pct >= 60) {
         circle.style.borderColor = 'var(--warning)';
         circle.style.color = 'var(--warning)';
     } else {
@@ -1853,38 +1872,16 @@ function updateReadiness(data) {
         circle.style.color = 'var(--danger)';
     }
 
-    subtitle.textContent = 'Traceability: ' + (data.traceabilityGrade || 'N/A') +
-        ' | Seed records: ' + (data.seedRecordCount || 0) +
-        ' | Checks passed: ' + (data.passedChecks || 0) + '/' + (data.totalChecks || 5);
+    subtitle.textContent = 'OSP form completion: ' + passed + '/' + checks.length + ' sections filled';
 
-    var items = data.checkDetails || [];
-    checks.innerHTML = '';
-    items.forEach(function(c) {
+    checksEl.innerHTML = '';
+    checks.forEach(function(c) {
         var div = document.createElement('div');
         div.className = 'check-item';
         var icon = c.passed ? '<i class="fas fa-check-circle pass"></i>' : '<i class="fas fa-times-circle fail"></i>';
-        div.innerHTML = icon + ' ' + (c.name || c.check || 'Check');
-        checks.appendChild(div);
+        div.innerHTML = icon + ' ' + c.name;
+        checksEl.appendChild(div);
     });
-
-    // Add some computed checks
-    if (!items.length) {
-        var seedCheck = (data.seedRecordCount || 0) > 0;
-        var traceCheck = (data.traceabilityScore || 0) >= 80;
-        [
-            { name: 'Seed inventory', passed: seedCheck },
-            { name: 'Traceability', passed: traceCheck },
-            { name: 'Input records', passed: (data.inputRecordCount || 0) > 0 },
-            { name: 'Harvest records', passed: (data.harvestRecordCount || 0) > 0 },
-            { name: 'Field scouting', passed: (data.pestRecordCount || 0) > 0 }
-        ].forEach(function(c) {
-            var div = document.createElement('div');
-            div.className = 'check-item';
-            var icon = c.passed ? '<i class="fas fa-check-circle pass"></i>' : '<i class="fas fa-times-circle fail"></i>';
-            div.innerHTML = icon + ' ' + c.name;
-            checks.appendChild(div);
-        });
-    }
 }
 
 function setReadinessOffline() {
@@ -3176,6 +3173,9 @@ function autoSaveDraft() {
     // Save to localStorage immediately (survives refresh)
     var draft = collectFormData();
     localStorage.setItem('osp_draft_' + OSP_YEAR, JSON.stringify(draft));
+
+    // Update readiness score on every save
+    updateReadiness();
 
     // Debounce backend save to every 30s
     if (_saveTimer) clearTimeout(_saveTimer);
