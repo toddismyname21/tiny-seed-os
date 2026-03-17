@@ -35,6 +35,50 @@ Brief explanation of why these changes were made.
 
 
 
+## 2026-03-17 — FULLSTACK_BUILDER: Fix TRAY_INVENTORY schema mismatch in confirmGHSowing
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — Replaced wrong auto-create tray block in `confirmGHSowing()` with tray stock deduction logic
+
+### Functions Modified
+- `confirmGHSowing()` in `MERGED TOTAL.js` — Previous build appended rows to TRAY_INVENTORY using wrong schema (Batch_ID, Crop, Variety, etc.) but TRAY_INVENTORY has schema [Size, Total, ReorderPoint, LastUpdated]. Replaced with stock deduction: finds matching tray size, decrements Total, updates LastUpdated timestamp. Uses Math.max(0, ...) to prevent negative stock. Still wrapped in try/catch so failures never block sowing confirmation.
+
+### Reason
+Integration-watcher caught schema mismatch: confirmGHSowing was writing 10-column crop-tracking rows into a 4-column stock-count sheet. This would corrupt TRAY_INVENTORY data. The correct behavior is to DEDUCT from existing tray stock when trays are used for sowing, not append new tracking rows.
+
+### Duplicate Check
+- [x] No new files created
+- [x] No new functions created
+
+---
+
+## 2026-03-17 — FULLSTACK_BUILDER: Greenhouse Workflow 5-Fix Bundle
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — Added `assignSowingSheet` to PUBLIC_POST_ACTIONS whitelist; Fixed POST `deletePlanting` route to call `deletePlantingById` (was stub returning "Not implemented"); Updated `deletePlanting()` function to delegate to `deletePlantingById()`; Added auto-create TRAY_INVENTORY entry in `confirmGHSowing` after lock release
+- `employee.html` — Added delete button (trash icon) to each pending seeding card; Added `deleteGHSowing()` async function with offline queue support
+- `web_app/greenhouse-dashboard.html` — Added quick-action links bar (Sowing Sheets + Labels) to Today tab; Added date range picker (start/end inputs + Today/Week/2Weeks presets); Modified `loadTodayTab()` to read date inputs for API call range; Added `setGHDateRange()` helper function; Updated `setDefaultDates()` to populate date range inputs
+
+### Functions Added
+- `deleteGHSowing(batchId)` in `employee.html` — Delete seeding from plan via GET deletePlanting endpoint, with offline queue fallback
+- `setGHDateRange(preset)` in `greenhouse-dashboard.html` — Quick date range presets (today/week/2weeks) for sowing task filter
+
+### Functions Modified
+- `deletePlanting(id)` in `MERGED TOTAL.js` — Changed from stub to delegate to `deletePlantingById(id)`
+- `confirmGHSowing()` in `MERGED TOTAL.js` — Added tray inventory auto-creation after sowing confirmation
+- `loadTodayTab()` in `greenhouse-dashboard.html` — Now reads ghStartDate/ghEndDate inputs for API date range
+- `setDefaultDates()` in `greenhouse-dashboard.html` — Now also sets ghStartDate and ghEndDate values
+
+### Reason
+5-fix bundle to close greenhouse workflow gaps: (1) assignSowingSheet POST auth, (2) deletePlanting actually works, (3) employees can remove seedings, (4) tray inventory stays in sync with sowing confirmations, (5) greenhouse dashboard gets hub links and date filtering.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md — no new files created
+- [x] Verified `deletePlantingById` exists and works (line 31482)
+- [x] Verified `confirmGHSowing` lock/return structure before inserting tray code
+
+---
+
 ## 2026-03-17 — PM_ARCHITECT: Agent Model Optimization + Memory Bootstrap
 
 ### Files Modified

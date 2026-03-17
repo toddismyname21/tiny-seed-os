@@ -18159,7 +18159,7 @@ function doPost(e) {
       'bulkSyncFieldNotes', 'syncComplianceRecords', 'emailOrganicReportToOEFFA',
       'saveOSPDraft', 'getOSPDraft',
       // Sowing sheets page (task sheets write operations)
-      'batchUpdatePlanningFields', 'addPlanting', 'deletePlanting',
+      'batchUpdatePlanningFields', 'addPlanting', 'deletePlanting', 'assignSowingSheet',
       // OSP bulk historical data import
       'bulkAddPlantings', 'bulkAddInputs',
       // Customer-facing (CSA/wholesale use magic-link auth, not session tokens)
@@ -18291,7 +18291,7 @@ function doPost(e) {
       case 'updatePlanting':
         return updatePlanting(data.planting);
       case 'deletePlanting':
-        return deletePlanting(data.id);
+        return deletePlantingById(data.id || data.batchId);
       case 'bulkAddPlantings':
         return bulkAddPlantings(data);
       case 'bulkAddInputs':
@@ -31474,7 +31474,7 @@ function getFinancials() { return jsonResponse({success: false, message: 'Not im
   }
 
 
-function deletePlanting(id) { return jsonResponse({success: false, message: 'Not implemented'}); }
+function deletePlanting(id) { return deletePlantingById(id); }
 
 /**
  * Delete a planting by Batch_ID (for GET requests)
@@ -35843,6 +35843,29 @@ function confirmGHSowing(data) {
     }
 
     lock.releaseLock();
+
+    // Deduct used trays from TRAY_INVENTORY stock
+    try {
+      var usedTrays = Number(actualTrays) || Number(allData[rowIndex - 1][headers.indexOf('Trays_Needed')]) || 0;
+      var cellSize = String(allData[rowIndex - 1][headers.indexOf('Tray_Cell_Count')] || '').trim();
+      if (usedTrays > 0 && cellSize) {
+        var traySheet = ss.getSheetByName('TRAY_INVENTORY');
+        if (traySheet) {
+          var trayData = traySheet.getDataRange().getValues();
+          for (var tr = 1; tr < trayData.length; tr++) {
+            if (String(trayData[tr][0]).trim() === cellSize) {
+              var currentTotal = Number(trayData[tr][1]) || 0;
+              var newTotal = Math.max(0, currentTotal - usedTrays);
+              traySheet.getRange(tr + 1, 2).setValue(newTotal);
+              traySheet.getRange(tr + 1, 4).setValue(new Date());
+              break;
+            }
+          }
+        }
+      }
+    } catch (trayErr) {
+      Logger.log('Tray stock deduction warning: ' + trayErr.toString());
+    }
 
     return {
       success: true,

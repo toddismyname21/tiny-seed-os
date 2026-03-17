@@ -852,6 +852,23 @@
 
 <!-- ────────────── TAB 1: TODAY'S TASKS ────────────── -->
 <div class="tab-panel active" id="panel-today" role="tabpanel" aria-labelledby="tab-today">
+    <div class="gh-quick-actions" style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+        <a href="../sowing-sheets.html" class="gh-quick-btn" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:var(--info-dim);color:var(--info);border:1px solid rgba(59,130,246,0.2);border-radius:var(--radius-sm);font-size:0.8rem;font-weight:600;text-decoration:none;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='rgba(59,130,246,0.25)'" onmouseout="this.style.background='var(--info-dim)'">
+            <i class="fas fa-print"></i> Plan &amp; Print Task Sheets
+        </a>
+        <a href="../labels.html?dateRange=today" class="gh-quick-btn" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:var(--purple-dim);color:var(--purple);border:1px solid rgba(167,139,250,0.2);border-radius:var(--radius-sm);font-size:0.8rem;font-weight:600;text-decoration:none;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='rgba(167,139,250,0.25)'" onmouseout="this.style.background='var(--purple-dim)'">
+            <i class="fas fa-tags"></i> Print Labels
+        </a>
+    </div>
+    <div class="gh-date-range" style="display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+        <label style="font-size:0.8rem;color:var(--text-secondary);font-weight:500;">Date Range:</label>
+        <input type="date" id="ghStartDate" style="background:var(--bg-light);border:1px solid var(--border);color:var(--text-primary);padding:6px 10px;border-radius:var(--radius-sm);font-size:0.8rem;font-family:inherit;" onchange="loadTodayTab(true)">
+        <span style="color:var(--text-secondary);font-size:0.8rem;">to</span>
+        <input type="date" id="ghEndDate" style="background:var(--bg-light);border:1px solid var(--border);color:var(--text-primary);padding:6px 10px;border-radius:var(--radius-sm);font-size:0.8rem;font-family:inherit;" onchange="loadTodayTab(true)">
+        <button onclick="setGHDateRange('today')" style="background:var(--bg-light);border:1px solid var(--border);color:var(--text-secondary);padding:6px 12px;border-radius:var(--radius-sm);font-size:0.75rem;cursor:pointer;">Today</button>
+        <button onclick="setGHDateRange('week')" style="background:var(--bg-light);border:1px solid var(--border);color:var(--text-secondary);padding:6px 12px;border-radius:var(--radius-sm);font-size:0.75rem;cursor:pointer;">This Week</button>
+        <button onclick="setGHDateRange('2weeks')" style="background:var(--bg-light);border:1px solid var(--border);color:var(--text-secondary);padding:6px 12px;border-radius:var(--radius-sm);font-size:0.75rem;cursor:pointer;">2 Weeks</button>
+    </div>
     <div class="error-banner" id="errorBanner-today" role="alert" aria-live="assertive"><i class="fas fa-exclamation-triangle"></i><span class="error-msg"></span><button class="btn-retry" onclick="retryErrorBanner('today')"><i class="fas fa-redo"></i> Retry</button><button class="btn-dismiss" onclick="hideErrorBanner('today')" aria-label="Dismiss">&times;</button></div>
     <div class="stat-row" id="todayStats">
         <div class="stat-card gold"><div class="stat-label">Tasks Due Today</div><div class="stat-value" id="statTasksToday">--</div><div class="stat-sub" id="statTasksSub">Loading...</div></div>
@@ -1723,6 +1740,29 @@ function setDefaultDates() {
     const today = new Date().toISOString().split('T')[0];
     const els = ['saleDate', 'logSaleDateField', 'newTraySowDate'];
     els.forEach(id => { const el = document.getElementById(id); if (el) el.value = today; });
+    var ghStartEl = document.getElementById('ghStartDate');
+    var ghEndEl = document.getElementById('ghEndDate');
+    if (ghStartEl) ghStartEl.value = todayStr();
+    if (ghEndEl) ghEndEl.value = weekFromNow();
+}
+
+function setGHDateRange(preset) {
+    var startInput = document.getElementById('ghStartDate');
+    var endInput = document.getElementById('ghEndDate');
+    var today = todayStr();
+    if (preset === 'today') {
+        startInput.value = today;
+        endInput.value = today;
+    } else if (preset === 'week') {
+        startInput.value = today;
+        endInput.value = weekFromNow();
+    } else if (preset === '2weeks') {
+        startInput.value = today;
+        var d = new Date();
+        d.setDate(d.getDate() + 14);
+        endInput.value = d.toISOString().split('T')[0];
+    }
+    loadTodayTab(true);
 }
 
 function startAutoRefresh() {
@@ -2732,9 +2772,13 @@ async function loadTodayTab(forceRefresh) {
     document.getElementById('panel-today').setAttribute('aria-busy', 'true');
 
     try {
+        var startInput = document.getElementById('ghStartDate');
+        var endInput = document.getElementById('ghEndDate');
+        var start = (startInput && startInput.value) ? startInput.value : seasonStart();
+        var end = (endInput && endInput.value) ? endInput.value : weekFromNow();
         const [sowRes, transRes, trayRes] = await Promise.all([
-            api.get('getGreenhouseSowingTasks', { startDate: seasonStart(), endDate: weekFromNow(), includeOverdue: 'true', category: 'veg-herb' }),
-            api.get('getTransplantTasks', { startDate: seasonStart(), endDate: weekFromNow() }),
+            api.get('getGreenhouseSowingTasks', { startDate: start, endDate: end, includeOverdue: 'true', category: 'veg-herb' }),
+            api.get('getTransplantTasks', { startDate: start, endDate: end }),
             api.get('getTrayInventory')
         ]);
 

@@ -16975,6 +16975,7 @@
                 html += '<div style="margin-top:10px;">';
                 html += '<button class="task-done-btn sow-done' + (isSeedlingSale ? ' seedling-sale-btn' : '') + '" onclick="event.stopPropagation();quickCompleteGHSow(\'' + bid + '\')"><i class="fas fa-seedling"></i> ' + seededLabel + '</button>';
                 html += '<button class="task-changes-btn" onclick="event.stopPropagation();openGHSowConfirm(\'' + bid + '\')"><i class="fas fa-pen"></i> ' + changesLabel + '</button>';
+                html += '<button class="task-delete-btn" onclick="event.stopPropagation();deleteGHSowing(\'' + bid + '\')" style="background:transparent;border:1px solid rgba(239,68,68,0.3);color:#ef4444;border-radius:8px;padding:8px 12px;font-size:0.8rem;cursor:pointer;margin-left:6px;" title="Remove this seeding"><i class="fas fa-trash-alt"></i></button>';
                 html += '</div>';
                 html += '</div>';
             });
@@ -17040,6 +17041,40 @@
             } catch (err) {
                 console.error('quickCompleteGHSow error:', err);
                 showToast(t('sow.saveFailed'), 'error');
+            }
+        }
+
+        async function deleteGHSowing(batchId) {
+            var task = ghSowTasks.find(function(t) { return t.batchId === batchId; });
+            if (!task) return;
+
+            var confirmMsg = 'Remove "' + task.crop + ' — ' + task.variety + '" seeding for ' + task.plannedDate + '?\n\nThis permanently removes it from the plan across all systems.';
+            if (!confirm(confirmMsg)) return;
+
+            try {
+                var res = await fetchWithTimeout(CONFIG.API_URL + '?action=deletePlanting&id=' + encodeURIComponent(batchId), 15000);
+                var result = await res.json();
+                if (result.success) {
+                    ghSowTasks = ghSowTasks.filter(function(t) { return t.batchId !== batchId; });
+                    renderGHSowingTasks();
+                    showToast(task.crop + ' — ' + task.variety + ' removed from plan', 'success');
+                    if (navigator.vibrate) navigator.vibrate(50);
+                } else {
+                    showToast('Failed to remove: ' + (result.error || 'Unknown error'), 'error');
+                }
+            } catch (err) {
+                // Queue for offline sync
+                if (typeof OfflineDB !== 'undefined' && OfflineDB.queueOperation) {
+                    OfflineDB.queueOperation({
+                        action: 'deletePlanting',
+                        id: batchId
+                    });
+                    ghSowTasks = ghSowTasks.filter(function(t) { return t.batchId !== batchId; });
+                    renderGHSowingTasks();
+                    showToast('Saved offline — will sync when connected', 'info');
+                } else {
+                    showToast('Error removing seeding: ' + err.message, 'error');
+                }
             }
         }
 
