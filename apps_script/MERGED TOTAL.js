@@ -37873,6 +37873,18 @@ const SOIL_TEST_HEADERS = [
 
 function getSoilTests(params) {
   try {
+    // One-time migration: if SOIL_TESTS exists with wrong headers, archive it
+    var ss_ = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var existingSheet_ = ss_.getSheetByName('SOIL_TESTS');
+    if (existingSheet_) {
+      var firstHeader_ = String(existingSheet_.getRange(1, 1).getValue()).trim();
+      if (firstHeader_ !== 'id' && firstHeader_ !== '') {
+        // Headers don't match expected schema — archive the old sheet
+        existingSheet_.setName('SOIL_TESTS_ARCHIVED_' + Date.now());
+        Logger.log('Archived mismatched SOIL_TESTS sheet as ' + existingSheet_.getName());
+      }
+    }
+
     const sheet = getOrCreateSheet('SOIL_TESTS', SOIL_TEST_HEADERS);
     const data = sheet.getDataRange().getValues();
 
