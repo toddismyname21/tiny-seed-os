@@ -35,6 +35,54 @@ Brief explanation of why these changes were made.
 
 
 
+## 2026-03-17 — PM_ARCHITECT: Agent Model Optimization + Memory Bootstrap
+
+### Files Modified
+- `.claude/agents/pm-coordinator.md` - Changed model: opus → sonnet (~50% savings, coordination doesn't need opus reasoning)
+- `.claude/agents/researcher.md` - Changed model: haiku → sonnet (haiku too weak for research synthesis)
+
+### Files Created
+- `.claude/agent-memory/pm-coordinator/MEMORY.md` - Agent memory index
+- `.claude/agent-memory/pm-coordinator/feedback_post_routing.md` - POST routing lesson
+- `.claude/agent-memory/pm-coordinator/feedback_delegation_pattern.md` - Delegation workflow
+- `.claude/agent-memory/pm-coordinator/project_soil_tests_architecture.md` - soil-tests.html architecture map
+- `.claude/agent-memory/pm-coordinator/reference_hooks_config.md` - Hooks configuration reference
+
+### Reason
+Optimize model costs (pm-coordinator Opus→Sonnet saves ~50%, researcher Haiku→Sonnet improves quality). Bootstrap agent memory system with key learnings from session to prevent context loss across compactions.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] No duplicates created
+
+---
+
+## 2026-03-17 — FULLSTACK_BUILDER: Phase-Gate System + 5 New Claude Code Hooks
+
+### Files Created
+- `.claude/rules/current-phase.md` - Dynamic phase rule file (RESEARCH/PLAN/BUILD/VERIFY/DEPLOY/READY)
+- `.claude/rules/active-locks.md` - File lock registry for multi-session coordination
+- `scripts/hooks/set-phase.sh` - Utility to switch work phases (updates current-phase.md)
+- `scripts/hooks/phase-gate.sh` - PreToolUse hook: blocks impl file edits during RESEARCH/PLAN/VERIFY phases
+- `scripts/hooks/instructions-loaded.sh` - InstructionsLoaded hook: injects active phase context
+- `scripts/hooks/subagent-start-context.sh` - SubagentStart hook: injects deployment/rules context into subagents
+- `scripts/hooks/tool-failure-logger.sh` - PostToolUseFailure hook: logs failures, warns on 3+ in 10 min
+- `scripts/hooks/post-response-check.sh` - Stop hook: reminds about CHANGE_LOG + phase transitions
+- `scripts/hooks/session-end-cleanup.sh` - SessionEnd hook: warns uncommitted work, resets phase, writes summary
+
+### Files Modified
+- `.claude/settings.local.json` - Registered 6 new hook events (PreToolUse phase-gate, InstructionsLoaded, SubagentStart, PostToolUseFailure, Stop, SessionEnd)
+
+### Reason
+Build phase-gate enforcement system and 5 new lifecycle hooks to prevent agents from editing code during wrong phases, inject context into subagents, track tool failures, remind about changelog updates, and clean up session state.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
 ## 2026-03-16 — FULLSTACK_BUILDER: Logan Labs Quick Add Bulk Fields
 
 ### Files Modified
