@@ -8437,7 +8437,7 @@
 
                             <div style="display: flex; gap: 1rem; justify-content: flex-end;">
                                 <button type="button" onclick="closeLoganLabsModal()" class="btn btn-secondary" style="padding: 0.75rem 1.5rem;">Cancel</button>
-                                <button type="submit" class="btn" style="padding: 0.75rem 1.5rem; background: #a16207; color: white; border: none; border-radius: 0.5rem; cursor: pointer; font-weight: 600;">Generate Submission</button>
+                                <button type="submit" id="loganSubmitBtn" class="btn" style="padding: 0.75rem 1.5rem; background: #a16207; color: white; border: none; border-radius: 0.5rem; cursor: pointer; font-weight: 600;">Generate Submission</button>
                             </div>
                         </form>
                     </div>
@@ -8782,6 +8782,14 @@
         async function submitSoilSampleToLogan(event) {
             event.preventDefault();
 
+            // Show loading state on button
+            const submitBtn = document.getElementById('loganSubmitBtn');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+                submitBtn.style.opacity = '0.7';
+            }
+
             const rows = document.querySelectorAll('.logan-sample-row');
             const samples = [];
             let hasError = false;
@@ -8867,7 +8875,10 @@
                 });
             }
 
-            if (hasError) return;
+            if (hasError) {
+                if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = 'Generate Submission'; submitBtn.style.opacity = '1'; }
+                return;
+            }
 
             // Calculate expected results date (collection date + 7 days)
             const expectedResultsDate = (() => {
@@ -8919,6 +8930,7 @@
             // Generate printable submission
             generateLoganLabsSubmissionPDF(submission);
 
+            if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = 'Generate Submission'; submitBtn.style.opacity = '1'; }
             closeLoganLabsModal();
             loganSampleCount = 1;
 
@@ -9022,7 +9034,7 @@
                     <table>
                         <tr>
                             <td style="width: 25%; font-weight: 600; background: #fefce8;">Name</td>
-                            <td>Tiny Seed Farm (Samantha Pollack)</td>
+                            <td>Tiny Seed Farm (Todd Wilson)</td>
                             <td style="width: 25%; font-weight: 600; background: #fefce8;">Phone</td>
                             <td>&nbsp;</td>
                         </tr>
