@@ -18153,7 +18153,7 @@ function doPost(e) {
       // Communication
       'acknowledgeMessage', 'sendRouteSMS', 'submitFarmPic',
       // Soil tests (soil-tests.html also uses POST without session tokens)
-      'saveSoilTest', 'deleteSoilTest', 'saveSoilSubmission', 'updateSoilSubmission', 'addField',
+      'saveSoilTest', 'deleteSoilTest', 'saveSoilSubmission', 'updateSoilSubmission', 'deleteSoilSubmission', 'addField',
       'saveComplianceRecord', 'saveIPMSchedule', 'updateIPMSprayStatus',
       'saveFertigationData', 'saveFoliarApplication', 'saveSoilAmendment', 'bulkSyncSoilData',
       'bulkSyncFieldNotes', 'syncComplianceRecords', 'emailOrganicReportToOEFFA',
@@ -18341,6 +18341,8 @@ function doPost(e) {
         return withLock(function() { return jsonResponse(saveSoilSubmission(data)); });
       case 'updateSoilSubmission':
         return withLock(function() { return jsonResponse(updateSoilSubmission(data)); });
+      case 'deleteSoilSubmission':
+        return withLock(function() { return jsonResponse(deleteSoilSubmission(data)); });
       case 'addField':
         return jsonResponse(addField(data));
       case 'bulkSyncSoilData':
@@ -38206,6 +38208,40 @@ function updateSoilSubmission(data) {
           sheet.getRange(i + 1, resultIdsCol + 1).setValue(idsStr);
         }
         return { success: true, message: 'Submission updated' };
+      }
+    }
+
+    return { success: false, error: 'Submission not found with id: ' + targetId };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function deleteSoilSubmission(data) {
+  try {
+    var targetId = data.id || data.ID;
+    if (!targetId) {
+      return { success: false, error: 'Missing required field: id' };
+    }
+
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheet = ss.getSheetByName('SOIL_SUBMISSIONS');
+    if (!sheet) {
+      return { success: false, error: 'SOIL_SUBMISSIONS sheet not found' };
+    }
+
+    var allData = sheet.getDataRange().getValues();
+    var headers = allData[0];
+    var idCol = headers.indexOf('ID');
+
+    if (idCol === -1) {
+      return { success: false, error: 'ID column not found in SOIL_SUBMISSIONS' };
+    }
+
+    for (var i = 1; i < allData.length; i++) {
+      if (String(allData[i][idCol]) === String(targetId)) {
+        sheet.deleteRow(i + 1);
+        return { success: true, message: 'Submission deleted' };
       }
     }
 
