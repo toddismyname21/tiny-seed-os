@@ -18172,7 +18172,7 @@ function doPost(e) {
       // Wholesale admin check (uses customer token)
       'checkWholesaleAdmin',
       // Seedling presale (customer-facing order submission)
-      'submitSeedlingOrder'
+      'submitSeedlingOrder',
     ]);
 
     if (action && !PUBLIC_POST_ACTIONS.has(action)) {
