@@ -1474,12 +1474,13 @@
                 const response = await fetch(apiUrlWithToken('getSoilTests'));
                 const data = await response.json();
 
-                if (data.success && data.data && data.data.length > 0) {
-                    soilTests = data.data;
-                    // Update localStorage with server data
+                if (data.success) {
+                    // Server responded — trust it, even if empty
+                    soilTests = (data.data && data.data.length > 0) ? data.data : [];
+                    // Sync localStorage with server truth
                     saveToLocalStorage();
                 } else {
-                    // Try localStorage first, then demo data
+                    // Server error — try localStorage, then demo
                     const localData = loadFromLocalStorage();
                     if (localData && localData.length > 0) {
                         soilTests = localData;
