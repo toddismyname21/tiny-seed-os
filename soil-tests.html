@@ -8964,14 +8964,19 @@
                 console.warn('Could not create reminder task:', e.message);
             }
 
-            // Generate printable submission
+            // Generate printable submission worksheet (opens in new tab)
             generateLoganLabsSubmissionPDF(submission);
+
+            // Open labels page for thermal-printed bag labels
+            setTimeout(() => {
+                window.open('labels.html?type=soilSample&autoprint=1', '_blank');
+            }, 500);
 
             if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = 'Generate Submission'; submitBtn.style.opacity = '1'; }
             closeLoganLabsModal();
             loganSampleCount = 1;
 
-            showToast('Logan Labs submission created! Print the worksheet to include with your samples.', 'success');
+            showToast('Submission created! Print worksheet + bag labels from the tabs that just opened.', 'success');
         }
 
         function generateLoganLabsSubmissionPDF(submission) {
@@ -8991,16 +8996,15 @@
 
             const bagLabels = submission.samples.map(s => `
                 <div style="border: 2px solid #000; padding: 12px; width: 3.5in; display: inline-block; margin: 8px; page-break-inside: avoid;">
-                    <div style="font-weight: bold; font-size: 1.1rem; border-bottom: 2px solid #000; padding-bottom: 4px; margin-bottom: 6px;">
-                        BAG LABEL
+                    <div style="font-weight: bold; font-size: 1.4rem; border-bottom: 2px solid #000; padding-bottom: 4px; margin-bottom: 6px;">
+                        ${s.field}
                     </div>
                     <div style="font-size: 0.95rem; line-height: 1.6;">
-                        <strong>Tiny Seed Farm</strong><br>
                         <strong>Sample:</strong> ${s.sampleId}<br>
-                        <strong>Field:</strong> ${s.field}<br>
                         <strong>Crop:</strong> ${s.crop || '—'}<br>
                         <strong>Depth:</strong> ${s.depth}"<br>
-                        <strong>Date:</strong> ${submission.collectionDate}
+                        <strong>Date:</strong> ${submission.collectionDate}<br>
+                        <span style="font-size: 0.8rem; color: #666;">Tiny Seed Farm</span>
                     </div>
                 </div>
             `).join('');

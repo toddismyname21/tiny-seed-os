@@ -3639,8 +3639,8 @@
                     labels.push({
                         labelId: bagId,
                         labelType: 'soilBag',
-                        line1: sample.sampleId,
-                        line2: sample.field,
+                        line1: sample.field,
+                        line2: sample.sampleId,
                         line3: (sample.crop || '') + (sample.depth ? '  ' + sample.depth + '"' : ''),
                         line4: 'Collected: ' + sub.collectionDate,
                         qrData: JSON.stringify({ type: 'soil-sample', id: sample.sampleId, field: sample.field, date: sub.collectionDate })
