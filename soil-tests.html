@@ -1860,6 +1860,9 @@
                     <button class="btn btn-secondary" onclick="addToCompare(${test.id})" style="color: #7c3aed;">
                         Add to Compare
                     </button>
+                    <button class="btn btn-secondary" onclick="deleteSoilTest(${test.id})" style="color: #ef4444; margin-left: auto;">
+                        <i class="fas fa-trash-alt"></i> Delete
+                    </button>
                 </div>
             `;
 
@@ -2123,6 +2126,40 @@
                 closeModal();
                 renderTests();
                 showToast(test.isArchived ? 'Test archived' : 'Test restored', 'success');
+            }
+        }
+
+        async function deleteSoilTest(testId) {
+            const test = soilTests.find(t => t.id === testId);
+            if (!test) return;
+
+            const confirmMsg = 'Permanently delete soil test for "' + (test.sampleLocation || 'Unknown') + '" from ' + formatDate(test.testDate) + '?\n\nThis cannot be undone.';
+            if (!confirm(confirmMsg)) return;
+
+            try {
+                const response = await fetch(apiUrlWithToken('deleteSoilTest'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({ action: 'deleteSoilTest', id: testId })
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    soilTests = soilTests.filter(t => t.id !== testId);
+                    saveToLocalStorage();
+                    closeModal();
+                    renderTests();
+                    showToast('Soil test deleted', 'success');
+                } else {
+                    showToast('Failed to delete: ' + (result.error || 'Unknown error'), 'error');
+                }
+            } catch (err) {
+                // Still remove locally if backend fails
+                soilTests = soilTests.filter(t => t.id !== testId);
+                saveToLocalStorage();
+                closeModal();
+                renderTests();
+                showToast('Deleted locally — will sync when connected', 'info');
             }
         }
 

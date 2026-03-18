@@ -35,6 +35,45 @@ Brief explanation of why these changes were made.
 
 
 
+## 2026-03-17 — FULLSTACK_BUILDER: Add Delete Soil Test Feature
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — Added `deleteSoilTest` to PUBLIC_POST_ACTIONS whitelist; added POST route case for `deleteSoilTest`; added `deleteSoilTest()` function that finds row by ID in SOIL_TESTS sheet and deletes it permanently
+- `soil-tests.html` — Added red Delete button (with trash icon) to detail modal action bar; added `deleteSoilTest()` async function with confirm dialog, backend POST call (Content-Type: text/plain), local state cleanup, and offline fallback
+
+### Functions Added
+- `deleteSoilTest(data)` in MERGED TOTAL.js — Validates ID, finds matching row in SOIL_TESTS sheet, deletes row, returns standard success/error response
+- `deleteSoilTest(testId)` in soil-tests.html — Frontend handler with confirm dialog, API call, local state removal, toast notifications
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions — no existing delete for soil tests
+- [x] No duplicates created
+
+---
+
+## 2026-03-17 — PM_ARCHITECT + FULLSTACK_BUILDER: Soil Tests 4-Fix Bundle
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — Added header-mismatch auto-archive migration in `getSoilTests()`: detects wrong column headers, renames sheet with timestamp, lets `getOrCreateSheet` rebuild with correct `SOIL_TEST_HEADERS`
+- `soil-tests.html` — Fixed `loadFieldsFromAPI()` field name mapping (`Field_ID`/`Field_Name` instead of `fieldName`), merges API fields with FALLBACK_FIELDS for rich metadata; Fixed `loadSoilTests()` to trust `success: true` from API instead of falling back to stale localStorage; Changed owner name from "Samantha Pollack" to "Todd Wilson" in `generateLoganLabsSubmissionPDF()`; Added loading spinner + disabled state on Generate Submission button
+
+### Functions Modified
+- `getSoilTests()` in `MERGED TOTAL.js` — Added one-time migration that archives SOIL_TESTS sheet if first header doesn't match expected schema
+- `loadFieldsFromAPI()` in `soil-tests.html` — Maps `f.Field_ID || f.Field_Name` to canonical "Field N" names, merges with FALLBACK_FIELDS for acreage/production/dimensions
+- `loadSoilTests()` in `soil-tests.html` — When API returns `{success: true, data: []}`, sets `soilTests = []` and syncs localStorage (previously fell back to stale localStorage with garbled data)
+- `submitSoilSampleToLogan()` in `soil-tests.html` — Added button disable + spinner on submit, reset on both success and error
+- `generateLoganLabsSubmissionPDF()` in `soil-tests.html` — Owner name corrected to Todd Wilson
+
+### Reason
+User reported: (1) "undefined" showing in Current Tests — caused by SOIL_TESTS sheet having wrong column headers AND localStorage holding garbled fallback data; (2) field dropdown empty — API returns `Field_ID`/`Field_Name` but code expected `fieldName`; (3) "Samantha Pollack" on submission worksheet — hardcoded wrong name; (4) no loading indicator on Generate Submission button.
+
+### Duplicate Check
+- [x] No new files created
+- [x] No new functions created — all fixes modify existing functions
+
+---
+
 ## 2026-03-17 — FULLSTACK_BUILDER: Fix TRAY_INVENTORY schema mismatch in confirmGHSowing
 
 ### Files Modified

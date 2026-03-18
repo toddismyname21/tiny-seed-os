@@ -18153,7 +18153,7 @@ function doPost(e) {
       // Communication
       'acknowledgeMessage', 'sendRouteSMS', 'submitFarmPic',
       // Soil tests (soil-tests.html also uses POST without session tokens)
-      'saveSoilTest', 'saveSoilSubmission', 'updateSoilSubmission', 'addField',
+      'saveSoilTest', 'deleteSoilTest', 'saveSoilSubmission', 'updateSoilSubmission', 'addField',
       'saveComplianceRecord', 'saveIPMSchedule', 'updateIPMSprayStatus',
       'saveFertigationData', 'saveFoliarApplication', 'saveSoilAmendment', 'bulkSyncSoilData',
       'bulkSyncFieldNotes', 'syncComplianceRecords', 'emailOrganicReportToOEFFA',
@@ -18335,6 +18335,8 @@ function doPost(e) {
         return jsonResponse(saveSoilAmendment(data));
       case 'saveSoilTest':
         return jsonResponse(saveSoilTest(data));
+      case 'deleteSoilTest':
+        return jsonResponse(deleteSoilTest(data));
       case 'saveSoilSubmission':
         return withLock(function() { return jsonResponse(saveSoilSubmission(data)); });
       case 'updateSoilSubmission':
@@ -38006,6 +38008,29 @@ function saveSoilTest(data) {
     };
   } catch (error) {
     return { success: false, error: error.toString() };
+  }
+}
+
+function deleteSoilTest(data) {
+  try {
+    var id = data.id;
+    if (!id) {
+      return { success: false, error: 'Missing required field: id' };
+    }
+
+    var sheet = getOrCreateSheet('SOIL_TESTS', SOIL_TEST_HEADERS);
+    var allData = sheet.getDataRange().getValues();
+
+    for (var i = 1; i < allData.length; i++) {
+      if (String(allData[i][0]) === String(id)) {
+        sheet.deleteRow(i + 1);
+        return { success: true, message: 'Soil test deleted' };
+      }
+    }
+
+    return { success: false, error: 'Soil test not found' };
+  } catch (error) {
+    return { success: false, error: 'Delete failed: ' + error.toString() };
   }
 }
 
