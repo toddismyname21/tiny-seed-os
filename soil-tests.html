@@ -961,7 +961,7 @@
             'Seedling House': { acreage: 0.07, lengthFt: 100, widthFt: 30, beds: 6, bedWidthIn: 45, pathWidthIn: 12, production: 'seedling', notes: '' }
         };
 
-        // Load fields from API
+        // Load fields from API — merges live field list with FALLBACK_FIELDS for rich metadata
         async function loadFieldsFromAPI() {
             try {
                 const response = await fetch(apiUrlWithToken('getFields'));
@@ -970,22 +970,27 @@
                 if (data.success && data.fields && data.fields.length > 0) {
                     FARM_FIELDS = {};
                     data.fields.forEach(f => {
-                        // Determine production type
-                        let production = 'fallow';
-                        if (f.inVegProduction) production = 'vegetable';
-                        else if (f.inFloralProduction) production = 'floral';
-                        else if (f.inPerennialProduction) production = 'perennial';
-                        else if (f.inCoverCrop) production = 'cover';
+                        // API returns {Field_ID, Field_Name, bedCount}
+                        const fieldId = f.Field_ID || f.Field_Name || f.fieldName || '';
+                        if (!fieldId) return;
 
-                        FARM_FIELDS[f.fieldName] = {
-                            acreage: f.acreage,
-                            lengthFt: f.length,
-                            widthFt: f.width,
-                            beds: f.numberOfBeds,
-                            bedWidthIn: f.bedWidth,
-                            pathWidthIn: f.pathWidth,
-                            production: production,
-                            notes: f.notes || ''
+                        // Build canonical name — check both "Field X" and bare "X" in fallback
+                        const canonicalName = 'Field ' + fieldId;
+                        const fallback = FALLBACK_FIELDS[canonicalName] || FALLBACK_FIELDS[fieldId] || null;
+
+                        FARM_FIELDS[canonicalName] = {
+                            acreage: f.acreage || (fallback ? fallback.acreage : 0),
+                            lengthFt: f.length || (fallback ? fallback.lengthFt : 0),
+                            widthFt: f.width || (fallback ? fallback.widthFt : 0),
+                            beds: f.bedCount || f.numberOfBeds || (fallback ? fallback.beds : 0),
+                            bedWidthIn: f.bedWidth || (fallback ? fallback.bedWidthIn : 45),
+                            pathWidthIn: f.pathWidth || (fallback ? fallback.pathWidthIn : 12),
+                            production: f.inVegProduction ? 'vegetable' :
+                                        f.inFloralProduction ? 'floral' :
+                                        f.inPerennialProduction ? 'perennial' :
+                                        f.inCoverCrop ? 'cover' :
+                                        (fallback ? fallback.production : 'vegetable'),
+                            notes: f.notes || (fallback ? fallback.notes : '')
                         };
                     });
                     console.log(`Loaded ${data.fields.length} fields from API`);
