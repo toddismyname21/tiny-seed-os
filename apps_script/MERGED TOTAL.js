@@ -14498,7 +14498,10 @@ function doGet(e) {
       'getTraceabilityReport', 'getSeedSourceReport', 'getFieldHistoryReport',
       'getInputApplicationReport', 'getHarvestReport', 'getOrganicSalesReport',
       'getPestManagementReport', 'findSeedLotsByCropVariety',
-      'getOSPDraft'
+      'getOSPDraft',
+      // Seedling presale/wholesale (customer-facing — no auth needed)
+      'getSeedlingPresaleItems', 'validateSeedlingAvailability',
+      'getSeedlingBundles', 'getSeedlingCategories'
     ]);
 
   if (!PUBLIC_GET_ACTIONS.has(action)) {
@@ -18167,7 +18170,9 @@ function doPost(e) {
       // Flex CSA / CSA member write (moved from GET — P0-2 fix)
       'addFlexFunds', 'addCSAMemberDirect',
       // Wholesale admin check (uses customer token)
-      'checkWholesaleAdmin'
+      'checkWholesaleAdmin',
+      // Seedling presale (customer-facing order submission)
+      'submitSeedlingOrder'
     ]);
 
     if (action && !PUBLIC_POST_ACTIONS.has(action)) {

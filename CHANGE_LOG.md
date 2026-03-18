@@ -35,6 +35,55 @@ Brief explanation of why these changes were made.
 
 
 
+## 2026-03-18 — FULLSTACK_BUILDER: Fix seedling presale auth blocking + extend cutoff to April 2
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — Added `getSeedlingPresaleItems`, `validateSeedlingAvailability`, `getSeedlingBundles`, `getSeedlingCategories` to PUBLIC_GET_ACTIONS so customer-facing presale page loads without admin auth tokens
+- `apps_script/MERGED TOTAL.js` — Added `submitSeedlingOrder` to PUBLIC_POST_ACTIONS so customers can submit orders without admin auth
+- `web_app/seedling-presale-2026.html` — Changed all presale cutoff dates from March 20 to April 2 (countdown timer, header, hero, FAQ answers, refund policy text, JSON-LD structured data)
+
+### Reason
+Presale page was completely broken for public visitors — all seedling API endpoints required admin session tokens that customers don't have. Also extended the presale deadline from March 20 to April 2, 2026 per business decision.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
+## 2026-03-18 — FULLSTACK_BUILDER: Soil bag labels — field name prominence + auto-open labels after submission
+
+### Files Modified
+- `labels.html` — `loadSoilSampleLabels()`: swapped line1/line2 for soilBag type so field name is the biggest text on thermal-printed bag labels (soilSubmission labels unchanged)
+- `soil-tests.html` — `generateLoganLabsSubmissionPDF()`: replaced "BAG LABEL" header with field name at 1.4rem, moved "Tiny Seed Farm" to small footer text
+- `soil-tests.html` — `submitSoilSampleToLogan()`: after generating PDF, auto-opens labels.html with soilSample type pre-selected (500ms delay to avoid popup blocker)
+
+### Reason
+Field name is the most important identifier when sorting soil sample bags in the field. Previous layout had sample ID as the largest text, which is less useful at a glance.
+
+---
+
+## 2026-03-18 — FULLSTACK_BUILDER: Add Delete Submission Feature to Soil Tests
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` - Added `deleteSoilSubmission` to PUBLIC_POST_ACTIONS whitelist, POST route case, and function implementation
+- `soil-tests.html` - Added delete button to submission tracker cards and `deleteSubmission()` frontend function
+
+### Functions Added
+- `deleteSoilSubmission(data)` in `MERGED TOTAL.js` - Deletes a soil submission row from SOIL_SUBMISSIONS sheet by ID
+- `deleteSubmission(id)` in `soil-tests.html` - Frontend handler: confirms, fires backend delete, removes from localStorage, re-renders
+
+### Reason
+User needs to delete pending Logan Labs submissions from the Submissions Tracker in the Current Tests tab.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions (`deleteSoilTest` exists but is for test results, not submissions)
+- [x] No duplicates created
+
+---
+
 ## 2026-03-17 — FULLSTACK_BUILDER: Add Delete Soil Test Feature
 
 ### Files Modified
