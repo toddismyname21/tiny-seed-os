@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- Outer brown circle -->
+  <circle cx="100" cy="100" r="95" fill="none" stroke="#8B5E3C" stroke-width="6"/>
+  <!-- Inner circle area - white -->
+  <circle cx="100" cy="100" r="90" fill="white"/>
+  <!-- Green hill arcs at bottom -->
+  <path d="M10,130 Q100,80 190,130" fill="none" stroke="#2D8C3C" stroke-width="3"/>
+  <path d="M10,145 Q100,95 190,145" fill="none" stroke="#2D8C3C" stroke-width="2"/>
+  <path d="M10,155 Q100,110 190,155" fill="none" stroke="#5BAA4A" stroke-width="2"/>
+  <!-- Green fill below bottom arc -->
+  <path d="M10,165 Q100,130 190,165 L190,195 Q100,195 10,195 Z" fill="#5BAA4A" opacity="0.3"/>
+  <!-- USDA text -->
+  <text x="100" y="85" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="42" fill="#1A6B2A" letter-spacing="2">USDA</text>
+  <!-- ORGANIC text -->
+  <text x="100" y="125" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="28" fill="#1A6B2A" letter-spacing="3">ORGANIC</text>
+</svg>
