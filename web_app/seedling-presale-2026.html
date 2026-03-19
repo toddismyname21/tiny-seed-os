@@ -196,60 +196,8 @@
             .header-logo img { height: 30px; }
         }
 
-        /* ═══════════════════════════════════════ */
-        /* LOGO OVERLAY ON HERO                    */
-        /* Full color logo with van - cream/white  */
-        /* on dark hero. Room to breathe.          */
-        /* ═══════════════════════════════════════ */
-        .hero-logo-overlay {
-            position: absolute;
-            top: 48px;
-            left: 56px;
-            z-index: 10;
-        }
-        .hero-logo-overlay img {
-            height: 352px;
-            width: auto;
-            /* Van going down a gentle slope - playful! */
-            transform: rotate(-5deg);
-            opacity: 1;
-            display: block;
-            transition: transform var(--ts-dur-moderate, 300ms) ease, opacity 0.3s ease;
-            /* Subtle drop shadow for depth */
-            filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.2));
-        }
-        .hero-logo-overlay:hover img {
-            transform: rotate(-5deg) scale(1.02);
-            opacity: 0.95;
-        }
-
-        /* Tablet adjustments — logo overlay */
-        @media (max-width: 768px) {
-            .hero-logo-overlay {
-                top: 20px;
-                left: 16px;
-            }
-            .hero-logo-overlay img {
-                height: 180px;
-                transform: rotate(-5deg);
-            }
-        }
-
-        /* Mobile adjustments — logo overlay */
+        /* Mobile hero adjustments */
         @media (max-width: 480px) {
-            .hero-logo-overlay {
-                top: auto;
-                bottom: 12px;
-                left: 50%;
-                transform: translateX(-50%);
-            }
-            .hero-logo-overlay img {
-                height: 100px;
-                transform: rotate(-5deg);
-            }
-            .hero-logo-overlay:hover img {
-                transform: rotate(-5deg) scale(1.02);
-            }
             .hero h1 {
                 font-size: clamp(1.8rem, 8vw, 2.2rem);
             }
@@ -545,7 +493,7 @@
             transition: border-color var(--ts-dur-normal, 200ms);
         }
         .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
-            outline: none; border-color: var(--green); box-shadow: 0 0 0 3px rgba(45,159,78,0.15);
+            outline: none; border-color: var(--green); box-shadow: 0 0 0 3px rgba(107,142,35,0.15);
         }
         .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--ts-space-4, 16px); }
 
@@ -2073,10 +2021,10 @@ function getDifficulty(name) {
 
 function getDifficultyBadge(name) {
     var d = getDifficulty(name);
-    if (d === 'easy') return '<span class="difficulty-badge difficulty-easy"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#2d9f4e;margin-right:4px;vertical-align:middle;"></span> Easy to Grow</span>';
+    if (d === 'easy') return '<span class="difficulty-badge difficulty-easy"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#6b8e23;margin-right:4px;vertical-align:middle;"></span> Easy to Grow</span>';
     if (d === 'moderate') return '<span class="difficulty-badge difficulty-moderate"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#eab308;margin-right:4px;vertical-align:middle;"></span> Moderate</span>';
     if (d === 'expert') return '<span class="difficulty-badge difficulty-expert"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#ef4444;margin-right:4px;vertical-align:middle;"></span> Expert</span>';
-    return '<span class="difficulty-badge difficulty-easy"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#2d9f4e;margin-right:4px;vertical-align:middle;"></span> Easy to Grow</span>';
+    return '<span class="difficulty-badge difficulty-easy"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#6b8e23;margin-right:4px;vertical-align:middle;"></span> Easy to Grow</span>';
 }
 
 // ═══════════════════════════════════════
@@ -2847,7 +2795,7 @@ function renderOrderItems() {
         var qty = quantities[v.name] || 0;
         var escapedName = v.name.replace(/'/g, "\\'");
         var soldOut = v.available != null && v.available <= 0;
-        html += '<div class="order-item-row"' + (qty > 0 ? ' style="background:rgba(45,159,78,0.05);"' : '') + (soldOut ? ' style="opacity:0.5;"' : '') + '>';
+        html += '<div class="order-item-row"' + (qty > 0 ? ' style="background:rgba(107,142,35,0.05);"' : '') + (soldOut ? ' style="opacity:0.5;"' : '') + '>';
         var priceLabel = '$' + v.price.toFixed(2) + ' ea';
         if (v.price <= 6) priceLabel += ' \u00b7 4/$20';
         html += '  <div><span class="order-item-name">' + escapeHtml(v.name) + '</span> <span class="order-item-price">' + priceLabel + '</span>';
@@ -3357,7 +3305,7 @@ function showConfirmation(customerName, email, pickup, orderCalc, hadPartialFail
         html += '<i class="fas fa-credit-card"></i> Pay Now</a>';
         html += '</div>';
     } else if (warnings) {
-        html += '<div style="background:#ffffff; border:1px solid #2d9f4e; border-radius:12px; padding:16px; max-width:400px; margin:0 auto 16px;">';
+        html += '<div style="background:#ffffff; border:1px solid #6b8e23; border-radius:12px; padding:16px; max-width:400px; margin:0 auto 16px;">';
         html += '<p style="font-size:0.85rem; color:#92400e;"><i class="fas fa-info-circle"></i> Your order was recorded. We\'ll send payment instructions to <strong>' + escapeHtml(email) + '</strong> shortly.</p>';
         html += '</div>';
     }
