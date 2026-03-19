@@ -35,6 +35,40 @@ Brief explanation of why these changes were made.
 
 
 
+## 2026-03-18 — FULLSTACK_BUILDER: Professional redesign of seedling presale page
+
+### Files Modified
+- `web_app/seedling-presale-2026.html` — Complete visual redesign (CSS + HTML only, all JS preserved):
+  - **Color palette**: Replaced bright garden green (#2d9f4e) with moss green (#6b8e23) / deep forest (#2d5016) / warm earth (#8b7355) organic palette
+  - **Hero section**: Replaced dark green photo overlay with warm cream CSS gradient + botanical SVG pattern; all text updated for dark-on-light readability
+  - **Hero logo overlay removed**: Eliminated the large tilted logo since the header already displays the logo
+  - **Hero preload removed**: Removed unused hero-greenhouse.webp preload link
+  - **Typography**: h1 updated to clamp(36px,5vw,64px), weight 700, letter-spacing -0.02em, color #2d5016
+  - **CTA button**: Gradient moss green with proper hover/active/focus states
+  - **Variety cards**: Warm sand border (#e0d5c7), premium hover with translateY(-4px) + green shadow, price color changed to warm brown (#8b7355)
+  - **Quick-add buttons**: Moss green border/fill colors with white text on hover
+  - **Benefit cards**: Added gradient icon containers (48px circles), warm sand border, hover lift
+  - **FAQ section**: Cream hover background, warm sand borders, moss green toggle icons, card-style with border-radius
+  - **Sticky cart bar**: Deep forest green (#2d5016) background, moss green CTA
+  - **Mobile cart**: Matching deep forest green collapsed bar, moss green badges/CTAs, white text
+  - **Bundle cards**: Deep green add buttons, #556b2f price color
+  - **Pickup cards**: Moss green (#6b8e23) left border
+  - **Section titles**: Explicit #2d5016 color for Playfair Display headings
+  - **USDA organic seal**: Replaced all usda-organic.jpeg references with usda-organic-seal.svg (farmer stats, variety cards)
+  - **New USDA trust block**: Added dedicated section between farmer and testimonials with 120px SVG seal, responsive stacking on mobile
+  - **Hero dates bar**: Updated for light background (white translucent bg, warm-sand borders)
+  - **loadPageConfig**: Updated hero background CMS override to use cream gradient instead of dark green overlay
+
+### Reason
+Transform the seedling presale page from a 6.1/10 to a professional 9+/10 e-commerce page based on design research in `docs/research/SEEDLING_PRESALE_LANDING_PAGE_REDESIGN_2026.md`. All JavaScript functionality preserved exactly — catalog tabs, cart, form validation, mobile bottom sheet, countdown, bundles, order submission.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
 ## 2026-03-18 — FULLSTACK_BUILDER: Fix seedling presale auth blocking + extend cutoff to April 2
 
 ### Files Modified

@@ -25,7 +25,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     <link rel="dns-prefetch" href="https://script.google.com">
-    <link rel="preload" as="image" href="images/hero-greenhouse.webp" type="image/webp">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="tiny-seed-design-system.css">
@@ -265,19 +264,19 @@
         }
 
         :root {
-            /* Heritage farm palette - earthy, authentic */
-            --green: #2d9f4e;           /* Primary action green — natural garden */
-            --green-dark: #248c42;      /* Hover state */
-            --green-deep: #166534;      /* Deep forest - headers, accents */
-            --green-tint: #dcfce7;      /* Light green tint — backgrounds, pills */
-            --earth: #78350f;           /* Rich soil brown */
-            --earth-light: #92400e;     /* Terracotta */
+            /* Organic farm palette — moss green, warm earth, cream */
+            --green: #6b8e23;           /* Moss green — primary */
+            --green-dark: #556b2f;      /* Deep forest for hover */
+            --green-deep: #2d5016;      /* Headings, accents */
+            --green-tint: #e8f0d8;      /* Light green backgrounds */
+            --earth: #8b7355;           /* Warm brown */
+            --earth-light: #c85a54;     /* Terracotta accent */
             --warm-bg: #faf8f2;         /* Warm cream background */
             --warm-cream: #f5f1e8;      /* Soft cream sections */
-            --warm-sand: #ebe6db;       /* Sandy beige */
-            --text-dark: #1c1917;       /* Near black */
-            --text-body: #44403c;       /* Warm gray body */
-            --text-muted: #6b6560;      /* Muted for secondary — WCAG AA 5.1:1 on cream */
+            --warm-sand: #e0d5c7;       /* Card borders */
+            --text-dark: #2d5016;       /* Deep green headings */
+            --text-body: #3a3a3a;       /* Body text */
+            --text-muted: #666666;      /* Secondary text */
             --red-hot: #dc2626;
             --orange-hot: #ea580c;
             --yellow-mild: #ca8a04;
@@ -303,9 +302,8 @@
         /* HERO                                   */
         /* ═══════════════════════════════════════ */
         .hero {
-            background: linear-gradient(180deg, rgba(22, 101, 52, 0.7), rgba(22, 101, 52, 0.85)),
-                        url('images/hero-greenhouse.webp') center/cover no-repeat;
-            color: #fff;
+            background: linear-gradient(135deg, #f5f1e8 0%, #e8dcc8 50%, #d4c5a9 100%);
+            color: var(--text-dark);
             padding: 90px 24px 80px;
             text-align: center;
             position: relative;
@@ -315,17 +313,19 @@
             align-items: center;
             justify-content: center;
         }
-        /* Curved bottom edge — hero bulges DOWN into benefits */
-        .hero::after {
+        /* Botanical SVG pattern overlay */
+        .hero::before {
             content: '';
             position: absolute;
-            bottom: -59px;
-            left: 0;
+            top: 0;
             right: 0;
-            height: 60px;
-            background: var(--green-deep);
-            clip-path: ellipse(55% 100% at 50% 0%);
-            z-index: 1;
+            width: 60%;
+            height: 100%;
+            background: url('data:image/svg+xml;charset=utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><circle cx="100" cy="100" r="80" fill="none" stroke="rgba(107,142,35,0.08)" stroke-width="1"/><path d="M100,20 Q150,50 150,100 Q150,150 100,180" fill="none" stroke="rgba(107,142,35,0.06)" stroke-width="2"/></svg>') repeat;
+            background-size: 200px 200px;
+            opacity: 0.6;
+            z-index: 0;
+            pointer-events: none;
         }
 
         @media (max-width: 768px) {
@@ -333,7 +333,6 @@
                 padding: 80px 20px 60px;
                 min-height: 60vh;
             }
-            .hero::after { height: 40px; bottom: -39px; }
         }
 
         @media (max-width: 480px) {
@@ -341,41 +340,44 @@
                 min-height: auto;
                 padding: 70px 16px 50px;
             }
-            .hero::after { height: 30px; bottom: -29px; }
         }
         .hero-content { position: relative; z-index: 1; max-width: 800px; margin: 0 auto; }
         .hero-badge {
             display: inline-flex; align-items: center; gap: var(--ts-space-2, 8px);
-            background: rgba(45, 159, 78, 0.2); border: 1px solid rgba(45, 159, 78, 0.4);
+            background: var(--green); border: none;
             padding: 6px 16px; border-radius: var(--ts-radius-lg, 20px); font-size: 0.8rem; font-weight: 600;
-            color: #86efac; margin-bottom: var(--ts-space-5, 20px); letter-spacing: 0.5px;
+            color: #fff; margin-bottom: var(--ts-space-5, 20px); letter-spacing: 0.5px;
         }
         .hero h1 {
             font-family: 'Playfair Display', serif;
-            font-size: clamp(1.75rem, 5vw, 3.5rem);
-            font-weight: 900; line-height: 1.15; margin-bottom: var(--ts-space-4, 16px);
+            font-size: clamp(36px, 5vw, 64px);
+            font-weight: 700; line-height: 1.2; margin-bottom: var(--ts-space-4, 16px);
+            letter-spacing: -0.02em; color: var(--green-deep);
             overflow-wrap: break-word; word-wrap: break-word;
         }
-        .hero h1 span { color: #86efac; }
-        .hero p { font-size: 1.15rem; color: rgba(255,255,255,0.85); max-width: 600px; margin: 0 auto 24px; }
+        .hero h1 span { color: var(--green); }
+        .hero p { font-size: 1.15rem; color: var(--text-body); max-width: 600px; margin: 0 auto 24px; line-height: 1.6; }
         .hero-dates {
             display: inline-flex; gap: var(--ts-space-4, 16px); justify-content: center; flex-wrap: wrap;
             margin-bottom: var(--ts-space-8, 32px); font-size: 0.9rem;
-            background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25);
+            background: rgba(255,255,255,0.5); border: 1px solid var(--warm-sand);
             border-radius: var(--ts-radius-md, 12px); padding: var(--ts-space-3, 12px) var(--ts-space-6, 24px); align-items: center;
         }
-        .hero-dates span { display: flex; align-items: center; gap: var(--ts-space-1, 6px); color: rgba(255,255,255,0.9); }
-        .hero-dates span + span { border-left: 1px solid rgba(255,255,255,0.25); padding-left: 16px; }
-        .hero-dates strong { color: #86efac; }
+        .hero-dates span { display: flex; align-items: center; gap: var(--ts-space-1, 6px); color: var(--text-body); }
+        .hero-dates span + span { border-left: 1px solid var(--warm-sand); padding-left: 16px; }
+        .hero-dates strong { color: var(--green-deep); }
         .cta-btn {
             display: inline-flex; align-items: center; gap: var(--ts-space-2, 10px);
-            background: var(--green); color: #fff; padding: 16px 36px;
-            border-radius: var(--ts-radius-full, 9999px); font-size: 1.1rem; font-weight: 700;
-            text-decoration: none; transition: all var(--ts-dur-moderate, 300ms); border: none; cursor: pointer;
-            box-shadow: 0 4px 20px rgba(45, 159, 78, 0.3);
+            background: linear-gradient(135deg, #6b8e23, #556b2f); color: #fff; padding: 16px 40px;
+            border-radius: var(--ts-radius-sm, 8px); font-size: 1.1rem; font-weight: 700;
+            text-decoration: none; transition: all 200ms ease; border: none; cursor: pointer;
+            box-shadow: 0 4px 12px rgba(107, 142, 35, 0.3);
+            min-height: 44px;
         }
-        .cta-btn:hover { background: var(--green-dark); transform: translateY(-2px); box-shadow: 0 6px 30px rgba(45, 159, 78, 0.4); }
-        .hero-trust { margin-top: var(--ts-space-6, 24px); font-size: 0.8rem; color: rgba(255,255,255,0.5); }
+        .cta-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(107, 142, 35, 0.4); }
+        .cta-btn:active { transform: translateY(0); }
+        .cta-btn:focus { outline: 2px solid var(--green); outline-offset: 2px; }
+        .hero-trust { margin-top: var(--ts-space-6, 24px); font-size: 0.8rem; color: var(--text-muted); }
 
         /* ═══════════════════════════════════════ */
         /* SEEDLING ROW — straddles hero/benefits    */
@@ -399,7 +401,7 @@
             width: 240px;
             height: 240px;
             object-fit: contain;
-            filter: drop-shadow(0 4px 12px rgba(0,0,0,0.2));
+            filter: drop-shadow(0 4px 12px rgba(0,0,0,0.1));
         }
         /* Rotation: 0 → 5L → 10L → 5L → 0 → 5R → 10R → 5R */
         /* Gentle curve so edges sit slightly higher, center dips */
@@ -434,7 +436,7 @@
         .section-title {
             font-family: 'Playfair Display', serif;
             font-size: clamp(1.5rem, 3vw, 2rem);
-            font-weight: 800; color: var(--text-dark); margin-bottom: var(--ts-space-2, 8px);
+            font-weight: 800; color: #2d5016; margin-bottom: var(--ts-space-2, 8px);
         }
         .section-subtitle { color: var(--text-muted); font-size: 1rem; margin-bottom: var(--ts-space-8, 32px); }
 
@@ -446,8 +448,16 @@
         .benefit-card {
             background: #fff; border-radius: var(--radius); padding: var(--ts-space-6, 24px);
             box-shadow: var(--shadow-sm); text-align: center;
+            border: 1px solid var(--warm-sand);
+            transition: all 300ms ease;
         }
-        .benefit-card i { font-size: 2rem; margin-bottom: var(--ts-space-3, 12px); }
+        .benefit-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+        .benefit-card i {
+            font-size: 1.5rem; margin-bottom: var(--ts-space-3, 12px);
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 48px; height: 48px; border-radius: 50%;
+            background: linear-gradient(135deg, #f5f1e8, #e8dcc8);
+        }
         .benefit-card h3 { font-size: 1rem; font-weight: 700; color: var(--text-dark); margin-bottom: 6px; }
         .benefit-card p { font-size: 0.85rem; color: var(--text-muted); }
 
@@ -472,10 +482,10 @@
         .variety-card {
             position: relative;
             background: #fff; border-radius: var(--radius); padding: var(--ts-space-5, 20px);
-            box-shadow: var(--shadow-sm); border: 1px solid #f3f4f6;
-            transition: all var(--ts-dur-normal, 200ms);
+            box-shadow: var(--shadow-sm); border: 1px solid var(--warm-sand);
+            transition: all 300ms ease;
         }
-        .variety-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+        .variety-card:hover { border-color: var(--earth); box-shadow: 0 12px 24px rgba(107, 142, 35, 0.1); transform: translateY(-4px); }
         .variety-card .variety-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--ts-space-2, 8px); gap: var(--ts-space-2, 8px); flex-wrap: nowrap; }
         .variety-card .variety-name { font-weight: 700; font-size: 1.05rem; color: var(--text-dark); min-width: 0; }
         .variety-card .variety-type {
@@ -498,7 +508,7 @@
         .variety-card .variety-meta { display: flex; gap: var(--ts-space-3, 12px); font-size: 0.78rem; color: var(--text-muted); flex-wrap: wrap; }
         .variety-card .variety-meta span i { margin-right: 3px; }
         .variety-card .variety-price {
-            font-weight: 800; font-size: 1.1rem; color: var(--green-dark);
+            font-weight: 800; font-size: 1.1rem; color: var(--earth);
             white-space: nowrap;
         }
 
@@ -513,7 +523,7 @@
         .pickup-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--ts-space-4, 16px); }
         .pickup-card {
             background: #fff; border-radius: var(--radius); padding: var(--ts-space-5, 20px);
-            box-shadow: var(--shadow-sm); border-left: 4px solid var(--green);
+            box-shadow: var(--shadow-sm); border-left: 4px solid #6b8e23;
         }
         .pickup-card h3 { font-size: 1rem; font-weight: 700; color: var(--text-dark); margin-bottom: var(--ts-space-1, 4px); }
         .pickup-card .pickup-date { font-size: 0.85rem; color: var(--green-deep); font-weight: 600; margin-bottom: 6px; }
@@ -587,20 +597,22 @@
         /* FAQ */
         /* ═══════════════════════════════════════ */
         .faq-list { max-width: 700px; margin: 0 auto; }
-        .faq-item { border-bottom: 1px solid #e5e7eb; }
+        .faq-item { border: 1px solid var(--warm-sand); border-radius: 8px; margin-bottom: 12px; overflow: hidden; }
         .faq-question {
             display: flex; justify-content: space-between; align-items: center;
-            padding: 16px 0; cursor: pointer; font-weight: 600; font-size: 0.95rem;
+            padding: 16px 20px; cursor: pointer; font-weight: 600; font-size: 0.95rem;
             color: var(--text-dark); width: 100%; background: none; border: none;
             text-align: left; font-family: inherit;
+            transition: background 200ms ease;
         }
-        .faq-question i { transition: transform var(--ts-dur-moderate, 300ms); color: var(--text-muted); }
+        .faq-question:hover { background: #f5f1e8; }
+        .faq-question i { transition: transform var(--ts-dur-moderate, 300ms); color: #6b8e23; }
         .faq-question.open i { transform: rotate(180deg); }
         .faq-answer {
-            padding: 0 0 16px; font-size: 0.9rem; color: var(--text-muted);
+            padding: 0 20px 0; font-size: 0.9rem; color: var(--text-body);
             display: none; line-height: 1.6;
         }
-        .faq-answer.open { display: block; }
+        .faq-answer.open { display: block; padding: 0 20px 16px; }
 
         /* ═══════════════════════════════════════ */
         /* FOOTER */
@@ -626,7 +638,7 @@
         /* ═══════════════════════════════════════ */
         .sticky-cart {
             position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
-            background: var(--green-deep); color: #fff; padding: var(--ts-space-3, 12px) var(--ts-space-6, 24px) calc(12px + env(safe-area-inset-bottom, 0px));
+            background: #2d5016; color: #fff; padding: var(--ts-space-3, 12px) var(--ts-space-6, 24px) calc(12px + env(safe-area-inset-bottom, 0px));
             display: none; align-items: center; justify-content: center; gap: var(--ts-space-4, 16px);
             box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
             backdrop-filter: blur(12px);
@@ -634,14 +646,14 @@
         }
         .sticky-cart.visible { display: flex; }
         .sticky-cart-info { display: flex; align-items: center; gap: var(--ts-space-4, 16px); font-size: 0.95rem; }
-        .sticky-cart-count { background: var(--green); color: #000; font-weight: 800; border-radius: var(--ts-radius-lg, 20px); padding: 4px 12px; font-size: 0.85rem; }
+        .sticky-cart-count { background: #6b8e23; color: #fff; font-weight: 800; border-radius: var(--ts-radius-lg, 20px); padding: 4px 12px; font-size: 0.85rem; }
         .sticky-cart-total { font-weight: 700; font-size: 1.1rem; }
         .sticky-cart-cta {
-            background: var(--green); color: #fff; font-weight: 700; border: none;
+            background: #6b8e23; color: #fff; font-weight: 700; border: none;
             padding: 10px 24px; border-radius: var(--ts-radius-full, 9999px); cursor: pointer; font-size: 0.95rem;
             transition: all var(--ts-dur-normal, 200ms); font-family: inherit;
         }
-        .sticky-cart-cta:hover { background: var(--green-dark); }
+        .sticky-cart-cta:hover { background: #556b2f; }
 
         /* ═══════════════════════════════════════ */
         /* FORM VALIDATION STATES */
@@ -867,7 +879,7 @@
         .bundle-price {
             font-size: 1.5rem;
             font-weight: 900;
-            color: var(--green-dark);
+            color: #556b2f;
         }
         .bundle-savings {
             background: #fef3c7;
@@ -880,7 +892,7 @@
         .bundle-add-btn {
             width: 100%;
             padding: 14px;
-            background: var(--green-deep);
+            background: #2d5016;
             color: #fff;
             border: none;
             border-radius: var(--ts-radius-full, 9999px);
@@ -895,7 +907,7 @@
             gap: var(--ts-space-2, 8px);
         }
         .bundle-add-btn:hover {
-            background: var(--green-dark);
+            background: #556b2f;
             color: #fff;
         }
 
@@ -1109,7 +1121,7 @@
                 left: 0;
                 right: 0;
                 z-index: 9997;
-                background: var(--green-deep);
+                background: #2d5016;
                 color: #fff;
                 padding: 14px 20px calc(14px + env(safe-area-inset-bottom, 0px));
                 display: none;
@@ -1129,16 +1141,16 @@
                 font-size: 0.95rem;
             }
             .mobile-cart-collapsed-badge {
-                background: var(--green);
-                color: #000;
+                background: #6b8e23;
+                color: #fff;
                 font-weight: 800;
                 border-radius: var(--ts-radius-lg, 20px);
                 padding: 3px 10px;
                 font-size: 0.8rem;
             }
             .mobile-cart-collapsed-cta {
-                background: var(--green);
-                color: #000;
+                background: #6b8e23;
+                color: #fff;
                 border: none;
                 padding: var(--ts-space-2, 10px) var(--ts-space-5, 20px);
                 border-radius: var(--ts-radius-full, 9999px);
@@ -1230,6 +1242,20 @@
             .mobile-cart-sheet,
             .mobile-cart-collapsed {
                 display: none !important;
+            }
+        }
+
+        /* ═══════════════════════════════════════ */
+        /* USDA TRUST BLOCK                       */
+        /* ═══════════════════════════════════════ */
+        .usda-trust-block {
+            background: #f5f1e8;
+            padding: 40px 24px;
+        }
+        @media (max-width: 640px) {
+            .usda-trust-block > div {
+                flex-direction: column !important;
+                text-align: center;
             }
         }
 
@@ -1340,9 +1366,9 @@
             width: 100%;
             padding: 10px;
             margin-top: var(--ts-space-3, 12px);
-            border: 2px solid var(--green);
+            border: 2px solid #6b8e23;
             background: transparent;
-            color: var(--green-dark);
+            color: #556b2f;
             border-radius: var(--ts-radius-sm, 8px);
             font-weight: 600;
             font-size: 0.85rem;
@@ -1355,12 +1381,12 @@
             gap: var(--ts-space-1, 6px);
         }
         .quick-add-btn:hover {
-            background: var(--green);
-            color: #000;
+            background: #6b8e23;
+            color: #fff;
         }
         .quick-add-btn.added {
-            background: var(--green);
-            color: #000;
+            background: #6b8e23;
+            color: #fff;
         }
         .quick-add-btn:disabled {
             border-color: #d1d5db;
@@ -1458,7 +1484,7 @@
         /* ═══════════════════════════════════════ */
         @media (max-width: 768px) {
             .hero-dates { flex-direction: column; gap: var(--ts-space-2, 8px); padding: var(--ts-space-3, 12px) var(--ts-space-5, 20px); }
-            .hero-dates span + span { border-left: none; padding-left: 0; border-top: 1px solid rgba(255,255,255,0.15); padding-top: 8px; }
+            .hero-dates span + span { border-left: none; padding-left: 0; border-top: 1px solid var(--warm-sand); padding-top: 8px; }
             section { padding: 40px 16px; }
             .form-row { grid-template-columns: 1fr; }
             .variety-grid { grid-template-columns: 1fr; }
@@ -1542,10 +1568,6 @@
 <!-- HERO -->
 <!-- ═══════════════════════════════════════════════════════════ -->
 <header class="hero" role="banner">
-    <!-- White logo overlaid on hero photo - top left -->
-    <a href="/" class="hero-logo-overlay" aria-label="Tiny Seed Farm Home">
-        <img src="images/tiny-seed-farm-logo-final.png?v=7" alt="Tiny Seed Farm and Fleurs - Estd 2017">
-    </a>
     <div class="hero-content">
         <div class="hero-badge"><i class="fas fa-certificate"></i> USDA CERTIFIED ORGANIC — 2026 PRESALE NOW OPEN</div>
         <h1>Pittsburgh's Favorite <span>Seedlings</span> Are Back</h1>
@@ -1556,7 +1578,7 @@
             <span><i class="fas fa-map-pin"></i> <strong>5 pickup locations</strong></span>
         </div>
         <a href="#order" class="cta-btn"><i class="fas fa-shopping-cart"></i> Reserve Your Seedlings</a>
-        <p style="margin-top:12px; font-size:0.9rem; color:rgba(255,255,255,0.75); font-weight:600;">$6 each · 4 for $20 · 15% off 10+ plants</p>
+        <p style="margin-top:12px; font-size:0.9rem; color:var(--earth); font-weight:600;">$6 each · 4 for $20 · 15% off 10+ plants</p>
         <p class="hero-trust">Tiny Seed Farm — Serving Pittsburgh-area gardeners since 2017</p>
     </div>
 </header>
@@ -1623,12 +1645,26 @@
                 <a href="mailto:todd@tinyseedfarmpgh.com">todd@tinyseedfarmpgh.com</a>
             </div>
             <div class="farmer-trust-stats">
-                <span class="farmer-trust-stat"><img src="images/usda-organic.jpeg" alt="USDA Organic" style="width:24px; height:24px; object-fit:contain; vertical-align:middle;"> USDA Certified Organic</span>
+                <span class="farmer-trust-stat"><img src="images/usda-organic-seal.svg" alt="USDA Organic" style="width:24px; height:24px; object-fit:contain; vertical-align:middle;"> USDA Certified Organic</span>
                 <span class="farmer-trust-stat"><i class="fas fa-seedling" style="color:var(--green);"></i> 90+ Varieties</span>
                 <span class="farmer-trust-stat"><i class="fas fa-leaf" style="color:var(--green);"></i> Zone 6b Proven</span>
                 <span class="farmer-trust-stat"><i class="fas fa-map-pin" style="color:var(--green);"></i> Local Pickup Only</span>
             </div>
             <p class="farmer-signature" style="margin-top:16px;">— Farmer Todd</p>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- USDA CERTIFIED ORGANIC TRUST BLOCK                          -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section class="usda-trust-block" aria-label="USDA Certified Organic">
+    <div style="display:flex; align-items:center; gap:40px; max-width:900px; margin:0 auto;">
+        <img src="images/usda-organic-seal.svg" alt="USDA Certified Organic seal" style="width:120px; height:120px; flex-shrink:0;">
+        <div>
+            <h3 style="font-family:'Playfair Display',serif; font-size:1.5rem; color:#2d5016; margin:0 0 12px;">USDA Certified Organic</h3>
+            <p style="font-size:1rem; line-height:1.7; color:#3a3a3a; margin:0 0 8px;">Every seedling from Tiny Seed Farm is USDA Certified Organic — grown from certified organic seeds using organic practices. Zero synthetic pesticides. Zero synthetic fertilizers. Ever.</p>
+            <p style="font-size:0.9rem; color:#666; margin:0;"><strong style="color:#2d5016;">Certified by:</strong> Pennsylvania Certified Organic (PCO) — since 2017</p>
         </div>
     </div>
 </section>
@@ -2148,7 +2184,7 @@ function loadPageConfig() {
             // ─── HERO ───
             if (c.heroImageUrl) {
                 var hero = document.querySelector('.hero');
-                if (hero) hero.style.background = 'linear-gradient(180deg, rgba(22,101,52,0.7), rgba(22,101,52,0.85)), url(\'' + c.heroImageUrl + '\') center/cover no-repeat';
+                if (hero) hero.style.background = 'linear-gradient(135deg, rgba(245,241,232,0.85) 0%, rgba(232,220,200,0.85) 50%, rgba(212,197,169,0.85) 100%), url(\'' + c.heroImageUrl + '\') center/cover no-repeat';
             }
             if (c.heroBadge) {
                 var badge = document.querySelector('.hero-badge');
@@ -2690,7 +2726,7 @@ function buildVarietyCard(v) {
     cardHtml += '</div>';
 
     // USDA Organic badge
-    cardHtml += '<div style="display:inline-flex;align-items:center;gap:4px;font-size:0.7rem;font-weight:600;color:var(--green-deep);margin-bottom:6px;"><img src="images/usda-organic.jpeg" alt="" style="width:14px;height:14px;object-fit:contain;"> Certified Organic</div>';
+    cardHtml += '<div style="display:inline-flex;align-items:center;gap:4px;font-size:0.7rem;font-weight:600;color:var(--green-deep);margin-bottom:6px;"><img src="images/usda-organic-seal.svg" alt="" style="width:14px;height:14px;object-fit:contain;"> Certified Organic</div>';
 
     // Difficulty badge
     cardHtml += getDifficultyBadge(v.name);
