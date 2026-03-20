@@ -14501,7 +14501,7 @@ function doGet(e) {
       'getOSPDraft',
       // Seedling presale/wholesale (customer-facing — no auth needed)
       'getSeedlingPresaleItems', 'validateSeedlingAvailability',
-      'getSeedlingBundles', 'getSeedlingCategories'
+      'getSeedlingBundles', 'getSeedlingCategories', 'validateReferralCode'
     ]);
 
   if (!PUBLIC_GET_ACTIONS.has(action)) {

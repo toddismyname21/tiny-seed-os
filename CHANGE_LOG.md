@@ -35,6 +35,16 @@ Brief explanation of why these changes were made.
 
 
 
+## 2026-03-20 — FULLSTACK_BUILDER: Whitelist validateReferralCode as public endpoint
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — Added `validateReferralCode` to `PUBLIC_GET_ACTIONS` set (line 14504)
+
+### Reason
+The validateReferralCode endpoint is called from the seedling presale page, which is customer-facing and has no authentication. It needs to be in the public whitelist alongside the other seedling presale endpoints.
+
+---
+
 ## 2026-03-20 — FULLSTACK_BUILDER: Add getEmailQuotaRemaining endpoint
 
 ### Files Modified
