@@ -2108,6 +2108,86 @@ function escapeHtml(str) {
 // ═══════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════
+// ═══════════════════════════════════════
+// REFERRAL SYSTEM — Give $5 / Get $5
+// ═══════════════════════════════════════
+var activeReferralCode = '';
+var referralDiscount = 0;
+
+function checkReferralCode() {
+    var urlParams = new URLSearchParams(window.location.search);
+    var refCode = urlParams.get('ref') || urlParams.get('referral') || '';
+    if (!refCode) return;
+
+    fetch(TINY_SEED_API.MAIN_API + '?action=validateReferralCode&code=' + encodeURIComponent(refCode))
+        .then(function(r) { return r.json(); })
+        .then(function(result) {
+            if (result.success && result.valid) {
+                activeReferralCode = result.code;
+                referralDiscount = result.discount || 5;
+                showReferralBanner(result);
+                updateTotal();
+            }
+        })
+        .catch(function(err) {
+            console.warn('Referral validation failed:', err);
+        });
+}
+
+function showReferralBanner(referralData) {
+    var banner = document.createElement('div');
+    banner.id = 'referralBanner';
+    banner.style.cssText = 'background:linear-gradient(135deg,#dcfce7,#bbf7d0);border:2px solid #6b8e23;border-radius:12px;padding:16px 20px;margin:0 20px 20px;text-align:center;position:relative;z-index:10;';
+    banner.innerHTML = '<p style="margin:0;font-size:1rem;color:#2d5016;font-weight:700;">' +
+        '<i class="fas fa-gift" style="margin-right:8px;color:#6b8e23;"></i>' +
+        'You were referred! <span style="color:#6b8e23;">$' + referralData.discount.toFixed(0) + ' off</span> your order!' +
+        '</p>' +
+        '<p style="margin:4px 0 0;font-size:0.8rem;color:#555;">Discount applied automatically at checkout.</p>';
+
+    var catalog = document.getElementById('catalog');
+    if (catalog) {
+        catalog.parentNode.insertBefore(banner, catalog);
+    } else {
+        var firstSection = document.querySelector('section');
+        if (firstSection && firstSection.nextSibling) {
+            firstSection.parentNode.insertBefore(banner, firstSection.nextSibling);
+        }
+    }
+}
+
+function generateAndCopyReferralLink(email) {
+    fetch(TINY_SEED_API.MAIN_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({ action: 'generateReferralCode', email: email })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(result) {
+        if (result.success) {
+            var link = 'https://tinyseedfarm.com/pages/seedling-sale-pittsburgh?ref=' + result.code;
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(link);
+            } else {
+                var temp = document.createElement('textarea');
+                temp.value = link;
+                document.body.appendChild(temp);
+                temp.select();
+                document.execCommand('copy');
+                document.body.removeChild(temp);
+            }
+            var display = document.getElementById('referralLinkDisplay');
+            if (display) {
+                display.textContent = 'Link copied! ' + link;
+                display.style.display = 'block';
+            }
+            showToast('Referral link copied to clipboard!');
+        }
+    })
+    .catch(function(err) {
+        showToast('Could not generate referral link. Try again.');
+    });
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     loadPresaleItems();
     loadPageConfig();
@@ -2115,6 +2195,7 @@ document.addEventListener('DOMContentLoaded', function() {
     setupHeaderScroll();
     initCountdown();
     setupMobileCartSwipe();
+    checkReferralCode();
     // Back-to-top button
     var btt = document.getElementById('backToTop');
     if (btt) {
@@ -2894,7 +2975,15 @@ function calculateOrder() {
     var subtotal = (bundles * 20) + (singles * 6) + premiumTotal;
     var discount = totalPlants >= 10 ? subtotal * 0.15 : 0;
     var total = subtotal - discount;
-    return { totalPlants: totalPlants, bundles: bundles, singles: singles, subtotal: subtotal, discount: discount, total: total };
+
+    // Apply referral discount
+    var appliedReferralDiscount = 0;
+    if (referralDiscount > 0 && total > 0) {
+        appliedReferralDiscount = Math.min(referralDiscount, total);
+        total = Math.max(0, total - appliedReferralDiscount);
+    }
+
+    return { totalPlants: totalPlants, bundles: bundles, singles: singles, subtotal: subtotal, discount: discount, referralDiscount: appliedReferralDiscount, total: total };
 }
 
 function updateTotal() {
@@ -2907,8 +2996,12 @@ function updateTotal() {
     var stickyTotal = document.getElementById('stickyCartTotal');
 
     // Main total display
-    if (order.discount > 0) {
-        totalEl.innerHTML = '<span style="text-decoration:line-through;color:var(--text-muted);font-size:0.9rem;">$' + order.subtotal.toFixed(2) + '</span> $' + order.total.toFixed(2) + ' <span style="color:var(--green-dark);font-size:0.75rem;font-weight:600;">(15% off!)</span>';
+    if (order.discount > 0 || order.referralDiscount > 0) {
+        var priceBeforeDiscounts = order.subtotal;
+        var savingsLabels = [];
+        if (order.discount > 0) savingsLabels.push('15% off');
+        if (order.referralDiscount > 0) savingsLabels.push('$' + order.referralDiscount.toFixed(0) + ' referral');
+        totalEl.innerHTML = '<span style="text-decoration:line-through;color:var(--text-muted);font-size:0.9rem;">$' + priceBeforeDiscounts.toFixed(2) + '</span> $' + order.total.toFixed(2) + ' <span style="color:var(--green-dark);font-size:0.75rem;font-weight:600;">(' + savingsLabels.join(' + ') + '!)</span>';
     } else {
         totalEl.textContent = '$' + order.total.toFixed(2);
     }
@@ -3250,7 +3343,8 @@ function proceedWithOrder_(items, customerName, email, phone, pickup, orderCalc,
         pickupLocation: pickup,
         pickupDate: '',
         notes: 'Pickup: ' + pickup,
-        channel: 'Presale'
+        channel: 'Presale',
+        referralCode: activeReferralCode || ''
     };
 
     fetch(TINY_SEED_API.MAIN_API, {
@@ -3261,7 +3355,14 @@ function proceedWithOrder_(items, customerName, email, phone, pickup, orderCalc,
     .then(function(response) { return response.json(); })
     .then(function(result) {
         if (result.success) {
-            showConfirmation(customerName, email, pickup, orderCalc, false, result);
+            var invoiceUrl = (result && result.invoiceUrl) || '';
+            if (invoiceUrl) {
+                // Direct redirect to Shopify checkout — no friction
+                showPaymentRedirect(customerName, email, pickup, orderCalc, result);
+            } else {
+                // No invoice URL (Shopify draft order may have failed) — show confirmation
+                showConfirmation(customerName, email, pickup, orderCalc, false, result);
+            }
         } else {
             btn.disabled = false;
             btn.innerHTML = originalBtnHtml;
@@ -3275,6 +3376,90 @@ function proceedWithOrder_(items, customerName, email, phone, pickup, orderCalc,
         showToast('Network error. Please check your connection and try again.');
         console.error('Network error:', err);
     });
+}
+
+function showPaymentRedirect(customerName, email, pickup, orderCalc, apiResult) {
+    var form = document.getElementById('presaleForm');
+    var orderId = (apiResult && apiResult.orderId) || '';
+    var invoiceUrl = (apiResult && apiResult.invoiceUrl) || '';
+
+    var html = '';
+    html += '<div style="text-align:center; padding:40px 20px;">';
+
+    // Green checkmark circle — same as confirmation
+    html += '<div style="width:80px; height:80px; border-radius:50%; background:#dcfce7; display:flex; align-items:center; justify-content:center; margin:0 auto 20px;">';
+    html += '<i class="fas fa-check-circle" style="font-size:3rem; color:var(--green);"></i>';
+    html += '</div>';
+
+    // Heading
+    html += '<h3 style="font-family:\'Playfair Display\',serif; font-size:1.5rem; color:var(--text-dark); margin-bottom:8px;">Order Placed &mdash; Redirecting to Payment...</h3>';
+
+    // Order ID
+    if (orderId) {
+        html += '<p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:4px;">Order #<strong>' + escapeHtml(orderId) + '</strong></p>';
+    }
+
+    // Summary line
+    html += '<p style="color:var(--text-muted); margin-bottom:20px; max-width:450px; margin-left:auto; margin-right:auto;">';
+    html += '<strong>' + escapeHtml(customerName) + '</strong>, your order for <strong>' + orderCalc.totalPlants + ' seedling' + (orderCalc.totalPlants !== 1 ? 's' : '') + '</strong> ($' + orderCalc.total.toFixed(2) + ') has been recorded.';
+    html += '</p>';
+
+    // Redirect indicator with spinner and progress bar
+    html += '<div style="max-width:400px; margin:0 auto 24px;">';
+    html += '<div style="background:#dcfce7; border:1px solid var(--green); border-radius:12px; padding:20px;">';
+    html += '<p style="font-size:0.95rem; color:var(--green-dark); margin-bottom:12px; font-weight:600;"><i class="fas fa-spinner fa-spin" style="margin-right:6px;"></i> Redirecting to secure checkout...</p>';
+    // Animated progress bar
+    html += '<div style="background:rgba(34,197,94,0.15); border-radius:50px; height:6px; overflow:hidden; margin-bottom:12px;">';
+    html += '<div style="background:var(--green); height:100%; border-radius:50px; width:0%; animation:paymentRedirectBar 1.5s ease-out forwards;"></div>';
+    html += '</div>';
+    html += '<p style="font-size:0.8rem; color:var(--text-muted); margin:0;">You\'ll be taken to Shopify\'s secure checkout to complete payment.</p>';
+    html += '</div>';
+    html += '</div>';
+
+    // Fallback link
+    html += '<p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:8px;">Not redirected? <a href="' + escapeHtml(invoiceUrl) + '" style="color:var(--green-dark); font-weight:600; text-decoration:underline;">Click here to pay</a></p>';
+
+    // Contact line
+    html += '<p style="font-size:0.8rem; color:var(--text-muted);">Questions? Email <a href="mailto:todd@tinyseedfarmpgh.com" style="color:var(--green-dark);">todd@tinyseedfarmpgh.com</a></p>';
+
+    // Referral sharing section
+    html += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:20px;max-width:400px;margin:16px auto 0;text-align:center;">';
+    html += '<p style="font-size:1rem;font-weight:700;color:#2d5016;margin:0 0 8px;"><i class="fas fa-gift" style="margin-right:6px;"></i>Share & Save!</p>';
+    html += '<p style="font-size:0.85rem;color:#555;margin:0 0 12px;">Give a friend $5 off their order. You get $5 credit too!</p>';
+    html += '<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">';
+    var shareUrl = 'https://tinyseedfarm.com/pages/seedling-sale-pittsburgh?ref=SHARE';
+    html += '<button onclick="generateAndCopyReferralLink(\'' + escapeHtml(email) + '\')" style="background:#6b8e23;color:#fff;border:none;border-radius:8px;padding:10px 16px;font-weight:600;cursor:pointer;font-family:inherit;font-size:0.85rem;"><i class="fas fa-copy"></i> Copy My Link</button>';
+    html += '<a href="https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(shareUrl) + '" target="_blank" style="background:#1877f2;color:#fff;border:none;border-radius:8px;padding:10px 16px;font-weight:600;cursor:pointer;font-family:inherit;font-size:0.85rem;text-decoration:none;display:inline-block;"><i class="fab fa-facebook"></i> Share</a>';
+    html += '</div>';
+    html += '<p id="referralLinkDisplay" style="font-size:0.75rem;color:#6b8e23;margin-top:8px;word-break:break-all;display:none;"></p>';
+    html += '</div>';
+
+    html += '</div>';
+
+    // Inject keyframe animation for progress bar
+    if (!document.getElementById('paymentRedirectStyles')) {
+        var styleEl = document.createElement('style');
+        styleEl.id = 'paymentRedirectStyles';
+        styleEl.textContent = '@keyframes paymentRedirectBar { 0% { width: 0%; } 100% { width: 100%; } }';
+        document.head.appendChild(styleEl);
+    }
+
+    form.innerHTML = html;
+
+    // Hide sticky cart and mobile cart — same as showConfirmation
+    var stickyCart = document.getElementById('stickyCart');
+    if (stickyCart) stickyCart.classList.remove('visible');
+    var mobileCollapsed = document.getElementById('mobileCartCollapsed');
+    if (mobileCollapsed) mobileCollapsed.classList.remove('visible');
+    collapseMobileCart();
+
+    // Scroll to the redirect message
+    form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+    // Redirect after 1.5s delay
+    setTimeout(function() {
+        window.location.href = invoiceUrl;
+    }, 1500);
 }
 
 function showConfirmation(customerName, email, pickup, orderCalc, hadPartialFailure, apiResult) {
@@ -3317,10 +3502,24 @@ function showConfirmation(customerName, email, pickup, orderCalc, hadPartialFail
     html += '<p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:8px;"><strong>Pickup:</strong> ' + escapeHtml(pickup) + '</p>';
     html += '<p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:8px;"><strong>Confirmation sent to:</strong> ' + escapeHtml(email) + '</p>';
     html += '<p style="font-size:0.85rem; color:var(--text-muted);"><strong>Total:</strong> $' + orderCalc.total.toFixed(2);
-    if (orderCalc.discount > 0) html += ' <span style="color:var(--green-dark);">(saved $' + orderCalc.discount.toFixed(2) + ')</span>';
+    var totalSavings = (orderCalc.discount || 0) + (orderCalc.referralDiscount || 0);
+    if (totalSavings > 0) html += ' <span style="color:var(--green-dark);">(saved $' + totalSavings.toFixed(2) + ')</span>';
     html += '</p>';
     html += '</div>';
     html += '<p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:20px;">Questions? Email <a href="mailto:todd@tinyseedfarmpgh.com" style="color:var(--green-dark);">todd@tinyseedfarmpgh.com</a>.</p>';
+
+    // Referral sharing section
+    html += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:20px;max-width:400px;margin:0 auto 16px;text-align:center;">';
+    html += '<p style="font-size:1rem;font-weight:700;color:#2d5016;margin:0 0 8px;"><i class="fas fa-gift" style="margin-right:6px;"></i>Share & Save!</p>';
+    html += '<p style="font-size:0.85rem;color:#555;margin:0 0 12px;">Give a friend $5 off their order. You get $5 credit too!</p>';
+    html += '<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">';
+    var confirmShareUrl = 'https://tinyseedfarm.com/pages/seedling-sale-pittsburgh?ref=SHARE';
+    html += '<button onclick="generateAndCopyReferralLink(\'' + escapeHtml(email) + '\')" style="background:#6b8e23;color:#fff;border:none;border-radius:8px;padding:10px 16px;font-weight:600;cursor:pointer;font-family:inherit;font-size:0.85rem;"><i class="fas fa-copy"></i> Copy My Link</button>';
+    html += '<a href="https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(confirmShareUrl) + '" target="_blank" style="background:#1877f2;color:#fff;border:none;border-radius:8px;padding:10px 16px;font-weight:600;cursor:pointer;font-family:inherit;font-size:0.85rem;text-decoration:none;display:inline-block;"><i class="fab fa-facebook"></i> Share</a>';
+    html += '</div>';
+    html += '<p id="referralLinkDisplay" style="font-size:0.75rem;color:#6b8e23;margin-top:8px;word-break:break-all;display:none;"></p>';
+    html += '</div>';
+
     html += '<button onclick="resetOrderForm()" style="background:var(--green); color:#000; border:none; padding:12px 28px; border-radius:50px; font-weight:700; cursor:pointer; font-family:inherit; font-size:0.95rem;">';
     html += '<i class="fas fa-plus"></i> Place Another Order</button>';
     html += '</div>';

@@ -15148,12 +15148,18 @@ function doGet(e) {
       // ============ MARKETING AUTOMATION SYSTEM (GET) ============
       case 'getEmailQueue':
         return jsonResponse(getEmailQueue(e.parameter));
+      case 'getEmailAudienceCounts':
+        return jsonResponse(getEmailAudienceCounts());
+      case 'getEmailQuotaRemaining':
+        return jsonResponse(getEmailQuotaRemaining());
       case 'getCSARenewalsNeeded':
         return jsonResponse(getCSARenewalsNeeded(e.parameter));
       case 'getReferralStats':
         return jsonResponse(getReferralStats(e.parameter));
       case 'getReferralLeaderboard':
         return jsonResponse(getReferralLeaderboard(e.parameter));
+      case 'validateReferralCode':
+        return jsonResponse(validateReferralCode_(e.parameter));
       case 'getCompetitorAlerts':
         return jsonResponse(getCompetitorAlerts(e.parameter));
       case 'getMarketingAutomationDashboard':
@@ -19011,6 +19017,14 @@ function doPost(e) {
         return jsonResponse(runEmailAutomation(data));
       case 'processEmailQueue':
         return jsonResponse(processEmailQueue(data));
+
+      // Email Blast System
+      case 'sendEmailBlast':
+        return jsonResponse(sendEmailBlast(data));
+      case 'getEmailAudienceCounts':
+        return jsonResponse(getEmailAudienceCounts());
+      case 'previewEmailBlast':
+        return jsonResponse(previewEmailBlast(data));
 
       // CSA Renewal Campaigns
       case 'scanCSARenewals':
@@ -70090,6 +70104,267 @@ function processEmailQueue(params) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// EMAIL BLAST SYSTEM
+// Send targeted email blasts to CSA, Wholesale, and Seedling buyer audiences
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function getEmailQuotaRemaining() {
+  try {
+    var remaining = MailApp.getRemainingDailyQuota();
+    return { success: true, remaining: remaining };
+  } catch(err) {
+    return { success: false, error: err.toString() };
+  }
+}
+
+function getEmailAudienceCounts() {
+  try {
+    var ss = SpreadsheetApp.openById('128O56X_FN9_U-s0ENHBBRyLpae_yvWHPYbBheVlR3Vc');
+    var allEmails = {};
+    var counts = { csa: 0, wholesale: 0, seedling_buyers: 0, all: 0 };
+
+    // CSA Members
+    var csaEmails = [];
+    try {
+      var csaSheet = ss.getSheetByName('CSA_Members');
+      if (csaSheet && csaSheet.getLastRow() > 1) {
+        var csaData = csaSheet.getDataRange().getValues();
+        var csaHeaders = csaData[0];
+        var emailCol = csaHeaders.indexOf('Email');
+        var statusCol = csaHeaders.indexOf('Status');
+        if (emailCol === -1) emailCol = csaHeaders.indexOf('email');
+        if (statusCol === -1) statusCol = csaHeaders.indexOf('status');
+        for (var i = 1; i < csaData.length; i++) {
+          var email = (csaData[i][emailCol] || '').toString().trim().toLowerCase();
+          var status = (csaData[i][statusCol] || '').toString().toLowerCase();
+          if (email && email.indexOf('@') > -1 && status !== 'cancelled' && status !== 'inactive') {
+            csaEmails.push(email);
+            allEmails[email] = true;
+          }
+        }
+      }
+    } catch(e) { /* sheet may not exist */ }
+    counts.csa = csaEmails.length;
+
+    // Wholesale Customers
+    var wholesaleEmails = [];
+    try {
+      var wsSheet = ss.getSheetByName('WHOLESALE_CUSTOMERS');
+      if (wsSheet && wsSheet.getLastRow() > 1) {
+        var wsData = wsSheet.getDataRange().getValues();
+        var wsHeaders = wsData[0];
+        var wEmailCol = wsHeaders.indexOf('Email');
+        var wStatusCol = wsHeaders.indexOf('Account_Status');
+        if (wEmailCol === -1) wEmailCol = wsHeaders.indexOf('email');
+        for (var i = 1; i < wsData.length; i++) {
+          var email = (wsData[i][wEmailCol] || '').toString().trim().toLowerCase();
+          var status = (wsData[i][wStatusCol] || '').toString().toLowerCase();
+          if (email && email.indexOf('@') > -1 && status !== 'rejected' && status !== 'blocked') {
+            wholesaleEmails.push(email);
+            allEmails[email] = true;
+          }
+        }
+      }
+    } catch(e) {}
+    counts.wholesale = wholesaleEmails.length;
+
+    // Seedling Buyers (from SEEDLING_ORDERS)
+    var seedlingEmails = [];
+    try {
+      var soSheet = ss.getSheetByName('SEEDLING_ORDERS');
+      if (soSheet && soSheet.getLastRow() > 1) {
+        var soData = soSheet.getDataRange().getValues();
+        var soHeaders = soData[0];
+        var sEmailCol = soHeaders.indexOf('Email');
+        if (sEmailCol === -1) sEmailCol = soHeaders.indexOf('email');
+        var seen = {};
+        for (var i = 1; i < soData.length; i++) {
+          var email = (soData[i][sEmailCol] || '').toString().trim().toLowerCase();
+          if (email && email.indexOf('@') > -1 && !seen[email]) {
+            seen[email] = true;
+            seedlingEmails.push(email);
+            allEmails[email] = true;
+          }
+        }
+      }
+    } catch(e) {}
+    counts.seedling_buyers = seedlingEmails.length;
+
+    // All = deduplicated union
+    counts.all = Object.keys(allEmails).length;
+
+    return { success: true, counts: counts };
+  } catch(err) {
+    return { success: false, error: err.toString() };
+  }
+}
+
+function previewEmailBlast(data) {
+  try {
+    var recipients = getEmailBlastRecipients_(data.audienceType || 'all');
+    var preview = recipients.slice(0, 5).map(function(r) {
+      return { email: r.email, name: r.name };
+    });
+    return { success: true, preview: preview, totalRecipients: recipients.length };
+  } catch(err) {
+    return { success: false, error: err.toString() };
+  }
+}
+
+function sendEmailBlast(data) {
+  try {
+    var subject = data.subject;
+    var htmlBody = data.htmlBody;
+    var audienceType = data.audienceType || 'all';
+    var senderName = data.senderName || 'Tiny Seed Farm';
+
+    if (!subject || !htmlBody) {
+      return { success: false, error: 'Subject and email body are required' };
+    }
+
+    var recipients = getEmailBlastRecipients_(audienceType);
+    if (recipients.length === 0) {
+      return { success: false, error: 'No recipients found for audience: ' + audienceType };
+    }
+
+    // Check quota
+    var quota = MailApp.getRemainingDailyQuota();
+    if (quota < recipients.length) {
+      return { success: false, error: 'Email quota too low. Remaining: ' + quota + ', needed: ' + recipients.length };
+    }
+
+    var sent = 0;
+    var failed = 0;
+    var errors = [];
+
+    for (var i = 0; i < recipients.length; i++) {
+      try {
+        // Personalize greeting
+        var personalizedBody = htmlBody.replace(/\{\{name\}\}/g, recipients[i].name || 'Friend');
+
+        GmailApp.sendEmail(recipients[i].email, subject, '', {
+          htmlBody: personalizedBody,
+          name: senderName,
+          replyTo: 'todd@tinyseedfarmpgh.com'
+        });
+        sent++;
+      } catch(sendErr) {
+        failed++;
+        errors.push(recipients[i].email + ': ' + sendErr.toString().substring(0, 80));
+      }
+
+      // Throttle: 1 second between sends to avoid rate limits
+      if (i < recipients.length - 1) {
+        Utilities.sleep(1000);
+      }
+    }
+
+    // Log the blast
+    logEmailBlast_(subject, audienceType, sent, failed);
+
+    return {
+      success: true,
+      sent: sent,
+      failed: failed,
+      totalRecipients: recipients.length,
+      quotaRemaining: MailApp.getRemainingDailyQuota(),
+      errors: errors.length > 0 ? errors.slice(0, 5) : []
+    };
+  } catch(err) {
+    return { success: false, error: err.toString() };
+  }
+}
+
+function getEmailBlastRecipients_(audienceType) {
+  var ss = SpreadsheetApp.openById('128O56X_FN9_U-s0ENHBBRyLpae_yvWHPYbBheVlR3Vc');
+  var recipients = [];
+  var seen = {};
+
+  function addFromSheet(sheetName, emailColName, nameColNames, statusColName, excludeStatuses) {
+    try {
+      var sheet = ss.getSheetByName(sheetName);
+      if (!sheet || sheet.getLastRow() <= 1) return;
+      var data = sheet.getDataRange().getValues();
+      var headers = data[0].map(function(h) { return (h || '').toString().trim(); });
+      var eCol = -1;
+      for (var c = 0; c < headers.length; c++) {
+        if (headers[c].toLowerCase() === emailColName.toLowerCase()) { eCol = c; break; }
+      }
+      if (eCol === -1) return;
+
+      var nCols = [];
+      for (var n = 0; n < nameColNames.length; n++) {
+        for (var c2 = 0; c2 < headers.length; c2++) {
+          if (headers[c2].toLowerCase() === nameColNames[n].toLowerCase()) { nCols.push(c2); break; }
+        }
+      }
+
+      var sCol = -1;
+      if (statusColName) {
+        for (var c3 = 0; c3 < headers.length; c3++) {
+          if (headers[c3].toLowerCase() === statusColName.toLowerCase()) { sCol = c3; break; }
+        }
+      }
+
+      for (var i = 1; i < data.length; i++) {
+        var email = (data[i][eCol] || '').toString().trim().toLowerCase();
+        if (!email || email.indexOf('@') === -1 || seen[email]) continue;
+
+        if (sCol > -1 && excludeStatuses) {
+          var status = (data[i][sCol] || '').toString().toLowerCase();
+          var excluded = false;
+          for (var x = 0; x < excludeStatuses.length; x++) {
+            if (status === excludeStatuses[x]) { excluded = true; break; }
+          }
+          if (excluded) continue;
+        }
+
+        var name = '';
+        for (var nc = 0; nc < nCols.length; nc++) {
+          var part = (data[i][nCols[nc]] || '').toString().trim();
+          if (part) name += (name ? ' ' : '') + part;
+        }
+
+        seen[email] = true;
+        recipients.push({ email: email, name: name || '' });
+      }
+    } catch(e) { /* sheet doesn't exist, skip */ }
+  }
+
+  if (audienceType === 'csa' || audienceType === 'all') {
+    addFromSheet('CSA_Members', 'Email', ['First_Name', 'Last_Name'], 'Status', ['cancelled', 'inactive']);
+  }
+  if (audienceType === 'wholesale' || audienceType === 'all') {
+    addFromSheet('WHOLESALE_CUSTOMERS', 'Email', ['First_Name', 'Last_Name'], 'Account_Status', ['rejected', 'blocked']);
+  }
+  if (audienceType === 'seedling_buyers' || audienceType === 'all') {
+    addFromSheet('SEEDLING_ORDERS', 'Email', ['Customer_Name'], null, null);
+  }
+
+  return recipients;
+}
+
+function logEmailBlast_(subject, audienceType, sent, failed) {
+  try {
+    var ss = SpreadsheetApp.openById('128O56X_FN9_U-s0ENHBBRyLpae_yvWHPYbBheVlR3Vc');
+    var sheet = ss.getSheetByName('EMAIL_Blast_Log');
+    if (!sheet) {
+      sheet = ss.insertSheet('EMAIL_Blast_Log');
+      sheet.appendRow(['Blast_ID', 'Timestamp', 'Subject', 'Audience', 'Sent', 'Failed', 'Sent_By']);
+    }
+    sheet.appendRow([
+      'BLAST_' + Date.now(),
+      new Date().toISOString(),
+      subject,
+      audienceType,
+      sent,
+      failed,
+      'MCC'
+    ]);
+  } catch(e) { /* logging failure shouldn't break blast */ }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // CSA RENEWAL CAMPAIGN SYSTEM
 // Track expirations and automate renewal outreach
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -70437,9 +70712,9 @@ function convertReferral(params) {
 
         if (referralRow === -1) return { success: true, converted: false, message: 'No pending referral found' };
 
-        // Calculate rewards (configurable)
-        const referrerReward = Math.min(parseFloat(orderValue) * 0.1, 25); // 10% up to $25
-        const referredReward = 10; // $10 off first order
+        // Calculate rewards — flat $5 give/get
+        const referrerReward = 5; // Flat $5 reward
+        const referredReward = 5; // $5 off first order
 
         // Update referral record
         trackingSheet.getRange(referralRow, 8).setValue(new Date().toISOString()); // Conversion date
@@ -70528,6 +70803,46 @@ function getReferralLeaderboard(params) {
     } catch (error) {
         return { success: false, error: error.toString() };
     }
+}
+
+/**
+ * Validate a referral code without tracking — used by frontend to show discount banner
+ */
+function validateReferralCode_(params) {
+  try {
+    var code = (params.code || '').toString().trim().toUpperCase();
+    if (!code) return { success: true, valid: false, error: 'No code provided' };
+
+    var ss = SpreadsheetApp.openById('128O56X_FN9_U-s0ENHBBRyLpae_yvWHPYbBheVlR3Vc');
+    var sheet = ss.getSheetByName('REFERRAL_Codes');
+    if (!sheet || sheet.getLastRow() <= 1) {
+      return { success: true, valid: false, error: 'Code not found' };
+    }
+
+    var data = sheet.getDataRange().getValues();
+    for (var i = 1; i < data.length; i++) {
+      if ((data[i][0] || '').toString().trim().toUpperCase() === code) {
+        var status = (data[i][7] || 'active').toString().toLowerCase();
+        if (status === 'suspended') {
+          return { success: true, valid: false, error: 'Code is no longer active' };
+        }
+        var referrerEmail = (data[i][2] || '').toString();
+        var referrerName = referrerEmail.split('@')[0];
+        return {
+          success: true,
+          valid: true,
+          code: data[i][0],
+          referrerName: referrerName,
+          discount: 5.00,
+          message: 'You get $5 off your order!'
+        };
+      }
+    }
+
+    return { success: true, valid: false, error: 'Code not found' };
+  } catch(err) {
+    return { success: false, error: err.toString() };
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -135170,6 +135485,16 @@ function createSeedlingDraftOrder_(orderData) {
       };
     }
 
+    // Apply referral discount ($5 flat) — only if no other discount already applied
+    if (!draftOrderPayload.draft_order.applied_discount && orderData.referralDiscount && orderData.referralDiscount > 0) {
+      draftOrderPayload.draft_order.applied_discount = {
+        description: 'Referral Discount — Give $5 / Get $5',
+        value_type: 'fixed_amount',
+        value: String(orderData.referralDiscount),
+        title: 'Referral Discount'
+      };
+    }
+
     var result = shopifyApiCall('draft_orders.json', 'POST', draftOrderPayload);
 
     if (result.success && result.data && result.data.draft_order) {
@@ -135642,7 +135967,8 @@ function submitSeedlingOrder(params) {
         pickupDate: params.pickupDate || '',
         businessName: params.businessName || '',
         channel: params.channel || 'Presale',
-        discount: discountInfo
+        discount: discountInfo,
+        referralDiscount: params.referralCode ? 5 : 0
       });
 
       if (shopifyResult.success) {
@@ -135735,6 +136061,28 @@ function submitSeedlingOrder(params) {
         }
       } catch (emailErr) {
         errors.push('Confirmation email: ' + emailErr.toString());
+      }
+    }
+
+    // Step 9: Process referral if code provided
+    var referralCode = (params.referralCode || '').trim();
+    if (referralCode) {
+      try {
+        trackReferral({
+          referralCode: referralCode,
+          referredEmail: params.email || '',
+          referredCustomerId: orderId
+        });
+        convertReferral({
+          referredEmail: params.email || '',
+          orderValue: totalRevenue,
+          orderId: orderId
+        });
+        result.referralProcessed = true;
+      } catch(refErr) {
+        // Referral tracking failure should not break order
+        Logger.log('Referral tracking error: ' + refErr.toString());
+        errors.push('Referral tracking: ' + refErr.toString());
       }
     }
 

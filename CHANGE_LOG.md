@@ -35,6 +35,132 @@ Brief explanation of why these changes were made.
 
 
 
+## 2026-03-20 — FULLSTACK_BUILDER: Add getEmailQuotaRemaining endpoint
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — Added `getEmailQuotaRemaining()` function (uses `MailApp.getRemainingDailyQuota()`) and registered it in the doGet switch statement
+
+### Reason
+MCC frontend calls `?action=getEmailQuotaRemaining` but the backend endpoint did not exist, causing a routing miss.
+
+### Duplicate Check
+- [x] Searched for similar functions — no existing quota endpoint
+- [x] No duplicates created
+
+---
+
+## 2026-03-19 — FULLSTACK_BUILDER: Referral Link System (Give $5 / Get $5)
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — Modified convertReferral() rewards, added validateReferralCode_(), added referral handling in submitSeedlingOrder(), added referral discount to createSeedlingDraftOrder_(), added doGet route for validateReferralCode
+- `web_app/seedling-presale-2026.html` — Added full referral system: URL param detection, discount banner, calculateOrder() referral discount, referral code in order payload, post-order sharing UI in both showPaymentRedirect() and showConfirmation()
+
+### Functions Added
+- `validateReferralCode_(params)` in `MERGED TOTAL.js` — GET endpoint to validate referral codes without tracking
+- `checkReferralCode()` in `seedling-presale-2026.html` — Reads ?ref= URL param, validates via API, shows banner
+- `showReferralBanner(referralData)` in `seedling-presale-2026.html` — Injects green discount banner above catalog
+- `generateAndCopyReferralLink(email)` in `seedling-presale-2026.html` — Generates referral code via API, copies share link to clipboard
+
+### Functions Modified
+- `convertReferral()` in `MERGED TOTAL.js` — Changed from 10%/$25 cap to flat $5/$5 rewards
+- `submitSeedlingOrder()` in `MERGED TOTAL.js` — Added Step 9: referral tracking + conversion after order success
+- `createSeedlingDraftOrder_()` in `MERGED TOTAL.js` — Added referral fixed_amount discount to Shopify draft order (when no other discount applied)
+- `calculateOrder()` in `seedling-presale-2026.html` — Added referralDiscount to order total calculation
+- `updateTotal()` in `seedling-presale-2026.html` — Updated total display to show referral savings label
+- `proceedWithOrder_()` in `seedling-presale-2026.html` — Added referralCode to API payload
+- `showPaymentRedirect()` in `seedling-presale-2026.html` — Added referral sharing section (copy link + Facebook share)
+- `showConfirmation()` in `seedling-presale-2026.html` — Added referral sharing section + combined savings display
+
+### Reason
+Wire existing referral backend into seedling presale page. Customers arriving via ?ref=CODE see a $5 discount banner, discount is applied to their order total and Shopify draft order, and after purchase they see a "Share & Save" section to generate their own referral link.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
+## 2026-03-19 — FULLSTACK_BUILDER: Email Blast Modal UI in MCC
+
+### Files Modified
+- `web_app/marketing-command-center.html` — Added email blast modal HTML + JavaScript
+
+### HTML Added
+- Email blast modal (`#emailBlastModal`) after SMS modal — recipient selector, subject input, HTML body textarea, preview toggle, quick templates, recipient preview, status bar, send button
+
+### Functions Added (8 total)
+- `openEmailComposer()` — Replaced stub; opens modal, fetches audience counts + quota from API
+- `closeEmailBlastModal()` — Hides modal
+- `updateEmailAudienceCounts(counts)` — Updates dropdown labels with live recipient counts
+- `updateEmailRecipientCount()` — Syncs status bar count to selected audience
+- `useEmailTemplate(templateName)` — Populates subject + body from 4 pre-written HTML email templates
+- `toggleEmailPreview()` — Toggles between HTML source editing and rendered preview
+- `previewEmailRecipients()` — Calls previewEmailBlast API, shows first 5 recipients
+- `sendEmailBlastFromUI()` — Validates, confirms, POSTs sendEmailBlast to API, shows result toast
+
+### Templates Added (4)
+- "Presale LIVE" — 95 varieties announcement with Reserve CTA
+- "Last Chance" — April 2 deadline urgency with Complete Order CTA
+- "New Varieties" — Spotlight new heirloom additions with Browse CTA
+- "Thank You" — Post-purchase appreciation with Share/Referral CTA
+
+### Reason
+Wired up the "Send Newsletter" button in MCC to a full email blast UI, mirroring the SMS blast modal pattern. Connects to backend functions added earlier this session.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions (no prior email blast UI existed)
+- [x] No duplicates created
+
+---
+
+## 2026-03-19 — FULLSTACK_BUILDER: Email Blast backend functions
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — Added email blast system (5 functions + 4 route registrations)
+
+### Functions Added
+- `getEmailAudienceCounts()` — Returns deduplicated email counts for CSA, wholesale, seedling buyer, and combined audiences
+- `previewEmailBlast(data)` — Returns first 5 recipients and total count for a given audience type
+- `sendEmailBlast(data)` — Sends personalized HTML emails to selected audience with throttling, quota check, and blast logging
+- `getEmailBlastRecipients_(audienceType)` — Private helper: builds deduplicated recipient list from CSA_Members, WHOLESALE_CUSTOMERS, SEEDLING_ORDERS sheets
+- `logEmailBlast_(subject, audienceType, sent, failed)` — Private helper: logs blast metadata to EMAIL_Blast_Log sheet
+
+### API Routes Added
+- doGet: `getEmailAudienceCounts`
+- doPost: `sendEmailBlast`, `getEmailAudienceCounts`, `previewEmailBlast`
+
+### Reason
+MCC Email Blast tab needs backend support for audience counting, preview, and sending.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md — no existing email blast functions
+- [x] Verified no naming conflicts with existing email campaign functions
+
+---
+
+## 2026-03-18 — FULLSTACK_BUILDER: Auto-redirect to Shopify checkout after order
+
+### Files Modified
+- `web_app/seedling-presale-2026.html` — Added `showPaymentRedirect()` function (before `showConfirmation()`)
+
+### Functions Added
+- `showPaymentRedirect()` in `seedling-presale-2026.html` — When backend returns an `invoiceUrl`, immediately shows a "Redirecting to payment..." screen with animated progress bar and auto-redirects to Shopify checkout after 1.5s. Includes fallback "Click here to pay" link. Eliminates friction of customer needing to find email invoice.
+
+### Functions Modified
+- `proceedWithOrder_()` in `seedling-presale-2026.html` — Now checks for `invoiceUrl` in API response; routes to `showPaymentRedirect()` when present, falls back to `showConfirmation()` when not (done in prior edit)
+
+### Reason
+Customer friction: previously customers had to find the invoice email to pay. Now payment redirect happens automatically at order completion. The existing `showConfirmation()` is preserved as fallback when Shopify draft order creation fails.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
 ## 2026-03-18 — FULLSTACK_BUILDER: Professional redesign of seedling presale page
 
 ### Files Modified

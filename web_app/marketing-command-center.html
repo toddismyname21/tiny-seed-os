@@ -15188,6 +15188,80 @@
         </div>
     </div>
 
+    <!-- EMAIL BLAST MODAL -->
+    <div class="modal-overlay" id="emailBlastModal">
+        <div class="modal" style="max-width: 650px;">
+            <div class="modal-header" style="background: linear-gradient(135deg, #6b8e23 0%, #2d5016 100%);">
+                <h2><i class="fas fa-envelope"></i> Send Email Campaign</h2>
+                <button class="modal-close" onclick="closeEmailBlastModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Recipients</label>
+                    <select class="form-input" id="emailAudienceType" onchange="updateEmailRecipientCount()">
+                        <option value="csa">CSA Members (<span class="email-audience-count" data-audience="csa">--</span>)</option>
+                        <option value="wholesale">Wholesale Customers (<span class="email-audience-count" data-audience="wholesale">--</span>)</option>
+                        <option value="seedling_buyers">Past Seedling Buyers (<span class="email-audience-count" data-audience="seedling_buyers">--</span>)</option>
+                        <option value="all" selected>All Customers (<span class="email-audience-count" data-audience="all">--</span> deduplicated)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Subject Line</label>
+                    <input type="text" class="form-input" id="emailBlastSubject" placeholder="e.g. Seedling Presale Now Open" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>Email Body (HTML)</span>
+                        <button class="btn btn-sm btn-secondary" onclick="toggleEmailPreview()" id="emailPreviewToggleBtn">
+                            <i class="fas fa-eye"></i> Preview
+                        </button>
+                    </label>
+                    <textarea class="form-input" id="emailBlastBody" rows="10" style="min-height: 200px; font-family: monospace; font-size: 0.85rem;" placeholder="Compose your email body or select a template below..."></textarea>
+                    <div id="emailPreviewPane" style="display: none; background: #ffffff; color: #333333; padding: 1rem; border-radius: var(--ts-radius-sm, 8px); border: 1px solid var(--border); min-height: 200px; max-height: 400px; overflow-y: auto;"></div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Quick Templates</label>
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                        <button class="btn btn-sm btn-secondary" onclick="useEmailTemplate('presale_live')">🌱 Presale LIVE</button>
+                        <button class="btn btn-sm btn-secondary" onclick="useEmailTemplate('last_chance')">⏰ Last Chance</button>
+                        <button class="btn btn-sm btn-secondary" onclick="useEmailTemplate('new_varieties')">🍅 New Varieties</button>
+                        <button class="btn btn-sm btn-secondary" onclick="useEmailTemplate('thank_you')">🌿 Thank You</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Recipient Preview</label>
+                    <div id="emailPreviewRecipients" style="background: rgba(0,0,0,0.3); padding: 0.75rem; border-radius: var(--ts-radius-sm, 8px); font-size: 0.85rem; color: var(--text-secondary); min-height: 40px;">
+                        Click "Preview Recipients" to see who will receive this email.
+                    </div>
+                    <button class="btn btn-sm btn-secondary" onclick="previewEmailRecipients()" style="margin-top: 0.5rem;">
+                        <i class="fas fa-users"></i> Preview Recipients
+                    </button>
+                </div>
+
+                <div style="background: rgba(0,0,0,0.3); padding: 1rem; border-radius: var(--ts-radius-sm, 8px); margin-top: 1rem;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span>Recipients:</span>
+                        <span id="emailRecipientCount" style="font-weight: 600;">--</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>Daily Quota Remaining:</span>
+                        <span id="emailQuotaRemaining" style="color: var(--success);">--</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeEmailBlastModal()">Cancel</button>
+                <button class="btn btn-primary" id="emailSendBtn" onclick="sendEmailBlastFromUI()" style="background: linear-gradient(135deg, #6b8e23 0%, #2d5016 100%);">
+                    <i class="fas fa-paper-plane"></i> Send Now
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- META ADS CAMPAIGN MODAL -->
     <div class="modal-overlay" id="metaAdsCampaignModal">
         <div class="modal" style="max-width: 700px;">
@@ -25160,8 +25234,305 @@ From our farm to your table with love. Every bite tells a story of dedication, h
             }
         }
 
+        // ═══════════════════════════════════════════════════════════════════════════
+        // EMAIL BLAST CAMPAIGN
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        var EMAIL_TEMPLATES = {
+            presale_live: {
+                subject: '🌱 95 Organic Heirloom Seedlings — Presale Now Open',
+                body: '<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f4f4f4;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">'
+                    + '<div style="max-width:600px;margin:0 auto;background:#ffffff;">'
+                    + '<div style="background:#6b8e23;padding:30px 24px;text-align:center;">'
+                    + '<h1 style="color:#ffffff;margin:0;font-size:24px;">Tiny Seed Farm</h1>'
+                    + '<p style="color:#d4e8b0;margin:8px 0 0;font-size:14px;">Rochester, PA | USDA Certified Organic</p>'
+                    + '</div>'
+                    + '<div style="padding:32px 24px;">'
+                    + '<h2 style="color:#2d5016;margin:0 0 16px;font-size:22px;">The 2026 Seedling Presale Is LIVE!</h2>'
+                    + '<p style="color:#333;font-size:16px;line-height:1.6;">Hi {{name}},</p>'
+                    + '<p style="color:#333;font-size:16px;line-height:1.6;">We are thrilled to announce our 2026 seedling presale is officially open! This year we are offering <strong>95 organic heirloom varieties</strong> — all grown right here on our farm.</p>'
+                    + '<p style="color:#333;font-size:16px;line-height:1.6;"><strong>Pricing:</strong> $6 each or 4 for $20</p>'
+                    + '<p style="color:#333;font-size:16px;line-height:1.6;"><strong>Pickup:</strong> Available at 5 Pittsburgh-area farmers markets</p>'
+                    + '<p style="color:#333;font-size:16px;line-height:1.6;"><strong>Deadline:</strong> Orders close April 2, 2026</p>'
+                    + '<div style="text-align:center;margin:32px 0;">'
+                    + '<a href="https://tinyseedfarm.com/pages/seedling-sale-pittsburgh" style="background:#6b8e23;color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:6px;font-size:16px;font-weight:600;display:inline-block;">Reserve Your Seedlings</a>'
+                    + '</div>'
+                    + '<p style="color:#666;font-size:14px;line-height:1.6;">Every seedling is USDA Certified Organic and started by hand in our greenhouse. We can not wait to help you grow something amazing this season.</p>'
+                    + '</div>'
+                    + '<div style="background:#f8f8f8;padding:20px 24px;text-align:center;border-top:1px solid #eee;">'
+                    + '<p style="color:#888;font-size:13px;margin:0;">Tiny Seed Farm | Rochester, PA</p>'
+                    + '<p style="color:#888;font-size:13px;margin:4px 0 0;"><a href="mailto:todd@tinyseedfarmpgh.com" style="color:#6b8e23;">todd@tinyseedfarmpgh.com</a></p>'
+                    + '</div>'
+                    + '</div></body></html>'
+            },
+            last_chance: {
+                subject: '⏰ Presale Closes Tomorrow — Don\'t Miss Out',
+                body: '<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f4f4f4;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">'
+                    + '<div style="max-width:600px;margin:0 auto;background:#ffffff;">'
+                    + '<div style="background:#6b8e23;padding:30px 24px;text-align:center;">'
+                    + '<h1 style="color:#ffffff;margin:0;font-size:24px;">Tiny Seed Farm</h1>'
+                    + '<p style="color:#d4e8b0;margin:8px 0 0;font-size:14px;">Rochester, PA | USDA Certified Organic</p>'
+                    + '</div>'
+                    + '<div style="padding:32px 24px;">'
+                    + '<h2 style="color:#c0392b;margin:0 0 16px;font-size:22px;">Last Call — Orders Close Tomorrow!</h2>'
+                    + '<p style="color:#333;font-size:16px;line-height:1.6;">Hi {{name}},</p>'
+                    + '<p style="color:#333;font-size:16px;line-height:1.6;">This is your friendly reminder that our 2026 seedling presale <strong>closes April 2 at midnight</strong>. After that, we can not guarantee availability.</p>'
+                    + '<p style="color:#333;font-size:16px;line-height:1.6;">Popular varieties are already selling fast — our Cherokee Purple Tomatoes, Genovese Basil, and Lemon Cucumbers are going quickly.</p>'
+                    + '<p style="color:#333;font-size:16px;line-height:1.6;">Do not miss your chance to lock in your favorites for the season.</p>'
+                    + '<div style="text-align:center;margin:32px 0;">'
+                    + '<a href="https://tinyseedfarm.com/pages/seedling-sale-pittsburgh" style="background:#c0392b;color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:6px;font-size:16px;font-weight:600;display:inline-block;">Complete Your Order Now</a>'
+                    + '</div>'
+                    + '</div>'
+                    + '<div style="background:#f8f8f8;padding:20px 24px;text-align:center;border-top:1px solid #eee;">'
+                    + '<p style="color:#888;font-size:13px;margin:0;">Tiny Seed Farm | Rochester, PA</p>'
+                    + '<p style="color:#888;font-size:13px;margin:4px 0 0;"><a href="mailto:todd@tinyseedfarmpgh.com" style="color:#6b8e23;">todd@tinyseedfarmpgh.com</a></p>'
+                    + '</div>'
+                    + '</div></body></html>'
+            },
+            new_varieties: {
+                subject: '🍅 Just Added: New Heirloom Varieties for 2026',
+                body: '<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f4f4f4;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">'
+                    + '<div style="max-width:600px;margin:0 auto;background:#ffffff;">'
+                    + '<div style="background:#6b8e23;padding:30px 24px;text-align:center;">'
+                    + '<h1 style="color:#ffffff;margin:0;font-size:24px;">Tiny Seed Farm</h1>'
+                    + '<p style="color:#d4e8b0;margin:8px 0 0;font-size:14px;">Rochester, PA | USDA Certified Organic</p>'
+                    + '</div>'
+                    + '<div style="padding:32px 24px;">'
+                    + '<h2 style="color:#2d5016;margin:0 0 16px;font-size:22px;">New Heirloom Varieties Just Added!</h2>'
+                    + '<p style="color:#333;font-size:16px;line-height:1.6;">Hi {{name}},</p>'
+                    + '<p style="color:#333;font-size:16px;line-height:1.6;">We have just added some exciting new varieties to our 2026 seedling lineup:</p>'
+                    + '<ul style="color:#333;font-size:16px;line-height:2;">'
+                    + '<li><strong>Mortgage Lifter Tomato</strong> — Legendary heirloom, up to 2 lb fruit</li>'
+                    + '<li><strong>Dragon Tongue Bean</strong> — Stunning purple-streaked pods, incredible flavor</li>'
+                    + '<li><strong>Lemon Basil</strong> — Bright citrus aroma, perfect for Thai dishes</li>'
+                    + '<li><strong>Black Beauty Zucchini</strong> — Classic Italian variety, incredibly productive</li>'
+                    + '</ul>'
+                    + '<p style="color:#333;font-size:16px;line-height:1.6;">Join the other gardeners who have already reserved their seedlings for the season. With 95 varieties to choose from, there is something for every garden.</p>'
+                    + '<div style="text-align:center;margin:32px 0;">'
+                    + '<a href="https://tinyseedfarm.com/pages/seedling-sale-pittsburgh" style="background:#6b8e23;color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:6px;font-size:16px;font-weight:600;display:inline-block;">Browse All 95 Varieties</a>'
+                    + '</div>'
+                    + '</div>'
+                    + '<div style="background:#f8f8f8;padding:20px 24px;text-align:center;border-top:1px solid #eee;">'
+                    + '<p style="color:#888;font-size:13px;margin:0;">Tiny Seed Farm | Rochester, PA</p>'
+                    + '<p style="color:#888;font-size:13px;margin:4px 0 0;"><a href="mailto:todd@tinyseedfarmpgh.com" style="color:#6b8e23;">todd@tinyseedfarmpgh.com</a></p>'
+                    + '</div>'
+                    + '</div></body></html>'
+            },
+            thank_you: {
+                subject: 'Thank You for Your Seedling Order! 🌿',
+                body: '<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f4f4f4;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">'
+                    + '<div style="max-width:600px;margin:0 auto;background:#ffffff;">'
+                    + '<div style="background:#6b8e23;padding:30px 24px;text-align:center;">'
+                    + '<h1 style="color:#ffffff;margin:0;font-size:24px;">Tiny Seed Farm</h1>'
+                    + '<p style="color:#d4e8b0;margin:8px 0 0;font-size:14px;">Rochester, PA | USDA Certified Organic</p>'
+                    + '</div>'
+                    + '<div style="padding:32px 24px;">'
+                    + '<h2 style="color:#2d5016;margin:0 0 16px;font-size:22px;">Thank You for Your Order!</h2>'
+                    + '<p style="color:#333;font-size:16px;line-height:1.6;">Hi {{name}},</p>'
+                    + '<p style="color:#333;font-size:16px;line-height:1.6;">Thank you so much for placing your seedling order with Tiny Seed Farm! We are genuinely grateful for your support of our small organic farm.</p>'
+                    + '<p style="color:#333;font-size:16px;line-height:1.6;"><strong>Pickup Reminder:</strong> Your seedlings will be available at your selected Pittsburgh-area farmers market starting in mid-May. We will send a reminder as the date approaches.</p>'
+                    + '<h3 style="color:#2d5016;margin:24px 0 12px;font-size:18px;">Quick Growing Tips</h3>'
+                    + '<ul style="color:#333;font-size:16px;line-height:2;">'
+                    + '<li>Wait until after your last frost date to transplant outdoors</li>'
+                    + '<li>Harden off seedlings by gradually exposing them to outdoor conditions</li>'
+                    + '<li>Water deeply but less frequently to encourage strong roots</li>'
+                    + '</ul>'
+                    + '<p style="color:#333;font-size:16px;line-height:1.6;"><strong>Share with a friend!</strong> Know someone who would love organic heirloom seedlings? Share our presale and you both get $5 off your next order.</p>'
+                    + '<div style="text-align:center;margin:32px 0;">'
+                    + '<a href="https://tinyseedfarm.com/pages/seedling-sale-pittsburgh" style="background:#6b8e23;color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:6px;font-size:16px;font-weight:600;display:inline-block;">Share with a Friend</a>'
+                    + '</div>'
+                    + '</div>'
+                    + '<div style="background:#f8f8f8;padding:20px 24px;text-align:center;border-top:1px solid #eee;">'
+                    + '<p style="color:#888;font-size:13px;margin:0;">Tiny Seed Farm | Rochester, PA</p>'
+                    + '<p style="color:#888;font-size:13px;margin:4px 0 0;"><a href="mailto:todd@tinyseedfarmpgh.com" style="color:#6b8e23;">todd@tinyseedfarmpgh.com</a></p>'
+                    + '</div>'
+                    + '</div></body></html>'
+            }
+        };
+
+        var emailAudienceCounts = { csa: 0, wholesale: 0, seedling_buyers: 0, all: 0 };
+
         function openEmailComposer() {
-            showToast('Opening email composer...', 'info');
+            document.getElementById('emailBlastModal').classList.add('active');
+            // Fetch audience counts from API
+            fetch(API_URL + '?action=getEmailAudienceCounts')
+                .then(function(r) { return r.json(); })
+                .then(function(result) {
+                    if (result.success && result.counts) {
+                        updateEmailAudienceCounts(result.counts);
+                    }
+                })
+                .catch(function(err) {
+                    console.error('Failed to load audience counts:', err);
+                });
+            // Fetch quota
+            fetch(API_URL + '?action=getEmailQuotaRemaining')
+                .then(function(r) { return r.json(); })
+                .then(function(result) {
+                    if (result.success) {
+                        document.getElementById('emailQuotaRemaining').textContent = (result.remaining || '--') + ' emails';
+                    }
+                })
+                .catch(function(err) {
+                    document.getElementById('emailQuotaRemaining').textContent = 'Could not load';
+                });
+        }
+
+        function closeEmailBlastModal() {
+            document.getElementById('emailBlastModal').classList.remove('active');
+        }
+
+        function updateEmailAudienceCounts(counts) {
+            emailAudienceCounts = counts;
+            var selectEl = document.getElementById('emailAudienceType');
+            var options = selectEl.options;
+            var labels = {
+                csa: 'CSA Members',
+                wholesale: 'Wholesale Customers',
+                seedling_buyers: 'Past Seedling Buyers',
+                all: 'All Customers'
+            };
+            for (var i = 0; i < options.length; i++) {
+                var val = options[i].value;
+                if (labels[val] && counts[val] !== undefined) {
+                    var suffix = val === 'all' ? ' deduplicated' : '';
+                    options[i].textContent = labels[val] + ' (' + counts[val] + suffix + ')';
+                }
+            }
+            updateEmailRecipientCount();
+        }
+
+        function updateEmailRecipientCount() {
+            var audience = document.getElementById('emailAudienceType').value;
+            var count = emailAudienceCounts[audience] || '--';
+            document.getElementById('emailRecipientCount').textContent = count;
+        }
+
+        function useEmailTemplate(templateName) {
+            var template = EMAIL_TEMPLATES[templateName];
+            if (!template) return;
+            document.getElementById('emailBlastSubject').value = template.subject;
+            document.getElementById('emailBlastBody').value = template.body;
+            // If preview is active, refresh it
+            var previewPane = document.getElementById('emailPreviewPane');
+            if (previewPane.style.display !== 'none') {
+                previewPane.innerHTML = template.body;
+            }
+            showToast('Template loaded — review and customize before sending', 'info');
+        }
+
+        function toggleEmailPreview() {
+            var textarea = document.getElementById('emailBlastBody');
+            var previewPane = document.getElementById('emailPreviewPane');
+            var toggleBtn = document.getElementById('emailPreviewToggleBtn');
+
+            if (previewPane.style.display === 'none') {
+                // Show preview
+                previewPane.innerHTML = textarea.value || '<p style="color:#888;">Nothing to preview yet. Write or select a template first.</p>';
+                previewPane.style.display = 'block';
+                textarea.style.display = 'none';
+                toggleBtn.innerHTML = '<i class="fas fa-code"></i> Edit HTML';
+            } else {
+                // Show editor
+                previewPane.style.display = 'none';
+                textarea.style.display = 'block';
+                toggleBtn.innerHTML = '<i class="fas fa-eye"></i> Preview';
+            }
+        }
+
+        function previewEmailRecipients() {
+            var audience = document.getElementById('emailAudienceType').value;
+            var previewEl = document.getElementById('emailPreviewRecipients');
+            previewEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading recipients...';
+
+            fetch(API_URL + '?action=previewEmailBlast&audienceType=' + encodeURIComponent(audience))
+                .then(function(r) { return r.json(); })
+                .then(function(result) {
+                    if (result.success && result.preview && result.preview.length > 0) {
+                        var html = '<div style="margin-bottom:6px;font-weight:600;color:var(--text);">First ' + Math.min(result.preview.length, 5) + ' of ' + (result.totalRecipients || result.preview.length) + ' recipients:</div>';
+                        result.preview.slice(0, 5).forEach(function(r) {
+                            html += '<div style="padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.05);">'
+                                + '<span style="color:var(--text);">' + (r.name || 'No Name') + '</span>'
+                                + ' <span style="color:var(--text-secondary);">&lt;' + (r.email || '') + '&gt;</span>'
+                                + '</div>';
+                        });
+                        if ((result.totalRecipients || result.preview.length) > 5) {
+                            html += '<div style="padding:6px 0;color:var(--text-secondary);font-style:italic;">...and ' + ((result.totalRecipients || result.preview.length) - 5) + ' more</div>';
+                        }
+                        previewEl.innerHTML = html;
+                    } else {
+                        previewEl.innerHTML = '<span style="color:var(--warning);"><i class="fas fa-exclamation-triangle"></i> No recipients found for this audience.</span>';
+                    }
+                })
+                .catch(function(err) {
+                    previewEl.innerHTML = '<span style="color:var(--danger);"><i class="fas fa-exclamation-circle"></i> Failed to load recipients: ' + err.message + '</span>';
+                });
+        }
+
+        async function sendEmailBlastFromUI() {
+            var subject = document.getElementById('emailBlastSubject').value.trim();
+            var htmlBody = document.getElementById('emailBlastBody').value.trim();
+            var audienceType = document.getElementById('emailAudienceType').value;
+            var recipientCount = document.getElementById('emailRecipientCount').textContent;
+
+            // Validation
+            if (!subject) {
+                showToast('Please enter a subject line', 'error');
+                document.getElementById('emailBlastSubject').focus();
+                return;
+            }
+            if (!htmlBody) {
+                showToast('Please enter an email body or select a template', 'error');
+                document.getElementById('emailBlastBody').focus();
+                return;
+            }
+
+            // Confirmation dialog
+            if (!confirm('Send email to ' + recipientCount + ' recipients?\n\nSubject: ' + subject + '\n\nThis cannot be undone.')) {
+                return;
+            }
+
+            var sendBtn = document.getElementById('emailSendBtn');
+            var originalBtnHtml = sendBtn.innerHTML;
+            sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+            sendBtn.disabled = true;
+
+            try {
+                var response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({
+                        action: 'sendEmailBlast',
+                        subject: subject,
+                        htmlBody: htmlBody,
+                        audienceType: audienceType
+                    })
+                });
+
+                var result = await response.json();
+
+                if (result.success) {
+                    var sentCount = result.sent || recipientCount;
+                    showToast('Sent to ' + sentCount + ' recipients!', 'success');
+                    closeEmailBlastModal();
+                    // Clear the form for next use
+                    document.getElementById('emailBlastSubject').value = '';
+                    document.getElementById('emailBlastBody').value = '';
+                    // Reset preview pane
+                    var previewPane = document.getElementById('emailPreviewPane');
+                    previewPane.style.display = 'none';
+                    document.getElementById('emailBlastBody').style.display = 'block';
+                    document.getElementById('emailPreviewToggleBtn').innerHTML = '<i class="fas fa-eye"></i> Preview';
+                } else {
+                    showToast(result.error || 'Failed to send email campaign', 'error');
+                }
+            } catch (error) {
+                console.error('Email Campaign Error:', error);
+                showToast('Error sending email campaign: ' + error.message, 'error');
+            } finally {
+                sendBtn.innerHTML = originalBtnHtml;
+                sendBtn.disabled = false;
+            }
         }
 
         function approveSurplusEmail() {
