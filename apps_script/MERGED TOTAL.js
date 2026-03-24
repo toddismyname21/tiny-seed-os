@@ -14464,7 +14464,7 @@ function doGet(e) {
       'getMyWorkOrder', 'getMyGHSowingTasks', 'getPickListForToday', 'getDirectSeedTasks',
       'completeSharedTask', 'completeSubtask', 'getTaskPriorities',
       // Time & attendance
-      'clockIn', 'clockOut', 'getTimesheet',
+      'clockIn', 'clockOut', 'getClockStatus', 'getTimesheet', 'getMySchedule',
       // Communication
       'getEmployeeMessages', 'markMessageRead', 'getCrewMessages',
       // Data reads
@@ -17104,6 +17104,14 @@ function doGet(e) {
         return jsonResponse(updateSchedule(e.parameter.data ? JSON.parse(e.parameter.data) : e.parameter));
       case 'deleteSchedule':
         return jsonResponse(deleteSchedule(e.parameter.scheduleId));
+      case 'getMySchedule':
+        return jsonResponse(getMySchedule(e.parameter.employeeId));
+      case 'sendWeeklyScheduleEmails':
+        return jsonResponse(sendWeeklyScheduleEmails());
+      case 'sendShiftReminders':
+        return jsonResponse(sendShiftReminders());
+      case 'setupScheduleNotificationTriggers':
+        return jsonResponse(setupScheduleNotificationTriggers());
       case 'generateSmartSchedule':
         return jsonResponse(generateSmartSchedule(e.parameter.data ? JSON.parse(e.parameter.data) : e.parameter));
 
@@ -55330,7 +55338,14 @@ function clockIn(params) {
       notes // Notes (e.g. "Forgot to sign in, started at 9am")
     ];
 
-    sheet.appendRow(newRow);
+    // Add lock around the sheet write
+    const lock = LockService.getScriptLock();
+    lock.waitLock(10000);
+    try {
+      sheet.appendRow(newRow);
+    } finally {
+      lock.releaseLock();
+    }
 
     return {
       success: true,
@@ -55393,7 +55408,13 @@ function clockOut(params) {
     rowData[hoursCol] = parseFloat(hoursWorked.toFixed(2));
     if (gpsOutLatCol !== -1) rowData[gpsOutLatCol] = lat;
     if (gpsOutLngCol !== -1) rowData[gpsOutLngCol] = lng;
-    sheet.getRange(row, 1, 1, headers.length).setValues([rowData]);
+    const lock = LockService.getScriptLock();
+    lock.waitLock(10000);
+    try {
+      sheet.getRange(row, 1, 1, headers.length).setValues([rowData]);
+    } finally {
+      lock.releaseLock();
+    }
 
     return {
       success: true,
@@ -57046,7 +57067,13 @@ function createSchedule(data) {
       now
     ];
 
-    sheet.appendRow(row);
+    const lock = LockService.getScriptLock();
+    lock.waitLock(10000);
+    try {
+      sheet.appendRow(row);
+    } finally {
+      lock.releaseLock();
+    }
 
     return {
       success: true,
@@ -57076,16 +57103,23 @@ function updateSchedule(data) {
 
     for (let i = 1; i < allData.length; i++) {
       if (allData[i][idCol] === data.id) {
-        // Update the row
-        const row = i + 1;
-        sheet.getRange(row, headers.indexOf('Employee_ID') + 1).setValue(data.employeeId);
-        sheet.getRange(row, headers.indexOf('Date') + 1).setValue(data.date);
-        sheet.getRange(row, headers.indexOf('Start_Time') + 1).setValue(data.startTime);
-        sheet.getRange(row, headers.indexOf('End_Time') + 1).setValue(data.endTime);
-        sheet.getRange(row, headers.indexOf('Shift_Type') + 1).setValue(data.type || 'field');
-        sheet.getRange(row, headers.indexOf('Notes') + 1).setValue(data.notes || '');
-        sheet.getRange(row, headers.indexOf('Updated_At') + 1).setValue(new Date().toISOString());
-
+        // Batch update with lock
+        const lock = LockService.getScriptLock();
+        lock.waitLock(10000);
+        try {
+          const row = i + 1;
+          const rowData = sheet.getRange(row, 1, 1, headers.length).getValues()[0];
+          rowData[headers.indexOf('Employee_ID')] = data.employeeId;
+          rowData[headers.indexOf('Date')] = data.date;
+          rowData[headers.indexOf('Start_Time')] = data.startTime;
+          rowData[headers.indexOf('End_Time')] = data.endTime;
+          rowData[headers.indexOf('Shift_Type')] = data.type || 'field';
+          rowData[headers.indexOf('Notes')] = data.notes || '';
+          rowData[headers.indexOf('Updated_At')] = new Date().toISOString();
+          sheet.getRange(row, 1, 1, headers.length).setValues([rowData]);
+        } finally {
+          lock.releaseLock();
+        }
         return { success: true, message: 'Schedule updated successfully' };
       }
     }
@@ -57120,6 +57154,466 @@ function deleteSchedule(scheduleId) {
     }
 
     return { success: false, error: 'Schedule not found' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ============================================================================
+// EMPLOYEE SCHEDULE NOTIFICATIONS (Email + SMS)
+// ============================================================================
+
+const SCHEDULE_NOTIFICATIONS_SHEET = 'SCHEDULE_NOTIFICATIONS';
+const SCHEDULE_NOTIFICATIONS_HEADERS = ['Notification_ID', 'Employee_ID', 'Employee_Name', 'Type', 'Channel', 'Sent_At', 'Status', 'Error', 'Week_Start'];
+
+/**
+ * Get or create SCHEDULE_NOTIFICATIONS sheet
+ */
+function getOrCreateScheduleNotificationsSheet() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sheet = ss.getSheetByName(SCHEDULE_NOTIFICATIONS_SHEET);
+  if (!sheet) {
+    sheet = ss.insertSheet(SCHEDULE_NOTIFICATIONS_SHEET);
+    sheet.appendRow(SCHEDULE_NOTIFICATIONS_HEADERS);
+    sheet.getRange(1, 1, 1, SCHEDULE_NOTIFICATIONS_HEADERS.length).setFontWeight('bold');
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+
+/**
+ * Get an employee's upcoming schedule for the next 14 days
+ * API Action: getMySchedule (GET, public - employee app PIN-gated)
+ */
+function getMySchedule(employeeId) {
+  try {
+    if (!employeeId) {
+      return { success: false, error: 'Employee ID required' };
+    }
+
+    const today = new Date();
+    const twoWeeksOut = new Date(today);
+    twoWeeksOut.setDate(twoWeeksOut.getDate() + 14);
+
+    const todayStr = today.toISOString().split('T')[0];
+    const endStr = twoWeeksOut.toISOString().split('T')[0];
+
+    const result = getSchedules(todayStr, endStr);
+    if (!result.success) {
+      return result;
+    }
+
+    // Filter to this employee only
+    const myShifts = result.schedules
+      .filter(s => s.employeeId === employeeId)
+      .map(s => {
+        const d = new Date(s.date + 'T12:00:00');
+        const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        return {
+          date: s.date,
+          dayOfWeek: days[d.getDay()],
+          startTime: s.startTime,
+          endTime: s.endTime,
+          type: s.type,
+          notes: s.notes
+        };
+      })
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    // Calculate weekly hours
+    const thisWeekEnd = new Date(today);
+    thisWeekEnd.setDate(thisWeekEnd.getDate() + (7 - thisWeekEnd.getDay()));
+    const nextWeekEnd = new Date(thisWeekEnd);
+    nextWeekEnd.setDate(nextWeekEnd.getDate() + 7);
+
+    let hoursThisWeek = 0;
+    let hoursNextWeek = 0;
+
+    myShifts.forEach(s => {
+      const shiftDate = new Date(s.date + 'T12:00:00');
+      const startParts = s.startTime.split(':');
+      const endParts = s.endTime.split(':');
+      const hours = (parseInt(endParts[0]) + (parseInt(endParts[1] || 0) / 60)) -
+                    (parseInt(startParts[0]) + (parseInt(startParts[1] || 0) / 60));
+      if (hours > 0) {
+        if (shiftDate <= thisWeekEnd) {
+          hoursThisWeek += hours;
+        } else if (shiftDate <= nextWeekEnd) {
+          hoursNextWeek += hours;
+        }
+      }
+    });
+
+    return {
+      success: true,
+      shifts: myShifts,
+      totalHoursThisWeek: parseFloat(hoursThisWeek.toFixed(1)),
+      totalHoursNextWeek: parseFloat(hoursNextWeek.toFixed(1))
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Send weekly schedule emails + SMS to all active employees
+ * Runs automatically every Sunday at 6pm via trigger, or manually via API
+ */
+function sendWeeklyScheduleEmails() {
+  try {
+    const employees = getAllActiveEmployees();
+    if (!employees.success || !employees.employees.length) {
+      return { success: false, error: 'No active employees found' };
+    }
+
+    // Calculate next week Monday-Sunday
+    const today = new Date();
+    const nextMonday = new Date(today);
+    nextMonday.setDate(today.getDate() + ((8 - today.getDay()) % 7 || 7));
+    const nextSunday = new Date(nextMonday);
+    nextSunday.setDate(nextMonday.getDate() + 6);
+
+    const mondayStr = nextMonday.toISOString().split('T')[0];
+    const sundayStr = nextSunday.toISOString().split('T')[0];
+
+    // Get all schedules for next week
+    const schedulesResult = getSchedules(mondayStr, sundayStr);
+    const allSchedules = (schedulesResult.success && schedulesResult.schedules) ? schedulesResult.schedules : [];
+
+    const notifSheet = getOrCreateScheduleNotificationsSheet();
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const results = { sent: 0, failed: 0, noShifts: 0, details: [] };
+
+    for (const emp of employees.employees) {
+      const empSchedules = allSchedules
+        .filter(s => s.employeeId === emp.id)
+        .sort((a, b) => a.date.localeCompare(b.date));
+
+      // Build schedule data for this employee
+      const scheduleRows = [];
+      let totalHours = 0;
+
+      if (empSchedules.length > 0) {
+        empSchedules.forEach(s => {
+          const d = new Date(s.date + 'T12:00:00');
+          const dayName = days[d.getDay()];
+          const startParts = s.startTime.split(':');
+          const endParts = s.endTime.split(':');
+          const hours = (parseInt(endParts[0]) + (parseInt(endParts[1] || 0) / 60)) -
+                        (parseInt(startParts[0]) + (parseInt(startParts[1] || 0) / 60));
+          if (hours > 0) totalHours += hours;
+
+          scheduleRows.push({
+            day: dayName,
+            date: s.date,
+            start: s.startTime,
+            end: s.endTime,
+            type: s.type || 'field',
+            notes: s.notes || '',
+            hours: hours > 0 ? hours.toFixed(1) : '—'
+          });
+        });
+      }
+
+      // Format week range for display
+      const weekRange = mondayStr.substring(5) + ' to ' + sundayStr.substring(5);
+
+      // ---- SEND EMAIL ----
+      if (emp.email) {
+        try {
+          const htmlBody = buildScheduleEmailHTML(emp.name, weekRange, scheduleRows, totalHours, empSchedules.length === 0);
+          GmailApp.sendEmail(emp.email, '🌱 Your Schedule for ' + weekRange + ' — Tiny Seed Farm', 'View in HTML', { htmlBody: htmlBody });
+
+          notifSheet.appendRow([
+            'SN_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+            emp.id, emp.name, 'weekly_schedule', 'email',
+            new Date().toISOString(), 'sent', '', mondayStr
+          ]);
+          results.sent++;
+        } catch (emailErr) {
+          notifSheet.appendRow([
+            'SN_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+            emp.id, emp.name, 'weekly_schedule', 'email',
+            new Date().toISOString(), 'failed', emailErr.toString(), mondayStr
+          ]);
+          results.failed++;
+        }
+      }
+
+      // ---- SEND SMS ----
+      if (emp.phone && typeof sendSMS === 'function') {
+        try {
+          let smsBody = '';
+          if (empSchedules.length === 0) {
+            smsBody = '🌱 Tiny Seed Farm - No shifts scheduled for ' + weekRange + '. Check with your manager if this seems wrong.';
+          } else {
+            smsBody = '🌱 Tiny Seed Farm - Your schedule ' + weekRange + ':\n';
+            scheduleRows.forEach(r => {
+              smsBody += r.day + ' ' + r.start + '-' + r.end + ' ' + r.type + '\n';
+            });
+            smsBody += 'Total: ' + totalHours.toFixed(1) + 'hrs';
+          }
+
+          sendSMS({ to: emp.phone, message: smsBody });
+
+          notifSheet.appendRow([
+            'SN_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+            emp.id, emp.name, 'weekly_schedule', 'sms',
+            new Date().toISOString(), 'sent', '', mondayStr
+          ]);
+        } catch (smsErr) {
+          notifSheet.appendRow([
+            'SN_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+            emp.id, emp.name, 'weekly_schedule', 'sms',
+            new Date().toISOString(), 'failed', smsErr.toString(), mondayStr
+          ]);
+        }
+      }
+
+      if (empSchedules.length === 0) {
+        results.noShifts++;
+      }
+
+      results.details.push({
+        employee: emp.name,
+        shifts: empSchedules.length,
+        hours: totalHours.toFixed(1),
+        emailSent: !!emp.email,
+        smsSent: !!emp.phone
+      });
+    }
+
+    return { success: true, results: results };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Build HTML email for weekly schedule
+ */
+function buildScheduleEmailHTML(employeeName, weekRange, scheduleRows, totalHours, noShifts) {
+  const shiftTypeColors = {
+    field: '#22c55e',
+    greenhouse: '#16a34a',
+    delivery: '#2563eb',
+    packhouse: '#7c3aed',
+    market: '#ea580c',
+    other: '#64748b'
+  };
+
+  let tableRows = '';
+  if (noShifts) {
+    tableRows = '<tr><td colspan="5" style="text-align:center; padding:20px; color:#78716c; font-style:italic;">No shifts scheduled this week. Check with your manager if this seems wrong.</td></tr>';
+  } else {
+    scheduleRows.forEach(r => {
+      const typeColor = shiftTypeColors[r.type] || '#64748b';
+      tableRows += `
+        <tr>
+          <td style="padding:10px 12px; border-bottom:1px solid #e7e5e4; font-weight:600;">${r.day} ${r.date.substring(5)}</td>
+          <td style="padding:10px 12px; border-bottom:1px solid #e7e5e4;">${r.start} - ${r.end}</td>
+          <td style="padding:10px 12px; border-bottom:1px solid #e7e5e4;">
+            <span style="background:${typeColor}; color:white; padding:2px 8px; border-radius:4px; font-size:12px; text-transform:capitalize;">${r.type}</span>
+          </td>
+          <td style="padding:10px 12px; border-bottom:1px solid #e7e5e4;">${r.hours}h</td>
+          <td style="padding:10px 12px; border-bottom:1px solid #e7e5e4; color:#78716c; font-size:13px;">${r.notes}</td>
+        </tr>`;
+    });
+  }
+
+  return `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; background: #fafafa;">
+      <div style="background: linear-gradient(135deg, #22c55e, #15803d); color: white; padding: 30px; text-align: center;">
+        <h1 style="margin: 0; font-size: 24px;">🌱 Your Weekly Schedule</h1>
+        <p style="margin: 8px 0 0 0; opacity: 0.9; font-size: 16px;">${weekRange}</p>
+      </div>
+
+      <div style="padding: 24px; background: white;">
+        <h2 style="color: #1c1917; margin-top: 0; font-size: 18px;">Hi ${employeeName},</h2>
+        <p style="font-size: 15px; color: #44403c; line-height: 1.5;">Here's your schedule for the upcoming week at Tiny Seed Farm.</p>
+
+        ${!noShifts ? '<div style="background:#f0fdf4; border-left:4px solid #22c55e; padding:12px 16px; margin:16px 0; border-radius:0 8px 8px 0;"><strong style="color:#15803d;">Total scheduled: ' + totalHours.toFixed(1) + ' hours</strong></div>' : ''}
+
+        <table style="width:100%; border-collapse:collapse; margin:16px 0;">
+          <thead>
+            <tr style="background:#f5f5f4;">
+              <th style="padding:10px 12px; text-align:left; font-size:13px; color:#78716c; border-bottom:2px solid #e7e5e4;">Day</th>
+              <th style="padding:10px 12px; text-align:left; font-size:13px; color:#78716c; border-bottom:2px solid #e7e5e4;">Time</th>
+              <th style="padding:10px 12px; text-align:left; font-size:13px; color:#78716c; border-bottom:2px solid #e7e5e4;">Type</th>
+              <th style="padding:10px 12px; text-align:left; font-size:13px; color:#78716c; border-bottom:2px solid #e7e5e4;">Hours</th>
+              <th style="padding:10px 12px; text-align:left; font-size:13px; color:#78716c; border-bottom:2px solid #e7e5e4;">Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${tableRows}
+          </tbody>
+        </table>
+
+        <hr style="border:none; border-top:1px solid #e7e5e4; margin:24px 0;">
+        <p style="font-size:14px; color:#78716c; text-align:center;">
+          Questions about your schedule? Reply to this email or talk to your manager.<br>
+          <strong>See you on the farm! 🌱</strong>
+        </p>
+      </div>
+
+      <div style="background:#f5f5f4; padding:12px; text-align:center; font-size:11px; color:#a8a29e;">
+        Tiny Seed Farm | 257 Zeigler Rd, Rochester, PA 15074
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Send shift reminders for tomorrow — runs daily at 6pm via trigger
+ */
+function sendShiftReminders() {
+  try {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().split('T')[0];
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const dayName = days[tomorrow.getDay()];
+
+    const schedulesResult = getSchedules(tomorrowStr, tomorrowStr);
+    if (!schedulesResult.success) {
+      return { success: false, error: 'Could not fetch schedules: ' + schedulesResult.error };
+    }
+
+    if (!schedulesResult.schedules || schedulesResult.schedules.length === 0) {
+      return { success: true, message: 'No shifts scheduled for tomorrow', sent: 0 };
+    }
+
+    // Check for already-sent reminders today
+    const notifSheet = getOrCreateScheduleNotificationsSheet();
+    const notifData = notifSheet.getDataRange().getValues();
+    const alreadySent = new Set();
+    const todayStr = new Date().toISOString().split('T')[0];
+    for (let i = 1; i < notifData.length; i++) {
+      if (notifData[i][3] === 'shift_reminder' && notifData[i][5] && notifData[i][5].toString().startsWith(todayStr)) {
+        alreadySent.add(notifData[i][1]); // Employee_ID
+      }
+    }
+
+    const employees = getAllActiveEmployees();
+    const empMap = {};
+    if (employees.success && employees.employees) {
+      employees.employees.forEach(e => { empMap[e.id] = e; });
+    }
+
+    let sent = 0;
+    let skipped = 0;
+
+    for (const shift of schedulesResult.schedules) {
+      if (alreadySent.has(shift.employeeId)) {
+        skipped++;
+        continue;
+      }
+
+      const emp = empMap[shift.employeeId];
+      if (!emp) continue;
+
+      const reminderText = '🌱 Reminder: You\'re scheduled for ' + (shift.type || 'work') + ' tomorrow (' + dayName + ') ' + shift.startTime + '-' + shift.endTime + ' at Tiny Seed Farm.';
+
+      // Send email
+      if (emp.email) {
+        try {
+          const subject = '🌱 Shift Reminder — Tomorrow ' + shift.startTime + '-' + shift.endTime;
+          const htmlBody = `
+            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 500px; margin: 0 auto;">
+              <div style="background: linear-gradient(135deg, #22c55e, #15803d); color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
+                <h2 style="margin: 0;">🌱 Shift Reminder</h2>
+              </div>
+              <div style="padding: 24px; background: white; border: 1px solid #e7e5e4; border-top: none; border-radius: 0 0 8px 8px;">
+                <p style="font-size: 16px; color: #1c1917;">Hi ${emp.name},</p>
+                <div style="background: #f0fdf4; border-radius: 8px; padding: 16px; margin: 16px 0;">
+                  <p style="margin: 0; font-size: 18px; font-weight: 600; color: #15803d;">
+                    ${dayName}, ${tomorrowStr.substring(5)}
+                  </p>
+                  <p style="margin: 8px 0 0 0; font-size: 16px; color: #1c1917;">
+                    ${shift.startTime} — ${shift.endTime} &nbsp;
+                    <span style="background: #22c55e; color: white; padding: 2px 8px; border-radius: 4px; font-size: 13px; text-transform: capitalize;">${shift.type || 'work'}</span>
+                  </p>
+                  ${shift.notes ? '<p style="margin: 8px 0 0 0; font-size: 14px; color: #78716c;">' + shift.notes + '</p>' : ''}
+                </div>
+                <p style="font-size: 14px; color: #78716c; text-align: center;">See you on the farm!</p>
+              </div>
+            </div>
+          `;
+          GmailApp.sendEmail(emp.email, subject, reminderText, { htmlBody: htmlBody });
+          sent++;
+        } catch (e) {
+          Logger.log('Shift reminder email failed for ' + emp.id + ': ' + e.toString());
+        }
+      }
+
+      // Send SMS
+      if (emp.phone && typeof sendSMS === 'function') {
+        try {
+          sendSMS({ to: emp.phone, message: reminderText });
+        } catch (e) {
+          Logger.log('Shift reminder SMS failed for ' + emp.id + ': ' + e.toString());
+        }
+      }
+
+      // Log notification
+      notifSheet.appendRow([
+        'SN_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+        shift.employeeId, emp.name || '', 'shift_reminder', emp.email ? 'email+sms' : 'sms',
+        new Date().toISOString(), 'sent', '', tomorrowStr
+      ]);
+
+      alreadySent.add(shift.employeeId);
+    }
+
+    return { success: true, sent: sent, skipped: skipped };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Set up automated triggers for schedule notifications
+ * Run once to activate: weekly email (Sunday 6pm) + daily reminder (6pm)
+ */
+function setupScheduleNotificationTriggers() {
+  try {
+    // Remove existing schedule notification triggers to prevent duplicates
+    const existingTriggers = ScriptApp.getProjectTriggers();
+    let removed = 0;
+    existingTriggers.forEach(trigger => {
+      const handlerName = trigger.getHandlerFunction();
+      if (handlerName === 'sendWeeklyScheduleEmails' || handlerName === 'sendShiftReminders') {
+        ScriptApp.deleteTrigger(trigger);
+        removed++;
+      }
+    });
+
+    // Weekly schedule email — every Sunday at 6pm ET
+    ScriptApp.newTrigger('sendWeeklyScheduleEmails')
+      .timeBased()
+      .onWeekDay(ScriptApp.WeekDay.SUNDAY)
+      .atHour(18)
+      .create();
+
+    // Daily shift reminder — every day at 6pm ET
+    ScriptApp.newTrigger('sendShiftReminders')
+      .timeBased()
+      .everyDays(1)
+      .atHour(18)
+      .create();
+
+    // Initialize the notifications sheet
+    getOrCreateScheduleNotificationsSheet();
+
+    return {
+      success: true,
+      message: 'Schedule notification triggers created',
+      triggers: {
+        weeklySchedule: 'Sunday at 6pm',
+        dailyReminder: 'Daily at 6pm'
+      },
+      removedOldTriggers: removed
+    };
   } catch (error) {
     return { success: false, error: error.toString() };
   }

@@ -975,6 +975,9 @@
             <button class="btn btn-primary" onclick="openTimeOffModal()">
                 <i class="fas fa-umbrella-beach"></i> Request Time Off
             </button>
+            <button onclick="sendSchedulesToAll()" style="background:#22c55e; color:white; border:none; padding:8px 16px; border-radius:6px; cursor:pointer; font-size:13px; font-weight:600; display:inline-flex; align-items:center; gap:6px;">
+                <i class="fas fa-paper-plane"></i> Send Schedules
+            </button>
         </div>
     </header>
 
@@ -1533,6 +1536,36 @@
                 console.error('Error loading HR stats:', err);
                 hrStats = [];
             }
+        }
+
+        // ====================================
+        // SEND SCHEDULES TO ALL EMPLOYEES
+        // ====================================
+        function sendSchedulesToAll() {
+          if (!confirm('Send this week\'s schedule to ALL employees via email and SMS?')) return;
+
+          var btn = event.target.closest('button');
+          var origText = btn.innerHTML;
+          btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+          btn.disabled = true;
+
+          fetch(API_URL + '?action=sendWeeklyScheduleEmails')
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+              btn.innerHTML = origText;
+              btn.disabled = false;
+              if (data.success && data.results) {
+                var r = data.results;
+                alert('Schedules sent!\n\nEmails/SMS sent: ' + r.sent + '\nFailed: ' + r.failed + '\nNo shifts: ' + r.noShifts);
+              } else {
+                alert('Error: ' + (data.error || 'Unknown error'));
+              }
+            })
+            .catch(function(err) {
+              btn.innerHTML = origText;
+              btn.disabled = false;
+              alert('Connection error: ' + err.message);
+            });
         }
 
         // ====================================

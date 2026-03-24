@@ -35,6 +35,33 @@ Brief explanation of why these changes were made.
 
 
 
+## 2026-03-24 — FULLSTACK_BUILDER: Employee Schedule System Upgrades
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js`
+
+### Changes
+1. Added LockService to `clockIn()`, `clockOut()`, `createSchedule()` — prevents concurrent write corruption
+2. Fixed `updateSchedule()` — replaced 7 individual setValue() calls with single batch setValues() + LockService
+3. Added `getClockStatus` and `getMySchedule` to PUBLIC_GET_ACTIONS — fixes auth inconsistency with other employee PIN-gated endpoints
+4. NEW: `getMySchedule(employeeId)` — returns employee's upcoming 14-day schedule
+5. NEW: `sendWeeklyScheduleEmails()` — emails + SMS each employee their weekly schedule (runs Sunday 6pm)
+6. NEW: `sendShiftReminders()` — emails + SMS employees shift reminder 12hrs before (runs daily 6pm)
+7. NEW: `setupScheduleNotificationTriggers()` — creates weekly + daily time-based triggers
+8. NEW: `buildScheduleEmailHTML()` — HTML email template matching farm branding
+9. NEW: `SCHEDULE_NOTIFICATIONS` sheet for logging all notification sends
+10. Registered all new actions in GET switch statement
+
+### Reason
+Full employee scheduling system audit — adding reliability (LockService), self-service (My Schedule), and automated notifications (email + Twilio SMS) per PM-approved plan.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions — no existing schedule email functions
+- [x] No duplicates created
+
+---
+
 ## 2026-03-20 — FULLSTACK_BUILDER: Whitelist validateReferralCode as public endpoint
 
 ### Files Modified
