@@ -562,11 +562,13 @@
             transition: all 0.3s;
             z-index: 99999;
             box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            pointer-events: none;
         }
 
         .toast.show {
             transform: translateY(0);
             opacity: 1;
+            pointer-events: auto;
         }
 
         .toast.success { border-left: 4px solid var(--success); }
