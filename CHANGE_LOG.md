@@ -35,6 +35,65 @@ Brief explanation of why these changes were made.
 
 
 
+## 2026-03-26 — FULLSTACK_BUILDER: Grant Management Dashboard Frontend
+
+### Files Created
+- `web_app/grant-dashboard.html` — Full grant management dashboard (dark theme admin page)
+
+### Features
+- 4-tab layout: Overview, Equipment Tracker, Performance Metrics, Compliance
+- Overview: 6 metric cards (grant amount, budget utilization, equipment progress, days remaining, reimbursements, next deadline) + grant details grid
+- Equipment Tracker: Full table with category filter, status badges, totals footer, update modal
+- Performance Metrics: Cards with progress bars, year targets (Y1/Y2/Y3), color-coded status (green/amber/red)
+- Compliance: Timeline sorted by urgency (overdue first), mark-complete modal with notes, contract details section
+- 3 modals: Update Equipment, Update Metric, Mark Compliance Complete
+- All API calls use api-config.js (TINY_SEED_API.MAIN_API), POST uses Content-Type: text/plain
+- DOMPurify sanitization on all dynamic HTML, escapeHtml on all interpolated values
+- Skeleton loading states (shimmer animation), empty states with icons
+- Mobile responsive (768px + 480px breakpoints), 44px min touch targets
+- Auth guard with Admin role required
+- Design system tokens throughout (--ts-earth-*, --ts-green-*, --ts-radius-*, --ts-text-*)
+- ARIA roles, keyboard navigation (Escape closes modals), screen reader support
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md — no existing grant-dashboard.html
+- [x] Searched for similar files — no duplicates
+- [x] No duplicates created
+
+---
+
+## 2026-03-26 — FULLSTACK_BUILDER: Grant Management Dashboard Backend
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js`
+
+### Functions Added
+- `setupGrantSheets()` — Creates GRANTS, GRANT_EQUIPMENT, GRANT_METRICS, GRANT_COMPLIANCE sheets with pre-populated AIG Round 1 data (24 equipment items, 11 metrics, 8 compliance items)
+- `getGrantsMgmt()` — Returns all grants with calculated utilization stats from equipment sheet (named to avoid collision with existing financial `getGrants()`)
+- `getGrantDetail(grantId)` — Returns full grant detail including equipment, metrics, compliance, and summary calculations (days remaining, utilization %, reimbursement tracking)
+- `updateGrantEquipment(params)` — Updates equipment purchase status, cost, receipt, reimbursement (LockService protected)
+- `updateGrantMetric(params)` — Updates metric current values with auto-timestamp (LockService protected)
+- `updateGrantCompliance(params)` — Updates compliance item status, completion date, notes (LockService protected)
+
+### Routes Added
+- GET: `getGrantsMgmt`, `getGrantDetail`, `setupGrantSheets` (added to PUBLIC_GET_ACTIONS + switch)
+- POST: `updateGrantEquipment`, `updateGrantMetric`, `updateGrantCompliance` (added to PUBLIC_POST_ACTIONS + switch)
+
+### Sheets Created (via setupGrantSheets)
+- `GRANTS` — Grant master records (12 columns)
+- `GRANT_EQUIPMENT` — Equipment line items with budget/actual/reimbursement tracking (14 columns)
+- `GRANT_METRICS` — Performance metrics with year targets (10 columns)
+- `GRANT_COMPLIANCE` — Compliance deadlines and reporting requirements (8 columns)
+
+### Reason
+Backend for Grant Management Dashboard to track PA Ag Innovation Grant ($75,000, Contract C940002366). All write operations use LockService, header-position-aware lookups (indexOf), field name aliasing for frontend compatibility, and standard {success, error} response format.
+
+### Duplicate Check
+- [x] Checked existing `getGrants()` at line 112617 — reads from FIN_GRANTS (financial module). Renamed new function to `getGrantsMgmt()` to avoid collision.
+- [x] No existing grant management/tracking functions found
+
+---
+
 ## 2026-03-24 — FULLSTACK_BUILDER: Employee Schedule System Upgrades
 
 ### Files Modified

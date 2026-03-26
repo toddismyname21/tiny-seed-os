@@ -14501,7 +14501,9 @@ function doGet(e) {
       'getOSPDraft',
       // Seedling presale/wholesale (customer-facing — no auth needed)
       'getSeedlingPresaleItems', 'validateSeedlingAvailability',
-      'getSeedlingBundles', 'getSeedlingCategories', 'validateReferralCode'
+      'getSeedlingBundles', 'getSeedlingCategories', 'validateReferralCode',
+      // Grant management dashboard
+      'getGrantsMgmt', 'getGrantDetail', 'setupGrantSheets'
     ]);
 
   if (!PUBLIC_GET_ACTIONS.has(action)) {
@@ -18061,6 +18063,14 @@ function doGet(e) {
       case 'generateSmartCaption':
         return jsonResponse(typeof generateSmartCaption === 'function' ? generateSmartCaption(e.parameter) : { success: false, error: 'Smart caption endpoint not implemented' });
 
+      // ============ GRANT MANAGEMENT DASHBOARD ============
+      case 'getGrantsMgmt':
+        return jsonResponse(getGrantsMgmt());
+      case 'getGrantDetail':
+        return jsonResponse(getGrantDetail(e.parameter.grantId));
+      case 'setupGrantSheets':
+        return jsonResponse(setupGrantSheets());
+
       default:
         return jsonResponse({error: 'Unknown action: ' + action}, 400);
     }
@@ -18187,6 +18197,8 @@ function doPost(e) {
       'checkWholesaleAdmin',
       // Seedling presale (customer-facing order submission)
       'submitSeedlingOrder',
+      // Grant management dashboard
+      'updateGrantEquipment', 'updateGrantMetric', 'updateGrantCompliance',
     ]);
 
     if (action && !PUBLIC_POST_ACTIONS.has(action)) {
@@ -19626,6 +19638,14 @@ function doPost(e) {
         return jsonResponse(addSeedlingCategory(data));
       case 'removeSeedlingCategory':
         return jsonResponse(removeSeedlingCategory(data));
+
+      // ============ GRANT MANAGEMENT DASHBOARD ============
+      case 'updateGrantEquipment':
+        return jsonResponse(updateGrantEquipment(data));
+      case 'updateGrantMetric':
+        return jsonResponse(updateGrantMetric(data));
+      case 'updateGrantCompliance':
+        return jsonResponse(updateGrantCompliance(data));
 
       default:
         return jsonResponse({error: 'Unknown action: ' + action}, 400);
@@ -153050,6 +153070,453 @@ function getRuleViolationStats() {
 
   } catch (error) {
     Logger.log('getRuleViolationStats error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ============================================
+// GRANT MANAGEMENT DASHBOARD — SHEET SETUP
+// ============================================
+
+function setupGrantSheets() {
+  try {
+    var ss = SpreadsheetApp.openById('128O56X_FN9_U-s0ENHBBRyLpae_yvWHPYbBheVlR3Vc');
+
+    // GRANTS sheet
+    var grantsSheet = ss.getSheetByName('GRANTS');
+    if (!grantsSheet) {
+      grantsSheet = ss.insertSheet('GRANTS');
+      grantsSheet.getRange(1, 1, 1, 12).setValues([['Grant_ID', 'Grant_Name', 'Funder', 'Contract_Number', 'Award_Amount', 'Farm_Match', 'Total_Budget', 'Award_Date', 'Start_Date', 'End_Date', 'Status', 'Notes']]);
+      grantsSheet.getRange(1, 1, 1, 12).setFontWeight('bold').setBackground('#333333').setFontColor('#ffffff');
+      // Pre-populate AIG Round 1
+      grantsSheet.getRange(2, 1, 1, 12).setValues([['AIG-R1-2024', 'PA Ag Innovation Grant - Round 1', 'PA Department of Agriculture', 'C940002366', 75000, 125000, 200000, '2024-07-01', '2024-07-01', '2027-06-30', 'Active', 'SFY 2024. Reimbursement-based. Vendor #833615.']]);
+    }
+
+    // GRANT_EQUIPMENT sheet
+    var equipSheet = ss.getSheetByName('GRANT_EQUIPMENT');
+    if (!equipSheet) {
+      equipSheet = ss.insertSheet('GRANT_EQUIPMENT');
+      equipSheet.getRange(1, 1, 1, 14).setValues([['Item_ID', 'Grant_ID', 'Item_Name', 'Category', 'Description', 'Budgeted_PDA', 'Budgeted_Match', 'Budgeted_Total', 'Actual_Cost', 'Purchase_Date', 'Receipt_Submitted', 'Reimbursement_Date', 'Reimbursement_Amount', 'Status']]);
+      equipSheet.getRange(1, 1, 1, 14).setFontWeight('bold').setBackground('#333333').setFontColor('#ffffff');
+
+      var items = [
+        ['EQ-001', 'AIG-R1-2024', 'Stainless Steel Tank', 'Post Harvest', 'Hydrocooling and sanitary washing', 1000, 1000, 2000, '', '', '', '', '', 'Not Purchased'],
+        ['EQ-002', 'AIG-R1-2024', '1\u00BC Bushel Orange Basket', 'Post Harvest', 'Salad spinner basket', 570, 570, 1140, '', '', '', '', '', 'Not Purchased'],
+        ['EQ-003', 'AIG-R1-2024', 'Green Harvest Tote', 'Post Harvest', 'Sanitary post-wash cooling storage', 1090, 1090, 2180, '', '', '', '', '', 'Not Purchased'],
+        ['EQ-004', 'AIG-R1-2024', 'Stainless Steel Tables w/ Storage Shelves', 'Post Harvest', 'Compliant storage shelves for packaging supplies', 1500, 1500, 3000, '', '', '', '', '', 'Not Purchased'],
+        ['EQ-005', 'AIG-R1-2024', 'Stainless Steel Rolling Shelves', 'Post Harvest', 'Moving smaller orders in and out of cooler', 3700, 3700, 7400, '', '', '', '', '', 'Not Purchased'],
+        ['EQ-006', 'AIG-R1-2024', 'Walk-in Refrigeration w/ Cooling & Humidity', 'Post Harvest', 'Compliant best practice cold storage for salad greens', 4000, 4000, 8000, '', '', '', '', '', 'Not Purchased'],
+        ['EQ-007', 'AIG-R1-2024', 'Stainless Steel Brush Vegetable Washer', 'Post Harvest', 'Hydrocooling and sanitary washing', 2500, 2500, 5000, '', '', '', '', '', 'Not Purchased'],
+        ['EQ-008', 'AIG-R1-2024', 'Stainless Steel Salad Spinners (2)', 'Post Harvest', 'Drying greens rapidly for optimal quality', 2500, 2500, 5000, '', '', '', '', '', 'Not Purchased'],
+        ['EQ-009', 'AIG-R1-2024', 'Food Grade Conveyor System', 'Post Harvest', 'FSMA-compliant sorting and transporting', 5000, 5000, 10000, '', '', '', '', '', 'Not Purchased'],
+        ['EQ-010', 'AIG-R1-2024', 'Automatic Weighing and Packaging Machine', 'Post Harvest', 'Accurate sanitary packing for CSA and wholesale', 6000, 6000, 12000, '', '', '', '', '', 'Not Purchased'],
+        ['EQ-011', 'AIG-R1-2024', 'UV Sterilization Unit', 'Post Harvest', 'Biosecurity - sterilizing tools and equipment', 2500, 2500, 5000, '', '', '', '', '', 'Not Purchased'],
+        ['EQ-012', 'AIG-R1-2024', 'Humidity Control System for Walk-In Cooler', 'Post Harvest', 'Optimal storage for leafy greens, reducing spoilage', 1500, 1500, 3000, '', '', '', '', '', 'Not Purchased'],
+        ['EQ-013', 'AIG-R1-2024', 'Traceability Software and Hardware Package', 'FSMA Compliance', 'Field-to-customer tracking, GAP certification support', 3500, 3500, 7000, '', '', '', '', '', 'Not Purchased'],
+        ['EQ-014', 'AIG-R1-2024', 'PTO Driven Compost Turner', 'Compost', 'USDA-compliant compost pile maintenance', 12000, 12000, 24000, '', '', '', '', '', 'Not Purchased'],
+        ['EQ-015', 'AIG-R1-2024', 'Remote Compost Monitoring System', 'Compost', 'USDA compliance, consistent production monitoring', 1000, 1000, 2000, '', '', '', '', '', 'Not Purchased'],
+        ['EQ-016', 'AIG-R1-2024', 'Analog Compost Monitoring Tools', 'Compost', 'Backup monitoring with thermometers', 200, 200, 400, '', '', '', '', '', 'Not Purchased'],
+        ['EQ-017', 'AIG-R1-2024', 'Ortomec Multi-Seed Seeder', 'Seeding', 'Precise bed-width salad and baby greens seeding', 9000, 9000, 18000, '', '', '', '', '', 'Not Purchased'],
+        ['EQ-018', 'AIG-R1-2024', 'Jang Toolbar Mounted Seeder (4)', 'Seeding', 'Consistent seeding in line with cultivation system', 2500, 2500, 5000, '', '', '', '', '', 'Not Purchased'],
+        ['EQ-019', 'AIG-R1-2024', 'FORIGO G-25 Rock Burier', 'Field Prep', 'Consistent field prep before seeding and harvest', 7500, 7500, 15000, '', '', '', '', '', 'Not Purchased'],
+        ['EQ-020', 'AIG-R1-2024', 'Rain-Flo 1670 Water Wheel Transplanter', 'Transplanting', 'Increase baby greens transplant production', 3500, 3500, 7000, '', '', '', '', '', 'Not Purchased'],
+        ['EQ-021', 'AIG-R1-2024', 'Harvester 2000', 'Harvest', 'Bed width harvester, increases efficiency', 12340, 12340, 24680, '', '', '', '', '', 'Not Purchased'],
+        ['EQ-022', 'AIG-R1-2024', 'Farmmade 3pt Harvesting Platform', 'Harvest', 'Tractor-mounted efficient multi-bed harvest', 600, 600, 1200, '', '', '', '', '', 'Not Purchased'],
+        ['EQ-023', 'AIG-R1-2024', 'Undercutter', 'Harvest', 'Tractor-mounted efficient root harvest', 1000, 1000, 2000, '', '', '', '', '', 'Not Purchased'],
+        ['EQ-024', 'AIG-R1-2024', 'Compatible Cultivation System (Tilmor)', 'Cultivation', 'Farmwide 4-row cultivation and bed-wide stale seedbedding', 15000, 15000, 30000, '', '', '', '', '', 'Not Purchased']
+      ];
+      equipSheet.getRange(2, 1, items.length, 14).setValues(items);
+    }
+
+    // GRANT_METRICS sheet
+    var metricsSheet = ss.getSheetByName('GRANT_METRICS');
+    if (!metricsSheet) {
+      metricsSheet = ss.insertSheet('GRANT_METRICS');
+      metricsSheet.getRange(1, 1, 1, 10).setValues([['Metric_ID', 'Grant_ID', 'Metric_Name', 'Category', 'Target_Year1', 'Target_Year2', 'Target_Year3', 'Current_Value', 'Unit', 'Last_Updated']]);
+      metricsSheet.getRange(1, 1, 1, 10).setFontWeight('bold').setBackground('#333333').setFontColor('#ffffff');
+
+      var metrics = [
+        ['MET-001', 'AIG-R1-2024', 'Post-Harvest Manager Hired', 'Staffing', '1', '', '', '0', 'positions', ''],
+        ['MET-002', 'AIG-R1-2024', 'Additional Post-Harvest Positions', 'Staffing', '', '', '3', '0', 'positions', ''],
+        ['MET-003', 'AIG-R1-2024', 'Compost Production Manager Hired', 'Staffing', '', '', '1', '0', 'positions', ''],
+        ['MET-004', 'AIG-R1-2024', 'CSA Membership', 'Sales', '100', '200', '400', '82', 'members', ''],
+        ['MET-005', 'AIG-R1-2024', 'Salad Greens Sales Growth', 'Sales', '', '', '300', '0', '% increase', ''],
+        ['MET-006', 'AIG-R1-2024', 'Wholesale Sales Growth (YoY)', 'Sales', '15', '15', '15', '0', '% increase', ''],
+        ['MET-007', 'AIG-R1-2024', 'Weekly Compost Production', 'Compost', '2', '8', '15', '0', 'cubic yards/week', ''],
+        ['MET-008', 'AIG-R1-2024', 'Post-Harvest Handling Time Reduction', 'Efficiency', '5', '12', '20', '0', '% reduction', ''],
+        ['MET-009', 'AIG-R1-2024', 'Manual Labor Hours Reduction', 'Efficiency', '5', '12', '20', '0', '% reduction', ''],
+        ['MET-010', 'AIG-R1-2024', 'USDA-Compliant Composting SOP', 'Compliance', '', '', '1', '0', 'document', ''],
+        ['MET-011', 'AIG-R1-2024', 'Real Cost Accounting Tool', 'Technology', '1', '', '', '0', 'tool built', '']
+      ];
+      metricsSheet.getRange(2, 1, metrics.length, 10).setValues(metrics);
+    }
+
+    // GRANT_COMPLIANCE sheet
+    var compSheet = ss.getSheetByName('GRANT_COMPLIANCE');
+    if (!compSheet) {
+      compSheet = ss.insertSheet('GRANT_COMPLIANCE');
+      compSheet.getRange(1, 1, 1, 8).setValues([['Compliance_ID', 'Grant_ID', 'Requirement', 'Type', 'Due_Date', 'Status', 'Completed_Date', 'Notes']]);
+      compSheet.getRange(1, 1, 1, 8).setFontWeight('bold').setBackground('#333333').setFontColor('#ffffff');
+
+      var compliance = [
+        ['COMP-001', 'AIG-R1-2024', 'Sign Grant Contract', 'Contract', '2026-04-15', 'Pending', '', 'Contract C940002366 received for e-signature'],
+        ['COMP-002', 'AIG-R1-2024', 'Progress Report - Year 1', 'Report', '2025-06-30', 'Overdue', '', 'Per Attachment 4'],
+        ['COMP-003', 'AIG-R1-2024', 'Progress Report - Year 2', 'Report', '2026-06-30', 'Upcoming', '', 'Per Attachment 4'],
+        ['COMP-004', 'AIG-R1-2024', 'Final Report', 'Report', '2027-06-30', 'Not Started', '', 'Per Attachment 4'],
+        ['COMP-005', 'AIG-R1-2024', 'First Equipment Purchase + Invoice', 'Purchase', '2026-06-30', 'Not Started', '', 'Submit receipt to PDA for reimbursement'],
+        ['COMP-006', 'AIG-R1-2024', 'All Equipment Purchased', 'Purchase', '2027-03-31', 'Not Started', '', 'Complete all purchases 90 days before term ends'],
+        ['COMP-007', 'AIG-R1-2024', 'Record Retention Period Ends', 'Records', '2030-06-30', 'Not Started', '', 'Keep all records 3 years after expiration'],
+        ['COMP-008', 'AIG-R1-2024', 'Grant Term Ends', 'Contract', '2027-06-30', 'Not Started', '', 'Performance period and term end date']
+      ];
+      compSheet.getRange(2, 1, compliance.length, 8).setValues(compliance);
+    }
+
+    return { success: true, message: 'Grant sheets created and pre-populated with AIG Round 1 data' };
+  } catch (error) {
+    Logger.log('setupGrantSheets error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ============================================
+// GRANT MANAGEMENT DASHBOARD — API FUNCTIONS
+// ============================================
+
+function getGrantsMgmt() {
+  try {
+    var ss = SpreadsheetApp.openById('128O56X_FN9_U-s0ENHBBRyLpae_yvWHPYbBheVlR3Vc');
+    var sheet = ss.getSheetByName('GRANTS');
+    if (!sheet) return { success: false, error: 'GRANTS sheet not found. Run setupGrantSheets() first.' };
+
+    var data = sheet.getDataRange().getValues();
+    if (data.length <= 1) return { success: true, grants: [], count: 0 };
+
+    var headers = data[0];
+    var grants = [];
+
+    for (var i = 1; i < data.length; i++) {
+      var row = {};
+      for (var h = 0; h < headers.length; h++) {
+        row[headers[h]] = data[i][h];
+      }
+
+      // Calculate utilization from GRANT_EQUIPMENT
+      var equipSheet = ss.getSheetByName('GRANT_EQUIPMENT');
+      if (equipSheet) {
+        var equipData = equipSheet.getDataRange().getValues();
+        var equipHeaders = equipData[0];
+        var grantIdIdx = equipHeaders.indexOf('Grant_ID');
+        var actualCostIdx = equipHeaders.indexOf('Actual_Cost');
+        var reimburseAmtIdx = equipHeaders.indexOf('Reimbursement_Amount');
+        var statusIdx = equipHeaders.indexOf('Status');
+        var budgetedTotalIdx = equipHeaders.indexOf('Budgeted_Total');
+        var budgetedPDAIdx = equipHeaders.indexOf('Budgeted_PDA');
+
+        var totalSpent = 0, totalReimbursed = 0, totalBudgeted = 0, totalBudgetedPDA = 0;
+        var itemsPurchased = 0, itemsReimbursed = 0, totalItems = 0;
+
+        for (var j = 1; j < equipData.length; j++) {
+          if (equipData[j][grantIdIdx] === row.Grant_ID) {
+            totalItems++;
+            var actual = parseFloat(equipData[j][actualCostIdx]) || 0;
+            var reimbursed = parseFloat(equipData[j][reimburseAmtIdx]) || 0;
+            totalSpent += actual;
+            totalReimbursed += reimbursed;
+            totalBudgeted += parseFloat(equipData[j][budgetedTotalIdx]) || 0;
+            totalBudgetedPDA += parseFloat(equipData[j][budgetedPDAIdx]) || 0;
+            if (equipData[j][statusIdx] !== 'Not Purchased') itemsPurchased++;
+            if (equipData[j][statusIdx] === 'Reimbursed') itemsReimbursed++;
+          }
+        }
+
+        row.totalSpent = totalSpent;
+        row.totalReimbursed = totalReimbursed;
+        row.totalBudgeted = totalBudgeted;
+        row.totalBudgetedPDA = totalBudgetedPDA;
+        row.itemsPurchased = itemsPurchased;
+        row.itemsReimbursed = itemsReimbursed;
+        row.totalItems = totalItems;
+        row.utilizationPct = totalBudgeted > 0 ? Math.round((totalSpent / totalBudgeted) * 100) : 0;
+      }
+
+      // Calculate days remaining
+      var endDate = new Date(row.End_Date);
+      var today = new Date();
+      row.daysRemaining = Math.max(0, Math.ceil((endDate - today) / (1000 * 60 * 60 * 24)));
+
+      grants.push(row);
+    }
+
+    return { success: true, grants: grants, count: grants.length };
+  } catch (error) {
+    Logger.log('getGrants error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+function getGrantDetail(grantId) {
+  try {
+    if (!grantId) return { success: false, error: 'grantId is required' };
+
+    var ss = SpreadsheetApp.openById('128O56X_FN9_U-s0ENHBBRyLpae_yvWHPYbBheVlR3Vc');
+
+    // Get grant record
+    var grantSheet = ss.getSheetByName('GRANTS');
+    if (!grantSheet) return { success: false, error: 'GRANTS sheet not found' };
+
+    var grantData = grantSheet.getDataRange().getValues();
+    var grantHeaders = grantData[0];
+    var grant = null;
+
+    for (var i = 1; i < grantData.length; i++) {
+      if (grantData[i][0] === grantId) {
+        grant = {};
+        for (var h = 0; h < grantHeaders.length; h++) {
+          grant[grantHeaders[h]] = grantData[i][h];
+        }
+        break;
+      }
+    }
+
+    if (!grant) return { success: false, error: 'Grant not found: ' + grantId };
+
+    // Get equipment
+    var equipSheet = ss.getSheetByName('GRANT_EQUIPMENT');
+    var equipment = [];
+    if (equipSheet) {
+      var equipData = equipSheet.getDataRange().getValues();
+      var equipHeaders = equipData[0];
+      for (var ei = 1; ei < equipData.length; ei++) {
+        if (equipData[ei][1] === grantId) {
+          var item = {};
+          for (var eh = 0; eh < equipHeaders.length; eh++) {
+            item[equipHeaders[eh]] = equipData[ei][eh];
+          }
+          equipment.push(item);
+        }
+      }
+    }
+
+    // Get metrics
+    var metricsSheet = ss.getSheetByName('GRANT_METRICS');
+    var metrics = [];
+    if (metricsSheet) {
+      var metricsData = metricsSheet.getDataRange().getValues();
+      var metricsHeaders = metricsData[0];
+      for (var mi = 1; mi < metricsData.length; mi++) {
+        if (metricsData[mi][1] === grantId) {
+          var metric = {};
+          for (var mh = 0; mh < metricsHeaders.length; mh++) {
+            metric[metricsHeaders[mh]] = metricsData[mi][mh];
+          }
+          metrics.push(metric);
+        }
+      }
+    }
+
+    // Get compliance
+    var compSheet = ss.getSheetByName('GRANT_COMPLIANCE');
+    var compliance = [];
+    if (compSheet) {
+      var compData = compSheet.getDataRange().getValues();
+      var compHeaders = compData[0];
+      for (var ci = 1; ci < compData.length; ci++) {
+        if (compData[ci][1] === grantId) {
+          var compItem = {};
+          for (var ch = 0; ch < compHeaders.length; ch++) {
+            compItem[compHeaders[ch]] = compData[ci][ch];
+          }
+
+          // Calculate urgency
+          if (compItem.Due_Date && compItem.Status !== 'Complete') {
+            var due = new Date(compItem.Due_Date);
+            var todayComp = new Date();
+            var daysUntil = Math.ceil((due - todayComp) / (1000 * 60 * 60 * 24));
+            compItem.daysUntilDue = daysUntil;
+            compItem.urgency = daysUntil < 0 ? 'overdue' : daysUntil <= 30 ? 'urgent' : daysUntil <= 90 ? 'upcoming' : 'on-track';
+          }
+
+          compliance.push(compItem);
+        }
+      }
+    }
+
+    // Calculate summary stats
+    var totalBudgeted = 0, totalSpent = 0, totalReimbursed = 0, totalBudgetedPDA = 0;
+    var purchased = 0, reimbursedCount = 0;
+    for (var si = 0; si < equipment.length; si++) {
+      var eq = equipment[si];
+      totalBudgeted += parseFloat(eq.Budgeted_Total) || 0;
+      totalBudgetedPDA += parseFloat(eq.Budgeted_PDA) || 0;
+      totalSpent += parseFloat(eq.Actual_Cost) || 0;
+      totalReimbursed += parseFloat(eq.Reimbursement_Amount) || 0;
+      if (eq.Status !== 'Not Purchased') purchased++;
+      if (eq.Status === 'Reimbursed') reimbursedCount++;
+    }
+
+    var endDate = new Date(grant.End_Date);
+    var startDate = new Date(grant.Start_Date);
+    var today = new Date();
+    var totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+    var daysElapsed = Math.ceil((today - startDate) / (1000 * 60 * 60 * 24));
+    var daysRemaining = Math.max(0, totalDays - daysElapsed);
+
+    return {
+      success: true,
+      grant: grant,
+      equipment: equipment,
+      metrics: metrics,
+      compliance: compliance,
+      summary: {
+        totalBudgeted: totalBudgeted,
+        totalBudgetedPDA: totalBudgetedPDA,
+        totalSpent: totalSpent,
+        totalReimbursed: totalReimbursed,
+        pendingReimbursement: totalSpent - totalReimbursed,
+        equipmentTotal: equipment.length,
+        equipmentPurchased: purchased,
+        equipmentReimbursed: reimbursedCount,
+        daysRemaining: daysRemaining,
+        daysElapsed: daysElapsed,
+        totalDays: totalDays,
+        timeElapsedPct: totalDays > 0 ? Math.round((daysElapsed / totalDays) * 100) : 0,
+        utilizationPct: totalBudgeted > 0 ? Math.round((totalSpent / totalBudgeted) * 100) : 0,
+        pdaUtilizationPct: totalBudgetedPDA > 0 ? Math.round((totalReimbursed / totalBudgetedPDA) * 100) : 0
+      }
+    };
+  } catch (error) {
+    Logger.log('getGrantDetail error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+function updateGrantEquipment(params) {
+  try {
+    var grantId = params.grantId || params.grant_id;
+    var itemId = params.itemId || params.item_id;
+
+    if (!grantId || !itemId) return { success: false, error: 'grantId and itemId are required' };
+
+    var ss = SpreadsheetApp.openById('128O56X_FN9_U-s0ENHBBRyLpae_yvWHPYbBheVlR3Vc');
+    var sheet = ss.getSheetByName('GRANT_EQUIPMENT');
+    if (!sheet) return { success: false, error: 'GRANT_EQUIPMENT sheet not found' };
+
+    var lock = LockService.getScriptLock();
+    lock.waitLock(10000);
+
+    try {
+      var data = sheet.getDataRange().getValues();
+      var headers = data[0];
+
+      for (var i = 1; i < data.length; i++) {
+        if (data[i][0] === itemId && data[i][1] === grantId) {
+          var row = i + 1;
+          var actualCost = params.actualCost !== undefined ? params.actualCost : params.actual_cost;
+          var purchaseDate = params.purchaseDate !== undefined ? params.purchaseDate : params.purchase_date;
+          var receiptSubmitted = params.receiptSubmitted !== undefined ? params.receiptSubmitted : params.receipt_submitted;
+          var reimbursementDate = params.reimbursementDate !== undefined ? params.reimbursementDate : params.reimbursement_date;
+          var reimbursementAmount = params.reimbursementAmount !== undefined ? params.reimbursementAmount : params.reimbursement_amount;
+          var status = params.status;
+
+          if (actualCost !== undefined) sheet.getRange(row, headers.indexOf('Actual_Cost') + 1).setValue(actualCost);
+          if (purchaseDate !== undefined) sheet.getRange(row, headers.indexOf('Purchase_Date') + 1).setValue(purchaseDate);
+          if (receiptSubmitted !== undefined) sheet.getRange(row, headers.indexOf('Receipt_Submitted') + 1).setValue(receiptSubmitted);
+          if (reimbursementDate !== undefined) sheet.getRange(row, headers.indexOf('Reimbursement_Date') + 1).setValue(reimbursementDate);
+          if (reimbursementAmount !== undefined) sheet.getRange(row, headers.indexOf('Reimbursement_Amount') + 1).setValue(reimbursementAmount);
+          if (status !== undefined) sheet.getRange(row, headers.indexOf('Status') + 1).setValue(status);
+
+          return { success: true, message: 'Equipment item updated: ' + itemId };
+        }
+      }
+
+      return { success: false, error: 'Equipment item not found: ' + itemId };
+    } finally {
+      lock.releaseLock();
+    }
+  } catch (error) {
+    Logger.log('updateGrantEquipment error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+function updateGrantMetric(params) {
+  try {
+    var grantId = params.grantId || params.grant_id;
+    var metricId = params.metricId || params.metric_id;
+    var currentValue = params.currentValue !== undefined ? params.currentValue : params.current_value;
+
+    if (!grantId || !metricId) return { success: false, error: 'grantId and metricId are required' };
+
+    var ss = SpreadsheetApp.openById('128O56X_FN9_U-s0ENHBBRyLpae_yvWHPYbBheVlR3Vc');
+    var sheet = ss.getSheetByName('GRANT_METRICS');
+    if (!sheet) return { success: false, error: 'GRANT_METRICS sheet not found' };
+
+    var lock = LockService.getScriptLock();
+    lock.waitLock(10000);
+
+    try {
+      var data = sheet.getDataRange().getValues();
+      var headers = data[0];
+
+      for (var i = 1; i < data.length; i++) {
+        if (data[i][0] === metricId && data[i][1] === grantId) {
+          var row = i + 1;
+          sheet.getRange(row, headers.indexOf('Current_Value') + 1).setValue(currentValue);
+          sheet.getRange(row, headers.indexOf('Last_Updated') + 1).setValue(new Date().toISOString().split('T')[0]);
+
+          return { success: true, message: 'Metric updated: ' + metricId };
+        }
+      }
+
+      return { success: false, error: 'Metric not found: ' + metricId };
+    } finally {
+      lock.releaseLock();
+    }
+  } catch (error) {
+    Logger.log('updateGrantMetric error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+function updateGrantCompliance(params) {
+  try {
+    var grantId = params.grantId || params.grant_id;
+    var complianceId = params.complianceId || params.compliance_id;
+
+    if (!grantId || !complianceId) return { success: false, error: 'grantId and complianceId are required' };
+
+    var ss = SpreadsheetApp.openById('128O56X_FN9_U-s0ENHBBRyLpae_yvWHPYbBheVlR3Vc');
+    var sheet = ss.getSheetByName('GRANT_COMPLIANCE');
+    if (!sheet) return { success: false, error: 'GRANT_COMPLIANCE sheet not found' };
+
+    var lock = LockService.getScriptLock();
+    lock.waitLock(10000);
+
+    try {
+      var data = sheet.getDataRange().getValues();
+      var headers = data[0];
+
+      for (var i = 1; i < data.length; i++) {
+        if (data[i][0] === complianceId && data[i][1] === grantId) {
+          var row = i + 1;
+          var status = params.status;
+          var completedDate = params.completedDate !== undefined ? params.completedDate : params.completed_date;
+          var notes = params.notes;
+
+          if (status !== undefined) sheet.getRange(row, headers.indexOf('Status') + 1).setValue(status);
+          if (completedDate !== undefined) sheet.getRange(row, headers.indexOf('Completed_Date') + 1).setValue(completedDate);
+          if (notes !== undefined) sheet.getRange(row, headers.indexOf('Notes') + 1).setValue(notes);
+
+          return { success: true, message: 'Compliance item updated: ' + complianceId };
+        }
+      }
+
+      return { success: false, error: 'Compliance item not found: ' + complianceId };
+    } finally {
+      lock.releaseLock();
+    }
+  } catch (error) {
+    Logger.log('updateGrantCompliance error: ' + error.toString());
     return { success: false, error: error.toString() };
   }
 }
