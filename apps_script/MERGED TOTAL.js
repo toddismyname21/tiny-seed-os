@@ -153082,10 +153082,15 @@ function setupGrantSheets() {
   try {
     var ss = SpreadsheetApp.openById('128O56X_FN9_U-s0ENHBBRyLpae_yvWHPYbBheVlR3Vc');
 
-    // GRANTS sheet
-    var grantsSheet = ss.getSheetByName('GRANTS');
+    // GRANTS sheet - use GRANT_MGMT to avoid collision with financial module's GRANTS sheet
+    var grantsSheet = ss.getSheetByName('GRANT_MGMT');
     if (!grantsSheet) {
-      grantsSheet = ss.insertSheet('GRANTS');
+      grantsSheet = ss.insertSheet('GRANT_MGMT');
+    }
+    // Always ensure headers and data exist
+    var grantsData = grantsSheet.getDataRange().getValues();
+    if (grantsData.length <= 1 || (grantsData.length === 1 && grantsData[0][0] !== 'Grant_ID')) {
+      grantsSheet.clear();
       grantsSheet.getRange(1, 1, 1, 12).setValues([['Grant_ID', 'Grant_Name', 'Funder', 'Contract_Number', 'Award_Amount', 'Farm_Match', 'Total_Budget', 'Award_Date', 'Start_Date', 'End_Date', 'Status', 'Notes']]);
       grantsSheet.getRange(1, 1, 1, 12).setFontWeight('bold').setBackground('#333333').setFontColor('#ffffff');
       // Pre-populate AIG Round 1
@@ -153185,8 +153190,8 @@ function setupGrantSheets() {
 function getGrantsMgmt() {
   try {
     var ss = SpreadsheetApp.openById('128O56X_FN9_U-s0ENHBBRyLpae_yvWHPYbBheVlR3Vc');
-    var sheet = ss.getSheetByName('GRANTS');
-    if (!sheet) return { success: false, error: 'GRANTS sheet not found. Run setupGrantSheets() first.' };
+    var sheet = ss.getSheetByName('GRANT_MGMT');
+    if (!sheet) return { success: false, error: 'GRANT_MGMT sheet not found. Run setupGrantSheets() first.' };
 
     var data = sheet.getDataRange().getValues();
     if (data.length <= 1) return { success: true, grants: [], count: 0 };
@@ -153261,8 +153266,8 @@ function getGrantDetail(grantId) {
     var ss = SpreadsheetApp.openById('128O56X_FN9_U-s0ENHBBRyLpae_yvWHPYbBheVlR3Vc');
 
     // Get grant record
-    var grantSheet = ss.getSheetByName('GRANTS');
-    if (!grantSheet) return { success: false, error: 'GRANTS sheet not found' };
+    var grantSheet = ss.getSheetByName('GRANT_MGMT');
+    if (!grantSheet) return { success: false, error: 'GRANT_MGMT sheet not found. Run setupGrantSheets() first.' };
 
     var grantData = grantSheet.getDataRange().getValues();
     var grantHeaders = grantData[0];
