@@ -14503,7 +14503,9 @@ function doGet(e) {
       'getSeedlingPresaleItems', 'validateSeedlingAvailability',
       'getSeedlingBundles', 'getSeedlingCategories', 'validateReferralCode',
       // Grant management dashboard
-      'getGrantsMgmt', 'getGrantDetail', 'setupGrantSheets'
+      'getGrantsMgmt', 'getGrantDetail', 'setupGrantSheets',
+      // Schedule notifications (triggered from schedule.html — no auth token available)
+      'setupScheduleNotificationTriggers', 'sendWeeklyScheduleEmails', 'sendShiftReminders'
     ]);
 
   if (!PUBLIC_GET_ACTIONS.has(action)) {
