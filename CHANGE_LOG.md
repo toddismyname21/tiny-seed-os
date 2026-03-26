@@ -35,6 +35,106 @@ Brief explanation of why these changes were made.
 
 
 
+## 2026-03-26 — PM_ARCHITECT: Fix deletePlanting auth whitelist (v784)
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — Added 'deletePlanting' to PUBLIC_GET_ACTIONS
+
+### Bug Fixed
+- Delete button on plantings in employee app, sowing-sheets.html, quick-seed.html was silently failing
+- Root cause: deletePlanting not in PUBLIC_GET_ACTIONS — PIN-auth pages blocked by requireAuth
+- Fix: added 'deletePlanting' to employee app section of PUBLIC_GET_ACTIONS
+- planning.html was unaffected (uses session token)
+
+### No Frontend Changes
+- employee.html code is correct — the GET call with ?action=deletePlanting&id= is proper
+- Backend function deletePlantingById() is correct — deletes from PLANNING_2026 by Batch_ID
+
+---
+
+## 2026-03-26 — PM_ARCHITECT: Schedule whitelist + Grant sheet fix deployed (v783)
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — Added 3 schedule actions to PUBLIC_GET_ACTIONS
+
+### Functions Whitelisted
+- `setupScheduleNotificationTriggers` — was blocked by "No token provided"
+- `sendWeeklyScheduleEmails` — was blocked by "No token provided"
+- `sendShiftReminders` — was blocked by "No token provided"
+
+### Also deployed in this version
+- Grant sheet naming collision fix (GRANTS → GRANT_MGMT) from 2026-03-24 session — was pushed but blocked by 200-version limit, now live
+
+### Deployment
+- `clasp push` + `clasp deploy -i AKfycby... @783`
+- Version limit cleared by user, deployment unblocked
+
+### Duplicate Check
+- [x] Whitelist additions only, no new functions
+
+---
+
+## 2026-03-26 — PM_ARCHITECT: Fix toast blocking Save Changes button
+
+### Files Modified
+- `sowing-sheets.html` — Added `pointer-events:none` to `.toast`, `pointer-events:auto` to `.toast.show`
+
+### Bug Fixed
+- Previous fix moved toast to `bottom:80px` but the hidden toast (translated 100px down) still overlapped the dirtySaveBar button area
+- `opacity:0` does NOT disable pointer events — so the invisible toast was blocking all clicks on Save Changes
+- Fix: `pointer-events:none` when hidden, `pointer-events:auto` when `.show`
+
+### Reason
+Self-introduced regression from the z-index fix. My fault for not accounting for pointer-events behavior of opacity:0 elements.
+
+### Duplicate Check
+- [x] CSS-only change, no new functions
+
+---
+
+## 2026-03-26 — PM_ARCHITECT: Fix sowing-sheets toast hidden behind save bar
+
+### Files Modified
+- `sowing-sheets.html` — Toast z-index 2000→99999, bottom 30px→80px; console.error to all 3 save error paths
+
+### Bug Fixed
+- Toast error messages were completely invisible because dirtySaveBar (z-index:9999) rendered above toast (z-index:2000)
+- Increased toast bottom to 80px so it clears the ~50px yellow bar visually
+- Added console.error logging to surface actual save errors in DevTools
+
+### Reason
+User reported saves failing with no visible error. Root cause: error toast was always there but hidden behind the unsaved-changes bar. This fix makes errors visible so the underlying save failure can be diagnosed.
+
+### Duplicate Check
+- [x] No new files or functions created
+- [x] Targeted CSS + logging changes only
+
+---
+
+## 2026-03-26 — FULLSTACK_BUILDER: Fix Grant Sheet Naming Collision
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — Changed grant management functions to use `GRANT_MGMT` sheet instead of `GRANTS` to avoid collision with existing financial module's `GRANTS` sheet
+
+### Bug Fix
+- `setupGrantSheets()` (line ~153086): Already partially fixed, verified using `GRANT_MGMT`
+- `getGrantsMgmt()` (line ~153193): Changed `getSheetByName('GRANTS')` to `getSheetByName('GRANT_MGMT')`
+- `getGrantDetail()` (line ~153269): Changed `getSheetByName('GRANTS')` to `getSheetByName('GRANT_MGMT')`, updated error message
+- Root cause: Pre-existing `GRANTS` sheet from financial module caused `setupGrantSheets()` to skip data population
+- Other grant sheets (`GRANT_EQUIPMENT`, `GRANT_METRICS`, `GRANT_COMPLIANCE`) unchanged — no collision
+
+### Deployment Status
+- Code pushed to HEAD via `clasp push`
+- BLOCKED: Cannot create version 782 — Apps Script has hit 200-version limit
+- User must delete old versions from Apps Script editor before deploying
+
+### Checklist
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
 ## 2026-03-26 — FULLSTACK_BUILDER: Grant Management Dashboard Frontend
 
 ### Files Created

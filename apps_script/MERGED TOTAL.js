@@ -14489,6 +14489,8 @@ function doGet(e) {
       'getSoilTests', 'getFields', 'getSoilSubmissions',
       // Field management (employee app — add new fields from field capture)
       'addField',
+      // Planting management (employee app + sowing-sheets — PIN auth, no session token)
+      'deletePlanting',
       // Labels page
       'getGreenhouseSeedings', 'getInventoryProducts', 'getFarmInventory',
       // Sowing sheets page (task sheets for greenhouse/transplant/direct seed)
