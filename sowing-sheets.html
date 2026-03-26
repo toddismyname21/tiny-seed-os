@@ -548,7 +548,7 @@
         /* Toast */
         .toast {
             position: fixed;
-            bottom: 30px;
+            bottom: 80px;
             right: 30px;
             background: var(--bg-card);
             border: 1px solid var(--border);
@@ -560,7 +560,7 @@
             transform: translateY(100px);
             opacity: 0;
             transition: all 0.3s;
-            z-index: 2000;
+            z-index: 99999;
             box-shadow: 0 10px 40px rgba(0,0,0,0.3);
         }
 
@@ -1328,6 +1328,7 @@
                     updateSaveBar();
 
                     if (failedBatches.length > 0) {
+                        console.error('[sowing-sheets] partial save failures:', failedBatches);
                         showToast('Saved ' + savedBatches.length + ' task(s), ' + failedBatches.length + ' failed — unsaved changes kept for retry', 'error');
                     } else {
                         // Count total fields saved
@@ -1337,10 +1338,12 @@
                     }
                 } else {
                     // Entire batch call failed — keep ALL dirtyFields for retry
+                    console.error('[sowing-sheets] batchUpdatePlanningFields failed:', result);
                     showToast('Save failed: ' + (result.error || 'Unknown error') + ' — your changes are preserved, try again', 'error');
                 }
             } catch (e) {
                 // Network error — keep ALL dirtyFields for retry
+                console.error('[sowing-sheets] save fetch error:', e);
                 showToast('Save failed: ' + e.message + ' — your changes are preserved, try again', 'error');
             }
         }
