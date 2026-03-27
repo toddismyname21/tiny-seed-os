@@ -1158,6 +1158,10 @@
                 <i class="fas fa-list"></i>
                 All Plantings
             </button>
+            <button class="view-btn" data-view="covercrops" onclick="setView('covercrops')">
+                <i class="fas fa-leaf"></i>
+                Cover Crops
+            </button>
         </div>
 
         <!-- Stats Row -->
@@ -1341,6 +1345,302 @@
                 </div>
             </div>
         </div>
+
+        <!-- ===== COVER CROPS SECTION ===== -->
+        <div id="covercrops-section" class="data-section" style="display:none;">
+
+            <!-- Seasonal Prompt Banner -->
+            <div id="cc-seasonal-banner" style="
+                background: linear-gradient(135deg, #1a3a2a 0%, #0f2a1a 100%);
+                border: 1px solid rgba(34,197,94,0.3);
+                border-radius: 12px;
+                padding: 1rem 1.5rem;
+                margin-bottom: 1.5rem;
+                display: flex;
+                align-items: center;
+                gap: 1rem;
+            ">
+                <i class="fas fa-calendar-check" style="color:#22c55e;font-size:1.5rem;flex-shrink:0;"></i>
+                <div>
+                    <div style="font-weight:600;color:#22c55e;font-size:0.9rem;text-transform:uppercase;letter-spacing:0.05em;">Right Now</div>
+                    <div id="cc-seasonal-text" style="color:#edf2f4;font-size:1rem;margin-top:0.2rem;">Loading seasonal guidance...</div>
+                </div>
+            </div>
+
+            <!-- Two-column layout -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem;">
+
+                <!-- Log a Cover Crop Planting -->
+                <div style="background:rgba(22,33,62,0.8);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:1.5rem;">
+                    <h3 style="color:#22c55e;margin-bottom:1rem;display:flex;align-items:center;gap:0.5rem;">
+                        <i class="fas fa-plus-circle"></i> Log Cover Crop Planting
+                    </h3>
+                    <div style="display:flex;flex-direction:column;gap:0.75rem;">
+                        <div>
+                            <label style="font-size:0.8rem;color:#8d99ae;display:block;margin-bottom:0.3rem;">Field ID</label>
+                            <input id="cc-field-id" type="text" placeholder="e.g. SOH, IOL, JS01" style="width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:0.6rem 0.8rem;color:#edf2f4;font-size:0.9rem;">
+                        </div>
+                        <div>
+                            <label style="font-size:0.8rem;color:#8d99ae;display:block;margin-bottom:0.3rem;">Cover Crop Mix</label>
+                            <select id="cc-mix" style="width:100%;background:#0f3460;border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:0.6rem 0.8rem;color:#edf2f4;font-size:0.9rem;">
+                                <option value="Oats + Spring Peas">Oats + Spring Peas (System B — Spring, pre-brassica)</option>
+                                <option value="Buckwheat">Buckwheat (System D — Summer fallow/pollinator)</option>
+                                <option value="Rye + Hairy Vetch">Rye + Hairy Vetch (System C — Fall overwinter)</option>
+                                <option value="Cereal Rye">Cereal Rye Solo (System A — Fall overwinter)</option>
+                                <option value="Cool Season Cocktail">Cool Season Cocktail (System E — Fall, soil + pollinators)</option>
+                                <option value="Crimson Clover Overseed">Crimson Clover Overseed (System F — Into standing crops)</option>
+                                <option value="Other">Other (specify in notes)</option>
+                            </select>
+                        </div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+                            <div>
+                                <label style="font-size:0.8rem;color:#8d99ae;display:block;margin-bottom:0.3rem;">Acres</label>
+                                <input id="cc-acres" type="number" step="0.1" placeholder="0.0" style="width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:0.6rem 0.8rem;color:#edf2f4;font-size:0.9rem;">
+                            </div>
+                            <div>
+                                <label style="font-size:0.8rem;color:#8d99ae;display:block;margin-bottom:0.3rem;">Seeding Date</label>
+                                <input id="cc-seed-date" type="date" style="width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:0.6rem 0.8rem;color:#edf2f4;font-size:0.9rem;">
+                            </div>
+                        </div>
+                        <div>
+                            <label style="font-size:0.8rem;color:#8d99ae;display:block;margin-bottom:0.3rem;">Planned Termination Date</label>
+                            <input id="cc-terminate-date" type="date" style="width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:0.6rem 0.8rem;color:#edf2f4;font-size:0.9rem;">
+                        </div>
+                        <div>
+                            <label style="font-size:0.8rem;color:#8d99ae;display:block;margin-bottom:0.3rem;">What follows this cover crop?</label>
+                            <input id="cc-follows" type="text" placeholder="e.g. Fall brassicas, Tomatoes, Spring carrots" style="width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:0.6rem 0.8rem;color:#edf2f4;font-size:0.9rem;">
+                        </div>
+                        <div>
+                            <label style="font-size:0.8rem;color:#8d99ae;display:block;margin-bottom:0.3rem;">Notes</label>
+                            <input id="cc-notes" type="text" placeholder="Seeding rate, source, conditions..." style="width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:0.6rem 0.8rem;color:#edf2f4;font-size:0.9rem;">
+                        </div>
+                        <button onclick="logCoverCrop()" style="background:linear-gradient(135deg,#22c55e,#16a34a);border:none;border-radius:8px;padding:0.75rem;color:#fff;font-weight:600;cursor:pointer;font-size:0.95rem;width:100%;">
+                            <i class="fas fa-save"></i> Save Cover Crop Planting
+                        </button>
+                        <div id="cc-save-status" style="font-size:0.85rem;text-align:center;min-height:1.2rem;"></div>
+                    </div>
+                </div>
+
+                <!-- Welter Seed Order Summary -->
+                <div style="background:rgba(22,33,62,0.8);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:1.5rem;">
+                    <h3 style="color:#f4a261;margin-bottom:1rem;display:flex;align-items:center;gap:0.5rem;">
+                        <i class="fas fa-shopping-cart"></i> Welter Seed Order (2026)
+                    </h3>
+                    <div style="font-size:0.8rem;color:#8d99ae;margin-bottom:0.75rem;">welterseed.com · 800-470-3325 · Use *Org versions (NOP required)</div>
+
+                    <div style="margin-bottom:0.75rem;">
+                        <div style="font-size:0.75rem;font-weight:600;color:#22c55e;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.5rem;">ORDER NOW — Spring (seed Apr 1–20)</div>
+                        <div style="font-size:0.85rem;line-height:1.8;color:#edf2f4;">
+                            Certified Organic Jerry Oats — 3 x 32lb bu @ $12.75 = <strong>$38.25</strong><br>
+                            Certified Organic 4010 Peas — 3 x 50lb @ $36.50 = <strong>$109.50</strong>
+                        </div>
+                        <div style="font-size:0.85rem;color:#f4a261;margin-top:0.3rem;">Subtotal: $147.75</div>
+                    </div>
+
+                    <div style="border-top:1px solid rgba(255,255,255,0.08);padding-top:0.75rem;margin-bottom:0.75rem;">
+                        <div style="font-size:0.75rem;font-weight:600;color:#eab308;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.5rem;">ORDER MAY — Summer (seed Jun 1–Jul 15)</div>
+                        <div style="font-size:0.85rem;line-height:1.8;color:#edf2f4;">
+                            Certified Organic Buckwheat — 2 x 50lb @ $56.00 = <strong>$112.00</strong>
+                        </div>
+                        <div style="font-size:0.85rem;color:#f4a261;margin-top:0.3rem;">Subtotal: $112.00</div>
+                    </div>
+
+                    <div style="border-top:1px solid rgba(255,255,255,0.08);padding-top:0.75rem;margin-bottom:0.75rem;">
+                        <div style="font-size:0.75rem;font-weight:600;color:#ef4444;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.5rem;">ORDER JUL/AUG — Fall (seed Aug 15–Oct 5)</div>
+                        <div style="font-size:0.85rem;line-height:1.8;color:#edf2f4;">
+                            Winter Rye Grain *Org — 5 x 56lb bu (~$18/bu) = <strong>~$90</strong><br>
+                            Certified Organic Hairy Vetch — 2 x 50lb @ $147.00 = <strong>$294.00</strong><br>
+                            Crimson Clover w/Nitro-Coat — 1 x 50lb @ $81.00 = <strong>$81.00</strong>
+                        </div>
+                        <div style="font-size:0.85rem;color:#f4a261;margin-top:0.3rem;">Subtotal: ~$465.00</div>
+                    </div>
+
+                    <div style="border-top:1px solid rgba(34,197,94,0.3);padding-top:0.75rem;background:rgba(34,197,94,0.05);border-radius:0 0 8px 8px;margin:-1.5rem;margin-top:0;padding:0.75rem 1rem;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;">
+                            <span style="font-weight:600;color:#edf2f4;">Full Season Total</span>
+                            <span style="font-weight:700;color:#22c55e;font-size:1.1rem;">~$725–$875</span>
+                        </div>
+                        <div style="font-size:0.75rem;color:#8d99ae;margin-top:0.25rem;">Phacelia: source from Johnny's Selected Seeds (not at Welter)</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Cover Crops Table -->
+            <div style="background:rgba(22,33,62,0.8);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:1.5rem;margin-bottom:1.5rem;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+                    <h3 style="color:#edf2f4;display:flex;align-items:center;gap:0.5rem;">
+                        <i class="fas fa-map" style="color:#22c55e;"></i> Active Cover Crop Plantings
+                    </h3>
+                    <span id="cc-count-badge" style="background:rgba(34,197,94,0.2);color:#22c55e;padding:0.2rem 0.6rem;border-radius:20px;font-size:0.8rem;font-weight:600;">0 fields</span>
+                </div>
+                <div id="cc-table-container">
+                    <table style="width:100%;border-collapse:collapse;font-size:0.875rem;">
+                        <thead>
+                            <tr style="border-bottom:1px solid rgba(255,255,255,0.1);">
+                                <th style="text-align:left;padding:0.6rem 0.75rem;color:#8d99ae;font-weight:500;">Field</th>
+                                <th style="text-align:left;padding:0.6rem 0.75rem;color:#8d99ae;font-weight:500;">Mix</th>
+                                <th style="text-align:left;padding:0.6rem 0.75rem;color:#8d99ae;font-weight:500;">Acres</th>
+                                <th style="text-align:left;padding:0.6rem 0.75rem;color:#8d99ae;font-weight:500;">Seeded</th>
+                                <th style="text-align:left;padding:0.6rem 0.75rem;color:#8d99ae;font-weight:500;">Terminate By</th>
+                                <th style="text-align:left;padding:0.6rem 0.75rem;color:#8d99ae;font-weight:500;">Follows With</th>
+                                <th style="text-align:left;padding:0.6rem 0.75rem;color:#8d99ae;font-weight:500;">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cc-table-body">
+                            <tr>
+                                <td colspan="7" style="text-align:center;padding:2rem;color:#8d99ae;">
+                                    <i class="fas fa-leaf" style="font-size:1.5rem;margin-bottom:0.5rem;display:block;opacity:0.4;"></i>
+                                    No cover crops logged yet. Use the form above to add your first planting.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Species Quick Reference -->
+            <div style="background:rgba(22,33,62,0.8);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:1.5rem;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;cursor:pointer;" onclick="toggleCCReference()">
+                    <h3 style="color:#edf2f4;display:flex;align-items:center;gap:0.5rem;">
+                        <i class="fas fa-book-open" style="color:#22c55e;"></i> Species Quick Reference (Welter Seed)
+                    </h3>
+                    <i id="cc-ref-toggle-icon" class="fas fa-chevron-down" style="color:#8d99ae;"></i>
+                </div>
+                <div id="cc-reference-panel" style="display:none;">
+                    <div style="font-size:0.8rem;color:#8d99ae;margin-bottom:1rem;">All *Org versions required for USDA NOP compliance. Prices from Welter Seed welterseed.com</div>
+                    <div style="overflow-x:auto;">
+                        <table style="width:100%;border-collapse:collapse;font-size:0.82rem;">
+                            <thead>
+                                <tr style="border-bottom:2px solid rgba(34,197,94,0.3);">
+                                    <th style="text-align:left;padding:0.5rem 0.75rem;color:#22c55e;font-weight:600;">Species</th>
+                                    <th style="text-align:left;padding:0.5rem 0.75rem;color:#22c55e;font-weight:600;">Type</th>
+                                    <th style="text-align:left;padding:0.5rem 0.75rem;color:#22c55e;font-weight:600;">Seed Window (Zone 6a)</th>
+                                    <th style="text-align:left;padding:0.5rem 0.75rem;color:#22c55e;font-weight:600;">Rate (lbs/ac)</th>
+                                    <th style="text-align:left;padding:0.5rem 0.75rem;color:#22c55e;font-weight:600;">Overwinters?</th>
+                                    <th style="text-align:left;padding:0.5rem 0.75rem;color:#22c55e;font-weight:600;">Welter Price</th>
+                                    <th style="text-align:left;padding:0.5rem 0.75rem;color:#22c55e;font-weight:600;">Pollinators</th>
+                                    <th style="text-align:left;padding:0.5rem 0.75rem;color:#22c55e;font-weight:600;">Key Benefit</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr style="background:rgba(34,197,94,0.05);">
+                                    <td colspan="8" style="padding:0.4rem 0.75rem;color:#22c55e;font-weight:600;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em;">LEGUMES — Nitrogen Fixers</td>
+                                </tr>
+                                <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                                    <td style="padding:0.5rem 0.75rem;font-weight:500;color:#edf2f4;">Hairy Vetch *Org</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#8d99ae;">Winter Annual</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#8d99ae;">Aug 1 – Sep 15</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#edf2f4;">20–25</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#22c55e;">Yes</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#edf2f4;">$147/50lb ($2.94/lb)</td>
+                                    <td style="padding:0.5rem 0.75rem;">High</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#8d99ae;">60–120 lbs N/ac; mix with rye</td>
+                                </tr>
+                                <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                                    <td style="padding:0.5rem 0.75rem;font-weight:500;color:#edf2f4;">Spring Peas *Org</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#8d99ae;">Annual</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#8d99ae;">Mar–Apr 20 / Aug–Sep</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#edf2f4;">60–75</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#ef4444;">No</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#edf2f4;">$36.50/50lb ($0.73/lb)</td>
+                                    <td style="padding:0.5rem 0.75rem;">Moderate</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#8d99ae;">30–60 lbs N/ac; mix with oats</td>
+                                </tr>
+                                <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                                    <td style="padding:0.5rem 0.75rem;font-weight:500;color:#edf2f4;">Winter Peas *Org</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#8d99ae;">Winter Annual</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#8d99ae;">Mar–Apr / Aug–Sep</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#edf2f4;">30–40</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#22c55e;">Partial</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#edf2f4;">$42/50lb ($0.84/lb)</td>
+                                    <td style="padding:0.5rem 0.75rem;">Moderate</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#8d99ae;">More cold-hardy than spring peas</td>
+                                </tr>
+                                <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                                    <td style="padding:0.5rem 0.75rem;font-weight:500;color:#edf2f4;">Red Clover *Org</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#8d99ae;">Biennial/Perennial</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#8d99ae;">Feb–Apr / Aug–Sep</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#edf2f4;">10–14</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#22c55e;">Yes</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#edf2f4;">$230/50lb ($4.60/lb)</td>
+                                    <td style="padding:0.5rem 0.75rem;">High</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#8d99ae;">Frost-seed into rye in March</td>
+                                </tr>
+                                <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                                    <td style="padding:0.5rem 0.75rem;font-weight:500;color:#edf2f4;">Crimson Clover (Nitro-Coat)</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#8d99ae;">Annual</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#8d99ae;">Mar–Jun / Aug–Sep</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#edf2f4;">20–30</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#ef4444;">No</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#edf2f4;">$81/50lb (Nitro-Coat Org)</td>
+                                    <td style="padding:0.5rem 0.75rem;">High</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#8d99ae;">Conv seed/OMRI coating; overseed into brassicas</td>
+                                </tr>
+                                <tr style="background:rgba(34,197,94,0.05);">
+                                    <td colspan="8" style="padding:0.4rem 0.75rem;color:#22c55e;font-weight:600;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em;">NON-LEGUMES — Soil Builders &amp; Weed Suppressors</td>
+                                </tr>
+                                <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                                    <td style="padding:0.5rem 0.75rem;font-weight:500;color:#edf2f4;">Winter Rye *Org</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#8d99ae;">Winter Annual</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#8d99ae;">Aug 1 – Oct 15</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#edf2f4;">70–80 (1.25 bu)</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#22c55e;">Yes</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#edf2f4;">~$18/56lb bu (confirm)</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#8d99ae;">None</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#8d99ae;">Best soil builder; always mix with a legume</td>
+                                </tr>
+                                <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                                    <td style="padding:0.5rem 0.75rem;font-weight:500;color:#edf2f4;">Spring Oats *Org</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#8d99ae;">Annual</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#8d99ae;">Mar 20 – Apr 20 / Aug–Sep</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#edf2f4;">64–96 (1.5–2 bu)</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#ef4444;">No (winter-kills)</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#edf2f4;">$12.75/32lb bu ($0.40/lb)</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#8d99ae;">None</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#8d99ae;">Ideal pre-brassica; light spring residue</td>
+                                </tr>
+                                <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                                    <td style="padding:0.5rem 0.75rem;font-weight:500;color:#edf2f4;">Buckwheat *Org</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#8d99ae;">Summer Annual</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#8d99ae;">Jun 1 – Aug 1</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#edf2f4;">50</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#ef4444;">Frost-killed</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#edf2f4;">$56/50lb ($1.12/lb)</td>
+                                    <td style="padding:0.5rem 0.75rem;">Premier</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#8d99ae;">Fills Jul–Aug nectar gap. Mow at 50% bloom!</td>
+                                </tr>
+                                <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                                    <td style="padding:0.5rem 0.75rem;font-weight:500;color:#edf2f4;">Daikon Radish *Org</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#8d99ae;">Annual</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#8d99ae;">Feb–Apr / Aug–Sep</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#edf2f4;">10–12</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#ef4444;">Frost-killed</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#edf2f4;">$3.40/lb (bulk)</td>
+                                    <td style="padding:0.5rem 0.75rem;">High</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#8d99ae;">Breaks compaction; add to cocktail mixes</td>
+                                </tr>
+                                <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                                    <td style="padding:0.5rem 0.75rem;font-weight:500;color:#edf2f4;">Annual Ryegrass *Org</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#8d99ae;">Annual</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#8d99ae;">Feb–Apr / Aug–Sep</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#edf2f4;">25–40</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#8d99ae;">Sometimes</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#edf2f4;">Contact Welter</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#8d99ae;">None</td>
+                                    <td style="padding:0.5rem 0.75rem;color:#8d99ae;">Erosion + N scavenger; hard to terminate</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div style="margin-top:0.75rem;font-size:0.78rem;color:#8d99ae;padding:0.5rem;background:rgba(239,68,68,0.08);border-radius:6px;border-left:3px solid rgba(239,68,68,0.4);">
+                        <strong>NOP Compliance:</strong> Since Welter carries certified organic seed for all primary species, you must use *Org versions under USDA NOP 205.204. Document any exceptions. Do NOT use brassica cover crops (radish, mustard, turnip) on fields with brassica cash crops.
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        <!-- ===== END COVER CROPS SECTION ===== -->
+
     </main>
 
     <!-- Bulk Actions Bar -->
@@ -1821,6 +2121,21 @@
             document.querySelectorAll('.view-btn').forEach(btn => {
                 btn.classList.toggle('active', btn.dataset.view === view);
             });
+
+            // Handle cover crops view toggle
+            const mainDataSection = document.querySelector('.data-section:not(#covercrops-section)');
+            const ccSection = document.getElementById('covercrops-section');
+
+            if (view === 'covercrops') {
+                if (mainDataSection) mainDataSection.style.display = 'none';
+                if (ccSection) ccSection.style.display = 'block';
+                loadCoverCrops();
+                updateSeasonalBanner();
+                return;
+            } else {
+                if (mainDataSection) mainDataSection.style.display = '';
+                if (ccSection) ccSection.style.display = 'none';
+            }
 
             // Update title
             const titles = {
@@ -3378,6 +3693,172 @@
             if (!str) return '';
             return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         }
+
+        // ===== COVER CROP FUNCTIONS =====
+
+        const COVER_CROP_SEASONAL_GUIDANCE = {
+            1:  'January: Check overwintered rye and rye+vetch stands. Note any bare spots for frost-seeding in March.',
+            2:  'February: Order spring seed from Welter now (oats + peas). Frost-seed red clover into rye if stands are thick.',
+            3:  'March: Frost-seed red clover into overwintered rye (broadcast onto snow/frozen ground). Spring oats+peas can go in as soon as ground is workable (soil >32\u00B0F).',
+            4:  'April: SEED SPRING OATS + PEAS NOW on fields going into summer/fall transplants. Oats+peas can go in as early as Apr 1. Terminate June 20\u201330 for July 1 brassica transplants.',
+            5:  'May: Order buckwheat from Welter. Terminate rye+vetch (mow + incorporate or roll/crimp). Begin transplanting summer crops into terminated CC beds.',
+            6:  'June: Seed buckwheat on all vacated beds immediately after early crops come out. Buckwheat fills the July\u2013August pollinator gap.',
+            7:  'July: Buckwheat in full flower \u2014 let it bloom 20+ days before mowing. Do NOT let it go to seed. Order fall cover crop seed: rye + hairy vetch from Welter.',
+            8:  'August: Aug 15 \u2014 begin seeding oats+peas on beds finishing early. Aug 15\u2013Sep 1 \u2014 overseed crimson clover into standing fall brassicas. Rye+vetch seeding begins.',
+            9:  'September: Primary rye+vetch seeding window. VETCH MUST BE IN GROUND BY SEP 15 to overwinter reliably. Rye can go as late as Oct 15.',
+            10: 'October: Last window for rye seeding (Oct 15 deadline). Oct 31 HARD DEADLINE: overseed rye into standing arugula and late brassicas. All beds should be covered by end of month.',
+            11: 'November: Rye actively growing (roots to 3+ feet). Check all field coverage. No bare soil.',
+            12: 'December: All fields covered. Assess stands for March frost-seeding plan. Order seed for spring.'
+        };
+
+        function updateSeasonalBanner() {
+            var month = new Date().getMonth() + 1;
+            var text = COVER_CROP_SEASONAL_GUIDANCE[month] || 'Check cover crop calendar.';
+            var el = document.getElementById('cc-seasonal-text');
+            if (el) el.textContent = text;
+        }
+
+        function toggleCCReference() {
+            var panel = document.getElementById('cc-reference-panel');
+            var icon = document.getElementById('cc-ref-toggle-icon');
+            if (!panel) return;
+            var isHidden = panel.style.display === 'none';
+            panel.style.display = isHidden ? 'block' : 'none';
+            if (icon) icon.className = isHidden ? 'fas fa-chevron-up' : 'fas fa-chevron-down';
+        }
+
+        function logCoverCrop() {
+            var fieldId = document.getElementById('cc-field-id').value.trim();
+            var mix = document.getElementById('cc-mix').value;
+            var acres = document.getElementById('cc-acres').value;
+            var seedDate = document.getElementById('cc-seed-date').value;
+            var terminateDate = document.getElementById('cc-terminate-date').value;
+            var follows = document.getElementById('cc-follows').value.trim();
+            var notes = document.getElementById('cc-notes').value.trim();
+            var statusEl = document.getElementById('cc-save-status');
+
+            if (!fieldId || !mix || !seedDate) {
+                statusEl.style.color = '#ef4444';
+                statusEl.textContent = 'Field ID, mix, and seeding date are required.';
+                return;
+            }
+
+            statusEl.style.color = '#8d99ae';
+            statusEl.textContent = 'Saving...';
+
+            var plantingData = {
+                Crop: mix,
+                Variety: '',
+                Category: 'Cover Crop',
+                Target_Bed_ID: fieldId,
+                Bed_Feet: Math.round((parseFloat(acres) || 0) * 43560 / 60),
+                Planting_Method: 'Direct',
+                Plan_Field_Sow: seedDate,
+                First_Harvest: terminateDate,
+                Last_Harvest: terminateDate,
+                Successions: 1,
+                Notes: (follows ? 'Follows with: ' + follows + '. ' : '') + notes,
+                STATUS: 'Planned'
+            };
+
+            fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain' },
+                body: JSON.stringify({ action: 'savePlanting', data: plantingData })
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data && data.success) {
+                    statusEl.style.color = '#22c55e';
+                    statusEl.textContent = 'Saved to planning sheet';
+                    document.getElementById('cc-field-id').value = '';
+                    document.getElementById('cc-acres').value = '';
+                    document.getElementById('cc-seed-date').value = '';
+                    document.getElementById('cc-terminate-date').value = '';
+                    document.getElementById('cc-follows').value = '';
+                    document.getElementById('cc-notes').value = '';
+                    setTimeout(loadCoverCrops, 500);
+                } else {
+                    statusEl.style.color = '#ef4444';
+                    statusEl.textContent = 'Error: ' + (data && data.error ? data.error : 'Save failed');
+                }
+            })
+            .catch(function(err) {
+                statusEl.style.color = '#ef4444';
+                statusEl.textContent = 'Network error \u2014 check connection';
+                console.error('Cover crop save error:', err);
+            });
+        }
+
+        function loadCoverCrops() {
+            fetch(API_URL + '?action=getPlanningData')
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (!data || !data.success) return;
+                var coverCrops = (data.data || []).filter(function(p) {
+                    return (p.Category || '').toLowerCase() === 'cover crop';
+                });
+
+                var badge = document.getElementById('cc-count-badge');
+                if (badge) badge.textContent = coverCrops.length + ' field' + (coverCrops.length !== 1 ? 's' : '');
+
+                var tbody = document.getElementById('cc-table-body');
+                if (!tbody) return;
+
+                if (coverCrops.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:#8d99ae;">' +
+                        '<i class="fas fa-leaf" style="font-size:1.5rem;margin-bottom:0.5rem;display:block;opacity:0.4;"></i>' +
+                        'No cover crops logged yet. Use the form above to add your first planting.' +
+                        '</td></tr>';
+                    return;
+                }
+
+                var today = new Date();
+                tbody.innerHTML = coverCrops.map(function(cc) {
+                    var terminateDate = cc.Last_Harvest ? new Date(cc.Last_Harvest) : null;
+                    var seedDate = cc.Plan_Field_Sow ? new Date(cc.Plan_Field_Sow) : null;
+
+                    var status = 'Planned';
+                    var statusColor = '#8d99ae';
+                    var statusBg = 'rgba(141,153,174,0.1)';
+
+                    if (seedDate && seedDate <= today) {
+                        status = 'Growing';
+                        statusColor = '#22c55e';
+                        statusBg = 'rgba(34,197,94,0.1)';
+                    }
+                    if (terminateDate && terminateDate <= today) {
+                        status = 'Terminated';
+                        statusColor = '#f4a261';
+                        statusBg = 'rgba(244,162,97,0.1)';
+                    }
+                    if (terminateDate && status === 'Growing') {
+                        var daysUntil = Math.round((terminateDate - today) / 86400000);
+                        if (daysUntil >= 0 && daysUntil <= 14) {
+                            status = 'Terminate Soon (' + daysUntil + 'd)';
+                            statusColor = '#eab308';
+                            statusBg = 'rgba(234,179,8,0.1)';
+                        }
+                    }
+
+                    var followsNote = (cc.Notes || '').replace(/Follows with: /, '').split('. ')[0] || '\u2014';
+
+                    return '<tr style="border-bottom:1px solid rgba(255,255,255,0.05);">' +
+                        '<td style="padding:0.6rem 0.75rem;font-weight:600;color:#edf2f4;">' + escapeHtml(cc.Target_Bed_ID || '\u2014') + '</td>' +
+                        '<td style="padding:0.6rem 0.75rem;color:#edf2f4;">' + escapeHtml(cc.Crop || '\u2014') + '</td>' +
+                        '<td style="padding:0.6rem 0.75rem;color:#8d99ae;">' + (cc.Bed_Feet ? Math.round(cc.Bed_Feet / 726) + ' ac' : '\u2014') + '</td>' +
+                        '<td style="padding:0.6rem 0.75rem;color:#8d99ae;">' + escapeHtml(cc.Plan_Field_Sow || '\u2014') + '</td>' +
+                        '<td style="padding:0.6rem 0.75rem;color:#8d99ae;">' + escapeHtml(cc.Last_Harvest || '\u2014') + '</td>' +
+                        '<td style="padding:0.6rem 0.75rem;color:#8d99ae;">' + escapeHtml(followsNote) + '</td>' +
+                        '<td style="padding:0.6rem 0.75rem;">' +
+                            '<span style="background:' + statusBg + ';color:' + statusColor + ';padding:0.2rem 0.5rem;border-radius:20px;font-size:0.78rem;font-weight:600;">' + status + '</span>' +
+                        '</td></tr>';
+                }).join('');
+            })
+            .catch(function(err) { console.error('Cover crop load error:', err); });
+        }
+
+        // ===== END COVER CROP FUNCTIONS =====
     </script>
 
     <div class="keyboard-help" id="keyboardHelp">

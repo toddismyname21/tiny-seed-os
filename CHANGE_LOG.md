@@ -33,7 +33,39 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-03-27 — FULLSTACK_BUILDER: Add Cover Crops tab to planning.html; fix frost dates (v785)
 
+### Files Modified
+- `planning.html` — Added Cover Crops view tab with species reference, seed order summary, planting log form, and active cover crops table
+- `apps_script/MERGED TOTAL.js` — Fixed frost dates: SPRING_FROST 05/20 -> 04/28, FALL_FROST 10/10 -> 10/05 (Zone 6a accurate for Rochester PA)
+
+### Features Added
+- Cover Crops view button in planning.html view-toggle (4th tab)
+- Seasonal guidance banner (month-aware, 12 months of cover crop guidance)
+- Log Cover Crop Planting form (saves to PLANNING_2026 with Category = "Cover Crop" via savePlanting action)
+- Active Cover Crops table with status badges (Planned/Growing/Terminate Soon/Terminated)
+- Welter Seed order summary ($147.75 spring, $112 summer, ~$465 fall)
+- Species quick-reference table (11 species, Welter products, rates, timing, pollinator value, prices)
+- NOP compliance note (must use *Org versions per USDA NOP 205.204)
+
+### Functions Added
+- `updateSeasonalBanner()` in `planning.html` — Shows month-specific cover crop guidance
+- `toggleCCReference()` in `planning.html` — Expand/collapse species reference table
+- `logCoverCrop()` in `planning.html` — Validates and saves cover crop planting to PLANNING_2026
+- `loadCoverCrops()` in `planning.html` — Fetches planning data, filters Category="Cover Crop", renders table with status
+
+### Functions Modified
+- `setView()` in `planning.html` — Added covercrops view handling (show/hide cover crops section, hide main planting table)
+
+### Reason
+Cover crops are a core farm practice with no OS presence. SOH field going into fall brassicas — spring oats+peas program starting April 1. Full season cover crop infrastructure needed. Frost dates were 3+ weeks off from Zone 6a averages.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
 
 ## 2026-03-26 — PM_ARCHITECT: Fix deletePlanting auth whitelist (v784)
 

@@ -52,8 +52,8 @@ const FARM_CONFIG = {
   LAT: 40.7456217,
   LONG: -80.1610431,
   TIMEZONE: "America/New_York",
-  SPRING_FROST: "05/20",
-  FALL_FROST: "10/10",
+  SPRING_FROST: "04/28",
+  FALL_FROST: "10/05",
   ADDRESS: "257 Zeigler Rd, Rochester, PA 15074"
 };
 
