@@ -33,6 +33,22 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-03-27 — FULLSTACK_BUILDER: Extend seedling presale to April 15, update pickup dates (v787)
+
+### Files Modified
+- `web_app/seedling-presale-2026.html` — Deadline April 2 → April 15 (all instances: countdown timer, header bar, hero, form fine print, FAQ, JSON-LD schema); pickup dates updated to May 2–19; Phipps May Market (May 8–9) added as 5th pickup location; Lawrenceville corrected to May 19; Bloomfield corrected to May 2; form dropdown updated to match new dates
+- `apps_script/MERGED TOTAL.js` — PRESALE_CUTOFF_DATE and PRESALE_CUTOFF updated from 2026-03-20 to 2026-04-15
+
+### Reason
+Presale extended to April 15 per owner direction. Backend cutoff was already past (March 20) — presale was closed. Pickup dates corrected using verified 2026 market season dates.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
 ## 2026-03-27 — FULLSTACK_BUILDER: Navigation improvements — dead-end fixes, sidebar restructure, label cleanup (v786)
 
 ### Files Modified

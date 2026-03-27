@@ -135483,7 +135483,7 @@ function getSeedlingProductionPlan(params) {
 // Shared helper: ensure SEEDLING_PRODUCTION sheet exists with unified schema
 // ============ SEEDLING PRESALE CONFIGURATION ============
 
-var PRESALE_CUTOFF_DATE = '2026-03-20';
+var PRESALE_CUTOFF_DATE = '2026-04-15';
 
 var PICKUP_SCHEDULE = {
   'Bloomfield': ['2026-05-03', '2026-05-10'],
@@ -136819,7 +136819,7 @@ function validateSeedlingAvailability(params) {
 
     // During pre-order phase: no limit on presale orders (customers can always order)
     // After cutoff: availability = Total_Units - all outlet allocations - presale orders
-    var PRESALE_CUTOFF = '2026-03-20';
+    var PRESALE_CUTOFF = '2026-04-15';
     var today = new Date();
     today.setHours(0, 0, 0, 0);
     var cutoff = new Date(PRESALE_CUTOFF + 'T00:00:00');
