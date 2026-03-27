@@ -33,6 +33,62 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-03-27 — FULLSTACK_BUILDER: Navigation improvements — dead-end fixes, sidebar restructure, label cleanup (v786)
+
+### Files Modified
+- `employee.html` — Added fixed hub header bar with back-arrow Hub link (44px touch target, fixed position, z-index 9999)
+- `web_app/driver.html` — Added back-arrow Hub link in existing app-header (44px touch target)
+- `web_app/wholesale.html` — Added back-arrow Hub link in existing header logo area (44px touch target)
+- `index.html` — Split "Sales & Marketing" (12 items) into "Sales" (5) + "Customer Portals" (7); merged "Team" (1 item) into "Management" (now 4 items); renamed DTM Learning to Crop Timing AI, Satellite NDVI to Field Monitor, More to Tools, Neighbor Landing to Neighbor Page
+- `soil-tests.html` — Fixed dashboard button: button[onclick] replaced with a[href] for keyboard accessibility and middle-click support
+- `web_app/seedling-presale-2026.html` — Fixed href="/" to href="../index.html" for GitHub Pages compatibility
+
+### Reason
+Navigation audit identified 3 dead-end pages (no hub link), 1 oversized nav section (12 items), 1 orphaned single-item section, 4 jargon/vague labels, and 1 accessibility failure. All fixed per approved plan.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] No new files created
+- [x] No duplicates created
+
+---
+
+## 2026-03-27 — RESEARCH_CLAUDE: Navigation UX research
+
+### Files Created
+- `docs/research/NAVIGATION_UX_RESEARCH_2026.md` — Comprehensive navigation UX research: hub-and-spoke vs sidebar, item limits, plain language labels, mobile patterns, dead-end pages, farm software competitive analysis, dual-audience patterns. 27 sources cited.
+
+### Files Modified
+- `CHANGE_LOG.md` — Added this entry
+
+### Reason
+Required to inform UX navigation redesign decisions for Tiny Seed OS 40+ page application. No prior navigation UX research existed in docs/research/.
+
+### Duplicate Check
+- [x] Checked docs/research/ — no existing navigation UX document
+- [x] No duplicates created
+
+---
+
+## 2026-03-27 — AUDIT_CLAUDE: Navigation audit across 22 HTML pages
+
+### Files Created
+- `docs/audits/NAVIGATION_AUDIT_2026.md` — Full navigation state audit: sidebar presence, back links, dead-ends, role classification, mobile focus for all 22 pages
+
+### Files Modified
+- `CHANGE_LOG.md` — Added this entry
+
+### Reason
+Requested navigation audit to identify dead-end pages, inconsistent nav patterns, and missing back-to-hub links across the entire Tiny Seed Farm OS HTML surface.
+
+### Findings Summary
+- 3 dead-end pages: employee.html, web_app/driver.html, web_app/wholesale.html (P2)
+- 5 different navigation patterns across 22 pages (no standard component) (P3)
+- 4 floating home buttons implemented as duplicated 120-char inline styles (P3)
+- seedling-presale-2026.html uses href="/" instead of ../index.html (verify on GitHub Pages) (P3)
+- soil-tests.html uses onclick JS for navigation instead of accessible <a> element (P3)
+
+---
 ## 2026-03-27 — FULLSTACK_BUILDER: Add Cover Crops tab to planning.html; fix frost dates (v785)
 
 ### Files Modified

@@ -9961,6 +9961,15 @@
     <script src="web_app/offline-task-manager.js"></script>
 </head>
 <body>
+    <!-- Hub Navigation Header -->
+    <div id="hubNavHeader" style="position:fixed;top:0;left:0;right:0;z-index:9999;height:44px;min-height:44px;background:rgba(15,15,15,0.95);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:space-between;padding:0 16px;font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;font-size:14px;">
+        <a href="index.html" style="display:flex;align-items:center;gap:6px;color:#10b981;text-decoration:none;min-height:44px;padding-right:24px;font-weight:500;">
+            <span aria-hidden="true">&larr;</span> Hub
+        </a>
+        <span style="color:rgba(255,255,255,0.4);font-size:13px;font-weight:400;">Tiny Seed Farm</span>
+    </div>
+    <div style="height:44px;flex-shrink:0;" aria-hidden="true"></div>
+
     <!-- PWA Install Prompt -->
     <div class="install-prompt" id="installPrompt">
         <div class="install-prompt-content">
