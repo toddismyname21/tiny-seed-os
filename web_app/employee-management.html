@@ -849,6 +849,38 @@
                     <label>Phone</label>
                     <input type="tel" id="invitePhone" placeholder="(412) 555-0123">
                 </div>
+                <div class="form-group">
+                    <label>Job Title</label>
+                    <select id="inviteJobTitle">
+                        <option value="Field Worker">Field Worker</option>
+                        <option value="Crew Lead">Crew Lead</option>
+                        <option value="Driver">Driver</option>
+                        <option value="Greenhouse">Greenhouse</option>
+                        <option value="Manager">Manager</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Access Level</label>
+                    <select id="inviteRole">
+                        <option value="Employee">Employee (standard access)</option>
+                        <option value="Manager">Manager (schedule editing + approvals)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label style="margin-bottom: 8px;">Mode Access <span style="font-size:0.75rem; color: var(--text-secondary); font-weight:400;">(grant only if needed)</span></label>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <label style="display:flex; align-items:center; gap:8px; font-weight:400; cursor:pointer;">
+                            <input type="checkbox" id="inviteTractorMode"> Tractor Mode
+                        </label>
+                        <label style="display:flex; align-items:center; gap:8px; font-weight:400; cursor:pointer;">
+                            <input type="checkbox" id="inviteGarageMode"> Garage Mode
+                        </label>
+                        <label style="display:flex; align-items:center; gap:8px; font-weight:400; cursor:pointer;">
+                            <input type="checkbox" id="inviteInventoryMode"> Inventory Mode
+                        </label>
+                    </div>
+                </div>
                 <p style="font-size: var(--ts-text-xs, 0.8rem); color: var(--text-secondary); margin-top: var(--ts-space-4, 16px);">
                     <i class="fas fa-info-circle"></i> They'll receive an email with a link to complete their onboarding form.
                 </p>
@@ -1539,6 +1571,11 @@
             document.getElementById('inviteName').value = '';
             document.getElementById('inviteEmail').value = '';
             document.getElementById('invitePhone').value = '';
+            document.getElementById('inviteJobTitle').value = 'Field Worker';
+            document.getElementById('inviteRole').value = 'Employee';
+            document.getElementById('inviteTractorMode').checked = false;
+            document.getElementById('inviteGarageMode').checked = false;
+            document.getElementById('inviteInventoryMode').checked = false;
             openModal('inviteModal');
         }
 
@@ -1546,6 +1583,11 @@
             const name = document.getElementById('inviteName').value.trim();
             const email = document.getElementById('inviteEmail').value.trim();
             const phone = document.getElementById('invitePhone').value.trim();
+            const jobTitle = document.getElementById('inviteJobTitle').value;
+            const role = document.getElementById('inviteRole').value;
+            const tractorMode = document.getElementById('inviteTractorMode').checked;
+            const garageMode = document.getElementById('inviteGarageMode').checked;
+            const inventoryMode = document.getElementById('inviteInventoryMode').checked;
 
             if (!name || !email) {
                 showToast('Name and email are required', 'error');
@@ -1558,7 +1600,12 @@
                     action: 'inviteEmployee',
                     fullName: name,
                     email: email,
-                    phone: phone || ''
+                    phone: phone || '',
+                    jobTitle: jobTitle,
+                    role: role,
+                    tractorMode: tractorMode,
+                    garageMode: garageMode,
+                    inventoryMode: inventoryMode
                 });
 
                 const response = await fetch(`${API_URL}?${params.toString()}`);

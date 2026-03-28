@@ -33,6 +33,35 @@ Brief explanation of why these changes were made.
 
 ---
 
+
+## 2026-03-28 — FULLSTACK_BUILDER: Invite-with-role-preset employee onboarding (v788)
+
+### Files Modified
+- `web_app/employee-management.html` — Added Job Title, Access Level, and Mode Access fields (Tractor/Garage/Inventory) to invite modal; sendInvite() now passes all fields to backend
+- `apps_script/MERGED TOTAL.js` — inviteEmployee(): stores role, job title, and permissions at invite time; completeEmployeeOnboarding(): auto-activates employees invited via invite flow (role pre-set), sends welcome email with PIN to employee and "no action needed" notice to Todd; self-signup path unchanged (still Pending Approval)
+
+### Reason
+Eliminated manual Google Sheets editing on every new hire. Todd selects role + permissions when sending invite. Employee auto-activates on form completion. Pattern matches Slack/Notion/Linear/Homebase industry standard. OWASP least-privilege defaults applied (all modes off by default, Costing_Mode always requires explicit grant).
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
+
+## 2026-03-27 — RESEARCH_CLAUDE: Employee onboarding approval workflow research
+
+### Files Created
+- `docs/research/EMPLOYEE_ONBOARDING_APPROVAL_WORKFLOW_2026.md` — Deep research on invite-with-role-preset vs. approve-after-signup patterns (Slack, Notion, Linear, Homebase, Gusto, Deputy, When I Work), OWASP token security requirements for email approval links, magic link auto-activation guidelines, and least-privilege permission defaults. Includes 7 specific recommendations for Tiny Seed OS implementation.
+
+### Reason
+Owner requested sourced research on low-friction employee onboarding approval patterns for a Google Apps Script + Sheets backend with no traditional auth system.
+
+### Duplicate Check
+- [x] Checked docs/research/ — no existing onboarding/approval/auth-flow research found
+- [x] No duplicates created
 ## 2026-03-27 — FULLSTACK_BUILDER: Extend seedling presale to April 15, update pickup dates (v787)
 
 ### Files Modified
