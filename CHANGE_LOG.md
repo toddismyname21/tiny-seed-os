@@ -34,6 +34,21 @@ Brief explanation of why these changes were made.
 ---
 
 
+## 2026-03-28 — FULLSTACK_BUILDER: TCPA-compliant SMS consent disclosure for CSA portal
+
+### Files Modified
+- `web_app/csa.html` — Added TCPA disclosure div (smsConsentDisclosure) after SMS onboarding checkbox, toggled visible when checkbox is checked. Replaced login SMS "We'll text you a 6-digit code" with proper consent language including opt-out and rate notice. Added disclosure toggle to existing commSMS change listener.
+
+### Reason
+TCR (The Campaign Registry) rejected Twilio A2P SMS campaign because explicit SMS consent was not visible on site. These changes satisfy TCPA requirements: brand name, message type, frequency, rate notice, STOP/HELP opt-out, link to SMS Terms page.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
 ## 2026-03-28 — FULLSTACK_BUILDER: Invite-with-role-preset employee onboarding (v788)
 
 ### Files Modified

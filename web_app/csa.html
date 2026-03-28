@@ -2401,7 +2401,7 @@
                     Send Verification Code
                 </button>
                 <p style="text-align: center; margin-top: var(--ts-space-4, 16px); font-size: var(--ts-text-xs, 0.8rem); color: var(--text-secondary);">
-                    We'll text you a 6-digit code to sign in
+                    By entering your phone number and clicking Send, you agree to receive a one-time SMS verification code from Tiny Seed Farm. Msg &amp; data rates may apply. Reply STOP to opt out.
                 </p>
             </div>
 
@@ -2562,6 +2562,10 @@
                             <div style="font-size: var(--ts-text-xs, 0.8rem); color: var(--text-secondary);">Day-of pickup reminders</div>
                         </div>
                     </label>
+
+                    <div id="smsConsentDisclosure" style="display:none; margin-top: 8px; padding: 10px 12px; background: rgba(255,255,255,0.05); border-left: 3px solid var(--green-primary, #4ade80); border-radius: 4px; font-size: 0.72rem; color: var(--text-secondary); line-height: 1.5;">
+                        By checking this box, you agree to receive SMS text messages from <strong>Tiny Seed Farm</strong> at the number provided. Messages include pickup reminders and box updates. Frequency varies (typically 1&ndash;4 msgs/week during CSA season). Msg &amp; data rates may apply. Reply <strong>STOP</strong> to opt out, <strong>HELP</strong> for help. <a href="https://tiny-seed-farmers-market.myshopify.com/pages/sms-terms" target="_blank" style="color: var(--green-primary, #4ade80);">SMS Terms</a>
+                    </div>
 
                     <div class="form-group" id="phoneGroup" style="margin-top: var(--ts-space-4, 16px); display: none;">
                         <label class="form-label">Mobile Phone Number</label>
@@ -4082,6 +4086,8 @@
             if (AppState.onboardingStep === 3) {
                 document.getElementById('commSMS').addEventListener('change', (e) => {
                     document.getElementById('phoneGroup').style.display = e.target.checked ? 'block' : 'none';
+                    var disc = document.getElementById('smsConsentDisclosure');
+                    if (disc) disc.style.display = e.target.checked ? 'block' : 'none';
                 });
             }
         }
