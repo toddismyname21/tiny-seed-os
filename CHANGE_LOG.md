@@ -33,6 +33,34 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-03-29 — PM_ARCHITECT: Presale Performance + Accessibility — 5 Fixes
+
+### Files Modified
+- `web_app/seedling-presale-2026.html` — skeleton loader, CSP, contrast, favicon paths
+- `web_app/favicon-*.png` (8 files) — committed for first time (were untracked)
+
+### Changes
+1. **Skeleton loading** — replaced spinner with 8-card shimmer grid + 6 tab pills. Speed Index: 9.4s → 7.8s
+2. **CSP: GA unblocked** — added `google-analytics.com` + `analytics.google.com` to `connect-src`. GA was silently dropping all presale visits.
+3. **CSP: Facebook Pixel unblocked** — added `connect.facebook.net` to `script-src` + `connect-src`
+4. **Color contrast** — `.variety-price` was `var(--earth)` = #8b7355, ratio ~3.1:1 (WCAG fail). Now `var(--green-deep)` = #2d5016, ratio ~9:1
+5. **Favicons committed** — eliminated 404s on every page load
+
+### Lighthouse Before / After
+| Metric | Before | After |
+|--------|--------|-------|
+| Accessibility | 93 | 97 (+4) |
+| Speed Index | 9.4s | 7.8s (-1.6s) |
+| Console errors | 5 | 0 |
+| Contrast failures | 4 | 0 |
+
+### Also discovered: 13 project-level MCPs already configured
+Playwright, Lighthouse, a11y, image-compare, image-optimizer, colorsandfonts,
+brave-search, firecrawl, eslint, github, google-sheets, claude-flow.
+Available in new sessions started from the project directory.
+
+---
+
 ## 2026-03-29 — PM_ARCHITECT: Presale UX Overhaul — Catalog-First Flow + Content Fixes
 
 ### Files Modified
