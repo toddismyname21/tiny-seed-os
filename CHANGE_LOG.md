@@ -33,6 +33,28 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-03-29 — FULLSTACK_BUILDER: Presale page comprehensive update (23 items)
+
+### Files Modified
+- `web_app/seedling-presale-2026.html` — Photos, removals, descriptions, cart view, payment fix
+
+### Changes Summary
+- Removed 9 varieties: Fat Italian, Serrano, Scorpion, Ghost, Patchouli, Curly Parsley, Mexican Tarragon, Bergamot, Bee Balm
+- Added IMG_FIX overrides for 18 varieties (Red Knight, Habanero, Jimmy Nardello, Hot Rod Serrano, Paisan, Cucumber, Roma->Speckled Roman, Juliet, Blush, Peas, Thai Basil, Genovese Basil, Apple Mint, French Lavender, Ruby Kale, Cat Grass, Collards)
+- Added NAME_FIX: Lavender -> French Lavender
+- Updated DESC_FIX: 19 descriptions (gardener-friendly language, no seed catalog artifacts)
+- Added Collards to Greens section via frontend injection
+- Cart redesign: renderOrderItems() shows only selected items with thumbnails
+- Payment fix: no-invoiceUrl path shows payment instructions instead of false confirmation
+- Immediate Shopify redirect (removed 1.5s delay)
+- Moved Why Pre-Order section to after order form
+- Fixed FAQ ghost pepper reference
+
+### Reason
+Content quality, catalog accuracy, payment security fix, cart UX per user request 2026-03-29
+
+### Duplicate Check
+- [x] showPaymentRequired_() is new — verified not duplicated
 
 ## 2026-03-28 — FULLSTACK_BUILDER: Cart feedback UX fix on seedling presale
 
