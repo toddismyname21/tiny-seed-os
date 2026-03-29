@@ -33,6 +33,31 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-03-29 — PM_ARCHITECT: Presale UX Overhaul — Catalog-First Flow + Content Fixes
+
+### Files Modified
+- `web_app/seedling-presale-2026.html` — Section reorder + 7 content fixes
+
+### Section Reorder (catalog-first model)
+- Old: Hero → Farmer → USDA → Catalog → Pickup → Order Form → Why Pre-Order → Growing Tips → FAQ
+- New: Hero → **Catalog → Order Form → Pickup** → Farmer → USDA → Why Pre-Order → FAQ → Growing Tips
+- Rationale: returning customers came to buy, not be convinced. Trust content is now post-decision.
+
+### Also Fixed (same commit)
+- Remove "organically grown since 2017" (false — certified Dec 2025)
+- Remove "Join Our Growing Community" fake testimonial section
+- Bundle static list: Summer Cutting Garden items now match JS data
+- Pricing subtitle: added "$25 minimum" — visible upfront, not as error state
+- "Browse catalog" instruction: now a clickable scroll-to-catalog link
+- USDA block: added "Certified December 2025"
+- Growing Tips containers: Celebrity → Mt. Merit Tomato
+- Referral share URL: was placeholder, now correct GitHub Pages URL
+
+### Duplicate Check
+- [x] No new files or functions created
+
+---
+
 ## 2026-03-29 — PM_ARCHITECT: Presale Catalog Update — Flowers, Veggies, Bundle Rename
 
 ### Files Modified
