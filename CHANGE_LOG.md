@@ -33,6 +33,37 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-03-29 — PM_ARCHITECT: Presale Catalog Update — Flowers, Veggies, Bundle Rename
+
+### Files Modified
+- `web_app/seedling-presale-2026.html` — Bundle renamed + items updated; deployed to GitHub Pages
+
+### Backend Changes (via API calls to SEEDLING_PRODUCTION)
+**Updated existing items:**
+- Strawflower → "Cranberry Rose Strawflower" (ID: SL-1771963000908-vlzs83)
+- Celosia → "Mixed Pampas Plume Celosia" (ID: SL-1771963001854-u6bz84)
+- Bachelor Buttons → "Bachelor Button Mix" (ID: SL-1771963005330-4pxf89)
+- Toma Verde: added description + photo (ID: SDL-1773328641550-m088)
+- Aunt Molly's Ground Cherry: added description + photo (ID: SDL-1773329573932-7x9a)
+
+**Added new items:**
+- Snapdragon (Rocket Mix) — SDL-1774791027757-893o | Flowers | $5
+- Parker Yarrow — SDL-1774791034940-z1mp | Flowers | $5
+- Rudbeckia Sahara — SDL-1774791041527-f5dt | Flowers | $5
+- Branching Sunflower (Summer Breeze Mix) — SDL-1774791057797-7fna | Flowers | $5
+- Queen Sofia Marigold — SDL-1774791093457-e10b | Flowers | $5
+- Giant Orange Marigold — SDL-1774791101715-zcaq | Flowers | $5
+- Snap Bean Mix (Trilogy) — SDL-1774791109078-me4z | Vegetables | $5
+
+**Frontend:**
+- Bundle "Flower Power" → "Summer Cutting Garden" (name, description, JS data)
+- Bundle items updated: Zinnia×2, Branching Sunflower×1, Snapdragon×1, Cranberry Rose Strawflower×1, Bachelor Button Mix×1, Rudbeckia Sahara×1
+
+### Duplicate Check
+- [x] Verified no existing entries for any of the 7 new items before adding
+
+---
+
 ## 2026-03-29 — FULLSTACK_BUILDER: Add Collards to SEEDLING_PRODUCTION via API
 
 ### Files Modified
