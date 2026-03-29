@@ -327,54 +327,9 @@
         .cta-btn:focus { outline: 2px solid var(--green); outline-offset: 2px; }
         .hero-trust { margin-top: var(--ts-space-6, 24px); font-size: 0.8rem; color: var(--text-muted); }
 
-        /* ═══════════════════════════════════════ */
-        /* SEEDLING ROW — straddles hero/benefits    */
-        /* Negative margins pull it up into hero and  */
-        /* let benefits overlap bottom half.           */
-        /* No white strip — hero flows into tan.       */
-        /* ═══════════════════════════════════════ */
-        .seedling-overlay {
-            display: flex;
-            justify-content: space-evenly;
-            align-items: center;
-            height: 240px;
-            margin-top: -120px;
-            margin-bottom: -120px;
-            position: relative;
-            z-index: 5;
-            pointer-events: none;
-            padding: 0 20px;
-        }
-        .seedling-overlay img {
-            width: 240px;
-            height: 240px;
-            object-fit: contain;
-            filter: drop-shadow(0 4px 12px rgba(0,0,0,0.1));
-        }
-        /* Rotation: 0 → 5L → 10L → 5L → 0 → 5R → 10R → 5R */
-        /* Gentle curve so edges sit slightly higher, center dips */
-        .seedling-overlay img:nth-child(1) { transform: translateY(-16px) rotate(0deg); }
-        .seedling-overlay img:nth-child(2) { transform: translateY(-6px) rotate(-5deg); }
-        .seedling-overlay img:nth-child(3) { transform: translateY(6px) rotate(-10deg); }
-        .seedling-overlay img:nth-child(4) { transform: translateY(12px) rotate(-5deg); }
-        .seedling-overlay img:nth-child(5) { transform: translateY(8px) rotate(0deg); }
-        .seedling-overlay img:nth-child(6) { transform: translateY(-2px) rotate(5deg); }
-        .seedling-overlay img:nth-child(7) { transform: translateY(-12px) rotate(10deg); }
-        .seedling-overlay img:nth-child(8) { transform: translateY(-18px) rotate(5deg); }
-        @media (max-width: 1024px) {
-            .seedling-overlay { height: 190px; margin-top: -95px; margin-bottom: -95px; }
-            .seedling-overlay img { width: 190px; height: 190px; }
-        }
-        @media (max-width: 768px) {
-            .seedling-overlay { height: 140px; margin-top: -70px; margin-bottom: -70px; }
-            .seedling-overlay img { width: 140px; height: 140px; }
-            .seedling-overlay img:nth-child(n+7) { display: none; }
-        }
-        @media (max-width: 480px) {
-            .seedling-overlay { height: 100px; margin-top: -50px; margin-bottom: -50px; padding: 0 8px; }
-            .seedling-overlay img { width: 100px; height: 100px; }
-            .seedling-overlay img:nth-child(n+5) { display: none; }
-        }
+        /* .seedling-overlay CSS removed — HTML overlay was removed because
+           negative margins caused catalog heading to be hidden underneath.
+           See commit history for original styles if ever needed again. */
 
         /* ═══════════════════════════════════════ */
         /* SECTIONS */
@@ -415,6 +370,7 @@
         .catalog-nav {
             display: flex; gap: var(--ts-space-2, 8px); margin-bottom: var(--ts-space-6, 24px); flex-wrap: wrap;
         }
+        .catalog { padding-top: 100px; }
         .catalog-tab {
             padding: var(--ts-space-2, 10px) var(--ts-space-4, 18px); border-radius: 30px; border: 2px solid #e5e7eb;
             background: #fff; font-weight: 600; font-size: 0.9rem; cursor: pointer; min-height: 44px;
@@ -1578,17 +1534,8 @@
     </div>
 </header>
 
-<!-- Seedlings: half over the hero photo, half over the tan benefits -->
-<div class="seedling-overlay" aria-hidden="true">
-    <img src="images/seedlings/tomato-card.png" alt="" loading="lazy">
-    <img src="images/seedlings/basil-card.png" alt="" loading="lazy">
-    <img src="images/seedlings/pepper-card.png" alt="" loading="lazy">
-    <img src="images/seedlings/chard-card.png" alt="" loading="lazy">
-    <img src="images/seedlings/sage-card.png" alt="" loading="lazy">
-    <img src="images/seedlings/parsley-card.png" alt="" loading="lazy">
-    <img src="images/seedlings/mint-card.png" alt="" loading="lazy">
-    <img src="images/seedlings/broccoli-card.png" alt="" loading="lazy">
-</div>
+<!-- Seedling overlay removed: was designed for hero→benefits transition,
+     now conflicts with hero→catalog layout (negative margins ate catalog heading) -->
 
 <main id="main-content" role="main">
 
@@ -2467,13 +2414,31 @@ function setupHeaderScroll() {
 }
 
 // ═══════════════════════════════════════
-// LOAD PRESALE ITEMS FROM API
+// LOAD PRESALE ITEMS FROM API (with localStorage cache)
 // ═══════════════════════════════════════
+var PRESALE_CACHE_KEY = 'tsf_presale_catalog_v1';
+var PRESALE_CACHE_TTL = 4 * 60 * 60 * 1000; // 4 hours in ms
+
 function loadPresaleItems() {
     var catalogContent = document.getElementById('catalogContent');
     var catalogNav = document.getElementById('catalogNav');
 
-    // Show skeleton loading state (shimmer cards — same layout as real catalog)
+    // Try to serve from localStorage cache first (instant render, no skeleton)
+    try {
+        var cached = localStorage.getItem(PRESALE_CACHE_KEY);
+        if (cached) {
+            var cacheObj = JSON.parse(cached);
+            if (cacheObj && cacheObj.ts && cacheObj.data && (Date.now() - cacheObj.ts < PRESALE_CACHE_TTL)) {
+                // Render from cache immediately (no skeleton, no API wait)
+                processCatalogData({ success: true, data: cacheObj.data, phase: cacheObj.phase });
+                // Then quietly refresh cache in background
+                refreshCatalogCache();
+                return;
+            }
+        }
+    } catch(e) { /* ignore localStorage errors (private browsing, quota, etc.) */ }
+
+    // No valid cache — show skeleton loading state, then fetch from API
     var skelCard = '<div class="skel-card"><div class="skel skel-img"></div><div class="skel-body"><div class="skel skel-line w75"></div><div class="skel skel-line w40"></div><div class="skel skel-btn"></div></div></div>';
     catalogNav.innerHTML = '<div class="skel-tabs">' +
         '<div class="skel skel-tab" style="width:90px;"></div>' +
@@ -2495,179 +2460,16 @@ function loadPresaleItems() {
                 throw new Error(result.error || 'No seedling items returned from the server.');
             }
 
-            // Detect phase and update UI accordingly
-            var presalePhase = result.phase || 'pre-order';
-            if (presalePhase === 'in-stock') {
-                // Update hero text for in-stock phase
-                var badge = document.querySelector('.hero-badge');
-                if (badge) badge.innerHTML = '<i class="fas fa-fire"></i> SEEDLINGS IN STOCK \u2014 WHILE SUPPLIES LAST';
-                var heroH1 = document.querySelector('.hero h1');
-                if (heroH1) heroH1.innerHTML = 'Pittsburgh\'s Favorite <span>Seedlings</span> Are Here';
-            }
+            // Save to localStorage cache
+            try {
+                localStorage.setItem(PRESALE_CACHE_KEY, JSON.stringify({
+                    ts: Date.now(),
+                    data: result.data,
+                    phase: result.phase || 'pre-order'
+                }));
+            } catch(e) { /* ignore quota errors */ }
 
-            // Varieties removed from 2026 catalog
-            var FILTER_OUT = new Set([
-                'Fat Italian',
-                'Serrano',
-                'Trinidad Scorpion',
-                'Ghost',
-                'Patchouli',
-                'Curly Parsley',
-                'Mexican Tarragon',
-                'Bergamot',
-                'Bee Balm'
-            ]);
-
-            // Name overrides — rename varieties for customer clarity
-            var NAME_FIX = {
-                'Lavender': 'French Lavender'
-            };
-
-            // Image overrides — replace wrong/missing photos with correct ones
-            var IMG_FIX = {
-                'Red Knight':       'https://www.johnnyseeds.com/dw/image/v2/BJGJ_PRD/on/demandware.static/-/Sites-jss-master/default/dw6945f5ba/images/products/vegetables/02309_01_red_knight.jpg?sw=800&sh=800',
-                'Habanero':         'https://www.johnnyseeds.com/dw/image/v2/BJGJ_PRD/on/demandware.static/-/Sites-jss-master/default/dw9993df7c/images/products/vegetables/0598g_01_habanero.jpg',
-                'Jimmy Nardello':   'https://www.botanicalinterests.com/cdn/shop/files/3081i_Pepper-Sweet-Jimmy-Nardello-ORG_jtu44z_30bd3fdb-0025-4f61-ba7a-e7cee12930ff.jpg?v=1773115223',
-                'Hot Rod Serrano':  'https://www.johnnyseeds.com/dw/image/v2/BJGJ_PRD/on/demandware.static/-/Sites-jss-master/default/dwb71ad451/images/products/vegetables/04149_01_altiplano.jpg',
-                'Paisan Pepperoncini': 'https://www.johnnyseeds.com/dw/image/v2/BJGJ_PRD/on/demandware.static/-/Sites-jss-master/default/dwe2ce8ba3/images/products/vegetables/4814g_01_paisan.jpg',
-                'Cucumber':         'https://www.johnnyseeds.com/dw/image/v2/BJGJ_PRD/on/demandware.static/-/Sites-jss-master/default/dw93fe34a8/images/products/vegetables/00336_01_marketmore.jpg',
-                'Roma':             'https://www.johnnyseeds.com/dw/image/v2/BJGJ_PRD/on/demandware.static/-/Sites-jss-master/default/dwf812999d/images/products/vegetables/03816g_01_speckroman.jpg?sw=800&sh=800',
-                'Juliet Grape':     'https://www.johnnyseeds.com/dw/image/v2/BJGJ_PRD/on/demandware.static/-/Sites-jss-master/default/dw6f171c72/images/products/vegetables/00707_01_juliet.jpg?sw=800',
-                'Blush Grape':      'https://www.johnnyseeds.com/dw/image/v2/BJGJ_PRD/on/demandware.static/-/Sites-jss-master/default/dwbd4fc392/images/products/vegetables/03517g_01_blush.jpg?sw=800&sh=800',
-                'Peas':             'https://www.johnnyseeds.com/dw/image/v2/BJGJ_PRD/on/demandware.static/-/Sites-jss-master/default/dwa274dc7a/images/products/vegetables/0558g_01_sugarsnap.jpg',
-                'Snap Peas':        'https://www.johnnyseeds.com/dw/image/v2/BJGJ_PRD/on/demandware.static/-/Sites-jss-master/default/dwa274dc7a/images/products/vegetables/0558g_01_sugarsnap.jpg',
-                'Thai Basil':       'https://www.johnnyseeds.com/dw/image/v2/BJGJ_PRD/on/demandware.static/-/Sites-jss-master/default/dwdb8e50d5/images/products/herbs/00945_01_sweetthaibas.jpg?sw=800&sh=800',
-                'Genovese Basil':   'https://www.johnnyseeds.com/dw/image/v2/BJGJ_PRD/on/demandware.static/-/Sites-jss-master/default/dw705d011b/images/products/herbs/00911_01_enovesebasil.jpg?sw=800&sh=800',
-                'Apple Mint':       'https://morningsunherbfarm.com/cdn/shop/products/menthasuaveolensapple.jpg?v=1594764983',
-                'French Lavender':  'https://www.smgrowers.com/imagedb/Lavandula_dentata.jpg',
-                'Ruby Kale':        'https://www.johnnyseeds.com/dw/image/v2/BJGJ_PRD/on/demandware.static/-/Sites-jss-master/default/dw056f0f78/images/products/vegetables/5294_01_rubybor_kale.jpg?sw=800&sh=800',
-                'Cat Grass':        'https://sowrightseeds.com/cdn/shop/products/CatgrassSeedPacket_grande.jpg?v=1668702120',
-                'Collards':         'https://www.johnnyseeds.com/dw/image/v2/BJGJ_PRD/on/demandware.static/-/Sites-jss-master/default/dw6a2f5414/images/products/vegetables/02116_01_flash.jpg'
-            };
-
-            // Description overrides — fix scraped/mismatched/empty descriptions
-            var DESC_FIX = {
-                'Cucumber': 'Long, smooth, dark green slicing cucumber — perfect for salads, sandwiches, and snacking. Prolific producer all summer on a trellis. Crisp, mild, and never bitter.',
-                'Yellow Squash': 'Classic golden summer squash with buttery flavor. Prolific plants yield tender, straight-necked fruits ideal for grilling, sautéing, or baking.',
-                'Small Bell Pepper': 'Compact, colorful mini bell peppers. Sweet and crunchy with thin walls — great for snacking, stuffing, or adding to salads.',
-                'Jimmy Nardello': 'Sweet Italian frying pepper with a legendary reputation. Long, thin, wrinkled fruits turn fire-red at peak ripeness. Pan-fry in olive oil until caramelized and you\'ll never go back to grocery store peppers.',
-                'Hot Rod Serrano': 'A productive serrano pepper with 3-4x the heat of jalape\u00f1o. Thick-walled with clean, bright heat — excellent fresh in salsa or pickled. Harvest green or let ripen to red.',
-                'Trinidad Scorpion': 'Extremely hot pepper with fruity, smoky undertones. One of the world\'s hottest — use sparingly in hot sauces and spicy dishes.',
-                'Hungarian Wax': 'Versatile hot pepper that ripens from yellow to red. Medium heat with tangy flavor — great for pickling, stuffing, or fresh eating.',
-                'Ghost': 'Legendary super-hot pepper with intense, slow-building heat. Smoky, slightly sweet flavor — a little goes a very long way.',
-                'Shishito': 'Mild, thin-walled Japanese pepper. Blistered in a hot pan with oil and sea salt — one of the best appetizers you can grow.',
-                'Amish Paste': 'Large heirloom plum tomato, a longtime favorite for sauces. Meaty flesh with rich, sweet flavor and very few seeds.',
-                'Brandywine': 'One of the most flavorful tomatoes you can grow. Large pink beefsteak with an unbeatable old-fashioned tomato taste.',
-                'San Marzano': 'Classic Italian paste tomato prized for making sauce. Elongated fruits with thick walls, few seeds, and rich concentrated flavor.',
-                'Roma': 'Speckled Roman organic paste tomato — an heirloom upgrade on classic Roma. Beautiful streaked red-orange fruits with meaty, low-moisture flesh. Rich concentrated flavor for sauces, roasting, and canning.',
-                'Mountain Mix (Four Packs)': 'Assorted mountain-series determinate tomatoes in a convenient four-pack. Bred for disease resistance and reliable harvests in our region.',
-                'Juliet Grape': 'A prolific grape tomato that rarely cracks and produces heavy clusters all season. Rich, sweet, complex tomato flavor — far better than grocery store grape tomatoes. Grows on vigorous vines to 6+ feet.',
-                'Blush Grape': 'Stunning ivory-gold grape tomatoes with a blush-pink stripe. Sweet and mild with a beautiful look that makes any dish more elegant. A conversation piece at the table and gorgeous in salads.',
-                'White Cherry': 'Pale yellow cherry tomato with delicate, mild sweetness. Lovely contrast in mixed cherry bowls and garden salads.',
-                'Fat Italian': 'Large, broad Italian eggplant with creamy white flesh. Excellent for grilling, roasting, and making eggplant parmesan.',
-                'Peas': 'Sweet, tender garden peas on vigorous climbing vines. Nothing tastes better than peas fresh-picked from the garden — cook briefly to keep that natural sweetness. Trellis to 4 feet.',
-                'Russian Mix': 'Assorted Russian kale varieties with tender, colorful leaves. Cold-hardy and sweet after frost — beautiful in salads and stir-fries.',
-                'Cabbage': 'Dense, round heads with crisp, sweet leaves. Versatile in the kitchen — great for coleslaw, sauerkraut, stir-fries, and soups.',
-                'Mixed Head Lettuce': 'Assorted head lettuce varieties in vibrant colors. Buttery, crisp, and beautiful — a salad garden in one planting.',
-                'Mixed Salad Mix': 'Diverse blend of salad greens for continuous cutting. Spicy, mild, and colorful — grow your own gourmet salad mix at home.',
-                'Thai Basil': 'The real thing for homemade Thai food. Licorice-anise flavor with purple stems and beautiful purple flower buds. Essential in Thai curries, pho, and spring rolls — far better than substituting sweet basil.',
-                'Genovese Basil': 'The gold standard for pesto and caprese. Large, cupped, intensely fragrant leaves with the classic sweet Italian flavor. Pinch flowers to keep producing all summer.',
-                'Purple Basil': 'Stunning deep purple basil with mild, slightly spicy flavor. Beautiful garnish and gorgeous in herbal vinegars and oils.',
-                'Mixed Herb': 'Assorted culinary herb mix — a starter garden of kitchen essentials. Perfect for new gardeners who want variety.',
-                'Simon and Garfunkel Herb': 'Parsley, sage, rosemary, and thyme — the classic herb quartet in one bundle. All the kitchen staples, ready to plant.',
-                'Curly Parsley': 'Bright green, tightly curled parsley with mild flavor. A classic garnish that\'s also great chopped into tabbouleh and salads.',
-                'Patchouli': 'Aromatic tropical herb with earthy, musky fragrance. Attractive foliage plant — the dried leaves are prized in potpourri and sachets.',
-                'French Tarragon': 'The essential French culinary herb with subtle anise flavor. Indispensable in béarnaise sauce, chicken dishes, and herb butter.',
-                'Mexican Tarragon': 'Marigold-scented herb used as a tarragon substitute in warm climates. Bright yellow flowers and a sweet anise-like flavor.',
-                'Cat Grass': 'Fresh wheatgrass grown at home for cats (and humans!). Grow in a pot on the windowsill — cats love nibbling the tender green shoots. Helps with digestion and provides enrichment for indoor cats.',
-                'Lavender': 'French Lavender (Lavandula dentata) has uniquely toothed, fragrant leaves and soft purple flower spikes. More heat-tolerant than English lavender and a magnet for pollinators. Use in sachets, baking, or as a garden border. Treat as annual in Pittsburgh (Zone 6b) or overwinter in a sunny window.',
-                'French Lavender': 'French Lavender (Lavandula dentata) has uniquely toothed, fragrant leaves and soft purple flower spikes. More heat-tolerant than English lavender and a magnet for pollinators. Use in sachets, baking, or as a garden border. Treat as annual in Pittsburgh (Zone 6b) or overwinter in a sunny window.',
-                'Nasturtium': 'Easy, cheerful annual with bright orange and yellow edible flowers. Peppery-sweet flowers and leaves add color to salads. Low-maintenance — blooms all season and self-seeds.',
-                'Gomphrena': 'Globe amaranth — cheerful round flowers in vibrant pink, purple, and red. Blooms nonstop from summer to frost. Outstanding in fresh bouquets and lasts beautifully when dried. Pollinators adore it.',
-                'Snap Peas': 'Sweet snap peas with edible pods — crunch them right off the vine. Kids love growing these. Trellis to 4-5 feet, harvest pods plump and shiny.',
-                'Mountain Merit': 'A disease-resistant slicing tomato that actually delivers in Pittsburgh gardens. Holds up in our humid summers without spraying — medium-large red fruits, dependable yields. Great choice for gardeners who\'ve struggled with tomato diseases.',
-                'Washington Cherry': 'Sweet, prolific cherry tomato with deep red, marble-sized fruits. Indeterminate vines produce all season — kids love snacking on these straight from the vine. Easy to grow on a stake or cage.',
-                'Fairy Tale Eggplant': 'The most beginner-friendly eggplant you can grow. Cute purple-and-white striped mini fruits are sweet, tender, and never bitter — harvest at 3-4 inches for the best flavor. Compact plant works great in containers.',
-                'Collards': 'Classic Southern cooking green with large, smooth leaves. Cold-hardy and sweet after frost — perfect for braising, soups, and stir-fries. One of the most nutritious greens you can grow. Easy for beginners.',
-                'Apple Mint': 'Round, velvety leaves with a mild apple-mint fragrance. Less aggressive than spearmint — lovely in iced tea, fruit salads, and mojitos. Plant in a container to keep it from spreading.'
-            };
-
-            // Map API data to VARIETIES format
-            VARIETIES = [];
-            for (var i = 0; i < result.data.length; i++) {
-                var row = result.data[i];
-                var varName = row.Variety || row.Crop || 'Unknown';
-                var rawDesc = row.Description || row.Notes || '';
-                // Apply description fixes and strip seed company artifacts
-                var desc = DESC_FIX[varName] || rawDesc;
-                desc = desc.replace(/^(New!|Exclusive!)\s*/i, '').replace(/\|\s*Johnny\b.*$/i, '').replace(/^Take advantage of our overstock position!\s*/i, '').replace(/^Now available organic!\s*/i, '').trim();
-                VARIETIES.push({
-                    name: NAME_FIX[varName] || varName,
-                    category: row.Category || 'Other',
-                    price: Number(row.Price_Each) || 6.00,
-                    itemId: row.Item_ID || '',
-                    available: row.Available != null ? Number(row.Available) : null,
-                    waitlist: !!row.Waitlist,
-                    crop: row.Crop || '',
-                    imageUrl: IMG_FIX[NAME_FIX[varName] || varName] || row.Image_URL || '',
-                    description: desc
-                });
-            }
-
-            // Remove varieties not offered in 2026
-            VARIETIES = VARIETIES.filter(function(v) { return !FILTER_OUT.has(v.name); });
-
-            // Add Collards if not already in API data
-            var hasCollards = VARIETIES.some(function(v) { return v.name === 'Collards'; });
-            if (!hasCollards) {
-                // Find the Greens category insertion point
-                var insertIdx = -1;
-                for (var gi = 0; gi < VARIETIES.length; gi++) {
-                    if (VARIETIES[gi].category === 'Greens') { insertIdx = gi; }
-                }
-                var collards = {
-                    name: 'Collards',
-                    category: 'Greens',
-                    price: 6.00,
-                    itemId: 'COLLARDS-2026',
-                    available: null,
-                    waitlist: false,
-                    crop: 'Collards',
-                    imageUrl: IMG_FIX['Collards'],
-                    description: 'Classic Southern cooking green with large, smooth leaves. Cold-hardy and sweet after frost \u2014 perfect for braising, soups, and stir-fries. One of the most nutritious greens you can grow. Easy for beginners.'
-                };
-                if (insertIdx >= 0) {
-                    VARIETIES.splice(insertIdx + 1, 0, collards);
-                } else {
-                    VARIETIES.push(collards);
-                }
-            }
-
-            // Derive unique categories in the order they appear
-            CATEGORIES = [];
-            var seenCats = {};
-            for (var j = 0; j < VARIETIES.length; j++) {
-                var cat = VARIETIES[j].category;
-                if (!seenCats[cat]) {
-                    seenCats[cat] = true;
-                    CATEGORIES.push(cat);
-                }
-            }
-
-            // Update the subtitle count
-            var subtitleEl = document.querySelector('#catalog .section-subtitle');
-            if (subtitleEl) {
-                subtitleEl.textContent = VARIETIES.length + '+ USDA Certified Organic varieties \u2014 all in 3\u201d pots. $6 each or 4 for $20. Proven performers in Pittsburgh\u2019s Zone 6b climate.';
-            }
-
-            // Set active category to first
-            activeCategory = CATEGORIES.length > 0 ? catSlug(CATEGORIES[0]) : '';
-
-            // Build UI
-            renderCatalogTabs();
-            renderCatalogCards();
-            renderOrderItems();
-            updateTotal();
+            processCatalogData(result);
         })
         .catch(function(err) {
             console.error('Failed to load presale items:', err);
@@ -2679,6 +2481,205 @@ function loadPresaleItems() {
                 '<i class="fas fa-redo"></i> Try Again</button></div>';
             catalogNav.innerHTML = '';
         });
+}
+
+// ═══════════════════════════════════════
+// BACKGROUND CACHE REFRESH
+// ═══════════════════════════════════════
+function refreshCatalogCache() {
+    fetch(TINY_SEED_API.MAIN_API + '?action=getSeedlingPresaleItems')
+        .then(function(r) { return r.ok ? r.json() : null; })
+        .then(function(result) {
+            if (result && result.success && result.data && result.data.length > 0) {
+                try {
+                    localStorage.setItem(PRESALE_CACHE_KEY, JSON.stringify({
+                        ts: Date.now(),
+                        data: result.data,
+                        phase: result.phase || 'pre-order'
+                    }));
+                } catch(e) { /* ignore quota errors */ }
+            }
+        })
+        .catch(function() { /* silent fail — cache refresh is best-effort */ });
+}
+
+// ═══════════════════════════════════════
+// PROCESS CATALOG DATA (shared by cache hit + fresh fetch)
+// ═══════════════════════════════════════
+function processCatalogData(result) {
+    // Detect phase and update UI accordingly
+    var presalePhase = result.phase || 'pre-order';
+    if (presalePhase === 'in-stock') {
+        // Update hero text for in-stock phase
+        var badge = document.querySelector('.hero-badge');
+        if (badge) badge.innerHTML = '<i class="fas fa-fire"></i> SEEDLINGS IN STOCK \u2014 WHILE SUPPLIES LAST';
+        var heroH1 = document.querySelector('.hero h1');
+        if (heroH1) heroH1.innerHTML = 'Pittsburgh\'s Favorite <span>Seedlings</span> Are Here';
+    }
+
+    // Varieties removed from 2026 catalog
+    var FILTER_OUT = new Set([
+        'Fat Italian',
+        'Serrano',
+        'Trinidad Scorpion',
+        'Ghost',
+        'Patchouli',
+        'Curly Parsley',
+        'Mexican Tarragon',
+        'Bergamot',
+        'Bee Balm'
+    ]);
+
+    // Name overrides — rename varieties for customer clarity
+    var NAME_FIX = {
+        'Lavender': 'French Lavender'
+    };
+
+    // Image overrides — replace wrong/missing photos with correct ones
+    var IMG_FIX = {
+        'Red Knight':       'https://www.johnnyseeds.com/dw/image/v2/BJGJ_PRD/on/demandware.static/-/Sites-jss-master/default/dw6945f5ba/images/products/vegetables/02309_01_red_knight.jpg?sw=800&sh=800',
+        'Habanero':         'https://www.johnnyseeds.com/dw/image/v2/BJGJ_PRD/on/demandware.static/-/Sites-jss-master/default/dw9993df7c/images/products/vegetables/0598g_01_habanero.jpg',
+        'Jimmy Nardello':   'https://www.botanicalinterests.com/cdn/shop/files/3081i_Pepper-Sweet-Jimmy-Nardello-ORG_jtu44z_30bd3fdb-0025-4f61-ba7a-e7cee12930ff.jpg?v=1773115223',
+        'Hot Rod Serrano':  'https://www.johnnyseeds.com/dw/image/v2/BJGJ_PRD/on/demandware.static/-/Sites-jss-master/default/dwb71ad451/images/products/vegetables/04149_01_altiplano.jpg',
+        'Paisan Pepperoncini': 'https://www.johnnyseeds.com/dw/image/v2/BJGJ_PRD/on/demandware.static/-/Sites-jss-master/default/dwe2ce8ba3/images/products/vegetables/4814g_01_paisan.jpg',
+        'Cucumber':         'https://www.johnnyseeds.com/dw/image/v2/BJGJ_PRD/on/demandware.static/-/Sites-jss-master/default/dw93fe34a8/images/products/vegetables/00336_01_marketmore.jpg',
+        'Roma':             'https://www.johnnyseeds.com/dw/image/v2/BJGJ_PRD/on/demandware.static/-/Sites-jss-master/default/dwf812999d/images/products/vegetables/03816g_01_speckroman.jpg?sw=800&sh=800',
+        'Juliet Grape':     'https://www.johnnyseeds.com/dw/image/v2/BJGJ_PRD/on/demandware.static/-/Sites-jss-master/default/dw6f171c72/images/products/vegetables/00707_01_juliet.jpg?sw=800',
+        'Blush Grape':      'https://www.johnnyseeds.com/dw/image/v2/BJGJ_PRD/on/demandware.static/-/Sites-jss-master/default/dwbd4fc392/images/products/vegetables/03517g_01_blush.jpg?sw=800&sh=800',
+        'Peas':             'https://www.johnnyseeds.com/dw/image/v2/BJGJ_PRD/on/demandware.static/-/Sites-jss-master/default/dwa274dc7a/images/products/vegetables/0558g_01_sugarsnap.jpg',
+        'Snap Peas':        'https://www.johnnyseeds.com/dw/image/v2/BJGJ_PRD/on/demandware.static/-/Sites-jss-master/default/dwa274dc7a/images/products/vegetables/0558g_01_sugarsnap.jpg',
+        'Thai Basil':       'https://www.johnnyseeds.com/dw/image/v2/BJGJ_PRD/on/demandware.static/-/Sites-jss-master/default/dwdb8e50d5/images/products/herbs/00945_01_sweetthaibas.jpg?sw=800&sh=800',
+        'Genovese Basil':   'https://www.johnnyseeds.com/dw/image/v2/BJGJ_PRD/on/demandware.static/-/Sites-jss-master/default/dw705d011b/images/products/herbs/00911_01_enovesebasil.jpg?sw=800&sh=800',
+        'Apple Mint':       'https://morningsunherbfarm.com/cdn/shop/products/menthasuaveolensapple.jpg?v=1594764983',
+        'French Lavender':  'https://www.smgrowers.com/imagedb/Lavandula_dentata.jpg',
+        'Ruby Kale':        'https://www.johnnyseeds.com/dw/image/v2/BJGJ_PRD/on/demandware.static/-/Sites-jss-master/default/dw056f0f78/images/products/vegetables/5294_01_rubybor_kale.jpg?sw=800&sh=800',
+        'Cat Grass':        'https://sowrightseeds.com/cdn/shop/products/CatgrassSeedPacket_grande.jpg?v=1668702120',
+        'Collards':         'https://www.johnnyseeds.com/dw/image/v2/BJGJ_PRD/on/demandware.static/-/Sites-jss-master/default/dw6a2f5414/images/products/vegetables/02116_01_flash.jpg'
+    };
+
+    // Description overrides — fix scraped/mismatched/empty descriptions
+    var DESC_FIX = {
+        'Cucumber': 'Long, smooth, dark green slicing cucumber — perfect for salads, sandwiches, and snacking. Prolific producer all summer on a trellis. Crisp, mild, and never bitter.',
+        'Yellow Squash': 'Classic golden summer squash with buttery flavor. Prolific plants yield tender, straight-necked fruits ideal for grilling, sautéing, or baking.',
+        'Small Bell Pepper': 'Compact, colorful mini bell peppers. Sweet and crunchy with thin walls — great for snacking, stuffing, or adding to salads.',
+        'Jimmy Nardello': 'Sweet Italian frying pepper with a legendary reputation. Long, thin, wrinkled fruits turn fire-red at peak ripeness. Pan-fry in olive oil until caramelized and you\'ll never go back to grocery store peppers.',
+        'Hot Rod Serrano': 'A productive serrano pepper with 3-4x the heat of jalape\u00f1o. Thick-walled with clean, bright heat — excellent fresh in salsa or pickled. Harvest green or let ripen to red.',
+        'Trinidad Scorpion': 'Extremely hot pepper with fruity, smoky undertones. One of the world\'s hottest — use sparingly in hot sauces and spicy dishes.',
+        'Hungarian Wax': 'Versatile hot pepper that ripens from yellow to red. Medium heat with tangy flavor — great for pickling, stuffing, or fresh eating.',
+        'Ghost': 'Legendary super-hot pepper with intense, slow-building heat. Smoky, slightly sweet flavor — a little goes a very long way.',
+        'Shishito': 'Mild, thin-walled Japanese pepper. Blistered in a hot pan with oil and sea salt — one of the best appetizers you can grow.',
+        'Amish Paste': 'Large heirloom plum tomato, a longtime favorite for sauces. Meaty flesh with rich, sweet flavor and very few seeds.',
+        'Brandywine': 'One of the most flavorful tomatoes you can grow. Large pink beefsteak with an unbeatable old-fashioned tomato taste.',
+        'San Marzano': 'Classic Italian paste tomato prized for making sauce. Elongated fruits with thick walls, few seeds, and rich concentrated flavor.',
+        'Roma': 'Speckled Roman organic paste tomato — an heirloom upgrade on classic Roma. Beautiful streaked red-orange fruits with meaty, low-moisture flesh. Rich concentrated flavor for sauces, roasting, and canning.',
+        'Mountain Mix (Four Packs)': 'Assorted mountain-series determinate tomatoes in a convenient four-pack. Bred for disease resistance and reliable harvests in our region.',
+        'Juliet Grape': 'A prolific grape tomato that rarely cracks and produces heavy clusters all season. Rich, sweet, complex tomato flavor — far better than grocery store grape tomatoes. Grows on vigorous vines to 6+ feet.',
+        'Blush Grape': 'Stunning ivory-gold grape tomatoes with a blush-pink stripe. Sweet and mild with a beautiful look that makes any dish more elegant. A conversation piece at the table and gorgeous in salads.',
+        'White Cherry': 'Pale yellow cherry tomato with delicate, mild sweetness. Lovely contrast in mixed cherry bowls and garden salads.',
+        'Fat Italian': 'Large, broad Italian eggplant with creamy white flesh. Excellent for grilling, roasting, and making eggplant parmesan.',
+        'Peas': 'Sweet, tender garden peas on vigorous climbing vines. Nothing tastes better than peas fresh-picked from the garden — cook briefly to keep that natural sweetness. Trellis to 4 feet.',
+        'Russian Mix': 'Assorted Russian kale varieties with tender, colorful leaves. Cold-hardy and sweet after frost — beautiful in salads and stir-fries.',
+        'Cabbage': 'Dense, round heads with crisp, sweet leaves. Versatile in the kitchen — great for coleslaw, sauerkraut, stir-fries, and soups.',
+        'Mixed Head Lettuce': 'Assorted head lettuce varieties in vibrant colors. Buttery, crisp, and beautiful — a salad garden in one planting.',
+        'Mixed Salad Mix': 'Diverse blend of salad greens for continuous cutting. Spicy, mild, and colorful — grow your own gourmet salad mix at home.',
+        'Thai Basil': 'The real thing for homemade Thai food. Licorice-anise flavor with purple stems and beautiful purple flower buds. Essential in Thai curries, pho, and spring rolls — far better than substituting sweet basil.',
+        'Genovese Basil': 'The gold standard for pesto and caprese. Large, cupped, intensely fragrant leaves with the classic sweet Italian flavor. Pinch flowers to keep producing all summer.',
+        'Purple Basil': 'Stunning deep purple basil with mild, slightly spicy flavor. Beautiful garnish and gorgeous in herbal vinegars and oils.',
+        'Mixed Herb': 'Assorted culinary herb mix — a starter garden of kitchen essentials. Perfect for new gardeners who want variety.',
+        'Simon and Garfunkel Herb': 'Parsley, sage, rosemary, and thyme — the classic herb quartet in one bundle. All the kitchen staples, ready to plant.',
+        'Curly Parsley': 'Bright green, tightly curled parsley with mild flavor. A classic garnish that\'s also great chopped into tabbouleh and salads.',
+        'Patchouli': 'Aromatic tropical herb with earthy, musky fragrance. Attractive foliage plant — the dried leaves are prized in potpourri and sachets.',
+        'French Tarragon': 'The essential French culinary herb with subtle anise flavor. Indispensable in béarnaise sauce, chicken dishes, and herb butter.',
+        'Mexican Tarragon': 'Marigold-scented herb used as a tarragon substitute in warm climates. Bright yellow flowers and a sweet anise-like flavor.',
+        'Cat Grass': 'Fresh wheatgrass grown at home for cats (and humans!). Grow in a pot on the windowsill — cats love nibbling the tender green shoots. Helps with digestion and provides enrichment for indoor cats.',
+        'Lavender': 'French Lavender (Lavandula dentata) has uniquely toothed, fragrant leaves and soft purple flower spikes. More heat-tolerant than English lavender and a magnet for pollinators. Use in sachets, baking, or as a garden border. Treat as annual in Pittsburgh (Zone 6b) or overwinter in a sunny window.',
+        'French Lavender': 'French Lavender (Lavandula dentata) has uniquely toothed, fragrant leaves and soft purple flower spikes. More heat-tolerant than English lavender and a magnet for pollinators. Use in sachets, baking, or as a garden border. Treat as annual in Pittsburgh (Zone 6b) or overwinter in a sunny window.',
+        'Nasturtium': 'Easy, cheerful annual with bright orange and yellow edible flowers. Peppery-sweet flowers and leaves add color to salads. Low-maintenance — blooms all season and self-seeds.',
+        'Gomphrena': 'Globe amaranth — cheerful round flowers in vibrant pink, purple, and red. Blooms nonstop from summer to frost. Outstanding in fresh bouquets and lasts beautifully when dried. Pollinators adore it.',
+        'Snap Peas': 'Sweet snap peas with edible pods — crunch them right off the vine. Kids love growing these. Trellis to 4-5 feet, harvest pods plump and shiny.',
+        'Mountain Merit': 'A disease-resistant slicing tomato that actually delivers in Pittsburgh gardens. Holds up in our humid summers without spraying — medium-large red fruits, dependable yields. Great choice for gardeners who\'ve struggled with tomato diseases.',
+        'Washington Cherry': 'Sweet, prolific cherry tomato with deep red, marble-sized fruits. Indeterminate vines produce all season — kids love snacking on these straight from the vine. Easy to grow on a stake or cage.',
+        'Fairy Tale Eggplant': 'The most beginner-friendly eggplant you can grow. Cute purple-and-white striped mini fruits are sweet, tender, and never bitter — harvest at 3-4 inches for the best flavor. Compact plant works great in containers.',
+        'Collards': 'Classic Southern cooking green with large, smooth leaves. Cold-hardy and sweet after frost — perfect for braising, soups, and stir-fries. One of the most nutritious greens you can grow. Easy for beginners.',
+        'Apple Mint': 'Round, velvety leaves with a mild apple-mint fragrance. Less aggressive than spearmint — lovely in iced tea, fruit salads, and mojitos. Plant in a container to keep it from spreading.'
+    };
+
+    // Map API data to VARIETIES format
+    VARIETIES = [];
+    for (var i = 0; i < result.data.length; i++) {
+        var row = result.data[i];
+        var varName = row.Variety || row.Crop || 'Unknown';
+        var rawDesc = row.Description || row.Notes || '';
+        // Apply description fixes and strip seed company artifacts
+        var desc = DESC_FIX[varName] || rawDesc;
+        desc = desc.replace(/^(New!|Exclusive!)\s*/i, '').replace(/\|\s*Johnny\b.*$/i, '').replace(/^Take advantage of our overstock position!\s*/i, '').replace(/^Now available organic!\s*/i, '').trim();
+        VARIETIES.push({
+            name: NAME_FIX[varName] || varName,
+            category: row.Category || 'Other',
+            price: Number(row.Price_Each) || 6.00,
+            itemId: row.Item_ID || '',
+            available: row.Available != null ? Number(row.Available) : null,
+            waitlist: !!row.Waitlist,
+            crop: row.Crop || '',
+            imageUrl: IMG_FIX[NAME_FIX[varName] || varName] || row.Image_URL || '',
+            description: desc
+        });
+    }
+
+    // Remove varieties not offered in 2026
+    VARIETIES = VARIETIES.filter(function(v) { return !FILTER_OUT.has(v.name); });
+
+    // Add Collards if not already in API data
+    var hasCollards = VARIETIES.some(function(v) { return v.name === 'Collards'; });
+    if (!hasCollards) {
+        // Find the Greens category insertion point
+        var insertIdx = -1;
+        for (var gi = 0; gi < VARIETIES.length; gi++) {
+            if (VARIETIES[gi].category === 'Greens') { insertIdx = gi; }
+        }
+        var collards = {
+            name: 'Collards',
+            category: 'Greens',
+            price: 6.00,
+            itemId: 'COLLARDS-2026',
+            available: null,
+            waitlist: false,
+            crop: 'Collards',
+            imageUrl: IMG_FIX['Collards'],
+            description: 'Classic Southern cooking green with large, smooth leaves. Cold-hardy and sweet after frost \u2014 perfect for braising, soups, and stir-fries. One of the most nutritious greens you can grow. Easy for beginners.'
+        };
+        if (insertIdx >= 0) {
+            VARIETIES.splice(insertIdx + 1, 0, collards);
+        } else {
+            VARIETIES.push(collards);
+        }
+    }
+
+    // Derive unique categories in the order they appear
+    CATEGORIES = [];
+    var seenCats = {};
+    for (var j = 0; j < VARIETIES.length; j++) {
+        var cat = VARIETIES[j].category;
+        if (!seenCats[cat]) {
+            seenCats[cat] = true;
+            CATEGORIES.push(cat);
+        }
+    }
+
+    // Update the subtitle count
+    var subtitleEl = document.querySelector('#catalog .section-subtitle');
+    if (subtitleEl) {
+        subtitleEl.textContent = VARIETIES.length + '+ USDA Certified Organic varieties \u2014 all in 3\u201d pots. $6 each or 4 for $20. Proven performers in Pittsburgh\u2019s Zone 6b climate.';
+    }
+
+    // Set active category to first
+    activeCategory = CATEGORIES.length > 0 ? catSlug(CATEGORIES[0]) : '';
+
+    // Build UI
+    renderCatalogTabs();
+    renderCatalogCards();
+    renderOrderItems();
+    updateTotal();
 }
 
 // ═══════════════════════════════════════

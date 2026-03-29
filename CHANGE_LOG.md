@@ -33,6 +33,32 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-03-29 — FULLSTACK_BUILDER: Presale Overlay Removal + localStorage Catalog Caching
+
+### Files Modified
+- `web_app/seedling-presale-2026.html` — removed orphaned `.seedling-overlay` CSS, added `.catalog { padding-top: 100px }`, added localStorage catalog caching with 4-hour TTL
+
+### Changes
+1. **Seedling overlay CSS removed** — The `.seedling-overlay` HTML div was already removed by PM (negative margins caused catalog heading to hide under floating seedling images). Removed the ~45 lines of orphaned CSS rules that remained (`.seedling-overlay`, responsive breakpoints at 1024/768/480px).
+2. **Catalog padding** — Added `padding-top: 100px` to `.catalog` to restore breathing room between hero and catalog (overlay previously ate 120px via negative margins).
+3. **localStorage catalog caching** — `loadPresaleItems()` now checks `localStorage` for a cached API response (`tsf_presale_catalog_v1` key, 4-hour TTL). On cache hit: renders instantly via `processCatalogData()` with zero skeleton/spinner, then silently refreshes cache via `refreshCatalogCache()`. On cache miss (first visit / expired): shows skeleton shimmer, fetches from API, saves to cache. Extracted all data-processing logic into standalone `processCatalogData(result)` function shared by both paths.
+
+### Functions Added
+- `processCatalogData(result)` — extracted from `.then()` callback; handles FILTER_OUT, NAME_FIX, IMG_FIX, DESC_FIX, VARIETIES building, category derivation, and UI render calls
+- `refreshCatalogCache()` — silent background fetch that updates localStorage without touching the DOM
+
+### Functions Modified
+- `loadPresaleItems()` — now checks cache before showing skeleton; delegates processing to `processCatalogData()`
+
+### Reason
+Presale page had Lighthouse Performance score of 0 due to 5-10s Google Apps Script cold starts on every page load. Return visitors now see the full catalog instantly from cache. Background refresh ensures data stays current within 4 hours.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md — no new files created
+- [x] No duplicate functions — `processCatalogData` and `refreshCatalogCache` are new, unique names
+
+---
+
 ## 2026-03-29 — PM_ARCHITECT: Presale Performance + Accessibility — 5 Fixes
 
 ### Files Modified
