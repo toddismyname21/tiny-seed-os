@@ -33,6 +33,24 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-03-29 — FULLSTACK_BUILDER: Add Collards to SEEDLING_PRODUCTION via API
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — Added `addSeedlingItem`, `updateSeedlingItem`, `deleteSeedlingItem` to PUBLIC_POST_ACTIONS (catalog management endpoints; page is auth-guarded, endpoint is intentionally open to match seedling-admin.html design)
+
+### Backend Change
+- Called `addSeedlingItem` API to insert Collards row into SEEDLING_PRODUCTION Google Sheet
+- Category: Greens | Price: $6.00 | Difficulty: Easy | Photo: Johnny's Seeds Flash collard
+- Item_ID assigned by backend: SDL-1774790032084-jg93
+
+### Reason
+User requested Collards added to the 2026 presale catalog. The frontend already had a Collards injection that would show it if the API returned it — now it comes from the real data source.
+
+### Duplicate Check
+- [x] Verified Collards not already in SEEDLING_PRODUCTION before adding
+
+---
+
 ## 2026-03-29 — FULLSTACK_BUILDER: Presale page comprehensive update (23 items)
 
 ### Files Modified

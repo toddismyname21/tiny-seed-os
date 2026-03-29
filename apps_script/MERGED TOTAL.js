@@ -14507,7 +14507,9 @@ function doGet(e) {
       // Grant management dashboard
       'getGrantsMgmt', 'getGrantDetail', 'setupGrantSheets',
       // Schedule notifications (triggered from schedule.html — no auth token available)
-      'setupScheduleNotificationTriggers', 'sendWeeklyScheduleEmails', 'sendShiftReminders'
+      'setupScheduleNotificationTriggers', 'sendWeeklyScheduleEmails', 'sendShiftReminders',
+      // PM trigger management tools
+      'listAllTriggers', 'deleteAllTriggers', 'deduplicateTriggers', 'deleteTriggersByHandlers'
     ]);
 
   if (!PUBLIC_GET_ACTIONS.has(action)) {
@@ -17118,6 +17120,14 @@ function doGet(e) {
         return jsonResponse(sendShiftReminders());
       case 'setupScheduleNotificationTriggers':
         return jsonResponse(setupScheduleNotificationTriggers());
+      case 'listAllTriggers':
+        return jsonResponse(listAllTriggers());
+      case 'deleteAllTriggers':
+        return jsonResponse(deleteAllTriggers());
+      case 'deduplicateTriggers':
+        return jsonResponse(deduplicateTriggers());
+      case 'deleteTriggersByHandlers':
+        return jsonResponse(deleteTriggersByHandlers({ handlers: (e.parameter.handlers || '').split(',').filter(Boolean) }));
       case 'generateSmartSchedule':
         return jsonResponse(generateSmartSchedule(e.parameter.data ? JSON.parse(e.parameter.data) : e.parameter));
 
@@ -18201,6 +18211,8 @@ function doPost(e) {
       'checkWholesaleAdmin',
       // Seedling presale (customer-facing order submission)
       'submitSeedlingOrder',
+      // Seedling catalog management (admin UI — page is auth-guarded, endpoint is open)
+      'addSeedlingItem', 'updateSeedlingItem', 'deleteSeedlingItem',
       // Grant management dashboard
       'updateGrantEquipment', 'updateGrantMetric', 'updateGrantCompliance',
     ]);
@@ -19650,6 +19662,9 @@ function doPost(e) {
         return jsonResponse(updateGrantMetric(data));
       case 'updateGrantCompliance':
         return jsonResponse(updateGrantCompliance(data));
+
+      case 'deleteTriggersByHandlers':
+        return jsonResponse(deleteTriggersByHandlers(data));
 
       default:
         return jsonResponse({error: 'Unknown action: ' + action}, 400);
@@ -23345,7 +23360,8 @@ function inviteEmployee(data) {
     // First, ensure all required columns exist
     const requiredCols = ['User_ID', 'Username', 'PIN', 'Full_Name', 'Email', 'Phone', 'Role', 'Status',
                           'Is_Active', 'Last_Login', 'Created_At', 'Magic_Token', 'Token_Expires',
-                          'Emergency_Contact_Name', 'Emergency_Contact_Phone', 'Emergency_Contact_Relation', 'Registration_Completed'];
+                          'Emergency_Contact_Name', 'Emergency_Contact_Phone', 'Emergency_Contact_Relation', 'Registration_Completed',
+                          'Job_Title', 'Tractor_Mode', 'Garage_Mode', 'Inventory_Mode'];
 
     requiredCols.forEach(col => {
       if (headers.indexOf(col) === -1) {
@@ -23373,7 +23389,12 @@ function inviteEmployee(data) {
     setCol('Full_Name', data.fullName || '');
     setCol('Email', data.email || '');
     setCol('Phone', data.phone || '');
-    setCol('Role', '');  // Owner assigns after registration
+    setCol('Role', data.role || 'Employee');
+    setCol('Job_Title', data.jobTitle || '');
+    setCol('Tractor_Mode', data.tractorMode === 'true' || data.tractorMode === true);
+    setCol('Garage_Mode', data.garageMode === 'true' || data.garageMode === true);
+    setCol('Inventory_Mode', data.inventoryMode === 'true' || data.inventoryMode === true);
+    setCol('Costing_Mode', false);
     setCol('Status', 'Invited');
     setCol('Is_Active', false);
     setCol('Last_Login', '');
@@ -23648,8 +23669,111 @@ function completeEmployeeOnboarding(data) {
     if (data.availability) { var c = getOrCreateCol('Availability'); sheet.getRange(rowIndex, c).setValue(data.availability); }
     if (data.transportation) { var c = getOrCreateCol('Transportation'); sheet.getRange(rowIndex, c).setValue(data.transportation); }
 
-    sheet.getRange(rowIndex, statusCol).setValue('Pending Approval');
     sheet.getRange(rowIndex, registrationDateCol).setValue(new Date().toISOString());
+
+    // Check if role was pre-set at invite time (invite flow) vs self-signup flow
+    const roleColIdx = headers.indexOf('Role');
+    const existingRole = roleColIdx !== -1 ? sheet.getRange(rowIndex, roleColIdx + 1).getValue() : '';
+    const isInviteFlow = existingRole && existingRole !== '' && existingRole !== '0000';
+
+    if (isInviteFlow) {
+      // Invite flow: auto-activate — Todd already approved this person by sending the invite
+      const isActiveColIdx = getOrCreateCol('Is_Active') - 1;
+      sheet.getRange(rowIndex, statusCol).setValue('Active');
+      sheet.getRange(rowIndex, isActiveColIdx + 1).setValue(true);
+
+      // Get employee details for welcome email
+      const employeeName = data.fullName || verification.employee.fullName || 'Team Member';
+      const employeeEmail = verification.employee.email || '';
+      const employeePin = data.pin || verification.employee.PIN || '';
+
+      // Send welcome email to employee with their PIN
+      try {
+        const welcomeSubject = '✅ You\'re approved! Welcome to Tiny Seed Farm';
+        const welcomeBody = `
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: linear-gradient(135deg, #22c55e, #15803d); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
+              <h1 style="margin: 0;">🎉 Welcome to the Team!</h1>
+            </div>
+            <div style="background: white; padding: 25px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
+              <p style="font-size: 16px;">Hi ${employeeName},</p>
+              <p>Your account is active! You're ready to use the Tiny Seed Farm employee app.</p>
+              <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center;">
+                <p style="margin: 0 0 8px 0; color: #166534; font-weight: 600; font-size: 14px;">Your PIN</p>
+                <p style="font-size: 32px; font-weight: bold; letter-spacing: 8px; margin: 0; color: #15803d;">${employeePin}</p>
+              </div>
+              <p>Use this PIN to log into the employee app. Keep it private.</p>
+              <div style="text-align: center; margin: 25px 0;">
+                <a href="https://toddismyname21.github.io/tiny-seed-os/employee.html"
+                   style="background: #22c55e; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block;">
+                  Open Employee App →
+                </a>
+              </div>
+            </div>
+          </div>
+        `;
+        if (employeeEmail) {
+          GmailApp.sendEmail(employeeEmail, welcomeSubject, 'View in HTML client', { htmlBody: welcomeBody });
+        }
+      } catch (emailError) {
+        Logger.log('Welcome email failed: ' + emailError.toString());
+      }
+
+      // Notify Todd: no action needed
+      try {
+        const ownerEmail = 'todd@tinyseedfarmpgh.com';
+        const notifySubject = `✅ ${employeeName} is now active on your team`;
+        const notifyBody = `
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: #22c55e; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
+              <h2 style="margin: 0;">✅ New Team Member Active</h2>
+            </div>
+            <div style="background: white; padding: 20px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
+              <p><strong>${employeeName}</strong> has completed onboarding and is now active as <strong>${existingRole}</strong>.</p>
+              <p style="color: #6b7280;">No action needed — their account is live.</p>
+              <div style="margin-top: 20px; text-align: center;">
+                <a href="https://toddismyname21.github.io/tiny-seed-os/web_app/employee-management.html"
+                   style="background: #f3f4f6; color: #374151; padding: 10px 20px; text-decoration: none; border-radius: 6px; display: inline-block; border: 1px solid #e5e7eb;">
+                  View Team →
+                </a>
+              </div>
+            </div>
+          </div>
+        `;
+        GmailApp.sendEmail(ownerEmail, notifySubject, 'View in HTML client', { htmlBody: notifyBody });
+      } catch (emailError) {
+        Logger.log('Owner notification failed: ' + emailError.toString());
+      }
+
+    } else {
+      // Self-signup flow: still requires manual approval
+      sheet.getRange(rowIndex, statusCol).setValue('Pending Approval');
+
+      // Send original "action needed" email to Todd
+      try {
+        const ownerEmail = 'todd@tinyseedfarmpgh.com';
+        const subject = '👤 New Employee Registration - Approval Needed';
+        const body = `
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: #f59e0b; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
+              <h2 style="margin: 0;">New Employee Registration</h2>
+            </div>
+            <div style="background: white; padding: 20px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
+              <p><strong>${data.fullName || verification.employee.fullName}</strong> has completed their registration and is waiting for your approval.</p>
+              <div style="margin-top: 20px; text-align: center;">
+                <a href="https://toddismyname21.github.io/tiny-seed-os/web_app/employee-approve.html"
+                   style="background: #22c55e; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+                  Review & Approve →
+                </a>
+              </div>
+            </div>
+          </div>
+        `;
+        GmailApp.sendEmail(ownerEmail, subject, 'View in HTML client', { htmlBody: body });
+      } catch (emailError) {
+        Logger.log('Owner notification failed: ' + emailError.toString());
+      }
+    }
 
     // Clear the magic token (one-time use for registration)
     const magicTokenCol = headers.indexOf('Magic_Token');
@@ -23657,53 +23781,9 @@ function completeEmployeeOnboarding(data) {
       sheet.getRange(rowIndex, magicTokenCol + 1).setValue('');
     }
 
-    // Notify owner about new registration
-    try {
-      const ownerEmail = 'todd@tinyseedfarmpgh.com';
-      const subject = '👤 New Employee Registration - Approval Needed';
-      const body = `
-        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto;">
-          <div style="background: #f59e0b; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
-            <h2 style="margin: 0;">New Employee Registration</h2>
-          </div>
-          <div style="background: white; padding: 20px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
-            <p><strong>${data.fullName || verification.employee.fullName}</strong> has completed their registration and is waiting for your approval.</p>
-
-            <h3 style="margin-top: 20px; color: #374151;">Profile Information:</h3>
-            <ul style="color: #4b5563;">
-              <li><strong>Name:</strong> ${data.fullName || verification.employee.fullName}</li>
-              <li><strong>Email:</strong> ${verification.employee.email}</li>
-              <li><strong>Phone:</strong> ${data.phone || 'Not provided'}</li>
-              <li><strong>Emergency Contact:</strong> ${data.emergencyName || 'Not provided'} (${data.emergencyRelation || 'N/A'})</li>
-              <li><strong>Emergency Phone:</strong> ${data.emergencyPhone || 'Not provided'}</li>
-            </ul>
-
-            <p style="margin-top: 20px; color: #6b7280;">
-              <strong>Next Steps:</strong><br>
-              1. Review this employee's information<br>
-              2. Assign their role in the Users sheet<br>
-              3. Set their status to "Active" to enable their account
-            </p>
-
-            <div style="margin-top: 20px; text-align: center;">
-              <a href="https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/edit#gid=0"
-                 style="background: #22c55e; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
-                Open Users Sheet →
-              </a>
-            </div>
-          </div>
-        </div>
-      `;
-
-      GmailApp.sendEmail(ownerEmail, subject, 'View in HTML', { htmlBody: body });
-    } catch (emailError) {
-      Logger.log('Failed to send owner notification: ' + emailError.toString());
-      // Don't fail the registration if email fails
-    }
-
     return {
       success: true,
-      message: 'Registration completed successfully. Awaiting manager approval.'
+      message: isInviteFlow ? 'Welcome! Your account is now active.' : 'Registration completed successfully. Awaiting manager approval.'
     };
   } catch (error) {
     Logger.log('completeEmployeeRegistration error: ' + error.toString());
@@ -57592,6 +57672,90 @@ function sendShiftReminders() {
     return { success: true, sent: sent, skipped: skipped };
   } catch (error) {
     return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * List all current project triggers — for PM/admin use via clasp run
+ * Returns handler name, trigger type, and timing info for every trigger
+ */
+function listAllTriggers() {
+  try {
+    const triggers = ScriptApp.getProjectTriggers();
+    const result = triggers.map(t => ({
+      id: t.getUniqueId(),
+      handler: t.getHandlerFunction(),
+      type: t.getEventType().toString(),
+      source: t.getTriggerSource().toString()
+    }));
+    Logger.log(JSON.stringify({ count: result.length, triggers: result }, null, 2));
+    return { success: true, count: result.length, triggers: result };
+  } catch (e) {
+    return { success: false, error: e.toString() };
+  }
+}
+
+/**
+ * Delete ALL project triggers — nuclear option to reset trigger quota
+ * Use listAllTriggers first to confirm what will be deleted
+ */
+function deleteAllTriggers() {
+  try {
+    const triggers = ScriptApp.getProjectTriggers();
+    const count = triggers.length;
+    triggers.forEach(t => ScriptApp.deleteTrigger(t));
+    Logger.log(`Deleted ${count} triggers`);
+    return { success: true, deleted: count };
+  } catch (e) {
+    return { success: false, error: e.toString() };
+  }
+}
+
+/**
+ * Delete duplicate triggers — keeps only ONE of each handler function
+ * Safe version: won't delete triggers that have no duplicate
+ */
+function deduplicateTriggers() {
+  try {
+    const triggers = ScriptApp.getProjectTriggers();
+    const seen = {};
+    const deleted = [];
+    triggers.forEach(t => {
+      const handler = t.getHandlerFunction();
+      if (seen[handler]) {
+        ScriptApp.deleteTrigger(t);
+        deleted.push(handler);
+      } else {
+        seen[handler] = true;
+      }
+    });
+    Logger.log(`Deduplicated: removed ${deleted.length} duplicate triggers`);
+    return { success: true, deleted: deleted.length, handlers: deleted };
+  } catch (e) {
+    return { success: false, error: e.toString() };
+  }
+}
+
+/**
+ * Delete triggers by handler name — surgical removal without nuking everything
+ * Called via POST: { action: 'deleteTriggersByHandlers', handlers: ['handler1','handler2'] }
+ */
+function deleteTriggersByHandlers(data) {
+  try {
+    const handlersToDelete = Array.isArray(data.handlers) ? data.handlers : [];
+    if (handlersToDelete.length === 0) return { success: false, error: 'No handlers specified' };
+    const triggers = ScriptApp.getProjectTriggers();
+    const deleted = [];
+    triggers.forEach(t => {
+      if (handlersToDelete.includes(t.getHandlerFunction())) {
+        ScriptApp.deleteTrigger(t);
+        deleted.push(t.getHandlerFunction());
+      }
+    });
+    Logger.log(`Deleted triggers: ${deleted.join(', ')}`);
+    return { success: true, deleted: deleted.length, handlers: deleted };
+  } catch (e) {
+    return { success: false, error: e.toString() };
   }
 }
 
