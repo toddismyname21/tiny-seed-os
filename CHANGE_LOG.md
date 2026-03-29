@@ -34,6 +34,52 @@ Brief explanation of why these changes were made.
 ---
 
 
+## 2026-03-28 — FULLSTACK_BUILDER: Cart feedback UX fix on seedling presale
+
+### Files Modified
+- `web_app/seedling-presale-2026.html` — 4 changes: (1) toast moved to top:80px so it's visible regardless of scroll position, (2) toastIn animation updated to drop-down direction, (3) added cartBadgePulse + cartBarBounce CSS animations + helper classes, (4) added pulseCartFeedback() function, (5) addBundle() now calls pulseCartFeedback() and shows emoji toast on success
+
+### Reason
+Users adding bundles had no visible cart feedback — had to scroll to bottom to see cart update. Toast now appears at top of viewport, badges pulse on add, mobile cart bar bounces.
+
+### Duplicate Check
+- [x] No duplicate functions created
+- [x] pulseCartFeedback() is new, searched — not found elsewhere
+
+---
+
+## 2026-03-28 — FULLSTACK_BUILDER: Add deleteTriggersByHandlers endpoint
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — Added `deleteTriggersByHandlers()` function for surgical trigger removal by handler name. Added GET case (parses comma-separated handlers param), POST case (accepts handlers array in body), and PUBLIC_GET_ACTIONS whitelist entry. Deployed v790.
+
+### Reason
+Needed a way to selectively delete triggers by handler name without nuking all triggers (deleteAllTriggers). Used to remove 3 stale triggers (sendMorningBriefingSMS, runCOSProactiveScanning, generateDailyBriefing), bringing count from 21 to 18, then added schedule notification triggers back up to 20.
+
+### Duplicate Check
+- [x] Searched for existing deleteTriggersByHandlers — none found
+- [x] No duplicates created
+
+---
+
+## 2026-03-28 — FULLSTACK_BUILDER: Add trigger management endpoints to API whitelist
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — Added listAllTriggers, deleteAllTriggers, deduplicateTriggers to PUBLIC_GET_ACTIONS whitelist and added corresponding case handlers in doGet switch block
+
+### Reason
+Three trigger utility functions (already present in MERGED TOTAL.js at ~line 57663) were unreachable via the web API. Added whitelist entries and GET case handlers so they can be called via ?action=listAllTriggers etc. for PM trigger diagnostics and cleanup.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+### Deployment
+- Blocked: clasp push failed (Apps Script API disabled for project 670583188308). Needs manual deploy or API enablement.
+
+---
+
 ## 2026-03-28 — FULLSTACK_BUILDER: TCPA-compliant SMS consent disclosure for CSA portal
 
 ### Files Modified
