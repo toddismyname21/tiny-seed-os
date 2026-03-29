@@ -1603,44 +1603,13 @@
         <div>
             <h3 style="font-family:'Playfair Display',serif; font-size:1.5rem; color:#2d5016; margin:0 0 12px;">USDA Certified Organic</h3>
             <p style="font-size:1rem; line-height:1.7; color:#3a3a3a; margin:0 0 8px;">Every seedling from Tiny Seed Farm is USDA Certified Organic — grown from certified organic seeds using organic practices. Zero synthetic pesticides. Zero synthetic fertilizers. Ever.</p>
-            <p style="font-size:0.9rem; color:#666; margin:0;"><strong style="color:#2d5016;">Certified by:</strong> Ohio Ecological Food and Farm Association (OEFFA) — organically grown since 2017</p>
+            <p style="font-size:0.9rem; color:#666; margin:0;"><strong style="color:#2d5016;">Certified by:</strong> Ohio Ecological Food and Farm Association (OEFFA)</p>
         </div>
     </div>
 </section>
 
 <!-- ═══════════════════════════════════════════════════════════ -->
 <!-- TESTIMONIALS                                                -->
-<!-- ═══════════════════════════════════════════════════════════ -->
-<section class="testimonials-section" aria-labelledby="community-heading">
-    <div class="container">
-        <h2 class="section-title" id="community-heading" style="text-align:center;">Join Our Growing Community</h2>
-        <p class="section-subtitle" style="text-align:center;">Trusted by Pittsburgh-area gardeners since 2017</p>
-        <div class="testimonials-grid" id="testimonialsGrid">
-            <div class="testimonial-card">
-                <div style="width:48px; height:48px; border-radius:50%; background:linear-gradient(135deg, #e8f0d8, #d4e4b8); display:flex; align-items:center; justify-content:center; margin-bottom:12px;">
-                    <i class="fas fa-seedling" style="font-size:1.3rem; color:var(--green-deep);"></i>
-                </div>
-                <p class="testimonial-text" style="font-weight: 700; font-size: 1.1rem; color: var(--text-dark);">90+ Varieties</p>
-                <p style="font-size: 0.85rem; color: var(--text-muted);">Heirloom tomatoes, hot peppers, herbs, flowers, and more — all proven performers in Zone 6b.</p>
-            </div>
-            <div class="testimonial-card">
-                <div style="width:48px; height:48px; border-radius:50%; background:linear-gradient(135deg, #e8f0d8, #d4e4b8); display:flex; align-items:center; justify-content:center; margin-bottom:12px;">
-                    <i class="fas fa-certificate" style="font-size:1.3rem; color:var(--green-deep);"></i>
-                </div>
-                <p class="testimonial-text" style="font-weight: 700; font-size: 1.1rem; color: var(--text-dark);">USDA Certified Organic</p>
-                <p style="font-size: 0.85rem; color: var(--text-muted);">Every single seedling is certified organic — grown with organic seeds, organic soil, and zero synthetic chemicals.</p>
-            </div>
-            <div class="testimonial-card">
-                <div style="width:48px; height:48px; border-radius:50%; background:linear-gradient(135deg, #e8f0d8, #d4e4b8); display:flex; align-items:center; justify-content:center; margin-bottom:12px;">
-                    <i class="fas fa-map-marker-alt" style="font-size:1.3rem; color:var(--green-deep);"></i>
-                </div>
-                <p class="testimonial-text" style="font-weight: 700; font-size: 1.1rem; color: var(--text-dark);">Grown 30 Min from Pittsburgh</p>
-                <p style="font-size: 0.85rem; color: var(--text-muted);">Started by hand at our Rochester, PA farm. Pick up at 5 convenient Pittsburgh-area market locations.</p>
-            </div>
-        </div>
-    </div>
-</section>
-
 <!-- Bundles moved into Reserve Your Seedlings section below -->
 
 <!-- ═══════════════════════════════════════════════════════════ -->
@@ -2323,28 +2292,6 @@ function loadPageConfig() {
             if (c.farmerSignature) {
                 var sig = document.querySelector('.farmer-signature');
                 if (sig) sig.textContent = c.farmerSignature;
-            }
-
-            // ─── TESTIMONIALS ───
-            if (c.testimonialsTitle) {
-                var tt = document.getElementById('community-heading');
-                if (tt) tt.textContent = c.testimonialsTitle;
-            }
-            if (c.testimonialsSubtitle) {
-                var ts = document.querySelector('.testimonials-section .section-subtitle');
-                if (ts) ts.textContent = c.testimonialsSubtitle;
-            }
-            var tCards = document.querySelectorAll('.testimonial-card');
-            for (var t = 0; t < 3; t++) {
-                if (!tCards[t]) continue;
-                var qk = 'test' + (t+1) + 'Quote', nk = 'test' + (t+1) + 'Name', lk = 'test' + (t+1) + 'Location';
-                if (c[qk]) { var qt = tCards[t].querySelector('.testimonial-text'); if (qt) qt.textContent = c[qk]; }
-                if (c[nk]) {
-                    var nm = tCards[t].querySelector('.testimonial-name'); if (nm) nm.textContent = c[nk];
-                    var av = tCards[t].querySelector('.testimonial-avatar');
-                    if (av && c[nk]) av.textContent = c[nk].split(' ').map(function(w){return w[0];}).join('');
-                }
-                if (c[lk]) { var lo = tCards[t].querySelector('.testimonial-location'); if (lo) lo.textContent = c[lk]; }
             }
 
             // ─── PICKUP LOCATIONS ───
