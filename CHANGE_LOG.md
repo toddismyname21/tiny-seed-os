@@ -52,6 +52,7 @@ Brief explanation of why these changes were made.
 
 ### Reason
 Content quality, catalog accuracy, payment security fix, cart UX per user request 2026-03-29
+Also fixed: toast in addBundle() now fires before updateTotal() so it is never blocked by null-element errors.
 
 ### Duplicate Check
 - [x] showPaymentRequired_() is new — verified not duplicated

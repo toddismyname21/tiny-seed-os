@@ -3072,35 +3072,41 @@ function updateTotal() {
     var stickyTotal = document.getElementById('stickyCartTotal');
 
     // Main total display
-    if (order.discount > 0 || order.referralDiscount > 0) {
-        var priceBeforeDiscounts = order.subtotal;
-        var savingsLabels = [];
-        if (order.discount > 0) savingsLabels.push('15% off');
-        if (order.referralDiscount > 0) savingsLabels.push('$' + order.referralDiscount.toFixed(0) + ' referral');
-        totalEl.innerHTML = '<span style="text-decoration:line-through;color:var(--text-muted);font-size:0.9rem;">$' + priceBeforeDiscounts.toFixed(2) + '</span> $' + order.total.toFixed(2) + ' <span style="color:var(--green-dark);font-size:0.75rem;font-weight:600;">(' + savingsLabels.join(' + ') + '!)</span>';
-    } else {
-        totalEl.textContent = '$' + order.total.toFixed(2);
+    if (totalEl) {
+        if (order.discount > 0 || order.referralDiscount > 0) {
+            var priceBeforeDiscounts = order.subtotal;
+            var savingsLabels = [];
+            if (order.discount > 0) savingsLabels.push('15% off');
+            if (order.referralDiscount > 0) savingsLabels.push('$' + order.referralDiscount.toFixed(0) + ' referral');
+            totalEl.innerHTML = '<span style="text-decoration:line-through;color:var(--text-muted);font-size:0.9rem;">$' + priceBeforeDiscounts.toFixed(2) + '</span> $' + order.total.toFixed(2) + ' <span style="color:var(--green-dark);font-size:0.75rem;font-weight:600;">(' + savingsLabels.join(' + ') + '!)</span>';
+        } else {
+            totalEl.textContent = '$' + order.total.toFixed(2);
+        }
     }
 
     // Submit button
-    if (order.totalPlants === 0) {
-        btn.innerHTML = '<i class="fas fa-seedling"></i> Add seedlings above to reserve';
-        btn.disabled = true;
-    } else {
-        btn.innerHTML = '<i class="fas fa-lock"></i> Reserve & Pay \u2014 $' + order.total.toFixed(2);
-        btn.disabled = false;
+    if (btn) {
+        if (order.totalPlants === 0) {
+            btn.innerHTML = '<i class="fas fa-seedling"></i> Add seedlings above to reserve';
+            btn.disabled = true;
+        } else {
+            btn.innerHTML = '<i class="fas fa-lock"></i> Reserve & Pay \u2014 $' + order.total.toFixed(2);
+            btn.disabled = false;
+        }
     }
 
     // Clear button visibility
     if (clearBtn) clearBtn.style.display = order.totalPlants > 0 ? 'inline-flex' : 'none';
 
     // Sticky cart bar
-    if (order.totalPlants > 0) {
-        stickyCart.classList.add('visible');
-        stickyCount.textContent = order.totalPlants + ' plant' + (order.totalPlants !== 1 ? 's' : '');
-        stickyTotal.textContent = '$' + order.total.toFixed(2);
-    } else {
-        stickyCart.classList.remove('visible');
+    if (stickyCart) {
+        if (order.totalPlants > 0) {
+            stickyCart.classList.add('visible');
+            if (stickyCount) stickyCount.textContent = order.totalPlants + ' plant' + (order.totalPlants !== 1 ? 's' : '');
+            if (stickyTotal) stickyTotal.textContent = '$' + order.total.toFixed(2);
+        } else {
+            stickyCart.classList.remove('visible');
+        }
     }
 
     // Upsell / discount messaging
@@ -3710,13 +3716,17 @@ function addBundle(bundleKey) {
 
     renderCatalogCards();
     renderOrderItems();
+
+    if (addedCount > 0) {
+        showToast('\uD83C\uDF31 ' + bundle.name + ' added to cart (' + addedCount + ' plants)!');
+    } else {
+        showToast('Some bundle items not found in current catalog');
+    }
+
     updateTotal();
 
     if (addedCount > 0) {
         pulseCartFeedback();
-        showToast('\uD83C\uDF31 ' + bundle.name + ' added to cart (' + addedCount + ' plants)!');
-    } else {
-        showToast('Some bundle items not found in current catalog');
     }
 }
 
