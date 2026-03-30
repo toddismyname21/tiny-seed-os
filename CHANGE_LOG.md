@@ -33,6 +33,45 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-03-30 — FULLSTACK_BUILDER: Add Seedling Presale 2026 to main hub navigation
+
+### Files Modified
+- `web_app/index.html` — Added Seedling Presale 2026 card to "Working Features" section, placed after Wholesale Portal card among customer-facing pages
+
+### Reason
+Seedling presale is open now through April 15 — time-sensitive, revenue-generating page needs prominent placement in the hub so Todd and customers can find it immediately.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for existing seedling-presale references in index.html — none found
+- [x] No duplicates created
+
+---
+
+## 2026-03-30 — FULLSTACK_BUILDER: Shopify draft_orders/completed webhook
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — Added topic-based routing in shopifyWebhook case to dispatch `draft_orders/completed` to new handler. Added `handleSeedlingDraftOrderCompleted()` (updates Invoice_Status from 'Pending' to 'Paid' in SEEDLING_ORDERS when customer pays Shopify checkout link). Added `registerSeedlingPresaleWebhook()` (one-time Shopify webhook registration).
+
+### Functions Added
+- `handleSeedlingDraftOrderCompleted(draftOrder)` — Webhook handler: matches draft order ID to SEEDLING_ORDERS row, sets Invoice_Status to 'Paid', logs via logIntegration
+- `registerSeedlingPresaleWebhook()` — Registers `draft_orders/completed` webhook with Shopify (run once from Apps Script editor)
+
+### Reason
+Closes payment gap: seedling presale orders were saved to SEEDLING_ORDERS before payment was confirmed, leaving Invoice_Status as 'Pending' permanently. Now when Shopify fires the `draft_orders/completed` webhook after customer pays, the status updates to 'Paid' automatically.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+### Deployment
+- Deployed @792 via `clasp deploy -i AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm`
+- @794: `registerSeedlingPresaleWebhook` added to PUBLIC_POST_ACTIONS whitelist
+- @795: Fixed webhook topic from `draft_orders/completed` (invalid) to `draft_orders/update` (valid Shopify topic). Added status=completed filter in routing so non-payment updates are ignored. Webhook registered in Shopify (ID: 1534434214041).
+
+---
+
 ## 2026-03-30 — FULLSTACK_BUILDER: Presale visual/UX polish
 
 ### Files Modified
