@@ -33,6 +33,21 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-03-30 — FULLSTACK_BUILDER: Catalog audit and cleanup
+
+### Files Modified
+- `web_app/catalog-2026.json` — Fixed 49 product descriptions (removed Johnny's Seeds catalog language, corrected wrong-product descriptions, replaced placeholders with original Tiny Seed Farm copy). Fixed 3 category errors: Green Beans and Snap Peas moved from "Misc" to "Celery/Peas/Beans", Snap Bean Mix moved from "Vegetables" to "Celery/Peas/Beans". Mushroom block description corrected to ready-to-fruit block (was using growing-from-scratch language).
+
+### Reason
+Product descriptions in the static catalog cache contained supplier catalog language (Johnny's Seeds), incorrect product descriptions, and placeholder text. All 49 descriptions replaced with original farm-voice copy written for the customer-facing presale page. Category corrections ensure beans and peas display in the correct storefront section.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
 ## 2026-03-30 — FULLSTACK_BUILDER: Add hero background photo to seedling presale
 
 ### Files Modified
