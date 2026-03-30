@@ -1,0 +1,48 @@
+name: Refresh Catalog JSON
+
+on:
+  schedule:
+    - cron: '0 6 * * *'   # Daily at 6am UTC (2am ET)
+  workflow_dispatch:        # Manual trigger
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch catalog from Apps Script
+        run: |
+          REDIRECT_URL=$(curl -s -o /dev/null -w '%{redirect_url}' \
+            "https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec?action=getSeedlingPresaleItems")
+
+          if [ -z "$REDIRECT_URL" ]; then
+            echo "No redirect URL — trying direct fetch"
+            RESPONSE=$(curl -s -L "https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec?action=getSeedlingPresaleItems")
+          else
+            RESPONSE=$(curl -s "$REDIRECT_URL")
+          fi
+
+          # Validate it's real JSON with success:true and data array
+          SUCCESS=$(echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); print('ok' if d.get('success') and d.get('data') else 'fail')" 2>/dev/null || echo "fail")
+
+          if [ "$SUCCESS" = "ok" ]; then
+            echo "$RESPONSE" > web_app/catalog-2026.json
+            echo "Catalog updated successfully"
+            cat web_app/catalog-2026.json | python3 -c "import sys,json; d=json.load(sys.stdin); print(f'Items: {len(d[\"data\"])}')"
+          else
+            echo "API returned invalid response — keeping existing catalog-2026.json"
+            exit 0
+          fi
+
+      - name: Commit updated catalog
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add web_app/catalog-2026.json
+          if git diff --staged --quiet; then
+            echo "No changes to catalog"
+          else
+            git commit -m "chore: refresh catalog-2026.json [skip ci]"
+            git push
+          fi

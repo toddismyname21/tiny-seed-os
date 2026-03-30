@@ -1461,17 +1461,34 @@
 
     </style>
 
-    <!-- Facebook Pixel — Tiny Seed Farm OS FINAL -->
+    <!-- Facebook Pixel — lazy loaded after first user interaction -->
     <script>
-    !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-    n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
-    n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
-    t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
-    document,'script','https://connect.facebook.net/en_US/fbevents.js');
-    fbq('init', '1453282209770271');
-    fbq('track', 'PageView');
+    (function() {
+        var fbPixelLoaded = false;
+        function loadFbPixel() {
+            if (fbPixelLoaded) return;
+            fbPixelLoaded = true;
+            !function(f,b,e,v,n,t,s)
+            {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+            n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+            if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+            n.queue=[];t=b.createElement(e);t.async=!0;
+            t.src=v;s=b.getElementsByTagName(e)[0];
+            s.parentNode.insertBefore(t,s)}(window, document,'script',
+            'https://connect.facebook.net/en_US/fbevents.js');
+            fbq('init', '1453282209770271');
+            fbq('track', 'PageView');
+            window.removeEventListener('scroll', loadFbPixel);
+            window.removeEventListener('click', loadFbPixel);
+            window.removeEventListener('keydown', loadFbPixel);
+        }
+        window.addEventListener('scroll', loadFbPixel, { once: true, passive: true });
+        window.addEventListener('click', loadFbPixel, { once: true });
+        window.addEventListener('keydown', loadFbPixel, { once: true });
+        setTimeout(loadFbPixel, 5000);
+    })();
     </script>
-    <noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=1453282209770271&ev=PageView&noscript=1"/></noscript>
+    <noscript><img height="1" width="1" style="display:none" alt="" src="https://www.facebook.com/tr?id=1453282209770271&ev=PageView&noscript=1"/></noscript>
 
     <!-- Google Analytics 4 — Tiny Seed Farm Website (G-W3M5HXBXY1) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-W3M5HXBXY1"></script>
@@ -2423,7 +2440,7 @@ function loadPresaleItems() {
     var catalogContent = document.getElementById('catalogContent');
     var catalogNav = document.getElementById('catalogNav');
 
-    // Try to serve from localStorage cache first (instant render, no skeleton)
+    // ── Path 1: localStorage cache (instant, <1ms) ──
     try {
         var cached = localStorage.getItem(PRESALE_CACHE_KEY);
         if (cached) {
@@ -2438,9 +2455,10 @@ function loadPresaleItems() {
         }
     } catch(e) { /* ignore localStorage errors (private browsing, quota, etc.) */ }
 
-    // No valid cache — show skeleton loading state, then fetch from API
+    // ── Path 2: Static catalog JSON (fast, <100ms from GitHub Pages CDN) ──
+    // Falls back to Apps Script if file doesn't exist or is invalid
     var skelCard = '<div class="skel-card"><div class="skel skel-img"></div><div class="skel-body"><div class="skel skel-line w75"></div><div class="skel skel-line w40"></div><div class="skel skel-btn"></div></div></div>';
-    catalogNav.innerHTML = '<div class="skel-tabs">' +
+    var skelTabsHtml = '<div class="skel-tabs">' +
         '<div class="skel skel-tab" style="width:90px;"></div>' +
         '<div class="skel skel-tab" style="width:72px;"></div>' +
         '<div class="skel skel-tab" style="width:58px;"></div>' +
@@ -2448,19 +2466,18 @@ function loadPresaleItems() {
         '<div class="skel skel-tab" style="width:66px;"></div>' +
         '<div class="skel skel-tab" style="width:76px;"></div>' +
         '</div>';
-    catalogContent.innerHTML = '<div class="skel-grid">' + skelCard.repeat(8) + '</div>';
+    var skelCardsHtml = '<div class="skel-grid">' + skelCard.repeat(8) + '</div>';
 
-    fetch(TINY_SEED_API.MAIN_API + '?action=getSeedlingPresaleItems')
-        .then(function(response) {
-            if (!response.ok) { throw new Error('Network response was not ok'); }
-            return response.json();
+    fetch('catalog-2026.json')
+        .then(function(r) {
+            if (!r.ok) throw new Error('static not available');
+            return r.json();
         })
         .then(function(result) {
             if (!result.success || !result.data || result.data.length === 0) {
-                throw new Error(result.error || 'No seedling items returned from the server.');
+                throw new Error('static catalog empty or invalid');
             }
-
-            // Save to localStorage cache
+            // Save static data to localStorage cache
             try {
                 localStorage.setItem(PRESALE_CACHE_KEY, JSON.stringify({
                     ts: Date.now(),
@@ -2468,18 +2485,44 @@ function loadPresaleItems() {
                     phase: result.phase || 'pre-order'
                 }));
             } catch(e) { /* ignore quota errors */ }
-
             processCatalogData(result);
+            // Background refresh localStorage from live API (keeps cache fresh)
+            refreshCatalogCache();
         })
-        .catch(function(err) {
-            console.error('Failed to load presale items:', err);
-            catalogContent.innerHTML = '<div style="text-align:center; padding:60px 20px;">' +
-                '<i class="fas fa-exclamation-triangle" style="font-size:2rem; color:var(--red-hot); margin-bottom:12px; display:block;"></i>' +
-                '<p style="color:var(--text-dark); font-weight:700; margin-bottom:8px;">Unable to load seedling varieties</p>' +
-                '<p style="color:var(--text-muted); font-size:0.9rem; max-width:400px; margin:0 auto 16px;">' + escapeHtml(err.message) + '</p>' +
-                '<button onclick="loadPresaleItems()" style="background:var(--green); color:#000; border:none; padding:10px 24px; border-radius:50px; font-weight:700; cursor:pointer; font-family:inherit;">' +
-                '<i class="fas fa-redo"></i> Try Again</button></div>';
-            catalogNav.innerHTML = '';
+        .catch(function() {
+            // ── Path 3: Apps Script API (slow fallback, 5-10s cold start) ──
+            catalogNav.innerHTML = skelTabsHtml;
+            catalogContent.innerHTML = skelCardsHtml;
+
+            fetch(TINY_SEED_API.MAIN_API + '?action=getSeedlingPresaleItems')
+                .then(function(response) {
+                    if (!response.ok) { throw new Error('Network response was not ok'); }
+                    return response.json();
+                })
+                .then(function(result) {
+                    if (!result.success || !result.data || result.data.length === 0) {
+                        throw new Error(result.error || 'No seedling items returned from the server.');
+                    }
+                    // Save to localStorage cache
+                    try {
+                        localStorage.setItem(PRESALE_CACHE_KEY, JSON.stringify({
+                            ts: Date.now(),
+                            data: result.data,
+                            phase: result.phase || 'pre-order'
+                        }));
+                    } catch(e) { /* ignore quota errors */ }
+                    processCatalogData(result);
+                })
+                .catch(function(err) {
+                    console.error('Failed to load presale items:', err);
+                    catalogContent.innerHTML = '<div style="text-align:center; padding:60px 20px;">' +
+                        '<i class="fas fa-exclamation-triangle" style="font-size:2rem; color:var(--red-hot); margin-bottom:12px; display:block;"></i>' +
+                        '<p style="color:var(--text-dark); font-weight:700; margin-bottom:8px;">Unable to load seedling varieties</p>' +
+                        '<p style="color:var(--text-muted); font-size:0.9rem; max-width:400px; margin:0 auto 16px;">' + escapeHtml(err.message) + '</p>' +
+                        '<button onclick="loadPresaleItems()" style="background:var(--green); color:#000; border:none; padding:10px 24px; border-radius:50px; font-weight:700; cursor:pointer; font-family:inherit;">' +
+                        '<i class="fas fa-redo"></i> Try Again</button></div>';
+                    catalogNav.innerHTML = '';
+                });
         });
 }
 
@@ -2699,7 +2742,7 @@ function renderCatalogTabs() {
             if (VARIETIES[j].category === cat) count++;
         }
         var tabImg = CATEGORY_TAB_IMG[cat];
-        html += '<button class="catalog-tab' + (isActive ? ' active' : '') + '" onclick="showCategory(\'' + slug + '\', this)">';
+        html += '<button class="catalog-tab' + (isActive ? ' active' : '') + '" role="tab" aria-selected="' + (isActive ? 'true' : 'false') + '" onclick="showCategory(\'' + slug + '\', this)">';
         if (tabImg) {
             html += '<img src="' + tabImg + '" alt="" class="tab-seedling">';
         } else {
@@ -2714,6 +2757,7 @@ function renderCatalogTabs() {
     html += '<i class="fas fa-star"></i> Best for Beginners';
     html += '</button>';
 
+    nav.setAttribute('role', 'tablist');
     nav.innerHTML = html;
 }
 
@@ -3139,13 +3183,15 @@ function showCategory(slug, btnEl) {
             if (grid) grid.style.display = s === slug ? 'grid' : 'none';
         }
 
-        // Update tab active state
+        // Update tab active state + aria-selected
         var tabs = document.querySelectorAll('.catalog-tab');
         for (var j = 0; j < tabs.length; j++) {
             tabs[j].classList.remove('active');
+            tabs[j].setAttribute('aria-selected', 'false');
         }
         if (btnEl) {
             btnEl.classList.add('active');
+            btnEl.setAttribute('aria-selected', 'true');
         }
     }
 

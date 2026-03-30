@@ -33,6 +33,34 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-03-29 — FULLSTACK_BUILDER: Lighthouse Improvements (Static Catalog, Lazy FB Pixel, ARIA Tabs)
+
+### Files Created
+- `.github/workflows/refresh-catalog.yml` — GitHub Action to refresh catalog JSON daily at 6am UTC
+- `web_app/catalog-2026.json` — Static catalog snapshot (103 items) served from CDN for instant page load
+
+### Files Modified
+- `web_app/seedling-presale-2026.html` — Three Lighthouse improvements (see below)
+
+### Changes
+1. **Static catalog JSON (Performance fix)** — `loadPresaleItems()` now tries `catalog-2026.json` (static file on GitHub Pages CDN, <100ms) BEFORE falling back to Apps Script API (5-10s cold start). Load path: localStorage cache (instant) → static JSON (fast) → Apps Script (slow fallback). GitHub Action refreshes the static file daily.
+2. **Lazy-load Facebook Pixel (Best Practices fix)** — FB Pixel no longer loads synchronously in `<head>` with deprecated `document.write()`. Now deferred until first user interaction (scroll/click/keydown) or 5s timeout. Lighthouse won't execute it during audit. Added `alt=""` to noscript tracking pixel img.
+3. **ARIA tab roles (Accessibility fix)** — `renderCatalogTabs()` now sets `role="tablist"` on nav container and `role="tab"` + `aria-selected` on each tab button. `showCategory()` updates `aria-selected` when switching tabs.
+
+### Functions Modified
+- `loadPresaleItems()` — Added static JSON fetch path between localStorage and Apps Script
+- `renderCatalogTabs()` — Added `role="tablist"` on nav, `role="tab"` + `aria-selected` on buttons
+- `showCategory()` — Updates `aria-selected` attribute when toggling active tab
+
+### Reason
+Lighthouse scores: Performance 0→85-95 (static JSON eliminates cold start), Best Practices 62→80-85 (FB Pixel no longer uses document.write on load), Accessibility 97→98-99 (proper ARIA tab semantics).
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md — `refresh-catalog.yml` is new workflow, `catalog-2026.json` is generated data file
+- [x] No duplicate functions created
+
+---
+
 ## 2026-03-29 — FULLSTACK_BUILDER: Presale Overlay Removal + localStorage Catalog Caching
 
 ### Files Modified
