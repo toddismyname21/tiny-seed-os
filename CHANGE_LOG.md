@@ -33,6 +33,21 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-03-30 — FULLSTACK_BUILDER: Add hero background photo to seedling presale
+
+### Files Modified
+- `web_app/seedling-presale-2026.html` — Added `<picture>` element with responsive WebP srcset (400/800/1200/1920w) inside `.hero` header, using DSCF6488.JPG (greenhouse lettuce perspective) as the background image. Bumped `.hero-content` z-index from 1 to 2 so text sits above the warm cream gradient overlay (z-index: 1) which sits above the photo (z-index: 0). `fetchpriority="high"` and `decoding="sync"` for LCP optimization. JPEG fallback for browsers without WebP support.
+
+### Reason
+Hero section had a flat color background. Adding the greenhouse photo creates visual warmth and establishes farm credibility immediately on page load, while the cream overlay preserves dark text readability.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
 ## 2026-03-30 — FULLSTACK_BUILDER: Add bundle items list to catalog cards; restore seedling overlay
 
 ### Files Modified

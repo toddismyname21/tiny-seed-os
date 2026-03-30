@@ -250,29 +250,44 @@
         /* HERO                                   */
         /* ═══════════════════════════════════════ */
         .hero {
-            background: linear-gradient(135deg, #f5f1e8 0%, #e8dcc8 50%, #d4c5a9 100%);
+            background: #d4c5a9; /* fallback while photo loads */
             color: var(--text-dark);
             padding: 90px 24px 80px;
             text-align: center;
             position: relative;
-            overflow: visible;
+            overflow: hidden;
             min-height: 65vh;
             display: flex;
             align-items: center;
             justify-content: center;
         }
-        /* Botanical SVG pattern overlay */
+        /* Background photo — absolutely positioned, full cover */
+        .hero-bg-img {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+        }
+        .hero-bg-img img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center 40%;
+            display: block;
+        }
+        /* Warm cream overlay — lets the greens through, keeps dark text readable */
         .hero::before {
             content: '';
             position: absolute;
-            top: 0;
-            right: 0;
-            width: 60%;
-            height: 100%;
-            background: url('data:image/svg+xml;charset=utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><circle cx="100" cy="100" r="80" fill="none" stroke="rgba(107,142,35,0.08)" stroke-width="1"/><path d="M100,20 Q150,50 150,100 Q150,150 100,180" fill="none" stroke="rgba(107,142,35,0.06)" stroke-width="2"/></svg>') repeat;
-            background-size: 200px 200px;
-            opacity: 0.6;
-            z-index: 0;
+            inset: 0;
+            background: linear-gradient(
+                to bottom,
+                rgba(245,241,232,0.84) 0%,
+                rgba(242,237,224,0.76) 50%,
+                rgba(235,228,210,0.82) 100%
+            );
+            z-index: 1;
             pointer-events: none;
         }
 
@@ -289,7 +304,7 @@
                 padding: 70px 16px 50px;
             }
         }
-        .hero-content { position: relative; z-index: 1; max-width: 800px; margin: 0 auto; }
+        .hero-content { position: relative; z-index: 2; max-width: 800px; margin: 0 auto; }
         .hero-badge {
             display: inline-flex; align-items: center; gap: var(--ts-space-2, 8px);
             background: var(--green); border: none;
@@ -1577,6 +1592,20 @@
 <!-- HERO -->
 <!-- ═══════════════════════════════════════════════════════════ -->
 <header class="hero" role="banner">
+    <picture class="hero-bg-img" aria-hidden="true">
+        <source type="image/webp"
+                srcset="images/hero-greenhouse-400.webp 400w,
+                        images/hero-greenhouse-800.webp 800w,
+                        images/hero-greenhouse-1200.webp 1200w,
+                        images/hero-greenhouse-1920.webp 1920w"
+                sizes="100vw">
+        <img src="images/hero-greenhouse.jpg"
+             alt=""
+             width="2448"
+             height="1632"
+             fetchpriority="high"
+             decoding="sync">
+    </picture>
     <div class="hero-content">
         <div class="hero-badge"><i class="fas fa-certificate"></i> USDA CERTIFIED ORGANIC — 2026 PRESALE NOW OPEN</div>
         <h1>Pittsburgh's Favorite <span>Seedlings</span> Are Back</h1>
