@@ -33,6 +33,16 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-03-29 — FULLSTACK_BUILDER: Fix ARIA tablist ordering in presale catalog tabs
+
+### Files Modified
+- `web_app/seedling-presale-2026.html` — Swapped `nav.setAttribute('role', 'tablist')` and `nav.innerHTML = html` in `renderCatalogTabs()` so `role="tab"` children are in the DOM before `role="tablist"` is set. Fixes Lighthouse ARIA violation.
+
+### Reason
+ARIA spec requires `role="tablist"` elements to contain `role="tab"` children. Setting the role before innerHTML meant a brief invalid state.
+
+---
+
 ## 2026-03-29 — FULLSTACK_BUILDER: Lighthouse Accessibility + Best Practices Fixes (Round 2)
 
 ### Files Modified
