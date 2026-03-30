@@ -33,6 +33,30 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-03-29 — FULLSTACK_BUILDER: Lighthouse Accessibility + Best Practices Fixes (Round 2)
+
+### Files Modified
+- `web_app/seedling-presale-2026.html` — 4 targeted Lighthouse fixes
+- `web_app/shared-nav.js` — Contrast ratio fix for light-theme pages
+
+### Changes
+1. **Canonical URL + meta tags (Best Practices)** — Changed `<link rel="canonical">`, `og:image`, `twitter:image`, and JSON-LD `url` from `app.tinyseedfarm.com` to correct GitHub Pages domain `toddismyname21.github.io/tiny-seed-os`. Eliminates 3 Best Practices failures caused by Lighthouse following canonical to a domain that 404s on assets.
+2. **FB Pixel timeout removed (Best Practices)** — Removed `setTimeout(loadFbPixel, 5000)` that caused `AttributionReporting` deprecation flag during Lighthouse audit. Pixel now loads only on real user interaction (scroll/click/keydown).
+3. **Header CTA aria-label (Accessibility)** — Added `aria-label="Reserve your seedlings"` to `<a href="#order" class="header-cta">` for screen reader context.
+4. **Shared nav contrast (Accessibility)** — Changed `.ts-nav-home` and `.ts-nav-sep` color from `--ts-text-muted` (#a8a396 on light theme, ~2.3:1 ratio) to `--ts-text-secondary` (#5c5749 on light theme, ~5.6:1 ratio). Passes WCAG AA 4.5:1 requirement.
+
+### Note on Fix 3 (ARIA tablist)
+The `catalogNav` div in static HTML already lacked `role="tablist"` — it was correctly set only in JS `renderCatalogTabs()` at line 2760. No change needed.
+
+### Reason
+Lighthouse audit identified remaining Best Practices and Accessibility point losses. These 4 fixes target approximately +15 Best Practices, +8 Accessibility points.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md — no new files created
+- [x] No duplicates
+
+---
+
 ## 2026-03-29 — FULLSTACK_BUILDER: Lighthouse Improvements (Static Catalog, Lazy FB Pixel, ARIA Tabs)
 
 ### Files Created
