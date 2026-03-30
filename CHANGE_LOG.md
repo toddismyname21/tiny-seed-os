@@ -33,6 +33,22 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-03-30 — FULLSTACK_BUILDER: Presale visual/UX polish
+
+### Files Modified
+- `web_app/seedling-presale-2026.html` — Hero photo overlay reduced from 76-84% opacity to 55-70% gradient; farm photo now clearly visible behind text
+- `web_app/catalog-2026.json` — Merged 3 tomato sub-categories (Heirloom, Determinate, Cherry) into single "Tomatoes" tab. Renamed "Greens" to "Kale/Chard/Cabbage". Redistributed "Misc" items: Tomatillo and Husk Cherry to "Vegetables"
+
+### Reason
+Hero overlay was too opaque — the farm photo was barely visible. Three separate tomato tabs created unnecessary navigation friction for 19 items. "Greens" and "Misc" were vague category names that didn't help customers find what they wanted.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
 ## 2026-03-30 — FULLSTACK_BUILDER: Catalog audit and cleanup
 
 ### Files Modified
