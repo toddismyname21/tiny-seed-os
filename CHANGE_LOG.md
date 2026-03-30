@@ -33,6 +33,21 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-03-30 — FULLSTACK_BUILDER: Add bundle items list to catalog cards; restore seedling overlay
+
+### Files Modified
+- `web_app/seedling-presale-2026.html` — In `renderCatalogCards()`, added dynamic items list (`<ul class="bundle-items">`) to each bundle card (salsa, pizza, flower) by reading from the `BUNDLES` object. Items appear between the tagline and pricing. Also restored the `.seedling-overlay` HTML (8 seedling images between hero and main) and CSS with corrected margins (`margin-bottom: 0` instead of `-120px`) so the overlay no longer eats into the catalog heading. Existing `.catalog { padding-top: 100px }` provides clearance.
+
+### Reason
+Bundle cards in the catalog section were missing their contents list, making it unclear what each bundle includes. Seedling overlay was previously removed due to negative margin collision — restored with fixed layout.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
 ## 2026-03-29 — FULLSTACK_BUILDER: Fix ARIA violation — move beginner filter button outside role=tablist container
 
 ### Files Modified

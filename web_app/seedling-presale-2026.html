@@ -327,9 +327,50 @@
         .cta-btn:focus { outline: 2px solid var(--green); outline-offset: 2px; }
         .hero-trust { margin-top: var(--ts-space-6, 24px); font-size: 0.8rem; color: var(--text-muted); }
 
-        /* .seedling-overlay CSS removed — HTML overlay was removed because
-           negative margins caused catalog heading to be hidden underneath.
-           See commit history for original styles if ever needed again. */
+        /* SEEDLING ROW — floats below hero, bridges into catalog    */
+        /* margin-top pulls images UP into hero bottom               */
+        /* margin-bottom is 0 — catalog has its own padding-top      */
+        .seedling-overlay {
+            display: flex;
+            justify-content: space-evenly;
+            align-items: center;
+            height: 200px;
+            margin-top: -100px;    /* half: overlaps hero bottom */
+            margin-bottom: 0;      /* DON'T eat into catalog — catalog has padding-top:100px */
+            position: relative;
+            z-index: 5;
+            pointer-events: none;
+            padding: 0 20px;
+        }
+        .seedling-overlay img {
+            width: 200px;
+            height: 200px;
+            object-fit: contain;
+            filter: drop-shadow(0 4px 12px rgba(0,0,0,0.1));
+        }
+        /* Gentle arc: edges slightly higher, center dips */
+        .seedling-overlay img:nth-child(1) { transform: translateY(-14px) rotate(0deg); }
+        .seedling-overlay img:nth-child(2) { transform: translateY(-4px) rotate(-5deg); }
+        .seedling-overlay img:nth-child(3) { transform: translateY(6px) rotate(-10deg); }
+        .seedling-overlay img:nth-child(4) { transform: translateY(10px) rotate(-5deg); }
+        .seedling-overlay img:nth-child(5) { transform: translateY(6px) rotate(0deg); }
+        .seedling-overlay img:nth-child(6) { transform: translateY(-4px) rotate(5deg); }
+        .seedling-overlay img:nth-child(7) { transform: translateY(-10px) rotate(10deg); }
+        .seedling-overlay img:nth-child(8) { transform: translateY(-16px) rotate(5deg); }
+        @media (max-width: 1024px) {
+            .seedling-overlay { height: 160px; margin-top: -80px; }
+            .seedling-overlay img { width: 160px; height: 160px; }
+        }
+        @media (max-width: 768px) {
+            .seedling-overlay { height: 120px; margin-top: -60px; }
+            .seedling-overlay img { width: 120px; height: 120px; }
+            .seedling-overlay img:nth-child(n+7) { display: none; }
+        }
+        @media (max-width: 480px) {
+            .seedling-overlay { height: 90px; margin-top: -45px; }
+            .seedling-overlay img { width: 90px; height: 90px; }
+            .seedling-overlay img:nth-child(n+5) { display: none; }
+        }
 
         /* ═══════════════════════════════════════ */
         /* SECTIONS */
@@ -1551,8 +1592,16 @@
     </div>
 </header>
 
-<!-- Seedling overlay removed: was designed for hero→benefits transition,
-     now conflicts with hero→catalog layout (negative margins ate catalog heading) -->
+<div class="seedling-overlay" aria-hidden="true">
+    <img src="images/seedlings/tomato-card.png" alt="" loading="lazy">
+    <img src="images/seedlings/basil-card.png" alt="" loading="lazy">
+    <img src="images/seedlings/pepper-card.png" alt="" loading="lazy">
+    <img src="images/seedlings/chard-card.png" alt="" loading="lazy">
+    <img src="images/seedlings/sage-card.png" alt="" loading="lazy">
+    <img src="images/seedlings/parsley-card.png" alt="" loading="lazy">
+    <img src="images/seedlings/mint-card.png" alt="" loading="lazy">
+    <img src="images/seedlings/broccoli-card.png" alt="" loading="lazy">
+</div>
 
 <main id="main-content" role="main">
 
@@ -2800,6 +2849,12 @@ function renderCatalogCards() {
     html += '<img src="images/bundle-salsa-garden.png" alt="Watercolor salsa bowl" class="bundle-img" loading="lazy">';
     html += '<div class="bundle-name">Salsa Garden</div>';
     html += '<p class="bundle-desc">"Everything you need for fresh salsa all summer long"</p>';
+    var salsaBundle = BUNDLES['salsa'];
+    var salsaItems = '';
+    for (var si = 0; si < salsaBundle.items.length; si++) {
+        salsaItems += '<li>' + salsaBundle.items[si].qty + 'x ' + escapeHtml(salsaBundle.items[si].name) + '</li>';
+    }
+    html += '<ul class="bundle-items">' + salsaItems + '</ul>';
     html += '<div class="bundle-pricing"><span class="bundle-price">$28</span><span class="bundle-savings">Save $4!</span></div>';
     html += '<button type="button" class="bundle-add-btn" onclick="addBundle(\'salsa\')"><i class="fas fa-plus"></i> Add Bundle</button>';
     html += '</div>';
@@ -2807,6 +2862,12 @@ function renderCatalogCards() {
     html += '<img src="images/bundle-pizza-garden.png" alt="Watercolor pizza slice" class="bundle-img" loading="lazy">';
     html += '<div class="bundle-name">Pizza Garden</div>';
     html += '<p class="bundle-desc">"Grow your own pizza toppings &mdash; from garden to pie"</p>';
+    var pizzaBundle = BUNDLES['pizza'];
+    var pizzaItems = '';
+    for (var pi = 0; pi < pizzaBundle.items.length; pi++) {
+        pizzaItems += '<li>' + pizzaBundle.items[pi].qty + 'x ' + escapeHtml(pizzaBundle.items[pi].name) + '</li>';
+    }
+    html += '<ul class="bundle-items">' + pizzaItems + '</ul>';
     html += '<div class="bundle-pricing"><span class="bundle-price">$24</span><span class="bundle-savings">Save $3!</span></div>';
     html += '<button type="button" class="bundle-add-btn" onclick="addBundle(\'pizza\')"><i class="fas fa-plus"></i> Add Bundle</button>';
     html += '</div>';
@@ -2814,6 +2875,12 @@ function renderCatalogCards() {
     html += '<img src="images/bundle-flower-power.png" alt="Watercolor flower bouquet" class="bundle-img" loading="lazy">';
     html += '<div class="bundle-name">Summer Cutting Garden</div>';
     html += '<p class="bundle-desc">"Everything you need for armloads of fresh-cut blooms"</p>';
+    var flowerBundle = BUNDLES['flower'];
+    var flowerItems = '';
+    for (var fi = 0; fi < flowerBundle.items.length; fi++) {
+        flowerItems += '<li>' + flowerBundle.items[fi].qty + 'x ' + escapeHtml(flowerBundle.items[fi].name) + '</li>';
+    }
+    html += '<ul class="bundle-items">' + flowerItems + '</ul>';
     html += '<div class="bundle-pricing"><span class="bundle-price">$30</span><span class="bundle-savings">Save $5!</span></div>';
     html += '<button type="button" class="bundle-add-btn" onclick="addBundle(\'flower\')"><i class="fas fa-plus"></i> Add Bundle</button>';
     html += '</div>';
