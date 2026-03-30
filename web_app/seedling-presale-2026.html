@@ -2752,13 +2752,20 @@ function renderCatalogTabs() {
         html += '</button>';
     }
 
-    // Add beginner filter button
-    html += '<button class="beginner-filter-btn' + (beginnerFilterActive ? ' active' : '') + '" onclick="toggleBeginnerFilter(this)">';
-    html += '<i class="fas fa-star"></i> Best for Beginners';
-    html += '</button>';
-
     nav.innerHTML = html;
     nav.setAttribute('role', 'tablist');
+
+    // Insert beginner filter as a sibling, NOT inside the tablist (ARIA compliance)
+    var existingFilter = document.getElementById('beginnerFilterBtn');
+    if (existingFilter) {
+        existingFilter.parentNode.removeChild(existingFilter);
+    }
+    var filterBtn = document.createElement('button');
+    filterBtn.id = 'beginnerFilterBtn';
+    filterBtn.className = 'beginner-filter-btn' + (beginnerFilterActive ? ' active' : '');
+    filterBtn.onclick = function() { toggleBeginnerFilter(this); };
+    filterBtn.innerHTML = '<i class="fas fa-star"></i> Best for Beginners';
+    nav.parentNode.insertBefore(filterBtn, nav.nextSibling);
 }
 
 // ═══════════════════════════════════════

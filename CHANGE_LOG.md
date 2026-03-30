@@ -33,6 +33,21 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-03-29 — FULLSTACK_BUILDER: Fix ARIA violation — move beginner filter button outside role=tablist container
+
+### Files Modified
+- `web_app/seedling-presale-2026.html` — In `renderCatalogTabs()`, removed the beginner filter button from the `html` string that populates `catalogNav` (which has `role="tablist"`). The filter button is now created via `document.createElement` and inserted as a DOM sibling after `catalogNav` using `insertBefore(filterBtn, nav.nextSibling)`. Old filter is cleaned up by ID before re-insert.
+
+### Reason
+ARIA spec requires ALL direct children of a `role="tablist"` element to have `role="tab"`. The beginner filter button (`<button class="beginner-filter-btn">`) was a direct child without `role="tab"`, causing a Lighthouse accessibility violation. Moving it outside the tablist as a sibling resolves the violation while preserving visual layout.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
 ## 2026-03-29 — FULLSTACK_BUILDER: Fix ARIA tablist ordering in presale catalog tabs
 
 ### Files Modified
