@@ -6,6 +6,17 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## 2026-04-02 — FULLSTACK_BUILDER: Field dropdowns in Direct Sow + Transplant forms
+
+### Files Changed
+- `employee.html`
+  - Direct Sow + Transplant bed inputs replaced with field dropdowns (loaded from getFields API)
+  - "Add New Field..." option triggers inline form: name, length, width, beds (auto-calc with override), type
+  - addField API writes to REF_Fields + REF_Beds — reverberates system-wide automatically
+  - FieldsCache prevents redundant API calls within a session
+
+---
+
 ## 2026-04-02 — FULLSTACK_BUILDER: Seedling Sale label type
 
 - `labels.html`: New "Seedling Sale" label type — type crop name + optional variety + quantity, Add, repeat, Generate. No planning data needed. Uses same ZX5141T pot tag format. Full-width green button in type selector. Print dispatches through pot tag PDF pipeline.

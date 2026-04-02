@@ -12116,11 +12116,51 @@
                         </div>
                     </div>
 
-                    <!-- Bed Confirmation -->
+                    <!-- Field / Bed Selection -->
                     <div class="form-group">
-                        <label class="form-label">Bed</label>
-                        <input type="text" class="form-input" id="sowBedId"
-                               placeholder="e.g. BED-A1 (auto-filled from plan)">
+                        <label class="form-label">Field</label>
+                        <select class="form-input" id="sowBedId"
+                                onchange="onFieldSelectChange('sowBedId','sowAddFieldPanel')">
+                            <option value="">Select field...</option>
+                        </select>
+                        <!-- Add New Field panel (hidden by default) -->
+                        <div id="sowAddFieldPanel" class="add-field-panel" style="display:none;margin-top:10px;padding:12px;background:rgba(var(--primary-rgb,59,130,246),0.08);border-radius:8px;border:1px solid rgba(var(--primary-rgb,59,130,246),0.2);">
+                            <div style="font-size:0.8rem;font-weight:700;color:var(--primary);margin-bottom:10px;">
+                                <i class="fas fa-plus-circle" style="margin-right:4px;"></i>Add New Field
+                            </div>
+                            <div style="display:grid;grid-template-columns:1fr;gap:8px;">
+                                <input type="text" class="form-input add-field-name" placeholder="Field name / ID (e.g. F12M)">
+                                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                                    <div>
+                                        <label class="form-label" style="font-size:0.72rem;">Length (ft)</label>
+                                        <input type="number" class="form-input add-field-length" inputmode="decimal" placeholder="e.g. 300">
+                                    </div>
+                                    <div>
+                                        <label class="form-label" style="font-size:0.72rem;">Width (ft)</label>
+                                        <input type="number" class="form-input add-field-width" inputmode="decimal" placeholder="e.g. 60" oninput="calcBedsFromWidth()">
+                                    </div>
+                                </div>
+                                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                                    <div>
+                                        <label class="form-label" style="font-size:0.72rem;">Beds <span style="font-weight:400;color:var(--text-secondary);">(auto / override)</span></label>
+                                        <input type="number" class="form-input add-field-beds" inputmode="numeric" placeholder="auto">
+                                    </div>
+                                    <div>
+                                        <label class="form-label" style="font-size:0.72rem;">Type</label>
+                                        <select class="form-input add-field-type">
+                                            <option value="Veg">Vegetable</option>
+                                            <option value="Floral">Floral</option>
+                                            <option value="Perennial">Perennial</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <button type="button" class="add-field-save-btn"
+                                    onclick="submitAddField('sowBedId','sowAddFieldPanel')"
+                                    style="padding:10px;background:var(--primary);color:#fff;border:none;border-radius:8px;font-weight:600;font-size:0.9rem;font-family:inherit;cursor:pointer;">
+                                    Save Field
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Feet Sown -->
@@ -12269,11 +12309,51 @@
                         </div>
                     </div>
 
-                    <!-- Bed -->
+                    <!-- Field / Bed Selection -->
                     <div class="form-group">
-                        <label class="form-label">Bed / Location</label>
-                        <input type="text" class="form-input" id="transplantBedId"
-                               placeholder="e.g. BED-A1 (auto-filled from plan)">
+                        <label class="form-label">Field / Location</label>
+                        <select class="form-input" id="transplantBedId"
+                                onchange="onFieldSelectChange('transplantBedId','transplantAddFieldPanel')">
+                            <option value="">Select field...</option>
+                        </select>
+                        <!-- Add New Field panel (hidden by default) -->
+                        <div id="transplantAddFieldPanel" class="add-field-panel" style="display:none;margin-top:10px;padding:12px;background:rgba(13,148,136,0.08);border-radius:8px;border:1px solid rgba(13,148,136,0.2);">
+                            <div style="font-size:0.8rem;font-weight:700;color:#0d9488;margin-bottom:10px;">
+                                <i class="fas fa-plus-circle" style="margin-right:4px;"></i>Add New Field
+                            </div>
+                            <div style="display:grid;grid-template-columns:1fr;gap:8px;">
+                                <input type="text" class="form-input add-field-name" placeholder="Field name / ID (e.g. F12M)">
+                                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                                    <div>
+                                        <label class="form-label" style="font-size:0.72rem;">Length (ft)</label>
+                                        <input type="number" class="form-input add-field-length" inputmode="decimal" placeholder="e.g. 300">
+                                    </div>
+                                    <div>
+                                        <label class="form-label" style="font-size:0.72rem;">Width (ft)</label>
+                                        <input type="number" class="form-input add-field-width" inputmode="decimal" placeholder="e.g. 60" oninput="calcBedsFromWidth()">
+                                    </div>
+                                </div>
+                                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                                    <div>
+                                        <label class="form-label" style="font-size:0.72rem;">Beds <span style="font-weight:400;color:var(--text-secondary);">(auto / override)</span></label>
+                                        <input type="number" class="form-input add-field-beds" inputmode="numeric" placeholder="auto">
+                                    </div>
+                                    <div>
+                                        <label class="form-label" style="font-size:0.72rem;">Type</label>
+                                        <select class="form-input add-field-type">
+                                            <option value="Veg">Vegetable</option>
+                                            <option value="Floral">Floral</option>
+                                            <option value="Perennial">Perennial</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <button type="button" class="add-field-save-btn"
+                                    onclick="submitAddField('transplantBedId','transplantAddFieldPanel')"
+                                    style="padding:10px;background:#0d9488;color:#fff;border:none;border-radius:8px;font-weight:600;font-size:0.9rem;font-family:inherit;cursor:pointer;">
+                                    Save Field
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Plants -->
@@ -31076,6 +31156,11 @@
     };
 
     // ═══════════════════════════════════════
+    // FIELDS CACHE (shared across forms)
+    // ═══════════════════════════════════════
+    var FieldsCache = { fields: [], loaded: false };
+
+    // ═══════════════════════════════════════
     // TRANSPLANT LOG STATE
     // ═══════════════════════════════════════
     var TransplantLogState = {
@@ -31095,6 +31180,7 @@
         }
         switchTab('directSow');
         loadDirectSowBatches();
+        loadFieldDropdown('sowBedId');
     }
 
     async function loadDirectSowBatches() {
@@ -31161,9 +31247,21 @@
         const batch = DirectSowState.batches[parseInt(idx)];
         DirectSowState.selectedBatch = batch;
 
-        // Pre-fill bed from plan
+        // Pre-fill field from plan (set select value if option exists)
         const bed = batch.Bed || batch.bed || batch.Bed_ID || '';
-        document.getElementById('sowBedId').value = bed;
+        if (bed) {
+            var sowSelect = document.getElementById('sowBedId');
+            // Try to match against existing options; if not found, add a temporary option
+            var found = Array.from(sowSelect.options).some(function(opt) { return opt.value === bed; });
+            if (found) {
+                sowSelect.value = bed;
+            } else {
+                // Add temporary option for the planned bed
+                var opt = document.createElement('option');
+                opt.value = bed; opt.text = bed + ' (from plan)'; opt.selected = true;
+                sowSelect.insertBefore(opt, sowSelect.options[sowSelect.options.length - 1]);
+            }
+        }
 
         // Pre-fill feet from plan
         const feet = batch.Bed_Feet || batch.bed_feet || batch.Feet || '';
@@ -31386,6 +31484,8 @@
     function resetDirectSowForm() {
         document.getElementById('sowBatchSelect').value = '';
         document.getElementById('sowBedId').value = '';
+        var sowAddPanel = document.getElementById('sowAddFieldPanel');
+        if (sowAddPanel) sowAddPanel.style.display = 'none';
         document.getElementById('sowFeet').value = '';
         document.getElementById('sowRows').value = '';
         document.getElementById('sowSeedLot').innerHTML = '<option value="">Select seed lot...</option>';
@@ -31421,6 +31521,134 @@
         // Reset to plan mode if in manual mode
         if (DirectSowState.isManualMode) toggleDirectSowManualMode();
         document.querySelectorAll('.soil-btn').forEach(btn => btn.classList.remove('active'));
+    }
+
+    // ═══════════════════════════════════════
+    // FIELD DROPDOWN FUNCTIONS
+    // ═══════════════════════════════════════
+
+    async function loadFieldDropdown(selectId) {
+        var select = document.getElementById(selectId);
+        if (!select) return;
+
+        // Use cache if already loaded
+        if (FieldsCache.loaded && FieldsCache.fields.length > 0) {
+            populateFieldSelect(selectId, FieldsCache.fields);
+            return;
+        }
+
+        select.innerHTML = '<option value="">Loading fields...</option>';
+        try {
+            var response = await fetch(CONFIG.API_URL + '?action=getFields');
+            var data = await response.json();
+            if (data.success && data.fields && data.fields.length > 0) {
+                FieldsCache.fields = data.fields;
+                FieldsCache.loaded = true;
+                populateFieldSelect(selectId, data.fields);
+            } else {
+                select.innerHTML = '<option value="">No fields found</option><option value="_add">&#10133; Add New Field...</option>';
+            }
+        } catch (err) {
+            console.error('loadFieldDropdown error:', err);
+            select.innerHTML = '<option value="">Error loading fields</option><option value="_add">&#10133; Add New Field...</option>';
+        }
+    }
+
+    function populateFieldSelect(selectId, fields) {
+        var select = document.getElementById(selectId);
+        if (!select) return;
+        select.innerHTML = '<option value="">Select field...</option>';
+        fields.forEach(function(f) {
+            var id = f.Field_ID || f.Field_Name;
+            var label = id + (f.bedCount ? ' (' + f.bedCount + ' beds)' : '');
+            select.innerHTML += '<option value="' + id + '">' + label + '</option>';
+        });
+        select.innerHTML += '<option value="_add" style="color:var(--primary);font-weight:600;">&#10133; Add New Field...</option>';
+    }
+
+    function onFieldSelectChange(selectId, addPanelId) {
+        var select = document.getElementById(selectId);
+        var panel = document.getElementById(addPanelId);
+        if (!select || !panel) return;
+        if (select.value === '_add') {
+            panel.style.display = 'block';
+            select.value = ''; // reset so panel close works properly
+            var nameInput = panel.querySelector('.add-field-name');
+            if (nameInput) nameInput.focus();
+        } else {
+            panel.style.display = 'none';
+        }
+    }
+
+    function calcBedsFromWidth() {
+        // Called when width input changes in either add-field panel
+        document.querySelectorAll('.add-field-panel').forEach(function(panel) {
+            var widthEl = panel.querySelector('.add-field-width');
+            var bedsEl = panel.querySelector('.add-field-beds');
+            if (widthEl && bedsEl && document.activeElement === widthEl) {
+                var w = parseFloat(widthEl.value) || 0;
+                bedsEl.value = w > 0 ? Math.floor(w / 4) : '';
+            }
+        });
+    }
+
+    async function submitAddField(selectId, addPanelId) {
+        var panel = document.getElementById(addPanelId);
+        var nameEl = panel.querySelector('.add-field-name');
+        var lengthEl = panel.querySelector('.add-field-length');
+        var widthEl = panel.querySelector('.add-field-width');
+        var bedsEl = panel.querySelector('.add-field-beds');
+        var typeEl = panel.querySelector('.add-field-type');
+        var btn = panel.querySelector('.add-field-save-btn');
+
+        var name = (nameEl.value || '').trim();
+        var length = parseFloat(lengthEl.value);
+        var width = parseFloat(widthEl.value);
+        var numBeds = parseInt(bedsEl.value) || Math.floor(width / 4);
+        var type = typeEl ? typeEl.value : 'Veg';
+
+        if (!name) { showToast('Field name is required', 'error'); nameEl.focus(); return; }
+        if (!length || length <= 0) { showToast('Length is required', 'error'); lengthEl.focus(); return; }
+        if (!width || width <= 0) { showToast('Width is required', 'error'); widthEl.focus(); return; }
+
+        btn.disabled = true;
+        btn.textContent = 'Saving...';
+
+        try {
+            var response = await fetch(CONFIG.API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain' },
+                body: JSON.stringify({
+                    action: 'addField',
+                    fieldId: name,
+                    name: name,
+                    length: length,
+                    width: width,
+                    numBeds: numBeds,
+                    type: type
+                })
+            });
+            var data = await response.json();
+            if (data.success) {
+                // Add to cache and repopulate dropdown
+                FieldsCache.fields.push({ Field_ID: name, Field_Name: name, bedCount: numBeds });
+                FieldsCache.fields.sort(function(a, b) { return a.Field_ID.localeCompare(b.Field_ID); });
+                populateFieldSelect(selectId, FieldsCache.fields);
+                // Select the new field
+                var select = document.getElementById(selectId);
+                if (select) select.value = name;
+                // Hide the add panel and reset
+                panel.style.display = 'none';
+                nameEl.value = ''; lengthEl.value = ''; widthEl.value = ''; bedsEl.value = '';
+                showToast('Field ' + name + ' added — ' + numBeds + ' beds created', 'success');
+            } else {
+                showToast(data.error || 'Error adding field', 'error');
+            }
+        } catch (err) {
+            showToast('Error adding field', 'error');
+        }
+        btn.disabled = false;
+        btn.textContent = 'Save Field';
     }
 
     // ═══════════════════════════════════════
@@ -31573,6 +31801,7 @@
         switchTab('transplantLog');
         TransplantLogState.isManualMode = false;
         loadTransplantBatches();
+        loadFieldDropdown('transplantBedId');
     }
 
     async function loadTransplantBatches() {
@@ -31767,6 +31996,8 @@
     function resetTransplantLogForm() {
         document.getElementById('transplantBatchSelect').value = '';
         document.getElementById('transplantBedId').value = '';
+        var txAddPanel = document.getElementById('transplantAddFieldPanel');
+        if (txAddPanel) txAddPanel.style.display = 'none';
         document.getElementById('transplantPlantCount').value = '';
         document.getElementById('transplantRowSpacing').value = '';
         document.getElementById('transplantNotes').value = '';
