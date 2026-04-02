@@ -12048,12 +12048,72 @@
                         <span>Direct Sow Confirmation</span>
                     </div>
 
-                    <!-- Batch/Planting Selector -->
-                    <div class="form-group">
-                        <label class="form-label">Planting / Batch</label>
-                        <select class="form-input" id="sowBatchSelect" onchange="onSowBatchChange()">
-                            <option value="">Select a direct seed planting...</option>
-                        </select>
+                    <!-- Mode toggle: Plan vs Manual -->
+                    <div class="form-group" style="margin-bottom:8px;">
+                        <div style="display:flex;align-items:center;justify-content:space-between;">
+                            <label class="form-label" style="margin:0;">Planting / Batch</label>
+                            <button type="button" id="directSowModeToggle"
+                                style="font-size:0.75rem;color:var(--primary);background:none;border:none;cursor:pointer;padding:4px 0;font-family:inherit;"
+                                onclick="toggleDirectSowManualMode()">
+                                Not in my plan? Scan packet
+                            </button>
+                        </div>
+
+                        <!-- Plan mode: dropdown -->
+                        <div id="directSowPlanMode">
+                            <select class="form-input" id="sowBatchSelect" onchange="onSowBatchChange()">
+                                <option value="">Select a direct seed planting...</option>
+                            </select>
+                        </div>
+
+                        <!-- Manual/Ad-hoc mode: packet photo + AI populate -->
+                        <div id="directSowManualMode" style="display:none;">
+                            <!-- Seed Packet Photo — primary field -->
+                            <div style="margin-bottom:12px;">
+                                <label class="form-label" style="color:var(--primary);font-weight:700;">
+                                    <i class="fas fa-seedling" style="margin-right:4px;"></i>
+                                    Seed Packet Photo
+                                    <span style="font-size:0.75rem;color:var(--text-secondary);font-weight:400;"> — AI will read crop, variety &amp; lot</span>
+                                </label>
+                                <div class="photo-capture-btn" onclick="capturePhoto('directSowPacket')"
+                                     style="border-color:var(--primary);color:var(--primary);">
+                                    <i class="fas fa-barcode"></i>
+                                    <span>Photograph Seed Packet</span>
+                                </div>
+                                <div class="photo-preview" id="directSowPacketPreview" style="display:none;"></div>
+                                <!-- AI analyze button — shown after photo taken -->
+                                <button type="button" id="directSowAnalyzeBtn"
+                                    onclick="analyzePacketPhoto()"
+                                    style="display:none;width:100%;margin-top:8px;padding:10px;background:linear-gradient(135deg,var(--primary),var(--primary-dark,#1d4ed8));color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:0.9rem;font-family:inherit;font-weight:600;">
+                                    <i class="fas fa-wand-magic-sparkles" style="margin-right:6px;"></i>
+                                    Analyze with AI
+                                </button>
+                                <!-- AI status -->
+                                <div id="directSowAiStatus" style="display:none;font-size:0.8rem;padding:8px;border-radius:6px;margin-top:6px;"></div>
+                            </div>
+
+                            <!-- Auto-populated fields (editable) -->
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+                                <div>
+                                    <label class="form-label" style="font-size:0.75rem;">Crop</label>
+                                    <input type="text" class="form-input" id="sowManualCrop" placeholder="e.g. Carrot">
+                                </div>
+                                <div>
+                                    <label class="form-label" style="font-size:0.75rem;">Variety</label>
+                                    <input type="text" class="form-input" id="sowManualVariety" placeholder="e.g. Scarlet Nantes">
+                                </div>
+                            </div>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                                <div>
+                                    <label class="form-label" style="font-size:0.75rem;">Lot Number</label>
+                                    <input type="text" class="form-input" id="sowManualLotNumber" placeholder="Lot #">
+                                </div>
+                                <div>
+                                    <label class="form-label" style="font-size:0.75rem;">Vendor</label>
+                                    <input type="text" class="form-input" id="sowManualVendor" placeholder="Seed company">
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Bed Confirmation -->
@@ -23894,6 +23954,7 @@
                 'harvest': 'harvestPhotoPreview',
                 'scout': 'scoutPhotoPreview',
                 'directSow': 'directSowPhotoPreview',
+                'directSowPacket': 'directSowPacketPreview',
                 'transplantTrayLabel': 'transplantTrayLabelPhotoPreview',
                 'transplantField': 'transplantFieldPhotoPreview'
             };
@@ -23902,6 +23963,11 @@
 
             if (AppState.currentPhotoTarget === 'directSow') {
                 DirectSowState.capturedPhoto = AppState.capturedPhoto;
+            } else if (AppState.currentPhotoTarget === 'directSowPacket') {
+                DirectSowState.packetPhoto = AppState.capturedPhoto;
+                // Show the AI analyze button now that we have a photo
+                var analyzeBtn = document.getElementById('directSowAnalyzeBtn');
+                if (analyzeBtn) analyzeBtn.style.display = 'block';
             } else if (AppState.currentPhotoTarget === 'transplantTrayLabel') {
                 TransplantLogState.trayLabelPhoto = AppState.capturedPhoto;
             } else if (AppState.currentPhotoTarget === 'transplantField') {
@@ -23923,6 +23989,12 @@
             AppState.capturedPhoto = null;
             if (target === 'directSow') {
                 DirectSowState.capturedPhoto = null;
+            } else if (target === 'directSowPacket') {
+                DirectSowState.packetPhoto = null;
+                var analyzeBtn = document.getElementById('directSowAnalyzeBtn');
+                if (analyzeBtn) analyzeBtn.style.display = 'none';
+                var aiStatus = document.getElementById('directSowAiStatus');
+                if (aiStatus) { aiStatus.style.display = 'none'; aiStatus.textContent = ''; }
             } else if (target === 'transplantTrayLabel') {
                 TransplantLogState.trayLabelPhoto = '';
             } else if (target === 'transplantField') {
@@ -23932,6 +24004,7 @@
                 'harvest': 'harvestPhotoPreview',
                 'scout': 'scoutPhotoPreview',
                 'directSow': 'directSowPhotoPreview',
+                'directSowPacket': 'directSowPacketPreview',
                 'transplantTrayLabel': 'transplantTrayLabelPhotoPreview',
                 'transplantField': 'transplantFieldPhotoPreview'
             };
@@ -30966,7 +31039,9 @@
         selectedBatch: null,
         soilCondition: null,
         capturedPhoto: null,
-        seedInventory: []
+        seedInventory: [],
+        isManualMode: false,
+        packetPhoto: null
     };
 
     // ═══════════════════════════════════════
@@ -30983,6 +31058,10 @@
     };
 
     function openDirectSow() {
+        // Always start in plan mode
+        if (DirectSowState.isManualMode) {
+            toggleDirectSowManualMode(); // toggle back to plan mode
+        }
         switchTab('directSow');
         loadDirectSowBatches();
     }
@@ -31136,9 +31215,16 @@
         const seedsToDeduct = parseInt(document.getElementById('directSowSeedsToDeduct')?.value) || 0;
         const notes = document.getElementById('sowNotes').value;
 
-        if (!batchId) {
+        if (!DirectSowState.isManualMode && !batchId) {
             showToast('Please select a planting', 'error');
             return;
+        }
+        if (DirectSowState.isManualMode) {
+            var manualCropCheck = document.getElementById('sowManualCrop').value.trim();
+            if (!manualCropCheck) {
+                showToast('Please enter a crop name', 'error');
+                return;
+            }
         }
         if (!feetSown || feetSown <= 0) {
             showToast('Please enter feet sown', 'error');
@@ -31156,37 +31242,51 @@
                 document.getElementById('sowGpsStatus').textContent = `GPS: ${gps.lat.toFixed(4)}, ${gps.lng.toFixed(4)}`;
             }
 
+            // Pull manual fields if in ad-hoc mode
+            var manualCrop = DirectSowState.isManualMode ? (document.getElementById('sowManualCrop').value.trim()) : '';
+            var manualVariety = DirectSowState.isManualMode ? (document.getElementById('sowManualVariety').value.trim()) : '';
+            var manualLotNumber = DirectSowState.isManualMode ? (document.getElementById('sowManualLotNumber').value.trim()) : '';
+            var manualVendor = DirectSowState.isManualMode ? (document.getElementById('sowManualVendor').value.trim()) : '';
+
             const sowData = {
-                batchId: batchId,
+                batchId: batchId || '',
                 bedId: bedId,
                 feetSown: feetSown,
                 rowsSown: rowsSown || 0,
-                seedLotId: seedLotId || '',
-                seedsToDeduct: seedsToDeduct || 0,
+                seedLotId: DirectSowState.isManualMode ? (manualLotNumber || '') : (seedLotId || ''),
+                seedsToDeduct: DirectSowState.isManualMode ? 0 : (seedsToDeduct || 0),
                 photo: DirectSowState.capturedPhoto || '',
+                packetPhoto: DirectSowState.packetPhoto || '',
                 gpsLat: gps.lat || '',
                 gpsLng: gps.lng || '',
                 soilCondition: DirectSowState.soilCondition || '',
                 notes: notes,
                 employeeId: AppState.employee?.Employee_ID || '',
-                actualDate: today
+                actualDate: today,
+                isManual: DirectSowState.isManualMode,
+                crop: manualCrop,
+                variety: manualVariety,
+                vendor: manualVendor
             };
 
             if (AppState.isOnline) {
-                // First: record the seeding date
-                const dateResponse = await fetch(CONFIG.API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'text/plain' },
-                    body: JSON.stringify({
-                        action: 'recordSeedingDate',
-                        batchId: batchId,
-                        type: 'field_sow',
-                        actualDate: today
-                    })
-                });
-                const dateData = await dateResponse.json();
+                var dateData = { success: true };
+                // Only record seeding date if we have a batchId from a planned task
+                if (batchId && !DirectSowState.isManualMode) {
+                    const dateResponse = await fetch(CONFIG.API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain' },
+                        body: JSON.stringify({
+                            action: 'recordSeedingDate',
+                            batchId: batchId,
+                            type: 'field_sow',
+                            actualDate: today
+                        })
+                    });
+                    dateData = await dateResponse.json();
+                }
 
-                // Second: log the confirmation details
+                // Log the confirmation details (works with or without batchId)
                 const confirmResponse = await fetch(CONFIG.API_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'text/plain' },
@@ -31204,12 +31304,14 @@
                     showToast(confirmData.error || dateData.error || 'Error logging sow', 'error');
                 }
             } else {
-                // Offline: queue both operations
-                await OfflineDB.queueOperation('recordSeedingDate', {
-                    batchId: batchId,
-                    type: 'field_sow',
-                    actualDate: today
-                });
+                // Offline: queue operations
+                if (batchId && !DirectSowState.isManualMode) {
+                    await OfflineDB.queueOperation('recordSeedingDate', {
+                        batchId: batchId,
+                        type: 'field_sow',
+                        actualDate: today
+                    });
+                }
                 await OfflineDB.queueOperation('logDirectSowConfirmation', sowData);
                 showSowSuccessAnimation();
                 resetDirectSowForm();
@@ -31268,7 +31370,104 @@
         DirectSowState.selectedBatch = null;
         DirectSowState.soilCondition = null;
         DirectSowState.capturedPhoto = null;
+        DirectSowState.packetPhoto = null;
+        // Reset manual mode fields
+        var manualCropEl = document.getElementById('sowManualCrop');
+        var manualVarietyEl = document.getElementById('sowManualVariety');
+        var manualLotEl = document.getElementById('sowManualLotNumber');
+        var manualVendorEl = document.getElementById('sowManualVendor');
+        if (manualCropEl) manualCropEl.value = '';
+        if (manualVarietyEl) manualVarietyEl.value = '';
+        if (manualLotEl) manualLotEl.value = '';
+        if (manualVendorEl) manualVendorEl.value = '';
+        // Reset packet photo preview
+        var packetPreview = document.getElementById('directSowPacketPreview');
+        if (packetPreview) { packetPreview.style.display = 'none'; packetPreview.innerHTML = ''; }
+        var analyzeBtn = document.getElementById('directSowAnalyzeBtn');
+        if (analyzeBtn) { analyzeBtn.style.display = 'none'; analyzeBtn.disabled = false; analyzeBtn.innerHTML = '<i class="fas fa-wand-magic-sparkles" style="margin-right:6px;"></i>Analyze with AI'; }
+        var aiStatus = document.getElementById('directSowAiStatus');
+        if (aiStatus) { aiStatus.style.display = 'none'; aiStatus.textContent = ''; }
+        // Reset to plan mode if in manual mode
+        if (DirectSowState.isManualMode) toggleDirectSowManualMode();
         document.querySelectorAll('.soil-btn').forEach(btn => btn.classList.remove('active'));
+    }
+
+    // ═══════════════════════════════════════
+    // DIRECT SOW MANUAL MODE & PACKET AI SCAN
+    // ═══════════════════════════════════════
+
+    function toggleDirectSowManualMode() {
+        DirectSowState.isManualMode = !DirectSowState.isManualMode;
+        var planMode = document.getElementById('directSowPlanMode');
+        var manualMode = document.getElementById('directSowManualMode');
+        var toggle = document.getElementById('directSowModeToggle');
+        var seedLotRow = document.getElementById('sowSeedLot').parentElement;
+        var deductRow = document.getElementById('directSowDeductRow');
+
+        if (DirectSowState.isManualMode) {
+            planMode.style.display = 'none';
+            manualMode.style.display = 'block';
+            toggle.textContent = '\u2190 Back to planned tasks';
+            // Hide the seed lot dropdown in manual mode (lot# is in manual fields)
+            if (seedLotRow) seedLotRow.style.display = 'none';
+            if (deductRow) deductRow.style.display = 'none';
+        } else {
+            planMode.style.display = 'block';
+            manualMode.style.display = 'none';
+            toggle.textContent = 'Not in my plan? Scan packet';
+            if (seedLotRow) seedLotRow.style.display = 'block';
+        }
+    }
+
+    async function analyzePacketPhoto() {
+        var photo = DirectSowState.packetPhoto;
+        if (!photo) {
+            showToast('Take a photo of the seed packet first', 'warning');
+            return;
+        }
+        var btn = document.getElementById('directSowAnalyzeBtn');
+        var status = document.getElementById('directSowAiStatus');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right:6px;"></i>Reading packet...';
+        status.style.display = 'block';
+        status.style.background = 'rgba(var(--primary-rgb,59,130,246),0.1)';
+        status.style.color = 'var(--text-secondary)';
+        status.textContent = 'Analyzing seed packet with AI...';
+
+        try {
+            var response = await fetch(CONFIG.API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain' },
+                body: JSON.stringify({ action: 'analyzeSeedPacket', image: photo })
+            });
+            var data = await response.json();
+
+            if (data.success && data.data) {
+                var d = data.data;
+                if (d.crop) document.getElementById('sowManualCrop').value = d.crop;
+                if (d.variety) document.getElementById('sowManualVariety').value = d.variety;
+                if (d.lotNumber) document.getElementById('sowManualLotNumber').value = d.lotNumber;
+                if (d.vendor) document.getElementById('sowManualVendor').value = d.vendor;
+
+                var populated = [d.crop, d.variety, d.lotNumber].filter(Boolean).join(', ');
+                status.style.background = 'rgba(34,197,94,0.1)';
+                status.style.color = '#22c55e';
+                status.innerHTML = '<i class="fas fa-check" style="margin-right:4px;"></i>Auto-filled: ' + (populated || 'crop info') + '. Review and edit if needed.';
+                btn.innerHTML = '<i class="fas fa-rotate" style="margin-right:6px;"></i>Re-analyze';
+            } else {
+                status.style.background = 'rgba(234,179,8,0.1)';
+                status.style.color = '#eab308';
+                status.innerHTML = '<i class="fas fa-triangle-exclamation" style="margin-right:4px;"></i>' + (data.error || 'Could not read packet \u2014 please fill in manually');
+                btn.innerHTML = '<i class="fas fa-wand-magic-sparkles" style="margin-right:6px;"></i>Try Again';
+            }
+        } catch (err) {
+            console.error('analyzePacketPhoto error:', err);
+            status.style.background = 'rgba(239,68,68,0.1)';
+            status.style.color = '#ef4444';
+            status.innerHTML = '<i class="fas fa-xmark" style="margin-right:4px;"></i>Error analyzing photo. Please fill in manually.';
+            btn.innerHTML = '<i class="fas fa-wand-magic-sparkles" style="margin-right:6px;"></i>Try Again';
+        }
+        btn.disabled = false;
     }
 
     // ═══════════════════════════════════════

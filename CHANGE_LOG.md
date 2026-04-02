@@ -6,6 +6,20 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## 2026-04-02 — FULLSTACK_BUILDER: Direct Sow dynamic mode + AI seed packet scan
+
+### Files Changed
+- `employee.html`
+  - **Mode toggle**: Added "Not in my plan? Scan packet" toggle to `directSowTab`
+  - **Manual/ad-hoc mode**: `directSowManualMode` section with seed packet photo + AI analyze + crop/variety/lot/vendor text inputs
+  - **AI packet scan**: `analyzePacketPhoto()` calls `analyzeSeedPacket` backend — auto-populates crop, variety, lot, vendor from packet photo; user can edit after
+  - **Photo context**: Added `directSowPacket` to `confirmPhoto`/`removePhoto` routing
+  - **Submit**: `submitDirectSow` no longer requires `batchId` in manual mode; crop name required instead; `recordSeedingDate` skipped when no planned batch
+  - **Reset**: `resetDirectSowForm` clears all new fields and returns to plan mode
+  - **State**: `DirectSowState` extended with `isManualMode` and `packetPhoto`
+
+---
+
 ## 2026-04-02 — FULLSTACK_BUILDER: Add Log Transplant to employee app
 
 ### New Feature: Log Transplant (employee.html + MERGED TOTAL.js)
