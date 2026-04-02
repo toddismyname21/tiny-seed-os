@@ -6,6 +6,25 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## 2026-04-02 — FULLSTACK_BUILDER: Add Log Transplant to employee app
+
+### New Feature: Log Transplant (employee.html + MERGED TOTAL.js)
+- Added "Log Transplant" to More tab (teal icon, `openTransplantLog()`)
+- Full form: batch selector, bed, plant count, row spacing, tray label photo, field photo, GPS, plant quality, soil moisture, voice notes
+- Two modes: Plan-driven (loads from `getTransplantTasks` batches) and Ad-hoc manual entry via toggle
+- Backend: `logTransplantConfirmation` writes to GROWTH_TRACKING + new TRANSPLANT_LOG sheet
+- Backend: writes Act_Transplant date to PLANNING_2026 via `recordSeedingDate` when batchId provided
+- POST whitelist updated, router case added
+- Photo capture wired for `transplantTrayLabel` and `transplantField` contexts
+- Offline support: queues to IndexedDB via `OfflineDB.queueOperation` when no network
+- Success animation overlay on completion (`transplantSuccessOverlay`)
+
+### Files Changed
+- `apps_script/MERGED TOTAL.js` — added `logTransplantConfirmation` function, POST router case, POST whitelist entry
+- `employee.html` — added TransplantLogState, transplantLogTab panel, More menu item, all JS functions, photo capture wiring, success animation
+
+---
+
 ## 2026-04-02 — FULLSTACK_BUILDER: Seedling presale bug fixes (toast visibility + bundle accent matching)
 
 ### Files Changed

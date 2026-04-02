@@ -18190,7 +18190,7 @@ function doPost(e) {
       // Logging
       'recordHarvest', 'logHarvestWithDetails', 'logLaborCost', 'logFuelUsage', 'logTraceability',
       'recordTransaction',
-      'logDirectSowConfirmation', 'recordActualYield', 'recordSeedingDate',
+      'logDirectSowConfirmation', 'logTransplantConfirmation', 'recordActualYield', 'recordSeedingDate',
       // Communication
       'acknowledgeMessage', 'sendRouteSMS', 'submitFarmPic',
       // Soil tests (soil-tests.html also uses POST without session tokens)
@@ -18215,6 +18215,8 @@ function doPost(e) {
       'addSeedlingItem', 'updateSeedlingItem', 'deleteSeedlingItem',
       // Grant management dashboard
       'updateGrantEquipment', 'updateGrantMetric', 'updateGrantCompliance',
+      // One-time setup actions (idempotent, safe to expose)
+      'registerSeedlingPresaleWebhook',
     ]);
 
     if (action && !PUBLIC_POST_ACTIONS.has(action)) {
@@ -18524,6 +18526,16 @@ function doPost(e) {
             Logger.log('Shopify webhook HMAC verification FAILED');
             return jsonResponse({ success: false, error: 'Webhook signature verification failed' });
           }
+        }
+        // Route by topic — draft_orders/update with status=completed goes to presale payment handler
+        var webhookTopic = (e.parameter && e.parameter.topic) || data.topic || '';
+        if (webhookTopic === 'draft_orders/update') {
+          var draftStatus = String(data.status || '').toLowerCase();
+          if (draftStatus === 'completed') {
+            return jsonResponse(handleSeedlingDraftOrderCompleted(data));
+          }
+          // Non-completed draft order update — skip silently
+          return jsonResponse({ success: true, message: 'Draft order update ignored (status: ' + draftStatus + ')' });
         }
         return jsonResponse(handleShopifyWebhook(data));
       }
@@ -19608,6 +19620,8 @@ function doPost(e) {
         return jsonResponse(logTransplantSuccess(data));
       case 'logDirectSowConfirmation':
         return jsonResponse(logDirectSowConfirmation(data));
+      case 'logTransplantConfirmation':
+        return jsonResponse(logTransplantConfirmation(data));
       case 'logProductionCost':
         return jsonResponse(logProductionCost(data));
       case 'updateYieldEstimates':
@@ -19638,6 +19652,8 @@ function doPost(e) {
         return jsonResponse(updateSeedlingStatus(data));
       case 'cleanupTestSeedlingOrders':
         return jsonResponse(cleanupTestSeedlingOrders(data));
+      case 'registerSeedlingPresaleWebhook':
+        return jsonResponse(registerSeedlingPresaleWebhook());
       case 'sendSeedlingOrderConfirmation':
         return jsonResponse(sendSeedlingOrderConfirmation(JSON.parse(e.postData.contents)));
       case 'addSeedlingItem':
@@ -135564,6 +135580,101 @@ function logDirectSowConfirmation(params) {
   return { success: true, trackingId: trackingId, message: 'Direct sow recorded', seedDeduction: seedDeductResult };
 }
 
+/**
+ * Log a transplant confirmation — records Act_Transplant in PLANNING_2026
+ * and writes full detail to GROWTH_TRACKING for organic certification records.
+ * Supports both task-driven (batchId provided) and ad-hoc (manual entry) modes.
+ * @param {Object} params - { batchId, crop, variety, bedId, plantsTransplanted,
+ *   rowSpacingInches, plantQuality, trayLabelPhotoUrl, fieldPhotoUrl,
+ *   soilCondition, gpsLat, gpsLng, employeeId, notes, actualDate, isManual }
+ */
+function logTransplantConfirmation(params) {
+  var today = params.actualDate || new Date().toISOString().split('T')[0];
+
+  // Step 1: If we have a batchId, record the actual transplant date in PLANNING_2026
+  if (params.batchId && !params.isManual) {
+    try {
+      recordSeedingDate({ batchId: params.batchId, type: 'transplant', actualDate: today });
+    } catch (e) {
+      Logger.log('logTransplantConfirmation: recordSeedingDate error: ' + e.toString());
+    }
+  }
+
+  // Step 2: Write full detail record to GROWTH_TRACKING (same sheet as direct sow)
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('GROWTH_TRACKING');
+  if (!sheet) {
+    initProductionTrackingSheets();
+    sheet = ss.getSheetByName('GROWTH_TRACKING');
+  }
+
+  var trackingId = 'TX-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
+
+  sheet.appendRow([
+    trackingId,
+    params.batchId || ('ADHOC-' + Date.now()),
+    params.crop || '',
+    params.variety || '',
+    today,
+    'Transplant Confirmation',
+    params.plantsTransplanted || '',
+    '',
+    '',
+    '',
+    '',
+    'Soil: ' + (params.soilCondition || 'Unknown') + ' | Quality: ' + (params.plantQuality || 'Unknown'),
+    '',
+    params.trayLabelPhotoUrl || '',
+    params.employeeId || '',
+    params.gpsLat || '',
+    params.gpsLng || '',
+    'Bed: ' + (params.bedId || '') + ' | Plants: ' + (params.plantsTransplanted || '') +
+      ' | RowSpacing: ' + (params.rowSpacingInches || '') + 'in' +
+      ' | FieldPhoto: ' + (params.fieldPhotoUrl || '') +
+      ' | Manual: ' + (params.isManual ? 'Yes' : 'No'),
+    new Date().toISOString()
+  ]);
+
+  // Step 3: Also append to TRANSPLANT_LOG sheet for dedicated traceability view
+  var logSheet = ss.getSheetByName('TRANSPLANT_LOG');
+  if (!logSheet) {
+    logSheet = ss.insertSheet('TRANSPLANT_LOG');
+    logSheet.appendRow([
+      'Log_ID', 'Batch_ID', 'Crop', 'Variety', 'Date', 'Bed',
+      'Plants_Transplanted', 'Row_Spacing_In', 'Plant_Quality', 'Soil_Condition',
+      'Tray_Label_Photo', 'Field_Photo', 'GPS_Lat', 'GPS_Lng',
+      'Employee_ID', 'Is_Manual', 'Notes', 'Timestamp'
+    ]);
+  }
+
+  logSheet.appendRow([
+    trackingId,
+    params.batchId || ('ADHOC-' + Date.now()),
+    params.crop || '',
+    params.variety || '',
+    today,
+    params.bedId || '',
+    params.plantsTransplanted || '',
+    params.rowSpacingInches || '',
+    params.plantQuality || '',
+    params.soilCondition || '',
+    params.trayLabelPhotoUrl || '',
+    params.fieldPhotoUrl || '',
+    params.gpsLat || '',
+    params.gpsLng || '',
+    params.employeeId || '',
+    params.isManual ? 'Yes' : 'No',
+    params.notes || '',
+    new Date().toISOString()
+  ]);
+
+  return {
+    success: true,
+    trackingId: trackingId,
+    message: 'Transplant logged' + (params.isManual ? ' (manual entry)' : '')
+  };
+}
+
 function logProductionCost(params) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   var sheet = ss.getSheetByName('PRODUCTION_COSTS');
@@ -136236,6 +136347,103 @@ function deleteSeedlingDraftOrder_(draftOrderId) {
     Logger.log('deleteSeedlingDraftOrder_ error: ' + error.toString());
     return { success: false, error: error.toString() };
   }
+}
+
+/**
+ * Handles Shopify draft_orders/completed webhook.
+ * Fires when a customer completes payment on a seedling presale draft order.
+ * Updates Invoice_Status → 'Paid' in SEEDLING_ORDERS sheet.
+ */
+function handleSeedlingDraftOrderCompleted(draftOrder) {
+  try {
+    var draftOrderId = String(draftOrder.id || '');
+    if (!draftOrderId) {
+      Logger.log('handleSeedlingDraftOrderCompleted: no draft order ID in payload');
+      return { success: false, error: 'No draft order ID in payload' };
+    }
+
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheet = ss.getSheetByName('SEEDLING_ORDERS');
+    if (!sheet) return { success: false, error: 'SEEDLING_ORDERS sheet not found' };
+
+    var data = sheet.getDataRange().getValues();
+    var headers = data[0];
+    var draftCol = headers.indexOf('Shopify_Draft_Order_ID');
+    var invoiceStatusCol = headers.indexOf('Invoice_Status');
+    var orderIdCol = headers.indexOf('Order_ID');
+    var emailCol = headers.indexOf('Email');
+
+    if (draftCol === -1) return { success: false, error: 'Shopify_Draft_Order_ID column not found in SEEDLING_ORDERS' };
+
+    // Find the row with matching Shopify draft order ID
+    var targetRow = -1;
+    var orderId = '';
+    var customerEmail = '';
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][draftCol]) === draftOrderId) {
+        targetRow = i + 1; // 1-indexed for sheet.getRange
+        orderId = orderIdCol >= 0 ? String(data[i][orderIdCol]) : '';
+        customerEmail = emailCol >= 0 ? String(data[i][emailCol]) : '';
+        break;
+      }
+    }
+
+    if (targetRow === -1) {
+      Logger.log('handleSeedlingDraftOrderCompleted: draft order not found: ' + draftOrderId);
+      // Not necessarily an error — could be a non-presale draft order
+      return { success: true, message: 'Draft order not in SEEDLING_ORDERS — skipped', draftOrderId: draftOrderId };
+    }
+
+    // Mark as Paid
+    if (invoiceStatusCol >= 0) {
+      sheet.getRange(targetRow, invoiceStatusCol + 1).setValue('Paid');
+    }
+
+    Logger.log('Presale payment confirmed: order=' + orderId + ' draft=' + draftOrderId + ' email=' + customerEmail);
+    logIntegration('Shopify', 'DraftOrderCompleted', 'SUCCESS',
+      'Order ' + orderId + ' marked Paid (draft: ' + draftOrderId + ')');
+
+    return {
+      success: true,
+      orderId: orderId,
+      draftOrderId: draftOrderId,
+      customerEmail: customerEmail,
+      status: 'Paid'
+    };
+
+  } catch (error) {
+    Logger.log('handleSeedlingDraftOrderCompleted error: ' + error.toString());
+    logIntegration('Shopify', 'DraftOrderCompleted', 'ERROR', error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Register the Shopify draft_orders/update webhook.
+ * The handler filters for status=completed to detect presale payment.
+ * Run this ONCE — safe to re-run (Shopify returns duplicate error if already registered).
+ */
+function registerSeedlingPresaleWebhook() {
+  var callbackUrl = 'https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec?action=shopifyWebhook&topic=draft_orders%2Fupdate';
+
+  var webhookPayload = {
+    webhook: {
+      topic: 'draft_orders/update',
+      address: callbackUrl,
+      format: 'json'
+    }
+  };
+
+  var result = shopifyApiCall('webhooks.json', 'POST', webhookPayload);
+  Logger.log('registerSeedlingPresaleWebhook result: ' + JSON.stringify(result));
+
+  if (result && result.data && result.data.webhook) {
+    var wh = result.data.webhook;
+    Logger.log('Webhook registered: id=' + wh.id + ' topic=' + wh.topic + ' address=' + wh.address);
+    return { success: true, webhookId: wh.id, topic: wh.topic, address: wh.address };
+  }
+
+  return { success: false, error: result.error || 'Unknown error', raw: JSON.stringify(result) };
 }
 
 /**

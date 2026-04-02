@@ -10953,6 +10953,17 @@
                         <i class="fas fa-chevron-right"></i>
                     </div>
 
+                    <div class="more-item" onclick="openTransplantLog()">
+                        <div class="more-item-icon" style="background: linear-gradient(135deg, #0d9488, #0f766e);">
+                            <i class="fas fa-arrow-right-to-bracket"></i>
+                        </div>
+                        <div class="more-item-text">
+                            <h3>Log Transplant</h3>
+                            <p>Record field transplanting with tray label &amp; traceability</p>
+                        </div>
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+
                     <div class="more-item" onclick="openFieldCapture()">
                         <div class="more-item-icon" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8);">
                             <i class="fas fa-draw-polygon"></i>
@@ -12138,12 +12149,176 @@
                 </div>
             </div>
 
+            <!-- TRANSPLANT LOG TAB -->
+            <!-- ============================== -->
+            <div id="transplantLogTab" class="tab-panel">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <i class="fas fa-arrow-right-to-bracket" style="color:#0d9488;"></i>
+                        <span>Log Transplant</span>
+                    </h2>
+                    <button class="back-btn" onclick="switchTab('more')">
+                        <i class="fas fa-arrow-left"></i>
+                    </button>
+                </div>
+
+                <div class="form-card">
+                    <div class="form-card-header" style="background:linear-gradient(135deg,#0d9488,#0f766e);">
+                        <i class="fas fa-seedling"></i>
+                        <span>Transplant Record</span>
+                    </div>
+
+                    <!-- Mode toggle: Plan vs Manual -->
+                    <div class="form-group" style="margin-bottom:8px;">
+                        <div style="display:flex;align-items:center;justify-content:space-between;">
+                            <label class="form-label" style="margin:0;">Planting / Batch</label>
+                            <button type="button" id="transplantModeToggle"
+                                style="font-size:0.75rem;color:#0d9488;background:none;border:none;cursor:pointer;padding:4px 0;font-family:inherit;"
+                                onclick="toggleTransplantManualMode()">
+                                Not in my plan? Enter manually
+                            </button>
+                        </div>
+                        <!-- Plan mode: dropdown -->
+                        <div id="transplantPlanMode">
+                            <select class="form-input" id="transplantBatchSelect" onchange="onTransplantBatchChange()">
+                                <option value="">Select a transplant batch...</option>
+                            </select>
+                        </div>
+                        <!-- Manual mode: crop + variety text fields -->
+                        <div id="transplantManualMode" style="display:none;">
+                            <input type="text" class="form-input" id="transplantManualCrop"
+                                   placeholder="Crop (e.g. Tomato)" style="margin-bottom:8px;">
+                            <input type="text" class="form-input" id="transplantManualVariety"
+                                   placeholder="Variety (e.g. Sungold)">
+                        </div>
+                    </div>
+
+                    <!-- Bed -->
+                    <div class="form-group">
+                        <label class="form-label">Bed / Location</label>
+                        <input type="text" class="form-input" id="transplantBedId"
+                               placeholder="e.g. BED-A1 (auto-filled from plan)">
+                    </div>
+
+                    <!-- Plants -->
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Plants Transplanted</label>
+                            <input type="number" class="form-input" id="transplantPlantCount"
+                                   inputmode="numeric" placeholder="0">
+                            <span id="transplantPlanCount" style="font-size:0.75rem;color:var(--text-secondary);display:block;margin-top:2px;"></span>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Row Spacing (in)</label>
+                            <input type="number" class="form-input" id="transplantRowSpacing"
+                                   inputmode="numeric" placeholder="6">
+                        </div>
+                    </div>
+
+                    <!-- Tray Label Photo — PRIMARY traceability field -->
+                    <div class="form-group">
+                        <label class="form-label" style="color:#0d9488;font-weight:700;">
+                            <i class="fas fa-tag" style="margin-right:4px;"></i>
+                            Tray Label Photo
+                            <span style="font-size:0.75rem;color:var(--text-secondary);font-weight:400;"> — lot #, variety &amp; supplier</span>
+                        </label>
+                        <div class="photo-capture-btn" onclick="capturePhoto('transplantTrayLabel')"
+                             style="border-color:#0d9488;color:#0d9488;">
+                            <i class="fas fa-tag"></i>
+                            <span>Photograph Tray Label</span>
+                        </div>
+                        <div class="photo-preview" id="transplantTrayLabelPhotoPreview" style="display:none;"></div>
+                    </div>
+
+                    <!-- Field Photo (optional) -->
+                    <div class="form-group">
+                        <label class="form-label">Field Photo <span style="font-size:0.75rem;color:var(--text-secondary);font-weight:400;">(optional)</span></label>
+                        <div class="photo-capture-btn" onclick="capturePhoto('transplantField')">
+                            <i class="fas fa-camera"></i>
+                            <span>Take Field Photo</span>
+                        </div>
+                        <div class="photo-preview" id="transplantFieldPhotoPreview" style="display:none;"></div>
+                    </div>
+
+                    <!-- GPS -->
+                    <div style="display:flex;align-items:center;gap:8px;padding:8px 0;color:var(--text-secondary);font-size:0.85rem;">
+                        <i class="fas fa-location-dot" id="transplantGpsIcon" style="color:var(--text-muted);"></i>
+                        <span id="transplantGpsStatus">GPS will auto-capture on submit</span>
+                    </div>
+
+                    <!-- Plant Quality -->
+                    <div class="form-group">
+                        <label class="form-label">Plant Quality</label>
+                        <div class="soil-condition-btns">
+                            <button class="soil-btn" onclick="setTransplantQuality('excellent')" data-quality="excellent">
+                                <i class="fas fa-star"></i> Excellent
+                            </button>
+                            <button class="soil-btn" onclick="setTransplantQuality('good')" data-quality="good">
+                                <i class="fas fa-thumbs-up"></i> Good
+                            </button>
+                            <button class="soil-btn" onclick="setTransplantQuality('fair')" data-quality="fair">
+                                <i class="fas fa-minus"></i> Fair
+                            </button>
+                            <button class="soil-btn" onclick="setTransplantQuality('poor')" data-quality="poor">
+                                <i class="fas fa-thumbs-down"></i> Poor
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Soil Moisture -->
+                    <div class="form-group">
+                        <label class="form-label">Soil Moisture</label>
+                        <div class="soil-condition-btns">
+                            <button class="soil-btn" onclick="setTransplantSoilCondition('dry')" data-txsoil="dry">
+                                <i class="fas fa-sun"></i> Dry
+                            </button>
+                            <button class="soil-btn" onclick="setTransplantSoilCondition('moist')" data-txsoil="moist">
+                                <i class="fas fa-droplet"></i> Moist
+                            </button>
+                            <button class="soil-btn" onclick="setTransplantSoilCondition('wet')" data-txsoil="wet">
+                                <i class="fas fa-cloud-rain"></i> Wet
+                            </button>
+                            <button class="soil-btn" onclick="setTransplantSoilCondition('saturated')" data-txsoil="saturated">
+                                <i class="fas fa-water"></i> Saturated
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Notes -->
+                    <div class="form-group">
+                        <label class="form-label">Notes</label>
+                        <div class="voice-input-wrapper">
+                            <textarea class="form-input" id="transplantNotes" rows="2"
+                                      placeholder="Transplant observations, spacing notes, any issues..."></textarea>
+                            <button class="voice-btn" onclick="startVoice('transplantNotes')">
+                                <i class="fas fa-microphone"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Submit -->
+                    <button class="btn-primary" onclick="submitTransplantLog()" id="transplantSubmitBtn"
+                            style="background:linear-gradient(135deg,#0d9488,#0f766e);">
+                        <i class="fas fa-check"></i>
+                        <span>Confirm Transplant</span>
+                    </button>
+                </div>
+            </div>
+
             <!-- Direct Sow Success Animation Overlay -->
             <div class="sow-success-animation" id="sowSuccessOverlay">
                 <div class="sow-success-check">
                     <i class="fas fa-seedling"></i>
                 </div>
                 <div class="sow-success-text">Sowing Logged!</div>
+            </div>
+
+            <!-- Transplant Log Success Animation -->
+            <div class="sow-success-animation" id="transplantSuccessOverlay">
+                <div class="sow-success-check" style="background:rgba(13,148,136,0.2);">
+                    <i class="fas fa-arrow-right-to-bracket" style="color:#0d9488;"></i>
+                </div>
+                <div class="sow-success-text">Transplant Logged!</div>
             </div>
 
         </main>
@@ -23718,13 +23893,19 @@
             const targetMap = {
                 'harvest': 'harvestPhotoPreview',
                 'scout': 'scoutPhotoPreview',
-                'directSow': 'directSowPhotoPreview'
+                'directSow': 'directSowPhotoPreview',
+                'transplantTrayLabel': 'transplantTrayLabelPhotoPreview',
+                'transplantField': 'transplantFieldPhotoPreview'
             };
             const previewId = targetMap[AppState.currentPhotoTarget] || 'scoutPhotoPreview';
             const preview = document.getElementById(previewId);
 
             if (AppState.currentPhotoTarget === 'directSow') {
                 DirectSowState.capturedPhoto = AppState.capturedPhoto;
+            } else if (AppState.currentPhotoTarget === 'transplantTrayLabel') {
+                TransplantLogState.trayLabelPhoto = AppState.capturedPhoto;
+            } else if (AppState.currentPhotoTarget === 'transplantField') {
+                TransplantLogState.fieldPhoto = AppState.capturedPhoto;
             }
 
             preview.innerHTML = `
@@ -23742,11 +23923,17 @@
             AppState.capturedPhoto = null;
             if (target === 'directSow') {
                 DirectSowState.capturedPhoto = null;
+            } else if (target === 'transplantTrayLabel') {
+                TransplantLogState.trayLabelPhoto = '';
+            } else if (target === 'transplantField') {
+                TransplantLogState.fieldPhoto = '';
             }
             const targetMap = {
                 'harvest': 'harvestPhotoPreview',
                 'scout': 'scoutPhotoPreview',
-                'directSow': 'directSowPhotoPreview'
+                'directSow': 'directSowPhotoPreview',
+                'transplantTrayLabel': 'transplantTrayLabelPhotoPreview',
+                'transplantField': 'transplantFieldPhotoPreview'
             };
             const previewId = targetMap[target] || 'scoutPhotoPreview';
             document.getElementById(previewId).style.display = 'none';
@@ -30782,6 +30969,19 @@
         seedInventory: []
     };
 
+    // ═══════════════════════════════════════
+    // TRANSPLANT LOG STATE
+    // ═══════════════════════════════════════
+    var TransplantLogState = {
+        batches: [],
+        selectedBatch: null,
+        trayLabelPhoto: '',
+        fieldPhoto: '',
+        soilCondition: '',
+        plantQuality: '',
+        isManualMode: false
+    };
+
     function openDirectSow() {
         switchTab('directSow');
         loadDirectSowBatches();
@@ -31069,6 +31269,228 @@
         DirectSowState.soilCondition = null;
         DirectSowState.capturedPhoto = null;
         document.querySelectorAll('.soil-btn').forEach(btn => btn.classList.remove('active'));
+    }
+
+    // ═══════════════════════════════════════
+    // TRANSPLANT LOG FUNCTIONS
+    // ═══════════════════════════════════════
+
+    function openTransplantLog() {
+        switchTab('transplantLog');
+        TransplantLogState.isManualMode = false;
+        loadTransplantBatches();
+    }
+
+    async function loadTransplantBatches() {
+        var select = document.getElementById('transplantBatchSelect');
+        select.innerHTML = '<option value="">Loading batches...</option>';
+        try {
+            var response = await fetch(CONFIG.API_URL + '?action=getTransplantTasks');
+            var data = await response.json();
+            select.innerHTML = '<option value="">Select a transplant batch...</option>';
+            if (data.success && (data.tasks || data.data)) {
+                var batches = data.tasks || data.data || [];
+                // Show all batches — completed and pending — filter to pending (no Act_Transplant)
+                var pending = batches.filter(function(b) {
+                    return !b.actualDate && !b.completed;
+                });
+                // Also include overdue batches
+                TransplantLogState.batches = pending.length > 0 ? pending : batches;
+                TransplantLogState.batches.forEach(function(batch, i) {
+                    var batchId = batch.batchId || batch.Batch_ID || '';
+                    var crop = batch.crop || batch.Crop || '';
+                    var variety = batch.variety || batch.Variety || '';
+                    var planned = batch.plannedDate || batch.transplantDate || '';
+                    var label = batchId + ' — ' + crop + (variety ? ' (' + variety + ')' : '') + (planned ? ' [plan: ' + planned + ']' : '');
+                    select.innerHTML += '<option value="' + batchId + '" data-index="' + i + '">' + label + '</option>';
+                });
+                if (TransplantLogState.batches.length === 0) {
+                    select.innerHTML = '<option value="">No pending transplant tasks found</option>';
+                }
+            } else {
+                select.innerHTML = '<option value="">No batches found</option>';
+            }
+        } catch (err) {
+            console.error('loadTransplantBatches error:', err);
+            select.innerHTML = '<option value="">Error loading — use manual entry</option>';
+        }
+    }
+
+    function onTransplantBatchChange() {
+        var select = document.getElementById('transplantBatchSelect');
+        var selectedOption = select.options[select.selectedIndex];
+        var idx = selectedOption && selectedOption.dataset && selectedOption.dataset.index;
+        if (!idx && idx !== '0') {
+            TransplantLogState.selectedBatch = null;
+            return;
+        }
+        var batch = TransplantLogState.batches[parseInt(idx)];
+        TransplantLogState.selectedBatch = batch;
+
+        // Auto-fill from plan
+        var bed = batch.bed || batch.Bed || batch.Target_Bed_ID || '';
+        document.getElementById('transplantBedId').value = bed;
+
+        var plants = batch.plantsNeeded || batch.Plants_Needed || '';
+        if (plants) {
+            document.getElementById('transplantPlantCount').value = plants;
+            document.getElementById('transplantPlanCount').textContent = 'Plan: ' + plants + ' plants';
+        }
+    }
+
+    function toggleTransplantManualMode() {
+        TransplantLogState.isManualMode = !TransplantLogState.isManualMode;
+        var planDiv = document.getElementById('transplantPlanMode');
+        var manualDiv = document.getElementById('transplantManualMode');
+        var toggleBtn = document.getElementById('transplantModeToggle');
+        if (TransplantLogState.isManualMode) {
+            planDiv.style.display = 'none';
+            manualDiv.style.display = 'block';
+            toggleBtn.textContent = '\u2190 Back to plan list';
+            TransplantLogState.selectedBatch = null;
+        } else {
+            planDiv.style.display = 'block';
+            manualDiv.style.display = 'none';
+            toggleBtn.textContent = 'Not in my plan? Enter manually';
+        }
+    }
+
+    function setTransplantQuality(quality) {
+        TransplantLogState.plantQuality = quality;
+        document.querySelectorAll('[data-quality]').forEach(function(btn) {
+            btn.classList.toggle('active', btn.dataset.quality === quality);
+        });
+    }
+
+    function setTransplantSoilCondition(condition) {
+        TransplantLogState.soilCondition = condition;
+        document.querySelectorAll('[data-txsoil]').forEach(function(btn) {
+            btn.classList.toggle('active', btn.dataset.txsoil === condition);
+        });
+    }
+
+    async function submitTransplantLog() {
+        var btn = document.getElementById('transplantSubmitBtn');
+
+        // Gather values
+        var batchId = '', crop = '', variety = '';
+        if (TransplantLogState.isManualMode) {
+            crop = (document.getElementById('transplantManualCrop').value || '').trim();
+            variety = (document.getElementById('transplantManualVariety').value || '').trim();
+            if (!crop) { showToast('Please enter a crop name', 'error'); return; }
+            batchId = '';
+        } else {
+            var select = document.getElementById('transplantBatchSelect');
+            batchId = select.value;
+            if (TransplantLogState.selectedBatch) {
+                crop = TransplantLogState.selectedBatch.crop || TransplantLogState.selectedBatch.Crop || '';
+                variety = TransplantLogState.selectedBatch.variety || TransplantLogState.selectedBatch.Variety || '';
+            }
+        }
+
+        var bedId = (document.getElementById('transplantBedId').value || '').trim();
+        var plantCount = parseInt(document.getElementById('transplantPlantCount').value) || 0;
+        var rowSpacing = document.getElementById('transplantRowSpacing').value;
+        var notes = document.getElementById('transplantNotes').value;
+
+        if (!plantCount || plantCount <= 0) {
+            showToast('Please enter number of plants transplanted', 'error');
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Logging...</span>';
+
+        try {
+            var gps = await captureGPS();
+            var today = new Date().toISOString().split('T')[0];
+
+            if (gps.lat) {
+                document.getElementById('transplantGpsIcon').style.color = 'var(--success)';
+                document.getElementById('transplantGpsStatus').textContent = 'GPS: ' + gps.lat.toFixed(4) + ', ' + gps.lng.toFixed(4);
+            }
+
+            var payload = {
+                action: 'logTransplantConfirmation',
+                batchId: batchId,
+                crop: crop,
+                variety: variety,
+                bedId: bedId,
+                plantsTransplanted: plantCount,
+                rowSpacingInches: rowSpacing,
+                plantQuality: TransplantLogState.plantQuality,
+                trayLabelPhotoUrl: TransplantLogState.trayLabelPhoto || '',
+                fieldPhotoUrl: TransplantLogState.fieldPhoto || '',
+                soilCondition: TransplantLogState.soilCondition,
+                gpsLat: gps.lat || '',
+                gpsLng: gps.lng || '',
+                employeeId: AppState.employee && AppState.employee.Employee_ID ? AppState.employee.Employee_ID : '',
+                notes: notes,
+                actualDate: today,
+                isManual: TransplantLogState.isManualMode
+            };
+
+            if (AppState.isOnline) {
+                var response = await fetch(CONFIG.API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify(payload)
+                });
+                var result = await response.json();
+                if (result.success) {
+                    showTransplantSuccessAnimation();
+                    resetTransplantLogForm();
+                } else {
+                    showToast(result.error || 'Error logging transplant', 'error');
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-check"></i> <span>Confirm Transplant</span>';
+                }
+            } else {
+                // Offline: queue operation
+                await OfflineDB.queueOperation('logTransplantConfirmation', payload);
+                showTransplantSuccessAnimation();
+                resetTransplantLogForm();
+            }
+        } catch (err) {
+            console.error('submitTransplantLog error:', err);
+            showToast('Error submitting transplant log', 'error');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-check"></i> <span>Confirm Transplant</span>';
+        }
+    }
+
+    function showTransplantSuccessAnimation() {
+        var overlay = document.getElementById('transplantSuccessOverlay');
+        if (!overlay) return;
+        overlay.classList.add('visible');
+        setTimeout(function() { overlay.classList.remove('visible'); }, 2000);
+    }
+
+    function resetTransplantLogForm() {
+        document.getElementById('transplantBatchSelect').value = '';
+        document.getElementById('transplantBedId').value = '';
+        document.getElementById('transplantPlantCount').value = '';
+        document.getElementById('transplantRowSpacing').value = '';
+        document.getElementById('transplantNotes').value = '';
+        document.getElementById('transplantPlanCount').textContent = '';
+        document.getElementById('transplantTrayLabelPhotoPreview').style.display = 'none';
+        document.getElementById('transplantFieldPhotoPreview').style.display = 'none';
+        document.getElementById('transplantGpsIcon').style.color = 'var(--text-muted)';
+        document.getElementById('transplantGpsStatus').textContent = 'GPS will auto-capture on submit';
+        document.querySelectorAll('[data-quality]').forEach(function(b) { b.classList.remove('active'); });
+        document.querySelectorAll('[data-txsoil]').forEach(function(b) { b.classList.remove('active'); });
+        TransplantLogState.selectedBatch = null;
+        TransplantLogState.trayLabelPhoto = '';
+        TransplantLogState.fieldPhoto = '';
+        TransplantLogState.soilCondition = '';
+        TransplantLogState.plantQuality = '';
+        // Reset to plan mode
+        if (TransplantLogState.isManualMode) toggleTransplantManualMode();
+        var btn = document.getElementById('transplantSubmitBtn');
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-check"></i> <span>Confirm Transplant</span>';
+        }
     }
 
     const VoiceCommand = {
