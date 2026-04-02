@@ -12037,7 +12037,7 @@
                         <i class="fas fa-seedling"></i>
                         <span>Log Direct Sow</span>
                     </h2>
-                    <button class="back-btn" onclick="switchTab('more')">
+                    <button class="back-btn" onclick="directSowBackBtn()">
                         <i class="fas fa-arrow-left"></i>
                     </button>
                 </div>
@@ -31152,7 +31152,8 @@
         capturedPhoto: null,
         seedInventory: [],
         isManualMode: false,
-        packetPhoto: null
+        packetPhoto: null,
+        savedForm: null  // persisted form data for navigation recovery
     };
 
     // ═══════════════════════════════════════
@@ -31174,13 +31175,31 @@
     };
 
     function openDirectSow() {
-        // Always start in plan mode
-        if (DirectSowState.isManualMode) {
-            toggleDirectSowManualMode(); // toggle back to plan mode
+        // Always start in plan mode ONLY if no saved data
+        if (!DirectSowState.savedForm) {
+            if (DirectSowState.isManualMode) {
+                toggleDirectSowManualMode();
+            }
         }
         switchTab('directSow');
         loadDirectSowBatches();
         loadFieldDropdown('sowBedId');
+
+        // Restore saved form state if any
+        if (DirectSowState.savedForm) {
+            restoreDirectSowFormState();
+        }
+
+        // Wire auto-save on all inputs (once)
+        if (!DirectSowState._autoSaveWired) {
+            DirectSowState._autoSaveWired = true;
+            var ids = ['sowFeet','sowRows','sowNotes','sowManualCrop','sowManualVariety','sowManualLotNumber','sowManualVendor','directSowSeedsToDeduct','sowBatchSelect','sowBedId','sowSeedLot'];
+            ids.forEach(function(id) {
+                var el = document.getElementById(id);
+                if (el) el.addEventListener('input', saveDirectSowFormState);
+                if (el) el.addEventListener('change', saveDirectSowFormState);
+            });
+        }
     }
 
     async function loadDirectSowBatches() {
@@ -31518,6 +31537,8 @@
         if (analyzeBtn) { analyzeBtn.style.display = 'none'; analyzeBtn.disabled = false; analyzeBtn.innerHTML = '<i class="fas fa-wand-magic-sparkles" style="margin-right:6px;"></i>Analyze with AI'; }
         var aiStatus = document.getElementById('directSowAiStatus');
         if (aiStatus) { aiStatus.style.display = 'none'; aiStatus.textContent = ''; }
+        DirectSowState.savedForm = null;  // clear saved state on successful submit
+        DirectSowState._autoSaveWired = false; // allow re-wiring next open
         // Reset to plan mode if in manual mode
         if (DirectSowState.isManualMode) toggleDirectSowManualMode();
         document.querySelectorAll('.soil-btn').forEach(btn => btn.classList.remove('active'));
@@ -31649,6 +31670,98 @@
         }
         btn.disabled = false;
         btn.textContent = 'Save Field';
+    }
+
+    function directSowFormHasData() {
+        var feet = document.getElementById('sowFeet');
+        var notes = document.getElementById('sowNotes');
+        var manualCrop = document.getElementById('sowManualCrop');
+        var batchSel = document.getElementById('sowBatchSelect');
+        if (feet && parseFloat(feet.value) > 0) return true;
+        if (notes && notes.value.trim()) return true;
+        if (manualCrop && manualCrop.value.trim()) return true;
+        if (batchSel && batchSel.value) return true;
+        if (DirectSowState.capturedPhoto || DirectSowState.packetPhoto) return true;
+        if (DirectSowState.soilCondition) return true;
+        return false;
+    }
+
+    function directSowBackBtn() {
+        if (directSowFormHasData()) {
+            if (!confirm('You have unsaved sow data. Go back anyway?\n\nYour data will be saved and restored when you return.')) {
+                return;
+            }
+            saveDirectSowFormState();
+        }
+        switchTab('more');
+    }
+
+    function saveDirectSowFormState() {
+        var get = function(id) { var el = document.getElementById(id); return el ? el.value : ''; };
+        DirectSowState.savedForm = {
+            batchId:      get('sowBatchSelect'),
+            bedId:        get('sowBedId'),
+            feet:         get('sowFeet'),
+            rows:         get('sowRows'),
+            seedLot:      get('sowSeedLot'),
+            seedsDeduct:  get('directSowSeedsToDeduct'),
+            notes:        get('sowNotes'),
+            manualCrop:   get('sowManualCrop'),
+            manualVariety:get('sowManualVariety'),
+            manualLot:    get('sowManualLotNumber'),
+            manualVendor: get('sowManualVendor'),
+            soilCondition: DirectSowState.soilCondition,
+            isManualMode:  DirectSowState.isManualMode,
+            capturedPhoto: DirectSowState.capturedPhoto,
+            packetPhoto:   DirectSowState.packetPhoto
+        };
+    }
+
+    function restoreDirectSowFormState() {
+        var s = DirectSowState.savedForm;
+        if (!s) return;
+        var set = function(id, val) { var el = document.getElementById(id); if (el && val) el.value = val; };
+
+        // Restore mode first
+        if (s.isManualMode && !DirectSowState.isManualMode) toggleDirectSowManualMode();
+
+        set('sowFeet', s.feet);
+        set('sowRows', s.rows);
+        set('sowNotes', s.notes);
+        set('sowManualCrop', s.manualCrop);
+        set('sowManualVariety', s.manualVariety);
+        set('sowManualLotNumber', s.manualLot);
+        set('sowManualVendor', s.manualVendor);
+        set('directSowSeedsToDeduct', s.seedsDeduct);
+
+        // Restore soil condition buttons
+        if (s.soilCondition) {
+            DirectSowState.soilCondition = s.soilCondition;
+            document.querySelectorAll('.soil-btn').forEach(function(btn) {
+                btn.classList.toggle('active', btn.dataset.soil === s.soilCondition);
+            });
+        }
+
+        // Restore photos
+        if (s.capturedPhoto) {
+            DirectSowState.capturedPhoto = s.capturedPhoto;
+            var prev = document.getElementById('directSowPhotoPreview');
+            if (prev) { prev.innerHTML = '<img src="' + s.capturedPhoto + '" style="max-width:100%;border-radius:6px;">'; prev.style.display = 'block'; }
+        }
+        if (s.packetPhoto) {
+            DirectSowState.packetPhoto = s.packetPhoto;
+            var pprev = document.getElementById('directSowPacketPreview');
+            if (pprev) { pprev.innerHTML = '<img src="' + s.packetPhoto + '" style="max-width:100%;border-radius:6px;">'; pprev.style.display = 'block'; }
+            var analyzeBtn = document.getElementById('directSowAnalyzeBtn');
+            if (analyzeBtn) analyzeBtn.style.display = 'block';
+        }
+
+        // Restore select values after a tick (dropdowns may still be loading)
+        setTimeout(function() {
+            set('sowBedId', s.bedId);
+            set('sowBatchSelect', s.batchId);
+            if (s.seedLot) set('sowSeedLot', s.seedLot);
+        }, 600);
     }
 
     // ═══════════════════════════════════════

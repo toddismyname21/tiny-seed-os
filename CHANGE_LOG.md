@@ -6,6 +6,17 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## 2026-04-02 — FULLSTACK_BUILDER: Direct Sow data loss fix
+
+### Files Changed
+- `employee.html`
+  - Back button now warns before leaving if form has data ("unsaved sow data — go back anyway? data saved for return")
+  - Form state auto-saved to DirectSowState on every input change
+  - Reopening Direct Sow restores all field values, soil condition, photos, mode
+  - State only cleared on successful submit (resetDirectSowForm)
+
+---
+
 ## 2026-04-02 — FULLSTACK_BUILDER: Field dropdowns in Direct Sow + Transplant forms
 
 ### Files Changed
