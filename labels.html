@@ -1230,8 +1230,8 @@
                 </div>
 
                 <div class="form-group" id="potTagCustomGroup" style="display: none;">
-                    <label>Custom Tag Count</label>
-                    <input type="number" class="form-control" id="potTagCustomCount" min="1" value="10" placeholder="Number of tags">
+                    <label>Tags to Print Per Crop</label>
+                    <input type="number" class="form-control" id="potTagCustomCount" min="1" value="10" placeholder="e.g. 50">
                 </div>
 
                 <div class="form-group">
@@ -2259,8 +2259,8 @@
 
             // Show/hide label options based on type
             document.getElementById('labelsPerTrayGroup').style.display = (type === 'greenhouse' || type === 'fieldTray') ? 'block' : 'none';
-            document.getElementById('potTagQtyGroup').style.display = type === 'potTag' ? 'block' : 'none';
-            document.getElementById('potTagCustomGroup').style.display = 'none';
+            document.getElementById('potTagQtyGroup').style.display = 'none';
+            document.getElementById('potTagCustomGroup').style.display = type === 'potTag' ? 'block' : 'none';
 
             // Update list title
             const titles = { greenhouse: 'Available Seedings', potTag: 'Available Seedings', fieldTray: 'Available Seedings', seed: 'Available Seed Lots', soilSample: 'Soil Sample Labels', inventory: 'Inventory Items' };
@@ -2564,24 +2564,15 @@
             if (currentLabelType === 'seed') applyFiltersAndRenderSeedLots();
         });
 
-        // Pot tag custom count toggle
-        document.getElementById('potTagQty')?.addEventListener('change', function() {
-            document.getElementById('potTagCustomGroup').style.display =
-                this.value === 'custom' ? 'block' : 'none';
-        });
+        // Pot tag dropdown listener removed — number input is now shown directly
 
         // ============ POT TAG FUNCTIONS (ZX5141T - 1" x 4") ============
 
         function getPotTagCount(seeding) {
-            const qty = document.getElementById('potTagQty').value;
-            if (qty === 'auto') {
-                // Use plants needed from the seeding data
-                return seeding.trays * seeding.cellsPerTray || seeding.trays || 1;
-            }
-            if (qty === 'custom') {
-                return parseInt(document.getElementById('potTagCustomCount').value) || 1;
-            }
-            return parseInt(qty) || 1;
+            var customVal = parseInt(document.getElementById('potTagCustomCount').value);
+            if (customVal && customVal > 0) return customVal;
+            // Fallback: derive from seeding data
+            return seeding.trays * (seeding.cellsPerTray || 1) || seeding.trays || 1;
         }
 
         function generatePotTagLabels() {

@@ -6,6 +6,13 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## 2026-04-02 — FULLSTACK_BUILDER: Pot tag quantity — direct number input
+
+### Files Changed
+- `labels.html`: Replaced dropdown qty selector with direct "Tags to Print Per Crop" number input. Default 10. User types any number they want.
+
+---
+
 ## 2026-04-02 — FULLSTACK_BUILDER: Pot tag redesign — logo + USDA seal + crop name
 
 ### Files Changed
