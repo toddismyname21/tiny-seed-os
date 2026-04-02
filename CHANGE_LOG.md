@@ -6,6 +6,19 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## 2026-04-02 — FULLSTACK_BUILDER: Transplant log — AI tray label scan + expanded manual mode
+
+### Files Changed
+- `employee.html`
+  - **AI tray label scan**: Added "Analyze Label with AI" button below tray label photo; calls `analyzeSeedPacket` to auto-populate crop, variety, lot, vendor from tray label photo (works in both plan and manual mode)
+  - **Expanded manual mode**: Added lot number + vendor fields to transplant manual mode (matching direct sow)
+  - **Photo lifecycle**: Analyze button shows on photo capture, hides on removal with status cleared
+  - **Submit payload**: `lotNumber` and `vendor` now included in `logTransplantConfirmation` payload
+  - **Reset**: `resetTransplantLogForm` clears all new fields (lot, vendor, AI button state, AI status)
+  - **Traceability chain complete**: Seed packet photo (direct sow) + tray label photo (transplant) both AI-analyzed for full lot-to-bed chain for OEFFA cert
+
+---
+
 ## 2026-04-02 — FULLSTACK_BUILDER: Direct Sow dynamic mode + AI seed packet scan
 
 ### Files Changed

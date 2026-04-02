@@ -12244,12 +12244,28 @@
                                 <option value="">Select a transplant batch...</option>
                             </select>
                         </div>
-                        <!-- Manual mode: crop + variety text fields -->
+                        <!-- Manual mode: crop + variety + lot + vendor fields -->
                         <div id="transplantManualMode" style="display:none;">
-                            <input type="text" class="form-input" id="transplantManualCrop"
-                                   placeholder="Crop (e.g. Tomato)" style="margin-bottom:8px;">
-                            <input type="text" class="form-input" id="transplantManualVariety"
-                                   placeholder="Variety (e.g. Sungold)">
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+                                <div>
+                                    <label class="form-label" style="font-size:0.75rem;">Crop</label>
+                                    <input type="text" class="form-input" id="transplantManualCrop" placeholder="e.g. Tomato">
+                                </div>
+                                <div>
+                                    <label class="form-label" style="font-size:0.75rem;">Variety</label>
+                                    <input type="text" class="form-input" id="transplantManualVariety" placeholder="e.g. Sungold">
+                                </div>
+                            </div>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                                <div>
+                                    <label class="form-label" style="font-size:0.75rem;">Lot Number</label>
+                                    <input type="text" class="form-input" id="transplantManualLotNumber" placeholder="Lot #">
+                                </div>
+                                <div>
+                                    <label class="form-label" style="font-size:0.75rem;">Vendor</label>
+                                    <input type="text" class="form-input" id="transplantManualVendor" placeholder="Seed company">
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -12288,6 +12304,15 @@
                             <span>Photograph Tray Label</span>
                         </div>
                         <div class="photo-preview" id="transplantTrayLabelPhotoPreview" style="display:none;"></div>
+                        <!-- AI analyze button — shown after photo taken -->
+                        <button type="button" id="transplantAnalyzeLabelBtn"
+                            onclick="analyzeTrayLabel()"
+                            style="display:none;width:100%;margin-top:8px;padding:10px;background:linear-gradient(135deg,#0d9488,#0f766e);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:0.9rem;font-family:inherit;font-weight:600;">
+                            <i class="fas fa-wand-magic-sparkles" style="margin-right:6px;"></i>
+                            Analyze Label with AI
+                        </button>
+                        <!-- AI status -->
+                        <div id="transplantLabelAiStatus" style="display:none;font-size:0.8rem;padding:8px;border-radius:6px;margin-top:6px;"></div>
                     </div>
 
                     <!-- Field Photo (optional) -->
@@ -23970,6 +23995,8 @@
                 if (analyzeBtn) analyzeBtn.style.display = 'block';
             } else if (AppState.currentPhotoTarget === 'transplantTrayLabel') {
                 TransplantLogState.trayLabelPhoto = AppState.capturedPhoto;
+                var txAnalyzeBtn = document.getElementById('transplantAnalyzeLabelBtn');
+                if (txAnalyzeBtn) txAnalyzeBtn.style.display = 'block';
             } else if (AppState.currentPhotoTarget === 'transplantField') {
                 TransplantLogState.fieldPhoto = AppState.capturedPhoto;
             }
@@ -23997,6 +24024,10 @@
                 if (aiStatus) { aiStatus.style.display = 'none'; aiStatus.textContent = ''; }
             } else if (target === 'transplantTrayLabel') {
                 TransplantLogState.trayLabelPhoto = '';
+                var txAnalyzeBtn = document.getElementById('transplantAnalyzeLabelBtn');
+                if (txAnalyzeBtn) txAnalyzeBtn.style.display = 'none';
+                var txAiStatus = document.getElementById('transplantLabelAiStatus');
+                if (txAiStatus) { txAiStatus.style.display = 'none'; txAiStatus.textContent = ''; }
             } else if (target === 'transplantField') {
                 TransplantLogState.fieldPhoto = '';
             }
@@ -31470,6 +31501,70 @@
         btn.disabled = false;
     }
 
+    async function analyzeTrayLabel() {
+        var photo = TransplantLogState.trayLabelPhoto;
+        if (!photo) {
+            showToast('Take a photo of the tray label first', 'warning');
+            return;
+        }
+        var btn = document.getElementById('transplantAnalyzeLabelBtn');
+        var status = document.getElementById('transplantLabelAiStatus');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right:6px;"></i>Reading label...';
+        status.style.display = 'block';
+        status.style.background = 'rgba(13,148,136,0.1)';
+        status.style.color = 'var(--text-secondary)';
+        status.textContent = 'Analyzing tray label with AI...';
+
+        try {
+            var response = await fetch(CONFIG.API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain' },
+                body: JSON.stringify({ action: 'analyzeSeedPacket', image: photo })
+            });
+            var data = await response.json();
+
+            if (data.success && data.data) {
+                var d = data.data;
+                // Always populate manual fields (works in both plan and manual mode)
+                if (d.crop) {
+                    var cropEl = document.getElementById('transplantManualCrop');
+                    if (cropEl) cropEl.value = d.crop;
+                }
+                if (d.variety) {
+                    var varEl = document.getElementById('transplantManualVariety');
+                    if (varEl) varEl.value = d.variety;
+                }
+                if (d.lotNumber) {
+                    var lotEl = document.getElementById('transplantManualLotNumber');
+                    if (lotEl) lotEl.value = d.lotNumber;
+                }
+                if (d.vendor) {
+                    var vendorEl = document.getElementById('transplantManualVendor');
+                    if (vendorEl) vendorEl.value = d.vendor;
+                }
+                // If in plan mode, surface the info in status only (fields are hidden)
+                var populated = [d.crop, d.variety, d.lotNumber].filter(Boolean).join(', ');
+                status.style.background = 'rgba(34,197,94,0.1)';
+                status.style.color = '#22c55e';
+                status.innerHTML = '<i class="fas fa-check" style="margin-right:4px;"></i>Label read: ' + (populated || 'crop info') + '. ' + (TransplantLogState.isManualMode ? 'Review fields above.' : 'Data saved to record.');
+                btn.innerHTML = '<i class="fas fa-rotate" style="margin-right:6px;"></i>Re-analyze';
+            } else {
+                status.style.background = 'rgba(234,179,8,0.1)';
+                status.style.color = '#eab308';
+                status.innerHTML = '<i class="fas fa-triangle-exclamation" style="margin-right:4px;"></i>' + (data.error || 'Could not read label — fill in manually if needed');
+                btn.innerHTML = '<i class="fas fa-wand-magic-sparkles" style="margin-right:6px;"></i>Try Again';
+            }
+        } catch (err) {
+            console.error('analyzeTrayLabel error:', err);
+            status.style.background = 'rgba(239,68,68,0.1)';
+            status.style.color = '#ef4444';
+            status.innerHTML = '<i class="fas fa-xmark" style="margin-right:4px;"></i>Error analyzing label. Fill in manually if needed.';
+            btn.innerHTML = '<i class="fas fa-wand-magic-sparkles" style="margin-right:6px;"></i>Try Again';
+        }
+        btn.disabled = false;
+    }
+
     // ═══════════════════════════════════════
     // TRANSPLANT LOG FUNCTIONS
     // ═══════════════════════════════════════
@@ -31591,6 +31686,8 @@
         var plantCount = parseInt(document.getElementById('transplantPlantCount').value) || 0;
         var rowSpacing = document.getElementById('transplantRowSpacing').value;
         var notes = document.getElementById('transplantNotes').value;
+        var manualLotNumber = document.getElementById('transplantManualLotNumber') ? document.getElementById('transplantManualLotNumber').value.trim() : '';
+        var manualVendor = document.getElementById('transplantManualVendor') ? document.getElementById('transplantManualVendor').value.trim() : '';
 
         if (!plantCount || plantCount <= 0) {
             showToast('Please enter number of plants transplanted', 'error');
@@ -31614,6 +31711,8 @@
                 batchId: batchId,
                 crop: crop,
                 variety: variety,
+                lotNumber: manualLotNumber,
+                vendor: manualVendor,
                 bedId: bedId,
                 plantsTransplanted: plantCount,
                 rowSpacingInches: rowSpacing,
@@ -31674,6 +31773,16 @@
         document.getElementById('transplantPlanCount').textContent = '';
         document.getElementById('transplantTrayLabelPhotoPreview').style.display = 'none';
         document.getElementById('transplantFieldPhotoPreview').style.display = 'none';
+        document.getElementById('transplantManualCrop').value = '';
+        document.getElementById('transplantManualVariety').value = '';
+        var txManualLotEl = document.getElementById('transplantManualLotNumber');
+        var txManualVendorEl = document.getElementById('transplantManualVendor');
+        if (txManualLotEl) txManualLotEl.value = '';
+        if (txManualVendorEl) txManualVendorEl.value = '';
+        var txAnalyzeBtn = document.getElementById('transplantAnalyzeLabelBtn');
+        if (txAnalyzeBtn) { txAnalyzeBtn.style.display = 'none'; txAnalyzeBtn.disabled = false; txAnalyzeBtn.innerHTML = '<i class="fas fa-wand-magic-sparkles" style="margin-right:6px;"></i>Analyze Label with AI'; }
+        var txAiStatus = document.getElementById('transplantLabelAiStatus');
+        if (txAiStatus) { txAiStatus.style.display = 'none'; txAiStatus.textContent = ''; }
         document.getElementById('transplantGpsIcon').style.color = 'var(--text-muted)';
         document.getElementById('transplantGpsStatus').textContent = 'GPS will auto-capture on submit';
         document.querySelectorAll('[data-quality]').forEach(function(b) { b.classList.remove('active'); });
