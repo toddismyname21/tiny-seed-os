@@ -1197,6 +1197,13 @@
                     </button>
                 </div>
 
+                <div style="position:relative;margin-bottom:8px;">
+                    <i class="fas fa-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-secondary);font-size:0.85rem;pointer-events:none;"></i>
+                    <input type="text" id="seedingsSearch"
+                           placeholder="Search crops..."
+                           oninput="filterSeedingsList(this.value)"
+                           style="width:100%;padding:8px 10px 8px 32px;background:var(--bg-light);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:0.85rem;font-family:inherit;box-sizing:border-box;">
+                </div>
                 <div class="seedings-list" id="seedingsList">
                     <div class="loading-state">
                         <div class="spinner"></div>
@@ -1648,6 +1655,15 @@
             });
 
             container.innerHTML = html;
+            // Add no-results placeholder (hidden by default)
+            var noRes = document.createElement('div');
+            noRes.id = 'seedingsSearchNoResults';
+            noRes.style.cssText = 'display:none;text-align:center;padding:16px;color:var(--text-secondary);font-size:0.85rem;';
+            noRes.textContent = 'No crops match your search';
+            container.appendChild(noRes);
+            // Re-apply any active search after reload
+            var searchEl = document.getElementById('seedingsSearch');
+            if (searchEl && searchEl.value) filterSeedingsList(searchEl.value);
             updateStats();
         }
 
@@ -1658,6 +1674,21 @@
                 selectedSeedings.add(id);
             }
             applyFiltersAndRender();
+        }
+
+        function filterSeedingsList(query) {
+            var q = (query || '').toLowerCase().trim();
+            var items = document.querySelectorAll('#seedingsList .seeding-item');
+            var shown = 0;
+            items.forEach(function(item) {
+                var text = item.textContent.toLowerCase();
+                var match = !q || text.indexOf(q) !== -1;
+                item.style.display = match ? '' : 'none';
+                if (match) shown++;
+            });
+            // Show "no results" message if nothing matches
+            var noResults = document.getElementById('seedingsSearchNoResults');
+            if (noResults) noResults.style.display = (shown === 0 && q) ? 'block' : 'none';
         }
 
         function selectAllSeedings() {
@@ -2288,6 +2319,10 @@
             };
             document.getElementById('previewSubtitle').textContent = subtitles[type] || '';
 
+            // Clear search box when switching label types
+            var searchEl = document.getElementById('seedingsSearch');
+            if (searchEl) { searchEl.value = ''; filterSeedingsList(''); }
+
             // Clear labels and selections
             labels = [];
             selectedLabels.clear();
@@ -2425,6 +2460,15 @@
             });
 
             container.innerHTML = html;
+            // Add no-results placeholder (hidden by default)
+            var noRes = document.createElement('div');
+            noRes.id = 'seedingsSearchNoResults';
+            noRes.style.cssText = 'display:none;text-align:center;padding:16px;color:var(--text-secondary);font-size:0.85rem;';
+            noRes.textContent = 'No crops match your search';
+            container.appendChild(noRes);
+            // Re-apply any active search after reload
+            var searchEl = document.getElementById('seedingsSearch');
+            if (searchEl && searchEl.value) filterSeedingsList(searchEl.value);
             updateSeedStats();
         }
 
@@ -3721,6 +3765,15 @@
                 `;
             });
             listContainer.innerHTML = listHtml;
+            // Add no-results placeholder (hidden by default)
+            var noRes = document.createElement('div');
+            noRes.id = 'seedingsSearchNoResults';
+            noRes.style.cssText = 'display:none;text-align:center;padding:16px;color:var(--text-secondary);font-size:0.85rem;';
+            noRes.textContent = 'No crops match your search';
+            listContainer.appendChild(noRes);
+            // Re-apply any active search after reload
+            var searchEl = document.getElementById('seedingsSearch');
+            if (searchEl && searchEl.value) filterSeedingsList(searchEl.value);
 
             // Render preview (right panel) — FT40101WH style
             let previewHtml = '';

@@ -6,6 +6,10 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## 2026-04-02 — FULLSTACK_BUILDER: Labels page — instant crop search
+
+- `labels.html`: Added live text search above seedings list. Type any crop name to instantly filter. Clears on label type switch.
+
 ## 2026-04-02 — FULLSTACK_BUILDER: Pot tag quantity — direct number input
 
 ### Files Changed
