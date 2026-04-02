@@ -1068,6 +1068,9 @@
                     <button class="type-btn" id="btnInventoryLabels" onclick="switchLabelType('inventory')">
                         <i class="fas fa-warehouse"></i> Inventory
                     </button>
+                    <button class="type-btn" id="btnSeedlingSaleLabels" onclick="switchLabelType('seedlingSale')" style="grid-column:1/-1;background:linear-gradient(135deg,rgba(34,197,94,0.15),rgba(22,163,74,0.15));border-color:rgba(34,197,94,0.4);color:#4ade80;">
+                        <i class="fas fa-store"></i> Seedling Sale
+                    </button>
                 </div>
                 <div class="label-type-desc" id="labelTypeDesc">
                     <strong>2.5" x 0.75"</strong> — Standard printer, clips to tray lip
@@ -1158,6 +1161,42 @@
                 </div>
                 <button class="btn btn-primary btn-block" onclick="loadInventoryLabels()">
                     <i class="fas fa-search"></i> Load Inventory Items
+                </button>
+            </div>
+
+            <!-- Seedling Sale Panel -->
+            <div class="panel-section" id="seedlingSaleFilters" style="display:none;">
+                <h3 class="panel-title"><i class="fas fa-store"></i> Build Your Tag List</h3>
+                <p style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:12px;">Add each crop you want to print tags for. No planning data needed.</p>
+
+                <div class="form-group">
+                    <label>Crop Name</label>
+                    <input type="text" class="form-control" id="ssCrop" placeholder="e.g. Thyme"
+                           onkeydown="if(event.key==='Enter')addSeedlingSaleCrop()">
+                </div>
+                <div class="form-group">
+                    <label>Variety <span style="font-weight:400;color:var(--text-secondary);">(optional)</span></label>
+                    <input type="text" class="form-control" id="ssVariety" placeholder="e.g. German Winter"
+                           onkeydown="if(event.key==='Enter')addSeedlingSaleCrop()">
+                </div>
+                <div class="form-group">
+                    <label>Quantity</label>
+                    <input type="number" class="form-control" id="ssQty" min="1" value="10" placeholder="Number of tags">
+                </div>
+                <button class="btn btn-primary btn-block" onclick="addSeedlingSaleCrop()" style="margin-bottom:12px;">
+                    <i class="fas fa-plus"></i> Add Crop
+                </button>
+
+                <div id="ssCropList" style="display:none;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                        <span style="font-size:0.8rem;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em;">Tag List</span>
+                        <button onclick="clearSeedlingSaleList()" style="font-size:0.75rem;color:var(--danger);background:none;border:none;cursor:pointer;font-family:inherit;">Clear all</button>
+                    </div>
+                    <div id="ssCropListItems"></div>
+                </div>
+
+                <button class="btn btn-primary btn-block" onclick="generateSeedlingSaleTags()" style="margin-top:12px;background:linear-gradient(135deg,#22c55e,#16a34a);">
+                    <i class="fas fa-tag"></i> Generate Tags
                 </button>
             </div>
 
@@ -1331,6 +1370,7 @@
         let labels = [];
         let selectedLabels = new Set();
         var potTagImages = { logo: null, usda: null };
+        var seedlingSaleCrops = []; // [{crop, variety, qty}]
         let currentLabelType = 'greenhouse'; // 'greenhouse' or 'seed'
         let _loadingSeedingsInProgress = false; // Re-entrancy guard for loadSeedings()
         let seedLots = [];
@@ -2280,6 +2320,7 @@
             document.getElementById('btnSeedLabels').classList.toggle('active', type === 'seed');
             document.getElementById('btnSoilSampleLabels').classList.toggle('active', type === 'soilSample');
             document.getElementById('btnInventoryLabels').classList.toggle('active', type === 'inventory');
+            document.getElementById('btnSeedlingSaleLabels').classList.toggle('active', type === 'seedlingSale');
 
             // Show/hide filter sections — pot tags and field tray use same seedings filters
             const usesSeedings = (type === 'greenhouse' || type === 'potTag' || type === 'fieldTray');
@@ -2287,6 +2328,7 @@
             document.getElementById('seedFilters').style.display = type === 'seed' ? 'block' : 'none';
             document.getElementById('soilSampleFilters').style.display = type === 'soilSample' ? 'block' : 'none';
             document.getElementById('inventoryFilters').style.display = type === 'inventory' ? 'block' : 'none';
+            document.getElementById('seedlingSaleFilters').style.display = type === 'seedlingSale' ? 'block' : 'none';
 
             // Show/hide label options based on type
             document.getElementById('labelsPerTrayGroup').style.display = (type === 'greenhouse' || type === 'fieldTray') ? 'block' : 'none';
@@ -2294,7 +2336,7 @@
             document.getElementById('potTagCustomGroup').style.display = type === 'potTag' ? 'block' : 'none';
 
             // Update list title
-            const titles = { greenhouse: 'Available Seedings', potTag: 'Available Seedings', fieldTray: 'Available Seedings', seed: 'Available Seed Lots', soilSample: 'Soil Sample Labels', inventory: 'Inventory Items' };
+            const titles = { greenhouse: 'Available Seedings', potTag: 'Available Seedings', fieldTray: 'Available Seedings', seed: 'Available Seed Lots', soilSample: 'Soil Sample Labels', inventory: 'Inventory Items', seedlingSale: 'Seedling Sale Tags' };
             document.getElementById('listTitle').textContent = titles[type] || 'Available Items';
 
             // Update type description
@@ -2304,7 +2346,8 @@
                 fieldTray: '<strong>4" x 1"</strong> — UL-247 thermal, FT40101WH stickers for field trays',
                 seed: '<strong>Seed inventory</strong> — Labels for seed lot storage containers',
                 soilSample: '<strong>4" x 1"</strong> — UL-247 thermal, FT40101WH. Bag labels + submission labels for Logan Labs',
-                inventory: '<strong>4" x 1"</strong> — UL-247 thermal, FT40101WH. Item name, category, location + QR code'
+                inventory: '<strong>4" x 1"</strong> — UL-247 thermal, FT40101WH. Item name, category, location + QR code',
+                seedlingSale: '<strong>1" x 4"</strong> — ZX5141T pot tags, type any crop &amp; quantity'
             };
             document.getElementById('labelTypeDesc').innerHTML = descs[type] || '';
 
@@ -2315,7 +2358,8 @@
                 fieldTray: 'Tray labels for UL-247 printer (4" x 1" FT40101WH)',
                 seed: 'Seed lot inventory labels',
                 soilSample: 'Soil sample labels for UL-247 printer (4" x 1" FT40101WH)',
-                inventory: 'Inventory labels for UL-247 printer (4" x 1" FT40101WH)'
+                inventory: 'Inventory labels for UL-247 printer (4" x 1" FT40101WH)',
+                seedlingSale: 'Pot tags for UL-247 printer (1" x 4" ZX5141T) — no planning data needed'
             };
             document.getElementById('previewSubtitle').textContent = subtitles[type] || '';
 
@@ -2330,10 +2374,11 @@
             // Preload pot tag images when that type is selected
             if (type === 'potTag') preloadPotTagImages(null);
 
-            // Soil sample and inventory types manage their own rendering
-            if (type === 'soilSample' || type === 'inventory') {
+            // Soil sample, inventory, and seedling sale types manage their own rendering
+            if (type === 'soilSample' || type === 'inventory' || type === 'seedlingSale') {
                 if (type === 'soilSample') loadSoilSampleLabels();
                 if (type === 'inventory') loadInventoryLabels();
+                if (type === 'seedlingSale') preloadPotTagImages(null);
                 return;
             }
 
@@ -2522,6 +2567,8 @@
                 generateSeedLabels();
             } else if (currentLabelType === 'potTag') {
                 generatePotTagLabels();
+            } else if (currentLabelType === 'seedlingSale') {
+                generateSeedlingSaleTags();
             } else if (currentLabelType === 'fieldTray') {
                 generateFieldTrayLabels();
             } else {
@@ -2609,6 +2656,90 @@
         });
 
         // Pot tag dropdown listener removed — number input is now shown directly
+
+        // ============ SEEDLING SALE FUNCTIONS ============
+
+        function addSeedlingSaleCrop() {
+            var crop = (document.getElementById('ssCrop').value || '').trim();
+            var variety = (document.getElementById('ssVariety').value || '').trim();
+            var qty = parseInt(document.getElementById('ssQty').value) || 10;
+
+            if (!crop) {
+                document.getElementById('ssCrop').focus();
+                showToast('Please enter a crop name');
+                return;
+            }
+
+            seedlingSaleCrops.push({ crop: crop, variety: variety, qty: qty });
+            document.getElementById('ssCrop').value = '';
+            document.getElementById('ssVariety').value = '';
+            document.getElementById('ssQty').value = '10';
+            document.getElementById('ssCrop').focus();
+            renderSeedlingSaleList();
+            showToast(crop + (variety ? ' (' + variety + ')' : '') + ' — ' + qty + ' tags added');
+        }
+
+        function removeSeedlingSaleCrop(index) {
+            seedlingSaleCrops.splice(index, 1);
+            renderSeedlingSaleList();
+        }
+
+        function clearSeedlingSaleList() {
+            seedlingSaleCrops = [];
+            renderSeedlingSaleList();
+            labels = [];
+            selectedLabels.clear();
+            document.getElementById('labelsContainer').innerHTML = '<div class="empty-state"><i class="fas fa-tag"></i><h3>No Labels Generated</h3><p>Add crops to your tag list and click "Generate Tags"</p></div>';
+            document.getElementById('totalLabelsCount').textContent = '0';
+        }
+
+        function renderSeedlingSaleList() {
+            var listEl = document.getElementById('ssCropList');
+            var itemsEl = document.getElementById('ssCropListItems');
+            if (seedlingSaleCrops.length === 0) {
+                listEl.style.display = 'none';
+                return;
+            }
+            listEl.style.display = 'block';
+            var html = '';
+            seedlingSaleCrops.forEach(function(c, i) {
+                html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--bg-light);border-radius:6px;margin-bottom:6px;font-size:0.85rem;">'
+                    + '<div><span style="font-weight:600;">' + c.crop + '</span>'
+                    + (c.variety ? ' <span style="color:var(--text-secondary);">' + c.variety + '</span>' : '')
+                    + ' <span style="color:var(--primary);font-weight:600;margin-left:4px;">×' + c.qty + '</span></div>'
+                    + '<button onclick="removeSeedlingSaleCrop(' + i + ')" style="background:none;border:none;color:var(--text-secondary);cursor:pointer;font-size:0.9rem;padding:2px 6px;" title="Remove">×</button>'
+                    + '</div>';
+            });
+            itemsEl.innerHTML = html;
+        }
+
+        function generateSeedlingSaleTags() {
+            if (seedlingSaleCrops.length === 0) {
+                showToast('Add at least one crop to your tag list');
+                return;
+            }
+            labels = [];
+            selectedLabels.clear();
+
+            seedlingSaleCrops.forEach(function(c) {
+                for (var i = 0; i < c.qty; i++) {
+                    var labelId = 'ss-' + c.crop.replace(/\s+/g,'-') + '-' + i;
+                    labels.push({
+                        labelId: labelId,
+                        labelType: 'potTag',
+                        crop: c.crop,
+                        variety: c.variety || '',
+                        batchNumber: '',
+                        seedDate: ''
+                    });
+                }
+            });
+
+            selectedLabels = new Set(labels.map(function(l) { return l.labelId; }));
+            document.getElementById('totalLabelsCount').textContent = labels.length;
+            renderPotTagLabels();
+            showToast('Generated ' + labels.length + ' pot tags for ' + seedlingSaleCrops.length + ' crop(s)');
+        }
 
         // ============ POT TAG FUNCTIONS (ZX5141T - 1" x 4") ============
 
@@ -2785,7 +2916,7 @@
         // Override executePrint: thermal labels use jsPDF at exact dimensions
         const originalExecutePrint = executePrint;
         executePrint = function() {
-            if (currentLabelType === 'potTag') {
+            if (currentLabelType === 'potTag' || currentLabelType === 'seedlingSale') {
                 closePrintPreview();
                 executePrintUL247PotTagsPDF();
             } else if (currentLabelType === 'fieldTray') {
@@ -3582,11 +3713,11 @@
                 executePrintUL247GenericPDF();
                 return;
             }
-            if (currentLabelType === 'potTag' || currentLabelType === 'fieldTray') {
+            if (currentLabelType === 'potTag' || currentLabelType === 'seedlingSale' || currentLabelType === 'fieldTray') {
                 if (selectedLabels.size === 0) { showToast('Please select labels to print'); return; }
                 var labelsToprint = labels.filter(function(l) { return selectedLabels.has(l.labelId); });
                 document.getElementById('printLabelCount').textContent = labelsToprint.length;
-                var printerName = currentLabelType === 'potTag' ? 'Pot Tags (1" x 4")' : 'Field Tray Labels (4" x 1")';
+                var printerName = (currentLabelType === 'potTag' || currentLabelType === 'seedlingSale') ? 'Pot Tags (1" x 4")' : 'Field Tray Labels (4" x 1")';
                 var html = '<div style="text-align:center;padding:1.5rem;color:#333;">';
                 html += '<i class="fas fa-print" style="font-size:3rem;color:#4caf50;margin-bottom:1rem;"></i>';
                 html += '<h3 style="margin-bottom:0.5rem;">Print ' + labelsToprint.length + ' ' + printerName + '</h3>';
