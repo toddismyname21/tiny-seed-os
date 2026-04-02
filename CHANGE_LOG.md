@@ -6,7 +6,149 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## 2026-04-02 — FULLSTACK_BUILDER: Seedling presale bug fixes (toast visibility + bundle accent matching)
+
+### Files Changed
+- `web_app/seedling-presale-2026.html`
+  - **Toast z-index**: Raised from 9999 to 100000 so toasts render above mobile cart sheet (z-index 9999)
+  - **Toast duration**: Extended from 2000ms to 3500ms so bundle confirmation is readable
+  - **Bundle accent normalization**: Added `normalizeBundleName_()` using NFD decomposition to strip diacritics (e.g., Jalapeño → jalapeno), fixing match failures when catalog returns ASCII-only names
+  - **Bundle toast messages**: Updated to show bundle name + plant count on success, warning icon on failure
+  - **Redirect setTimeout**: Verified already present at line 3712 (1500ms delay) — no change needed
+
+---
+
+## 2026-04-01 — PM_ARCHITECT: Itria characterization corrected across all FSA documents (source-verified)
+
+### Critical Fix: Itria Ventures Mischaracterization
+- **Root cause**: All documents claimed Todd "paid off $27,400 MCA at ~66% APR." Source documents prove this is wrong.
+- **Reality** (from REMITTANCE_ANALYSIS.md + Settlement Agreement + RSA):
+  - Receivables Purchase Agreement (not a "loan"), Amount Sold = $27,400, Funded $19,350 net
+  - 28 successful ACH payments × $782.86 = $21,920.08 remitted
+  - Disputed unauthorized debits (Feb 2 + Feb 9) during pending Section 5 reconciliation
+  - Negotiated $1,000 settlement (03/13/2026) — Settlement Agreement IS in the FSA package
+  - Zero Balance Letter issued 03/17/2026. Total paid: ~$22,920.
+- **Problem**: FSA would see "$27,400 paid off" in our documents AND the $1,000 Settlement Agreement in the same package — credibility red flag.
+- **Fix**: Updated all instances to use "Receivables Purchase Agreement," correct amounts, and accurate settlement language.
+
+### Files Updated
+- `legal/fsa_direct_operating_loan/FSA_Meeting_Presentation_Apr1_2026.html` — Repayment track record: "$27,400 MCA ~66% APR" → "~$22,920 paid, RSA settled"
+- `legal/fsa_direct_operating_loan/FSA_Debt_Schedule_2026.html` — Recently Paid Off row: added settlement detail, corrected amount
+- `legal/fsa_direct_operating_loan/FSA_Farm_Business_Summary.html` — Evidence table + repayment narrative: removed "66% APR" + "paid off $27,400" language
+- `legal/fsa_direct_operating_loan/FSA_NumberSources_Reference.html` — 4 instances corrected: Q3 answer, Q10 answer, document description, "numbers to know" table
+- `legal/fsa_direct_operating_loan/FSA_Projected_Income_Expense_2026.html` — 2 footnote corrections: removed "$27,400 total ~66% APR" and "~$7,400 excess payments" claims
+- `legal/fsa_direct_operating_loan/FSA_Balance_Sheet_2026.html` — Paid-Off Obligations: "paid in full" → "settled in full"
+- `legal/fsa_direct_operating_loan/FSA2001_Completion_Guide.html` — Repayment track record: removed SBA EIDL (still present from prior session), corrected to "4 Shopify loans + Itria RSA settled"
+- All 7 PDFs regenerated, ZIP rebuilt (48 files, 12MB)
+
+---
+
+## 2026-04-01 — PM_ARCHITECT: FSA package final accuracy audit + all documents corrected
+
+### Session Work
+- **FSA-2001 form**: Completed 3-version audit of TINYSEEDFARMLLC_FSA-2001.pdf. V3 passed all checks — TRW initials on all 4 pages, full legal name, EIN 815299411, PASA workshop checked, Part L complete.
+- **Cover page**: Added to FSA_Meeting_Presentation_Apr1_2026.html with farm logo and OEFFA certification (eff. 12/11/2025).
+- **Organic certification corrected**: Updated all documents from "certified since 2017" to accurate OEFFA cert (effective 12/11/2025, certificate issued 3/26/2026, NOP ID 1600003839).
+- **Balance Sheet**: Added personal assets section (household goods $8K), updated Shopify Credit to $4,772.89 (added $472.99 fee charged 3/31). Net Worth updated: $62,984 → $70,511+.
+- **FSA2001_Completion_Guide.html**: New field-by-field paper form guide created.
+
+### Files Updated (this accuracy audit pass)
+- `legal/fsa_direct_operating_loan/FSA_Farm_Business_Summary.html` — Fixed debt consolidation: $44,208 → $44,681
+- `legal/fsa_direct_operating_loan/FSA_NumberSources_Reference.html` — Updated 12 stale figures: debt amounts, net worth ($62,984→$70,511+), total assets ($118,642→$126,642), total liabilities ($55,658→$56,131), projected net income ($14,102→$11,294), Shopify Credit balance ($4,299.90→$4,772.89)
+- All 5 core FSA PDFs regenerated and synced to FSA_SUBMISSION_PACKAGE/
+- `legal/TinySeedFarm_FSA_Package_2026.zip` rebuilt (48 files, 12MB — final)
+
+### Numbers Now Consistent Across All Documents
+- Debt consolidation: $44,681 (all docs)
+- Net worth: $70,511+ (balance sheet + cheat sheet)
+- Shopify Credit: $4,772.89 (debt schedule + balance sheet + cheat sheet)
+- 2026 projected net income: $11,294 (income projection + cheat sheet)
+
+---
+
+## 2026-03-31 — PM_ARCHITECT: QuickBooks exports found, imported, and integrated
+
+### Files Copied to Project
+- `legal/fsa_direct_operating_loan/quickbooks_exports/QB_PnL_2025_Full_Year.xlsx` — Jan 1–Dec 31, 2025 (revenue $330,935, net −$1,415)
+- `legal/fsa_direct_operating_loan/quickbooks_exports/QB_PnL_2024_Full_Year.xlsx` — Jan 1–Dec 31, 2024 (revenue $278,833, net +$5,519)
+- `legal/fsa_direct_operating_loan/quickbooks_exports/QB_PnL_2026_YTD_Mar23.xlsx` — Jan 1–Mar 23, 2026 (revenue $37,771, net +$22,540)
+- `legal/fsa_direct_operating_loan/quickbooks_exports/QB_PnL_2026_Jan_Feb8.xlsx` — Jan 1–Feb 8, 2026
+- `legal/fsa_direct_operating_loan/quickbooks_exports/QB_PnL_2025_Jan_Sep_YTD_Comparison.pdf` — Jan–Sep 2025 vs 2024 YTD comparison
+- `legal/fsa_direct_operating_loan/quickbooks_exports/QB_PnL_2025_Sep_Month.pdf` — September 2025 monthly
+- `legal/fsa_direct_operating_loan/quickbooks_exports/Shopify_Payout_Oct2025_Jan2026.csv` — Shopify payout summary
+
+### Files Created
+- `legal/fsa_direct_operating_loan/quickbooks_exports/QUICKBOOKS_DATA_SUMMARY.md` — Clean extracted data: full 2024 and 2025 P&L line-by-line, 2026 YTD, 3-year comparison table, key ratios, QB vs Schedule F cross-reference
+
+### Files Updated
+- `legal/kretschmann_tiny_seed_lease/FARM_FINANCIAL_SUMMARY_FOR_KRETSCHMANN.html` — Updated with actual QB figures (2024: $278,833 / +$5,519; 2025: $330,935 / −$1,415; 2026 YTD: $37,771 / +$22,540; all real expense line items from QB)
+
+### Why
+QB exports were in Downloads folder, not in the project. Risk of losing context again across sessions. All files now in project under `legal/fsa_direct_operating_loan/quickbooks_exports/`.
+
+---
+
+## 2026-03-31 — PM_ARCHITECT: Greenhouse inventory pull + Don Kretschmann redacted financials
+
+### Files Created
+- `legal/kretschmann_tiny_seed_lease/FARM_FINANCIAL_SUMMARY_FOR_KRETSCHMANN.html` — Redacted farm financial summary for Don Kretschmann. Shows revenue history (2022–2025), 2026 projections, grants awarded, loan application status, lease obligations, farm assets. Excludes: personal credit cards, bank accounts, personal loans, legal proceedings unrelated to lease.
+
+### Live Data Pulled (read-only)
+- `getGreenhouseSeedings` API — 252 batches already seeded as of 3/31, 949 trays in greenhouse, 161,934 starts
+- `getSeedlingPresaleItems` API — 46 of 54 presale varieties seeded, 196 trays, 3,299 units at $19,794 retail
+
+### Why
+User heading to farm to inventory seeds. Don Kretschmann requested financials. Greenhouse tray data pulled from live system to support feed/seed inventory valuation on Horizon worksheet.
+
+---
+
 ## Format
+
+---
+
+## 2026-03-31 — PM_ARCHITECT: Full balance sheet sync + FSA file consolidation
+
+### Files Modified
+- `legal/HORIZON_PREQUALIFICATION_WORKSHEET_DRAFT.html` — Complete balance sheet overhaul using FSA documents as source of truth. Key changes: assets $118,642 (was ~$17K–$31K), net worth +$63,142 (was negative), actual credit card balances $27,354/5 cards (was ~$20K/3 cards estimate), added Shopify Capital + Ryan Utz + Shopify Credit loans ($15,095), fixed accounts payable $2,301 (DGPerry), Kretschmann arrears corrected to $10,730 bank-verified (was $16,775 Don's stated), tractors confirmed as Todd's property, current assets updated with A/R $8,784 and prepaid CSA $37,771.
+- `.claude/agent-memory/pm-coordinator/project_financial_liabilities.md` — Updated with actual balances from FSA Balance Sheet, complete liabilities breakdown, full balance sheet summary.
+
+### Files Moved (Desktop → Project)
+- `legal/fsa_direct_operating_loan/FSA_Balance_Sheet_2026.html` — Authoritative balance sheet
+- `legal/fsa_direct_operating_loan/FSA_Debt_Schedule_2026.html` — All debts + $165K use of funds
+- `legal/fsa_direct_operating_loan/FSA_Farm_Business_Summary.html` — Business narrative
+- `legal/fsa_direct_operating_loan/FSA_Projected_Income_Expense_2026.html` — 2026 projections
+- `legal/fsa_direct_operating_loan/TSF_Asset_Inventory_FSA_Loan.html` — Itemized equipment
+
+### Why
+FSA documents (5 files on Todd's Desktop, dated 3/23/2026) were the authoritative source but had not been integrated with the Horizon worksheet. Context was being lost across sessions because these files lived outside the project folder.
+
+---
+
+## 2026-03-31 — PM_ARCHITECT: Update Horizon Farm Credit prequalification worksheet with liabilities data
+
+### Files Modified
+- `legal/HORIZON_PREQUALIFICATION_WORKSHEET_DRAFT.html` — Filled in credit cards, lease arrears, caterpillar tunnel assets, updated totals and print-ready warning box
+
+### What Changed
+- **Credit Cards**: Expanded from "TBD" to itemized: PNC ~$8,000 (18%), Chase ~$6,000 (22%), Amazon/Amex ~$6,000 (24%) = ~$20,000 total. Sourced from TINY_SEED_WEALTH_BUILDER_ACTION_PLAN.md (January 2026 estimates).
+- **Kretschmann Arrears**: Filled from $16,775.18 (Don's stated figure). Noted dispute: check #1538 ($4,882) not credited — corrected balance ~$11,893.
+- **Caterpillar Tunnels**: Added to intermediate assets at ~$17,000–$31,000 (4× 15'×90' tunnels, Todd's personal property, documented in lease correspondence).
+- **Current Liabilities Total**: Now shows ~$36,775 (credit cards + arrears, with dispute notation).
+- **Total Assets**: ~$17,250–$31,250+ (cash + tunnels; vehicles/supplies still TBD).
+- **Net Worth**: ~($5,525) to ($19,525) — negative but improves by ~$4,882 when arrears dispute resolves.
+- **Print warning box**: Updated to show what's filled vs. what still needs confirmation before final submission.
+
+### Still Outstanding (flag for Todd before sending to Molly Decker)
+1. Confirm actual current credit card balances (Jan 2026 estimates used)
+2. Identify $3,055 "Other" interest from 2024 Sch F Line 21b (call Derek at DG Perry: 412-571-0500)
+3. Any owned vehicle values
+4. Final arrears figure once Don credits check #1538
+
+### Reason
+User correctly identified that credit card and liability data existed in system files but had not been applied to the worksheet.
+
+---
+
 
 ```markdown
 ## [DATE] - [CLAUDE_ROLE]
