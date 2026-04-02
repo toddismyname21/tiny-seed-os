@@ -6,6 +6,18 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## 2026-04-02 — FULLSTACK_BUILDER: Pot tag redesign — logo + USDA seal + crop name
+
+### Files Changed
+- `labels.html`
+  - **New pot tag design**: Farm van logo (top) + crop name uppercase bold (center) + USDA Organic seal (anchored above soil line)
+  - **Removed**: sow date, batch number, "TINY SEED FARM" text, QR code
+  - **Image preloading**: `preloadPotTagImages()` converts TSF logo PNG + USDA SVG to base64 PNG for jsPDF embedding
+  - **Fallbacks**: text-based fallback if images fail to load
+  - Screen preview updated to match print output
+
+---
+
 ## 2026-04-02 — FULLSTACK_BUILDER: Transplant log — AI tray label scan + expanded manual mode
 
 ### Files Changed
