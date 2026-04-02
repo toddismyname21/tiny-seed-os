@@ -3058,14 +3058,14 @@ function showToast(message) {
 
     var toast = document.createElement('div');
     toast.id = 'toast-notification';
-    toast.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:var(--green-deep);color:#fff;padding:12px 24px;border-radius:50px;font-size:0.9rem;font-weight:600;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.2);animation:toastIn 0.3s ease;white-space:nowrap;';
+    toast.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:var(--green-deep);color:#fff;padding:12px 24px;border-radius:50px;font-size:0.9rem;font-weight:600;z-index:100000;box-shadow:0 4px 20px rgba(0,0,0,0.2);animation:toastIn 0.3s ease;white-space:nowrap;';
     toast.innerHTML = '<i class="fas fa-check-circle" style="margin-right:8px;"></i>' + message;
     document.body.appendChild(toast);
 
     setTimeout(function() {
         toast.style.animation = 'toastOut 0.3s ease forwards';
         setTimeout(function() { toast.remove(); }, 300);
-    }, 2000);
+    }, 3500);
 }
 
 // ═══════════════════════════════════════
@@ -3708,8 +3708,8 @@ function showPaymentRedirect(customerName, email, pickup, orderCalc, apiResult) 
     // Scroll to the redirect message
     form.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
-    // Redirect immediately — payment is required
-    window.location.href = invoiceUrl;
+    // Redirect after progress bar animation completes (1.5s)
+    setTimeout(function() { window.location.href = invoiceUrl; }, 1500);
 }
 
 function showConfirmation(customerName, email, pickup, orderCalc, hadPartialFailure, apiResult) {
@@ -3823,6 +3823,16 @@ function updateCountdown() {
 }
 
 // ═══════════════════════════════════════
+// BUNDLE NAME NORMALIZATION
+// ═══════════════════════════════════════
+function normalizeBundleName_(s) {
+    return (s || '').toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')  // strip accents: Jalapeño → jalapeno
+        .replace(/[^a-z0-9\s]/g, '')  // strip punctuation
+        .trim();
+}
+
+// ═══════════════════════════════════════
 // ADD BUNDLE TO CART
 // ═══════════════════════════════════════
 function addBundle(bundleKey) {
@@ -3834,9 +3844,11 @@ function addBundle(bundleKey) {
         var bundleItem = bundle.items[i];
         var matched = null;
         for (var j = 0; j < VARIETIES.length; j++) {
-            if (VARIETIES[j].name === bundleItem.name ||
-                VARIETIES[j].name.toLowerCase().indexOf(bundleItem.name.toLowerCase()) !== -1 ||
-                bundleItem.name.toLowerCase().indexOf(VARIETIES[j].name.toLowerCase()) !== -1) {
+            var nVariety = normalizeBundleName_(VARIETIES[j].name);
+            var nBundle = normalizeBundleName_(bundleItem.name);
+            if (nVariety === nBundle ||
+                nVariety.indexOf(nBundle) !== -1 ||
+                nBundle.indexOf(nVariety) !== -1) {
                 matched = VARIETIES[j];
                 break;
             }
@@ -3857,9 +3869,9 @@ function addBundle(bundleKey) {
     renderOrderItems();
 
     if (addedCount > 0) {
-        showToast('\uD83C\uDF31 ' + bundle.name + ' added to cart (' + addedCount + ' plants)!');
+        showToast('\uD83C\uDF31 ' + bundle.name + ' bundle added! (' + addedCount + ' plants)');
     } else {
-        showToast('Some bundle items not found in current catalog');
+        showToast('\u26A0\uFE0F Bundle items not available in current catalog');
     }
 
     updateTotal();
