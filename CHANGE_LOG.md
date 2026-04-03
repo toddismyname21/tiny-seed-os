@@ -6,6 +6,18 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## 2026-04-03 — FULLSTACK_BUILDER: Field location always overridable in plan mode
+
+### Files Changed
+- `employee.html`
+  - Direct Sow + Transplant: planned field auto-fills from batch assignment
+  - Field dropdown always remains editable — never locked
+  - "Planned location — change if needed" hint shown when auto-filled, hidden on manual change
+  - Added `onDirectSowFieldChange()` / `onTransplantFieldChange()` calls after auto-fill so feet/beds cascade from field config
+  - Hint hidden on batch deselect and form reset in both tabs
+
+---
+
 ## 2026-04-03 — FULLSTACK_BUILDER: Move scan tray to Transplant tab (correct workflow)
 
 ### Files Changed
@@ -18109,5 +18121,16 @@ User requested deep research on plugins + MCP servers for March 2026. Current ec
 - [x] Checked `docs/research/` — No existing MCP/plugin research documents
 - [x] Verified against existing CLAUDE_CODE research (3 docs exist; no duplication)
 - [x] Verified no existing Google Sheets, GitHub Actions, ESLint, RAG, Google Workspace research
+
+---
+
+## 2026-04-03 — FULLSTACK_BUILDER: Field location always overridable in plan mode
+
+### Files Changed
+- `employee.html`
+  - Direct Sow + Transplant: planned field auto-fills from batch assignment
+  - Field dropdown always remains editable — never locked
+  - "Planned location — change if needed" hint shown when auto-filled, hidden on manual change
+  - Removed any disabled state on field dropdowns in plan mode
 
 ---

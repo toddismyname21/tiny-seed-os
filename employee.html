@@ -12123,6 +12123,7 @@
                                 onchange="onDirectSowFieldChange()">
                             <option value="">Select field...</option>
                         </select>
+                        <p id="sowFieldPlanHint" style="font-size:12px; color:#94a3b8; margin:4px 0 0 6px; display:none;">Planned location — change if needed</p>
                         <!-- Add New Field panel (hidden by default) -->
                         <div id="sowAddFieldPanel" class="add-field-panel" style="display:none;margin-top:10px;padding:12px;background:rgba(var(--primary-rgb,59,130,246),0.08);border-radius:8px;border:1px solid rgba(var(--primary-rgb,59,130,246),0.2);">
                             <div style="font-size:0.8rem;font-weight:700;color:var(--primary);margin-bottom:10px;">
@@ -12331,6 +12332,7 @@
                                 onchange="onTransplantFieldChange()">
                             <option value="">Select field...</option>
                         </select>
+                        <p id="transplantFieldPlanHint" style="font-size:12px; color:#94a3b8; margin:4px 0 0 6px; display:none;">Planned location — change if needed</p>
                         <!-- Add New Field panel (hidden by default) -->
                         <div id="transplantAddFieldPanel" class="add-field-panel" style="display:none;margin-top:10px;padding:12px;background:rgba(13,148,136,0.08);border-radius:8px;border:1px solid rgba(13,148,136,0.2);">
                             <div style="font-size:0.8rem;font-weight:700;color:#0d9488;margin-bottom:10px;">
@@ -31285,6 +31287,8 @@
             document.getElementById('sowFeet').value = '';
             document.getElementById('sowRows').value = '';
             document.getElementById('sowSeedLot').innerHTML = '<option value="">Select seed lot...</option>';
+            var sowFieldHintClear = document.getElementById('sowFieldPlanHint');
+            if (sowFieldHintClear) sowFieldHintClear.style.display = 'none';
             return;
         }
 
@@ -31293,6 +31297,7 @@
 
         // Pre-fill field from plan (set select value if option exists)
         const bed = batch.Bed || batch.bed || batch.Bed_ID || '';
+        var sowFieldHint = document.getElementById('sowFieldPlanHint');
         if (bed) {
             var sowSelect = document.getElementById('sowBedId');
             // Try to match against existing options; if not found, add a temporary option
@@ -31305,6 +31310,12 @@
                 opt.value = bed; opt.text = bed + ' (from plan)'; opt.selected = true;
                 sowSelect.insertBefore(opt, sowSelect.options[sowSelect.options.length - 1]);
             }
+            // Trigger field change handler so feet/beds auto-fill from field config
+            onDirectSowFieldChange();
+            // Show hint that this was auto-filled from plan
+            if (sowFieldHint) sowFieldHint.style.display = 'block';
+        } else {
+            if (sowFieldHint) sowFieldHint.style.display = 'none';
         }
 
         // Pre-fill feet from plan
@@ -31531,6 +31542,8 @@
         document.getElementById('sowBedId').value = '';
         var sowAddPanel = document.getElementById('sowAddFieldPanel');
         if (sowAddPanel) sowAddPanel.style.display = 'none';
+        var sowFieldHintReset = document.getElementById('sowFieldPlanHint');
+        if (sowFieldHintReset) sowFieldHintReset.style.display = 'none';
         document.getElementById('sowFeet').value = '';
         var sowBedsEl = document.getElementById('sowBeds');
         if (sowBedsEl) sowBedsEl.value = '';
@@ -31636,6 +31649,10 @@
         var panel = document.getElementById('sowAddFieldPanel');
         var val = select ? select.value : '';
 
+        // Hide plan hint on any manual field change
+        var sowFieldHint = document.getElementById('sowFieldPlanHint');
+        if (sowFieldHint) sowFieldHint.style.display = 'none';
+
         // Show/hide add panel
         if (panel) panel.style.display = (val === '_add') ? 'block' : 'none';
         if (val === '_add') {
@@ -31665,6 +31682,10 @@
         var select = document.getElementById('transplantBedId');
         var panel = document.getElementById('transplantAddFieldPanel');
         var val = select ? select.value : '';
+
+        // Hide plan hint on any manual field change
+        var transplantFieldHint = document.getElementById('transplantFieldPlanHint');
+        if (transplantFieldHint) transplantFieldHint.style.display = 'none';
 
         // Show/hide add panel
         if (panel) panel.style.display = (val === '_add') ? 'block' : 'none';
@@ -32160,6 +32181,8 @@
         var idx = selectedOption && selectedOption.dataset && selectedOption.dataset.index;
         if (!idx && idx !== '0') {
             TransplantLogState.selectedBatch = null;
+            var transplantFieldHintClear = document.getElementById('transplantFieldPlanHint');
+            if (transplantFieldHintClear) transplantFieldHintClear.style.display = 'none';
             return;
         }
         var batch = TransplantLogState.batches[parseInt(idx)];
@@ -32167,7 +32190,17 @@
 
         // Auto-fill from plan
         var bed = batch.bed || batch.Bed || batch.Target_Bed_ID || '';
-        document.getElementById('transplantBedId').value = bed;
+        var transplantFieldHint = document.getElementById('transplantFieldPlanHint');
+        if (bed) {
+            document.getElementById('transplantBedId').value = bed;
+            // Trigger field change handler so beds auto-fill from field config
+            onTransplantFieldChange();
+            // Show hint that this was auto-filled from plan
+            if (transplantFieldHint) transplantFieldHint.style.display = 'block';
+        } else {
+            document.getElementById('transplantBedId').value = '';
+            if (transplantFieldHint) transplantFieldHint.style.display = 'none';
+        }
 
         var plants = batch.plantsNeeded || batch.Plants_Needed || '';
         if (plants) {
@@ -32314,6 +32347,8 @@
         document.getElementById('transplantBedId').value = '';
         var txAddPanel = document.getElementById('transplantAddFieldPanel');
         if (txAddPanel) txAddPanel.style.display = 'none';
+        var transplantFieldHintReset = document.getElementById('transplantFieldPlanHint');
+        if (transplantFieldHintReset) transplantFieldHintReset.style.display = 'none';
         var txBedsEl = document.getElementById('transplantBeds');
         if (txBedsEl) txBedsEl.value = '';
         document.getElementById('transplantPlantCount').value = '';
