@@ -12048,16 +12048,6 @@
                         <span>Direct Sow Confirmation</span>
                     </div>
 
-                    <!-- Scan Seeded Tray — Primary Entry -->
-                    <div id="scanTraySection" style="margin-bottom:16px;">
-                        <button type="button" onclick="scanSeededTray()"
-                            style="width:100%;padding:14px;background:var(--primary,#22c55e);color:#fff;border:none;border-radius:10px;font-size:1rem;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit;transition:transform 0.15s ease-out,box-shadow 0.15s ease-out;"
-                            onmousedown="this.style.transform='scale(0.98)'" onmouseup="this.style.transform='scale(1)'" ontouchstart="this.style.transform='scale(0.98)'" ontouchend="this.style.transform='scale(1)'">
-                            <i class="fas fa-camera"></i> Scan Seeded Tray
-                        </button>
-                        <div id="scanTrayStatus" style="display:none;margin-top:8px;padding:10px 14px;border-radius:8px;font-size:0.85rem;font-weight:500;"></div>
-                    </div>
-
                     <!-- Mode toggle: Plan vs Manual -->
                     <div class="form-group" style="margin-bottom:8px;">
                         <div style="display:flex;align-items:center;justify-content:space-between;">
@@ -12281,6 +12271,16 @@
                     <div class="form-card-header" style="background:linear-gradient(135deg,#0d9488,#0f766e);">
                         <i class="fas fa-seedling"></i>
                         <span>Transplant Record</span>
+                    </div>
+
+                    <!-- Scan Tray Label — Primary Entry -->
+                    <div id="transplantScanTraySection" style="margin-bottom:16px;">
+                        <button type="button" onclick="scanTransplantTray()"
+                            style="width:100%;padding:14px;background:#22c55e;color:#fff;border:none;border-radius:10px;font-size:1rem;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit;transition:transform 0.15s ease-out,box-shadow 0.15s ease-out;"
+                            onmousedown="this.style.transform='scale(0.98)'" onmouseup="this.style.transform='scale(1)'" ontouchstart="this.style.transform='scale(0.98)'" ontouchend="this.style.transform='scale(1)'">
+                            <i class="fas fa-camera"></i> Scan Tray Label
+                        </button>
+                        <div id="transplantScanTrayStatus" style="display:none;margin-top:8px;padding:10px 14px;border-radius:8px;font-size:0.85rem;font-weight:500;"></div>
                     </div>
 
                     <!-- Mode toggle: Plan vs Manual -->
@@ -24093,14 +24093,14 @@
                 // Show the AI analyze button now that we have a photo
                 var analyzeBtn = document.getElementById('directSowAnalyzeBtn');
                 if (analyzeBtn) analyzeBtn.style.display = 'block';
-                // If triggered from Scan Seeded Tray, auto-run AI analysis
-                if (DirectSowState.isScanTrayMode) {
-                    setTimeout(function() { analyzePacketPhoto(); }, 300);
-                }
             } else if (AppState.currentPhotoTarget === 'transplantTrayLabel') {
                 TransplantLogState.trayLabelPhoto = AppState.capturedPhoto;
                 var txAnalyzeBtn = document.getElementById('transplantAnalyzeLabelBtn');
                 if (txAnalyzeBtn) txAnalyzeBtn.style.display = 'block';
+                // If triggered from Scan Tray Label, auto-run AI analysis
+                if (TransplantLogState.isScanTrayMode) {
+                    setTimeout(function() { analyzeTrayLabel(); }, 300);
+                }
             } else if (AppState.currentPhotoTarget === 'transplantField') {
                 TransplantLogState.fieldPhoto = AppState.capturedPhoto;
             }
@@ -31176,7 +31176,6 @@
         capturedPhoto: null,
         seedInventory: [],
         isManualMode: false,
-        isScanTrayMode: false,
         packetPhoto: null,
         savedForm: null  // persisted form data for navigation recovery
     };
@@ -31196,7 +31195,8 @@
         fieldPhoto: '',
         soilCondition: '',
         plantQuality: '',
-        isManualMode: false
+        isManualMode: false,
+        isScanTrayMode: false
     };
 
     function openDirectSow() {
@@ -31909,12 +31909,6 @@
                 status.style.color = '#22c55e';
                 status.innerHTML = '<i class="fas fa-check" style="margin-right:4px;"></i>Auto-filled: ' + (populated || 'crop info') + '. Review and edit if needed.';
                 btn.innerHTML = '<i class="fas fa-rotate" style="margin-right:6px;"></i>Re-analyze';
-
-                // If triggered from Scan Seeded Tray, auto-match to planned batch
-                if (DirectSowState.isScanTrayMode) {
-                    DirectSowState.isScanTrayMode = false;
-                    autoMatchBatchFromScan(d);
-                }
             } else {
                 status.style.background = 'rgba(234,179,8,0.1)';
                 status.style.color = '#eab308';
@@ -31932,35 +31926,35 @@
     }
 
     // ═══════════════════════════════════════
-    // SCAN SEEDED TRAY — AUTO-MATCH TO BATCH
+    // SCAN TRAY LABEL — AUTO-MATCH TO TRANSPLANT BATCH
     // ═══════════════════════════════════════
 
-    function scanSeededTray() {
-        // Flag so analyzePacketPhoto knows to run auto-match after AI completes
-        DirectSowState.isScanTrayMode = true;
+    function scanTransplantTray() {
+        // Flag so analyzeTrayLabel knows to run auto-match after AI completes
+        TransplantLogState.isScanTrayMode = true;
 
-        // Ensure batches are loaded before we try to match
-        if (!DirectSowState.batches || DirectSowState.batches.length === 0) {
-            loadDirectSowBatches();
+        // Ensure transplant batches are loaded before we try to match
+        if (!TransplantLogState.batches || TransplantLogState.batches.length === 0) {
+            loadTransplantBatches();
         }
 
-        // Reuse existing camera infrastructure with directSowPacket target
-        capturePhoto('directSowPacket');
+        // Reuse existing camera infrastructure with transplantTrayLabel target
+        capturePhoto('transplantTrayLabel');
     }
 
-    function autoMatchBatchFromScan(scanResult) {
+    function autoMatchTransplantFromScan(scanResult) {
         var crop = (scanResult.crop || '').toLowerCase().trim();
         var variety = (scanResult.variety || '').toLowerCase().trim();
 
-        var batches = DirectSowState.batches || [];
+        var batches = TransplantLogState.batches || [];
 
         // Search for a planned batch matching crop + variety (case-insensitive)
-        var matchIndex = -1;
         var match = null;
+        var matchIndex = -1;
         for (var i = 0; i < batches.length; i++) {
             var b = batches[i];
-            var bCrop = (b.Crop || b.crop || '').toLowerCase().trim();
-            var bVariety = (b.Variety || b.variety || '').toLowerCase().trim();
+            var bCrop = (b.crop || b.Crop || '').toLowerCase().trim();
+            var bVariety = (b.variety || b.Variety || '').toLowerCase().trim();
 
             // Crop must match. Variety: match if both present, or skip variety check if scan returned none.
             if (bCrop === crop && (variety === '' || bVariety === variety || bVariety === '')) {
@@ -31972,18 +31966,18 @@
 
         if (match) {
             // Switch to plan mode
-            DirectSowState.isManualMode = false;
-            document.getElementById('directSowPlanMode').style.display = 'block';
-            document.getElementById('directSowManualMode').style.display = 'none';
-            var toggle = document.getElementById('directSowModeToggle');
-            if (toggle) toggle.textContent = 'Not in my plan? Scan packet';
-            var seedLotRow = document.getElementById('sowSeedLot');
-            if (seedLotRow && seedLotRow.parentElement) seedLotRow.parentElement.style.display = 'block';
+            if (TransplantLogState.isManualMode) {
+                TransplantLogState.isManualMode = false;
+                document.getElementById('transplantPlanMode').style.display = 'block';
+                document.getElementById('transplantManualMode').style.display = 'none';
+                var toggleBtn = document.getElementById('transplantModeToggle');
+                if (toggleBtn) toggleBtn.textContent = 'Not in my plan? Enter manually';
+            }
 
             // Auto-select the matched batch in the dropdown
-            var batchSelect = document.getElementById('sowBatchSelect');
+            var batchSelect = document.getElementById('transplantBatchSelect');
             if (batchSelect) {
-                var batchId = match.Batch_ID || match.batch_id || match.ID || '';
+                var batchId = match.batchId || match.Batch_ID || match.batch_id || match.ID || '';
                 // Find the option with this batchId value
                 for (var j = 0; j < batchSelect.options.length; j++) {
                     if (batchSelect.options[j].value === batchId) {
@@ -31992,43 +31986,40 @@
                     }
                 }
                 // Trigger the batch change handler to populate all form fields
-                onSowBatchChange();
+                onTransplantBatchChange();
             }
 
-            var batchLabel = (match.Batch_ID || match.batch_id || '') + ' - ' + (match.Crop || match.crop || '');
-            if (match.Variety || match.variety) batchLabel += ' (' + (match.Variety || match.variety) + ')';
-            showScanTrayStatus('Matched to planned batch: ' + batchLabel, 'success');
+            var batchLabel = (match.batchId || match.Batch_ID || '') + ' - ' + (match.crop || match.Crop || '');
+            if (match.variety || match.Variety) batchLabel += ' (' + (match.variety || match.Variety) + ')';
+            showTransplantScanStatus('Matched to planned batch: ' + batchLabel, 'success');
         } else {
             // Switch to manual mode
-            if (!DirectSowState.isManualMode) {
-                DirectSowState.isManualMode = true;
-                document.getElementById('directSowPlanMode').style.display = 'none';
-                document.getElementById('directSowManualMode').style.display = 'block';
-                var toggleEl = document.getElementById('directSowModeToggle');
-                if (toggleEl) toggleEl.textContent = '\u2190 Back to planned tasks';
-                var seedLotRowEl = document.getElementById('sowSeedLot');
-                if (seedLotRowEl && seedLotRowEl.parentElement) seedLotRowEl.parentElement.style.display = 'none';
-                var deductRow = document.getElementById('directSowDeductRow');
-                if (deductRow) deductRow.style.display = 'none';
+            if (!TransplantLogState.isManualMode) {
+                TransplantLogState.isManualMode = true;
+                document.getElementById('transplantPlanMode').style.display = 'none';
+                document.getElementById('transplantManualMode').style.display = 'block';
+                var toggleEl = document.getElementById('transplantModeToggle');
+                if (toggleEl) toggleEl.textContent = '\u2190 Back to plan list';
+                TransplantLogState.selectedBatch = null;
             }
 
             // Pre-fill manual fields from scan result
-            var cropEl = document.getElementById('sowManualCrop');
-            var varietyEl = document.getElementById('sowManualVariety');
-            var lotEl = document.getElementById('sowManualLotNumber');
-            var vendorEl = document.getElementById('sowManualVendor');
+            var cropEl = document.getElementById('transplantManualCrop');
+            var varietyEl = document.getElementById('transplantManualVariety');
+            var lotEl = document.getElementById('transplantManualLotNumber');
+            var vendorEl = document.getElementById('transplantManualVendor');
 
             if (cropEl) cropEl.value = scanResult.crop || '';
             if (varietyEl) varietyEl.value = scanResult.variety || '';
             if (lotEl) lotEl.value = scanResult.lotNumber || '';
             if (vendorEl) vendorEl.value = scanResult.vendor || '';
 
-            showScanTrayStatus('No planned task found \u2014 logging as unplanned seeding', 'info');
+            showTransplantScanStatus('No planned transplant task found \u2014 logging manually', 'info');
         }
     }
 
-    function showScanTrayStatus(message, type) {
-        var el = document.getElementById('scanTrayStatus');
+    function showTransplantScanStatus(message, type) {
+        var el = document.getElementById('transplantScanTrayStatus');
         if (!el) return;
         el.style.display = 'block';
 
@@ -32095,6 +32086,12 @@
                 status.style.color = '#22c55e';
                 status.innerHTML = '<i class="fas fa-check" style="margin-right:4px;"></i>Label read: ' + (populated || 'crop info') + '. ' + (TransplantLogState.isManualMode ? 'Review fields above.' : 'Data saved to record.');
                 btn.innerHTML = '<i class="fas fa-rotate" style="margin-right:6px;"></i>Re-analyze';
+
+                // If triggered from Scan Tray Label, auto-match to planned transplant batch
+                if (TransplantLogState.isScanTrayMode) {
+                    TransplantLogState.isScanTrayMode = false;
+                    autoMatchTransplantFromScan(d);
+                }
             } else {
                 status.style.background = 'rgba(234,179,8,0.1)';
                 status.style.color = '#eab308';

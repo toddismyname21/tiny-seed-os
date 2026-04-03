@@ -6,18 +6,20 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
-## 2026-04-03 — FULLSTACK_BUILDER: Scan seeded tray auto-log direct sow
+## 2026-04-03 — FULLSTACK_BUILDER: Move scan tray to Transplant tab (correct workflow)
 
 ### Files Changed
 - `employee.html`
-  - "Scan Seeded Tray" button added as primary entry point in Direct Sow tab (line 12051-12059)
-  - `scanSeededTray()` function triggers camera with `directSowPacket` target, sets `isScanTrayMode` flag (line 31938)
-  - Auto-triggers `analyzePacketPhoto()` after photo confirmed when in scan tray mode (line 24097)
-  - `autoMatchBatchFromScan(scanResult)` searches `DirectSowState.batches` for crop+variety match (line 31951)
-  - If matched: switches to plan mode, auto-selects batch in dropdown, triggers `onSowBatchChange()` to populate all fields
-  - If no match: switches to manual mode, pre-fills crop/variety/lot/vendor from AI scan result
-  - `showScanTrayStatus()` displays success (green) or info (blue) banner, auto-dismisses after 5s (line 32030)
-  - `DirectSowState.isScanTrayMode` flag added to state object (line 31179)
+  - Removed "Scan Seeded Tray" button from Direct Sow tab (incorrect placement)
+  - Added "📷 Scan Tray Label" button to Transplant tab (correct: tray → transplant)
+  - AI scans tray label → auto-searches planned transplant tasks for crop+variety match
+  - If matched: switches to plan mode, auto-selects task, populates all fields
+  - If no match: switches to manual mode, pre-fills crop/variety/lot/vendor from scan
+  - Direct Sow retains seed packet scanning (unchanged — correct workflow)
+
+---
+
+## 2026-04-03 — FULLSTACK_BUILDER: Scan seeded tray auto-log direct sow (SUPERSEDED — moved to Transplant above)
 
 ---
 
