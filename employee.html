@@ -12048,6 +12048,16 @@
                         <span>Direct Sow Confirmation</span>
                     </div>
 
+                    <!-- Scan Seeded Tray — Primary Entry -->
+                    <div id="scanTraySection" style="margin-bottom:16px;">
+                        <button type="button" onclick="scanSeededTray()"
+                            style="width:100%;padding:14px;background:var(--primary,#22c55e);color:#fff;border:none;border-radius:10px;font-size:1rem;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit;transition:transform 0.15s ease-out,box-shadow 0.15s ease-out;"
+                            onmousedown="this.style.transform='scale(0.98)'" onmouseup="this.style.transform='scale(1)'" ontouchstart="this.style.transform='scale(0.98)'" ontouchend="this.style.transform='scale(1)'">
+                            <i class="fas fa-camera"></i> Scan Seeded Tray
+                        </button>
+                        <div id="scanTrayStatus" style="display:none;margin-top:8px;padding:10px 14px;border-radius:8px;font-size:0.85rem;font-weight:500;"></div>
+                    </div>
+
                     <!-- Mode toggle: Plan vs Manual -->
                     <div class="form-group" style="margin-bottom:8px;">
                         <div style="display:flex;align-items:center;justify-content:space-between;">
@@ -12120,7 +12130,7 @@
                     <div class="form-group">
                         <label class="form-label">Field</label>
                         <select class="form-input" id="sowBedId"
-                                onchange="onFieldSelectChange('sowBedId','sowAddFieldPanel')">
+                                onchange="onDirectSowFieldChange()">
                             <option value="">Select field...</option>
                         </select>
                         <!-- Add New Field panel (hidden by default) -->
@@ -12163,14 +12173,19 @@
                         </div>
                     </div>
 
-                    <!-- Feet Sown -->
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label class="form-label">Feet Sown</label>
+                    <!-- Feet / Beds / Rows -->
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label class="form-label">Feet</label>
                             <input type="number" class="form-input" id="sowFeet"
-                                   inputmode="decimal" placeholder="0" step="1">
+                                   inputmode="decimal" placeholder="auto" step="1">
                         </div>
-                        <div class="form-group">
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label class="form-label">Beds <span style="font-size:0.65rem;color:var(--text-secondary);font-weight:400;">45"</span></label>
+                            <input type="number" class="form-input" id="sowBeds"
+                                   inputmode="numeric" placeholder="auto">
+                        </div>
+                        <div class="form-group" style="margin-bottom:0;">
                             <label class="form-label">Rows</label>
                             <input type="number" class="form-input" id="sowRows"
                                    inputmode="numeric" placeholder="0">
@@ -12313,7 +12328,7 @@
                     <div class="form-group">
                         <label class="form-label">Field / Location</label>
                         <select class="form-input" id="transplantBedId"
-                                onchange="onFieldSelectChange('transplantBedId','transplantAddFieldPanel')">
+                                onchange="onTransplantFieldChange()">
                             <option value="">Select field...</option>
                         </select>
                         <!-- Add New Field panel (hidden by default) -->
@@ -12356,15 +12371,20 @@
                         </div>
                     </div>
 
-                    <!-- Plants -->
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label class="form-label">Plants Transplanted</label>
+                    <!-- Beds / Plants / Row Spacing -->
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label class="form-label">Beds <span style="font-size:0.65rem;color:var(--text-secondary);font-weight:400;">45"</span></label>
+                            <input type="number" class="form-input" id="transplantBeds"
+                                   inputmode="numeric" placeholder="auto">
+                        </div>
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label class="form-label">Plants</label>
                             <input type="number" class="form-input" id="transplantPlantCount"
                                    inputmode="numeric" placeholder="0">
                             <span id="transplantPlanCount" style="font-size:0.75rem;color:var(--text-secondary);display:block;margin-top:2px;"></span>
                         </div>
-                        <div class="form-group">
+                        <div class="form-group" style="margin-bottom:0;">
                             <label class="form-label">Row Spacing (in)</label>
                             <input type="number" class="form-input" id="transplantRowSpacing"
                                    inputmode="numeric" placeholder="6">
@@ -24073,6 +24093,10 @@
                 // Show the AI analyze button now that we have a photo
                 var analyzeBtn = document.getElementById('directSowAnalyzeBtn');
                 if (analyzeBtn) analyzeBtn.style.display = 'block';
+                // If triggered from Scan Seeded Tray, auto-run AI analysis
+                if (DirectSowState.isScanTrayMode) {
+                    setTimeout(function() { analyzePacketPhoto(); }, 300);
+                }
             } else if (AppState.currentPhotoTarget === 'transplantTrayLabel') {
                 TransplantLogState.trayLabelPhoto = AppState.capturedPhoto;
                 var txAnalyzeBtn = document.getElementById('transplantAnalyzeLabelBtn');
@@ -31152,6 +31176,7 @@
         capturedPhoto: null,
         seedInventory: [],
         isManualMode: false,
+        isScanTrayMode: false,
         packetPhoto: null,
         savedForm: null  // persisted form data for navigation recovery
     };
@@ -31159,7 +31184,7 @@
     // ═══════════════════════════════════════
     // FIELDS CACHE (shared across forms)
     // ═══════════════════════════════════════
-    var FieldsCache = { fields: [], loaded: false };
+    var FieldsCache = { fields: [], bedLengths: {}, fieldConfig: {}, loaded: false };
 
     // ═══════════════════════════════════════
     // TRANSPLANT LOG STATE
@@ -31193,7 +31218,7 @@
         // Wire auto-save on all inputs (once)
         if (!DirectSowState._autoSaveWired) {
             DirectSowState._autoSaveWired = true;
-            var ids = ['sowFeet','sowRows','sowNotes','sowManualCrop','sowManualVariety','sowManualLotNumber','sowManualVendor','directSowSeedsToDeduct','sowBatchSelect','sowBedId','sowSeedLot'];
+            var ids = ['sowFeet','sowBeds','sowRows','sowNotes','sowManualCrop','sowManualVariety','sowManualLotNumber','sowManualVendor','directSowSeedsToDeduct','sowBatchSelect','sowBedId','sowSeedLot'];
             ids.forEach(function(id) {
                 var el = document.getElementById(id);
                 if (el) el.addEventListener('input', saveDirectSowFormState);
@@ -31401,6 +31426,7 @@
                 bedId: bedId,
                 feetSown: feetSown,
                 rowsSown: rowsSown || 0,
+                bedsPlanted: parseInt(document.getElementById('sowBeds')?.value) || 0,
                 seedLotId: DirectSowState.isManualMode ? (manualLotNumber || '') : (seedLotId || ''),
                 seedsToDeduct: DirectSowState.isManualMode ? 0 : (seedsToDeduct || 0),
                 photo: DirectSowState.capturedPhoto || '',
@@ -31506,6 +31532,8 @@
         var sowAddPanel = document.getElementById('sowAddFieldPanel');
         if (sowAddPanel) sowAddPanel.style.display = 'none';
         document.getElementById('sowFeet').value = '';
+        var sowBedsEl = document.getElementById('sowBeds');
+        if (sowBedsEl) sowBedsEl.value = '';
         document.getElementById('sowRows').value = '';
         document.getElementById('sowSeedLot').innerHTML = '<option value="">Select seed lot...</option>';
         document.getElementById('sowNotes').value = '';
@@ -31564,6 +31592,8 @@
             var data = await response.json();
             if (data.success && data.fields && data.fields.length > 0) {
                 FieldsCache.fields = data.fields;
+                FieldsCache.bedLengths = data.bedLengths || {};
+                FieldsCache.fieldConfig = data.fieldConfig || {};
                 FieldsCache.loaded = true;
                 populateFieldSelect(selectId, data.fields);
             } else {
@@ -31599,6 +31629,57 @@
         } else {
             panel.style.display = 'none';
         }
+    }
+
+    function onDirectSowFieldChange() {
+        var select = document.getElementById('sowBedId');
+        var panel = document.getElementById('sowAddFieldPanel');
+        var val = select ? select.value : '';
+
+        // Show/hide add panel
+        if (panel) panel.style.display = (val === '_add') ? 'block' : 'none';
+        if (val === '_add') {
+            if (select) select.value = '';
+            var nameInput = panel ? panel.querySelector('.add-field-name') : null;
+            if (nameInput) nameInput.focus();
+            return;
+        }
+        if (!val) return;
+
+        // Auto-fill feet from bed length
+        var feetEl = document.getElementById('sowFeet');
+        var bedsEl = document.getElementById('sowBeds');
+
+        // Look up from cache
+        var bedLen = FieldsCache.bedLengths[val] || FieldsCache.bedLengths[val + '-01'] || FieldsCache.bedLengths['Field ' + val + '-01'];
+        var bedCount = FieldsCache.fieldConfig[val] || (FieldsCache.fields.find(function(f){ return f.Field_ID === val; }) || {}).bedCount;
+
+        if (feetEl && bedLen) feetEl.value = bedLen;
+        if (bedsEl && bedCount) bedsEl.value = bedCount;
+
+        // Save state
+        if (typeof saveDirectSowFormState === 'function') saveDirectSowFormState();
+    }
+
+    function onTransplantFieldChange() {
+        var select = document.getElementById('transplantBedId');
+        var panel = document.getElementById('transplantAddFieldPanel');
+        var val = select ? select.value : '';
+
+        // Show/hide add panel
+        if (panel) panel.style.display = (val === '_add') ? 'block' : 'none';
+        if (val === '_add') {
+            if (select) select.value = '';
+            var nameInput = panel ? panel.querySelector('.add-field-name') : null;
+            if (nameInput) nameInput.focus();
+            return;
+        }
+        if (!val) return;
+
+        // Auto-fill beds from field config
+        var bedsEl = document.getElementById('transplantBeds');
+        var bedCount = FieldsCache.fieldConfig[val] || (FieldsCache.fields.find(function(f){ return f.Field_ID === val; }) || {}).bedCount;
+        if (bedsEl && bedCount) bedsEl.value = bedCount;
     }
 
     function calcBedsFromWidth() {
@@ -31702,6 +31783,7 @@
             batchId:      get('sowBatchSelect'),
             bedId:        get('sowBedId'),
             feet:         get('sowFeet'),
+            beds:         get('sowBeds'),
             rows:         get('sowRows'),
             seedLot:      get('sowSeedLot'),
             seedsDeduct:  get('directSowSeedsToDeduct'),
@@ -31726,6 +31808,7 @@
         if (s.isManualMode && !DirectSowState.isManualMode) toggleDirectSowManualMode();
 
         set('sowFeet', s.feet);
+        set('sowBeds', s.beds);
         set('sowRows', s.rows);
         set('sowNotes', s.notes);
         set('sowManualCrop', s.manualCrop);
@@ -31826,6 +31909,12 @@
                 status.style.color = '#22c55e';
                 status.innerHTML = '<i class="fas fa-check" style="margin-right:4px;"></i>Auto-filled: ' + (populated || 'crop info') + '. Review and edit if needed.';
                 btn.innerHTML = '<i class="fas fa-rotate" style="margin-right:6px;"></i>Re-analyze';
+
+                // If triggered from Scan Seeded Tray, auto-match to planned batch
+                if (DirectSowState.isScanTrayMode) {
+                    DirectSowState.isScanTrayMode = false;
+                    autoMatchBatchFromScan(d);
+                }
             } else {
                 status.style.background = 'rgba(234,179,8,0.1)';
                 status.style.color = '#eab308';
@@ -31840,6 +31929,122 @@
             btn.innerHTML = '<i class="fas fa-wand-magic-sparkles" style="margin-right:6px;"></i>Try Again';
         }
         btn.disabled = false;
+    }
+
+    // ═══════════════════════════════════════
+    // SCAN SEEDED TRAY — AUTO-MATCH TO BATCH
+    // ═══════════════════════════════════════
+
+    function scanSeededTray() {
+        // Flag so analyzePacketPhoto knows to run auto-match after AI completes
+        DirectSowState.isScanTrayMode = true;
+
+        // Ensure batches are loaded before we try to match
+        if (!DirectSowState.batches || DirectSowState.batches.length === 0) {
+            loadDirectSowBatches();
+        }
+
+        // Reuse existing camera infrastructure with directSowPacket target
+        capturePhoto('directSowPacket');
+    }
+
+    function autoMatchBatchFromScan(scanResult) {
+        var crop = (scanResult.crop || '').toLowerCase().trim();
+        var variety = (scanResult.variety || '').toLowerCase().trim();
+
+        var batches = DirectSowState.batches || [];
+
+        // Search for a planned batch matching crop + variety (case-insensitive)
+        var matchIndex = -1;
+        var match = null;
+        for (var i = 0; i < batches.length; i++) {
+            var b = batches[i];
+            var bCrop = (b.Crop || b.crop || '').toLowerCase().trim();
+            var bVariety = (b.Variety || b.variety || '').toLowerCase().trim();
+
+            // Crop must match. Variety: match if both present, or skip variety check if scan returned none.
+            if (bCrop === crop && (variety === '' || bVariety === variety || bVariety === '')) {
+                match = b;
+                matchIndex = i;
+                break;
+            }
+        }
+
+        if (match) {
+            // Switch to plan mode
+            DirectSowState.isManualMode = false;
+            document.getElementById('directSowPlanMode').style.display = 'block';
+            document.getElementById('directSowManualMode').style.display = 'none';
+            var toggle = document.getElementById('directSowModeToggle');
+            if (toggle) toggle.textContent = 'Not in my plan? Scan packet';
+            var seedLotRow = document.getElementById('sowSeedLot');
+            if (seedLotRow && seedLotRow.parentElement) seedLotRow.parentElement.style.display = 'block';
+
+            // Auto-select the matched batch in the dropdown
+            var batchSelect = document.getElementById('sowBatchSelect');
+            if (batchSelect) {
+                var batchId = match.Batch_ID || match.batch_id || match.ID || '';
+                // Find the option with this batchId value
+                for (var j = 0; j < batchSelect.options.length; j++) {
+                    if (batchSelect.options[j].value === batchId) {
+                        batchSelect.selectedIndex = j;
+                        break;
+                    }
+                }
+                // Trigger the batch change handler to populate all form fields
+                onSowBatchChange();
+            }
+
+            var batchLabel = (match.Batch_ID || match.batch_id || '') + ' - ' + (match.Crop || match.crop || '');
+            if (match.Variety || match.variety) batchLabel += ' (' + (match.Variety || match.variety) + ')';
+            showScanTrayStatus('Matched to planned batch: ' + batchLabel, 'success');
+        } else {
+            // Switch to manual mode
+            if (!DirectSowState.isManualMode) {
+                DirectSowState.isManualMode = true;
+                document.getElementById('directSowPlanMode').style.display = 'none';
+                document.getElementById('directSowManualMode').style.display = 'block';
+                var toggleEl = document.getElementById('directSowModeToggle');
+                if (toggleEl) toggleEl.textContent = '\u2190 Back to planned tasks';
+                var seedLotRowEl = document.getElementById('sowSeedLot');
+                if (seedLotRowEl && seedLotRowEl.parentElement) seedLotRowEl.parentElement.style.display = 'none';
+                var deductRow = document.getElementById('directSowDeductRow');
+                if (deductRow) deductRow.style.display = 'none';
+            }
+
+            // Pre-fill manual fields from scan result
+            var cropEl = document.getElementById('sowManualCrop');
+            var varietyEl = document.getElementById('sowManualVariety');
+            var lotEl = document.getElementById('sowManualLotNumber');
+            var vendorEl = document.getElementById('sowManualVendor');
+
+            if (cropEl) cropEl.value = scanResult.crop || '';
+            if (varietyEl) varietyEl.value = scanResult.variety || '';
+            if (lotEl) lotEl.value = scanResult.lotNumber || '';
+            if (vendorEl) vendorEl.value = scanResult.vendor || '';
+
+            showScanTrayStatus('No planned task found \u2014 logging as unplanned seeding', 'info');
+        }
+    }
+
+    function showScanTrayStatus(message, type) {
+        var el = document.getElementById('scanTrayStatus');
+        if (!el) return;
+        el.style.display = 'block';
+
+        if (type === 'success') {
+            el.style.background = 'rgba(34,197,94,0.12)';
+            el.style.color = '#22c55e';
+            el.style.border = '1px solid rgba(34,197,94,0.25)';
+            el.innerHTML = '<i class="fas fa-check-circle" style="margin-right:6px;"></i>' + message;
+        } else {
+            el.style.background = 'rgba(59,130,246,0.1)';
+            el.style.color = 'var(--primary,#3b82f6)';
+            el.style.border = '1px solid rgba(59,130,246,0.2)';
+            el.innerHTML = '<i class="fas fa-info-circle" style="margin-right:6px;"></i>' + message;
+        }
+
+        setTimeout(function() { el.style.display = 'none'; }, 5000);
     }
 
     async function analyzeTrayLabel() {
@@ -32056,6 +32261,7 @@
                 lotNumber: manualLotNumber,
                 vendor: manualVendor,
                 bedId: bedId,
+                bedsPlanted: parseInt(document.getElementById('transplantBeds')?.value) || 0,
                 plantsTransplanted: plantCount,
                 rowSpacingInches: rowSpacing,
                 plantQuality: TransplantLogState.plantQuality,
@@ -32111,6 +32317,8 @@
         document.getElementById('transplantBedId').value = '';
         var txAddPanel = document.getElementById('transplantAddFieldPanel');
         if (txAddPanel) txAddPanel.style.display = 'none';
+        var txBedsEl = document.getElementById('transplantBeds');
+        if (txBedsEl) txBedsEl.value = '';
         document.getElementById('transplantPlantCount').value = '';
         document.getElementById('transplantRowSpacing').value = '';
         document.getElementById('transplantNotes').value = '';

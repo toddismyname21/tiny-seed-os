@@ -6,6 +6,34 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## 2026-04-03 — FULLSTACK_BUILDER: Scan seeded tray auto-log direct sow
+
+### Files Changed
+- `employee.html`
+  - "Scan Seeded Tray" button added as primary entry point in Direct Sow tab (line 12051-12059)
+  - `scanSeededTray()` function triggers camera with `directSowPacket` target, sets `isScanTrayMode` flag (line 31938)
+  - Auto-triggers `analyzePacketPhoto()` after photo confirmed when in scan tray mode (line 24097)
+  - `autoMatchBatchFromScan(scanResult)` searches `DirectSowState.batches` for crop+variety match (line 31951)
+  - If matched: switches to plan mode, auto-selects batch in dropdown, triggers `onSowBatchChange()` to populate all fields
+  - If no match: switches to manual mode, pre-fills crop/variety/lot/vendor from AI scan result
+  - `showScanTrayStatus()` displays success (green) or info (blue) banner, auto-dismisses after 5s (line 32030)
+  - `DirectSowState.isScanTrayMode` flag added to state object (line 31179)
+
+---
+
+## 2026-04-03 — FULLSTACK_BUILDER: Auto-fill field length + beds in sow/transplant forms
+
+### Files Changed
+- `employee.html`
+  - Field selection auto-fills Feet from bed length, Beds from field bed count (both editable)
+  - Direct Sow: 3-column grid — Feet | Beds (45" wide) | Rows
+  - Transplant: 3-column grid — Beds (45" wide) | Plants | Row Spacing
+  - FieldsCache now stores bedLengths + fieldConfig for instant lookup
+  - bedsPlanted included in sowData and transplant payloads
+  - Reset and auto-save functions updated for new fields
+
+---
+
 ## 2026-04-02 — FULLSTACK_BUILDER: Direct Sow data loss fix
 
 ### Files Changed
