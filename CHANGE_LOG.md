@@ -6,6 +6,31 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## 2026-04-04 — PM_ARCHITECT + FULLSTACK_BUILDER: Tier 1 Audit Fixes
+
+### Files Changed
+- `web_app/manager-dashboard.html`: Fixed broken "Message Team" quick action — was linking to non-existent `sms-campaign.html`, now links to `marketing-command-center.html`
+- `seed_track.html`: Added auth guard (`data-required-role="Manager"`) — page was publicly accessible with no login protection
+- `web_app/garage.html`: Removed silent demo data fallbacks in `loadEquipment`, `loadParts`, `loadManuals` — now returns empty arrays and shows error toast instead of silently showing fake data
+
+### Why
+Tier 1 automated audit found 1 broken link (404 on click), 1 unprotected page, and 3 silent fake-data fallbacks that could cause decisions to be made on fabricated equipment inventory.
+
+---
+
+## 2026-04-03 — PM_ARCHITECT: Fix milestone tracker column mismatches
+
+### Files Changed
+- `apps_script/MERGED TOTAL.js`
+  - `getEmployeeHRStats`: `employeeName` now reads `employeeInfo['Full_Name']` first (USERS sheet column is Full_Name, not .name/.fullName — was returning empty string)
+  - `getEmployeeHRStats`: `startDate` now reads `employeeInfo['Start_Date']` first (USERS sheet column is Start_Date — was defaulting to today, making sick balance always 0)
+  - `getAllEmployeeHRStats`: name normalization simplified to `s.employeeName || emp.name` (getAllActiveEmployees returns {id,name,role} — emp.Full_Name never existed)
+
+### Why
+Milestone tracker and sick/vacation balance panels were showing empty names and zero balances because column name lookups used camelCase keys (.name, .fullName, .startDate) while USERS sheet headers use underscore format (Full_Name, Start_Date).
+
+---
+
 ## 2026-04-03 — FULLSTACK_BUILDER: Multi-role employee support
 
 ### Files Changed

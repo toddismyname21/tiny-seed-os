@@ -1934,12 +1934,13 @@
         } else if (data.success && Array.isArray(data)) {
           equipmentData = data;
         } else {
-          console.warn('No equipment data from API, using sample data');
-          equipmentData = getSampleEquipment();
+          console.warn('No equipment data returned from API');
+          equipmentData = [];
         }
       } catch (error) {
         console.error('Error loading equipment:', error);
-        equipmentData = getSampleEquipment();
+        equipmentData = [];
+        showToast('Could not load equipment data. Check your connection.', 'error');
       }
     }
 
@@ -1953,12 +1954,12 @@
         } else if (data.success && Array.isArray(data)) {
           partsData = data;
         } else {
-          console.warn('No parts data from API, using sample data');
-          partsData = getSampleParts();
+          console.warn('No parts data returned from API');
+          partsData = [];
         }
       } catch (error) {
         console.error('Error loading parts:', error);
-        partsData = getSampleParts();
+        partsData = [];
       }
     }
 
@@ -1972,12 +1973,12 @@
         } else if (data.success && Array.isArray(data)) {
           manualsData = data;
         } else {
-          console.warn('No manuals data from API, using sample data');
-          manualsData = getSampleManuals();
+          console.warn('No manuals data returned from API');
+          manualsData = [];
         }
       } catch (error) {
         console.error('Error loading manuals:', error);
-        manualsData = getSampleManuals();
+        manualsData = [];
       }
     }
 
