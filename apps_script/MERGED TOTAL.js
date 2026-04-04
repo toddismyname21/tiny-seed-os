@@ -14507,7 +14507,7 @@ function doGet(e) {
       // Grant management dashboard
       'getGrantsMgmt', 'getGrantDetail', 'setupGrantSheets',
       // Schedule notifications (triggered from schedule.html — no auth token available)
-      'setupScheduleNotificationTriggers', 'sendWeeklyScheduleEmails', 'sendShiftReminders',
+      'setupScheduleNotificationTriggers', 'sendWeeklyScheduleEmails', 'sendShiftReminders', 'weatherCancelDay',
       // PM trigger management tools
       'listAllTriggers', 'deleteAllTriggers', 'deduplicateTriggers', 'deleteTriggersByHandlers'
     ]);
@@ -17116,6 +17116,8 @@ function doGet(e) {
         return jsonResponse(getMySchedule(e.parameter.employeeId));
       case 'sendWeeklyScheduleEmails':
         return jsonResponse(sendWeeklyScheduleEmails());
+      case 'weatherCancelDay':
+        return jsonResponse(weatherCancelDay(e.parameter.date, e.parameter.reason));
       case 'sendShiftReminders':
         return jsonResponse(sendShiftReminders());
       case 'setupScheduleNotificationTriggers':
@@ -57095,7 +57097,7 @@ function getAllActiveEmployees() {
 // ============================================================================
 
 const SCHEDULE_SHEET_NAME = 'SCHEDULES';
-const SCHEDULE_HEADERS = ['Schedule_ID', 'Employee_ID', 'Date', 'Start_Time', 'End_Time', 'Shift_Type', 'Notes', 'Created_At', 'Updated_At'];
+const SCHEDULE_HEADERS = ['Schedule_ID', 'Employee_ID', 'Date', 'Start_Time', 'End_Time', 'Shift_Type', 'Notes', 'Created_At', 'Updated_At', 'Field_Location', 'Cancelled', 'Cancel_Reason'];
 
 /**
  * Initialize SCHEDULES sheet if it doesn't exist
@@ -57155,7 +57157,10 @@ function getSchedules(startDate, endDate) {
         startTime: row.Start_Time,
         endTime: row.End_Time,
         type: row.Shift_Type || 'field',
-        notes: row.Notes || ''
+        notes: row.Notes || '',
+        fieldLocation: row.Field_Location || '',
+        cancelled: row.Cancelled === true || row.Cancelled === 'TRUE',
+        cancelReason: row.Cancel_Reason || ''
       });
     }
 
@@ -57184,7 +57189,10 @@ function createSchedule(data) {
       data.type || 'field',
       data.notes || '',
       now,
-      now
+      now,
+      data.fieldLocation || data.Field_Location || '',
+      false,
+      ''
     ];
 
     const lock = LockService.getScriptLock();
@@ -57236,6 +57244,15 @@ function updateSchedule(data) {
           rowData[headers.indexOf('Shift_Type')] = data.type || 'field';
           rowData[headers.indexOf('Notes')] = data.notes || '';
           rowData[headers.indexOf('Updated_At')] = new Date().toISOString();
+          if (data.fieldLocation !== undefined && headers.indexOf('Field_Location') >= 0) {
+            rowData[headers.indexOf('Field_Location')] = data.fieldLocation || data.Field_Location || '';
+          }
+          if (data.cancelled !== undefined && headers.indexOf('Cancelled') >= 0) {
+            rowData[headers.indexOf('Cancelled')] = data.cancelled;
+          }
+          if (data.cancelReason !== undefined && headers.indexOf('Cancel_Reason') >= 0) {
+            rowData[headers.indexOf('Cancel_Reason')] = data.cancelReason;
+          }
           sheet.getRange(row, 1, 1, headers.length).setValues([rowData]);
         } finally {
           lock.releaseLock();
@@ -57335,7 +57352,8 @@ function getMySchedule(employeeId) {
           startTime: s.startTime,
           endTime: s.endTime,
           type: s.type,
-          notes: s.notes
+          notes: s.notes,
+          fieldLocation: s.fieldLocation || ''
         };
       })
       .sort((a, b) => a.date.localeCompare(b.date));
@@ -57372,6 +57390,83 @@ function getMySchedule(employeeId) {
     };
   } catch (error) {
     return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Cancel all outdoor shifts for a given date and notify affected employees
+ */
+function weatherCancelDay(date, reason) {
+  try {
+    reason = reason || 'Weather cancellation';
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName('SCHEDULES');
+    if (!sheet) return { success: false, message: 'No schedule sheet found' };
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    const idIdx = headers.indexOf('Schedule_ID');
+    const empIdx = headers.indexOf('Employee_ID');
+    const dateIdx = headers.indexOf('Date');
+    const typeIdx = headers.indexOf('Shift_Type');
+    const cancelIdx = headers.indexOf('Cancelled');
+    const cancelReasonIdx = headers.indexOf('Cancel_Reason');
+    const updatedIdx = headers.indexOf('Updated_At');
+
+    const INDOOR_TYPES = ['greenhouse', 'packhouse', 'market'];
+    const cancelled = [];
+    const now = new Date().toISOString();
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const rowDate = String(row[dateIdx] || '').trim();
+      const shiftType = String(row[typeIdx] || '').toLowerCase().trim();
+
+      if (rowDate === date && !INDOOR_TYPES.includes(shiftType) && row[cancelIdx] !== true) {
+        if (cancelIdx >= 0) sheet.getRange(i + 1, cancelIdx + 1).setValue(true);
+        if (cancelReasonIdx >= 0) sheet.getRange(i + 1, cancelReasonIdx + 1).setValue(reason);
+        if (updatedIdx >= 0) sheet.getRange(i + 1, updatedIdx + 1).setValue(now);
+        cancelled.push({ scheduleId: row[idIdx], employeeId: row[empIdx] });
+      }
+    }
+
+    if (cancelled.length > 0) {
+      var employeeIds = [];
+      var seen = {};
+      cancelled.forEach(function(c) {
+        if (!seen[c.employeeId]) {
+          seen[c.employeeId] = true;
+          employeeIds.push(c.employeeId);
+        }
+      });
+      var allEmps = getAllActiveEmployees();
+      var empMap = {};
+      (allEmps.employees || []).forEach(function(e) { empMap[e.Employee_ID || e.User_ID] = e; });
+
+      var notified = 0;
+      employeeIds.forEach(function(empId) {
+        var emp = empMap[empId];
+        if (!emp) return;
+        var msg = 'Hi ' + (emp.First_Name || emp.Full_Name || 'there') + ', today\'s outdoor work (' + date + ') has been cancelled due to weather. No action needed \u2014 stay safe! - Tiny Seed Farm';
+        try {
+          var email = emp.Email || emp.email;
+          if (email) GmailApp.sendEmail(email, '\u26c8 Today\'s Shift Cancelled \u2014 Weather', msg);
+        } catch(emailErr) { Logger.log('Email fail: ' + emailErr); }
+        try {
+          var phone = emp.Phone || emp.phone;
+          if (phone && typeof sendSMS === 'function') sendSMS(phone, msg);
+        } catch(smsErr) { Logger.log('SMS fail: ' + smsErr); }
+        notified++;
+      });
+
+      return { success: true, cancelledCount: cancelled.length, notifiedCount: notified, date: date, reason: reason };
+    }
+
+    return { success: true, cancelledCount: 0, notifiedCount: 0, message: 'No outdoor shifts found for ' + date };
+  } catch(err) {
+    Logger.log('weatherCancelDay error: ' + err);
+    return { success: false, message: err.toString() };
   }
 }
 

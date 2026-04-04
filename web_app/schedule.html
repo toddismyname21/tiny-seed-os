@@ -978,6 +978,9 @@
             <button onclick="sendSchedulesToAll()" style="background:#22c55e; color:white; border:none; padding:8px 16px; border-radius:6px; cursor:pointer; font-size:13px; font-weight:600; display:inline-flex; align-items:center; gap:6px;">
                 <i class="fas fa-paper-plane"></i> Send Schedules
             </button>
+            <button onclick="confirmWeatherCancel()" style="background:rgba(59,130,246,0.15); color:#93c5fd; border:1px solid rgba(59,130,246,0.3); padding:8px 16px; border-radius:6px; cursor:pointer; font-size:13px; font-weight:600; display:inline-flex; align-items:center; gap:6px;">
+                &#x26C8; Weather Cancel
+            </button>
         </div>
     </header>
 
@@ -1031,6 +1034,9 @@
                 <button class="tab active" onclick="switchTab('schedule')">
                     <i class="fas fa-calendar-week"></i> Schedule
                 </button>
+                <button class="tab" onclick="switchTab('today')">
+                    <i class="fas fa-sun"></i> Today
+                </button>
                 <button class="tab" onclick="switchTab('milestones')">
                     <i class="fas fa-trophy"></i> Milestone Tracker
                 </button>
@@ -1041,6 +1047,11 @@
                     <i class="fas fa-calendar-minus"></i> All Time Off
                     <span class="badge" id="allTimeoffBadge">0</span>
                 </button>
+            </div>
+
+            <!-- Today Tab -->
+            <div class="tab-panel" id="panel-today">
+                <div class="loading"><i class="fas fa-spinner"></i> Loading today's crew...</div>
             </div>
 
             <!-- Schedule Tab -->
@@ -1215,6 +1226,23 @@
                     </div>
                 </div>
 
+                <div class="form-group">
+                    <label>Field Location</label>
+                    <select id="shiftFieldLocation" style="width:100%; padding:10px 12px; border-radius:var(--ts-radius-sm, 8px); background:var(--bg-elevated); border:1px solid var(--border); color:var(--text-primary); font-size:14px;" onchange="onFieldLocationChange()">
+                        <option value="">-- Select location --</option>
+                        <option value="greenhouse">Greenhouse</option>
+                        <option value="packhouse">Packhouse</option>
+                        <option value="market">Market</option>
+                        <option value="field">Field</option>
+                    </select>
+                </div>
+                <div class="form-group" id="fieldSubSelectGroup" style="display:none;">
+                    <label>Field Name</label>
+                    <select id="shiftFieldName" style="width:100%; padding:10px 12px; border-radius:var(--ts-radius-sm, 8px); background:var(--bg-elevated); border:1px solid var(--border); color:var(--text-primary); font-size:14px;">
+                        <option value="">-- Select field --</option>
+                    </select>
+                </div>
+
                 <div class="form-row">
                     <div class="form-group">
                         <label>Start Time</label>
@@ -1326,7 +1354,80 @@
             initShiftTypeSelector();
             refreshData();
             setupDateInputDefaults();
+            loadFieldNames();
+            loadTodaysCrew();
         });
+
+        function onFieldLocationChange() {
+            var val = document.getElementById('shiftFieldLocation').value;
+            var group = document.getElementById('fieldSubSelectGroup');
+            if (group) group.style.display = val === 'field' ? 'block' : 'none';
+        }
+
+        function loadFieldNames() {
+            fetch(API_URL + '?action=getFields')
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    var sel = document.getElementById('shiftFieldName');
+                    if (!sel) return;
+                    var fields = data.data || data.fields || data.records || [];
+                    fields.forEach(function(f) {
+                        var name = f.Field_Name || f.fieldName || f.name || f;
+                        if (name) {
+                            var opt = document.createElement('option');
+                            opt.value = name;
+                            opt.textContent = name;
+                            sel.appendChild(opt);
+                        }
+                    });
+                })
+                .catch(function() { /* fields API optional */ });
+        }
+
+        function loadTodaysCrew() {
+            var today = new Date().toISOString().split('T')[0];
+            fetch(API_URL + '?action=getSchedules&startDate=' + today + '&endDate=' + today)
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    var panel = document.getElementById('panel-today');
+                    if (!panel) return;
+                    if (!data.success || !data.schedules || data.schedules.length === 0) {
+                        panel.innerHTML = '<div style="text-align:center; padding:48px; color:var(--text-secondary);"><i class="fas fa-calendar-times" style="font-size:2rem; margin-bottom:12px; display:block;"></i>No crew scheduled today</div>';
+                        return;
+                    }
+                    var html = data.schedules.map(function(s) {
+                        return '<div style="display:flex; align-items:center; gap:12px; padding:14px 16px; background:var(--bg-card, var(--bg-elevated)); border-radius:10px; margin-bottom:8px;">'
+                            + '<div style="width:40px; height:40px; border-radius:50%; background:var(--primary, #22c55e); display:flex; align-items:center; justify-content:center; font-weight:700; color:white; flex-shrink:0;">' + (s.employeeId || '?').slice(-2) + '</div>'
+                            + '<div style="flex:1;">'
+                            + '<div style="font-weight:600; color:var(--text-primary);">' + (s.employeeName || s.employeeId || 'Employee') + '</div>'
+                            + '<div style="font-size:13px; color:var(--text-secondary);">' + (s.startTime || '') + ' \u2013 ' + (s.endTime || '') + (s.fieldLocation ? ' \u00b7 \ud83d\udccd ' + s.fieldLocation : '') + '</div>'
+                            + '</div></div>';
+                    }).join('');
+                    panel.innerHTML = '<h3 style="color:var(--text-primary); margin-bottom:16px;">Today\'s Crew \u2014 ' + today + '</h3>' + html;
+                })
+                .catch(function() {
+                    var panel = document.getElementById('panel-today');
+                    if (panel) panel.innerHTML = '<div style="text-align:center; padding:48px; color:var(--text-secondary);"><i class="fas fa-exclamation-triangle" style="font-size:2rem; margin-bottom:12px; display:block;"></i>Could not load today\'s crew</div>';
+                });
+        }
+
+        function confirmWeatherCancel() {
+            var today = new Date().toISOString().split('T')[0];
+            if (!confirm('Cancel all outdoor crew for today (' + today + ') and notify them by SMS + email?')) return;
+            var reason = prompt('Add a note (optional, e.g. "Heavy rain forecast"):') || 'Weather cancellation';
+            fetch(API_URL + '?action=weatherCancelDay&date=' + today + '&reason=' + encodeURIComponent(reason))
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.success) {
+                        showToast('Cancelled ' + data.cancelledCount + ' shift(s), notified ' + data.notifiedCount + ' employee(s)', 'success');
+                        loadSchedules();
+                        loadTodaysCrew();
+                    } else {
+                        showToast('Weather cancel failed: ' + (data.message || 'Unknown error'), 'error');
+                    }
+                })
+                .catch(function() { showToast('Network error', 'error'); });
+        }
 
         function initShiftTypeSelector() {
             document.querySelectorAll('.shift-type-option').forEach(opt => {
@@ -1629,8 +1730,9 @@
                                 html += `
                                     <div class="shift-block ${shift.type}"
                                          onclick="event.stopPropagation(); editShift('${shift.id}')">
-                                        <div class="shift-time">${formatTime(shift.startTime)} - ${formatTime(shift.endTime)}</div>
+                                        <div class="shift-time">${formatTime(shift.startTime)} - ${formatTime(shift.endTime)}${shift.notes && shift.notes.trim() ? ' <span style="color:#60a5fa; font-size:9px;">&#9679;</span>' : ''}</div>
                                         <div class="shift-type">${capitalizeFirst(shift.type)}</div>
+                                        ${shift.fieldLocation ? '<div style="font-size:10px; opacity:0.85; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">\ud83d\udccd ' + shift.fieldLocation.replace('field:', '') + '</div>' : ''}
                                     </div>
                                 `;
                             });
@@ -2147,6 +2249,14 @@
             document.getElementById('modalTitle').textContent = 'Add Shift';
             document.getElementById('deleteShiftBtn').style.display = 'none';
 
+            // Reset field location
+            var flSel = document.getElementById('shiftFieldLocation');
+            if (flSel) flSel.value = '';
+            var fnSel = document.getElementById('shiftFieldName');
+            if (fnSel) fnSel.value = '';
+            var fsg = document.getElementById('fieldSubSelectGroup');
+            if (fsg) fsg.style.display = 'none';
+
             document.querySelectorAll('.shift-type-option').forEach(o => o.classList.remove('selected'));
             document.querySelector('.shift-type-option[data-type="field"]').classList.add('selected');
             selectedShiftType = 'field';
@@ -2167,6 +2277,21 @@
             document.getElementById('shiftNotes').value = shift.notes || '';
             document.getElementById('modalTitle').textContent = 'Edit Shift';
             document.getElementById('deleteShiftBtn').style.display = 'block';
+
+            // Restore field location
+            var flSel = document.getElementById('shiftFieldLocation');
+            var fnSel = document.getElementById('shiftFieldName');
+            var fsg = document.getElementById('fieldSubSelectGroup');
+            var fl = shift.fieldLocation || '';
+            if (fl.indexOf('field:') === 0) {
+                if (flSel) flSel.value = 'field';
+                if (fnSel) fnSel.value = fl.substring(6);
+                if (fsg) fsg.style.display = 'block';
+            } else {
+                if (flSel) flSel.value = fl;
+                if (fnSel) fnSel.value = '';
+                if (fsg) fsg.style.display = 'none';
+            }
 
             document.querySelectorAll('.shift-type-option').forEach(o => o.classList.remove('selected'));
             const typeOption = document.querySelector(`.shift-type-option[data-type="${shift.type}"]`);
@@ -2227,6 +2352,10 @@
                 return;
             }
 
+            const fieldLocSel = document.getElementById('shiftFieldLocation');
+            const fieldNameSel = document.getElementById('shiftFieldName');
+            const fieldLocationVal = fieldLocSel ? (fieldLocSel.value === 'field' && fieldNameSel && fieldNameSel.value ? 'field:' + fieldNameSel.value : fieldLocSel.value) : '';
+
             const shiftData = {
                 id: shiftId || generateId(),
                 employeeId,
@@ -2234,7 +2363,8 @@
                 startTime,
                 endTime,
                 type: selectedShiftType,
-                notes
+                notes,
+                fieldLocation: fieldLocationVal
             };
 
             try {

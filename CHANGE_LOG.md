@@ -6,6 +6,66 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## 2026-04-03 — FULLSTACK_BUILDER: Phase 2 — Farm-specific scheduling improvements
+
+### Files Changed
+- `apps_script/MERGED TOTAL.js`
+  - SCHEDULES headers: added Field_Location, Cancelled, Cancel_Reason columns
+  - createSchedule: stores fieldLocation, cancelled, cancelReason
+  - updateSchedule: updates fieldLocation, cancelled, cancelReason
+  - getSchedules: returns fieldLocation, cancelled, cancelReason per shift
+  - getMySchedule: returns fieldLocation per shift
+  - New function weatherCancelDay: cancels outdoor shifts for a date, notifies crew by email+SMS
+  - weatherCancelDay added to PUBLIC_GET_ACTIONS whitelist and GET router
+- `web_app/schedule.html`
+  - Shift modal: Field Location dropdown (greenhouse/packhouse/market/field + sub-select)
+  - loadFieldNames() populates field sub-select from getFields API
+  - saveShift() includes fieldLocation in payload
+  - editShift/openShiftModal restores fieldLocation from existing shift
+  - Shift cards: show field location badge + blue dot when notes present
+  - New Today tab: Today's Crew list with name, time, field location
+  - Header: Weather Cancel button + confirmWeatherCancel() function
+- `employee.html`
+  - My Schedule shift cards: show field location below shift time
+
+---
+
+## 2026-04-03 — FULLSTACK_BUILDER: Phase 1 — Connect employee system to main hub
+
+### Files Changed
+- `index.html`
+  - Added "Employee Management" nav card (line 4938) linking to web_app/employee-management.html with fas fa-users icon
+  - Card includes hidden pending approvals badge (id=pendingApprovalsBadge) that auto-populates via getPendingEmployees API
+  - Added loadPendingBadge() IIFE (line 12486) to fetch and display pending approval count on hub load
+- `web_app/employee-management.html`
+  - Fixed broken quick-link: payroll.html → financial-dashboard.html (line 760)
+  - Fixed broken quick-link: time-off.html → schedule.html (line 764)
+  - Updated label "Time Off Requests" → "Schedule & Time Off" (line 766)
+- `employee.html`
+  - Verified My Schedule panel — NO changes needed
+  - openMySchedule() correctly calls loadMySchedule() (line 29634)
+  - loadMySchedule() correctly resolves employeeId with 3 fallbacks (Employee_ID, User_ID, id) (line 29647)
+  - renderMySchedule() fully renders shifts with date grouping, type colors, time ranges, and per-shift hours (lines 29667-29727)
+  - Empty states handled with icon + message (line 29729)
+
+### Why
+- Employee Management page was unreachable from main hub — no nav card existed
+- Two of four quick-links in employee-management.html pointed to nonexistent pages (payroll.html, time-off.html)
+- My Schedule verified functional with no fixes required
+
+---
+
+## 2026-04-03 — RESEARCH_CLAUDE: Employee scheduling UX research
+
+### Files Changed
+- `docs/research/EMPLOYEE_SCHEDULING_UX_RESEARCH_2026.md` — New file: 338-line research report on Homebase, When I Work, 7shifts, Deputy, and Sling; includes farm-specific UX patterns, MVP feature list, and best-in-class pattern recommendations for Tiny Seed Farm scheduling module
+
+### Why
+- Requested by owner to inform design of employee scheduling feature for 5–15 seasonal farm employees
+- Covers manager scheduling view, employee mobile view, time-off request flow, shift notes/task patterns, weather cancellation patterns, and "who is working today" dashboard patterns
+
+---
+
 ## 2026-04-03 — FULLSTACK_BUILDER: Field location always overridable in plan mode
 
 ### Files Changed
@@ -15,6 +75,17 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
   - "Planned location — change if needed" hint shown when auto-filled, hidden on manual change
   - Added `onDirectSowFieldChange()` / `onTransplantFieldChange()` calls after auto-fill so feet/beds cascade from field config
   - Hint hidden on batch deselect and form reset in both tabs
+
+---
+
+## 2026-04-03 — RESEARCH_CLAUDE: Employee scheduling UX research
+
+### Files Changed
+- `docs/research/EMPLOYEE_SCHEDULING_UX_RESEARCH_2026.md` — New file: 338-line research report on Homebase, When I Work, 7shifts, Deputy, and Sling; includes farm-specific UX patterns, MVP feature list, and best-in-class pattern recommendations for Tiny Seed Farm scheduling module
+
+### Why
+- Requested by owner to inform design of employee scheduling feature for 5–15 seasonal farm employees
+- Covers manager scheduling view, employee mobile view, time-off request flow, shift notes/task patterns, weather cancellation patterns, and "who is working today" dashboard patterns
 
 ---
 
@@ -31,7 +102,29 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## 2026-04-03 — RESEARCH_CLAUDE: Employee scheduling UX research
+
+### Files Changed
+- `docs/research/EMPLOYEE_SCHEDULING_UX_RESEARCH_2026.md` — New file: 338-line research report on Homebase, When I Work, 7shifts, Deputy, and Sling; includes farm-specific UX patterns, MVP feature list, and best-in-class pattern recommendations for Tiny Seed Farm scheduling module
+
+### Why
+- Requested by owner to inform design of employee scheduling feature for 5–15 seasonal farm employees
+- Covers manager scheduling view, employee mobile view, time-off request flow, shift notes/task patterns, weather cancellation patterns, and "who is working today" dashboard patterns
+
+---
+
 ## 2026-04-03 — FULLSTACK_BUILDER: Scan seeded tray auto-log direct sow (SUPERSEDED — moved to Transplant above)
+
+---
+
+## 2026-04-03 — RESEARCH_CLAUDE: Employee scheduling UX research
+
+### Files Changed
+- `docs/research/EMPLOYEE_SCHEDULING_UX_RESEARCH_2026.md` — New file: 338-line research report on Homebase, When I Work, 7shifts, Deputy, and Sling; includes farm-specific UX patterns, MVP feature list, and best-in-class pattern recommendations for Tiny Seed Farm scheduling module
+
+### Why
+- Requested by owner to inform design of employee scheduling feature for 5–15 seasonal farm employees
+- Covers manager scheduling view, employee mobile view, time-off request flow, shift notes/task patterns, weather cancellation patterns, and "who is working today" dashboard patterns
 
 ---
 
@@ -18121,6 +18214,17 @@ User requested deep research on plugins + MCP servers for March 2026. Current ec
 - [x] Checked `docs/research/` — No existing MCP/plugin research documents
 - [x] Verified against existing CLAUDE_CODE research (3 docs exist; no duplication)
 - [x] Verified no existing Google Sheets, GitHub Actions, ESLint, RAG, Google Workspace research
+
+---
+
+## 2026-04-03 — RESEARCH_CLAUDE: Employee scheduling UX research
+
+### Files Changed
+- `docs/research/EMPLOYEE_SCHEDULING_UX_RESEARCH_2026.md` — New file: 338-line research report on Homebase, When I Work, 7shifts, Deputy, and Sling; includes farm-specific UX patterns, MVP feature list, and best-in-class pattern recommendations for Tiny Seed Farm scheduling module
+
+### Why
+- Requested by owner to inform design of employee scheduling feature for 5–15 seasonal farm employees
+- Covers manager scheduling view, employee mobile view, time-off request flow, shift notes/task patterns, weather cancellation patterns, and "who is working today" dashboard patterns
 
 ---
 

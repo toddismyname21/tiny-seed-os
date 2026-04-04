@@ -4935,6 +4935,11 @@
                     <i class="fas fa-user-clock"></i>
                     <span>Employee App</span>
                 </a>
+                <a class="nav-item" href="web_app/employee-management.html" title="Employee Onboarding, Roles & Approvals">
+                    <i class="fas fa-users"></i>
+                    <span>Employee Management</span>
+                    <span class="badge" id="pendingApprovalsBadge" style="display:none; background:var(--ts-danger, #ef4444); color:#fff; min-width:20px; height:20px; border-radius:10px; font-size:11px; font-weight:700; align-items:center; justify-content:center; padding:0 6px;">0</span>
+                </a>
             </div>
 
             <div class="nav-section">
@@ -12476,6 +12481,24 @@
             };
             showSatelliteNotification(testAlert);
         }
+
+        // Load pending employee approvals count for badge
+        (function loadPendingBadge() {
+          try {
+            fetch(API_URL + '?action=getPendingEmployees')
+              .then(function(r) { return r.json(); })
+              .then(function(data) {
+                if (data.success && data.employees && data.employees.length > 0) {
+                  var badge = document.getElementById('pendingApprovalsBadge');
+                  if (badge) {
+                    badge.textContent = data.employees.length;
+                    badge.style.display = 'inline-flex';
+                  }
+                }
+              })
+              .catch(function() {}); // Silent fail — badge just stays hidden
+          } catch(e) {}
+        })();
 
         // Initialize push notifications when DOM is ready
         document.addEventListener('DOMContentLoaded', () => {
