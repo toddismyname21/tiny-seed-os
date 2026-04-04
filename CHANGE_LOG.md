@@ -6,6 +6,20 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## 2026-04-03 — FULLSTACK_BUILDER: Multi-role employee support
+
+### Files Changed
+- `web_app/employee-management.html`
+  - Role selects replaced with checkbox groups in invite modal, edit modal, approval cards
+  - Employee cards show multiple roles as green tag badges
+  - All role read/write paths use comma-separated strings
+- `web_app/auth-guard.js`
+  - getRoleLevel: returns highest level across all assigned roles
+  - hasPermission/canBypassGeofence/hasDualMode/allowRoles: check all assigned roles
+  - Backward compatible with single-role users
+
+---
+
 ## 2026-04-03 — FULLSTACK_BUILDER: Phase 2 — Farm-specific scheduling improvements
 
 ### Files Changed

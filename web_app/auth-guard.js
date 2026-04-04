@@ -203,6 +203,10 @@
          * Get role level (for comparison)
          */
         getRoleLevel(role) {
+            if (!role) return 0;
+            if (role.includes(',')) {
+                return Math.max.apply(null, role.split(',').map(function(r) { return AUTH_CONFIG.ROLE_LEVELS[r.trim()] || 0; }));
+            }
             return AUTH_CONFIG.ROLE_LEVELS[role] || 0;
         },
 
@@ -225,9 +229,11 @@
         hasPermission(permission) {
             const userRole = this.getUserRole();
             if (!userRole) return false;
-
-            const permissions = AUTH_CONFIG.ROLE_PERMISSIONS[userRole] || [];
-            return permissions.includes('all') || permissions.includes(permission);
+            const roles = userRole.includes(',') ? userRole.split(',').map(r => r.trim()) : [userRole];
+            return roles.some(role => {
+                const permissions = AUTH_CONFIG.ROLE_PERMISSIONS[role] || [];
+                return permissions.includes('all') || permissions.includes(permission);
+            });
         },
 
         /**
@@ -236,7 +242,9 @@
          */
         canBypassGeofence() {
             const userRole = this.getUserRole();
-            return AUTH_CONFIG.GEOFENCE_BYPASS_ROLES.includes(userRole);
+            if (!userRole) return false;
+            const roles = userRole.includes(',') ? userRole.split(',').map(r => r.trim()) : [userRole];
+            return roles.some(r => AUTH_CONFIG.GEOFENCE_BYPASS_ROLES.includes(r));
         },
 
         /**
@@ -244,7 +252,9 @@
          */
         hasDualMode() {
             const userRole = this.getUserRole();
-            return AUTH_CONFIG.DUAL_MODE_ROLES.includes(userRole);
+            if (!userRole) return false;
+            const roles = userRole.includes(',') ? userRole.split(',').map(r => r.trim()) : [userRole];
+            return roles.some(r => AUTH_CONFIG.DUAL_MODE_ROLES.includes(r));
         },
 
         /**
@@ -415,8 +425,9 @@
 
             // Check specific allowed roles if provided
             if (allowRoles && Array.isArray(allowRoles)) {
-                if (!allowRoles.includes(userRole)) {
-                    console.log(`AuthGuard: Role ${userRole} not in allowed roles: ${allowRoles.join(', ')}`);
+                const _userRoles = userRole && userRole.includes(',') ? userRole.split(',').map(r => r.trim()) : [userRole];
+                if (!_userRoles.some(r => allowRoles.includes(r))) {
+                    console.log(`AuthGuard: Roles [${userRole}] not in allowed roles: ${allowRoles.join(', ')}`);
                     if (onUnauthorized) {
                         onUnauthorized(userRole, allowRoles);
                     } else {
