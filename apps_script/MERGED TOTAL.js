@@ -58463,6 +58463,11 @@ function getAllEmployeeHRStats() {
         s.name = s.employeeName || s.name || emp.Full_Name || emp.fullName || '';
         s.role = s.role || emp.Role || emp.role || 'Staff';
         s.totalHours = s.totalHoursWorked || s.totalHours || 0;
+        // Normalize sick/vacation field names for frontend compatibility
+        s.sickAccrued = s.sickTimeAccrued || s.sickAccrued || 0;
+        s.sickUsed = s.sickTimeUsed || s.sickUsed || 0;
+        s.vacationUsed = s.vacationDaysUsed || s.vacationUsed || 0;
+        s.orientationComplete = s.orientationComplete !== false;
         stats.push(s);
       }
     });

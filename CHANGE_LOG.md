@@ -18264,3 +18264,14 @@ User requested deep research on plugins + MCP servers for March 2026. Current ec
   - getAllEmployeeHRStats: field names normalized for frontend (name, role, totalHours)
 
 ---
+
+## 2026-04-03 — PM_ARCHITECT: Fix sick/vacation balance field names
+
+### Files Changed
+- `apps_script/MERGED TOTAL.js`
+  - getAllEmployeeHRStats: normalized sickAccrued, sickUsed, vacationUsed field names
+  - sickTimeAccrued → sickAccrued, sickTimeUsed → sickUsed, vacationDaysUsed → vacationUsed
+  - orientationComplete ensured boolean
+  - Sick Time & Vacation Balances tab now populates from real employee data
+
+---
