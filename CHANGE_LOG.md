@@ -18252,3 +18252,15 @@ User requested deep research on plugins + MCP servers for March 2026. Current ec
   - Removed any disabled state on field dropdowns in plan mode
 
 ---
+
+## 2026-04-03 — PM_ARCHITECT: Fix milestone tracker data source
+
+### Files Changed
+- `apps_script/MERGED TOTAL.js`
+  - getEmployeeHRStats: TIME_ENTRIES → TIME_CLOCK (correct sheet name)
+  - getEmployeeHRStats: column names fixed — Employee_ID, Hours_Worked, Date
+  - getEmployeeHRStats: USERS sheet now checks User_ID first
+  - getAllEmployeeHRStats: employee ID aliasing (Employee_ID || User_ID || id)
+  - getAllEmployeeHRStats: field names normalized for frontend (name, role, totalHours)
+
+---

@@ -58343,7 +58343,7 @@ function getEmployeeHRStats(employeeId) {
     if (usersSheet) {
       const usersData = usersSheet.getDataRange().getValues();
       const usersHeaders = usersData[0];
-      const userIdCol = usersHeaders.indexOf('userId') !== -1 ? usersHeaders.indexOf('userId') : usersHeaders.indexOf('id');
+      const userIdCol = usersHeaders.indexOf('User_ID') !== -1 ? usersHeaders.indexOf('User_ID') : (usersHeaders.indexOf('userId') !== -1 ? usersHeaders.indexOf('userId') : usersHeaders.indexOf('id'));
 
       for (let i = 1; i < usersData.length; i++) {
         if (usersData[i][userIdCol] === employeeId) {
@@ -58354,17 +58354,17 @@ function getEmployeeHRStats(employeeId) {
       }
     }
 
-    // Calculate hours from TIME_ENTRIES if available
-    const timeSheet = ss.getSheetByName('TIME_ENTRIES');
+    // Calculate hours from TIME_CLOCK
+    const timeSheet = ss.getSheetByName('TIME_CLOCK');
     let totalHours = 0;
     let hoursThisWeek = 0;
 
     if (timeSheet) {
       const timeData = timeSheet.getDataRange().getValues();
       const timeHeaders = timeData[0];
-      const timeEmpCol = timeHeaders.indexOf('employeeId');
-      const hoursCol = timeHeaders.indexOf('hours');
-      const dateCol = timeHeaders.indexOf('date');
+      const timeEmpCol = timeHeaders.indexOf('Employee_ID');
+      const hoursCol = timeHeaders.indexOf('Hours_Worked');
+      const dateCol = timeHeaders.indexOf('Date');
 
       const now = new Date();
       const weekStart = new Date(now);
@@ -58456,9 +58456,14 @@ function getAllEmployeeHRStats() {
 
     const stats = [];
     employeesResult.employees.forEach(emp => {
-      const empStats = getEmployeeHRStats(emp.id);
+      const empId = emp.Employee_ID || emp.User_ID || emp.id || emp.employeeId;
+      const empStats = getEmployeeHRStats(empId);
       if (empStats.success) {
-        stats.push(empStats.stats);
+        const s = empStats.stats;
+        s.name = s.employeeName || s.name || emp.Full_Name || emp.fullName || '';
+        s.role = s.role || emp.Role || emp.role || 'Staff';
+        s.totalHours = s.totalHoursWorked || s.totalHours || 0;
+        stats.push(s);
       }
     });
 
