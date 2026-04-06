@@ -6,6 +6,17 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-04-06] Phase 1 Railway Backend: Streaming Chief of Staff AI chat
+- Files: backend/server.js, backend/package.json, railway.toml, web_app/api-config.js, web_app/chief-of-staff.html
+- Role: fullstack-builder
+- Changes:
+  - Created backend/server.js: Fastify server with SSE streaming endpoint POST /api/chat/stream
+  - Created backend/package.json: Node.js dependencies (fastify, @fastify/cors, @anthropic-ai/sdk)
+  - Created railway.toml: Railway deployment config pointing to backend/server.js
+  - Updated api-config.js: Added NEW_API constant for Railway backend URL
+  - Updated chief-of-staff.html sendMessage(): Now uses Railway SSE streaming; falls back to Apps Script if Railway unreachable
+- Why: Apps Script has no streaming support — Chief of Staff chat blocks for 30+ seconds with a spinner. Railway enables real-time token streaming, WebSockets (Phase 2), and MCP (Phase 2).
+
 ## [2026-04-06] Chief of Staff Batch 3A: Prompt Caching + Structured JSON + Tool Hardening
 - File: apps_script/MERGED TOTAL.js
 - Role: fullstack-builder (PM delegated — PM reviewed spec)

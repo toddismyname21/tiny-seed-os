@@ -1,0 +1,19 @@
+{
+  "name": "tiny-seed-railway-api",
+  "version": "1.0.0",
+  "description": "Tiny Seed Farm OS — Railway backend (Phase 1: streaming AI)",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "@fastify/cors": "^10.0.2",
+    "fastify": "^5.2.1"
+  }
+}

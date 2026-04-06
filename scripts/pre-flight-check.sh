@@ -115,8 +115,8 @@ if [ "$ACTION" = "create" ]; then
     # Extract basename and create search pattern
     BASENAME=$(basename "$FILE_NAME")
 
-    # Whitelist standard terminal coordination files (every terminal has these)
-    WHITELISTED_NAMES="INBOX.md OUTBOX.md INSTRUCTIONS.md"
+    # Whitelist standard files that every project/subdir legitimately has
+    WHITELISTED_NAMES="INBOX.md OUTBOX.md INSTRUCTIONS.md .gitignore .env.example .env.sample"
     IS_WHITELISTED=false
     for WL in $WHITELISTED_NAMES; do
         if [ "$BASENAME" = "$WL" ]; then
@@ -133,11 +133,11 @@ if [ "$ACTION" = "create" ]; then
         # Search for similar files
         echo "  Searching for similar files matching: $SEARCH_TERM"
 
-        # Use find to search for similar files
-        SIMILAR=$(cd "$BASE_DIR" && find . -type f \( -name "*.html" -o -name "*.js" -o -name "*.md" \) 2>/dev/null | xargs -I {} sh -c 'echo "$1" | grep -i "'"$SEARCH_TERM"'"' _ {} 2>/dev/null | head -10 || true)
+        # Use find to search for similar files (exclude node_modules, .git, vendor dirs)
+        SIMILAR=$(cd "$BASE_DIR" && find . -type d \( -name node_modules -o -name .git -o -name .cache -o -name dist -o -name build \) -prune -o -type f \( -name "*.html" -o -name "*.js" -o -name "*.md" \) -print 2>/dev/null | xargs -I {} sh -c 'echo "$1" | grep -i "'"$SEARCH_TERM"'"' _ {} 2>/dev/null | head -10 || true)
 
-        # Also check for exact basename matches (exclude the file itself)
-        EXACT_MATCH=$(cd "$BASE_DIR" && find . -iname "*${BASENAME}*" -type f 2>/dev/null | grep -v "^\./${FILE_NAME}$" | head -5 || true)
+        # Also check for exact basename matches (exclude the file itself, node_modules, .git)
+        EXACT_MATCH=$(cd "$BASE_DIR" && find . -type d \( -name node_modules -o -name .git -o -name .cache -o -name dist -o -name build \) -prune -o -iname "*${BASENAME}*" -type f -print 2>/dev/null | grep -v "^\./${FILE_NAME}$" | head -5 || true)
 
         if [ -n "$EXACT_MATCH" ]; then
             echo -e "  ${RED}CRITICAL: Exact or near-exact match found:${NC}"

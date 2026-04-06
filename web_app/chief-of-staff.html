@@ -6022,36 +6022,128 @@ Please help with this email. Be concise and actionable.`;
       const message = input.value.trim();
       if (!message) return;
 
-      // Add user message
+      // Add user message to chat
       addChatMessage(message, 'user');
       input.value = '';
       input.style.height = 'auto';
 
-      // Show typing indicator
-      const typingId = showTypingIndicator();
+      // Try Railway streaming first, fall back to Apps Script if unavailable
+      const railwayUrl = (typeof TINY_SEED_API !== 'undefined' && TINY_SEED_API.NEW_API)
+        ? TINY_SEED_API.NEW_API
+        : null;
 
+      if (railwayUrl) {
+        await _sendMessageStreaming(message, railwayUrl);
+      } else {
+        await _sendMessageLegacy(message);
+      }
+    }
+
+    // Railway streaming via SSE (Server-Sent Events over fetch)
+    async function _sendMessageStreaming(message, railwayUrl) {
+      const container = document.getElementById('chat-messages');
+      const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const streamId = 'stream-' + Date.now();
+
+      // Create empty message bubble immediately
+      const div = document.createElement('div');
+      div.id = streamId;
+      div.className = 'chat-message assistant';
+      div.innerHTML = `
+        <div class="chat-bubble"><p id="${streamId}-text" style="min-height:1.2em">▋</p></div>
+        <div class="chat-time">${time}</div>
+      `;
+      container.appendChild(div);
+      container.scrollTop = container.scrollHeight;
+
+      const textEl = document.getElementById(`${streamId}-text`);
+      let fullText = '';
+
+      try {
+        const response = await fetch(`${railwayUrl}/api/chat/stream`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message,
+            history: conversationHistory.slice(-20)
+          })
+        });
+
+        if (!response.ok) throw new Error(`Railway returned HTTP ${response.status}`);
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop(); // Keep incomplete line in buffer
+
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+            const raw = line.slice(6).trim();
+            if (!raw) continue;
+            try {
+              const data = JSON.parse(raw);
+              if (data.type === 'token' && data.text) {
+                fullText += data.text;
+                // Render tokens with basic markdown formatting
+                const rendered = escapeHtml(fullText)
+                  .replace(/\n\n/g, '</p><p>')
+                  .replace(/\n/g, '<br>')
+                  .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                  .replace(/\*(.*?)\*/g, '<em>$1</em>');
+                textEl.innerHTML = rendered + '▋';
+                container.scrollTop = container.scrollHeight;
+              } else if (data.type === 'done') {
+                // Remove cursor, finalize
+                textEl.innerHTML = escapeHtml(fullText)
+                  .replace(/\n\n/g, '</p><p>')
+                  .replace(/\n/g, '<br>')
+                  .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                  .replace(/\*(.*?)\*/g, '<em>$1</em>');
+                // Update conversation history
+                conversationHistory.push({ role: 'user', content: message });
+                conversationHistory.push({ role: 'assistant', content: fullText });
+                if (conversationHistory.length > 20) conversationHistory = conversationHistory.slice(-20);
+                // Speak if auto-speak is on
+                const autoSpeak = document.getElementById('auto-speak');
+                if (autoSpeak && autoSpeak.checked) speakResponse(fullText);
+              } else if (data.type === 'error') {
+                throw new Error(data.message || 'AI service error');
+              }
+            } catch (parseErr) {
+              // Skip malformed SSE lines
+            }
+          }
+        }
+
+      } catch (err) {
+        console.warn('[ChiefOfStaff] Railway streaming failed, falling back to Apps Script:', err.message);
+        // Remove the streaming bubble and fall back
+        div.remove();
+        await _sendMessageLegacy(message);
+      }
+    }
+
+    // Legacy Apps Script path (fallback)
+    async function _sendMessageLegacy(message) {
+      const typingId = showTypingIndicator();
       try {
         const response = await fetch(`${API_BASE}?action=chatWithChiefOfStaff&message=${encodeURIComponent(message)}&history=${encodeURIComponent(JSON.stringify(conversationHistory))}`);
         const data = await response.json();
-
         removeTypingIndicator(typingId);
-
         if (data.success) {
           addChatMessage(data.message, 'assistant');
-
-          // Speak response if auto-speak is enabled
-          if (document.getElementById('auto-speak').checked) {
-            speakResponse(data.message);
-          }
-
-          // Update conversation history
           conversationHistory.push({ role: 'user', content: message });
           conversationHistory.push({ role: 'assistant', content: data.message });
-
-          // Keep last 10 exchanges
-          if (conversationHistory.length > 20) {
-            conversationHistory = conversationHistory.slice(-20);
-          }
+          if (conversationHistory.length > 20) conversationHistory = conversationHistory.slice(-20);
+          const autoSpeak = document.getElementById('auto-speak');
+          if (autoSpeak && autoSpeak.checked) speakResponse(data.message);
         } else {
           addChatMessage('Sorry, I encountered an error. Please try again.', 'assistant');
         }
