@@ -7240,19 +7240,21 @@
                     const icon = iconMap[alert.type] || '⚠️';
                     const sevClass = alert.priority === 'CRITICAL' ? 'p0' : 'p1';
                     const sevLabel = alert.priority === 'CRITICAL' ? 'P0' : 'P1';
-                    const action = alert.action?.template
+                    const isClickable = alert.action?.type === 'viewList';
+                    const clickHandler = isClickable ? `onclick="scrollToOverdue()" style="cursor:pointer;"` : '';
+                    const actionText = alert.action?.template
                         ? 'Action: Create ' + alert.action.template + ' task'
-                        : alert.action?.type === 'viewList'
-                        ? 'Review overdue items'
+                        : isClickable
+                        ? 'Tap to review overdue items →'
                         : '';
 
                     return `
-                        <div class="proactive-alert-item">
+                        <div class="proactive-alert-item" ${clickHandler}>
                             <span class="proactive-alert-icon">${icon}</span>
                             <div class="proactive-alert-content">
                                 <div class="proactive-alert-title">${alert.title || 'Alert'}</div>
                                 <div class="proactive-alert-message">${alert.message || ''}</div>
-                                ${action ? `<div class="proactive-alert-action">${action}</div>` : ''}
+                                ${actionText ? `<div class="proactive-alert-action" style="${isClickable ? 'color:var(--primary);font-weight:500;' : ''}">${actionText}</div>` : ''}
                             </div>
                             <span class="proactive-alert-severity ${sevClass}">${sevLabel}</span>
                         </div>
@@ -8204,6 +8206,15 @@
             if (el) {
                 el.textContent = count;
                 el.style.color = count > 0 ? '#ef4444' : '#22c55e';
+            }
+            // Keep morning brief tip text in sync with actual client-side overdue count
+            const briefAlertsEl = document.getElementById('briefAlerts');
+            if (briefAlertsEl && count > 0) {
+                briefAlertsEl.querySelectorAll('p').forEach(function(p) {
+                    if (p.textContent.includes('overdue task') || p.textContent.includes('overdue item')) {
+                        p.textContent = '⚠️ You have ' + count + ' overdue item(s) that need attention';
+                    }
+                });
             }
         }
 

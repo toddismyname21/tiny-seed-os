@@ -6,6 +6,21 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## 2026-04-05 — Fullstack Builder: Hub Overdue Count + Clickable Alerts
+
+### Bug Fix 1: Consistent overdue count everywhere
+- `syncStatsGridOverdue()` now also patches morning brief tip text so card and brief show same number
+- Previously: card showed client-side count (234), brief showed API count (105) — confusing
+
+### Bug Fix 2: Clickable proactive alert items
+- Proactive alert items with `action.type === 'viewList'` now have `onclick="scrollToOverdue()"`
+- Added cursor:pointer, styled action text, arrow indicator for clickable alerts
+- Previously: clicking the "105 Overdue Tasks" alert did nothing
+
+**Files:** `index.html` (lines ~7239-7262, ~8203-8219)
+
+---
+
 ## 2026-04-05 — PM_Architect Autonomous Audit (45-min session)
 
 ### Root Cause Found: Systemic Token Injection Gap
