@@ -7019,6 +7019,9 @@
                 const taskSection = apiData.sections?.tasks || {};
                 const taskItems = taskSection.items || [];
                 const overdueCount = taskSection.overdue || 0;
+                // Store backend's authoritative overdue count globally
+                // This is from the TASKS sheet only (not inflated by planning-derived tasks)
+                window.authorativeOverdueCount = overdueCount;
 
                 // Support both formats
                 const allTasks = taskItems.length > 0 ? taskItems :
@@ -8201,7 +8204,11 @@
 
         // Audit Fix 4: Sync overdue count into consolidated stats-grid tile
         function syncStatsGridOverdue() {
-            var count = overdueTasks.length;
+            // Use backend's authoritative count (TASKS sheet only) if available.
+            // Avoids inflating with planning-derived tasks that may have bad dates.
+            var count = (typeof window.authorativeOverdueCount !== 'undefined')
+                ? window.authorativeOverdueCount
+                : overdueTasks.length;
             var el = document.getElementById('statOverdue');
             if (el) {
                 el.textContent = count;
