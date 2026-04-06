@@ -6,6 +6,18 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-04-05] Fleet UI: photo capture + serial card + manual per asset
+- File: employee.html
+- Role: fullstack-builder
+- Change: Fleet cards show tractor photo; Add/Edit dialogs include photo capture (camera), serial card photo, and manual URL field; photos upload to Google Drive via uploadFleetPhoto backend
+- Why: Todd needs to document each tractor with a photo, serial number card, and manual link for field reference
+
+## [2026-04-05] Fleet photo/manual fields added to backend
+- File: apps_script/MERGED TOTAL.js
+- Role: fullstack-builder
+- Change: Added uploadFleetPhoto function (Drive upload), new Serial_Card_URL + Manual_URL fields in createFleetAsset/updateFleetAsset, doPost routing for uploadFleetPhoto
+- Why: Fleet assets need tractor photo, serial number card photo, and manual URL per asset for field reference
+
 ## [2026-04-05] GH sowing list made collapsible
 - File: employee.html
 - Role: fullstack-builder

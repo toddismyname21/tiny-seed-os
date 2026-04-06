@@ -20087,6 +20087,68 @@
             needsToBuy: JSON.parse(localStorage.getItem('tsf_needs_list') || '[]')
         };
 
+        // Upload a photo to Drive via the backend, return URL
+        async function uploadFleetPhotoToServer(file, filename) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = async function(e) {
+                    try {
+                        // Strip the data:image/jpeg;base64, prefix
+                        const base64 = e.target.result.split(',')[1];
+                        const mimeType = file.type || 'image/jpeg';
+
+                        const response = await fetch(CONFIG.API_URL, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'text/plain' },
+                            body: JSON.stringify({
+                                action: 'uploadFleetPhoto',
+                                base64: base64,
+                                filename: filename,
+                                mimeType: mimeType
+                            })
+                        });
+                        const result = await response.json();
+                        if (result.success) {
+                            resolve(result.url);
+                        } else {
+                            reject(new Error(result.error || 'Upload failed'));
+                        }
+                    } catch(err) {
+                        reject(err);
+                    }
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // Render a photo capture button + preview for fleet forms
+        function fleetPhotoField(id, label, existingUrl) {
+            return `
+                <div class="form-group">
+                    <label>${label}</label>
+                    ${existingUrl ? `<img id="${id}Preview" src="${existingUrl}" style="width:100%;border-radius:10px;margin-bottom:8px;max-height:160px;object-fit:cover;" onclick="window.open('${existingUrl}','_blank')">` : `<div id="${id}Preview" style="display:none;"></div>`}
+                    <label style="display:flex;align-items:center;gap:10px;background:var(--bg-card,#201e1b);border:1px dashed rgba(255,255,255,0.2);border-radius:10px;padding:12px;cursor:pointer;">
+                        <i class="fas fa-camera" style="color:#22c55e;font-size:1.2rem;"></i>
+                        <span style="color:var(--text-secondary);font-size:0.9rem;">${existingUrl ? 'Replace photo' : 'Take or choose photo'}</span>
+                        <input type="file" id="${id}Input" accept="image/*" capture="environment" style="display:none;" onchange="previewFleetPhoto('${id}')">
+                    </label>
+                    <input type="hidden" id="${id}Url" value="${existingUrl || ''}">
+                </div>
+            `;
+        }
+
+        function previewFleetPhoto(id) {
+            const input = document.getElementById(id + 'Input');
+            const preview = document.getElementById(id + 'Preview');
+            if (!input || !input.files[0]) return;
+            const reader = new FileReader();
+            reader.onload = e => {
+                preview.innerHTML = `<img src="${e.target.result}" style="width:100%;border-radius:10px;margin-bottom:8px;max-height:160px;object-fit:cover;">`;
+                preview.style.display = 'block';
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+
         async function loadFleetData() {
             try {
                 const btn = document.getElementById('fleetRefreshBtn');
@@ -20129,9 +20191,13 @@
                 const isRunning = FleetState.runningAssets[t.id];
                 const statusClass = (t.status || '').toLowerCase().replace(' ', '-') || 'active';
                 const hours = parseFloat(t.currenthours || t.currentHours || 0);
+                const photoUrl = t.photoUrl || t.Photo_URL || '';
+                const serialCardUrl = t.serialCardUrl || t.Serial_Card_URL || '';
+                const manualUrl = t.manualUrl || t.Manual_URL || '';
 
                 return `
                     <div class="tractor-card ${isRunning ? 'running' : ''}" onclick="openTractorDialog('${t.id}')">
+                        ${photoUrl ? `<img src="${photoUrl}" style="width:100%;height:100px;object-fit:cover;border-radius:10px 10px 0 0;margin-bottom:8px;" onerror="this.style.display='none'">` : ''}
                         <div class="tractor-card-header">
                             <span class="tractor-id">${t.id}</span>
                             <span class="tractor-status ${statusClass}">${t.status || 'Active'}</span>
@@ -20140,6 +20206,10 @@
                         <div class="tractor-hours">
                             <span class="tractor-hours-label">Hours</span>
                             <span class="tractor-hours-value">${hours.toLocaleString()}</span>
+                        </div>
+                        <div style="display:flex;gap:6px;margin-top:8px;">
+                            ${serialCardUrl ? `<button onclick="event.stopPropagation();window.open('${serialCardUrl}','_blank')" style="flex:1;padding:8px 4px;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:transparent;color:var(--text-secondary);font-size:0.75rem;cursor:pointer;" title="View Serial Number Card"><i class="fas fa-id-card"></i> Serial</button>` : ''}
+                            ${manualUrl ? `<button onclick="event.stopPropagation();window.open('${manualUrl}','_blank')" style="flex:1;padding:8px 4px;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:transparent;color:var(--text-secondary);font-size:0.75rem;cursor:pointer;" title="View Manual"><i class="fas fa-book"></i> Manual</button>` : ''}
                         </div>
                         <button class="tractor-action ${isRunning ? 'running' : 'start'}" onclick="event.stopPropagation(); ${isRunning ? `stopTractor('${t.id}')` : `startTractor('${t.id}')`}">
                             <i class="fas fa-${isRunning ? 'stop' : 'play'}"></i>
@@ -20482,6 +20552,14 @@
                         </select>
                     </div>
 
+                    ${fleetPhotoField('newVehiclePhoto', '📷 Tractor Photo', '')}
+                    ${fleetPhotoField('newVehicleSerial', '📋 Serial Number Card', '')}
+
+                    <div class="form-group">
+                        <label>📖 Manual URL (Google Drive link)</label>
+                        <input type="url" id="newVehicleManualUrl" class="garage-input" placeholder="https://drive.google.com/...">
+                    </div>
+
                     <div style="display: flex; gap: 10px; margin-top: 20px;">
                         <button class="garage-submit secondary" onclick="closeTractorDialog()" style="flex: 1;">Cancel</button>
                         <button class="garage-submit" onclick="saveNewVehicle()" style="flex: 1; background: var(--success);">
@@ -20501,11 +20579,32 @@
             const year = document.getElementById('newVehicleYear').value;
             const hours = document.getElementById('newVehicleHours').value || 0;
             const status = document.getElementById('newVehicleStatus').value;
+            const manualUrl = document.getElementById('newVehicleManualUrl')?.value.trim() || '';
 
             if (!id) {
                 showToast('Vehicle ID is required', 'error');
                 return;
             }
+
+            showToast('Saving...', 'info');
+
+            // Upload photos if selected
+            let photoUrl = '';
+            let serialCardUrl = '';
+
+            try {
+                const photoInput = document.getElementById('newVehiclePhotoInput'); if (photoInput && photoInput.files[0]) {
+                    showToast('Uploading tractor photo...', 'info');
+                    photoUrl = await uploadFleetPhotoToServer(photoInput.files[0], `${id}_photo.jpg`);
+                }
+            } catch(e) { showToast('Photo upload failed — saved without photo', 'error'); }
+
+            try {
+                const serialInput = document.getElementById('newVehicleSerialInput'); if (serialInput && serialInput.files[0]) {
+                    showToast('Uploading serial card...', 'info');
+                    serialCardUrl = await uploadFleetPhotoToServer(serialInput.files[0], `${id}_serial.jpg`);
+                }
+            } catch(e) { showToast('Serial card upload failed — saved without it', 'error'); }
 
             const vehicle = {
                 id: id,
@@ -20514,7 +20613,10 @@
                 model: make && model ? `${make} ${model}` : (model || make || type),
                 year: year,
                 currentHours: parseFloat(hours),
-                status: status
+                status: status,
+                photoUrl: photoUrl,
+                serialCardUrl: serialCardUrl,
+                manualUrl: manualUrl
             };
 
             try {
@@ -20523,22 +20625,18 @@
                     headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify(vehicle)
                 });
-
                 const result = await response.json();
-
-                // Also add locally for immediate feedback
                 FleetState.tractors.push(vehicle);
                 renderFleetGrid();
                 populateFleetSelects();
                 closeTractorDialog();
                 showToast(`Added ${id} to fleet!`, 'success');
             } catch (error) {
-                // Add locally even if API fails
                 FleetState.tractors.push(vehicle);
                 renderFleetGrid();
                 populateFleetSelects();
                 closeTractorDialog();
-                showToast('Saved locally - will sync later', 'info');
+                showToast('Saved locally — will sync later', 'info');
             }
         }
 
@@ -20593,6 +20691,14 @@
                         </select>
                     </div>
 
+                    ${fleetPhotoField('editVehiclePhoto', '📷 Tractor Photo', vehicle.photoUrl || vehicle.Photo_URL || '')}
+                    ${fleetPhotoField('editVehicleSerial', '📋 Serial Number Card', vehicle.serialCardUrl || vehicle.Serial_Card_URL || '')}
+
+                    <div class="form-group">
+                        <label>📖 Manual URL (Google Drive link)</label>
+                        <input type="url" id="editVehicleManualUrl" class="garage-input" value="${vehicle.manualUrl || vehicle.Manual_URL || ''}" placeholder="https://drive.google.com/...">
+                    </div>
+
                     <div style="display: flex; gap: 10px; margin-top: 20px;">
                         <button class="garage-submit secondary" onclick="closeTractorDialog()" style="flex: 1;">Cancel</button>
                         <button class="garage-submit" onclick="saveVehicleEdit('${assetId}')" style="flex: 1; background: var(--success);">
@@ -20610,6 +20716,25 @@
             const year = document.getElementById('editVehicleYear').value;
             const hours = document.getElementById('editVehicleHours').value;
             const status = document.getElementById('editVehicleStatus').value;
+            const manualUrl = document.getElementById('editVehicleManualUrl')?.value.trim() || '';
+
+            // Preserve existing URLs unless new files selected
+            const photoUrlEl = document.getElementById('editVehiclePhotoUrl'); let photoUrl = (photoUrlEl && photoUrlEl.value) || '';
+            const serialUrlEl = document.getElementById('editVehicleSerialUrl'); let serialCardUrl = (serialUrlEl && serialUrlEl.value) || '';
+
+            try {
+                const photoInput = document.getElementById('editVehiclePhotoInput'); if (photoInput && photoInput.files[0]) {
+                    showToast('Uploading tractor photo...', 'info');
+                    photoUrl = await uploadFleetPhotoToServer(photoInput.files[0], `${assetId}_photo.jpg`);
+                }
+            } catch(e) { showToast('Photo upload failed', 'error'); }
+
+            try {
+                const serialInput = document.getElementById('editVehicleSerialInput'); if (serialInput && serialInput.files[0]) {
+                    showToast('Uploading serial card...', 'info');
+                    serialCardUrl = await uploadFleetPhotoToServer(serialInput.files[0], `${assetId}_serial.jpg`);
+                }
+            } catch(e) { showToast('Serial card upload failed', 'error'); }
 
             const vehicle = FleetState.tractors.find(t => t.id === assetId);
             if (vehicle) {
@@ -20619,21 +20744,25 @@
                 vehicle.currentHours = parseFloat(hours) || 0;
                 vehicle.currenthours = parseFloat(hours) || 0;
                 vehicle.status = status;
+                vehicle.photoUrl = photoUrl;
+                vehicle.serialCardUrl = serialCardUrl;
+                vehicle.manualUrl = manualUrl;
             }
 
             try {
                 await fetch(`${CONFIG.API_URL}?action=updateFleetVehicle`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'text/plain' },
-                    body: JSON.stringify({ id: assetId, type, model, year, currentHours: hours, status })
+                    body: JSON.stringify({ id: assetId, type, model, year, currentHours: hours, status, photoUrl, serialCardUrl, manualUrl })
                 });
-            } catch (e) {
-                console.error('Update error:', e);
+                renderFleetGrid();
+                closeTractorDialog();
+                showToast('Vehicle updated!', 'success');
+            } catch (error) {
+                renderFleetGrid();
+                closeTractorDialog();
+                showToast('Saved locally — will sync later', 'info');
             }
-
-            renderFleetGrid();
-            closeTractorDialog();
-            showToast(`Updated ${assetId}`, 'success');
         }
 
         function updateVehicleHours(assetId) {
