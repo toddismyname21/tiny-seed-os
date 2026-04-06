@@ -6,6 +6,12 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-04-05] GH sowing list made collapsible
+- File: employee.html
+- Role: fullstack-builder
+- Change: Greenhouse Sowing section now collapses/expands on tap — collapsed by default
+- Why: List was always fully expanded, pushing mode selector and other content off-screen on mobile
+
 ## [2026-04-05] Hub task card count fix
 - File: index.html
 - Role: fullstack-builder

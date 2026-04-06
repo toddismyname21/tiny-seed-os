@@ -10347,11 +10347,15 @@
 
                 <!-- Greenhouse Sowing Companion -->
                 <div id="ghSowingSection" style="margin-top:20px;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-                        <h3 style="margin:0;font-size:1rem;color:var(--text-primary);"><i class="fas fa-seedling" style="color:#22c55e;"></i> <span data-i18n="home.ghSowing">Greenhouse Sowing</span></h3>
-                        <span id="ghSowingCount" style="font-size:0.8rem;color:var(--text-secondary);"></span>
+                    <div onclick="toggleGHSowing()" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;cursor:pointer;padding:10px 14px;background:var(--bg-card,#201e1b);border-radius:12px;border:1px solid rgba(255,255,255,0.06);">
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <i class="fas fa-seedling" style="color:#22c55e;"></i>
+                            <h3 style="margin:0;font-size:1rem;color:var(--text-primary);"><span data-i18n="home.ghSowing">Greenhouse Sowing</span></h3>
+                            <span id="ghSowingCount" style="font-size:0.8rem;color:var(--text-secondary);"></span>
+                        </div>
+                        <i class="fas fa-chevron-down" id="ghSowingChevron" style="color:var(--text-secondary);font-size:0.85rem;transition:transform 0.2s;"></i>
                     </div>
-                    <div id="ghSowingList" style="display:flex;flex-direction:column;gap:8px;"></div>
+                    <div id="ghSowingList" style="display:none;flex-direction:column;gap:8px;margin-top:8px;"></div>
                 </div>
 
                 <!-- Work Mode Selector (Permission-based) -->
@@ -17343,6 +17347,14 @@
             } catch (e) {
                 console.error('GH Sowing load error:', e);
             }
+        }
+
+        function toggleGHSowing() {
+            var list = document.getElementById('ghSowingList');
+            var chevron = document.getElementById('ghSowingChevron');
+            var isOpen = list.style.display !== 'none';
+            list.style.display = isOpen ? 'none' : 'flex';
+            chevron.style.transform = isOpen ? '' : 'rotate(180deg)';
         }
 
         function renderGHSowingTasks() {
