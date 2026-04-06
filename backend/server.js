@@ -45,6 +45,7 @@ await fastify.register(cors, {
   origin: (origin, cb) => {
     const allowed = [
       'https://toddismyname21.github.io',
+      'https://app.tinyseedfarm.com',
       'http://localhost:3000',
       'http://localhost:5500',
       'http://127.0.0.1:5500',
