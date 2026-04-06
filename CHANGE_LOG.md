@@ -6,6 +6,24 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## 2026-04-05 — Fullstack Builder: Task Assignment Token Auth + Hub Card Label
+
+### Fix 1: task-assignment.html — explicit session token on API calls
+- Added `_getToken()` helper to extract token from `localStorage`
+- `loadEmployees()` now passes `token=` param to `getAllEmployees`
+- `loadTasks()` now passes token to `getEmployeeTasks`, `getOverdueTasks`, `getOverduePlantings`
+- `loadTaskStats()` now passes token to `getTaskStats`
+- Fixes "Failed to load employees" error on protected endpoints
+
+### Fix 2: index.html — clarify "This Week" stat card label
+- Renamed label from "This Week" to "Planned" with arrow indicator
+- Added tooltip explaining the count is planning-derived, not from TASKS sheet
+- Eliminates confusion when number doesn't match task-assignment.html
+
+**Files:** `web_app/task-assignment.html`, `index.html`
+
+---
+
 ## 2026-04-05 — Fullstack Builder: Use Backend Authoritative Overdue Count
 
 ### Bug Fix: Stats card showed 234 (inflated), backend says 105 (real)

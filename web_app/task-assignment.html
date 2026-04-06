@@ -1047,6 +1047,13 @@
         // API Configuration - Using Unified Task API
         const API_BASE = TINY_SEED_API.MAIN_API;
 
+        // Helper: get session token for authenticated API calls
+        function _getToken() {
+            try {
+                return JSON.parse(localStorage.getItem('tinyseed_session') || '{}').token || '';
+            } catch(e) { return ''; }
+        }
+
         // State
         let tasks = [];
         let employees = [];
@@ -1093,7 +1100,7 @@
 
         async function loadEmployees() {
             try {
-                const response = await fetch(`${API_BASE}?action=getAllEmployees`);
+                const response = await fetch(`${API_BASE}?action=getAllEmployees&token=${_getToken()}`);
                 const data = await response.json();
 
                 if (data.success && data.employees) {
@@ -1166,10 +1173,11 @@
 
             try {
                 // Fetch from multiple sources in parallel
+                const _tok = _getToken();
                 const [employeeTasksRes, overdueTasksRes, planningRes] = await Promise.all([
-                    fetch(`${API_BASE}?action=getEmployeeTasks&employeeId=`),
-                    fetch(`${API_BASE}?action=getOverdueTasks`),
-                    fetch(`${API_BASE}?action=getOverduePlantings`)
+                    fetch(`${API_BASE}?action=getEmployeeTasks&employeeId=&token=${_tok}`),
+                    fetch(`${API_BASE}?action=getOverdueTasks&token=${_tok}`),
+                    fetch(`${API_BASE}?action=getOverduePlantings&token=${_tok}`)
                 ]);
 
                 const employeeData = await employeeTasksRes.json();
@@ -1303,7 +1311,7 @@
          */
         async function loadTaskStats() {
             try {
-                const response = await fetch(`${API_BASE}?action=getTaskStats`);
+                const response = await fetch(`${API_BASE}?action=getTaskStats&token=${_getToken()}`);
                 const data = await response.json();
 
                 if (data.success && data.stats) {
