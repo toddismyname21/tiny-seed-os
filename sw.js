@@ -9,9 +9,10 @@
  * - v8: Force cache refresh for Voice Profile modal fix
  * - v9: Added sync-market-sales for offline farmers market sales
  * - v10: Force cache refresh for CSP fix + auth token injection
+ * - v13: Force cache refresh for fetch interceptor + overdue count sync
  */
 
-const CACHE_VERSION = 'v12';
+const CACHE_VERSION = 'v13';
 const CACHE_NAME = `tiny-seed-mobile-${CACHE_VERSION}`;
 const STATIC_CACHE_NAME = `tiny-seed-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE_NAME = `tiny-seed-dynamic-${CACHE_VERSION}`;
