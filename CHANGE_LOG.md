@@ -6,6 +6,45 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## 2026-04-05 — PM_Architect Autonomous Audit (45-min session)
+
+### Root Cause Found: Systemic Token Injection Gap
+All admin pages (manager-dashboard, schedule, chief-of-staff, financial-dashboard, 
+marketing-command-center) made protected API calls WITHOUT including the session token.
+Backend correctly rejected all of them → blank panels on every admin page.
+
+### Fix 1: Fetch Interceptor in auth-guard.js (fixes ALL pages at once)
+- Added `patchFetchWithAuth()` IIFE to auth-guard.js
+- Intercepts all fetch() calls to script.google.com
+- Auto-appends `?token=` to GET URLs
+- Auto-injects `token` into POST JSON bodies
+- Never breaks non-API fetch calls (only targets script.google.com)
+- Files: `web_app/auth-guard.js`
+
+### Fix 2: Weather Actions Made Public in Backend
+- Added getWeather, getWeatherForecast, getWeatherSmartDashboard to PUBLIC_GET_ACTIONS
+- Weather data has no PII — correct to be public
+- Files: `apps_script/MERGED TOTAL.js`
+
+### Fix 3: manager-dashboard.html User Name Fix
+- loadUserInfo() was reading nonexistent localStorage key 'authUser'
+- Fixed to read from 'tinyseed_session' (fullName field)
+- User name in header now actually displays
+- Files: `web_app/manager-dashboard.html`
+
+### Fix 4: OSP Generator Auth Guard Added
+- osp.html was missing auth-guard.js entirely
+- Contains organic certification data (Admin-only content)
+- Added: `<script src="auth-guard.js" data-required-role="Admin">`
+- Files: `web_app/osp.html`
+
+### Other Bugs Confirmed (pre-existing, not introduced this session)
+- schedule.html: shift creation/deletion/approval all fixed by Fix 1
+- chief-of-staff.html: 15 protected endpoints fixed by Fix 1
+- financial-dashboard.html: Plaid/Alpaca/wishlist/bills panels fixed by Fix 1
+
+---
+
 ## 2026-04-04 — PM_ARCHITECT + FULLSTACK_BUILDER: Tier 1 Audit Fixes
 
 ### Files Changed

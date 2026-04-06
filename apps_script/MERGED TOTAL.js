@@ -14509,7 +14509,9 @@ function doGet(e) {
       // Schedule notifications (triggered from schedule.html — no auth token available)
       'setupScheduleNotificationTriggers', 'sendWeeklyScheduleEmails', 'sendShiftReminders', 'weatherCancelDay',
       // PM trigger management tools
-      'listAllTriggers', 'deleteAllTriggers', 'deduplicateTriggers', 'deleteTriggersByHandlers'
+      'listAllTriggers', 'deleteAllTriggers', 'deduplicateTriggers', 'deleteTriggersByHandlers',
+      // Weather data (non-sensitive, no PII — public for all dashboard pages)
+      'getWeather', 'getWeatherForecast', 'getWeatherSmartDashboard'
     ]);
 
   if (!PUBLIC_GET_ACTIONS.has(action)) {
@@ -58385,7 +58387,7 @@ function getEmployeeHRStats(employeeId) {
     }
 
     // Calculate sick time accrual (1 hour per 40 hours worked, after 15 day orientation)
-    const startDate = employeeInfo ? new Date(employeeInfo.startDate || employeeInfo.hireDate || new Date()) : new Date();
+    const startDate = employeeInfo ? new Date(employeeInfo['Start_Date'] || employeeInfo.startDate || employeeInfo.hireDate || new Date()) : new Date();
     const daysSinceStart = Math.floor((new Date() - startDate) / (1000 * 60 * 60 * 24));
     const orientationComplete = daysSinceStart >= 15;
     const hoursAfterOrientation = orientationComplete ? Math.max(0, totalHours - 120) : 0; // Assuming ~8hrs/day for 15 days
@@ -58420,7 +58422,7 @@ function getEmployeeHRStats(employeeId) {
       success: true,
       stats: {
         employeeId: employeeId,
-        employeeName: employeeInfo ? (employeeInfo.name || employeeInfo.fullName || '') : '',
+        employeeName: employeeInfo ? (employeeInfo['Full_Name'] || employeeInfo.name || employeeInfo.fullName || '') : '',
         startDate: startDate.toISOString().split('T')[0],
         totalHoursWorked: Math.round(totalHours * 10) / 10,
         hoursThisWeek: Math.round(hoursThisWeek * 10) / 10,
@@ -58460,7 +58462,7 @@ function getAllEmployeeHRStats() {
       const empStats = getEmployeeHRStats(empId);
       if (empStats.success) {
         const s = empStats.stats;
-        s.name = s.employeeName || s.name || emp.Full_Name || emp.fullName || '';
+        s.name = s.employeeName || emp.name || '';
         s.role = s.role || emp.Role || emp.role || 'Staff';
         s.totalHours = s.totalHoursWorked || s.totalHours || 0;
         // Normalize sick/vacation field names for frontend compatibility

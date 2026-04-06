@@ -1876,10 +1876,13 @@
         // ═══════════════════════════════════════════════════════════════════════════
         function loadUserInfo() {
             try {
-                const user = JSON.parse(localStorage.getItem('authUser') || '{}');
-                if (user.name) {
-                    document.getElementById('user-name').textContent = user.name;
-                    document.getElementById('user-avatar').textContent = getInitials(user.name);
+                const sess = JSON.parse(localStorage.getItem('tinyseed_session') || '{}');
+                const name = sess.fullName || sess.username || '';
+                if (name) {
+                    const nameEl = document.getElementById('user-name');
+                    const avatarEl = document.getElementById('user-avatar');
+                    if (nameEl) nameEl.textContent = name;
+                    if (avatarEl) avatarEl.textContent = getInitials(name);
                 }
             } catch (e) {
                 console.warn('Could not load user info');

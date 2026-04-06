@@ -669,6 +669,60 @@
     };
 
     // ═══════════════════════════════════════════════════════════════════════════
+    // FETCH INTERCEPTOR — Auto-inject session token into API requests
+    // ═══════════════════════════════════════════════════════════════════════════
+    //
+    // Problem: admin pages (manager-dashboard, schedule, chief-of-staff, etc.)
+    // make protected API calls without passing the session token. The backend
+    // rejects them with "Authentication required", causing blank panels.
+    //
+    // Fix: Intercept all fetch() calls targeting the Apps Script API and
+    // automatically append ?token= to GET requests and inject token into
+    // POST JSON bodies. Fixes ALL admin pages without touching each one.
+    //
+    // Safety: Only intercepts calls to script.google.com. Passes all other
+    // fetch calls through untouched. Never breaks a fetch call.
+    // ─────────────────────────────────────────────────────────────────────────
+    (function patchFetchWithAuth() {
+        const originalFetch = window.fetch;
+
+        window.fetch = function(url, options) {
+            try {
+                // Only intercept Apps Script API calls
+                if (typeof url === 'string' && url.includes('script.google.com')) {
+                    const session = AuthGuard.getSession();
+                    const token = session && session.token;
+
+                    if (token) {
+                        // ── GET: append token to URL (if not already present) ──
+                        if (!url.includes('token=') && !url.includes('sessionToken=')) {
+                            url = url + (url.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(token);
+                        }
+
+                        // ── POST: inject token into JSON body (if not already present) ──
+                        if (options && options.method && options.method.toUpperCase() === 'POST' && options.body) {
+                            if (typeof options.body === 'string') {
+                                try {
+                                    const body = JSON.parse(options.body);
+                                    if (!body.token && !body.sessionToken) {
+                                        body.token = token;
+                                        options = Object.assign({}, options, { body: JSON.stringify(body) });
+                                    }
+                                } catch (e) { /* body is not JSON — leave untouched */ }
+                            }
+                        }
+                    }
+                }
+            } catch (e) {
+                // Never let the interceptor break a fetch call
+                console.warn('[AuthGuard] fetch interceptor error:', e);
+            }
+
+            return originalFetch.call(this, url, options);
+        };
+    })();
+
+    // ═══════════════════════════════════════════════════════════════════════════
     // EXPORT
     // ═══════════════════════════════════════════════════════════════════════════
 
