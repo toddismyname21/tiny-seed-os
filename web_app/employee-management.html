@@ -1068,14 +1068,16 @@
 
             try {
                 // Try new endpoint first, fall back to old
-                let response = await fetch(`${API_URL}?action=getAllEmployees`);
+                const _sess = JSON.parse(localStorage.getItem('tinyseed_session') || '{}');
+                const _tok = _sess.token || '';
+                let response = await fetch(`${API_URL}?action=getAllEmployees&token=${_tok}`);
                 let data = await response.json();
 
                 if (data.success && data.employees) {
                     employees = data.employees;
                 } else {
                     showToast('Employee list unavailable — showing pending only', 'error');
-                    response = await fetch(`${API_URL}?action=getPendingEmployees`);
+                    response = await fetch(`${API_URL}?action=getPendingEmployees&token=${_tok}`);
                     data = await response.json();
                     employees = data.employees || [];
                 }

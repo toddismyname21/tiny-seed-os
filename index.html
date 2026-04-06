@@ -12485,7 +12485,9 @@
         // Load pending employee approvals count for badge
         (function loadPendingBadge() {
           try {
-            fetch(API_URL + '?action=getPendingEmployees')
+            var _session = JSON.parse(localStorage.getItem('tinyseed_session') || '{}');
+            var _token = _session.token || '';
+            fetch(API_URL + '?action=getPendingEmployees&token=' + _token)
               .then(function(r) { return r.json(); })
               .then(function(data) {
                 if (data.success && data.employees && data.employees.length > 0) {
