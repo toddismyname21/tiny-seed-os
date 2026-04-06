@@ -1552,6 +1552,7 @@ function chatWithChiefOfStaff(userMessage, conversationHistoryJson) {
     {
       name: "send_sms",
       description: "Send an SMS text message to a phone number. Use this when the user wants to text someone.",
+      strict: true,
       input_schema: {
         type: "object",
         properties: {
@@ -1570,6 +1571,7 @@ function chatWithChiefOfStaff(userMessage, conversationHistoryJson) {
     {
       name: "send_email",
       description: "Send an email. Use this when the user wants to email someone.",
+      strict: true,
       input_schema: {
         type: "object",
         properties: {
@@ -1592,6 +1594,7 @@ function chatWithChiefOfStaff(userMessage, conversationHistoryJson) {
     {
       name: "log_activity",
       description: "Log an activity or task that the user completed. Use this when the user reports what they did.",
+      strict: true,
       input_schema: {
         type: "object",
         properties: {
@@ -1615,6 +1618,7 @@ function chatWithChiefOfStaff(userMessage, conversationHistoryJson) {
     {
       name: "capture_idea",
       description: "Capture an idea or thought for later review. Use when user brainstorms or has ideas.",
+      strict: true,
       input_schema: {
         type: "object",
         properties: {
@@ -1639,6 +1643,7 @@ function chatWithChiefOfStaff(userMessage, conversationHistoryJson) {
     {
       name: "lookup_contact",
       description: "Look up a contact's phone number or email by name from the customer database.",
+      strict: true,
       input_schema: {
         type: "object",
         properties: {
@@ -1653,6 +1658,7 @@ function chatWithChiefOfStaff(userMessage, conversationHistoryJson) {
     {
       name: "get_schedule",
       description: "Get the user's schedule/calendar for today or this week. Use when user asks about their schedule, appointments, or what's coming up.",
+      strict: true,
       input_schema: {
         type: "object",
         properties: {
@@ -1668,6 +1674,7 @@ function chatWithChiefOfStaff(userMessage, conversationHistoryJson) {
     {
       name: "create_event",
       description: "Create a calendar event. Use when user wants to schedule something, add an appointment, or block time.",
+      strict: true,
       input_schema: {
         type: "object",
         properties: {
@@ -1698,6 +1705,7 @@ function chatWithChiefOfStaff(userMessage, conversationHistoryJson) {
     {
       name: "find_free_time",
       description: "Find free/available time slots in the user's calendar. Use when user asks when they're free or needs to find time for something.",
+      strict: true,
       input_schema: {
         type: "object",
         properties: {
@@ -1716,6 +1724,7 @@ function chatWithChiefOfStaff(userMessage, conversationHistoryJson) {
     {
       name: "schedule_task",
       description: "Intelligently schedule a task at the optimal time based on priority, energy levels, and availability.",
+      strict: true,
       input_schema: {
         type: "object",
         properties: {
@@ -1748,6 +1757,7 @@ function chatWithChiefOfStaff(userMessage, conversationHistoryJson) {
     {
       name: "predict_staffing",
       description: "Predict staffing/labor needs for upcoming days. Use when user asks about how many workers they need, staffing forecast, or labor planning.",
+      strict: true,
       input_schema: {
         type: "object",
         properties: {
@@ -1762,6 +1772,7 @@ function chatWithChiefOfStaff(userMessage, conversationHistoryJson) {
     {
       name: "get_morning_brief",
       description: "Get today's morning briefing with priorities, critical alerts, and schedule. Use when user asks what they should focus on or needs a summary.",
+      strict: true,
       input_schema: {
         type: "object",
         properties: {},
@@ -1771,6 +1782,7 @@ function chatWithChiefOfStaff(userMessage, conversationHistoryJson) {
     {
       name: "get_contact_profile",
       description: "Get information about a contact including relationship notes, preferences, and communication history. Use when processing emails or before contacting someone.",
+      strict: true,
       input_schema: {
         type: "object",
         properties: {
@@ -1785,6 +1797,7 @@ function chatWithChiefOfStaff(userMessage, conversationHistoryJson) {
     {
       name: "update_contact_profile",
       description: "Add or update notes about a contact - their relationship, preferences, communication style. Use when Todd shares information about someone.",
+      strict: true,
       input_schema: {
         type: "object",
         properties: {
@@ -1819,6 +1832,7 @@ function chatWithChiefOfStaff(userMessage, conversationHistoryJson) {
     {
       name: "categorize_email",
       description: "Categorize an email and learn from the choice. Use when helping Todd organize emails.",
+      strict: true,
       input_schema: {
         type: "object",
         properties: {
@@ -1837,6 +1851,7 @@ function chatWithChiefOfStaff(userMessage, conversationHistoryJson) {
     {
       name: "get_inbox_stats",
       description: "Get Inbox Zero progress, streak, points, and motivation. Use when Todd asks about email progress or needs encouragement.",
+      strict: true,
       input_schema: {
         type: "object",
         properties: {},
@@ -1846,6 +1861,7 @@ function chatWithChiefOfStaff(userMessage, conversationHistoryJson) {
     {
       name: "reply_to_email",
       description: "Reply to an email thread. Use after Todd provides notes or a rough draft. You can either send immediately or create a draft for review.",
+      strict: true,
       input_schema: {
         type: "object",
         properties: {
@@ -1868,6 +1884,7 @@ function chatWithChiefOfStaff(userMessage, conversationHistoryJson) {
     {
       name: "archive_email",
       description: "Archive an email after it's been handled. Use when Todd is done with an email.",
+      strict: true,
       input_schema: {
         type: "object",
         properties: {
@@ -1882,6 +1899,7 @@ function chatWithChiefOfStaff(userMessage, conversationHistoryJson) {
     {
       name: "get_overdue_followups",
       description: "Get emails that need follow-up. Use when checking what needs attention or when Todd asks about pending items.",
+      strict: true,
       input_schema: {
         type: "object",
         properties: {},
@@ -1891,6 +1909,7 @@ function chatWithChiefOfStaff(userMessage, conversationHistoryJson) {
     {
       name: "get_at_risk_customers",
       description: "Get customers at risk of churning based on inactivity, order decline, or sentiment. Use when Todd asks about customer health or who needs attention.",
+      strict: true,
       input_schema: {
         type: "object",
         properties: {
@@ -1905,6 +1924,7 @@ function chatWithChiefOfStaff(userMessage, conversationHistoryJson) {
     {
       name: "get_contact_history",
       description: "Get full history and context for a contact - all emails, SMS, orders, sentiment trend, last contact. Use when Todd needs context about someone while handling an email.",
+      strict: true,
       input_schema: {
         type: "object",
         properties: {
@@ -1923,6 +1943,7 @@ function chatWithChiefOfStaff(userMessage, conversationHistoryJson) {
     {
       name: "get_awaiting_response",
       description: "Get emails where we're waiting for someone else to respond. Use when checking what's pending from others.",
+      strict: true,
       input_schema: {
         type: "object",
         properties: {},
@@ -1932,6 +1953,7 @@ function chatWithChiefOfStaff(userMessage, conversationHistoryJson) {
     {
       name: "create_followup",
       description: "Create a follow-up reminder for an email. Use when Todd wants to be reminded to check back on something.",
+      strict: true,
       input_schema: {
         type: "object",
         properties: {
@@ -1954,6 +1976,7 @@ function chatWithChiefOfStaff(userMessage, conversationHistoryJson) {
     {
       name: "search_emails",
       description: "Search emails by keyword, sender, or subject. Use when Todd needs to find related emails or context.",
+      strict: true,
       input_schema: {
         type: "object",
         properties: {
@@ -1972,6 +1995,7 @@ function chatWithChiefOfStaff(userMessage, conversationHistoryJson) {
     {
       name: "search_sms",
       description: "Search SMS messages. Use when Todd needs to find what was texted to/from someone.",
+      strict: true,
       input_schema: {
         type: "object",
         properties: {
@@ -1990,6 +2014,7 @@ function chatWithChiefOfStaff(userMessage, conversationHistoryJson) {
     {
       name: "get_shopify_gift_card",
       description: "Look up a customer's Shopify gift card number and balance. Use when user asks for a gift card number or balance.",
+      strict: true,
       input_schema: {
         type: "object",
         properties: {
@@ -2008,6 +2033,7 @@ function chatWithChiefOfStaff(userMessage, conversationHistoryJson) {
     {
       name: "get_csa_balance",
       description: "Look up a CSA member's account balance and membership details. Use when user asks about CSA balance or account status.",
+      strict: true,
       input_schema: {
         type: "object",
         properties: {
@@ -2026,6 +2052,7 @@ function chatWithChiefOfStaff(userMessage, conversationHistoryJson) {
     {
       name: "update_csa_balance",
       description: "Add or subtract funds from a CSA member's account. Use when user wants to adjust a CSA balance.",
+      strict: true,
       input_schema: {
         type: "object",
         properties: {
@@ -2048,6 +2075,7 @@ function chatWithChiefOfStaff(userMessage, conversationHistoryJson) {
     {
       name: "get_customer_details",
       description: "Get comprehensive customer information including order history, CSA status, contact info, and notes. Use when user needs full customer context.",
+      strict: true,
       input_schema: {
         type: "object",
         properties: {
@@ -2062,6 +2090,7 @@ function chatWithChiefOfStaff(userMessage, conversationHistoryJson) {
     {
       name: "add_planting",
       description: "Add plantings to the farm schedule with automatic greenhouse sow dates calculated. Creates REAL entries in the planning system. Use when Todd wants to schedule a planting, add succession plantings, or plan crops.",
+      strict: true,
       input_schema: {
         type: "object",
         properties: {
@@ -2097,6 +2126,7 @@ function chatWithChiefOfStaff(userMessage, conversationHistoryJson) {
     {
       name: "get_greenhouse_tasks",
       description: "Get greenhouse sowing tasks for today or a specific date. Use when Todd asks what needs to be sown in the greenhouse.",
+      strict: true,
       input_schema: {
         type: "object",
         properties: {
@@ -2111,6 +2141,7 @@ function chatWithChiefOfStaff(userMessage, conversationHistoryJson) {
     {
       name: "get_transplant_tasks",
       description: "Get field transplant tasks for today or a specific date. Use when Todd asks what needs to be transplanted to the field.",
+      strict: true,
       input_schema: {
         type: "object",
         properties: {
@@ -2120,7 +2151,8 @@ function chatWithChiefOfStaff(userMessage, conversationHistoryJson) {
           }
         },
         required: []
-      }
+      },
+      cache_control: { type: "ephemeral" }
     }
   ];
 
@@ -2149,11 +2181,12 @@ function chatWithChiefOfStaff(userMessage, conversationHistoryJson) {
       headers: {
         'x-api-key': apiKey,
         'anthropic-version': CLAUDE_CONFIG.ANTHROPIC_VERSION,
+        'anthropic-beta': 'prompt-caching-2024-07-31',
         'content-type': 'application/json'
       },
       payload: JSON.stringify({
         model: CLAUDE_CONFIG.MODEL,
-        max_tokens: 2000,
+        max_tokens: 6000,
         system: systemPrompt,
         messages: messages,
         tools: tools
@@ -5776,46 +5809,109 @@ function classifyEmailWithAI(emailData) {
   }
 
   try {
-    const prompt = `Analyze this email and classify it for a small organic farm business.
+    const todayStr = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
-EMAIL:
-From: ${emailData.from}
-Subject: ${emailData.subject}
-Body: ${emailData.body ? emailData.body.substring(0, 2000) : '(No body)'}
+    // 3A-1: Static system prompt — cacheable across batch triage runs (>2048 tokens for caching)
+    const staticSystemPrompt = `You are an email classifier for Tiny Seed Farm, a small organic farm in Pennsylvania. Analyze incoming emails and classify them accurately.
 
-Respond with ONLY valid JSON (no markdown):
+CATEGORIES: CUSTOMER (orders, CSA, inquiries), VENDOR (suppliers, invoices), GOVERNMENT (USDA, FSA, OEFFA, grants, compliance), EMPLOYEE (staff, HR), FINANCIAL (payments, banking, accounting), MARKETING (newsletters, social, press), PERSONAL (non-business), SPAM.
+
+PRIORITIES:
+- CRITICAL: Legal deadlines, payment failures, regulatory notices, anything requiring action within 24 hours
+- HIGH: Customer complaints, time-sensitive orders, grant deadlines within 7 days, vendor issues
+- MEDIUM: General business correspondence, orders, standard vendor communication
+- LOW: Newsletters, FYI emails, marketing, no action needed
+
+DEADLINE EXTRACTION: Extract ALL deadlines mentioned, including implicit ones like "by Friday", "end of next week", "within 48 hours". Today is ${todayStr}.
+
+COMMITMENT DETECTION: Flag emails where the sender makes a commitment to Todd OR where Todd is implicitly expected to respond/act by a certain time.
+
+Respond ONLY with valid JSON matching the exact schema provided.
+
+CATEGORY DETAILS:
+- CUSTOMER: Any email from a customer, potential customer, CSA member, farmers market patron, wholesale buyer, restaurant/chef, or someone inquiring about products. Includes order confirmations, delivery questions, complaints, praise, pickup schedule questions, and account inquiries.
+- VENDOR: Suppliers of seeds, soil amendments, packaging, equipment, fuel, feed, or farm inputs. Includes invoices, delivery notifications, price lists, account statements, and sales rep outreach.
+- GOVERNMENT: USDA, FSA, NRCS, OEFFA, Pennsylvania Department of Agriculture, county extension, health department, tax authorities, zoning, and any regulatory or grant-related correspondence. Includes certifications, inspections, compliance notices, grant applications, and program enrollments.
+- EMPLOYEE: Current or prospective staff, interns, volunteers. Includes scheduling, availability, HR matters, payroll questions, time-off requests, and job applications.
+- FINANCIAL: Banks, credit card processors, accountants, bookkeepers, insurance agents, loan servicers. Includes statements, payment confirmations, policy renewals, tax documents, and audit requests.
+- MARKETING: Newsletters from other farms or businesses, social media notifications, press inquiries, advertising offers, conference invitations, and webinar promotions.
+- PERSONAL: Non-business correspondence from friends, family, or personal contacts. Includes personal invitations, social plans, and non-farm topics.
+- SPAM: Unsolicited commercial email, phishing attempts, irrelevant promotions, and automated marketing from unknown senders with no business relevance.
+
+PRIORITY DETAILS:
+- CRITICAL: Payment failures that could affect operations, legal deadlines (court dates, filing deadlines), regulatory notices requiring immediate response, food safety alerts, equipment failures affecting production, customer health/safety issues, grant submission deadlines within 48 hours.
+- HIGH: Customer complaints (especially public-facing), time-sensitive orders (same-day or next-day), grant deadlines within 7 days, vendor issues affecting upcoming deliveries, employee no-shows or urgent scheduling conflicts, insurance renewal deadlines, inspection scheduling.
+- MEDIUM: Standard customer orders, routine vendor communications, general business inquiries, employee scheduling (non-urgent), regular invoices, newsletter content for review, meeting requests with flexible timing.
+- LOW: Marketing newsletters, FYI-only forwards, social media notifications, conference announcements, general industry news, automated system notifications with no action required.
+
+SENTIMENT RULES:
+- "urgent": Sender expresses time pressure, uses words like ASAP, immediately, critical, deadline, overdue, past due, final notice, time-sensitive
+- "negative": Complaints, frustration, disappointment, cancellation requests, refund demands, threats, dissatisfaction
+- "positive": Thanks, praise, excitement, confirmed orders, referrals, compliments, repeat business signals
+- "neutral": Informational, routine correspondence, standard business communication, automated notifications
+
+COMMITMENT DETECTION:
+- hasCommitment = true if the sender promises to do something (e.g., "I'll send the check by Friday", "We'll deliver on Tuesday", "I'll get back to you by end of week") OR requests a commitment from Todd (e.g., "Can you confirm by tomorrow?", "Please reply by Friday", "We need your decision by the 15th")
+- commitmentDescription should briefly state what the commitment is and who made it
+
+CONFIDENCE SCORING:
+- 0.9-1.0: Clear, unambiguous classification (e.g., invoice from known vendor, order from known customer)
+- 0.7-0.89: Strong signals but some ambiguity (e.g., new sender with clear business context)
+- 0.5-0.69: Moderate confidence, multiple categories possible
+- Below 0.5: Low confidence, email is ambiguous or unusual`;
+
+    // Dynamic user message — changes per email, NOT cacheable
+    const classificationPrompt = `Classify this email:
+
+From: ${emailData.from || '(unknown)'}
+Subject: ${emailData.subject || '(no subject)'}
+Thread context: ${emailData.threadContext || emailData.body ? (emailData.threadContext || emailData.body).substring(0, 6000) : '(no body)'}
+
+Respond with JSON matching this exact schema:
 {
-  "category": "CUSTOMER" | "VENDOR" | "INTERNAL" | "MARKETING" | "PERSONAL",
-  "priority": "CRITICAL" | "HIGH" | "MEDIUM" | "LOW",
-  "summary": "2-3 sentence summary",
-  "suggestedAction": "What should be done next",
-  "actionType": "REPLY" | "CREATE_TASK" | "CREATE_EVENT" | "UPDATE_CRM" | "NONE",
+  "category": "CUSTOMER|VENDOR|GOVERNMENT|EMPLOYEE|FINANCIAL|MARKETING|PERSONAL|SPAM",
+  "priority": "CRITICAL|HIGH|MEDIUM|LOW",
+  "summary": "2-3 sentence summary of the email and required action",
+  "suggestedAction": "Specific action Todd should take",
+  "actionType": "REPLY|CREATE_TASK|CREATE_EVENT|UPDATE_CRM|NONE",
   "confidence": 0.0-1.0,
-  "tags": ["tag1", "tag2"],
+  "tags": ["array", "of", "relevant", "tags"],
+  "sentiment": "positive|neutral|negative|urgent",
+  "hasCommitment": true|false,
+  "commitmentDescription": "description of commitment or null",
   "extractedData": {
-    "customerName": "if detected",
-    "orderNumber": "if mentioned",
-    "deadline": "if mentioned"
+    "customerName": "string or null",
+    "orderNumber": "string or null",
+    "deadline_iso": "ISO-8601 date if deadline found, else null",
+    "deadline_description": "natural language deadline description or null",
+    "amount": "dollar amount if mentioned, else null"
   }
-}
-
-Priority Rules:
-- CRITICAL: Payment issues, urgent deadlines <24h, legal matters
-- HIGH: Customer complaints, vendor confirmations, time-sensitive <48h
-- MEDIUM: General inquiries, routine orders
-- LOW: Marketing, newsletters, FYI only`;
+}`;
 
     const response = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01'
+        'anthropic-version': '2023-06-01',
+        'anthropic-beta': 'prompt-caching-2024-07-31'
       },
       payload: JSON.stringify({
         model: CLAUDE_CONFIG.SONNET,
         max_tokens: 1000,
-        messages: [{ role: 'user', content: prompt }]
+        system: [
+          {
+            type: 'text',
+            text: staticSystemPrompt,
+            cache_control: { type: 'ephemeral' }
+          }
+        ],
+        messages: [
+          {
+            role: 'user',
+            content: classificationPrompt
+          }
+        ]
       }),
       muteHttpExceptions: true
     });
@@ -5837,8 +5933,47 @@ Priority Rules:
 
     const result = JSON.parse(responseText);
 
+    // 3A-6: Log cache usage stats for monitoring hit rates
+    if (result.usage) {
+      Logger.log('Cache stats — input: ' + result.usage.input_tokens +
+        ', cache_write: ' + (result.usage.cache_creation_input_tokens || 0) +
+        ', cache_read: ' + (result.usage.cache_read_input_tokens || 0) +
+        ', output: ' + result.usage.output_tokens);
+    }
+
     if (result.content && result.content[0] && result.content[0].text) {
-      const parsed = JSON.parse(result.content[0].text);
+      // 3A-2: Safe JSON parse with markdown fence stripping and fallback
+      let parsed;
+      try {
+        const rawText = result.content[0].text.trim();
+        const cleaned = rawText.replace(/^```json\s*/i, '').replace(/\s*```$/i, '').trim();
+        parsed = JSON.parse(cleaned);
+      } catch(parseErr) {
+        Logger.log('classifyEmailWithAI JSON parse failed: ' + parseErr + ' — raw: ' + result.content[0].text.substring(0, 200));
+        return classifyEmailWithRules(emailData);
+      }
+
+      // AI-extracted deadline: sync to calendar if function exists
+      const deadlineIso = parsed.extractedData?.deadline_iso || null;
+      const deadlineDesc = parsed.extractedData?.deadline_description || null;
+      if (deadlineIso) {
+        try {
+          if (typeof syncDeadlineToCalendarDirect === 'function') {
+            syncDeadlineToCalendarDirect(
+              emailData.threadId,
+              emailData.subject,
+              emailData.from,
+              deadlineIso,
+              deadlineDesc
+            );
+          } else {
+            Logger.log('AI deadline extracted (' + deadlineIso + ') but syncDeadlineToCalendarDirect not yet implemented');
+          }
+        } catch(dlErr) {
+          Logger.log('AI deadline calendar sync failed (non-blocking): ' + dlErr.toString());
+        }
+      }
+
       return {
         category: parsed.category || 'PERSONAL',
         priority: parsed.priority || 'MEDIUM',
@@ -5847,10 +5982,15 @@ Priority Rules:
         actionType: parsed.actionType || 'NONE',
         confidence: parsed.confidence || 0.5,
         tags: parsed.tags || [],
+        sentiment: parsed.sentiment || 'neutral',
+        hasCommitment: parsed.hasCommitment || false,
+        commitmentDescription: parsed.commitmentDescription || null,
         customerId: null,
         vendorId: null,
         orderId: parsed.extractedData?.orderNumber || null,
-        dueDate: parsed.extractedData?.deadline || null,
+        dueDate: parsed.extractedData?.deadline || deadlineIso || null,
+        deadlineIso: deadlineIso,
+        deadlineDescription: deadlineDesc,
         degraded: false,
         classificationMethod: 'ai'
       };

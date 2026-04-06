@@ -6,6 +6,36 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-04-06] Chief of Staff Batch 3A: Prompt Caching + Structured JSON + Tool Hardening
+- File: apps_script/MERGED TOTAL.js
+- Role: fullstack-builder (PM delegated — PM reviewed spec)
+- Changes:
+  - 3A-1: classifyEmailWithAI uses system[] array with cache_control ephemeral — major token savings on static instructions across triage batch runs
+  - 3A-2: JSON.parse wrapped in try-catch with markdown fence stripping — fallback to rule-based on parse error
+  - 3A-3: chatWithChiefOfStaff tools array last item gets cache_control — caches tool definitions across chat calls
+  - 3A-4: strict:true added to all 31 tool definitions — schema-validated inputs at inference time
+  - 3A-5: chat max_tokens raised 2000 to 6000 — allows full email draft replies
+  - 3A-6: Cache usage logging added for monitoring hit rates (input, cache_write, cache_read, output tokens)
+- Why: Missing prompt caching = paying full price for repeated static tokens on every email in a triage batch; missing try-catch = silent triage failures on any malformed JSON; strict mode catches tool input errors before execution
+
+## [2026-04-06] Chief of Staff Batch 1+2: Ghost triggers, email fallback, AI deadline extraction, thread context, sentiment fields
+- File: apps_script/MERGED TOTAL.js
+- Role: fullstack-builder
+- Changes:
+  - Batch 1A: deleteGhostTriggers() function + routing; added 4 phantom trigger names (cos_proactiveScan, cos_morningBrief, cos_weeklyPatterns, cos_dailyMetrics) to setupChiefOfStaffTriggers cleanup loop
+  - Batch 1B: Morning brief email fallback to todd@tinyseedfarmpgh.com when SMS fails in sendMorningBriefingSMS
+  - Batch 1C: Added sentiment, hasCommitment, commitmentDescription to classifyEmailWithAI prompt schema and response parsing
+  - Batch 1D: Email body limit increased 2,000 → 6,000 chars in classifyEmailWithAI
+  - Batch 2A: LLM deadline extraction in classifyEmailWithAI (deadline_iso + deadline_description fields); syncDeadlineToCalendarDirect() helper function for immediate calendar sync
+  - Batch 2B: processEmailThread now passes last 3 thread messages to classifier (threadContext) instead of just latest message body
+- Why: Ghost triggers waste quota; SMS delivery broken; regex misses 80% of deadlines; 2k char limit cuts critical content; sentiment/commitment fields needed for UI filters
+
+## [2026-04-06] Email deadline → Google Calendar bridge
+- File: apps_script/MERGED TOTAL.js
+- Role: fullstack-builder
+- Change: Added syncDeadlinesToCalendar() — reads EMAIL_DEADLINES sheet, creates all-day Google Calendar events with 7-day + 24-hour pop-up reminders for each upcoming deadline. Called automatically from extractAllDeadlines(). extractAllDeadlines() is now called from triageInbox() (every 5 min trigger). Added doGet API routes for extractAllDeadlines and syncDeadlinesToCalendar for manual trigger.
+- Why: Deadlines were being detected in emails but written only to a sheet — never surfacing as calendar reminders. Todd was missing critical deadlines (e.g. OEFFA cert renewal April 25).
+
 ## [2026-04-05] Fleet UI: photo capture + serial card + manual per asset
 - File: employee.html
 - Role: fullstack-builder
