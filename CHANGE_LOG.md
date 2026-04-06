@@ -6,6 +6,18 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## 2026-04-05 — Fullstack Builder: Use Backend Authoritative Overdue Count
+
+### Bug Fix: Stats card showed 234 (inflated), backend says 105 (real)
+- `syncStatsGridOverdue()` now reads `window.authorativeOverdueCount` (set from morning brief API)
+- Falls back to `overdueTasks.length` only if the API hasn't loaded yet
+- Root cause: client-side count included auto-generated planning tasks with bad dates (e.g. celosia)
+- The backend count (105) comes from the TASKS sheet only — the real actionable overdue tasks
+
+**Files:** `index.html` (lines ~7021, ~8203)
+
+---
+
 ## 2026-04-05 — Fullstack Builder: Hub Overdue Count + Clickable Alerts
 
 ### Bug Fix 1: Consistent overdue count everywhere
