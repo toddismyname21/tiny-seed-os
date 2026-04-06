@@ -6,6 +6,16 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-04-06] Safety fix: Chief of Staff AI false capability claims
+- Files: backend/server.js
+- Role: fullstack-builder
+- Changes:
+  - Added HARD LIMITS block to Chief of Staff system prompt
+  - AI now explicitly prohibited from claiming to send emails, create calendar events, update tasks/sheets, make calls, or send texts
+  - If asked to do these things, AI must draft content and tell Todd to send it himself
+- Why: AI falsely told user it sent an email. It has no Gmail access. False action claims could cause missed deadlines.
+- Commit: 78cf6fb
+
 ## [2026-04-06] Phase 1 Railway Backend: Streaming Chief of Staff AI chat
 - Files: backend/server.js, backend/package.json, railway.toml, web_app/api-config.js, web_app/chief-of-staff.html
 - Role: fullstack-builder
