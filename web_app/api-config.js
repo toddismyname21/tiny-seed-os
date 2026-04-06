@@ -35,8 +35,7 @@ const TINY_SEED_API = {
     MAIN_API: 'https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec',
 
     // Phase 1 Railway backend — streaming AI, WebSockets, MCP
-    // UPDATE THIS URL after creating Railway project at railway.app
-    NEW_API: 'https://tiny-seed-api.up.railway.app',
+    NEW_API: 'https://tinypm-brain-production-cbe7.up.railway.app',
 
     // ═══════════════════════════════════════════════════════════════════════════
     // GOOGLE MAPS API CONFIGURATION
