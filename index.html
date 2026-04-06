@@ -5263,13 +5263,13 @@
                         <div class="stat-label">Overdue</div>
                     </div>
                 </a>
-                <a href="web_app/task-assignment.html" class="stat-card" style="text-decoration: none; color: inherit; cursor: pointer;" title="Planning tasks due this week — Task Manager may show a different count from the TASKS sheet">
+                <a href="web_app/task-assignment.html" class="stat-card" style="text-decoration: none; color: inherit; cursor: pointer;" title="Tasks due this week from the task management system — click to view and assign">
                     <div class="stat-icon orange" style="width:44px;height:44px;border-radius:12px;font-size:1.2rem;">
                         <i class="fas fa-tasks"></i>
                     </div>
                     <div class="stat-info">
                         <div class="stat-value" id="statTasks" style="font-size:1.6rem;">--</div>
-                        <div class="stat-label">Planned ↗</div>
+                        <div class="stat-label">Due This Week</div>
                     </div>
                 </a>
                 <a href="planning.html" class="stat-card" style="text-decoration: none; color: inherit; cursor: pointer;">
@@ -7729,17 +7729,26 @@
                 activeStatuses.includes((p.Status || '').toLowerCase())
             ).length;
 
-            // Tasks this week (sowings + transplants in next 7 days)
-            let tasksThisWeek = 0;
-            allPlantings.forEach(p => {
-                const ghSow = parseDate(p.Plan_GH_Sow);
-                const fieldSow = parseDate(p.Plan_Field_Sow);
-                const transplant = parseDate(p.Plan_Transplant);
-
-                if (ghSow && ghSow >= today && ghSow <= weekFromNow && !p.Act_GH_Sow) tasksThisWeek++;
-                if (fieldSow && fieldSow >= today && fieldSow <= weekFromNow && !p.Act_Field_Sow) tasksThisWeek++;
-                if (transplant && transplant >= today && transplant <= weekFromNow && !p.Act_Transplant) tasksThisWeek++;
-            });
+            // Tasks due this week — loaded from TASKS system to match task-assignment.html
+            (async function loadTasksDueThisWeek() {
+                try {
+                    const session = (function() {
+                        try { return JSON.parse(localStorage.getItem('tinyseed_session') || '{}'); } catch(e) { return {}; }
+                    })();
+                    const tok = session.token || '';
+                    const url = `${API_URL}?action=getTaskStats${tok ? '&token=' + encodeURIComponent(tok) : ''}`;
+                    const res = await fetch(url);
+                    const data = await res.json();
+                    if (data.success && data.stats) {
+                        const dueThisWeek = (data.stats.dueThisWeek || 0) + (data.stats.overdue || 0);
+                        document.getElementById('statTasks').textContent = dueThisWeek;
+                        document.getElementById('statTasks').title = `${data.stats.overdue || 0} overdue + ${data.stats.dueThisWeek || 0} due this week`;
+                    }
+                } catch(e) {
+                    // Leave as '--' on error — don't show fake data
+                    console.warn('Task stats load failed:', e);
+                }
+            })();
 
             // Harvest ready (case-insensitive)
             const harvestReady = allPlantings.filter(p => (p.Status || '').toLowerCase() === 'harvesting').length;
@@ -7764,7 +7773,6 @@
             } else if (upcoming > 0) {
                 document.getElementById('statActive').title = `${active} in ground + ${upcoming} planned`;
             }
-            document.getElementById('statTasks').textContent = tasksThisWeek;
             document.getElementById('statHarvest').textContent = harvestReady;
             document.getElementById('statUtilization').textContent = utilization + '%';
         }

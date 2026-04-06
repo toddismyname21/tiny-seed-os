@@ -6,6 +6,15 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-04-05] Hub task card count fix
+- File: index.html
+- Role: fullstack-builder
+- Change: Replaced client-side PLANNING_2026 task count with live getTaskStats API call for statTasks card
+- Why: Hub card showed planning-derived count; clicking it went to task-assignment.html showing TASKS_2026 count — numbers never matched, user couldn't track what needed doing
+- Impact: statTasks now shows overdue + dueThisWeek from the same TASKS system, matching what task-assignment.html shows
+
+---
+
 ## 2026-04-05 — Fullstack Builder: Task Assignment Token Auth + Hub Card Label
 
 ### Fix 1: task-assignment.html — explicit session token on API calls
