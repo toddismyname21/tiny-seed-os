@@ -6,6 +6,18 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-04-06] Phase 2: Google Gmail + Calendar live context in Chief of Staff chat
+- Files: backend/server.js, backend/package.json
+- Role: fullstack-builder
+- Changes:
+  - Added googleapis dependency to backend/package.json
+  - Added OAuth2 client initialization (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN)
+  - Added fetchLiveContext() — pulls unread Gmail (up to 12 emails with from/subject/snippet) and 7-day calendar events before every chat response
+  - System prompt now includes live email and calendar data in === LIVE DATA === section
+  - Updated health endpoint to version 2.0.0 with googleConnected flag
+  - Updated system prompt HARD LIMITS: AI can now read emails/calendar but still cannot send/delete without Todd's confirmation
+- Why: Chief of Staff previously had no access to real data and had to disclaim "I cannot read your email." Now every response is grounded in live Gmail and Calendar context.
+
 ## [2026-04-06] Safety fix: Chief of Staff AI false capability claims
 - Files: backend/server.js
 - Role: fullstack-builder

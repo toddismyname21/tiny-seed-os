@@ -1,46 +1,52 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════
- * TINY SEED FARM OS — RAILWAY BACKEND (Phase 1)
+ * TINY SEED FARM OS — RAILWAY BACKEND (Phase 2)
  * ═══════════════════════════════════════════════════════════════════════
  *
- * Phase 1 capabilities:
+ * Phase 2 capabilities:
  *   - GET  /health          → Health check
- *   - POST /api/chat/stream → Streaming AI chat via SSE (Chief of Staff)
+ *   - POST /api/chat/stream → Streaming AI chat with live Google context
  *
  * Environment variables required:
- *   ANTHROPIC_API_KEY  — Set in Railway dashboard
- *   PORT               — Set automatically by Railway (default 3000)
- *
- * Phase 2+ will add: WebSockets, Google Sheets API, MCP server
+ *   ANTHROPIC_API_KEY      — Anthropic API key
+ *   GOOGLE_CLIENT_ID       — OAuth 2.0 client ID
+ *   GOOGLE_CLIENT_SECRET   — OAuth 2.0 client secret
+ *   GOOGLE_REFRESH_TOKEN   — OAuth 2.0 refresh token (from OAuth Playground)
+ *   PORT                   — Set automatically by Railway
  * ═══════════════════════════════════════════════════════════════════════
  */
 
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import Anthropic from '@anthropic-ai/sdk';
+import { google } from 'googleapis';
 
 // ─── Startup validation ────────────────────────────────────────────────
-if (!process.env.ANTHROPIC_API_KEY) {
-  console.error('FATAL: ANTHROPIC_API_KEY environment variable is not set.');
-  console.error('Set it in Railway: Settings → Variables → ANTHROPIC_API_KEY');
-  process.exit(1);
+const required = ['ANTHROPIC_API_KEY', 'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'GOOGLE_REFRESH_TOKEN'];
+for (const key of required) {
+  if (!process.env[key]) {
+    console.error(`FATAL: ${key} environment variable is not set.`);
+    process.exit(1);
+  }
 }
 
 // ─── Fastify instance ─────────────────────────────────────────────────
-const fastify = Fastify({
-  logger: {
-    level: process.env.LOG_LEVEL || 'info',
-    transport: process.env.NODE_ENV !== 'production'
-      ? { target: 'pino-pretty' }
-      : undefined
-  }
-});
+const fastify = Fastify({ logger: { level: process.env.LOG_LEVEL || 'info' } });
 
-// ─── Anthropic client ─────────────────────────────────────────────────
+// ─── Clients ──────────────────────────────────────────────────────────
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
+const oauth2Client = new google.auth.OAuth2(
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET,
+  'https://developers.google.com/oauthplayground'
+);
+oauth2Client.setCredentials({ refresh_token: process.env.GOOGLE_REFRESH_TOKEN });
+
+const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
+const calendarApi = google.calendar({ version: 'v3', auth: oauth2Client });
+
 // ─── CORS ─────────────────────────────────────────────────────────────
-// Allow GitHub Pages, local dev, and any other origins you control
 await fastify.register(cors, {
   origin: (origin, cb) => {
     const allowed = [
@@ -51,106 +57,136 @@ await fastify.register(cors, {
       'http://127.0.0.1:5500',
       'http://localhost:8080',
     ];
-    // Allow requests with no origin (curl, Postman, etc.)
-    if (!origin || allowed.includes(origin)) {
-      cb(null, true);
-    } else {
-      cb(null, false);
-    }
+    if (!origin || allowed.includes(origin)) cb(null, true);
+    else cb(null, false);
   },
   methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'X-Session-Token', 'Authorization'],
   credentials: true,
 });
 
-// ─── Chief of Staff system prompt (cached in memory, ~1,500 tokens) ───
-const todayForPrompt = () =>
-  new Date().toLocaleDateString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
+// ─── Live Google context fetcher ──────────────────────────────────────
+async function fetchLiveContext() {
+  const sections = [];
 
-const CHIEF_OF_STAFF_SYSTEM = () => `You are the Chief of Staff for Tiny Seed Farm, a certified organic farm in Rochester, Pennsylvania (Pittsburgh area), run by owner Todd Wilson.
+  // Gmail: unread emails
+  try {
+    const list = await gmail.users.messages.list({
+      userId: 'me',
+      maxResults: 15,
+      q: 'is:unread -category:promotions -category:social',
+    });
 
-Today is ${todayForPrompt()}.
+    if (list.data.messages && list.data.messages.length > 0) {
+      const details = await Promise.all(
+        list.data.messages.slice(0, 12).map(async (msg) => {
+          try {
+            const detail = await gmail.users.messages.get({
+              userId: 'me',
+              id: msg.id,
+              format: 'metadata',
+              metadataHeaders: ['From', 'Subject', 'Date'],
+            });
+            const h = detail.data.payload.headers;
+            const from = h.find(x => x.name === 'From')?.value || 'Unknown';
+            const subject = h.find(x => x.name === 'Subject')?.value || '(no subject)';
+            const date = h.find(x => x.name === 'Date')?.value || '';
+            const snippet = (detail.data.snippet || '').substring(0, 120);
+            return `- [${date.substring(0, 16)}] FROM: ${from}\n  SUBJECT: ${subject}\n  PREVIEW: ${snippet}`;
+          } catch (e) {
+            return null;
+          }
+        })
+      );
+      const valid = details.filter(Boolean);
+      sections.push(`UNREAD EMAILS (${valid.length} shown):\n${valid.join('\n\n')}`);
+    } else {
+      sections.push('UNREAD EMAILS: Inbox is clear');
+    }
+  } catch (e) {
+    sections.push(`GMAIL: Unavailable (${e.message})`);
+  }
 
-Your role: You are Todd's intelligent, decisive assistant. You manage farm operations, email triage, deadlines, tasks, employee coordination, vendor relationships, grants, and financial awareness.
+  // Calendar: next 7 days
+  try {
+    const now = new Date();
+    const weekOut = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const events = await calendarApi.events.list({
+      calendarId: 'primary',
+      timeMin: now.toISOString(),
+      timeMax: weekOut.toISOString(),
+      singleEvents: true,
+      orderBy: 'startTime',
+      maxResults: 20,
+    });
 
-Key context about Tiny Seed Farm:
-- Certified organic (OEFFA, NOP ID 1600003839) — organic certification renewal due April 25, 2026
-- Products: CSA boxes, market vegetables, flowers, seedlings, wholesale to restaurants
-- Staff: Todd (owner/operator), Ben Finley (Admin), Loren Kildoo (Admin), seasonal farm workers
-- Markets: Pittsburgh-area farmers markets, restaurant wholesale (chefs), CSA members
-- Key contacts: Horizon Land Trust (Molly Decker — lease), FSA (Allison Pruskowski — loans/grants), OEFFA (organic cert), PA DGPerry (CPA)
-- Active loan/financial concerns: PNC ~$8K, Chase ~$6K, Amex ~$6K credit cards; lease arrears dispute with Don Kretschmann (~$16K claimed, ~$9-10K actual after adjustments)
-- Critical deadline: OEFFA organic renewal April 25, 2026
+    if (events.data.items && events.data.items.length > 0) {
+      const lines = events.data.items.map(e => {
+        const start = e.start.dateTime
+          ? new Date(e.start.dateTime).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+          : new Date(e.start.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+        return `- ${start}: ${e.summary}`;
+      });
+      sections.push(`CALENDAR (next 7 days):\n${lines.join('\n')}`);
+    } else {
+      sections.push('CALENDAR: No events in the next 7 days');
+    }
+  } catch (e) {
+    sections.push(`CALENDAR: Unavailable (${e.message})`);
+  }
+
+  return sections.join('\n\n');
+}
+
+// ─── System prompt ────────────────────────────────────────────────────
+const todayStr = () =>
+  new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+const BASE_SYSTEM = `You are the Chief of Staff for Tiny Seed Farm, a certified organic farm in Rochester, Pennsylvania (Pittsburgh area), run by owner Todd Wilson.
+
+Today is ${todayStr()}.
+
+Your role: Todd's intelligent, decisive assistant. You manage farm operations, email triage, deadlines, tasks, employee coordination, vendor relationships, grants, and financial awareness.
+
+Key context:
+- Certified organic (OEFFA, NOP ID 1600003839) — renewal due April 25, 2026
+- Products: CSA boxes, vegetables, flowers, seedlings, wholesale to restaurants
+- Staff: Todd (owner), Ben Finley (Admin), Loren Kildoo (Admin), seasonal workers
+- Key contacts: Horizon Land Trust (Molly Decker — lease), FSA (Allison Pruskowski — loans/grants), OEFFA (cert), DGPerry CPA
+- Financial: PNC ~$8K, Chase ~$6K, Amex ~$6K credit cards; lease arrears dispute ~$9-10K actual
+- CRITICAL deadline: OEFFA organic renewal April 25, 2026
 
 How to respond:
-- Be direct and actionable. Todd is often outdoors, time-pressed, on his phone.
-- Lead with the answer, then explain if needed.
-- Flag anything urgent or time-sensitive prominently.
-- If you don't have information to answer precisely, say so — don't guess.
+- Direct and actionable. Todd is often outdoors, time-pressed, on his phone.
+- Lead with the answer, explain if needed.
+- Flag urgent/time-sensitive items prominently.
+- If you don't know something precisely, say so.
 - Use markdown sparingly (bold for key terms, bullets for lists).
-- Keep responses concise unless Todd asks for detail.
 
-You have memory of the current conversation. Farm data (emails, tasks, calendar) will be added in a future phase — for now, answer based on your farm knowledge and what Todd tells you.
+HARD LIMITS — NEVER violate:
+- You CANNOT send emails without explicit confirmation from Todd. Always show the draft and say "Confirm to send."
+- You CANNOT delete emails or calendar events without confirmation.
+- You CANNOT modify any data without showing Todd what you're about to do first.
+- Never pretend to take an action you haven't taken. A false action claim could cause Todd to miss a critical deadline.
+- When in doubt, ask.`;
 
-HARD LIMITS — NEVER violate these:
-- You CANNOT send emails. You have no Gmail access. Never say "I sent" or "I've sent" an email.
-- You CANNOT create calendar events. You have no Calendar access.
-- You CANNOT update tasks, sheets, or any database. You are read-only.
-- You CANNOT make phone calls, send texts, or contact anyone.
-- If asked to do any of these things: draft the content for Todd to send himself, and say clearly "I cannot send this — here is the draft for you to send."
-- Never pretend to take an action you cannot take. A false action claim could cause Todd to miss a critical deadline or communication.`;
+// ─── Routes ───────────────────────────────────────────────────────────
+fastify.get('/health', async () => ({
+  status: 'ok',
+  service: 'tiny-seed-railway-api',
+  version: '2.0.0',
+  phase: 2,
+  googleConnected: true,
+  timestamp: new Date().toISOString(),
+}));
 
-// ─── Routes ────────────────────────────────────────────────────────────
+fastify.post('/api/chat/stream', async (request, reply) => {
+  const { message, history = [] } = request.body || {};
+  if (!message) {
+    reply.status(400).send({ error: 'message is required' });
+    return;
+  }
 
-// Health check — Railway uses this for deployment verification
-fastify.get('/health', async (request, reply) => {
-  return {
-    status: 'ok',
-    service: 'tiny-seed-railway-api',
-    version: '1.0.0',
-    phase: 1,
-    timestamp: new Date().toISOString(),
-  };
-});
-
-// ─── Streaming chat (Server-Sent Events) ──────────────────────────────
-fastify.post('/api/chat/stream', {
-  schema: {
-    body: {
-      type: 'object',
-      required: ['message'],
-      properties: {
-        message: { type: 'string', minLength: 1, maxLength: 10000 },
-        history: {
-          type: 'array',
-          maxItems: 20,
-          items: {
-            type: 'object',
-            required: ['role', 'content'],
-            properties: {
-              role: { type: 'string', enum: ['user', 'assistant'] },
-              content: { type: 'string', maxLength: 20000 },
-            },
-          },
-        },
-      },
-    },
-  },
-}, async (request, reply) => {
-  const { message, history = [] } = request.body;
-
-  // Build message array — last 10 exchanges max
-  const messages = [
-    ...history.slice(-20),
-    { role: 'user', content: message },
-  ];
-
-  // SSE headers — X-Accel-Buffering: no is critical for Railway/nginx proxies
   reply.raw.writeHead(200, {
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache, no-transform',
@@ -160,56 +196,46 @@ fastify.post('/api/chat/stream', {
     'Access-Control-Allow-Credentials': 'true',
   });
 
-  // Send keepalive immediately so the browser doesn't time out waiting for first byte
   reply.raw.write(': keepalive\n\n');
 
   try {
+    // Fetch live Google context
+    const liveContext = await fetchLiveContext();
+    const systemPrompt = BASE_SYSTEM + '\n\n=== LIVE DATA (fetched now) ===\n' + liveContext;
+
+    const messages = [
+      ...history.slice(-20),
+      { role: 'user', content: message },
+    ];
+
     const stream = anthropic.messages.stream({
       model: 'claude-sonnet-4-5',
       max_tokens: 2048,
-      system: CHIEF_OF_STAFF_SYSTEM(),
+      system: systemPrompt,
       messages,
     });
 
-    // Stream tokens as they arrive
     for await (const chunk of stream) {
-      if (
-        chunk.type === 'content_block_delta' &&
-        chunk.delta?.type === 'text_delta'
-      ) {
-        const payload = JSON.stringify({ type: 'token', text: chunk.delta.text });
-        reply.raw.write(`data: ${payload}\n\n`);
+      if (chunk.type === 'content_block_delta' && chunk.delta?.type === 'text_delta') {
+        reply.raw.write(`data: ${JSON.stringify({ type: 'token', text: chunk.delta.text })}\n\n`);
       }
     }
 
-    // Final usage stats (helps monitor prompt caching in future)
     const final = await stream.finalMessage();
-    reply.raw.write(
-      `data: ${JSON.stringify({
-        type: 'done',
-        usage: {
-          input_tokens: final.usage?.input_tokens,
-          output_tokens: final.usage?.output_tokens,
-        },
-      })}\n\n`
-    );
+    reply.raw.write(`data: ${JSON.stringify({ type: 'done', usage: final.usage })}\n\n`);
   } catch (error) {
     fastify.log.error({ err: error }, 'Streaming error');
-    reply.raw.write(
-      `data: ${JSON.stringify({ type: 'error', message: 'AI service error. Please try again.' })}\n\n`
-    );
+    reply.raw.write(`data: ${JSON.stringify({ type: 'error', message: 'Service error. Please try again.' })}\n\n`);
   } finally {
     reply.raw.end();
   }
 });
 
-// ─── Start server ──────────────────────────────────────────────────────
+// ─── Start ────────────────────────────────────────────────────────────
 const port = parseInt(process.env.PORT || '3000', 10);
-const host = '0.0.0.0'; // Required for Railway — listens on all interfaces
-
 try {
-  await fastify.listen({ port, host });
-  console.log(`Tiny Seed Railway API running on port ${port}`);
+  await fastify.listen({ port, host: '0.0.0.0' });
+  console.log(`Tiny Seed Railway API v2.0 running on port ${port}`);
 } catch (err) {
   fastify.log.error(err);
   process.exit(1);
