@@ -6,6 +6,14 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-04-07] Phase 2: Morning brief email + one-click approve/reject system
+- Files: backend/morningBrief.js, backend/server.js
+- Role: fullstack-builder
+- Changes:
+  - morningBrief.js: daily 7am HTML email to Todd with urgency-sorted emails, draft replies, deadline alerts, approve/reject links
+  - server.js: GET /approve/:token sends draft via Gmail; GET /reject/:token discards draft; uses existing gmail client
+- Why: Proactive morning brief delivers actionable email summaries; one-click approval lets Todd send replies from his phone without opening Gmail
+
 ## [2026-04-07] Phase 1 Email Agent: Proactive Gmail processing every 5 minutes
 - Files: backend/emailAgent.js, backend/db.js, backend/package.json, railway.toml
 - Role: fullstack-builder

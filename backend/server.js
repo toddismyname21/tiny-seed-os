@@ -259,6 +259,68 @@ fastify.post('/api/chat/stream', async (request, reply) => {
   }
 });
 
+// ─── Email approval endpoints ─────────────────────────────────────────
+fastify.get('/approve/:token', async (request, reply) => {
+  const { token } = request.params;
+  const { getApprovalToken, markDraftSent } = await import('./db.js');
+
+  const email = await getApprovalToken(token);
+
+  if (!email) {
+    reply.type('text/html').send(`<!DOCTYPE html><html><body style="font-family:sans-serif;max-width:500px;margin:60px auto;text-align:center">
+      <div style="font-size:48px">⚠️</div>
+      <h2>Link expired or already used</h2>
+      <p style="color:#6b7280">This approval link has expired (48h) or the reply was already sent.</p>
+    </body></html>`);
+    return;
+  }
+
+  try {
+    // Send the draft reply via Gmail
+    const messageParts = [
+      `From: ${process.env.TODD_EMAIL}`,
+      `To: ${email.from_address}`,
+      `Subject: Re: ${email.subject}`,
+      'Content-Type: text/plain; charset=utf-8',
+      'MIME-Version: 1.0',
+      '',
+      email.draft_reply,
+    ];
+    const raw = Buffer.from(messageParts.join('\r\n'))
+      .toString('base64')
+      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+    await gmail.users.messages.send({
+      userId: 'me',
+      requestBody: { raw },
+    });
+
+    await markDraftSent(email.id);
+
+    reply.type('text/html').send(`<!DOCTYPE html><html><body style="font-family:sans-serif;max-width:500px;margin:60px auto;text-align:center">
+      <div style="font-size:48px">✅</div>
+      <h2>Reply sent!</h2>
+      <p style="color:#374151">Your reply to <strong>${email.from_address}</strong> has been sent.</p>
+      <p style="color:#6b7280;font-size:13px">Subject: Re: ${email.subject}</p>
+    </body></html>`);
+  } catch (err) {
+    fastify.log.error({ err }, 'Failed to send approved reply');
+    reply.type('text/html').send(`<!DOCTYPE html><html><body style="font-family:sans-serif;max-width:500px;margin:60px auto;text-align:center">
+      <div style="font-size:48px">❌</div>
+      <h2>Failed to send</h2>
+      <p style="color:#6b7280">${err.message}</p>
+    </body></html>`);
+  }
+});
+
+fastify.get('/reject/:token', async (request, reply) => {
+  reply.type('text/html').send(`<!DOCTYPE html><html><body style="font-family:sans-serif;max-width:500px;margin:60px auto;text-align:center">
+    <div style="font-size:48px">🗑️</div>
+    <h2>Draft discarded</h2>
+    <p style="color:#6b7280">The draft reply has been discarded. No email was sent.</p>
+  </body></html>`);
+});
+
 // ─── Start ────────────────────────────────────────────────────────────
 const port = parseInt(process.env.PORT || '3000', 10);
 try {

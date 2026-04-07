@@ -335,16 +335,27 @@ LOWER_FILE=$(echo "$FILE_NAME" | tr '[:upper:]' '[:lower:]')
 DUPLICATE_SYSTEM=""
 
 # Check for known duplicate patterns
-if echo "$LOWER_FILE" | grep -qi "morning.*brief\|brief.*morning"; then
-    DUPLICATE_SYSTEM="Morning Brief (4 versions already exist - DO NOT CREATE ANOTHER)"
+# NOTE: backend/ directory is the Railway/Node.js layer — exempt from Apps Script duplicate rules
+FILE_PATH="$1"
+IS_BACKEND_FILE=false
+if echo "$FILE_PATH" | grep -q "^backend/"; then
+    IS_BACKEND_FILE=true
 fi
 
-if echo "$LOWER_FILE" | grep -qi "approval\|approve"; then
-    DUPLICATE_SYSTEM="Approval System (2 versions already exist - DO NOT CREATE ANOTHER)"
-fi
+if [ "$IS_BACKEND_FILE" = "false" ]; then
+    if echo "$LOWER_FILE" | grep -qi "morning.*brief\|brief.*morning"; then
+        DUPLICATE_SYSTEM="Morning Brief (4 versions already exist - DO NOT CREATE ANOTHER)"
+    fi
 
-if echo "$LOWER_FILE" | grep -qi "email.*process\|process.*email"; then
-    DUPLICATE_SYSTEM="Email Processing (3 versions already exist - DO NOT CREATE ANOTHER)"
+    if echo "$LOWER_FILE" | grep -qi "approval\|approve"; then
+        DUPLICATE_SYSTEM="Approval System (2 versions already exist - DO NOT CREATE ANOTHER)"
+    fi
+
+    if echo "$LOWER_FILE" | grep -qi "email.*process\|process.*email"; then
+        DUPLICATE_SYSTEM="Email Processing (3 versions already exist - DO NOT CREATE ANOTHER)"
+    fi
+else
+    echo -e "  ${GREEN}PASS: backend/ file — Railway/Node.js layer, exempt from Apps Script duplicate rules${NC}"
 fi
 
 if echo "$LOWER_FILE" | grep -qi "dashboard" && [ "$ACTION" = "create" ]; then
