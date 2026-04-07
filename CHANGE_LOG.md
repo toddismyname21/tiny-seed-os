@@ -6,6 +6,28 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-04-07] Phase 1 Email Agent: Proactive Gmail processing every 5 minutes
+- Files: backend/emailAgent.js, backend/db.js, backend/package.json, railway.toml
+- Role: fullstack-builder
+- Changes:
+  - emailAgent.js: polls Gmail via history.list, extracts full email body, classifies with Claude (category+urgency+draft), stores in Neon, applies AI-Reviewed label
+  - db.js: Neon PostgreSQL connection, processed_emails + gmail_sync_state tables, all queries
+  - railway.toml: added email-agent cron (*/5 * * * *) and morning-brief cron (0 11 * * *)
+  - package.json: added pg database client
+- Why: Apps Script email processing hits 6-min execution limits; Railway has no limit; Neon ensures exactly-once processing per email
+
+## [2026-04-06] Fix: Gmail full email body instead of 120-char snippet
+- Files: backend/server.js
+- Role: fullstack-builder
+- Changes:
+  - Changed Gmail fetch from `format: 'metadata'` to `format: 'full'` to get complete email bodies
+  - Added recursive `extractBody()` parser that handles text/plain, text/html, and nested multipart payloads
+  - HTML bodies are stripped of tags and normalized to plain text
+  - Body truncated at 3000 chars per email to manage context size
+  - Reduced email count from 12 to 6 (full bodies are much larger than snippets)
+  - Reduced maxResults from 15 to 8
+- Commit: 824bef9
+
 ## [2026-04-06] Phase 2: Google Gmail + Calendar live context in Chief of Staff chat
 - Files: backend/server.js, backend/package.json
 - Role: fullstack-builder
