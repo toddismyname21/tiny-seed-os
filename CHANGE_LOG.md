@@ -6,6 +6,17 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-04-07] Phase 3A: Google Sheets + Weather context in Chief of Staff
+- Files: backend/server.js, backend/morningBrief.js
+- Role: fullstack-builder
+- Changes:
+  - server.js: fetchSheetsContext() reads 10 sheet tabs in parallel via Promise.allSettled, injected into AI system prompt
+  - server.js: fetchWeather() pulls 7-day Open-Meteo forecast with frost alerts for Rochester PA
+  - server.js: /api/sheets/summary GET debug endpoint
+  - server.js: google.sheets v4 client added, SHEET_ID const
+  - morningBrief.js: fetchWeatherForBrief() + 3-day weather cards with frost warnings in morning brief HTML
+- Why: Chief of Staff now has full farm situational awareness — tasks, planning, CSA, wholesale, financials, harvest, market, weather
+
 ## [2026-04-07] Phase 2: Morning brief email + one-click approve/reject system
 - Files: backend/morningBrief.js, backend/server.js
 - Role: fullstack-builder

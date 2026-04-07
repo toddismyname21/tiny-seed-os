@@ -11,6 +11,47 @@
 import { google } from 'googleapis';
 import { initDatabase, getUnprocessedBriefEmails, markIncludedInBrief } from './db.js';
 
+// ─── Weather helpers ─────────────────────────────────────────────────
+function weatherCodeDescription(code) {
+  if (code === 0) return 'Clear sky';
+  if (code >= 1 && code <= 3) return 'Partly cloudy';
+  if (code >= 45 && code <= 48) return 'Foggy';
+  if (code >= 51 && code <= 55) return 'Drizzle';
+  if (code >= 56 && code <= 57) return 'Freezing drizzle';
+  if (code >= 61 && code <= 65) return 'Rain';
+  if (code >= 66 && code <= 67) return 'Freezing rain';
+  if (code >= 71 && code <= 75) return 'Snow';
+  if (code === 77) return 'Snow grains';
+  if (code >= 80 && code <= 82) return 'Rain showers';
+  if (code === 85 || code === 86) return 'Snow showers';
+  if (code === 95) return 'Thunderstorm';
+  if (code === 96 || code === 99) return 'Thunderstorm with hail';
+  return 'Unknown';
+}
+
+function weatherCodeEmoji(code) {
+  if (code === 0) return '☀️';
+  if (code >= 1 && code <= 3) return '⛅';
+  if (code >= 45 && code <= 48) return '🌫️';
+  if (code >= 51 && code <= 67) return '🌧️';
+  if (code >= 71 && code <= 77) return '❄️';
+  if (code >= 80 && code <= 82) return '🌦️';
+  if (code >= 85 && code <= 86) return '🌨️';
+  if (code >= 95) return '⛈️';
+  return '🌤️';
+}
+
+async function fetchWeatherForBrief() {
+  try {
+    const url = 'https://api.open-meteo.com/v1/forecast?latitude=40.7&longitude=-80.1&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weathercode&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch&timezone=America%2FNew_York&forecast_days=3';
+    const res = await fetch(url);
+    const data = await res.json();
+    return data.daily;
+  } catch (e) {
+    return null;
+  }
+}
+
 const required = ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'GOOGLE_REFRESH_TOKEN', 'DATABASE_URL', 'TODD_EMAIL', 'RAILWAY_URL'];
 for (const key of required) {
   if (!process.env[key]) {
@@ -40,7 +81,7 @@ function urgencyEmoji(urgency) {
   return e[urgency] || '⚪';
 }
 
-function buildBriefHtml(emails, date) {
+function buildBriefHtml(emails, date, weather) {
   const critical = emails.filter(e => e.urgency === 'CRITICAL');
   const high = emails.filter(e => e.urgency === 'HIGH');
   const medium = emails.filter(e => e.urgency === 'MEDIUM');
@@ -107,6 +148,33 @@ function buildBriefHtml(emails, date) {
   </div>
 </div>`;
 
+  // Weather section
+  if (weather && weather.time && weather.time.length > 0) {
+    html += `<div class="section"><div class="section-title">🌤️ Weather — Rochester, PA</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">`;
+    const dayLabels = ['Today', 'Tomorrow'];
+    const count = Math.min(weather.time.length, 3);
+    for (let i = 0; i < count; i++) {
+      const label = dayLabels[i] || new Date(weather.time[i] + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+      const code = weather.weathercode[i];
+      const emoji = weatherCodeEmoji(code);
+      const desc = weatherCodeDescription(code);
+      const high = Math.round(weather.temperature_2m_max[i]);
+      const low = Math.round(weather.temperature_2m_min[i]);
+      const rain = weather.precipitation_probability_max[i];
+      const frostWarning = low <= 35;
+      html += `<div style="background:white;border-radius:8px;padding:12px 16px;flex:1;min-width:140px;box-shadow:0 1px 3px rgba(0,0,0,0.1);text-align:center${frostWarning ? ';border:2px solid #dc2626' : ''}">
+        <div style="font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase">${label}</div>
+        <div style="font-size:28px;margin:4px 0">${emoji}</div>
+        <div style="font-size:13px;font-weight:600">${desc}</div>
+        <div style="font-size:20px;font-weight:700;margin:4px 0">${low}°–${high}°F</div>
+        <div style="font-size:11px;color:#6b7280">${rain}% rain</div>
+        ${frostWarning ? '<div style="font-size:11px;font-weight:700;color:#dc2626;margin-top:4px">⚠️ FROST RISK</div>' : ''}
+      </div>`;
+    }
+    html += `</div></div>`;
+  }
+
   // Deadlines section
   if (deadlines.length > 0) {
     html += `<div class="section"><div class="section-title">⏰ Deadlines Detected</div>`;
@@ -170,14 +238,18 @@ async function sendMorningBrief() {
 
   await initDatabase();
 
-  const emails = await getUnprocessedBriefEmails(24);
+  const [emails, weather] = await Promise.all([
+    getUnprocessedBriefEmails(24),
+    fetchWeatherForBrief(),
+  ]);
   console.log(`[Brief] Found ${emails.length} emails to include`);
+  console.log(`[Brief] Weather data: ${weather ? 'loaded' : 'unavailable'}`);
 
   const date = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
   const needsAction = emails.filter(e => ['CRITICAL','HIGH'].includes(e.urgency)).length;
   const subject = `[Tiny Seed] Morning Brief — ${date}${needsAction > 0 ? ` (${needsAction} need action)` : ' — Inbox clear'}`;
 
-  const html = buildBriefHtml(emails, date);
+  const html = buildBriefHtml(emails, date, weather);
 
   // Build RFC 2822 email message
   const messageParts = [

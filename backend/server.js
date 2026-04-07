@@ -3,9 +3,10 @@
  * TINY SEED FARM OS — RAILWAY BACKEND (Phase 2)
  * ═══════════════════════════════════════════════════════════════════════
  *
- * Phase 2 capabilities:
- *   - GET  /health          → Health check
- *   - POST /api/chat/stream → Streaming AI chat with live Google context
+ * Phase 3A capabilities:
+ *   - GET  /health              → Health check
+ *   - POST /api/chat/stream     → Streaming AI chat with live Google + Sheets + Weather context
+ *   - GET  /api/sheets/summary  → Debug endpoint for Sheets context
  *
  * Environment variables required:
  *   ANTHROPIC_API_KEY      — Anthropic API key
@@ -45,6 +46,9 @@ oauth2Client.setCredentials({ refresh_token: process.env.GOOGLE_REFRESH_TOKEN })
 
 const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
 const calendarApi = google.calendar({ version: 'v3', auth: oauth2Client });
+const sheets = google.sheets({ version: 'v4', auth: oauth2Client });
+
+const SHEET_ID = '128O56X_FN9_U-s0ENHBBRyLpae_yvWHPYbBheVlR3Vc';
 
 // ─── CORS ─────────────────────────────────────────────────────────────
 await fastify.register(cors, {
@@ -166,6 +170,434 @@ async function fetchLiveContext() {
   return sections.join('\n\n');
 }
 
+// ─── Google Sheets context fetcher ───────────────────────────────────
+async function fetchSheetsContext() {
+  const tabNames = [
+    'UNIFIED_TASKS',
+    'PLANNING_2026',
+    'CSA_Members',
+    'CSA_BoxContents',
+    'WHOLESALE_CUSTOMERS',
+    'WHOLESALE_STANDING_ORDERS',
+    'FIN_BANK_ACCOUNTS',
+    'FIN_BILLS',
+    'HARVEST_LOG',
+    'SALES_MarketItems',
+  ];
+
+  const results = await Promise.allSettled(
+    tabNames.map(tab =>
+      sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: tab })
+    )
+  );
+
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const sections = [];
+
+  // Helper: find column index case-insensitively, trying multiple aliases
+  function colIdx(headers, ...names) {
+    for (const name of names) {
+      const idx = headers.findIndex(h => h.toLowerCase().trim() === name.toLowerCase());
+      if (idx !== -1) return idx;
+    }
+    return -1;
+  }
+
+  // Helper: parse a date string safely
+  function parseDate(val) {
+    if (!val) return null;
+    const d = new Date(val);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  // Helper: days between two dates (positive = future, negative = past)
+  function daysDiff(date) {
+    if (!date) return Infinity;
+    const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    return Math.round((d - today) / (1000 * 60 * 60 * 24));
+  }
+
+  // Helper: get sheet data or null
+  function getSheet(tabName) {
+    const idx = tabNames.indexOf(tabName);
+    const result = results[idx];
+    if (result.status === 'rejected') return { error: result.reason.message };
+    const rows = result.value.data.values;
+    if (!rows || rows.length < 2) return { headers: [], data: [] };
+    return { headers: rows[0], data: rows.slice(1) };
+  }
+
+  // --- UNIFIED_TASKS ---
+  try {
+    const sheet = getSheet('UNIFIED_TASKS');
+    if (sheet.error) {
+      sections.push(`UNIFIED_TASKS: Unavailable (${sheet.error})`);
+    } else if (sheet.data.length === 0) {
+      sections.push('=== TODAY\'S OPEN TASKS ===\nNo tasks yet');
+    } else {
+      const h = sheet.headers;
+      const iTitle = colIdx(h, 'title', 'task_title', 'task');
+      const iAssignee = colIdx(h, 'assignee_name', 'assignee', 'assigned_to');
+      const iDue = colIdx(h, 'due_date', 'due', 'duedate');
+      const iPriority = colIdx(h, 'priority_manual', 'priority');
+      const iStatus = colIdx(h, 'status');
+
+      const doneStatuses = ['done', 'completed'];
+      const tasks = sheet.data.filter(row => {
+        const status = (row[iStatus] || '').toLowerCase().trim();
+        if (doneStatuses.includes(status)) return false;
+        const due = parseDate(row[iDue]);
+        const diff = daysDiff(due);
+        return diff <= 7; // past due, today, or within 7 days
+      }).slice(0, 15);
+
+      if (tasks.length === 0) {
+        sections.push('=== TODAY\'S OPEN TASKS ===\nNo tasks due in the next 7 days');
+      } else {
+        const lines = tasks.map(r =>
+          `- ${r[iTitle] || '(untitled)'} | ${r[iAssignee] || '?'} | Due: ${r[iDue] || '?'} | ${r[iPriority] || '-'} | ${r[iStatus] || '-'}`
+        );
+        sections.push('=== TODAY\'S OPEN TASKS ===\n' + lines.join('\n'));
+      }
+    }
+  } catch (e) {
+    sections.push(`UNIFIED_TASKS: Error (${e.message})`);
+  }
+
+  // --- PLANNING_2026 ---
+  try {
+    const sheet = getSheet('PLANNING_2026');
+    if (sheet.error) {
+      sections.push(`PLANNING_2026: Unavailable (${sheet.error})`);
+    } else if (sheet.data.length === 0) {
+      sections.push('=== UPCOMING TRANSPLANTS & HARVESTS ===\nNo planning data yet');
+    } else {
+      const h = sheet.headers;
+      const iCrop = colIdx(h, 'crop', 'crop_name');
+      const iVariety = colIdx(h, 'variety');
+      const iTransplant = colIdx(h, 'transplant_date', 'transplant');
+      const iHarvest = colIdx(h, 'first_harvest', 'harvest_date');
+      const iStatus = colIdx(h, 'status');
+      const iBed = colIdx(h, 'bed_id', 'bed', 'field');
+
+      const upcoming = sheet.data.filter(row => {
+        const td = parseDate(row[iTransplant]);
+        const hd = parseDate(row[iHarvest]);
+        return (td && daysDiff(td) >= -1 && daysDiff(td) <= 14) ||
+               (hd && daysDiff(hd) >= -1 && daysDiff(hd) <= 14);
+      }).slice(0, 20);
+
+      if (upcoming.length === 0) {
+        sections.push('=== UPCOMING TRANSPLANTS & HARVESTS ===\nNothing in next 14 days');
+      } else {
+        const lines = upcoming.map(r =>
+          `- ${r[iCrop] || '?'} ${r[iVariety] || ''} | Transplant: ${r[iTransplant] || '-'} | Harvest: ${r[iHarvest] || '-'} | ${r[iStatus] || '-'} | Bed: ${r[iBed] || '-'}`
+        );
+        sections.push('=== UPCOMING TRANSPLANTS & HARVESTS (next 14 days) ===\n' + lines.join('\n'));
+      }
+    }
+  } catch (e) {
+    sections.push(`PLANNING_2026: Error (${e.message})`);
+  }
+
+  // --- CSA_Members ---
+  try {
+    const sheet = getSheet('CSA_Members');
+    if (sheet.error) {
+      sections.push(`CSA_Members: Unavailable (${sheet.error})`);
+    } else if (sheet.data.length === 0) {
+      sections.push('=== CSA STATUS ===\nNo members yet');
+    } else {
+      const h = sheet.headers;
+      const iStatus = colIdx(h, 'status');
+      const iDelivery = colIdx(h, 'delivery_date', 'next_delivery', 'next_delivery_date');
+
+      const activeCount = sheet.data.filter(r => {
+        const s = (r[iStatus] || '').toLowerCase().trim();
+        return s === 'active';
+      }).length;
+
+      const renewalCount = sheet.data.filter(r => {
+        const s = (r[iStatus] || '').toLowerCase().trim();
+        return ['renewal_needed', 'pending_renewal'].includes(s);
+      }).length;
+
+      let nextDelivery = 'Unknown';
+      if (iDelivery !== -1) {
+        const dates = sheet.data
+          .map(r => parseDate(r[iDelivery]))
+          .filter(d => d && d >= today)
+          .sort((a, b) => a - b);
+        if (dates.length > 0) {
+          nextDelivery = dates[0].toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+        }
+      }
+
+      sections.push(`=== CSA STATUS ===\nActive members: ${activeCount} | Renewals needed: ${renewalCount} | Next delivery: ${nextDelivery}`);
+    }
+  } catch (e) {
+    sections.push(`CSA_Members: Error (${e.message})`);
+  }
+
+  // --- CSA_BoxContents ---
+  try {
+    const sheet = getSheet('CSA_BoxContents');
+    if (sheet.error) {
+      sections.push(`CSA_BoxContents: Unavailable (${sheet.error})`);
+    } else if (sheet.data.length === 0) {
+      sections.push('=== THIS WEEK\'S CSA BOX ===\nNo box contents yet');
+    } else {
+      const h = sheet.headers;
+      const iDate = colIdx(h, 'week_of', 'date', 'week');
+      const iItem = colIdx(h, 'item', 'product', 'crop');
+      const iQty = colIdx(h, 'quantity', 'qty');
+      const iUnit = colIdx(h, 'unit');
+
+      // Find the most recent week
+      let latestRows = sheet.data;
+      if (iDate !== -1) {
+        const datesWithRows = sheet.data
+          .map(r => ({ date: parseDate(r[iDate]), row: r }))
+          .filter(x => x.date);
+        if (datesWithRows.length > 0) {
+          datesWithRows.sort((a, b) => b.date - a.date);
+          const latestDate = datesWithRows[0].date.toDateString();
+          latestRows = datesWithRows.filter(x => x.date.toDateString() === latestDate).map(x => x.row);
+        }
+      }
+
+      const lines = latestRows.map(r =>
+        `- ${r[iItem] || '?'}: ${r[iQty] || '?'} ${r[iUnit] || ''}`
+      );
+      sections.push('=== THIS WEEK\'S CSA BOX ===\n' + lines.join('\n'));
+    }
+  } catch (e) {
+    sections.push(`CSA_BoxContents: Error (${e.message})`);
+  }
+
+  // --- WHOLESALE_CUSTOMERS ---
+  try {
+    const sheet = getSheet('WHOLESALE_CUSTOMERS');
+    if (sheet.error) {
+      sections.push(`WHOLESALE_CUSTOMERS: Unavailable (${sheet.error})`);
+    } else if (sheet.data.length === 0) {
+      sections.push('=== WHOLESALE ACCOUNTS ===\nNo accounts yet');
+    } else {
+      const h = sheet.headers;
+      const iName = colIdx(h, 'name', 'customer_name', 'business_name');
+      const iContact = colIdx(h, 'contact', 'contact_name', 'email', 'phone');
+      const iStatus = colIdx(h, 'status');
+      const iLastOrder = colIdx(h, 'last_order', 'last_order_date');
+
+      const active = sheet.data.filter(r => (r[iStatus] || '').toLowerCase().trim() === 'active');
+      const top5 = active.slice(0, 5);
+      const lines = top5.map(r =>
+        `- ${r[iName] || '?'} | Contact: ${r[iContact] || '-'} | Last order: ${r[iLastOrder] || '-'}`
+      );
+      sections.push(`=== WHOLESALE ACCOUNTS ===\nActive: ${active.length}\n${lines.join('\n')}`);
+    }
+  } catch (e) {
+    sections.push(`WHOLESALE_CUSTOMERS: Error (${e.message})`);
+  }
+
+  // --- WHOLESALE_STANDING_ORDERS ---
+  try {
+    const sheet = getSheet('WHOLESALE_STANDING_ORDERS');
+    if (sheet.error) {
+      sections.push(`WHOLESALE_STANDING_ORDERS: Unavailable (${sheet.error})`);
+    } else if (sheet.data.length === 0) {
+      sections.push('=== STANDING ORDERS ===\nNo standing orders yet');
+    } else {
+      const h = sheet.headers;
+      const iCustomer = colIdx(h, 'customer_name', 'customer', 'name');
+      const iItems = colIdx(h, 'items', 'products', 'order_items');
+      const iFreq = colIdx(h, 'frequency', 'schedule');
+      const iNext = colIdx(h, 'next_delivery', 'next_date', 'delivery_date');
+      const iStatus = colIdx(h, 'status');
+
+      const active = sheet.data.filter(r => {
+        const s = (r[iStatus] || '').toLowerCase().trim();
+        return s === '' || s === 'active'; // include rows with no status too
+      });
+
+      const lines = active.map(r =>
+        `- ${r[iCustomer] || '?'} | ${r[iItems] || '-'} | ${r[iFreq] || '-'} | Next: ${r[iNext] || '-'}`
+      );
+      sections.push('=== STANDING ORDERS ===\n' + (lines.length ? lines.join('\n') : 'No active standing orders'));
+    }
+  } catch (e) {
+    sections.push(`WHOLESALE_STANDING_ORDERS: Error (${e.message})`);
+  }
+
+  // --- FIN_BANK_ACCOUNTS ---
+  try {
+    const sheet = getSheet('FIN_BANK_ACCOUNTS');
+    if (sheet.error) {
+      sections.push(`FIN_BANK_ACCOUNTS: Unavailable (${sheet.error})`);
+    } else if (sheet.data.length === 0) {
+      sections.push('=== BANK BALANCES ===\nNo accounts yet');
+    } else {
+      const h = sheet.headers;
+      const iName = colIdx(h, 'account_name', 'name', 'account', 'bank');
+      const iBalance = colIdx(h, 'current_balance', 'balance', 'amount');
+
+      const lines = sheet.data.map(r =>
+        `- ${r[iName] || '?'}: $${r[iBalance] || '0'}`
+      );
+      sections.push('=== BANK BALANCES ===\n' + lines.join('\n'));
+    }
+  } catch (e) {
+    sections.push(`FIN_BANK_ACCOUNTS: Error (${e.message})`);
+  }
+
+  // --- FIN_BILLS ---
+  try {
+    const sheet = getSheet('FIN_BILLS');
+    if (sheet.error) {
+      sections.push(`FIN_BILLS: Unavailable (${sheet.error})`);
+    } else if (sheet.data.length === 0) {
+      sections.push('=== BILLS DUE ===\nNo bills tracked');
+    } else {
+      const h = sheet.headers;
+      const iName = colIdx(h, 'name', 'vendor', 'description', 'bill_name');
+      const iAmount = colIdx(h, 'amount', 'total', 'balance_due');
+      const iDue = colIdx(h, 'due_date', 'due', 'date_due');
+      const iBillStatus = colIdx(h, 'status');
+
+      const dueSoon = sheet.data.filter(r => {
+        const s = (r[iBillStatus] || '').toLowerCase().trim();
+        if (s === 'paid') return false;
+        const d = parseDate(r[iDue]);
+        return d && daysDiff(d) <= 14;
+      });
+
+      if (dueSoon.length === 0) {
+        sections.push('=== BILLS DUE ===\nNo bills due in next 14 days');
+      } else {
+        const lines = dueSoon.map(r =>
+          `- ${r[iName] || '?'}: $${r[iAmount] || '?'} | Due: ${r[iDue] || '?'} | ${r[iBillStatus] || '-'}`
+        );
+        sections.push('=== BILLS DUE ===\n' + lines.join('\n'));
+      }
+    }
+  } catch (e) {
+    sections.push(`FIN_BILLS: Error (${e.message})`);
+  }
+
+  // --- HARVEST_LOG ---
+  try {
+    const sheet = getSheet('HARVEST_LOG');
+    if (sheet.error) {
+      sections.push(`HARVEST_LOG: Unavailable (${sheet.error})`);
+    } else if (sheet.data.length === 0) {
+      sections.push('=== RECENT HARVESTS ===\nNo harvests logged');
+    } else {
+      const h = sheet.headers;
+      const iDate = colIdx(h, 'date', 'harvest_date');
+      const iCrop = colIdx(h, 'crop', 'crop_name', 'item');
+      const iQty = colIdx(h, 'quantity', 'qty', 'amount');
+      const iUnit = colIdx(h, 'unit');
+      const iBed = colIdx(h, 'field', 'bed', 'bed_id', 'location');
+
+      const recent = sheet.data.filter(r => {
+        const d = parseDate(r[iDate]);
+        return d && daysDiff(d) >= -7 && daysDiff(d) <= 0;
+      });
+
+      if (recent.length === 0) {
+        sections.push('=== RECENT HARVESTS (last 7 days) ===\nNo harvests in last 7 days');
+      } else {
+        const lines = recent.map(r =>
+          `- ${r[iDate] || '?'}: ${r[iCrop] || '?'} — ${r[iQty] || '?'} ${r[iUnit] || ''} (${r[iBed] || '-'})`
+        );
+        sections.push('=== RECENT HARVESTS (last 7 days) ===\n' + lines.join('\n'));
+      }
+    }
+  } catch (e) {
+    sections.push(`HARVEST_LOG: Error (${e.message})`);
+  }
+
+  // --- SALES_MarketItems ---
+  try {
+    const sheet = getSheet('SALES_MarketItems');
+    if (sheet.error) {
+      sections.push(`SALES_MarketItems: Unavailable (${sheet.error})`);
+    } else if (sheet.data.length === 0) {
+      sections.push('=== MARKET AVAILABILITY ===\nNo market items yet');
+    } else {
+      const h = sheet.headers;
+      const iItem = colIdx(h, 'item', 'product', 'crop', 'name');
+      const iQty = colIdx(h, 'quantity', 'qty', 'available');
+      const iPrice = colIdx(h, 'price', 'unit_price');
+      const iStatus = colIdx(h, 'status', 'available', 'active');
+
+      const available = sheet.data.filter(r => {
+        const s = (r[iStatus] || '').toLowerCase().trim();
+        return s === '' || s === 'active' || s === 'available' || s === 'yes' || s === 'true';
+      });
+
+      if (available.length === 0) {
+        sections.push('=== MARKET AVAILABILITY ===\nNo items currently available');
+      } else {
+        const lines = available.map(r =>
+          `- ${r[iItem] || '?'}: ${r[iQty] || '?'} @ $${r[iPrice] || '?'}`
+        );
+        sections.push('=== MARKET AVAILABILITY ===\n' + lines.join('\n'));
+      }
+    }
+  } catch (e) {
+    sections.push(`SALES_MarketItems: Error (${e.message})`);
+  }
+
+  // Cap total output to ~2000 chars
+  let output = sections.join('\n\n');
+  if (output.length > 2000) {
+    output = output.substring(0, 1997) + '...';
+  }
+  return output;
+}
+
+// ─── Weather fetcher ─────────────────────────────────────────────────
+function weatherCodeDescription(code) {
+  if (code === 0) return 'Clear sky';
+  if (code >= 1 && code <= 3) return 'Partly cloudy';
+  if (code >= 45 && code <= 48) return 'Foggy';
+  if (code >= 51 && code <= 55) return 'Drizzle';
+  if (code >= 56 && code <= 57) return 'Freezing drizzle';
+  if (code >= 61 && code <= 65) return 'Rain';
+  if (code >= 66 && code <= 67) return 'Freezing rain';
+  if (code >= 71 && code <= 75) return 'Snow';
+  if (code === 77) return 'Snow grains';
+  if (code >= 80 && code <= 82) return 'Rain showers';
+  if (code === 85 || code === 86) return 'Snow showers';
+  if (code === 95) return 'Thunderstorm';
+  if (code === 96 || code === 99) return 'Thunderstorm with hail';
+  return 'Unknown';
+}
+
+async function fetchWeather() {
+  try {
+    const url = 'https://api.open-meteo.com/v1/forecast?latitude=40.7&longitude=-80.1&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weathercode&hourly=temperature_2m&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch&timezone=America%2FNew_York&forecast_days=7';
+    const res = await fetch(url);
+    const data = await res.json();
+
+    const days = data.daily.time.map((date, i) => {
+      const code = data.daily.weathercode[i];
+      const desc = weatherCodeDescription(code);
+      const high = Math.round(data.daily.temperature_2m_max[i]);
+      const low = Math.round(data.daily.temperature_2m_min[i]);
+      const rain = data.daily.precipitation_probability_max[i];
+      const frost = low <= 35 ? ' ⚠️ FROST RISK' : '';
+      return `- ${date}: ${desc}, ${low}°F–${high}°F, ${rain}% rain chance${frost}`;
+    });
+
+    return 'WEATHER FORECAST (Rochester PA, next 7 days):\n' + days.join('\n');
+  } catch (e) {
+    return `WEATHER: Unavailable (${e.message})`;
+  }
+}
+
 // ─── System prompt ────────────────────────────────────────────────────
 const todayStr = () =>
   new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
@@ -202,9 +634,10 @@ HARD LIMITS — NEVER violate:
 fastify.get('/health', async () => ({
   status: 'ok',
   service: 'tiny-seed-railway-api',
-  version: '2.0.0',
-  phase: 2,
+  version: '3.0.0',
+  phase: '3A',
   googleConnected: true,
+  sheetsConnected: true,
   timestamp: new Date().toISOString(),
 }));
 
@@ -227,9 +660,16 @@ fastify.post('/api/chat/stream', async (request, reply) => {
   reply.raw.write(': keepalive\n\n');
 
   try {
-    // Fetch live Google context
-    const liveContext = await fetchLiveContext();
-    const systemPrompt = BASE_SYSTEM + '\n\n=== LIVE DATA (fetched now) ===\n' + liveContext;
+    // Fetch live Google context, sheets data, and weather in parallel
+    const [liveContext, sheetsContext, weatherContext] = await Promise.all([
+      fetchLiveContext(),
+      fetchSheetsContext(),
+      fetchWeather(),
+    ]);
+    const systemPrompt = BASE_SYSTEM
+      + '\n\n=== LIVE DATA (fetched now) ===\n' + liveContext
+      + '\n\n=== FARM DATA (Google Sheets) ===\n' + sheetsContext
+      + '\n\n=== WEATHER ===\n' + weatherContext;
 
     const messages = [
       ...history.slice(-20),
@@ -257,6 +697,12 @@ fastify.post('/api/chat/stream', async (request, reply) => {
   } finally {
     reply.raw.end();
   }
+});
+
+// ─── Sheets summary endpoint (debug / future use) ────────────────────
+fastify.get('/api/sheets/summary', async (request, reply) => {
+  const context = await fetchSheetsContext();
+  reply.send({ context, timestamp: new Date().toISOString() });
 });
 
 // ─── Email approval endpoints ─────────────────────────────────────────
@@ -325,7 +771,7 @@ fastify.get('/reject/:token', async (request, reply) => {
 const port = parseInt(process.env.PORT || '3000', 10);
 try {
   await fastify.listen({ port, host: '0.0.0.0' });
-  console.log(`Tiny Seed Railway API v2.0 running on port ${port}`);
+  console.log(`Tiny Seed Railway API v3.0 (Phase 3A: Sheets + Weather) running on port ${port}`);
 } catch (err) {
   fastify.log.error(err);
   process.exit(1);
