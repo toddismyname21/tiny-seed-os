@@ -73,26 +73,54 @@ async function fetchLiveContext() {
   try {
     const list = await gmail.users.messages.list({
       userId: 'me',
-      maxResults: 15,
+      maxResults: 8,
       q: 'is:unread -category:promotions -category:social',
     });
 
     if (list.data.messages && list.data.messages.length > 0) {
       const details = await Promise.all(
-        list.data.messages.slice(0, 12).map(async (msg) => {
+        list.data.messages.slice(0, 6).map(async (msg) => {
           try {
             const detail = await gmail.users.messages.get({
               userId: 'me',
               id: msg.id,
-              format: 'metadata',
-              metadataHeaders: ['From', 'Subject', 'Date'],
+              format: 'full',
             });
             const h = detail.data.payload.headers;
             const from = h.find(x => x.name === 'From')?.value || 'Unknown';
             const subject = h.find(x => x.name === 'Subject')?.value || '(no subject)';
             const date = h.find(x => x.name === 'Date')?.value || '';
-            const snippet = (detail.data.snippet || '').substring(0, 120);
-            return `- [${date.substring(0, 16)}] FROM: ${from}\n  SUBJECT: ${subject}\n  PREVIEW: ${snippet}`;
+
+            // Extract full body text from payload (handles multipart emails)
+            const extractBody = (payload) => {
+              if (payload.body?.data) {
+                return Buffer.from(payload.body.data, 'base64url').toString('utf8');
+              }
+              if (payload.parts) {
+                for (const part of payload.parts) {
+                  if (part.mimeType === 'text/plain' && part.body?.data) {
+                    return Buffer.from(part.body.data, 'base64url').toString('utf8');
+                  }
+                }
+                for (const part of payload.parts) {
+                  if (part.mimeType === 'text/html' && part.body?.data) {
+                    return Buffer.from(part.body.data, 'base64url').toString('utf8')
+                      .replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+                  }
+                  if (part.parts) {
+                    const nested = extractBody(part);
+                    if (nested) return nested;
+                  }
+                }
+              }
+              return detail.data.snippet || '';
+            };
+
+            const body = extractBody(detail.data.payload)
+              .replace(/\r\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim()
+              .substring(0, 3000);
+
+            return `- FROM: ${from}\n  DATE: ${date.substring(0, 16)}\n  SUBJECT: ${subject}\n  BODY:\n${body}`;
           } catch (e) {
             return null;
           }
