@@ -6,6 +6,16 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-04-07] Sprint 1: CSA + Wholesale automation backbone
+- Files: apps_script/MERGED TOTAL.js
+- Role: fullstack-builder
+- Changes:
+  - setupAllTriggers(): creates 6 time-based triggers (CSA orders Sun 6pm, pickup reminders Fri 9am, renewals Mon 9am, email queue daily 8am, availability blast Mon 7am, daily cache 6am)
+  - sendPickupRemindersCron(): sends email + SMS pickup reminders every Friday to members with next-day pickup
+  - submitWholesaleOrder(): now calls canFulfillOrder() before accepting — returns shortages to chef instead of creating invalid orders
+- Why: Core automation gap — generateWeeklyCSAOrders never ran automatically, 3 other triggers missing, wholesale accepted orders it couldn't fulfill
+- Next: Todd must call GET ?action=setupAllTriggers once to activate all triggers
+
 ## [2026-04-07] Phase 3A: Google Sheets + Weather context in Chief of Staff
 - Files: backend/server.js, backend/morningBrief.js
 - Role: fullstack-builder

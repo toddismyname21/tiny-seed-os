@@ -43766,6 +43766,29 @@ function submitWholesaleOrder(data) {
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
+    // AVAILABILITY VALIDATION — check stock before accepting order
+    // ═══════════════════════════════════════════════════════════════════════════
+    if (data.items && data.items.length > 0) {
+      try {
+        const fulfillCheck = canFulfillOrder(data.items);
+        if (fulfillCheck && !fulfillCheck.canFulfill) {
+          const shortages = (fulfillCheck.shortages || []).map(s =>
+            `${s.product}: need ${s.requested}${s.unit || ''}, have ${s.available}${s.unit || ''}`
+          ).join('; ');
+          return {
+            success: false,
+            error: `Unable to fulfill order — insufficient stock. ${shortages}`,
+            shortages: fulfillCheck.shortages || [],
+            canFulfill: false
+          };
+        }
+      } catch (availErr) {
+        // Log but don't block — availability check is best-effort
+        Logger.log('Availability check error (non-blocking): ' + availErr.message);
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
     // CREATE THE ORDER
     // ═══════════════════════════════════════════════════════════════════════════
     const orderResult = createSalesOrder({
@@ -113692,6 +113715,183 @@ const COS_EMAIL_DRAFTS_HEADERS = [
   'Confidence', 'Email_Type', 'Context', 'Status', 'Approved_By',
   'Approved_At', 'Sent_At', 'Modifications'
 ];
+
+/**
+ * Master trigger setup — run once to activate all farm automation.
+ * Called via: GET ?action=setupAllTriggers
+ * Must be called from Apps Script context (has ScriptApp access).
+ */
+function setupAllTriggers() {
+  const results = {};
+
+  // Helper: delete existing trigger by handler name, then create new one
+  function replaceTrigger(handlerName, builderFn) {
+    ScriptApp.getProjectTriggers()
+      .filter(t => t.getHandlerFunction() === handlerName)
+      .forEach(t => ScriptApp.deleteTrigger(t));
+    try {
+      builderFn();
+      results[handlerName] = 'created';
+    } catch (e) {
+      results[handlerName] = 'error: ' + e.message;
+    }
+  }
+
+  // 1. CSA weekly order generation — Sunday 6pm
+  replaceTrigger('generateWeeklyCSAOrders', () => {
+    ScriptApp.newTrigger('generateWeeklyCSAOrders')
+      .timeBased()
+      .onWeekDay(ScriptApp.WeekDay.SUNDAY)
+      .atHour(18)
+      .create();
+  });
+
+  // 2. CSA pickup reminders — Friday 9am (day before Saturday pickups)
+  replaceTrigger('sendPickupRemindersCron', () => {
+    ScriptApp.newTrigger('sendPickupRemindersCron')
+      .timeBased()
+      .onWeekDay(ScriptApp.WeekDay.FRIDAY)
+      .atHour(9)
+      .create();
+  });
+
+  // 3. CSA renewal campaign — Monday 9am
+  replaceTrigger('runCSARenewalCampaign', () => {
+    ScriptApp.newTrigger('runCSARenewalCampaign')
+      .timeBased()
+      .onWeekDay(ScriptApp.WeekDay.MONDAY)
+      .atHour(9)
+      .create();
+  });
+
+  // 4. Email queue processor — daily 8am
+  replaceTrigger('processEmailQueue', () => {
+    ScriptApp.newTrigger('processEmailQueue')
+      .timeBased()
+      .everyDays(1)
+      .atHour(8)
+      .create();
+  });
+
+  // 5. Weekly availability blast to chefs — Monday 7am
+  replaceTrigger('sendWeeklyAvailabilityBlast', () => {
+    ScriptApp.newTrigger('sendWeeklyAvailabilityBlast')
+      .timeBased()
+      .onWeekDay(ScriptApp.WeekDay.MONDAY)
+      .atHour(7)
+      .create();
+  });
+
+  // 6. Daily availability cache refresh — 6am daily
+  replaceTrigger('calculateDailyAvailability', () => {
+    ScriptApp.newTrigger('calculateDailyAvailability')
+      .timeBased()
+      .everyDays(1)
+      .atHour(6)
+      .create();
+  });
+
+  Logger.log('setupAllTriggers complete: ' + JSON.stringify(results));
+  return { success: true, triggers: results };
+}
+
+/**
+ * Sends pickup reminder SMS/email to all active CSA members
+ * who have a pickup on the next day (Saturday) or the day after tomorrow.
+ * Called automatically every Friday at 9am via time trigger.
+ */
+function sendPickupRemindersCron() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const membersSheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
+  if (!membersSheet) {
+    Logger.log('sendPickupRemindersCron: CSA_Members sheet not found');
+    return { success: false, error: 'CSA_Members sheet not found' };
+  }
+
+  const data = membersSheet.getDataRange().getValues();
+  if (data.length < 2) return { success: true, sent: 0, skipped: 0 };
+
+  const headers = data[0];
+  const col = (name) => headers.findIndex(h => (h||'').toString().toLowerCase() === name.toLowerCase());
+
+  const statusCol = col('Status');
+  const pickupDayCol = col('Pickup_Day');
+  const pickupLocationCol = col('Pickup_Location');
+  const shareTypeCol = col('Share_Type');
+  const emailCol = col('Email');
+  const phoneCol = col('Phone');
+  const nameCol = col('Customer_Name');
+  const nextPickupCol = col('Next_Pickup_Date');
+
+  // Determine which pickup days get reminded today (Friday = remind Sat + Sun pickups)
+  const today = new Date();
+  const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
+  const dayAfter = new Date(today); dayAfter.setDate(today.getDate() + 2);
+  const reminderDays = [
+    ['Saturday','Sunday'][tomorrow.getDay() === 6 ? 0 : 1],
+    ['Saturday','Sunday'][dayAfter.getDay() === 6 ? 0 : 1]
+  ].filter(Boolean);
+  // Also include any day that matches nextPickupDate being tomorrow or day after
+  const tomorrowStr = Utilities.formatDate(tomorrow, 'America/New_York', 'yyyy-MM-dd');
+  const dayAfterStr = Utilities.formatDate(dayAfter, 'America/New_York', 'yyyy-MM-dd');
+
+  let sent = 0, skipped = 0;
+
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    const status = (row[statusCol] || '').toString().toLowerCase();
+    if (status !== 'active') { skipped++; continue; }
+
+    const nextPickup = row[nextPickupCol];
+    const nextPickupDateStr = nextPickup
+      ? Utilities.formatDate(new Date(nextPickup), 'America/New_York', 'yyyy-MM-dd')
+      : '';
+
+    const pickupDay = (row[pickupDayCol] || '').toString();
+    const isPickupTomorrow = nextPickupDateStr === tomorrowStr || nextPickupDateStr === dayAfterStr
+      || reminderDays.includes(pickupDay);
+
+    if (!isPickupTomorrow) { skipped++; continue; }
+
+    const name = (row[nameCol] || '').toString().split(' ')[0] || 'there';
+    const location = (row[pickupLocationCol] || 'your pickup location').toString();
+    const shareType = (row[shareTypeCol] || '').toString();
+    const email = (row[emailCol] || '').toString();
+    const phone = (row[phoneCol] || '').toString();
+
+    const message = `Hi ${name}! 🌱 Reminder: your ${shareType} CSA box is ready for pickup tomorrow at ${location}. See you there! — Tiny Seed Farm`;
+
+    // Send email reminder
+    if (email) {
+      try {
+        GmailApp.sendEmail(
+          email,
+          '🌱 Your CSA Box is Ready for Pickup Tomorrow',
+          message,
+          {
+            name: 'Tiny Seed Farm',
+            htmlBody: `<p>Hi ${name}!</p><p>Just a friendly reminder that your <strong>${shareType} CSA box</strong> is ready for pickup <strong>tomorrow</strong> at <strong>${location}</strong>.</p><p>See you there! 🌿</p><p>— The Tiny Seed Farm Team</p>`
+          }
+        );
+        sent++;
+      } catch (e) {
+        Logger.log('Email reminder failed for ' + email + ': ' + e.message);
+      }
+    }
+
+    // SMS reminder (will work once Twilio is configured)
+    if (phone) {
+      try {
+        sendSMS({ to: phone, message: message });
+      } catch (e) {
+        Logger.log('SMS reminder skipped (Twilio not configured): ' + e.message);
+      }
+    }
+  }
+
+  Logger.log('sendPickupRemindersCron: sent=' + sent + ', skipped=' + skipped);
+  return { success: true, sent: sent, skipped: skipped };
+}
 
 /**
  * MASTER: Setup all Chief of Staff autonomous triggers
