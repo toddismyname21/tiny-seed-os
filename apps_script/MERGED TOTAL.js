@@ -14650,6 +14650,8 @@ function doGet(e) {
       'setupScheduleNotificationTriggers', 'sendWeeklyScheduleEmails', 'sendShiftReminders', 'weatherCancelDay',
       // PM trigger management tools
       'listAllTriggers', 'deleteAllTriggers', 'deduplicateTriggers', 'deleteTriggersByHandlers',
+      // Admin trigger setup (no PII — just creates scheduled triggers)
+      'setupAllTriggers',
       // Weather data (non-sensitive, no PII — public for all dashboard pages)
       'getWeather', 'getWeatherForecast', 'getWeatherSmartDashboard'
     ]);
