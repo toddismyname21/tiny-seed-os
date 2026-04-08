@@ -6,6 +6,15 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-04-07] Sprint 2: Wholesale standing order auto-fulfillment
+- Files: apps_script/MERGED TOTAL.js
+- Role: fullstack-builder
+- Changes:
+  - autoFulfillStandingOrdersForWeek(): checks availability via canFulfillOrder() then marks fulfilled or shorted, notifies chefs on shortage. Runs Monday 8am.
+  - Exposed in doGet routing + PUBLIC_GET_ACTIONS whitelist
+  - Added to setupAllTriggers() as trigger #7 (Monday 8am, after 6am availability cache refresh)
+- Why: Standing order fulfillment was 100% manual (Todd clicked fulfill/short for every order every week). Now fully autonomous.
+
 ## [2026-04-07] Trigger audit: removed 4 stale, added calculateDailyAvailability, net 18 total
 - Role: PM_Architect
 - Changes:

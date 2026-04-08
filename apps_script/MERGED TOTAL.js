@@ -14652,6 +14652,7 @@ function doGet(e) {
       'listAllTriggers', 'deleteAllTriggers', 'deduplicateTriggers', 'deleteTriggersByHandlers',
       // Admin trigger setup (no PII — just creates scheduled triggers)
       'setupAllTriggers',
+      'autoFulfillStandingOrdersForWeek',
       // Weather data (non-sensitive, no PII — public for all dashboard pages)
       'getWeather', 'getWeatherForecast', 'getWeatherSmartDashboard'
     ]);
@@ -19227,6 +19228,8 @@ function doPost(e) {
         return jsonResponse(sendCSARenewalReminder(data));
       case 'runCSARenewalCampaign':
         return jsonResponse(runCSARenewalCampaign(data));
+      case 'autoFulfillStandingOrdersForWeek':
+        return jsonResponse(autoFulfillStandingOrdersForWeek());
 
       // Referral Tracking
       case 'generateReferralCode':
@@ -44219,6 +44222,75 @@ const STANDING_ORDER_SHEETS = {
   STANDING_ORDERS: 'WHOLESALE_STANDING_ORDERS',
   FULFILLMENT_LOG: 'WHOLESALE_FULFILLMENT_LOG'
 };
+
+/**
+ * Auto-fulfills standing orders due this week.
+ * - Checks availability via canFulfillOrder()
+ * - Marks fulfilled if stock available, shorted if not
+ * - Sends shortage notifications automatically
+ * Called daily at 6am via time trigger (or manually).
+ */
+function autoFulfillStandingOrdersForWeek() {
+  try {
+    const dueResult = getStandingOrdersDue({});
+    if (!dueResult.success || !dueResult.orders.length) {
+      Logger.log('[autoFulfill] No standing orders due this week');
+      return { success: true, fulfilled: 0, shorted: 0, skipped: 0 };
+    }
+
+    let fulfilled = 0, shorted = 0, skipped = 0;
+    const errors = [];
+
+    for (const order of dueResult.orders) {
+      try {
+        // Check availability for this order's product
+        const items = [{ productName: order.Product_Name, quantity: order.Quantity, unit: order.Unit }];
+        const fulfillCheck = canFulfillOrder(items);
+
+        if (!fulfillCheck || fulfillCheck.canFulfill === true || !fulfillCheck.shortages || fulfillCheck.shortages.length === 0) {
+          // Available — mark fulfilled
+          markStandingOrderFulfilled({ standingOrderId: order.Standing_Order_ID });
+          fulfilled++;
+          Logger.log('[autoFulfill] Fulfilled: ' + order.Standing_Order_ID + ' (' + order.Product_Name + ' for ' + order.Customer_Name + ')');
+        } else {
+          // Shortage — mark shorted and notify
+          const shortage = fulfillCheck.shortages[0];
+          const reason = 'Insufficient stock: need ' + shortage.requested + (shortage.unit || '') + ', have ' + shortage.available + (shortage.unit || '');
+          const alternatives = (fulfillCheck.alternatives || []).map(function(a) { return a.name || a; }).join(', ');
+
+          markStandingOrderShorted({
+            standingOrderId: order.Standing_Order_ID,
+            reason: reason,
+            quantityFulfilled: shortage.available || 0,
+            alternatives: alternatives || 'Check availability for alternatives'
+          });
+
+          // Notify the chef
+          try {
+            notifyStandingOrderShortage(order.Customer_ID, order.Product_Name, reason, alternatives);
+          } catch (notifyErr) {
+            Logger.log('[autoFulfill] Notification failed (non-blocking): ' + notifyErr.message);
+          }
+
+          shorted++;
+          Logger.log('[autoFulfill] Shorted: ' + order.Standing_Order_ID + ' — ' + reason);
+        }
+      } catch (orderErr) {
+        errors.push(order.Standing_Order_ID + ': ' + orderErr.message);
+        skipped++;
+        Logger.log('[autoFulfill] Error on order ' + order.Standing_Order_ID + ': ' + orderErr.message);
+      }
+    }
+
+    var summary = { success: true, fulfilled: fulfilled, shorted: shorted, skipped: skipped, total: dueResult.orders.length, errors: errors };
+    Logger.log('[autoFulfill] Complete: ' + JSON.stringify(summary));
+    return summary;
+
+  } catch (e) {
+    Logger.log('[autoFulfillStandingOrdersForWeek] Fatal: ' + e.toString());
+    return { success: false, error: e.toString() };
+  }
+}
 
 /**
  * Initialize Standing Orders sheets
@@ -113790,6 +113862,15 @@ function setupAllTriggers() {
       .timeBased()
       .everyDays(1)
       .atHour(6)
+      .create();
+  });
+
+  // 7. Auto-fulfill standing orders — Monday 8am (after availability cache refreshes at 6am)
+  replaceTrigger('autoFulfillStandingOrdersForWeek', () => {
+    ScriptApp.newTrigger('autoFulfillStandingOrdersForWeek')
+      .timeBased()
+      .onWeekDay(ScriptApp.WeekDay.MONDAY)
+      .atHour(8)
       .create();
   });
 
