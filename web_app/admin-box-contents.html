@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: blob: https:; connect-src 'self' https://script.google.com https://script.googleusercontent.com;">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSA Box Contents — Tiny Seed Farm</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha384-iw3OoTErCYJJB9mCa8LNS2hbsQ7M3C0EpIsO/H5+EGAkPGc6rk+V8i04oW/K5xq0" crossorigin="anonymous">
+    <link rel="stylesheet" href="tiny-seed-design-system.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js" integrity="sha384-irMU3PFyflP2sBiZuBnRkEOFyMjK4VGynFJjQR8PuiJSWF2WxwVYNbYvPwXnEDTd" crossorigin="anonymous"></script>
+    <script src="auth-guard.js" data-required-role="Admin"></script>
+    <script src="api-config.js"></script>
+    <style>
+        :root {
+            --primary: var(--ts-green-500, #22c55e);
+            --primary-light: var(--ts-green-400, #4ade80);
+            --primary-dark: var(--ts-green-600, #16a34a);
+            --secondary: var(--ts-gold-400, #f4a261);
+            --success: var(--ts-teal-500, #2a9d8f);
+            --warning: var(--ts-amber-500, #e9c46a);
+            --danger: var(--ts-red-500, #e63946);
+            --bg-dark: var(--ts-bg-base, #1a1816);
+            --bg-card: var(--ts-bg-surface, #282520);
+            --text-primary: var(--ts-text, #edf2f4);
+            --text-secondary: var(--ts-text-secondary, #8d99ae);
+            --border: var(--ts-border, rgba(255,255,255,0.1));
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: var(--ts-font-sans, 'Inter', sans-serif);
+            background: linear-gradient(135deg, var(--bg-dark) 0%, var(--ts-slate-950, #0f0f1a) 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+        :focus:not(:focus-visible) { outline: none; }
+
+        /* NAV */
+        .top-nav {
+            background: rgba(22, 33, 62, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+            padding: 0.75rem var(--ts-space-6, 1.5rem);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .nav-back {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: color var(--ts-dur-normal, 200ms);
+        }
+
+        .nav-back:hover { color: var(--primary-light); }
+
+        .nav-title {
+            font-size: var(--ts-text-xl, 1.25rem);
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary-light) 0%, var(--success) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* MAIN */
+        .main-content {
+            padding: var(--ts-space-6, 1.5rem);
+            max-width: 960px;
+            margin: 0 auto;
+        }
+
+        /* CONTROLS ROW */
+        .controls-row {
+            display: flex;
+            gap: var(--ts-space-4, 1rem);
+            align-items: flex-end;
+            flex-wrap: wrap;
+            margin-bottom: var(--ts-space-6, 1.5rem);
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+
+        .control-group label {
+            font-size: var(--ts-text-sm, 0.875rem);
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .control-group input[type="date"] {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 0.6rem 0.75rem;
+            border-radius: var(--ts-radius-md, 8px);
+            font-family: inherit;
+            font-size: var(--ts-text-base, 1rem);
+        }
+
+        .control-group input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+        }
+
+        /* TABS */
+        .share-tabs {
+            display: flex;
+            gap: 0;
+            background: var(--bg-card);
+            border-radius: var(--ts-radius-lg, 12px) var(--ts-radius-lg, 12px) 0 0;
+            border-bottom: 1px solid var(--border);
+            overflow-x: auto;
+        }
+
+        .share-tab {
+            padding: 0.85rem 1.5rem;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: var(--ts-text-sm, 0.875rem);
+            font-weight: 600;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all var(--ts-dur-normal, 200ms);
+            white-space: nowrap;
+            font-family: inherit;
+        }
+
+        .share-tab:hover { color: var(--text-primary); background: rgba(255,255,255,0.03); }
+        .share-tab:active { transform: scale(0.98); }
+        .share-tab.active { color: var(--primary-light); border-bottom-color: var(--primary-light); }
+
+        /* CARD */
+        .card {
+            background: var(--bg-card);
+            border-radius: 0 0 var(--ts-radius-lg, 12px) var(--ts-radius-lg, 12px);
+            border: 1px solid var(--border);
+            border-top: none;
+            padding: var(--ts-space-6, 1.5rem);
+        }
+
+        .card-top {
+            border-radius: var(--ts-radius-lg, 12px);
+            border-bottom-left-radius: 0;
+            border-bottom-right-radius: 0;
+        }
+
+        /* ITEM ROWS */
+        .items-header {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 80px 40px;
+            gap: 0.75rem;
+            padding: 0 0 0.5rem;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 0.75rem;
+        }
+
+        .items-header span {
+            font-size: var(--ts-text-sm, 0.75rem);
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .item-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 80px 40px;
+            gap: 0.75rem;
+            align-items: center;
+            padding: 0.5rem 0;
+            animation: fadeIn 200ms var(--ts-ease-out, ease-out);
+        }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+
+        .item-row input,
+        .item-row select {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 0.5rem 0.6rem;
+            border-radius: var(--ts-radius-md, 6px);
+            font-family: inherit;
+            font-size: var(--ts-text-sm, 0.875rem);
+            transition: border-color var(--ts-dur-normal, 200ms);
+        }
+
+        .item-row input:focus,
+        .item-row select:focus {
+            border-color: var(--primary);
+        }
+
+        .item-row select option { background: var(--bg-card); }
+
+        .swap-check {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .swap-check input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--primary);
+            cursor: pointer;
+        }
+
+        .btn-remove {
+            background: transparent;
+            border: none;
+            color: var(--danger);
+            cursor: pointer;
+            font-size: 1rem;
+            padding: 0.35rem;
+            border-radius: var(--ts-radius-md, 6px);
+            transition: all var(--ts-dur-normal, 200ms);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-remove:hover { background: rgba(230, 57, 70, 0.15); }
+        .btn-remove:active { transform: scale(0.9); }
+
+        /* BUTTONS */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.65rem 1.25rem;
+            border-radius: var(--ts-radius-md, 8px);
+            font-family: inherit;
+            font-size: var(--ts-text-sm, 0.875rem);
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all var(--ts-dur-normal, 200ms) var(--ts-ease-out, ease-out);
+        }
+
+        .btn:active { transform: scale(0.98); }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: #fff;
+        }
+
+        .btn-primary:hover { box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3); transform: translateY(-1px); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.08);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover { background: rgba(255,255,255,0.12); transform: translateY(-1px); }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--primary-light);
+        }
+
+        .btn-ghost:hover { background: rgba(34, 197, 94, 0.1); }
+
+        .btn-row {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: var(--ts-space-4, 1rem);
+            flex-wrap: wrap;
+        }
+
+        /* PREVIEW */
+        .preview-section {
+            margin-top: var(--ts-space-6, 1.5rem);
+        }
+
+        .preview-title {
+            font-size: var(--ts-text-lg, 1.125rem);
+            font-weight: 700;
+            margin-bottom: var(--ts-space-4, 1rem);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .preview-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--ts-radius-lg, 12px);
+            padding: var(--ts-space-6, 1.5rem);
+        }
+
+        .preview-card h3 {
+            font-size: var(--ts-text-base, 1rem);
+            font-weight: 700;
+            margin-bottom: var(--ts-space-3, 0.75rem);
+            color: var(--primary-light);
+        }
+
+        .preview-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .preview-list li {
+            padding: 0.5rem 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: var(--ts-text-sm, 0.875rem);
+        }
+
+        .preview-list li:last-child { border-bottom: none; }
+
+        .preview-item-name { font-weight: 500; }
+
+        .preview-item-qty {
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .swap-badge {
+            font-size: 0.7rem;
+            padding: 0.1rem 0.4rem;
+            border-radius: var(--ts-radius-md, 6px);
+            background: rgba(244, 162, 97, 0.2);
+            color: var(--secondary);
+            font-weight: 600;
+            margin-left: 0.5rem;
+        }
+
+        /* EMPTY STATE */
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--text-secondary);
+        }
+
+        .empty-state i {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            opacity: 0.4;
+        }
+
+        .empty-state p {
+            font-size: var(--ts-text-sm, 0.875rem);
+            margin-bottom: 1rem;
+        }
+
+        /* TOAST */
+        .toast-container {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .toast {
+            padding: 0.75rem 1.25rem;
+            border-radius: var(--ts-radius-md, 8px);
+            font-size: var(--ts-text-sm, 0.875rem);
+            font-weight: 500;
+            color: #fff;
+            animation: slideIn 300ms var(--ts-ease-out, ease-out);
+            max-width: 360px;
+        }
+
+        .toast.success { background: var(--primary-dark); }
+        .toast.error { background: var(--danger); }
+
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+        /* LOADING */
+        .loading-spinner {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 2rem;
+            color: var(--text-secondary);
+            font-size: var(--ts-text-sm, 0.875rem);
+        }
+
+        .loading-spinner i { animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* MOBILE */
+        @media (max-width: 768px) {
+            .main-content { padding: var(--ts-space-4, 1rem); }
+
+            .controls-row { flex-direction: column; align-items: stretch; }
+
+            .items-header { display: none; }
+
+            .item-row {
+                grid-template-columns: 1fr 1fr;
+                gap: 0.5rem;
+                padding: 0.75rem;
+                background: rgba(255,255,255,0.02);
+                border-radius: var(--ts-radius-md, 6px);
+                margin-bottom: 0.5rem;
+            }
+
+            .item-row input,
+            .item-row select {
+                min-height: 44px;
+                font-size: 1rem;
+            }
+
+            .item-row input[name="productName"] {
+                grid-column: 1 / -1;
+            }
+
+            .swap-check { justify-content: flex-start; }
+            .swap-check input[type="checkbox"] { width: 22px; height: 22px; }
+
+            .btn { min-height: 48px; justify-content: center; }
+            .btn-remove { min-height: 44px; min-width: 44px; }
+
+            .share-tab { padding: 0.75rem 1rem; font-size: 0.8rem; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="top-nav">
+        <div class="nav-brand">
+            <a href="index.html" class="nav-back" aria-label="Back to dashboard"><i class="fas fa-arrow-left"></i> Dashboard</a>
+            <span class="nav-title">CSA Box Contents</span>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <!-- Controls -->
+        <div class="controls-row">
+            <div class="control-group">
+                <label for="weekDate">Week of</label>
+                <input type="date" id="weekDate">
+            </div>
+            <button class="btn btn-secondary" onclick="loadExisting()" aria-label="Load existing box contents">
+                <i class="fas fa-download"></i> Load Existing
+            </button>
+        </div>
+
+        <!-- Share Type Tabs -->
+        <div class="share-tabs" role="tablist">
+            <button class="share-tab active" role="tab" aria-selected="true" data-share="Full Share" onclick="switchTab(this)">
+                <i class="fas fa-box"></i> Full Share
+            </button>
+            <button class="share-tab" role="tab" aria-selected="false" data-share="Half Share" onclick="switchTab(this)">
+                <i class="fas fa-box-open"></i> Half Share
+            </button>
+            <button class="share-tab" role="tab" aria-selected="false" data-share="Flower Share" onclick="switchTab(this)">
+                <i class="fas fa-seedling"></i> Flower Share
+            </button>
+        </div>
+
+        <!-- Item Entry Card -->
+        <div class="card">
+            <div class="items-header">
+                <span>Product Name</span>
+                <span>Quantity</span>
+                <span>Unit</span>
+                <span>Swap?</span>
+                <span></span>
+            </div>
+            <div id="itemsContainer">
+                <!-- Item rows injected here -->
+            </div>
+            <div class="btn-row">
+                <button class="btn btn-ghost" onclick="addItemRow()" aria-label="Add item">
+                    <i class="fas fa-plus"></i> Add Item
+                </button>
+                <button class="btn btn-primary" id="saveBtn" onclick="saveBoxContents()" aria-label="Save box contents">
+                    <i class="fas fa-save"></i> Save Box Contents
+                </button>
+            </div>
+        </div>
+
+        <!-- Preview -->
+        <div class="preview-section">
+            <div class="preview-title"><i class="fas fa-eye"></i> Member Preview</div>
+            <div class="preview-card">
+                <h3 id="previewTitle">Full Share</h3>
+                <ul class="preview-list" id="previewList">
+                    <li class="empty-state" id="previewEmpty">
+                        <div>
+                            <i class="fas fa-basket-shopping"></i>
+                            <p>Add items above to see the member preview</p>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </main>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        const API_URL = TINY_SEED_API.MAIN_API;
+        const token = localStorage.getItem('sessionToken');
+        if (!token) { window.location.href = 'index.html'; }
+
+        let activeShareType = 'Full Share';
+        const boxData = {
+            'Full Share': [],
+            'Half Share': [],
+            'Flower Share': []
+        };
+
+        // Default to next Monday
+        function getNextMonday() {
+            const d = new Date();
+            const day = d.getDay();
+            const diff = day === 0 ? 1 : (8 - day);
+            d.setDate(d.getDate() + diff);
+            return d.toISOString().split('T')[0];
+        }
+
+        document.getElementById('weekDate').value = getNextMonday();
+
+        // --- API Helper ---
+        async function apiFetch(action, params, method, body) {
+            params = params || {};
+            method = method || 'GET';
+            body = body || null;
+            var url = API_URL + '?action=' + encodeURIComponent(action) + '&sessionToken=' + encodeURIComponent(token);
+            var keys = Object.keys(params);
+            for (var i = 0; i < keys.length; i++) {
+                url += '&' + encodeURIComponent(keys[i]) + '=' + encodeURIComponent(params[keys[i]]);
+            }
+            var opts = { method: method };
+            if (body) {
+                opts.headers = { 'Content-Type': 'text/plain' };
+                opts.body = JSON.stringify(body);
+            }
+            try {
+                var res = await fetch(url, opts);
+                return await res.json();
+            } catch (err) {
+                return { success: false, error: err.message };
+            }
+        }
+
+        // --- Toast ---
+        function showToast(msg, type) {
+            type = type || 'success';
+            var container = document.getElementById('toastContainer');
+            var el = document.createElement('div');
+            el.className = 'toast ' + type;
+            el.textContent = msg;
+            container.appendChild(el);
+            setTimeout(function() { el.remove(); }, 4000);
+        }
+
+        // --- Tab Switching ---
+        function switchTab(btn) {
+            // Save current items before switching
+            saveCurrentItemsToState();
+            // Switch active tab
+            var tabs = document.querySelectorAll('.share-tab');
+            tabs.forEach(function(t) { t.classList.remove('active'); t.setAttribute('aria-selected', 'false'); });
+            btn.classList.add('active');
+            btn.setAttribute('aria-selected', 'true');
+            activeShareType = btn.getAttribute('data-share');
+            // Render items for new tab
+            renderItems();
+            updatePreview();
+        }
+
+        // --- Item Management ---
+        function addItemRow(data) {
+            data = data || { productName: '', quantity: '', unit: 'bunch', isSwappable: false };
+            var container = document.getElementById('itemsContainer');
+            var row = document.createElement('div');
+            row.className = 'item-row';
+            row.innerHTML = DOMPurify.sanitize(
+                '<input type="text" name="productName" placeholder="e.g. Lettuce Mix" value="' + escapeAttr(data.productName) + '" oninput="onItemChange()" aria-label="Product name">' +
+                '<input type="number" name="quantity" placeholder="Qty" min="0" step="0.25" value="' + escapeAttr(String(data.quantity)) + '" oninput="onItemChange()" aria-label="Quantity">' +
+                '<select name="unit" aria-label="Unit">' +
+                    '<option value="bunch"' + (data.unit === 'bunch' ? ' selected' : '') + '>bunch</option>' +
+                    '<option value="lb"' + (data.unit === 'lb' ? ' selected' : '') + '>lb</option>' +
+                    '<option value="oz"' + (data.unit === 'oz' ? ' selected' : '') + '>oz</option>' +
+                    '<option value="head"' + (data.unit === 'head' ? ' selected' : '') + '>head</option>' +
+                    '<option value="pint"' + (data.unit === 'pint' ? ' selected' : '') + '>pint</option>' +
+                    '<option value="quart"' + (data.unit === 'quart' ? ' selected' : '') + '>quart</option>' +
+                    '<option value="each"' + (data.unit === 'each' ? ' selected' : '') + '>each</option>' +
+                    '<option value="bag"' + (data.unit === 'bag' ? ' selected' : '') + '>bag</option>' +
+                    '<option value="bouquet"' + (data.unit === 'bouquet' ? ' selected' : '') + '>bouquet</option>' +
+                    '<option value="stem"' + (data.unit === 'stem' ? ' selected' : '') + '>stem</option>' +
+                '</select>' +
+                '<span class="swap-check"><input type="checkbox" name="isSwappable"' + (data.isSwappable ? ' checked' : '') + ' onchange="onItemChange()" aria-label="Swappable item"></span>' +
+                '<button class="btn-remove" onclick="removeRow(this)" aria-label="Remove item"><i class="fas fa-trash-alt"></i></button>'
+            );
+            // Re-attach onchange for select since DOMPurify may strip inline handlers
+            var sel = row.querySelector('select[name="unit"]');
+            if (sel) sel.addEventListener('change', onItemChange);
+            container.appendChild(row);
+            updatePreview();
+        }
+
+        function escapeAttr(str) {
+            if (!str) return '';
+            return str.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        function removeRow(btn) {
+            btn.closest('.item-row').remove();
+            onItemChange();
+        }
+
+        function onItemChange() {
+            saveCurrentItemsToState();
+            updatePreview();
+        }
+
+        function getItemsFromDOM() {
+            var rows = document.querySelectorAll('#itemsContainer .item-row');
+            var items = [];
+            rows.forEach(function(row) {
+                var productName = row.querySelector('input[name="productName"]').value.trim();
+                var quantity = row.querySelector('input[name="quantity"]').value;
+                var unit = row.querySelector('select[name="unit"]').value;
+                var isSwappable = row.querySelector('input[name="isSwappable"]').checked;
+                if (productName || quantity) {
+                    items.push({
+                        productName: productName,
+                        quantity: parseFloat(quantity) || 0,
+                        unit: unit,
+                        isSwappable: isSwappable
+                    });
+                }
+            });
+            return items;
+        }
+
+        function saveCurrentItemsToState() {
+            boxData[activeShareType] = getItemsFromDOM();
+        }
+
+        function renderItems() {
+            var container = document.getElementById('itemsContainer');
+            container.innerHTML = '';
+            var items = boxData[activeShareType];
+            if (items.length === 0) {
+                addItemRow();
+            } else {
+                items.forEach(function(item) { addItemRow(item); });
+            }
+        }
+
+        function updatePreview() {
+            var items = getItemsFromDOM();
+            var previewTitle = document.getElementById('previewTitle');
+            var previewList = document.getElementById('previewList');
+            previewTitle.textContent = activeShareType;
+
+            if (items.length === 0 || (items.length === 1 && !items[0].productName)) {
+                previewList.innerHTML = '<li class="empty-state"><div><i class="fas fa-basket-shopping"></i><p>Add items above to see the member preview</p></div></li>';
+                return;
+            }
+
+            var html = '';
+            items.forEach(function(item) {
+                if (!item.productName) return;
+                var swapHtml = item.isSwappable ? '<span class="swap-badge">Swappable</span>' : '';
+                html += '<li><span class="preview-item-name">' + DOMPurify.sanitize(item.productName) + swapHtml + '</span><span class="preview-item-qty">' + DOMPurify.sanitize(String(item.quantity)) + ' ' + DOMPurify.sanitize(item.unit) + '</span></li>';
+            });
+            previewList.innerHTML = html || '<li class="empty-state"><div><p>No valid items entered yet</p></div></li>';
+        }
+
+        // --- Load Existing ---
+        async function loadExisting() {
+            var weekDate = document.getElementById('weekDate').value;
+            if (!weekDate) {
+                showToast('Please select a week date first', 'error');
+                return;
+            }
+            var container = document.getElementById('itemsContainer');
+            container.innerHTML = '<div class="loading-spinner"><i class="fas fa-spinner"></i> Loading box contents...</div>';
+
+            var res = await apiFetch('getCSABoxContents', { weekDate: weekDate, shareType: activeShareType });
+            if (res.success && res.data && res.data.length > 0) {
+                boxData[activeShareType] = res.data.map(function(item) {
+                    return {
+                        productName: item.productName || item.product_name || '',
+                        quantity: item.quantity || item.qty || 0,
+                        unit: item.unit || 'each',
+                        isSwappable: !!(item.isSwappable || item.is_swappable)
+                    };
+                });
+                renderItems();
+                showToast('Loaded ' + res.data.length + ' items for ' + activeShareType);
+            } else if (res.success) {
+                container.innerHTML = '';
+                addItemRow();
+                showToast('No existing contents for this week/share type', 'error');
+            } else {
+                container.innerHTML = '';
+                addItemRow();
+                showToast(res.error || 'Failed to load box contents', 'error');
+            }
+            updatePreview();
+        }
+
+        // --- Save ---
+        async function saveBoxContents() {
+            saveCurrentItemsToState();
+            var weekDate = document.getElementById('weekDate').value;
+            if (!weekDate) {
+                showToast('Please select a week date', 'error');
+                return;
+            }
+
+            var items = boxData[activeShareType].filter(function(item) {
+                return item.productName && item.quantity > 0;
+            });
+
+            if (items.length === 0) {
+                showToast('Add at least one item with a name and quantity', 'error');
+                return;
+            }
+
+            var saveBtn = document.getElementById('saveBtn');
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+
+            var payload = {
+                weekDate: weekDate,
+                shareType: activeShareType,
+                items: items
+            };
+
+            var res = await apiFetch('saveCSABoxContents', {}, 'POST', payload);
+
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '<i class="fas fa-save"></i> Save Box Contents';
+
+            if (res.success) {
+                showToast('Box contents saved for ' + activeShareType + ' (' + weekDate + ')');
+            } else {
+                showToast(res.error || 'Failed to save box contents', 'error');
+            }
+        }
+
+        // --- Init ---
+        renderItems();
+    </script>
+</body>
+</html>

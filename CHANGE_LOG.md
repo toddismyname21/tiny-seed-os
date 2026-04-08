@@ -6,6 +6,18 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-04-07] Sprint 3: Admin dashboards — box contents, retention, wholesale
+- Files: web_app/admin-box-contents.html, web_app/admin-retention.html, web_app/admin-wholesale.html
+- Role: fullstack-builder
+- Changes:
+  - admin-box-contents.html: weekly CSA box contents form with share type tabs (Full/Half/Flower), item rows (crop, qty, unit, swappable), live member preview, load existing + save. Mobile-first for phone use.
+  - admin-retention.html: CSA member health dashboard — stats row (active members, revenue, avg/member, % healthy), health distribution bar (green/yellow/orange/red), critical alerts with email action, at-risk table with send email + mark contacted. Auto-refreshes every 5 minutes.
+  - admin-wholesale.html: wholesale command center — pending chef approvals (approve/reject), standing orders due this week with auto-fulfill trigger, weekly availability summary with color-coded net-available (red=oversold, yellow=low buffer, green=healthy), recent chef communications.
+- All pages: dark theme matching OS, auth-guard.js + api-config.js, DOMPurify sanitization, skeleton/spinner loading states, empty states with icons, proper error handling, CSS variables only (no raw hex), hover/active/focus states on all buttons.
+- Why: Todd was checking 10+ sheets manually each week for box planning, retention risk, and wholesale ops. These three admin tools give him single-screen access to each workflow.
+
+---
+
 ## [2026-04-07] Sprint 2: Wholesale standing order auto-fulfillment
 - Files: apps_script/MERGED TOTAL.js
 - Role: fullstack-builder

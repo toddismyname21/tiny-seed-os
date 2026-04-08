@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: blob: https:; connect-src 'self' https://script.google.com https://script.googleusercontent.com;">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wholesale Command Center — Tiny Seed Farm</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha384-iw3OoTErCYJJB9mCa8LNS2hbsQ7M3C0EpIsO/H5+EGAkPGc6rk+V8i04oW/K5xq0" crossorigin="anonymous">
+    <link rel="stylesheet" href="tiny-seed-design-system.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js" integrity="sha384-irMU3PFyflP2sBiZuBnRkEOFyMjK4VGynFJjQR8PuiJSWF2WxwVYNbYvPwXnEDTd" crossorigin="anonymous"></script>
+    <script src="auth-guard.js" data-required-role="Admin"></script>
+    <script src="api-config.js"></script>
+    <style>
+        :root {
+            --primary: var(--ts-green-500, #22c55e);
+            --primary-light: var(--ts-green-400, #4ade80);
+            --primary-dark: var(--ts-green-600, #16a34a);
+            --secondary: var(--ts-gold-400, #f4a261);
+            --success: var(--ts-teal-500, #2a9d8f);
+            --warning: var(--ts-amber-500, #e9c46a);
+            --danger: var(--ts-red-500, #e63946);
+            --info: var(--ts-blue-600, #4361ee);
+            --bg-dark: var(--ts-bg-base, #1a1816);
+            --bg-card: var(--ts-bg-surface, #282520);
+            --text-primary: var(--ts-text, #edf2f4);
+            --text-secondary: var(--ts-text-secondary, #8d99ae);
+            --border: var(--ts-border, rgba(255,255,255,0.1));
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: var(--ts-font-sans, 'Inter', sans-serif);
+            background: linear-gradient(135deg, var(--bg-dark) 0%, var(--ts-slate-950, #0f0f1a) 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+        :focus:not(:focus-visible) { outline: none; }
+
+        /* NAV */
+        .top-nav {
+            background: rgba(22, 33, 62, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+            padding: 0.75rem var(--ts-space-6, 1.5rem);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .nav-back {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: color var(--ts-dur-normal, 200ms);
+        }
+
+        .nav-back:hover { color: var(--primary-light); }
+
+        .nav-title {
+            font-size: var(--ts-text-xl, 1.25rem);
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary-light) 0%, var(--success) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-subtitle {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        /* MAIN */
+        .main-content {
+            padding: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* SECTION */
+        .section {
+            margin-bottom: var(--ts-space-6, 1.5rem);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--ts-space-3, 0.75rem);
+        }
+
+        .section-title {
+            font-size: var(--ts-text-lg, 1.125rem);
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .section-title .count-badge {
+            font-size: 0.7rem;
+            padding: 0.15rem 0.5rem;
+            border-radius: var(--ts-radius-md, 8px);
+            font-weight: 700;
+        }
+
+        .count-badge.danger { background: rgba(230, 57, 70, 0.2); color: var(--danger); }
+        .count-badge.warning { background: rgba(233, 196, 106, 0.2); color: var(--warning); }
+        .count-badge.success { background: rgba(34, 197, 94, 0.2); color: var(--primary-light); }
+        .count-badge.info { background: rgba(67, 97, 238, 0.2); color: var(--info); }
+
+        /* CARD */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--ts-radius-lg, 12px);
+            overflow: hidden;
+        }
+
+        /* TABLE */
+        .table-wrap { overflow-x: auto; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            text-align: left;
+            padding: 0.75rem 1rem;
+            font-size: var(--ts-text-sm, 0.75rem);
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid var(--border);
+            background: rgba(255,255,255,0.02);
+        }
+
+        td {
+            padding: 0.75rem 1rem;
+            font-size: var(--ts-text-sm, 0.875rem);
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            vertical-align: middle;
+        }
+
+        tr:hover td { background: rgba(255,255,255,0.02); }
+
+        .td-name { font-weight: 600; }
+        .td-email { color: var(--text-secondary); font-size: 0.8rem; }
+        .td-phone { color: var(--text-secondary); font-size: 0.8rem; }
+        .td-muted { color: var(--text-secondary); }
+
+        /* AVAILABILITY COLORS */
+        .avail-ok { color: var(--primary-light); font-weight: 600; }
+        .avail-low { color: var(--warning); font-weight: 600; }
+        .avail-over { color: var(--danger); font-weight: 700; }
+
+        /* BUTTONS */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.45rem 0.85rem;
+            border-radius: var(--ts-radius-md, 6px);
+            font-family: inherit;
+            font-size: var(--ts-text-sm, 0.75rem);
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all var(--ts-dur-normal, 200ms) var(--ts-ease-out, ease-out);
+            white-space: nowrap;
+        }
+
+        .btn:active { transform: scale(0.96); }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: #fff;
+        }
+
+        .btn-primary:hover { box-shadow: 0 3px 12px rgba(34, 197, 94, 0.3); transform: translateY(-1px); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.08);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover { background: rgba(255,255,255,0.12); transform: translateY(-1px); }
+
+        .btn-danger {
+            background: rgba(230, 57, 70, 0.15);
+            color: var(--danger);
+            border: 1px solid rgba(230, 57, 70, 0.3);
+        }
+
+        .btn-danger:hover { background: rgba(230, 57, 70, 0.25); transform: translateY(-1px); }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--text-secondary);
+            padding: 0.35rem 0.6rem;
+        }
+
+        .btn-ghost:hover { background: rgba(255,255,255,0.06); color: var(--text-primary); }
+
+        .btn-warning {
+            background: linear-gradient(135deg, var(--secondary) 0%, #d48e3e 100%);
+            color: #fff;
+        }
+
+        .btn-warning:hover { box-shadow: 0 3px 12px rgba(244, 162, 97, 0.3); transform: translateY(-1px); }
+        .btn-warning:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        .action-cell { display: flex; gap: 0.4rem; }
+
+        /* STATUS BADGES */
+        .status-badge {
+            display: inline-block;
+            padding: 0.2rem 0.6rem;
+            border-radius: var(--ts-radius-md, 6px);
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        .status-badge.pending { background: rgba(233, 196, 106, 0.2); color: var(--warning); }
+        .status-badge.active { background: rgba(34, 197, 94, 0.2); color: var(--primary-light); }
+        .status-badge.due { background: rgba(67, 97, 238, 0.2); color: var(--info); }
+        .status-badge.overdue { background: rgba(230, 57, 70, 0.2); color: var(--danger); }
+
+        /* EMPTY STATE */
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--text-secondary);
+        }
+
+        .empty-state i {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            opacity: 0.4;
+            display: block;
+        }
+
+        .empty-state p { font-size: var(--ts-text-sm, 0.875rem); }
+
+        /* LOADING */
+        .loading-spinner {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 2rem;
+            color: var(--text-secondary);
+            font-size: var(--ts-text-sm, 0.875rem);
+        }
+
+        .loading-spinner i { animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* TOAST */
+        .toast-container {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .toast {
+            padding: 0.75rem 1.25rem;
+            border-radius: var(--ts-radius-md, 8px);
+            font-size: var(--ts-text-sm, 0.875rem);
+            font-weight: 500;
+            color: #fff;
+            animation: slideIn 300ms var(--ts-ease-out, ease-out);
+            max-width: 400px;
+        }
+
+        .toast.success { background: var(--primary-dark); }
+        .toast.error { background: var(--danger); }
+
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            .main-content { padding: var(--ts-space-4, 1rem); }
+            .section-header { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+            .action-cell { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="top-nav">
+        <div class="nav-brand">
+            <a href="index.html" class="nav-back" aria-label="Back to dashboard"><i class="fas fa-arrow-left"></i> Dashboard</a>
+            <div>
+                <div class="nav-title">Wholesale Command Center</div>
+                <div class="nav-subtitle">Monday morning overview</div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+
+        <!-- SECTION 1: Pending Chef Approvals -->
+        <div class="section" id="sectionApprovals">
+            <div class="section-header">
+                <div class="section-title">
+                    <i class="fas fa-user-clock" style="color: var(--warning);"></i>
+                    Pending Chef Approvals
+                    <span class="count-badge warning" id="approvalCount">--</span>
+                </div>
+                <button class="btn btn-ghost" onclick="loadPendingChefs()" aria-label="Refresh pending chefs"><i class="fas fa-sync-alt"></i></button>
+            </div>
+            <div class="card">
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Company</th>
+                                <th>Contact</th>
+                                <th>Email</th>
+                                <th>Phone</th>
+                                <th>Est. Order Size</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="approvalsBody">
+                            <tr><td colspan="6"><div class="loading-spinner"><i class="fas fa-spinner"></i> Loading pending approvals...</div></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 2: Standing Orders Due This Week -->
+        <div class="section" id="sectionStanding">
+            <div class="section-header">
+                <div class="section-title">
+                    <i class="fas fa-calendar-check" style="color: var(--info);"></i>
+                    Standing Orders Due This Week
+                    <span class="count-badge info" id="standingCount">--</span>
+                </div>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button class="btn btn-warning" id="autoFulfillBtn" onclick="runAutoFulfill()" aria-label="Run auto-fulfillment">
+                        <i class="fas fa-magic"></i> Auto-Fulfill
+                    </button>
+                    <button class="btn btn-ghost" onclick="loadStandingOrders()" aria-label="Refresh standing orders"><i class="fas fa-sync-alt"></i></button>
+                </div>
+            </div>
+            <div class="card">
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Chef</th>
+                                <th>Product</th>
+                                <th>Qty</th>
+                                <th>Unit</th>
+                                <th>Next Due</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="standingBody">
+                            <tr><td colspan="6"><div class="loading-spinner"><i class="fas fa-spinner"></i> Loading standing orders...</div></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 3: Weekly Availability Summary -->
+        <div class="section" id="sectionAvailability">
+            <div class="section-header">
+                <div class="section-title">
+                    <i class="fas fa-warehouse" style="color: var(--primary-light);"></i>
+                    Weekly Availability Summary
+                </div>
+                <button class="btn btn-ghost" onclick="loadAvailability()" aria-label="Refresh availability"><i class="fas fa-sync-alt"></i></button>
+            </div>
+            <div class="card">
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Available Now</th>
+                                <th>Coming This Week</th>
+                                <th>Coming Next Week</th>
+                                <th>Standing Commitments</th>
+                                <th>Net Available</th>
+                            </tr>
+                        </thead>
+                        <tbody id="availabilityBody">
+                            <tr><td colspan="6"><div class="loading-spinner"><i class="fas fa-spinner"></i> Loading availability...</div></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 4: Recent Chef Communications -->
+        <div class="section" id="sectionComms">
+            <div class="section-header">
+                <div class="section-title">
+                    <i class="fas fa-comments" style="color: var(--success);"></i>
+                    Recent Chef Communications
+                    <span class="count-badge success" id="commsCount">--</span>
+                </div>
+                <button class="btn btn-ghost" onclick="loadCommunications()" aria-label="Refresh communications"><i class="fas fa-sync-alt"></i></button>
+            </div>
+            <div class="card">
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Chef</th>
+                                <th>Type</th>
+                                <th>Message</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="commsBody">
+                            <tr><td colspan="5"><div class="loading-spinner"><i class="fas fa-spinner"></i> Loading communications...</div></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        var API_URL = TINY_SEED_API.MAIN_API;
+        var token = localStorage.getItem('sessionToken');
+        if (!token) { window.location.href = 'index.html'; }
+
+        // --- API Helper ---
+        async function apiFetch(action, params, method, body) {
+            params = params || {};
+            method = method || 'GET';
+            body = body || null;
+            var url = API_URL + '?action=' + encodeURIComponent(action) + '&sessionToken=' + encodeURIComponent(token);
+            var keys = Object.keys(params);
+            for (var i = 0; i < keys.length; i++) {
+                url += '&' + encodeURIComponent(keys[i]) + '=' + encodeURIComponent(params[keys[i]]);
+            }
+            var opts = { method: method };
+            if (body) {
+                opts.headers = { 'Content-Type': 'text/plain' };
+                opts.body = JSON.stringify(body);
+            }
+            try {
+                var res = await fetch(url, opts);
+                return await res.json();
+            } catch (err) {
+                return { success: false, error: err.message };
+            }
+        }
+
+        // --- Toast ---
+        function showToast(msg, type) {
+            type = type || 'success';
+            var container = document.getElementById('toastContainer');
+            var el = document.createElement('div');
+            el.className = 'toast ' + type;
+            el.textContent = msg;
+            container.appendChild(el);
+            setTimeout(function() { el.remove(); }, 4000);
+        }
+
+        // --- Sanitize helper ---
+        function san(str) {
+            return DOMPurify.sanitize(String(str || ''));
+        }
+
+        // --- Format date ---
+        function fmtDate(dateStr) {
+            if (!dateStr) return '--';
+            try {
+                var d = new Date(dateStr);
+                return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            } catch (e) {
+                return san(dateStr);
+            }
+        }
+
+        // ====================================================
+        // SECTION 1: Pending Chef Approvals
+        // ====================================================
+        async function loadPendingChefs() {
+            var tbody = document.getElementById('approvalsBody');
+            tbody.innerHTML = '<tr><td colspan="6"><div class="loading-spinner"><i class="fas fa-spinner"></i> Loading pending approvals...</div></td></tr>';
+
+            var res = await apiFetch('getPendingChefs');
+            if (!res.success) {
+                tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>' + san(res.error || 'Failed to load pending chefs') + '</p></div></td></tr>';
+                document.getElementById('approvalCount').textContent = '0';
+                return;
+            }
+
+            var chefs = res.data || res.records || [];
+            document.getElementById('approvalCount').textContent = chefs.length;
+
+            if (chefs.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><i class="fas fa-check-circle"></i><p>No pending approvals. All chef applications have been reviewed.</p></div></td></tr>';
+                return;
+            }
+
+            var html = '';
+            chefs.forEach(function(c) {
+                var id = san(c.customerId || c.id || c.customer_id || '');
+                html += '<tr>' +
+                    '<td class="td-name">' + san(c.companyName || c.company || c.Company || c.name || '') + '</td>' +
+                    '<td>' + san(c.contactName || c.contact || c.Contact || '') + '</td>' +
+                    '<td class="td-email">' + san(c.email || c.Email || '') + '</td>' +
+                    '<td class="td-phone">' + san(c.phone || c.Phone || '') + '</td>' +
+                    '<td class="td-muted">' + san(c.estimatedOrderSize || c.estOrderSize || '--') + '</td>' +
+                    '<td class="action-cell">' +
+                        '<button class="btn btn-primary" onclick="approveChef(\'' + id + '\')" aria-label="Approve ' + san(c.companyName || c.company || '') + '"><i class="fas fa-check"></i> Approve</button>' +
+                        '<button class="btn btn-danger" onclick="rejectChef(\'' + id + '\')" aria-label="Reject ' + san(c.companyName || c.company || '') + '"><i class="fas fa-times"></i> Reject</button>' +
+                    '</td>' +
+                '</tr>';
+            });
+            tbody.innerHTML = html;
+        }
+
+        async function approveChef(customerId) {
+            if (!customerId) { showToast('Missing customer ID', 'error'); return; }
+            var res = await apiFetch('approveChef', { customerId: customerId }, 'POST', { customerId: customerId });
+            if (res.success) {
+                showToast('Chef approved');
+                loadPendingChefs();
+            } else {
+                showToast(res.error || 'Failed to approve chef', 'error');
+            }
+        }
+
+        async function rejectChef(customerId) {
+            if (!customerId) { showToast('Missing customer ID', 'error'); return; }
+            if (!confirm('Reject this chef application? This cannot be undone.')) return;
+            var res = await apiFetch('rejectChef', { customerId: customerId }, 'POST', { customerId: customerId });
+            if (res.success) {
+                showToast('Chef rejected');
+                loadPendingChefs();
+            } else {
+                showToast(res.error || 'Failed to reject chef', 'error');
+            }
+        }
+
+        // ====================================================
+        // SECTION 2: Standing Orders Due This Week
+        // ====================================================
+        async function loadStandingOrders() {
+            var tbody = document.getElementById('standingBody');
+            tbody.innerHTML = '<tr><td colspan="6"><div class="loading-spinner"><i class="fas fa-spinner"></i> Loading standing orders...</div></td></tr>';
+
+            var res = await apiFetch('getStandingOrdersDue');
+            if (!res.success) {
+                tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>' + san(res.error || 'Failed to load standing orders') + '</p></div></td></tr>';
+                document.getElementById('standingCount').textContent = '0';
+                return;
+            }
+
+            var orders = res.data || res.records || [];
+            document.getElementById('standingCount').textContent = orders.length;
+
+            if (orders.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><i class="fas fa-calendar-check"></i><p>No standing orders due this week.</p></div></td></tr>';
+                return;
+            }
+
+            var html = '';
+            orders.forEach(function(o) {
+                var statusClass = 'due';
+                var statusLabel = o.status || o.Status || 'Due';
+                if (statusLabel.toLowerCase().indexOf('overdue') >= 0) statusClass = 'overdue';
+                else if (statusLabel.toLowerCase().indexOf('fulfilled') >= 0 || statusLabel.toLowerCase().indexOf('complete') >= 0) statusClass = 'active';
+
+                html += '<tr>' +
+                    '<td class="td-name">' + san(o.chefName || o.chef || o.Chef || '') + '</td>' +
+                    '<td>' + san(o.product || o.Product || o.productName || '') + '</td>' +
+                    '<td>' + san(o.quantity || o.qty || o.Quantity || '') + '</td>' +
+                    '<td class="td-muted">' + san(o.unit || o.Unit || '') + '</td>' +
+                    '<td>' + fmtDate(o.nextDueDate || o.dueDate || o.Due_Date || '') + '</td>' +
+                    '<td><span class="status-badge ' + statusClass + '">' + san(statusLabel) + '</span></td>' +
+                '</tr>';
+            });
+            tbody.innerHTML = html;
+        }
+
+        async function runAutoFulfill() {
+            var btn = document.getElementById('autoFulfillBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Running...';
+
+            var res = await apiFetch('autoFulfillStandingOrdersForWeek');
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-magic"></i> Auto-Fulfill';
+
+            if (res.success) {
+                var msg = res.message || 'Auto-fulfillment complete';
+                var count = res.data ? (res.data.fulfilled || res.data.length || 0) : 0;
+                showToast(msg + (count ? ' (' + count + ' orders fulfilled)' : ''));
+                loadStandingOrders();
+            } else {
+                showToast(res.error || 'Auto-fulfillment failed', 'error');
+            }
+        }
+
+        // ====================================================
+        // SECTION 3: Weekly Availability
+        // ====================================================
+        async function loadAvailability() {
+            var tbody = document.getElementById('availabilityBody');
+            tbody.innerHTML = '<tr><td colspan="6"><div class="loading-spinner"><i class="fas fa-spinner"></i> Loading availability...</div></td></tr>';
+
+            var res = await apiFetch('getWeeklyAvailability');
+            if (!res.success) {
+                tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>' + san(res.error || 'Failed to load availability') + '</p></div></td></tr>';
+                return;
+            }
+
+            var items = res.data || res.records || [];
+
+            if (items.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><i class="fas fa-warehouse"></i><p>No availability data for this week. Check that inventory data has been entered.</p></div></td></tr>';
+                return;
+            }
+
+            var html = '';
+            items.forEach(function(item) {
+                var netAvail = item.netAvailable != null ? item.netAvailable : (item.net_available != null ? item.net_available : null);
+                var availNow = item.availableNow || item.available_now || item.currentStock || 0;
+                var comingThisWeek = item.comingThisWeek || item.coming_this_week || 0;
+                var comingNextWeek = item.comingNextWeek || item.coming_next_week || 0;
+                var commitments = item.standingCommitments || item.standing_commitments || item.committed || 0;
+
+                if (netAvail === null) {
+                    netAvail = (Number(availNow) + Number(comingThisWeek)) - Number(commitments);
+                }
+
+                var netClass = 'avail-ok';
+                var totalAvail = Number(availNow) + Number(comingThisWeek);
+                if (netAvail < 0) {
+                    netClass = 'avail-over';
+                } else if (totalAvail > 0 && netAvail / totalAvail < 0.1) {
+                    netClass = 'avail-low';
+                }
+
+                html += '<tr>' +
+                    '<td class="td-name">' + san(item.product || item.productName || item.Product || '') + '</td>' +
+                    '<td>' + san(availNow) + '</td>' +
+                    '<td>' + san(comingThisWeek) + '</td>' +
+                    '<td>' + san(comingNextWeek) + '</td>' +
+                    '<td>' + san(commitments) + '</td>' +
+                    '<td class="' + netClass + '">' + Number(netAvail).toFixed(0) + '</td>' +
+                '</tr>';
+            });
+            tbody.innerHTML = html;
+        }
+
+        // ====================================================
+        // SECTION 4: Recent Chef Communications
+        // ====================================================
+        async function loadCommunications() {
+            var tbody = document.getElementById('commsBody');
+            tbody.innerHTML = '<tr><td colspan="5"><div class="loading-spinner"><i class="fas fa-spinner"></i> Loading communications...</div></td></tr>';
+
+            var res = await apiFetch('getChefCommunications', { limit: '20' });
+
+            // If the action doesn't exist, show a graceful message
+            if (!res.success) {
+                var errorMsg = res.error || '';
+                if (errorMsg.toLowerCase().indexOf('unknown action') >= 0 || errorMsg.toLowerCase().indexOf('not found') >= 0 || errorMsg.toLowerCase().indexOf('invalid action') >= 0) {
+                    tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><i class="fas fa-info-circle"></i><p>Chef communications endpoint not yet available. This section will populate once the backend action is deployed.</p></div></td></tr>';
+                    document.getElementById('commsCount').textContent = '0';
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>' + san(errorMsg || 'Failed to load communications') + '</p></div></td></tr>';
+                    document.getElementById('commsCount').textContent = '0';
+                }
+                return;
+            }
+
+            var comms = res.data || res.records || [];
+            document.getElementById('commsCount').textContent = comms.length;
+
+            if (comms.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><i class="fas fa-comments"></i><p>No recent communications. Messages sent to chefs will appear here.</p></div></td></tr>';
+                return;
+            }
+
+            var html = '';
+            comms.forEach(function(c) {
+                var statusClass = 'active';
+                var statusLabel = c.status || c.Status || 'Sent';
+                if (statusLabel.toLowerCase().indexOf('pending') >= 0) statusClass = 'pending';
+                else if (statusLabel.toLowerCase().indexOf('fail') >= 0) statusClass = 'overdue';
+
+                html += '<tr>' +
+                    '<td class="td-muted">' + fmtDate(c.date || c.Date || c.sentDate || '') + '</td>' +
+                    '<td class="td-name">' + san(c.chef || c.chefName || c.Chef || '') + '</td>' +
+                    '<td>' + san(c.type || c.Type || c.messageType || '') + '</td>' +
+                    '<td class="td-muted" style="max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + san(c.message || c.preview || c.subject || '') + '</td>' +
+                    '<td><span class="status-badge ' + statusClass + '">' + san(statusLabel) + '</span></td>' +
+                '</tr>';
+            });
+            tbody.innerHTML = html;
+        }
+
+        // ====================================================
+        // INIT: Load all sections on page open
+        // ====================================================
+        loadPendingChefs();
+        loadStandingOrders();
+        loadAvailability();
+        loadCommunications();
+    </script>
+</body>
+</html>

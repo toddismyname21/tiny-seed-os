@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: blob: https:; connect-src 'self' https://script.google.com https://script.googleusercontent.com;">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSA Retention Dashboard — Tiny Seed Farm</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha384-iw3OoTErCYJJB9mCa8LNS2hbsQ7M3C0EpIsO/H5+EGAkPGc6rk+V8i04oW/K5xq0" crossorigin="anonymous">
+    <link rel="stylesheet" href="tiny-seed-design-system.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js" integrity="sha384-irMU3PFyflP2sBiZuBnRkEOFyMjK4VGynFJjQR8PuiJSWF2WxwVYNbYvPwXnEDTd" crossorigin="anonymous"></script>
+    <script src="auth-guard.js" data-required-role="Admin"></script>
+    <script src="api-config.js"></script>
+    <style>
+        :root {
+            --primary: var(--ts-green-500, #22c55e);
+            --primary-light: var(--ts-green-400, #4ade80);
+            --primary-dark: var(--ts-green-600, #16a34a);
+            --secondary: var(--ts-gold-400, #f4a261);
+            --success: var(--ts-teal-500, #2a9d8f);
+            --warning: var(--ts-amber-500, #e9c46a);
+            --danger: var(--ts-red-500, #e63946);
+            --bg-dark: var(--ts-bg-base, #1a1816);
+            --bg-card: var(--ts-bg-surface, #282520);
+            --text-primary: var(--ts-text, #edf2f4);
+            --text-secondary: var(--ts-text-secondary, #8d99ae);
+            --border: var(--ts-border, rgba(255,255,255,0.1));
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: var(--ts-font-sans, 'Inter', sans-serif);
+            background: linear-gradient(135deg, var(--bg-dark) 0%, var(--ts-slate-950, #0f0f1a) 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+        :focus:not(:focus-visible) { outline: none; }
+
+        /* NAV */
+        .top-nav {
+            background: rgba(22, 33, 62, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+            padding: 0.75rem var(--ts-space-6, 1.5rem);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .nav-back {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: color var(--ts-dur-normal, 200ms);
+        }
+
+        .nav-back:hover { color: var(--primary-light); }
+
+        .nav-title {
+            font-size: var(--ts-text-xl, 1.25rem);
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary-light) 0%, var(--success) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-status {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: var(--ts-text-sm, 0.8rem);
+            color: var(--text-secondary);
+        }
+
+        .auto-refresh-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+        /* MAIN */
+        .main-content {
+            padding: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* STATS ROW */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: var(--ts-space-4, 1rem);
+            margin-bottom: var(--ts-space-6, 1.5rem);
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--ts-radius-lg, 12px);
+            padding: var(--ts-space-5, 1.25rem);
+            transition: transform var(--ts-dur-normal, 200ms) var(--ts-ease-out, ease-out), box-shadow var(--ts-dur-normal, 200ms);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }
+
+        .stat-label {
+            font-size: var(--ts-text-sm, 0.75rem);
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.35rem;
+        }
+
+        .stat-value {
+            font-size: var(--ts-text-3xl, 1.875rem);
+            font-weight: 800;
+            line-height: 1.2;
+        }
+
+        .stat-value.green { color: var(--primary-light); }
+        .stat-value.gold { color: var(--secondary); }
+        .stat-value.red { color: var(--danger); }
+
+        /* HEALTH BAR */
+        .health-section {
+            margin-bottom: var(--ts-space-6, 1.5rem);
+        }
+
+        .section-title {
+            font-size: var(--ts-text-lg, 1.125rem);
+            font-weight: 700;
+            margin-bottom: var(--ts-space-3, 0.75rem);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .health-bar-container {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--ts-radius-lg, 12px);
+            padding: var(--ts-space-5, 1.25rem);
+        }
+
+        .health-bar {
+            display: flex;
+            height: 32px;
+            border-radius: var(--ts-radius-md, 8px);
+            overflow: hidden;
+            margin-bottom: var(--ts-space-3, 0.75rem);
+        }
+
+        .health-segment {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: var(--ts-text-sm, 0.75rem);
+            font-weight: 700;
+            color: #fff;
+            transition: width 600ms var(--ts-ease-out, ease-out);
+            min-width: 0;
+        }
+
+        .health-segment.green { background: var(--primary); }
+        .health-segment.yellow { background: var(--warning); color: #000; }
+        .health-segment.orange { background: var(--secondary); }
+        .health-segment.red { background: var(--danger); }
+
+        .health-legend {
+            display: flex;
+            gap: var(--ts-space-5, 1.25rem);
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: var(--ts-text-sm, 0.8rem);
+        }
+
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .legend-dot.green { background: var(--primary); }
+        .legend-dot.yellow { background: var(--warning); }
+        .legend-dot.orange { background: var(--secondary); }
+        .legend-dot.red { background: var(--danger); }
+
+        /* CARD */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--ts-radius-lg, 12px);
+            margin-bottom: var(--ts-space-6, 1.5rem);
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: var(--ts-space-4, 1rem) var(--ts-space-5, 1.25rem);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-header h2 {
+            font-size: var(--ts-text-base, 1rem);
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .badge {
+            padding: 0.15rem 0.5rem;
+            border-radius: var(--ts-radius-md, 8px);
+            font-size: 0.7rem;
+            font-weight: 700;
+        }
+
+        .badge.danger { background: rgba(230, 57, 70, 0.2); color: var(--danger); }
+        .badge.warning { background: rgba(233, 196, 106, 0.2); color: var(--warning); }
+
+        /* TABLE */
+        .table-wrap { overflow-x: auto; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            text-align: left;
+            padding: 0.75rem 1rem;
+            font-size: var(--ts-text-sm, 0.75rem);
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid var(--border);
+        }
+
+        td {
+            padding: 0.75rem 1rem;
+            font-size: var(--ts-text-sm, 0.875rem);
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+        }
+
+        tr:hover td { background: rgba(255,255,255,0.02); }
+
+        .score-badge {
+            display: inline-block;
+            padding: 0.2rem 0.6rem;
+            border-radius: var(--ts-radius-md, 6px);
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+
+        .score-badge.green { background: rgba(34, 197, 94, 0.2); color: var(--primary-light); }
+        .score-badge.yellow { background: rgba(233, 196, 106, 0.2); color: var(--warning); }
+        .score-badge.orange { background: rgba(244, 162, 97, 0.2); color: var(--secondary); }
+        .score-badge.red { background: rgba(230, 57, 70, 0.2); color: var(--danger); }
+
+        .risk-text { font-weight: 600; }
+        .risk-text.High { color: var(--secondary); }
+        .risk-text.Critical { color: var(--danger); }
+        .risk-text.Medium { color: var(--warning); }
+
+        .suggested-action {
+            font-size: var(--ts-text-sm, 0.8rem);
+            color: var(--text-secondary);
+            max-width: 220px;
+        }
+
+        /* ACTION BUTTONS */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.45rem 0.85rem;
+            border-radius: var(--ts-radius-md, 6px);
+            font-family: inherit;
+            font-size: var(--ts-text-sm, 0.75rem);
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all var(--ts-dur-normal, 200ms) var(--ts-ease-out, ease-out);
+            white-space: nowrap;
+        }
+
+        .btn:active { transform: scale(0.96); }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: #fff;
+        }
+
+        .btn-primary:hover { box-shadow: 0 3px 12px rgba(34, 197, 94, 0.3); transform: translateY(-1px); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.08);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover { background: rgba(255,255,255,0.12); transform: translateY(-1px); }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--text-secondary);
+            padding: 0.35rem 0.6rem;
+        }
+
+        .btn-ghost:hover { background: rgba(255,255,255,0.06); color: var(--text-primary); }
+
+        .action-cell { display: flex; gap: 0.4rem; }
+
+        /* CRITICAL ALERTS */
+        .alert-row {
+            display: flex;
+            align-items: center;
+            gap: var(--ts-space-4, 1rem);
+            padding: 0.85rem var(--ts-space-5, 1.25rem);
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            transition: background var(--ts-dur-normal, 200ms);
+        }
+
+        .alert-row:hover { background: rgba(255,255,255,0.02); }
+        .alert-row:last-child { border-bottom: none; }
+
+        .alert-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: rgba(230, 57, 70, 0.15);
+            color: var(--danger);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .alert-body { flex: 1; }
+
+        .alert-name {
+            font-weight: 600;
+            font-size: var(--ts-text-sm, 0.875rem);
+        }
+
+        .alert-detail {
+            font-size: var(--ts-text-sm, 0.75rem);
+            color: var(--text-secondary);
+            margin-top: 0.15rem;
+        }
+
+        /* EMPTY STATE */
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--text-secondary);
+        }
+
+        .empty-state i {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            opacity: 0.4;
+            display: block;
+        }
+
+        .empty-state p {
+            font-size: var(--ts-text-sm, 0.875rem);
+        }
+
+        /* SKELETON */
+        .skeleton {
+            background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: var(--ts-radius-md, 6px);
+        }
+
+        .skeleton-line {
+            height: 14px;
+            margin-bottom: 0.5rem;
+            width: 100%;
+        }
+
+        .skeleton-line.short { width: 60%; }
+        .skeleton-line.tiny { width: 40%; }
+
+        .skeleton-stat {
+            height: 48px;
+            width: 100%;
+        }
+
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+        /* LOADING SPINNER */
+        .loading-spinner {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 2rem;
+            color: var(--text-secondary);
+            font-size: var(--ts-text-sm, 0.875rem);
+        }
+
+        .loading-spinner i { animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* TOAST */
+        .toast-container {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .toast {
+            padding: 0.75rem 1.25rem;
+            border-radius: var(--ts-radius-md, 8px);
+            font-size: var(--ts-text-sm, 0.875rem);
+            font-weight: 500;
+            color: #fff;
+            animation: slideIn 300ms var(--ts-ease-out, ease-out);
+            max-width: 360px;
+        }
+
+        .toast.success { background: var(--primary-dark); }
+        .toast.error { background: var(--danger); }
+
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            .main-content { padding: var(--ts-space-4, 1rem); }
+            .stats-row { grid-template-columns: repeat(2, 1fr); }
+            .health-legend { gap: 0.75rem; }
+            .action-cell { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="top-nav">
+        <div class="nav-brand">
+            <a href="index.html" class="nav-back" aria-label="Back to dashboard"><i class="fas fa-arrow-left"></i> Dashboard</a>
+            <span class="nav-title">CSA Retention</span>
+        </div>
+        <div class="nav-status">
+            <span class="auto-refresh-dot"></span>
+            <span id="refreshStatus">Auto-refresh: 5m</span>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <!-- Stats Row -->
+        <div class="stats-row" id="statsRow">
+            <div class="stat-card">
+                <div class="stat-label">Active Members</div>
+                <div class="stat-value green" id="statActiveMembers"><div class="skeleton skeleton-stat"></div></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Total Revenue</div>
+                <div class="stat-value gold" id="statTotalRevenue"><div class="skeleton skeleton-stat"></div></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Avg / Member</div>
+                <div class="stat-value" id="statAvgPerMember"><div class="skeleton skeleton-stat"></div></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">% Healthy</div>
+                <div class="stat-value green" id="statHealthy"><div class="skeleton skeleton-stat"></div></div>
+            </div>
+        </div>
+
+        <!-- Health Distribution -->
+        <div class="health-section">
+            <div class="section-title"><i class="fas fa-heartbeat"></i> Health Distribution</div>
+            <div class="health-bar-container">
+                <div class="health-bar" id="healthBar">
+                    <div class="health-segment green" id="segGreen" style="width: 25%"></div>
+                    <div class="health-segment yellow" id="segYellow" style="width: 25%"></div>
+                    <div class="health-segment orange" id="segOrange" style="width: 25%"></div>
+                    <div class="health-segment red" id="segRed" style="width: 25%"></div>
+                </div>
+                <div class="health-legend" id="healthLegend">
+                    <span class="legend-item"><span class="legend-dot green"></span> Healthy: --</span>
+                    <span class="legend-item"><span class="legend-dot yellow"></span> Watch: --</span>
+                    <span class="legend-item"><span class="legend-dot orange"></span> At Risk: --</span>
+                    <span class="legend-item"><span class="legend-dot red"></span> Critical: --</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Critical Alerts -->
+        <div class="card" id="alertsCard">
+            <div class="card-header">
+                <h2><i class="fas fa-bell" style="color: var(--danger);"></i> Critical Alerts <span class="badge danger" id="alertCount">--</span></h2>
+                <button class="btn btn-ghost" onclick="loadAlerts()" aria-label="Refresh alerts"><i class="fas fa-sync-alt"></i></button>
+            </div>
+            <div id="alertsBody">
+                <div class="loading-spinner"><i class="fas fa-spinner"></i> Loading alerts...</div>
+            </div>
+        </div>
+
+        <!-- At Risk Table -->
+        <div class="card" id="atRiskCard">
+            <div class="card-header">
+                <h2><i class="fas fa-user-shield"></i> At Risk Members <span class="badge warning" id="atRiskCount">--</span></h2>
+                <button class="btn btn-ghost" onclick="loadDashboard()" aria-label="Refresh data"><i class="fas fa-sync-alt"></i></button>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Member</th>
+                            <th>Health Score</th>
+                            <th>Risk Level</th>
+                            <th>Suggested Action</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="atRiskTableBody">
+                        <tr><td colspan="5"><div class="loading-spinner"><i class="fas fa-spinner"></i> Loading retention data...</div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        var API_URL = TINY_SEED_API.MAIN_API;
+        var token = localStorage.getItem('sessionToken');
+        if (!token) { window.location.href = 'index.html'; }
+
+        var refreshTimer = null;
+
+        // --- API Helper ---
+        async function apiFetch(action, params, method, body) {
+            params = params || {};
+            method = method || 'GET';
+            body = body || null;
+            var url = API_URL + '?action=' + encodeURIComponent(action) + '&sessionToken=' + encodeURIComponent(token);
+            var keys = Object.keys(params);
+            for (var i = 0; i < keys.length; i++) {
+                url += '&' + encodeURIComponent(keys[i]) + '=' + encodeURIComponent(params[keys[i]]);
+            }
+            var opts = { method: method };
+            if (body) {
+                opts.headers = { 'Content-Type': 'text/plain' };
+                opts.body = JSON.stringify(body);
+            }
+            try {
+                var res = await fetch(url, opts);
+                return await res.json();
+            } catch (err) {
+                return { success: false, error: err.message };
+            }
+        }
+
+        // --- Toast ---
+        function showToast(msg, type) {
+            type = type || 'success';
+            var container = document.getElementById('toastContainer');
+            var el = document.createElement('div');
+            el.className = 'toast ' + type;
+            el.textContent = msg;
+            container.appendChild(el);
+            setTimeout(function() { el.remove(); }, 4000);
+        }
+
+        // --- Format currency ---
+        function fmtCurrency(val) {
+            if (val == null || isNaN(val)) return '$0';
+            return '$' + Number(val).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+        }
+
+        // --- Score color ---
+        function scoreColor(score) {
+            if (score >= 75) return 'green';
+            if (score >= 50) return 'yellow';
+            if (score >= 25) return 'orange';
+            return 'red';
+        }
+
+        // --- Load Dashboard ---
+        async function loadDashboard() {
+            var res = await apiFetch('getCSARetentionDashboard');
+            if (!res.success) {
+                showToast(res.error || 'Failed to load retention data', 'error');
+                return;
+            }
+
+            var d = res.data || res;
+
+            // Stats
+            document.getElementById('statActiveMembers').textContent = d.activeMembers || 0;
+            document.getElementById('statTotalRevenue').textContent = fmtCurrency(d.totalRevenue);
+            document.getElementById('statAvgPerMember').textContent = fmtCurrency(d.avgPerMember);
+
+            var hc = d.healthCounts || {};
+            var total = (hc.green || 0) + (hc.yellow || 0) + (hc.orange || 0) + (hc.red || 0);
+            var pctHealthy = total > 0 ? Math.round(((hc.green || 0) / total) * 100) : 0;
+            document.getElementById('statHealthy').textContent = pctHealthy + '%';
+
+            // Health bar
+            if (total > 0) {
+                document.getElementById('segGreen').style.width = ((hc.green || 0) / total * 100) + '%';
+                document.getElementById('segYellow').style.width = ((hc.yellow || 0) / total * 100) + '%';
+                document.getElementById('segOrange').style.width = ((hc.orange || 0) / total * 100) + '%';
+                document.getElementById('segRed').style.width = ((hc.red || 0) / total * 100) + '%';
+
+                document.getElementById('segGreen').textContent = hc.green || '';
+                document.getElementById('segYellow').textContent = hc.yellow || '';
+                document.getElementById('segOrange').textContent = hc.orange || '';
+                document.getElementById('segRed').textContent = hc.red || '';
+            }
+
+            document.getElementById('healthLegend').innerHTML = DOMPurify.sanitize(
+                '<span class="legend-item"><span class="legend-dot green"></span> Healthy: ' + (hc.green || 0) + '</span>' +
+                '<span class="legend-item"><span class="legend-dot yellow"></span> Watch: ' + (hc.yellow || 0) + '</span>' +
+                '<span class="legend-item"><span class="legend-dot orange"></span> At Risk: ' + (hc.orange || 0) + '</span>' +
+                '<span class="legend-item"><span class="legend-dot red"></span> Critical: ' + (hc.red || 0) + '</span>'
+            );
+
+            // At Risk Table
+            var atRisk = d.topAtRisk || [];
+            document.getElementById('atRiskCount').textContent = atRisk.length;
+            var tbody = document.getElementById('atRiskTableBody');
+
+            if (atRisk.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><i class="fas fa-shield-check"></i><p>No at-risk members detected. All members are healthy.</p></div></td></tr>';
+                return;
+            }
+
+            var html = '';
+            atRisk.forEach(function(m) {
+                var color = scoreColor(m.healthScore || 0);
+                var memberId = DOMPurify.sanitize(String(m.memberId || ''));
+                html += '<tr>' +
+                    '<td><strong>' + DOMPurify.sanitize(m.name || 'Unknown') + '</strong></td>' +
+                    '<td><span class="score-badge ' + color + '">' + (m.healthScore || 0) + '</span></td>' +
+                    '<td><span class="risk-text ' + DOMPurify.sanitize(m.riskLevel || '') + '">' + DOMPurify.sanitize(m.riskLevel || '--') + '</span></td>' +
+                    '<td class="suggested-action">' + DOMPurify.sanitize(m.suggestedAction || '--') + '</td>' +
+                    '<td class="action-cell">' +
+                        '<button class="btn btn-primary" onclick="sendRenewalReminder(\'' + memberId + '\')" aria-label="Send email to ' + DOMPurify.sanitize(m.name || '') + '"><i class="fas fa-envelope"></i> Email</button>' +
+                        '<button class="btn btn-secondary" onclick="markContacted(\'' + memberId + '\')" aria-label="Mark as contacted"><i class="fas fa-check"></i> Contacted</button>' +
+                    '</td>' +
+                '</tr>';
+            });
+            tbody.innerHTML = html;
+        }
+
+        // --- Load Critical Alerts ---
+        async function loadAlerts() {
+            var body = document.getElementById('alertsBody');
+            body.innerHTML = '<div class="loading-spinner"><i class="fas fa-spinner"></i> Loading alerts...</div>';
+
+            var res = await apiFetch('getCSAChurnAlerts');
+            if (!res.success) {
+                body.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>' + DOMPurify.sanitize(res.error || 'Failed to load alerts') + '</p></div>';
+                return;
+            }
+
+            var alerts = res.data || res.criticalAlerts || [];
+            document.getElementById('alertCount').textContent = alerts.length;
+
+            if (alerts.length === 0) {
+                body.innerHTML = '<div class="empty-state"><i class="fas fa-check-circle"></i><p>No critical alerts. All members look stable.</p></div>';
+                return;
+            }
+
+            var html = '';
+            alerts.forEach(function(a) {
+                html += '<div class="alert-row">' +
+                    '<div class="alert-icon"><i class="fas fa-exclamation"></i></div>' +
+                    '<div class="alert-body">' +
+                        '<div class="alert-name">' + DOMPurify.sanitize(a.name || a.memberName || 'Unknown') + '</div>' +
+                        '<div class="alert-detail">' + DOMPurify.sanitize(a.reason || a.message || a.suggestedAction || 'Needs immediate attention') + '</div>' +
+                    '</div>' +
+                    '<button class="btn btn-primary" onclick="sendRenewalReminder(\'' + DOMPurify.sanitize(String(a.memberId || '')) + '\')" aria-label="Send email"><i class="fas fa-envelope"></i> Email</button>' +
+                '</div>';
+            });
+            body.innerHTML = html;
+        }
+
+        // --- Actions ---
+        async function sendRenewalReminder(memberId) {
+            if (!memberId) { showToast('No member ID', 'error'); return; }
+            var res = await apiFetch('sendCSARenewalReminder', { memberId: memberId });
+            if (res.success) {
+                showToast('Renewal reminder sent');
+            } else {
+                showToast(res.error || 'Failed to send reminder', 'error');
+            }
+        }
+
+        async function markContacted(memberId) {
+            if (!memberId) { showToast('No member ID', 'error'); return; }
+            var res = await apiFetch('markMemberContacted', { memberId: memberId }, 'POST', { memberId: memberId });
+            if (res.success) {
+                showToast('Marked as contacted');
+                loadDashboard();
+            } else {
+                showToast(res.error || 'Failed to update', 'error');
+            }
+        }
+
+        // --- Auto Refresh ---
+        function startAutoRefresh() {
+            if (refreshTimer) clearInterval(refreshTimer);
+            refreshTimer = setInterval(function() {
+                loadDashboard();
+                loadAlerts();
+            }, 5 * 60 * 1000);
+        }
+
+        // --- Init ---
+        loadDashboard();
+        loadAlerts();
+        startAutoRefresh();
+    </script>
+</body>
+</html>
