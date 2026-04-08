@@ -6,6 +6,17 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-04-07] Fix morningBrief lazy init — prevent process.exit on import crashing server
+- Files: backend/morningBrief.js
+- Role: fullstack-builder
+- Changes:
+  - Moved env var validation, oauth2Client, gmail, RAILWAY_URL, TODD_EMAIL initialization inside sendMorningBrief() function body (lazy init)
+  - Module-level code no longer calls process.exit(1) or creates clients — safe to import without side effects
+  - Passed RAILWAY_URL as parameter to buildBriefHtml() so approval/reject links render correctly
+- Why: After removing module-level initialization to prevent server crash on import, sendMorningBrief() referenced undefined variables (gmail, RAILWAY_URL, TODD_EMAIL). This fixes the broken references with lazy initialization inside the function.
+
+---
+
 ## [2026-04-07] Chief of Staff tool use + Railway morning brief HTTP trigger
 - Files: backend/server.js, backend/morningBrief.js, web_app/chief-of-staff.html
 - Role: fullstack-builder

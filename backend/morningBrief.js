@@ -52,24 +52,8 @@ async function fetchWeatherForBrief() {
   }
 }
 
-const required = ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'GOOGLE_REFRESH_TOKEN', 'DATABASE_URL', 'TODD_EMAIL', 'RAILWAY_URL'];
-for (const key of required) {
-  if (!process.env[key]) {
-    console.error(`FATAL: ${key} not set`);
-    process.exit(1);
-  }
-}
-
-const oauth2Client = new google.auth.OAuth2(
-  process.env.GOOGLE_CLIENT_ID,
-  process.env.GOOGLE_CLIENT_SECRET,
-  'https://developers.google.com/oauthplayground'
-);
-oauth2Client.setCredentials({ refresh_token: process.env.GOOGLE_REFRESH_TOKEN });
-const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
-
-const RAILWAY_URL = process.env.RAILWAY_URL;
-const TODD_EMAIL = process.env.TODD_EMAIL;
+// Env vars and clients initialized lazily inside sendMorningBrief()
+// so this module is safe to import without crashing the server.
 
 function urgencyColor(urgency) {
   const colors = { CRITICAL: '#dc2626', HIGH: '#ea580c', MEDIUM: '#ca8a04', LOW: '#16a34a', UNSURE: '#7c3aed' };
@@ -81,7 +65,7 @@ function urgencyEmoji(urgency) {
   return e[urgency] || '⚪';
 }
 
-function buildBriefHtml(emails, date, weather) {
+function buildBriefHtml(emails, date, weather, railwayUrl) {
   const critical = emails.filter(e => e.urgency === 'CRITICAL');
   const high = emails.filter(e => e.urgency === 'HIGH');
   const medium = emails.filter(e => e.urgency === 'MEDIUM');
@@ -202,8 +186,8 @@ function buildBriefHtml(emails, date, weather) {
       if (e.draft_reply && e.approval_token) {
         s += `<div class="draft-box">${e.draft_reply.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
         <div class="btn-row">
-          <a href="${RAILWAY_URL}/approve/${e.approval_token}" class="btn btn-approve">✓ Send This Reply</a>
-          <a href="${RAILWAY_URL}/reject/${e.approval_token}" class="btn btn-reject">✗ Discard</a>
+          <a href="${railwayUrl}/approve/${e.approval_token}" class="btn btn-approve">✓ Send This Reply</a>
+          <a href="${railwayUrl}/reject/${e.approval_token}" class="btn btn-reject">✗ Discard</a>
         </div>`;
       }
       s += `</div>`;
@@ -234,6 +218,23 @@ function buildBriefHtml(emails, date, weather) {
 }
 
 async function sendMorningBrief() {
+  // ─── Lazy initialization (safe for import) ─────────────────────────
+  const requiredVars = ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'GOOGLE_REFRESH_TOKEN', 'DATABASE_URL', 'TODD_EMAIL', 'RAILWAY_URL'];
+  for (const key of requiredVars) {
+    if (!process.env[key]) throw new Error(`Missing env var: ${key}`);
+  }
+
+  const oauth2Client = new google.auth.OAuth2(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET,
+    'https://developers.google.com/oauthplayground'
+  );
+  oauth2Client.setCredentials({ refresh_token: process.env.GOOGLE_REFRESH_TOKEN });
+  const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
+  const RAILWAY_URL = process.env.RAILWAY_URL;
+  const TODD_EMAIL = process.env.TODD_EMAIL;
+  // ───────────────────────────────────────────────────────────────────
+
   console.log(`[Brief] Starting morning brief at ${new Date().toISOString()}`);
 
   await initDatabase();
@@ -249,7 +250,7 @@ async function sendMorningBrief() {
   const needsAction = emails.filter(e => ['CRITICAL','HIGH'].includes(e.urgency)).length;
   const subject = `[Tiny Seed] Morning Brief — ${date}${needsAction > 0 ? ` (${needsAction} need action)` : ' — Inbox clear'}`;
 
-  const html = buildBriefHtml(emails, date, weather);
+  const html = buildBriefHtml(emails, date, weather, RAILWAY_URL);
 
   // Build RFC 2822 email message
   const messageParts = [
