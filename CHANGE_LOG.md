@@ -6,6 +6,17 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-04-07] Trigger audit: removed 4 stale, added calculateDailyAvailability, net 18 total
+- Role: PM_Architect
+- Changes:
+  - Removed: triageInbox, autoSortInbox, sendDailyCommandCenter, processPendingEmailDrafts
+    (all 4 replaced by Railway backend — emailAgent.js + morningBrief.js)
+  - Added: calculateDailyAvailability (daily 6am — wholesale availability cache)
+  - Final trigger count: 18 (was 21)
+- Why: Apps Script trigger limit hit during Sprint 1 setup; stale triggers wasting quota
+
+---
+
 ## [2026-04-07] Sprint 1: CSA + Wholesale automation backbone
 - Files: apps_script/MERGED TOTAL.js
 - Role: fullstack-builder
