@@ -641,6 +641,224 @@ fastify.get('/health', async () => ({
   timestamp: new Date().toISOString(),
 }));
 
+// ─── Morning brief manual/cron trigger ───────────────────────────────────────
+fastify.post('/api/run/morning-brief', async (request, reply) => {
+  const secret = request.headers['x-cron-secret'];
+  if (secret !== process.env.CRON_SECRET) {
+    reply.status(401).send({ error: 'Unauthorized' });
+    return;
+  }
+  try {
+    // Dynamically import and run morning brief
+    const { sendMorningBrief } = await import('./morningBrief.js');
+    await sendMorningBrief();
+    reply.send({ success: true, message: 'Morning brief sent', timestamp: new Date().toISOString() });
+  } catch (err) {
+    fastify.log.error({ err }, 'Morning brief trigger error');
+    reply.status(500).send({ success: false, error: err.message });
+  }
+});
+
+// ─── Chief of Staff tools ─────────────────────────────────────────────────────
+const COS_TOOLS = [
+  {
+    name: 'search_emails',
+    description: 'Search Gmail for emails matching a query. Use when Todd asks to find specific emails, check if someone replied, or look up past correspondence.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'Gmail search query (e.g. "from:molly@horizon.org", "subject:lease", "is:unread from:FSA")' },
+        maxResults: { type: 'number', description: 'Max emails to return (default 5, max 10)' }
+      },
+      required: ['query']
+    }
+  },
+  {
+    name: 'draft_email',
+    description: 'Create a draft email for Todd to review and send. ALWAYS use this instead of claiming to send an email. Returns a draft that Todd must approve.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        to: { type: 'string', description: 'Recipient email address' },
+        subject: { type: 'string', description: 'Email subject line' },
+        body: { type: 'string', description: 'Email body text (plain text, no HTML)' },
+        cc: { type: 'string', description: 'CC email address (optional)' }
+      },
+      required: ['to', 'subject', 'body']
+    }
+  },
+  {
+    name: 'create_calendar_event',
+    description: 'Create a Google Calendar event. Always confirm details with Todd before calling this. Returns the created event for confirmation.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        title: { type: 'string', description: 'Event title' },
+        date: { type: 'string', description: 'Date in YYYY-MM-DD format' },
+        startTime: { type: 'string', description: 'Start time in HH:MM format (24h), e.g. "09:00"' },
+        endTime: { type: 'string', description: 'End time in HH:MM format (24h), e.g. "10:00"' },
+        description: { type: 'string', description: 'Event description or notes' },
+        location: { type: 'string', description: 'Event location (optional)' }
+      },
+      required: ['title', 'date', 'startTime', 'endTime']
+    }
+  },
+  {
+    name: 'read_sheet',
+    description: 'Read data from a specific Google Sheets tab. Use when Todd asks about specific farm data not already in context.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        tabName: { type: 'string', description: 'The exact sheet tab name (e.g. "UNIFIED_TASKS", "PLANNING_2026", "HARVEST_LOG", "CSA_Members", "WHOLESALE_CUSTOMERS", "FIN_BANK_ACCOUNTS")' },
+        filter: { type: 'string', description: 'Optional: describe what rows to filter for (e.g. "only active members", "due this week")' }
+      },
+      required: ['tabName']
+    }
+  }
+];
+
+// ─── Tool execution ───────────────────────────────────────────────────────────
+async function executeTool(toolName, toolInput) {
+  switch (toolName) {
+    case 'search_emails':
+      return await toolSearchEmails(toolInput);
+    case 'draft_email':
+      return await toolDraftEmail(toolInput);
+    case 'create_calendar_event':
+      return await toolCreateCalendarEvent(toolInput);
+    case 'read_sheet':
+      return await toolReadSheet(toolInput);
+    default:
+      return { error: `Unknown tool: ${toolName}` };
+  }
+}
+
+async function toolSearchEmails({ query, maxResults = 5 }) {
+  try {
+    const list = await gmail.users.messages.list({
+      userId: 'me',
+      maxResults: Math.min(maxResults, 10),
+      q: query,
+    });
+    if (!list.data.messages?.length) return { results: [], message: 'No emails found matching that query.' };
+
+    const details = await Promise.all(
+      list.data.messages.slice(0, maxResults).map(async (msg) => {
+        try {
+          const detail = await gmail.users.messages.get({ userId: 'me', id: msg.id, format: 'metadata',
+            metadataHeaders: ['From', 'Subject', 'Date'] });
+          const h = detail.data.payload.headers;
+          return {
+            id: msg.id,
+            from: h.find(x => x.name === 'From')?.value,
+            subject: h.find(x => x.name === 'Subject')?.value,
+            date: h.find(x => x.name === 'Date')?.value,
+            snippet: detail.data.snippet,
+          };
+        } catch { return null; }
+      })
+    );
+    return { results: details.filter(Boolean) };
+  } catch (e) {
+    return { error: e.message };
+  }
+}
+
+async function toolDraftEmail({ to, subject, body, cc }) {
+  try {
+    // Save as Gmail draft
+    const messageParts = [
+      `From: ${process.env.TODD_EMAIL || 'me'}`,
+      `To: ${to}`,
+      cc ? `Cc: ${cc}` : '',
+      `Subject: ${subject}`,
+      'Content-Type: text/plain; charset=utf-8',
+      'MIME-Version: 1.0',
+      '',
+      body,
+    ].filter(Boolean);
+
+    const raw = Buffer.from(messageParts.join('\r\n'))
+      .toString('base64')
+      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+    const draft = await gmail.users.drafts.create({
+      userId: 'me',
+      requestBody: { message: { raw } },
+    });
+
+    return {
+      success: true,
+      draftId: draft.data.id,
+      message: `Draft created in Gmail. To: ${to} | Subject: ${subject}`,
+      note: 'The draft is saved in your Gmail Drafts folder. Open Gmail to review and send it.',
+      preview: { to, subject, body: body.substring(0, 200) + (body.length > 200 ? '...' : '') }
+    };
+  } catch (e) {
+    return { error: e.message };
+  }
+}
+
+async function toolCreateCalendarEvent({ title, date, startTime, endTime, description, location }) {
+  try {
+    const timeZone = 'America/New_York';
+    const event = {
+      summary: title,
+      description: description || '',
+      location: location || '',
+      start: { dateTime: `${date}T${startTime}:00`, timeZone },
+      end: { dateTime: `${date}T${endTime}:00`, timeZone },
+    };
+    const result = await calendarApi.events.insert({ calendarId: 'primary', requestBody: event });
+    return {
+      success: true,
+      eventId: result.data.id,
+      link: result.data.htmlLink,
+      message: `Event created: "${title}" on ${date} from ${startTime} to ${endTime} Eastern`,
+    };
+  } catch (e) {
+    return { error: e.message };
+  }
+}
+
+async function toolReadSheet({ tabName, filter }) {
+  try {
+    const res = await sheets.spreadsheets.values.get({
+      spreadsheetId: SHEET_ID,
+      range: tabName,
+    });
+    const rows = res.data.values || [];
+    if (rows.length < 2) return { data: [], message: `${tabName} has no data yet.` };
+
+    const headers = rows[0];
+    const data = rows.slice(1).map(row => {
+      const obj = {};
+      headers.forEach((h, i) => { if (row[i] !== undefined && row[i] !== '') obj[h] = row[i]; });
+      return obj;
+    }).filter(obj => Object.keys(obj).length > 0);
+
+    // Apply simple text filter if provided
+    let filtered = data;
+    if (filter) {
+      const f = filter.toLowerCase();
+      filtered = data.filter(row =>
+        Object.values(row).some(v => String(v).toLowerCase().includes(f))
+      );
+    }
+
+    return {
+      tab: tabName,
+      totalRows: data.length,
+      returnedRows: filtered.length,
+      data: filtered.slice(0, 30), // cap at 30 rows to avoid context overload
+      note: filtered.length > 30 ? `Showing first 30 of ${filtered.length} matching rows` : undefined
+    };
+  } catch (e) {
+    return { error: `Could not read ${tabName}: ${e.message}` };
+  }
+}
+
+// ─── Streaming chat with tool use ────────────────────────────────────────────
 fastify.post('/api/chat/stream', async (request, reply) => {
   const { message, history = [] } = request.body || {};
   if (!message) {
@@ -660,7 +878,6 @@ fastify.post('/api/chat/stream', async (request, reply) => {
   reply.raw.write(': keepalive\n\n');
 
   try {
-    // Fetch live Google context, sheets data, and weather in parallel
     const [liveContext, sheetsContext, weatherContext] = await Promise.all([
       fetchLiveContext(),
       fetchSheetsContext(),
@@ -671,26 +888,97 @@ fastify.post('/api/chat/stream', async (request, reply) => {
       + '\n\n=== FARM DATA (Google Sheets) ===\n' + sheetsContext
       + '\n\n=== WEATHER ===\n' + weatherContext;
 
-    const messages = [
+    let messages = [
       ...history.slice(-20),
       { role: 'user', content: message },
     ];
 
-    const stream = anthropic.messages.stream({
-      model: 'claude-sonnet-4-5',
-      max_tokens: 2048,
-      system: systemPrompt,
-      messages,
-    });
+    // Tool use loop — keep going until no more tool calls
+    let loopCount = 0;
+    while (loopCount < 5) {
+      loopCount++;
+      const stream = anthropic.messages.stream({
+        model: 'claude-sonnet-4-5',
+        max_tokens: 2048,
+        system: systemPrompt,
+        tools: COS_TOOLS,
+        messages,
+      });
 
-    for await (const chunk of stream) {
-      if (chunk.type === 'content_block_delta' && chunk.delta?.type === 'text_delta') {
-        reply.raw.write(`data: ${JSON.stringify({ type: 'token', text: chunk.delta.text })}\n\n`);
+      let assistantContent = [];
+      let hasToolUse = false;
+      let currentTextBlock = '';
+
+      for await (const chunk of stream) {
+        if (chunk.type === 'content_block_start') {
+          if (chunk.content_block.type === 'text') {
+            currentTextBlock = '';
+          } else if (chunk.content_block.type === 'tool_use') {
+            hasToolUse = true;
+            assistantContent.push({
+              type: 'tool_use',
+              id: chunk.content_block.id,
+              name: chunk.content_block.name,
+              input: {},
+            });
+          }
+        } else if (chunk.type === 'content_block_delta') {
+          if (chunk.delta?.type === 'text_delta') {
+            currentTextBlock += chunk.delta.text;
+            reply.raw.write(`data: ${JSON.stringify({ type: 'token', text: chunk.delta.text })}\n\n`);
+          } else if (chunk.delta?.type === 'input_json_delta') {
+            // Accumulate tool input JSON
+            const lastTool = assistantContent[assistantContent.length - 1];
+            if (lastTool?.type === 'tool_use') {
+              lastTool._inputJson = (lastTool._inputJson || '') + chunk.delta.partial_json;
+            }
+          }
+        } else if (chunk.type === 'content_block_stop') {
+          if (currentTextBlock) {
+            assistantContent.push({ type: 'text', text: currentTextBlock });
+            currentTextBlock = '';
+          }
+          // Parse accumulated JSON for tool inputs
+          const lastBlock = assistantContent[assistantContent.length - 1];
+          if (lastBlock?.type === 'tool_use' && lastBlock._inputJson) {
+            try {
+              lastBlock.input = JSON.parse(lastBlock._inputJson);
+            } catch {}
+            delete lastBlock._inputJson;
+          }
+        }
       }
+
+      if (!hasToolUse) break; // No tool calls — we're done
+
+      // Add assistant message with tool use
+      messages.push({ role: 'assistant', content: assistantContent });
+
+      // Execute all tools and collect results
+      const toolResults = [];
+      for (const block of assistantContent) {
+        if (block.type !== 'tool_use') continue;
+
+        // Tell the frontend a tool is running
+        reply.raw.write(`data: ${JSON.stringify({ type: 'tool_call', tool: block.name, input: block.input })}\n\n`);
+
+        const result = await executeTool(block.name, block.input);
+
+        reply.raw.write(`data: ${JSON.stringify({ type: 'tool_result', tool: block.name })}\n\n`);
+
+        toolResults.push({
+          type: 'tool_result',
+          tool_use_id: block.id,
+          content: JSON.stringify(result),
+        });
+      }
+
+      // Add tool results and loop back for Claude's response
+      messages.push({ role: 'user', content: toolResults });
     }
 
-    const final = await stream.finalMessage();
-    reply.raw.write(`data: ${JSON.stringify({ type: 'done', usage: final.usage })}\n\n`);
+    reply.raw.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
+
   } catch (error) {
     fastify.log.error({ err: error }, 'Streaming error');
     reply.raw.write(`data: ${JSON.stringify({ type: 'error', message: 'Service error. Please try again.' })}\n\n`);

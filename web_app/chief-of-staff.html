@@ -686,6 +686,18 @@
       padding: 0 6px;
     }
 
+    .tool-indicator {
+      font-size: 12px;
+      color: var(--text-muted, #6b7280);
+      padding: 4px 12px;
+      font-style: italic;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .tool-spinner { animation: spin 1s linear infinite; display: inline-block; }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
     /* Quick Actions - More prominent */
     .quick-actions {
       display: flex;
@@ -6039,6 +6051,16 @@ Please help with this email. Be concise and actionable.`;
       }
     }
 
+    function getToolLabel(tool) {
+      const labels = {
+        search_emails: 'Searching your email',
+        draft_email: 'Drafting email in Gmail',
+        create_calendar_event: 'Creating calendar event',
+        read_sheet: 'Reading farm data'
+      };
+      return labels[tool] || tool;
+    }
+
     // Railway streaming via SSE (Server-Sent Events over fetch)
     async function _sendMessageStreaming(message, railwayUrl) {
       const container = document.getElementById('chat-messages');
@@ -6113,6 +6135,18 @@ Please help with this email. Be concise and actionable.`;
                 // Speak if auto-speak is on
                 const autoSpeak = document.getElementById('auto-speak');
                 if (autoSpeak && autoSpeak.checked) speakResponse(fullText);
+              } else if (data.type === 'tool_call') {
+                // Show a subtle indicator that a tool is running
+                const toolMsg = document.createElement('div');
+                toolMsg.className = 'tool-indicator';
+                toolMsg.innerHTML = `<span class="tool-spinner">&#9881;&#65039;</span> ${getToolLabel(data.tool)}...`;
+                toolMsg.id = `tool-${data.tool}`;
+                container.appendChild(toolMsg);
+                container.scrollTop = container.scrollHeight;
+              } else if (data.type === 'tool_result') {
+                // Remove the tool indicator
+                const indicator = document.getElementById(`tool-${data.tool}`);
+                if (indicator) indicator.remove();
               } else if (data.type === 'error') {
                 throw new Error(data.message || 'AI service error');
               }

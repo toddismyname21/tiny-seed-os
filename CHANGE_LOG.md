@@ -6,6 +6,19 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-04-07] Chief of Staff tool use + Railway morning brief HTTP trigger
+- Files: backend/server.js, backend/morningBrief.js, web_app/chief-of-staff.html
+- Role: fullstack-builder
+- Changes:
+  - server.js: 4 tools added (search_emails, draft_email, create_calendar_event, read_sheet)
+  - server.js: tool use loop handles multi-turn tool execution in streaming chat
+  - server.js: /api/run/morning-brief endpoint (POST, protected by CRON_SECRET header)
+  - morningBrief.js: exported sendMorningBrief() for HTTP trigger use, wrapped auto-run in argv guard
+  - chief-of-staff.html: tool activity indicators during tool calls (spinner + label)
+- Why: Chief of Staff can now take real actions — search emails, draft replies, create calendar events, read any sheet on demand. Morning brief can be triggered via HTTP for Railway cron.
+
+---
+
 ## [2026-04-07] Sprint 3: Admin dashboards — box contents, retention, wholesale
 - Files: web_app/admin-box-contents.html, web_app/admin-retention.html, web_app/admin-wholesale.html
 - Role: fullstack-builder

@@ -278,9 +278,14 @@ async function sendMorningBrief() {
   console.log(`[Brief] Sent morning brief: "${subject}"`);
 }
 
-sendMorningBrief()
-  .then(() => process.exit(0))
-  .catch(err => {
-    console.error('[Brief] Fatal error:', err);
-    process.exit(1);
-  });
+// Run directly when called as a cron job (not when imported)
+if (process.argv[1] && process.argv[1].includes('morningBrief')) {
+  sendMorningBrief()
+    .then(() => process.exit(0))
+    .catch(err => {
+      console.error('[Brief] Fatal error:', err);
+      process.exit(1);
+    });
+}
+
+export { sendMorningBrief };
