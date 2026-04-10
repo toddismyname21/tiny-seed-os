@@ -6,6 +6,18 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-04-10] Fix: CSA pickup reminder sent to wrong members — remove day-of-week fallback
+- Files: apps_script/MERGED TOTAL.js
+- Role: fullstack-builder
+- Changes:
+  - Removed `reminderDays.includes(pickupDay)` clause from `isPickupTomorrow` in `sendPickupRemindersCron`
+  - Reminders now ONLY send when `Next_Pickup_Date` explicitly matches tomorrow or day-after-tomorrow
+  - Members with empty/missing `Next_Pickup_Date` are skipped (not matched by fallback)
+  - Added Friday-only guard: function returns early if `today.getDay() !== 5`
+- Why: The day-of-week fallback fired for ALL members whose Pickup_Day was Saturday/Sunday every Friday, regardless of whether they had an actual pickup this week. Customers received incorrect pickup reminder emails on 2026-04-10.
+
+---
+
 ## [2026-04-07] Fix morningBrief lazy init — prevent process.exit on import crashing server
 - Files: backend/morningBrief.js
 - Role: fullstack-builder

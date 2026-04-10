@@ -113906,15 +113906,16 @@ function sendPickupRemindersCron() {
   const nameCol = col('Customer_Name');
   const nextPickupCol = col('Next_Pickup_Date');
 
-  // Determine which pickup days get reminded today (Friday = remind Sat + Sun pickups)
   const today = new Date();
+
+  // Safety guard: only run on Fridays (getDay() === 5)
+  if (today.getDay() !== 5) {
+    Logger.log('sendPickupRemindersCron: not Friday, skipping. Day=' + today.getDay());
+    return { success: true, sent: 0, skipped: 0, reason: 'not-friday' };
+  }
+
   const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
   const dayAfter = new Date(today); dayAfter.setDate(today.getDate() + 2);
-  const reminderDays = [
-    ['Saturday','Sunday'][tomorrow.getDay() === 6 ? 0 : 1],
-    ['Saturday','Sunday'][dayAfter.getDay() === 6 ? 0 : 1]
-  ].filter(Boolean);
-  // Also include any day that matches nextPickupDate being tomorrow or day after
   const tomorrowStr = Utilities.formatDate(tomorrow, 'America/New_York', 'yyyy-MM-dd');
   const dayAfterStr = Utilities.formatDate(dayAfter, 'America/New_York', 'yyyy-MM-dd');
 
@@ -113930,9 +113931,9 @@ function sendPickupRemindersCron() {
       ? Utilities.formatDate(new Date(nextPickup), 'America/New_York', 'yyyy-MM-dd')
       : '';
 
-    const pickupDay = (row[pickupDayCol] || '').toString();
-    const isPickupTomorrow = nextPickupDateStr === tomorrowStr || nextPickupDateStr === dayAfterStr
-      || reminderDays.includes(pickupDay);
+    // Only send if Next_Pickup_Date is explicitly set to tomorrow or day after
+    if (!nextPickupDateStr) { skipped++; continue; }
+    const isPickupTomorrow = nextPickupDateStr === tomorrowStr || nextPickupDateStr === dayAfterStr;
 
     if (!isPickupTomorrow) { skipped++; continue; }
 
@@ -136127,6 +136128,33 @@ function logTransplantConfirmation(params) {
       recordSeedingDate({ batchId: params.batchId, type: 'transplant', actualDate: today });
     } catch (e) {
       Logger.log('logTransplantConfirmation: recordSeedingDate error: ' + e.toString());
+    }
+
+    // Step 1b: Update Target_Bed_ID in PLANNING_2026 to actual field location
+    // This cascades the location change so greenhouse, field planner, and harvest
+    // tracker all see where the crop actually landed.
+    if (params.bedId) {
+      try {
+        var planSs = SpreadsheetApp.openById(SPREADSHEET_ID);
+        var planSheet = planSs.getSheetByName('PLANNING_2026');
+        if (planSheet) {
+          var planData = planSheet.getDataRange().getValues();
+          var planHeaders = planData[0];
+          var batchIdCol = planHeaders.indexOf('Batch_ID');
+          var targetBedCol = planHeaders.indexOf('Target_Bed_ID');
+          if (batchIdCol >= 0 && targetBedCol >= 0) {
+            for (var pi = 1; pi < planData.length; pi++) {
+              if (String(planData[pi][batchIdCol]).trim() === String(params.batchId).trim()) {
+                planSheet.getRange(pi + 1, targetBedCol + 1).setValue(params.bedId);
+                Logger.log('logTransplantConfirmation: updated Target_Bed_ID to ' + params.bedId + ' for ' + params.batchId);
+                break;
+              }
+            }
+          }
+        }
+      } catch (e) {
+        Logger.log('logTransplantConfirmation: bed update error: ' + e.toString());
+      }
     }
   }
 
