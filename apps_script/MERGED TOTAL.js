@@ -18364,6 +18364,8 @@ function doPost(e) {
       'updateGrantEquipment', 'updateGrantMetric', 'updateGrantCompliance',
       // One-time setup actions (idempotent, safe to expose)
       'registerSeedlingPresaleWebhook',
+      // One-time correction email (2026-04-10 wrong pickup reminder)
+      'sendCSAPickupCorrectionEmails',
     ]);
 
     if (action && !PUBLIC_POST_ACTIONS.has(action)) {
@@ -19830,6 +19832,10 @@ function doPost(e) {
 
       case 'deleteTriggersByHandlers':
         return jsonResponse(deleteTriggersByHandlers(data));
+
+      // One-time: correction email for 2026-04-10 wrong pickup reminder
+      case 'sendCSAPickupCorrectionEmails':
+        return jsonResponse(sendCSAPickupCorrectionEmails(data));
 
       default:
         return jsonResponse({error: 'Unknown action: ' + action}, 400);
@@ -113975,6 +113981,70 @@ function sendPickupRemindersCron() {
 
   Logger.log('sendPickupRemindersCron: sent=' + sent + ', skipped=' + skipped);
   return { success: true, sent: sent, skipped: skipped };
+}
+
+/**
+ * One-time: Send apology/correction to members who got wrong pickup reminder on 2026-04-10.
+ * Searches Gmail sent for today's wrong emails, sends correction to each recipient.
+ * @param {Object} params - { actualStartDate: 'YYYY-MM-DD', message: 'optional override message' }
+ */
+function sendCSAPickupCorrectionEmails(params) {
+  params = params || {};
+  var actualStartDate = params.actualStartDate || '';
+  var startDateDisplay = actualStartDate
+    ? Utilities.formatDate(new Date(actualStartDate), 'America/New_York', 'MMMM d, yyyy')
+    : 'to be announced';
+
+  // Search Gmail sent folder for the wrong email
+  var threads = GmailApp.search('in:sent subject:"Your CSA Box is Ready for Pickup Tomorrow" after:2026/04/09 before:2026/04/11');
+
+  var sent = 0;
+  var recipients = [];
+
+  for (var t = 0; t < threads.length; t++) {
+    var messages = threads[t].getMessages();
+    for (var m = 0; m < messages.length; m++) {
+      var msg = messages[m];
+      var toEmail = msg.getTo();
+      if (!toEmail) continue;
+
+      // Extract first name from the original email body if possible
+      var bodyText = msg.getPlainBody() || '';
+      var nameMatch = bodyText.match(/^Hi (\w+)/);
+      var firstName = nameMatch ? nameMatch[1] : 'there';
+
+      recipients.push({ email: toEmail, name: firstName });
+
+      var correctionSubject = 'Update: Your Tiny Seed Farm CSA Start Date';
+      var correctionHtml = '<p>Hi ' + firstName + ',</p>'
+        + '<p>We sent you an email earlier today about a CSA pickup tomorrow — <strong>please disregard that message</strong>. It was sent in error and we apologize for the confusion!</p>'
+        + (actualStartDate
+          ? '<p>Your CSA season has <strong>not yet started</strong>. Your first pickup will be on <strong>' + startDateDisplay + '</strong>. We\'ll send you a proper reminder the day before your actual first pickup.</p>'
+          : '<p>Your CSA season has <strong>not yet started</strong>. We\'ll be in touch soon with your confirmed start date and pickup details.</p>')
+        + '<p>Thank you for your patience and for being part of the Tiny Seed Farm CSA! We\'re looking forward to a great season with you.</p>'
+        + '<p>— The Tiny Seed Farm Team</p>';
+
+      try {
+        GmailApp.sendEmail(
+          toEmail,
+          correctionSubject,
+          'Hi ' + firstName + ', we sent you an email earlier today about a CSA pickup tomorrow — please disregard that message. It was sent in error. '
+          + (actualStartDate ? 'Your CSA season starts ' + startDateDisplay + '.' : 'Your CSA season has not yet started — we\'ll confirm your start date soon.')
+          + ' Sorry for the confusion! — Tiny Seed Farm',
+          {
+            name: 'Tiny Seed Farm',
+            htmlBody: correctionHtml
+          }
+        );
+        sent++;
+      } catch (e) {
+        Logger.log('Correction email failed for ' + toEmail + ': ' + e.message);
+      }
+    }
+  }
+
+  Logger.log('sendCSAPickupCorrectionEmails: sent=' + sent + ' to: ' + JSON.stringify(recipients));
+  return { success: true, sent: sent, recipients: recipients };
 }
 
 /**

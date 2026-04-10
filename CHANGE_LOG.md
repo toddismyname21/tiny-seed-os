@@ -6,6 +6,16 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-04-10] Add: One-time CSA pickup correction email function
+- Files: apps_script/MERGED TOTAL.js
+- Role: fullstack-builder
+- Changes:
+  - Added `sendCSAPickupCorrectionEmails()` function after `sendPickupRemindersCron`
+  - Searches Gmail sent folder for wrong "Your CSA Box is Ready for Pickup Tomorrow" emails from 2026-04-10
+  - Sends apology/correction email to each recipient with optional actual start date
+  - Wired up as POST action `sendCSAPickupCorrectionEmails` in PUBLIC_POST_ACTIONS whitelist and doPost switch
+- Why: Members received erroneous pickup reminder due to day-of-week fallback bug; need to send correction
+
 ## [2026-04-10] Fix: CSA pickup reminder sent to wrong members — remove day-of-week fallback
 - Files: apps_script/MERGED TOTAL.js
 - Role: fullstack-builder
