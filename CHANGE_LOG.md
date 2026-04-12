@@ -6,6 +6,16 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-04-10] Fix: PLANNING_2026 column names in fetchSheetsContext
+- Files: backend/server.js
+- Role: fullstack-builder
+- Changes:
+  - Fixed column lookups: transplant_date -> Plan_Transplant/Act_Transplant, first_harvest -> First_Harvest/Target_First_Harvest, bed_id -> Target_Bed_ID
+  - Transplant filter now prefers actual date over planned, widened window to -7/+21 days
+  - Display shows checkmark for actual transplant dates vs planned
+  - Increased output cap from 2000 to 4000 chars
+- Why: Transplant/harvest section always returned empty because column names didn't match PLANNING_2026 sheet
+
 ## [2026-04-10] Fix: Replace dead Render URL with Railway URL in chief-of-staff.html
 - Files: web_app/chief-of-staff.html
 - Role: fullstack-builder

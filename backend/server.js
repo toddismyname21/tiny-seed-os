@@ -276,25 +276,31 @@ async function fetchSheetsContext() {
       const h = sheet.headers;
       const iCrop = colIdx(h, 'crop', 'crop_name');
       const iVariety = colIdx(h, 'variety');
-      const iTransplant = colIdx(h, 'transplant_date', 'transplant');
-      const iHarvest = colIdx(h, 'first_harvest', 'harvest_date');
+      const iPlanTransplant = colIdx(h, 'Plan_Transplant', 'transplant_date', 'Transplant_Date');
+      const iActTransplant = colIdx(h, 'Act_Transplant');
+      const iHarvest = colIdx(h, 'First_Harvest', 'Target_First_Harvest', 'first_harvest', 'harvest_date');
       const iStatus = colIdx(h, 'status');
-      const iBed = colIdx(h, 'bed_id', 'bed', 'field');
+      const iBed = colIdx(h, 'Target_Bed_ID', 'bed_id', 'Bed_ID', 'bed', 'field');
 
       const upcoming = sheet.data.filter(row => {
-        const td = parseDate(row[iTransplant]);
+        const planTd = parseDate(row[iPlanTransplant]);
+        const actTd = parseDate(row[iActTransplant]);
+        const td = actTd || planTd; // prefer actual if recorded
         const hd = parseDate(row[iHarvest]);
-        return (td && daysDiff(td) >= -1 && daysDiff(td) <= 14) ||
+        return (td && daysDiff(td) >= -7 && daysDiff(td) <= 21) ||
                (hd && daysDiff(hd) >= -1 && daysDiff(hd) <= 14);
       }).slice(0, 20);
 
       if (upcoming.length === 0) {
         sections.push('=== UPCOMING TRANSPLANTS & HARVESTS ===\nNothing in next 14 days');
       } else {
-        const lines = upcoming.map(r =>
-          `- ${r[iCrop] || '?'} ${r[iVariety] || ''} | Transplant: ${r[iTransplant] || '-'} | Harvest: ${r[iHarvest] || '-'} | ${r[iStatus] || '-'} | Bed: ${r[iBed] || '-'}`
-        );
-        sections.push('=== UPCOMING TRANSPLANTS & HARVESTS (next 14 days) ===\n' + lines.join('\n'));
+        const lines = upcoming.map(r => {
+          const planTx = r[iPlanTransplant] || '-';
+          const actTx = r[iActTransplant];
+          const txDisplay = actTx ? `${actTx} ✓` : planTx;
+          return `- ${r[iCrop] || '?'} ${r[iVariety] || ''} | TX: ${txDisplay} | Harvest: ${r[iHarvest] || '-'} | ${r[iStatus] || '-'} | Bed: ${r[iBed] || '-'}`;
+        });
+        sections.push('=== UPCOMING TRANSPLANTS & HARVESTS (next 21 days) ===\n' + lines.join('\n'));
       }
     }
   } catch (e) {
@@ -550,10 +556,10 @@ async function fetchSheetsContext() {
     sections.push(`SALES_MarketItems: Error (${e.message})`);
   }
 
-  // Cap total output to ~2000 chars
+  // Cap total output to ~4000 chars
   let output = sections.join('\n\n');
-  if (output.length > 2000) {
-    output = output.substring(0, 1997) + '...';
+  if (output.length > 4000) {
+    output = output.substring(0, 3997) + '...';
   }
   return output;
 }
