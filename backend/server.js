@@ -1064,7 +1064,7 @@ fastify.get('/reject/:token', async (request, reply) => {
 // ─── Start ────────────────────────────────────────────────────────────
 const port = parseInt(process.env.PORT || '3000', 10);
 try {
-  await fastify.listen({ port, host: '0.0.0.0' });
+  await fastify.listen({ port, host: '::' });
   console.log(`Tiny Seed Railway API v3.0 (Phase 3A: Sheets + Weather) running on port ${port}`);
 } catch (err) {
   fastify.log.error(err);

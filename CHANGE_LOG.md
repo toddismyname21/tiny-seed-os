@@ -6,6 +6,15 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-04-10] Fix: Railway deployment — Fastify host binding + broken cron syntax
+- Files: backend/server.js, railway.toml
+- Role: fullstack-builder
+- Changes:
+  - server.js line 1067: Changed Fastify host from '0.0.0.0' to '::' (IPv6 dual-stack) — Railway requires this to avoid 502 errors
+  - railway.toml: Removed broken [[cron]] sections (undocumented Railway syntax, silently ignored)
+  - railway.toml: Increased healthcheckTimeout 30→60, restartPolicyMaxRetries 3→10
+  - Added comments explaining cron jobs need separate Railway services or external scheduler
+
 ## [2026-04-10] Fix: PLANNING_2026 column names in fetchSheetsContext
 - Files: backend/server.js
 - Role: fullstack-builder

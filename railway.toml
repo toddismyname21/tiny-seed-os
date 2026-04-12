@@ -5,16 +5,10 @@ buildCommand = "cd backend && npm install"
 [deploy]
 startCommand = "node backend/server.js"
 healthcheckPath = "/health"
-healthcheckTimeout = 30
+healthcheckTimeout = 60
 restartPolicyType = "ON_FAILURE"
-restartPolicyMaxRetries = 3
-
-[[cron]]
-name = "email-agent"
-schedule = "*/5 * * * *"
-command = "node backend/emailAgent.js"
-
-[[cron]]
-name = "morning-brief"
-schedule = "0 11 * * *"
-command = "node backend/morningBrief.js"
+restartPolicyMaxRetries = 10
+# NOTE: cron jobs (email-agent, morning-brief) are NOT configured here.
+# [[cron]] TOML syntax is undocumented and broken in Railway.
+# Email agent: create a separate Railway cron service with cronSchedule = "*/5 * * * *"
+# Morning brief: use HTTP endpoint POST /api/run/morning-brief via external scheduler
