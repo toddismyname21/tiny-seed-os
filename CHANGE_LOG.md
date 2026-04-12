@@ -6,6 +6,24 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-04-10] Fix: Replace dead Render URL with Railway URL in chief-of-staff.html
+- Files: web_app/chief-of-staff.html
+- Role: fullstack-builder
+- Changes:
+  - Replaced 5 occurrences of `tinypm-brain.onrender.com` with `tinypm-brain-production-cbe7.up.railway.app`
+  - Updated comment from "Render deployment" to "Railway deployment"
+- Why: Render server is dead; Brain server now runs on Railway
+
+## [2026-04-10] Add: auditSentEmails endpoint for CSA email incident review
+- Files: apps_script/MERGED TOTAL.js
+- Role: fullstack-builder
+- Changes:
+  - Added `auditSentEmails()` function (temporary) — searches Gmail sent for wrong pickup reminders and correction emails
+  - Added to PUBLIC_GET_ACTIONS whitelist and doGet switch statement
+  - Result: 10 unique customers received erroneous email, 4 replied confused, correction emails sent in duplicate
+- Why: Owner needed count and recipient list from CSA pickup reminder incident
+- Note: TEMPORARY — remove after incident review complete
+
 ## [2026-04-10] Add: One-time CSA pickup correction email function
 - Files: apps_script/MERGED TOTAL.js
 - Role: fullstack-builder
