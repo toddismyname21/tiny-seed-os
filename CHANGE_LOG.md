@@ -6,6 +6,14 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-04-10] Extend presale cutoff from April 15 to May 1, 2026
+- Files: apps_script/MERGED TOTAL.js (lines ~136395, ~137826), web_app/seedling-presale-2026.html (6 locations)
+- Role: fullstack-builder
+- Changes:
+  - Backend: PRESALE_CUTOFF_DATE and PRESALE_CUTOFF both updated to 2026-05-01
+  - Frontend: All 6 instances of "April 15" changed to "May 1" (JSON-LD, header countdown, hero, checkout, FAQ, JS countdown timer)
+  - Verified zero remaining April 15 / 2026-04-15 references in presale files
+
 ## [2026-04-10] Update seedling presale pickup dates for 2026
 - Files: apps_script/MERGED TOTAL.js (line ~136397), web_app/seedling-presale-2026.html (lines ~1706, 1820-1831)
 - Role: fullstack-builder

@@ -136392,7 +136392,7 @@ function getSeedlingProductionPlan(params) {
 // Shared helper: ensure SEEDLING_PRODUCTION sheet exists with unified schema
 // ============ SEEDLING PRESALE CONFIGURATION ============
 
-var PRESALE_CUTOFF_DATE = '2026-04-15';
+var PRESALE_CUTOFF_DATE = '2026-05-01';
 
 var PICKUP_SCHEDULE = {
   'Phipps': ['2026-05-08'],
@@ -137823,7 +137823,7 @@ function validateSeedlingAvailability(params) {
 
     // During pre-order phase: no limit on presale orders (customers can always order)
     // After cutoff: availability = Total_Units - all outlet allocations - presale orders
-    var PRESALE_CUTOFF = '2026-04-15';
+    var PRESALE_CUTOFF = '2026-05-01';
     var today = new Date();
     today.setHours(0, 0, 0, 0);
     var cutoff = new Date(PRESALE_CUTOFF + 'T00:00:00');
