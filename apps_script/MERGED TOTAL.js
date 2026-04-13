@@ -137032,6 +137032,55 @@ function handleSeedlingDraftOrderCompleted(draftOrder) {
     }
 
     Logger.log('Presale payment confirmed: order=' + orderId + ' draft=' + draftOrderId + ' email=' + customerEmail);
+
+    // Send confirmation email now that payment is confirmed
+    if (customerEmail) {
+      try {
+        // Read the order items from SEEDLING_SALES to include in the email
+        var salesSheet = ss.getSheetByName('SEEDLING_SALES');
+        var orderItems = [];
+        var orderTotal = 0;
+        var pickupLocation = '';
+        if (salesSheet) {
+          var salesData = salesSheet.getDataRange().getValues();
+          var salesHeaders = salesData[0];
+          var sOrderIdCol = salesHeaders.indexOf('Order_ID');
+          var sCropCol = salesHeaders.indexOf('Crop');
+          var sVarietyCol = salesHeaders.indexOf('Variety');
+          var sQtyCol = salesHeaders.indexOf('Quantity_Sold');
+          var sPriceCol = salesHeaders.indexOf('Price_Each');
+          var sTotalCol = salesHeaders.indexOf('Total');
+          for (var si = 1; si < salesData.length; si++) {
+            if (String(salesData[si][sOrderIdCol]) === orderId) {
+              orderItems.push({
+                crop: sVarietyCol >= 0 ? salesData[si][sVarietyCol] : (sCropCol >= 0 ? salesData[si][sCropCol] : ''),
+                quantity: sQtyCol >= 0 ? salesData[si][sQtyCol] : 0,
+                price: sPriceCol >= 0 ? salesData[si][sPriceCol] : 0
+              });
+              orderTotal += sTotalCol >= 0 ? Number(salesData[si][sTotalCol]) || 0 : 0;
+            }
+          }
+        }
+        // Get pickup location from SEEDLING_ORDERS
+        var pickupCol = headers.indexOf('Pickup_Location');
+        var customerNameCol = headers.indexOf('Customer_Name');
+        var customerName = customerNameCol >= 0 ? String(data[targetRow - 1][customerNameCol]) : '';
+        pickupLocation = pickupCol >= 0 ? String(data[targetRow - 1][pickupCol]) : '';
+
+        sendSeedlingOrderConfirmation({
+          email: customerEmail,
+          name: customerName,
+          orderId: orderId,
+          items: JSON.stringify(orderItems),
+          total: orderTotal,
+          pickup: pickupLocation
+        });
+        Logger.log('Sent confirmation email to ' + customerEmail + ' for paid order ' + orderId);
+      } catch (emailErr) {
+        Logger.log('handleSeedlingDraftOrderCompleted: confirmation email error: ' + emailErr.toString());
+      }
+    }
+
     logIntegration('Shopify', 'DraftOrderCompleted', 'SUCCESS',
       'Order ' + orderId + ' marked Paid (draft: ' + draftOrderId + ')');
 
@@ -137565,26 +137614,9 @@ function submitSeedlingOrder(params) {
       }
     }
 
-    // Step 8: Send order confirmation email (if customer provided email)
-    if (params.email) {
-      try {
-        var emailResult = sendSeedlingOrderConfirmation({
-          email: params.email,
-          name: params.customerName || '',
-          orderId: orderId,
-          items: JSON.stringify(items),
-          total: totalRevenue,
-          pickup: params.pickupLocation || ''
-        });
-        if (!emailResult.success) {
-          errors.push('Confirmation email: ' + (emailResult.error || 'failed to send'));
-        } else {
-          result.confirmationEmailSent = true;
-        }
-      } catch (emailErr) {
-        errors.push('Confirmation email: ' + emailErr.toString());
-      }
-    }
+    // Step 8: Confirmation email is NOT sent here — it is sent after Shopify payment
+    // is confirmed via the handleSeedlingDraftOrderCompleted webhook handler.
+    result.confirmationEmailSent = false;
 
     // Step 9: Process referral if code provided
     var referralCode = (params.referralCode || '').trim();

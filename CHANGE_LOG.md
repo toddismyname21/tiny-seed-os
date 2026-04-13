@@ -6,6 +6,15 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-04-10] Move seedling confirmation email to after Shopify payment
+- Files: apps_script/MERGED TOTAL.js
+- Role: fullstack-builder
+- Changes:
+  - Removed confirmation email send from submitSeedlingOrder (Step 8) — set confirmationEmailSent = false
+  - Added confirmation email send to handleSeedlingDraftOrderCompleted webhook handler, after Invoice_Status set to Paid
+  - Email now reads order items from SEEDLING_SALES and pickup location from SEEDLING_ORDERS
+  - Customers only receive confirmation after payment is confirmed, not at order submission
+
 ## [2026-04-10] Fix seedling presale pickup dates and hours
 - Files: web_app/seedling-presale-2026.html, apps_script/MERGED TOTAL.js
 - Role: fullstack-builder
