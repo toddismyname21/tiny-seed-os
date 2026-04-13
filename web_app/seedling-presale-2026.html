@@ -1717,70 +1717,30 @@
                 <button type="button" class="clear-order-btn" id="clearOrderBtn" onclick="clearOrder()" style="display:none;"><i class="fas fa-times"></i> Clear All</button>
             </div>
 
-            <!-- STARTER BUNDLES — collapsible -->
-            <details style="margin:16px 0 8px;">
-                <summary style="font-size:0.9rem; color:var(--green-deep); font-weight:700; text-transform:uppercase; letter-spacing:0.5px; cursor:pointer; list-style:none; display:flex; align-items:center; gap:6px;">
-                    <i class="fas fa-box-open"></i> Quick-Add Bundles
-                    <i class="fas fa-chevron-down" style="font-size:0.7rem; margin-left:auto; transition:transform 0.2s;"></i>
-                </summary>
-                <p style="font-size:0.8rem; color:var(--text-muted); margin:8px 0 12px;">One tap to add a curated bundle to your order.</p>
-            <div class="bundles-grid" id="bundlesGrid">
-                <!-- Salsa Garden -->
-                <div class="bundle-card">
-                    <img src="images/bundle-salsa-garden.png" alt="Watercolor salsa bowl" class="bundle-img" loading="lazy">
-                    <div class="bundle-name">Salsa Garden</div>
-                    <p class="bundle-desc">"Everything you need for fresh salsa all summer long"</p>
-                    <ul class="bundle-items">
-                        <li>2x Roma Tomato</li>
-                        <li>1x San Marzano</li>
-                        <li>1x Jalape&ntilde;o</li>
-                        <li>1x Cilantro</li>
-                        <li>1x Onion</li>
-                    </ul>
-                    <div class="bundle-pricing">
-                        <span class="bundle-price">$28</span>
-                        <span class="bundle-savings">Save $4!</span>
-                    </div>
-                    <button type="button" class="bundle-add-btn" onclick="addBundle('salsa')"><i class="fas fa-plus"></i> Add Bundle</button>
-                </div>
-                <!-- Pizza Garden -->
-                <div class="bundle-card">
-                    <img src="images/bundle-pizza-garden.png" alt="Watercolor pizza slice" class="bundle-img" loading="lazy">
-                    <div class="bundle-name">Pizza Garden</div>
-                    <p class="bundle-desc">"Grow your own pizza toppings &mdash; from garden to pie"</p>
-                    <ul class="bundle-items">
-                        <li>2x Roma Tomato</li>
-                        <li>1x Sweet Basil</li>
-                        <li>1x Bell Pepper</li>
-                        <li>1x Oregano</li>
-                    </ul>
-                    <div class="bundle-pricing">
-                        <span class="bundle-price">$24</span>
-                        <span class="bundle-savings">Save $3!</span>
-                    </div>
-                    <button type="button" class="bundle-add-btn" onclick="addBundle('pizza')"><i class="fas fa-plus"></i> Add Bundle</button>
-                </div>
-                <!-- Summer Cutting Garden -->
-                <div class="bundle-card">
-                    <img src="images/bundle-flower-power.png" alt="Watercolor flower bouquet" class="bundle-img" loading="lazy">
-                    <div class="bundle-name">Summer Cutting Garden</div>
-                    <p class="bundle-desc">"Everything you need for armloads of fresh-cut blooms"</p>
-                    <ul class="bundle-items">
-                        <li>2x Zinnia</li>
-                        <li>1x Branching Sunflower</li>
-                        <li>1x Snapdragon</li>
-                        <li>1x Cranberry Rose Strawflower</li>
-                        <li>1x Bachelor Button Mix</li>
-                        <li>1x Rudbeckia Sahara</li>
-                    </ul>
-                    <div class="bundle-pricing">
-                        <span class="bundle-price">$30</span>
-                        <span class="bundle-savings">Save $5!</span>
-                    </div>
-                    <button type="button" class="bundle-add-btn" onclick="addBundle('flower')"><i class="fas fa-plus"></i> Add Bundle</button>
+            <!-- STARTER BUNDLES — collapsed into compact buttons, expand on tap -->
+            <div id="bundlesCollapsed" style="margin:16px 0 8px;">
+                <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:8px;">Quick-add a starter bundle:</div>
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                    <button type="button" class="bundle-quick-btn" onclick="toggleBundleExpand('salsa')" style="display:inline-flex;align-items:center;gap:6px;padding:10px 16px;border-radius:50px;border:2px solid var(--green,#3a7d34);background:transparent;color:var(--green-deep,#2d5a27);font-size:0.85rem;font-weight:600;cursor:pointer;transition:all 0.2s;">
+                        <i class="fas fa-pepper-hot"></i> Salsa Garden · $28
+                    </button>
+                    <button type="button" class="bundle-quick-btn" onclick="toggleBundleExpand('pizza')" style="display:inline-flex;align-items:center;gap:6px;padding:10px 16px;border-radius:50px;border:2px solid var(--green,#3a7d34);background:transparent;color:var(--green-deep,#2d5a27);font-size:0.85rem;font-weight:600;cursor:pointer;transition:all 0.2s;">
+                        <i class="fas fa-pizza-slice"></i> Pizza Garden · $24
+                    </button>
+                    <button type="button" class="bundle-quick-btn" onclick="toggleBundleExpand('flower')" style="display:inline-flex;align-items:center;gap:6px;padding:10px 16px;border-radius:50px;border:2px solid var(--green,#3a7d34);background:transparent;color:var(--green-deep,#2d5a27);font-size:0.85rem;font-weight:600;cursor:pointer;transition:all 0.2s;">
+                        <i class="fas fa-seedling"></i> Cutting Garden · $30
+                    </button>
                 </div>
             </div>
-            </details>
+            <!-- Expanded bundle detail (hidden by default, shown on tap) -->
+            <div id="bundleExpandPanel" style="display:none; margin:8px 0 12px; padding:14px; background:rgba(58,125,52,0.06); border-radius:12px; border:1px solid rgba(58,125,52,0.15);">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <div id="bundleExpandName" style="font-size:0.95rem; font-weight:700; color:var(--green-deep,#2d5a27);"></div>
+                    <button type="button" onclick="closeBundleExpand()" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:1rem;padding:4px;"><i class="fas fa-times"></i></button>
+                </div>
+                <ul id="bundleExpandItems" style="list-style:none;padding:0;margin:0 0 10px;font-size:0.85rem;color:var(--earth,#5c4a3a);"></ul>
+                <button type="button" id="bundleExpandAddBtn" class="bundle-add-btn" style="width:100%;"><i class="fas fa-plus"></i> Add to Cart</button>
+            </div>
 
             <!-- INDIVIDUAL SEEDLINGS — custom selection -->
             <p style="font-size:0.82rem; color:var(--text-muted); margin: 16px 0 12px;"><a href="#catalog" onclick="document.getElementById('catalog').scrollIntoView({behavior:'smooth'}); return false;" style="color:var(--green-dark); font-weight:600; text-decoration:none;"><i class="fas fa-arrow-up" style="color:var(--green);"></i> Browse the catalog above</a> and click <strong>Add to Cart</strong> on any variety.</p>
@@ -3826,6 +3786,48 @@ function normalizeBundleName_(s) {
 // ═══════════════════════════════════════
 // ADD BUNDLE TO CART
 // ═══════════════════════════════════════
+function toggleBundleExpand(bundleKey) {
+    var panel = document.getElementById('bundleExpandPanel');
+    var nameEl = document.getElementById('bundleExpandName');
+    var itemsEl = document.getElementById('bundleExpandItems');
+    var addBtn = document.getElementById('bundleExpandAddBtn');
+    var bundle = BUNDLES[bundleKey];
+    if (!bundle) return;
+
+    // If already showing this bundle, close it
+    if (panel.style.display !== 'none' && panel.getAttribute('data-bundle') === bundleKey) {
+        closeBundleExpand();
+        return;
+    }
+
+    // Highlight the active pill button
+    document.querySelectorAll('.bundle-quick-btn').forEach(function(btn) {
+        btn.style.background = 'transparent';
+        btn.style.color = 'var(--green-deep, #2d5a27)';
+    });
+    var activeBtn = event.currentTarget;
+    activeBtn.style.background = 'var(--green-deep, #2d5a27)';
+    activeBtn.style.color = '#fff';
+
+    nameEl.textContent = bundle.name + ' — $' + bundle.price;
+    var html = '';
+    for (var i = 0; i < bundle.items.length; i++) {
+        html += '<li style="padding:3px 0;"><i class="fas fa-leaf" style="color:var(--green);margin-right:6px;font-size:0.7rem;"></i>' + bundle.items[i].qty + 'x ' + bundle.items[i].name + '</li>';
+    }
+    itemsEl.innerHTML = html;
+    addBtn.setAttribute('onclick', "addBundle('" + bundleKey + "')");
+    panel.setAttribute('data-bundle', bundleKey);
+    panel.style.display = 'block';
+}
+
+function closeBundleExpand() {
+    document.getElementById('bundleExpandPanel').style.display = 'none';
+    document.querySelectorAll('.bundle-quick-btn').forEach(function(btn) {
+        btn.style.background = 'transparent';
+        btn.style.color = 'var(--green-deep, #2d5a27)';
+    });
+}
+
 function addBundle(bundleKey) {
     var bundle = BUNDLES[bundleKey];
     if (!bundle) return;
@@ -3861,8 +3863,10 @@ function addBundle(bundleKey) {
 
     if (addedCount > 0) {
         showToast('\uD83C\uDF31 ' + bundle.name + ' bundle added! (' + addedCount + ' plants)');
-        // Visual feedback on the button that was clicked
-        var btns = document.querySelectorAll('.bundle-add-btn');
+        // Close the expand panel and reset pill buttons
+        closeBundleExpand();
+        // Visual feedback on the pill button
+        var btns = document.querySelectorAll('.bundle-quick-btn');
         btns.forEach(function(btn) {
             if (btn.getAttribute('onclick') && btn.getAttribute('onclick').indexOf("'" + bundleKey + "'") !== -1) {
                 var origHTML = btn.innerHTML;
