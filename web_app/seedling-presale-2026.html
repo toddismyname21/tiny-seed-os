@@ -2831,11 +2831,14 @@ function renderCatalogCards() {
     var container = document.getElementById('catalogContent');
     var html = '';
 
-    // Starter Bundles — always shown at top of catalog
-    html += '<h3 style="font-size:0.9rem; color:var(--green-dark); margin:0 0 8px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">';
-    html += '<i class="fas fa-box-open" style="margin-right:4px;"></i> Starter Bundles — Save More</h3>';
-    html += '<p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:12px;">Curated collections for instant garden success. One tap to add.</p>';
-    html += '<div class="bundles-grid" style="margin-bottom:32px;">';
+    // Starter Bundles — collapsible
+    html += '<details style="margin-bottom:32px;">';
+    html += '<summary style="font-size:0.9rem; color:var(--green-dark); font-weight:700; text-transform:uppercase; letter-spacing:0.5px; cursor:pointer; list-style:none; display:flex; align-items:center; gap:6px; padding:10px 0;">';
+    html += '<i class="fas fa-box-open"></i> Starter Bundles — Save More';
+    html += '<i class="fas fa-chevron-down" style="font-size:0.7rem; margin-left:auto; opacity:0.5;"></i>';
+    html += '</summary>';
+    html += '<p style="font-size:0.8rem; color:var(--text-muted); margin:4px 0 12px;">Curated collections for instant garden success. One tap to add.</p>';
+    html += '<div class="bundles-grid">';
     html += '<div class="bundle-card">';
     html += '<img src="images/bundle-salsa-garden.png" alt="Watercolor salsa bowl" class="bundle-img" loading="lazy">';
     html += '<div class="bundle-name">Salsa Garden</div>';
@@ -2876,6 +2879,7 @@ function renderCatalogCards() {
     html += '<button type="button" class="bundle-add-btn" onclick="addBundle(\'flower\')"><i class="fas fa-plus"></i> Add Bundle</button>';
     html += '</div>';
     html += '</div>';
+    html += '</details>';
 
     // Subheading for individual seedlings
     html += '<h3 style="font-size:0.9rem; color:var(--green-dark); margin:0 0 12px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">';
