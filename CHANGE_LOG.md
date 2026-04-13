@@ -6,6 +6,15 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-04-10] Fix seedling presale pickup dates and hours
+- Files: web_app/seedling-presale-2026.html, apps_script/MERGED TOTAL.js
+- Role: fullstack-builder
+- Changes:
+  - Phipps hours corrected from 9am-5pm to 9am-7pm
+  - Farm pickup date corrected from Tuesday May 5 to Wednesday May 6
+  - Farm pickup details changed from "by appointment" to "11am-7pm"
+  - Backend PICKUP_SCHEDULE Farm date updated from 2026-05-05 to 2026-05-06
+
 ## [2026-04-10] Remove 15% bulk discount from seedling presale
 - Files: web_app/seedling-presale-2026.html
 - Role: fullstack-builder
