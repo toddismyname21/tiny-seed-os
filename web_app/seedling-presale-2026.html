@@ -1717,11 +1717,13 @@
                 <button type="button" class="clear-order-btn" id="clearOrderBtn" onclick="clearOrder()" style="display:none;"><i class="fas fa-times"></i> Clear All</button>
             </div>
 
-            <!-- STARTER BUNDLES — quick curated selections first -->
-            <h3 style="font-size:0.9rem; color:var(--green-deep); margin:16px 0 8px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">
-                <i class="fas fa-box-open" style="margin-right:4px;"></i> Quick-Add Bundles
-            </h3>
-            <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:12px;">One tap to add a curated bundle to your order.</p>
+            <!-- STARTER BUNDLES — collapsible -->
+            <details style="margin:16px 0 8px;">
+                <summary style="font-size:0.9rem; color:var(--green-deep); font-weight:700; text-transform:uppercase; letter-spacing:0.5px; cursor:pointer; list-style:none; display:flex; align-items:center; gap:6px;">
+                    <i class="fas fa-box-open"></i> Quick-Add Bundles
+                    <i class="fas fa-chevron-down" style="font-size:0.7rem; margin-left:auto; transition:transform 0.2s;"></i>
+                </summary>
+                <p style="font-size:0.8rem; color:var(--text-muted); margin:8px 0 12px;">One tap to add a curated bundle to your order.</p>
             <div class="bundles-grid" id="bundlesGrid">
                 <!-- Salsa Garden -->
                 <div class="bundle-card">
@@ -1778,6 +1780,7 @@
                     <button type="button" class="bundle-add-btn" onclick="addBundle('flower')"><i class="fas fa-plus"></i> Add Bundle</button>
                 </div>
             </div>
+            </details>
 
             <!-- INDIVIDUAL SEEDLINGS — custom selection -->
             <p style="font-size:0.82rem; color:var(--text-muted); margin: 16px 0 12px;"><a href="#catalog" onclick="document.getElementById('catalog').scrollIntoView({behavior:'smooth'}); return false;" style="color:var(--green-dark); font-weight:600; text-decoration:none;"><i class="fas fa-arrow-up" style="color:var(--green);"></i> Browse the catalog above</a> and click <strong>Add to Cart</strong> on any variety.</p>
