@@ -139531,15 +139531,16 @@ function getSeedlingBundles() {
       },
       {
         id: 'flower-power',
-        name: 'Flower Power',
+        name: 'Summer Cutting Garden',
         description: 'A riot of color from June through October',
-        price: 34.00,
-        savings: 4.00,
+        price: 30.00,
+        savings: 2.00,
         items: [
           { variety: 'Zinnia', quantity: 2 },
-          { variety: 'Sunflower', quantity: 2 },
-          { variety: 'Marigold', quantity: 2 },
-          { variety: 'Cosmos', quantity: 1 }
+          { variety: 'Sunflower', quantity: 1 },
+          { variety: 'Marigold', quantity: 1 },
+          { variety: 'Cosmos', quantity: 1 },
+          { variety: 'Pampas Plume Celosia', quantity: 1 }
         ],
         badge: '🌸 Best Value'
       }

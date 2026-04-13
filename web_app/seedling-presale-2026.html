@@ -1727,7 +1727,7 @@
                         <i class="fas fa-pizza-slice"></i> Pizza Garden · $24
                     </button>
                     <button type="button" class="bundle-quick-btn" onclick="toggleBundleExpand('flower')" style="display:inline-flex;align-items:center;gap:6px;padding:10px 16px;border-radius:50px;border:2px solid var(--green,#3a7d34);background:transparent;color:var(--green-deep,#2d5a27);font-size:0.85rem;font-weight:600;cursor:pointer;transition:all 0.2s;">
-                        <i class="fas fa-seedling"></i> Cutting Garden · $34
+                        <i class="fas fa-seedling"></i> Cutting Garden · $30
                     </button>
                 </div>
             </div>
@@ -2085,11 +2085,10 @@ var BUNDLES = {
         name: 'Summer Cutting Garden',
         items: [
             { name: 'Zinnia', qty: 2 },
-            { name: 'Branching Sunflower', qty: 1 },
-            { name: 'Snapdragon', qty: 1 },
-            { name: 'Cranberry Rose Strawflower', qty: 1 },
-            { name: 'Bachelor Button Mix', qty: 1 },
-            { name: 'Rudbeckia Sahara', qty: 1 }
+            { name: 'Sunflower', qty: 1 },
+            { name: 'Marigold', qty: 1 },
+            { name: 'Cosmos', qty: 1 },
+            { name: 'Pampas Plume Celosia', qty: 1 }
         ]
     }
 };
@@ -2877,7 +2876,7 @@ function renderCatalogCards() {
         flowerItems += '<li>' + flowerBundle.items[fi].qty + 'x ' + escapeHtml(flowerBundle.items[fi].name) + '</li>';
     }
     html += '<ul class="bundle-items">' + flowerItems + '</ul>';
-    html += '<div class="bundle-pricing"><span class="bundle-price">$34</span><span class="bundle-savings">Save $4!</span></div>';
+    html += '<div class="bundle-pricing"><span class="bundle-price">$30</span><span class="bundle-savings">Save $2!</span></div>';
     html += '<button type="button" class="bundle-add-btn" onclick="addBundle(\'flower\')"><i class="fas fa-plus"></i> Add Bundle</button>';
     html += '</div>';
     html += '</div>';
