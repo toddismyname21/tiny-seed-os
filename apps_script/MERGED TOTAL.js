@@ -139533,8 +139533,8 @@ function getSeedlingBundles() {
         id: 'flower-power',
         name: 'Flower Power',
         description: 'A riot of color from June through October',
-        price: 30.00,
-        savings: 5.00,
+        price: 34.00,
+        savings: 4.00,
         items: [
           { variety: 'Zinnia', quantity: 2 },
           { variety: 'Sunflower', quantity: 2 },
