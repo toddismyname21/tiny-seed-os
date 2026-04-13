@@ -6,6 +6,14 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-04-10] Set Farm pickup to specific date: Tuesday, May 5, 2026
+- Files: apps_script/MERGED TOTAL.js (line ~136402), web_app/seedling-presale-2026.html (lines ~1706, ~1818-1842)
+- Role: fullstack-builder
+- Changes:
+  - Backend: PICKUP_SCHEDULE 'Farm' changed from null to ['2026-05-05']
+  - Frontend dropdown: Farm option text updated to "Farm Pickup (Rochester) — Tuesday, May 5", moved to first position (earliest date)
+  - Frontend pickup cards: Farm card date changed from "Weekdays, May 4-16" to "Tuesday, May 5", reordered cards chronologically (Farm May 5 first, Lawrenceville May 19 last)
+
 ## [2026-04-10] Extend presale cutoff from April 15 to May 1, 2026
 - Files: apps_script/MERGED TOTAL.js (lines ~136395, ~137826), web_app/seedling-presale-2026.html (6 locations)
 - Role: fullstack-builder

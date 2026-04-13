@@ -136399,7 +136399,7 @@ var PICKUP_SCHEDULE = {
   'Bloomfield': ['2026-05-09'],
   'Sewickley': ['2026-05-09'],
   'Lawrenceville': ['2026-05-19'],
-  'Farm': null
+  'Farm': ['2026-05-05']
 };
 
 function getPickupDateForLocation_(locationSlug) {
