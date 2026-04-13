@@ -1669,30 +1669,6 @@
                 <div class="skel-card"><div class="skel skel-img"></div><div class="skel-body"><div class="skel skel-line w75"></div><div class="skel skel-line w40"></div><div class="skel skel-btn"></div></div></div>
             </div>
         </div>
-        <!-- STARTER BUNDLES — under catalog varieties -->
-        <div id="bundlesCollapsed" style="margin:24px 0 8px;">
-            <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:8px;">Quick-add a starter bundle:</div>
-            <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                <button type="button" class="bundle-quick-btn" onclick="toggleBundleExpand('salsa')" style="display:inline-flex;align-items:center;gap:6px;padding:10px 16px;border-radius:50px;border:2px solid var(--green,#3a7d34);background:transparent;color:var(--green-deep,#2d5a27);font-size:0.85rem;font-weight:600;cursor:pointer;transition:all 0.2s;">
-                    <i class="fas fa-pepper-hot"></i> Salsa Garden · $28
-                </button>
-                <button type="button" class="bundle-quick-btn" onclick="toggleBundleExpand('pizza')" style="display:inline-flex;align-items:center;gap:6px;padding:10px 16px;border-radius:50px;border:2px solid var(--green,#3a7d34);background:transparent;color:var(--green-deep,#2d5a27);font-size:0.85rem;font-weight:600;cursor:pointer;transition:all 0.2s;">
-                    <i class="fas fa-pizza-slice"></i> Pizza Garden · $24
-                </button>
-                <button type="button" class="bundle-quick-btn" onclick="toggleBundleExpand('flower')" style="display:inline-flex;align-items:center;gap:6px;padding:10px 16px;border-radius:50px;border:2px solid var(--green,#3a7d34);background:transparent;color:var(--green-deep,#2d5a27);font-size:0.85rem;font-weight:600;cursor:pointer;transition:all 0.2s;">
-                    <i class="fas fa-seedling"></i> Cutting Garden · $30
-                </button>
-            </div>
-        </div>
-        <!-- Expanded bundle detail (hidden by default, shown on tap) -->
-        <div id="bundleExpandPanel" style="display:none; margin:8px 0 12px; padding:14px; background:rgba(58,125,52,0.06); border-radius:12px; border:1px solid rgba(58,125,52,0.15);">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                <div id="bundleExpandName" style="font-size:0.95rem; font-weight:700; color:var(--green-deep,#2d5a27);"></div>
-                <button type="button" onclick="closeBundleExpand()" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:1rem;padding:4px;"><i class="fas fa-times"></i></button>
-            </div>
-            <ul id="bundleExpandItems" style="list-style:none;padding:0;margin:0 0 10px;font-size:0.85rem;color:var(--earth,#5c4a3a);"></ul>
-            <button type="button" id="bundleExpandAddBtn" class="bundle-add-btn" style="width:100%;"><i class="fas fa-plus"></i> Add to Cart</button>
-        </div>
     </div>
 </section>
 
@@ -1738,6 +1714,30 @@
                     <option value="Lawrenceville">Lawrenceville Farmers Market — Monday, May 19</option>
                 </select>
                 <div class="form-error" id="pickupError">Please choose a pickup location.</div>
+            </div>
+
+            <!-- Quick-add starter bundles -->
+            <div id="bundlesCollapsed" style="margin:16px 0 8px;">
+                <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:8px;">Quick-add a starter bundle:</div>
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                    <button type="button" class="bundle-quick-btn" onclick="toggleBundleExpand('salsa')" style="display:inline-flex;align-items:center;gap:6px;padding:10px 16px;border-radius:50px;border:2px solid var(--green,#3a7d34);background:transparent;color:var(--green-deep,#2d5a27);font-size:0.85rem;font-weight:600;cursor:pointer;transition:all 0.2s;">
+                        <i class="fas fa-pepper-hot"></i> Salsa Garden · $28
+                    </button>
+                    <button type="button" class="bundle-quick-btn" onclick="toggleBundleExpand('pizza')" style="display:inline-flex;align-items:center;gap:6px;padding:10px 16px;border-radius:50px;border:2px solid var(--green,#3a7d34);background:transparent;color:var(--green-deep,#2d5a27);font-size:0.85rem;font-weight:600;cursor:pointer;transition:all 0.2s;">
+                        <i class="fas fa-pizza-slice"></i> Pizza Garden · $24
+                    </button>
+                    <button type="button" class="bundle-quick-btn" onclick="toggleBundleExpand('flower')" style="display:inline-flex;align-items:center;gap:6px;padding:10px 16px;border-radius:50px;border:2px solid var(--green,#3a7d34);background:transparent;color:var(--green-deep,#2d5a27);font-size:0.85rem;font-weight:600;cursor:pointer;transition:all 0.2s;">
+                        <i class="fas fa-seedling"></i> Cutting Garden · $30
+                    </button>
+                </div>
+            </div>
+            <div id="bundleExpandPanel" style="display:none; margin:8px 0 12px; padding:14px; background:rgba(58,125,52,0.06); border-radius:12px; border:1px solid rgba(58,125,52,0.15);">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <div id="bundleExpandName" style="font-size:0.95rem; font-weight:700; color:var(--green-deep,#2d5a27);"></div>
+                    <button type="button" onclick="closeBundleExpand()" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:1rem;padding:4px;"><i class="fas fa-times"></i></button>
+                </div>
+                <ul id="bundleExpandItems" style="list-style:none;padding:0;margin:0 0 10px;font-size:0.85rem;color:var(--earth,#5c4a3a);"></ul>
+                <button type="button" id="bundleExpandAddBtn" class="bundle-add-btn" style="width:100%;"><i class="fas fa-plus"></i> Add to Cart</button>
             </div>
 
             <div style="display:flex; justify-content:space-between; align-items:center; margin: 24px 0 12px;">
