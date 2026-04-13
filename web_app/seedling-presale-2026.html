@@ -2713,6 +2713,13 @@ function processCatalogData(result) {
         });
     }
 
+    // All flowers are $6.00 (standard pricing, eligible for 4-for-$20)
+    for (var fi = 0; fi < VARIETIES.length; fi++) {
+        if (VARIETIES[fi].category === 'Flowers') {
+            VARIETIES[fi].price = 6.00;
+        }
+    }
+
     // Remove varieties not offered in 2026
     VARIETIES = VARIETIES.filter(function(v) { return !FILTER_OUT.has(v.name); });
 
