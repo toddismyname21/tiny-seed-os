@@ -62,7 +62,7 @@
             { "@type": "Question", "name": "Can I cancel or modify my order?", "acceptedAnswer": { "@type": "Answer", "text": "Full refund available until May 1. After that, we'll issue store credit. To modify varieties, email todd@tinyseedfarmpgh.com before May 1." }},
             { "@type": "Question", "name": "What if a variety sells out?", "acceptedAnswer": { "@type": "Answer", "text": "We'll contact you to choose a substitute or receive a refund for that item." }},
             { "@type": "Question", "name": "Are the seedlings organic?", "acceptedAnswer": { "@type": "Answer", "text": "Yes! Tiny Seed Farm is USDA Certified Organic. All seedlings are grown with organic seeds and practices — no synthetic pesticides or fertilizers, ever." }},
-            { "@type": "Question", "name": "Do you offer bulk/wholesale pricing?", "acceptedAnswer": { "@type": "Answer", "text": "All seedlings are $6 each or 4 for $20. Orders of 10+ receive 15% off. For wholesale quantities, contact todd@tinyseedfarmpgh.com." }}
+            { "@type": "Question", "name": "Do you offer bulk/wholesale pricing?", "acceptedAnswer": { "@type": "Answer", "text": "All seedlings are $6 each or 4 for $20. For wholesale quantities, contact todd@tinyseedfarmpgh.com." }}
         ]
     }]
     </script>
@@ -1616,7 +1616,7 @@
             <span><i class="fas fa-map-pin"></i> <strong>5 pickup locations</strong></span>
         </div>
         <a href="#order" class="cta-btn"><i class="fas fa-shopping-cart"></i> Reserve Your Seedlings</a>
-        <p style="margin-top:12px; font-size:0.9rem; color:var(--earth); font-weight:600;">$6 each · 4 for $20 · 15% off 10+ plants</p>
+        <p style="margin-top:12px; font-size:0.9rem; color:var(--earth); font-weight:600;">$6 each · 4 for $20</p>
         <p class="hero-trust">Tiny Seed Farm — Serving Pittsburgh-area gardeners since 2017</p>
     </div>
 </header>
@@ -1674,7 +1674,7 @@
 <section class="order-section" id="order" aria-labelledby="order-heading">
     <div class="container">
         <h2 class="section-title" id="order-heading" style="text-align:center;">Reserve Your Seedlings</h2>
-        <p class="section-subtitle" style="text-align:center;">$6 each · 4 for $20 · 15% off 10+ seedlings · $25 minimum</p>
+        <p class="section-subtitle" style="text-align:center;">$6 each · 4 for $20 · $25 minimum</p>
         <form class="order-form" id="presaleForm" method="post" onsubmit="submitPresaleOrder(event)" novalidate>
             <div class="form-row">
                 <div class="form-group">
@@ -1802,7 +1802,7 @@
                 <i class="fas fa-lock"></i>
                 <span>Secure checkout</span>
             </div>
-            <p style="text-align:center; font-size:0.75rem; color:var(--text-muted); margin-top:8px;">$6 each · 4 for $20 · 15% off 10+ plants. Confirmation email sent immediately. Full refund available until May 1.</p>
+            <p style="text-align:center; font-size:0.75rem; color:var(--text-muted); margin-top:8px;">$6 each · 4 for $20. Confirmation email sent immediately. Full refund available until May 1.</p>
         </form>
     </div>
 </section>
@@ -1945,7 +1945,7 @@
             </div>
             <div class="faq-item">
                 <button class="faq-question" onclick="toggleFaq(this)" aria-expanded="false" aria-controls="faq-answer-6">Do you offer bulk/wholesale pricing? <i class="fas fa-chevron-down"></i></button>
-                <div class="faq-answer" id="faq-answer-6">All seedlings are $6 each or 4 for $20. Orders of 10+ seedlings automatically receive 15% off the entire order. For wholesale quantities (flats, custom grows), contact todd@tinyseedfarmpgh.com.</div>
+                <div class="faq-answer" id="faq-answer-6">All seedlings are $6 each or 4 for $20. For wholesale quantities (flats, custom grows), contact todd@tinyseedfarmpgh.com.</div>
             </div>
         </div>
     </div>
@@ -3186,7 +3186,7 @@ function calculateOrder() {
     var bundles = Math.floor(standardQty / 4);
     var singles = standardQty % 4;
     var subtotal = (bundles * 20) + (singles * 6) + premiumTotal;
-    var discount = totalPlants >= 10 ? subtotal * 0.15 : 0;
+    var discount = 0;
     var total = subtotal - discount;
 
     // Apply referral discount
@@ -3213,7 +3213,7 @@ function updateTotal() {
         if (order.discount > 0 || order.referralDiscount > 0) {
             var priceBeforeDiscounts = order.subtotal;
             var savingsLabels = [];
-            if (order.discount > 0) savingsLabels.push('15% off');
+            // Bulk discount removed
             if (order.referralDiscount > 0) savingsLabels.push('$' + order.referralDiscount.toFixed(0) + ' referral');
             totalEl.innerHTML = '<span style="text-decoration:line-through;color:var(--text-muted);font-size:0.9rem;">$' + priceBeforeDiscounts.toFixed(2) + '</span> $' + order.total.toFixed(2) + ' <span style="color:var(--green-dark);font-size:0.75rem;font-weight:600;">(' + savingsLabels.join(' + ') + '!)</span>';
         } else {
@@ -3246,21 +3246,9 @@ function updateTotal() {
         }
     }
 
-    // Upsell / discount messaging
+    // Bulk discount messaging removed — discount no longer offered
     var warning = document.getElementById('orderMinWarning');
-    if (order.totalPlants > 0 && order.totalPlants < 10) {
-        warning.innerHTML = '<i class="fas fa-tag"></i> Add ' + (10 - order.totalPlants) + ' more for 15% off your entire order!';
-        warning.style.display = 'block';
-        warning.style.background = '#eff6ff';
-        warning.style.color = '#2563eb';
-    } else if (order.totalPlants >= 10) {
-        warning.innerHTML = '<i class="fas fa-check-circle"></i> 15% bulk discount applied! You saved $' + order.discount.toFixed(2);
-        warning.style.display = 'block';
-        warning.style.background = '#dcfce7';
-        warning.style.color = 'var(--green-dark)';
-    } else {
-        warning.style.display = 'none';
-    }
+    warning.style.display = 'none';
 
     // Mobile bottom sheet cart update
     updateMobileCart(order);
@@ -3907,9 +3895,7 @@ function showOrderPreview(items, customerName, email, phone, pickup, orderCalc) 
 
     html += '<div class="preview-summary">';
     html += '<div class="preview-summary-row"><span>Subtotal (' + orderCalc.totalPlants + ' plants)</span><span>$' + orderCalc.subtotal.toFixed(2) + '</span></div>';
-    if (orderCalc.discount > 0) {
-        html += '<div class="preview-summary-row" style="color:var(--green-dark);"><span>15% Bulk Discount</span><span>-$' + orderCalc.discount.toFixed(2) + '</span></div>';
-    }
+    // Bulk discount row removed
     if (orderCalc.bundles > 0) {
         html += '<div class="preview-summary-row" style="color:var(--green-dark);"><span>4-for-$20 Bundle Savings</span><span>Applied</span></div>';
     }
@@ -4002,12 +3988,7 @@ function updateMobileCart(order) {
                 html += '</div>';
             }
         }
-        if (order.discount > 0) {
-            html += '<div class="mobile-cart-sheet-item" style="color:var(--green-dark);">';
-            html += '<span>15% Bulk Discount</span>';
-            html += '<span style="font-weight:600;">-$' + order.discount.toFixed(2) + '</span>';
-            html += '</div>';
-        }
+        // Bulk discount row removed
         body.innerHTML = html;
     } else {
         collapsed.classList.remove('visible');

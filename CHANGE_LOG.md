@@ -6,6 +6,18 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-04-10] Remove 15% bulk discount from seedling presale
+- Files: web_app/seedling-presale-2026.html
+- Role: fullstack-builder
+- Changes:
+  - Removed 5 display text mentions of "15% off 10+ plants/seedlings" (JSON-LD FAQ, hero, order form subtitle, checkout footer, FAQ answer)
+  - Set discount calculation to `var discount = 0;` (was `totalPlants >= 10 ? subtotal * 0.15 : 0`)
+  - Removed upsell/applied messaging block ("Add X more for 15% off" / "15% bulk discount applied")
+  - Removed 15% discount row from order preview and mobile cart sheet
+  - Removed "15% off" from savings labels
+  - Total: 10 changes across display text and JS logic
+- Why: Bulk discount no longer offered
+
 ## [2026-04-10] Set Farm pickup to specific date: Tuesday, May 5, 2026
 - Files: apps_script/MERGED TOTAL.js (line ~136402), web_app/seedling-presale-2026.html (lines ~1706, ~1818-1842)
 - Role: fullstack-builder
