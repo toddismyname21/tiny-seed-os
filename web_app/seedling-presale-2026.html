@@ -2831,13 +2831,14 @@ function renderCatalogCards() {
     var container = document.getElementById('catalogContent');
     var html = '';
 
-    // Starter Bundles — collapsible
-    html += '<details style="margin-bottom:32px;">';
-    html += '<summary style="font-size:0.9rem; color:var(--green-dark); font-weight:700; text-transform:uppercase; letter-spacing:0.5px; cursor:pointer; list-style:none; display:flex; align-items:center; gap:6px; padding:10px 0;">';
+    // Starter Bundles — collapsible button
+    html += '<div style="margin-bottom:32px;">';
+    html += '<button type="button" onclick="var p=this.nextElementSibling;if(p.style.display===\'none\'){p.style.display=\'block\';this.querySelector(\'.fa-chevron-down\').style.transform=\'rotate(180deg)\';}else{p.style.display=\'none\';this.querySelector(\'.fa-chevron-down\').style.transform=\'rotate(0)\';}" style="width:100%;padding:12px 18px;border-radius:10px;border:2px solid var(--green,#3a7d34);background:transparent;color:var(--green-deep,#2d5a27);font-size:0.9rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;cursor:pointer;display:flex;align-items:center;gap:8px;font-family:inherit;transition:all 0.2s;">';
     html += '<i class="fas fa-box-open"></i> Starter Bundles — Save More';
-    html += '<i class="fas fa-chevron-down" style="font-size:0.7rem; margin-left:auto; opacity:0.5;"></i>';
-    html += '</summary>';
-    html += '<p style="font-size:0.8rem; color:var(--text-muted); margin:4px 0 12px;">Curated collections for instant garden success. One tap to add.</p>';
+    html += '<i class="fas fa-chevron-down" style="font-size:0.7rem; margin-left:auto; transition:transform 0.2s;"></i>';
+    html += '</button>';
+    html += '<div style="display:none;">';
+    html += '<p style="font-size:0.8rem; color:var(--text-muted); margin:12px 0 12px;">Curated collections for instant garden success. One tap to add.</p>';
     html += '<div class="bundles-grid">';
     html += '<div class="bundle-card">';
     html += '<img src="images/bundle-salsa-garden.png" alt="Watercolor salsa bowl" class="bundle-img" loading="lazy">';
@@ -2879,7 +2880,8 @@ function renderCatalogCards() {
     html += '<button type="button" class="bundle-add-btn" onclick="addBundle(\'flower\')"><i class="fas fa-plus"></i> Add Bundle</button>';
     html += '</div>';
     html += '</div>';
-    html += '</details>';
+    html += '</div>';
+    html += '</div>';
 
     // Subheading for individual seedlings
     html += '<h3 style="font-size:0.9rem; color:var(--green-dark); margin:0 0 12px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">';
