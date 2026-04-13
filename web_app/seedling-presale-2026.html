@@ -921,27 +921,31 @@
             color: #991b1b;
         }
         .beginner-filter-btn {
-            padding: 8px 18px;
-            border-radius: 30px;
-            border: 2px solid var(--green);
-            background: #fff;
-            font-weight: 600;
+            width: 100%;
+            padding: 12px 18px;
+            border-radius: 10px;
+            border: 2px solid var(--green, #3a7d34);
+            background: transparent;
+            font-weight: 700;
             font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
             cursor: pointer;
-            transition: all var(--ts-dur-normal, 200ms);
-            color: var(--green-dark);
+            transition: all 200ms;
+            color: var(--green-deep, #2d5a27);
             font-family: inherit;
-            display: inline-flex;
+            display: flex;
             align-items: center;
-            gap: var(--ts-space-1, 6px);
+            gap: 8px;
+            margin-bottom: 16px;
         }
         .beginner-filter-btn.active {
-            background: var(--green);
+            background: var(--green-deep, #2d5a27);
             color: #fff;
-            border-color: var(--green);
+            border-color: var(--green-deep, #2d5a27);
         }
         .beginner-filter-btn:hover:not(.active) {
-            background: var(--green-tint);
+            background: rgba(58,125,52,0.06);
         }
 
         /* ═══════════════════════════════════════ */
