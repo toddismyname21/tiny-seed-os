@@ -6,6 +6,17 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-04-10] Update seedling presale pickup dates for 2026
+- Files: apps_script/MERGED TOTAL.js (line ~136397), web_app/seedling-presale-2026.html (lines ~1706, 1820-1831)
+- Role: fullstack-builder
+- Changes:
+  - Backend PICKUP_SCHEDULE: Updated all dates — Phipps May 8, Bloomfield/Sewickley May 9, Lawrenceville May 19
+  - Removed SquirrelHill and CityGROWN locations (no longer offered)
+  - Each remaining location now has exactly one pickup date
+  - Frontend dropdown: Reordered by date (Phipps first), updated day names and date formats
+  - Frontend pickup cards: Bloomfield/Sewickley May 2 -> May 9, Phipps "Fri May 8 + Sat May 9" -> "Friday, May 8"
+  - Phipps hours simplified from "Fri 9am-7pm / Sat 9am-5pm" to "9am-5pm" (single day)
+
 ## [2026-04-10] Fix: Railway deployment — Fastify host binding + broken cron syntax
 - Files: backend/server.js, railway.toml
 - Role: fullstack-builder

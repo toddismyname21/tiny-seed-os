@@ -14654,7 +14654,9 @@ function doGet(e) {
       'setupAllTriggers',
       'autoFulfillStandingOrdersForWeek',
       // Weather data (non-sensitive, no PII — public for all dashboard pages)
-      'getWeather', 'getWeatherForecast', 'getWeatherSmartDashboard'
+      'getWeather', 'getWeatherForecast', 'getWeatherSmartDashboard',
+      // Temporary: CSA email incident audit
+      'auditSentEmails'
     ]);
 
   if (!PUBLIC_GET_ACTIONS.has(action)) {
@@ -18231,6 +18233,10 @@ function doGet(e) {
         return jsonResponse(getGrantDetail(e.parameter.grantId));
       case 'setupGrantSheets':
         return jsonResponse(setupGrantSheets());
+
+      // ============ TEMPORARY: CSA EMAIL INCIDENT AUDIT ============
+      case 'auditSentEmails':
+        return jsonResponse(auditSentEmails());
 
       default:
         return jsonResponse({error: 'Unknown action: ' + action}, 400);
@@ -136389,12 +136395,10 @@ function getSeedlingProductionPlan(params) {
 var PRESALE_CUTOFF_DATE = '2026-04-15';
 
 var PICKUP_SCHEDULE = {
-  'Bloomfield': ['2026-05-03', '2026-05-10'],
-  'Lawrenceville': ['2026-04-29', '2026-05-06'],
-  'Sewickley': ['2026-05-03', '2026-05-10'],
-  'Phipps': ['2026-05-03'],
-  'SquirrelHill': ['2026-05-10'],
-  'CityGROWN': null,
+  'Phipps': ['2026-05-08'],
+  'Bloomfield': ['2026-05-09'],
+  'Sewickley': ['2026-05-09'],
+  'Lawrenceville': ['2026-05-19'],
   'Farm': null
 };
 
@@ -154527,5 +154531,54 @@ function updateGrantCompliance(params) {
   } catch (error) {
     Logger.log('updateGrantCompliance error: ' + error.toString());
     return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * TEMPORARY: Audit sent emails for CSA pickup reminder incident.
+ * Searches Gmail sent folder for wrong pickup reminders and correction emails.
+ * Remove after incident review is complete.
+ */
+function auditSentEmails() {
+  try {
+    // Search for the wrong pickup reminder
+    var wrongThreads = GmailApp.search('in:sent subject:"CSA Box is Ready for Pickup Tomorrow"');
+    var wrongRecipients = [];
+    for (var i = 0; i < wrongThreads.length; i++) {
+      var msgs = wrongThreads[i].getMessages();
+      for (var j = 0; j < msgs.length; j++) {
+        var msg = msgs[j];
+        var date = msg.getDate();
+        wrongRecipients.push({
+          to: msg.getTo(),
+          subject: msg.getSubject(),
+          date: date.toISOString(),
+          snippet: msg.getPlainBody().substring(0, 100)
+        });
+      }
+    }
+
+    // Search for correction emails sent
+    var correctionThreads = GmailApp.search('in:sent subject:"Update: Your Tiny Seed Farm CSA Start Date"');
+    var correctionRecipients = [];
+    for (var i = 0; i < correctionThreads.length; i++) {
+      var msgs = correctionThreads[i].getMessages();
+      for (var j = 0; j < msgs.length; j++) {
+        correctionRecipients.push({
+          to: msgs[j].getTo(),
+          date: msgs[j].getDate().toISOString()
+        });
+      }
+    }
+
+    return {
+      success: true,
+      wrongEmailsSent: wrongRecipients.length,
+      correctionEmailsSent: correctionRecipients.length,
+      wrongRecipients: wrongRecipients,
+      correctionRecipients: correctionRecipients
+    };
+  } catch(e) {
+    return { success: false, error: e.toString() };
   }
 }
