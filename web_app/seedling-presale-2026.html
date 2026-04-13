@@ -3861,6 +3861,23 @@ function addBundle(bundleKey) {
 
     if (addedCount > 0) {
         showToast('\uD83C\uDF31 ' + bundle.name + ' bundle added! (' + addedCount + ' plants)');
+        // Visual feedback on the button that was clicked
+        var btns = document.querySelectorAll('.bundle-add-btn');
+        btns.forEach(function(btn) {
+            if (btn.getAttribute('onclick') && btn.getAttribute('onclick').indexOf("'" + bundleKey + "'") !== -1) {
+                var origHTML = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-check"></i> Added!';
+                btn.style.background = 'var(--green-deep, #2d5a27)';
+                btn.style.color = '#fff';
+                btn.disabled = true;
+                setTimeout(function() {
+                    btn.innerHTML = origHTML;
+                    btn.style.background = '';
+                    btn.style.color = '';
+                    btn.disabled = false;
+                }, 2000);
+            }
+        });
     } else {
         showToast('\u26A0\uFE0F Bundle items not available in current catalog');
     }
