@@ -2881,9 +2881,9 @@ function renderCatalogCards() {
     html += '<div style="margin-bottom:32px;">';
     html += '<button type="button" onclick="var p=this.nextElementSibling;if(p.style.display===\'none\'){p.style.display=\'block\';this.querySelector(\'.fa-chevron-down\').style.transform=\'rotate(180deg)\';}else{p.style.display=\'none\';this.querySelector(\'.fa-chevron-down\').style.transform=\'rotate(0)\';}" style="width:100%;padding:12px 18px;border-radius:10px;border:2px solid var(--green,#3a7d34);background:transparent;color:var(--green-deep,#2d5a27);font-size:0.9rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;cursor:pointer;display:flex;align-items:center;gap:8px;font-family:inherit;transition:all 0.2s;">';
     html += '<i class="fas fa-star"></i> Best for Beginners';
-    html += '<i class="fas fa-chevron-down" style="font-size:0.7rem; margin-left:auto; transition:transform 0.2s;"></i>';
+    html += '<i class="fas fa-chevron-down" style="font-size:0.7rem; margin-left:auto; transition:transform 0.2s; transform:rotate(180deg);"></i>';
     html += '</button>';
-    html += '<div style="display:none;">';
+    html += '<div style="display:block;">';
     html += '<p style="font-size:0.8rem; color:var(--text-muted); margin:12px 0 12px;">Easy-to-grow varieties perfect for first-time gardeners.</p>';
     html += '<div class="variety-grid" style="display:grid;">';
     for (var b = 0; b < VARIETIES.length; b++) {
