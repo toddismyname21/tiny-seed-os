@@ -693,17 +693,20 @@
         }
 
         .pot-tag .pot-tag-crop {
-            font-weight: 800;
-            font-size: 10px;
+            font-weight: 900;
+            font-size: 12px;
             line-height: 1.1;
             margin-top: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
             word-wrap: break-word;
             max-width: 100%;
         }
 
         .pot-tag .pot-tag-variety {
             font-size: 8px;
-            color: #333;
+            font-style: italic;
+            color: #444;
             word-wrap: break-word;
             max-width: 100%;
         }
@@ -2808,10 +2811,10 @@
                         <input type="checkbox" class="label-checkbox"
                                ${isSelected ? 'checked' : ''}
                                onclick="event.stopPropagation(); toggleLabel('${label.labelId}', ${index})">
-                        <img class="pot-tag-logo" src="web_app/images/tiny-seed-farm-logo-final.png" alt="Tiny Seed Farm">
+                        <img class="pot-tag-logo" src="web_app/images/tiny-seed-farm-logo-bw.png" alt="Tiny Seed Farm">
                         <div class="pot-tag-crop">${label.crop}</div>
                         <div class="pot-tag-variety">${label.variety}</div>
-                        <img class="pot-tag-usda" src="web_app/images/usda-organic-seal.svg" alt="USDA Organic">
+                        <img class="pot-tag-usda" src="web_app/images/usda-organic-bw.gif" alt="USDA Organic">
                         <div class="pot-tag-soil-line">▼ soil line ▼</div>
                     </div>
                 `;
