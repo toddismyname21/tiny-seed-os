@@ -3617,35 +3617,37 @@
             doc.text('insert in soil', cx, H - 5, { align: 'center' });
 
             // === MIDDLE: CROP + VARIETY rotated 90° (read bottom-to-top) ===
-            // Text zone runs from divY+4 to usdaY-4
+            // Text zone runs from divY to usdaY
             var textTop = divY + 4;
             var textBottom = usdaY - 4;
             var textMidY = (textTop + textBottom) / 2;
 
-            // Crop name — large, bold, uppercase
             var cropText = (label.crop || '').toUpperCase();
-            doc.setFont('helvetica', 'bold');
-            doc.setFontSize(22);
-            doc.setTextColor(0, 0, 0);
-
-            // Variety — smaller, below crop in the rotated view
             var varText = label.variety || '';
 
-            if (varText) {
-                // Both crop and variety: position them centered in the text zone
-                // Rotated 90° CCW: angle = 90, text reads bottom-to-top
-                // Crop on left (closer to center), variety on right (further from center)
-                doc.setFont('helvetica', 'bold');
-                doc.setFontSize(22);
-                doc.text(cropText, cx - 4, textMidY, { align: 'center', angle: 90 });
+            // jsPDF angle rotates CCW in degrees around the (x,y) anchor point.
+            // angle:90 means text runs bottom-to-top.
+            // With angle:90, x controls vertical position on page, y controls horizontal.
+            // "align:'center'" centers the text string at the anchor along its run direction.
 
+            if (varText) {
+                // Crop: bold, large — positioned left of center (lower x = more left on tag)
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(20);
+                doc.setTextColor(0, 0, 0);
+                doc.text(cropText, cx - 6, textMidY, { angle: 90, align: 'center' });
+
+                // Variety: italic, smaller — positioned right of center
                 doc.setFont('helvetica', 'italic');
                 doc.setFontSize(9);
                 doc.setTextColor(80, 80, 80);
-                doc.text(varText, cx + 14, textMidY, { align: 'center', angle: 90 });
+                doc.text(varText, cx + 12, textMidY, { angle: 90, align: 'center' });
             } else {
-                // Crop only, centered
-                doc.text(cropText, cx, textMidY, { align: 'center', angle: 90 });
+                // Crop only — centered on tag
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(20);
+                doc.setTextColor(0, 0, 0);
+                doc.text(cropText, cx, textMidY, { angle: 90, align: 'center' });
             }
         }
 
