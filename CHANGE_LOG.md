@@ -6,6 +6,18 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-04-10] Redesign seedling pot tag label in print engine
+- Files: web_app/print-engine.js
+- Role: fullstack-builder
+- Changes:
+  - Replaced text-only pot tag with branded B&W design: dandelion logo at top, USDA Organic seal below price
+  - Flipped crop/variety hierarchy: CROP is now big/bold/uppercase (16pt), variety is smaller italic (10pt)
+  - Added `_loadImageAsDataURL` helper for converting images to base64 data URLs for jsPDF
+  - Added image preloading in `_generateLabelPDF` for seedlingPotTag and seedlingSaleTray formats
+  - All renderers now receive `brandImages` parameter; `_renderSeedlingSaleTray` signature updated for compatibility
+  - Graceful fallback: if logo fails to load, renders "TINY SEED FARM" text instead
+  - Images used: `images/tiny-seed-farm-logo-bw.png`, `images/usda-organic-bw.gif` (both already in repo)
+
 ## [2026-04-10] Move seedling confirmation email to after Shopify payment
 - Files: apps_script/MERGED TOTAL.js
 - Role: fullstack-builder

@@ -33,6 +33,24 @@
     // Library cache
     var _libs = {};
 
+    // Image preloader — converts an image src to a base64 data URL for jsPDF addImage
+    function _loadImageAsDataURL(src) {
+        return new Promise(function(resolve) {
+            var img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = function() {
+                var canvas = document.createElement('canvas');
+                canvas.width = img.naturalWidth;
+                canvas.height = img.naturalHeight;
+                var ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0);
+                resolve(canvas.toDataURL('image/png'));
+            };
+            img.onerror = function() { resolve(null); };
+            img.src = src;
+        });
+    }
+
     // ═══════════════════════════════════════════════════════════════
     // LAZY LOADING
     // ═══════════════════════════════════════════════════════════════
@@ -588,7 +606,7 @@
      * Seedling Sale Tray label: 4" x 1" landscape (same as fieldTray)
      * Layout: "SEEDLING SALE" header bar | Variety | Crop | Units/Trays | Seeding date | QR
      */
-    function _renderSeedlingSaleTray(doc, label, qrImg, fmt) {
+    function _renderSeedlingSaleTray(doc, label, qrImg, fmt, brandImages) {
         var W = fmt.w, H = fmt.h;
 
         // SEEDLING SALE header — bold black text with underline (thermal printer, no color)
@@ -654,108 +672,73 @@
 
     /**
      * Seedling Pot Tag: 2" x 3" portrait — customer-facing pot stake
-     * Layout: Farm name | Variety (large) | Crop | Price | Difficulty | Growing tips | Sun | DTM | QR
+     * Layout: Farm logo | Separator | CROP (bold) | Variety (italic) | Price | USDA Organic | Website
      */
-    function _renderSeedlingPotTag(doc, label, qrImg, fmt) {
+    function _renderSeedlingPotTag(doc, label, qrImg, fmt, brandImages) {
         var W = fmt.w, H = fmt.h;
         var cx = W / 2;
-        var y = 12;
+        var y = 8;
 
-        // Farm name at top
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(7);
-        doc.setTextColor(34, 139, 34);
-        doc.text('TINY SEED FARM', cx, y, { align: 'center' });
-        y += 4;
+        // Farm logo at top
+        if (brandImages && brandImages.logo) {
+            var logoW = 60;
+            doc.addImage(brandImages.logo, 'PNG', (W - logoW) / 2, y, logoW, logoW);
+            y += logoW + 4;
+        } else {
+            // Fallback: text if image failed to load
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(8);
+            doc.setTextColor(0, 0, 0);
+            doc.text('TINY SEED FARM', cx, y + 10, { align: 'center' });
+            y += 16;
+        }
 
-        // Green line separator
-        doc.setDrawColor(34, 197, 94);
-        doc.setLineWidth(1);
+        // Separator line
+        doc.setDrawColor(0, 0, 0);
+        doc.setLineWidth(0.5);
         doc.line(10, y, W - 10, y);
-        y += 12;
+        y += 10;
 
-        // Variety name — large, bold, centered
-        doc.setTextColor(0, 0, 0);
+        // CROP — big, bold, centered, uppercase
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(14);
+        doc.setFontSize(16);
+        doc.setTextColor(0, 0, 0);
+        var cropText = (label.crop || '').toUpperCase();
+        var cropLines = doc.splitTextToSize(cropText, W - 16);
+        doc.text(cropLines, cx, y, { align: 'center' });
+        y += cropLines.length * 18 + 2;
+
+        // Variety — smaller, italic, centered
+        doc.setFont('helvetica', 'italic');
+        doc.setFontSize(10);
+        doc.setTextColor(60, 60, 60);
         var varLines = doc.splitTextToSize(label.variety || '', W - 16);
         doc.text(varLines, cx, y, { align: 'center' });
-        y += varLines.length * 16 + 2;
+        y += varLines.length * 12 + 8;
 
-        // Crop type
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(9);
-        doc.setTextColor(80, 80, 80);
-        doc.text(label.crop || '', cx, y, { align: 'center' });
-        y += 14;
-
-        // Price — big and bold
+        // Price — bold, centered
         if (label.price) {
             doc.setFont('helvetica', 'bold');
-            doc.setFontSize(18);
+            doc.setFontSize(14);
             doc.setTextColor(0, 0, 0);
             var priceStr = typeof label.price === 'number' ? '$' + label.price.toFixed(2) : '$' + label.price;
             doc.text(priceStr, cx, y, { align: 'center' });
             y += 16;
         }
 
-        // Difficulty badge
-        if (label.difficulty) {
-            var diffColors = {
-                'Easy': { r: 34, g: 197, b: 94 },
-                'Moderate': { r: 234, g: 179, b: 8 },
-                'Expert': { r: 239, g: 68, b: 68 }
-            };
-            var dc = diffColors[label.difficulty] || { r: 100, g: 100, b: 100 };
-            doc.setFillColor(dc.r, dc.g, dc.b);
-            var badgeW = doc.getStringUnitWidth(label.difficulty) * 7 + 16;
-            doc.roundedRect(cx - badgeW / 2, y - 7, badgeW, 12, 3, 3, 'F');
-            doc.setFont('helvetica', 'bold');
-            doc.setFontSize(7);
-            doc.setTextColor(255, 255, 255);
-            doc.text(label.difficulty, cx, y, { align: 'center' });
-            y += 14;
+        // USDA Organic seal
+        if (brandImages && brandImages.organic) {
+            var sealSz = 36;
+            if (y < H - sealSz - 20) {
+                doc.addImage(brandImages.organic, 'PNG', (W - sealSz) / 2, y, sealSz, sealSz);
+                y += sealSz + 4;
+            }
         }
 
-        // Sun requirements
-        if (label.sunRequirements) {
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(7);
-            doc.setTextColor(100, 100, 100);
-            doc.text(label.sunRequirements, cx, y, { align: 'center' });
-            y += 10;
-        }
-
-        // Days to maturity
-        if (label.daysToMaturity) {
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(7);
-            doc.setTextColor(100, 100, 100);
-            doc.text('Days to maturity: ' + label.daysToMaturity, cx, y, { align: 'center' });
-            y += 10;
-        }
-
-        // Growing tips (brief, wrapped)
-        if (label.growingTips) {
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(6);
-            doc.setTextColor(80, 80, 80);
-            var tipLines = doc.splitTextToSize(label.growingTips, W - 20);
-            if (tipLines.length > 3) tipLines = tipLines.slice(0, 3);
-            doc.text(tipLines, cx, y, { align: 'center' });
-            y += tipLines.length * 8 + 4;
-        }
-
-        // QR code near bottom
-        var qrSz = 36;
-        if (qrImg && y < H - qrSz - 20) {
-            doc.addImage(qrImg, 'PNG', (W - qrSz) / 2, H - qrSz - 16, qrSz, qrSz);
-        }
-
-        // Farm website at very bottom
+        // Website at bottom
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(5);
-        doc.setTextColor(170, 170, 170);
+        doc.setTextColor(150, 150, 150);
         doc.text('tinyseedfarm.com', cx, H - 6, { align: 'center' });
     }
 
@@ -804,34 +787,45 @@
             }
 
             return genChunk(0).then(function() {
-                // Special case: market signs (multiple per page)
-                if (format === 'marketSign') {
-                    var doc = new jspdf.jsPDF({ unit: 'pt', format: [fmt.w, fmt.h], orientation: fmt.orient });
-                    _renderMarketSigns(doc, data, qrImages, fmt);
-                    return doc.output('blob');
+                // Preload brand images for seedling labels
+                var logoPromise = Promise.resolve(null);
+                var organicPromise = Promise.resolve(null);
+                if (format === 'seedlingPotTag' || format === 'seedlingSaleTray') {
+                    logoPromise = _loadImageAsDataURL('images/tiny-seed-farm-logo-bw.png');
+                    organicPromise = _loadImageAsDataURL('images/usda-organic-bw.gif');
                 }
+                return Promise.all([logoPromise, organicPromise]).then(function(imgs) {
+                    var brandImages = { logo: imgs[0], organic: imgs[1] };
 
-                // Standard: one label per page
-                var doc = new jspdf.jsPDF({
-                    unit: 'pt',
-                    format: [Math.min(fmt.w, fmt.h), Math.max(fmt.w, fmt.h)],
-                    orientation: fmt.orient
-                });
-
-                var renderer = _renderers[format];
-                if (!renderer) return Promise.reject(new Error('No renderer for format: ' + format));
-
-                data.forEach(function(label, i) {
-                    if (i > 0) {
-                        doc.addPage(
-                            [Math.min(fmt.w, fmt.h), Math.max(fmt.w, fmt.h)],
-                            fmt.orient
-                        );
+                    // Special case: market signs (multiple per page)
+                    if (format === 'marketSign') {
+                        var doc = new jspdf.jsPDF({ unit: 'pt', format: [fmt.w, fmt.h], orientation: fmt.orient });
+                        _renderMarketSigns(doc, data, qrImages, fmt);
+                        return doc.output('blob');
                     }
-                    renderer(doc, label, qrImages[i], fmt);
-                });
 
-                return doc.output('blob');
+                    // Standard: one label per page
+                    var doc = new jspdf.jsPDF({
+                        unit: 'pt',
+                        format: [Math.min(fmt.w, fmt.h), Math.max(fmt.w, fmt.h)],
+                        orientation: fmt.orient
+                    });
+
+                    var renderer = _renderers[format];
+                    if (!renderer) return Promise.reject(new Error('No renderer for format: ' + format));
+
+                    data.forEach(function(label, i) {
+                        if (i > 0) {
+                            doc.addPage(
+                                [Math.min(fmt.w, fmt.h), Math.max(fmt.w, fmt.h)],
+                                fmt.orient
+                            );
+                        }
+                        renderer(doc, label, qrImages[i], fmt, brandImages);
+                    });
+
+                    return doc.output('blob');
+                });
             });
         });
     }
