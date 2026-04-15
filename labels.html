@@ -692,23 +692,33 @@
             accent-color: var(--primary);
         }
 
+        .pot-tag .pot-tag-text-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            writing-mode: vertical-rl;
+            transform: rotate(180deg);
+            flex: 1;
+            gap: 1px;
+            overflow: hidden;
+            width: 100%;
+        }
+
         .pot-tag .pot-tag-crop {
             font-weight: 900;
-            font-size: 12px;
-            line-height: 1.1;
-            margin-top: 6px;
+            font-size: 16px;
+            line-height: 1;
             text-transform: uppercase;
-            letter-spacing: 0.02em;
-            word-wrap: break-word;
-            max-width: 100%;
+            letter-spacing: 0.04em;
+            white-space: nowrap;
         }
 
         .pot-tag .pot-tag-variety {
-            font-size: 8px;
+            font-size: 9px;
             font-style: italic;
             color: #444;
-            word-wrap: break-word;
-            max-width: 100%;
+            white-space: nowrap;
         }
 
         .pot-tag .pot-tag-logo {
@@ -2812,8 +2822,10 @@
                                ${isSelected ? 'checked' : ''}
                                onclick="event.stopPropagation(); toggleLabel('${label.labelId}', ${index})">
                         <img class="pot-tag-logo" src="web_app/images/tiny-seed-farm-logo-bw.png" alt="Tiny Seed Farm">
-                        <div class="pot-tag-crop">${label.crop}</div>
-                        <div class="pot-tag-variety">${label.variety}</div>
+                        <div class="pot-tag-text-area">
+                            <div class="pot-tag-crop">${label.crop}</div>
+                            <div class="pot-tag-variety">${label.variety}</div>
+                        </div>
                         <img class="pot-tag-usda" src="web_app/images/usda-organic-bw.gif" alt="USDA Organic">
                         <div class="pot-tag-soil-line">▼ soil line ▼</div>
                     </div>
