@@ -3,202 +3,203 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Seedling Sale Tray Tag Mockup — Current Design</title>
+<title>Seedling Sale Tab — Current Card Design</title>
 <style>
   body {
-    font-family: -apple-system, sans-serif;
-    background: #f0f0f0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: #141211;
+    color: #f8fafc;
+    padding: 24px;
+    min-height: 100vh;
+  }
+  h2 { text-align: center; margin: 0 0 4px; font-size: 1.2rem; }
+  p.note { text-align: center; color: #a09888; font-size: 13px; margin: 0 0 24px; }
+
+  .controls {
+    display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap;
+    padding: 16px; background: #201e1b; border-radius: 8px;
+    align-items: flex-end;
+  }
+  .controls label { display: block; font-size: 0.75rem; color: #a09888; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .controls select, .controls input {
+    background: #141211; color: #f8fafc; border: 1px solid rgba(255,255,255,0.06);
+    padding: 8px 12px; border-radius: 6px; font-size: 0.85rem;
+  }
+  .controls .btn { padding: 8px 16px; border-radius: 6px; border: none; font-weight: 600; cursor: pointer; font-size: 0.85rem; }
+  .controls .btn-primary { background: #22c55e; color: #000; }
+
+  .preview-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 16px;
+  }
+  .preview-title { font-weight: 600; font-size: 1rem; }
+
+  .labels-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 16px;
-    padding: 32px;
   }
-  h2 { text-align: center; margin: 0 0 4px; }
-  p.note { text-align: center; color: #666; font-size: 14px; margin: 0 0 20px; }
 
-  .tray-tag {
-    width: 4in;
-    height: 1in;
-    border: 1px solid #ccc;
+  /* THIS IS THE CURRENT CARD DESIGN */
+  .label-preview {
     background: white;
-    box-sizing: border-box;
-    font-family: Helvetica, Arial, sans-serif;
-    position: relative;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    overflow: hidden;
-    padding: 0;
+    border-radius: 8px;
+    padding: 16px;
+    color: #1a1a1a;
+    cursor: pointer;
+    border: 3px solid transparent;
+    transition: all 200ms;
+  }
+  .label-preview:hover { border-color: #22c55e; }
+  .label-preview.selected { border-color: #22c55e; box-shadow: 0 0 0 3px rgba(34,197,94,0.3); }
+  .label-preview .customer-name { font-weight: 700; font-size: 1rem; margin-bottom: 8px; }
+  .label-preview .items-list { font-size: 0.8rem; color: #444; }
+
+  .diff-badge {
+    font-size: 0.7rem; padding: 2px 6px; border-radius: 8px; display: inline-block;
+  }
+  .diff-easy { background: #dcfce7; color: #166534; }
+  .diff-moderate { background: #fef3c7; color: #92400e; }
+
+  .type-badge {
+    background: #8b5cf6; color: white; padding: 2px 8px; border-radius: 10px;
+    font-size: 0.7rem; font-weight: 700;
   }
 
-  /* Current layout: "SEEDLING SALE" header, QR left, text right */
-  .tray-tag .header-bar {
-    text-align: center;
-    font-size: 12pt;
-    font-weight: bold;
-    padding: 1px 0;
-    border-bottom: 2px solid #000;
-    line-height: 1.3;
-  }
-
-  .tray-tag .body {
-    display: flex;
-    height: calc(100% - 20px);
-  }
-
-  .tray-tag .qr-area {
-    width: 50px;
-    height: 50px;
-    margin: 4px 6px;
-    background: #eee;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 8px;
-    color: #999;
-    border: 1px solid #ddd;
-  }
-
-  .tray-tag .text-area {
-    flex: 1;
-    padding: 2px 6px 2px 0;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-  }
-
-  .tray-tag .variety {
-    font-size: 18pt;
-    font-weight: bold;
-    color: #000;
-    line-height: 1.1;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .tray-tag .crop-line {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-  }
-
-  .tray-tag .crop {
-    font-size: 10pt;
-    color: #505050;
-  }
-
-  .tray-tag .units {
-    font-size: 11pt;
-    font-weight: bold;
-    color: #000;
-  }
-
-  .tray-tag .bottom-line {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 1px;
-  }
-
-  .tray-tag .sow-date {
-    font-size: 8pt;
-    color: #666;
-  }
-
-  .tray-tag .item-id {
-    font-size: 7pt;
-    color: #666;
-    font-family: monospace;
-  }
-
-  .tray-tag .trays {
-    font-size: 9pt;
-    color: #505050;
+  .meta-row {
+    margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap;
+    font-size: 0.75rem; color: #888;
   }
 </style>
 </head>
 <body>
 
-<h2>Current Seedling Sale Tray Tags (4" x 1")</h2>
-<p class="note">This is what prints now. Tell me what to change.</p>
+<h2>Seedling Sale Tab — labels.html</h2>
+<p class="note">This is exactly what the Seedling Sale cards look like on screen right now. Tell me what to change.</p>
 
-<!-- Example 1 -->
-<div class="tray-tag">
-  <div class="header-bar">SEEDLING SALE</div>
-  <div class="body">
-    <div class="qr-area">[QR]</div>
-    <div class="text-area">
-      <div class="variety">Cherokee Purple</div>
-      <div class="crop-line">
-        <span class="crop">Tomato</span>
-        <span class="units">120 units</span>
-      </div>
-      <div class="bottom-line">
-        <span class="sow-date">Sow: 3/15/2026</span>
-        <span class="trays">1 tray</span>
-      </div>
-      <div class="item-id">SEED-2026-0042</div>
-    </div>
+<!-- Controls bar -->
+<div class="controls">
+  <div>
+    <label>Label Type</label>
+    <select>
+      <option>Tray Labels (4" x 1")</option>
+      <option>Pot Tags (2" x 3")</option>
+    </select>
+  </div>
+  <div>
+    <label>Quantity Each</label>
+    <input type="number" value="1" style="width:70px;">
+  </div>
+  <div>
+    <button class="btn btn-primary">Print Selected</button>
   </div>
 </div>
 
-<!-- Example 2 -->
-<div class="tray-tag">
-  <div class="header-bar">SEEDLING SALE</div>
-  <div class="body">
-    <div class="qr-area">[QR]</div>
-    <div class="text-area">
-      <div class="variety">Jalape&ntilde;o</div>
-      <div class="crop-line">
-        <span class="crop">Pepper</span>
-        <span class="units">80 units</span>
-      </div>
-      <div class="bottom-line">
-        <span class="sow-date">Sow: 3/01/2026</span>
-        <span class="trays">1 tray</span>
-      </div>
-      <div class="item-id">SEED-2026-0015</div>
-    </div>
-  </div>
+<div class="preview-header">
+  <span class="preview-title">Seedling Sale Labels</span>
+  <label style="font-size:0.85rem;color:#a09888;display:flex;align-items:center;gap:6px;cursor:pointer;">
+    <input type="checkbox"> Select All
+  </label>
 </div>
 
-<!-- Example 3 -->
-<div class="tray-tag">
-  <div class="header-bar">SEEDLING SALE</div>
-  <div class="body">
-    <div class="qr-area">[QR]</div>
-    <div class="text-area">
-      <div class="variety">Benary's Giant Mix</div>
-      <div class="crop-line">
-        <span class="crop">Zinnia</span>
-        <span class="units">200 units</span>
-      </div>
-      <div class="bottom-line">
-        <span class="sow-date">Sow: 4/01/2026</span>
-        <span class="trays">2 trays</span>
-      </div>
-      <div class="item-id">SEED-2026-0088</div>
-    </div>
-  </div>
-</div>
+<div class="labels-grid">
 
-<!-- Example 4 -->
-<div class="tray-tag">
-  <div class="header-bar">SEEDLING SALE</div>
-  <div class="body">
-    <div class="qr-area">[QR]</div>
-    <div class="text-area">
-      <div class="variety">Genovese</div>
-      <div class="crop-line">
-        <span class="crop">Basil</span>
-        <span class="units">60 units</span>
+  <!-- Card 1 -->
+  <div class="label-preview">
+    <div style="display:flex;justify-content:space-between;align-items:start;">
+      <div>
+        <div class="customer-name">Cherokee Purple</div>
+        <div class="items-list">Tomato <span class="diff-badge diff-easy">Easy</span></div>
       </div>
-      <div class="bottom-line">
-        <span class="sow-date">Sow: 3/20/2026</span>
-        <span class="trays">1 tray</span>
-      </div>
-      <div class="item-id">SEED-2026-0033</div>
+      <span class="type-badge">TRAY</span>
+    </div>
+    <div class="meta-row">
+      <span>$6.00</span>
+      <span>120 units</span>
+      <span>Sow: 3/15/2026</span>
     </div>
   </div>
+
+  <!-- Card 2 -->
+  <div class="label-preview selected">
+    <div style="display:flex;justify-content:space-between;align-items:start;">
+      <div>
+        <div class="customer-name">Jalape&ntilde;o</div>
+        <div class="items-list">Pepper <span class="diff-badge diff-easy">Easy</span></div>
+      </div>
+      <span class="type-badge">TRAY</span>
+    </div>
+    <div class="meta-row">
+      <span>$6.00</span>
+      <span>80 units</span>
+      <span>Sow: 3/01/2026</span>
+    </div>
+  </div>
+
+  <!-- Card 3 -->
+  <div class="label-preview">
+    <div style="display:flex;justify-content:space-between;align-items:start;">
+      <div>
+        <div class="customer-name">Benary's Giant Mix</div>
+        <div class="items-list">Zinnia <span class="diff-badge diff-easy">Easy</span></div>
+      </div>
+      <span class="type-badge">TRAY</span>
+    </div>
+    <div class="meta-row">
+      <span>$6.00</span>
+      <span>200 units</span>
+      <span>Sow: 4/01/2026</span>
+    </div>
+  </div>
+
+  <!-- Card 4 -->
+  <div class="label-preview">
+    <div style="display:flex;justify-content:space-between;align-items:start;">
+      <div>
+        <div class="customer-name">Genovese</div>
+        <div class="items-list">Basil <span class="diff-badge diff-moderate">Moderate</span></div>
+      </div>
+      <span class="type-badge">TRAY</span>
+    </div>
+    <div class="meta-row">
+      <span>$6.00</span>
+      <span>60 units</span>
+      <span>Sow: 3/20/2026</span>
+    </div>
+  </div>
+
+  <!-- Card 5 -->
+  <div class="label-preview">
+    <div style="display:flex;justify-content:space-between;align-items:start;">
+      <div>
+        <div class="customer-name">San Marzano</div>
+        <div class="items-list">Tomato <span class="diff-badge diff-easy">Easy</span></div>
+      </div>
+      <span class="type-badge">TRAY</span>
+    </div>
+    <div class="meta-row">
+      <span>$6.00</span>
+      <span>90 units</span>
+      <span>Sow: 3/10/2026</span>
+    </div>
+  </div>
+
+  <!-- Card 6 -->
+  <div class="label-preview">
+    <div style="display:flex;justify-content:space-between;align-items:start;">
+      <div>
+        <div class="customer-name">Fairy Tale</div>
+        <div class="items-list">Eggplant <span class="diff-badge diff-moderate">Moderate</span></div>
+      </div>
+      <span class="type-badge">TRAY</span>
+    </div>
+    <div class="meta-row">
+      <span>$6.00</span>
+      <span>40 units</span>
+      <span>Sow: 3/25/2026</span>
+    </div>
+  </div>
+
 </div>
 
 </body>
