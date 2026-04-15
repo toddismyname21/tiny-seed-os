@@ -3577,10 +3577,10 @@
         function renderPotTagPage(doc, label, logoImage, usdaImage, W, H) {
             var cx = W / 2;
 
-            // === TOP: TINY SEED FARM LOGO (upright, centered) ===
+            // === TOP: TINY SEED FARM LOGO (upright, centered, flush to top) ===
             var logoSz = 58;
             if (logoImage) {
-                doc.addImage(logoImage, 'PNG', (W - logoSz) / 2, 4, logoSz, logoSz);
+                doc.addImage(logoImage, 'PNG', (W - logoSz) / 2, 1, logoSz, logoSz);
             } else {
                 doc.setFont('helvetica', 'bold');
                 doc.setFontSize(7);
@@ -3589,7 +3589,7 @@
             }
 
             // === DIVIDER below logo ===
-            var divY = logoSz + 8;
+            var divY = logoSz + 4;
             doc.setDrawColor(160, 160, 160);
             doc.setLineWidth(0.5);
             doc.line(5, divY, W - 5, divY);
@@ -3597,7 +3597,7 @@
             // === BOTTOM: USDA ORGANIC SEAL (upright, centered above soil line) ===
             var usdaSz = 50;
             var soilLineY = H - 12;
-            var usdaY = soilLineY - 4 - usdaSz;
+            var usdaY = soilLineY - 24 - usdaSz;
             if (usdaImage) {
                 doc.addImage(usdaImage, 'PNG', (W - usdaSz) / 2, usdaY, usdaSz, usdaSz);
             } else {
