@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pot Tag Mockup — Current Design</title>
+<style>
+  body {
+    font-family: -apple-system, sans-serif;
+    background: #f0f0f0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+    padding: 32px;
+    justify-content: center;
+  }
+  h2 { width: 100%; text-align: center; margin: 0 0 8px; }
+  p.note { width: 100%; text-align: center; color: #666; font-size: 14px; margin: 0 0 20px; }
+
+  .pot-tag {
+    width: 2in;
+    height: 3in;
+    border: 1px solid #ccc;
+    background: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 6px 8px;
+    box-sizing: border-box;
+    font-family: Helvetica, Arial, sans-serif;
+    position: relative;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+
+  .pot-tag .logo {
+    width: 60px;
+    height: 60px;
+    object-fit: contain;
+    margin-top: 2px;
+  }
+
+  .pot-tag .separator {
+    width: calc(100% - 16px);
+    height: 1px;
+    background: #000;
+    margin: 4px 0;
+  }
+
+  .pot-tag .crop {
+    font-size: 16pt;
+    font-weight: bold;
+    text-transform: uppercase;
+    text-align: center;
+    color: #000;
+    margin-top: 6px;
+    line-height: 1.2;
+  }
+
+  .pot-tag .variety {
+    font-size: 10pt;
+    font-style: italic;
+    color: #3c3c3c;
+    text-align: center;
+    margin-top: 2px;
+  }
+
+  .pot-tag .price {
+    font-size: 14pt;
+    font-weight: bold;
+    color: #000;
+    margin-top: 8px;
+  }
+
+  .pot-tag .organic-seal {
+    width: 36px;
+    height: 36px;
+    object-fit: contain;
+    margin-top: 8px;
+  }
+
+  .pot-tag .website {
+    font-size: 5pt;
+    color: #999;
+    position: absolute;
+    bottom: 4px;
+  }
+</style>
+</head>
+<body>
+
+<h2>Current Seedling Sale Pot Tag (2" x 3")</h2>
+<p class="note">This is what prints right now. Tell me what to change.</p>
+
+<!-- Example 1: Tomato -->
+<div class="pot-tag">
+  <img src="images/tiny-seed-farm-logo-bw.png" class="logo" alt="Tiny Seed Farm">
+  <div class="separator"></div>
+  <div class="crop">TOMATO</div>
+  <div class="variety">Cherokee Purple</div>
+  <div class="price">$6.00</div>
+  <img src="images/usda-organic-bw.gif" class="organic-seal" alt="USDA Organic">
+  <div class="website">tinyseedfarm.com</div>
+</div>
+
+<!-- Example 2: Pepper -->
+<div class="pot-tag">
+  <img src="images/tiny-seed-farm-logo-bw.png" class="logo" alt="Tiny Seed Farm">
+  <div class="separator"></div>
+  <div class="crop">PEPPER</div>
+  <div class="variety">Jalape&ntilde;o</div>
+  <div class="price">$6.00</div>
+  <img src="images/usda-organic-bw.gif" class="organic-seal" alt="USDA Organic">
+  <div class="website">tinyseedfarm.com</div>
+</div>
+
+<!-- Example 3: Flower -->
+<div class="pot-tag">
+  <img src="images/tiny-seed-farm-logo-bw.png" class="logo" alt="Tiny Seed Farm">
+  <div class="separator"></div>
+  <div class="crop">ZINNIA</div>
+  <div class="variety">Benary's Giant Mix</div>
+  <div class="price">$6.00</div>
+  <img src="images/usda-organic-bw.gif" class="organic-seal" alt="USDA Organic">
+  <div class="website">tinyseedfarm.com</div>
+</div>
+
+<!-- Example 4: Herb -->
+<div class="pot-tag">
+  <img src="images/tiny-seed-farm-logo-bw.png" class="logo" alt="Tiny Seed Farm">
+  <div class="separator"></div>
+  <div class="crop">BASIL</div>
+  <div class="variety">Genovese</div>
+  <div class="price">$6.00</div>
+  <img src="images/usda-organic-bw.gif" class="organic-seal" alt="USDA Organic">
+  <div class="website">tinyseedfarm.com</div>
+</div>
+
+<!-- Example 5: Long name -->
+<div class="pot-tag">
+  <img src="images/tiny-seed-farm-logo-bw.png" class="logo" alt="Tiny Seed Farm">
+  <div class="separator"></div>
+  <div class="crop">EGGPLANT</div>
+  <div class="variety">Fairy Tale</div>
+  <div class="price">$6.00</div>
+  <img src="images/usda-organic-bw.gif" class="organic-seal" alt="USDA Organic">
+  <div class="website">tinyseedfarm.com</div>
+</div>
+
+</body>
+</html>
