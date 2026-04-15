@@ -3625,29 +3625,33 @@
             var cropText = (label.crop || '').toUpperCase();
             var varText = label.variety || '';
 
-            // jsPDF angle rotates CCW in degrees around the (x,y) anchor point.
-            // angle:90 means text runs bottom-to-top.
-            // With angle:90, x controls vertical position on page, y controls horizontal.
-            // "align:'center'" centers the text string at the anchor along its run direction.
+            // Rotated text: reading bottom-to-top (90° CCW).
+            // jsPDF text() with angle rotates around anchor point.
+            // We position text in the middle vertical zone and rotate.
 
             if (varText) {
-                // Crop: bold, large — positioned left of center (lower x = more left on tag)
+                // Crop: bold, large
                 doc.setFont('helvetica', 'bold');
                 doc.setFontSize(20);
                 doc.setTextColor(0, 0, 0);
-                doc.text(cropText, cx - 6, textMidY, { angle: 90, align: 'center' });
+                var cropW = doc.getTextWidth(cropText);
+                var varW = doc.getTextWidth(varText); // will be recalculated after setFont
+                // Place crop left of center, starting from bottom of text zone
+                doc.text(cropText, cx - 6, textMidY + cropW / 2, { angle: 90 });
 
-                // Variety: italic, smaller — positioned right of center
+                // Variety: italic, smaller — right of crop
                 doc.setFont('helvetica', 'italic');
                 doc.setFontSize(9);
                 doc.setTextColor(80, 80, 80);
-                doc.text(varText, cx + 12, textMidY, { angle: 90, align: 'center' });
+                varW = doc.getTextWidth(varText);
+                doc.text(varText, cx + 12, textMidY + varW / 2, { angle: 90 });
             } else {
                 // Crop only — centered on tag
                 doc.setFont('helvetica', 'bold');
                 doc.setFontSize(20);
                 doc.setTextColor(0, 0, 0);
-                doc.text(cropText, cx, textMidY, { angle: 90, align: 'center' });
+                var cw = doc.getTextWidth(cropText);
+                doc.text(cropText, cx, textMidY + cw / 2, { angle: 90 });
             }
         }
 
