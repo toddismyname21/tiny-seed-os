@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: blob: https:; connect-src 'self' https://script.google.com https://script.googleusercontent.com;">
     <title>Greenhouse Labels - Tiny Seed OS</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Barlow+Condensed:ital,wght@0,600;0,800;1,400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js" integrity="sha384-HGmnkDZJy7mRkoARekrrj0VjEFSh9a0Z8qxGri/kTTAJkgR8hqD1lHsYSh3JdzRi" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js" integrity="sha384-en/ztfPSRkGfME4KIm05joYXynqzUgbsG5nMrj/xEFAHXkeZfO3yMK8QQ+mP7p1/" crossorigin="anonymous"></script>
@@ -706,8 +706,8 @@
         }
 
         .pot-tag .pot-tag-crop {
-            font-family: 'Oswald', sans-serif;
-            font-weight: 700;
+            font-family: 'Barlow Condensed', sans-serif;
+            font-weight: 800;
             font-size: 24px;
             line-height: 1;
             text-transform: uppercase;
@@ -716,9 +716,9 @@
         }
 
         .pot-tag .pot-tag-variety {
-            font-family: 'Oswald', sans-serif;
+            font-family: 'Barlow Condensed', sans-serif;
             font-weight: 400;
-            font-size: 10px;
+            font-size: 11px;
             font-style: italic;
             color: #444;
             white-space: nowrap;
@@ -3572,69 +3572,81 @@
 
         // Shared rendering: draw one pot tag page onto a jsPDF doc
         // logoImage and usdaImage are base64 PNG data URLs (or null)
+        // Layout: 1" wide (72pt) x 4" tall (288pt), portrait
+        // Top section: logo (upright). Middle: crop + variety rotated 90° bottom-to-top. Bottom: USDA seal + soil line.
         function renderPotTagPage(doc, label, logoImage, usdaImage, W, H) {
             var cx = W / 2;
-            var y = 4;
 
-            // === TINY SEED FARM LOGO (top, square, full-width) ===
-            var logoSz = 62; // fill the width (1pt margin each side = 72-10=62pt)
+            // === TOP: TINY SEED FARM LOGO (upright, centered) ===
+            var logoSz = 58;
             if (logoImage) {
-                doc.addImage(logoImage, 'PNG', (W - logoSz) / 2, y, logoSz, logoSz);
-                y += logoSz + 4;
+                doc.addImage(logoImage, 'PNG', (W - logoSz) / 2, 4, logoSz, logoSz);
             } else {
-                // Fallback: stylized text
                 doc.setFont('helvetica', 'bold');
                 doc.setFontSize(7);
                 doc.setTextColor(0, 0, 0);
-                doc.text('TINY SEED FARM', cx, y + 8, { align: 'center' });
-                y += 16;
+                doc.text('TINY SEED FARM', cx, 30, { align: 'center' });
             }
 
-            // === DIVIDER ===
-            doc.setDrawColor(180, 180, 180);
+            // === DIVIDER below logo ===
+            var divY = logoSz + 8;
+            doc.setDrawColor(160, 160, 160);
             doc.setLineWidth(0.5);
-            doc.line(5, y, W - 5, y);
-            y += 8;
+            doc.line(5, divY, W - 5, divY);
 
-            // === CROP NAME (hero — largest text on tag) ===
-            doc.setTextColor(0, 0, 0);
-            doc.setFont('helvetica', 'bold');
-            doc.setFontSize(12);
-            var cropLines = doc.splitTextToSize((label.crop || '').toUpperCase(), 62);
-            doc.text(cropLines, cx, y, { align: 'center' });
-            y += cropLines.length * 14 + 2;
-
-            // === VARIETY (smaller, below crop) ===
-            if (label.variety && label.variety.trim()) {
-                doc.setFont('helvetica', 'normal');
-                doc.setFontSize(8);
-                doc.setTextColor(60, 60, 60);
-                var varLines = doc.splitTextToSize(label.variety, 62);
-                doc.text(varLines, cx, y, { align: 'center' });
-                y += varLines.length * 10;
-            }
-
-            // === USDA ORGANIC SEAL (anchored to soil line, centered) ===
-            var usdaSz = 54;
-            var usdaY = H - 12 - 4 - usdaSz; // 4pt above soil line
+            // === BOTTOM: USDA ORGANIC SEAL (upright, centered above soil line) ===
+            var usdaSz = 50;
+            var soilLineY = H - 12;
+            var usdaY = soilLineY - 4 - usdaSz;
             if (usdaImage) {
                 doc.addImage(usdaImage, 'PNG', (W - usdaSz) / 2, usdaY, usdaSz, usdaSz);
             } else {
-                // Fallback: text badge
                 doc.setFont('helvetica', 'bold');
                 doc.setFontSize(6);
-                doc.setTextColor(27, 107, 42);
+                doc.setTextColor(0, 0, 0);
                 doc.text('USDA ORGANIC', cx, usdaY + usdaSz / 2, { align: 'center' });
             }
 
-            // === SOIL INSERT MARKER (bottom) ===
+            // === SOIL INSERT MARKER ===
             doc.setDrawColor(200, 200, 200);
             doc.setLineWidth(0.3);
-            doc.line(5, H - 12, W - 5, H - 12);
+            doc.line(5, soilLineY, W - 5, soilLineY);
             doc.setFont('helvetica', 'normal');
             doc.setFontSize(5);
             doc.setTextColor(187, 187, 187);
             doc.text('insert in soil', cx, H - 5, { align: 'center' });
+
+            // === MIDDLE: CROP + VARIETY rotated 90° (read bottom-to-top) ===
+            // Text zone runs from divY+4 to usdaY-4
+            var textTop = divY + 4;
+            var textBottom = usdaY - 4;
+            var textMidY = (textTop + textBottom) / 2;
+
+            // Crop name — large, bold, uppercase
+            var cropText = (label.crop || '').toUpperCase();
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(22);
+            doc.setTextColor(0, 0, 0);
+
+            // Variety — smaller, below crop in the rotated view
+            var varText = label.variety || '';
+
+            if (varText) {
+                // Both crop and variety: position them centered in the text zone
+                // Rotated 90° CCW: angle = 90, text reads bottom-to-top
+                // Crop on left (closer to center), variety on right (further from center)
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(22);
+                doc.text(cropText, cx - 4, textMidY, { align: 'center', angle: 90 });
+
+                doc.setFont('helvetica', 'italic');
+                doc.setFontSize(9);
+                doc.setTextColor(80, 80, 80);
+                doc.text(varText, cx + 14, textMidY, { align: 'center', angle: 90 });
+            } else {
+                // Crop only, centered
+                doc.text(cropText, cx, textMidY, { align: 'center', angle: 90 });
+            }
         }
 
         function executePrintUL247FieldTrayPDF() {
