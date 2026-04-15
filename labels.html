@@ -707,7 +707,7 @@
 
         .pot-tag .pot-tag-crop {
             font-weight: 900;
-            font-size: 16px;
+            font-size: 22px;
             line-height: 1;
             text-transform: uppercase;
             letter-spacing: 0.04em;
@@ -2304,7 +2304,7 @@
                 onLoad();
             };
             logoImg.onerror = function() { potTagImages.logo = null; onLoad(); };
-            logoImg.src = 'web_app/images/tiny-seed-farm-logo-final.png';
+            logoImg.src = 'web_app/images/tiny-seed-farm-logo-bw.png';
 
             // Load USDA SVG -> canvas -> PNG
             var usdaImg = new Image();
@@ -2318,7 +2318,7 @@
                 onLoad();
             };
             usdaImg.onerror = function() { potTagImages.usda = null; onLoad(); };
-            usdaImg.src = 'web_app/images/usda-organic-seal.svg';
+            usdaImg.src = 'web_app/images/usda-organic-bw.gif';
         }
 
         // ============ LABEL TYPE SWITCHING ============
