@@ -3735,13 +3735,13 @@
             html += '.tag-logo { width: 87%; aspect-ratio: 1; object-fit: contain; margin-top: 0.03in; flex-shrink: 0; }';
 
             // Text area — rotated 90° reading bottom to top
-            html += '.tag-text-area { display: flex; flex-direction: column; align-items: center; justify-content: center; writing-mode: vertical-rl; transform: rotate(180deg); flex: 1; gap: 0.01in; overflow: hidden; width: 100%; }';
+            html += '.tag-text-area { display: flex; flex-direction: column; align-items: center; justify-content: center; writing-mode: vertical-rl; transform: rotate(180deg); flex: 1; gap: 0.01in; overflow: visible; width: 100%; }';
 
-            // Crop — 39% of tag width as font size (24/62 = 0.387)
-            html += '.tag-crop { font-weight: 800; font-size: 0.37in; line-height: 1; text-transform: uppercase; letter-spacing: 0.03em; white-space: nowrap; }';
+            // Crop — bold uppercase, sized to fit via JS after render
+            html += '.tag-crop { font-weight: 800; line-height: 1; text-transform: uppercase; letter-spacing: 0.03em; white-space: nowrap; }';
 
-            // Variety — 18% of tag width (11/62 = 0.177)
-            html += '.tag-variety { font-weight: 400; font-size: 0.17in; font-style: italic; color: #444; white-space: nowrap; }';
+            // Variety — italic below crop
+            html += '.tag-variety { font-weight: 400; font-style: italic; color: #444; white-space: nowrap; }';
 
             // USDA seal — 61% of tag width (38/62 = 0.613)
             html += '.tag-usda { width: 61%; aspect-ratio: 1; object-fit: contain; flex-shrink: 0; }';
@@ -3784,19 +3784,38 @@
                 html += '</div>';
             });
 
-            // Auto-shrink long names after render
+            // Size crop and variety text to fit their container after fonts load
             html += '<script>';
-            html += 'window.addEventListener("load", function() {';
-            html += '  document.querySelectorAll(".tag-crop").forEach(function(el) {';
-            html += '    var parent = el.closest(".tag-text-area");';
-            html += '    if (!parent) return;';
-            html += '    var fontSize = 37;';
-            html += '    while (el.scrollWidth > parent.clientHeight && fontSize > 16) {';
-            html += '      fontSize -= 1;';
-            html += '      el.style.fontSize = (fontSize / 100) + "in";';
+            html += 'function fitText() {';
+            html += '  document.querySelectorAll(".tag").forEach(function(tag) {';
+            html += '    var textArea = tag.querySelector(".tag-text-area");';
+            html += '    if (!textArea) return;';
+            // Available height for text (text area height when rotated = its width on screen)
+            html += '    var availH = textArea.offsetHeight;';
+            html += '    var crop = tag.querySelector(".tag-crop");';
+            html += '    var variety = tag.querySelector(".tag-variety");';
+            // Start crop at large size and shrink until it fits
+            html += '    if (crop) {';
+            html += '      var sz = 36;';
+            html += '      crop.style.fontSize = sz + "px";';
+            html += '      while (crop.scrollWidth > availH * 0.85 && sz > 10) {';
+            html += '        sz -= 1;';
+            html += '        crop.style.fontSize = sz + "px";';
+            html += '      }';
+            html += '    }';
+            // Variety at proportional size
+            html += '    if (variety) {';
+            html += '      var vsz = 16;';
+            html += '      variety.style.fontSize = vsz + "px";';
+            html += '      while (variety.scrollWidth > availH * 0.85 && vsz > 8) {';
+            html += '        vsz -= 0.5;';
+            html += '        variety.style.fontSize = vsz + "px";';
+            html += '      }';
             html += '    }';
             html += '  });';
-            html += '});';
+            html += '}';
+            // Run after fonts load to get accurate measurements
+            html += 'document.fonts ? document.fonts.ready.then(fitText) : window.addEventListener("load", fitText);';
             html += '<\/script>';
 
             html += '</body></html>';
