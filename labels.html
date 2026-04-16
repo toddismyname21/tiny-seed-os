@@ -3725,27 +3725,29 @@
             html += '* { margin: 0; padding: 0; box-sizing: border-box; }';
             html += 'body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }';
 
-            // Tag container — exact same dimensions as on-screen preview
-            html += '.tag { width: 1in; height: 4in; padding: 4px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 2px; page-break-after: always; overflow: hidden; font-family: "Barlow Condensed", Arial, sans-serif; color: #000; position: relative; }';
+            // Tag container — uses percentage-based sizing so proportions match preview exactly
+            // Preview: 62px wide x 280px tall (~0.65x scale). Print: 1in x ~4in (actual size).
+            // All child sizes use % of tag width so ratios are identical at any scale.
+            html += '.tag { width: 1in; height: 3.9in; padding: 0.06in; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 0.03in; page-break-after: always; overflow: hidden; font-family: "Barlow Condensed", Arial, sans-serif; color: #000; position: relative; }';
             html += '.tag:last-child { page-break-after: auto; }';
 
-            // Logo
-            html += '.tag-logo { width: 54px; height: 54px; object-fit: contain; margin-top: 2px; flex-shrink: 0; }';
+            // Logo — 87% of tag width (54/62 = 0.87)
+            html += '.tag-logo { width: 87%; aspect-ratio: 1; object-fit: contain; margin-top: 0.03in; flex-shrink: 0; }';
 
             // Text area — rotated 90° reading bottom to top
-            html += '.tag-text-area { display: flex; flex-direction: column; align-items: center; justify-content: center; writing-mode: vertical-rl; transform: rotate(180deg); flex: 1; gap: 1px; overflow: hidden; width: 100%; }';
+            html += '.tag-text-area { display: flex; flex-direction: column; align-items: center; justify-content: center; writing-mode: vertical-rl; transform: rotate(180deg); flex: 1; gap: 0.01in; overflow: hidden; width: 100%; }';
 
-            // Crop — big bold uppercase
-            html += '.tag-crop { font-weight: 800; font-size: 24px; line-height: 1; text-transform: uppercase; letter-spacing: 0.03em; white-space: nowrap; }';
+            // Crop — 39% of tag width as font size (24/62 = 0.387)
+            html += '.tag-crop { font-weight: 800; font-size: 0.37in; line-height: 1; text-transform: uppercase; letter-spacing: 0.03em; white-space: nowrap; }';
 
-            // Variety — italic
-            html += '.tag-variety { font-weight: 400; font-size: 11px; font-style: italic; color: #444; white-space: nowrap; }';
+            // Variety — 18% of tag width (11/62 = 0.177)
+            html += '.tag-variety { font-weight: 400; font-size: 0.17in; font-style: italic; color: #444; white-space: nowrap; }';
 
-            // USDA seal
-            html += '.tag-usda { width: 38px; height: 38px; object-fit: contain; flex-shrink: 0; }';
+            // USDA seal — 61% of tag width (38/62 = 0.613)
+            html += '.tag-usda { width: 61%; aspect-ratio: 1; object-fit: contain; flex-shrink: 0; }';
 
             // Soil line
-            html += '.tag-soil { width: 100%; border-top: 1px dashed #ccc; font-size: 5px; color: #bbb; padding-top: 2px; margin-top: 30px; text-align: center; }';
+            html += '.tag-soil { width: 100%; border-top: 1px dashed #ccc; font-size: 0.08in; color: #bbb; padding-top: 0.03in; margin-top: 0.45in; text-align: center; }';
 
             // Screen-only setup guide
             html += '.print-setup { font-family: -apple-system, sans-serif; background: #1a1a2e; color: #e0e0e0; padding: 24px; margin-bottom: 20px; border-radius: 12px; }';
@@ -3788,10 +3790,10 @@
             html += '  document.querySelectorAll(".tag-crop").forEach(function(el) {';
             html += '    var parent = el.closest(".tag-text-area");';
             html += '    if (!parent) return;';
-            html += '    var fontSize = 24;';
-            html += '    while (el.scrollWidth > parent.clientHeight && fontSize > 12) {';
+            html += '    var fontSize = 37;';
+            html += '    while (el.scrollWidth > parent.clientHeight && fontSize > 16) {';
             html += '      fontSize -= 1;';
-            html += '      el.style.fontSize = fontSize + "px";';
+            html += '      el.style.fontSize = (fontSize / 100) + "in";';
             html += '    }';
             html += '  });';
             html += '});';
