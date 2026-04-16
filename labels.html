@@ -2953,7 +2953,7 @@
         executePrint = function() {
             if (currentLabelType === 'potTag' || currentLabelType === 'seedlingSale') {
                 closePrintPreview();
-                executePrintUL247PotTagsPDF();
+                executePrintUL247PotTagsHTML();
             } else if (currentLabelType === 'fieldTray') {
                 closePrintPreview();
                 executePrintUL247FieldTrayPDF();
@@ -3707,6 +3707,102 @@
                 doc.setTextColor(0, 0, 0);
                 doc.text(cropText, cx, textMidY + cropW / 2, { angle: 90 });
             }
+        }
+
+        function executePrintUL247PotTagsHTML() {
+            var labelsToprint = labels.filter(function(l) { return selectedLabels.has(l.labelId); });
+            if (labelsToprint.length === 0) { showToast('No labels selected'); return; }
+
+            var printWindow = window.open('', '_blank', 'width=500,height=800');
+            if (!printWindow) { showToast('Popup blocked — allow popups for this site'); return; }
+
+            var html = '<!DOCTYPE html><html><head>';
+            html += '<meta charset="UTF-8">';
+            html += '<title>Seedling Sale Tags</title>';
+            html += '<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,800;1,400&display=swap" rel="stylesheet">';
+            html += '<style>';
+            html += '@page { size: 1in 4in; margin: 0; }';
+            html += '* { margin: 0; padding: 0; box-sizing: border-box; }';
+            html += 'body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }';
+
+            // Tag container — exact same dimensions as on-screen preview
+            html += '.tag { width: 1in; height: 4in; padding: 4px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 2px; page-break-after: always; overflow: hidden; font-family: "Barlow Condensed", Arial, sans-serif; color: #000; position: relative; }';
+            html += '.tag:last-child { page-break-after: auto; }';
+
+            // Logo
+            html += '.tag-logo { width: 54px; height: 54px; object-fit: contain; margin-top: 2px; flex-shrink: 0; }';
+
+            // Text area — rotated 90° reading bottom to top
+            html += '.tag-text-area { display: flex; flex-direction: column; align-items: center; justify-content: center; writing-mode: vertical-rl; transform: rotate(180deg); flex: 1; gap: 1px; overflow: hidden; width: 100%; }';
+
+            // Crop — big bold uppercase
+            html += '.tag-crop { font-weight: 800; font-size: 24px; line-height: 1; text-transform: uppercase; letter-spacing: 0.03em; white-space: nowrap; }';
+
+            // Variety — italic
+            html += '.tag-variety { font-weight: 400; font-size: 11px; font-style: italic; color: #444; white-space: nowrap; }';
+
+            // USDA seal
+            html += '.tag-usda { width: 38px; height: 38px; object-fit: contain; flex-shrink: 0; }';
+
+            // Soil line
+            html += '.tag-soil { width: 100%; border-top: 1px dashed #ccc; font-size: 5px; color: #bbb; padding-top: 2px; margin-top: 30px; text-align: center; }';
+
+            // Screen-only setup guide
+            html += '.print-setup { font-family: -apple-system, sans-serif; background: #1a1a2e; color: #e0e0e0; padding: 24px; margin-bottom: 20px; border-radius: 12px; }';
+            html += '.print-setup h2 { color: #4ade80; font-size: 18px; margin-bottom: 12px; }';
+            html += '.print-setup p { font-size: 14px; line-height: 1.6; margin-bottom: 8px; }';
+            html += '.print-setup strong { color: #fbbf24; }';
+            html += '.print-btn { background: #4ade80; color: #1a1a2e; border: none; padding: 14px 40px; font-size: 16px; font-weight: 800; border-radius: 8px; cursor: pointer; margin-top: 16px; }';
+            html += '@media print { .print-setup { display: none !important; } }';
+            html += '@media screen { body { background: #e0e0e0; padding: 20px; } .tag { background: white; border: 1px solid #999; margin: 10px auto; box-shadow: 0 2px 8px rgba(0,0,0,0.2); } }';
+
+            html += '</style></head><body>';
+
+            // Setup guide
+            html += '<div class="print-setup">';
+            html += '<h2>Seedling Sale Tags — ' + labelsToprint.length + ' tags</h2>';
+            html += '<p>1. Set <strong>Paper Size</strong> to <strong>1" x 4"</strong> (or 1" x 4.5" with gap)</p>';
+            html += '<p>2. Set <strong>Margins</strong> to <strong>None</strong></p>';
+            html += '<p>3. Set <strong>Scale</strong> to <strong>100%</strong> (not "Fit to page")</p>';
+            html += '<button class="print-btn" onclick="window.print()">Print Tags</button>';
+            html += '</div>';
+
+            // Render each tag — identical HTML structure to the on-screen preview
+            labelsToprint.forEach(function(label) {
+                html += '<div class="tag">';
+                html += '<img class="tag-logo" src="web_app/images/tiny-seed-farm-logo-bw.png" alt="Tiny Seed Farm">';
+                html += '<div class="tag-text-area">';
+                html += '<div class="tag-crop">' + (label.crop || '') + '</div>';
+                if (label.variety) {
+                    html += '<div class="tag-variety">' + label.variety + '</div>';
+                }
+                html += '</div>';
+                html += '<img class="tag-usda" src="web_app/images/usda-organic-bw.gif" alt="USDA Organic">';
+                html += '<div class="tag-soil">▼ soil line ▼</div>';
+                html += '</div>';
+            });
+
+            // Auto-shrink long names after render
+            html += '<script>';
+            html += 'window.addEventListener("load", function() {';
+            html += '  document.querySelectorAll(".tag-crop").forEach(function(el) {';
+            html += '    var parent = el.closest(".tag-text-area");';
+            html += '    if (!parent) return;';
+            html += '    var fontSize = 24;';
+            html += '    while (el.scrollWidth > parent.clientHeight && fontSize > 12) {';
+            html += '      fontSize -= 1;';
+            html += '      el.style.fontSize = fontSize + "px";';
+            html += '    }';
+            html += '  });';
+            html += '});';
+            html += '<\/script>';
+
+            html += '</body></html>';
+
+            printWindow.document.write(html);
+            printWindow.document.close();
+            closePrintPreview();
+            showToast(labelsToprint.length + ' pot tags ready — click Print Tags in the new window');
         }
 
         function executePrintUL247FieldTrayPDF() {
