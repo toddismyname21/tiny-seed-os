@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js" integrity="sha384-HGmnkDZJy7mRkoARekrrj0VjEFSh9a0Z8qxGri/kTTAJkgR8hqD1lHsYSh3JdzRi" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js" integrity="sha384-en/ztfPSRkGfME4KIm05joYXynqzUgbsG5nMrj/xEFAHXkeZfO3yMK8QQ+mP7p1/" crossorigin="anonymous"></script>
+    <script src="web_app/fonts-barlow-condensed.js"></script>
     <script src="web_app/print-engine.js"></script>
     <script src="web_app/api-config.js"></script>
     <script src="web_app/auth-guard.js" data-required-role="Manager"></script>
@@ -713,6 +714,8 @@
             text-transform: uppercase;
             letter-spacing: 0.03em;
             white-space: nowrap;
+            overflow: hidden;
+            max-height: 100%;
         }
 
         .pot-tag .pot-tag-variety {
@@ -722,6 +725,8 @@
             font-style: italic;
             color: #444;
             white-space: nowrap;
+            overflow: hidden;
+            max-height: 100%;
         }
 
         .pot-tag .pot-tag-logo {
@@ -2835,6 +2840,19 @@
             });
 
             container.innerHTML = html;
+
+            // Auto-shrink crop names that overflow their text area
+            setTimeout(function() {
+                document.querySelectorAll('.pot-tag .pot-tag-crop').forEach(function(el) {
+                    var parent = el.closest('.pot-tag-text-area');
+                    if (!parent) return;
+                    var fontSize = 24;
+                    while (el.scrollWidth > parent.clientHeight && fontSize > 12) {
+                        fontSize -= 1;
+                        el.style.fontSize = fontSize + 'px';
+                    }
+                });
+            }, 50);
         }
 
         // ============ FIELD TRAY LABEL FUNCTIONS (FT40101WH - 4" x 1") ============
@@ -3576,6 +3594,18 @@
         function renderPotTagPage(doc, label, logoImage, usdaImage, W, H) {
             var cx = W / 2;
 
+            // Register Barlow Condensed if available and not yet added
+            if (typeof BARLOW_EXTRABOLD_B64 !== 'undefined' && !doc._barlowRegistered) {
+                doc.addFileToVFS('BarlowCondensed-ExtraBold.ttf', BARLOW_EXTRABOLD_B64);
+                doc.addFont('BarlowCondensed-ExtraBold.ttf', 'BarlowCondensed', 'bold');
+                if (typeof BARLOW_ITALIC_B64 !== 'undefined') {
+                    doc.addFileToVFS('BarlowCondensed-Italic.ttf', BARLOW_ITALIC_B64);
+                    doc.addFont('BarlowCondensed-Italic.ttf', 'BarlowCondensed', 'italic');
+                }
+                doc._barlowRegistered = true;
+            }
+            var fontName = doc._barlowRegistered ? 'BarlowCondensed' : 'helvetica';
+
             // === LAYOUT ZONES (72pt wide x 288pt tall) ===
             // Zone 1: Logo — top 58pt
             // Zone 2: Divider — 1pt
@@ -3632,7 +3662,7 @@
 
             // Determine font size for crop — shrink if it won't fit in the zone
             var cropFontSize = 20;
-            doc.setFont('helvetica', 'bold');
+            doc.setFont(fontName, 'bold');
             doc.setFontSize(cropFontSize);
             var cropW = doc.getTextWidth(cropText);
 
@@ -3645,7 +3675,7 @@
 
             if (varText) {
                 // Calculate variety width
-                doc.setFont('helvetica', 'italic');
+                doc.setFont(fontName, 'italic');
                 doc.setFontSize(9);
                 var varW = doc.getTextWidth(varText);
 
@@ -3660,19 +3690,19 @@
                 // Center both in text zone, crop left of center, variety right
                 var textMidY = textTop + textZoneHeight / 2;
 
-                doc.setFont('helvetica', 'bold');
+                doc.setFont(fontName, 'bold');
                 doc.setFontSize(cropFontSize);
                 doc.setTextColor(0, 0, 0);
                 doc.text(cropText, cx - 6, textMidY + cropW / 2, { angle: 90 });
 
-                doc.setFont('helvetica', 'italic');
+                doc.setFont(fontName, 'italic');
                 doc.setFontSize(varFontSize);
                 doc.setTextColor(80, 80, 80);
                 doc.text(varText, cx + 12, textMidY + varW / 2, { angle: 90 });
             } else {
                 // Crop only — centered
                 var textMidY = textTop + textZoneHeight / 2;
-                doc.setFont('helvetica', 'bold');
+                doc.setFont(fontName, 'bold');
                 doc.setFontSize(cropFontSize);
                 doc.setTextColor(0, 0, 0);
                 doc.text(cropText, cx, textMidY + cropW / 2, { angle: 90 });
