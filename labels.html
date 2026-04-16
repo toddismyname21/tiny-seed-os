@@ -733,10 +733,9 @@
         }
 
         .pot-tag .pot-tag-usda {
-            width: 40px;
-            height: 40px;
+            width: 38px;
+            height: 38px;
             object-fit: contain;
-            margin-top: auto;
             flex-shrink: 0;
         }
 
@@ -746,7 +745,7 @@
             font-size: 5px;
             color: #bbb;
             padding-top: 2px;
-            margin-top: auto;
+            margin-top: 30px;
         }
 
         /* Field Tray Label Preview (FT40101WH - 4" x 1", ~0.75x scale) */
@@ -3577,7 +3576,14 @@
         function renderPotTagPage(doc, label, logoImage, usdaImage, W, H) {
             var cx = W / 2;
 
-            // === TOP: TINY SEED FARM LOGO (upright, centered, flush to top) ===
+            // === LAYOUT ZONES (72pt wide x 288pt tall) ===
+            // Zone 1: Logo — top 58pt
+            // Zone 2: Divider — 1pt
+            // Zone 3: Text (crop + variety, rotated) — middle
+            // Zone 4: USDA seal — 46pt
+            // Zone 5: Soil line — bottom 30pt (buried in soil)
+
+            // === ZONE 1: LOGO (flush to top) ===
             var logoSz = 58;
             if (logoImage) {
                 doc.addImage(logoImage, 'PNG', (W - logoSz) / 2, 1, logoSz, logoSz);
@@ -3588,16 +3594,25 @@
                 doc.text('TINY SEED FARM', cx, 30, { align: 'center' });
             }
 
-            // === DIVIDER below logo ===
-            var divY = logoSz + 4;
+            // === DIVIDER ===
+            var divY = logoSz + 3;
             doc.setDrawColor(160, 160, 160);
             doc.setLineWidth(0.5);
             doc.line(5, divY, W - 5, divY);
 
-            // === BOTTOM: USDA ORGANIC SEAL (upright, centered above soil line) ===
-            var usdaSz = 50;
-            var soilLineY = H - 12;
-            var usdaY = soilLineY - 24 - usdaSz;
+            // === ZONE 5: SOIL LINE (bottom) ===
+            var soilLineY = H - 10;
+            doc.setDrawColor(200, 200, 200);
+            doc.setLineWidth(0.3);
+            doc.line(5, soilLineY, W - 5, soilLineY);
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(5);
+            doc.setTextColor(187, 187, 187);
+            doc.text('insert in soil', cx, H - 4, { align: 'center' });
+
+            // === ZONE 4: USDA ORGANIC SEAL (above soil, well clear) ===
+            var usdaSz = 46;
+            var usdaY = soilLineY - 36 - usdaSz;
             if (usdaImage) {
                 doc.addImage(usdaImage, 'PNG', (W - usdaSz) / 2, usdaY, usdaSz, usdaSz);
             } else {
@@ -3607,51 +3622,60 @@
                 doc.text('USDA ORGANIC', cx, usdaY + usdaSz / 2, { align: 'center' });
             }
 
-            // === SOIL INSERT MARKER ===
-            doc.setDrawColor(200, 200, 200);
-            doc.setLineWidth(0.3);
-            doc.line(5, soilLineY, W - 5, soilLineY);
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(5);
-            doc.setTextColor(187, 187, 187);
-            doc.text('insert in soil', cx, H - 5, { align: 'center' });
-
-            // === MIDDLE: CROP + VARIETY rotated 90° (read bottom-to-top) ===
-            // Text zone runs from divY to usdaY
-            var textTop = divY + 4;
-            var textBottom = usdaY - 4;
-            var textMidY = (textTop + textBottom) / 2;
+            // === ZONE 3: CROP + VARIETY (rotated 90° bottom-to-top) ===
+            var textTop = divY + 6;
+            var textBottom = usdaY - 6;
+            var textZoneHeight = textBottom - textTop;
 
             var cropText = (label.crop || '').toUpperCase();
             var varText = label.variety || '';
 
-            // Rotated text: reading bottom-to-top (90° CCW).
-            // jsPDF text() with angle rotates around anchor point.
-            // We position text in the middle vertical zone and rotate.
+            // Determine font size for crop — shrink if it won't fit in the zone
+            var cropFontSize = 20;
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(cropFontSize);
+            var cropW = doc.getTextWidth(cropText);
+
+            // Shrink font until crop text fits within the text zone
+            while (cropW > textZoneHeight - 10 && cropFontSize > 10) {
+                cropFontSize -= 1;
+                doc.setFontSize(cropFontSize);
+                cropW = doc.getTextWidth(cropText);
+            }
 
             if (varText) {
-                // Crop: bold, large
-                doc.setFont('helvetica', 'bold');
-                doc.setFontSize(20);
-                doc.setTextColor(0, 0, 0);
-                var cropW = doc.getTextWidth(cropText);
-                var varW = doc.getTextWidth(varText); // will be recalculated after setFont
-                // Place crop left of center, starting from bottom of text zone
-                doc.text(cropText, cx - 6, textMidY + cropW / 2, { angle: 90 });
-
-                // Variety: italic, smaller — right of crop
+                // Calculate variety width
                 doc.setFont('helvetica', 'italic');
                 doc.setFontSize(9);
+                var varW = doc.getTextWidth(varText);
+
+                // Shrink variety if needed
+                var varFontSize = 9;
+                while (varW > textZoneHeight - 10 && varFontSize > 6) {
+                    varFontSize -= 0.5;
+                    doc.setFontSize(varFontSize);
+                    varW = doc.getTextWidth(varText);
+                }
+
+                // Center both in text zone, crop left of center, variety right
+                var textMidY = textTop + textZoneHeight / 2;
+
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(cropFontSize);
+                doc.setTextColor(0, 0, 0);
+                doc.text(cropText, cx - 6, textMidY + cropW / 2, { angle: 90 });
+
+                doc.setFont('helvetica', 'italic');
+                doc.setFontSize(varFontSize);
                 doc.setTextColor(80, 80, 80);
-                varW = doc.getTextWidth(varText);
                 doc.text(varText, cx + 12, textMidY + varW / 2, { angle: 90 });
             } else {
-                // Crop only — centered on tag
+                // Crop only — centered
+                var textMidY = textTop + textZoneHeight / 2;
                 doc.setFont('helvetica', 'bold');
-                doc.setFontSize(20);
+                doc.setFontSize(cropFontSize);
                 doc.setTextColor(0, 0, 0);
-                var cw = doc.getTextWidth(cropText);
-                doc.text(cropText, cx, textMidY + cw / 2, { angle: 90 });
+                doc.text(cropText, cx, textMidY + cropW / 2, { angle: 90 });
             }
         }
 
