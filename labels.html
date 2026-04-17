@@ -1091,6 +1091,9 @@
                     <button class="type-btn" id="btnSeedlingSaleLabels" onclick="switchLabelType('seedlingSale')" style="grid-column:1/-1;background:linear-gradient(135deg,rgba(34,197,94,0.15),rgba(22,163,74,0.15));border-color:rgba(34,197,94,0.4);color:#4ade80;">
                         <i class="fas fa-store"></i> Seedling Sale
                     </button>
+                    <button class="type-btn" id="btnPottingUpLabels" onclick="switchLabelType('pottingUp')">
+                        <i class="fas fa-arrow-up"></i> Potting Up
+                    </button>
                 </div>
                 <div class="label-type-desc" id="labelTypeDesc">
                     <strong>2.5" x 0.75"</strong> — Standard printer, clips to tray lip
@@ -1217,6 +1220,47 @@
 
                 <button class="btn btn-primary btn-block" onclick="generateSeedlingSaleTags()" style="margin-top:12px;background:linear-gradient(135deg,#22c55e,#16a34a);">
                     <i class="fas fa-tag"></i> Generate Tags
+                </button>
+            </div>
+
+            <div class="panel-section" id="pottingUpFilters" style="display:none;">
+                <h3 class="panel-title"><i class="fas fa-arrow-up"></i> Potting Up Labels</h3>
+                <p style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:12px;">Select a seeded batch, enter new tray count and cell size.</p>
+
+                <div class="form-group">
+                    <label>Search Batch</label>
+                    <input type="text" class="form-control" id="puSearch" placeholder="Type to search crop or variety..."
+                           oninput="filterPottingUpDropdown()">
+                    <select class="form-control" id="puBatchSelect" size="6" style="margin-top:4px;height:auto;"
+                            onchange="onPottingUpBatchSelected()">
+                        <option value="">Loading batches...</option>
+                    </select>
+                </div>
+
+                <div id="puBatchInfo" style="display:none;background:var(--bg-light);padding:10px;border-radius:8px;margin-bottom:12px;font-size:0.82rem;">
+                    <div id="puBatchInfoContent"></div>
+                </div>
+
+                <div class="form-group">
+                    <label>Number of New Trays</label>
+                    <input type="number" class="form-control" id="puTrayCount" min="1" value="1" placeholder="How many trays?">
+                </div>
+
+                <div class="form-group">
+                    <label>New Cell/Pot Size</label>
+                    <select class="form-control" id="puCellSize">
+                        <option value="72">72-cell</option>
+                        <option value="50">50-cell</option>
+                        <option value="36">36-cell</option>
+                        <option value="32">32-cell</option>
+                        <option value="18">18-cell</option>
+                        <option value="6">6-cell (4" pots)</option>
+                        <option value="1">Individual pot</option>
+                    </select>
+                </div>
+
+                <button class="btn btn-primary btn-block" onclick="generatePottingUpLabels()" style="margin-top:12px;background:linear-gradient(135deg,#8b5cf6,#7c3aed);">
+                    <i class="fas fa-tag"></i> Generate Potting Up Labels
                 </button>
             </div>
 
@@ -2341,6 +2385,7 @@
             document.getElementById('btnSoilSampleLabels').classList.toggle('active', type === 'soilSample');
             document.getElementById('btnInventoryLabels').classList.toggle('active', type === 'inventory');
             document.getElementById('btnSeedlingSaleLabels').classList.toggle('active', type === 'seedlingSale');
+            document.getElementById('btnPottingUpLabels').classList.toggle('active', type === 'pottingUp');
 
             // Show/hide filter sections — pot tags and field tray use same seedings filters
             const usesSeedings = (type === 'greenhouse' || type === 'potTag' || type === 'fieldTray');
@@ -2349,6 +2394,7 @@
             document.getElementById('soilSampleFilters').style.display = type === 'soilSample' ? 'block' : 'none';
             document.getElementById('inventoryFilters').style.display = type === 'inventory' ? 'block' : 'none';
             document.getElementById('seedlingSaleFilters').style.display = type === 'seedlingSale' ? 'block' : 'none';
+            document.getElementById('pottingUpFilters').style.display = type === 'pottingUp' ? 'block' : 'none';
 
             // Show/hide label options based on type
             document.getElementById('labelsPerTrayGroup').style.display = (type === 'greenhouse' || type === 'fieldTray') ? 'block' : 'none';
@@ -2356,7 +2402,7 @@
             document.getElementById('potTagCustomGroup').style.display = type === 'potTag' ? 'block' : 'none';
 
             // Update list title
-            const titles = { greenhouse: 'Available Seedings', potTag: 'Available Seedings', fieldTray: 'Available Seedings', seed: 'Available Seed Lots', soilSample: 'Soil Sample Labels', inventory: 'Inventory Items', seedlingSale: 'Seedling Sale Tags' };
+            const titles = { greenhouse: 'Available Seedings', potTag: 'Available Seedings', fieldTray: 'Available Seedings', seed: 'Available Seed Lots', soilSample: 'Soil Sample Labels', inventory: 'Inventory Items', seedlingSale: 'Seedling Sale Tags', pottingUp: 'Potting Up Labels' };
             document.getElementById('listTitle').textContent = titles[type] || 'Available Items';
 
             // Update type description
@@ -2367,7 +2413,8 @@
                 seed: '<strong>Seed inventory</strong> — Labels for seed lot storage containers',
                 soilSample: '<strong>4" x 1"</strong> — UL-247 thermal, FT40101WH. Bag labels + submission labels for Logan Labs',
                 inventory: '<strong>4" x 1"</strong> — UL-247 thermal, FT40101WH. Item name, category, location + QR code',
-                seedlingSale: '<strong>1" x 4"</strong> — ZX5141T pot tags, type any crop &amp; quantity'
+                seedlingSale: '<strong>1" x 4"</strong> — ZX5141T pot tags, type any crop &amp; quantity',
+                pottingUp: '<strong>1" x 4"</strong> — Same pot tags with tracking info carried forward from original seeding'
             };
             document.getElementById('labelTypeDesc').innerHTML = descs[type] || '';
 
@@ -2379,7 +2426,8 @@
                 seed: 'Seed lot inventory labels',
                 soilSample: 'Soil sample labels for UL-247 printer (4" x 1" FT40101WH)',
                 inventory: 'Inventory labels for UL-247 printer (4" x 1" FT40101WH)',
-                seedlingSale: 'Pot tags for UL-247 printer (1" x 4" ZX5141T) — no planning data needed'
+                seedlingSale: 'Pot tags for UL-247 printer (1" x 4" ZX5141T) — no planning data needed',
+                pottingUp: 'Pot tags with original batch tracking for potted-up trays'
             };
             document.getElementById('previewSubtitle').textContent = subtitles[type] || '';
 
@@ -2394,11 +2442,12 @@
             // Preload pot tag images when that type is selected
             if (type === 'potTag') preloadPotTagImages(null);
 
-            // Soil sample, inventory, and seedling sale types manage their own rendering
-            if (type === 'soilSample' || type === 'inventory' || type === 'seedlingSale') {
+            // Soil sample, inventory, seedling sale, and potting up types manage their own rendering
+            if (type === 'soilSample' || type === 'inventory' || type === 'seedlingSale' || type === 'pottingUp') {
                 if (type === 'soilSample') loadSoilSampleLabels();
                 if (type === 'inventory') loadInventoryLabels();
                 if (type === 'seedlingSale') preloadPotTagImages(null);
+                if (type === 'pottingUp') { preloadPotTagImages(null); loadPottingUpBatches(); }
                 return;
             }
 
@@ -2677,6 +2726,173 @@
 
         // Pot tag dropdown listener removed — number input is now shown directly
 
+        // ============ POTTING UP FUNCTIONS ============
+
+        var pottingUpBatches = [];
+        var pottingUpSelected = null;
+
+        async function loadPottingUpBatches() {
+            var select = document.getElementById('puBatchSelect');
+            select.innerHTML = '<option value="">Loading...</option>';
+
+            try {
+                // Use wide date range to get all seeded batches
+                var response = await fetch(API_URL + '?action=getGreenhouseSeedings&startDate=2026-01-01&endDate=2026-12-31');
+                var data = await response.json();
+
+                if (data.success && data.data && data.data.length > 0) {
+                    pottingUpBatches = data.data.map(function(s, i) {
+                        return {
+                            id: s.batchNumber || ('batch-' + i),
+                            crop: s.crop || 'Unknown',
+                            variety: s.variety || '',
+                            seedDate: s.seedDate || '',
+                            transplantDate: s.transplantDate || '',
+                            trays: s.traysNeeded || s.trays || 1,
+                            cellsPerTray: s.cellsPerTray || 128,
+                            batchNumber: s.batchNumber || '',
+                            seedLot: s.seedLotNum || s.seedLot || '',
+                            field: s.field || '',
+                            category: s.category || ''
+                        };
+                    });
+                    renderPottingUpDropdown('');
+                } else {
+                    select.innerHTML = '<option value="">No seeded batches found</option>';
+                    pottingUpBatches = [];
+                }
+            } catch (err) {
+                console.error('Error loading potting up batches:', err);
+                select.innerHTML = '<option value="">Error loading batches</option>';
+                pottingUpBatches = [];
+            }
+        }
+
+        function renderPottingUpDropdown(filter) {
+            var select = document.getElementById('puBatchSelect');
+            var f = (filter || '').toLowerCase();
+            var filtered = pottingUpBatches.filter(function(b) {
+                if (!f) return true;
+                return (b.crop + ' ' + b.variety + ' ' + b.batchNumber).toLowerCase().indexOf(f) !== -1;
+            });
+
+            select.innerHTML = filtered.length === 0
+                ? '<option value="">No matches</option>'
+                : filtered.map(function(b, i) {
+                    var label = b.crop + (b.variety ? ' — ' + b.variety : '') + ' (' + b.cellsPerTray + '-cell, ' + b.trays + ' trays)';
+                    return '<option value="' + i + '">' + label + '</option>';
+                }).join('');
+        }
+
+        function filterPottingUpDropdown() {
+            var search = document.getElementById('puSearch').value;
+            renderPottingUpDropdown(search);
+        }
+
+        function onPottingUpBatchSelected() {
+            var select = document.getElementById('puBatchSelect');
+            var idx = parseInt(select.value);
+            if (isNaN(idx)) {
+                pottingUpSelected = null;
+                document.getElementById('puBatchInfo').style.display = 'none';
+                return;
+            }
+
+            var f = (document.getElementById('puSearch').value || '').toLowerCase();
+            var filtered = pottingUpBatches.filter(function(b) {
+                if (!f) return true;
+                return (b.crop + ' ' + b.variety + ' ' + b.batchNumber).toLowerCase().indexOf(f) !== -1;
+            });
+            pottingUpSelected = filtered[idx];
+
+            if (!pottingUpSelected) {
+                document.getElementById('puBatchInfo').style.display = 'none';
+                return;
+            }
+
+            var b = pottingUpSelected;
+            var info = '<div style="font-weight:700;margin-bottom:4px;">' + b.crop + (b.variety ? ' — ' + b.variety : '') + '</div>';
+            info += '<div>Batch: <strong>' + (b.batchNumber || 'N/A') + '</strong></div>';
+            info += '<div>Seed Lot: ' + (b.seedLot || 'N/A') + '</div>';
+            info += '<div>Sown: ' + (b.seedDate || 'N/A') + ' | Current: ' + b.cellsPerTray + '-cell × ' + b.trays + ' trays</div>';
+            info += '<div>Target Bed: ' + (b.field || 'TBD') + '</div>';
+
+            document.getElementById('puBatchInfoContent').innerHTML = info;
+            document.getElementById('puBatchInfo').style.display = 'block';
+        }
+
+        function generatePottingUpLabels() {
+            if (!pottingUpSelected) {
+                showToast('Please select a batch first');
+                return;
+            }
+
+            var trayCount = parseInt(document.getElementById('puTrayCount').value) || 1;
+            var cellSize = document.getElementById('puCellSize').value;
+            var today = new Date().toISOString().split('T')[0];
+            var b = pottingUpSelected;
+
+            labels = [];
+            selectedLabels.clear();
+
+            for (var i = 0; i < trayCount; i++) {
+                var labelId = 'pu-' + b.batchNumber + '-' + cellSize + '-' + i;
+                labels.push({
+                    labelId: labelId,
+                    labelType: 'potTag',
+                    crop: b.crop,
+                    variety: b.variety || '',
+                    batchNumber: b.batchNumber || '',
+                    seedDate: b.seedDate || '',
+                    seedLot: b.seedLot || '',
+                    pottedUpDate: today,
+                    newCellSize: cellSize,
+                    trayNumber: (i + 1),
+                    trayTotal: trayCount,
+                    field: b.field || ''
+                });
+                selectedLabels.add(labelId);
+            }
+
+            document.getElementById('totalLabelsCount').textContent = labels.length;
+            renderPottingUpTagLabels();
+            showToast('Generated ' + trayCount + ' potting-up labels for ' + b.crop + (b.variety ? ' ' + b.variety : ''));
+        }
+
+        function renderPottingUpTagLabels() {
+            var container = document.getElementById('labelsContainer');
+
+            if (labels.length === 0) {
+                container.innerHTML = '<div class="empty-state"><i class="fas fa-arrow-up"></i><h3>No Labels Generated</h3><p>Select a batch and click "Generate Potting Up Labels"</p></div>';
+                return;
+            }
+
+            var html = '';
+            labels.forEach(function(label, index) {
+                var isSelected = selectedLabels.has(label.labelId);
+                html += '<div class="pot-tag ' + (isSelected ? 'selected' : '') + '"'
+                    + ' id="label-' + index + '"'
+                    + ' onclick="toggleLabel(\'' + label.labelId + '\', ' + index + ')">'
+                    + '<input type="checkbox" class="label-checkbox"'
+                    + (isSelected ? ' checked' : '')
+                    + ' onclick="event.stopPropagation(); toggleLabel(\'' + label.labelId + '\', ' + index + ')">'
+                    + '<img class="pot-tag-logo" src="web_app/images/tiny-seed-farm-logo-bw.png" alt="Tiny Seed Farm">'
+                    + '<div class="pot-tag-text-area">'
+                    + '<div class="pot-tag-crop">' + label.crop + '</div>'
+                    + '<div class="pot-tag-variety">' + (label.variety || '') + '</div>'
+                    + '</div>'
+                    + '<div style="font-size:6px;color:#666;writing-mode:horizontal-tb;width:100%;text-align:center;padding:2px 0;">'
+                    + label.newCellSize + '-cell · ' + label.trayNumber + '/' + label.trayTotal
+                    + (label.batchNumber ? ' · ' + label.batchNumber : '')
+                    + '</div>'
+                    + '<img class="pot-tag-usda" src="web_app/images/usda-organic-bw.gif" alt="USDA Organic">'
+                    + '<div class="pot-tag-soil-line">▼ soil line ▼</div>'
+                    + '</div>';
+            });
+
+            container.innerHTML = html;
+        }
+
         // ============ SEEDLING SALE FUNCTIONS ============
 
         function addSeedlingSaleCrop() {
@@ -2951,7 +3167,7 @@
         // Override executePrint: thermal labels use jsPDF at exact dimensions
         const originalExecutePrint = executePrint;
         executePrint = function() {
-            if (currentLabelType === 'potTag' || currentLabelType === 'seedlingSale') {
+            if (currentLabelType === 'potTag' || currentLabelType === 'seedlingSale' || currentLabelType === 'pottingUp') {
                 closePrintPreview();
                 executePrintUL247PotTagsHTML();
             } else if (currentLabelType === 'fieldTray') {
@@ -3920,11 +4136,11 @@
                 executePrintUL247GenericPDF();
                 return;
             }
-            if (currentLabelType === 'potTag' || currentLabelType === 'seedlingSale' || currentLabelType === 'fieldTray') {
+            if (currentLabelType === 'potTag' || currentLabelType === 'seedlingSale' || currentLabelType === 'pottingUp' || currentLabelType === 'fieldTray') {
                 if (selectedLabels.size === 0) { showToast('Please select labels to print'); return; }
                 var labelsToprint = labels.filter(function(l) { return selectedLabels.has(l.labelId); });
                 document.getElementById('printLabelCount').textContent = labelsToprint.length;
-                var printerName = (currentLabelType === 'potTag' || currentLabelType === 'seedlingSale') ? 'Pot Tags (1" x 4")' : 'Field Tray Labels (4" x 1")';
+                var printerName = (currentLabelType === 'potTag' || currentLabelType === 'seedlingSale' || currentLabelType === 'pottingUp') ? 'Pot Tags (1" x 4")' : 'Field Tray Labels (4" x 1")';
                 var html = '<div style="text-align:center;padding:1.5rem;color:#333;">';
                 html += '<i class="fas fa-print" style="font-size:3rem;color:#4caf50;margin-bottom:1rem;"></i>';
                 html += '<h3 style="margin-bottom:0.5rem;">Print ' + labelsToprint.length + ' ' + printerName + '</h3>';

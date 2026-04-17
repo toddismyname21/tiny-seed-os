@@ -6,6 +6,18 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-04-10] Add Potting Up label type to labels.html
+- Files: labels.html
+- Role: fullstack-builder
+- Changes:
+  - Added "Potting Up" button to label type grid
+  - Added pottingUpFilters panel: searchable batch dropdown, batch info display, tray count, cell/pot size selector
+  - Added JS functions: loadPottingUpBatches, renderPottingUpDropdown, filterPottingUpDropdown, onPottingUpBatchSelected, generatePottingUpLabels, renderPottingUpTagLabels
+  - Wired into switchLabelType (classList toggle, filter display, titles/descs/subtitles, early-return self-managing block)
+  - Wired into executePrint and openPrintPreview overrides so pottingUp uses same pot tag print path
+  - Reuses existing pot-tag CSS and executePrintUL247PotTagsHTML — no new print code needed
+  - Labels carry forward all original batch tracking: crop, variety, batchNumber, seedLot, seedDate, field
+
 ## [2026-04-10] Redesign seedling pot tag label in print engine
 - Files: web_app/print-engine.js
 - Role: fullstack-builder
