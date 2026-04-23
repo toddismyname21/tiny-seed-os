@@ -6,6 +6,21 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-04-10] Fix OSP auto-population: OEFFA field mapping, acreages, auto-create sheets
+- Files: web_app/osp.html, apps_script/MERGED TOTAL.js
+- Role: fullstack-builder
+- Changes:
+  - Added OEFFA_FIELD_MAP (35 entries) translating internal field names (F3L, HOL, K1, etc.) to OEFFA certification names (F03M, IOL, K, etc.)
+  - Added OEFFA_FIELD_ACRES (20 fields) with certified acreage data
+  - Transform fields data after API fetch: merge internal fields into OEFFA-named entries with acreages
+  - Transform planning data: tag each planting row with _oeffaField for correct field grouping
+  - Updated populateFieldHistory: uses OEFFA acreages, looks up prior-year history across all internal names that map to same OEFFA field, uses cropSummary
+  - Updated populateCrops: groups by OEFFA field names instead of raw bed ID prefixes, estimates acreage from OEFFA field data when bed-feet data is zero
+  - Updated refreshFieldsFromPlan: applies same OEFFA transformation before calling populateFieldHistory
+  - Added failed-section warning banner in fetchFarmData showing which APIs didn't load
+  - Backend: getInputApplicationReport auto-creates INPUT_LOG sheet with headers instead of returning error
+  - Backend: getPestManagementReport auto-creates PEST_LOG sheet with headers instead of returning error
+
 ## [2026-04-10] Add OEFFA renewal form guide with pre-filled field data
 - Files: web_app/renewal-guide-2026.html
 - Role: fullstack-builder

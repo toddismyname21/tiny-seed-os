@@ -1361,6 +1361,99 @@ async function fetchFarmData() {
         farmData.harvest = harvestRes;
         farmData.fieldHistory = fieldHistoryRes;
 
+        // ═══════════════════════════════════════════════════════════════
+        // OEFFA FIELD MAPPING — translate internal field names to OEFFA
+        // certification names and add certified acreage data
+        // ═══════════════════════════════════════════════════════════════
+        var OEFFA_FIELD_MAP = {
+            'F3L': 'F03M', 'F3H': 'F03M', 'F3M': 'F03M', 'F03M': 'F03M',
+            'HOL': 'IOL', 'HT': 'High Tunnel', 'GH': 'Greenhouse',
+            'IL': 'IL', 'JL': 'JL', 'JS1': 'JS01', 'JS01': 'JS01',
+            'JS3': 'JS03', 'JS03': 'JS03', 'JS4': 'JS03',
+            'JS6': 'JS06', 'JS06': 'JS06',
+            'JS10': 'JS10', 'K': 'K', 'K1': 'K', 'K2': 'K',
+            'M': 'M', 'Z3H': 'Z03H', 'Z03H': 'Z03H', 'Z1': 'Z03H',
+            'Z3L': 'Z03L', 'Z03L': 'Z03L', 'Z3': 'Z03L',
+            'Z5': 'Z5', 'B': 'B', 'CL': 'CL',
+            'F11': 'F11M', 'F11M': 'F11M', 'F7': 'F7M', 'F7M': 'F7M',
+            'IOL': 'IOL', 'RH': 'Rosemary House', 'SO': 'IOL',
+            'Rosemary': 'Rosemary House', 'Kretschmann': 'IOL'
+        };
+
+        var OEFFA_FIELD_ACRES = {
+            'B': 0.10, 'CL': 0.08, 'F03M': 0.50, 'F11M': 0.30, 'F7M': 0.30,
+            'Greenhouse': 0.01, 'High Tunnel': 0.01, 'IL': 0.35, 'IOL': 1.00,
+            'JL': 0.50, 'JS01': 0.40, 'JS03': 0.40, 'JS06': 0.40, 'JS10': 0.40,
+            'K': 0.60, 'M': 0.60, 'Rosemary House': 0.01, 'Z03H': 0.30, 'Z03L': 0.30, 'Z5': 0.20
+        };
+
+        // Store mapping globally for other functions
+        window.OEFFA_FIELD_MAP = OEFFA_FIELD_MAP;
+        window.OEFFA_FIELD_ACRES = OEFFA_FIELD_ACRES;
+
+        // Transform fields to OEFFA names with acreages
+        if (fieldsRes && fieldsRes.success && fieldsRes.fields) {
+            var oeffaFields = {};
+            for (var fi = 0; fi < fieldsRes.fields.length; fi++) {
+                var f = fieldsRes.fields[fi];
+                var internalName = f.Field_ID || f.fieldId || f.name || '';
+                var oeffaName = OEFFA_FIELD_MAP[internalName] || internalName;
+                if (!oeffaFields[oeffaName]) {
+                    oeffaFields[oeffaName] = {
+                        Field_ID: oeffaName,
+                        Field_Name: oeffaName,
+                        acres: OEFFA_FIELD_ACRES[oeffaName] || 0,
+                        status: 'Organic',
+                        bedCount: 0,
+                        crops: []
+                    };
+                }
+                oeffaFields[oeffaName].bedCount += (f.bedCount || 0);
+            }
+            fieldsRes.fields = Object.values(oeffaFields);
+            farmData.fields = fieldsRes;
+        }
+
+        // Transform planning data bed IDs to OEFFA field names and group crops
+        if (farmData.planning && farmData.planning.plantings) {
+            for (var pi = 0; pi < farmData.planning.plantings.length; pi++) {
+                var p = farmData.planning.plantings[pi];
+                var bedId = String(p.Target_Bed_ID || p.Bed_ID || p.field || '');
+                // Extract prefix from bed ID (e.g., "Field F3L-01" -> "F3L")
+                var prefixMatch = bedId.match(/(?:Field\s+)?([A-Z0-9]+)/);
+                if (prefixMatch) {
+                    var prefix = prefixMatch[1];
+                    p._oeffaField = OEFFA_FIELD_MAP[prefix] || prefix;
+                } else {
+                    p._oeffaField = '';
+                }
+            }
+
+            // Group crops by OEFFA field and attach to field objects
+            if (fieldsRes && fieldsRes.fields) {
+                for (var ffi = 0; ffi < fieldsRes.fields.length; ffi++) {
+                    var field = fieldsRes.fields[ffi];
+                    field.crops = [];
+                    for (var pj = 0; pj < farmData.planning.plantings.length; pj++) {
+                        var pl = farmData.planning.plantings[pj];
+                        if (pl._oeffaField === field.Field_ID) {
+                            var cropEntry = (pl.Crop || '') + (pl.Variety ? ' (' + pl.Variety + ')' : '');
+                            if (cropEntry && field.crops.indexOf(cropEntry) === -1) {
+                                field.crops.push(cropEntry);
+                            }
+                        }
+                    }
+                    // Create summary of unique crop types
+                    var types = {};
+                    for (var ci = 0; ci < field.crops.length; ci++) {
+                        var t = field.crops[ci].split(' ')[0];
+                        types[t] = true;
+                    }
+                    field.cropSummary = Object.keys(types).join(', ');
+                }
+            }
+        }
+
         // Track what loaded for the status banner
         var loaded = [];
 
@@ -1437,6 +1530,23 @@ async function fetchFarmData() {
             loaded.push('Materials list');
         }
 
+        // Show warnings for sections that failed to load
+        var failed = [];
+        if (!fieldsRes || !fieldsRes.success) failed.push('Fields');
+        if (!planningRes || !planningRes.success) failed.push('Planning');
+        if (!seedRes || !seedRes.success) failed.push('Seeds');
+        if (!soilRes || !soilRes.success) failed.push('Soil Tests');
+        if (inputRes && !inputRes.success) failed.push('Input Records');
+        if (pestRes && !pestRes.success) failed.push('Pest Records');
+
+        if (failed.length > 0) {
+            console.warn('OSP: Failed to load: ' + failed.join(', '));
+            var banner = document.getElementById('readinessSubtitle');
+            if (banner) {
+                banner.innerHTML = loaded.length + ' data source(s) loaded. <span style="color:var(--warning);">' + failed.length + ' unavailable: ' + failed.join(', ') + '</span>';
+            }
+        }
+
         // Now calculate OSP form readiness based on what's actually filled
         updateReadiness();
 
@@ -1467,41 +1577,63 @@ function populateFieldHistory(fieldsRes, fieldHistoryRes, planningRes) {
     var fields = fieldsRes.fields || [];
     var history = (fieldHistoryRes && fieldHistoryRes.success) ? (fieldHistoryRes.fields || {}) : {};
     var plantings = (planningRes && planningRes.success) ? (planningRes.plantings || []) : [];
+    var fieldMap = window.OEFFA_FIELD_MAP || {};
+    var fieldAcres = window.OEFFA_FIELD_ACRES || {};
 
     fields.forEach(function(f) {
         var fid = f.Field_ID || f.fieldId || f.name || '';
         if (!fid) return;
 
+        // Use OEFFA acreage data (already on transformed field), fall back to raw data
         var acres = '';
-        if (f.Acreage) acres = f.Acreage;
-        else if (f.bedCount && f.bedCount > 0) acres = (f.bedCount * 100 / 43560).toFixed(2); // rough estimate from bed count
+        if (f.acres && f.acres > 0) acres = f.acres.toFixed(2);
+        else if (fieldAcres[fid]) acres = fieldAcres[fid].toFixed(2);
+        else if (f.Acreage) acres = f.Acreage;
+        else if (f.bedCount && f.bedCount > 0) acres = (f.bedCount * 100 / 43560).toFixed(2);
 
-        // Prior year crops from field history
+        // Prior year crops from field history — check both OEFFA name and internal names
         var priorCrop = '';
         var priorInputs = '';
-        if (history[fid]) {
-            var h = history[fid];
-            if (h.plantings && h.plantings.length > 0) {
-                priorCrop = h.plantings.map(function(p) { return p.Crop || p.crop || ''; }).filter(Boolean).join(', ');
+        // Build list of internal names that map to this OEFFA field
+        var internalNames = [fid];
+        for (var mapKey in fieldMap) {
+            if (fieldMap[mapKey] === fid && internalNames.indexOf(mapKey) === -1) {
+                internalNames.push(mapKey);
             }
-            if (h.inputs && h.inputs.length > 0) {
-                priorInputs = h.inputs.map(function(p) { return p.Product_Name || p.product || ''; }).filter(Boolean).join(', ');
+        }
+        for (var ni = 0; ni < internalNames.length; ni++) {
+            var checkName = internalNames[ni];
+            if (history[checkName]) {
+                var h = history[checkName];
+                if (h.plantings && h.plantings.length > 0) {
+                    var crops = h.plantings.map(function(p) { return p.Crop || p.crop || ''; }).filter(Boolean);
+                    priorCrop = priorCrop ? priorCrop + ', ' + crops.join(', ') : crops.join(', ');
+                }
+                if (h.inputs && h.inputs.length > 0) {
+                    var inputs = h.inputs.map(function(p) { return p.Product_Name || p.product || ''; }).filter(Boolean);
+                    priorInputs = priorInputs ? priorInputs + ', ' + inputs.join(', ') : inputs.join(', ');
+                }
             }
         }
 
-        // Planned crops from planning data
+        // Planned crops — use _oeffaField tag if available, otherwise match by field ID
         var plannedCrop = '';
-        var fieldPlantings = plantings.filter(function(p) {
-            var bed = (p.Target_Bed_ID || p.Bed_ID || '').replace(/^Field\s+/i, '');
-            return bed.startsWith(fid + '-') || bed === fid;
-        });
-        if (fieldPlantings.length > 0) {
-            var uniqueCrops = [];
-            fieldPlantings.forEach(function(p) {
-                var c = p.Crop || p.crop || '';
-                if (c && uniqueCrops.indexOf(c) < 0) uniqueCrops.push(c);
+        if (f.cropSummary) {
+            plannedCrop = f.cropSummary;
+        } else {
+            var fieldPlantings = plantings.filter(function(p) {
+                if (p._oeffaField) return p._oeffaField === fid;
+                var bed = (p.Target_Bed_ID || p.Bed_ID || '').replace(/^Field\s+/i, '');
+                return bed.startsWith(fid + '-') || bed === fid;
             });
-            plannedCrop = uniqueCrops.join(', ');
+            if (fieldPlantings.length > 0) {
+                var uniqueCrops = [];
+                fieldPlantings.forEach(function(p) {
+                    var c = p.Crop || p.crop || '';
+                    if (c && uniqueCrops.indexOf(c) < 0) uniqueCrops.push(c);
+                });
+                plannedCrop = uniqueCrops.join(', ');
+            }
         }
 
         addFieldHistoryRow(fid, acres, priorCrop, priorInputs, plannedCrop, 'Organic');
@@ -1540,6 +1672,48 @@ async function refreshFieldsFromPlan() {
         if (planningRes && planningRes.success && planningRes.data && !planningRes.plantings) {
             planningRes.plantings = planningRes.data;
         }
+        // Apply OEFFA field mapping (same as fetchFarmData)
+        var fieldMap = window.OEFFA_FIELD_MAP || {};
+        var fieldAcres = window.OEFFA_FIELD_ACRES || {};
+        if (fieldsRes && fieldsRes.success && fieldsRes.fields) {
+            var oeffaFields = {};
+            for (var ri = 0; ri < fieldsRes.fields.length; ri++) {
+                var rf = fieldsRes.fields[ri];
+                var rName = rf.Field_ID || rf.fieldId || rf.name || '';
+                var rOeffa = fieldMap[rName] || rName;
+                if (!oeffaFields[rOeffa]) {
+                    oeffaFields[rOeffa] = { Field_ID: rOeffa, Field_Name: rOeffa, acres: fieldAcres[rOeffa] || 0, status: 'Organic', bedCount: 0, crops: [] };
+                }
+                oeffaFields[rOeffa].bedCount += (rf.bedCount || 0);
+            }
+            fieldsRes.fields = Object.values(oeffaFields);
+        }
+        if (planningRes && planningRes.plantings) {
+            for (var rpi = 0; rpi < planningRes.plantings.length; rpi++) {
+                var rp = planningRes.plantings[rpi];
+                var rBed = String(rp.Target_Bed_ID || rp.Bed_ID || rp.field || '');
+                var rMatch = rBed.match(/(?:Field\s+)?([A-Z0-9]+)/);
+                if (rMatch) { rp._oeffaField = fieldMap[rMatch[1]] || rMatch[1]; }
+            }
+            // Attach crop summaries to fields
+            if (fieldsRes && fieldsRes.fields) {
+                for (var rfi = 0; rfi < fieldsRes.fields.length; rfi++) {
+                    var rField = fieldsRes.fields[rfi];
+                    rField.crops = [];
+                    var rTypes = {};
+                    for (var rpj = 0; rpj < planningRes.plantings.length; rpj++) {
+                        var rpl = planningRes.plantings[rpj];
+                        if (rpl._oeffaField === rField.Field_ID) {
+                            var rc = (rpl.Crop || '') + (rpl.Variety ? ' (' + rpl.Variety + ')' : '');
+                            if (rc && rField.crops.indexOf(rc) === -1) rField.crops.push(rc);
+                            var rt = (rpl.Crop || '').split(' ')[0];
+                            if (rt) rTypes[rt] = true;
+                        }
+                    }
+                    rField.cropSummary = Object.keys(rTypes).join(', ');
+                }
+            }
+        }
         if (fieldsRes && fieldsRes.success && fieldsRes.fields && fieldsRes.fields.length > 0) {
             populateFieldHistory(fieldsRes, fieldHistoryRes, planningRes);
             updateFieldHistoryTotals();
@@ -1565,6 +1739,8 @@ function populateCrops(planningRes) {
     if (body.children.length > 0) return;
 
     var plantings = planningRes.plantings || [];
+    var fieldMap = window.OEFFA_FIELD_MAP || {};
+    var fieldAcres = window.OEFFA_FIELD_ACRES || {};
     // Group by crop+variety for OSP-level summary
     var grouped = {};
     plantings.forEach(function(p) {
@@ -1575,8 +1751,15 @@ function populateCrops(planningRes) {
         if (!grouped[key]) {
             grouped[key] = { crop: crop, variety: variety, fields: [], plantDate: '', harvestDate: '', acres: 0 };
         }
-        var bed = (p.Target_Bed_ID || p.Bed_ID || '').replace(/^Field\s+/i, '');
-        var field = bed.split('-')[0] || '';
+        // Use OEFFA field name if available, otherwise map from bed ID prefix
+        var field = '';
+        if (p._oeffaField) {
+            field = p._oeffaField;
+        } else {
+            var bed = (p.Target_Bed_ID || p.Bed_ID || '').replace(/^Field\s+/i, '');
+            var prefix = bed.split('-')[0] || '';
+            field = fieldMap[prefix] || prefix;
+        }
         if (field && grouped[key].fields.indexOf(field) < 0) grouped[key].fields.push(field);
 
         // Use earliest plant date and latest harvest
@@ -1586,7 +1769,30 @@ function populateCrops(planningRes) {
         if (hd && (!grouped[key].harvestDate || hd > grouped[key].harvestDate)) grouped[key].harvestDate = hd;
 
         var feet = parseFloat(p.Feet_Used || p.Bed_Feet || 0);
-        grouped[key].acres += feet / 43560; // rough conversion
+        grouped[key].acres += feet / 43560; // rough conversion from bed feet
+    });
+
+    // If OEFFA acreage data is available and bed-feet-based acres are tiny/zero,
+    // estimate acreage by dividing field acres among crops in that field
+    Object.keys(grouped).forEach(function(key) {
+        var g = grouped[key];
+        if (g.acres < 0.01 && g.fields.length > 0) {
+            var totalFieldAcres = 0;
+            for (var ai = 0; ai < g.fields.length; ai++) {
+                totalFieldAcres += fieldAcres[g.fields[ai]] || 0;
+            }
+            // Count how many crop groups share these fields
+            var shareCount = 0;
+            Object.keys(grouped).forEach(function(k2) {
+                var g2 = grouped[k2];
+                for (var aj = 0; aj < g2.fields.length; aj++) {
+                    if (g.fields.indexOf(g2.fields[aj]) >= 0) { shareCount++; break; }
+                }
+            });
+            if (totalFieldAcres > 0 && shareCount > 0) {
+                g.acres = totalFieldAcres / shareCount;
+            }
+        }
     });
 
     Object.keys(grouped).forEach(function(key) {

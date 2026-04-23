@@ -122942,18 +122942,24 @@ function getInputApplicationReport(year) {
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
 
     // Look for input logs
-    const inputSheet = ss.getSheetByName('INPUT_LOG') ||
+    var inputSheet = ss.getSheetByName('INPUT_LOG') ||
                        ss.getSheetByName('Inputs') ||
                        ss.getSheetByName('Applications') ||
                        ss.getSheetByName('COMPLIANCE_Inputs') ||
                        ss.getSheetByName('LOG_Inputs');
 
     if (!inputSheet) {
+      // Auto-create the sheet with proper headers instead of erroring
+      inputSheet = ss.insertSheet('INPUT_LOG');
+      inputSheet.appendRow(['Date', 'Field', 'Product_Name', 'OMRI_Listed', 'Application_Rate', 'Application_Method', 'Applied_By', 'Purpose', 'Notes']);
+      inputSheet.setFrozenRows(1);
       return {
-        success: false,
-        error: 'Input application log not found',
+        success: true,
+        year: year,
+        totalApplications: 0,
         hasData: false,
-        recommendation: 'Create INPUT_LOG sheet with columns: Date, Field, Product_Name, OMRI_Listed, Application_Rate, Application_Method, Applied_By, Purpose, Notes'
+        records: [],
+        message: 'INPUT_LOG sheet created — no records yet'
       };
     }
 
@@ -123212,7 +123218,7 @@ function getPestManagementReport(year) {
   try {
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
 
-    const pestSheet = ss.getSheetByName('FIELD_SCOUTING') ||
+    var pestSheet = ss.getSheetByName('FIELD_SCOUTING') ||
                       ss.getSheetByName('PEST_LOG') ||
                       ss.getSheetByName('Pest_Management') ||
                       ss.getSheetByName('Scouting') ||
@@ -123220,11 +123226,17 @@ function getPestManagementReport(year) {
                       ss.getSheetByName('IPM_LOG');
 
     if (!pestSheet) {
+      // Auto-create the sheet with proper headers instead of erroring
+      pestSheet = ss.insertSheet('PEST_LOG');
+      pestSheet.appendRow(['Date', 'Field', 'Pest_Observed', 'Severity', 'Control_Measure', 'Product_Used', 'OMRI_Listed', 'Applied_By', 'Results', 'Notes']);
+      pestSheet.setFrozenRows(1);
       return {
-        success: false,
-        error: 'Pest management log not found',
+        success: true,
+        year: year,
+        totalObservations: 0,
         hasData: false,
-        recommendation: 'Create PEST_LOG sheet with columns: Date, Field, Pest_Observed, Severity, Control_Measure, Product_Used, OMRI_Listed, Applied_By, Results, Notes'
+        records: [],
+        message: 'PEST_LOG sheet created — no records yet'
       };
     }
 
