@@ -6,6 +6,21 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-04-10] Add OEFFA renewal form guide with pre-filled field data
+- Files: web_app/renewal-guide-2026.html
+- Role: fullstack-builder
+- Changes:
+  - Created step-by-step guide matching the 8-page OEFFA renewal PDF
+  - Pre-filled all known farm data (name, address, phone, email, fields, inputs)
+  - 20-field crop table with 6 unassigned fields highlighted for Todd to fill
+  - Full 22-input review table (7 approved, 15 restricted) with remove checkboxes
+  - OSP update section with 10 checkable plan sections
+  - Affirmation and signature section on Page 8
+  - Action items table (Information Release Form, Organic Labels, OSP Review)
+  - Light theme, print-friendly, mobile-responsive
+  - Editable input fields for all items Todd must fill in
+  - Status banner with due date (4/25/2026) and checklist of required items
+
 ## [2026-04-10] Add Potting Up label type to labels.html
 - Files: labels.html
 - Role: fullstack-builder

@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OEFFA Renewal Guide 2026 - Tiny Seed Farm</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="tiny-seed-design-system.css">
+  <style>
+    /* ── Print + Light Reference Overrides ── */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--ts-font-sans, 'Inter', system-ui, sans-serif);
+      background: #fafaf9;
+      color: #1c1917;
+      line-height: 1.6;
+      padding: var(--ts-space-6, 24px);
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    /* ── Status Banner ── */
+    .status-banner {
+      background: #1e293b;
+      color: #f1f5f9;
+      border-radius: var(--ts-radius-lg, 12px);
+      padding: var(--ts-space-6, 24px);
+      margin-bottom: var(--ts-space-8, 32px);
+    }
+    .status-banner h1 {
+      font-size: var(--ts-text-2xl, 1.5rem);
+      font-weight: 800;
+      margin-bottom: var(--ts-space-1, 4px);
+    }
+    .status-banner .due-date {
+      color: #fbbf24;
+      font-weight: 700;
+      font-size: var(--ts-text-lg, 1.125rem);
+    }
+    .status-banner .op-info {
+      color: #94a3b8;
+      font-size: var(--ts-text-sm, 0.875rem);
+      margin-bottom: var(--ts-space-4, 16px);
+    }
+    .status-banner h2 {
+      font-size: var(--ts-text-base, 1rem);
+      font-weight: 700;
+      margin-bottom: var(--ts-space-2, 8px);
+      color: #fbbf24;
+    }
+    .status-banner ol {
+      padding-left: var(--ts-space-5, 20px);
+      font-size: var(--ts-text-sm, 0.875rem);
+      color: #e2e8f0;
+    }
+    .status-banner ol li {
+      margin-bottom: var(--ts-space-1, 4px);
+    }
+    .status-banner ol li span {
+      color: #94a3b8;
+      font-size: 0.8rem;
+    }
+
+    /* ── Print Button ── */
+    .print-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--ts-green-600, #16a34a);
+      color: #fff;
+      border: none;
+      padding: 12px 24px;
+      border-radius: var(--ts-radius-md, 8px);
+      font-size: var(--ts-text-base, 1rem);
+      font-weight: 600;
+      cursor: pointer;
+      margin-bottom: var(--ts-space-8, 32px);
+      transition: background 200ms ease-out, transform 200ms ease-out;
+    }
+    .print-btn:hover { background: var(--ts-green-700, #15803d); }
+    .print-btn:active { transform: scale(0.98); }
+    .print-btn:focus-visible { outline: 2px solid var(--ts-green-500, #22c55e); outline-offset: 2px; }
+
+    /* ── Page Sections ── */
+    .page-section {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: var(--ts-radius-lg, 12px);
+      padding: var(--ts-space-6, 24px);
+      margin-bottom: var(--ts-space-6, 24px);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    .page-section h2 {
+      font-size: var(--ts-text-xl, 1.25rem);
+      font-weight: 700;
+      color: #1e293b;
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: var(--ts-space-2, 8px);
+      margin-bottom: var(--ts-space-4, 16px);
+    }
+    .page-section h3 {
+      font-size: var(--ts-text-lg, 1.125rem);
+      font-weight: 600;
+      color: #334155;
+      margin-top: var(--ts-space-5, 20px);
+      margin-bottom: var(--ts-space-3, 12px);
+    }
+    .page-section p, .page-section .instruction {
+      font-size: var(--ts-text-sm, 0.875rem);
+      color: #475569;
+      margin-bottom: var(--ts-space-3, 12px);
+    }
+
+    /* ── Field Rows ── */
+    .field {
+      display: flex;
+      align-items: center;
+      gap: var(--ts-space-3, 12px);
+      padding: 10px 14px;
+      border-radius: var(--ts-radius-md, 8px);
+      margin-bottom: var(--ts-space-2, 8px);
+      font-size: var(--ts-text-sm, 0.875rem);
+      font-weight: 500;
+    }
+    .field.known {
+      background: #f0fdf4;
+      border-left: 4px solid #22c55e;
+      color: #14532d;
+    }
+    .field.action {
+      background: #fefce8;
+      border-left: 4px solid #eab308;
+      color: #713f12;
+    }
+    .field label {
+      font-weight: 600;
+      min-width: 220px;
+      flex-shrink: 0;
+    }
+    .field input[type="text"],
+    .field input[type="number"] {
+      border: 1px solid #d4d4d8;
+      border-radius: 4px;
+      padding: 4px 8px;
+      font-family: inherit;
+      font-size: 0.875rem;
+      background: #fffef5;
+      flex: 1;
+      max-width: 200px;
+    }
+    .field input:focus {
+      outline: 2px solid #eab308;
+      outline-offset: 1px;
+    }
+
+    /* ── Checkbox fields ── */
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      font-size: var(--ts-text-sm, 0.875rem);
+    }
+    .checkbox-row input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: #22c55e;
+    }
+
+    /* ── Tables ── */
+    .field-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+      margin-top: var(--ts-space-3, 12px);
+    }
+    .field-table th {
+      background: #1e293b;
+      color: #f1f5f9;
+      padding: 8px 10px;
+      text-align: left;
+      font-weight: 600;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .field-table td {
+      padding: 8px 10px;
+      border-bottom: 1px solid #e2e8f0;
+      vertical-align: top;
+    }
+    .field-table tr:nth-child(even) { background: #f8fafc; }
+    .field-table tr.needs-assignment {
+      background: #fefce8;
+    }
+    .field-table tr.needs-assignment td {
+      border-left-color: #eab308;
+    }
+    .field-table input[type="text"] {
+      border: 1px solid #d4d4d8;
+      border-radius: 4px;
+      padding: 3px 6px;
+      font-family: inherit;
+      font-size: 0.8rem;
+      background: #fffef5;
+      width: 100%;
+    }
+    .field-table input[type="text"]:focus {
+      outline: 2px solid #eab308;
+      outline-offset: 1px;
+    }
+
+    /* ── Input Review Table ── */
+    .input-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+      margin-top: var(--ts-space-3, 12px);
+    }
+    .input-table th {
+      background: #1e293b;
+      color: #f1f5f9;
+      padding: 8px 10px;
+      text-align: left;
+      font-weight: 600;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .input-table td {
+      padding: 8px 10px;
+      border-bottom: 1px solid #e2e8f0;
+      vertical-align: middle;
+    }
+    .input-table tr:nth-child(even) { background: #f8fafc; }
+    .input-table .category-header {
+      background: #f0fdf4;
+      font-weight: 700;
+      color: #14532d;
+    }
+    .input-table .restricted-header {
+      background: #fefce8;
+      font-weight: 700;
+      color: #713f12;
+    }
+    .input-table input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: #ef4444;
+    }
+
+    /* ── Textarea ── */
+    .notes-area {
+      width: 100%;
+      min-height: 100px;
+      border: 1px solid #d4d4d8;
+      border-radius: var(--ts-radius-md, 8px);
+      padding: 12px;
+      font-family: inherit;
+      font-size: 0.875rem;
+      resize: vertical;
+      background: #fffef5;
+    }
+    .notes-area:focus {
+      outline: 2px solid #eab308;
+      outline-offset: 1px;
+    }
+
+    /* ── Affirmation Box ── */
+    .affirmation {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: var(--ts-radius-md, 8px);
+      padding: var(--ts-space-4, 16px);
+      font-size: 0.8rem;
+      color: #334155;
+      line-height: 1.7;
+      margin-bottom: var(--ts-space-4, 16px);
+    }
+
+    /* ── Signature Row ── */
+    .signature-row {
+      display: flex;
+      gap: var(--ts-space-6, 24px);
+      flex-wrap: wrap;
+      margin-top: var(--ts-space-4, 16px);
+    }
+    .signature-row .sig-field {
+      flex: 1;
+      min-width: 200px;
+    }
+    .signature-row .sig-field label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #475569;
+      margin-bottom: 4px;
+    }
+    .signature-row .sig-field .sig-line {
+      border-bottom: 2px solid #1e293b;
+      padding: 8px 4px;
+      font-size: 0.875rem;
+      min-height: 36px;
+    }
+    .signature-row .sig-field .sig-line.prefilled {
+      color: #14532d;
+      font-weight: 600;
+    }
+    .signature-row .sig-field .sig-line.needs-fill {
+      background: #fefce8;
+      border-bottom-color: #eab308;
+    }
+
+    /* ── Action Items Table ── */
+    .action-items-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      margin-top: var(--ts-space-3, 12px);
+    }
+    .action-items-table th {
+      background: #fbbf24;
+      color: #1e293b;
+      padding: 10px 12px;
+      text-align: left;
+      font-weight: 700;
+    }
+    .action-items-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    /* ── Legend ── */
+    .legend {
+      display: flex;
+      gap: var(--ts-space-4, 16px);
+      margin-bottom: var(--ts-space-6, 24px);
+      font-size: var(--ts-text-sm, 0.875rem);
+      flex-wrap: wrap;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .legend-swatch {
+      width: 16px;
+      height: 16px;
+      border-radius: 3px;
+    }
+    .legend-swatch.green { background: #f0fdf4; border: 1px solid #22c55e; }
+    .legend-swatch.yellow { background: #fefce8; border: 1px solid #eab308; }
+
+    /* ── Print Styles ── */
+    @media print {
+      body { padding: 0; max-width: 100%; font-size: 11pt; }
+      .print-btn, .no-print { display: none !important; }
+      .page-section { box-shadow: none; border: 1px solid #ccc; break-inside: avoid; }
+      .status-banner { background: #333; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .field.known, .field.action { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .field-table th, .input-table th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+
+    /* ── Mobile ── */
+    @media (max-width: 768px) {
+      body { padding: var(--ts-space-4, 16px); }
+      .field { flex-direction: column; align-items: flex-start; gap: 4px; }
+      .field label { min-width: auto; }
+      .field input[type="text"], .field input[type="number"] { max-width: 100%; width: 100%; }
+      .field-table { font-size: 0.7rem; }
+      .field-table th, .field-table td { padding: 6px; }
+      .signature-row { flex-direction: column; }
+      .status-banner { padding: var(--ts-space-4, 16px); }
+      .legend { flex-direction: column; gap: 8px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- STATUS BANNER                                                      -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <div class="status-banner">
+    <h1>OEFFA Organic Certification Renewal Report</h1>
+    <div class="due-date">Due: April 25, 2026</div>
+    <div class="op-info">Operation #3839 | Tiny Seed Farm | Todd R Wilson</div>
+
+    <h2>Items You MUST Fill In:</h2>
+    <ol>
+      <li>2025 gross organic crop sales <span>(Page 1)</span></li>
+      <li>% of production that is organic <span>(Page 1)</span></li>
+      <li>Crops for 6 unassigned fields <span>(Pages 2-3)</span></li>
+      <li>Cover crops for all fields <span>(Pages 2-3)</span></li>
+      <li>Review inputs -- mark removals <span>(Pages 4-6)</span></li>
+      <li>OSP changes <span>(Page 7)</span></li>
+      <li>Sign and date <span>(Page 8)</span></li>
+    </ol>
+  </div>
+
+  <button class="print-btn no-print" onclick="window.print()">
+    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+    Print This Guide
+  </button>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-swatch green"></div> Pre-filled (known)</div>
+    <div class="legend-item"><div class="legend-swatch yellow"></div> You must fill in</div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- PAGE 1 — Operation Information                                     -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <div class="page-section">
+    <h2>Page 1 -- Operation Information</h2>
+
+    <div class="field known"><label>Legal Business Name:</label> TINY SEED FARM</div>
+    <div class="field known"><label>Owner/Operator:</label> TODD R WILSON</div>
+    <div class="field known"><label>Company Type:</label> CORPORATION/LLC</div>
+
+    <div class="field action">
+      <label>2025 Gross Organic Sales (Crops):</label>
+      <span>$</span><input type="text" placeholder="Enter amount" aria-label="2025 gross organic crop sales">
+    </div>
+    <div class="field known"><label>Livestock Sales:</label> $0</div>
+    <div class="field known"><label>Handled Products Sales:</label> $0</div>
+
+    <div class="field known"><label>Responsible for other certified ops?</label> No</div>
+
+    <h3>Contact Preferences</h3>
+    <div class="checkbox-row"><input type="checkbox" id="contact-mail"><label for="contact-mail">Mail</label></div>
+    <div class="checkbox-row"><input type="checkbox" id="contact-email" checked><label for="contact-email">Email</label></div>
+    <div class="checkbox-row"><input type="checkbox" id="contact-both"><label for="contact-both">Email + mail OSP</label></div>
+
+    <div class="field action">
+      <label>% of total production organic:</label>
+      <input type="text" placeholder="e.g. 100" aria-label="Percent organic production">%
+    </div>
+
+    <h3>New Locations</h3>
+    <div class="checkbox-row"><input type="checkbox" id="new-loc-yes"><label for="new-loc-yes">Yes</label></div>
+    <div class="checkbox-row"><input type="checkbox" id="new-loc-no" checked><label for="new-loc-no">No</label></div>
+
+    <h3>Addresses &amp; Contact</h3>
+    <div class="field known"><label>Mailing Address:</label> 257 Zeigler Road, Rochester, PA 15074</div>
+    <div class="field known"><label>Operation Address:</label> 257 Zeigler Road, Rochester, PA 15074</div>
+    <div class="field known"><label>Phone:</label> (717) 725-5177</div>
+    <div class="field known"><label>Email:</label> todd@tinyseedfarmpgh.com</div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- PAGES 2-3 — Fields & Crops                                        -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <div class="page-section">
+    <h2>Pages 2-3 -- Fields &amp; Crops</h2>
+
+    <div class="checkbox-row" style="margin-bottom: 12px;">
+      <input type="checkbox" id="new-land" disabled>
+      <label for="new-land"><strong>Adding new land this year?</strong> No</label>
+    </div>
+
+    <p class="instruction">Fields highlighted in yellow need crop assignments. Enter the crops you plan to grow in each unassigned field.</p>
+
+    <div style="overflow-x: auto;">
+    <table class="field-table">
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Acres</th>
+          <th>Status</th>
+          <th>This Year's Crop</th>
+          <th>Cover Crop</th>
+          <th>Inputs</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="needs-assignment">
+          <td><strong>B</strong></td>
+          <td>0.10</td>
+          <td>Organic</td>
+          <td><input type="text" placeholder="Enter crops" aria-label="Crops for field B"></td>
+          <td>Rye/Oats</td>
+          <td>Re-Vita Pro, Azomite, Feather Meal</td>
+        </tr>
+        <tr class="needs-assignment">
+          <td><strong>CL</strong></td>
+          <td>0.08</td>
+          <td>Organic</td>
+          <td><input type="text" placeholder="Enter crops" aria-label="Crops for field CL"></td>
+          <td>Rye/Oats</td>
+          <td>Re-Vita Pro, Azomite, Feather Meal</td>
+        </tr>
+        <tr>
+          <td><strong>F03M</strong></td>
+          <td>0.50</td>
+          <td>Organic</td>
+          <td>Lettuce, Basil</td>
+          <td>Rye/Oats</td>
+          <td>Re-Vita Pro, Azomite, Feather Meal</td>
+        </tr>
+        <tr class="needs-assignment">
+          <td><strong>F11M</strong></td>
+          <td>0.30</td>
+          <td>Organic</td>
+          <td><input type="text" placeholder="Enter crops" aria-label="Crops for field F11M"></td>
+          <td>Rye/Oats</td>
+          <td>Re-Vita Pro, Azomite, Feather Meal</td>
+        </tr>
+        <tr class="needs-assignment">
+          <td><strong>F7M</strong></td>
+          <td>0.30</td>
+          <td>Organic</td>
+          <td><input type="text" placeholder="Enter crops" aria-label="Crops for field F7M"></td>
+          <td>Rye/Oats</td>
+          <td>Re-Vita Pro, Azomite, Feather Meal</td>
+        </tr>
+        <tr>
+          <td><strong>Greenhouse</strong></td>
+          <td>0.01</td>
+          <td>Organic</td>
+          <td>Seedlings (3000 sq ft)</td>
+          <td>N/A</td>
+          <td>Re-Vita Pro, Azomite</td>
+        </tr>
+        <tr class="needs-assignment">
+          <td><strong>High Tunnel</strong></td>
+          <td>0.01</td>
+          <td>Organic</td>
+          <td><input type="text" placeholder="Enter crops" aria-label="Crops for High Tunnel"></td>
+          <td>N/A</td>
+          <td>Re-Vita Pro, Azomite</td>
+        </tr>
+        <tr>
+          <td><strong>IL</strong></td>
+          <td>0.35</td>
+          <td>Organic</td>
+          <td>Eggplant, Tomatillos, Swiss Chard, Lettuce, Fennel, Radicchio, Endive, Dandelions</td>
+          <td>Rye/Oats</td>
+          <td>Re-Vita Pro, Azomite, Feather Meal</td>
+        </tr>
+        <tr>
+          <td><strong>IOL</strong></td>
+          <td>1.00</td>
+          <td>Organic</td>
+          <td>Kale, Broccoli, Cabbage, Cauliflower, Collards, Kohlrabi, Beets, Bok Choy, Carrots, Lettuce</td>
+          <td>Rye/Oats</td>
+          <td>Re-Vita Pro, Azomite, Feather Meal</td>
+        </tr>
+        <tr>
+          <td><strong>JL</strong></td>
+          <td>0.50</td>
+          <td>Organic</td>
+          <td>Lettuce, Fennel, Kohlrabi, Bok Choy, Carrots, Radicchio, Escarole</td>
+          <td>Rye/Oats</td>
+          <td>Re-Vita Pro, Azomite, Feather Meal</td>
+        </tr>
+        <tr>
+          <td><strong>JS01</strong></td>
+          <td>0.40</td>
+          <td>Organic</td>
+          <td>Winter Squash, Lettuce, Cilantro, Dill, Parsley, Scallions, Beets, Carrots</td>
+          <td>Rye/Oats</td>
+          <td>Re-Vita Pro, Azomite, Feather Meal</td>
+        </tr>
+        <tr>
+          <td><strong>JS03</strong></td>
+          <td>0.40</td>
+          <td>Organic</td>
+          <td>Cucumber, Lettuce</td>
+          <td>Rye/Oats</td>
+          <td>Re-Vita Pro, Azomite, Feather Meal</td>
+        </tr>
+        <tr>
+          <td><strong>JS06</strong></td>
+          <td>0.40</td>
+          <td>Organic</td>
+          <td>Cucumber, Summer Squash, Watermelon, Lettuce, Celtuce</td>
+          <td>Rye/Oats</td>
+          <td>Re-Vita Pro, Azomite, Feather Meal</td>
+        </tr>
+        <tr>
+          <td><strong>JS10</strong></td>
+          <td>0.40</td>
+          <td>Organic</td>
+          <td>Tomatoes (12 var), Peppers (13 var)</td>
+          <td>Rye/Oats</td>
+          <td>Re-Vita Pro, Azomite, Feather Meal</td>
+        </tr>
+        <tr>
+          <td><strong>K</strong></td>
+          <td>0.60</td>
+          <td>Organic</td>
+          <td>Turnips, Spinach, Swiss Chard</td>
+          <td>Rye/Oats</td>
+          <td>Re-Vita Pro, Azomite, Feather Meal</td>
+        </tr>
+        <tr>
+          <td><strong>M</strong></td>
+          <td>0.60</td>
+          <td>Organic</td>
+          <td>Basil, Beets, Carrots, Lettuce, Arugula, Dill, Cilantro, Peas, Fava Beans</td>
+          <td>Rye/Oats</td>
+          <td>Re-Vita Pro, Azomite, Feather Meal</td>
+        </tr>
+        <tr>
+          <td><strong>Rosemary House</strong></td>
+          <td>0.01</td>
+          <td>Organic</td>
+          <td>Rosemary</td>
+          <td>N/A</td>
+          <td>None</td>
+        </tr>
+        <tr class="needs-assignment">
+          <td><strong>Z03H</strong></td>
+          <td>0.30</td>
+          <td>Organic</td>
+          <td><input type="text" placeholder="Enter crops" aria-label="Crops for field Z03H"></td>
+          <td>Rye/Oats</td>
+          <td>Re-Vita Pro, Azomite, Feather Meal</td>
+        </tr>
+        <tr>
+          <td><strong>Z03L</strong></td>
+          <td>0.30</td>
+          <td>Organic</td>
+          <td>Arugula, Beans, Spinach, Radishes, Turnips, Kale Mix</td>
+          <td>Rye/Oats</td>
+          <td>Re-Vita Pro, Azomite, Feather Meal</td>
+        </tr>
+        <tr>
+          <td><strong>Z5</strong></td>
+          <td>0.20</td>
+          <td>Organic</td>
+          <td>Beets</td>
+          <td>Rye/Oats</td>
+          <td>Re-Vita Pro, Azomite, Feather Meal</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+
+    <p class="instruction" style="margin-top: 12px;"><strong>Total Acreage:</strong> 6.76 acres (20 field units)</p>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- PAGE 4 — Crop Products                                            -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <div class="page-section">
+    <h2>Page 4 -- Crop Products</h2>
+
+    <table class="field-table">
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th>Quantity</th>
+          <th>Organic Status</th>
+          <th>International Markets?</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Seedlings</td>
+          <td>3,000 sq ft</td>
+          <td>Organic</td>
+          <td>N/A</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- PAGES 4-6 — Crop Inputs Review                                    -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <div class="page-section">
+    <h2>Pages 4-6 -- Crop Inputs Review</h2>
+
+    <p class="instruction"><strong>Instructions:</strong> Review each input below. Check "Remove" for any input you are NOT planning to use this year. Any NEW inputs must be listed on the Supplemental OSP Forms.</p>
+
+    <h3>Approved Inputs (No Restrictions)</h3>
+    <table class="input-table">
+      <thead>
+        <tr>
+          <th>Input Material</th>
+          <th>Manufacturer/Supplier</th>
+          <th style="width:80px; text-align:center;">Remove?</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Azomite</td>
+          <td>Ohio Earth Food</td>
+          <td style="text-align:center;"><input type="checkbox" aria-label="Remove Azomite"></td>
+        </tr>
+        <tr>
+          <td>Feather Meal</td>
+          <td>Ohio Earth Food</td>
+          <td style="text-align:center;"><input type="checkbox" aria-label="Remove Feather Meal"></td>
+        </tr>
+        <tr>
+          <td>Micro 5000 Organic</td>
+          <td>Tainio Biologicals</td>
+          <td style="text-align:center;"><input type="checkbox" aria-label="Remove Micro 5000 Organic"></td>
+        </tr>
+        <tr>
+          <td>Paper Chain Pots</td>
+          <td>Small Farm Works</td>
+          <td style="text-align:center;"><input type="checkbox" aria-label="Remove Paper Chain Pots"></td>
+        </tr>
+        <tr>
+          <td>Redmond Natural Trace Mineral Salt</td>
+          <td>Redmond Minerals</td>
+          <td style="text-align:center;"><input type="checkbox" aria-label="Remove Redmond Natural Trace Mineral Salt"></td>
+        </tr>
+        <tr>
+          <td>Re-Vita Pro 5-4-5 With 8% Calcium</td>
+          <td>Ohio Earth Food</td>
+          <td style="text-align:center;"><input type="checkbox" aria-label="Remove Re-Vita Pro"></td>
+        </tr>
+        <tr>
+          <td>Rocket 90 Sulfur 0-0-0-90</td>
+          <td>Galaxy Sulfur LLC</td>
+          <td style="text-align:center;"><input type="checkbox" aria-label="Remove Rocket 90 Sulfur"></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Restricted Inputs (Review Carefully)</h3>
+    <table class="input-table">
+      <thead>
+        <tr>
+          <th>Input Material</th>
+          <th>Manufacturer/Supplier</th>
+          <th>Category</th>
+          <th style="width:80px; text-align:center;">Remove?</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Accelerate</td>
+          <td>Advancing Eco Agriculture</td>
+          <td>Micronutrients</td>
+          <td style="text-align:center;"><input type="checkbox" aria-label="Remove Accelerate"></td>
+        </tr>
+        <tr>
+          <td>AzaGuard</td>
+          <td>BioSafe Systems</td>
+          <td>Pesticide</td>
+          <td style="text-align:center;"><input type="checkbox" aria-label="Remove AzaGuard"></td>
+        </tr>
+        <tr>
+          <td>BioWorks CEASE</td>
+          <td>BioWorks Inc</td>
+          <td>Pesticide</td>
+          <td style="text-align:center;"><input type="checkbox" aria-label="Remove BioWorks CEASE"></td>
+        </tr>
+        <tr>
+          <td>BotaniGard 22WP</td>
+          <td>Certis USA</td>
+          <td>Pesticide</td>
+          <td style="text-align:center;"><input type="checkbox" aria-label="Remove BotaniGard 22WP"></td>
+        </tr>
+        <tr>
+          <td>DiPel DF</td>
+          <td>Valent BioSciences</td>
+          <td>Pesticide</td>
+          <td style="text-align:center;"><input type="checkbox" aria-label="Remove DiPel DF"></td>
+        </tr>
+        <tr>
+          <td>Entrust SC</td>
+          <td>Corteva Agriscience</td>
+          <td>Pesticide</td>
+          <td style="text-align:center;"><input type="checkbox" aria-label="Remove Entrust SC"></td>
+        </tr>
+        <tr>
+          <td>Forage Foliar</td>
+          <td>Advancing Eco Agriculture</td>
+          <td>Mg sulfate</td>
+          <td style="text-align:center;"><input type="checkbox" aria-label="Remove Forage Foliar"></td>
+        </tr>
+        <tr>
+          <td>HoloCal</td>
+          <td>Advancing Eco Agriculture</td>
+          <td>Micronutrients B</td>
+          <td style="text-align:center;"><input type="checkbox" aria-label="Remove HoloCal"></td>
+        </tr>
+        <tr>
+          <td>Miller Nu Film P</td>
+          <td>Miller Chemical</td>
+          <td>Inerts/Adjuvants</td>
+          <td style="text-align:center;"><input type="checkbox" aria-label="Remove Miller Nu Film P"></td>
+        </tr>
+        <tr>
+          <td>Monterey Sluggo</td>
+          <td>Lawn and Garden Products</td>
+          <td>Pesticide</td>
+          <td style="text-align:center;"><input type="checkbox" aria-label="Remove Monterey Sluggo"></td>
+        </tr>
+        <tr>
+          <td>M-Pede</td>
+          <td>Gowan Company</td>
+          <td>Soap</td>
+          <td style="text-align:center;"><input type="checkbox" aria-label="Remove M-Pede"></td>
+        </tr>
+        <tr>
+          <td>PyGanic Specialty</td>
+          <td>MGK</td>
+          <td>Pesticide</td>
+          <td style="text-align:center;"><input type="checkbox" aria-label="Remove PyGanic Specialty"></td>
+        </tr>
+        <tr>
+          <td>Regalia Biofungicide</td>
+          <td>Marrone Bio Innovations</td>
+          <td>Pesticide</td>
+          <td style="text-align:center;"><input type="checkbox" aria-label="Remove Regalia Biofungicide"></td>
+        </tr>
+        <tr>
+          <td>SQM allganic Nitrogen Plus 15-0-2</td>
+          <td>SQM North America</td>
+          <td>Chilean Nitrate</td>
+          <td style="text-align:center;"><input type="checkbox" aria-label="Remove SQM allganic"></td>
+        </tr>
+        <tr>
+          <td>Stargus Biofungicide</td>
+          <td>Marrone Bio Innovations</td>
+          <td>Pesticide</td>
+          <td style="text-align:center;"><input type="checkbox" aria-label="Remove Stargus Biofungicide"></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- PAGE 7 — Organic Plan Update                                       -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <div class="page-section">
+    <h2>Page 7 -- Organic Plan Update</h2>
+
+    <p class="instruction">Check "No Changes" if nothing changed in your organic system plan. Otherwise, check each section that changed and describe the change below.</p>
+
+    <div class="checkbox-row" style="margin-bottom: 8px;">
+      <input type="checkbox" id="osp-no-changes">
+      <label for="osp-no-changes"><strong>NO CHANGES to my Organic System Plan</strong></label>
+    </div>
+
+    <p class="instruction" style="margin-top:16px; margin-bottom:8px;"><strong>Or check sections that changed:</strong></p>
+
+    <div class="checkbox-row"><input type="checkbox" id="osp-1"><label for="osp-1">Section 1 -- Seed and Planting Stock</label></div>
+    <div class="checkbox-row"><input type="checkbox" id="osp-2"><label for="osp-2">Section 2 -- Soil Fertility and Crop Nutrient Management</label></div>
+    <div class="checkbox-row"><input type="checkbox" id="osp-3"><label for="osp-3">Section 3 -- Crop Rotation</label></div>
+    <div class="checkbox-row"><input type="checkbox" id="osp-4"><label for="osp-4">Section 4 -- Pest, Weed, and Disease Management</label></div>
+    <div class="checkbox-row"><input type="checkbox" id="osp-5"><label for="osp-5">Section 5 -- Water and Irrigation</label></div>
+    <div class="checkbox-row"><input type="checkbox" id="osp-6"><label for="osp-6">Section 6 -- Recordkeeping and Audit Trail</label></div>
+    <div class="checkbox-row"><input type="checkbox" id="osp-7"><label for="osp-7">Section 7 -- Handling and Processing</label></div>
+    <div class="checkbox-row"><input type="checkbox" id="osp-8"><label for="osp-8">Section 8 -- Buffer Zones and Contamination Prevention</label></div>
+    <div class="checkbox-row"><input type="checkbox" id="osp-9"><label for="osp-9">Section 9 -- Monitoring Practices</label></div>
+    <div class="checkbox-row"><input type="checkbox" id="osp-10"><label for="osp-10">Section 10 -- Equipment and Post-Harvest Handling</label></div>
+
+    <h3>Describe Changes</h3>
+    <textarea class="notes-area" placeholder="Describe what changed in the sections you checked above..." aria-label="OSP changes description"></textarea>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- PAGE 8 — Other Changes + Affirmation                              -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <div class="page-section">
+    <h2>Page 8 -- Other Planned Changes &amp; Affirmation</h2>
+
+    <h3>Other Planned Changes</h3>
+    <p class="instruction">List any other planned changes to your operation (new equipment, facilities, practices, markets, etc.):</p>
+    <textarea class="notes-area" placeholder="Describe any other planned changes..." aria-label="Other planned changes"></textarea>
+
+    <h3>Affirmation</h3>
+    <div class="affirmation">
+      <p>I affirm that the information provided in this document and any attached continuation sheets and/or updated Organic System Plan is true, accurate, and complete to the best of my knowledge. I understand that any willful misrepresentation on this form may result in revocation of my organic certification.</p>
+      <p style="margin-top:8px;">I understand that I must comply with the USDA National Organic Program regulations, 7 CFR Part 205, and that I must allow authorized representatives of USDA, the certifying agent, and the State organic program access to my operation for inspection purposes, including access to all records and documents that relate to my organic operation.</p>
+      <p style="margin-top:8px;">I understand and agree to abide by the OEFFA Certification Program policies and procedures as described in the OEFFA Certification Handbook and any supplemental notices provided by OEFFA Certification.</p>
+    </div>
+
+    <div class="signature-row">
+      <div class="sig-field">
+        <label>Signature:</label>
+        <div class="sig-line needs-fill" contenteditable="true" aria-label="Signature"></div>
+      </div>
+      <div class="sig-field">
+        <label>Date:</label>
+        <div class="sig-line needs-fill" contenteditable="true" aria-label="Date"></div>
+      </div>
+      <div class="sig-field">
+        <label>Printed Name:</label>
+        <div class="sig-line prefilled">TODD R WILSON</div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- ACTION ITEMS                                                       -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <div class="page-section">
+    <h2>Additional Action Items</h2>
+
+    <table class="action-items-table">
+      <thead>
+        <tr>
+          <th>Item</th>
+          <th>Due</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Information Release Form</strong></td>
+          <td>4/30/2026</td>
+          <td>Fill and return -- field sharing with Kretschmann #770</td>
+        </tr>
+        <tr>
+          <td><strong>Organic Labels</strong></td>
+          <td>Before use</td>
+          <td>Send photo/description to Lauren Pope (<a href="mailto:lpope@oeffa.org">lpope@oeffa.org</a>)</td>
+        </tr>
+        <tr>
+          <td><strong>OSP Section Review</strong></td>
+          <td>No hard date</td>
+          <td>OEFFA updated 7 sections on 3/23/26 -- silence = acceptance</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <script src="api-config.js"></script>
+</body>
+</html>
