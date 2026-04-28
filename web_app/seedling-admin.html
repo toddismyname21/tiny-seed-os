@@ -814,6 +814,165 @@
             display: none;
         }
 
+        /* ── Orders Panel ── */
+        .orders-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--ts-space-4, 16px);
+            gap: var(--ts-space-3, 12px);
+            flex-wrap: wrap;
+        }
+        .orders-toolbar-left {
+            display: flex;
+            gap: var(--ts-space-3, 12px);
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .orders-table-wrap {
+            overflow-x: auto;
+            border-radius: var(--ts-radius-md, 10px);
+            border: 1px solid var(--border);
+            background: var(--card);
+        }
+        .orders-table-wrap table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.88rem;
+        }
+        .orders-table-wrap th {
+            background: #f9fafb;
+            border-bottom: 2px solid var(--border);
+            padding: 12px 14px;
+            text-align: left;
+            font-weight: 700;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+        .orders-table-wrap td {
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+        .orders-table-wrap tbody tr:hover { background: #f9fafb; }
+        .order-status-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+        .order-status-badge.paid { background: #dcfce7; color: #166534; }
+        .order-status-badge.pending { background: #fef3c7; color: #92400e; }
+        .order-status-badge.cancelled { background: #fee2e2; color: #991b1b; }
+        .orders-summary-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: var(--ts-space-3, 12px);
+            margin-bottom: var(--ts-space-5, 20px);
+        }
+        .orders-summary-bar .alloc-stat { border-left-width: 3px; border-left-style: solid; }
+
+        /* ── Pick & Pack Panel ── */
+        .pickpack-sites {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+            gap: var(--ts-space-5, 20px);
+            margin-bottom: var(--ts-space-5, 20px);
+        }
+        .pickpack-site-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--ts-radius-md, 12px);
+            overflow: hidden;
+            transition: box-shadow var(--ts-dur-normal, 200ms), transform var(--ts-dur-normal, 200ms);
+        }
+        .pickpack-site-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            transform: translateY(-2px);
+        }
+        .pickpack-site-header {
+            padding: var(--ts-space-4, 16px) var(--ts-space-5, 20px);
+            background: var(--green-deep);
+            color: #fff;
+        }
+        .pickpack-site-header h3 {
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        .pickpack-site-header .site-meta {
+            font-size: 0.8rem;
+            opacity: 0.85;
+            display: flex;
+            gap: var(--ts-space-4, 16px);
+        }
+        .pickpack-site-body {
+            padding: var(--ts-space-4, 16px) var(--ts-space-5, 20px);
+        }
+        .pickpack-site-body .site-stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: var(--ts-space-3, 12px);
+            padding-bottom: var(--ts-space-3, 12px);
+            border-bottom: 1px solid var(--border);
+        }
+        .pickpack-site-body .site-stat {
+            text-align: center;
+        }
+        .pickpack-site-body .site-stat-value {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--text-dark);
+        }
+        .pickpack-site-body .site-stat-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .pickpack-item-list {
+            list-style: none;
+            max-height: 260px;
+            overflow-y: auto;
+            margin-bottom: var(--ts-space-4, 16px);
+        }
+        .pickpack-item-list li {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #f3f4f6;
+            font-size: 0.88rem;
+        }
+        .pickpack-item-list li:last-child { border-bottom: none; }
+        .pickpack-item-list .item-name { color: var(--text-dark); font-weight: 500; }
+        .pickpack-item-list .item-qty { color: var(--green-dark); font-weight: 700; }
+        .pickpack-actions {
+            display: flex;
+            gap: var(--ts-space-2, 8px);
+        }
+        .pickpack-actions .btn {
+            flex: 1;
+            justify-content: center;
+            font-size: 0.82rem;
+            padding: 10px 12px;
+        }
+        .pickpack-empty {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+        }
+        .pickpack-empty i { font-size: 2.5rem; margin-bottom: 12px; display: block; color: var(--border); }
+        .pickpack-overall-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: var(--ts-space-3, 12px);
+            margin-bottom: var(--ts-space-5, 20px);
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             .admin-header { flex-direction: column; gap: var(--ts-space-3, 12px); text-align: center; }
@@ -828,6 +987,13 @@
             .alloc-summary { grid-template-columns: repeat(3, 1fr); }
             .alloc-input { width: 55px; }
             .alloc-toolbar { flex-direction: column; }
+            .orders-toolbar { flex-direction: column; align-items: stretch; }
+            .orders-toolbar-left { flex-direction: column; }
+            .orders-summary-bar { grid-template-columns: 1fr 1fr; }
+            .pickpack-sites { grid-template-columns: 1fr; }
+            .pickpack-actions { flex-direction: column; }
+            .pickpack-overall-summary { grid-template-columns: 1fr 1fr; }
+            .admin-view-tabs { flex-wrap: wrap; }
         }
         /* ── Accessibility: Focus Visible ── */
         :focus-visible { outline: 2px solid var(--ts-primary, #22c55e); outline-offset: 2px; }
@@ -887,6 +1053,8 @@
     <div class="admin-view-tabs">
         <button class="admin-view-tab active" onclick="switchAdminView('varieties')"><i class="fas fa-seedling"></i> Varieties</button>
         <button class="admin-view-tab" onclick="switchAdminView('allocations')"><i class="fas fa-chart-pie"></i> Allocations</button>
+        <button class="admin-view-tab" onclick="switchAdminView('orders')"><i class="fas fa-receipt"></i> Orders</button>
+        <button class="admin-view-tab" onclick="switchAdminView('pickpack')"><i class="fas fa-boxes-packing"></i> Pick &amp; Pack</button>
     </div>
 
     <!-- ═══ VARIETIES PANEL (existing content) ═══ -->
@@ -1425,6 +1593,92 @@
             Phipps/Market must be multiples of 18
         </p>
     </div><!-- end allocationsPanel -->
+
+    <!-- ═══ ORDERS PANEL ═══ -->
+    <div id="ordersPanel" style="display:none;">
+        <!-- Summary Cards -->
+        <div class="orders-summary-bar">
+            <div class="alloc-stat" style="border-left-color: var(--green-deep);">
+                <div class="alloc-stat-label">Total Orders</div>
+                <div class="alloc-stat-value" id="ordStatTotal">--</div>
+            </div>
+            <div class="alloc-stat" style="border-left-color: var(--green);">
+                <div class="alloc-stat-label">Paid</div>
+                <div class="alloc-stat-value" id="ordStatPaid">--</div>
+            </div>
+            <div class="alloc-stat" style="border-left-color: var(--orange);">
+                <div class="alloc-stat-label">Pending</div>
+                <div class="alloc-stat-value" id="ordStatPending">--</div>
+            </div>
+            <div class="alloc-stat" style="border-left-color: var(--blue);">
+                <div class="alloc-stat-label">Total Revenue</div>
+                <div class="alloc-stat-value" id="ordStatRevenue">--</div>
+            </div>
+            <div class="alloc-stat" style="border-left-color: #8b5cf6;">
+                <div class="alloc-stat-label">Total Plants</div>
+                <div class="alloc-stat-value" id="ordStatPlants">--</div>
+            </div>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="orders-toolbar">
+            <div class="orders-toolbar-left">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="ordSearch" placeholder="Search orders..." oninput="filterOrders()">
+                </div>
+                <select class="filter-select" id="ordPickupFilter" onchange="filterOrders()">
+                    <option value="">All Pickup Sites</option>
+                </select>
+                <select class="filter-select" id="ordStatusFilter" onchange="filterOrders()">
+                    <option value="">All Statuses</option>
+                    <option value="Paid">Paid</option>
+                    <option value="Pending">Pending</option>
+                </select>
+            </div>
+            <div>
+                <button class="btn btn-secondary" onclick="loadOrders()">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+            </div>
+        </div>
+
+        <!-- Orders Table -->
+        <div class="orders-table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Order ID</th>
+                        <th>Customer</th>
+                        <th>Email</th>
+                        <th>Pickup Location</th>
+                        <th style="text-align:center;">Items</th>
+                        <th style="text-align:right;">Amount</th>
+                        <th style="text-align:center;">Status</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody id="ordersTableBody">
+                    <tr><td colspan="8" style="text-align:center;padding:40px;"><i class="fas fa-spinner fa-spin"></i> Loading orders...</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div id="ordersCount" style="margin-top:12px;font-size:0.8rem;color:var(--text-muted);text-align:center;"></div>
+    </div><!-- end ordersPanel -->
+
+    <!-- ═══ PICK & PACK PANEL ═══ -->
+    <div id="pickpackPanel" style="display:none;">
+        <!-- Overall Summary -->
+        <div class="pickpack-overall-summary" id="pickpackSummary"></div>
+
+        <!-- Site Cards -->
+        <div class="pickpack-sites" id="pickpackSites">
+            <div style="text-align:center;padding:60px 20px;grid-column:1/-1;">
+                <i class="fas fa-spinner fa-spin" style="font-size:2rem;color:var(--text-muted);"></i>
+                <p style="margin-top:12px;color:var(--text-muted);">Loading pick &amp; pack data...</p>
+            </div>
+        </div>
+    </div><!-- end pickpackPanel -->
 
 </div>
 
@@ -2589,20 +2843,25 @@ window.addEventListener('beforeunload', function(e) {
 });
 
 function switchAdminView(view) {
-    var varietiesPanel = document.getElementById('varietiesPanel');
-    var allocPanel = document.getElementById('allocationsPanel');
+    var panels = {
+        varieties: document.getElementById('varietiesPanel'),
+        allocations: document.getElementById('allocationsPanel'),
+        orders: document.getElementById('ordersPanel'),
+        pickpack: document.getElementById('pickpackPanel')
+    };
     var tabBtns = document.querySelectorAll('.admin-view-tab');
+    var tabOrder = ['varieties', 'allocations', 'orders', 'pickpack'];
+
     tabBtns.forEach(function(btn) { btn.classList.remove('active'); });
-    if (view === 'allocations') {
-        varietiesPanel.style.display = 'none';
-        allocPanel.style.display = 'block';
-        tabBtns[1].classList.add('active');
-        loadAllocations();
-    } else {
-        varietiesPanel.style.display = 'block';
-        allocPanel.style.display = 'none';
-        tabBtns[0].classList.add('active');
-    }
+    Object.keys(panels).forEach(function(k) { if (panels[k]) panels[k].style.display = 'none'; });
+
+    var idx = tabOrder.indexOf(view);
+    if (idx >= 0 && tabBtns[idx]) tabBtns[idx].classList.add('active');
+    if (panels[view]) panels[view].style.display = 'block';
+
+    if (view === 'allocations') loadAllocations();
+    if (view === 'orders') loadOrders();
+    if (view === 'pickpack') loadPickPack();
 }
 
 function loadAllocations() {
@@ -3234,6 +3493,605 @@ function removeCategory(name) {
         }
     })
     .catch(function(err) { alert('Error: ' + err.message); });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ORDERS TAB
+// ═══════════════════════════════════════════════════════════════
+
+var PICKUP_SITES = [
+    { id: 'Farm', name: 'Farm Pickup (Rochester)', date: 'Wed, May 6', hours: '11am-7pm' },
+    { id: 'Phipps', name: 'Phipps May Market', date: 'Fri, May 8', hours: '9am-7pm' },
+    { id: 'Bloomfield', name: 'Bloomfield Saturday Market', date: 'Sat, May 9', hours: '9am-1pm' },
+    { id: 'Sewickley', name: 'Sewickley Farmers Market', date: 'Sat, May 9', hours: '9am-1pm' },
+    { id: 'Lawrenceville', name: 'Lawrenceville Farmers Market', date: 'Mon, May 19', hours: '3-7pm' }
+];
+
+var allOrders = [];       // order-level rows from SEEDLING_ORDERS
+var allSalesItems = [];   // line-item rows from SEEDLING_SALES
+var ordersLoaded = false;
+
+function loadOrders() {
+    var tbody = document.getElementById('ordersTableBody');
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;"><i class="fas fa-spinner fa-spin"></i> Loading orders...</td></tr>';
+
+    Promise.all([
+        fetch(TINY_SEED_API.MAIN_API + '?action=getSheetData&sheetName=SEEDLING_ORDERS').then(function(r) { return r.json(); }),
+        fetch(TINY_SEED_API.MAIN_API + '?action=getSeedlingSales').then(function(r) { return r.json(); })
+    ]).then(function(results) {
+        var ordersResult = results[0];
+        var salesResult = results[1];
+
+        allSalesItems = (salesResult.success && salesResult.data) ? salesResult.data : [];
+
+        if (ordersResult.success && ordersResult.data && ordersResult.data.length > 0) {
+            allOrders = ordersResult.data;
+        } else {
+            // Fallback: build order-level data from sales line items grouped by Order_ID
+            allOrders = buildOrdersFromSales(allSalesItems);
+        }
+
+        ordersLoaded = true;
+        populateOrderPickupFilter();
+        renderOrders();
+        updateOrderStats();
+    }).catch(function(err) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--red);"><i class="fas fa-exclamation-triangle"></i> Failed to load orders: ' + escapeHtml(err.message) + '</td></tr>';
+    });
+}
+
+function buildOrdersFromSales(sales) {
+    var grouped = {};
+    for (var i = 0; i < sales.length; i++) {
+        var s = sales[i];
+        var oid = s.Order_ID || s.order_id || 'UNKNOWN';
+        if (!grouped[oid]) {
+            grouped[oid] = {
+                Order_ID: oid,
+                Customer_Name: s.Customer_Name || s.customer_name || '',
+                Email: s.Email || s.email || '',
+                Pickup_Location: s.Pickup_Location || s.pickup_location || '',
+                Invoice_Status: s.Invoice_Status || s.invoice_status || 'Pending',
+                Date: s.Sale_Date || s.sale_date || s.Created_At || '',
+                Total_Items: 0,
+                Total_Amount: 0,
+                items: []
+            };
+        }
+        var qty = Number(s.Quantity_Sold || s.quantity_sold || s.Quantity || 0);
+        var rev = Number(s.Revenue || s.revenue || 0);
+        grouped[oid].Total_Items += qty;
+        grouped[oid].Total_Amount += rev;
+        grouped[oid].items.push(s);
+    }
+    return Object.keys(grouped).map(function(k) { return grouped[k]; });
+}
+
+function populateOrderPickupFilter() {
+    var select = document.getElementById('ordPickupFilter');
+    var sites = {};
+    for (var i = 0; i < allOrders.length; i++) {
+        var loc = allOrders[i].Pickup_Location || allOrders[i].pickup_location || '';
+        if (loc) sites[loc] = true;
+    }
+    var opts = '<option value="">All Pickup Sites</option>';
+    Object.keys(sites).sort().forEach(function(s) {
+        opts += '<option value="' + escapeHtml(s) + '">' + escapeHtml(s) + '</option>';
+    });
+    select.innerHTML = opts;
+}
+
+function getFilteredOrders() {
+    var search = (document.getElementById('ordSearch').value || '').toLowerCase().trim();
+    var pickupFilter = document.getElementById('ordPickupFilter').value;
+    var statusFilter = document.getElementById('ordStatusFilter').value;
+
+    return allOrders.filter(function(o) {
+        if (pickupFilter) {
+            var loc = o.Pickup_Location || o.pickup_location || '';
+            if (loc.indexOf(pickupFilter) === -1 && pickupFilter.indexOf(loc) === -1) {
+                // Try matching by site id
+                var matchesSite = false;
+                for (var s = 0; s < PICKUP_SITES.length; s++) {
+                    if ((PICKUP_SITES[s].id === pickupFilter || PICKUP_SITES[s].name === pickupFilter) &&
+                        (loc.indexOf(PICKUP_SITES[s].id) !== -1 || loc.indexOf(PICKUP_SITES[s].name) !== -1)) {
+                        matchesSite = true; break;
+                    }
+                }
+                if (!matchesSite) return false;
+            }
+        }
+        if (statusFilter) {
+            var status = normalizeStatus(o.Invoice_Status || o.invoice_status || '');
+            if (status !== statusFilter) return false;
+        }
+        if (search) {
+            var hay = [
+                o.Order_ID || '', o.Customer_Name || o.customer_name || '',
+                o.Email || o.email || '', o.Pickup_Location || o.pickup_location || ''
+            ].join(' ').toLowerCase();
+            if (hay.indexOf(search) === -1) return false;
+        }
+        return true;
+    });
+}
+
+function normalizeStatus(s) {
+    s = String(s).trim().toLowerCase();
+    if (s === 'paid' || s === 'completed' || s === 'fulfilled') return 'Paid';
+    if (s === 'cancelled' || s === 'canceled' || s === 'refunded') return 'Cancelled';
+    return 'Pending';
+}
+
+function filterOrders() { renderOrders(); }
+
+function renderOrders() {
+    var tbody = document.getElementById('ordersTableBody');
+    var filtered = getFilteredOrders();
+
+    if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;">' +
+            '<i class="fas fa-inbox" style="font-size:2rem;color:var(--border);display:block;margin-bottom:12px;"></i>' +
+            '<div style="color:var(--text-muted);font-size:0.95rem;">No orders found</div>' +
+            '<div style="color:var(--text-muted);font-size:0.8rem;margin-top:4px;">Try adjusting your filters</div>' +
+            '</td></tr>';
+        document.getElementById('ordersCount').textContent = '';
+        return;
+    }
+
+    // Sort by date descending
+    filtered.sort(function(a, b) {
+        var da = new Date(a.Date || a.date || 0);
+        var db = new Date(b.Date || b.date || 0);
+        return db - da;
+    });
+
+    var html = '';
+    for (var i = 0; i < filtered.length; i++) {
+        var o = filtered[i];
+        var status = normalizeStatus(o.Invoice_Status || o.invoice_status || '');
+        var statusClass = status.toLowerCase();
+        var totalItems = Number(o.Total_Items || o.total_items || 0);
+        var totalAmt = Number(o.Total_Amount || o.total_amount || 0);
+        var dateStr = formatOrderDate(o.Date || o.date || '');
+
+        html += '<tr>';
+        html += '<td><strong style="color:var(--green-dark);">' + escapeHtml(o.Order_ID || o.order_id || '--') + '</strong></td>';
+        html += '<td>' + escapeHtml(o.Customer_Name || o.customer_name || '--') + '</td>';
+        html += '<td style="font-size:0.82rem;">' + escapeHtml(o.Email || o.email || '--') + '</td>';
+        html += '<td>' + escapeHtml(o.Pickup_Location || o.pickup_location || '--') + '</td>';
+        html += '<td style="text-align:center;font-weight:600;">' + totalItems + '</td>';
+        html += '<td style="text-align:right;font-weight:700;">$' + totalAmt.toFixed(2) + '</td>';
+        html += '<td style="text-align:center;"><span class="order-status-badge ' + statusClass + '">' + status + '</span></td>';
+        html += '<td style="font-size:0.82rem;white-space:nowrap;">' + escapeHtml(dateStr) + '</td>';
+        html += '</tr>';
+    }
+    tbody.innerHTML = html;
+    document.getElementById('ordersCount').textContent = 'Showing ' + filtered.length + ' of ' + allOrders.length + ' orders';
+}
+
+function formatOrderDate(d) {
+    if (!d) return '--';
+    try {
+        var date = new Date(d);
+        if (isNaN(date.getTime())) return String(d).split('T')[0];
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    } catch (e) { return String(d).split('T')[0]; }
+}
+
+function updateOrderStats() {
+    var totalOrders = allOrders.length;
+    var paid = 0, pending = 0, totalRev = 0, totalPlants = 0;
+    for (var i = 0; i < allOrders.length; i++) {
+        var o = allOrders[i];
+        var status = normalizeStatus(o.Invoice_Status || o.invoice_status || '');
+        if (status === 'Paid') paid++;
+        else if (status === 'Pending') pending++;
+        totalRev += Number(o.Total_Amount || o.total_amount || 0);
+        totalPlants += Number(o.Total_Items || o.total_items || 0);
+    }
+    document.getElementById('ordStatTotal').textContent = totalOrders;
+    document.getElementById('ordStatPaid').textContent = paid;
+    document.getElementById('ordStatPending').textContent = pending;
+    document.getElementById('ordStatRevenue').textContent = '$' + totalRev.toFixed(0);
+    document.getElementById('ordStatPlants').textContent = totalPlants;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PICK & PACK TAB
+// ═══════════════════════════════════════════════════════════════
+
+function loadPickPack() {
+    var container = document.getElementById('pickpackSites');
+    container.innerHTML = '<div style="text-align:center;padding:60px 20px;grid-column:1/-1;">' +
+        '<i class="fas fa-spinner fa-spin" style="font-size:2rem;color:var(--text-muted);"></i>' +
+        '<p style="margin-top:12px;color:var(--text-muted);">Loading pick &amp; pack data...</p></div>';
+
+    // If orders already loaded, use cached data
+    if (ordersLoaded && allOrders.length > 0) {
+        buildPickPackView();
+        return;
+    }
+
+    Promise.all([
+        fetch(TINY_SEED_API.MAIN_API + '?action=getSheetData&sheetName=SEEDLING_ORDERS').then(function(r) { return r.json(); }),
+        fetch(TINY_SEED_API.MAIN_API + '?action=getSeedlingSales').then(function(r) { return r.json(); })
+    ]).then(function(results) {
+        var ordersResult = results[0];
+        var salesResult = results[1];
+
+        allSalesItems = (salesResult.success && salesResult.data) ? salesResult.data : [];
+
+        if (ordersResult.success && ordersResult.data && ordersResult.data.length > 0) {
+            allOrders = ordersResult.data;
+        } else {
+            allOrders = buildOrdersFromSales(allSalesItems);
+        }
+        ordersLoaded = true;
+
+        // Attach line items to orders if from SEEDLING_ORDERS (they won't have .items yet)
+        attachLineItemsToOrders();
+        buildPickPackView();
+    }).catch(function(err) {
+        container.innerHTML = '<div style="text-align:center;padding:60px 20px;grid-column:1/-1;">' +
+            '<i class="fas fa-exclamation-triangle" style="font-size:2rem;color:var(--red);"></i>' +
+            '<p style="margin-top:12px;color:var(--red);">Failed to load: ' + escapeHtml(err.message) + '</p></div>';
+    });
+}
+
+function attachLineItemsToOrders() {
+    // Index sales by Order_ID
+    var salesByOrder = {};
+    for (var i = 0; i < allSalesItems.length; i++) {
+        var s = allSalesItems[i];
+        var oid = s.Order_ID || s.order_id || '';
+        if (!oid) continue;
+        if (!salesByOrder[oid]) salesByOrder[oid] = [];
+        salesByOrder[oid].push(s);
+    }
+    for (var j = 0; j < allOrders.length; j++) {
+        var o = allOrders[j];
+        var ordId = o.Order_ID || o.order_id || '';
+        if (!o.items || o.items.length === 0) {
+            o.items = salesByOrder[ordId] || [];
+        }
+    }
+}
+
+function groupOrdersBySite() {
+    attachLineItemsToOrders();
+    var siteMap = {};
+
+    // Initialize all known pickup sites
+    for (var s = 0; s < PICKUP_SITES.length; s++) {
+        siteMap[PICKUP_SITES[s].id] = {
+            site: PICKUP_SITES[s],
+            orders: [],
+            consolidatedItems: {},
+            totalPlants: 0,
+            totalVarieties: 0,
+            totalRevenue: 0
+        };
+    }
+
+    for (var i = 0; i < allOrders.length; i++) {
+        var o = allOrders[i];
+        var loc = o.Pickup_Location || o.pickup_location || '';
+        var matchedSiteId = matchSiteId(loc);
+
+        if (!matchedSiteId) continue; // skip orders with unknown pickup
+
+        if (!siteMap[matchedSiteId]) {
+            siteMap[matchedSiteId] = {
+                site: { id: matchedSiteId, name: loc, date: '', hours: '' },
+                orders: [],
+                consolidatedItems: {},
+                totalPlants: 0,
+                totalVarieties: 0,
+                totalRevenue: 0
+            };
+        }
+
+        siteMap[matchedSiteId].orders.push(o);
+        siteMap[matchedSiteId].totalRevenue += Number(o.Total_Amount || o.total_amount || 0);
+
+        // Consolidate line items
+        var items = o.items || [];
+        for (var k = 0; k < items.length; k++) {
+            var item = items[k];
+            var crop = item.Crop || item.crop || '';
+            var variety = item.Variety || item.variety || '';
+            var key = crop + ' ' + variety;
+            var qty = Number(item.Quantity_Sold || item.quantity_sold || item.Quantity || 0);
+            if (!siteMap[matchedSiteId].consolidatedItems[key]) {
+                siteMap[matchedSiteId].consolidatedItems[key] = { crop: crop, variety: variety, qty: 0 };
+            }
+            siteMap[matchedSiteId].consolidatedItems[key].qty += qty;
+            siteMap[matchedSiteId].totalPlants += qty;
+        }
+    }
+
+    // Calculate variety count per site
+    Object.keys(siteMap).forEach(function(sid) {
+        siteMap[sid].totalVarieties = Object.keys(siteMap[sid].consolidatedItems).length;
+    });
+
+    return siteMap;
+}
+
+function matchSiteId(locationStr) {
+    if (!locationStr) return null;
+    var loc = locationStr.toLowerCase();
+    for (var i = 0; i < PICKUP_SITES.length; i++) {
+        var site = PICKUP_SITES[i];
+        if (loc.indexOf(site.id.toLowerCase()) !== -1 || loc.indexOf(site.name.toLowerCase()) !== -1) {
+            return site.id;
+        }
+    }
+    // Partial keyword matching
+    if (loc.indexOf('farm') !== -1 || loc.indexOf('rochester') !== -1) return 'Farm';
+    if (loc.indexOf('phipps') !== -1) return 'Phipps';
+    if (loc.indexOf('bloomfield') !== -1) return 'Bloomfield';
+    if (loc.indexOf('sewickley') !== -1) return 'Sewickley';
+    if (loc.indexOf('lawrenceville') !== -1) return 'Lawrenceville';
+    return null;
+}
+
+function buildPickPackView() {
+    var siteMap = groupOrdersBySite();
+    var container = document.getElementById('pickpackSites');
+    var summaryEl = document.getElementById('pickpackSummary');
+
+    // Overall summary
+    var grandTotalOrders = 0, grandTotalPlants = 0, grandTotalRevenue = 0, grandTotalSites = 0;
+    Object.keys(siteMap).forEach(function(sid) {
+        var sg = siteMap[sid];
+        if (sg.orders.length > 0) grandTotalSites++;
+        grandTotalOrders += sg.orders.length;
+        grandTotalPlants += sg.totalPlants;
+        grandTotalRevenue += sg.totalRevenue;
+    });
+
+    summaryEl.innerHTML =
+        '<div class="alloc-stat" style="border-left:3px solid var(--green-deep);">' +
+            '<div class="alloc-stat-label">Total Orders</div><div class="alloc-stat-value">' + grandTotalOrders + '</div></div>' +
+        '<div class="alloc-stat" style="border-left:3px solid var(--green);">' +
+            '<div class="alloc-stat-label">Total Plants</div><div class="alloc-stat-value">' + grandTotalPlants + '</div></div>' +
+        '<div class="alloc-stat" style="border-left:3px solid var(--blue);">' +
+            '<div class="alloc-stat-label">Active Sites</div><div class="alloc-stat-value">' + grandTotalSites + '</div></div>' +
+        '<div class="alloc-stat" style="border-left:3px solid #8b5cf6;">' +
+            '<div class="alloc-stat-label">Total Revenue</div><div class="alloc-stat-value">$' + grandTotalRevenue.toFixed(0) + '</div></div>';
+
+    // Site cards
+    var html = '';
+    var siteIds = PICKUP_SITES.map(function(s) { return s.id; });
+    // Also include any sites not in the predefined list
+    Object.keys(siteMap).forEach(function(sid) { if (siteIds.indexOf(sid) === -1) siteIds.push(sid); });
+
+    for (var s = 0; s < siteIds.length; s++) {
+        var sid = siteIds[s];
+        var sg = siteMap[sid];
+        if (!sg) continue;
+
+        var site = sg.site;
+        var orderCount = sg.orders.length;
+
+        if (orderCount === 0) {
+            html += '<div class="pickpack-site-card">' +
+                '<div class="pickpack-site-header" style="background:#9ca3af;">' +
+                    '<h3><i class="fas fa-map-marker-alt"></i> ' + escapeHtml(site.name) + '</h3>' +
+                    '<div class="site-meta"><span><i class="fas fa-calendar"></i> ' + escapeHtml(site.date || 'TBD') + '</span>' +
+                    '<span><i class="fas fa-clock"></i> ' + escapeHtml(site.hours || 'TBD') + '</span></div>' +
+                '</div>' +
+                '<div class="pickpack-site-body"><div class="pickpack-empty">' +
+                    '<i class="fas fa-box-open"></i><p>No orders for this site yet</p></div></div></div>';
+            continue;
+        }
+
+        // Consolidated items sorted by qty desc
+        var itemList = Object.values(sg.consolidatedItems).sort(function(a, b) { return b.qty - a.qty; });
+
+        html += '<div class="pickpack-site-card">';
+        html += '<div class="pickpack-site-header">';
+        html += '<h3><i class="fas fa-map-marker-alt"></i> ' + escapeHtml(site.name) + '</h3>';
+        html += '<div class="site-meta"><span><i class="fas fa-calendar"></i> ' + escapeHtml(site.date || 'TBD') + '</span>';
+        html += '<span><i class="fas fa-clock"></i> ' + escapeHtml(site.hours || 'TBD') + '</span></div>';
+        html += '</div>';
+
+        html += '<div class="pickpack-site-body">';
+        html += '<div class="site-stat-row">';
+        html += '<div class="site-stat"><div class="site-stat-value">' + orderCount + '</div><div class="site-stat-label">Orders</div></div>';
+        html += '<div class="site-stat"><div class="site-stat-value">' + sg.totalPlants + '</div><div class="site-stat-label">Plants</div></div>';
+        html += '<div class="site-stat"><div class="site-stat-value">' + sg.totalVarieties + '</div><div class="site-stat-label">Varieties</div></div>';
+        html += '<div class="site-stat"><div class="site-stat-value">$' + sg.totalRevenue.toFixed(0) + '</div><div class="site-stat-label">Revenue</div></div>';
+        html += '</div>';
+
+        html += '<ul class="pickpack-item-list">';
+        for (var j = 0; j < itemList.length; j++) {
+            var it = itemList[j];
+            var displayName = it.crop;
+            if (it.variety && it.variety !== it.crop) displayName += ' ' + it.variety;
+            html += '<li><span class="item-name">' + escapeHtml(displayName) + '</span>';
+            html += '<span class="item-qty">&times; ' + it.qty + '</span></li>';
+        }
+        html += '</ul>';
+
+        html += '<div class="pickpack-actions">';
+        html += '<button class="btn btn-primary" style="background:var(--green);" onclick="printPickList(\'' + sid + '\')">';
+        html += '<i class="fas fa-clipboard-list"></i> Print Pick List</button>';
+        html += '<button class="btn btn-secondary" onclick="printPackSlips(\'' + sid + '\')">';
+        html += '<i class="fas fa-file-invoice"></i> Print Pack Slips</button>';
+        html += '</div>';
+
+        html += '</div></div>';
+    }
+
+    container.innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PRINT FUNCTIONS
+// ═══════════════════════════════════════════════════════════════
+
+function printPickList(siteId) {
+    var siteMap = groupOrdersBySite();
+    var sg = siteMap[siteId];
+    if (!sg || sg.orders.length === 0) { alert('No orders for this site.'); return; }
+
+    var site = sg.site;
+    var items = Object.values(sg.consolidatedItems).sort(function(a, b) { return b.qty - a.qty; });
+
+    var totalPlants = sg.totalPlants;
+    var totalVarieties = sg.totalVarieties;
+
+    var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Pick List - ' + escapeHtml(site.name) + '</title>';
+    html += '<style>';
+    html += 'body { font-family: "Courier New", monospace; max-width: 7.5in; margin: 0.5in auto; color: #000; font-size: 13px; line-height: 1.6; }';
+    html += 'h1 { font-size: 16px; text-transform: uppercase; letter-spacing: 2px; margin: 0; }';
+    html += '.subtitle { font-size: 11px; color: #666; margin-bottom: 6px; }';
+    html += '.line { border-top: 2px solid #000; margin: 10px 0; }';
+    html += '.line-thin { border-top: 1px dashed #999; margin: 4px 0; }';
+    html += '.item-row { display: flex; align-items: center; padding: 6px 0; border-bottom: 1px solid #eee; }';
+    html += '.checkbox { width: 18px; height: 18px; border: 2px solid #000; margin-right: 12px; flex-shrink: 0; }';
+    html += '.item-name { flex: 1; font-size: 13px; }';
+    html += '.item-qty { font-weight: bold; font-size: 14px; min-width: 60px; text-align: right; }';
+    html += '.footer { margin-top: 20px; font-size: 12px; }';
+    html += '.sign-line { border-bottom: 1px solid #000; display: inline-block; width: 180px; margin: 0 8px; }';
+    html += '@media print { body { margin: 0.3in; } }';
+    html += '</style></head><body>';
+
+    html += '<h1>TINY SEED FARM &mdash; SEEDLING PICK LIST</h1>';
+    html += '<div class="subtitle">Certified Organic | OEFFA #3839</div>';
+    html += '<div><strong>Pickup:</strong> ' + escapeHtml(site.name) + ' &mdash; ' + escapeHtml(site.date || 'TBD') + '</div>';
+    html += '<div class="line"></div>';
+
+    for (var i = 0; i < items.length; i++) {
+        var it = items[i];
+        var name = it.crop;
+        if (it.variety && it.variety !== it.crop) name += ' ' + it.variety;
+        html += '<div class="item-row">';
+        html += '<div class="checkbox"></div>';
+        html += '<div class="item-name">' + escapeHtml(name) + '</div>';
+        html += '<div class="item-qty">&times; ' + it.qty + '</div>';
+        html += '</div>';
+    }
+
+    html += '<div class="line"></div>';
+    html += '<div style="font-weight:bold;">Total: ' + totalPlants + ' plants | ' + totalVarieties + ' varieties | ' + sg.orders.length + ' orders</div>';
+    html += '<div class="footer">';
+    html += '<p>Picked by: <span class="sign-line"></span> Date: <span class="sign-line"></span></p>';
+    html += '<p>Verified by: <span class="sign-line"></span></p>';
+    html += '</div>';
+
+    html += '</body></html>';
+
+    var win = window.open('', '_blank');
+    win.document.write(html);
+    win.document.close();
+    win.focus();
+    setTimeout(function() { win.print(); }, 400);
+}
+
+function printPackSlips(siteId) {
+    var siteMap = groupOrdersBySite();
+    var sg = siteMap[siteId];
+    if (!sg || sg.orders.length === 0) { alert('No orders for this site.'); return; }
+
+    var site = sg.site;
+    var orders = sg.orders;
+
+    var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Pack Slips - ' + escapeHtml(site.name) + '</title>';
+    html += '<style>';
+    html += 'body { font-family: "Courier New", monospace; max-width: 7.5in; margin: 0 auto; color: #000; font-size: 12px; line-height: 1.5; }';
+    html += '.slip { page-break-after: always; padding: 0.4in 0; }';
+    html += '.slip:last-child { page-break-after: auto; }';
+    html += 'h1 { font-size: 14px; text-transform: uppercase; letter-spacing: 2px; margin: 0 0 2px 0; }';
+    html += '.cert { font-size: 10px; color: #666; margin-bottom: 4px; }';
+    html += '.order-meta { font-size: 12px; margin-bottom: 2px; }';
+    html += '.line { border-top: 2px solid #000; margin: 8px 0; }';
+    html += '.line-thin { border-top: 1px dashed #999; margin: 6px 0; }';
+    html += '.item-row { display: flex; align-items: center; padding: 5px 0; border-bottom: 1px solid #eee; }';
+    html += '.checkbox { width: 16px; height: 16px; border: 2px solid #000; margin-right: 10px; flex-shrink: 0; }';
+    html += '.item-name { flex: 1; font-size: 12px; }';
+    html += '.item-qty { font-weight: bold; min-width: 40px; text-align: center; }';
+    html += '.item-price { min-width: 60px; text-align: right; }';
+    html += '.total-row { font-weight: bold; font-size: 13px; display: flex; justify-content: space-between; margin-top: 8px; }';
+    html += '.verify-section { margin-top: 14px; font-size: 11px; }';
+    html += '.verify-section .check-item { padding: 3px 0; display: flex; align-items: center; gap: 8px; }';
+    html += '.small-box { width: 14px; height: 14px; border: 1.5px solid #000; display: inline-block; flex-shrink: 0; }';
+    html += '.sign-line { border-bottom: 1px solid #000; display: inline-block; width: 160px; margin: 0 6px; }';
+    html += '@media print { body { margin: 0.3in; } .slip { padding: 0.2in 0; } }';
+    html += '</style></head><body>';
+
+    for (var i = 0; i < orders.length; i++) {
+        var o = orders[i];
+        var orderId = o.Order_ID || o.order_id || '--';
+        var custName = o.Customer_Name || o.customer_name || 'Customer';
+        var email = o.Email || o.email || '';
+        var status = normalizeStatus(o.Invoice_Status || o.invoice_status || '');
+        var totalAmt = Number(o.Total_Amount || o.total_amount || 0);
+        var items = o.items || [];
+
+        html += '<div class="slip">';
+        html += '<h1>TINY SEED FARM &mdash; PACKING SLIP</h1>';
+        html += '<div class="cert">Certified Organic | OEFFA #3839</div>';
+        html += '<div class="order-meta"><strong>Order:</strong> ' + escapeHtml(orderId);
+        if (status === 'Paid') html += ' | <strong style="color:#166534;">Paid &#10003;</strong>';
+        else html += ' | <span style="color:#92400e;">' + escapeHtml(status) + '</span>';
+        html += '</div>';
+        html += '<div class="line"></div>';
+        html += '<div class="order-meta"><strong>Customer:</strong> ' + escapeHtml(custName) + '</div>';
+        if (email) html += '<div class="order-meta"><strong>Email:</strong> ' + escapeHtml(email) + '</div>';
+        html += '<div class="order-meta"><strong>Pickup:</strong> ' + escapeHtml(site.name) + '</div>';
+        html += '<div class="line"></div>';
+
+        var orderTotal = 0;
+        for (var k = 0; k < items.length; k++) {
+            var item = items[k];
+            var crop = item.Crop || item.crop || '';
+            var variety = item.Variety || item.variety || '';
+            var name = crop;
+            if (variety && variety !== crop) name += ' ' + variety;
+            var qty = Number(item.Quantity_Sold || item.quantity_sold || item.Quantity || 0);
+            var price = Number(item.Price_Each || item.price_each || item.Revenue || 0);
+            var lineTotal = Number(item.Revenue || item.revenue || 0);
+            if (!lineTotal && price && qty) lineTotal = price * qty;
+            orderTotal += lineTotal;
+
+            html += '<div class="item-row">';
+            html += '<div class="checkbox"></div>';
+            html += '<div class="item-name">' + escapeHtml(name) + '</div>';
+            html += '<div class="item-qty">&times; ' + qty + '</div>';
+            html += '<div class="item-price">$' + lineTotal.toFixed(2) + '</div>';
+            html += '</div>';
+        }
+
+        // Use order-level total if available (may include bundle pricing)
+        var displayTotal = totalAmt > 0 ? totalAmt : orderTotal;
+
+        html += '<div class="line-thin"></div>';
+        html += '<div class="total-row"><span>Total</span><span>$' + displayTotal.toFixed(2) + '</span></div>';
+        if (totalAmt > 0 && orderTotal > 0 && totalAmt < orderTotal) {
+            html += '<div style="font-size:10px;color:#666;text-align:right;">(4-for-$20 bundle applied)</div>';
+        }
+        html += '<div class="line"></div>';
+
+        html += '<div class="verify-section">';
+        html += '<div class="check-item"><span class="small-box"></span> All items present</div>';
+        html += '<div class="check-item"><span class="small-box"></span> Quality verified</div>';
+        html += '<div style="margin-top:10px;">Packed by: <span class="sign-line"></span> Date: <span class="sign-line"></span></div>';
+        html += '</div>';
+
+        html += '</div>'; // end slip
+    }
+
+    html += '</body></html>';
+
+    var win = window.open('', '_blank');
+    win.document.write(html);
+    win.document.close();
+    win.focus();
+    setTimeout(function() { win.print(); }, 400);
 }
 
 

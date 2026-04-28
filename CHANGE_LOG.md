@@ -6,6 +6,18 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-04-10] Seedling admin: add Orders tab + Pick/Pack by pickup site with printable lists
+- Files: web_app/seedling-admin.html
+- Role: fullstack-builder
+- Changes:
+  - Added two new tabs to seedling-admin.html: "Orders" and "Pick & Pack", alongside existing "Varieties" and "Allocations" tabs.
+  - **Orders tab**: Loads order data from SEEDLING_ORDERS sheet (with fallback to grouping SEEDLING_SALES by Order_ID). Shows summary cards (total orders, paid, pending, revenue, plants). Full orders table with search + filter by pickup location and payment status.
+  - **Pick & Pack tab**: Groups all orders by pickup site (Farm, Phipps, Bloomfield, Sewickley, Lawrenceville). Each site card shows order count, plant count, variety count, revenue, and a consolidated item list sorted by quantity.
+  - **Print Pick List**: Opens a clean monospace print window with checkbox-style pick list per site, showing consolidated items across all orders. Includes organic certification (OEFFA #3839).
+  - **Print Pack Slips**: Generates one packing slip per customer order with line items, prices, totals, bundle discount notation, and quality verification checkboxes. Page-break between slips for clean printing.
+  - Updated switchAdminView() to handle all four panels.
+  - Mobile responsive: stacked layouts at 768px, wrapping tab bar.
+
 ## [2026-04-10] Fix 3 seedling presale bugs + remove 5 failed crops
 - Files: web_app/seedling-presale-2026.html, apps_script/MERGED TOTAL.js
 - Role: fullstack-builder
