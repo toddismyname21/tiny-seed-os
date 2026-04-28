@@ -14656,7 +14656,16 @@ function doGet(e) {
       // Weather data (non-sensitive, no PII — public for all dashboard pages)
       'getWeather', 'getWeatherForecast', 'getWeatherSmartDashboard',
       // Temporary: CSA email incident audit
-      'auditSentEmails'
+      'auditSentEmails',
+      // Farmers Market module (Phase 1)
+      'initMarketModule', 'getActiveMarketLocations', 'getUpcomingMarkets',
+      'createMarketSession', 'getMarketSession', 'getMarketDashboard',
+      'generateMarketHarvestPlan', 'getMarketMorningBrief',
+      'addMarketItem', 'removeMarketItem', 'getMarketItems',
+      'updateMarketSessionStatus', 'calculateDemandPrediction',
+      'recordMarketSale', 'recordQuickSale', 'getMarketInventoryStatus',
+      'initiateSettlement', 'completeSettlement', 'getMarketPerformanceAnalytics',
+      'syncMarketToPickPack', 'syncShopifyMarketSales', 'getShopifyMarketReport'
     ]);
 
   if (!PUBLIC_GET_ACTIONS.has(action)) {
@@ -17333,6 +17342,12 @@ function doGet(e) {
         return jsonResponse(getMarketMorningBrief());
       case 'syncMarketToPickPack':
         return jsonResponse(syncMarketToPickPack(e.parameter));
+      case 'addMarketItem':
+        return jsonResponse(addMarketItem(e.parameter));
+      case 'removeMarketItem':
+        return jsonResponse(removeMarketItem(e.parameter));
+      case 'getMarketItems':
+        return jsonResponse(getMarketItems(e.parameter));
       case 'syncShopifyMarketSales':
         return jsonResponse(syncShopifyMarketSales(e.parameter));
       case 'getShopifyMarketReport':
@@ -18372,6 +18387,9 @@ function doPost(e) {
       'registerSeedlingPresaleWebhook',
       // One-time correction email (2026-04-10 wrong pickup reminder)
       'sendCSAPickupCorrectionEmails',
+      // Farmers Market module (Phase 1 — data modification via POST)
+      'addMarketItem', 'removeMarketItem', 'createMarketSession',
+      'updateMarketSessionStatus', 'syncMarketToPickPack',
     ]);
 
     if (action && !PUBLIC_POST_ACTIONS.has(action)) {
@@ -19842,6 +19860,18 @@ function doPost(e) {
       // One-time: correction email for 2026-04-10 wrong pickup reminder
       case 'sendCSAPickupCorrectionEmails':
         return jsonResponse(sendCSAPickupCorrectionEmails(data));
+
+      // ============ FARMERS MARKET MODULE (POST) ============
+      case 'addMarketItem':
+        return jsonResponse(addMarketItem(data));
+      case 'removeMarketItem':
+        return jsonResponse(removeMarketItem(data));
+      case 'createMarketSession':
+        return jsonResponse(createMarketSession(data));
+      case 'updateMarketSessionStatus':
+        return jsonResponse(updateMarketSessionStatus(data));
+      case 'syncMarketToPickPack':
+        return jsonResponse(syncMarketToPickPack(data));
 
       default:
         return jsonResponse({error: 'Unknown action: ' + action}, 400);
@@ -154626,4 +154656,793 @@ function auditSentEmails() {
   } catch(e) {
     return { success: false, error: e.toString() };
   }
+}
+
+// ============================================================================
+// FARMERS MARKET MODULE — Phase 1: Sessions, Items, Harvest Plans
+// Added 2026-04-10
+// ============================================================================
+
+var MARKET_LOCATIONS = [
+  { id: 'lawrenceville', name: 'Lawrenceville Farmers Market', address: '115 41st St (Bay 41), Pittsburgh, PA 15201', day: 'Tuesday', hours: '3-7pm' },
+  { id: 'bloomfield', name: 'Bloomfield Saturday Market', address: '5050 Liberty Ave, Pittsburgh, PA 15224', day: 'Saturday', hours: '9am-1pm' },
+  { id: 'sewickley', name: 'Sewickley Farmers Market', address: '200 Walnut St, Sewickley, PA 15143', day: 'Saturday', hours: '9am-1pm' },
+  { id: 'southside', name: 'South Side Market', address: '2120 Jane St, Pittsburgh, PA 15203', day: 'Sunday', hours: '10am-2pm' }
+];
+
+/**
+ * Return list of active market locations.
+ */
+function getActiveMarketLocations() {
+  return MARKET_LOCATIONS;
+}
+
+/**
+ * Initialize the MARKET_SESSIONS sheet if it doesn't exist.
+ */
+function initMarketModule() {
+  try {
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheet = ss.getSheetByName('MARKET_SESSIONS');
+    if (!sheet) {
+      sheet = ss.insertSheet('MARKET_SESSIONS');
+      sheet.appendRow(['Session_ID', 'Location_ID', 'Location_Name', 'Market_Date', 'Status', 'Items_JSON', 'Notes', 'Created_At', 'Updated_At']);
+      sheet.getRange(1, 1, 1, 9).setFontWeight('bold');
+    }
+    return { success: true, message: 'Market module initialized', sheetExists: true };
+  } catch (e) {
+    return { success: false, error: e.toString() };
+  }
+}
+
+/**
+ * Generate upcoming market dates for the next N days (default 14).
+ * For each location, calculates the next occurrences of its day of week.
+ * Checks MARKET_SESSIONS for existing sessions at each date/location.
+ */
+function getUpcomingMarkets(params) {
+  try {
+    var days = parseInt(params.days || params.Days) || 14;
+    var today = new Date();
+    today.setHours(0, 0, 0, 0);
+    var markets = [];
+    var dayMap = { 'Sunday': 0, 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3, 'Thursday': 4, 'Friday': 5, 'Saturday': 6 };
+
+    // Load existing sessions for lookup
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sessionsSheet = ss.getSheetByName('MARKET_SESSIONS');
+    var existingSessions = {};
+    if (sessionsSheet && sessionsSheet.getLastRow() > 1) {
+      var sData = sessionsSheet.getDataRange().getValues();
+      var sHeaders = sData[0];
+      var sDateCol = sHeaders.indexOf('Market_Date');
+      var sLocCol = sHeaders.indexOf('Location_ID');
+      var sIdCol = sHeaders.indexOf('Session_ID');
+      var sStatusCol = sHeaders.indexOf('Status');
+      for (var si = 1; si < sData.length; si++) {
+        var rawDate = sData[si][sDateCol];
+        var dateStr;
+        if (rawDate instanceof Date) {
+          dateStr = Utilities.formatDate(rawDate, 'America/New_York', 'yyyy-MM-dd');
+        } else {
+          dateStr = String(rawDate).substring(0, 10);
+        }
+        var key = String(sData[si][sLocCol]) + '-' + dateStr;
+        existingSessions[key] = {
+          sessionId: String(sData[si][sIdCol]),
+          status: String(sData[si][sStatusCol] || 'Planning')
+        };
+      }
+    }
+
+    MARKET_LOCATIONS.forEach(function(loc) {
+      var targetDay = dayMap[loc.day];
+      if (targetDay === undefined) return;
+      for (var d = 0; d < days; d++) {
+        var date = new Date(today);
+        date.setDate(today.getDate() + d);
+        if (date.getDay() === targetDay) {
+          var dateStr = Utilities.formatDate(date, 'America/New_York', 'yyyy-MM-dd');
+          var key = loc.id + '-' + dateStr;
+          var existing = existingSessions[key] || null;
+          markets.push({
+            date: dateStr,
+            dayOfWeek: loc.day,
+            location: loc,
+            sessionId: existing ? existing.sessionId : null,
+            sessionStatus: existing ? existing.status : null,
+            sessionExists: !!existing
+          });
+        }
+      }
+    });
+
+    markets.sort(function(a, b) { return a.date.localeCompare(b.date); });
+    return { success: true, markets: markets, count: markets.length };
+  } catch (e) {
+    return { success: false, error: e.toString() };
+  }
+}
+
+/**
+ * Create a market session in MARKET_SESSIONS sheet.
+ * Params: locationId, marketDate
+ */
+function createMarketSession(params) {
+  try {
+    var locationId = params.locationId || params.location_id || params.LocationId;
+    var marketDate = params.marketDate || params.market_date || params.MarketDate;
+
+    if (!locationId) return { success: false, error: 'Missing required field: locationId' };
+    if (!marketDate) return { success: false, error: 'Missing required field: marketDate' };
+
+    var loc = MARKET_LOCATIONS.filter(function(l) { return l.id === locationId; })[0];
+    if (!loc) return { success: false, error: 'Unknown location: ' + locationId };
+
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheet = ss.getSheetByName('MARKET_SESSIONS');
+    if (!sheet) {
+      sheet = ss.insertSheet('MARKET_SESSIONS');
+      sheet.appendRow(['Session_ID', 'Location_ID', 'Location_Name', 'Market_Date', 'Status', 'Items_JSON', 'Notes', 'Created_At', 'Updated_At']);
+      sheet.getRange(1, 1, 1, 9).setFontWeight('bold');
+    }
+
+    // Check for duplicate session
+    if (sheet.getLastRow() > 1) {
+      var data = sheet.getDataRange().getValues();
+      var headers = data[0];
+      var locCol = headers.indexOf('Location_ID');
+      var dateCol = headers.indexOf('Market_Date');
+      for (var i = 1; i < data.length; i++) {
+        var existingDate = data[i][dateCol] instanceof Date
+          ? Utilities.formatDate(data[i][dateCol], 'America/New_York', 'yyyy-MM-dd')
+          : String(data[i][dateCol]).substring(0, 10);
+        if (String(data[i][locCol]) === locationId && existingDate === marketDate) {
+          return { success: false, error: 'Session already exists for ' + loc.name + ' on ' + marketDate };
+        }
+      }
+    }
+
+    var sessionId = 'MKT-' + Date.now();
+    var now = new Date().toISOString();
+
+    var lock = LockService.getScriptLock();
+    lock.waitLock(10000);
+    try {
+      sheet.appendRow([
+        sessionId, locationId, loc.name, marketDate,
+        'Planning', '[]', '', now, now
+      ]);
+    } finally {
+      lock.releaseLock();
+    }
+
+    return { success: true, sessionId: sessionId, location: loc, marketDate: marketDate };
+  } catch (e) {
+    return { success: false, error: e.toString() };
+  }
+}
+
+/**
+ * Retrieve a market session by sessionId.
+ * Params: sessionId
+ */
+function getMarketSession(params) {
+  try {
+    var sessionId = params.sessionId || params.session_id || params.SessionId;
+    if (!sessionId) return { success: false, error: 'Missing required field: sessionId' };
+
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheet = ss.getSheetByName('MARKET_SESSIONS');
+    if (!sheet) return { success: false, error: 'No MARKET_SESSIONS sheet found' };
+    if (sheet.getLastRow() < 2) return { success: false, error: 'No sessions exist' };
+
+    var data = sheet.getDataRange().getValues();
+    var headers = data[0];
+    var idCol = headers.indexOf('Session_ID');
+    var locIdCol = headers.indexOf('Location_ID');
+    var locNameCol = headers.indexOf('Location_Name');
+    var dateCol = headers.indexOf('Market_Date');
+    var statusCol = headers.indexOf('Status');
+    var itemsCol = headers.indexOf('Items_JSON');
+    var notesCol = headers.indexOf('Notes');
+    var createdCol = headers.indexOf('Created_At');
+    var updatedCol = headers.indexOf('Updated_At');
+
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][idCol]) === String(sessionId)) {
+        var items = [];
+        try { items = JSON.parse(data[i][itemsCol] || '[]'); } catch (e) {}
+
+        var loc = MARKET_LOCATIONS.filter(function(l) { return l.id === String(data[i][locIdCol]); })[0] || null;
+
+        return {
+          success: true,
+          session: {
+            sessionId: String(data[i][idCol]),
+            locationId: String(data[i][locIdCol]),
+            locationName: String(data[i][locNameCol]),
+            location: loc,
+            marketDate: data[i][dateCol] instanceof Date
+              ? Utilities.formatDate(data[i][dateCol], 'America/New_York', 'yyyy-MM-dd')
+              : String(data[i][dateCol]),
+            status: String(data[i][statusCol]),
+            items: items,
+            itemCount: items.length,
+            notes: String(data[i][notesCol] || ''),
+            createdAt: String(data[i][createdCol] || ''),
+            updatedAt: String(data[i][updatedCol] || '')
+          }
+        };
+      }
+    }
+
+    return { success: false, error: 'Session not found: ' + sessionId };
+  } catch (e) {
+    return { success: false, error: e.toString() };
+  }
+}
+
+/**
+ * Generate a harvest plan from a market session's Items_JSON.
+ * Params: sessionId
+ */
+function generateMarketHarvestPlan(params) {
+  try {
+    var sessionId = params.sessionId || params.session_id || params.SessionId;
+    if (!sessionId) return { success: false, error: 'Missing required field: sessionId' };
+
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheet = ss.getSheetByName('MARKET_SESSIONS');
+    if (!sheet) return { success: false, error: 'No MARKET_SESSIONS sheet found' };
+    if (sheet.getLastRow() < 2) return { success: false, error: 'No sessions exist' };
+
+    var data = sheet.getDataRange().getValues();
+    var headers = data[0];
+    var idCol = headers.indexOf('Session_ID');
+    var itemsCol = headers.indexOf('Items_JSON');
+    var locNameCol = headers.indexOf('Location_Name');
+    var dateCol = headers.indexOf('Market_Date');
+
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][idCol]) === String(sessionId)) {
+        var items = [];
+        try { items = JSON.parse(data[i][itemsCol] || '[]'); } catch (e) {}
+
+        var marketDate = data[i][dateCol] instanceof Date
+          ? Utilities.formatDate(data[i][dateCol], 'America/New_York', 'yyyy-MM-dd')
+          : String(data[i][dateCol]);
+
+        return {
+          success: true,
+          sessionId: sessionId,
+          location: String(data[i][locNameCol]),
+          marketDate: marketDate,
+          itemCount: items.length,
+          items: items.map(function(item, idx) {
+            var qty = parseInt(item.quantity) || 0;
+            return {
+              id: idx,
+              productName: item.product || item.name || '',
+              variety: item.variety || '',
+              predictedDemand: qty,
+              recommendedHarvest: Math.ceil(qty * 1.1),
+              unit: item.unit || 'ct',
+              fieldLocation: item.field || '',
+              gddStatus: 'Ready',
+              notes: item.notes || '',
+              status: 'Planned',
+              category: item.category || 'vegetable',
+              priorityScore: 70
+            };
+          })
+        };
+      }
+    }
+
+    return { success: false, error: 'Session not found: ' + sessionId };
+  } catch (e) {
+    return { success: false, error: e.toString() };
+  }
+}
+
+/**
+ * Add an item to a market session.
+ * Params: sessionId, product, variety, quantity, unit, field, notes, category
+ */
+function addMarketItem(params) {
+  try {
+    var sessionId = params.sessionId || params.session_id || params.SessionId;
+    if (!sessionId) return { success: false, error: 'Missing required field: sessionId' };
+
+    var product = String(params.product || params.productName || params.name || '').trim();
+    if (!product) return { success: false, error: 'Missing required field: product' };
+
+    var quantity = parseInt(params.quantity || params.qty) || 0;
+    if (quantity <= 0) return { success: false, error: 'Quantity must be a positive number' };
+
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheet = ss.getSheetByName('MARKET_SESSIONS');
+    if (!sheet) return { success: false, error: 'No MARKET_SESSIONS sheet found' };
+    if (sheet.getLastRow() < 2) return { success: false, error: 'No sessions exist' };
+
+    var data = sheet.getDataRange().getValues();
+    var headers = data[0];
+    var idCol = headers.indexOf('Session_ID');
+    var itemsCol = headers.indexOf('Items_JSON');
+    var updatedCol = headers.indexOf('Updated_At');
+
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][idCol]) === String(sessionId)) {
+        var items = [];
+        try { items = JSON.parse(data[i][itemsCol] || '[]'); } catch (e) {}
+
+        items.push({
+          product: product,
+          variety: String(params.variety || '').trim(),
+          quantity: quantity,
+          unit: String(params.unit || 'ct').trim(),
+          field: String(params.field || '').trim(),
+          notes: String(params.notes || '').trim(),
+          category: String(params.category || 'vegetable').toLowerCase().trim()
+        });
+
+        var lock = LockService.getScriptLock();
+        lock.waitLock(10000);
+        try {
+          sheet.getRange(i + 1, itemsCol + 1).setValue(JSON.stringify(items));
+          sheet.getRange(i + 1, updatedCol + 1).setValue(new Date().toISOString());
+        } finally {
+          lock.releaseLock();
+        }
+
+        return { success: true, itemCount: items.length, items: items };
+      }
+    }
+
+    return { success: false, error: 'Session not found: ' + sessionId };
+  } catch (e) {
+    return { success: false, error: e.toString() };
+  }
+}
+
+/**
+ * Remove an item from a market session by index.
+ * Params: sessionId, itemIndex
+ */
+function removeMarketItem(params) {
+  try {
+    var sessionId = params.sessionId || params.session_id || params.SessionId;
+    if (!sessionId) return { success: false, error: 'Missing required field: sessionId' };
+
+    var itemIndex = parseInt(params.itemIndex);
+    if (isNaN(itemIndex) || itemIndex < 0) return { success: false, error: 'Invalid itemIndex' };
+
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheet = ss.getSheetByName('MARKET_SESSIONS');
+    if (!sheet) return { success: false, error: 'No MARKET_SESSIONS sheet found' };
+    if (sheet.getLastRow() < 2) return { success: false, error: 'No sessions exist' };
+
+    var data = sheet.getDataRange().getValues();
+    var headers = data[0];
+    var idCol = headers.indexOf('Session_ID');
+    var itemsCol = headers.indexOf('Items_JSON');
+    var updatedCol = headers.indexOf('Updated_At');
+
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][idCol]) === String(sessionId)) {
+        var items = [];
+        try { items = JSON.parse(data[i][itemsCol] || '[]'); } catch (e) {}
+
+        if (itemIndex >= items.length) {
+          return { success: false, error: 'Item index ' + itemIndex + ' out of range (session has ' + items.length + ' items)' };
+        }
+
+        var removed = items.splice(itemIndex, 1)[0];
+
+        var lock = LockService.getScriptLock();
+        lock.waitLock(10000);
+        try {
+          sheet.getRange(i + 1, itemsCol + 1).setValue(JSON.stringify(items));
+          sheet.getRange(i + 1, updatedCol + 1).setValue(new Date().toISOString());
+        } finally {
+          lock.releaseLock();
+        }
+
+        return { success: true, removed: removed, itemCount: items.length, items: items };
+      }
+    }
+
+    return { success: false, error: 'Session not found: ' + sessionId };
+  } catch (e) {
+    return { success: false, error: e.toString() };
+  }
+}
+
+/**
+ * Get items for a market session (convenience alias).
+ * Params: sessionId
+ */
+function getMarketItems(params) {
+  try {
+    var sessionId = params.sessionId || params.session_id || params.SessionId;
+    if (!sessionId) return { success: false, error: 'Missing required field: sessionId' };
+
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheet = ss.getSheetByName('MARKET_SESSIONS');
+    if (!sheet) return { success: false, error: 'No MARKET_SESSIONS sheet found' };
+    if (sheet.getLastRow() < 2) return { success: false, error: 'No sessions exist' };
+
+    var data = sheet.getDataRange().getValues();
+    var headers = data[0];
+    var idCol = headers.indexOf('Session_ID');
+    var itemsCol = headers.indexOf('Items_JSON');
+
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][idCol]) === String(sessionId)) {
+        var items = [];
+        try { items = JSON.parse(data[i][itemsCol] || '[]'); } catch (e) {}
+        return { success: true, sessionId: sessionId, items: items, count: items.length };
+      }
+    }
+
+    return { success: false, error: 'Session not found: ' + sessionId };
+  } catch (e) {
+    return { success: false, error: e.toString() };
+  }
+}
+
+/**
+ * Update market session status.
+ * Params: sessionId, status
+ */
+function updateMarketSessionStatus(params) {
+  try {
+    var sessionId = params.sessionId || params.session_id || params.SessionId;
+    var newStatus = params.status || params.Status;
+    if (!sessionId) return { success: false, error: 'Missing required field: sessionId' };
+    if (!newStatus) return { success: false, error: 'Missing required field: status' };
+
+    var validStatuses = ['Planning', 'Confirmed', 'Harvesting', 'Packed', 'At Market', 'Selling', 'Settling', 'Completed', 'Cancelled'];
+    if (validStatuses.indexOf(newStatus) === -1) {
+      return { success: false, error: 'Invalid status. Must be one of: ' + validStatuses.join(', ') };
+    }
+
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheet = ss.getSheetByName('MARKET_SESSIONS');
+    if (!sheet) return { success: false, error: 'No MARKET_SESSIONS sheet found' };
+    if (sheet.getLastRow() < 2) return { success: false, error: 'No sessions exist' };
+
+    var data = sheet.getDataRange().getValues();
+    var headers = data[0];
+    var idCol = headers.indexOf('Session_ID');
+    var statusCol = headers.indexOf('Status');
+    var updatedCol = headers.indexOf('Updated_At');
+
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][idCol]) === String(sessionId)) {
+        var lock = LockService.getScriptLock();
+        lock.waitLock(10000);
+        try {
+          sheet.getRange(i + 1, statusCol + 1).setValue(newStatus);
+          sheet.getRange(i + 1, updatedCol + 1).setValue(new Date().toISOString());
+        } finally {
+          lock.releaseLock();
+        }
+        return { success: true, sessionId: sessionId, status: newStatus };
+      }
+    }
+
+    return { success: false, error: 'Session not found: ' + sessionId };
+  } catch (e) {
+    return { success: false, error: e.toString() };
+  }
+}
+
+/**
+ * Dashboard overview stats from MARKET_SESSIONS.
+ */
+function getMarketDashboard(params) {
+  try {
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheet = ss.getSheetByName('MARKET_SESSIONS');
+
+    var stats = {
+      totalSessions: 0,
+      planningSessions: 0,
+      completedSessions: 0,
+      activeSessions: 0,
+      locationBreakdown: {},
+      recentSessions: []
+    };
+
+    if (!sheet || sheet.getLastRow() < 2) {
+      return { success: true, data: stats, message: 'No market sessions yet' };
+    }
+
+    var data = sheet.getDataRange().getValues();
+    var headers = data[0];
+    var idCol = headers.indexOf('Session_ID');
+    var locIdCol = headers.indexOf('Location_ID');
+    var locNameCol = headers.indexOf('Location_Name');
+    var dateCol = headers.indexOf('Market_Date');
+    var statusCol = headers.indexOf('Status');
+    var itemsCol = headers.indexOf('Items_JSON');
+    var createdCol = headers.indexOf('Created_At');
+
+    for (var i = 1; i < data.length; i++) {
+      stats.totalSessions++;
+      var status = String(data[i][statusCol] || '');
+      if (status === 'Planning') stats.planningSessions++;
+      else if (status === 'Completed') stats.completedSessions++;
+      else if (status !== 'Cancelled') stats.activeSessions++;
+
+      var locName = String(data[i][locNameCol] || 'Unknown');
+      stats.locationBreakdown[locName] = (stats.locationBreakdown[locName] || 0) + 1;
+    }
+
+    // Get 5 most recent sessions
+    var sessions = [];
+    for (var j = 1; j < data.length; j++) {
+      var items = [];
+      try { items = JSON.parse(data[j][itemsCol] || '[]'); } catch (e) {}
+      sessions.push({
+        sessionId: String(data[j][idCol]),
+        locationName: String(data[j][locNameCol]),
+        marketDate: data[j][dateCol] instanceof Date
+          ? Utilities.formatDate(data[j][dateCol], 'America/New_York', 'yyyy-MM-dd')
+          : String(data[j][dateCol]),
+        status: String(data[j][statusCol]),
+        itemCount: items.length
+      });
+    }
+    sessions.sort(function(a, b) { return b.marketDate.localeCompare(a.marketDate); });
+    stats.recentSessions = sessions.slice(0, 5);
+
+    return { success: true, data: stats };
+  } catch (e) {
+    return { success: false, error: e.toString() };
+  }
+}
+
+/**
+ * Morning brief for the next upcoming market.
+ */
+function getMarketMorningBrief() {
+  try {
+    var today = new Date();
+    today.setHours(0, 0, 0, 0);
+    var dayMap = { 'Sunday': 0, 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3, 'Thursday': 4, 'Friday': 5, 'Saturday': 6 };
+
+    // Find next market within 7 days
+    var nextMarket = null;
+    var nextDate = null;
+    for (var d = 0; d <= 7; d++) {
+      var checkDate = new Date(today);
+      checkDate.setDate(today.getDate() + d);
+      for (var m = 0; m < MARKET_LOCATIONS.length; m++) {
+        var loc = MARKET_LOCATIONS[m];
+        if (checkDate.getDay() === dayMap[loc.day]) {
+          if (!nextDate || checkDate < nextDate) {
+            nextDate = checkDate;
+            nextMarket = loc;
+          }
+        }
+      }
+      if (nextMarket) break;
+    }
+
+    if (!nextMarket) {
+      return { success: true, message: 'No upcoming markets in the next 7 days', hasMarket: false };
+    }
+
+    var dateStr = Utilities.formatDate(nextDate, 'America/New_York', 'yyyy-MM-dd');
+    var daysUntil = Math.round((nextDate - today) / (1000 * 60 * 60 * 24));
+
+    // Check for existing session
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheet = ss.getSheetByName('MARKET_SESSIONS');
+    var sessionInfo = null;
+
+    if (sheet && sheet.getLastRow() > 1) {
+      var data = sheet.getDataRange().getValues();
+      var headers = data[0];
+      var idCol = headers.indexOf('Session_ID');
+      var locCol = headers.indexOf('Location_ID');
+      var dateCol = headers.indexOf('Market_Date');
+      var statusCol = headers.indexOf('Status');
+      var itemsCol = headers.indexOf('Items_JSON');
+
+      for (var i = 1; i < data.length; i++) {
+        var rowDate = data[i][dateCol] instanceof Date
+          ? Utilities.formatDate(data[i][dateCol], 'America/New_York', 'yyyy-MM-dd')
+          : String(data[i][dateCol]).substring(0, 10);
+        if (String(data[i][locCol]) === nextMarket.id && rowDate === dateStr) {
+          var items = [];
+          try { items = JSON.parse(data[i][itemsCol] || '[]'); } catch (e) {}
+          sessionInfo = {
+            sessionId: String(data[i][idCol]),
+            status: String(data[i][statusCol]),
+            itemCount: items.length,
+            items: items
+          };
+          break;
+        }
+      }
+    }
+
+    return {
+      success: true,
+      hasMarket: true,
+      daysUntil: daysUntil,
+      nextMarket: {
+        location: nextMarket,
+        date: dateStr,
+        displayDate: Utilities.formatDate(nextDate, 'America/New_York', 'EEEE, MMMM d')
+      },
+      session: sessionInfo,
+      actionNeeded: !sessionInfo ? 'Create session and add items' :
+                    sessionInfo.itemCount === 0 ? 'Add items to session' :
+                    sessionInfo.status === 'Planning' ? 'Confirm session when ready' : null
+    };
+  } catch (e) {
+    return { success: false, error: e.toString() };
+  }
+}
+
+/**
+ * Sync market session items to SALES_PickPack sheet.
+ * Params: sessionId
+ */
+function syncMarketToPickPack(params) {
+  try {
+    var sessionId = params.sessionId || params.session_id || params.SessionId;
+    if (!sessionId) return { success: false, error: 'Missing required field: sessionId' };
+
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheet = ss.getSheetByName('MARKET_SESSIONS');
+    if (!sheet) return { success: false, error: 'No MARKET_SESSIONS sheet found' };
+    if (sheet.getLastRow() < 2) return { success: false, error: 'No sessions exist' };
+
+    var data = sheet.getDataRange().getValues();
+    var headers = data[0];
+    var idCol = headers.indexOf('Session_ID');
+    var itemsCol = headers.indexOf('Items_JSON');
+    var locNameCol = headers.indexOf('Location_Name');
+    var dateCol = headers.indexOf('Market_Date');
+
+    var sessionRow = null;
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][idCol]) === String(sessionId)) {
+        sessionRow = data[i];
+        break;
+      }
+    }
+    if (!sessionRow) return { success: false, error: 'Session not found: ' + sessionId };
+
+    var items = [];
+    try { items = JSON.parse(sessionRow[itemsCol] || '[]'); } catch (e) {}
+    if (items.length === 0) return { success: false, error: 'No items in session to sync' };
+
+    var marketDate = sessionRow[dateCol] instanceof Date
+      ? Utilities.formatDate(sessionRow[dateCol], 'America/New_York', 'yyyy-MM-dd')
+      : String(sessionRow[dateCol]);
+    var locationName = String(sessionRow[locNameCol]);
+
+    // Get or create SALES_PickPack sheet
+    var ppSheet = ss.getSheetByName('SALES_PickPack');
+    if (!ppSheet) {
+      ppSheet = ss.insertSheet('SALES_PickPack');
+      ppSheet.appendRow(['Pick_ID', 'Source', 'Source_ID', 'Customer', 'Product', 'Variety', 'Quantity', 'Unit', 'Field', 'Status', 'Pick_Date', 'Created_At']);
+      ppSheet.getRange(1, 1, 1, 12).setFontWeight('bold');
+    }
+
+    var lock = LockService.getScriptLock();
+    lock.waitLock(15000);
+    var recordCount = 0;
+    try {
+      var now = new Date().toISOString();
+      items.forEach(function(item) {
+        var pickId = 'PICK-' + Date.now() + '-' + recordCount;
+        ppSheet.appendRow([
+          pickId,
+          'Farmers Market',
+          sessionId,
+          locationName,
+          item.product || '',
+          item.variety || '',
+          item.quantity || 0,
+          item.unit || 'ct',
+          item.field || '',
+          'Pending',
+          marketDate,
+          now
+        ]);
+        recordCount++;
+      });
+    } finally {
+      lock.releaseLock();
+    }
+
+    return { success: true, recordCount: recordCount, message: 'Synced ' + recordCount + ' items to Pick/Pack' };
+  } catch (e) {
+    return { success: false, error: e.toString() };
+  }
+}
+
+/**
+ * Calculate demand prediction (placeholder — returns basic estimates).
+ * Params: locationId, date (optional)
+ */
+function calculateDemandPrediction(params) {
+  try {
+    var locationId = params.locationId || params.location_id;
+    var loc = MARKET_LOCATIONS.filter(function(l) { return l.id === locationId; })[0];
+    if (!loc) return { success: false, error: 'Unknown location: ' + locationId };
+
+    return {
+      success: true,
+      location: loc,
+      message: 'Demand prediction requires historical sales data. Add items manually for now.',
+      predictions: []
+    };
+  } catch (e) {
+    return { success: false, error: e.toString() };
+  }
+}
+
+/**
+ * Record a market sale (placeholder for Phase 2).
+ */
+function recordMarketSale(params) {
+  return { success: false, error: 'recordMarketSale will be available in Phase 2' };
+}
+
+/**
+ * Record a quick sale (placeholder for Phase 2).
+ */
+function recordQuickSale(params) {
+  return { success: false, error: 'recordQuickSale will be available in Phase 2' };
+}
+
+/**
+ * Get market inventory status (placeholder for Phase 2).
+ */
+function getMarketInventoryStatus(params) {
+  return { success: false, error: 'getMarketInventoryStatus will be available in Phase 2' };
+}
+
+/**
+ * Initiate settlement (placeholder for Phase 2).
+ */
+function initiateSettlement(params) {
+  return { success: false, error: 'initiateSettlement will be available in Phase 2' };
+}
+
+/**
+ * Complete settlement (placeholder for Phase 2).
+ */
+function completeSettlement(params) {
+  return { success: false, error: 'completeSettlement will be available in Phase 2' };
+}
+
+/**
+ * Get market performance analytics (placeholder for Phase 2).
+ */
+function getMarketPerformanceAnalytics(params) {
+  return { success: false, error: 'getMarketPerformanceAnalytics will be available in Phase 2' };
+}
+
+/**
+ * Sync Shopify market sales (placeholder for Phase 2).
+ */
+function syncShopifyMarketSales(params) {
+  return { success: false, error: 'syncShopifyMarketSales will be available in Phase 2' };
+}
+
+/**
+ * Get Shopify market report (placeholder for Phase 2).
+ */
+function getShopifyMarketReport(params) {
+  return { success: false, error: 'getShopifyMarketReport will be available in Phase 2' };
 }

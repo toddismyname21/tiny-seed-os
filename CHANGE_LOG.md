@@ -6,6 +6,13 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-04-10] Farmers Market Phase 1: sessions, items, harvest plans, manual entry UI
+- Files: apps_script/MERGED TOTAL.js, web_app/farmers-market.html
+- Role: fullstack-builder
+- Changes:
+  - MERGED TOTAL.js: Added MARKET_LOCATIONS constant (4 Pittsburgh-area markets), implemented 18 functions: getActiveMarketLocations, initMarketModule, getUpcomingMarkets, createMarketSession, getMarketSession, generateMarketHarvestPlan, addMarketItem, removeMarketItem, getMarketItems, updateMarketSessionStatus, getMarketDashboard, getMarketMorningBrief, syncMarketToPickPack, calculateDemandPrediction, plus Phase 2 placeholders (recordMarketSale, recordQuickSale, getMarketInventoryStatus, initiateSettlement, completeSettlement, getMarketPerformanceAnalytics, syncShopifyMarketSales, getShopifyMarketReport). All write operations use LockService. Added routes to doGet and doPost switches. Added all market actions to PUBLIC_GET_ACTIONS and write actions to PUBLIC_POST_ACTIONS whitelists.
+  - farmers-market.html: Added "Add Item" form above harvest plan table with product (datalist of 42 common crops/flowers), variety, quantity, unit (6 options), field/bed, category (vegetable/floral) fields. Added Remove button column to harvest plan table. Added addItemToSession() and removeItemFromSession() JS functions with validation. Empty state message when no items exist.
+
 ## [2026-04-10] Add organic-compliant wholesale container labels (1" x 4")
 - Files: web_app/print-engine.js, web_app/admin-wholesale.html, labels.html
 - Role: fullstack-builder

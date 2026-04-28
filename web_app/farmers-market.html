@@ -1001,6 +1001,99 @@
                         <button class="btn btn-primary" onclick="printHarvestPlan()">Print</button>
                     </div>
                 </div>
+
+                <!-- Add Item Form -->
+                <div id="add-item-form" style="padding: var(--ts-space-4, 16px); border-bottom: 1px solid var(--ts-border, #334155);">
+                    <div style="font-weight: 600; font-size: var(--ts-text-base, 1rem); margin-bottom: var(--ts-space-3, 12px); color: var(--ts-text, #f1f5f9);">Add Item to Session</div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: var(--ts-space-3, 12px); align-items: end;">
+                        <div>
+                            <label style="display: block; font-size: var(--ts-text-sm, 0.875rem); color: var(--ts-text-secondary, #94a3b8); margin-bottom: 4px;">Product *</label>
+                            <input type="text" id="item-product" list="cropList" class="ts-input" placeholder="e.g. Tomatoes" style="width: 100%; box-sizing: border-box;">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: var(--ts-text-sm, 0.875rem); color: var(--ts-text-secondary, #94a3b8); margin-bottom: 4px;">Variety</label>
+                            <input type="text" id="item-variety" class="ts-input" placeholder="e.g. Cherokee Purple" style="width: 100%; box-sizing: border-box;">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: var(--ts-text-sm, 0.875rem); color: var(--ts-text-secondary, #94a3b8); margin-bottom: 4px;">Quantity *</label>
+                            <input type="number" id="item-quantity" class="ts-input" min="1" placeholder="10" style="width: 100%; box-sizing: border-box;">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: var(--ts-text-sm, 0.875rem); color: var(--ts-text-secondary, #94a3b8); margin-bottom: 4px;">Unit</label>
+                            <select id="item-unit" class="ts-input" style="width: 100%; box-sizing: border-box;">
+                                <option value="bunches">Bunches</option>
+                                <option value="lbs">Lbs</option>
+                                <option value="heads">Heads</option>
+                                <option value="pints">Pints</option>
+                                <option value="ct" selected>Count</option>
+                                <option value="bags">Bags</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: var(--ts-text-sm, 0.875rem); color: var(--ts-text-secondary, #94a3b8); margin-bottom: 4px;">Field/Bed</label>
+                            <input type="text" id="item-field" class="ts-input" placeholder="e.g. Field A" style="width: 100%; box-sizing: border-box;">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: var(--ts-text-sm, 0.875rem); color: var(--ts-text-secondary, #94a3b8); margin-bottom: 4px;">Category</label>
+                            <select id="item-category" class="ts-input" style="width: 100%; box-sizing: border-box;">
+                                <option value="vegetable" selected>Vegetable</option>
+                                <option value="floral">Floral</option>
+                            </select>
+                        </div>
+                        <div>
+                            <button class="btn btn-primary" onclick="addItemToSession()" style="width: 100%; min-height: 44px;">
+                                + Add Item
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <datalist id="cropList">
+                    <option value="Arugula">
+                    <option value="Basil">
+                    <option value="Beets">
+                    <option value="Bok Choy">
+                    <option value="Broccoli">
+                    <option value="Cabbage">
+                    <option value="Carrots">
+                    <option value="Cauliflower">
+                    <option value="Cilantro">
+                    <option value="Collard Greens">
+                    <option value="Cucumber">
+                    <option value="Dill">
+                    <option value="Eggplant">
+                    <option value="Escarole">
+                    <option value="Fava Beans">
+                    <option value="Fennel">
+                    <option value="Green Beans">
+                    <option value="Kale">
+                    <option value="Kohlrabi">
+                    <option value="Lettuce">
+                    <option value="Napa Cabbage">
+                    <option value="Parsley">
+                    <option value="Peas">
+                    <option value="Peppers">
+                    <option value="Radicchio">
+                    <option value="Radishes">
+                    <option value="Scallions">
+                    <option value="Spinach">
+                    <option value="Summer Squash">
+                    <option value="Swiss Chard">
+                    <option value="Tomatillos">
+                    <option value="Tomatoes">
+                    <option value="Turnips">
+                    <option value="Watermelon">
+                    <option value="Winter Squash">
+                    <option value="Zinnias">
+                    <option value="Sunflowers">
+                    <option value="Dahlias">
+                    <option value="Snapdragons">
+                    <option value="Marigolds">
+                    <option value="Cosmos">
+                    <option value="Celosia">
+                    <option value="Mixed Bouquet">
+                </datalist>
+
                 <div class="table-container">
                     <table>
                         <thead>
@@ -1014,6 +1107,7 @@
                                 <th>GDD Status</th>
                                 <th>Notes</th>
                                 <th>Status</th>
+                                <th style="width: 60px;">Remove</th>
                             </tr>
                         </thead>
                         <tbody id="harvest-plan-body">
@@ -1460,29 +1554,100 @@
                     `${data.location} - ${data.marketDate} | ${data.itemCount} items`;
 
                 const tbody = document.getElementById('harvest-plan-body');
-                tbody.innerHTML = (data.items || []).map(item => {
-                    const priorityClass = item.priorityScore >= 80 ? 'priority-high' :
-                                          item.priorityScore >= 50 ? 'priority-medium' : 'priority-low';
-
-                    return `
-                        <tr>
-                            <td class="${priorityClass}">${item.priorityScore}</td>
-                            <td>${item.productName}</td>
-                            <td>${item.variety || '-'}</td>
-                            <td>${item.predictedDemand}</td>
-                            <td><strong>${item.recommendedHarvest}</strong> ${item.unit}</td>
-                            <td>${item.fieldLocation || '-'}</td>
-                            <td>${item.gddStatus}</td>
-                            <td style="max-width: 200px; font-size: var(--ts-text-xs, 0.75rem);">${item.notes || '-'}</td>
-                            <td><span class="market-status status-${item.status?.toLowerCase()}">${item.status}</span></td>
-                        </tr>
-                    `;
-                }).join('');
+                if (!data.items || data.items.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; padding: var(--ts-space-6, 24px); color: var(--ts-text-secondary, #94a3b8);">
+                        No items yet. Use the form above to add items to this market session.
+                    </td></tr>`;
+                } else {
+                    tbody.innerHTML = data.items.map(item => {
+                        const priorityClass = item.priorityScore >= 80 ? 'priority-high' :
+                                              item.priorityScore >= 50 ? 'priority-medium' : 'priority-low';
+                        const escapedProduct = (item.productName || '').replace(/'/g, "\\'");
+                        return `
+                            <tr>
+                                <td class="${priorityClass}">${item.priorityScore}</td>
+                                <td>${item.productName}</td>
+                                <td>${item.variety || '-'}</td>
+                                <td>${item.predictedDemand}</td>
+                                <td><strong>${item.recommendedHarvest}</strong> ${item.unit}</td>
+                                <td>${item.fieldLocation || '-'}</td>
+                                <td>${item.gddStatus}</td>
+                                <td style="max-width: 200px; font-size: var(--ts-text-xs, 0.75rem);">${item.notes || '-'}</td>
+                                <td><span class="market-status status-${item.status?.toLowerCase()}">${item.status}</span></td>
+                                <td><button class="btn btn-ghost" onclick="removeItemFromSession(${item.id}, '${escapedProduct}')" title="Remove item" style="color: var(--ts-danger, #ef4444); min-height: 36px; padding: 4px 8px; font-size: var(--ts-text-sm, 0.875rem);">✕</button></td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
 
                 // Scroll to harvest plan
                 document.getElementById('harvest-plan-section').scrollIntoView({ behavior: 'smooth' });
             } else {
                 alert('Error loading harvest plan: ' + data.error);
+            }
+        }
+
+        async function addItemToSession() {
+            if (!currentSession) {
+                alert('Please select a market first');
+                return;
+            }
+
+            const product = document.getElementById('item-product').value.trim();
+            const quantity = document.getElementById('item-quantity').value;
+
+            if (!product) {
+                alert('Product name is required');
+                document.getElementById('item-product').focus();
+                return;
+            }
+            if (!quantity || parseInt(quantity) <= 0) {
+                alert('Quantity must be a positive number');
+                document.getElementById('item-quantity').focus();
+                return;
+            }
+
+            const params = {
+                sessionId: currentSession,
+                product: product,
+                variety: document.getElementById('item-variety').value.trim(),
+                quantity: quantity,
+                unit: document.getElementById('item-unit').value,
+                field: document.getElementById('item-field').value.trim(),
+                category: document.getElementById('item-category').value
+            };
+
+            const result = await apiCall('addMarketItem', params);
+
+            if (result.success) {
+                // Clear the form
+                document.getElementById('item-product').value = '';
+                document.getElementById('item-variety').value = '';
+                document.getElementById('item-quantity').value = '';
+                document.getElementById('item-field').value = '';
+                document.getElementById('item-product').focus();
+
+                // Reload the harvest plan to show the new item
+                await loadHarvestPlan(currentSession);
+            } else {
+                alert('Error adding item: ' + result.error);
+            }
+        }
+
+        async function removeItemFromSession(itemIndex, productName) {
+            if (!currentSession) return;
+
+            if (!confirm('Remove "' + productName + '" from this session?')) return;
+
+            const result = await apiCall('removeMarketItem', {
+                sessionId: currentSession,
+                itemIndex: String(itemIndex)
+            });
+
+            if (result.success) {
+                await loadHarvestPlan(currentSession);
+            } else {
+                alert('Error removing item: ' + result.error);
             }
         }
 
