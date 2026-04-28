@@ -963,22 +963,39 @@
         .order-preview-overlay {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.5);
+            background: rgba(0,0,0,0.6);
             z-index: 10000;
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             justify-content: center;
-            padding: var(--ts-space-5, 20px);
+            padding: 20px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
         }
         .order-preview-box {
             background: #fff;
-            border-radius: var(--ts-radius-lg, 16px);
-            padding: var(--ts-space-8, 32px);
+            border-radius: 16px;
+            padding: 28px;
             max-width: 520px;
             width: 100%;
-            max-height: 85vh;
-            overflow-y: auto;
-            box-shadow: 0 25px 50px rgba(0,0,0,0.2);
+            margin: auto;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+            animation: previewSlideIn 0.25s ease-out;
+        }
+        @keyframes previewSlideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .dancing-plant {
+            font-size: 4rem;
+            animation: plantDance 1s ease-in-out infinite;
+            display: inline-block;
+        }
+        @keyframes plantDance {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            25% { transform: translateY(-15px) rotate(-5deg); }
+            50% { transform: translateY(-5px) rotate(0deg); }
+            75% { transform: translateY(-15px) rotate(5deg); }
         }
         .order-preview-box h3 {
             font-family: 'Playfair Display', serif;
@@ -3990,8 +4007,76 @@ function showOrderPreview(items, customerName, email, phone, pickup, orderCalc) 
     });
 
     document.getElementById('previewConfirmBtn').addEventListener('click', function() {
-        overlay.remove();
-        actuallySubmitOrder(items, customerName, email, phone, pickup, orderCalc);
+        var btn = this;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+
+        // Show dancing plant loading screen
+        overlay.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;padding:20px;">'
+            + '<div class="dancing-plant">🌱</div>'
+            + '<h3 style="color:#fff;font-size:1.3rem;margin:16px 0 8px;font-family:Playfair Display,serif;">Preparing your order...</h3>'
+            + '<p style="color:rgba(255,255,255,0.8);font-size:0.95rem;">Redirecting you to secure checkout</p>'
+            + '</div>';
+
+        // Submit order and redirect directly to Shopify
+        var payload = {
+            action: 'submitSeedlingOrder',
+            customerName: customerName,
+            email: email,
+            phone: phone,
+            items: items,
+            pickupLocation: pickup,
+            pickupDate: '',
+            notes: 'Pickup: ' + pickup,
+            channel: 'Presale',
+            referralCode: activeReferralCode || '',
+            bundlePricing: {
+                totalPlants: orderCalc.totalPlants,
+                bundles: orderCalc.bundles,
+                singles: orderCalc.singles,
+                subtotal: orderCalc.subtotal,
+                total: orderCalc.total,
+                referralDiscount: orderCalc.referralDiscount || 0
+            }
+        };
+
+        fetch(TINY_SEED_API.MAIN_API, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain' },
+            body: JSON.stringify(payload)
+        })
+        .then(function(response) { return response.json(); })
+        .then(function(result) {
+            if (result.success && result.invoiceUrl) {
+                // Direct redirect to Shopify checkout
+                window.location.href = result.invoiceUrl;
+            } else if (result.success) {
+                // Order recorded but no invoice URL
+                overlay.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;padding:20px;">'
+                    + '<div style="font-size:3rem;">✅</div>'
+                    + '<h3 style="color:#fff;font-size:1.2rem;margin:12px 0 8px;">Order Received!</h3>'
+                    + '<p style="color:rgba(255,255,255,0.8);font-size:0.9rem;">We couldn\'t generate a checkout link. Please check your email for payment instructions.</p>'
+                    + '<p style="color:rgba(255,255,255,0.7);font-size:0.82rem;margin-top:12px;">Order: ' + (result.orderId || '') + '</p>'
+                    + '<button onclick="document.getElementById(\'orderPreviewOverlay\').remove();" style="margin-top:16px;padding:10px 24px;background:#fff;color:#166534;border:none;border-radius:8px;font-weight:700;cursor:pointer;">OK</button>'
+                    + '</div>';
+            } else {
+                // Error from API
+                overlay.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;padding:20px;">'
+                    + '<div style="font-size:3rem;">⚠️</div>'
+                    + '<h3 style="color:#fff;font-size:1.2rem;margin:12px 0 8px;">Something went wrong</h3>'
+                    + '<p style="color:rgba(255,255,255,0.8);font-size:0.9rem;">Please try again or email todd@tinyseedfarmpgh.com</p>'
+                    + '<button onclick="document.getElementById(\'orderPreviewOverlay\').remove();" style="margin-top:16px;padding:10px 24px;background:#fff;color:#166534;border:none;border-radius:8px;font-weight:700;cursor:pointer;">Close</button>'
+                    + '</div>';
+            }
+        })
+        .catch(function(err) {
+            overlay.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;padding:20px;">'
+                + '<div style="font-size:3rem;">⚠️</div>'
+                + '<h3 style="color:#fff;font-size:1.2rem;margin:12px 0 8px;">Connection Error</h3>'
+                + '<p style="color:rgba(255,255,255,0.8);font-size:0.9rem;">Please check your internet and try again.</p>'
+                + '<button onclick="document.getElementById(\'orderPreviewOverlay\').remove();" style="margin-top:16px;padding:10px 24px;background:#fff;color:#166534;border:none;border-radius:8px;font-weight:700;cursor:pointer;">Close</button>'
+                + '</div>';
+        });
     });
 
     overlay.addEventListener('click', function(ev) {
