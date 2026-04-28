@@ -558,12 +558,21 @@
         }
 
         .submit-order {
-            width: 100%; padding: var(--ts-space-4, 16px); border: none; border-radius: var(--ts-radius-full, 9999px);
-            background: var(--green); color: #fff; font-size: 1.1rem; font-weight: 700;
-            cursor: pointer; transition: all var(--ts-dur-moderate, 300ms); margin-top: var(--ts-space-5, 20px); font-family: inherit;
+            width: 100%; padding: 20px; border: none; border-radius: 12px;
+            background: linear-gradient(135deg, #16a34a, #15803d); color: #fff; font-size: 1.3rem; font-weight: 800;
+            cursor: pointer; transition: all 300ms; margin-top: 20px; font-family: inherit;
+            box-shadow: 0 4px 15px rgba(22,163,74,0.4);
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+            animation: pulseGlow 2s ease-in-out infinite;
         }
-        .submit-order:hover { background: var(--green-dark); }
-        .submit-order:disabled { background: #d1d5db; cursor: not-allowed; }
+        .submit-order:hover { background: linear-gradient(135deg, #15803d, #166534); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(22,163,74,0.5); }
+        .submit-order:disabled { background: #d1d5db; cursor: not-allowed; box-shadow: none; animation: none; transform: none; }
+
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 4px 15px rgba(22,163,74,0.4); }
+            50% { box-shadow: 0 4px 25px rgba(22,163,74,0.7); }
+        }
 
         /* ═══════════════════════════════════════ */
         /* GROWING TIPS */
@@ -2613,7 +2622,14 @@ function processCatalogData(result) {
         'Curly Parsley',
         'Mexican Tarragon',
         'Bergamot',
-        'Bee Balm'
+        'Bee Balm',
+        'Husk Cherry',
+        'Husk Cherries',
+        'Rudbeckia',
+        'Rudbeckia Sahara',
+        'Gomphrena',
+        'Mushroom Block',
+        'Mushroom'
     ]);
 
     // Name overrides — rename varieties for customer clarity
@@ -3001,7 +3017,12 @@ function buildVarietyCard(v) {
 // ═══════════════════════════════════════
 // QUICK ADD FROM CATALOG
 // ═══════════════════════════════════════
+var _quickAddLast = 0;
 function quickAdd(name) {
+    var now = Date.now();
+    if (now - _quickAddLast < 500) return; // Debounce 500ms
+    _quickAddLast = now;
+
     var variety = null;
     for (var i = 0; i < VARIETIES.length; i++) {
         if (VARIETIES[i].name === name) { variety = VARIETIES[i]; break; }
@@ -3530,7 +3551,15 @@ function proceedWithOrder_(items, customerName, email, phone, pickup, orderCalc,
         pickupDate: '',
         notes: 'Pickup: ' + pickup,
         channel: 'Presale',
-        referralCode: activeReferralCode || ''
+        referralCode: activeReferralCode || '',
+        bundlePricing: {
+            totalPlants: orderCalc.totalPlants,
+            bundles: orderCalc.bundles,
+            singles: orderCalc.singles,
+            subtotal: orderCalc.subtotal,
+            total: orderCalc.total,
+            referralDiscount: orderCalc.referralDiscount || 0
+        }
     };
 
     fetch(TINY_SEED_API.MAIN_API, {

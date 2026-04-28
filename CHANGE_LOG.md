@@ -6,6 +6,24 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-04-10] Fix 3 seedling presale bugs + remove 5 failed crops
+- Files: web_app/seedling-presale-2026.html, apps_script/MERGED TOTAL.js
+- Role: fullstack-builder
+- Changes:
+  - Bug 1: Checkout button (.submit-order) redesigned — larger padding, gradient background, uppercase text, pulseGlow animation, proper hover/active/disabled states. Customers were unable to find the Reserve & Pay button.
+  - Bug 2: 4-for-$20 bundle discount now applied to Shopify draft order. Frontend sends bundlePricing object (totalPlants, bundles, singles, subtotal, total). Backend calculates savings vs full line-item price and applies as fixed_amount discount. Combines with referral and welcome discounts into single applied_discount (Shopify limitation). Previously customers were invoiced at full $6/plant price.
+  - Bug 3: quickAdd() debounced (500ms) to prevent mobile touch+click double-firing. Cilantro was adding 2 when tapped once.
+  - Removed 5 failed crops from FILTER_OUT set: Husk Cherry/Husk Cherries, Rudbeckia/Rudbeckia Sahara, Gomphrena, Mushroom Block/Mushroom.
+
+## [2026-04-10] Farmers Market: clickable multi-select session modal + session switcher
+- Files: web_app/farmers-market.html
+- Role: fullstack-builder
+- Changes:
+  - Replaced prompt()-based createNewSession() with modal that shows clickable market cards with checkboxes, day-of-week color icons, and market details. Supports multi-select to create multiple sessions at once.
+  - Added createSelectedSessions() to batch-create sessions from modal selections with progress feedback and error handling.
+  - Added session switcher tabs (buildSessionSwitcher/switchSession) above the harvest plan form, allowing quick switching between active market sessions without returning to dashboard.
+  - Session switcher auto-hides when only one session exists, auto-builds after loadHarvestPlan and createSelectedSessions.
+
 ## [2026-04-10] Farmers Market Phase 1: sessions, items, harvest plans, manual entry UI
 - Files: apps_script/MERGED TOTAL.js, web_app/farmers-market.html
 - Role: fullstack-builder

@@ -136928,6 +136928,16 @@ function createSeedlingDraftOrder_(orderData) {
     if (orderData.pickupDate) noteText += ' ' + orderData.pickupDate;
     if (orderData.businessName) noteText += ' | Business: ' + orderData.businessName;
 
+    // Calculate 4-for-$20 bundle discount
+    var fullPrice = 0;
+    lineItems.forEach(function(li) { fullPrice += Number(li.price) || 0; });
+
+    var bundleTotal = orderData.bundlePricing ? orderData.bundlePricing.subtotal : null;
+    var bundleSavings = 0;
+    if (bundleTotal !== null && bundleTotal < fullPrice) {
+      bundleSavings = fullPrice - bundleTotal;
+    }
+
     var draftOrderPayload = {
       draft_order: {
         line_items: lineItems,
@@ -136941,24 +136951,37 @@ function createSeedlingDraftOrder_(orderData) {
       }
     };
 
-    // Apply discount if provided (e.g., WELCOME10 code)
-    if (orderData.discount && orderData.discount.valid && orderData.discount.discount > 0) {
-      var discountPct = orderData.discount.discount * 100;
-      draftOrderPayload.draft_order.applied_discount = {
-        description: orderData.discount.label || (discountPct + '% Discount'),
-        value_type: 'percentage',
-        value: String(discountPct),
-        title: orderData.discount.label || 'Welcome Discount'
-      };
+    // Apply combined discount (bundle savings + referral/welcome if applicable)
+    // Shopify only allows ONE applied_discount per draft order, so we combine them
+    var totalDiscount = bundleSavings;
+    var discountDescription = '';
+
+    if (bundleSavings > 0) {
+      discountDescription = '4-for-$20 Bundle (-$' + bundleSavings.toFixed(2) + ')';
     }
 
-    // Apply referral discount ($5 flat) — only if no other discount already applied
-    if (!draftOrderPayload.draft_order.applied_discount && orderData.referralDiscount && orderData.referralDiscount > 0) {
+    // Add percentage-based discount (e.g., WELCOME10) — convert to fixed amount to combine
+    if (orderData.discount && orderData.discount.valid && orderData.discount.discount > 0) {
+      var discountPct = orderData.discount.discount;
+      var priceAfterBundle = fullPrice - bundleSavings;
+      var pctAmount = priceAfterBundle * discountPct;
+      totalDiscount += pctAmount;
+      var label = orderData.discount.label || ((discountPct * 100) + '% Discount');
+      discountDescription += (discountDescription ? ' + ' : '') + label + ' (-$' + pctAmount.toFixed(2) + ')';
+    }
+
+    // Add referral discount ($5 flat)
+    if (orderData.referralDiscount && orderData.referralDiscount > 0) {
+      totalDiscount += Number(orderData.referralDiscount);
+      discountDescription += (discountDescription ? ' + ' : '') + 'Referral (-$' + Number(orderData.referralDiscount).toFixed(2) + ')';
+    }
+
+    if (totalDiscount > 0) {
       draftOrderPayload.draft_order.applied_discount = {
-        description: 'Referral Discount — Give $5 / Get $5',
+        description: discountDescription,
         value_type: 'fixed_amount',
-        value: String(orderData.referralDiscount),
-        title: 'Referral Discount'
+        value: String(totalDiscount.toFixed(2)),
+        title: 'Presale Discount'
       };
     }
 
