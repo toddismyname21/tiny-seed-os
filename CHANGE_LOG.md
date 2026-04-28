@@ -6,6 +6,19 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-04-10] Seedling payment reminder email system + cancel/delete order actions
+- Files: apps_script/MERGED TOTAL.js, web_app/seedling-admin.html
+- Role: fullstack-builder
+- Changes:
+  - **Backend: sendSeedlingPaymentReminders()** — Reads SEEDLING_ORDERS, filters to Invoice_Status='Pending', sends styled HTML email to each customer with order summary, invoice payment link (green CTA button), pickup dates, and cancel-by-email link. Supports dryRun mode for preview. Uses LockService, validates email format, handles missing invoice URLs gracefully.
+  - **Backend: cancelSeedlingOrder()** — Marks order as 'Cancelled' in SEEDLING_ORDERS, appends cancellation note with date and optional reason. Input validated, LockService protected.
+  - **Backend: deleteSeedlingOrder()** — Permanently removes order from both SEEDLING_ORDERS and SEEDLING_SALES sheets. For cleaning up duplicates. Input validated, LockService protected.
+  - **Routing** — All 3 functions wired into doGet/doPost switch + PUBLIC_GET_ACTIONS/PUBLIC_POST_ACTIONS whitelists.
+  - **Frontend: Payment reminder toolbar** — Yellow warning bar shows unpaid count + outstanding amount when pending orders exist. "Preview Reminders" button opens modal with dry-run results. "Send Reminders" button sends after confirmation.
+  - **Frontend: Preview modal** — Shows table of all recipients (name, email, amount, items, pickup, invoice link status). Warns about orders missing invoice URLs. Send button with count, confirmation dialog, and success/error state.
+  - **Frontend: Order action buttons** — Cancel button on Pending orders (with optional reason prompt), Delete button on Cancelled orders (double confirmation for safety).
+  - All colspan references updated from 8 to 9 for new Actions column. Mobile responsive. Keyboard accessible (Escape to close modal, overlay click to close).
+
 ## [2026-04-10] Seedling admin: add Orders tab + Pick/Pack by pickup site with printable lists
 - Files: web_app/seedling-admin.html
 - Role: fullstack-builder

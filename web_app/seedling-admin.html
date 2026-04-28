@@ -973,6 +973,174 @@
             margin-bottom: var(--ts-space-5, 20px);
         }
 
+        /* ── Payment Reminder Toolbar ── */
+        .payment-reminder-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            border-radius: var(--ts-radius-md, 10px);
+            padding: 14px 20px;
+            margin-bottom: var(--ts-space-4, 16px);
+            gap: var(--ts-space-3, 12px);
+            flex-wrap: wrap;
+        }
+        .payment-reminder-bar .reminder-info {
+            display: flex;
+            align-items: center;
+            gap: var(--ts-space-3, 12px);
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #92400e;
+        }
+        .payment-reminder-bar .reminder-info i { font-size: 1.2rem; }
+        .payment-reminder-bar .reminder-actions {
+            display: flex;
+            gap: var(--ts-space-2, 8px);
+            flex-wrap: wrap;
+        }
+        .btn-warning {
+            background: #f59e0b;
+            color: #fff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: var(--ts-radius-sm, 6px);
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 200ms ease-out;
+        }
+        .btn-warning:hover { background: #d97706; transform: translateY(-1px); }
+        .btn-warning:active { transform: scale(0.98); }
+        .btn-danger-outline {
+            background: transparent;
+            color: var(--red);
+            border: 1px solid var(--red);
+            padding: 8px 16px;
+            border-radius: var(--ts-radius-sm, 6px);
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 200ms ease-out;
+        }
+        .btn-danger-outline:hover { background: #fef2f2; }
+        .btn-danger-outline:active { transform: scale(0.98); }
+        .btn-sm {
+            padding: 4px 10px;
+            font-size: 0.75rem;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 200ms ease-out;
+        }
+        .btn-sm:hover { transform: translateY(-1px); }
+        .btn-sm:active { transform: scale(0.98); }
+        .btn-sm.cancel { background: #fef3c7; color: #92400e; }
+        .btn-sm.cancel:hover { background: #fde68a; }
+        .btn-sm.delete { background: #fee2e2; color: #991b1b; }
+        .btn-sm.delete:hover { background: #fecaca; }
+
+        /* ── Reminder Preview Modal ── */
+        .reminder-modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .reminder-modal-overlay.active { display: flex; }
+        .reminder-modal {
+            background: #fff;
+            border-radius: var(--ts-radius-md, 12px);
+            max-width: 800px;
+            width: 100%;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .reminder-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border);
+        }
+        .reminder-modal-header h3 { font-size: 1.1rem; font-weight: 700; color: var(--text-dark); }
+        .reminder-modal-close {
+            background: none; border: none; font-size: 1.4rem; cursor: pointer;
+            color: var(--text-muted); padding: 4px; line-height: 1;
+            transition: color 200ms;
+        }
+        .reminder-modal-close:hover { color: var(--text-dark); }
+        .reminder-modal-body {
+            padding: 20px 24px;
+            overflow-y: auto;
+            flex: 1;
+        }
+        .reminder-modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: var(--ts-space-3, 12px);
+            flex-wrap: wrap;
+        }
+        .reminder-preview-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+        .reminder-preview-table th {
+            background: #f9fafb;
+            padding: 10px 12px;
+            text-align: left;
+            font-weight: 700;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            border-bottom: 2px solid var(--border);
+        }
+        .reminder-preview-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border);
+        }
+        .reminder-preview-table tbody tr:hover { background: #f9fafb; }
+        .invoice-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 700;
+        }
+        .invoice-badge.has-link { background: #dcfce7; color: #166534; }
+        .invoice-badge.no-link { background: #fee2e2; color: #991b1b; }
+        .reminder-summary-text {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+        .btn-send {
+            background: var(--green-dark);
+            color: #fff;
+            border: none;
+            padding: 10px 24px;
+            border-radius: var(--ts-radius-sm, 6px);
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 200ms ease-out;
+        }
+        .btn-send:hover { background: var(--green-deep); transform: translateY(-1px); }
+        .btn-send:active { transform: scale(0.98); }
+        .btn-send:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
         /* Responsive */
         @media (max-width: 768px) {
             .admin-header { flex-direction: column; gap: var(--ts-space-3, 12px); text-align: center; }
@@ -987,9 +1155,13 @@
             .alloc-summary { grid-template-columns: repeat(3, 1fr); }
             .alloc-input { width: 55px; }
             .alloc-toolbar { flex-direction: column; }
+            .payment-reminder-bar { flex-direction: column; text-align: center; }
+            .payment-reminder-bar .reminder-actions { justify-content: center; }
             .orders-toolbar { flex-direction: column; align-items: stretch; }
             .orders-toolbar-left { flex-direction: column; }
             .orders-summary-bar { grid-template-columns: 1fr 1fr; }
+            .reminder-modal { max-height: 90vh; }
+            .reminder-modal-footer { flex-direction: column; text-align: center; }
             .pickpack-sites { grid-template-columns: 1fr; }
             .pickpack-actions { flex-direction: column; }
             .pickpack-overall-summary { grid-template-columns: 1fr 1fr; }
@@ -1596,6 +1768,22 @@
 
     <!-- ═══ ORDERS PANEL ═══ -->
     <div id="ordersPanel" style="display:none;">
+        <!-- Payment Reminder Toolbar -->
+        <div class="payment-reminder-bar" id="paymentReminderBar" style="display:none;">
+            <div class="reminder-info">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span id="reminderBarText">-- unpaid orders ($-- outstanding)</span>
+            </div>
+            <div class="reminder-actions">
+                <button class="btn-warning" onclick="previewPaymentReminders()" aria-label="Preview payment reminder emails">
+                    <i class="fas fa-eye"></i> Preview Reminders
+                </button>
+                <button class="btn-send" onclick="confirmSendReminders()" aria-label="Send payment reminder emails">
+                    <i class="fas fa-paper-plane"></i> Send Reminders
+                </button>
+            </div>
+        </div>
+
         <!-- Summary Cards -->
         <div class="orders-summary-bar">
             <div class="alloc-stat" style="border-left-color: var(--green-deep);">
@@ -1656,10 +1844,11 @@
                         <th style="text-align:right;">Amount</th>
                         <th style="text-align:center;">Status</th>
                         <th>Date</th>
+                        <th style="text-align:center;">Actions</th>
                     </tr>
                 </thead>
                 <tbody id="ordersTableBody">
-                    <tr><td colspan="8" style="text-align:center;padding:40px;"><i class="fas fa-spinner fa-spin"></i> Loading orders...</td></tr>
+                    <tr><td colspan="9" style="text-align:center;padding:40px;"><i class="fas fa-spinner fa-spin"></i> Loading orders...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -3513,7 +3702,7 @@ var ordersLoaded = false;
 
 function loadOrders() {
     var tbody = document.getElementById('ordersTableBody');
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;"><i class="fas fa-spinner fa-spin"></i> Loading orders...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;"><i class="fas fa-spinner fa-spin"></i> Loading orders...</td></tr>';
 
     Promise.all([
         fetch(TINY_SEED_API.MAIN_API + '?action=getSheetData&sheetName=SEEDLING_ORDERS').then(function(r) { return r.json(); }),
@@ -3536,7 +3725,7 @@ function loadOrders() {
         renderOrders();
         updateOrderStats();
     }).catch(function(err) {
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--red);"><i class="fas fa-exclamation-triangle"></i> Failed to load orders: ' + escapeHtml(err.message) + '</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--red);"><i class="fas fa-exclamation-triangle"></i> Failed to load orders: ' + escapeHtml(err.message) + '</td></tr>';
     });
 }
 
@@ -3630,7 +3819,7 @@ function renderOrders() {
     var filtered = getFilteredOrders();
 
     if (filtered.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;">' +
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;">' +
             '<i class="fas fa-inbox" style="font-size:2rem;color:var(--border);display:block;margin-bottom:12px;"></i>' +
             '<div style="color:var(--text-muted);font-size:0.95rem;">No orders found</div>' +
             '<div style="color:var(--text-muted);font-size:0.8rem;margin-top:4px;">Try adjusting your filters</div>' +
@@ -3664,6 +3853,14 @@ function renderOrders() {
         html += '<td style="text-align:right;font-weight:700;">$' + totalAmt.toFixed(2) + '</td>';
         html += '<td style="text-align:center;"><span class="order-status-badge ' + statusClass + '">' + status + '</span></td>';
         html += '<td style="font-size:0.82rem;white-space:nowrap;">' + escapeHtml(dateStr) + '</td>';
+        html += '<td style="text-align:center;white-space:nowrap;">';
+        if (status === 'Pending') {
+            html += '<button class="btn-sm cancel" onclick="cancelOrder(\'' + escapeHtml(o.Order_ID || o.order_id || '') + '\')" title="Cancel order"><i class="fas fa-ban"></i> Cancel</button> ';
+        }
+        if (status === 'Cancelled') {
+            html += '<button class="btn-sm delete" onclick="deleteOrder(\'' + escapeHtml(o.Order_ID || o.order_id || '') + '\')" title="Permanently delete order"><i class="fas fa-trash"></i> Delete</button>';
+        }
+        html += '</td>';
         html += '</tr>';
     }
     tbody.innerHTML = html;
@@ -3681,12 +3878,15 @@ function formatOrderDate(d) {
 
 function updateOrderStats() {
     var totalOrders = allOrders.length;
-    var paid = 0, pending = 0, totalRev = 0, totalPlants = 0;
+    var paid = 0, pending = 0, totalRev = 0, totalPlants = 0, pendingRev = 0;
     for (var i = 0; i < allOrders.length; i++) {
         var o = allOrders[i];
         var status = normalizeStatus(o.Invoice_Status || o.invoice_status || '');
         if (status === 'Paid') paid++;
-        else if (status === 'Pending') pending++;
+        else if (status === 'Pending') {
+            pending++;
+            pendingRev += Number(o.Total_Amount || o.total_amount || 0);
+        }
         totalRev += Number(o.Total_Amount || o.total_amount || 0);
         totalPlants += Number(o.Total_Items || o.total_items || 0);
     }
@@ -3695,7 +3895,202 @@ function updateOrderStats() {
     document.getElementById('ordStatPending').textContent = pending;
     document.getElementById('ordStatRevenue').textContent = '$' + totalRev.toFixed(0);
     document.getElementById('ordStatPlants').textContent = totalPlants;
+
+    // Show/hide payment reminder bar
+    var reminderBar = document.getElementById('paymentReminderBar');
+    if (pending > 0) {
+        reminderBar.style.display = 'flex';
+        document.getElementById('reminderBarText').textContent = pending + ' unpaid order' + (pending !== 1 ? 's' : '') + ' ($' + pendingRev.toFixed(2) + ' outstanding)';
+    } else {
+        reminderBar.style.display = 'none';
+    }
 }
+
+// ═══════════════════════════════════════════════════════════════
+// PAYMENT REMINDERS + ORDER ACTIONS
+// ═══════════════════════════════════════════════════════════════
+
+var lastReminderPreview = null;
+
+function previewPaymentReminders() {
+    var modal = document.getElementById('reminderModal');
+    var body = document.getElementById('reminderModalBody');
+    var footer = document.getElementById('reminderModalFooter');
+    modal.classList.add('active');
+    footer.style.display = 'none';
+    body.innerHTML = '<div style="text-align:center;padding:40px;">' +
+        '<i class="fas fa-spinner fa-spin" style="font-size:1.5rem;color:var(--text-muted);"></i>' +
+        '<p style="margin-top:12px;color:var(--text-muted);">Loading preview...</p></div>';
+
+    fetch(TINY_SEED_API.MAIN_API + '?action=sendSeedlingPaymentReminders&dryRun=true')
+        .then(function(r) { return r.json(); })
+        .then(function(res) {
+            if (!res.success) {
+                body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--red);"><i class="fas fa-exclamation-triangle" style="font-size:1.5rem;display:block;margin-bottom:12px;"></i>' + escapeHtml(res.error || 'Failed to load preview') + '</div>';
+                return;
+            }
+            lastReminderPreview = res;
+            var results = res.results || [];
+            if (results.length === 0) {
+                body.innerHTML = '<div style="text-align:center;padding:40px;"><i class="fas fa-check-circle" style="font-size:2rem;color:var(--green);display:block;margin-bottom:12px;"></i><p style="font-size:1rem;font-weight:600;">No unpaid orders to send reminders for.</p></div>';
+                return;
+            }
+
+            var html = '<table class="reminder-preview-table"><thead><tr>'
+                + '<th>Order</th><th>Customer</th><th>Email</th><th style="text-align:right;">Amount</th><th style="text-align:center;">Items</th><th>Pickup</th><th style="text-align:center;">Invoice</th>'
+                + '</tr></thead><tbody>';
+            var totalAmt = 0;
+            var noLinkCount = 0;
+            for (var i = 0; i < results.length; i++) {
+                var r = results[i];
+                totalAmt += r.amount;
+                if (!r.hasInvoiceUrl) noLinkCount++;
+                html += '<tr>';
+                html += '<td><strong style="color:var(--green-dark);">' + escapeHtml(r.orderId) + '</strong></td>';
+                html += '<td>' + escapeHtml(r.name) + '</td>';
+                html += '<td style="font-size:0.82rem;">' + escapeHtml(r.email) + '</td>';
+                html += '<td style="text-align:right;font-weight:700;">$' + r.amount.toFixed(2) + '</td>';
+                html += '<td style="text-align:center;">' + (r.items || '--') + '</td>';
+                html += '<td style="font-size:0.82rem;">' + escapeHtml(r.pickup || 'TBD') + '</td>';
+                html += '<td style="text-align:center;">' + (r.hasInvoiceUrl
+                    ? '<span class="invoice-badge has-link">Has Link</span>'
+                    : '<span class="invoice-badge no-link">No Link</span>') + '</td>';
+                html += '</tr>';
+            }
+            html += '</tbody></table>';
+
+            if (noLinkCount > 0) {
+                html += '<p style="margin-top:12px;font-size:0.82rem;color:#dc2626;"><i class="fas fa-exclamation-circle"></i> ' + noLinkCount + ' order' + (noLinkCount !== 1 ? 's' : '') + ' missing invoice link — those customers will be told to reply to the email instead.</p>';
+            }
+            if (res.errors && res.errors.length > 0) {
+                html += '<p style="margin-top:8px;font-size:0.82rem;color:#dc2626;"><i class="fas fa-exclamation-triangle"></i> ' + res.errors.length + ' skipped: ' + escapeHtml(res.errors.join('; ')) + '</p>';
+            }
+
+            body.innerHTML = html;
+            footer.style.display = 'flex';
+            document.getElementById('reminderModalSummary').textContent = results.length + ' customers | $' + totalAmt.toFixed(2) + ' outstanding';
+            document.getElementById('reminderSendBtn').disabled = false;
+            document.getElementById('reminderSendBtn').innerHTML = '<i class="fas fa-paper-plane"></i> Send ' + results.length + ' Reminder' + (results.length !== 1 ? 's' : '');
+        })
+        .catch(function(err) {
+            body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--red);"><i class="fas fa-exclamation-triangle" style="font-size:1.5rem;display:block;margin-bottom:12px;"></i>Network error: ' + escapeHtml(err.message) + '</div>';
+        });
+}
+
+function confirmSendReminders() {
+    // Quick path: directly open modal and preview first
+    previewPaymentReminders();
+}
+
+function sendPaymentReminders() {
+    var count = lastReminderPreview ? (lastReminderPreview.results || []).length : 0;
+    if (!confirm('Send payment reminder emails to ' + count + ' customer' + (count !== 1 ? 's' : '') + '?\n\nThis will email each one with their invoice link and pickup details.')) {
+        return;
+    }
+
+    var btn = document.getElementById('reminderSendBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+
+    fetch(TINY_SEED_API.MAIN_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({ action: 'sendSeedlingPaymentReminders', dryRun: 'false' })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
+        if (res.success) {
+            var body = document.getElementById('reminderModalBody');
+            body.innerHTML = '<div style="text-align:center;padding:40px;">'
+                + '<i class="fas fa-check-circle" style="font-size:3rem;color:var(--green);display:block;margin-bottom:16px;"></i>'
+                + '<p style="font-size:1.2rem;font-weight:700;color:var(--green-dark);margin-bottom:8px;">Reminders Sent</p>'
+                + '<p style="font-size:0.95rem;color:var(--text-body);">Sent: <strong>' + res.sent + '</strong> &nbsp;|&nbsp; Skipped: <strong>' + res.skipped + '</strong>'
+                + (res.errors && res.errors.length > 0 ? ' &nbsp;|&nbsp; <span style="color:var(--red);">Errors: ' + res.errors.length + '</span>' : '')
+                + '</p>'
+                + (res.errors && res.errors.length > 0 ? '<p style="margin-top:12px;font-size:0.82rem;color:var(--red);">' + escapeHtml(res.errors.join('; ')) + '</p>' : '')
+                + '</div>';
+            document.getElementById('reminderModalFooter').style.display = 'none';
+        } else {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-paper-plane"></i> Retry';
+            alert('Failed to send reminders: ' + (res.error || 'Unknown error'));
+        }
+    })
+    .catch(function(err) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-paper-plane"></i> Retry';
+        alert('Network error: ' + err.message);
+    });
+}
+
+function closeReminderModal() {
+    document.getElementById('reminderModal').classList.remove('active');
+}
+
+function cancelOrder(orderId) {
+    if (!orderId) return;
+    var reason = prompt('Cancel order ' + orderId + '?\n\nOptional reason (or leave blank):');
+    if (reason === null) return; // user clicked Cancel on the prompt
+
+    fetch(TINY_SEED_API.MAIN_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({ action: 'cancelSeedlingOrder', orderId: orderId, reason: reason })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
+        if (res.success) {
+            alert('Order ' + orderId + ' cancelled.');
+            loadOrders();
+        } else {
+            alert('Failed to cancel: ' + (res.error || 'Unknown error'));
+        }
+    })
+    .catch(function(err) {
+        alert('Network error: ' + err.message);
+    });
+}
+
+function deleteOrder(orderId) {
+    if (!orderId) return;
+    if (!confirm('PERMANENTLY DELETE order ' + orderId + '?\n\nThis removes it from SEEDLING_ORDERS and SEEDLING_SALES.\nThis cannot be undone.')) {
+        return;
+    }
+    // Double confirmation for safety
+    if (!confirm('Are you sure? This is irreversible.\n\nDelete order ' + orderId + '?')) {
+        return;
+    }
+
+    fetch(TINY_SEED_API.MAIN_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({ action: 'deleteSeedlingOrder', orderId: orderId })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
+        if (res.success) {
+            alert(res.message);
+            loadOrders();
+        } else {
+            alert('Failed to delete: ' + (res.error || 'Unknown error'));
+        }
+    })
+    .catch(function(err) {
+        alert('Network error: ' + err.message);
+    });
+}
+
+// Close modal on overlay click
+document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('reminder-modal-overlay')) {
+        closeReminderModal();
+    }
+});
+
+// Close modal on Escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeReminderModal();
+});
 
 // ═══════════════════════════════════════════════════════════════
 // PICK & PACK TAB
@@ -4096,6 +4491,31 @@ function printPackSlips(siteId) {
 
 
 </script>
+
+<!-- Payment Reminder Preview Modal -->
+<div class="reminder-modal-overlay" id="reminderModal">
+    <div class="reminder-modal">
+        <div class="reminder-modal-header">
+            <h3><i class="fas fa-envelope" style="color:var(--green-dark);margin-right:8px;"></i> Payment Reminder Preview</h3>
+            <button class="reminder-modal-close" onclick="closeReminderModal()" aria-label="Close modal">&times;</button>
+        </div>
+        <div class="reminder-modal-body" id="reminderModalBody">
+            <div style="text-align:center;padding:40px;">
+                <i class="fas fa-spinner fa-spin" style="font-size:1.5rem;color:var(--text-muted);"></i>
+                <p style="margin-top:12px;color:var(--text-muted);">Loading preview...</p>
+            </div>
+        </div>
+        <div class="reminder-modal-footer" id="reminderModalFooter" style="display:none;">
+            <span class="reminder-summary-text" id="reminderModalSummary"></span>
+            <div style="display:flex;gap:8px;">
+                <button class="btn btn-secondary" onclick="closeReminderModal()">Cancel</button>
+                <button class="btn-send" id="reminderSendBtn" onclick="sendPaymentReminders()">
+                    <i class="fas fa-paper-plane"></i> Send All Reminders
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <script src="shared-nav.js"></script>
 </body>

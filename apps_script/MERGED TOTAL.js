@@ -14668,7 +14668,9 @@ function doGet(e) {
       'updateMarketSessionStatus', 'calculateDemandPrediction',
       'recordMarketSale', 'recordQuickSale', 'getMarketInventoryStatus',
       'initiateSettlement', 'completeSettlement', 'getMarketPerformanceAnalytics',
-      'syncMarketToPickPack', 'syncShopifyMarketSales', 'getShopifyMarketReport'
+      'syncMarketToPickPack', 'syncShopifyMarketSales', 'getShopifyMarketReport',
+      // Seedling payment reminders + order management (2026-04-10)
+      'sendSeedlingPaymentReminders', 'cancelSeedlingOrder'
     ]);
 
   if (!PUBLIC_GET_ACTIONS.has(action)) {
@@ -18217,6 +18219,10 @@ function doGet(e) {
         return jsonResponse(getSeedlingCategories());
       case 'getSeedlingOperationsOverview':
         return jsonResponse(getSeedlingOperationsOverview(e.parameter));
+      case 'sendSeedlingPaymentReminders':
+        return jsonResponse(sendSeedlingPaymentReminders(e.parameter));
+      case 'cancelSeedlingOrder':
+        return jsonResponse(cancelSeedlingOrder(e.parameter));
 
       // ============ FRONTEND COMPATIBILITY ALIASES (from 2026-02-26 audit) ============
       case 'assignTask':
@@ -18393,6 +18399,8 @@ function doPost(e) {
       // Farmers Market module (Phase 1 — data modification via POST)
       'addMarketItem', 'removeMarketItem', 'createMarketSession',
       'updateMarketSessionStatus', 'syncMarketToPickPack',
+      // Seedling payment reminders + order management (2026-04-10)
+      'sendSeedlingPaymentReminders', 'cancelSeedlingOrder', 'deleteSeedlingOrder',
     ]);
 
     if (action && !PUBLIC_POST_ACTIONS.has(action)) {
@@ -19840,6 +19848,12 @@ function doPost(e) {
         return jsonResponse(deleteSeedlingItem(data));
       case 'bulkDeleteSeedlingItems':
         return jsonResponse(bulkDeleteSeedlingItems(data));
+      case 'sendSeedlingPaymentReminders':
+        return jsonResponse(sendSeedlingPaymentReminders(data));
+      case 'cancelSeedlingOrder':
+        return jsonResponse(cancelSeedlingOrder(data));
+      case 'deleteSeedlingOrder':
+        return jsonResponse(deleteSeedlingOrder(data));
       case 'savePresalePageConfig':
         return jsonResponse(savePresalePageConfig(data));
       case 'updateSeedlingAllocations':
@@ -137382,6 +137396,291 @@ function cleanupTestSeedlingOrders(params) {
   } catch (error) {
     Logger.log('cleanupTestSeedlingOrders FATAL: ' + error.toString());
     return { success: false, error: error.toString(), deleted: deleted, errors: errors };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SEEDLING PAYMENT REMINDERS & ORDER MANAGEMENT (2026-04-10)
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Send payment reminder emails to all customers with unpaid seedling orders.
+ * Reads SEEDLING_ORDERS, filters to Invoice_Status = 'Pending', sends emails.
+ * Supports dryRun mode for preview.
+ */
+function sendSeedlingPaymentReminders(params) {
+  var lock = LockService.getScriptLock();
+  try { lock.waitLock(15000); } catch(e) { return { success: false, error: 'System busy — try again in a moment', code: 'LOCK_TIMEOUT' }; }
+
+  try {
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheet = ss.getSheetByName('SEEDLING_ORDERS');
+    if (!sheet) {
+      lock.releaseLock();
+      return { success: false, error: 'SEEDLING_ORDERS sheet not found', code: 'SHEET_NOT_FOUND' };
+    }
+
+    var data = sheet.getDataRange().getValues();
+    if (data.length < 2) {
+      lock.releaseLock();
+      return { success: true, sent: 0, skipped: 0, errors: [], dryRun: true, results: [], totalOutstanding: 0, message: 'No orders found' };
+    }
+
+    var headers = data[0];
+    var col = function(name) {
+      for (var i = 0; i < headers.length; i++) {
+        if (String(headers[i]).trim() === name) return i;
+      }
+      return -1;
+    };
+
+    var sent = 0, skipped = 0, errors = [];
+    var dryRun = params && (params.dryRun === 'true' || params.dryRun === true);
+    var results = [];
+
+    for (var i = 1; i < data.length; i++) {
+      var statusRaw = String(data[i][col('Invoice_Status')] || '').trim().toLowerCase();
+      if (statusRaw !== 'pending') { skipped++; continue; }
+
+      var orderId = String(data[i][col('Order_ID')] || '').trim();
+      var name = String(data[i][col('Customer_Name')] || '').trim();
+      var email = String(data[i][col('Email')] || '').trim();
+      var invoiceUrl = String(data[i][col('Invoice_URL')] || '').trim();
+      var totalItems = Number(data[i][col('Total_Items')] || 0);
+      var totalAmount = Number(data[i][col('Total_Amount')] || 0);
+      var pickup = String(data[i][col('Pickup_Location')] || '').trim();
+
+      if (!email || email === 'undefined' || email === 'null') {
+        errors.push(orderId + ': No email address on file');
+        skipped++;
+        continue;
+      }
+
+      // Basic email format check
+      if (email.indexOf('@') === -1 || email.indexOf('.') === -1) {
+        errors.push(orderId + ' (' + email + '): Invalid email format');
+        skipped++;
+        continue;
+      }
+
+      var firstName = name.split(' ')[0] || 'there';
+
+      var subject = 'Your Tiny Seed Farm seedling order is waiting \u2014 complete payment to reserve your plants';
+
+      var cancelUrl = 'mailto:todd@tinyseedfarmpgh.com?subject=Cancel%20Order%20' + encodeURIComponent(orderId) + '&body=Hi%20Todd%2C%20please%20cancel%20my%20seedling%20order%20' + encodeURIComponent(orderId) + '.%20Thank%20you.';
+
+      var htmlBody = '<div style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;max-width:600px;margin:0 auto;padding:20px;color:#1a1a1a;">'
+        + '<div style="text-align:center;margin-bottom:24px;">'
+        + '<h1 style="font-size:24px;color:#166534;margin:0;">Tiny Seed Farm</h1>'
+        + '<p style="color:#6b7280;font-size:14px;margin:4px 0 0;">OEFFA Certified Organic</p>'
+        + '</div>'
+        + '<p style="font-size:16px;">Hi ' + firstName + ',</p>'
+        + '<p style="font-size:15px;line-height:1.6;">Thank you for your seedling order! We wanted to let you know that your order has not been paid yet. <strong>We can only reserve plants for paid orders</strong> \u2014 unpaid orders will not be fulfilled.</p>'
+        + '<div style="background:#f0fdf4;border:2px solid #22c55e;border-radius:12px;padding:20px;margin:20px 0;text-align:center;">'
+        + '<p style="font-size:14px;color:#166534;margin:0 0 8px;font-weight:600;">Order ' + orderId + '</p>'
+        + '<p style="font-size:20px;font-weight:700;color:#166534;margin:0 0 4px;">' + totalItems + ' plants \u2014 $' + totalAmount.toFixed(2) + '</p>'
+        + '<p style="font-size:13px;color:#6b7280;margin:0 0 16px;">Pickup: ' + (pickup || 'TBD') + '</p>'
+        + (invoiceUrl && invoiceUrl !== 'undefined' && invoiceUrl !== ''
+          ? '<a href="' + invoiceUrl + '" style="display:inline-block;background:#16a34a;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-size:16px;font-weight:700;">Complete Payment Now</a>'
+          : '<p style="color:#dc2626;font-weight:600;">Invoice link unavailable \u2014 please reply to this email to arrange payment.</p>')
+        + '</div>'
+        + '<p style="font-size:14px;line-height:1.6;color:#374151;">Pickup dates are coming up fast:</p>'
+        + '<ul style="font-size:14px;color:#374151;line-height:1.8;">'
+        + '<li><strong>Farm</strong> \u2014 Wed, May 6 (11am-7pm)</li>'
+        + '<li><strong>Phipps</strong> \u2014 Fri, May 8 (9am-7pm)</li>'
+        + '<li><strong>Bloomfield</strong> \u2014 Sat, May 9 (9am-1pm)</li>'
+        + '<li><strong>Sewickley</strong> \u2014 Sat, May 9 (9am-1pm)</li>'
+        + '<li><strong>Lawrenceville</strong> \u2014 Mon, May 19 (3-7pm)</li>'
+        + '</ul>'
+        + '<p style="font-size:14px;line-height:1.6;color:#374151;">If you\'ve changed your mind, no worries at all \u2014 just <a href="' + cancelUrl + '" style="color:#dc2626;font-weight:600;">click here to cancel</a> and we\'ll remove your order.</p>'
+        + '<p style="font-size:14px;margin-top:24px;">Thanks for supporting local organic farming!</p>'
+        + '<p style="font-size:14px;font-weight:600;">\u2014 Todd Wilson<br>Tiny Seed Farm<br>Rochester, PA</p>'
+        + '<hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0;">'
+        + '<p style="font-size:11px;color:#9ca3af;text-align:center;">Tiny Seed Farm | 257 Zeigler Rd, Rochester, PA 15074 | todd@tinyseedfarmpgh.com</p>'
+        + '</div>';
+
+      var plainBody = 'Hi ' + firstName + ', your seedling order ' + orderId + ' (' + totalItems + ' plants, $' + totalAmount.toFixed(2) + ') has not been paid yet. We can only reserve plants for paid orders. '
+        + (invoiceUrl && invoiceUrl !== 'undefined' ? 'Complete payment here: ' + invoiceUrl : 'Please reply to arrange payment.')
+        + ' If you want to cancel, reply to this email. Thanks! \u2014 Todd, Tiny Seed Farm';
+
+      results.push({
+        orderId: orderId,
+        email: email,
+        name: name,
+        amount: totalAmount,
+        items: totalItems,
+        pickup: pickup,
+        hasInvoiceUrl: !!(invoiceUrl && invoiceUrl !== 'undefined' && invoiceUrl !== '')
+      });
+
+      if (!dryRun) {
+        try {
+          GmailApp.sendEmail(email, subject, plainBody, {
+            name: 'Tiny Seed Farm',
+            htmlBody: htmlBody,
+            replyTo: 'todd@tinyseedfarmpgh.com'
+          });
+          sent++;
+        } catch(emailErr) {
+          errors.push(orderId + ' (' + email + '): ' + emailErr.message);
+        }
+      } else {
+        sent++;
+      }
+    }
+
+    lock.releaseLock();
+    return {
+      success: true,
+      sent: sent,
+      skipped: skipped,
+      errors: errors,
+      dryRun: !!dryRun,
+      results: results,
+      totalOutstanding: results.reduce(function(sum, r) { return sum + r.amount; }, 0),
+      message: dryRun
+        ? 'Preview: ' + sent + ' customers would receive payment reminders ($' + results.reduce(function(sum, r) { return sum + r.amount; }, 0).toFixed(2) + ' outstanding)'
+        : 'Sent ' + sent + ' payment reminder emails' + (errors.length > 0 ? ' (' + errors.length + ' errors)' : '')
+    };
+  } catch(e) {
+    try { lock.releaseLock(); } catch(unlockErr) {}
+    Logger.log('sendSeedlingPaymentReminders FATAL: ' + e.toString());
+    return { success: false, error: e.toString(), code: 'INTERNAL_ERROR' };
+  }
+}
+
+/**
+ * Cancel a seedling order by marking its Invoice_Status as 'Cancelled'.
+ * Requires params.orderId.
+ */
+function cancelSeedlingOrder(params) {
+  if (!params || !params.orderId) {
+    return { success: false, error: 'orderId is required', code: 'MISSING_FIELD' };
+  }
+
+  var lock = LockService.getScriptLock();
+  try { lock.waitLock(10000); } catch(e) { return { success: false, error: 'System busy', code: 'LOCK_TIMEOUT' }; }
+
+  try {
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheet = ss.getSheetByName('SEEDLING_ORDERS');
+    if (!sheet) {
+      lock.releaseLock();
+      return { success: false, error: 'SEEDLING_ORDERS sheet not found', code: 'SHEET_NOT_FOUND' };
+    }
+
+    var data = sheet.getDataRange().getValues();
+    var headers = data[0];
+    var idCol = -1, statusCol = -1, notesCol = -1;
+    for (var h = 0; h < headers.length; h++) {
+      var hName = String(headers[h]).trim();
+      if (hName === 'Order_ID') idCol = h;
+      if (hName === 'Invoice_Status') statusCol = h;
+      if (hName === 'Notes') notesCol = h;
+    }
+
+    if (idCol === -1 || statusCol === -1) {
+      lock.releaseLock();
+      return { success: false, error: 'Required columns not found in SEEDLING_ORDERS', code: 'SCHEMA_ERROR' };
+    }
+
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][idCol]).trim() === String(params.orderId).trim()) {
+        sheet.getRange(i + 1, statusCol + 1).setValue('Cancelled');
+        if (notesCol !== -1) {
+          var existingNotes = String(data[i][notesCol] || '');
+          var cancelNote = 'Cancelled ' + new Date().toISOString().split('T')[0] + (params.reason ? ': ' + String(params.reason).substring(0, 200) : '');
+          sheet.getRange(i + 1, notesCol + 1).setValue(
+            existingNotes + (existingNotes ? ' | ' : '') + cancelNote
+          );
+        }
+        lock.releaseLock();
+        Logger.log('[cancelSeedlingOrder] Cancelled order ' + params.orderId);
+        return { success: true, message: 'Order ' + params.orderId + ' cancelled' };
+      }
+    }
+
+    lock.releaseLock();
+    return { success: false, error: 'Order ' + params.orderId + ' not found', code: 'NOT_FOUND' };
+  } catch(e) {
+    try { lock.releaseLock(); } catch(unlockErr) {}
+    Logger.log('cancelSeedlingOrder FATAL: ' + e.toString());
+    return { success: false, error: e.toString(), code: 'INTERNAL_ERROR' };
+  }
+}
+
+/**
+ * Delete a seedling order (for removing duplicates).
+ * Removes from both SEEDLING_ORDERS and SEEDLING_SALES.
+ * Requires params.orderId.
+ */
+function deleteSeedlingOrder(params) {
+  if (!params || !params.orderId) {
+    return { success: false, error: 'orderId is required', code: 'MISSING_FIELD' };
+  }
+
+  var lock = LockService.getScriptLock();
+  try { lock.waitLock(15000); } catch(e) { return { success: false, error: 'System busy', code: 'LOCK_TIMEOUT' }; }
+
+  try {
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var orderDeleted = false;
+    var salesDeleted = 0;
+
+    // Delete from SEEDLING_ORDERS
+    var orderSheet = ss.getSheetByName('SEEDLING_ORDERS');
+    if (orderSheet) {
+      var oData = orderSheet.getDataRange().getValues();
+      var oHeaders = oData[0];
+      var oIdCol = -1;
+      for (var oh = 0; oh < oHeaders.length; oh++) {
+        if (String(oHeaders[oh]).trim() === 'Order_ID') { oIdCol = oh; break; }
+      }
+      if (oIdCol >= 0) {
+        for (var i = oData.length - 1; i >= 1; i--) {
+          if (String(oData[i][oIdCol]).trim() === String(params.orderId).trim()) {
+            orderSheet.deleteRow(i + 1);
+            orderDeleted = true;
+            break;
+          }
+        }
+      }
+    }
+
+    // Delete matching sales from SEEDLING_SALES
+    var salesSheet = ss.getSheetByName('SEEDLING_SALES');
+    if (salesSheet) {
+      var sData = salesSheet.getDataRange().getValues();
+      var sHeaders = sData[0];
+      var sIdCol = -1;
+      for (var sh = 0; sh < sHeaders.length; sh++) {
+        if (String(sHeaders[sh]).trim().toLowerCase().indexOf('order_id') !== -1) { sIdCol = sh; break; }
+      }
+      if (sIdCol >= 0) {
+        for (var j = sData.length - 1; j >= 1; j--) {
+          if (String(sData[j][sIdCol]).trim() === String(params.orderId).trim()) {
+            salesSheet.deleteRow(j + 1);
+            salesDeleted++;
+          }
+        }
+      }
+    }
+
+    lock.releaseLock();
+
+    if (!orderDeleted && salesDeleted === 0) {
+      return { success: false, error: 'Order ' + params.orderId + ' not found in any sheet', code: 'NOT_FOUND' };
+    }
+
+    Logger.log('[deleteSeedlingOrder] Deleted order ' + params.orderId + ' (order: ' + orderDeleted + ', sales: ' + salesDeleted + ')');
+    return {
+      success: true,
+      message: 'Deleted order ' + params.orderId + (orderDeleted ? ' from SEEDLING_ORDERS' : '') + (salesDeleted > 0 ? ' and ' + salesDeleted + ' sale record(s) from SEEDLING_SALES' : '')
+    };
+  } catch(e) {
+    try { lock.releaseLock(); } catch(unlockErr) {}
+    Logger.log('deleteSeedlingOrder FATAL: ' + e.toString());
+    return { success: false, error: e.toString(), code: 'INTERNAL_ERROR' };
   }
 }
 
