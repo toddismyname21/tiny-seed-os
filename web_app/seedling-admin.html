@@ -1839,16 +1839,17 @@
                         <th>Order ID</th>
                         <th>Customer</th>
                         <th>Email</th>
-                        <th>Pickup Location</th>
+                        <th>Pickup</th>
+                        <th>Pickup Date</th>
                         <th style="text-align:center;">Items</th>
                         <th style="text-align:right;">Amount</th>
                         <th style="text-align:center;">Status</th>
-                        <th>Date</th>
+                        <th>Ordered</th>
                         <th style="text-align:center;">Actions</th>
                     </tr>
                 </thead>
                 <tbody id="ordersTableBody">
-                    <tr><td colspan="9" style="text-align:center;padding:40px;"><i class="fas fa-spinner fa-spin"></i> Loading orders...</td></tr>
+                    <tr><td colspan="10" style="text-align:center;padding:40px;"><i class="fas fa-spinner fa-spin"></i> Loading orders...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -3702,7 +3703,7 @@ var ordersLoaded = false;
 
 function loadOrders() {
     var tbody = document.getElementById('ordersTableBody');
-    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;"><i class="fas fa-spinner fa-spin"></i> Loading orders...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;"><i class="fas fa-spinner fa-spin"></i> Loading orders...</td></tr>';
 
     Promise.all([
         fetch(TINY_SEED_API.MAIN_API + '?action=getSheetData&sheetName=SEEDLING_ORDERS').then(function(r) { return r.json(); }),
@@ -3725,7 +3726,7 @@ function loadOrders() {
         renderOrders();
         updateOrderStats();
     }).catch(function(err) {
-        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--red);"><i class="fas fa-exclamation-triangle"></i> Failed to load orders: ' + escapeHtml(err.message) + '</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--red);"><i class="fas fa-exclamation-triangle"></i> Failed to load orders: ' + escapeHtml(err.message) + '</td></tr>';
     });
 }
 
@@ -3819,7 +3820,7 @@ function renderOrders() {
     var filtered = getFilteredOrders();
 
     if (filtered.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;">' +
+        tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;">' +
             '<i class="fas fa-inbox" style="font-size:2rem;color:var(--border);display:block;margin-bottom:12px;"></i>' +
             '<div style="color:var(--text-muted);font-size:0.95rem;">No orders found</div>' +
             '<div style="color:var(--text-muted);font-size:0.8rem;margin-top:4px;">Try adjusting your filters</div>' +
@@ -3843,22 +3844,27 @@ function renderOrders() {
         var totalItems = Number(o.Total_Items || o.total_items || 0);
         var totalAmt = Number(o.Total_Amount || o.total_amount || 0);
         var dateStr = formatOrderDate(o.Date || o.date || '');
+        var oid = escapeHtml(o.Order_ID || o.order_id || '');
 
         html += '<tr>';
-        html += '<td><strong style="color:var(--green-dark);">' + escapeHtml(o.Order_ID || o.order_id || '--') + '</strong></td>';
-        html += '<td>' + escapeHtml(o.Customer_Name || o.customer_name || '--') + '</td>';
+        html += '<td><a href="#" onclick="showOrderDetail(\'' + oid + '\');return false;" style="color:var(--green-dark);font-weight:600;text-decoration:none;cursor:pointer;">' + (oid || '--') + '</a></td>';
+        html += '<td><a href="#" onclick="showOrderDetail(\'' + oid + '\');return false;" style="color:#1a1a1a;text-decoration:none;cursor:pointer;font-weight:500;">' + escapeHtml(o.Customer_Name || o.customer_name || '--') + '</a></td>';
         html += '<td style="font-size:0.82rem;">' + escapeHtml(o.Email || o.email || '--') + '</td>';
         html += '<td>' + escapeHtml(o.Pickup_Location || o.pickup_location || '--') + '</td>';
+        html += '<td style="font-size:0.82rem;white-space:nowrap;">' + getPickupDate(o.Pickup_Location || o.pickup_location || '') + '</td>';
         html += '<td style="text-align:center;font-weight:600;">' + totalItems + '</td>';
         html += '<td style="text-align:right;font-weight:700;">$' + totalAmt.toFixed(2) + '</td>';
         html += '<td style="text-align:center;"><span class="order-status-badge ' + statusClass + '">' + status + '</span></td>';
         html += '<td style="font-size:0.82rem;white-space:nowrap;">' + escapeHtml(dateStr) + '</td>';
         html += '<td style="text-align:center;white-space:nowrap;">';
+        if (o.Email || o.email) {
+            html += '<a href="mailto:' + encodeURIComponent(o.Email || o.email) + '" class="btn-sm" title="Email customer" style="background:#3b82f6;color:#fff;text-decoration:none;display:inline-block;padding:4px 8px;border-radius:4px;font-size:0.75rem;"><i class="fas fa-envelope"></i></a> ';
+        }
         if (status === 'Pending') {
-            html += '<button class="btn-sm cancel" onclick="cancelOrder(\'' + escapeHtml(o.Order_ID || o.order_id || '') + '\')" title="Cancel order"><i class="fas fa-ban"></i> Cancel</button> ';
+            html += '<button class="btn-sm cancel" onclick="cancelOrder(\'' + oid + '\')" title="Cancel order"><i class="fas fa-ban"></i> Cancel</button> ';
         }
         if (status === 'Cancelled') {
-            html += '<button class="btn-sm delete" onclick="deleteOrder(\'' + escapeHtml(o.Order_ID || o.order_id || '') + '\')" title="Permanently delete order"><i class="fas fa-trash"></i> Delete</button>';
+            html += '<button class="btn-sm delete" onclick="deleteOrder(\'' + oid + '\')" title="Permanently delete order"><i class="fas fa-trash"></i> Delete</button>';
         }
         html += '</td>';
         html += '</tr>';
@@ -3904,6 +3910,96 @@ function updateOrderStats() {
     } else {
         reminderBar.style.display = 'none';
     }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PICKUP DATE + ORDER DETAIL
+// ═══════════════════════════════════════════════════════════════
+
+function getPickupDate(location) {
+    var loc = (location || '').toLowerCase();
+    if (loc.indexOf('farm') >= 0) return 'Wed, May 6';
+    if (loc.indexOf('phipps') >= 0) return 'Fri, May 8';
+    if (loc.indexOf('bloomfield') >= 0) return 'Sat, May 9';
+    if (loc.indexOf('sewickley') >= 0) return 'Sat, May 9';
+    if (loc.indexOf('lawrenceville') >= 0) return 'Mon, May 19';
+    return '--';
+}
+
+function showOrderDetail(orderId) {
+    if (!orderId) return;
+    var order = allOrders.find(function(o) { return (o.Order_ID || o.order_id) === orderId; });
+    if (!order) return;
+
+    // Find matching sales line items
+    var items = allSalesItems.filter(function(s) { return (s.Order_ID || s.order_id) === orderId; });
+
+    var pickup = order.Pickup_Location || order.pickup_location || '';
+    var pickupDate = getPickupDate(pickup);
+    var status = normalizeStatus(order.Invoice_Status || order.invoice_status || '');
+
+    var html = '<div style="padding:20px;">';
+    html += '<h3 style="margin:0 0 4px;font-size:1.15rem;font-weight:700;color:var(--text-dark);">' + escapeHtml(order.Customer_Name || order.customer_name || '') + '</h3>';
+    html += '<div style="color:#666;font-size:0.85rem;margin-bottom:16px;">';
+    html += 'Order: <strong>' + escapeHtml(orderId) + '</strong>';
+    html += ' &nbsp;|&nbsp; Pickup: <strong>' + escapeHtml(pickup) + '</strong>';
+    html += ' &nbsp;|&nbsp; Date: <strong>' + pickupDate + '</strong>';
+    html += ' &nbsp;|&nbsp; Status: <strong>' + escapeHtml(status) + '</strong>';
+    html += '</div>';
+
+    // Contact action buttons
+    html += '<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">';
+    if (order.Email || order.email) {
+        html += '<a href="mailto:' + encodeURIComponent(order.Email || order.email) + '" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:#3b82f6;color:#fff;border-radius:8px;text-decoration:none;font-size:0.85rem;font-weight:600;"><i class="fas fa-envelope"></i> Email ' + escapeHtml((order.Customer_Name || order.customer_name || '').split(' ')[0]) + '</a>';
+    }
+    if (order.Phone || order.phone) {
+        html += '<a href="tel:' + (order.Phone || order.phone) + '" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:#22c55e;color:#fff;border-radius:8px;text-decoration:none;font-size:0.85rem;font-weight:600;"><i class="fas fa-phone"></i> Call</a>';
+    }
+    if (order.Invoice_URL || order.invoice_url) {
+        html += '<a href="' + (order.Invoice_URL || order.invoice_url) + '" target="_blank" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:#f59e0b;color:#000;border-radius:8px;text-decoration:none;font-size:0.85rem;font-weight:600;"><i class="fas fa-credit-card"></i> Invoice</a>';
+    }
+    html += '</div>';
+
+    // Items table
+    if (items.length > 0) {
+        html += '<table style="width:100%;border-collapse:collapse;font-size:0.85rem;">';
+        html += '<thead><tr style="background:#f0fdf4;"><th style="padding:6px 8px;text-align:left;border:1px solid #ddd;">Crop</th><th style="padding:6px 8px;text-align:left;border:1px solid #ddd;">Variety</th><th style="padding:6px 8px;text-align:center;border:1px solid #ddd;">Qty</th><th style="padding:6px 8px;text-align:right;border:1px solid #ddd;">Price</th><th style="padding:6px 8px;text-align:right;border:1px solid #ddd;">Total</th></tr></thead>';
+        html += '<tbody>';
+        var orderTotal = 0;
+        for (var i = 0; i < items.length; i++) {
+            var item = items[i];
+            var qty = Number(item.Quantity_Sold || item.quantity_sold || item.Quantity || 0);
+            var price = Number(item.Price_Each || item.price_each || 6);
+            var lineTotal = Number(item.Revenue || item.revenue || qty * price);
+            orderTotal += lineTotal;
+            html += '<tr>';
+            html += '<td style="padding:5px 8px;border:1px solid #eee;">' + escapeHtml(item.Crop || item.crop || '') + '</td>';
+            html += '<td style="padding:5px 8px;border:1px solid #eee;">' + escapeHtml(item.Variety || item.variety || '') + '</td>';
+            html += '<td style="padding:5px 8px;text-align:center;border:1px solid #eee;">' + qty + '</td>';
+            html += '<td style="padding:5px 8px;text-align:right;border:1px solid #eee;">$' + price.toFixed(2) + '</td>';
+            html += '<td style="padding:5px 8px;text-align:right;border:1px solid #eee;font-weight:600;">$' + lineTotal.toFixed(2) + '</td>';
+            html += '</tr>';
+        }
+        html += '<tr style="background:#f0fdf4;font-weight:700;"><td colspan="4" style="padding:6px 8px;text-align:right;border:1px solid #ddd;">Total</td><td style="padding:6px 8px;text-align:right;border:1px solid #ddd;">$' + orderTotal.toFixed(2) + '</td></tr>';
+        html += '</tbody></table>';
+    } else {
+        html += '<div style="text-align:center;padding:20px;color:var(--text-muted);font-size:0.9rem;"><i class="fas fa-info-circle" style="margin-right:6px;"></i>No line items found for this order</div>';
+    }
+
+    html += '</div>';
+    showOrderModal(html);
+}
+
+function showOrderModal(contentHtml) {
+    var modal = document.getElementById('orderDetailModal');
+    if (!modal) return;
+    document.getElementById('orderDetailBody').innerHTML = contentHtml;
+    modal.classList.add('active');
+}
+
+function closeOrderDetailModal() {
+    var modal = document.getElementById('orderDetailModal');
+    if (modal) modal.classList.remove('active');
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -4089,7 +4185,7 @@ document.addEventListener('click', function(e) {
 
 // Close modal on Escape key
 document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') closeReminderModal();
+    if (e.key === 'Escape') { closeReminderModal(); closeOrderDetailModal(); }
 });
 
 // ═══════════════════════════════════════════════════════════════
@@ -4491,6 +4587,18 @@ function printPackSlips(siteId) {
 
 
 </script>
+
+<!-- Order Detail Modal -->
+<div class="modal-overlay" id="orderDetailModal" onclick="if(event.target===this)closeOrderDetailModal();">
+    <div class="modal" style="max-width:640px;">
+        <div class="modal-header" style="background:var(--green-light,#f0fdf4);">
+            <h2 style="font-size:1.1rem;"><i class="fas fa-receipt" style="color:var(--green-dark);margin-right:8px;"></i>Order Details</h2>
+            <button class="modal-close" onclick="closeOrderDetailModal()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body" id="orderDetailBody" style="padding:0;">
+        </div>
+    </div>
+</div>
 
 <!-- Payment Reminder Preview Modal -->
 <div class="reminder-modal-overlay" id="reminderModal">
