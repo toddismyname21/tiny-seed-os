@@ -14644,6 +14644,9 @@ function doGet(e) {
       // Seedling presale/wholesale (customer-facing — no auth needed)
       'getSeedlingPresaleItems', 'validateSeedlingAvailability',
       'getSeedlingBundles', 'getSeedlingCategories', 'validateReferralCode',
+      // Seedling admin (order visibility + pick/pack)
+      'getSeedlingSales', 'getSeedlingDemandSummary', 'getSeedlingSalesHistorical',
+      'getSeedlingOperationsOverview', 'getSeedlingProductionPlan',
       // Grant management dashboard
       'getGrantsMgmt', 'getGrantDetail', 'setupGrantSheets',
       // Schedule notifications (triggered from schedule.html — no auth token available)
