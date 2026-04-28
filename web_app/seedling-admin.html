@@ -3694,7 +3694,7 @@ var PICKUP_SITES = [
     { id: 'Phipps', name: 'Phipps May Market', date: 'Fri, May 8', hours: '9am-7pm' },
     { id: 'Bloomfield', name: 'Bloomfield Saturday Market', date: 'Sat, May 9', hours: '9am-1pm' },
     { id: 'Sewickley', name: 'Sewickley Farmers Market', date: 'Sat, May 9', hours: '9am-1pm' },
-    { id: 'Lawrenceville', name: 'Lawrenceville Farmers Market', date: 'Mon, May 19', hours: '3-7pm' }
+    { id: 'Lawrenceville', name: 'Lawrenceville Farmers Market', date: 'Tue, May 19', hours: '3-7pm' }
 ];
 
 var allOrders = [];       // order-level rows from SEEDLING_ORDERS
@@ -3922,7 +3922,7 @@ function getPickupDate(location) {
     if (loc.indexOf('phipps') >= 0) return 'Fri, May 8';
     if (loc.indexOf('bloomfield') >= 0) return 'Sat, May 9';
     if (loc.indexOf('sewickley') >= 0) return 'Sat, May 9';
-    if (loc.indexOf('lawrenceville') >= 0) return 'Mon, May 19';
+    if (loc.indexOf('lawrenceville') >= 0) return 'Tue, May 19';
     return '--';
 }
 
