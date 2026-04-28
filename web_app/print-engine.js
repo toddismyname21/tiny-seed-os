@@ -21,7 +21,8 @@
         bedMarker:         { w: 288, h: 432, orient: 'portrait',  desc: '4" x 6" bed sign' },
         letterFull:        { w: 612, h: 792, orient: 'portrait',  desc: '8.5" x 11" full page' },
         seedlingSaleTray:  { w: 288, h: 72,  orient: 'landscape', desc: '4" x 1" seedling sale tray' },
-        seedlingPotTag:    { w: 144, h: 216, orient: 'portrait',  desc: '2" x 3" seedling pot tag' }
+        seedlingPotTag:    { w: 144, h: 216, orient: 'portrait',  desc: '2" x 3" seedling pot tag' },
+        wholesaleOrganic:  { w: 72,  h: 288, orient: 'portrait',  desc: '1" x 4" organic wholesale tag' }
     };
 
     // CDN URLs for lazy-loaded libraries
@@ -742,6 +743,81 @@
         doc.text('tinyseedfarm.com', cx, H - 6, { align: 'center' });
     }
 
+    // ── Wholesale Organic Tag (1" x 4" — same physical format as seedling pot tags) ──
+    // Goes on each container (box/bag/crate) shipped to wholesale customers.
+    // OEFFA/NOP compliant: identifies product as organic + includes lot number for audit trail.
+    function _renderWholesaleOrganic(doc, label, qrImg, fmt, brandImages) {
+        var W = fmt.w, H = fmt.h;
+        var cx = W / 2;
+
+        // Farm logo at top (same as seedling tags)
+        var logoSz = 50;
+        if (brandImages && brandImages.logo) {
+            doc.addImage(brandImages.logo, 'PNG', (W - logoSz) / 2, 2, logoSz, logoSz);
+        } else {
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(6);
+            doc.setTextColor(0, 0, 0);
+            doc.text('TINY SEED FARM', cx, 20, { align: 'center' });
+        }
+
+        // "CERTIFIED ORGANIC" text below logo
+        var y = logoSz + 6;
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(6);
+        doc.setTextColor(0, 0, 0);
+        doc.text('CERTIFIED ORGANIC', cx, y, { align: 'center' });
+        y += 4;
+
+        // Thin separator
+        doc.setDrawColor(0, 0, 0);
+        doc.setLineWidth(0.5);
+        doc.line(5, y, W - 5, y);
+
+        // USDA Organic seal at bottom
+        var sealSz = 40;
+        var sealY = H - 50;
+        if (brandImages && brandImages.organic) {
+            doc.addImage(brandImages.organic, 'PNG', (W - sealSz) / 2, sealY, sealSz, sealSz);
+        }
+
+        // Lot number at very bottom
+        doc.setFont('courier', 'bold');
+        doc.setFontSize(5);
+        doc.setTextColor(0, 0, 0);
+        var lotNum = label.lotNumber || label.orderId || '';
+        doc.text(lotNum, cx, H - 4, { align: 'center' });
+
+        // Middle section: Product name + customer — rotated 90deg bottom-to-top
+        var textTop = y + 6;
+        var textBottom = sealY - 6;
+        var textMidY = (textTop + textBottom) / 2;
+        var textZoneH = textBottom - textTop;
+
+        // Product name — bold, uppercase
+        var productText = (label.productName || label.crop || '').toUpperCase();
+        doc.setFont('helvetica', 'bold');
+        var fontSize = 18;
+        doc.setFontSize(fontSize);
+        var tw = doc.getTextWidth(productText);
+        while (tw > textZoneH - 10 && fontSize > 10) {
+            fontSize -= 1;
+            doc.setFontSize(fontSize);
+            tw = doc.getTextWidth(productText);
+        }
+        doc.setTextColor(0, 0, 0);
+        doc.text(productText, cx - 6, textMidY + tw / 2, { angle: 90 });
+
+        // Customer name — smaller, italic
+        if (label.customerName) {
+            doc.setFont('helvetica', 'italic');
+            doc.setFontSize(8);
+            doc.setTextColor(80, 80, 80);
+            var cw = doc.getTextWidth(label.customerName);
+            doc.text(label.customerName, cx + 12, textMidY + cw / 2, { angle: 90 });
+        }
+    }
+
     // Renderer dispatch
     var _renderers = {
         fieldTray: _renderFieldTray,
@@ -752,7 +828,8 @@
         wholesaleLabel: _renderWholesaleLabel,
         bedMarker: _renderBedMarker,
         seedlingSaleTray: _renderSeedlingSaleTray,
-        seedlingPotTag: _renderSeedlingPotTag
+        seedlingPotTag: _renderSeedlingPotTag,
+        wholesaleOrganic: _renderWholesaleOrganic
     };
 
     // ═══════════════════════════════════════════════════════════════
@@ -790,7 +867,7 @@
                 // Preload brand images for seedling labels
                 var logoPromise = Promise.resolve(null);
                 var organicPromise = Promise.resolve(null);
-                if (format === 'seedlingPotTag' || format === 'seedlingSaleTray') {
+                if (format === 'seedlingPotTag' || format === 'seedlingSaleTray' || format === 'wholesaleOrganic') {
                     logoPromise = _loadImageAsDataURL('images/tiny-seed-farm-logo-bw.png');
                     organicPromise = _loadImageAsDataURL('images/usda-organic-bw.gif');
                 }

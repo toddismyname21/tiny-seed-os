@@ -6,6 +6,14 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-04-10] Add organic-compliant wholesale container labels (1" x 4")
+- Files: web_app/print-engine.js, web_app/admin-wholesale.html, labels.html
+- Role: fullstack-builder
+- Changes:
+  - print-engine.js: Added `wholesaleOrganic` label format (72x288pt, portrait) + `_renderWholesaleOrganic` renderer with farm logo, "CERTIFIED ORGANIC" header, rotated product name + customer, USDA seal, and lot number for OEFFA/NOP audit trail
+  - admin-wholesale.html: Added "Print" button per standing order row, generates organic labels (one per unit qty) via TinySeedPrint; added print-engine.js script tag
+  - labels.html: Added "Wholesale Organic" button to label type selector, wholesale organic filter panel (product name, customer, lot number, quantity), entry list management functions, on-screen preview using `.pot-tag` CSS, and HTML print output with CERTIFIED ORGANIC header + lot number instead of soil line
+
 ## [2026-04-10] Fix OSP auto-population: OEFFA field mapping, acreages, auto-create sheets
 - Files: web_app/osp.html, apps_script/MERGED TOTAL.js
 - Role: fullstack-builder

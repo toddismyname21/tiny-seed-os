@@ -1094,6 +1094,9 @@
                     <button class="type-btn" id="btnPottingUpLabels" onclick="switchLabelType('pottingUp')">
                         <i class="fas fa-arrow-up"></i> Potting Up
                     </button>
+                    <button class="type-btn" id="btnWholesaleOrganicLabels" onclick="switchLabelType('wholesaleOrganic')" style="grid-column:1/-1;background:linear-gradient(135deg,rgba(34,197,94,0.10),rgba(22,163,74,0.10));border-color:rgba(34,197,94,0.3);color:#4ade80;">
+                        <i class="fas fa-leaf"></i> Wholesale Organic
+                    </button>
                 </div>
                 <div class="label-type-desc" id="labelTypeDesc">
                     <strong>2.5" x 0.75"</strong> — Standard printer, clips to tray lip
@@ -1261,6 +1264,45 @@
 
                 <button class="btn btn-primary btn-block" onclick="generatePottingUpLabels()" style="margin-top:12px;background:linear-gradient(135deg,#8b5cf6,#7c3aed);">
                     <i class="fas fa-tag"></i> Generate Potting Up Labels
+                </button>
+            </div>
+
+            <!-- Wholesale Organic Panel -->
+            <div class="panel-section" id="wholesaleOrganicFilters" style="display:none;">
+                <h3 class="panel-title"><i class="fas fa-leaf"></i> Wholesale Organic Labels</h3>
+                <p style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:12px;">OEFFA/NOP compliant container labels with lot numbers for audit trail.</p>
+
+                <div class="form-group">
+                    <label>Product Name</label>
+                    <input type="text" class="form-control" id="woProduct" placeholder="e.g. Mixed Salad Greens"
+                           onkeydown="if(event.key==='Enter')addWholesaleOrganicEntry()">
+                </div>
+                <div class="form-group">
+                    <label>Customer Name <span style="font-weight:400;color:var(--text-secondary);">(optional)</span></label>
+                    <input type="text" class="form-control" id="woCustomer" placeholder="e.g. Chef Maria">
+                </div>
+                <div class="form-group">
+                    <label>Lot Number <span style="font-weight:400;color:var(--text-secondary);">(optional — auto-generated if blank)</span></label>
+                    <input type="text" class="form-control" id="woLotNumber" placeholder="e.g. 2026-04-10-001">
+                </div>
+                <div class="form-group">
+                    <label>Quantity (labels)</label>
+                    <input type="number" class="form-control" id="woQty" min="1" value="5" placeholder="Number of labels">
+                </div>
+                <button class="btn btn-primary btn-block" onclick="addWholesaleOrganicEntry()" style="margin-bottom:12px;">
+                    <i class="fas fa-plus"></i> Add to List
+                </button>
+
+                <div id="woEntryList" style="display:none;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                        <span style="font-size:0.8rem;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em;">Label List</span>
+                        <button onclick="clearWholesaleOrganicList()" style="font-size:0.75rem;color:var(--danger);background:none;border:none;cursor:pointer;font-family:inherit;">Clear all</button>
+                    </div>
+                    <div id="woEntryListItems"></div>
+                </div>
+
+                <button class="btn btn-primary btn-block" onclick="generateWholesaleOrganicTags()" style="margin-top:12px;background:linear-gradient(135deg,#22c55e,#16a34a);">
+                    <i class="fas fa-leaf"></i> Generate Labels
                 </button>
             </div>
 
@@ -1435,6 +1477,7 @@
         let selectedLabels = new Set();
         var potTagImages = { logo: null, usda: null };
         var seedlingSaleCrops = []; // [{crop, variety, qty}]
+        var wholesaleOrganicEntries = []; // [{product, customer, lotNumber, qty}]
         let currentLabelType = 'greenhouse'; // 'greenhouse' or 'seed'
         let _loadingSeedingsInProgress = false; // Re-entrancy guard for loadSeedings()
         let seedLots = [];
@@ -2386,6 +2429,7 @@
             document.getElementById('btnInventoryLabels').classList.toggle('active', type === 'inventory');
             document.getElementById('btnSeedlingSaleLabels').classList.toggle('active', type === 'seedlingSale');
             document.getElementById('btnPottingUpLabels').classList.toggle('active', type === 'pottingUp');
+            document.getElementById('btnWholesaleOrganicLabels').classList.toggle('active', type === 'wholesaleOrganic');
 
             // Show/hide filter sections — pot tags and field tray use same seedings filters
             const usesSeedings = (type === 'greenhouse' || type === 'potTag' || type === 'fieldTray');
@@ -2395,6 +2439,7 @@
             document.getElementById('inventoryFilters').style.display = type === 'inventory' ? 'block' : 'none';
             document.getElementById('seedlingSaleFilters').style.display = type === 'seedlingSale' ? 'block' : 'none';
             document.getElementById('pottingUpFilters').style.display = type === 'pottingUp' ? 'block' : 'none';
+            document.getElementById('wholesaleOrganicFilters').style.display = type === 'wholesaleOrganic' ? 'block' : 'none';
 
             // Show/hide label options based on type
             document.getElementById('labelsPerTrayGroup').style.display = (type === 'greenhouse' || type === 'fieldTray') ? 'block' : 'none';
@@ -2402,7 +2447,7 @@
             document.getElementById('potTagCustomGroup').style.display = type === 'potTag' ? 'block' : 'none';
 
             // Update list title
-            const titles = { greenhouse: 'Available Seedings', potTag: 'Available Seedings', fieldTray: 'Available Seedings', seed: 'Available Seed Lots', soilSample: 'Soil Sample Labels', inventory: 'Inventory Items', seedlingSale: 'Seedling Sale Tags', pottingUp: 'Potting Up Labels' };
+            const titles = { greenhouse: 'Available Seedings', potTag: 'Available Seedings', fieldTray: 'Available Seedings', seed: 'Available Seed Lots', soilSample: 'Soil Sample Labels', inventory: 'Inventory Items', seedlingSale: 'Seedling Sale Tags', pottingUp: 'Potting Up Labels', wholesaleOrganic: 'Wholesale Organic Labels' };
             document.getElementById('listTitle').textContent = titles[type] || 'Available Items';
 
             // Update type description
@@ -2414,7 +2459,8 @@
                 soilSample: '<strong>4" x 1"</strong> — UL-247 thermal, FT40101WH. Bag labels + submission labels for Logan Labs',
                 inventory: '<strong>4" x 1"</strong> — UL-247 thermal, FT40101WH. Item name, category, location + QR code',
                 seedlingSale: '<strong>1" x 4"</strong> — ZX5141T pot tags, type any crop &amp; quantity',
-                pottingUp: '<strong>1" x 4"</strong> — Same pot tags with tracking info carried forward from original seeding'
+                pottingUp: '<strong>1" x 4"</strong> — Same pot tags with tracking info carried forward from original seeding',
+                wholesaleOrganic: '<strong>1" x 4"</strong> — OEFFA/NOP organic container labels with lot number for audit trail'
             };
             document.getElementById('labelTypeDesc').innerHTML = descs[type] || '';
 
@@ -2427,7 +2473,8 @@
                 soilSample: 'Soil sample labels for UL-247 printer (4" x 1" FT40101WH)',
                 inventory: 'Inventory labels for UL-247 printer (4" x 1" FT40101WH)',
                 seedlingSale: 'Pot tags for UL-247 printer (1" x 4" ZX5141T) — no planning data needed',
-                pottingUp: 'Pot tags with original batch tracking for potted-up trays'
+                pottingUp: 'Pot tags with original batch tracking for potted-up trays',
+                wholesaleOrganic: 'Organic container labels for UL-247 printer (1" x 4" ZX5141T) — OEFFA/NOP compliant'
             };
             document.getElementById('previewSubtitle').textContent = subtitles[type] || '';
 
@@ -2443,11 +2490,12 @@
             if (type === 'potTag') preloadPotTagImages(null);
 
             // Soil sample, inventory, seedling sale, and potting up types manage their own rendering
-            if (type === 'soilSample' || type === 'inventory' || type === 'seedlingSale' || type === 'pottingUp') {
+            if (type === 'soilSample' || type === 'inventory' || type === 'seedlingSale' || type === 'pottingUp' || type === 'wholesaleOrganic') {
                 if (type === 'soilSample') loadSoilSampleLabels();
                 if (type === 'inventory') loadInventoryLabels();
                 if (type === 'seedlingSale') preloadPotTagImages(null);
                 if (type === 'pottingUp') { preloadPotTagImages(null); loadPottingUpBatches(); }
+                if (type === 'wholesaleOrganic') preloadPotTagImages(null);
                 return;
             }
 
@@ -2977,6 +3025,145 @@
             showToast('Generated ' + labels.length + ' pot tags for ' + seedlingSaleCrops.length + ' crop(s)');
         }
 
+        // ============ WHOLESALE ORGANIC FUNCTIONS ============
+
+        function addWholesaleOrganicEntry() {
+            var product = (document.getElementById('woProduct').value || '').trim();
+            var customer = (document.getElementById('woCustomer').value || '').trim();
+            var lotNumber = (document.getElementById('woLotNumber').value || '').trim();
+            var qty = parseInt(document.getElementById('woQty').value) || 5;
+
+            if (!product) {
+                document.getElementById('woProduct').focus();
+                showToast('Please enter a product name');
+                return;
+            }
+
+            // Auto-generate lot number if blank: date + sequence
+            if (!lotNumber) {
+                var dateStr = new Date().toISOString().split('T')[0];
+                lotNumber = dateStr + '-' + String(wholesaleOrganicEntries.length + 1).padStart(3, '0');
+            }
+
+            wholesaleOrganicEntries.push({ product: product, customer: customer, lotNumber: lotNumber, qty: qty });
+            document.getElementById('woProduct').value = '';
+            document.getElementById('woCustomer').value = '';
+            document.getElementById('woLotNumber').value = '';
+            document.getElementById('woQty').value = '5';
+            document.getElementById('woProduct').focus();
+            renderWholesaleOrganicList();
+            showToast(product + ' — ' + qty + ' label' + (qty !== 1 ? 's' : '') + ' added');
+        }
+
+        function removeWholesaleOrganicEntry(index) {
+            wholesaleOrganicEntries.splice(index, 1);
+            renderWholesaleOrganicList();
+        }
+
+        function clearWholesaleOrganicList() {
+            wholesaleOrganicEntries = [];
+            renderWholesaleOrganicList();
+            labels = [];
+            selectedLabels.clear();
+            document.getElementById('labelsContainer').innerHTML = '<div class="empty-state"><i class="fas fa-leaf"></i><h3>No Labels Generated</h3><p>Add products to your list and click "Generate Labels"</p></div>';
+            document.getElementById('totalLabelsCount').textContent = '0';
+        }
+
+        function renderWholesaleOrganicList() {
+            var listEl = document.getElementById('woEntryList');
+            var itemsEl = document.getElementById('woEntryListItems');
+            if (wholesaleOrganicEntries.length === 0) {
+                listEl.style.display = 'none';
+                return;
+            }
+            listEl.style.display = 'block';
+            var html = '';
+            wholesaleOrganicEntries.forEach(function(e, i) {
+                html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--bg-light);border-radius:6px;margin-bottom:6px;font-size:0.85rem;">'
+                    + '<div><span style="font-weight:600;">' + e.product + '</span>'
+                    + (e.customer ? ' <span style="color:var(--text-secondary);">for ' + e.customer + '</span>' : '')
+                    + ' <span style="color:var(--primary);font-weight:600;margin-left:4px;">' + String.fromCharCode(215) + e.qty + '</span>'
+                    + '<br><span style="font-size:0.75rem;color:var(--text-secondary);">Lot: ' + e.lotNumber + '</span></div>'
+                    + '<button onclick="removeWholesaleOrganicEntry(' + i + ')" style="background:none;border:none;color:var(--text-secondary);cursor:pointer;font-size:0.9rem;padding:2px 6px;" title="Remove">' + String.fromCharCode(215) + '</button>'
+                    + '</div>';
+            });
+            itemsEl.innerHTML = html;
+        }
+
+        function generateWholesaleOrganicTags() {
+            if (wholesaleOrganicEntries.length === 0) {
+                showToast('Add at least one product to your label list');
+                return;
+            }
+            labels = [];
+            selectedLabels.clear();
+
+            wholesaleOrganicEntries.forEach(function(e) {
+                for (var i = 0; i < e.qty; i++) {
+                    var labelId = 'wo-' + e.product.replace(/\s+/g, '-') + '-' + i;
+                    labels.push({
+                        labelId: labelId,
+                        labelType: 'wholesaleOrganic',
+                        crop: e.product,
+                        productName: e.product,
+                        customerName: e.customer || '',
+                        lotNumber: e.lotNumber + (e.qty > 1 ? '-' + String(i + 1).padStart(3, '0') : ''),
+                        variety: ''
+                    });
+                }
+            });
+
+            selectedLabels = new Set(labels.map(function(l) { return l.labelId; }));
+            document.getElementById('totalLabelsCount').textContent = labels.length;
+            renderWholesaleOrganicLabels();
+            showToast('Generated ' + labels.length + ' organic label' + (labels.length !== 1 ? 's' : '') + ' for ' + wholesaleOrganicEntries.length + ' product(s)');
+        }
+
+        function renderWholesaleOrganicLabels() {
+            var container = document.getElementById('labelsContainer');
+
+            if (labels.length === 0) {
+                container.innerHTML = '<div class="empty-state"><i class="fas fa-leaf"></i><h3>No Labels Generated</h3><p>Add products to your list and click "Generate Labels"</p></div>';
+                return;
+            }
+
+            var html = '';
+            labels.forEach(function(label, index) {
+                var isSelected = selectedLabels.has(label.labelId);
+                html += '<div class="pot-tag ' + (isSelected ? 'selected' : '') + '"'
+                    + ' id="label-' + index + '"'
+                    + ' onclick="toggleLabel(\'' + label.labelId + '\', ' + index + ')">'
+                    + '<input type="checkbox" class="label-checkbox"'
+                    + (isSelected ? ' checked' : '')
+                    + ' onclick="event.stopPropagation(); toggleLabel(\'' + label.labelId + '\', ' + index + ')">'
+                    + '<img class="pot-tag-logo" src="web_app/images/tiny-seed-farm-logo-bw.png" alt="Tiny Seed Farm">'
+                    + '<div style="font-size:5px;font-weight:700;color:#000;letter-spacing:0.05em;margin-top:1px;">CERTIFIED ORGANIC</div>'
+                    + '<div style="width:90%;border-top:1px solid #000;margin:2px 0;"></div>'
+                    + '<div class="pot-tag-text-area">'
+                    + '<div class="pot-tag-crop">' + (label.productName || label.crop || '') + '</div>'
+                    + (label.customerName ? '<div class="pot-tag-variety">' + label.customerName + '</div>' : '')
+                    + '</div>'
+                    + '<img class="pot-tag-usda" src="web_app/images/usda-organic-bw.gif" alt="USDA Organic">'
+                    + '<div style="font-family:monospace;font-size:5px;font-weight:700;color:#000;margin-top:2px;">' + (label.lotNumber || '') + '</div>'
+                    + '</div>';
+            });
+
+            container.innerHTML = html;
+
+            // Auto-shrink product names that overflow their text area
+            setTimeout(function() {
+                document.querySelectorAll('.pot-tag .pot-tag-crop').forEach(function(el) {
+                    var parent = el.closest('.pot-tag-text-area');
+                    if (!parent) return;
+                    var fontSize = 24;
+                    while (el.scrollWidth > parent.clientHeight && fontSize > 12) {
+                        fontSize -= 1;
+                        el.style.fontSize = fontSize + 'px';
+                    }
+                });
+            }, 50);
+        }
+
         // ============ POT TAG FUNCTIONS (ZX5141T - 1" x 4") ============
 
         function getPotTagCount(seeding) {
@@ -3167,7 +3354,7 @@
         // Override executePrint: thermal labels use jsPDF at exact dimensions
         const originalExecutePrint = executePrint;
         executePrint = function() {
-            if (currentLabelType === 'potTag' || currentLabelType === 'seedlingSale' || currentLabelType === 'pottingUp') {
+            if (currentLabelType === 'potTag' || currentLabelType === 'seedlingSale' || currentLabelType === 'pottingUp' || currentLabelType === 'wholesaleOrganic') {
                 closePrintPreview();
                 executePrintUL247PotTagsHTML();
             } else if (currentLabelType === 'fieldTray') {
@@ -3977,8 +4164,10 @@
             html += '</style></head><body>';
 
             // Setup guide
+            var isWholesale = currentLabelType === 'wholesaleOrganic';
+            var guideTitle = isWholesale ? 'Wholesale Organic Labels' : 'Seedling Sale Tags';
             html += '<div class="print-setup">';
-            html += '<h2>Seedling Sale Tags — ' + labelsToprint.length + ' tags</h2>';
+            html += '<h2>' + guideTitle + ' — ' + labelsToprint.length + ' tags</h2>';
             html += '<p>1. Set <strong>Paper Size</strong> to <strong>1" x 4"</strong> (or 1" x 4.5" with gap)</p>';
             html += '<p>2. Set <strong>Margins</strong> to <strong>None</strong></p>';
             html += '<p>3. Set <strong>Scale</strong> to <strong>100%</strong> (not "Fit to page")</p>';
@@ -3989,14 +4178,31 @@
             labelsToprint.forEach(function(label) {
                 html += '<div class="tag">';
                 html += '<img class="tag-logo" src="web_app/images/tiny-seed-farm-logo-bw.png" alt="Tiny Seed Farm">';
-                html += '<div class="tag-text-area">';
-                html += '<div class="tag-crop">' + (label.crop || '') + '</div>';
-                if (label.variety) {
-                    html += '<div class="tag-variety">' + label.variety + '</div>';
+
+                if (label.labelType === 'wholesaleOrganic') {
+                    // Wholesale organic: CERTIFIED ORGANIC header + separator + product/customer + USDA + lot number
+                    html += '<div style="font-size:6px;font-weight:700;letter-spacing:0.05em;margin-top:1px;">CERTIFIED ORGANIC</div>';
+                    html += '<div style="width:90%;border-top:1px solid #000;margin:2px 0;"></div>';
+                    html += '<div class="tag-text-area">';
+                    html += '<div class="tag-crop">' + (label.productName || label.crop || '') + '</div>';
+                    if (label.customerName) {
+                        html += '<div class="tag-variety">' + label.customerName + '</div>';
+                    }
+                    html += '</div>';
+                    html += '<img class="tag-usda" src="web_app/images/usda-organic-bw.gif" alt="USDA Organic">';
+                    html += '<div style="font-family:monospace;font-size:6px;font-weight:700;margin-top:4px;">' + (label.lotNumber || '') + '</div>';
+                } else {
+                    // Seedling sale / pot tag: standard layout with soil line
+                    html += '<div class="tag-text-area">';
+                    html += '<div class="tag-crop">' + (label.crop || '') + '</div>';
+                    if (label.variety) {
+                        html += '<div class="tag-variety">' + label.variety + '</div>';
+                    }
+                    html += '</div>';
+                    html += '<img class="tag-usda" src="web_app/images/usda-organic-bw.gif" alt="USDA Organic">';
+                    html += '<div class="tag-soil">\u25BC soil line \u25BC</div>';
                 }
-                html += '</div>';
-                html += '<img class="tag-usda" src="web_app/images/usda-organic-bw.gif" alt="USDA Organic">';
-                html += '<div class="tag-soil">▼ soil line ▼</div>';
+
                 html += '</div>';
             });
 
@@ -4039,7 +4245,8 @@
             printWindow.document.write(html);
             printWindow.document.close();
             closePrintPreview();
-            showToast(labelsToprint.length + ' pot tags ready — click Print Tags in the new window');
+            var tagNoun = isWholesale ? 'organic label' : 'pot tag';
+            showToast(labelsToprint.length + ' ' + tagNoun + (labelsToprint.length !== 1 ? 's' : '') + ' ready — click Print Tags in the new window');
         }
 
         function executePrintUL247FieldTrayPDF() {

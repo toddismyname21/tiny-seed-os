@@ -381,10 +381,11 @@
                                 <th>Unit</th>
                                 <th>Next Due</th>
                                 <th>Status</th>
+                                <th>Labels</th>
                             </tr>
                         </thead>
                         <tbody id="standingBody">
-                            <tr><td colspan="6"><div class="loading-spinner"><i class="fas fa-spinner"></i> Loading standing orders...</div></td></tr>
+                            <tr><td colspan="7"><div class="loading-spinner"><i class="fas fa-spinner"></i> Loading standing orders...</div></td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -459,6 +460,7 @@
         var API_URL = TINY_SEED_API.MAIN_API;
         var token = localStorage.getItem('sessionToken');
         if (!token) { window.location.href = 'index.html'; }
+        var standingOrdersCache = [];
 
         // --- API Helper ---
         async function apiFetch(action, params, method, body) {
@@ -578,37 +580,41 @@
         // ====================================================
         async function loadStandingOrders() {
             var tbody = document.getElementById('standingBody');
-            tbody.innerHTML = '<tr><td colspan="6"><div class="loading-spinner"><i class="fas fa-spinner"></i> Loading standing orders...</div></td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7"><div class="loading-spinner"><i class="fas fa-spinner"></i> Loading standing orders...</div></td></tr>';
 
             var res = await apiFetch('getStandingOrdersDue');
             if (!res.success) {
-                tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>' + san(res.error || 'Failed to load standing orders') + '</p></div></td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>' + san(res.error || 'Failed to load standing orders') + '</p></div></td></tr>';
                 document.getElementById('standingCount').textContent = '0';
                 return;
             }
 
             var orders = res.data || res.records || [];
             document.getElementById('standingCount').textContent = orders.length;
+            standingOrdersCache = orders;
 
             if (orders.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><i class="fas fa-calendar-check"></i><p>No standing orders due this week.</p></div></td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><i class="fas fa-calendar-check"></i><p>No standing orders due this week.</p></div></td></tr>';
                 return;
             }
 
             var html = '';
-            orders.forEach(function(o) {
+            orders.forEach(function(o, idx) {
                 var statusClass = 'due';
                 var statusLabel = o.status || o.Status || 'Due';
                 if (statusLabel.toLowerCase().indexOf('overdue') >= 0) statusClass = 'overdue';
                 else if (statusLabel.toLowerCase().indexOf('fulfilled') >= 0 || statusLabel.toLowerCase().indexOf('complete') >= 0) statusClass = 'active';
 
+                var qty = parseInt(o.quantity || o.qty || o.Quantity || 1, 10) || 1;
+
                 html += '<tr>' +
                     '<td class="td-name">' + san(o.chefName || o.chef || o.Chef || '') + '</td>' +
                     '<td>' + san(o.product || o.Product || o.productName || '') + '</td>' +
-                    '<td>' + san(o.quantity || o.qty || o.Quantity || '') + '</td>' +
+                    '<td>' + san(qty) + '</td>' +
                     '<td class="td-muted">' + san(o.unit || o.Unit || '') + '</td>' +
                     '<td>' + fmtDate(o.nextDueDate || o.dueDate || o.Due_Date || '') + '</td>' +
                     '<td><span class="status-badge ' + statusClass + '">' + san(statusLabel) + '</span></td>' +
+                    '<td><button class="btn btn-secondary" onclick="printWholesaleLabels(' + idx + ')" aria-label="Print organic labels"><i class="fas fa-tag"></i> Print</button></td>' +
                 '</tr>';
             });
             tbody.innerHTML = html;
@@ -737,10 +743,50 @@
         // ====================================================
         // INIT: Load all sections on page open
         // ====================================================
+        // ====================================================
+        // WHOLESALE ORGANIC LABEL PRINTING
+        // ====================================================
+        function printWholesaleLabels(orderIdx) {
+            var o = standingOrdersCache[orderIdx];
+            if (!o) { showToast('Order not found', 'error'); return; }
+
+            var product = o.product || o.Product || o.productName || '';
+            var chef = o.chefName || o.chef || o.Chef || '';
+            var qty = parseInt(o.quantity || o.qty || o.Quantity || 1, 10) || 1;
+            var unit = o.unit || o.Unit || 'ea';
+            var orderId = o.orderId || o.order_id || o.Order_ID || '';
+            var dateStr = new Date().toISOString().split('T')[0];
+
+            // Generate one label per unit quantity (each box/bag/crate gets a label)
+            var labelData = [];
+            for (var i = 0; i < qty; i++) {
+                labelData.push({
+                    productName: product,
+                    crop: product,
+                    customerName: chef,
+                    orderId: orderId,
+                    lotNumber: (orderId || dateStr) + '-' + String(i + 1).padStart(3, '0'),
+                    quantity: qty,
+                    unit: unit,
+                    date: dateStr,
+                    qrData: orderId || (product + '-' + dateStr)
+                });
+            }
+
+            if (typeof TinySeedPrint === 'undefined') {
+                showToast('Print engine not loaded — refresh and try again', 'error');
+                return;
+            }
+
+            TinySeedPrint.label({ format: 'wholesaleOrganic', data: labelData });
+            showToast('Generating ' + labelData.length + ' organic label' + (labelData.length !== 1 ? 's' : '') + ' for ' + san(product));
+        }
+
         loadPendingChefs();
         loadStandingOrders();
         loadAvailability();
         loadCommunications();
     </script>
+    <script src="print-engine.js"></script>
 </body>
 </html>
