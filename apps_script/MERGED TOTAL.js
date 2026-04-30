@@ -14670,7 +14670,8 @@ function doGet(e) {
       'initiateSettlement', 'completeSettlement', 'getMarketPerformanceAnalytics',
       'syncMarketToPickPack', 'syncShopifyMarketSales', 'getShopifyMarketReport',
       // Seedling payment reminders + order management (2026-04-10)
-      'sendSeedlingPaymentReminders', 'cancelSeedlingOrder'
+      'sendSeedlingPaymentReminders', 'cancelSeedlingOrder',
+      'cleanupDiscontinuedSeedlingItems'
     ]);
 
   if (!PUBLIC_GET_ACTIONS.has(action)) {
@@ -18223,6 +18224,8 @@ function doGet(e) {
         return jsonResponse(sendSeedlingPaymentReminders(e.parameter));
       case 'cancelSeedlingOrder':
         return jsonResponse(cancelSeedlingOrder(e.parameter));
+      case 'cleanupDiscontinuedSeedlingItems':
+        return jsonResponse(cleanupDiscontinuedSeedlingItems());
 
       // ============ FRONTEND COMPATIBILITY ALIASES (from 2026-02-26 audit) ============
       case 'assignTask':
@@ -18401,6 +18404,7 @@ function doPost(e) {
       'updateMarketSessionStatus', 'syncMarketToPickPack',
       // Seedling payment reminders + order management (2026-04-10)
       'sendSeedlingPaymentReminders', 'cancelSeedlingOrder', 'deleteSeedlingOrder',
+      'cleanupDiscontinuedSeedlingItems'
     ]);
 
     if (action && !PUBLIC_POST_ACTIONS.has(action)) {
@@ -19854,6 +19858,8 @@ function doPost(e) {
         return jsonResponse(cancelSeedlingOrder(data));
       case 'deleteSeedlingOrder':
         return jsonResponse(deleteSeedlingOrder(data));
+      case 'cleanupDiscontinuedSeedlingItems':
+        return jsonResponse(cleanupDiscontinuedSeedlingItems());
       case 'savePresalePageConfig':
         return jsonResponse(savePresalePageConfig(data));
       case 'updateSeedlingAllocations':
@@ -137680,6 +137686,195 @@ function deleteSeedlingOrder(params) {
   } catch(e) {
     try { lock.releaseLock(); } catch(unlockErr) {}
     Logger.log('deleteSeedlingOrder FATAL: ' + e.toString());
+    return { success: false, error: e.toString(), code: 'INTERNAL_ERROR' };
+  }
+}
+
+/**
+ * Remove discontinued/crop-failure items from pending seedling orders.
+ * Deletes matching rows from SEEDLING_SALES, adjusts SEEDLING_ORDERS totals,
+ * and emails each affected customer with explanation and credit/substitute offer.
+ */
+function cleanupDiscontinuedSeedlingItems() {
+  var lock = LockService.getScriptLock();
+  try { lock.waitLock(15000); } catch(e) { return { success: false, error: 'System busy', code: 'LOCK_TIMEOUT' }; }
+
+  try {
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+    var REMOVED = ['Husk Cherry', 'Husk Cherries', 'Aunt Molly', 'Aunt Mollys', "Aunt Molly's",
+                    'Rudbeckia', 'Rudbeckia Sahara', 'Gomphrena', 'Mushroom Block', 'Mushroom',
+                    'Snap Peas', 'Snap Pea'];
+
+    // Normalize for case-insensitive matching
+    var REMOVED_LOWER = REMOVED.map(function(r) { return r.toLowerCase(); });
+
+    // Step 1: Find and remove affected sales rows
+    var salesSheet = ss.getSheetByName('SEEDLING_SALES');
+    if (!salesSheet) {
+      lock.releaseLock();
+      return { success: false, error: 'SEEDLING_SALES sheet not found', code: 'SHEET_NOT_FOUND' };
+    }
+
+    var salesData = salesSheet.getDataRange().getValues();
+    var salesHeaders = salesData[0];
+    var sCropCol = salesHeaders.indexOf('Crop');
+    var sVarCol = salesHeaders.indexOf('Variety');
+    var sOrderCol = salesHeaders.indexOf('Order_ID');
+    var sQtyCol = salesHeaders.indexOf('Quantity_Sold');
+    var sRevCol = salesHeaders.indexOf('Revenue');
+    var sPriceCol = salesHeaders.indexOf('Price_Each');
+
+    if (sCropCol < 0 || sOrderCol < 0) {
+      lock.releaseLock();
+      return { success: false, error: 'SEEDLING_SALES missing required columns (Crop, Order_ID)', code: 'SCHEMA_ERROR' };
+    }
+
+    // Collect affected orders and rows to delete
+    var rowsToDelete = [];
+    var affectedOrders = {}; // orderId -> { items: [], totalQtyRemoved, totalRevRemoved }
+
+    for (var i = 1; i < salesData.length; i++) {
+      var crop = String(salesData[i][sCropCol] || '').trim();
+      var variety = sVarCol >= 0 ? String(salesData[i][sVarCol] || '').trim() : '';
+      var cropLower = crop.toLowerCase();
+      var varietyLower = variety.toLowerCase();
+
+      var isDiscontinued = false;
+      for (var r = 0; r < REMOVED_LOWER.length; r++) {
+        if (cropLower === REMOVED_LOWER[r] || varietyLower === REMOVED_LOWER[r]) {
+          isDiscontinued = true;
+          break;
+        }
+      }
+
+      if (isDiscontinued) {
+        var orderId = String(salesData[i][sOrderCol] || '').trim();
+        var qty = Number(salesData[i][sQtyCol >= 0 ? sQtyCol : 0] || 0);
+        var rev = Number(salesData[i][sRevCol >= 0 ? sRevCol : 0] || 0);
+        var price = Number(salesData[i][sPriceCol >= 0 ? sPriceCol : 0] || 6);
+        if (rev === 0 && qty > 0) rev = qty * price;
+
+        rowsToDelete.push(i + 1); // 1-indexed for sheet operations
+
+        if (!affectedOrders[orderId]) {
+          affectedOrders[orderId] = { items: [], totalQtyRemoved: 0, totalRevRemoved: 0 };
+        }
+        affectedOrders[orderId].items.push({ crop: crop, variety: variety, qty: qty, revenue: rev });
+        affectedOrders[orderId].totalQtyRemoved += qty;
+        affectedOrders[orderId].totalRevRemoved += rev;
+      }
+    }
+
+    if (rowsToDelete.length === 0) {
+      lock.releaseLock();
+      return { success: true, message: 'No discontinued items found in pending orders', salesRowsDeleted: 0, ordersUpdated: 0, emailsSent: 0 };
+    }
+
+    // Delete rows bottom-up to preserve indices
+    for (var d = rowsToDelete.length - 1; d >= 0; d--) {
+      salesSheet.deleteRow(rowsToDelete[d]);
+    }
+
+    // Step 2: Update SEEDLING_ORDERS totals and collect customer info
+    var orderSheet = ss.getSheetByName('SEEDLING_ORDERS');
+    if (orderSheet) {
+      var orderData = orderSheet.getDataRange().getValues();
+      var oHeaders = orderData[0];
+      var oIdCol = oHeaders.indexOf('Order_ID');
+      var oItemsCol = oHeaders.indexOf('Total_Items');
+      var oAmtCol = oHeaders.indexOf('Total_Amount');
+      var oEmailCol = oHeaders.indexOf('Email');
+      var oNameCol = oHeaders.indexOf('Customer_Name');
+      var oStatusCol = oHeaders.indexOf('Invoice_Status');
+
+      for (var j = 1; j < orderData.length; j++) {
+        var oid = String(orderData[j][oIdCol >= 0 ? oIdCol : 0] || '').trim();
+        if (affectedOrders[oid]) {
+          var currentItems = Number(orderData[j][oItemsCol >= 0 ? oItemsCol : 0] || 0);
+          var currentAmt = Number(orderData[j][oAmtCol >= 0 ? oAmtCol : 0] || 0);
+
+          var newItems = Math.max(0, currentItems - affectedOrders[oid].totalQtyRemoved);
+          var newAmt = Math.max(0, currentAmt - affectedOrders[oid].totalRevRemoved);
+
+          if (oItemsCol >= 0) orderSheet.getRange(j + 1, oItemsCol + 1).setValue(newItems);
+          if (oAmtCol >= 0) orderSheet.getRange(j + 1, oAmtCol + 1).setValue(newAmt);
+
+          // Store customer info for emails
+          affectedOrders[oid].email = oEmailCol >= 0 ? String(orderData[j][oEmailCol] || '') : '';
+          affectedOrders[oid].name = oNameCol >= 0 ? String(orderData[j][oNameCol] || '') : '';
+          affectedOrders[oid].status = oStatusCol >= 0 ? String(orderData[j][oStatusCol] || '') : '';
+          affectedOrders[oid].newTotal = newAmt;
+          affectedOrders[oid].newItems = newItems;
+        }
+      }
+    }
+
+    // Step 3: Email each affected customer
+    var emailsSent = 0;
+    var emailErrors = [];
+
+    for (var orderId in affectedOrders) {
+      var order = affectedOrders[orderId];
+      if (!order.email || orderId === 'SEED-2026-0002') continue; // Skip Todd's test order
+
+      var firstName = (order.name || '').split(' ')[0] || 'there';
+      var removedItemsList = order.items.map(function(item) {
+        var label = item.variety || item.crop;
+        return label + (item.qty > 1 ? ' (x' + item.qty + ')' : '');
+      }).join(', ');
+
+      var subject = 'Update to your Tiny Seed Farm seedling order ' + orderId;
+
+      var htmlBody = '<div style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:600px;margin:0 auto;padding:20px;color:#1a1a1a;">'
+        + '<h2 style="color:#166534;margin:0 0 16px;">Tiny Seed Farm</h2>'
+        + '<p>Hi ' + firstName + ',</p>'
+        + '<p>We\'re writing to let you know that unfortunately, the following item(s) in your order had crop failures and are no longer available:</p>'
+        + '<div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:12px 16px;margin:16px 0;">'
+        + '<strong style="color:#991b1b;">Removed:</strong> ' + removedItemsList
+        + '</div>'
+        + '<p>Your order total has been adjusted to <strong>$' + order.newTotal.toFixed(2) + '</strong> (' + order.newItems + ' plants).</p>';
+
+      if (order.status === 'Paid') {
+        htmlBody += '<p>Since you\'ve already paid, we\'ll issue a <strong>credit of $' + order.totalRevRemoved.toFixed(2) + '</strong> toward your next purchase, or we can substitute with a similar variety. Just reply to this email to let us know your preference.</p>';
+      } else {
+        htmlBody += '<p>Your updated invoice will reflect the new total when you complete payment.</p>';
+      }
+
+      htmlBody += '<p>We\'re sorry about this \u2014 crop failures are an unfortunate reality of farming, and we appreciate your understanding.</p>'
+        + '<p>If you\'d like to add a substitute or have any questions, just reply to this email.</p>'
+        + '<p style="margin-top:24px;">\u2014 Todd Wilson<br>Tiny Seed Farm<br>Rochester, PA</p>'
+        + '</div>';
+
+      var plainBody = 'Hi ' + firstName + ', unfortunately ' + removedItemsList + ' had crop failures and have been removed from your order ' + orderId + '. Your new total is $' + order.newTotal.toFixed(2) + '. Reply to this email for substitutes or questions. - Todd, Tiny Seed Farm';
+
+      try {
+        GmailApp.sendEmail(order.email, subject, plainBody, {
+          name: 'Tiny Seed Farm',
+          htmlBody: htmlBody,
+          replyTo: 'todd@tinyseedfarmpgh.com'
+        });
+        emailsSent++;
+      } catch(emailErr) {
+        emailErrors.push(orderId + ': ' + emailErr.message);
+      }
+    }
+
+    lock.releaseLock();
+
+    return {
+      success: true,
+      message: 'Discontinued items cleaned up from ' + Object.keys(affectedOrders).length + ' order(s)',
+      salesRowsDeleted: rowsToDelete.length,
+      ordersUpdated: Object.keys(affectedOrders).length,
+      emailsSent: emailsSent,
+      emailErrors: emailErrors.length > 0 ? emailErrors : undefined,
+      details: affectedOrders
+    };
+
+  } catch(e) {
+    try { lock.releaseLock(); } catch(unlockErr) {}
+    Logger.log('cleanupDiscontinuedSeedlingItems FATAL: ' + e.toString());
     return { success: false, error: e.toString(), code: 'INTERNAL_ERROR' };
   }
 }
