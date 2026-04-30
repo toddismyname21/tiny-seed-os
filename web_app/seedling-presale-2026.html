@@ -4055,7 +4055,8 @@ function showOrderPreview(items, customerName, email, phone, pickup, orderCalc) 
 
         // Show dancing plant loading screen — inline, same spot
         overlay.innerHTML = '<div style="background:#166534;border-radius:16px;padding:40px 20px;text-align:center;">'
-            + '<div style="font-size:4rem;display:inline-block;animation:plantDance 1s ease-in-out infinite;">🌱</div>'
+            + '<style>@keyframes pd{0%,100%{transform:translateY(0) rotate(0)}25%{transform:translateY(-15px) rotate(-5deg)}50%{transform:translateY(-5px) rotate(0)}75%{transform:translateY(-15px) rotate(5deg)}}</style>'
+            + '<div style="font-size:4rem;display:inline-block;animation:pd 1s ease-in-out infinite;">🌱</div>'
             + '<h3 style="color:#fff;font-size:1.3rem;margin:16px 0 8px;font-family:Playfair Display,serif;">Preparing your order...</h3>'
             + '<p style="color:rgba(255,255,255,0.85);font-size:0.95rem;">Redirecting you to secure checkout</p>'
             + '<p style="color:rgba(255,255,255,0.7);font-size:0.82rem;margin-top:12px;">This may take 15-30 seconds. Please don\'t close this page.</p>'
