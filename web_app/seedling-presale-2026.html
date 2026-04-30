@@ -962,29 +962,21 @@
         /* ═══════════════════════════════════════ */
         .order-preview-overlay {
             position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
+            top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.6);
             z-index: 10000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 16px;
-            overflow-y: auto;
+            overflow-y: scroll;
             -webkit-overflow-scrolling: touch;
         }
         .order-preview-box {
             background: #fff;
             border-radius: 16px;
-            padding: 28px;
+            padding: 24px;
             max-width: 520px;
-            width: 100%;
-            margin: auto;
+            width: calc(100% - 32px);
+            margin: 40px auto;
             box-shadow: 0 25px 50px rgba(0,0,0,0.3);
-            animation: previewSlideIn 0.25s ease-out;
-        }
-        @keyframes previewSlideIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+            position: relative;
         }
         .dancing-plant {
             font-size: 4rem;
@@ -4039,9 +4031,17 @@ function showOrderPreview(items, customerName, email, phone, pickup, orderCalc) 
     overlay.innerHTML = html;
     document.body.appendChild(overlay);
 
-    // Prevent body scrolling while modal is open
-    document.body.style.overflow = 'hidden';
-    // Do NOT scroll — position:fixed overlay covers viewport wherever user is
+    // Scroll the overlay to top so box is visible
+    overlay.scrollTop = 0;
+
+    // Close overlay when tapping dark background
+    overlay.addEventListener('click', function(e) {
+        if (e.target === overlay) {
+            overlay.remove();
+            document.body.style.overflow = '';
+            _orderSubmitting = false;
+        }
+    });
 
     document.getElementById('previewEditBtn').addEventListener('click', function() {
         overlay.remove();
