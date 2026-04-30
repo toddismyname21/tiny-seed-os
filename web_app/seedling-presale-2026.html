@@ -3991,9 +3991,13 @@ function showOrderPreview(items, customerName, email, phone, pickup, orderCalc) 
 
     var overlay = document.createElement('div');
     overlay.id = 'orderPreviewOverlay';
-    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:10000;overflow-y:scroll;-webkit-overflow-scrolling:touch;';
+    // Position overlay so the box appears right where the button is
+    var btnRect = document.getElementById('submitOrderBtn').getBoundingClientRect();
+    var scrollY = window.pageYOffset || document.documentElement.scrollTop;
+    overlay.style.cssText = 'position:absolute;top:0;left:0;width:100%;min-height:' + document.documentElement.scrollHeight + 'px;background:rgba(0,0,0,0.6);z-index:10000;';
 
-    var html = '<div style="background:#fff;border-radius:16px;padding:24px;max-width:520px;width:calc(100% - 32px);margin:16px auto;box-shadow:0 25px 50px rgba(0,0,0,0.3);position:relative;">';
+    var boxTop = Math.max(0, btnRect.top + scrollY - 20);
+    var html = '<div style="background:#fff;border-radius:16px;padding:24px;max-width:520px;width:calc(100% - 32px);margin:0 auto;position:absolute;top:' + boxTop + 'px;left:50%;transform:translateX(-50%);box-shadow:0 25px 50px rgba(0,0,0,0.3);">';
     html += '<h3><i class="fas fa-clipboard-list" style="color:var(--green); margin-right:8px;"></i>Review Your Order</h3>';
 
     for (var i = 0; i < items.length; i++) {
