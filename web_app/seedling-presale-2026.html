@@ -3989,15 +3989,12 @@ function showOrderPreview(items, customerName, email, phone, pickup, orderCalc) 
     var existing = document.getElementById('orderPreviewOverlay');
     if (existing) existing.remove();
 
+    // Insert review directly above the Reserve & Pay button — no overlay positioning games
     var overlay = document.createElement('div');
     overlay.id = 'orderPreviewOverlay';
-    // Position overlay so the box appears right where the button is
-    var btnRect = document.getElementById('submitOrderBtn').getBoundingClientRect();
-    var scrollY = window.pageYOffset || document.documentElement.scrollTop;
-    overlay.style.cssText = 'position:absolute;top:0;left:0;width:100%;min-height:' + document.documentElement.scrollHeight + 'px;background:rgba(0,0,0,0.6);z-index:10000;';
+    overlay.style.cssText = 'margin:16px 0;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.15);border:2px solid #22c55e;';
 
-    var boxTop = Math.max(0, btnRect.top + scrollY - 20);
-    var html = '<div style="background:#fff;border-radius:16px;padding:24px;max-width:520px;width:calc(100% - 32px);margin:0 auto;position:absolute;top:' + boxTop + 'px;left:50%;transform:translateX(-50%);box-shadow:0 25px 50px rgba(0,0,0,0.3);">';
+    var html = '<div style="background:#fff;border-radius:16px;padding:24px;">';
     html += '<h3><i class="fas fa-clipboard-list" style="color:var(--green); margin-right:8px;"></i>Review Your Order</h3>';
 
     for (var i = 0; i < items.length; i++) {
@@ -4033,23 +4030,18 @@ function showOrderPreview(items, customerName, email, phone, pickup, orderCalc) 
 
     html += '</div>';
     overlay.innerHTML = html;
-    document.body.appendChild(overlay);
 
-    // Scroll the overlay to top so box is visible
-    overlay.scrollTop = 0;
+    // Insert right before the Reserve & Pay button — user sees it exactly where they are
+    var submitBtn = document.getElementById('submitOrderBtn');
+    submitBtn.parentNode.insertBefore(overlay, submitBtn);
+    submitBtn.style.display = 'none';
 
-    // Close overlay when tapping dark background
-    overlay.addEventListener('click', function(e) {
-        if (e.target === overlay) {
-            overlay.remove();
-            document.body.style.overflow = '';
-            _orderSubmitting = false;
-        }
-    });
+    // Scroll into view
+    overlay.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
     document.getElementById('previewEditBtn').addEventListener('click', function() {
         overlay.remove();
-        document.body.style.overflow = '';
+        document.getElementById('submitOrderBtn').style.display = '';
     });
 
     document.getElementById('previewConfirmBtn').addEventListener('click', function() {
