@@ -4060,6 +4060,7 @@ function showOrderPreview(items, customerName, email, phone, pickup, orderCalc) 
             + '<p style="color:rgba(255,255,255,0.85);font-size:0.95rem;">Redirecting you to secure checkout</p>'
             + '<p style="color:rgba(255,255,255,0.7);font-size:0.82rem;margin-top:12px;">This may take 15-30 seconds. Please don\'t close this page.</p>'
             + '</div>';
+        overlay.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
         // Submit order and redirect directly to Shopify
         var payload = {
