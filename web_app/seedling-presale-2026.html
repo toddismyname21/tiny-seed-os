@@ -4053,11 +4053,11 @@ function showOrderPreview(items, customerName, email, phone, pickup, orderCalc) 
         btn.style.opacity = '0.5';
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
 
-        // Show dancing plant loading screen
-        overlay.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;padding:20px;">'
+        // Show dancing plant loading screen — inline, same spot
+        overlay.innerHTML = '<div style="background:#166534;border-radius:16px;padding:40px 20px;text-align:center;">'
             + '<div class="dancing-plant">🌱</div>'
             + '<h3 style="color:#fff;font-size:1.3rem;margin:16px 0 8px;font-family:Playfair Display,serif;">Preparing your order...</h3>'
-            + '<p style="color:rgba(255,255,255,0.8);font-size:0.95rem;">Redirecting you to secure checkout</p>'
+            + '<p style="color:rgba(255,255,255,0.85);font-size:0.95rem;">Redirecting you to secure checkout</p>'
             + '<p style="color:rgba(255,255,255,0.7);font-size:0.82rem;margin-top:12px;">This may take 15-30 seconds. Please don\'t close this page.</p>'
             + '</div>';
 
@@ -4103,24 +4103,24 @@ function showOrderPreview(items, customerName, email, phone, pickup, orderCalc) 
             } else {
                 // Order recorded but no invoice URL, OR API error — show friendly email fallback
                 _orderSubmitting = false;
-                overlay.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;padding:20px;">'
+                overlay.innerHTML = '<div style="background:#166534;border-radius:16px;padding:32px 20px;text-align:center;">'
                     + '<div style="font-size:3rem;">📧</div>'
-                    + '<h3 style="color:#fff;font-size:1.2rem;margin:12px 0 8px;font-family:Playfair Display,serif;">Your order has been received!</h3>'
+                    + '<h3 style="color:#fff;font-size:1.2rem;margin:12px 0 8px;">Your order has been received!</h3>'
                     + '<p style="color:rgba(255,255,255,0.9);font-size:0.95rem;max-width:400px;margin:0 auto;">We\'re having trouble loading the checkout page, but don\'t worry — <strong>your order is saved</strong>.</p>'
-                    + '<p style="color:rgba(255,255,255,0.85);font-size:0.9rem;max-width:400px;margin:12px auto 0;">Please <strong>check your email</strong> for a payment link from Tiny Seed Farm. If you don\'t see it within a few minutes, email us at todd@tinyseedfarmpgh.com.</p>'
-                    + '<button onclick="document.getElementById(\'orderPreviewOverlay\').remove();document.body.style.overflow=\'\';_orderSubmitting=false;" style="margin-top:20px;padding:12px 28px;background:#fff;color:#166534;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:1rem;">Got it</button>'
+                    + '<p style="color:rgba(255,255,255,0.85);font-size:0.9rem;max-width:400px;margin:12px auto 0;">Please <strong>check your email</strong> for a payment link from Tiny Seed Farm.</p>'
+                    + '<button onclick="document.getElementById(\'orderPreviewOverlay\').remove();document.getElementById(\'submitOrderBtn\').style.display=\'\';_orderSubmitting=false;" style="margin-top:20px;padding:12px 28px;background:#fff;color:#166534;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:1rem;">Got it</button>'
                     + '</div>';
             }
         })
         .catch(function(err) {
             clearTimeout(timeoutId);
             _orderSubmitting = false;
-            overlay.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;padding:20px;">'
+            overlay.innerHTML = '<div style="background:#166534;border-radius:16px;padding:32px 20px;text-align:center;">'
                 + '<div style="font-size:3rem;">📧</div>'
-                + '<h3 style="color:#fff;font-size:1.2rem;margin:12px 0 8px;font-family:Playfair Display,serif;">Your order has been received!</h3>'
+                + '<h3 style="color:#fff;font-size:1.2rem;margin:12px 0 8px;">Your order has been received!</h3>'
                 + '<p style="color:rgba(255,255,255,0.9);font-size:0.95rem;max-width:400px;margin:0 auto;">We\'re having trouble loading the checkout page, but don\'t worry — <strong>your order is saved</strong>.</p>'
-                + '<p style="color:rgba(255,255,255,0.85);font-size:0.9rem;max-width:400px;margin:12px auto 0;">Please <strong>check your email</strong> for a payment link from Tiny Seed Farm. If you don\'t see it within a few minutes, email us at todd@tinyseedfarmpgh.com.</p>'
-                + '<button onclick="document.getElementById(\'orderPreviewOverlay\').remove();document.body.style.overflow=\'\';_orderSubmitting=false;" style="margin-top:20px;padding:12px 28px;background:#fff;color:#166534;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:1rem;">Got it</button>'
+                + '<p style="color:rgba(255,255,255,0.85);font-size:0.9rem;max-width:400px;margin:12px auto 0;">Please <strong>check your email</strong> for a payment link from Tiny Seed Farm.</p>'
+                + '<button onclick="document.getElementById(\'orderPreviewOverlay\').remove();document.getElementById(\'submitOrderBtn\').style.display=\'\';_orderSubmitting=false;" style="margin-top:20px;padding:12px 28px;background:#fff;color:#166534;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:1rem;">Got it</button>'
                 + '</div>';
         });
     });
