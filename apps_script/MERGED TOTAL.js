@@ -137906,7 +137906,8 @@ function submitSeedlingOrder(params) {
         businessName: params.businessName || '',
         channel: params.channel || 'Presale',
         discount: discountInfo,
-        referralDiscount: params.referralCode ? 5 : 0
+        referralDiscount: params.referralCode ? 5 : 0,
+        bundlePricing: params.bundlePricing || null
       });
 
       if (shopifyResult.success) {
