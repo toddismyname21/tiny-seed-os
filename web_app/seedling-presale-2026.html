@@ -966,9 +966,9 @@
             background: rgba(0,0,0,0.6);
             z-index: 10000;
             display: flex;
-            align-items: flex-start;
+            align-items: center;
             justify-content: center;
-            padding: 20px;
+            padding: 16px;
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
         }
@@ -4034,16 +4034,9 @@ function showOrderPreview(items, customerName, email, phone, pickup, orderCalc) 
     overlay.innerHTML = html;
     document.body.appendChild(overlay);
 
-    // Force scroll to top so the fixed overlay is visible
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    // Also prevent body scrolling while modal is open
+    // Prevent body scrolling while modal is open
     document.body.style.overflow = 'hidden';
-
-    // Belt-and-suspenders: ensure visibility on mobile Safari
-    setTimeout(function() {
-        window.scrollTo(0, 0);
-        overlay.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 100);
+    // Do NOT scroll — position:fixed overlay covers viewport wherever user is
 
     document.getElementById('previewEditBtn').addEventListener('click', function() {
         overlay.remove();
