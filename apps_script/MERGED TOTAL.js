@@ -137920,17 +137920,9 @@ function submitSeedlingOrder(params) {
       errors.push('Shopify draft order: ' + shopErr.toString());
     }
 
-    // Step 4: Send invoice email (only if draft order succeeded)
-    if (shopifyResult.success && shopifyResult.draftOrderId && params.email) {
-      try {
-        var invoiceResult = sendSeedlingDraftInvoice_(shopifyResult.draftOrderId, params.email);
-        if (!invoiceResult.success) {
-          errors.push('Invoice email: ' + (invoiceResult.error || 'failed to send'));
-        }
-      } catch (invErr) {
-        errors.push('Invoice email: ' + invErr.toString());
-      }
-    }
+    // Step 4: Invoice email DISABLED — customer is redirected directly to Shopify checkout
+    // No need to send a separate "complete your purchase" email
+    // Confirmation email is sent after payment via handleSeedlingDraftOrderCompleted webhook
 
     // Step 5: Generate fulfillment tasks
     try {
