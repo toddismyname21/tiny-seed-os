@@ -59,7 +59,7 @@
         "@type": "FAQPage",
         "mainEntity": [
             { "@type": "Question", "name": "What size are the seedlings at pickup?", "acceptedAnswer": { "@type": "Answer", "text": "All seedlings are grown in 3-inch pots and will be 6-10 inches tall at pickup, with strong root systems ready for transplanting." }},
-            { "@type": "Question", "name": "Can I cancel or modify my order?", "acceptedAnswer": { "@type": "Answer", "text": "Full refund available until May 1. After that, we'll issue store credit. To modify varieties, email todd@tinyseedfarmpgh.com before May 1." }},
+            { "@type": "Question", "name": "Can I cancel or modify my order?", "acceptedAnswer": { "@type": "Answer", "text": "Full refund available until May 3. After that, we'll issue store credit. To modify varieties, email todd@tinyseedfarmpgh.com before May 3." }},
             { "@type": "Question", "name": "What if a variety sells out?", "acceptedAnswer": { "@type": "Answer", "text": "We'll contact you to choose a substitute or receive a refund for that item." }},
             { "@type": "Question", "name": "Are the seedlings organic?", "acceptedAnswer": { "@type": "Answer", "text": "Yes! Tiny Seed Farm is USDA Certified Organic. All seedlings are grown with organic seeds and practices — no synthetic pesticides or fertilizers, ever." }},
             { "@type": "Question", "name": "Do you offer bulk/wholesale pricing?", "acceptedAnswer": { "@type": "Answer", "text": "All seedlings are $6 each or 4 for $20. For wholesale quantities, contact todd@tinyseedfarmpgh.com." }}
@@ -1590,7 +1590,7 @@
         </a>
         <div class="header-countdown">
             <i class="fas fa-clock"></i>
-            <span class="countdown-text">Presale closes May 1 —</span>
+            <span class="countdown-text">Presale closes May 3 —</span>
             <span class="countdown-inline" id="countdownInline">loading...</span>
         </div>
     </div>
@@ -1633,7 +1633,7 @@
         <h1>Pittsburgh's Favorite <span>Seedlings</span> Are Back</h1>
         <p>Reserve USDA Certified Organic heirloom tomato, pepper, herb, and flower starts from Tiny Seed Farm. Every seedling in a 3" pot, grown just north of Pittsburgh — picked up at your nearest Pittsburgh market.</p>
         <div class="hero-dates">
-            <span><i class="fas fa-calendar-check"></i> <strong>Order by May 1</strong></span>
+            <span><i class="fas fa-calendar-check"></i> <strong>Order by May 3</strong></span>
             <span><i class="fas fa-shuttle-van"></i> <strong>Pickup May 6 – May 19</strong></span>
             <span><i class="fas fa-map-pin"></i> <strong>5 pickup locations</strong></span>
         </div>
@@ -1787,7 +1787,7 @@
                 <i class="fas fa-lock"></i>
                 <span>Secure checkout</span>
             </div>
-            <p style="text-align:center; font-size:0.75rem; color:var(--text-muted); margin-top:8px;">$6 each · 4 for $20. Confirmation email sent immediately. Full refund available until May 1.</p>
+            <p style="text-align:center; font-size:0.75rem; color:var(--text-muted); margin-top:8px;">$6 each · 4 for $20. Confirmation email sent immediately. Full refund available until May 3.</p>
         </form>
     </div>
 </section>
@@ -1914,7 +1914,7 @@
             </div>
             <div class="faq-item">
                 <button class="faq-question" onclick="toggleFaq(this)" aria-expanded="false" aria-controls="faq-answer-2">Can I cancel or modify my order? <i class="fas fa-chevron-down"></i></button>
-                <div class="faq-answer" id="faq-answer-2">Full refund available until May 1. After that, we'll issue store credit for future purchases. To modify varieties, email todd@tinyseedfarmpgh.com before May 1.</div>
+                <div class="faq-answer" id="faq-answer-2">Full refund available until May 3. After that, we'll issue store credit for future purchases. To modify varieties, email todd@tinyseedfarmpgh.com before May 3.</div>
             </div>
             <div class="faq-item">
                 <button class="faq-question" onclick="toggleFaq(this)" aria-expanded="false" aria-controls="faq-answer-3">What if a variety sells out? <i class="fas fa-chevron-down"></i></button>
@@ -3843,7 +3843,7 @@ function updateCountdown() {
     var el = document.getElementById('countdownInline');
     if (!el) return;
 
-    var deadline = new Date('2026-05-01T23:59:59').getTime();
+    var deadline = new Date('2026-05-03T23:59:59').getTime();
     var now = new Date().getTime();
     var diff = deadline - now;
 
