@@ -3411,7 +3411,12 @@ function validateForm() {
 // ═══════════════════════════════════════
 function submitPresaleOrder(e) {
     if (e) e.preventDefault();
-    if (_orderSubmitting) return; // Prevent double-submit
+    // Reset any stuck state from previous attempts
+    _orderSubmitting = false;
+    document.body.style.overflow = '';
+    var oldOverlay = document.getElementById('orderPreviewOverlay');
+    if (oldOverlay) oldOverlay.remove();
+
     if (!validateForm()) return;
 
     var items = [];
