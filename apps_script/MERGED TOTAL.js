@@ -14671,7 +14671,8 @@ function doGet(e) {
       'syncMarketToPickPack', 'syncShopifyMarketSales', 'getShopifyMarketReport',
       // Seedling payment reminders + order management (2026-04-10)
       'sendSeedlingPaymentReminders', 'cancelSeedlingOrder',
-      'cleanupDiscontinuedSeedlingItems'
+      'cleanupDiscontinuedSeedlingItems',
+      'applyBundlePricingToAllOrders'
     ]);
 
   if (!PUBLIC_GET_ACTIONS.has(action)) {
@@ -18226,6 +18227,8 @@ function doGet(e) {
         return jsonResponse(cancelSeedlingOrder(e.parameter));
       case 'cleanupDiscontinuedSeedlingItems':
         return jsonResponse(cleanupDiscontinuedSeedlingItems());
+      case 'applyBundlePricingToAllOrders':
+        return jsonResponse(applyBundlePricingToAllOrders());
 
       // ============ FRONTEND COMPATIBILITY ALIASES (from 2026-02-26 audit) ============
       case 'assignTask':
@@ -137877,6 +137880,116 @@ function cleanupDiscontinuedSeedlingItems() {
     Logger.log('cleanupDiscontinuedSeedlingItems FATAL: ' + e.toString());
     return { success: false, error: e.toString(), code: 'INTERNAL_ERROR' };
   }
+}
+
+/**
+ * Recalculate ALL seedling order totals using 4-for-$20 bundle pricing.
+ * Orders were originally recorded at $6/each. This applies bundle discounts
+ * (every 4 plants = $20, remaining singles at $6) and updates SEEDLING_ORDERS.Total_Amount.
+ */
+function applyBundlePricingToAllOrders() {
+    var lock = LockService.getScriptLock();
+    try { lock.waitLock(15000); } catch(e) { return { success: false, error: 'System busy', code: 'LOCK_TIMEOUT' }; }
+
+    try {
+        var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+        // Read all sales to get per-order plant counts
+        var salesSheet = ss.getSheetByName('SEEDLING_SALES');
+        if (!salesSheet) {
+            lock.releaseLock();
+            return { success: false, error: 'SEEDLING_SALES not found', code: 'SHEET_NOT_FOUND' };
+        }
+
+        var salesData = salesSheet.getDataRange().getValues();
+        var sHeaders = salesData[0];
+        var sOrderCol = sHeaders.indexOf('Order_ID');
+        var sQtyCol = sHeaders.indexOf('Quantity_Sold');
+        var sPriceCol = sHeaders.indexOf('Price_Each');
+
+        if (sOrderCol < 0 || sQtyCol < 0) {
+            lock.releaseLock();
+            return { success: false, error: 'SEEDLING_SALES missing required columns (Order_ID, Quantity_Sold)', code: 'SCHEMA_ERROR' };
+        }
+
+        // Sum quantities per order
+        var orderTotals = {};
+        for (var i = 1; i < salesData.length; i++) {
+            var oid = String(salesData[i][sOrderCol] || '').trim();
+            if (!oid) continue;
+            if (!orderTotals[oid]) orderTotals[oid] = { qty: 0, items: 0 };
+            var qty = Number(salesData[i][sQtyCol] || 0);
+            orderTotals[oid].qty += qty;
+            orderTotals[oid].items++;
+        }
+
+        // Calculate 4-for-$20 pricing for each order
+        for (var oid in orderTotals) {
+            var o = orderTotals[oid];
+            var bundles = Math.floor(o.qty / 4);
+            var singles = o.qty % 4;
+            o.bundlePrice = (bundles * 20) + (singles * 6);
+            o.fullPrice = o.qty * 6;
+            o.savings = o.fullPrice - o.bundlePrice;
+        }
+
+        // Update SEEDLING_ORDERS
+        var orderSheet = ss.getSheetByName('SEEDLING_ORDERS');
+        if (!orderSheet) {
+            lock.releaseLock();
+            return { success: false, error: 'SEEDLING_ORDERS not found', code: 'SHEET_NOT_FOUND' };
+        }
+
+        var orderData = orderSheet.getDataRange().getValues();
+        var oHeaders = orderData[0];
+        var oIdCol = oHeaders.indexOf('Order_ID');
+        var oAmtCol = oHeaders.indexOf('Total_Amount');
+        var oItemsCol = oHeaders.indexOf('Total_Items');
+
+        if (oIdCol < 0 || oAmtCol < 0) {
+            lock.releaseLock();
+            return { success: false, error: 'SEEDLING_ORDERS missing required columns (Order_ID, Total_Amount)', code: 'SCHEMA_ERROR' };
+        }
+
+        var updated = 0;
+        var details = [];
+
+        for (var j = 1; j < orderData.length; j++) {
+            var orderId = String(orderData[j][oIdCol] || '').trim();
+            if (orderTotals[orderId]) {
+                var ot = orderTotals[orderId];
+                var currentAmt = Number(orderData[j][oAmtCol] || 0);
+
+                if (currentAmt !== ot.bundlePrice) {
+                    orderSheet.getRange(j + 1, oAmtCol + 1).setValue(ot.bundlePrice);
+                    if (oItemsCol >= 0) {
+                        orderSheet.getRange(j + 1, oItemsCol + 1).setValue(ot.qty);
+                    }
+                    updated++;
+                    details.push({
+                        orderId: orderId,
+                        plants: ot.qty,
+                        oldTotal: currentAmt,
+                        newTotal: ot.bundlePrice,
+                        savings: currentAmt - ot.bundlePrice
+                    });
+                }
+            }
+        }
+
+        lock.releaseLock();
+        return {
+            success: true,
+            message: updated + ' order(s) updated with 4-for-$20 bundle pricing',
+            ordersUpdated: updated,
+            totalSavingsApplied: details.reduce(function(sum, d) { return sum + d.savings; }, 0),
+            details: details
+        };
+    } catch(e) {
+        try { lock.releaseLock(); } catch(unlockErr) {}
+        Logger.log('applyBundlePricingToAllOrders FATAL: ' + e.toString());
+        return { success: false, error: e.toString(), code: 'INTERNAL_ERROR' };
+    }
 }
 
 /**
