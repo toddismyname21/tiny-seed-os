@@ -6,6 +6,96 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-05-02] Sync Seedling Pot Tag Preview to Match Print Output
+- File: labels.html
+- Role: PM_ARCHITECT (user-authorized direct edit)
+- Status: Complete
+- Why: Long crop names ("RAINBOW CHARD", "MIXED FLORAL CELOSIA") were cut off in the on-screen preview but rendered correctly in print. User required preview and print to be visually identical.
+- Changes:
+  - `.pot-tag .pot-tag-text-area` CSS: `overflow: hidden` → `overflow: visible` (matches print)
+  - `.pot-tag .pot-tag-crop` CSS: removed `overflow: hidden` and `max-height: 100%`; starting font 24px → 23px (proportional to print's 36px at 0.646x preview scale)
+  - `.pot-tag .pot-tag-variety` CSS: removed `overflow: hidden` and `max-height: 100%`; font 11px → 10px (proportional to print's 16px)
+  - Wholesale organic shrink loop (line ~3149): rewritten to match print logic — iterates `.pot-tag` (not `.pot-tag-crop`), uses 85% threshold, shrinks crop 23→7px and variety 10→5px (was crop-only 24→12px)
+  - `renderPotTagLabels()` shrink loop (line ~3257): identical rewrite — both shrink loops now mirror the print version's `fitText()` at preview scale
+- Result: Preview and print render identically. Long crop names auto-shrink to as small as 7px instead of being cut off at 12px floor.
+
+## [2026-04-10] Apply 4-for-$20 Bundle Pricing to All Seedling Orders
+- File: apps_script/MERGED TOTAL.js
+- Role: FULLSTACK_BUILDER
+- Status: Complete (executed live)
+- Changes:
+  - Added `applyBundlePricingToAllOrders()` — recalculates all SEEDLING_ORDERS.Total_Amount using 4-for-$20 bundle pricing (was $6/each flat)
+  - Reads SEEDLING_SALES to sum per-order plant quantities, then applies: floor(qty/4)*$20 + (qty%4)*$6
+  - Updates Total_Amount and Total_Items on SEEDLING_ORDERS sheet
+  - Routed in doGet switch, added to PUBLIC_GET_ACTIONS
+  - **Execution result:** 49 orders updated. Most orders received savings (e.g., 26 plants: $156 -> $132). Some orders increased because prior cleanup had reduced their totals below accurate bundle pricing.
+  - Notable: SEED-2026-0005, 0010, 0013 appear as duplicate rows in sheet (pre-existing data issue)
+
+## [2026-04-10] Cleanup Discontinued Seedling Items from Pending Orders
+- File: apps_script/MERGED TOTAL.js
+- Role: FULLSTACK_BUILDER
+- Status: Complete (executed live)
+- Changes:
+  - Added `cleanupDiscontinuedSeedlingItems()` — removes crop-failure items (Husk Cherry/Aunt Molly's, Rudbeckia Sahara, Gomphrena, Mushroom Block, Snap Peas) from SEEDLING_SALES
+  - Adjusts SEEDLING_ORDERS totals (Total_Items, Total_Amount) for affected orders
+  - Emails affected customers with HTML notification explaining removal, offering credit (if paid) or updated invoice (if pending)
+  - Skips Todd's test order (SEED-2026-0002)
+  - Routed in both doGet and doPost switches, added to both PUBLIC_GET_ACTIONS whitelists
+  - **Execution result:** 15 sales rows deleted, 8 orders updated, 7 emails sent (Todd's test order skipped)
+  - Affected customers: Michelle Landau, Kelsey Krepps (3 orders — 0019/0020/0021, 0020+0021 are duplicates), Emily Wender, Jane Olszewski, Jackie Weaver Agostoni
+
+---
+
+## [2026-04-10] Seedling Presale — 5 Critical Checkout Fixes
+- File: web_app/seedling-presale-2026.html
+- Role: FULLSTACK_BUILDER
+- Status: Complete
+- Changes:
+  - **Issue 1: Order preview popup not visible on mobile** — added `window.scrollTo(0,0)`, `document.body.style.overflow='hidden'` on overlay open, with cleanup on all dismiss paths (edit btn, confirm btn close, background click); added belt-and-suspenders `setTimeout` scroll for mobile Safari
+  - **Issue 2: Removed "Aunt Molly" from presale** — added 'Aunt Molly', 'Aunt Mollys', 'Aunt Molly\'s' to FILTER_OUT set
+  - **Issue 3: Checkout timeout** — wrapped both fetch calls (preview confirm + proceedWithOrder_) with AbortController at 60s timeout; added "15-30 seconds" expectation text to dancing plant loading screen
+  - **Issue 4: Duplicate order prevention** — added global `_orderSubmitting` flag checked/set in both submit paths (submitPresaleOrder guard + previewConfirmBtn handler + proceedWithOrder_); confirm button disabled + dimmed on click; flag reset in all error/success/dismiss paths
+  - **Issue 5: Friendly error fallback** — all error states (timeout, network, API failure, missing invoiceUrl) now show "Your order has been received! Check your email" message instead of scary error text; customer never sees "Connection Error" or "Something went wrong"
+
+## [2026-04-10] Seedling Presale — Direct Shopify Redirect + Dancing Plant Loading
+- File: web_app/seedling-presale-2026.html
+- Role: FULLSTACK_BUILDER
+- Status: Complete
+- Changes:
+  - **Confirm & Pay now redirects directly to Shopify checkout** — removed intermediate step where `actuallySubmitOrder` showed a redirect page; the confirm button now submits the API call inline and does `window.location.href` to the `invoiceUrl` immediately
+  - **Dancing plant loading animation** — full-screen overlay with animated bouncing seedling emoji while API processes; CSS keyframe `plantDance` with translate + rotate
+  - **Error/fallback states** — if no `invoiceUrl` returned, shows "check email" message; on API error or network failure, shows contextual error with close button
+  - Existing `actuallySubmitOrder` / `proceedWithOrder_` functions preserved as fallback for the bottom-of-form submit button
+
+## [2026-04-10] Seedling Admin Orders Tab — Clickable Order Detail, Email Buttons, Pickup Dates
+- File: web_app/seedling-admin.html
+- Role: FULLSTACK_BUILDER
+- Status: Complete
+- Changes:
+  - **Feature 1: Order Detail Modal** — Clicking Order ID or Customer Name opens a modal showing full order line items (crop, variety, qty, price, total), contact action buttons (email, call, invoice link), and order metadata (pickup location, date, status)
+  - **Feature 2: Email Buttons** — Added email icon button in the Actions column for every order with an email address
+  - **Feature 3: Pickup Date Column** — Added `getPickupDate()` function mapping pickup locations to dates (Farm=May 6, Phipps=May 8, Bloomfield/Sewickley=May 9, Lawrenceville=May 19); column renders in the new "Pickup Date" header slot
+  - Updated all colspan values from 9 to 10 across loading, error, and empty states
+  - Added `orderDetailModal` HTML element reusing existing `.modal-overlay` / `.modal` CSS patterns
+  - Escape key and overlay click close the order detail modal
+
+## [2026-04-28] H-2A Worker SSN & Pennsylvania Driver's License Research
+- File: docs/research/H2A_WORKER_SSN_DRIVERS_LICENSE_PENNSYLVANIA_2026.md
+- Role: RESEARCH_CLAUDE
+- Status: Complete — 23 KB, 538 lines
+- Scope: Beaver County, PA (Rochester area) for H-2A temporary agricultural workers
+- Content:
+  - **Part 1: Social Security Number (SSN)** — Eligibility, application process (Form SS-5), timing (10 days post-arrival), processing timeline (2-4 weeks), documents required, workarounds for pending SSN
+  - **Part 2: Pennsylvania Driver's License** — Document requirements, Real ID vs. Non-Real ID, learner's permit → written test (30 languages) → road test → full license, timing (weeks 2-6 post-arrival), Mexican license recognition (federal CDL only)
+  - **Part 3: Local Offices** — Baden Social Security office (350 Logan Ln, Baden PA 15005, 350 Logan Ln, phone 866-331-6401) + Beaver Falls Driver License Center (2580 Constitution Boulevard, relocated Nov 2025)
+  - **Part 4: Employer Checklist** — Pre-arrival prep, day-by-day timeline for Todd, document gathering, payroll implications (W-4, W-2 handling during pending SSN)
+  - **Part 5: Common Gotchas** — Why delays happen, solutions for each
+  - **Part 6: Documentation Matrix** — What documents needed where, expiration rules, accepted conditions
+  - **Part 7: Tax/Payroll** — H-2A exemption from OASDI/HI, "Applied For" notation on W-2, ITIN alternative
+  - **Part 8: Timeline Summary** — Visual flowchart (arrival → day 10 → SSN appointment → day 15+ → license application → weeks 4-6 complete)
+  - **Key Finding:** Can be done in parallel (SSN + license), both typically complete by week 6 post-arrival; SSN cannot be applied before arrival (requires I-94 stamp at port)
+  - 23 verified sources (IRS, SSA, USCIS, FMCSA, PennDOT, USDOL, Legal Aid, farm labor organizations)
+
 ## [2026-04-10] Seedling payment reminder email system + cancel/delete order actions
 - Files: apps_script/MERGED TOTAL.js, web_app/seedling-admin.html
 - Role: fullstack-builder

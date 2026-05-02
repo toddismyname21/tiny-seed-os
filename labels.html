@@ -702,31 +702,27 @@
             transform: rotate(180deg);
             flex: 1;
             gap: 1px;
-            overflow: hidden;
+            overflow: visible;
             width: 100%;
         }
 
         .pot-tag .pot-tag-crop {
             font-family: 'Barlow Condensed', sans-serif;
             font-weight: 800;
-            font-size: 24px;
+            font-size: 23px;
             line-height: 1;
             text-transform: uppercase;
             letter-spacing: 0.03em;
             white-space: nowrap;
-            overflow: hidden;
-            max-height: 100%;
         }
 
         .pot-tag .pot-tag-variety {
             font-family: 'Barlow Condensed', sans-serif;
             font-weight: 400;
-            font-size: 11px;
+            font-size: 10px;
             font-style: italic;
             color: #444;
             white-space: nowrap;
-            overflow: hidden;
-            max-height: 100%;
         }
 
         .pot-tag .pot-tag-logo {
@@ -3150,15 +3146,29 @@
 
             container.innerHTML = html;
 
-            // Auto-shrink product names that overflow their text area
+            // Auto-shrink product names and customer names — mirrors print logic at preview scale
             setTimeout(function() {
-                document.querySelectorAll('.pot-tag .pot-tag-crop').forEach(function(el) {
-                    var parent = el.closest('.pot-tag-text-area');
-                    if (!parent) return;
-                    var fontSize = 24;
-                    while (el.scrollWidth > parent.clientHeight && fontSize > 12) {
-                        fontSize -= 1;
-                        el.style.fontSize = fontSize + 'px';
+                document.querySelectorAll('.pot-tag').forEach(function(tag) {
+                    var textArea = tag.querySelector('.pot-tag-text-area');
+                    if (!textArea) return;
+                    var availH = textArea.offsetHeight;
+                    var crop = tag.querySelector('.pot-tag-crop');
+                    var variety = tag.querySelector('.pot-tag-variety');
+                    if (crop) {
+                        var sz = 23;
+                        crop.style.fontSize = sz + 'px';
+                        while (crop.scrollWidth > availH * 0.85 && sz > 7) {
+                            sz -= 1;
+                            crop.style.fontSize = sz + 'px';
+                        }
+                    }
+                    if (variety) {
+                        var vsz = 10;
+                        variety.style.fontSize = vsz + 'px';
+                        while (variety.scrollWidth > availH * 0.85 && vsz > 5) {
+                            vsz -= 0.5;
+                            variety.style.fontSize = vsz + 'px';
+                        }
                     }
                 });
             }, 50);
@@ -3244,15 +3254,29 @@
 
             container.innerHTML = html;
 
-            // Auto-shrink crop names that overflow their text area
+            // Auto-shrink crop and variety names — mirrors print logic at preview scale
             setTimeout(function() {
-                document.querySelectorAll('.pot-tag .pot-tag-crop').forEach(function(el) {
-                    var parent = el.closest('.pot-tag-text-area');
-                    if (!parent) return;
-                    var fontSize = 24;
-                    while (el.scrollWidth > parent.clientHeight && fontSize > 12) {
-                        fontSize -= 1;
-                        el.style.fontSize = fontSize + 'px';
+                document.querySelectorAll('.pot-tag').forEach(function(tag) {
+                    var textArea = tag.querySelector('.pot-tag-text-area');
+                    if (!textArea) return;
+                    var availH = textArea.offsetHeight;
+                    var crop = tag.querySelector('.pot-tag-crop');
+                    var variety = tag.querySelector('.pot-tag-variety');
+                    if (crop) {
+                        var sz = 23;
+                        crop.style.fontSize = sz + 'px';
+                        while (crop.scrollWidth > availH * 0.85 && sz > 7) {
+                            sz -= 1;
+                            crop.style.fontSize = sz + 'px';
+                        }
+                    }
+                    if (variety) {
+                        var vsz = 10;
+                        variety.style.fontSize = vsz + 'px';
+                        while (variety.scrollWidth > availH * 0.85 && vsz > 5) {
+                            vsz -= 0.5;
+                            variety.style.fontSize = vsz + 'px';
+                        }
                     }
                 });
             }, 50);
