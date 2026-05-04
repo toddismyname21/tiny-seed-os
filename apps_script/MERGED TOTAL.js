@@ -14676,7 +14676,9 @@ function doGet(e) {
       // Seedling payment reminders + order management (2026-04-10)
       'sendSeedlingPaymentReminders', 'cancelSeedlingOrder',
       'cleanupDiscontinuedSeedlingItems',
-      'applyBundlePricingToAllOrders'
+      'applyBundlePricingToAllOrders',
+      // Seedling archive viewer (2026-05-04)
+      'getArchivedSeedlingOrders'
     ]);
 
   if (!PUBLIC_GET_ACTIONS.has(action)) {
@@ -18229,6 +18231,8 @@ function doGet(e) {
         return jsonResponse(sendSeedlingPaymentReminders(e.parameter));
       case 'cancelSeedlingOrder':
         return jsonResponse(cancelSeedlingOrder(e.parameter));
+      case 'getArchivedSeedlingOrders':
+        return jsonResponse(getArchivedSeedlingOrders());
       case 'cleanupDiscontinuedSeedlingItems':
         return jsonResponse(cleanupDiscontinuedSeedlingItems());
       case 'applyBundlePricingToAllOrders':
@@ -18411,7 +18415,9 @@ function doPost(e) {
       'updateMarketSessionStatus', 'syncMarketToPickPack',
       // Seedling payment reminders + order management (2026-04-10)
       'sendSeedlingPaymentReminders', 'cancelSeedlingOrder', 'deleteSeedlingOrder',
-      'cleanupDiscontinuedSeedlingItems'
+      'cleanupDiscontinuedSeedlingItems',
+      // Seedling bulk operations + archive (2026-05-04)
+      'bulkDeleteSeedlingOrders', 'archiveCancelledSeedlingOrders', 'restoreArchivedSeedlingOrder'
     ]);
 
     if (action && !PUBLIC_POST_ACTIONS.has(action)) {
@@ -19865,6 +19871,12 @@ function doPost(e) {
         return jsonResponse(cancelSeedlingOrder(data));
       case 'deleteSeedlingOrder':
         return jsonResponse(deleteSeedlingOrder(data));
+      case 'bulkDeleteSeedlingOrders':
+        return jsonResponse(bulkDeleteSeedlingOrders(data));
+      case 'archiveCancelledSeedlingOrders':
+        return jsonResponse(archiveCancelledSeedlingOrders());
+      case 'restoreArchivedSeedlingOrder':
+        return jsonResponse(restoreArchivedSeedlingOrder(data));
       case 'cleanupDiscontinuedSeedlingItems':
         return jsonResponse(cleanupDiscontinuedSeedlingItems());
       case 'savePresalePageConfig':
@@ -137433,13 +137445,28 @@ function sendSeedlingPaymentReminders(params) {
       return { success: false, error: 'SEEDLING_ORDERS sheet not found', code: 'SHEET_NOT_FOUND' };
     }
 
+    // ============ COLUMN MIGRATION (2026-05-04) ============
+    // Auto-add reminder tracking columns if missing
+    var headerRange = sheet.getRange(1, 1, 1, sheet.getLastColumn());
+    var headers = headerRange.getValues()[0];
+    var REMINDER_COLS = ['Last_Reminder_At', 'Reminder_Send_Count', 'Last_Reminder_Status'];
+    var migrationNeeded = false;
+    REMINDER_COLS.forEach(function(c) { if (headers.indexOf(c) === -1) migrationNeeded = true; });
+    if (migrationNeeded) {
+      var lastCol = sheet.getLastColumn();
+      var colsToAdd = REMINDER_COLS.filter(function(c) { return headers.indexOf(c) === -1; });
+      sheet.getRange(1, lastCol + 1, 1, colsToAdd.length).setValues([colsToAdd]);
+      // Re-read headers
+      headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    }
+
     var data = sheet.getDataRange().getValues();
     if (data.length < 2) {
       lock.releaseLock();
       return { success: true, sent: 0, skipped: 0, errors: [], dryRun: true, results: [], totalOutstanding: 0, message: 'No orders found' };
     }
 
-    var headers = data[0];
+    headers = data[0];
     var col = function(name) {
       for (var i = 0; i < headers.length; i++) {
         if (String(headers[i]).trim() === name) return i;
@@ -137449,13 +137476,30 @@ function sendSeedlingPaymentReminders(params) {
 
     var sent = 0, skipped = 0, errors = [];
     var dryRun = params && (params.dryRun === 'true' || params.dryRun === true);
+    // Optional per-order filter — if provided, only send to these specific orders
+    var orderIdFilter = null;
+    if (params && params.orderIds) {
+      var ids = params.orderIds;
+      if (typeof ids === 'string') { try { ids = JSON.parse(ids); } catch(e) { ids = ids.split(','); } }
+      if (Array.isArray(ids) && ids.length > 0) {
+        orderIdFilter = {};
+        ids.forEach(function(id) { orderIdFilter[String(id).trim()] = true; });
+      }
+    }
     var results = [];
+    var lastAtCol = col('Last_Reminder_At');
+    var sendCountCol = col('Reminder_Send_Count');
+    var lastStatusCol = col('Last_Reminder_Status');
 
     for (var i = 1; i < data.length; i++) {
       var statusRaw = String(data[i][col('Invoice_Status')] || '').trim().toLowerCase();
       if (statusRaw !== 'pending') { skipped++; continue; }
 
       var orderId = String(data[i][col('Order_ID')] || '').trim();
+
+      // Per-order filter (if provided)
+      if (orderIdFilter && !orderIdFilter[orderId]) { skipped++; continue; }
+
       var name = String(data[i][col('Customer_Name')] || '').trim();
       var email = String(data[i][col('Email')] || '').trim();
       var invoiceUrl = String(data[i][col('Invoice_URL')] || '').trim();
@@ -137516,17 +137560,21 @@ function sendSeedlingPaymentReminders(params) {
         + (invoiceUrl && invoiceUrl !== 'undefined' ? 'Complete payment here: ' + invoiceUrl : 'Please reply to arrange payment.')
         + ' If you want to cancel, reply to this email. Thanks! \u2014 Todd, Tiny Seed Farm';
 
-      results.push({
+      var resultEntry = {
         orderId: orderId,
         email: email,
         name: name,
         amount: totalAmount,
         items: totalItems,
         pickup: pickup,
-        hasInvoiceUrl: !!(invoiceUrl && invoiceUrl !== 'undefined' && invoiceUrl !== '')
-      });
+        hasInvoiceUrl: !!(invoiceUrl && invoiceUrl !== 'undefined' && invoiceUrl !== ''),
+        sentAt: null,
+        status: 'pending'
+      };
 
       if (!dryRun) {
+        var nowIso = new Date().toISOString();
+        var prevCount = Number(sendCountCol >= 0 ? data[i][sendCountCol] : 0) || 0;
         try {
           GmailApp.sendEmail(email, subject, plainBody, {
             name: 'Tiny Seed Farm',
@@ -137534,12 +137582,25 @@ function sendSeedlingPaymentReminders(params) {
             replyTo: 'todd@tinyseedfarmpgh.com'
           });
           sent++;
+          resultEntry.sentAt = nowIso;
+          resultEntry.status = 'Sent';
+          // Write confirmation back to sheet (row is 1-indexed; data[0] is header → row = i+1)
+          if (lastAtCol >= 0) sheet.getRange(i + 1, lastAtCol + 1).setValue(nowIso);
+          if (sendCountCol >= 0) sheet.getRange(i + 1, sendCountCol + 1).setValue(prevCount + 1);
+          if (lastStatusCol >= 0) sheet.getRange(i + 1, lastStatusCol + 1).setValue('Sent');
         } catch(emailErr) {
+          var failMsg = 'Failed: ' + (emailErr && emailErr.message ? emailErr.message : String(emailErr));
           errors.push(orderId + ' (' + email + '): ' + emailErr.message);
+          resultEntry.status = failMsg;
+          if (lastStatusCol >= 0) sheet.getRange(i + 1, lastStatusCol + 1).setValue(failMsg);
+          if (lastAtCol >= 0) sheet.getRange(i + 1, lastAtCol + 1).setValue(nowIso);
         }
       } else {
         sent++;
+        resultEntry.status = 'Preview';
       }
+
+      results.push(resultEntry);
     }
 
     lock.releaseLock();
@@ -137607,9 +137668,36 @@ function cancelSeedlingOrder(params) {
             existingNotes + (existingNotes ? ' | ' : '') + cancelNote
           );
         }
+        // Auto-archive the cancelled row to SEEDLING_ORDERS_ARCHIVE
+        var archiveResult = { archived: false };
+        try {
+          // Re-read row (with the just-applied Cancelled status) so archive copy reflects current state
+          var rowVals = sheet.getRange(i + 1, 1, 1, sheet.getLastColumn()).getValues()[0];
+          var archiveSheet = ss.getSheetByName('SEEDLING_ORDERS_ARCHIVE');
+          if (!archiveSheet) {
+            archiveSheet = ss.insertSheet('SEEDLING_ORDERS_ARCHIVE');
+            archiveSheet.getRange(1, 1, 1, headers.length).setValues([headers.concat([])]);
+            // Add archive metadata columns
+            archiveSheet.getRange(1, headers.length + 1, 1, 2).setValues([['Archived_At', 'Archived_Reason']]);
+          }
+          var archiveHeaders = archiveSheet.getRange(1, 1, 1, archiveSheet.getLastColumn()).getValues()[0];
+          // Build aligned row: match by header name, fill missing with ''
+          var archiveRow = archiveHeaders.map(function(h) {
+            if (h === 'Archived_At') return new Date().toISOString();
+            if (h === 'Archived_Reason') return 'Cancelled' + (params.reason ? ': ' + String(params.reason).substring(0, 200) : '');
+            var srcIdx = headers.indexOf(h);
+            return srcIdx >= 0 ? rowVals[srcIdx] : '';
+          });
+          archiveSheet.appendRow(archiveRow);
+          // Delete the original row
+          sheet.deleteRow(i + 1);
+          archiveResult.archived = true;
+        } catch(archErr) {
+          Logger.log('[cancelSeedlingOrder] Archive failed (non-fatal): ' + archErr.toString());
+        }
         lock.releaseLock();
-        Logger.log('[cancelSeedlingOrder] Cancelled order ' + params.orderId);
-        return { success: true, message: 'Order ' + params.orderId + ' cancelled' };
+        Logger.log('[cancelSeedlingOrder] Cancelled order ' + params.orderId + ' (archived=' + archiveResult.archived + ')');
+        return { success: true, message: 'Order ' + params.orderId + ' cancelled' + (archiveResult.archived ? ' and archived' : ''), archived: archiveResult.archived };
       }
     }
 
@@ -137618,6 +137706,267 @@ function cancelSeedlingOrder(params) {
   } catch(e) {
     try { lock.releaseLock(); } catch(unlockErr) {}
     Logger.log('cancelSeedlingOrder FATAL: ' + e.toString());
+    return { success: false, error: e.toString(), code: 'INTERNAL_ERROR' };
+  }
+}
+
+/**
+ * Bulk-delete seedling orders (for cleaning duplicate orders from glitchy website).
+ * Accepts params.orderIds (JSON array or comma-separated string).
+ * Removes matching rows from both SEEDLING_ORDERS and SEEDLING_SALES.
+ */
+function bulkDeleteSeedlingOrders(params) {
+  if (!params || !params.orderIds) {
+    return { success: false, error: 'orderIds is required (array)', code: 'MISSING_FIELD' };
+  }
+  var ids = params.orderIds;
+  if (typeof ids === 'string') {
+    try { ids = JSON.parse(ids); } catch(e) { ids = ids.split(','); }
+  }
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return { success: false, error: 'orderIds must be a non-empty array', code: 'INVALID_FIELD' };
+  }
+  var idSet = {};
+  ids.forEach(function(id) { idSet[String(id).trim()] = true; });
+
+  var lock = LockService.getScriptLock();
+  try { lock.waitLock(30000); } catch(e) { return { success: false, error: 'System busy', code: 'LOCK_TIMEOUT' }; }
+
+  try {
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var ordersDeleted = 0;
+    var salesDeleted = 0;
+    var notFound = [];
+
+    // Delete from SEEDLING_ORDERS (iterate descending to avoid index shifts)
+    var orderSheet = ss.getSheetByName('SEEDLING_ORDERS');
+    var foundIds = {};
+    if (orderSheet) {
+      var oData = orderSheet.getDataRange().getValues();
+      var oHeaders = oData[0];
+      var oIdCol = -1;
+      for (var oh = 0; oh < oHeaders.length; oh++) {
+        if (String(oHeaders[oh]).trim() === 'Order_ID') { oIdCol = oh; break; }
+      }
+      if (oIdCol >= 0) {
+        for (var i = oData.length - 1; i >= 1; i--) {
+          var rowId = String(oData[i][oIdCol]).trim();
+          if (idSet[rowId]) {
+            orderSheet.deleteRow(i + 1);
+            ordersDeleted++;
+            foundIds[rowId] = true;
+          }
+        }
+      }
+    }
+
+    // Delete matching sales rows
+    var salesSheet = ss.getSheetByName('SEEDLING_SALES');
+    if (salesSheet) {
+      var sData = salesSheet.getDataRange().getValues();
+      var sHeaders = sData[0];
+      var sIdCol = -1;
+      for (var sh = 0; sh < sHeaders.length; sh++) {
+        if (String(sHeaders[sh]).trim().toLowerCase().indexOf('order_id') !== -1) { sIdCol = sh; break; }
+      }
+      if (sIdCol >= 0) {
+        for (var j = sData.length - 1; j >= 1; j--) {
+          if (idSet[String(sData[j][sIdCol]).trim()]) {
+            salesSheet.deleteRow(j + 1);
+            salesDeleted++;
+          }
+        }
+      }
+    }
+
+    Object.keys(idSet).forEach(function(id) {
+      if (!foundIds[id]) notFound.push(id);
+    });
+
+    lock.releaseLock();
+    Logger.log('[bulkDeleteSeedlingOrders] requested=' + ids.length + ' ordersDeleted=' + ordersDeleted + ' salesDeleted=' + salesDeleted + ' notFound=' + notFound.length);
+    return {
+      success: true,
+      requested: ids.length,
+      ordersDeleted: ordersDeleted,
+      salesDeleted: salesDeleted,
+      notFound: notFound,
+      message: 'Deleted ' + ordersDeleted + ' order(s) and ' + salesDeleted + ' sale row(s)' + (notFound.length > 0 ? ' (' + notFound.length + ' not found)' : '')
+    };
+  } catch(e) {
+    try { lock.releaseLock(); } catch(unlockErr) {}
+    Logger.log('bulkDeleteSeedlingOrders FATAL: ' + e.toString());
+    return { success: false, error: e.toString(), code: 'INTERNAL_ERROR' };
+  }
+}
+
+/**
+ * Move all currently-cancelled seedling orders to SEEDLING_ORDERS_ARCHIVE.
+ * Idempotent: safe to call multiple times.
+ */
+function archiveCancelledSeedlingOrders() {
+  var lock = LockService.getScriptLock();
+  try { lock.waitLock(30000); } catch(e) { return { success: false, error: 'System busy', code: 'LOCK_TIMEOUT' }; }
+
+  try {
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheet = ss.getSheetByName('SEEDLING_ORDERS');
+    if (!sheet) {
+      lock.releaseLock();
+      return { success: false, error: 'SEEDLING_ORDERS sheet not found', code: 'SHEET_NOT_FOUND' };
+    }
+
+    var data = sheet.getDataRange().getValues();
+    if (data.length < 2) {
+      lock.releaseLock();
+      return { success: true, archived: 0, message: 'No orders to archive' };
+    }
+
+    var headers = data[0];
+    var statusCol = -1, idCol = -1;
+    for (var h = 0; h < headers.length; h++) {
+      var hn = String(headers[h]).trim();
+      if (hn === 'Invoice_Status') statusCol = h;
+      if (hn === 'Order_ID') idCol = h;
+    }
+    if (statusCol < 0) {
+      lock.releaseLock();
+      return { success: false, error: 'Invoice_Status column not found', code: 'SCHEMA_ERROR' };
+    }
+
+    // Ensure archive sheet exists with proper headers
+    var archiveSheet = ss.getSheetByName('SEEDLING_ORDERS_ARCHIVE');
+    if (!archiveSheet) {
+      archiveSheet = ss.insertSheet('SEEDLING_ORDERS_ARCHIVE');
+      archiveSheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+      archiveSheet.getRange(1, headers.length + 1, 1, 2).setValues([['Archived_At', 'Archived_Reason']]);
+    }
+    var archiveHeaders = archiveSheet.getRange(1, 1, 1, archiveSheet.getLastColumn()).getValues()[0];
+
+    // Iterate descending to avoid shifts; collect rows to archive then delete
+    var archived = 0;
+    var nowIso = new Date().toISOString();
+    for (var i = data.length - 1; i >= 1; i--) {
+      var status = String(data[i][statusCol] || '').trim().toLowerCase();
+      if (status === 'cancelled') {
+        var srcRow = data[i];
+        var archiveRow = archiveHeaders.map(function(ah) {
+          if (ah === 'Archived_At') return nowIso;
+          if (ah === 'Archived_Reason') return 'Bulk archive (Cancelled)';
+          var srcIdx = headers.indexOf(ah);
+          return srcIdx >= 0 ? srcRow[srcIdx] : '';
+        });
+        archiveSheet.appendRow(archiveRow);
+        sheet.deleteRow(i + 1);
+        archived++;
+      }
+    }
+
+    lock.releaseLock();
+    Logger.log('[archiveCancelledSeedlingOrders] Archived ' + archived + ' rows');
+    return { success: true, archived: archived, message: 'Archived ' + archived + ' cancelled order(s)' };
+  } catch(e) {
+    try { lock.releaseLock(); } catch(unlockErr) {}
+    Logger.log('archiveCancelledSeedlingOrders FATAL: ' + e.toString());
+    return { success: false, error: e.toString(), code: 'INTERNAL_ERROR' };
+  }
+}
+
+/**
+ * Restore an archived seedling order back to SEEDLING_ORDERS (resets status to Pending).
+ * Requires params.orderId.
+ */
+function restoreArchivedSeedlingOrder(params) {
+  if (!params || !params.orderId) {
+    return { success: false, error: 'orderId is required', code: 'MISSING_FIELD' };
+  }
+  var lock = LockService.getScriptLock();
+  try { lock.waitLock(15000); } catch(e) { return { success: false, error: 'System busy', code: 'LOCK_TIMEOUT' }; }
+
+  try {
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var archiveSheet = ss.getSheetByName('SEEDLING_ORDERS_ARCHIVE');
+    var ordersSheet = ss.getSheetByName('SEEDLING_ORDERS');
+    if (!archiveSheet || !ordersSheet) {
+      lock.releaseLock();
+      return { success: false, error: 'Archive or orders sheet not found', code: 'SHEET_NOT_FOUND' };
+    }
+
+    var archData = archiveSheet.getDataRange().getValues();
+    if (archData.length < 2) {
+      lock.releaseLock();
+      return { success: false, error: 'Archive is empty', code: 'NOT_FOUND' };
+    }
+    var archHeaders = archData[0];
+    var archIdCol = archHeaders.indexOf('Order_ID');
+    var archStatusCol = archHeaders.indexOf('Invoice_Status');
+    if (archIdCol < 0) {
+      lock.releaseLock();
+      return { success: false, error: 'Order_ID column missing in archive', code: 'SCHEMA_ERROR' };
+    }
+
+    var ordersHeaders = ordersSheet.getRange(1, 1, 1, ordersSheet.getLastColumn()).getValues()[0];
+
+    for (var i = 1; i < archData.length; i++) {
+      if (String(archData[i][archIdCol]).trim() === String(params.orderId).trim()) {
+        var srcRow = archData[i];
+        // Build aligned row for live orders sheet (skip archive metadata)
+        var newRow = ordersHeaders.map(function(oh) {
+          if (oh === 'Invoice_Status') return 'Pending'; // reset on restore
+          var srcIdx = archHeaders.indexOf(oh);
+          return srcIdx >= 0 ? srcRow[srcIdx] : '';
+        });
+        ordersSheet.appendRow(newRow);
+        archiveSheet.deleteRow(i + 1);
+        lock.releaseLock();
+        Logger.log('[restoreArchivedSeedlingOrder] Restored ' + params.orderId);
+        return { success: true, message: 'Restored order ' + params.orderId + ' (status reset to Pending)' };
+      }
+    }
+
+    lock.releaseLock();
+    return { success: false, error: 'Order ' + params.orderId + ' not found in archive', code: 'NOT_FOUND' };
+  } catch(e) {
+    try { lock.releaseLock(); } catch(unlockErr) {}
+    Logger.log('restoreArchivedSeedlingOrder FATAL: ' + e.toString());
+    return { success: false, error: e.toString(), code: 'INTERNAL_ERROR' };
+  }
+}
+
+/**
+ * Get all archived seedling orders (for admin archive view).
+ */
+function getArchivedSeedlingOrders() {
+  try {
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheet = ss.getSheetByName('SEEDLING_ORDERS_ARCHIVE');
+    if (!sheet) {
+      return { success: true, orders: [], count: 0, message: 'Archive sheet does not yet exist' };
+    }
+    var data = sheet.getDataRange().getValues();
+    if (data.length < 2) {
+      return { success: true, orders: [], count: 0 };
+    }
+    var headers = data[0].map(function(h) { return String(h).trim(); });
+    var orders = [];
+    for (var i = 1; i < data.length; i++) {
+      var obj = {};
+      for (var j = 0; j < headers.length; j++) {
+        var v = data[i][j];
+        if (v instanceof Date) v = v.toISOString();
+        obj[headers[j]] = v;
+      }
+      orders.push(obj);
+    }
+    // Sort newest archive first
+    orders.sort(function(a, b) {
+      var aT = String(a.Archived_At || '');
+      var bT = String(b.Archived_At || '');
+      return bT.localeCompare(aT);
+    });
+    return { success: true, orders: orders, count: orders.length };
+  } catch(e) {
+    Logger.log('getArchivedSeedlingOrders FATAL: ' + e.toString());
     return { success: false, error: e.toString(), code: 'INTERNAL_ERROR' };
   }
 }

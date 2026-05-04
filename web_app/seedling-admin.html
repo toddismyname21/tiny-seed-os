@@ -1823,10 +1823,33 @@
                     <option value="Paid">Paid</option>
                     <option value="Pending">Pending</option>
                 </select>
+                <label style="display:inline-flex;align-items:center;gap:6px;font-size:0.85rem;color:var(--text-muted);cursor:pointer;margin-left:8px;">
+                    <input type="checkbox" id="ordShowArchive" onchange="toggleOrdersArchive()" style="cursor:pointer;">
+                    <i class="fas fa-archive"></i> Show Archive
+                </label>
             </div>
-            <div>
+            <div style="display:flex;gap:8px;">
+                <button class="btn btn-secondary" onclick="archiveAllCancelled()" title="Move all cancelled orders to archive">
+                    <i class="fas fa-archive"></i> Archive Cancelled
+                </button>
                 <button class="btn btn-secondary" onclick="loadOrders()">
                     <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+            </div>
+        </div>
+
+        <!-- Bulk Action Bar (shows when ≥1 row checked) -->
+        <div id="ordersBulkBar" style="display:none;background:#1e293b;border:1px solid #334155;border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:12px;justify-content:space-between;">
+            <div style="font-size:0.9rem;color:#cbd5e1;">
+                <i class="fas fa-check-square" style="color:#22c55e;"></i>
+                <strong id="ordersBulkCount">0</strong> selected
+            </div>
+            <div style="display:flex;gap:8px;">
+                <button class="btn btn-secondary" onclick="bulkSendReminders()" id="ordersBulkRemindBtn">
+                    <i class="fas fa-paper-plane"></i> Send Reminder to Selected
+                </button>
+                <button class="btn btn-danger" onclick="bulkDeleteSelected()" id="ordersBulkDeleteBtn">
+                    <i class="fas fa-trash"></i> Delete Selected
                 </button>
             </div>
         </div>
@@ -1836,6 +1859,9 @@
             <table>
                 <thead>
                     <tr>
+                        <th style="text-align:center;width:34px;">
+                            <input type="checkbox" id="ordersSelectAll" onchange="toggleSelectAllOrders()" title="Select all visible orders">
+                        </th>
                         <th>Order ID</th>
                         <th>Customer</th>
                         <th>Email</th>
@@ -1844,12 +1870,13 @@
                         <th style="text-align:center;">Items</th>
                         <th style="text-align:right;">Amount</th>
                         <th style="text-align:center;">Status</th>
+                        <th>Reminder</th>
                         <th>Ordered</th>
                         <th style="text-align:center;">Actions</th>
                     </tr>
                 </thead>
                 <tbody id="ordersTableBody">
-                    <tr><td colspan="10" style="text-align:center;padding:40px;"><i class="fas fa-spinner fa-spin"></i> Loading orders...</td></tr>
+                    <tr><td colspan="12" style="text-align:center;padding:40px;"><i class="fas fa-spinner fa-spin"></i> Loading orders...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -3702,8 +3729,14 @@ var allSalesItems = [];   // line-item rows from SEEDLING_SALES
 var ordersLoaded = false;
 
 function loadOrders() {
+    // Reset archive state on fresh load
+    if (typeof showingArchive !== 'undefined') showingArchive = false;
+    if (typeof allOrdersBackup !== 'undefined') allOrdersBackup = null;
+    var archCb = document.getElementById('ordShowArchive');
+    if (archCb) archCb.checked = false;
+
     var tbody = document.getElementById('ordersTableBody');
-    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;"><i class="fas fa-spinner fa-spin"></i> Loading orders...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;padding:40px;"><i class="fas fa-spinner fa-spin"></i> Loading orders...</td></tr>';
 
     Promise.all([
         fetch(TINY_SEED_API.MAIN_API + '?action=getSheetData&sheetName=SEEDLING_ORDERS').then(function(r) { return r.json(); }),
@@ -3726,7 +3759,7 @@ function loadOrders() {
         renderOrders();
         updateOrderStats();
     }).catch(function(err) {
-        tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--red);"><i class="fas fa-exclamation-triangle"></i> Failed to load orders: ' + escapeHtml(err.message) + '</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;padding:40px;color:var(--red);"><i class="fas fa-exclamation-triangle"></i> Failed to load orders: ' + escapeHtml(err.message) + '</td></tr>';
     });
 }
 
@@ -3815,15 +3848,50 @@ function normalizeStatus(s) {
 
 function filterOrders() { renderOrders(); }
 
+function formatReminderCell(o) {
+    var lastAt = o.Last_Reminder_At || o.last_reminder_at || '';
+    var count = Number(o.Reminder_Send_Count || o.reminder_send_count || 0);
+    var lastStatus = String(o.Last_Reminder_Status || o.last_reminder_status || '').trim();
+    if (!lastAt && count === 0) {
+        return '<span style="color:var(--text-muted);font-size:0.78rem;">Never sent</span>';
+    }
+    var when = '';
+    try {
+        var d = new Date(lastAt);
+        if (!isNaN(d.getTime())) {
+            when = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' ' +
+                   d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        }
+    } catch(e) {}
+    var icon, color;
+    if (/^Failed/i.test(lastStatus)) {
+        icon = '<i class="fas fa-exclamation-triangle" style="color:#dc2626;"></i>';
+        color = '#dc2626';
+    } else {
+        icon = '<i class="fas fa-check-circle" style="color:#16a34a;"></i>';
+        color = '#16a34a';
+    }
+    var titleAttr = lastStatus ? ' title="' + escapeHtml(lastStatus) + '"' : '';
+    return '<div style="font-size:0.78rem;color:' + color + ';white-space:nowrap;"' + titleAttr + '>' +
+           icon + ' ' + (when || 'Sent') +
+           (count > 1 ? ' <span style="color:var(--text-muted);">(' + count + 'x)</span>' : '') +
+           '</div>';
+}
+
 function renderOrders() {
     var tbody = document.getElementById('ordersTableBody');
     var filtered = getFilteredOrders();
 
+    // Update bulk bar visibility based on checked state (rebuild clears selection)
+    updateOrdersBulkBar();
+
     if (filtered.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;">' +
+        var emptyMsg = (typeof showingArchive !== 'undefined' && showingArchive) ? 'Archive is empty' : 'No orders found';
+        var emptyHint = (typeof showingArchive !== 'undefined' && showingArchive) ? 'Cancelled orders will appear here' : 'Try adjusting your filters';
+        tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;padding:40px;">' +
             '<i class="fas fa-inbox" style="font-size:2rem;color:var(--border);display:block;margin-bottom:12px;"></i>' +
-            '<div style="color:var(--text-muted);font-size:0.95rem;">No orders found</div>' +
-            '<div style="color:var(--text-muted);font-size:0.8rem;margin-top:4px;">Try adjusting your filters</div>' +
+            '<div style="color:var(--text-muted);font-size:0.95rem;">' + emptyMsg + '</div>' +
+            '<div style="color:var(--text-muted);font-size:0.8rem;margin-top:4px;">' + emptyHint + '</div>' +
             '</td></tr>';
         document.getElementById('ordersCount').textContent = '';
         return;
@@ -3836,6 +3904,8 @@ function renderOrders() {
         return db - da;
     });
 
+    var isArchive = (typeof showingArchive !== 'undefined' && showingArchive);
+
     var html = '';
     for (var i = 0; i < filtered.length; i++) {
         var o = filtered[i];
@@ -3846,7 +3916,13 @@ function renderOrders() {
         var dateStr = formatOrderDate(o.Date || o.date || '');
         var oid = escapeHtml(o.Order_ID || o.order_id || '');
 
-        html += '<tr>';
+        html += '<tr data-order-id="' + oid + '">';
+        // Checkbox cell (disabled in archive view)
+        if (isArchive) {
+            html += '<td style="text-align:center;color:var(--text-muted);"><i class="fas fa-archive" title="Archived"></i></td>';
+        } else {
+            html += '<td style="text-align:center;"><input type="checkbox" class="order-checkbox" data-order-id="' + oid + '" onchange="updateOrdersBulkBar()"></td>';
+        }
         html += '<td><a href="#" onclick="showOrderDetail(\'' + oid + '\');return false;" style="color:var(--green-dark);font-weight:600;text-decoration:none;cursor:pointer;">' + (oid || '--') + '</a></td>';
         html += '<td><a href="#" onclick="showOrderDetail(\'' + oid + '\');return false;" style="color:#1a1a1a;text-decoration:none;cursor:pointer;font-weight:500;">' + escapeHtml(o.Customer_Name || o.customer_name || '--') + '</a></td>';
         html += '<td style="font-size:0.82rem;">' + escapeHtml(o.Email || o.email || '--') + '</td>';
@@ -3855,22 +3931,34 @@ function renderOrders() {
         html += '<td style="text-align:center;font-weight:600;">' + totalItems + '</td>';
         html += '<td style="text-align:right;font-weight:700;">$' + totalAmt.toFixed(2) + '</td>';
         html += '<td style="text-align:center;"><span class="order-status-badge ' + statusClass + '">' + status + '</span></td>';
+        html += '<td>' + formatReminderCell(o) + '</td>';
         html += '<td style="font-size:0.82rem;white-space:nowrap;">' + escapeHtml(dateStr) + '</td>';
         html += '<td style="text-align:center;white-space:nowrap;">';
-        if (o.Email || o.email) {
-            html += '<a href="mailto:' + encodeURIComponent(o.Email || o.email) + '" class="btn-sm" title="Email customer" style="background:#3b82f6;color:#fff;text-decoration:none;display:inline-block;padding:4px 8px;border-radius:4px;font-size:0.75rem;"><i class="fas fa-envelope"></i></a> ';
-        }
-        if (status === 'Pending') {
-            html += '<button class="btn-sm cancel" onclick="cancelOrder(\'' + oid + '\')" title="Cancel order"><i class="fas fa-ban"></i> Cancel</button> ';
-        }
-        if (status === 'Cancelled') {
-            html += '<button class="btn-sm delete" onclick="deleteOrder(\'' + oid + '\')" title="Permanently delete order"><i class="fas fa-trash"></i> Delete</button>';
+        if (isArchive) {
+            html += '<button class="btn-sm" onclick="restoreOrder(\'' + oid + '\')" title="Restore order to active list" style="background:#16a34a;color:#fff;border:none;padding:4px 8px;border-radius:4px;font-size:0.75rem;cursor:pointer;"><i class="fas fa-undo"></i> Restore</button>';
+        } else {
+            if (o.Email || o.email) {
+                html += '<a href="mailto:' + encodeURIComponent(o.Email || o.email) + '" class="btn-sm" title="Email customer" style="background:#3b82f6;color:#fff;text-decoration:none;display:inline-block;padding:4px 8px;border-radius:4px;font-size:0.75rem;"><i class="fas fa-envelope"></i></a> ';
+            }
+            if (status === 'Pending') {
+                html += '<button class="btn-sm" onclick="sendReminderForOrder(\'' + oid + '\')" title="Send payment reminder email" style="background:#f59e0b;color:#fff;border:none;padding:4px 8px;border-radius:4px;font-size:0.75rem;cursor:pointer;"><i class="fas fa-paper-plane"></i> Remind</button> ';
+                html += '<button class="btn-sm cancel" onclick="cancelOrder(\'' + oid + '\')" title="Cancel order"><i class="fas fa-ban"></i> Cancel</button> ';
+            }
+            if (status === 'Cancelled') {
+                html += '<button class="btn-sm delete" onclick="deleteOrder(\'' + oid + '\')" title="Permanently delete order"><i class="fas fa-trash"></i> Delete</button>';
+            }
         }
         html += '</td>';
         html += '</tr>';
     }
     tbody.innerHTML = html;
-    document.getElementById('ordersCount').textContent = 'Showing ' + filtered.length + ' of ' + allOrders.length + ' orders';
+    var totalSource = isArchive ? (typeof archivedOrders !== 'undefined' ? archivedOrders.length : filtered.length) : allOrders.length;
+    var label = isArchive ? 'archived orders' : 'orders';
+    document.getElementById('ordersCount').textContent = 'Showing ' + filtered.length + ' of ' + totalSource + ' ' + label;
+
+    // Reset Select All checkbox
+    var sa = document.getElementById('ordersSelectAll');
+    if (sa) sa.checked = false;
 }
 
 function formatOrderDate(d) {
@@ -4121,6 +4209,233 @@ function sendPaymentReminders() {
 
 function closeReminderModal() {
     document.getElementById('reminderModal').classList.remove('active');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// BULK ORDER OPERATIONS + ARCHIVE (2026-05-04)
+// ═══════════════════════════════════════════════════════════════
+
+var showingArchive = false;
+var archivedOrders = [];
+var allOrdersBackup = null;
+
+function getCheckedOrderIds() {
+    var ids = [];
+    var boxes = document.querySelectorAll('.order-checkbox:checked');
+    for (var i = 0; i < boxes.length; i++) {
+        var id = boxes[i].getAttribute('data-order-id');
+        if (id) ids.push(id);
+    }
+    return ids;
+}
+
+function toggleSelectAllOrders() {
+    var sa = document.getElementById('ordersSelectAll');
+    var boxes = document.querySelectorAll('.order-checkbox');
+    for (var i = 0; i < boxes.length; i++) {
+        boxes[i].checked = !!(sa && sa.checked);
+    }
+    updateOrdersBulkBar();
+}
+
+function updateOrdersBulkBar() {
+    var bar = document.getElementById('ordersBulkBar');
+    if (!bar) return;
+    var ids = getCheckedOrderIds();
+    if (ids.length === 0) {
+        bar.style.display = 'none';
+    } else {
+        bar.style.display = 'flex';
+        var c = document.getElementById('ordersBulkCount');
+        if (c) c.textContent = ids.length;
+    }
+}
+
+function bulkDeleteSelected() {
+    var ids = getCheckedOrderIds();
+    if (ids.length === 0) { alert('No orders selected'); return; }
+    if (!confirm('PERMANENTLY DELETE ' + ids.length + ' order' + (ids.length !== 1 ? 's' : '') + '?\n\nThis removes them from SEEDLING_ORDERS and SEEDLING_SALES. Cannot be undone.\n\nUse "Archive Cancelled" instead if you want a recoverable option.')) return;
+
+    var btn = document.getElementById('ordersBulkDeleteBtn');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...'; }
+
+    fetch(TINY_SEED_API.MAIN_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({ action: 'bulkDeleteSeedlingOrders', orderIds: ids })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
+        if (res.success) {
+            alert('Deleted ' + res.ordersDeleted + ' order(s) and ' + res.salesDeleted + ' sale row(s)' +
+                  (res.notFound && res.notFound.length > 0 ? '\n\n' + res.notFound.length + ' not found: ' + res.notFound.join(', ') : ''));
+            loadOrders();
+        } else {
+            alert('Bulk delete failed: ' + (res.error || 'Unknown error'));
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-trash"></i> Delete Selected'; }
+        }
+    })
+    .catch(function(err) {
+        alert('Network error: ' + err.message);
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-trash"></i> Delete Selected'; }
+    });
+}
+
+function bulkSendReminders() {
+    var ids = getCheckedOrderIds();
+    if (ids.length === 0) { alert('No orders selected'); return; }
+    if (!confirm('Send payment reminder email to ' + ids.length + ' selected order' + (ids.length !== 1 ? 's' : '') + '?\n\nOnly orders with status=Pending will receive emails.')) return;
+
+    var btn = document.getElementById('ordersBulkRemindBtn');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...'; }
+
+    fetch(TINY_SEED_API.MAIN_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({ action: 'sendSeedlingPaymentReminders', dryRun: 'false', orderIds: ids })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
+        if (res.success) {
+            var msg = '✅ Sent: ' + res.sent + '   Skipped: ' + res.skipped;
+            if (res.errors && res.errors.length > 0) {
+                msg += '\n\n❌ Errors (' + res.errors.length + '):\n' + res.errors.join('\n');
+            }
+            alert(msg);
+            loadOrders();
+        } else {
+            alert('Send failed: ' + (res.error || 'Unknown error'));
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Reminder to Selected'; }
+        }
+    })
+    .catch(function(err) {
+        alert('Network error: ' + err.message);
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Reminder to Selected'; }
+    });
+}
+
+function sendReminderForOrder(orderId) {
+    if (!orderId) return;
+    if (!confirm('Send payment reminder email to ' + orderId + '?')) return;
+
+    fetch(TINY_SEED_API.MAIN_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({ action: 'sendSeedlingPaymentReminders', dryRun: 'false', orderIds: [orderId] })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
+        if (res.success && res.sent > 0) {
+            var firstResult = (res.results && res.results[0]) || {};
+            var sentAt = firstResult.sentAt ? new Date(firstResult.sentAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'just now';
+            alert('✅ Confirmed sent to ' + (firstResult.email || orderId) + '\n\n' + sentAt);
+            loadOrders();
+        } else if (res.success && res.sent === 0) {
+            var errMsg = (res.errors && res.errors.length > 0) ? res.errors.join('\n') : 'Order may not be Pending status, or has no email.';
+            alert('❌ Not sent.\n\n' + errMsg);
+        } else {
+            alert('❌ Failed: ' + (res.error || 'Unknown error'));
+        }
+    })
+    .catch(function(err) {
+        alert('Network error: ' + err.message);
+    });
+}
+
+function archiveAllCancelled() {
+    if (!confirm('Move all currently-cancelled orders to the archive?\n\nThey can be restored later from the Archive view.')) return;
+
+    fetch(TINY_SEED_API.MAIN_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({ action: 'archiveCancelledSeedlingOrders' })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
+        if (res.success) {
+            alert('Archived ' + res.archived + ' cancelled order(s)');
+            loadOrders();
+        } else {
+            alert('Archive failed: ' + (res.error || 'Unknown error'));
+        }
+    })
+    .catch(function(err) {
+        alert('Network error: ' + err.message);
+    });
+}
+
+function toggleOrdersArchive() {
+    var cb = document.getElementById('ordShowArchive');
+    showingArchive = !!(cb && cb.checked);
+
+    if (showingArchive) {
+        // Save current orders, swap in archive
+        if (allOrdersBackup === null) allOrdersBackup = allOrders;
+        var tbody = document.getElementById('ordersTableBody');
+        tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;padding:40px;"><i class="fas fa-spinner fa-spin"></i> Loading archive...</td></tr>';
+
+        fetch(TINY_SEED_API.MAIN_API + '?action=getArchivedSeedlingOrders')
+            .then(function(r) { return r.json(); })
+            .then(function(res) {
+                if (res.success) {
+                    archivedOrders = res.orders || [];
+                    allOrders = archivedOrders; // swap so existing render/filter functions work
+                    renderOrders();
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;padding:40px;color:var(--red);">Failed to load archive: ' + escapeHtml(res.error || 'Unknown error') + '</td></tr>';
+                }
+            })
+            .catch(function(err) {
+                tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;padding:40px;color:var(--red);">Network error: ' + escapeHtml(err.message) + '</td></tr>';
+            });
+    } else {
+        // Restore live orders
+        if (allOrdersBackup !== null) {
+            allOrders = allOrdersBackup;
+            allOrdersBackup = null;
+        } else {
+            loadOrders();
+            return;
+        }
+        renderOrders();
+    }
+}
+
+function restoreOrder(orderId) {
+    if (!orderId) return;
+    if (!confirm('Restore order ' + orderId + ' from archive?\n\nIt will return to the active orders list with status=Pending.')) return;
+
+    fetch(TINY_SEED_API.MAIN_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({ action: 'restoreArchivedSeedlingOrder', orderId: orderId })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
+        if (res.success) {
+            alert(res.message || ('Restored ' + orderId));
+            // Re-fetch archive contents in place (still showing archive view)
+            var cb = document.getElementById('ordShowArchive');
+            if (cb && cb.checked) {
+                fetch(TINY_SEED_API.MAIN_API + '?action=getArchivedSeedlingOrders')
+                    .then(function(r) { return r.json(); })
+                    .then(function(res2) {
+                        if (res2.success) {
+                            archivedOrders = res2.orders || [];
+                            allOrders = archivedOrders;
+                            renderOrders();
+                        }
+                    });
+            } else {
+                loadOrders();
+            }
+        } else {
+            alert('Restore failed: ' + (res.error || 'Unknown error'));
+        }
+    })
+    .catch(function(err) {
+        alert('Network error: ' + err.message);
+    });
 }
 
 function cancelOrder(orderId) {

@@ -6,6 +6,28 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-05-04] Seedling Admin — Bulk Delete + Per-Order Reminder Confirmation + Auto-Archive
+- Files: apps_script/MERGED TOTAL.js, web_app/seedling-admin.html
+- Role: PM_ARCHITECT (user-authorized direct edits — fullstack-builder repeatedly refused via auto-injected malware reminder; user authorized PM to proceed)
+- Status: Complete (pending live deploy)
+- Why: User reported (1) duplicate orders piling up from glitchy Shopify checkout, (2) reminder emails sent but no record of who got them or whether send actually succeeded — "That is going to KILL US. We need them to pay!!", (3) cancelled orders cluttering the active orders view.
+- Backend changes (`apps_script/MERGED TOTAL.js`):
+  - `sendSeedlingPaymentReminders` (line 137436): Added auto-migration for 3 new columns on SEEDLING_ORDERS (`Last_Reminder_At`, `Reminder_Send_Count`, `Last_Reminder_Status`). Added optional `params.orderIds[]` filter for per-row / bulk-selected sends. After every Gmail send, writes ISO timestamp + increments send count + writes 'Sent' or 'Failed: <reason>' status back to the sheet — gives Todd auditable confirmation per order.
+  - `cancelSeedlingOrder` (line 137613): Now auto-creates SEEDLING_ORDERS_ARCHIVE sheet (with `Archived_At`, `Archived_Reason` metadata columns), copies the cancelled row in (header-aligned), and removes from live sheet. Falls back gracefully if archive operation fails (cancel still succeeds).
+  - `bulkDeleteSeedlingOrders` (NEW, line 137718): Accepts `orderIds[]`, descending-iterates SEEDLING_ORDERS + SEEDLING_SALES to remove all matches in one LockService transaction. Returns counts + notFound list.
+  - `archiveCancelledSeedlingOrders` (NEW, line 137807): One-click bulk move of all currently-cancelled rows into SEEDLING_ORDERS_ARCHIVE. Idempotent.
+  - `restoreArchivedSeedlingOrder` (NEW, line 137879): Move row back from archive to live SEEDLING_ORDERS, status reset to Pending, header-aligned.
+  - `getArchivedSeedlingOrders` (NEW, line 137939): Returns archive contents sorted newest-first for admin viewer.
+  - Routing: 4 new actions registered in PUBLIC_GET_ACTIONS / PUBLIC_POST_ACTIONS whitelists and dispatcher switches.
+- Frontend changes (`web_app/seedling-admin.html`):
+  - Orders table gained checkbox column (Select All header + per-row), new "Reminder" status column showing last-sent timestamp + send count + colored ✓/✗ icon.
+  - New bulk-action bar (appears when ≥1 row checked): "Send Reminder to Selected" + "Delete Selected" buttons.
+  - Toolbar: new "Archive Cancelled" button (one-click bulk archive) + "Show Archive" toggle that swaps the orders table for the archive view.
+  - Archive view: rows show 📁 icon instead of checkbox; per-row "Restore" button to bring back to active list.
+  - Per-row "Remind" button on Pending orders → confirmation modal showing actual sent timestamp (`✅ Confirmed sent to email@x.com — May 4, 2:14pm`) or failure detail (`❌ Failed: <reason>`).
+  - All bulk + per-row reminder calls pipe through `sendSeedlingPaymentReminders` with `orderIds[]` filter, so the same write-back logic guarantees confirmation tracking.
+- Verification needed (post-deploy): bulk delete duplicates, per-order reminder writes timestamp to sheet, archive toggle works, restore round-trips correctly.
+
 ## [2026-05-04] Fix Overdue Plantings Truncation — Recent Missed Sowings Were Hidden
 - File: apps_script/MERGED TOTAL.js (function `getOverduePlantings`, line ~3771)
 - Role: PM_ARCHITECT (user-authorized direct fix)
