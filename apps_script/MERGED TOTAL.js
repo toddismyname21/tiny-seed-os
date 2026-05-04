@@ -3768,7 +3768,11 @@ function getOverduePlantings() {
     return {
       success: true,
       count: overdue.length,
-      tasks: overdue.slice(0, 50), // Limit to 50 items
+      // Return all overdue items (max 1000 safety cap). Previous 50-item cap
+      // hid recent missed sowings behind months-old backlog because items are
+      // sorted by most-overdue-first. With a 90-day overdue window already
+      // applied above, this is bounded by realistic planting volume.
+      tasks: overdue.slice(0, 1000),
       summary: {
         totalTrays: totalTrays,
         traysBySize: traysBySize,

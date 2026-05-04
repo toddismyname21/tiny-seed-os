@@ -6,6 +6,20 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-05-04] Fix Overdue Plantings Truncation — Recent Missed Sowings Were Hidden
+- File: apps_script/MERGED TOTAL.js (function `getOverduePlantings`, line ~3771)
+- Role: PM_ARCHITECT (user-authorized direct fix)
+- Status: Complete
+- Why: User reported that a salanova GH sowing missed last week (planned 2026-05-03, batches 26-LET-0602 / 26-LET-55341 / 26-LET-76171) was not appearing in sowing-sheets.html overdue view. Diagnosis showed backend has 314 overdue tasks but `slice(0, 50)` cap returned only the top 50 most-overdue items (Feb–March backlog). Recent overdue items (1–10 days) were ranked ~280+ and silently dropped.
+- Cross-system impact discovered:
+  - sowing-sheets.html `loadOverdueTasks()` (line 1185) — missing 264 items
+  - web_app/task-assignment.html (line 1180) — same data loss
+  - apps_script/MERGED TOTAL.js `generateTasksFromPlanning()` (line 3934) — only seeded 50 items into TASKS_2026 sheet
+  - Any TASKS_2026 consumer (manager-dashboard, employee.html, index.html dashboard, chief-of-staff) — inherited truncated dataset
+- Change: `slice(0, 50)` → `slice(0, 1000)` with explanatory comment. Already bounded above by `maxOverdueDays = 90`, so realistic planting volume cannot exceed this cap.
+- Verification: Live API returned 314 → 314 tasks. Salanova batches 26-LET-0602 / 26-LET-55341 / 26-LET-76171 now present in response.
+- Follow-up: Trays_Needed = 0 on the 3 missed salanova rows — user must populate tray counts before sowing.
+
 ## [2026-05-02] Sync Seedling Pot Tag Preview to Match Print Output
 - File: labels.html
 - Role: PM_ARCHITECT (user-authorized direct edit)
