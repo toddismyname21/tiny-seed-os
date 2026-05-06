@@ -156,6 +156,45 @@
         #csaBoxPreviewGrid .cbl-share { font-size: 11pt; font-weight: 500; color: #2a9d8f; margin-top: 4pt; text-transform: uppercase; letter-spacing: 1px; }
         #csaBoxPreviewGrid .cbl-footer { font-size: 9pt; color: #888; margin-top: auto; padding-top: 8pt; }
 
+        /* Sale Sign on-screen preview (scaled). Print is in separate window. */
+        #saleSignPreviewGrid { padding: 1rem; display: flex; flex-direction: column; gap: 1.5rem; align-items: center; }
+        #saleSignPreviewGrid .sale-sign {
+            width: 8.5in; height: 5.5in;
+            background: #fff; color: #0a0a0a;
+            display: grid; grid-template-columns: 1.55fr 1fr;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+            transform: scale(0.55); transform-origin: top center;
+            margin-bottom: -2.5in;
+            font-family: Inter, -apple-system, sans-serif;
+            overflow: hidden;
+        }
+        .sale-sign.cat-veg { --ss-accent: #16a34a; }
+        .sale-sign.cat-flower { --ss-accent: #d97706; }
+        .sale-sign.cat-herb { --ss-accent: #2a9d8f; }
+        .sale-sign.cat-other { --ss-accent: #475569; }
+        .sale-sign .ss-left { padding: 0.4in; display: flex; flex-direction: column; justify-content: space-between; border-right: 3px solid var(--ss-accent); }
+        .sale-sign .ss-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 0.15in; border-bottom: 2px solid #e5e5e5; }
+        .sale-sign .ss-farm { font-family: 'Barlow Condensed', Inter, sans-serif; font-weight: 800; font-size: 18pt; text-transform: uppercase; letter-spacing: 1px; color: var(--ss-accent); }
+        .sale-sign .ss-farm .seed { color: #0a0a0a; }
+        .sale-sign .ss-organic { background: var(--ss-accent); color: #fff; font-size: 8.5pt; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; padding: 4pt 10pt; border-radius: 100px; white-space: nowrap; }
+        .sale-sign .ss-main { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 0.1in 0; }
+        .sale-sign .ss-crop { font-size: 12pt; font-weight: 600; text-transform: uppercase; letter-spacing: 4px; color: var(--ss-accent); margin-bottom: 4pt; }
+        .sale-sign .ss-variety { font-family: 'Barlow Condensed', Inter, sans-serif; font-weight: 900; font-size: 56pt; line-height: 0.95; letter-spacing: -1px; color: #0a0a0a; margin-bottom: 8pt; }
+        .sale-sign .ss-variety.short { font-size: 64pt; }
+        .sale-sign .ss-variety.long { font-size: 40pt; }
+        .sale-sign .ss-tagline { font-size: 10pt; line-height: 1.4; color: #444; font-style: italic; max-width: 4.4in; }
+        .sale-sign .ss-footer { display: flex; justify-content: space-between; font-size: 9pt; color: #888; padding-top: 0.12in; border-top: 1px solid #e5e5e5; }
+        .sale-sign .ss-right { background: var(--ss-accent); color: #fff; padding: 0.4in 0.35in; display: flex; flex-direction: column; justify-content: center; text-align: center; }
+        .sale-sign .ss-price-label { font-size: 11pt; font-weight: 600; text-transform: uppercase; letter-spacing: 3px; opacity: 0.85; margin-bottom: 4pt; }
+        .sale-sign .ss-price { font-family: 'Barlow Condensed', Inter, sans-serif; font-weight: 900; font-size: 110pt; line-height: 0.85; letter-spacing: -2px; }
+        .sale-sign .ss-price .dollar { font-size: 56pt; vertical-align: top; line-height: 1; }
+        .sale-sign .ss-specs { margin-top: 0.25in; border-top: 2px solid rgba(255,255,255,0.25); padding-top: 0.18in; display: grid; gap: 8pt; }
+        .sale-sign .ss-specs.cols-1 { grid-template-columns: 1fr; }
+        .sale-sign .ss-specs.cols-2 { grid-template-columns: 1fr 1fr; }
+        .sale-sign .ss-spec { display: flex; flex-direction: column; align-items: center; }
+        .sale-sign .ss-spec-label { font-size: 7.5pt; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; opacity: 0.8; margin-bottom: 2pt; }
+        .sale-sign .ss-spec-value { font-family: 'Barlow Condensed', Inter, sans-serif; font-weight: 700; font-size: 18pt; line-height: 1; }
+
         .panel-title {
             font-size: 1rem;
             font-weight: 600;
@@ -1121,6 +1160,9 @@
                     <button class="type-btn" id="btnCSABoxLabels" onclick="switchLabelType('csaBox')" style="grid-column:1/-1;background:linear-gradient(135deg,rgba(244,162,97,0.18),rgba(231,111,81,0.18));border-color:rgba(244,162,97,0.45);color:#fbbf77;">
                         <i class="fas fa-box-open"></i> CSA Box Labels
                     </button>
+                    <button class="type-btn" id="btnSaleSignLabels" onclick="switchLabelType('saleSign')" style="grid-column:1/-1;background:linear-gradient(135deg,rgba(168,85,247,0.18),rgba(124,58,237,0.18));border-color:rgba(168,85,247,0.45);color:#c4b5fd;">
+                        <i class="fas fa-sign-hanging"></i> Sale Signs (Half-Sheet)
+                    </button>
                 </div>
                 <div class="label-type-desc" id="labelTypeDesc">
                     <strong>2.5" x 0.75"</strong> — Standard printer, clips to tray lip
@@ -1389,6 +1431,42 @@
                 </button>
                 <p style="font-size:0.7rem;color:var(--text-secondary);margin-top:4px;">All stops in route order with addresses, phones & checkboxes.</p>
                 <p id="csaBoxStatusMsg" style="font-size:0.8rem;color:var(--text-secondary);margin-top:8px;"></p>
+            </div>
+
+            <!-- Sale Sign Filters -->
+            <div class="panel-section" id="saleSignFilters" style="display:none;">
+                <h3 class="panel-title"><i class="fas fa-sign-hanging"></i> Sale Signs</h3>
+                <p style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:12px;">Half-sheet (8.5" × 5.5") laminate-ready signs for the seedling sale. 2 per letter sheet. Color-coded by category.</p>
+
+                <div class="form-group">
+                    <label>Status</label>
+                    <select class="form-control" id="saleSignStatus" onchange="renderSaleSignPreview()">
+                        <option value="SeededActive" selected>Seeded + Active (sale items)</option>
+                        <option value="Active">Active only</option>
+                        <option value="Seeded">Seeded only</option>
+                        <option value="">All Statuses</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Category</label>
+                    <select class="form-control" id="saleSignCategory" onchange="renderSaleSignPreview()">
+                        <option value="">All Categories</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Search</label>
+                    <input type="text" class="form-control" id="saleSignSearch" placeholder="crop or variety..." oninput="renderSaleSignPreview()">
+                </div>
+
+                <button class="btn btn-primary btn-block" onclick="loadSaleSignItems()">
+                    <i class="fas fa-sync"></i> Load / Refresh Items
+                </button>
+                <button class="btn btn-primary btn-block" onclick="printSaleSigns()" style="margin-top:8px;background:linear-gradient(135deg,#a855f7,#7c3aed);">
+                    <i class="fas fa-print"></i> Print Sale Signs
+                </button>
+                <p id="saleSignStatusMsg" style="font-size:0.8rem;color:var(--text-secondary);margin-top:8px;"></p>
             </div>
 
             <div class="panel-section" id="seedFilters" style="display: none;">
@@ -2214,6 +2292,11 @@
                 printCSABoxesNow();
                 return;
             }
+            // Route Sale Signs to their own dedicated print window
+            if (currentLabelType === 'saleSign') {
+                printSaleSigns();
+                return;
+            }
             console.log('openPrintPreview called, selectedLabels.size:', selectedLabels.size, 'labels.length:', labels.length);
 
             if (selectedLabels.size === 0) {
@@ -2522,6 +2605,8 @@
             document.getElementById('btnWholesaleOrganicLabels').classList.toggle('active', type === 'wholesaleOrganic');
             var btnCSA = document.getElementById('btnCSABoxLabels');
             if (btnCSA) btnCSA.classList.toggle('active', type === 'csaBox');
+            var btnSaleSign = document.getElementById('btnSaleSignLabels');
+            if (btnSaleSign) btnSaleSign.classList.toggle('active', type === 'saleSign');
 
             // Show/hide filter sections — pot tags and field tray use same seedings filters
             const usesSeedings = (type === 'greenhouse' || type === 'potTag' || type === 'fieldTray');
@@ -2534,6 +2619,8 @@
             document.getElementById('wholesaleOrganicFilters').style.display = type === 'wholesaleOrganic' ? 'block' : 'none';
             var csaPanel = document.getElementById('csaBoxFilters');
             if (csaPanel) csaPanel.style.display = type === 'csaBox' ? 'block' : 'none';
+            var saleSignPanel = document.getElementById('saleSignFilters');
+            if (saleSignPanel) saleSignPanel.style.display = type === 'saleSign' ? 'block' : 'none';
 
             // Show/hide label options based on type
             document.getElementById('labelsPerTrayGroup').style.display = (type === 'greenhouse' || type === 'fieldTray') ? 'block' : 'none';
@@ -2541,7 +2628,7 @@
             document.getElementById('potTagCustomGroup').style.display = type === 'potTag' ? 'block' : 'none';
 
             // Update list title
-            const titles = { greenhouse: 'Available Seedings', potTag: 'Available Seedings', fieldTray: 'Available Seedings', seed: 'Available Seed Lots', soilSample: 'Soil Sample Labels', inventory: 'Inventory Items', seedlingSale: 'Seedling Sale Tags', pottingUp: 'Potting Up Labels', wholesaleOrganic: 'Wholesale Organic Labels', csaBox: 'CSA Box Labels' };
+            const titles = { greenhouse: 'Available Seedings', potTag: 'Available Seedings', fieldTray: 'Available Seedings', seed: 'Available Seed Lots', soilSample: 'Soil Sample Labels', inventory: 'Inventory Items', seedlingSale: 'Seedling Sale Tags', pottingUp: 'Potting Up Labels', wholesaleOrganic: 'Wholesale Organic Labels', csaBox: 'CSA Box Labels', saleSign: 'Seedling Sale Signs' };
             document.getElementById('listTitle').textContent = titles[type] || 'Available Items';
 
             // Update type description
@@ -2555,7 +2642,8 @@
                 seedlingSale: '<strong>1" x 4"</strong> — ZX5141T pot tags, type any crop &amp; quantity',
                 pottingUp: '<strong>1" x 4"</strong> — Same pot tags with tracking info carried forward from original seeding',
                 wholesaleOrganic: '<strong>1" x 4"</strong> — OEFFA/NOP organic container labels with lot number for audit trail',
-                csaBox: '<strong>4" x 3.33"</strong> — PLS-375MW, 6 per letter sheet. Driver-first stop label for CSA boxes.'
+                csaBox: '<strong>4" x 3.33"</strong> — PLS-375MW, 6 per letter sheet. Driver-first stop label for CSA boxes.',
+                saleSign: '<strong>8.5" x 5.5"</strong> — Half-letter, 2 per sheet. Laminate-ready table signs for seedling sale.'
             };
             document.getElementById('labelTypeDesc').innerHTML = descs[type] || '';
 
@@ -2570,7 +2658,8 @@
                 seedlingSale: 'Pot tags for UL-247 printer (1" x 4" ZX5141T) — no planning data needed',
                 pottingUp: 'Pot tags with original batch tracking for potted-up trays',
                 wholesaleOrganic: 'Organic container labels for UL-247 printer (1" x 4" ZX5141T) — OEFFA/NOP compliant',
-                csaBox: 'CSA box labels — PLS-375MW (4" × 3.33", 6 per sheet). Pickup stop on top, customer name below.'
+                csaBox: 'CSA box labels — PLS-375MW (4" × 3.33", 6 per sheet). Pickup stop on top, customer name below.',
+                saleSign: 'Seedling sale signs — half-letter (8.5" × 5.5", 2 per sheet). Variety, price, and growing info for laminating.'
             };
             document.getElementById('previewSubtitle').textContent = subtitles[type] || '';
 
@@ -2585,14 +2674,15 @@
             // Preload pot tag images when that type is selected
             if (type === 'potTag') preloadPotTagImages(null);
 
-            // Soil sample, inventory, seedling sale, potting up, wholesale organic, and CSA box types manage their own rendering
-            if (type === 'soilSample' || type === 'inventory' || type === 'seedlingSale' || type === 'pottingUp' || type === 'wholesaleOrganic' || type === 'csaBox') {
+            // Soil sample, inventory, seedling sale, potting up, wholesale organic, CSA box, and Sale Sign types manage their own rendering
+            if (type === 'soilSample' || type === 'inventory' || type === 'seedlingSale' || type === 'pottingUp' || type === 'wholesaleOrganic' || type === 'csaBox' || type === 'saleSign') {
                 if (type === 'soilSample') loadSoilSampleLabels();
                 if (type === 'inventory') loadInventoryLabels();
                 if (type === 'seedlingSale') preloadPotTagImages(null);
                 if (type === 'pottingUp') { preloadPotTagImages(null); loadPottingUpBatches(); }
                 if (type === 'wholesaleOrganic') preloadPotTagImages(null);
                 if (type === 'csaBox') loadCSABoxLabels();
+                if (type === 'saleSign') loadSaleSignItems();
                 return;
             }
 
@@ -5237,6 +5327,199 @@
             w.document.close();
             w.addEventListener('load', function() { setTimeout(function() { try { w.print(); } catch(e){} }, 400); });
             showToast('Driver manifest: ' + totalBoxes + ' boxes / ' + stops.length + ' stops — print dialog opening');
+        }
+
+        // ============================================================
+        // SALE SIGNS — Half-letter (8.5" x 5.5", 2 per sheet) for Friday Seedling Sale
+        // ============================================================
+        var saleSignItemsCache = [];
+
+        function categoryColorClass(cat) {
+            const c = (cat || '').toLowerCase();
+            if (c.indexOf('flower') >= 0) return 'cat-flower';
+            if (c.indexOf('herb') >= 0) return 'cat-herb';
+            if (c.indexOf('vegetable') >= 0 || c.indexOf('veg') >= 0 || c.indexOf('tomato') >= 0 || c.indexOf('pepper') >= 0) return 'cat-veg';
+            return 'cat-other';
+        }
+
+        function loadSaleSignItems() {
+            const container = document.getElementById('labelsContainer');
+            if (container) container.innerHTML = '<div style="padding:40px;text-align:center;color:#64748b;">Loading seedling sale items...</div>';
+
+            fetch(API_URL + '?action=getSeedlingProductionPlan')
+                .then(r => r.json())
+                .then(resp => {
+                    const all = (resp && resp.success && Array.isArray(resp.data)) ? resp.data : [];
+                    // Default sale set: Status === 'Seeded' OR 'Active' (per Todd: "every item seeded for the sale")
+                    saleSignItemsCache = all;
+
+                    // Populate category dropdown
+                    const cats = {};
+                    all.forEach(it => { const c = it.Category || ''; if (c) cats[c] = true; });
+                    const sel = document.getElementById('saleSignCategory');
+                    if (sel) {
+                        const cur = sel.value;
+                        sel.innerHTML = '<option value="">All Categories</option>' +
+                            Object.keys(cats).sort().map(c => '<option value="' + escapeHtml(c) + '">' + escapeHtml(c) + '</option>').join('');
+                        sel.value = cur || '';
+                    }
+
+                    renderSaleSignPreview();
+                    showToast('Loaded ' + all.length + ' seedling items');
+                })
+                .catch(err => {
+                    console.error('loadSaleSignItems error', err);
+                    if (container) container.innerHTML = '<div style="padding:40px;text-align:center;color:#dc2626;">Failed to load seedling items</div>';
+                    showToast('Failed to load seedling items');
+                });
+        }
+
+        function getFilteredSaleSignItems() {
+            const statusEl = document.getElementById('saleSignStatus');
+            const catEl = document.getElementById('saleSignCategory');
+            const searchEl = document.getElementById('saleSignSearch');
+            const status = statusEl ? statusEl.value : 'SeededActive';
+            const cat = catEl ? (catEl.value || '').toLowerCase() : '';
+            const search = searchEl ? (searchEl.value || '').toLowerCase().trim() : '';
+
+            return saleSignItemsCache.filter(it => {
+                const s = (it.Status || '').toLowerCase();
+                if (status === 'SeededActive') {
+                    if (s !== 'seeded' && s !== 'active') return false;
+                } else if (status && status !== 'All') {
+                    if (s !== status.toLowerCase()) return false;
+                }
+                if (cat) {
+                    const ic = (it.Category || '').toLowerCase();
+                    if (ic !== cat) return false;
+                }
+                if (search) {
+                    const hay = ((it.Crop || '') + ' ' + (it.Variety || '') + ' ' + (it.Description || '')).toLowerCase();
+                    if (hay.indexOf(search) < 0) return false;
+                }
+                return true;
+            });
+        }
+
+        function buildSaleSignHTML(item) {
+            const crop = (item.Crop || '').trim();
+            const variety = (item.Variety || '').trim();
+            const price = item.Price_Each || item.Price || '';
+            const dtm = item.Days_to_Maturity || '';
+            const sun = item.Sun_Requirements || '';
+            const diff = item.Difficulty || '';
+            const desc = (item.Description || '').trim();
+            const tips = (item.Growing_Tips || '').trim();
+            const colorCls = categoryColorClass(item.Category);
+
+            // Variety size class
+            let vClass = '';
+            if (variety.length <= 8) vClass = 'short';
+            else if (variety.length >= 18) vClass = 'long';
+
+            // Build spec cells (only those populated)
+            const specs = [];
+            if (dtm) specs.push({ label: 'Days', value: String(dtm) + 'd' });
+            if (sun) specs.push({ label: 'Sun', value: sun });
+            if (diff) specs.push({ label: 'Level', value: diff });
+            specs.push({ label: 'Pot', value: '3"' }); // hardcoded per Todd: ALL are 3" pots
+            const colsCls = specs.length === 1 ? 'cols-1' : 'cols-2';
+            const specsHtml = specs.map(s =>
+                '<div class="ss-spec-cell"><div class="ss-spec-label">' + escapeHtml(s.label) + '</div><div class="ss-spec-value">' + escapeHtml(s.value) + '</div></div>'
+            ).join('');
+
+            // Tagline = description (truncated to ~120 chars for layout)
+            let tagline = desc;
+            if (!tagline && tips) tagline = tips;
+            if (tagline.length > 140) tagline = tagline.substring(0, 137).replace(/[,;]\s*$/, '') + '…';
+
+            return '<div class="sale-sign ' + colorCls + '">' +
+                '<div class="ss-header">' +
+                    '<div class="ss-farm">TINY SEED FARM</div>' +
+                    '<div class="ss-organic">CERTIFIED ORGANIC</div>' +
+                '</div>' +
+                '<div class="ss-body">' +
+                    '<div class="ss-crop">' + escapeHtml(crop) + '</div>' +
+                    '<div class="ss-variety ' + vClass + '">' + escapeHtml(variety) + '</div>' +
+                    (tagline ? '<div class="ss-tagline">' + escapeHtml(tagline) + '</div>' : '') +
+                '</div>' +
+                '<div class="ss-footer">' +
+                    '<div class="ss-price">$' + escapeHtml(String(price)) + '</div>' +
+                    '<div class="ss-specs ' + colsCls + '">' + specsHtml + '</div>' +
+                '</div>' +
+            '</div>';
+        }
+
+        function renderSaleSignPreview() {
+            const list = getFilteredSaleSignItems();
+            const container = document.getElementById('labelsContainer');
+            if (!container) return;
+            if (list.length === 0) {
+                container.innerHTML = '<div style="padding:40px;text-align:center;color:#64748b;">No seedling items match the current filters.</div>';
+                return;
+            }
+            let html = '<div style="padding:12px 4px 4px;color:#64748b;font-size:13px;">' + list.length + ' signs &middot; click <strong>Print Sale Signs</strong> to print 2-up on letter paper.</div>';
+            html += '<div id="saleSignPreviewGrid">';
+            list.forEach(it => { html += buildSaleSignHTML(it); });
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function printSaleSigns() {
+            const list = getFilteredSaleSignItems();
+            if (!list.length) { showToast('No sale signs to print'); return; }
+
+            const css =
+                '@page { size: letter; margin: 0; }' +
+                '* { box-sizing: border-box; }' +
+                'html,body { margin:0; padding:0; background:#fff; font-family:"Inter",-apple-system,BlinkMacSystemFont,sans-serif; -webkit-print-color-adjust:exact; print-color-adjust:exact; color-adjust:exact; }' +
+                '.sheet { width:8.5in; height:11in; padding:0; margin:0; page-break-after:always; display:flex; flex-direction:column; }' +
+                '.sheet:last-child { page-break-after:auto; }' +
+                '.sale-sign { width:8.5in; height:5.5in; padding:0.35in 0.4in; display:flex; flex-direction:column; justify-content:space-between; position:relative; overflow:hidden; border-bottom:1px dashed #cbd5e1; }' +
+                '.sale-sign:last-child { border-bottom:none; }' +
+                '.ss-header { display:flex; justify-content:space-between; align-items:center; padding-bottom:0.12in; border-bottom:3px solid currentColor; }' +
+                '.ss-farm { font-family:"Barlow Condensed","Inter",sans-serif; font-weight:700; font-size:24pt; letter-spacing:0.04em; color:#0f172a; }' +
+                '.ss-organic { font-family:"Inter",sans-serif; font-weight:700; font-size:9pt; letter-spacing:0.18em; padding:5px 12px; border:2px solid currentColor; border-radius:999px; }' +
+                '.ss-body { flex:1; display:flex; flex-direction:column; justify-content:center; padding:0.18in 0; }' +
+                '.ss-crop { font-family:"Inter",sans-serif; font-weight:700; font-size:14pt; letter-spacing:0.22em; text-transform:uppercase; color:#475569; margin-bottom:0.05in; }' +
+                '.ss-variety { font-family:"Barlow Condensed","Inter",sans-serif; font-weight:700; font-size:56pt; line-height:1.0; letter-spacing:-0.01em; color:#0f172a; }' +
+                '.ss-variety.short { font-size:64pt; }' +
+                '.ss-variety.long { font-size:44pt; }' +
+                '.ss-tagline { font-family:"Inter",sans-serif; font-weight:400; font-size:12pt; line-height:1.35; color:#334155; margin-top:0.1in; max-width:7in; }' +
+                '.ss-footer { display:grid; grid-template-columns:1.55fr 1fr; gap:0.2in; align-items:center; padding-top:0.12in; border-top:3px solid currentColor; }' +
+                '.ss-price { font-family:"Barlow Condensed","Inter",sans-serif; font-weight:700; font-size:54pt; line-height:1; color:currentColor; }' +
+                '.ss-specs { display:grid; gap:0.06in; }' +
+                '.ss-specs.cols-1 { grid-template-columns:1fr; }' +
+                '.ss-specs.cols-2 { grid-template-columns:1fr 1fr; }' +
+                '.ss-spec-cell { padding:4px 8px; background:rgba(0,0,0,0.04); border-left:3px solid currentColor; }' +
+                '.ss-spec-label { font-size:7.5pt; font-weight:600; letter-spacing:0.14em; text-transform:uppercase; color:#64748b; }' +
+                '.ss-spec-value { font-size:11pt; font-weight:700; color:#0f172a; }' +
+                '.cat-veg { color:#16a34a; }' +
+                '.cat-flower { color:#d97706; }' +
+                '.cat-herb { color:#2a9d8f; }' +
+                '.cat-other { color:#475569; }';
+
+            let html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Tiny Seed Farm — Sale Signs</title>' +
+                '<link rel="preconnect" href="https://fonts.googleapis.com">' +
+                '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>' +
+                '<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">' +
+                '<style>' + css + '</style></head><body>';
+
+            for (let i = 0; i < list.length; i += 2) {
+                html += '<div class="sheet">';
+                html += buildSaleSignHTML(list[i]);
+                if (list[i+1]) html += buildSaleSignHTML(list[i+1]);
+                html += '</div>';
+            }
+            html += '</body></html>';
+
+            const w = window.open('', '_blank', 'width=900,height=1200');
+            if (!w) { showToast('Popup blocked — allow popups for this site'); return; }
+            w.document.open();
+            w.document.write(html);
+            w.document.close();
+            w.addEventListener('load', function() { setTimeout(function() { try { w.print(); } catch(e){} }, 600); });
+            showToast('Sale signs: ' + list.length + ' signs (' + Math.ceil(list.length/2) + ' sheets) — print dialog opening');
         }
     </script>
 </body>
