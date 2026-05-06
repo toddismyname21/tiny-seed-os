@@ -179,15 +179,15 @@
         .sale-sign .ss-organic { background: var(--ss-accent); color: #fff; font-size: 8.5pt; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; padding: 4pt 10pt; border-radius: 100px; white-space: nowrap; }
         .sale-sign .ss-main { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 0.1in 0; }
         .sale-sign .ss-crop { font-size: 12pt; font-weight: 600; text-transform: uppercase; letter-spacing: 4px; color: var(--ss-accent); margin-bottom: 4pt; }
-        .sale-sign .ss-variety { font-family: 'Barlow Condensed', Inter, sans-serif; font-weight: 900; font-size: 56pt; line-height: 0.95; letter-spacing: -1px; color: #0a0a0a; margin-bottom: 8pt; }
-        .sale-sign .ss-variety.short { font-size: 64pt; }
-        .sale-sign .ss-variety.long { font-size: 40pt; }
-        .sale-sign .ss-tagline { font-size: 10pt; line-height: 1.4; color: #444; font-style: italic; max-width: 4.4in; }
+        .sale-sign .ss-variety { font-family: 'Barlow Condensed', Inter, sans-serif; font-weight: 900; font-size: 52pt; line-height: 0.95; letter-spacing: -1px; color: #0a0a0a; margin-bottom: 8pt; }
+        .sale-sign .ss-variety.short { font-size: 60pt; }
+        .sale-sign .ss-variety.long { font-size: 38pt; }
+        .sale-sign .ss-tagline { font-size: 10.5pt; line-height: 1.35; color: #444; font-style: italic; max-width: 4.4in; overflow: hidden; }
         .sale-sign .ss-footer { display: flex; justify-content: space-between; font-size: 9pt; color: #888; padding-top: 0.12in; border-top: 1px solid #e5e5e5; }
         .sale-sign .ss-right { background: var(--ss-accent); color: #fff; padding: 0.4in 0.35in; display: flex; flex-direction: column; justify-content: center; text-align: center; }
         .sale-sign .ss-price-label { font-size: 11pt; font-weight: 600; text-transform: uppercase; letter-spacing: 3px; opacity: 0.85; margin-bottom: 4pt; }
-        .sale-sign .ss-price { font-family: 'Barlow Condensed', Inter, sans-serif; font-weight: 900; font-size: 110pt; line-height: 0.85; letter-spacing: -2px; }
-        .sale-sign .ss-price .dollar { font-size: 56pt; vertical-align: top; line-height: 1; }
+        .sale-sign .ss-price { font-family: 'Barlow Condensed', Inter, sans-serif; font-weight: 900; font-size: 104pt; line-height: 0.85; letter-spacing: -2px; }
+        .sale-sign .ss-price .dollar { font-size: 52pt; vertical-align: top; line-height: 1; }
         .sale-sign .ss-specs { margin-top: 0.25in; border-top: 2px solid rgba(255,255,255,0.25); padding-top: 0.18in; display: grid; gap: 8pt; }
         .sale-sign .ss-specs.cols-1 { grid-template-columns: 1fr; }
         .sale-sign .ss-specs.cols-2 { grid-template-columns: 1fr 1fr; }
@@ -5462,34 +5462,81 @@
             // Build spec cells (only those populated)
             const specs = [];
             if (dtm) specs.push({ label: 'Days', value: String(dtm) + 'd' });
-            if (sun) specs.push({ label: 'Sun', value: sun });
+            if (sun) specs.push({ label: 'Sun', value: String(sun).split(/[\/,]/)[0].trim() });
             if (diff) specs.push({ label: 'Level', value: diff });
             specs.push({ label: 'Pot', value: '3"' }); // hardcoded per Todd: ALL are 3" pots
-            const colsCls = specs.length === 1 ? 'cols-1' : 'cols-2';
+            const colsCls = specs.length <= 1 ? 'cols-1' : 'cols-2';
             const specsHtml = specs.map(s =>
-                '<div class="ss-spec-cell"><div class="ss-spec-label">' + escapeHtml(s.label) + '</div><div class="ss-spec-value">' + escapeHtml(s.value) + '</div></div>'
+                '<div class="ss-spec"><div class="ss-spec-label">' + escapeHtml(s.label) + '</div><div class="ss-spec-value">' + escapeHtml(s.value) + '</div></div>'
             ).join('');
 
-            // Tagline = description (truncated to ~120 chars for layout)
-            let tagline = desc;
-            if (!tagline && tips) tagline = tips;
-            if (tagline.length > 140) tagline = tagline.substring(0, 137).replace(/[,;]\s*$/, '') + '…';
+            // Tagline: smart-trim source description to fit (sentence boundary preferred)
+            const tagline = trimTagline(desc || tips, 130);
+
+            // Price formatting: split dollar sign for typographic prominence
+            const priceStr = String(price).trim();
+            const priceClean = priceStr.replace(/^\$/, '');
 
             return '<div class="sale-sign ' + colorCls + '">' +
-                '<div class="ss-header">' +
-                    '<div class="ss-farm">TINY SEED FARM</div>' +
-                    '<div class="ss-organic">CERTIFIED ORGANIC</div>' +
+                '<div class="ss-left">' +
+                    '<div class="ss-header">' +
+                        '<div class="ss-farm">TINY <span class="seed">SEED</span> FARM</div>' +
+                        '<div class="ss-organic">Certified Organic</div>' +
+                    '</div>' +
+                    '<div class="ss-main">' +
+                        '<div class="ss-crop">' + escapeHtml(crop) + '</div>' +
+                        '<div class="ss-variety ' + vClass + '">' + escapeHtml(variety) + '</div>' +
+                        (tagline ? '<div class="ss-tagline">' + escapeHtml(tagline) + '</div>' : '') +
+                    '</div>' +
+                    '<div class="ss-footer">' +
+                        '<span>tinyseedfarm.com</span>' +
+                        '<span>Seedling Sale 2026</span>' +
+                    '</div>' +
                 '</div>' +
-                '<div class="ss-body">' +
-                    '<div class="ss-crop">' + escapeHtml(crop) + '</div>' +
-                    '<div class="ss-variety ' + vClass + '">' + escapeHtml(variety) + '</div>' +
-                    (tagline ? '<div class="ss-tagline">' + escapeHtml(tagline) + '</div>' : '') +
-                '</div>' +
-                '<div class="ss-footer">' +
-                    '<div class="ss-price">$' + escapeHtml(String(price)) + '</div>' +
+                '<div class="ss-right">' +
+                    '<div class="ss-price-label">Each</div>' +
+                    '<div class="ss-price"><span class="dollar">$</span>' + escapeHtml(priceClean) + '</div>' +
                     '<div class="ss-specs ' + colsCls + '">' + specsHtml + '</div>' +
                 '</div>' +
             '</div>';
+        }
+
+        // Decode HTML entities present in source description data (e.g. &ndash; from Johnny's Seeds copy)
+        function decodeEntities(s) {
+            if (!s) return '';
+            const txt = document.createElement('textarea');
+            txt.innerHTML = String(s);
+            return txt.value;
+        }
+
+        // Smart tagline trim: prefer complete sentences, then clauses, never mid-word.
+        // Source data is often truncated mid-sentence (ends with "..."); strip that first.
+        function trimTagline(text, maxLen) {
+            if (!text) return '';
+            maxLen = maxLen || 130;
+            let s = decodeEntities(String(text)).trim();
+            // Strip trailing ellipsis variants and dangling punctuation from source truncation
+            s = s.replace(/[…]+\s*$/g, '').replace(/\.{2,}\s*$/g, '').replace(/[,;:\-–—]+\s*$/g, '').trim();
+            // Replace internal newlines/whitespace with single spaces
+            s = s.replace(/\s+/g, ' ');
+            if (s.length <= maxLen) {
+                if (!/[.!?]$/.test(s)) s += '.';
+                return s;
+            }
+            // Try last sentence boundary within maxLen
+            const window = s.substring(0, maxLen);
+            const sentenceEnd = Math.max(window.lastIndexOf('. '), window.lastIndexOf('! '), window.lastIndexOf('? '));
+            if (sentenceEnd >= 50) {
+                return s.substring(0, sentenceEnd + 1);
+            }
+            // Try last clause boundary
+            const clauseEnd = Math.max(window.lastIndexOf(', '), window.lastIndexOf('; '), window.lastIndexOf(' — '));
+            if (clauseEnd >= 50) {
+                return s.substring(0, clauseEnd) + '.';
+            }
+            // Hard cut at last word boundary, never mid-word
+            const lastSpace = window.lastIndexOf(' ');
+            return s.substring(0, lastSpace > 40 ? lastSpace : maxLen).replace(/[,;:\-–—]+\s*$/, '') + '.';
         }
 
         function renderSaleSignPreview() {
@@ -5511,42 +5558,47 @@
             const list = getFilteredSaleSignItems();
             if (!list.length) { showToast('No sale signs to print'); return; }
 
+            // Print CSS — mirrors on-screen .sale-sign structure (split layout) so preview === print
             const css =
                 '@page { size: letter; margin: 0; }' +
                 '* { box-sizing: border-box; }' +
-                'html,body { margin:0; padding:0; background:#fff; font-family:"Inter",-apple-system,BlinkMacSystemFont,sans-serif; -webkit-print-color-adjust:exact; print-color-adjust:exact; color-adjust:exact; }' +
+                'html,body { margin:0; padding:0; background:#fff; font-family:"Inter",-apple-system,BlinkMacSystemFont,sans-serif; color:#0a0a0a; -webkit-print-color-adjust:exact; print-color-adjust:exact; color-adjust:exact; }' +
                 '.sheet { width:8.5in; height:11in; padding:0; margin:0; page-break-after:always; display:flex; flex-direction:column; }' +
                 '.sheet:last-child { page-break-after:auto; }' +
-                '.sale-sign { width:8.5in; height:5.5in; padding:0.35in 0.4in; display:flex; flex-direction:column; justify-content:space-between; position:relative; overflow:hidden; border-bottom:1px dashed #cbd5e1; }' +
-                '.sale-sign:last-child { border-bottom:none; }' +
-                '.ss-header { display:flex; justify-content:space-between; align-items:center; padding-bottom:0.12in; border-bottom:3px solid currentColor; }' +
-                '.ss-farm { font-family:"Barlow Condensed","Inter",sans-serif; font-weight:700; font-size:24pt; letter-spacing:0.04em; color:#0f172a; }' +
-                '.ss-organic { font-family:"Inter",sans-serif; font-weight:700; font-size:9pt; letter-spacing:0.18em; padding:5px 12px; border:2px solid currentColor; border-radius:999px; }' +
-                '.ss-body { flex:1; display:flex; flex-direction:column; justify-content:center; padding:0.18in 0; }' +
-                '.ss-crop { font-family:"Inter",sans-serif; font-weight:700; font-size:14pt; letter-spacing:0.22em; text-transform:uppercase; color:#475569; margin-bottom:0.05in; }' +
-                '.ss-variety { font-family:"Barlow Condensed","Inter",sans-serif; font-weight:700; font-size:56pt; line-height:1.0; letter-spacing:-0.01em; color:#0f172a; }' +
-                '.ss-variety.short { font-size:64pt; }' +
-                '.ss-variety.long { font-size:44pt; }' +
-                '.ss-tagline { font-family:"Inter",sans-serif; font-weight:400; font-size:12pt; line-height:1.35; color:#334155; margin-top:0.1in; max-width:7in; }' +
-                '.ss-footer { display:grid; grid-template-columns:1.55fr 1fr; gap:0.2in; align-items:center; padding-top:0.12in; border-top:3px solid currentColor; }' +
-                '.ss-price { font-family:"Barlow Condensed","Inter",sans-serif; font-weight:700; font-size:54pt; line-height:1; color:currentColor; }' +
-                '.ss-specs { display:grid; gap:0.06in; }' +
-                '.ss-specs.cols-1 { grid-template-columns:1fr; }' +
-                '.ss-specs.cols-2 { grid-template-columns:1fr 1fr; }' +
-                '.ss-spec-cell { padding:4px 8px; background:rgba(0,0,0,0.04); border-left:3px solid currentColor; }' +
-                '.ss-spec-label { font-size:7.5pt; font-weight:600; letter-spacing:0.14em; text-transform:uppercase; color:#64748b; }' +
-                '.ss-spec-value { font-size:11pt; font-weight:700; color:#0f172a; }' +
-                '.cat-veg { color:#16a34a; }' +
-                '.cat-flower { color:#d97706; }' +
-                '.cat-herb { color:#2a9d8f; }' +
-                '.cat-other { color:#475569; }' +
+                '.sale-sign { width:8.5in; height:5.5in; background:#fff; color:#0a0a0a; display:grid; grid-template-columns:1.55fr 1fr; overflow:hidden; }' +
+                '.sale-sign.cat-veg { --ss-accent:#16a34a; }' +
+                '.sale-sign.cat-flower { --ss-accent:#d97706; }' +
+                '.sale-sign.cat-herb { --ss-accent:#2a9d8f; }' +
+                '.sale-sign.cat-other { --ss-accent:#475569; }' +
+                '.sale-sign .ss-left { padding:0.4in; display:flex; flex-direction:column; justify-content:space-between; border-right:3px solid var(--ss-accent); overflow:hidden; }' +
+                '.sale-sign .ss-header { display:flex; justify-content:space-between; align-items:center; padding-bottom:0.15in; border-bottom:2px solid #e5e5e5; }' +
+                '.sale-sign .ss-farm { font-family:"Barlow Condensed",Inter,sans-serif; font-weight:800; font-size:18pt; text-transform:uppercase; letter-spacing:1px; color:var(--ss-accent); }' +
+                '.sale-sign .ss-farm .seed { color:#0a0a0a; }' +
+                '.sale-sign .ss-organic { background:var(--ss-accent); color:#fff; font-size:8.5pt; font-weight:700; text-transform:uppercase; letter-spacing:1.2px; padding:4pt 10pt; border-radius:100px; white-space:nowrap; }' +
+                '.sale-sign .ss-main { flex:1; display:flex; flex-direction:column; justify-content:center; padding:0.1in 0; min-height:0; }' +
+                '.sale-sign .ss-crop { font-size:12pt; font-weight:600; text-transform:uppercase; letter-spacing:4px; color:var(--ss-accent); margin-bottom:4pt; }' +
+                '.sale-sign .ss-variety { font-family:"Barlow Condensed",Inter,sans-serif; font-weight:900; font-size:52pt; line-height:0.95; letter-spacing:-1px; color:#0a0a0a; margin-bottom:8pt; }' +
+                '.sale-sign .ss-variety.short { font-size:60pt; }' +
+                '.sale-sign .ss-variety.long { font-size:38pt; }' +
+                '.sale-sign .ss-tagline { font-size:10.5pt; line-height:1.35; color:#444; font-style:italic; max-width:4.4in; overflow:hidden; }' +
+                '.sale-sign .ss-footer { display:flex; justify-content:space-between; font-size:8.5pt; color:#888; padding-top:0.12in; border-top:1px solid #e5e5e5; text-transform:uppercase; letter-spacing:1.5px; }' +
+                '.sale-sign .ss-right { background:var(--ss-accent); color:#fff; padding:0.4in 0.3in; display:flex; flex-direction:column; justify-content:center; text-align:center; overflow:hidden; }' +
+                '.sale-sign .ss-price-label { font-size:11pt; font-weight:600; text-transform:uppercase; letter-spacing:3px; opacity:0.85; margin-bottom:4pt; }' +
+                '.sale-sign .ss-price { font-family:"Barlow Condensed",Inter,sans-serif; font-weight:900; font-size:104pt; line-height:0.85; letter-spacing:-2px; }' +
+                '.sale-sign .ss-price .dollar { font-size:52pt; vertical-align:top; line-height:1; }' +
+                '.sale-sign .ss-specs { margin-top:0.22in; border-top:2px solid rgba(255,255,255,0.3); padding-top:0.16in; display:grid; gap:8pt; }' +
+                '.sale-sign .ss-specs.cols-1 { grid-template-columns:1fr; }' +
+                '.sale-sign .ss-specs.cols-2 { grid-template-columns:1fr 1fr; }' +
+                '.sale-sign .ss-spec { display:flex; flex-direction:column; align-items:center; }' +
+                '.sale-sign .ss-spec-label { font-size:7.5pt; font-weight:600; text-transform:uppercase; letter-spacing:1.5px; opacity:0.85; margin-bottom:2pt; }' +
+                '.sale-sign .ss-spec-value { font-family:"Barlow Condensed",Inter,sans-serif; font-weight:700; font-size:17pt; line-height:1; }' +
                 /* Picture + Name layout (print) */
-                '.sale-sign.layout-picture { padding:0; display:block; }' +
-                '.sale-sign.layout-picture .ss-pic-wrap { width:8.5in; height:4in; background:#f1f5f9; display:flex; align-items:center; justify-content:center; overflow:hidden; border-bottom:6px solid currentColor; }' +
+                '.sale-sign.layout-picture { display:block; padding:0; }' +
+                '.sale-sign.layout-picture .ss-pic-wrap { width:8.5in; height:4in; background:#f1f5f9; display:flex; align-items:center; justify-content:center; overflow:hidden; border-bottom:6px solid var(--ss-accent); }' +
                 '.sale-sign.layout-picture .ss-pic-wrap img { width:100%; height:100%; object-fit:cover; display:block; }' +
                 '.sale-sign.layout-picture .ss-pic-placeholder { font-family:"Barlow Condensed",Inter,sans-serif; font-size:36pt; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:4px; }' +
                 '.sale-sign.layout-picture .ss-name { padding:0.25in 0.5in 0.3in; }' +
-                '.sale-sign.layout-picture .ss-name .ss-crop { font-size:13pt; font-weight:600; text-transform:uppercase; letter-spacing:5px; color:currentColor; margin-bottom:4pt; }' +
+                '.sale-sign.layout-picture .ss-name .ss-crop { font-size:13pt; font-weight:600; text-transform:uppercase; letter-spacing:5px; color:var(--ss-accent); margin-bottom:4pt; }' +
                 '.sale-sign.layout-picture .ss-name .ss-variety { font-family:"Barlow Condensed",Inter,sans-serif; font-weight:900; font-size:60pt; line-height:0.92; letter-spacing:-1px; color:#0a0a0a; }' +
                 '.sale-sign.layout-picture .ss-name .ss-variety.short { font-size:72pt; }' +
                 '.sale-sign.layout-picture .ss-name .ss-variety.long { font-size:44pt; }';
