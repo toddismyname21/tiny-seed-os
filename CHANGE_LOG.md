@@ -6,6 +6,20 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-05-06] Seedling Photos — 9 Self-Hosted Replacements (Todd-Provided)
+
+- Files: `web_app/images/seedlings/` (9 new files committed) + Google Sheets `SEEDLING_PRODUCTION` (9 Image_URL cells updated via Sheets API)
+- Role: PM_ARCHITECT (file copy + git + Sheets API)
+- Status: Complete. All 9 URLs return HTTP 200; all 9 sheet cells updated.
+- Why: Todd reviewed earlier round of Wikimedia hot-linked images and was unhappy with quality. Provided 9 hand-picked photos (some catalog/marketing quality, all on-subject and in-focus) for: Blush Grape Tomato, Juliet Grape Tomato, Cucumber slicing, Small Bell Pepper, Habanero, Parsley II (row 62 only), Nasturtium, Pepperoncini, Ruby Kale.
+- Implementation:
+  - Created `web_app/images/seedlings/` directory (alongside existing crop card images).
+  - Copied + renamed 9 files from `~/Downloads/` to standardized kebab-case filenames.
+  - Committed + pushed to GitHub Pages (commit `9302ca7`).
+  - Updated SEEDLING_PRODUCTION rows V2 (Cucumber), V8 (Small Bell Pepper), V9 (Habanero), V35 (Juliet), V36 (Blush), V62 (Parsley II), V68 (Nasturtium), V81 (Pepperoncini), V83 (Ruby Kale) via Sheets API batchUpdate to point at `https://app.tinyseedfarm.com/web_app/images/seedlings/<filename>`.
+- Verification: HEAD checks on all 9 URLs returned HTTP 200 from app.tinyseedfarm.com; live `getSeedlingProductionPlan` API returns the new URLs.
+- Solves the prior CHANGE_LOG follow-up note ("self-host the images next session"). Removes copyright/availability risk for these 9 items.
+
 ## [2026-05-06] Sale Signs — Generic $6 / 4-FOR-$20 Price-Only Signs (Half + Full Letter)
 
 - File: `labels.html`
