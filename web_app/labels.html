@@ -2498,8 +2498,8 @@
                 if (dayFilter) {
                     const stop = (m.Pickup_Location || '');
                     const isSatStop = SATURDAY_STOPS.includes(stop);
-                    const isFarmStop = /rochester|farm pickup/i.test(stop);
-                    if (dayFilter === 'Wednesday' && (isSatStop || isFarmStop)) return false;
+                    // Rochester (Farm Pickup) IS a Wednesday stop — confirmed by Todd 2026-05-06
+                    if (dayFilter === 'Wednesday' && isSatStop) return false;
                     if (dayFilter === 'Saturday' && !isSatStop) return false;
                 }
                 return true;
