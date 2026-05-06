@@ -6788,9 +6788,9 @@ IF abs(drift) >= 0.05: needs_rebalancing = TRUE</code></pre>
                     div.style.cssText = 'display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 0; border-bottom: 1px solid rgba(255,255,255,0.05);';
                     div.innerHTML = `
                         <div style="display: flex; align-items: center; gap: 0.75rem;">
-                            <div style="width: 36px; height: 36px; border-radius: var(--ts-radius-sm, 8px); background: rgba(67,97,238,0.2); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.7rem; color: var(--info);">${pos.symbol.substring(0, 3)}</div>
+                            <div style="width: 36px; height: 36px; border-radius: var(--ts-radius-sm, 8px); background: rgba(67,97,238,0.2); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.7rem; color: var(--info);">${esc(pos.symbol.substring(0, 3))}</div>
                             <div>
-                                <div style="font-weight: 600;">${pos.symbol}</div>
+                                <div style="font-weight: 600;">${esc(pos.symbol)}</div>
                                 <div style="font-size: 0.8rem; color: var(--text-secondary);">${pos.qty} shares @ $${pos.avgEntryPrice.toFixed(2)}</div>
                             </div>
                         </div>
@@ -7361,12 +7361,12 @@ IF abs(drift) >= 0.05: needs_rebalancing = TRUE</code></pre>
             try {
                 const result = await fetchFromSheet('alpacaPortfolioQuery&query=' + encodeURIComponent(query));
                 if (!result || !result.success) {
-                    container.innerHTML = '<div style="color: var(--danger); padding: 0.5rem;"><i class="fas fa-exclamation-triangle"></i> ' + (result?.error || 'Query failed') + '</div>';
+                    container.innerHTML = '<div style="color: var(--danger); padding: 0.5rem;"><i class="fas fa-exclamation-triangle"></i> ' + esc(result?.error || 'Query failed') + '</div>';
                     return;
                 }
                 renderQueryResult(container, result);
             } catch (e) {
-                container.innerHTML = '<div style="color: var(--danger);"><i class="fas fa-exclamation-triangle"></i> Error: ' + e.message + '</div>';
+                container.innerHTML = '<div style="color: var(--danger);"><i class="fas fa-exclamation-triangle"></i> Error: ' + esc(e.message) + '</div>';
             }
         }
 
@@ -7583,7 +7583,7 @@ IF abs(drift) >= 0.05: needs_rebalancing = TRUE</code></pre>
                     } else {
                         listEl.innerHTML = result.bySymbol.map(d => {
                             return '<div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid rgba(255,255,255,0.05);">' +
-                                '<div><span style="font-weight: 600;">' + d.symbol + '</span><span style="font-size: 0.8rem; color: var(--text-secondary); margin-left: 0.5rem;">' + d.count + ' payments</span></div>' +
+                                '<div><span style="font-weight: 600;">' + esc(d.symbol) + '</span><span style="font-size: 0.8rem; color: var(--text-secondary); margin-left: 0.5rem;">' + d.count + ' payments</span></div>' +
                                 '<div style="font-weight: 600; color: var(--gold);">$' + d.total.toFixed(2) + '</div></div>';
                         }).join('');
                     }
@@ -7608,10 +7608,10 @@ IF abs(drift) >= 0.05: needs_rebalancing = TRUE</code></pre>
                     driftsEl.innerHTML = result.drifts.map(d => {
                         const actionColor = d.action === 'BUY' ? 'var(--success)' : d.action === 'SELL' ? 'var(--danger)' : 'var(--text-secondary)';
                         return '<div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid rgba(255,255,255,0.05);">' +
-                            '<div><span style="font-weight: 600;">' + d.symbol + '</span></div>' +
+                            '<div><span style="font-weight: 600;">' + esc(d.symbol) + '</span></div>' +
                             '<div style="display: flex; gap: 1rem; align-items: center; font-size: 0.85rem;">' +
                             '<span style="color: var(--text-secondary);">' + d.currentPct.toFixed(1) + '% → ' + d.targetPct.toFixed(1) + '%</span>' +
-                            '<span style="color: ' + actionColor + '; font-weight: 600; min-width: 50px; text-align: right;">' + d.action + '</span>' +
+                            '<span style="color: ' + actionColor + '; font-weight: 600; min-width: 50px; text-align: right;">' + esc(d.action) + '</span>' +
                             (d.action !== 'HOLD' ? '<span style="font-size: 0.8rem;">$' + d.tradeAmount.toFixed(0) + '</span>' : '') +
                             '</div></div>';
                     }).join('');
@@ -7628,7 +7628,7 @@ IF abs(drift) >= 0.05: needs_rebalancing = TRUE</code></pre>
 
                 const result = await fetchFromSheet('getAlpacaCryptoAssets&limit=20');
                 if (!result || !result.success) {
-                    container.innerHTML = '<div style="color: var(--text-secondary); text-align: center; padding: 1rem;">' + (result?.error || 'Could not load crypto assets') + '</div>';
+                    container.innerHTML = '<div style="color: var(--text-secondary); text-align: center; padding: 1rem;">' + esc(result?.error || 'Could not load crypto assets') + '</div>';
                     return;
                 }
 
@@ -7640,9 +7640,9 @@ IF abs(drift) >= 0.05: needs_rebalancing = TRUE</code></pre>
                 container.innerHTML = '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.5rem;">' +
                     result.assets.map(a => {
                         const icon = a.symbol.includes('BTC') ? 'fa-bitcoin' : a.symbol.includes('ETH') ? 'fa-ethereum' : 'fa-coins';
-                        return '<div style="padding: 0.75rem; background: var(--bg-card); border-radius: var(--ts-radius-sm, 8px); border: 1px solid var(--border); text-align: center; cursor: pointer;" onclick="document.getElementById(\'stock-lookup-input\').value=\'' + a.symbol + '\';lookupStock();">' +
+                        return '<div style="padding: 0.75rem; background: var(--bg-card); border-radius: var(--ts-radius-sm, 8px); border: 1px solid var(--border); text-align: center; cursor: pointer;" onclick="document.getElementById(\'stock-lookup-input\').value=\'' + esc(a.symbol) + '\';lookupStock();">' +
                             '<i class="fab ' + icon + '" style="font-size: 1.25rem; color: #f7931a; margin-bottom: 0.25rem;"></i>' +
-                            '<div style="font-weight: 600; font-size: 0.85rem;">' + a.symbol + '</div>' +
+                            '<div style="font-weight: 600; font-size: 0.85rem;">' + esc(a.symbol) + '</div>' +
                             '<div style="font-size: 0.7rem; color: var(--text-secondary);">' + (a.tradable ? 'Tradable' : 'View only') + '</div></div>';
                     }).join('') + '</div>';
             } catch (e) { console.error('Crypto error:', e); }
@@ -8163,8 +8163,8 @@ IF abs(drift) >= 0.05: needs_rebalancing = TRUE</code></pre>
                 accountsList.innerHTML = data.accounts.map(acc => `
                     <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: rgba(255,255,255,0.05); border-radius: var(--ts-radius-sm, 8px);">
                         <div>
-                            <div style="font-weight: 600;">${acc.name}</div>
-                            <div style="font-size: 0.8rem; color: var(--text-secondary);">${acc.institution} - ${acc.subtype || acc.type}</div>
+                            <div style="font-weight: 600;">${esc(acc.name)}</div>
+                            <div style="font-size: 0.8rem; color: var(--text-secondary);">${esc(acc.institution)} - ${esc(acc.subtype || acc.type)}</div>
                         </div>
                         <div style="text-align: right;">
                             <div style="font-weight: 700; color: var(--success);">$${(acc.balance || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
@@ -8185,10 +8185,10 @@ IF abs(drift) >= 0.05: needs_rebalancing = TRUE</code></pre>
                         <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--ts-radius-md, 12px); padding: 1rem;">
                             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
                                 <div>
-                                    <div style="font-weight: 700; font-size: 1.1rem;">${h.ticker}</div>
-                                    <div style="font-size: 0.75rem; color: var(--text-secondary);">${h.name?.substring(0, 30)}${h.name?.length > 30 ? '...' : ''}</div>
+                                    <div style="font-weight: 700; font-size: 1.1rem;">${esc(h.ticker)}</div>
+                                    <div style="font-size: 0.75rem; color: var(--text-secondary);">${esc((h.name || '').substring(0, 30))}${h.name?.length > 30 ? '...' : ''}</div>
                                 </div>
-                                <span style="padding: 0.25rem 0.5rem; background: rgba(67, 97, 238, 0.2); border-radius: var(--ts-radius-sm, 4px); font-size: 0.7rem; color: var(--info);">${h.type}</span>
+                                <span style="padding: 0.25rem 0.5rem; background: rgba(67, 97, 238, 0.2); border-radius: var(--ts-radius-sm, 4px); font-size: 0.7rem; color: var(--info);">${esc(h.type)}</span>
                             </div>
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.85rem;">
                                 <div>
@@ -8311,8 +8311,8 @@ IF abs(drift) >= 0.05: needs_rebalancing = TRUE</code></pre>
                         <i class="fas ${icon}"></i>
                     </div>
                     <div class="account-info">
-                        <div class="account-name">${account.name}</div>
-                        <div class="account-type">${account.institution} - ****${account.mask || '----'}</div>
+                        <div class="account-name">${esc(account.name)}</div>
+                        <div class="account-type">${esc(account.institution)} - ****${esc(account.mask || '----')}</div>
                     </div>
                     <div class="account-balance">
                         <div class="amount" style="color: ${account.subtype === 'credit card' ? 'var(--danger)' : 'var(--success)'};">
@@ -8481,15 +8481,15 @@ IF abs(drift) >= 0.05: needs_rebalancing = TRUE</code></pre>
                     return `
                         <tr>
                             <td>
-                                <div style="font-weight: 600;">${name}</div>
-                                <div style="font-size: 0.75rem; color: var(--text-secondary);">${institution} ${mask}</div>
+                                <div style="font-weight: 600;">${esc(name)}</div>
+                                <div style="font-size: 0.75rem; color: var(--text-secondary);">${esc(institution)} ${esc(mask)}</div>
                             </td>
                             <td style="color: var(--danger); font-weight: 600;">$${balance.toLocaleString()}</td>
                             <td style="color: var(--text-secondary);">--</td>
                             <td>--</td>
                             <td>--</td>
                             <td>
-                                <button class="btn btn-secondary btn-sm" onclick="editDebt('${account.account_id}')">
+                                <button class="btn btn-secondary btn-sm" onclick="editDebt('${esc(account.account_id)}')">
                                     <i class="fas fa-edit"></i>
                                 </button>
                             </td>
@@ -8655,9 +8655,9 @@ IF abs(drift) >= 0.05: needs_rebalancing = TRUE</code></pre>
                 return `
                     <tr>
                         <td>${formattedDate}</td>
-                        <td>${txn.name || txn.merchant_name || 'Transaction'}</td>
-                        <td><span style="padding: 0.25rem 0.5rem; background: ${catColor}; border-radius: var(--ts-radius-sm, 4px); font-size: 0.8rem;">${category}</span></td>
-                        <td style="font-size: 0.85rem; color: var(--text-secondary);">${txn.account_name || '--'}</td>
+                        <td>${esc(txn.name || txn.merchant_name || 'Transaction')}</td>
+                        <td><span style="padding: 0.25rem 0.5rem; background: ${catColor}; border-radius: var(--ts-radius-sm, 4px); font-size: 0.8rem;">${esc(category)}</span></td>
+                        <td style="font-size: 0.85rem; color: var(--text-secondary);">${esc(txn.account_name || '--')}</td>
                         <td style="color: ${isIncome ? 'var(--success)' : 'var(--danger)'}; font-weight: 600;">${isIncome ? '+' : '-'}$${displayAmount.toLocaleString()}</td>
                     </tr>
                 `;
@@ -8709,7 +8709,7 @@ IF abs(drift) >= 0.05: needs_rebalancing = TRUE</code></pre>
 
             const config = colors[type] || colors.info;
             notification.style.background = config.bg;
-            notification.innerHTML = `<i class="fas ${config.icon}"></i> ${message}`;
+            notification.innerHTML = `<i class="fas ${config.icon}"></i> ${esc(message)}`;
             notification.style.transform = 'translateX(0)';
 
             setTimeout(() => {
@@ -8783,7 +8783,7 @@ IF abs(drift) >= 0.05: needs_rebalancing = TRUE</code></pre>
                     <div class="alert" style="margin-bottom: 0.5rem;">
                         <i class="fas ${getCategoryIcon(t.category)}" style="color: ${getCategoryColor(t.category)};"></i>
                         <div style="flex: 1;">
-                            <div style="font-weight: 500;">${t.description}</div>
+                            <div style="font-weight: 500;">${esc(t.description)}</div>
                             <div style="font-size: 0.8rem; color: var(--text-secondary);">${formatDate(t.date)}</div>
                         </div>
                         <span style="font-weight: 600; color: var(--danger);">-$${parseFloat(t.amount).toFixed(2)}</span>

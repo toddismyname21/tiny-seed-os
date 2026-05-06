@@ -6,6 +6,15 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-05-06] Financial Dashboard — XSS Hardening on Plaid/Alpaca/Debt Render Paths
+
+- File: `web_app/financial-dashboard.html`
+- Role: PM_ARCHITECT (committing prior session's uncommitted XSS work)
+- Status: Deployed live
+- Why: Prior session wrapped ~25 user-data interpolations into `${esc(...)}` calls but never committed. Fills a gap left after the 2026-03-13 P1 Security Hardening pass. Symbol/account/institution/transaction/error strings flowing from Plaid + Alpaca + Sheets into `.innerHTML` were unsanitized. Any malicious or malformed value containing HTML would have executed in Todd's browser.
+- Fix: 25 spots wrapped with `esc()` (defined at line 4875 as `TinySeedUtils.escapeHtml`). Pure security improvement, zero functional change. Touches: portfolio symbols, account names/institutions, debt names, transaction descriptions, alpaca query results, drift recommendations, crypto asset cards, Plaid account sync, debt table edit buttons, recent transaction notifications, alert messages, and bills list.
+- Verification: Visual diff — every change pattern is `${X}` → `${esc(X)}` or `' + X + '` → `' + esc(X) + '`. No new innerHTML assignments introduced. `esc` function pre-existed.
+
 ## [2026-05-06] Sale Signs — Preview/Print Parity (Single CSS Source of Truth)
 
 - File: `labels.html`
