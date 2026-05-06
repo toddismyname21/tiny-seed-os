@@ -1463,9 +1463,11 @@
                 <div class="form-group">
                     <label>Status</label>
                     <select class="form-control" id="saleSignStatus" onchange="renderSaleSignPreview()">
-                        <option value="SeededActive" selected>Seeded + Active (sale items)</option>
+                        <option value="AllSaleReady" selected>All sale-ready (Seeded + Active + Planned)</option>
+                        <option value="SeededActive">Seeded + Active only</option>
                         <option value="Active">Active only</option>
                         <option value="Seeded">Seeded only</option>
+                        <option value="Planned">Planned only</option>
                         <option value="">All Statuses</option>
                     </select>
                 </div>
@@ -5406,7 +5408,9 @@
 
             return saleSignItemsCache.filter(it => {
                 const s = (it.Status || '').toLowerCase();
-                if (status === 'SeededActive') {
+                if (status === 'AllSaleReady') {
+                    if (s !== 'seeded' && s !== 'active' && s !== 'planned') return false;
+                } else if (status === 'SeededActive') {
                     if (s !== 'seeded' && s !== 'active') return false;
                 } else if (status && status !== 'All') {
                     if (s !== status.toLowerCase()) return false;
