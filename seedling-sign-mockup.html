@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Seedling Sale Sign — Mockup</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Barlow+Condensed:ital,wght@0,600;0,800;0,900;1,500&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #0a0a0a;
+    min-height: 100vh;
+    padding: 2rem;
+    color: #e8e8e8;
+  }
+  .page-header {
+    max-width: 8.5in;
+    margin: 0 auto 1.5rem;
+    text-align: center;
+  }
+  .page-header h1 { font-size: 1.4rem; font-weight: 700; margin-bottom: 0.5rem; }
+  .page-header p { color: #999; font-size: 0.9rem; line-height: 1.5; }
+  .page-header .specs { margin-top: 0.75rem; color: #fbbf77; font-size: 0.85rem; }
+
+  /* Toggle landscape/portrait preview */
+  .toggle { text-align: center; margin: 1rem 0; }
+  .toggle button {
+    padding: 8px 14px; margin: 0 4px; border-radius: 6px;
+    border: 1px solid #333; background: #1a1a1a; color: #ccc; cursor: pointer;
+    font-size: 0.85rem;
+  }
+  .toggle button.active { background: #f59e0b; border-color: #f59e0b; color: #0a0a0a; font-weight: 600; }
+
+  /* The sign — actual print dimensions, scaled for screen view */
+  .sign-stage {
+    display: flex; justify-content: center; align-items: flex-start;
+    padding: 2rem;
+    background: linear-gradient(135deg, #1f1f1f, #0f0f0f);
+    border-radius: 12px;
+    margin: 0 auto;
+    max-width: 1200px;
+  }
+  .sign {
+    width: 8.5in;
+    height: 5.5in;
+    background: #ffffff;
+    color: #0a0a0a;
+    display: grid;
+    grid-template-columns: 1.55fr 1fr;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    transform: scale(0.85);
+    transform-origin: top center;
+  }
+
+  /* LEFT: variety name + crop + tip */
+  .sign-left {
+    padding: 0.4in 0.4in 0.35in 0.4in;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    border-right: 3px solid #16a34a;
+    position: relative;
+  }
+  .sign-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-bottom: 0.15in;
+    border-bottom: 2px solid #e5e5e5;
+  }
+  .farm-name {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 18pt;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #16a34a;
+  }
+  .farm-name .seed { color: #0a0a0a; }
+  .organic-badge {
+    background: #16a34a;
+    color: #ffffff;
+    font-size: 8.5pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    padding: 4pt 10pt;
+    border-radius: 100px;
+    white-space: nowrap;
+  }
+  .organic-badge::before { content: "✓ "; font-size: 9pt; }
+
+  .sign-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0.1in 0;
+  }
+  .crop-label {
+    font-family: 'Inter', sans-serif;
+    font-size: 13pt;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 4px;
+    color: #16a34a;
+    margin-bottom: 4pt;
+  }
+  .variety-name {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 900;
+    font-size: 64pt;
+    line-height: 0.95;
+    letter-spacing: -1px;
+    color: #0a0a0a;
+    margin-bottom: 8pt;
+  }
+  .variety-name .italic { font-style: italic; font-weight: 700; }
+  .variety-tagline {
+    font-size: 11pt;
+    line-height: 1.35;
+    color: #444;
+    font-style: italic;
+    max-width: 4.2in;
+  }
+
+  .sign-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 9pt;
+    color: #888;
+    padding-top: 0.12in;
+    border-top: 1px solid #e5e5e5;
+  }
+
+  /* RIGHT: price callout + specs */
+  .sign-right {
+    background: #16a34a;
+    color: #ffffff;
+    padding: 0.4in 0.35in;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+    position: relative;
+  }
+  .price-label {
+    font-size: 11pt;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    opacity: 0.85;
+    margin-bottom: 4pt;
+  }
+  .price-amount {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 900;
+    font-size: 84pt;
+    line-height: 0.9;
+    letter-spacing: -2px;
+  }
+  .price-each {
+    font-size: 12pt;
+    font-weight: 600;
+    opacity: 0.85;
+    margin-top: 0;
+  }
+  .specs {
+    margin-top: 0.25in;
+    border-top: 2px solid rgba(255,255,255,0.25);
+    padding-top: 0.18in;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8pt;
+  }
+  .spec {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .spec-label {
+    font-size: 7.5pt;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    opacity: 0.8;
+    margin-bottom: 2pt;
+  }
+  .spec-value {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 18pt;
+    line-height: 1;
+  }
+
+  /* Cut-line guide for hand cutting (printed dashed line at the bottom of half-sheet) */
+  .sign::after {
+    content: "";
+    position: absolute;
+    left: 0; right: 0; bottom: -2px;
+    border-bottom: none;
+  }
+
+  /* Sample-data caption under sign */
+  .sample-caption {
+    max-width: 8.5in;
+    margin: 1rem auto 0;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    font-size: 0.85rem;
+    color: #ccc;
+    line-height: 1.6;
+  }
+  .sample-caption strong { color: #fbbf77; }
+  .sample-caption table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; }
+  .sample-caption td { padding: 4px 8px; border-bottom: 1px solid #2a2a2a; }
+  .sample-caption td:first-child { color: #888; width: 30%; }
+
+  /* PRINT styles — actual letter sheet, two signs stacked, full bleed */
+  @page { size: letter; margin: 0; }
+  @media print {
+    body { background: #fff; padding: 0; }
+    .page-header, .toggle, .sample-caption, .sign-stage { display: none !important; }
+    .print-sheet { display: block !important; }
+    .print-sheet .sign {
+      transform: none;
+      box-shadow: none;
+      width: 8.5in; height: 5.5in;
+    }
+    .print-sheet .sign:first-child { border-bottom: 1px dashed #999; }
+    .print-sheet .cut-mark {
+      position: absolute; left: 0; right: 0; top: 5.5in;
+      border-top: 1px dashed #999;
+      font-size: 7pt; color: #999; text-align: center;
+      transform: translateY(-50%);
+    }
+  }
+  .print-sheet { display: none; }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>🌱 Seedling Sale Sign — Mockup (1 example)</h1>
+  <p>This is the recommended default layout: <strong>Landscape 8.5" × 5.5"</strong>, 2 per letter sheet.<br>
+     Crop + variety + price + organic badge + 4 spec stats + tagline. Cut horizontal, laminate in 5-mil pouch.</p>
+  <p class="specs">Print at 100% scale on letter paper · cut along horizontal centerline · 5.5" × 8.5" half-letter laminating pouch fits perfectly.</p>
+</div>
+
+<div class="sign-stage">
+  <div class="sign">
+    <div class="sign-left">
+      <div class="sign-header">
+        <div class="farm-name">Tiny <span class="seed">Seed</span> Farm</div>
+        <div class="organic-badge">Certified Organic</div>
+      </div>
+
+      <div class="sign-main">
+        <div class="crop-label">Tomato · Heirloom</div>
+        <div class="variety-name">Cherokee<br>Purple</div>
+        <div class="variety-tagline">Smoky-sweet flavor, dusky purple-red shoulders. The original heirloom slicer — rich, complex, beloved by chefs.</div>
+      </div>
+
+      <div class="sign-footer">
+        <span>Grown in Zelienople, PA</span>
+        <span>tinyseedfarm.com</span>
+      </div>
+    </div>
+
+    <div class="sign-right">
+      <div class="price-label">Each</div>
+      <div class="price-amount">$4<span style="font-size:42pt;letter-spacing:0;">.50</span></div>
+      <div class="price-each">3 for $12</div>
+
+      <div class="specs">
+        <div class="spec">
+          <div class="spec-label">Pot</div>
+          <div class="spec-value">4"</div>
+        </div>
+        <div class="spec">
+          <div class="spec-label">Maturity</div>
+          <div class="spec-value">80 days</div>
+        </div>
+        <div class="spec">
+          <div class="spec-label">Sun</div>
+          <div class="spec-value">Full</div>
+        </div>
+        <div class="spec">
+          <div class="spec-label">Spacing</div>
+          <div class="spec-value">24"</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="sample-caption">
+  <strong>Sample data on this mockup:</strong>
+  <table>
+    <tr><td>Crop</td><td>Tomato · Heirloom</td></tr>
+    <tr><td>Variety</td><td>Cherokee Purple</td></tr>
+    <tr><td>Price</td><td>$4.50 each / 3 for $12</td></tr>
+    <tr><td>Pot size</td><td>4"</td></tr>
+    <tr><td>Days to maturity</td><td>80</td></tr>
+    <tr><td>Sun</td><td>Full</td></tr>
+    <tr><td>Spacing</td><td>24"</td></tr>
+    <tr><td>Tagline</td><td>Smoky-sweet flavor, dusky purple-red shoulders. The original heirloom slicer — rich, complex, beloved by chefs.</td></tr>
+  </table>
+  <p style="margin-top:0.75rem;font-size:0.8rem;color:#888;">If this layout looks right, I'll wire it to your seedling sale list and add a "Print Sale Signs" button to the labels page. Tell me what to change and I'll iterate.</p>
+</div>
+
+</body>
+</html>
