@@ -6,6 +6,25 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-05-06] Seedling Presale Closure — Banner Text Fix + Closure CTA Card
+
+- File: `web_app/seedling-presale-2026.html`
+- Role: fullstack-builder (delegated by PM_ARCHITECT)
+- Status: Deployed live
+- Why: Earlier 2026-05-06 closure pass set up the body class + buy-flow lockdown, but the banner headline was missing the literal phrase "ONLINE PRESALE CLOSED" Todd asked for, and there was no positive closure CTA replacing the now-empty cart area — just a restyled submit button floating in an otherwise blank order form. Customers landing on the page would see a hidden cart with no clear next step.
+- Fix:
+  - Banner headline updated: now reads `ONLINE PRESALE CLOSED — COME SEE US AT THE PHIPPS MAY MARKET!` with `Friday May 8 · 9am–7pm · One Schenley Park, Oakland` subtitle (was missing the "ONLINE PRESALE CLOSED" prefix).
+  - Added `<div class="presale-closed-cta">` inside the order form (above `#submitOrderBtn`) with green seedling icon, magenta title "Online presale is closed.", and full body copy directing customers to Phipps + other May markets and pointing them back at the catalog.
+  - Added CSS for `.presale-closed-cta` (white card, magenta border, mobile-responsive) — hidden by default, shown only when `body.presale-closed` is set.
+  - Hide list extended to clean up the now-pointless order form: `.form-row`, direct-child `.form-group` (pickup selector), `#bundlesCollapsed`, `#bundleExpandPanel`, the `<h3>Your Cart</h3>` row, the trailing `<p>` ($6/refund text), the `#order-heading` ("Reserve Your Seedlings"), and `.section-subtitle` ("$6 each · 4 for $20"). Submit button now `display:none` since the CTA card replaces it.
+  - All cart/checkout markup INTACT — only hidden via `body.presale-closed` CSS. Removing the class restores everything for next year.
+- Verification (5/5 gates):
+  - Gate 1: `class="presale-closed"` count = 2 (1 real on `<body>`, 1 in HTML comment).
+  - Gate 2: `presale-closed-banner` count = 9 (CSS + banner element + BEM modifiers).
+  - Gate 3: `PHIPPS MAY MARKET` present with `Friday May 8` + `One Schenley Park` both in banner subtitle.
+  - Gate 4: `submitOrderBtn|bundleExpandAddBtn|mobile-cart-checkout-btn` count = 17 (markup preserved, just hidden).
+  - Gate 5: All 3 inline `<script>` blocks parse cleanly via Node's `new Function()`.
+
 ## [2026-05-06] Seedling Presale CLOSED — Phipps May Market Banner
 
 - File: `web_app/seedling-presale-2026.html`
