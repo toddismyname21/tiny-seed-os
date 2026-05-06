@@ -6,6 +6,21 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-05-06] Seedling Presale CLOSED — Phipps May Market Banner
+
+- File: `web_app/seedling-presale-2026.html`
+- Role: fullstack-builder (delegated by PM_ARCHITECT, Todd-authorized urgent)
+- Status: Deployed live
+- Why: Todd is closing the online seedling presale ahead of the in-person Phipps May Market this Friday May 8. Wants no new online orders so he can focus on in-person sales.
+- Fix:
+  - Added sticky magenta banner (linear-gradient #be185d → #9d174d) at top of `<body>` with eye-catching message: "COME SEE US AT THE PHIPPS MAY MARKET! Friday May 8 · 9am–7pm · One Schenley Park, Oakland"
+  - Added `body.presale-closed` class that hides all Add to Cart buttons, quantity controls, and cart widgets (sticky-cart, mobile-cart-collapsed, mobile-cart-sheet, qty-selector, .quick-add-btn, .bundle-add-btn, header-cta, header-countdown) via `display:none !important`
+  - Submit order button replaced with closure message ("Online presale closed — see us at Phipps May Market!") + restyled magenta + `pointer-events:none`. Form changed from `type="submit"` to `type="button"`.
+  - JS safeguards on `quickAdd`, `addBundle`, `changeQty`, `submitPresaleOrder`, `actuallySubmitOrder` show toast: "Online presale is closed. See us at Phipps May Market Friday May 8 (9am–7pm, One Schenley Park, Oakland)."
+  - Wholesale page (`seedling-wholesale-2026.html`) untouched (no order flow there)
+  - Fully reversible — remove `presale-closed` class from `<body>` and delete the banner div to re-open
+- Verification: 5/5 gates pass — banner element + headline text present, JS parses clean (3 inline blocks via vm.Script), live page returns HTTP/2 200.
+
 ## [2026-05-06] Sale Signs — Flower Color: Orange → Deep Magenta
 
 - File: `labels.html` (line 5324, inside SALE_SIGN_CORE_CSS)

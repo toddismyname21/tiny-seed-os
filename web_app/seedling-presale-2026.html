@@ -1537,6 +1537,165 @@
         }
         body { animation: ts-page-enter var(--ts-dur-moderate, 300ms) var(--ts-ease-out, ease) both; }
 
+        /* ═══════════════════════════════════════════════════════════ */
+        /* PRESALE CLOSED — Phipps May Market banner + buy-flow lockdown */
+        /* Added 2026-05-06 — reversible by removing body.presale-closed */
+        /* ═══════════════════════════════════════════════════════════ */
+        .presale-closed-banner {
+            position: sticky;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            width: 100%;
+            background: linear-gradient(135deg, #be185d 0%, #9d174d 100%);
+            color: #ffffff;
+            padding: 14px 20px;
+            text-align: center;
+            box-shadow: 0 2px 12px rgba(157, 23, 77, 0.35);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            line-height: 1.35;
+        }
+        .presale-closed-banner__headline {
+            display: block;
+            font-size: clamp(1rem, 2.6vw, 1.35rem);
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            margin: 0;
+        }
+        .presale-closed-banner__headline i {
+            margin: 0 8px;
+            opacity: 0.85;
+        }
+        .presale-closed-banner__details {
+            display: block;
+            font-size: clamp(0.78rem, 2vw, 0.95rem);
+            font-weight: 600;
+            margin-top: 4px;
+            opacity: 0.95;
+        }
+        @media (max-width: 480px) {
+            .presale-closed-banner { padding: 10px 12px; }
+            .presale-closed-banner__headline i { display: none; }
+        }
+
+        /* Hard-close all purchase controls when body has presale-closed class */
+        body.presale-closed .quick-add-btn,
+        body.presale-closed .bundle-add-btn,
+        body.presale-closed .qty-selector,
+        body.presale-closed .qty-btn,
+        body.presale-closed .clear-order-btn,
+        body.presale-closed #bundleExpandPanel,
+        body.presale-closed .sticky-cart,
+        body.presale-closed .sticky-cart-cta,
+        body.presale-closed .mobile-cart-overlay,
+        body.presale-closed .mobile-cart-collapsed,
+        body.presale-closed .mobile-cart-sheet,
+        body.presale-closed .mobile-cart-checkout-btn,
+        body.presale-closed .header-cta,
+        body.presale-closed .header-countdown,
+        body.presale-closed .payment-badges,
+        body.presale-closed [class*="add-to-cart"],
+        body.presale-closed [class*="add-cart"] {
+            display: none !important;
+        }
+        /* Replace the submit button with a clear closure CTA */
+        body.presale-closed #submitOrderBtn {
+            display: block !important;
+            background: linear-gradient(135deg, #be185d 0%, #9d174d 100%) !important;
+            color: #ffffff !important;
+            border: none !important;
+            padding: 16px 20px !important;
+            font-size: 1rem !important;
+            font-weight: 700 !important;
+            border-radius: 12px !important;
+            width: 100% !important;
+            text-align: center !important;
+            opacity: 1 !important;
+            cursor: not-allowed !important;
+            pointer-events: none !important;
+            box-shadow: 0 6px 18px rgba(157, 23, 77, 0.25) !important;
+            text-transform: none !important;
+            letter-spacing: 0 !important;
+        }
+        body.presale-closed #submitOrderBtn::before {
+            content: "\f274";
+            font-family: "Font Awesome 6 Free";
+            font-weight: 900;
+            margin-right: 8px;
+        }
+        body.presale-closed .order-form #orderItems,
+        body.presale-closed .order-form #cartSavings,
+        body.presale-closed .order-form .order-total,
+        body.presale-closed .order-form #orderMinWarning,
+        body.presale-closed .order-form .form-row,
+        body.presale-closed .order-form > .form-group,
+        body.presale-closed .order-form #bundlesCollapsed,
+        body.presale-closed .order-form #bundleExpandPanel,
+        body.presale-closed .order-form > div[style*="margin: 24px 0 12px"],
+        body.presale-closed .order-form > p,
+        body.presale-closed #order-heading,
+        body.presale-closed .order-section .section-subtitle {
+            display: none !important;
+        }
+        /* Hide remaining cart-summary-style widgets (cart counts, totals) */
+        body.presale-closed #stickyCartCount,
+        body.presale-closed #stickyCartTotal,
+        body.presale-closed #mobileCartBadge,
+        body.presale-closed #mobileCartCollapsedTotal,
+        body.presale-closed #mobileCartTotal,
+        body.presale-closed #orderTotal {
+            display: none !important;
+        }
+        /* Hide the now-redundant submit button — closure CTA card replaces it */
+        body.presale-closed #submitOrderBtn { display: none !important; }
+
+        /* Closure CTA card — replaces the cart/checkout area visually */
+        .presale-closed-cta {
+            display: none; /* Shown via body.presale-closed below */
+            background: #ffffff;
+            border: 2px solid #be185d;
+            border-radius: 14px;
+            padding: 28px 24px;
+            text-align: center;
+            margin: 8px auto;
+            max-width: 620px;
+            box-shadow: 0 8px 28px rgba(157, 23, 77, 0.12);
+        }
+        body.presale-closed .presale-closed-cta { display: block; }
+        .presale-closed-cta__icon {
+            font-size: 2rem;
+            color: #16a34a;
+            margin-bottom: 12px;
+            display: block;
+        }
+        .presale-closed-cta__title {
+            color: #be185d;
+            font-size: 1.35rem;
+            font-weight: 800;
+            margin: 0 0 14px;
+            line-height: 1.3;
+        }
+        .presale-closed-cta__body {
+            font-size: 1rem;
+            line-height: 1.6;
+            color: #3a3a3a;
+            margin: 0 0 10px;
+        }
+        .presale-closed-cta__body strong { color: #16a34a; font-weight: 700; }
+        .presale-closed-cta__hint {
+            font-size: 0.9rem;
+            color: #5c4a3a;
+            margin: 14px 0 0;
+            font-style: italic;
+        }
+        @media (max-width: 480px) {
+            .presale-closed-cta { padding: 22px 18px; }
+            .presale-closed-cta__title { font-size: 1.15rem; }
+            .presale-closed-cta__body { font-size: 0.95rem; }
+        }
+
     </style>
 
     <!-- Facebook Pixel — lazy loaded after first user interaction -->
@@ -1577,7 +1736,23 @@
     gtag('config', 'G-W3M5HXBXY1');
     </script>
 </head>
-<body>
+<body class="presale-closed">
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- PRESALE CLOSED — Phipps May Market sticky banner (2026-05-06) -->
+<!-- Reversible: remove `presale-closed` class from body and delete -->
+<!-- this banner div to restore the online ordering flow.            -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="presale-closed-banner" role="region" aria-label="Online presale closed announcement">
+    <span class="presale-closed-banner__headline">
+        <i class="fas fa-seedling" aria-hidden="true"></i>
+        ONLINE PRESALE CLOSED &mdash; COME SEE US AT THE PHIPPS MAY MARKET!
+        <i class="fas fa-seedling" aria-hidden="true"></i>
+    </span>
+    <span class="presale-closed-banner__details">
+        Friday May 8 &middot; 9am&ndash;7pm &middot; One Schenley Park, Oakland
+    </span>
+</div>
+
 <a href="#order" class="skip-link">Skip to order form</a>
 
 <!-- ═══════════════════════════════════════════════════════════ -->
@@ -1780,8 +1955,26 @@
                 <i class="fas fa-info-circle"></i> Minimum order is $25.00
             </div>
 
-            <button type="submit" class="submit-order" id="submitOrderBtn" disabled>
-                <i class="fas fa-seedling"></i> Add seedlings above to reserve
+            <!-- ═══════════════════════════════════════════════════════ -->
+            <!-- PRESALE CLOSED CTA — replaces the cart/checkout area     -->
+            <!-- Visible only when <body class="presale-closed">          -->
+            <!-- Reversible: remove body class to restore ordering        -->
+            <!-- ═══════════════════════════════════════════════════════ -->
+            <div class="presale-closed-cta" role="status" aria-live="polite">
+                <i class="fas fa-seedling presale-closed-cta__icon" aria-hidden="true"></i>
+                <h3 class="presale-closed-cta__title">Online presale is closed.</h3>
+                <p class="presale-closed-cta__body">
+                    Come see us at the <strong>Phipps May Market</strong> on
+                    <strong>Friday May 8</strong> (One Schenley Park, Oakland, 9am&ndash;7pm)
+                    or any of our other May markets &mdash; you can still see the full catalog above.
+                </p>
+                <p class="presale-closed-cta__hint">
+                    Browse the catalog above to see exactly what we'll have at the markets.
+                </p>
+            </div>
+
+            <button type="button" class="submit-order" id="submitOrderBtn" disabled aria-disabled="true">
+                Online presale closed &mdash; see us at Phipps May Market!
             </button>
             <div class="payment-badges">
                 <i class="fas fa-lock"></i>
@@ -3030,11 +3223,28 @@ function buildVarietyCard(v) {
 }
 
 // ═══════════════════════════════════════
+// PRESALE CLOSED GUARD (2026-05-06)
+// Phipps May Market is the in-person sale; online ordering disabled.
+// Reversible: remove `presale-closed` class from <body>.
+// ═══════════════════════════════════════
+function _isPresaleClosed() {
+    return document.body && document.body.classList.contains('presale-closed');
+}
+function _showPresaleClosedToast() {
+    if (typeof showToast === 'function') {
+        showToast('Online presale is closed — see us at Phipps May Market Friday May 8 (9am–7pm, One Schenley Park, Oakland)');
+    } else {
+        alert('Online presale is closed. Come see us at Phipps May Market Friday May 8 (9am–7pm, One Schenley Park, Oakland).');
+    }
+}
+
+// ═══════════════════════════════════════
 // QUICK ADD FROM CATALOG
 // ═══════════════════════════════════════
 var _quickAddLast = 0;
 var _orderSubmitting = false;
 function quickAdd(name) {
+    if (_isPresaleClosed()) { _showPresaleClosedToast(); return; }
     var now = Date.now();
     if (now - _quickAddLast < 500) return; // Debounce 500ms
     _quickAddLast = now;
@@ -3133,6 +3343,7 @@ function toggleCategory(cat) {
 }
 
 function changeQty(name, delta) {
+    if (_isPresaleClosed()) { _showPresaleClosedToast(); return; }
     // Find the variety to check availability
     var variety = null;
     for (var i = 0; i < VARIETIES.length; i++) {
@@ -3405,6 +3616,7 @@ function validateForm() {
 // ═══════════════════════════════════════
 function submitPresaleOrder(e) {
     if (e) e.preventDefault();
+    if (_isPresaleClosed()) { _showPresaleClosedToast(); return; }
     // Reset any stuck state from previous attempts
     _orderSubmitting = false;
     document.body.style.overflow = '';
@@ -3445,6 +3657,7 @@ function submitPresaleOrder(e) {
 }
 
 function actuallySubmitOrder(items, customerName, email, phone, pickup, orderCalc) {
+    if (_isPresaleClosed()) { _showPresaleClosedToast(); return; }
     // Disable submit button and show loading
     var btn = document.getElementById('submitOrderBtn');
     var originalBtnHtml = btn.innerHTML;
@@ -3920,6 +4133,7 @@ function closeBundleExpand() {
 }
 
 function addBundle(bundleKey) {
+    if (_isPresaleClosed()) { _showPresaleClosedToast(); return; }
     var bundle = BUNDLES[bundleKey];
     if (!bundle) return;
 
