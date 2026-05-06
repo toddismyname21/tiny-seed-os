@@ -5349,11 +5349,14 @@
             '.sale-sign.layout-picture .ss-pic-wrap { width:100%; height:4in; background:#f1f5f9; display:flex; align-items:center; justify-content:center; overflow:hidden; border-bottom:6px solid var(--ss-accent); }' +
             '.sale-sign.layout-picture .ss-pic-wrap img { width:100%; height:100%; object-fit:cover; display:block; }' +
             '.sale-sign.layout-picture .ss-pic-placeholder { font-family:"Barlow Condensed",Inter,sans-serif; font-size:36pt; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:4px; }' +
-            '.sale-sign.layout-picture .ss-name { padding:0.25in 0.4in 0.3in; display:flex; flex-direction:column; align-items:flex-start; }' +
-            '.sale-sign.layout-picture .ss-name .ss-crop { font-size:13pt; font-weight:600; text-transform:uppercase; letter-spacing:5px; color:var(--ss-accent); margin-bottom:4pt; }' +
-            '.sale-sign.layout-picture .ss-name .ss-variety { font-family:"Barlow Condensed",Inter,sans-serif; font-weight:900; font-size:60pt; line-height:0.92; letter-spacing:-1px; color:#0a0a0a; }' +
-            '.sale-sign.layout-picture .ss-name .ss-variety.short { font-size:72pt; }' +
-            '.sale-sign.layout-picture .ss-name .ss-variety.long { font-size:44pt; }';
+            '.sale-sign.layout-picture .ss-name { padding:0.18in 0.4in 0.22in; display:flex; flex-direction:row; align-items:center; justify-content:space-between; gap:0.25in; }' +
+            '.sale-sign.layout-picture .ss-name-text { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; min-width:0; }' +
+            '.sale-sign.layout-picture .ss-name .ss-crop { font-size:11pt; font-weight:600; text-transform:uppercase; letter-spacing:4px; color:var(--ss-accent); margin-bottom:3pt; }' +
+            '.sale-sign.layout-picture .ss-name .ss-variety { font-family:"Barlow Condensed",Inter,sans-serif; font-weight:900; font-size:48pt; line-height:0.9; letter-spacing:-1px; color:#0a0a0a; }' +
+            '.sale-sign.layout-picture .ss-name .ss-variety.short { font-size:56pt; }' +
+            '.sale-sign.layout-picture .ss-name .ss-variety.long { font-size:36pt; }' +
+            '.sale-sign.layout-picture .ss-name-logo { height:0.7in; width:auto; max-width:1.6in; object-fit:contain; display:block; flex-shrink:0; }' +
+            '.sale-sign.layout-picture .ss-name-seal { height:0.7in; width:0.7in; object-fit:contain; display:block; flex-shrink:0; }';
 
         // Inject SALE_SIGN_CORE_CSS into document head exactly once. Idempotent.
         function injectSaleSignCoreCSS() {
@@ -5458,6 +5461,12 @@
             const colorCls = categoryColorClass(item.Category);
             const layout = getSaleSignLayout();
 
+            // Asset URLs — absolute so print window (about:blank) can load them.
+            // Declared up here so BOTH detailed and picture layouts can use them.
+            const baseUrl = (window.location.origin + window.location.pathname).replace(/\/[^\/]*$/, '/');
+            const farmLogoUrl = baseUrl + 'web_app/images/tiny-seed-farm-logo-bw.png';
+            const usdaSealUrl = baseUrl + 'web_app/images/usda-organic.jpeg';
+
             // Variety size class
             let vClass = '';
             if (variety.length <= 8) vClass = 'short';
@@ -5471,8 +5480,12 @@
                 return '<div class="sale-sign layout-picture ' + colorCls + '">' +
                     '<div class="ss-pic-wrap">' + picContent + '</div>' +
                     '<div class="ss-name">' +
-                        '<div class="ss-crop">' + escapeHtml(crop) + '</div>' +
-                        '<div class="ss-variety ' + vClass + '">' + escapeHtml(variety) + '</div>' +
+                        '<img class="ss-name-logo" src="' + farmLogoUrl + '" alt="Tiny Seed Farm">' +
+                        '<div class="ss-name-text">' +
+                            '<div class="ss-crop">' + escapeHtml(crop) + '</div>' +
+                            '<div class="ss-variety ' + vClass + '">' + escapeHtml(variety) + '</div>' +
+                        '</div>' +
+                        '<img class="ss-name-seal" src="' + usdaSealUrl + '" alt="USDA Certified Organic">' +
                     '</div>' +
                 '</div>';
             }
@@ -5495,11 +5508,6 @@
             // Price formatting: split dollar sign for typographic prominence
             const priceStr = String(price).trim();
             const priceClean = priceStr.replace(/^\$/, '');
-
-            // Asset URLs — absolute so print window (about:blank) can load them
-            const baseUrl = (window.location.origin + window.location.pathname).replace(/\/[^\/]*$/, '/');
-            const farmLogoUrl = baseUrl + 'web_app/images/tiny-seed-farm-logo-bw.png';
-            const usdaSealUrl = baseUrl + 'web_app/images/usda-organic.jpeg';
 
             return '<div class="sale-sign ' + colorCls + '">' +
                 '<div class="ss-left">' +
