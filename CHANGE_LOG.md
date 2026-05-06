@@ -6,6 +6,23 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-05-06] Sale Signs — Preview/Print Parity (Single CSS Source of Truth)
+
+- File: `labels.html`
+- Role: fullstack-builder (delegated by PM_ARCHITECT)
+- Status: Deployed live
+- Why: Todd reported two bugs after printing: description was cut off in print but visible in preview; category color rendered grey on print but green in preview.
+- Root cause: Two independent CSS blocks (static `<style>` for screen, JS string for print) had drifted. Print had `overflow:hidden` on `.ss-left`/`.ss-right` + `min-height:0` on `.ss-main` (screen had neither) which silently clipped tagline content. Print's `-webkit-print-color-adjust: exact` only applied to `html/body` so Chrome's default "Background graphics OFF" stripped the `.ss-right` background color.
+- Fix:
+  - Defined `SALE_SIGN_CORE_CSS` as a single JS constant containing all structural sale-sign rules.
+  - On script load, injected as `<style id="saleSignCoreCSS">` into document head — provides on-screen rendering.
+  - `printSaleSigns()` consumes the SAME string for the print window — preview/print can never diverge again.
+  - Removed `overflow:hidden` from inner columns (root `.sale-sign` still clips at card boundary).
+  - Added `* { print-color-adjust: exact !important }` to print-only CSS — forces color rendering regardless of "Background graphics" setting.
+  - `.ss-tagline` capped at 2 lines via `-webkit-line-clamp:2`.
+  - `trimTagline()` cap reduced 130 → 80 chars to fit within available vertical space.
+- Verification: `node --check` on extracted inline JS — clean. `grep` confirms single source of `SALE_SIGN_CORE_CSS` with 6 usages. No `overflow:hidden` remains on `.ss-left`/`.ss-right`. Print color-adjust applied via `*` selector with all 3 prefix variants.
+
 ## [2026-05-06] Spring CSA Roster — Reconciled to Canonical, Routes Cleaned
 
 - Files: Google Sheets `CSA_Members` only (no code changes)
