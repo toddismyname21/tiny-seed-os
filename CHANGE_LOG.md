@@ -6,6 +6,39 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-05-06] Seedling Sale Signs — 14 Image_URL Replacements
+
+- Files: Google Sheets `SEEDLING_PRODUCTION` only (V column, 14 rows updated via Sheets API batchUpdate)
+- Role: PM_ARCHITECT (Sheets API direct writes via cos refresh token)
+- Status: Complete. All 14 cells updated, all 12 unique URLs return HTTP 200.
+- Why: Todd reviewed picture-only sale signs after the layout/logo update and flagged 13 product photos (some wrong subject, some blurry, one was literally a cricket photo for "cat grass"). Phipps May Market is Friday May 8 — needed clean, in-focus, on-subject photos for laminated table signs.
+- Photo source: Wikimedia Commons (CC-licensed, free for commercial use). Hot-linked from `upload.wikimedia.org`. Self-hosting deferred to next iteration per Todd's directive ("source the photos from anywhere, I just want this done — we can figure out hosting for next time").
+- Updates (rows in V column):
+  - Row 2 — Cucumber slicing: replaced pickling-cucumber Johnny's URL with `ARS_cucumber.jpg`
+  - Row 35 — Tomato Juliet Grape: generic high-res tomato (cultivar-specific not available CC-free)
+  - Row 36 — Tomato Blush Grape: same generic tomato (variety name on sign disambiguates)
+  - Row 40 — Peas: `Peas_in_pods_-_Studio.jpg` (was wrong subject, Todd flagged "NOT PEAS!!")
+  - Rows 61, 62 — Parsley (both rows): `Petroselinum.jpg` (was blurry)
+  - Row 67 — Cat Grass: `Wheatgrass.jpg` (was a Tettigonia viridissima — bush cricket — NOT cat grass)
+  - Row 74 — Benary's Giant Mix Zinnia: `Zinnia_elegans_stack15` macro (was blurry)
+  - Row 75 — Bachelor Button Mix: `Centaurea_cyanus_flower_001` (was blurry)
+  - Row 79 — Red Knight Pepper: multi-color bell pepper (was blurry; perfect cultivar-specific not available)
+  - Row 81 — Paisan Pepperoncini: `Capsicum_annuum_Yellow_Chili_variety` (was blurry; close-cousin yellow chili)
+  - Row 83 — Ruby Kale: `Red_Russian_Kale` (was blurry; close-cousin red kale)
+  - Row 84 — Romaine Lettuce: `Stack_of_romaine_lettuce_heads`
+  - Row 85 — Butter Lettuce: `Butterhead_lettuce`
+- Verification: live `getSeedlingProductionPlan` API returns all 14 new URLs; HEAD checks on all 12 unique URLs return HTTP 200.
+- Followup for next session: copy these 12 images into `web_app/images/seedlings/` and update Image_URL column to point at self-hosted paths. Removes copyright/availability risk + faster CDN.
+
+## [2026-05-06] Sale Signs — Picture Layout: Add Logo + USDA Seal
+
+- File: `labels.html`
+- Role: fullstack-builder (delegated by PM_ARCHITECT)
+- Status: Deployed live
+- Why: Todd reviewed the picture-only layout for Phipps May Market and asked for branding consistency with the detailed layout (which already has logo + USDA seal). Customers buying at Phipps need to see the farm name and organic certification at a glance.
+- Implementation: Picture-only `.ss-name` bottom area refactored from single-column to 3-column flex row: logo (0.7in tall, left) | crop+variety (centered) | USDA seal (0.7in × 0.7in, right). Variety font sizes reduced (60/72/44pt → 48/56/36pt) to fit horizontal layout. baseUrl/farmLogoUrl/usdaSealUrl declarations moved above the layout branch so both detailed and picture variants reuse them.
+- Verification: 4 grep gates + node --check on extracted inline JS — all clean.
+
 ## [2026-05-06] Seedling Presale Closure — Banner Text Fix + Closure CTA Card
 
 - File: `web_app/seedling-presale-2026.html`
