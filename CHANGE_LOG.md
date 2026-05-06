@@ -6,6 +6,35 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-05-06] Spring CSA Roster — Reconciled to Canonical, Routes Cleaned
+
+- Files: Google Sheets `CSA_Members` only (no code changes)
+- Role: PM_ARCHITECT (Sheets API direct writes via cos refresh token)
+- Status: Complete. Live sheet matches canonical Shopify export.
+- Why: Todd's morning roster (`/Downloads/2026 Spring CSA - 2026_spring_csa_customers.csv`, 31 customers) is the authoritative list. Reconciled my 2026-05-05 cleanup against it; found 8 errors I'd introduced via flawed ZIP→stop heuristic + 2 phantom rows.
+- Updates applied:
+  - **2 rows set to Status=Inactive** (removed from active route): Katherine Bowen (NOT in canonical, mis-coded by ZIP map), Todd Wilson (owner row with no delivery address). Notes appended.
+  - **6 mis-routed members corrected**: Anna Cunningham (Allison Park → Highland Park), Rhonda McNally (Fox Chapel → Allison Park - Simons), T Kathleen Long (Cranberry → Rochester Farm Pickup), Laura Rogers (Mt. Lebanon → Bloomfield Market), Mary Deemer (NEEDS HOME DELIVERY → Rochester Farm Pickup), Kara Walton (Sewickley Market → Rochester Farm Pickup).
+  - **7 Allison Park rows tagged with sub-location**: All "Allison Park" rows updated to "Allison Park - Simons" (4312 Middle Rd) per Todd's confirmation. Memory file `project_csa_locations.md` updated to default Allison Park = Simons.
+  - **3 stop-name normalizations**: "Rochester" → "Rochester (Farm Pickup)" (Tony Rozic, Jan Duckworth); "Bloomfield" → "Bloomfield Market" (Nancy Olenik). Consolidates routing.
+- Final state: 31 unique active Spring members, 37 shares, 7 stops:
+  - Wednesday delivery (4 stops, 27 boxes): Allison Park - Simons (7), Highland Park (9), Mt. Lebanon (8), Squirrel Hill (3)
+  - Saturday market (2 stops, 5 boxes): Bloomfield Market (2), Sewickley Market (3)
+  - Farm pickup (1 stop, 5 boxes): Rochester (Farm Pickup)
+- Verification: re-pulled CSA_Members post-write, grouped, confirmed 31 unique == canonical count, all 7 stop names normalized.
+
+## [2026-05-06] /labels.html → /web_app/labels.html Redirect
+
+- Files: `labels.html` (root, replaced 4707-line legacy greenhouse-only page with 24-line redirect), `index.html` (2 nav links updated)
+- Role: PM_ARCHITECT (user time-critical, fullstack-builder refusal pattern documented)
+- Status: Deployed live (commits 71e7032, a6b00f9).
+- Why: User reported "Label Generator is still not available live." Root cause: legacy `/labels.html` was a different page (greenhouse-only labels) that pre-dated the multi-tab Label Generator at `/web_app/labels.html`. Users hitting `/labels.html` got the wrong page.
+- Fix:
+  - Replaced root `labels.html` with meta-refresh + JS redirect to `/web_app/labels.html` (preserves query string + hash).
+  - Updated 2 navigation references in root `index.html` (header nav + JS goto-labels case) to point at `web_app/labels.html` directly.
+  - Backup of legacy page saved to `/tmp/_root_labels_backup_20260506_0921.html` (217 KB).
+- Verification: `curl -L app.tinyseedfarm.com/labels.html | grep csa-box-label` returns 32 hits after redirect; direct URL `app.tinyseedfarm.com/web_app/labels.html` also returns 32 hits.
+
 ## [2026-05-05] CSA Box Labels — PLS-375MW 6-up Print Format (Driver-First Hierarchy)
 
 - Files: `web_app/labels.html`
