@@ -5314,6 +5314,11 @@
         // SALE SIGNS — Half-letter (8.5" x 5.5", 2 per sheet) for Friday Seedling Sale
         // ============================================================
 
+        // Seedling pricing for sale signs — uniform across all varieties for May Market 2026.
+        // To change next year: edit these two strings.
+        const SEEDLING_SIGN_PRICE_EACH = '$6';
+        const SEEDLING_SIGN_PRICE_BULK = '4 for $20';
+
         // SINGLE SOURCE OF TRUTH for all structural sale-sign CSS.
         // Injected into document head at load time (drives on-screen preview).
         // Re-used verbatim by printSaleSigns() for the print window.
@@ -5346,7 +5351,7 @@
             '.sale-sign .ss-spec-label { font-size:7.5pt; font-weight:600; text-transform:uppercase; letter-spacing:1.5px; opacity:0.8; margin-bottom:2pt; }' +
             '.sale-sign .ss-spec-value { font-family:"Barlow Condensed",Inter,sans-serif; font-weight:700; font-size:18pt; line-height:1; }' +
             '.sale-sign.layout-picture { display:block; padding:0; }' +
-            '.sale-sign.layout-picture .ss-pic-wrap { width:100%; height:4in; background:#f1f5f9; display:flex; align-items:center; justify-content:center; overflow:hidden; border-bottom:6px solid var(--ss-accent); }' +
+            '.sale-sign.layout-picture .ss-pic-wrap { width:100%; height:4in; background:#f1f5f9; display:flex; align-items:center; justify-content:center; overflow:hidden; border-bottom:6px solid var(--ss-accent); position:relative; }' +
             '.sale-sign.layout-picture .ss-pic-wrap img { width:100%; height:100%; object-fit:cover; display:block; }' +
             '.sale-sign.layout-picture .ss-pic-placeholder { font-family:"Barlow Condensed",Inter,sans-serif; font-size:36pt; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:4px; }' +
             '.sale-sign.layout-picture .ss-name { padding:0.18in 0.4in 0.22in; display:flex; flex-direction:row; align-items:center; justify-content:space-between; gap:0.25in; }' +
@@ -5356,7 +5361,10 @@
             '.sale-sign.layout-picture .ss-name .ss-variety.short { font-size:56pt; }' +
             '.sale-sign.layout-picture .ss-name .ss-variety.long { font-size:36pt; }' +
             '.sale-sign.layout-picture .ss-name-logo { height:0.7in; width:auto; max-width:1.6in; object-fit:contain; display:block; flex-shrink:0; }' +
-            '.sale-sign.layout-picture .ss-name-seal { height:0.7in; width:0.7in; object-fit:contain; display:block; flex-shrink:0; }';
+            '.sale-sign.layout-picture .ss-name-seal { height:0.7in; width:0.7in; object-fit:contain; display:block; flex-shrink:0; }' +
+            '.sale-sign.layout-picture .ss-price-overlay { position:absolute; top:0.2in; right:0.2in; background:var(--ss-accent); color:#fff; padding:0.16in 0.22in; text-align:center; font-family:"Barlow Condensed",Inter,sans-serif; line-height:1; box-shadow:0 4px 14px rgba(0,0,0,0.3); border-radius:0.06in; min-width:1.5in; }' +
+            '.sale-sign.layout-picture .ss-price-each { font-size:38pt; font-weight:900; letter-spacing:-1.5px; }' +
+            '.sale-sign.layout-picture .ss-price-bulk { font-size:11pt; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; margin-top:5pt; padding-top:5pt; border-top:1.5px solid rgba(255,255,255,0.4); }';
 
         // Inject SALE_SIGN_CORE_CSS into document head exactly once. Idempotent.
         function injectSaleSignCoreCSS() {
@@ -5478,7 +5486,12 @@
                     ? '<img src="' + escapeHtml(imageUrl) + '" alt="' + escapeHtml(crop + ' ' + variety) + '" onerror="this.style.display=\'none\';this.parentNode.innerHTML=\'<div class=ss-pic-placeholder>' + escapeHtml(crop || 'Photo').replace(/'/g,'') + '</div>\';">'
                     : '<div class="ss-pic-placeholder">' + escapeHtml(crop || 'Photo') + '</div>';
                 return '<div class="sale-sign layout-picture ' + colorCls + '">' +
-                    '<div class="ss-pic-wrap">' + picContent + '</div>' +
+                    '<div class="ss-pic-wrap">' + picContent +
+                        '<div class="ss-price-overlay">' +
+                            '<div class="ss-price-each">' + escapeHtml(SEEDLING_SIGN_PRICE_EACH) + '</div>' +
+                            '<div class="ss-price-bulk">' + escapeHtml(SEEDLING_SIGN_PRICE_BULK) + '</div>' +
+                        '</div>' +
+                    '</div>' +
                     '<div class="ss-name">' +
                         '<img class="ss-name-logo" src="' + farmLogoUrl + '" alt="Tiny Seed Farm">' +
                         '<div class="ss-name-text">' +

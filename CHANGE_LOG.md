@@ -6,6 +6,17 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-05-06] Sale Signs — Picture Layout: $6 / 4-for-$20 Price Overlay
+
+- File: `labels.html`
+- Role: fullstack-builder (delegated by PM_ARCHITECT)
+- Status: Deployed live
+- Why: Todd needed visible pricing on picture-only sale signs for Phipps May Market (Friday May 8). Customers walking the market need to see price at a glance. Picture-only layout previously had no price shown.
+- Implementation: Top-right corner price badge overlay on `.ss-pic-wrap` (made `position:relative`). Badge has accent-color background (cascades from category — green for veg, magenta for flowers, etc.), drop shadow, rounded corners. "$6" at 38pt bold; "4 FOR $20" at 11pt uppercase letter-spaced subtitle separated by horizontal rule. Pricing uniform for May 2026 sale; configurable via two JS consts (`SEEDLING_SIGN_PRICE_EACH`, `SEEDLING_SIGN_PRICE_BULK`) for future seasons. Detailed layout unchanged.
+- Verification: 4 grep gates + node --check on extracted inline JS — all clean.
+
+---
+
 ## [2026-05-06] Seedling Sale Signs — 14 Image_URL Replacements
 
 - Files: Google Sheets `SEEDLING_PRODUCTION` only (V column, 14 rows updated via Sheets API batchUpdate)
