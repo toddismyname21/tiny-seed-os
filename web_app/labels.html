@@ -1020,6 +1020,146 @@
                 margin-bottom: 2px;
             }
 
+            /* ═══════════════════════════════════════════════════════════════
+               CSA BOX LABELS - PLS-375MW (4" × 3.33", 6 per letter sheet)
+               Driver-first design: pickup stop is the largest text on the label.
+               Layout: 2 cols × 3 rows. Letter sheet, top/bottom 0.5", left/right 0.25"
+               Added 2026-05-06 (PM_ARCHITECT) per user request.
+               ═══════════════════════════════════════════════════════════════ */
+            @page :first { margin: 0; }
+            .print-csa-box-labels {
+                display: grid !important;
+                grid-template-columns: 4in 4in;
+                grid-auto-rows: 3.33in;
+                gap: 0;
+                width: 8in;
+                margin: 0.5in 0.25in 0 0.25in;
+                padding: 0;
+            }
+            .csa-box-label {
+                width: 4in;
+                height: 3.33in;
+                box-sizing: border-box;
+                padding: 0.18in 0.22in;
+                background: white;
+                color: #000;
+                page-break-inside: avoid;
+                break-inside: avoid;
+                display: grid;
+                grid-template-rows: 0.55in 1fr 0.32in;
+                font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+                position: relative;
+                overflow: hidden;
+            }
+            /* Force 6 labels per page — page break after every 6th */
+            .csa-box-label:nth-of-type(6n) { page-break-after: always; }
+
+            .csa-box-label .label-top {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 0.1in;
+            }
+            .csa-box-label .label-logo {
+                height: 0.5in;
+                width: auto;
+                flex: 0 0 auto;
+            }
+            .csa-box-label .label-wordmark {
+                font-family: 'Bebas Neue', 'Oswald', sans-serif;
+                font-size: 11pt;
+                letter-spacing: 0.04em;
+                color: #2d6a4f;
+                font-weight: 700;
+                text-align: right;
+                line-height: 1.05;
+            }
+            .csa-box-label .label-wordmark .tagline {
+                display: block;
+                font-family: 'Inter', sans-serif;
+                font-size: 7pt;
+                letter-spacing: 0.05em;
+                font-weight: 500;
+                color: #555;
+                text-transform: uppercase;
+            }
+
+            .csa-box-label .label-body {
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                text-align: center;
+                gap: 0.06in;
+                min-height: 0; /* allow shrink */
+            }
+            /* PICKUP STOP — biggest text on the label, all-caps, very bold */
+            .csa-box-label .pickup-stop {
+                font-family: 'Bebas Neue', 'Oswald', 'Inter', sans-serif;
+                font-weight: 800;
+                font-size: 44pt;
+                line-height: 0.95;
+                letter-spacing: 0.01em;
+                text-transform: uppercase;
+                color: #000;
+                margin: 0;
+                word-break: break-word;
+                hyphens: auto;
+            }
+            /* Auto-shrink class applied via JS for long stop names */
+            .csa-box-label .pickup-stop.shrink-1 { font-size: 36pt; }
+            .csa-box-label .pickup-stop.shrink-2 { font-size: 28pt; }
+            .csa-box-label .pickup-stop.shrink-3 { font-size: 22pt; }
+            .csa-box-label .pickup-detail {
+                font-size: 13pt;
+                font-weight: 600;
+                color: #444;
+                text-transform: none;
+                letter-spacing: 0.02em;
+                margin-top: -0.03in;
+            }
+            /* Customer name — second tier, bold but smaller than stop */
+            .csa-box-label .customer-name {
+                font-size: 22pt;
+                font-weight: 700;
+                color: #1a1a1a;
+                line-height: 1.05;
+                margin-top: 0.05in;
+                word-break: break-word;
+            }
+            .csa-box-label .customer-name.shrink-1 { font-size: 18pt; }
+            .csa-box-label .customer-name.shrink-2 { font-size: 15pt; }
+
+            .csa-box-label .allergy-flag {
+                margin-top: 0.04in;
+                display: inline-block;
+                font-size: 9pt;
+                font-weight: 700;
+                color: #b00020;
+                border: 1.5px solid #b00020;
+                padding: 1px 6px;
+                border-radius: 3px;
+                letter-spacing: 0.04em;
+                text-transform: uppercase;
+            }
+
+            .csa-box-label .label-footer {
+                display: flex;
+                justify-content: space-between;
+                align-items: end;
+                font-size: 8.5pt;
+                color: #555;
+                font-weight: 500;
+                border-top: 1px solid #d0d0d0;
+                padding-top: 0.06in;
+            }
+            .csa-box-label .footer-share {
+                font-weight: 600;
+                color: #2d6a4f;
+                text-transform: uppercase;
+                letter-spacing: 0.04em;
+            }
+
             /* Wholesale Labels Print - 2.4" Brother labels */
             .print-wholesale-labels {
                 display: block !important;
@@ -1437,9 +1577,70 @@
 
             <!-- CSA Labels Tab -->
             <div id="csaTab" class="tab-content" style="display: none;">
-                <div class="labels-preview">
+                <!-- Format selector: Brother thermal vs PLS-375MW sheet labels -->
+                <div class="labels-preview" style="margin-bottom:16px;">
+                    <div class="preview-header" style="flex-wrap:wrap; gap:12px;">
+                        <span class="preview-title">Label Format</span>
+                    </div>
+                    <div style="display:flex; gap:12px; flex-wrap:wrap; padding:12px 0;">
+                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                            <input type="radio" name="csaLabelFormat" value="thermal" checked onchange="switchCSAFormat('thermal')">
+                            <span>Brother thermal (2.4″, by daily order) — packing slips</span>
+                        </label>
+                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                            <input type="radio" name="csaLabelFormat" value="box" onchange="switchCSAFormat('box')">
+                            <span><strong>Box labels (4″×3.33″ sheet — PLS-375MW, 6 per page)</strong></span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Box-label filter controls — visible only in 'box' mode -->
+                <div id="csaBoxControls" class="labels-preview" style="display:none; margin-bottom:16px;">
                     <div class="preview-header">
-                        <span class="preview-title">CSA Labels Preview</span>
+                        <span class="preview-title">Box Label Filters</span>
+                    </div>
+                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:12px; padding:12px 0;">
+                        <div>
+                            <label style="display:block; font-size:0.8rem; color:var(--text-secondary); margin-bottom:4px;">Share Type</label>
+                            <select id="csaBoxShareType" onchange="renderCSABoxPreview()" style="width:100%; padding:8px; background:var(--bg-elevated); color:var(--text-primary); border:1px solid var(--border); border-radius:6px;">
+                                <option value="">All Share Types</option>
+                                <option value="Spring Vegetable">Spring Vegetable</option>
+                                <option value="Summer Vegetable">Summer Vegetable</option>
+                                <option value="Vegetable">Vegetable</option>
+                                <option value="Flower">Flower / Bouquet</option>
+                                <option value="Flex">Flex</option>
+                                <option value="Add-On">Add-On</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="display:block; font-size:0.8rem; color:var(--text-secondary); margin-bottom:4px;">Pickup Stop</label>
+                            <select id="csaBoxStop" onchange="renderCSABoxPreview()" style="width:100%; padding:8px; background:var(--bg-elevated); color:var(--text-primary); border:1px solid var(--border); border-radius:6px;">
+                                <option value="">All Stops</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="display:block; font-size:0.8rem; color:var(--text-secondary); margin-bottom:4px;">Status</label>
+                            <select id="csaBoxStatus" onchange="renderCSABoxPreview()" style="width:100%; padding:8px; background:var(--bg-elevated); color:var(--text-primary); border:1px solid var(--border); border-radius:6px;">
+                                <option value="Active" selected>Active only</option>
+                                <option value="">All statuses</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="display:block; font-size:0.8rem; color:var(--text-secondary); margin-bottom:4px;">Footer date (Wednesday)</label>
+                            <input type="date" id="csaBoxDate" onchange="renderCSABoxPreview()" style="width:100%; padding:8px; background:var(--bg-elevated); color:var(--text-primary); border:1px solid var(--border); border-radius:6px;">
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:12px; align-items:center; padding:12px 0; flex-wrap:wrap;">
+                        <button class="btn btn-secondary" onclick="loadCSAMembersForBoxLabels()">🔄 Refresh from CSA Members</button>
+                        <button class="btn btn-primary" onclick="printCSABoxLabels()">🖨️ Print Box Labels</button>
+                        <span id="csaBoxStatusMsg" style="color:var(--text-secondary); font-size:0.85rem;"></span>
+                    </div>
+                </div>
+
+                <!-- Brother thermal preview (existing) -->
+                <div id="csaThermalView" class="labels-preview">
+                    <div class="preview-header">
+                        <span class="preview-title">CSA Labels Preview (Brother thermal)</span>
                         <div class="select-all-container">
                             <input type="checkbox" id="selectAllCSA" onchange="toggleSelectAll('csa')">
                             <label for="selectAllCSA">Select All</label>
@@ -1452,8 +1653,22 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Box-label screen preview (only visible in 'box' mode) -->
+                <div id="csaBoxView" class="labels-preview" style="display:none;">
+                    <div class="preview-header">
+                        <span class="preview-title">Box Labels Preview — <span id="csaBoxCount">0</span> label(s)</span>
+                    </div>
+                    <div id="csaBoxPreviewGrid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:12px; padding:16px 0;">
+                        <div class="empty-state" style="grid-column:1/-1;">
+                            <div class="empty-state-icon">📦</div>
+                            <p>Click "Refresh from CSA Members" to load box labels</p>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="manual-entry-section">
-                    <h3>Add Manual CSA Label</h3>
+                    <h3>Add Manual CSA Label (thermal mode)</h3>
                     <div class="manual-form-row">
                         <input type="text" id="manualCSACustomer" placeholder="Customer Name">
                         <input type="text" id="manualCSAItems" placeholder="Items (comma separated)">
@@ -1666,6 +1881,9 @@
 
     <!-- CSA Labels Print Container -->
     <div id="printCSALabels" class="print-container print-csa-labels"></div>
+
+    <!-- CSA BOX Labels Print Container — PLS-375MW (4"×3.33", 6 per sheet) -->
+    <div id="printCSABoxLabels" class="print-container print-csa-box-labels"></div>
 
     <!-- Wholesale Labels Print Container -->
     <div id="printWholesaleLabels" class="print-container print-wholesale-labels"></div>
@@ -2174,6 +2392,197 @@
             // Clear form
             document.getElementById('manualCSACustomer').value = '';
             document.getElementById('manualCSAItems').value = '';
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // CSA BOX LABELS — PLS-375MW (4"×3.33", 6 per sheet)
+        // Driver-first hierarchy: PICKUP STOP largest+bold, customer name secondary.
+        // Added 2026-05-06.
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        AppState.csaMembers = [];
+
+        function switchCSAFormat(mode) {
+            const isBox = (mode === 'box');
+            document.getElementById('csaBoxControls').style.display = isBox ? '' : 'none';
+            document.getElementById('csaBoxView').style.display = isBox ? '' : 'none';
+            document.getElementById('csaThermalView').style.display = isBox ? 'none' : '';
+            if (isBox) {
+                // Default footer date = next Wednesday
+                const dateInput = document.getElementById('csaBoxDate');
+                if (!dateInput.value) dateInput.value = nextWednesdayISO();
+                if (AppState.csaMembers.length === 0) loadCSAMembersForBoxLabels();
+                else renderCSABoxPreview();
+            }
+        }
+
+        function nextWednesdayISO() {
+            const d = new Date();
+            // 0=Sun..6=Sat. Wed=3.
+            const daysUntilWed = (3 - d.getDay() + 7) % 7;
+            const target = new Date(d);
+            target.setDate(d.getDate() + (daysUntilWed === 0 ? 7 : daysUntilWed));
+            return target.toISOString().slice(0, 10);
+        }
+
+        function formatLabelDate(iso) {
+            if (!iso) return '';
+            const [y, m, d] = iso.split('-').map(Number);
+            const dt = new Date(y, m - 1, d);
+            return dt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+        }
+
+        async function loadCSAMembersForBoxLabels() {
+            const statusEl = document.getElementById('csaBoxStatusMsg');
+            statusEl.textContent = 'Loading…';
+            try {
+                const resp = await fetch(`${API_URL}?action=getCSAMembers`);
+                const data = await resp.json();
+                if (!data.success) {
+                    statusEl.textContent = 'Error: ' + (data.error || 'unknown');
+                    statusEl.style.color = 'var(--danger)';
+                    return;
+                }
+                AppState.csaMembers = (data.members || []).filter(m => m.Customer_Name && m.Pickup_Location);
+                statusEl.textContent = `Loaded ${AppState.csaMembers.length} member(s) with pickup info.`;
+                statusEl.style.color = 'var(--text-secondary)';
+                populateStopFilter();
+                renderCSABoxPreview();
+            } catch (err) {
+                statusEl.textContent = 'Network error: ' + err.message;
+                statusEl.style.color = 'var(--danger)';
+            }
+        }
+
+        function populateStopFilter() {
+            const sel = document.getElementById('csaBoxStop');
+            const stops = [...new Set(AppState.csaMembers.map(m => m.Pickup_Location))].sort();
+            const current = sel.value;
+            sel.innerHTML = '<option value="">All Stops</option>' +
+                stops.map(s => `<option value="${s.replace(/"/g, '&quot;')}">${s}</option>`).join('');
+            sel.value = current;
+        }
+
+        function getFilteredCSABoxMembers() {
+            const shareFilter = document.getElementById('csaBoxShareType').value;
+            const stopFilter = document.getElementById('csaBoxStop').value;
+            const statusFilter = document.getElementById('csaBoxStatus').value;
+            return AppState.csaMembers.filter(m => {
+                if (statusFilter && m.Status !== statusFilter) return false;
+                if (shareFilter && m.Share_Type !== shareFilter) return false;
+                if (stopFilter && m.Pickup_Location !== stopFilter) return false;
+                return true;
+            }).sort((a, b) => {
+                const sa = (a.Pickup_Location || '').toLowerCase();
+                const sb = (b.Pickup_Location || '').toLowerCase();
+                if (sa !== sb) return sa < sb ? -1 : 1;
+                const na = (a.Customer_Name || '').toLowerCase();
+                const nb = (b.Customer_Name || '').toLowerCase();
+                return na < nb ? -1 : (na > nb ? 1 : 0);
+            });
+        }
+
+        function splitPickupStop(stop) {
+            // "Allison Park - Simons" -> { main: "Allison Park", detail: "Simons" }
+            // "North Side - Mayfly Market" -> { main: "North Side", detail: "Mayfly Market" }
+            // "Mt. Lebanon" -> { main: "Mt. Lebanon", detail: "" }
+            const parts = (stop || '').split(/\s*[-–—]\s*/);
+            return {
+                main: parts[0] || '',
+                detail: parts.slice(1).join(' - ')
+            };
+        }
+
+        function pickupShrinkClass(text) {
+            const len = (text || '').length;
+            if (len <= 12) return '';
+            if (len <= 16) return 'shrink-1';
+            if (len <= 22) return 'shrink-2';
+            return 'shrink-3';
+        }
+
+        function nameShrinkClass(text) {
+            const len = (text || '').length;
+            if (len <= 18) return '';
+            if (len <= 26) return 'shrink-1';
+            return 'shrink-2';
+        }
+
+        function hasAllergyFlag(member) {
+            const haystack = ((member.Notes || '') + ' ' + (member.Preferences || '')).toLowerCase();
+            return /\ballerg|\bdislike|\bavoid|\bno\s+(tomato|pepper|onion|garlic|cilantro|kale)/i.test(haystack);
+        }
+
+        function buildBoxLabelHTML(member, footerDateStr) {
+            const stop = splitPickupStop(member.Pickup_Location || '');
+            const stopClass = pickupShrinkClass(stop.main);
+            const nameClass = nameShrinkClass(member.Customer_Name || '');
+            const allergy = hasAllergyFlag(member) ? `<span class="allergy-flag">⚠ See notes</span>` : '';
+            const detail = stop.detail ? `<div class="pickup-detail">${escapeHtml(stop.detail)}</div>` : '';
+            const shareLabel = (member.Share_Type || '').replace(/\s*Vegetable$/i, ' Veg');
+            return `
+                <div class="csa-box-label">
+                    <div class="label-top">
+                        <img src="assets/logo.png" alt="Tiny Seed Farm" class="label-logo" onerror="this.style.display='none'">
+                        <div class="label-wordmark">
+                            TINY SEED FARM
+                            <span class="tagline">Pittsburgh CSA</span>
+                        </div>
+                    </div>
+                    <div class="label-body">
+                        <div class="pickup-stop ${stopClass}">${escapeHtml(stop.main)}</div>
+                        ${detail}
+                        <div class="customer-name ${nameClass}">${escapeHtml(member.Customer_Name || '')}</div>
+                        ${allergy}
+                    </div>
+                    <div class="label-footer">
+                        <span class="footer-date">${escapeHtml(footerDateStr)}</span>
+                        <span class="footer-share">${escapeHtml(shareLabel)}</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        function escapeHtml(s) {
+            return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        }
+
+        function renderCSABoxPreview() {
+            const members = getFilteredCSABoxMembers();
+            document.getElementById('csaBoxCount').textContent = members.length;
+            const dateIso = document.getElementById('csaBoxDate').value || nextWednesdayISO();
+            const footerDateStr = formatLabelDate(dateIso);
+            const grid = document.getElementById('csaBoxPreviewGrid');
+            if (members.length === 0) {
+                grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><div class="empty-state-icon">📦</div><p>No members match the current filters.</p></div>';
+                return;
+            }
+            // Render a scaled-down preview using the same HTML structure as print
+            grid.innerHTML = members.map(m => `
+                <div style="background:#fff; color:#000; border-radius:8px; overflow:hidden; transform-origin: top left; padding:8px;">
+                    <div style="width:4in; height:3.33in; transform:scale(0.55); transform-origin: top left; margin-bottom: -1.5in; margin-right: -1.8in;">
+                        ${buildBoxLabelHTML(m, footerDateStr)}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function printCSABoxLabels() {
+            const members = getFilteredCSABoxMembers();
+            if (members.length === 0) {
+                alert('No CSA members match the current filters.');
+                return;
+            }
+            const dateIso = document.getElementById('csaBoxDate').value || nextWednesdayISO();
+            const footerDateStr = formatLabelDate(dateIso);
+            const container = document.getElementById('printCSABoxLabels');
+            container.innerHTML = members.map(m => buildBoxLabelHTML(m, footerDateStr)).join('');
+            // Use the existing print engine
+            if (typeof TinySeedPrint !== 'undefined' && TinySeedPrint.report) {
+                TinySeedPrint.report({ orientation: 'portrait' });
+            } else {
+                window.print();
+            }
         }
 
         function addManualWholesaleLabel() {
