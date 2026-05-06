@@ -6,6 +6,17 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-05-06] Sale Signs — Detailed Layout: Add "4 FOR $20" Bulk Price Line
+
+- File: `labels.html`
+- Role: fullstack-builder (delegated by PM_ARCHITECT, parallel to picture-layout pricing work)
+- Status: Deployed live
+- Why: Todd asked to update detailed layout pricing to match the picture-only layout's $6 / 4-for-$20 treatment. Single source of truth via shared JS consts.
+- Implementation: Detailed `.ss-right` column now renders "$6" from `SEEDLING_SIGN_PRICE_EACH` const (was sourcing from sheet Price_Each) plus a new "4 FOR $20" subtitle (`.ss-price-bulk-line` element) below the price, separated by a thin border. Same const used by both layouts — next year's price change is a 1-line edit.
+- Verification: 5 grep gates + node --check on extracted inline JS — all clean.
+
+---
+
 ## [2026-05-06] Sale Signs — Picture Layout: $6 / 4-for-$20 Price Overlay
 
 - File: `labels.html`

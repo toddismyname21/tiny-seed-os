@@ -5344,6 +5344,7 @@
             '.sale-sign .ss-price-label { font-size:11pt; font-weight:600; text-transform:uppercase; letter-spacing:3px; opacity:0.85; margin-bottom:4pt; }' +
             '.sale-sign .ss-price { font-family:"Barlow Condensed",Inter,sans-serif; font-weight:900; font-size:104pt; line-height:0.85; letter-spacing:-2px; }' +
             '.sale-sign .ss-price .dollar { font-size:52pt; vertical-align:top; line-height:1; }' +
+            '.sale-sign .ss-price-bulk-line { font-family:"Barlow Condensed",Inter,sans-serif; font-size:14pt; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; opacity:0.92; margin-top:6pt; padding-top:6pt; border-top:1.5px solid rgba(255,255,255,0.3); text-align:center; color:#fff; }' +
             '.sale-sign .ss-specs { margin-top:0.25in; border-top:2px solid rgba(255,255,255,0.25); padding-top:0.18in; display:grid; gap:8pt; }' +
             '.sale-sign .ss-specs.cols-1 { grid-template-columns:1fr; }' +
             '.sale-sign .ss-specs.cols-2 { grid-template-columns:1fr 1fr; }' +
@@ -5539,7 +5540,8 @@
                 '</div>' +
                 '<div class="ss-right">' +
                     '<div class="ss-price-label">Each</div>' +
-                    '<div class="ss-price"><span class="dollar">$</span>' + escapeHtml(priceClean) + '</div>' +
+                    '<div class="ss-price"><span class="dollar">$</span>' + escapeHtml(SEEDLING_SIGN_PRICE_EACH.replace(/^\$/, '')) + '</div>' +
+                    '<div class="ss-price-bulk-line">' + escapeHtml(SEEDLING_SIGN_PRICE_BULK.toUpperCase()) + '</div>' +
                     '<div class="ss-specs ' + colsCls + '">' + specsHtml + '</div>' +
                 '</div>' +
             '</div>';
