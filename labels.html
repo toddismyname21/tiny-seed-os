@@ -173,9 +173,11 @@
         .sale-sign.cat-herb { --ss-accent: #2a9d8f; }
         .sale-sign.cat-other { --ss-accent: #475569; }
         .sale-sign .ss-left { padding: 0.4in; display: flex; flex-direction: column; justify-content: space-between; border-right: 3px solid var(--ss-accent); }
-        .sale-sign .ss-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 0.15in; border-bottom: 2px solid #e5e5e5; gap: 0.2in; }
-        .sale-sign .ss-farm-logo { height: 0.7in; width: auto; max-width: 2.4in; object-fit: contain; display: block; }
-        .sale-sign .ss-usda-seal { height: 0.7in; width: 0.7in; object-fit: contain; display: block; flex-shrink: 0; }
+        .sale-sign .ss-header { display: flex; justify-content: center; align-items: center; padding-bottom: 0.15in; border-bottom: 2px solid #e5e5e5; }
+        .sale-sign .ss-farm-logo { height: 1.05in; width: auto; max-width: 4.2in; object-fit: contain; display: block; }
+        .sale-sign .ss-main { text-align: center; align-items: center; }
+        .sale-sign .ss-tagline { text-align: center; margin-left: auto; margin-right: auto; }
+        .sale-sign .ss-usda-seal { height: 0.85in; width: 0.85in; object-fit: contain; display: block; margin: 0.16in auto 0; }
         .sale-sign .ss-main { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 0.1in 0; }
         .sale-sign .ss-crop { font-size: 12pt; font-weight: 600; text-transform: uppercase; letter-spacing: 4px; color: var(--ss-accent); margin-bottom: 4pt; }
         .sale-sign .ss-variety { font-family: 'Barlow Condensed', Inter, sans-serif; font-weight: 900; font-size: 52pt; line-height: 0.95; letter-spacing: -1px; color: #0a0a0a; margin-bottom: 8pt; }
@@ -5485,12 +5487,12 @@
                 '<div class="ss-left">' +
                     '<div class="ss-header">' +
                         '<img class="ss-farm-logo" src="' + farmLogoUrl + '" alt="Tiny Seed Farm">' +
-                        '<img class="ss-usda-seal" src="' + usdaSealUrl + '" alt="USDA Certified Organic">' +
                     '</div>' +
                     '<div class="ss-main">' +
                         '<div class="ss-crop">' + escapeHtml(crop) + '</div>' +
                         '<div class="ss-variety ' + vClass + '">' + escapeHtml(variety) + '</div>' +
                         (tagline ? '<div class="ss-tagline">' + escapeHtml(tagline) + '</div>' : '') +
+                        '<img class="ss-usda-seal" src="' + usdaSealUrl + '" alt="USDA Certified Organic">' +
                     '</div>' +
                     '<div class="ss-footer">' +
                         '<span>tinyseedfarm.com</span>' +
@@ -5574,15 +5576,15 @@
                 '.sale-sign.cat-herb { --ss-accent:#2a9d8f; }' +
                 '.sale-sign.cat-other { --ss-accent:#475569; }' +
                 '.sale-sign .ss-left { padding:0.4in; display:flex; flex-direction:column; justify-content:space-between; border-right:3px solid var(--ss-accent); overflow:hidden; }' +
-                '.sale-sign .ss-header { display:flex; justify-content:space-between; align-items:center; padding-bottom:0.15in; border-bottom:2px solid #e5e5e5; gap:0.2in; }' +
-                '.sale-sign .ss-farm-logo { height:0.7in; width:auto; max-width:2.4in; object-fit:contain; display:block; }' +
-                '.sale-sign .ss-usda-seal { height:0.7in; width:0.7in; object-fit:contain; display:block; flex-shrink:0; }' +
-                '.sale-sign .ss-main { flex:1; display:flex; flex-direction:column; justify-content:center; padding:0.1in 0; min-height:0; }' +
+                '.sale-sign .ss-header { display:flex; justify-content:center; align-items:center; padding-bottom:0.15in; border-bottom:2px solid #e5e5e5; }' +
+                '.sale-sign .ss-farm-logo { height:1.05in; width:auto; max-width:4.2in; object-fit:contain; display:block; }' +
+                '.sale-sign .ss-usda-seal { height:0.85in; width:0.85in; object-fit:contain; display:block; margin:0.16in auto 0; }' +
+                '.sale-sign .ss-main { flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:0.1in 0; min-height:0; }' +
                 '.sale-sign .ss-crop { font-size:12pt; font-weight:600; text-transform:uppercase; letter-spacing:4px; color:var(--ss-accent); margin-bottom:4pt; }' +
                 '.sale-sign .ss-variety { font-family:"Barlow Condensed",Inter,sans-serif; font-weight:900; font-size:52pt; line-height:0.95; letter-spacing:-1px; color:#0a0a0a; margin-bottom:8pt; }' +
                 '.sale-sign .ss-variety.short { font-size:60pt; }' +
                 '.sale-sign .ss-variety.long { font-size:38pt; }' +
-                '.sale-sign .ss-tagline { font-size:10.5pt; line-height:1.35; color:#444; font-style:italic; max-width:4.4in; overflow:hidden; }' +
+                '.sale-sign .ss-tagline { font-size:10.5pt; line-height:1.35; color:#444; font-style:italic; max-width:4.4in; overflow:hidden; text-align:center; }' +
                 '.sale-sign .ss-footer { display:flex; justify-content:space-between; font-size:8.5pt; color:#888; padding-top:0.12in; border-top:1px solid #e5e5e5; text-transform:uppercase; letter-spacing:1.5px; }' +
                 '.sale-sign .ss-right { background:var(--ss-accent); color:#fff; padding:0.4in 0.3in; display:flex; flex-direction:column; justify-content:center; text-align:center; overflow:hidden; }' +
                 '.sale-sign .ss-price-label { font-size:11pt; font-weight:600; text-transform:uppercase; letter-spacing:3px; opacity:0.85; margin-bottom:4pt; }' +
