@@ -1448,6 +1448,23 @@
                     <i class="fas fa-print"></i> Print Sale Signs
                 </button>
                 <p id="saleSignStatusMsg" style="font-size:0.8rem;color:var(--text-secondary);margin-top:8px;"></p>
+
+                <hr style="margin:20px 0; border:none; border-top:1px solid var(--border);">
+                <h4 style="font-size:0.95rem; color:var(--text-secondary); margin:0 0 12px; text-transform:uppercase; letter-spacing:1px;">Generic Price Signs <span style="font-weight:400; text-transform:none; letter-spacing:0; opacity:0.7;">(no variety)</span></h4>
+                <div class="form-group">
+                    <label class="form-label">Size</label>
+                    <select class="form-control" id="priceSignSize">
+                        <option value="half">Half-letter (8.5" × 5.5", 2 per sheet)</option>
+                        <option value="full">Full-letter (8.5" × 11", 1 per sheet)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Quantity</label>
+                    <input type="number" class="form-control" id="priceSignQty" value="12" min="1" max="200">
+                </div>
+                <button class="btn btn-primary btn-block" onclick="printPriceSigns()" style="background:linear-gradient(135deg,#be185d,#9f1239);">
+                    <i class="fas fa-tag"></i> Print Generic Price Signs
+                </button>
             </div>
 
             <div class="panel-section" id="seedFilters" style="display: none;">
@@ -5365,7 +5382,27 @@
             '.sale-sign.layout-picture .ss-name-seal { height:0.7in; width:0.7in; object-fit:contain; display:block; flex-shrink:0; }' +
             '.sale-sign.layout-picture .ss-price-overlay { position:absolute; top:0.2in; right:0.2in; background:var(--ss-accent); color:#fff; padding:0.16in 0.22in; text-align:center; font-family:"Barlow Condensed",Inter,sans-serif; line-height:1; box-shadow:0 4px 14px rgba(0,0,0,0.3); border-radius:0.06in; min-width:1.5in; }' +
             '.sale-sign.layout-picture .ss-price-each { font-size:38pt; font-weight:900; letter-spacing:-1.5px; }' +
-            '.sale-sign.layout-picture .ss-price-bulk { font-size:11pt; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; margin-top:5pt; padding-top:5pt; border-top:1.5px solid rgba(255,255,255,0.4); }';
+            '.sale-sign.layout-picture .ss-price-bulk { font-size:11pt; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; margin-top:5pt; padding-top:5pt; border-top:1.5px solid rgba(255,255,255,0.4); }' +
+            '.price-sign { background:#fff; color:#0a0a0a; display:flex; flex-direction:column; overflow:hidden; font-family:Inter,-apple-system,BlinkMacSystemFont,sans-serif; box-sizing:border-box; }' +
+            '.price-sign-half { width:8.5in; height:5.5in; }' +
+            '.price-sign-full { width:8.5in; height:11in; }' +
+            '.price-sign-header { background:#fff; display:flex; align-items:center; justify-content:space-between; padding:0.25in 0.4in; border-bottom:3px solid #be185d; }' +
+            '.price-sign-header .ps-logo { object-fit:contain; }' +
+            '.price-sign-header .ps-seal { object-fit:contain; }' +
+            '.price-sign-half .price-sign-header .ps-logo { height:0.85in; max-width:2.4in; }' +
+            '.price-sign-half .price-sign-header .ps-seal { height:0.85in; width:0.85in; }' +
+            '.price-sign-full .price-sign-header .ps-logo { height:1.4in; max-width:4in; }' +
+            '.price-sign-full .price-sign-header .ps-seal { height:1.4in; width:1.4in; }' +
+            '.price-sign-body { flex:1; background:#be185d; color:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:0.3in; }' +
+            '.price-sign-each { font-family:"Barlow Condensed",Inter,sans-serif; font-weight:900; line-height:0.85; letter-spacing:-3px; }' +
+            '.price-sign-each .ps-dollar { vertical-align:top; line-height:1; }' +
+            '.price-sign-bulk { font-family:"Barlow Condensed",Inter,sans-serif; font-weight:800; letter-spacing:3px; text-transform:uppercase; margin-top:0.18in; padding-top:0.18in; border-top:3px solid rgba(255,255,255,0.45); }' +
+            '.price-sign-half .price-sign-each { font-size:200pt; }' +
+            '.price-sign-half .price-sign-each .ps-dollar { font-size:120pt; }' +
+            '.price-sign-half .price-sign-bulk { font-size:28pt; }' +
+            '.price-sign-full .price-sign-each { font-size:400pt; }' +
+            '.price-sign-full .price-sign-each .ps-dollar { font-size:240pt; }' +
+            '.price-sign-full .price-sign-bulk { font-size:52pt; }';
 
         // Inject SALE_SIGN_CORE_CSS into document head exactly once. Idempotent.
         function injectSaleSignCoreCSS() {
@@ -5644,6 +5681,73 @@
             const delay = layout === 'picture' ? 1800 : 1200;
             w.addEventListener('load', function() { setTimeout(function() { try { w.print(); } catch(e){} }, delay); });
             showToast('Sale signs (' + layout + '): ' + list.length + ' signs (' + Math.ceil(list.length/2) + ' sheets) — print dialog opening');
+        }
+
+        // ============================================================
+        // GENERIC PRICE SIGNS — Stand-alone $6 / 4-FOR-$20 signs (no variety)
+        // Half-letter (2 per sheet) or full-letter (1 per sheet) for Phipps May Market
+        // ============================================================
+        function printPriceSigns() {
+            const sizeEl = document.getElementById('priceSignSize');
+            const qtyEl = document.getElementById('priceSignQty');
+            const size = (sizeEl ? sizeEl.value : 'half');
+            const qty = Math.max(1, Math.min(200, parseInt(qtyEl ? qtyEl.value : '12', 10) || 12));
+
+            const sizeClass = size === 'full' ? 'price-sign-full' : 'price-sign-half';
+            const perSheet = size === 'full' ? 1 : 2;
+
+            // Asset URLs — absolute so print window (about:blank) can load them
+            const baseUrl = (window.location.origin + window.location.pathname).replace(/\/[^\/]*$/, '/');
+            const farmLogoUrl = baseUrl + 'web_app/images/tiny-seed-farm-logo-bw.png';
+            const usdaSealUrl = baseUrl + 'web_app/images/usda-organic.jpeg';
+
+            // Strip leading $ from const so we can render it as a separately-sized .ps-dollar span
+            const priceClean = String(SEEDLING_SIGN_PRICE_EACH).replace(/^\$/, '');
+            const bulkText = String(SEEDLING_SIGN_PRICE_BULK).toUpperCase();
+
+            function buildOne() {
+                return '<div class="price-sign ' + sizeClass + '">' +
+                    '<div class="price-sign-header">' +
+                        '<img class="ps-logo" src="' + farmLogoUrl + '" alt="Tiny Seed Farm">' +
+                        '<img class="ps-seal" src="' + usdaSealUrl + '" alt="USDA Certified Organic">' +
+                    '</div>' +
+                    '<div class="price-sign-body">' +
+                        '<div class="price-sign-each"><span class="ps-dollar">$</span>' + escapeHtml(priceClean) + '</div>' +
+                        '<div class="price-sign-bulk">OR ' + escapeHtml(bulkText) + '</div>' +
+                    '</div>' +
+                '</div>';
+            }
+
+            const printOnlyCSS =
+                '@page { size: letter; margin: 0; }' +
+                '* { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; box-sizing: border-box; }' +
+                'html,body { margin:0; padding:0; background:#fff; font-family:"Inter",-apple-system,BlinkMacSystemFont,sans-serif; color:#0a0a0a; }' +
+                '.sheet { width:8.5in; height:11in; padding:0; margin:0; page-break-after:always; display:flex; flex-direction:column; }' +
+                '.sheet:last-child { page-break-after:auto; }';
+
+            const css = printOnlyCSS + SALE_SIGN_CORE_CSS;
+
+            let html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Tiny Seed Farm — Price Signs</title>' +
+                '<link rel="preconnect" href="https://fonts.googleapis.com">' +
+                '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>' +
+                '<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">' +
+                '<style>' + css + '</style></head><body>';
+
+            for (let i = 0; i < qty; i += perSheet) {
+                html += '<div class="sheet">';
+                html += buildOne();
+                if (perSheet === 2 && (i + 1) < qty) html += buildOne();
+                html += '</div>';
+            }
+            html += '</body></html>';
+
+            const w = window.open('', '_blank', 'width=900,height=1200');
+            if (!w) { showToast('Popup blocked — allow popups for this site'); return; }
+            w.document.open();
+            w.document.write(html);
+            w.document.close();
+            w.addEventListener('load', function() { setTimeout(function() { try { w.print(); } catch(e){} }, 1500); });
+            showToast('Price signs (' + size + '): ' + qty + ' signs (' + Math.ceil(qty/perSheet) + ' sheets) — print dialog opening');
         }
     </script>
 </body>

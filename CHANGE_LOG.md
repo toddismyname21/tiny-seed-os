@@ -6,6 +6,17 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-05-06] Sale Signs — Generic $6 / 4-FOR-$20 Price-Only Signs (Half + Full Letter)
+
+- File: `labels.html`
+- Role: fullstack-builder (delegated by PM_ARCHITECT)
+- Status: Deployed live
+- Why: Todd needed stand-alone price signs (no variety) for Phipps May Market. Customers walking the market across mixed-tray tables need to see pricing at a glance regardless of which specific variety they're looking at.
+- Implementation: New "Generic Price Signs" sub-section in the existing Sale Signs panel. Size dropdown: half-letter (8.5"×5.5", 2 per sheet) or full-letter (8.5"×11", 1 per sheet). Quantity input (default 12, range 1-200). New `printPriceSigns()` function builds N copies, opens print window with same `SALE_SIGN_CORE_CSS` (single source of truth) plus print-only sheet wrapper. Each sign: white top strip with Tiny Seed Farm logo (left) + USDA Organic seal (right) separated by 3px magenta border; magenta `#be185d` body block with massive $6 + "OR 4 FOR $20" subtitle. Reuses `SEEDLING_SIGN_PRICE_EACH` and `SEEDLING_SIGN_PRICE_BULK` consts so all three sale-sign types (variety detailed, variety picture-only, generic price-only) update with a 1-line change.
+- Verification: 5 grep gates + node --check on extracted inline JS — all clean.
+
+---
+
 ## [2026-05-06] Sale Signs — Detailed Layout: Add "4 FOR $20" Bulk Price Line
 
 - File: `labels.html`
