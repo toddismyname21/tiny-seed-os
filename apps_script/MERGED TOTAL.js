@@ -16713,6 +16713,8 @@ function doGet(e) {
         return jsonResponse(getShopifyLocations());
       case 'syncShopifyOrders':
         return jsonResponse(syncShopifyOrders(e.parameter));
+      case 'backfillCSAMemberContacts':
+        return jsonResponse(backfillCSAMemberContacts(e.parameter));
       case 'syncShopifyProducts':
         return jsonResponse(syncShopifyProducts());
       case 'syncShopifyCustomers':
@@ -46535,6 +46537,9 @@ function handleShopifyWebhook(payload) {
         // Create CSA member
         const memberId = createCSAMemberFromShopify({
           customerId: customerId,
+          customerName: customerName,
+          email: customerEmail,
+          phone: customerPhone,
           shareInfo: shareInfo,
           pickupInfo: pickupInfo,
           seasonDates: seasonDates,
@@ -46689,6 +46694,9 @@ function processHistoricalCSAOrders() {
           // Create CSA member
           const memberId = createCSAMemberFromShopify({
             customerId: customerId,
+            customerName: customerName,
+            email: customerEmail,
+            phone: '',
             shareInfo: shareInfo,
             pickupInfo: pickupInfo,
             seasonDates: seasonDates,
@@ -46896,6 +46904,9 @@ function importCSAMembersFromShopify(params = {}) {
           // Create CSA member
           const memberId = createCSAMemberFromShopify({
             customerId: customerId,
+            customerName: customerName,
+            email: customerEmail,
+            phone: customerPhone,
             shareInfo: shareInfo,
             pickupInfo: pickupInfo,
             seasonDates: seasonDates,
@@ -47280,6 +47291,9 @@ function fullCSAImportFromShopify(params = {}) {
           // Create CSA member with proper column alignment
           const memberId = createCSAMemberFromShopify({
             customerId: customerId,
+            customerName: customerName,
+            email: customerEmail,
+            phone: customerPhone,
             shareInfo: shareInfo,
             pickupInfo: pickupInfo,
             seasonDates: seasonDates,
@@ -47502,9 +47516,44 @@ function createCSAMemberFromShopify(data) {
   // Build row array matching sheet structure
   const rowData = new Array(headers.length).fill('');
 
+  // BUGFIX 2026-05-05 (PM_ARCHITECT): Self-heal customer Name/Email/Phone from
+  // SALES_Customers when caller omits them. Previously these columns were always
+  // blank because this function ignored data.customerName/email/phone, leaving 27 of
+  // 37 Spring 2026 CSA rows with empty contact fields. Caller now passes them, but
+  // we also fall back to a Customer_ID lookup so historical/edge-case calls heal.
+  let resolvedName = data.customerName || '';
+  let resolvedEmail = data.email || data.customerEmail || '';
+  let resolvedPhone = data.phone || data.customerPhone || '';
+  if ((!resolvedName || !resolvedEmail || !resolvedPhone) && data.customerId) {
+    try {
+      const custSheet = ss.getSheetByName(SALES_SHEETS.CUSTOMERS || 'SALES_Customers');
+      if (custSheet) {
+        const custVals = custSheet.getDataRange().getValues();
+        const custHdr = custVals[0];
+        const cIdCol = custHdr.indexOf('Customer_ID');
+        const cNameCol = custHdr.indexOf('Contact_Name');
+        const cEmailCol = custHdr.indexOf('Email');
+        const cPhoneCol = custHdr.indexOf('Phone');
+        for (let cr = 1; cr < custVals.length; cr++) {
+          if (cIdCol >= 0 && custVals[cr][cIdCol] === data.customerId) {
+            if (!resolvedName && cNameCol >= 0) resolvedName = custVals[cr][cNameCol] || '';
+            if (!resolvedEmail && cEmailCol >= 0) resolvedEmail = custVals[cr][cEmailCol] || '';
+            if (!resolvedPhone && cPhoneCol >= 0) resolvedPhone = custVals[cr][cPhoneCol] || '';
+            break;
+          }
+        }
+      }
+    } catch (lookupErr) {
+      Logger.log('createCSAMemberFromShopify: customer lookup failed: ' + lookupErr);
+    }
+  }
+
   // Map data to correct columns using header names
   if (getCol('Member_ID') >= 0) rowData[getCol('Member_ID')] = memberId;
   if (getCol('Customer_ID') >= 0) rowData[getCol('Customer_ID')] = data.customerId;
+  if (getCol('Customer_Name') >= 0) rowData[getCol('Customer_Name')] = resolvedName;
+  if (getCol('Email') >= 0) rowData[getCol('Email')] = resolvedEmail;
+  if (getCol('Phone') >= 0) rowData[getCol('Phone')] = resolvedPhone;
   if (getCol('Share_Type') >= 0) rowData[getCol('Share_Type')] = data.shareInfo.type;
   if (getCol('Share_Size') >= 0) rowData[getCol('Share_Size')] = data.shareInfo.size;
   if (getCol('Season') >= 0) rowData[getCol('Season')] = data.shareInfo.season;
@@ -47558,6 +47607,95 @@ function createCSAMemberFromShopify(data) {
   sheet.appendRow(rowData);
 
   return memberId;
+}
+
+/**
+ * One-shot backfill: scans CSA_Members for rows with empty Customer_Name/Email/Phone
+ * and joins from SALES_Customers via Customer_ID. Safe to re-run (idempotent).
+ * Added 2026-05-05 to heal historical rows from createCSAMemberFromShopify bug.
+ *
+ * Usage: ?action=backfillCSAMemberContacts (admin only, requires session token)
+ */
+function backfillCSAMemberContacts(params) {
+  if (params && params.requireAuth !== false) {
+    var auth = requireAuth(params);
+    if (!auth.authenticated) {
+      return auth.error || { success: false, error: 'Authentication required' };
+    }
+  }
+  var lock = LockService.getScriptLock();
+  try { lock.waitLock(20000); }
+  catch (e) { return { success: false, error: 'System busy' }; }
+  try {
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var csaSheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
+    var custSheet = ss.getSheetByName(SALES_SHEETS.CUSTOMERS || 'SALES_Customers');
+    if (!csaSheet || !custSheet) {
+      return { success: false, error: 'CSA_Members or SALES_Customers sheet missing' };
+    }
+    var csaVals = csaSheet.getDataRange().getValues();
+    var custVals = custSheet.getDataRange().getValues();
+    var csaHdr = csaVals[0];
+    var custHdr = custVals[0];
+
+    var iCsaCustId = csaHdr.indexOf('Customer_ID');
+    var iCsaName = csaHdr.indexOf('Customer_Name');
+    var iCsaEmail = csaHdr.indexOf('Email');
+    var iCsaPhone = csaHdr.indexOf('Phone');
+    var iCustId = custHdr.indexOf('Customer_ID');
+    var iCustName = custHdr.indexOf('Contact_Name');
+    var iCustEmail = custHdr.indexOf('Email');
+    var iCustPhone = custHdr.indexOf('Phone');
+
+    if (iCsaCustId < 0 || iCustId < 0) {
+      return { success: false, error: 'Customer_ID column missing' };
+    }
+
+    // Build customer lookup map
+    var custMap = {};
+    for (var c = 1; c < custVals.length; c++) {
+      var cid = custVals[c][iCustId];
+      if (cid) custMap[cid] = custVals[c];
+    }
+
+    var filled = { name: 0, email: 0, phone: 0 };
+    var rowsTouched = 0;
+
+    for (var r = 1; r < csaVals.length; r++) {
+      var row = csaVals[r];
+      var custId = row[iCsaCustId];
+      if (!custId || !custMap[custId]) continue;
+      var cust = custMap[custId];
+      var changed = false;
+      if (iCsaName >= 0 && !row[iCsaName] && iCustName >= 0 && cust[iCustName]) {
+        csaSheet.getRange(r + 1, iCsaName + 1).setValue(cust[iCustName]);
+        filled.name++;
+        changed = true;
+      }
+      if (iCsaEmail >= 0 && !row[iCsaEmail] && iCustEmail >= 0 && cust[iCustEmail]) {
+        csaSheet.getRange(r + 1, iCsaEmail + 1).setValue(cust[iCustEmail]);
+        filled.email++;
+        changed = true;
+      }
+      if (iCsaPhone >= 0 && !row[iCsaPhone] && iCustPhone >= 0 && cust[iCustPhone]) {
+        csaSheet.getRange(r + 1, iCsaPhone + 1).setValue(cust[iCustPhone]);
+        filled.phone++;
+        changed = true;
+      }
+      if (changed) rowsTouched++;
+    }
+
+    return {
+      success: true,
+      rowsTouched: rowsTouched,
+      filled: filled,
+      message: 'Backfilled ' + rowsTouched + ' rows (name:' + filled.name + ', email:' + filled.email + ', phone:' + filled.phone + ')'
+    };
+  } catch (err) {
+    return { success: false, error: err.toString() };
+  } finally {
+    try { lock.releaseLock(); } catch (e) {}
+  }
 }
 
 /**
