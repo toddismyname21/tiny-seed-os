@@ -6,6 +6,15 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-05-06] Sale Signs — Flower Color: Orange → Deep Magenta
+
+- File: `labels.html` (line 5324, inside SALE_SIGN_CORE_CSS)
+- Role: fullstack-builder (delegated by PM_ARCHITECT)
+- Status: Deployed live
+- Why: Todd reviewed printed seedling sale signs, confirmed parity fix worked, requested flower category color change away from orange.
+- Fix: One-line swap of `--ss-accent` for `.cat-flower`: `#d97706` → `#be185d` (Tailwind pink-700, deep magenta, 5.5:1 contrast with white text — WCAG AA compliant). Cascades automatically via CSS custom property to `.ss-right` background, `.ss-left` border-right, `.ss-crop` color, and the picture-layout `.ss-pic-wrap` border. Other `#d97706` references in the file (CSA Driver Manifest amber theming) intentionally untouched.
+- Verification: grep confirms only `cat-flower` line changed; node --check on extracted inline JS clean.
+
 ## [2026-05-06] Financial Dashboard — XSS Hardening on Plaid/Alpaca/Debt Render Paths
 
 - File: `web_app/financial-dashboard.html`
