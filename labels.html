@@ -1383,6 +1383,11 @@
                     <i class="fas fa-list"></i> Print Host Sheets
                 </button>
                 <p style="font-size:0.7rem;color:var(--text-secondary);margin-top:4px;">One sheet per pickup stop with customer name, email & phone.</p>
+
+                <button class="btn btn-primary btn-block" onclick="printCSADriverManifest()" style="margin-top:12px;background:linear-gradient(135deg,#f59e0b,#d97706);">
+                    <i class="fas fa-truck"></i> Print Driver Manifest
+                </button>
+                <p style="font-size:0.7rem;color:var(--text-secondary);margin-top:4px;">All stops in route order with addresses, phones & checkboxes.</p>
                 <p id="csaBoxStatusMsg" style="font-size:0.8rem;color:var(--text-secondary);margin-top:8px;"></p>
             </div>
 
@@ -5075,6 +5080,163 @@
             return String(s == null ? '' : s)
                 .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
                 .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+        }
+
+        // ============ CSA DRIVER MANIFEST ============
+        // Stop addresses + recommended driver order (from PICKUP_LOCATIONS array, MERGED TOTAL.js line 61985)
+        var CSA_STOP_INFO = {
+            'Zelienople':                       { addr: '358 East New Castle Street, Zelienople, PA 16063',     order: 1  },
+            'Cranberry':                        { addr: '230 Elmhurst Circle, Cranberry Township, PA 16066',    order: 2  },
+            'Allison Park - Simons':            { addr: '4312 Middle Rd, Allison Park, PA 15101',               order: 3  },
+            'Allison Park':                     { addr: '4312 Middle Rd, Allison Park, PA 15101 (Simons)',      order: 3  },
+            'Allison Park - St Pauls':          { addr: '1965 Ferguson Rd, Allison Park, PA 15101',             order: 4  },
+            'Fox Chapel':                       { addr: '237 Kittanning Pike, Pittsburgh, PA 15215',            order: 5  },
+            'Highland Park':                    { addr: '5901 Bryant St, Pittsburgh, PA 15206',                 order: 6  },
+            'Squirrel Hill':                    { addr: '5502 Kamin Street, Pittsburgh, PA 15217',              order: 7  },
+            'Mt. Lebanon':                      { addr: '326 Newburn Dr, Pittsburgh, PA 15216',                 order: 8  },
+            'North Side - Mayfly Market':       { addr: '30 W North Ave, Pittsburgh, PA 15212',                 order: 9  },
+            'Bloomfield Market':                { addr: '5050 Liberty Ave, Pittsburgh, PA 15224',               order: 10 },
+            'Bloomfield':                       { addr: '5050 Liberty Ave, Pittsburgh, PA 15224',               order: 10 },
+            'Lawrenceville Market':             { addr: '115 41st St, Pittsburgh, PA 15201',                    order: 11 },
+            'Sewickley Market':                 { addr: '200 Walnut St, Sewickley, PA 15143',                   order: 12 },
+            'Sewickley':                        { addr: '200 Walnut St, Sewickley, PA 15143',                   order: 12 },
+            'Rochester (Farm Pickup)':          { addr: 'Kretschmann Family Organic Farm, Rochester, PA',        order: 99 },
+            'Rochester':                        { addr: 'Kretschmann Family Organic Farm, Rochester, PA',        order: 99 }
+        };
+
+        function getStopInfo(stopName) {
+            if (!stopName) return { addr: '', order: 999 };
+            if (CSA_STOP_INFO[stopName]) return CSA_STOP_INFO[stopName];
+            // Fallback: try main name match
+            var main = stopName.split(' - ')[0].trim();
+            if (CSA_STOP_INFO[main]) return CSA_STOP_INFO[main];
+            return { addr: '', order: 999 };
+        }
+
+        function printCSADriverManifest() {
+            if (csaMembersCache.length === 0) { loadCSABoxLabels(); showToast('Loading members — click again in a moment'); return; }
+            const members = getFilteredCSAMembers();
+            if (members.length === 0) { showToast('No CSA members match the current filters'); return; }
+            const footerDateStr = formatCSAFooterDate();
+
+            // Group by stop
+            const byStop = {};
+            members.forEach(m => {
+                const k = m.Pickup_Location || '(unspecified)';
+                if (!byStop[k]) byStop[k] = [];
+                byStop[k].push(m);
+            });
+
+            // Sort stops by route order (CSA_STOP_INFO.order)
+            const stops = Object.keys(byStop).sort((a, b) => {
+                const oa = getStopInfo(a).order;
+                const ob = getStopInfo(b).order;
+                if (oa !== ob) return oa - ob;
+                return a.localeCompare(b);
+            });
+
+            const css =
+                '@page { size: letter; margin: 0.4in; }' +
+                '* { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }' +
+                'body { margin:0; padding:0; font-family: Inter, -apple-system, system-ui, sans-serif; color:#0a0a0a; font-size: 10pt; }' +
+                '.run-header { border-bottom: 3px solid #d97706; padding-bottom: 8pt; margin-bottom: 12pt; display: flex; justify-content: space-between; align-items: flex-end; }' +
+                '.run-title { font-size: 22pt; font-weight: 800; letter-spacing: -0.5px; color: #0a0a0a; line-height: 1; }' +
+                '.run-sub { font-size: 11pt; color: #555; margin-top: 4pt; }' +
+                '.run-totals { text-align: right; font-size: 10pt; color: #555; }' +
+                '.run-totals strong { font-size: 16pt; color: #d97706; display: block; line-height: 1; }' +
+                '.stop-block { margin-bottom: 14pt; page-break-inside: avoid; }' +
+                '.stop-head { display: flex; justify-content: space-between; align-items: flex-end; padding: 6pt 8pt; background: #fef3c7; border-left: 4px solid #d97706; border-radius: 2px; }' +
+                '.stop-num { font-size: 14pt; font-weight: 800; color: #d97706; margin-right: 8pt; }' +
+                '.stop-name { font-size: 14pt; font-weight: 700; color: #0a0a0a; line-height: 1.1; }' +
+                '.stop-addr { font-size: 9.5pt; color: #555; margin-top: 2pt; }' +
+                '.stop-count { font-size: 11pt; font-weight: 700; color: #0a0a0a; white-space: nowrap; }' +
+                '.stop-count .num { font-size: 18pt; color: #d97706; }' +
+                'table { width: 100%; border-collapse: collapse; margin-top: 4pt; }' +
+                'th { text-align: left; padding: 4pt 6pt; background: #fafafa; border-bottom: 1.5px solid #d4d4d4; font-weight: 600; font-size: 8.5pt; text-transform: uppercase; letter-spacing: 0.5px; color: #555; }' +
+                'td { padding: 6pt 6pt; border-bottom: 1px solid #eee; vertical-align: middle; }' +
+                '.col-num { width: 18pt; color: #999; font-variant-numeric: tabular-nums; font-size: 9pt; }' +
+                '.col-check { width: 22pt; text-align: center; }' +
+                '.cb { width: 14pt; height: 14pt; border: 1.5px solid #444; display: inline-block; vertical-align: middle; border-radius: 2px; }' +
+                '.col-name { font-weight: 700; font-size: 11pt; }' +
+                '.col-share { font-size: 8.5pt; color: #2a9d8f; text-transform: uppercase; letter-spacing: 0.5px; }' +
+                '.col-phone { font-size: 10pt; color: #1d4ed8; font-variant-numeric: tabular-nums; white-space: nowrap; }' +
+                '.col-notes { font-size: 8.5pt; color: #666; font-style: italic; }' +
+                '.run-footer { margin-top: 14pt; padding-top: 6pt; border-top: 1px dashed #aaa; font-size: 8.5pt; color: #888; display: flex; justify-content: space-between; }' +
+                '.driver-line { margin-top: 8pt; font-size: 10pt; color: #555; }' +
+                '.signature-line { border-bottom: 1px solid #888; display:inline-block; min-width: 200pt; height: 16pt; vertical-align: bottom; }';
+
+            // Header
+            const totalBoxes = members.length;
+            let html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>CSA Driver Manifest</title><style>' + css + '</style></head><body>';
+            html += '<div class="run-header">' +
+                '<div>' +
+                    '<div class="run-title">CSA Driver Manifest</div>' +
+                    '<div class="run-sub">Tiny Seed Farm' + (footerDateStr ? ' &middot; ' + footerDateStr : '') + '</div>' +
+                '</div>' +
+                '<div class="run-totals">' +
+                    '<strong>' + totalBoxes + '</strong> boxes &middot; ' + stops.length + ' stop' + (stops.length===1?'':'s') +
+                '</div>' +
+                '</div>';
+
+            html += '<div class="driver-line">Driver: <span class="signature-line"></span> &nbsp; Truck out: <span class="signature-line" style="min-width:80pt;"></span> &nbsp; Truck in: <span class="signature-line" style="min-width:80pt;"></span></div>';
+
+            // Stops in route order
+            stops.forEach((stop, sIdx) => {
+                const list = byStop[stop].sort((a,b) => (a.Customer_Name||'').toLowerCase().localeCompare((b.Customer_Name||'').toLowerCase()));
+                const info = getStopInfo(stop);
+
+                html += '<div class="stop-block">';
+                html += '<div class="stop-head">' +
+                    '<div>' +
+                        '<span class="stop-num">' + (sIdx+1) + '.</span>' +
+                        '<span class="stop-name">' + escapeHtml(stop) + '</span>' +
+                        (info.addr ? '<div class="stop-addr">' + escapeHtml(info.addr) + '</div>' : '') +
+                    '</div>' +
+                    '<div class="stop-count"><span class="num">' + list.length + '</span> box' + (list.length===1?'':'es') + '</div>' +
+                '</div>';
+
+                html += '<table>';
+                html += '<thead><tr>' +
+                    '<th class="col-num">#</th>' +
+                    '<th class="col-check">✓</th>' +
+                    '<th>Member</th>' +
+                    '<th>Phone</th>' +
+                    '<th>Share</th>' +
+                    '</tr></thead><tbody>';
+
+                list.forEach((m, idx) => {
+                    const name = m.Customer_Name || '';
+                    const phone = m.Phone || '';
+                    const share = m.Share_Type || '';
+                    const notes = m.Notes || '';
+                    html += '<tr>' +
+                        '<td class="col-num">' + (idx+1) + '</td>' +
+                        '<td class="col-check"><span class="cb"></span></td>' +
+                        '<td><div class="col-name">' + escapeHtml(name) + '</div>' +
+                            (notes ? '<div class="col-notes">' + escapeHtml(notes) + '</div>' : '') +
+                        '</td>' +
+                        '<td class="col-phone">' + (phone ? escapeHtml(phone) : '—') + '</td>' +
+                        '<td class="col-share">' + escapeHtml(share) + '</td>' +
+                    '</tr>';
+                });
+                html += '</tbody></table>';
+                html += '</div>';
+            });
+
+            html += '<div class="run-footer">' +
+                '<span>Tiny Seed Farm CSA &middot; tinyseedfarm.com</span>' +
+                '<span>' + totalBoxes + ' boxes / ' + stops.length + ' stops</span>' +
+            '</div>';
+
+            html += '</body></html>';
+
+            const w = window.open('', '_blank', 'width=900,height=1200');
+            if (!w) { showToast('Popup blocked — allow popups for this site'); return; }
+            w.document.open();
+            w.document.write(html);
+            w.document.close();
+            w.addEventListener('load', function() { setTimeout(function() { try { w.print(); } catch(e){} }, 400); });
+            showToast('Driver manifest: ' + totalBoxes + ' boxes / ' + stops.length + ' stops — print dialog opening');
         }
     </script>
 </body>
