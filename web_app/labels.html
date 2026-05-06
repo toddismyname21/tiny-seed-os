@@ -787,6 +787,133 @@
         .plant-tag-preview .plant-date { color: #666; }
 
         /* ═══════════════════════════════════════════════════════════════════════════
+           CSA BOX LABEL — base styles (work on both screen + print)
+           Driver-first hierarchy. Pickup stop is biggest, boldest element.
+           ═══════════════════════════════════════════════════════════════════════════ */
+        .csa-box-label {
+            width: 4in;
+            height: 3.33in;
+            box-sizing: border-box;
+            padding: 0.18in 0.22in;
+            background: #ffffff;
+            color: #000;
+            display: grid;
+            grid-template-rows: 0.55in 1fr 0.32in;
+            font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid #d8d8d8;
+        }
+        .csa-box-label .label-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.1in;
+        }
+        .csa-box-label .label-logo {
+            height: 0.5in;
+            width: auto;
+            flex: 0 0 auto;
+        }
+        .csa-box-label .label-wordmark {
+            font-family: 'Bebas Neue', 'Oswald', sans-serif;
+            font-size: 11pt;
+            letter-spacing: 0.04em;
+            color: #2d6a4f;
+            font-weight: 700;
+            text-align: right;
+            line-height: 1.05;
+        }
+        .csa-box-label .label-wordmark .tagline {
+            display: block;
+            font-family: 'Inter', sans-serif;
+            font-size: 7pt;
+            letter-spacing: 0.05em;
+            font-weight: 500;
+            color: #555;
+            text-transform: uppercase;
+        }
+        .csa-box-label .label-body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            gap: 0.06in;
+            min-height: 0;
+        }
+        /* PICKUP STOP — biggest text on the label, all-caps, very bold */
+        .csa-box-label .pickup-stop {
+            font-family: 'Bebas Neue', 'Oswald', 'Inter', sans-serif;
+            font-weight: 800;
+            font-size: 44pt;
+            line-height: 0.95;
+            letter-spacing: 0.01em;
+            text-transform: uppercase;
+            color: #000;
+            margin: 0;
+            word-break: break-word;
+            hyphens: auto;
+        }
+        .csa-box-label .pickup-stop.shrink-1 { font-size: 36pt; }
+        .csa-box-label .pickup-stop.shrink-2 { font-size: 28pt; }
+        .csa-box-label .pickup-stop.shrink-3 { font-size: 22pt; }
+        .csa-box-label .pickup-detail {
+            font-size: 13pt;
+            font-weight: 600;
+            color: #444;
+            text-transform: none;
+            letter-spacing: 0.02em;
+            margin-top: -0.03in;
+        }
+        .csa-box-label .customer-name {
+            font-size: 22pt;
+            font-weight: 700;
+            color: #1a1a1a;
+            line-height: 1.05;
+            margin-top: 0.05in;
+            word-break: break-word;
+        }
+        .csa-box-label .customer-name.shrink-1 { font-size: 18pt; }
+        .csa-box-label .customer-name.shrink-2 { font-size: 15pt; }
+        .csa-box-label .allergy-flag {
+            margin-top: 0.04in;
+            display: inline-block;
+            font-size: 9pt;
+            font-weight: 700;
+            color: #b00020;
+            border: 1.5px solid #b00020;
+            padding: 1px 6px;
+            border-radius: 3px;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+        .csa-box-label .label-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: end;
+            font-size: 8.5pt;
+            color: #555;
+            font-weight: 500;
+            border-top: 1px solid #d0d0d0;
+            padding-top: 0.06in;
+        }
+        .csa-box-label .footer-share {
+            font-weight: 600;
+            color: #2d6a4f;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        /* On-screen preview grid — scale to fit smaller cells */
+        #csaBoxPreviewGrid .csa-box-label {
+            transform: scale(0.65);
+            transform-origin: top left;
+            margin-bottom: -1.16in; /* compensate scaled height (3.33 * 0.35 = 1.16) */
+            margin-right: -1.4in; /* compensate scaled width */
+        }
+
+        /* ═══════════════════════════════════════════════════════════════════════════
            PRINT STYLES - MARKET SIGNS (6 per letter page)
            Matching the Tiny Seed Farm design with category-based footer colors
            ═══════════════════════════════════════════════════════════════════════════ */
@@ -1027,138 +1154,23 @@
                Added 2026-05-06 (PM_ARCHITECT) per user request.
                ═══════════════════════════════════════════════════════════════ */
             @page :first { margin: 0; }
+            /* Print-only: exact 6-up grid + page break every 6th label */
             .print-csa-box-labels {
                 display: grid !important;
-                grid-template-columns: 4in 4in;
-                grid-auto-rows: 3.33in;
-                gap: 0;
-                width: 8in;
-                margin: 0.5in 0.25in 0 0.25in;
-                padding: 0;
+                grid-template-columns: 4in 4in !important;
+                grid-auto-rows: 3.33in !important;
+                gap: 0 !important;
+                width: 8in !important;
+                margin: 0.5in 0.25in 0 0.25in !important;
+                padding: 0 !important;
             }
-            .csa-box-label {
-                width: 4in;
-                height: 3.33in;
-                box-sizing: border-box;
-                padding: 0.18in 0.22in;
-                background: white;
-                color: #000;
+            .print-csa-box-labels .csa-box-label {
+                width: 4in !important;
+                height: 3.33in !important;
                 page-break-inside: avoid;
                 break-inside: avoid;
-                display: grid;
-                grid-template-rows: 0.55in 1fr 0.32in;
-                font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
-                position: relative;
-                overflow: hidden;
             }
-            /* Force 6 labels per page — page break after every 6th */
-            .csa-box-label:nth-of-type(6n) { page-break-after: always; }
-
-            .csa-box-label .label-top {
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                gap: 0.1in;
-            }
-            .csa-box-label .label-logo {
-                height: 0.5in;
-                width: auto;
-                flex: 0 0 auto;
-            }
-            .csa-box-label .label-wordmark {
-                font-family: 'Bebas Neue', 'Oswald', sans-serif;
-                font-size: 11pt;
-                letter-spacing: 0.04em;
-                color: #2d6a4f;
-                font-weight: 700;
-                text-align: right;
-                line-height: 1.05;
-            }
-            .csa-box-label .label-wordmark .tagline {
-                display: block;
-                font-family: 'Inter', sans-serif;
-                font-size: 7pt;
-                letter-spacing: 0.05em;
-                font-weight: 500;
-                color: #555;
-                text-transform: uppercase;
-            }
-
-            .csa-box-label .label-body {
-                display: flex;
-                flex-direction: column;
-                justify-content: center;
-                align-items: center;
-                text-align: center;
-                gap: 0.06in;
-                min-height: 0; /* allow shrink */
-            }
-            /* PICKUP STOP — biggest text on the label, all-caps, very bold */
-            .csa-box-label .pickup-stop {
-                font-family: 'Bebas Neue', 'Oswald', 'Inter', sans-serif;
-                font-weight: 800;
-                font-size: 44pt;
-                line-height: 0.95;
-                letter-spacing: 0.01em;
-                text-transform: uppercase;
-                color: #000;
-                margin: 0;
-                word-break: break-word;
-                hyphens: auto;
-            }
-            /* Auto-shrink class applied via JS for long stop names */
-            .csa-box-label .pickup-stop.shrink-1 { font-size: 36pt; }
-            .csa-box-label .pickup-stop.shrink-2 { font-size: 28pt; }
-            .csa-box-label .pickup-stop.shrink-3 { font-size: 22pt; }
-            .csa-box-label .pickup-detail {
-                font-size: 13pt;
-                font-weight: 600;
-                color: #444;
-                text-transform: none;
-                letter-spacing: 0.02em;
-                margin-top: -0.03in;
-            }
-            /* Customer name — second tier, bold but smaller than stop */
-            .csa-box-label .customer-name {
-                font-size: 22pt;
-                font-weight: 700;
-                color: #1a1a1a;
-                line-height: 1.05;
-                margin-top: 0.05in;
-                word-break: break-word;
-            }
-            .csa-box-label .customer-name.shrink-1 { font-size: 18pt; }
-            .csa-box-label .customer-name.shrink-2 { font-size: 15pt; }
-
-            .csa-box-label .allergy-flag {
-                margin-top: 0.04in;
-                display: inline-block;
-                font-size: 9pt;
-                font-weight: 700;
-                color: #b00020;
-                border: 1.5px solid #b00020;
-                padding: 1px 6px;
-                border-radius: 3px;
-                letter-spacing: 0.04em;
-                text-transform: uppercase;
-            }
-
-            .csa-box-label .label-footer {
-                display: flex;
-                justify-content: space-between;
-                align-items: end;
-                font-size: 8.5pt;
-                color: #555;
-                font-weight: 500;
-                border-top: 1px solid #d0d0d0;
-                padding-top: 0.06in;
-            }
-            .csa-box-label .footer-share {
-                font-weight: 600;
-                color: #2d6a4f;
-                text-transform: uppercase;
-                letter-spacing: 0.04em;
-            }
+            .print-csa-box-labels .csa-box-label:nth-of-type(6n) { page-break-after: always; }
 
             /* Wholesale Labels Print - 2.4" Brother labels */
             .print-wholesale-labels {
@@ -1603,13 +1615,21 @@
                         <div>
                             <label style="display:block; font-size:0.8rem; color:var(--text-secondary); margin-bottom:4px;">Share Type</label>
                             <select id="csaBoxShareType" onchange="renderCSABoxPreview()" style="width:100%; padding:8px; background:var(--bg-elevated); color:var(--text-primary); border:1px solid var(--border); border-radius:6px;">
-                                <option value="">All Share Types</option>
-                                <option value="Spring Vegetable">Spring Vegetable</option>
+                                <option value="Spring Vegetable" selected>Spring Vegetable</option>
                                 <option value="Summer Vegetable">Summer Vegetable</option>
                                 <option value="Vegetable">Vegetable</option>
                                 <option value="Flower">Flower / Bouquet</option>
                                 <option value="Flex">Flex</option>
                                 <option value="Add-On">Add-On</option>
+                                <option value="">All Share Types</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="display:block; font-size:0.8rem; color:var(--text-secondary); margin-bottom:4px;">Pickup Day</label>
+                            <select id="csaBoxDay" onchange="renderCSABoxPreview()" style="width:100%; padding:8px; background:var(--bg-elevated); color:var(--text-primary); border:1px solid var(--border); border-radius:6px;">
+                                <option value="Wednesday" selected>Wednesday only</option>
+                                <option value="Saturday">Saturday only</option>
+                                <option value="">All Days</option>
                             </select>
                         </div>
                         <div>
@@ -2467,10 +2487,21 @@
             const shareFilter = document.getElementById('csaBoxShareType').value;
             const stopFilter = document.getElementById('csaBoxStop').value;
             const statusFilter = document.getElementById('csaBoxStatus').value;
+            const dayEl = document.getElementById('csaBoxDay');
+            const dayFilter = dayEl ? dayEl.value : '';
+            // Stop names known to be Saturday-pickup (markets) — filter by name when Pickup_Day field is unreliable
+            const SATURDAY_STOPS = ['Bloomfield Market', 'Sewickley Market', 'Lawrenceville Market', 'Bloomfield', 'Sewickley'];
             return AppState.csaMembers.filter(m => {
                 if (statusFilter && m.Status !== statusFilter) return false;
                 if (shareFilter && m.Share_Type !== shareFilter) return false;
                 if (stopFilter && m.Pickup_Location !== stopFilter) return false;
+                if (dayFilter) {
+                    const stop = (m.Pickup_Location || '');
+                    const isSatStop = SATURDAY_STOPS.includes(stop);
+                    const isFarmStop = /rochester|farm pickup/i.test(stop);
+                    if (dayFilter === 'Wednesday' && (isSatStop || isFarmStop)) return false;
+                    if (dayFilter === 'Saturday' && !isSatStop) return false;
+                }
                 return true;
             }).sort((a, b) => {
                 const sa = (a.Pickup_Location || '').toLowerCase();
@@ -2557,14 +2588,8 @@
                 grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><div class="empty-state-icon">📦</div><p>No members match the current filters.</p></div>';
                 return;
             }
-            // Render a scaled-down preview using the same HTML structure as print
-            grid.innerHTML = members.map(m => `
-                <div style="background:#fff; color:#000; border-radius:8px; overflow:hidden; transform-origin: top left; padding:8px;">
-                    <div style="width:4in; height:3.33in; transform:scale(0.55); transform-origin: top left; margin-bottom: -1.5in; margin-right: -1.8in;">
-                        ${buildBoxLabelHTML(m, footerDateStr)}
-                    </div>
-                </div>
-            `).join('');
+            // Render preview using same HTML as print; CSS scales it via #csaBoxPreviewGrid .csa-box-label rule
+            grid.innerHTML = members.map(m => buildBoxLabelHTML(m, footerDateStr)).join('');
         }
 
         function printCSABoxLabels() {
