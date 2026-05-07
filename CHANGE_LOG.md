@@ -6,6 +6,17 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-05-06] Generic Price Signs — Darken Color (#be185d → #831843)
+
+- File: `labels.html`
+- Role: fullstack-builder (delegated by PM_ARCHITECT)
+- Status: Deployed live
+- Why: Todd asked for darker color after the inversion. The bright `#be185d` magenta on white background was a bit much at 200pt/400pt sizes.
+- Fix: 4 instances of `#be185d` (and the matching rgba 190,24,93) changed to `#831843` (wine / Tailwind pink-900): print button gradient, .price-sign-header border-bottom, .price-sign-body text color, .price-sign-bulk border-top. Flower variety sale sign accent (`.sale-sign.cat-flower`) UNCHANGED — separate brand decision.
+- Verification: 4 grep gates all pass.
+
+---
+
 ## [2026-05-06] Generic Price Signs — Color Inversion (Ink Savings)
 
 - File: `labels.html`
