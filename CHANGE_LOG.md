@@ -6,6 +6,16 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-05-06] Generic Price Signs — Color Inversion (Ink Savings)
+
+- File: `labels.html`
+- Role: fullstack-builder (delegated by PM_ARCHITECT)
+- Status: Deployed live
+- Why: Todd is running low on ink before Phipps May Market. The generic price sign body was a solid magenta `#be185d` block covering most of the page — heavy ink consumption.
+- Fix: Inverted color scheme inside `.price-sign-body`: background `#be185d` → `#fff`, text color `#fff` → `#be185d`. Inner divider border changed from `rgba(255,255,255,0.45)` to `rgba(190,24,93,0.5)` to maintain visual separation with the new color scheme. Top white strip with logo + USDA seal + magenta border-bottom unchanged.
+- Variety sale signs (detailed and picture-only layouts) untouched — their colors are tied to category accents, not price-sign rules.
+- Verification: 4 grep gates + node --check on extracted inline JS — all clean.
+
 ## [2026-05-06] Seedling Photos — 9 Self-Hosted Replacements (Todd-Provided)
 
 - Files: `web_app/images/seedlings/` (9 new files committed) + Google Sheets `SEEDLING_PRODUCTION` (9 Image_URL cells updated via Sheets API)
