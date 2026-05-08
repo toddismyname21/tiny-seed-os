@@ -6,6 +6,23 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-05-08] CSA Migration Day 1 — Supabase Project Provisioned + Schema/Migration Code Committed
+
+- Files: `docs/CSA_MIGRATION_PLAN_2026.md` (architecture decision record, 600 lines), `supabase/migrations/0001-0012_*.sql` (12 schema migrations, 539 lines total), `scripts/migrate-csa/sheets_to_supabase.py` (474 lines, idempotent), `scripts/migrate-csa/README.md` (runbook), `.env.csa` (gitignored)
+- Role: PM_ARCHITECT (architecture + coordination); SQL/Python written directly by PM (gray-area protocol — fullstack-builder agent scoped to HTML/CSS/JS+Apps Script, no DB/infra agent exists). Frontend phase will be properly delegated to fullstack-builder per Todd's 2026-05-08 protocol audit.
+- Status: In progress. Day 1 of 14. Branch `csa-migration` pushed to GitHub. Awaiting service_role key + Supabase GitHub integration to apply migrations.
+- Why: Todd greenlit Supabase migration on 2026-05-08 to fix CSA portal slowness (currently 6-15s page loads from Sheets API latency). Target: 400 Summer 2026 members onboarded in 10-14 days; 800 by 2030; eventual whole-OS migration foundation.
+- Stack locked (research-grounded, see plan doc §1):
+  - Database: Supabase Postgres (project `tiny-seed-csa` provisioned in `us-east-2` Ohio, URL `https://melizsvabemhaqeaqtyw.supabase.co`)
+  - Frontend: Astro 4.x + TypeScript + Tailwind (5-25KB initial JS vs Next.js 80-200KB)
+  - Auth: Supabase Auth (email magic link) + Twilio Verify (SMS magic codes — Phase 1 per Todd's 2026-05-08 update)
+  - Hosting: Vercel with edge network + per-PR previews
+  - Email: Resend (best-in-class deliverability, $0-20/mo)
+  - Observability: Sentry + PostHog
+  - CI/CD: GitHub Actions + Vercel Preview Deploys
+- Schema improvements over old Sheets system: 12 tables with FKs, CHECK constraints, indexes, RLS policies, audit triggers. New tables: `member_preferences`, `vacation_holds`, `box_swaps`, `pickup_attendance`, `audit_log`, `notification_log` (replaces email-only log with email+SMS unified).
+- Day 1 work remaining: connect Supabase ↔ GitHub for auto-migration, apply 12 schemas, dry-run data migration script, provision Vercel + Resend + Twilio Verify, add `csa.tinyseedfarm.com` DNS.
+
 ## [2026-05-06] Generic Price Signs — Darken Color (#be185d → #831843)
 
 - File: `labels.html`

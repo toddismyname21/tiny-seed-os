@@ -61,3 +61,5 @@ Claude-Code-Remote/
 browser_agent/user_data/
 browser_agent/screenshot_*.png
 
+scripts/migrate-csa/__pycache__/
+.env.*
