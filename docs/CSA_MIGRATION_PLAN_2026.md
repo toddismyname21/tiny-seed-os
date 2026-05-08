@@ -108,17 +108,28 @@ Decision: **Vercel for the new `csa.tinyseedfarm.com` subdomain.** Keeps the exi
 
 Tiny Seed sends ~12-15 emails per member per season (welcome, weekly × 12, renewal). At 800 members × 4 seasons = ~38K/year = well within $20/mo Pro tier.
 
-### 1.5 SMS — Defer to Phase 2
+### 1.5 SMS — IN SCOPE FOR PHASE 1 (Twilio Verify)
 
-Twilio integration exists in code but has never functioned (per memory). Configuring it properly requires:
-1. New Twilio number provisioning + A2P 10DLC registration (US carrier compliance)
-2. Webhook endpoints for inbound SMS
-3. Opt-in / opt-out compliance
-4. Rate limiting
+**Updated 2026-05-08 per Todd:** SMS must work for launch, not deferred.
 
-**Total estimated work: 2-3 days.** That's 15-20% of the 14-day budget. Email magic link works today and is sufficient for Summer launch.
+Twilio integration exists in code but has never functioned (per memory). To get it working without burning the 14-day budget, using **Twilio Verify API** instead of raw Messaging API:
 
-**Phase 2 (post-Summer launch):** Re-enable Twilio with proper A2P 10DLC. Add SMS opt-in to onboarding flow.
+| Feature | Twilio Verify | Twilio Messaging |
+|---|---|---|
+| Purpose | OTP / verification codes ONLY | Any SMS |
+| A2P 10DLC requirement | Reduced (Verify use case) | Full registration required (3-14 days) |
+| Setup time | <1 day | 7-14 days |
+| Cost | $0.05 per verification (~$17/mo @ 800 members × 5 verifies/year) | $0.0079 per SMS + 10DLC fees |
+| Deliverability | Best-in-class (Twilio's own validators) | Standard SMS routing |
+| Fraud signals | Built-in | DIY |
+
+**Phase 1 SMS scope (Days 5 + buffer):**
+- SMS magic code login via Twilio Verify (`/verify/v2/services/{sid}/verifications`)
+- Existing toll-free number `+18773195491` (already provisioned) — toll-free exempt from much of A2P 10DLC
+- Member opts in during onboarding (contact_preference = 'sms' or 'both')
+- Webhook to log delivery status to `email_log` (rename to `notification_log` since we now have email + SMS)
+
+**Phase 2 (deferred):** SMS marketing/reminders (weekly, renewal) — those need full A2P 10DLC for the messaging API. Verify is compliant for OTP today.
 
 ### 1.6 Payment — Keep Shopify for Phase 1
 
@@ -449,7 +460,7 @@ CREATE POLICY members_self_update ON members FOR UPDATE
 | **2** | Sat 5/10 | Schema + migrations | Write all 12 tables as SQL migrations in `supabase/migrations/`. Set up RLS policies. Apply to dev DB. Write seed data. |
 | **3** | Sun 5/11 | Data migration script | Python script: read 5 CSA + 1 SALES_Customers + 1 SALES_MagicLinks sheets via Sheets API, transform, INSERT into Supabase. Idempotent (safe to re-run). Verify counts match (309 members, 1694 customers). |
 | **4** | Mon 5/12 | Astro project init | `npm create astro@latest`; integrate Tailwind + Supabase JS client + auth helpers; set up folder structure; port `tiny-seed-design-system.css` tokens to Tailwind config |
-| **5** | Tue 5/13 | Auth + member dashboard | Magic-link login via Supabase Auth + Resend; logged-in member sees "this week's box" + share status. Mobile-first. |
+| **5** | Tue 5/13 | Auth + member dashboard | Magic-link login via Supabase Auth + Resend (email) **AND** Twilio Verify (SMS); logged-in member sees "this week's box" + share status. Mobile-first. |
 | **6** | Wed 5/14 | Onboarding flow | 5-step new-member onboarding (welcome, share confirm, dietary prefs, contact info, confirm). Posts to `members` + `member_preferences`. |
 | **7** | Thu 5/15 | Box customization + swaps | Member can swap items (writes to `box_swaps`). Customize page reads `box_contents` for the week. Swap credits decrement. |
 | **8** | Fri 5/16 | Vacation holds + preferences UI | Schedule vacation hold (writes to `vacation_holds`). Edit preferences page. Edit pickup location. |
@@ -569,16 +580,14 @@ Items deferred to maintain the 14-day timeline:
 
 ---
 
-## 9. Approval Required
+## 9. Approvals — Locked 2026-05-08
 
-This plan is ready for execution. Todd, please confirm any of the following before Day 1 (Friday 5/9):
-
-| # | Decision | Default if you don't reply |
+| # | Decision | Status |
 |---|---|---|
-| 1 | Approve full plan as written? | Default: PROCEED |
-| 2 | Domain: `csa.tinyseedfarm.com` for new portal? | Default: yes |
-| 3 | Send Day 13 announcement email to Spring members announcing upgrade? | Default: yes |
-| 4 | Anyone you want as soft-launch testers besides yourself? | Default: 3-5 friendly Spring members I'll pick |
-| 5 | Acceptable to keep Apps Script CSA endpoints alive (read-only fallback) for 7 days post-cutover? | Default: yes |
+| 1 | Approve full plan as written? | ✅ APPROVED with one change: **Twilio SMS moved into Phase 1** via Twilio Verify (see §1.5) |
+| 2 | Domain: `csa.tinyseedfarm.com` for new portal? | ✅ APPROVED |
+| 3 | Day 13 announcement email to Spring members? | ⏸ DEFERRED — Todd + PM will draft together so Todd fully understands the messaging before send |
+| 4 | Soft-launch tester selection? | ⏸ DEFERRED — Todd + PM will select together |
+| 5 | Apps Script CSA endpoints stay alive post-cutover? | ✅ APPROVED — **INDEFINITE** (kept until Todd confirms new system is fully working in production, not a fixed 7-day window) |
 
-Reply with any changes or just "Go" and I begin Day 1 work tomorrow morning.
+**Day 1 begins:** Friday 5/9 morning. PM does all dev work; Todd reviews + tests at end of each day.
