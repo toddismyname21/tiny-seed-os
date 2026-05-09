@@ -1,0 +1,95 @@
+---
+/**
+ * Select — styled <select> dropdown matching the design tokens.
+ *
+ * Renders a native <select>. We avoid custom listbox widgets here:
+ * native selects on iOS/Android use the platform's native picker
+ * (better for one-handed selection on a touch device — exactly Todd's
+ * member demographic on the dashboard).
+ *
+ * Props:
+ *   - id        Required. Used by FormRow's <label for=...>.
+ *   - name      Required. Form-data key.
+ *   - value     Optional. Currently-selected option (server-rendered).
+ *   - required  Optional. Adds the HTML attribute.
+ *   - options   Required. Array of { value, label, disabled? } records.
+ *   - placeholder  Optional. If provided, renders a leading
+ *                  disabled+selected option with this label and an
+ *                  empty value (so the form submits empty until the
+ *                  user picks something).
+ *   - ariaInvalid  Optional. Pass "true" to surface an error state to
+ *                  screen readers.
+ *   - ariaDescribedBy  Optional. id of help/error text in a FormRow.
+ */
+interface SelectOption {
+  value: string;
+  label: string;
+  disabled?: boolean;
+}
+
+interface Props {
+  id: string;
+  name: string;
+  value?: string | null;
+  required?: boolean;
+  options: SelectOption[];
+  placeholder?: string;
+  ariaInvalid?: 'true' | 'false';
+  ariaDescribedBy?: string;
+  class?: string;
+}
+
+const {
+  id,
+  name,
+  value = null,
+  required = false,
+  options,
+  placeholder,
+  ariaInvalid,
+  ariaDescribedBy,
+  class: extraClass = '',
+} = Astro.props as Props;
+---
+
+<div class="relative">
+  <select
+    id={id}
+    name={name}
+    required={required}
+    aria-invalid={ariaInvalid}
+    aria-describedby={ariaDescribedBy}
+    class={[
+      'block w-full appearance-none rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 pr-10 text-base text-ts-text shadow-inner transition-colors duration-150',
+      'focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30',
+      'disabled:cursor-not-allowed disabled:opacity-60',
+      'min-h-11',
+      extraClass,
+    ].filter(Boolean).join(' ')}
+  >
+    {placeholder && (
+      <option value="" disabled selected={value === null || value === ''}>
+        {placeholder}
+      </option>
+    )}
+    {options.map((opt) => (
+      <option
+        value={opt.value}
+        disabled={opt.disabled}
+        selected={value !== null && opt.value === value}
+      >
+        {opt.label}
+      </option>
+    ))}
+  </select>
+
+  {/* Down chevron — purely decorative, native control still drives the picker */}
+  <span
+    class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-ts-text-muted"
+    aria-hidden="true"
+  >
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+    </svg>
+  </span>
+</div>

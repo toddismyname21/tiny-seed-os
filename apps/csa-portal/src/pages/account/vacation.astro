@@ -1,0 +1,341 @@
+---
+/**
+ * /account/vacation — list of scheduled / active / past vacation holds.
+ *
+ * Sections:
+ *   - Active or scheduled holds (with Cancel button per row)
+ *   - "Schedule new" CTA
+ *   - History (collapsed Disclosure of completed/cancelled holds)
+ *
+ * Auth: middleware. RLS scopes the SELECT to the caller's own holds.
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Badge from '../../components/Badge.astro';
+import Card from '../../components/Card.astro';
+import Button from '../../components/Button.astro';
+import EmptyState from '../../components/EmptyState.astro';
+import Disclosure from '../../components/Disclosure.astro';
+import {
+  prettyDate,
+  todayET,
+  displayHoldStatus,
+  holdBadge,
+  weeksInRange,
+  VACATION_ERROR_COPY,
+} from '../../lib/account';
+
+const user = Astro.locals.user;
+if (!user || !user.email) {
+  return Astro.redirect('/login', 303);
+}
+const supabase = Astro.locals.supabase;
+
+// ─── Members + holds + budget ───────────────────────────────────────
+type MemberRow = {
+  id: string;
+  share_type: string;
+  total_weeks: number;
+  vacation_weeks_used: number;
+  status: string;
+};
+
+const { data: memberRows, error: memberErr } = await supabase
+  .from('members')
+  .select('id, share_type, total_weeks, vacation_weeks_used, status')
+  .in('status', ['active', 'paused', 'onboarding'])
+  .order('start_date', { ascending: false })
+  .overrideTypes<MemberRow[], { merge: false }>();
+
+if (memberErr) {
+  console.error('[account/vacation] member fetch failed:', memberErr.message);
+}
+
+const members = memberRows ?? [];
+// We support multiple shares but for the schedule UX we operate on the
+// "primary" share — the first active one. Most members have only one.
+const primary = members[0] ?? null;
+
+type HoldRow = {
+  id: string;
+  member_id: string;
+  start_date: string;
+  end_date: string;
+  reason: string | null;
+  status: 'scheduled' | 'active' | 'completed' | 'cancelled';
+  created_at: string;
+  cancelled_at: string | null;
+};
+
+let holds: HoldRow[] = [];
+if (members.length > 0) {
+  const { data: holdRows, error: holdErr } = await supabase
+    .from('vacation_holds')
+    .select('id, member_id, start_date, end_date, reason, status, created_at, cancelled_at')
+    .in('member_id', members.map((m) => m.id))
+    .order('start_date', { ascending: false })
+    .overrideTypes<HoldRow[], { merge: false }>();
+  if (holdErr) {
+    console.error('[account/vacation] hold fetch failed:', holdErr.message);
+  }
+  holds = holdRows ?? [];
+}
+
+const today = todayET();
+
+const upcomingOrActive = holds.filter((h) => {
+  if (h.status === 'cancelled' || h.status === 'completed') return false;
+  return h.end_date >= today;
+});
+const past = holds.filter((h) => !upcomingOrActive.includes(h));
+
+// ─── Flash messages from the API ─────────────────────────────────────
+const errorParam = Astro.url.searchParams.get('error');
+const okParam = Astro.url.searchParams.get('ok');
+const weeksParam = Astro.url.searchParams.get('weeks');
+
+const errorMsg = errorParam ? VACATION_ERROR_COPY[errorParam] ?? VACATION_ERROR_COPY.invalid_input : null;
+const okMsg = (() => {
+  if (okParam === 'scheduled') return 'Vacation hold scheduled. We\'ll skip your box during those weeks.';
+  if (okParam === 'cancelled') {
+    const w = Number(weeksParam ?? 0);
+    if (w > 0) return `Hold cancelled. ${w} ${w === 1 ? 'week' : 'weeks'} refunded to your vacation budget.`;
+    return 'Hold cancelled.';
+  }
+  return null;
+})();
+
+// Budget summary for the primary share.
+const totalAvailable = primary != null
+  ? Math.max(0, primary.total_weeks - primary.vacation_weeks_used)
+  : 0;
+---
+
+<BaseLayout
+  title="Vacation holds — Tiny Seed Farm CSA"
+  description="Schedule and manage vacation holds for your Tiny Seed Farm CSA share."
+  canonical="https://csa.tinyseedfarm.com/account/vacation"
+>
+  <a
+    href="#main"
+    class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-ts-md focus:bg-ts-primary focus:px-4 focus:py-2 focus:text-white focus:shadow-ts-md"
+  >
+    Skip to main content
+  </a>
+
+  <div class="min-h-screen bg-ts-bg-base">
+    <header class="border-b border-ts-border bg-ts-bg-surface/80 backdrop-blur-sm">
+      <div class="mx-auto flex max-w-3xl items-center justify-between px-5 py-4 sm:px-6 sm:py-5">
+        <a
+          href="/dashboard"
+          class="flex items-center gap-2 rounded-ts-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ts-primary"
+          aria-label="Tiny Seed Farm CSA dashboard home"
+        >
+          <span class="inline-block h-2.5 w-2.5 rounded-full bg-ts-primary" aria-hidden="true"></span>
+          <span class="font-display text-lg font-bold tracking-tight text-ts-text">Tiny Seed Farm</span>
+        </a>
+        <form method="POST" action="/logout" class="m-0">
+          <button
+            type="submit"
+            class="rounded-ts-md px-3 py-2 text-sm font-medium text-ts-text-secondary transition-colors duration-150 hover:bg-ts-bg-muted hover:text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+          >
+            Sign out
+          </button>
+        </form>
+      </div>
+    </header>
+
+    <main
+      id="main"
+      class="mx-auto flex w-full max-w-3xl flex-col gap-6 px-5 py-8 sm:px-6 sm:py-12"
+    >
+      <nav aria-label="Breadcrumb" class="text-sm">
+        <a
+          href="/account"
+          class="inline-flex items-center gap-1 text-ts-text-secondary transition-colors hover:text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+        >
+          <span aria-hidden="true">←</span>
+          <span>Account</span>
+        </a>
+      </nav>
+
+      <section aria-labelledby="vacation-heading">
+        <h1 id="vacation-heading" class="font-display text-3xl font-bold tracking-tight text-ts-text sm:text-4xl">
+          Vacation holds
+        </h1>
+        <p class="mt-2 text-base text-ts-text-secondary">
+          Pause your weekly box while you're away. We won't pack one for you, and we'll skip the email.
+        </p>
+      </section>
+
+      {/* FLASH MESSAGES */}
+      {errorMsg && (
+        <div
+          role="alert"
+          aria-live="polite"
+          class="rounded-ts-lg border border-ts-danger/30 bg-ts-danger/5 px-4 py-3 text-sm leading-relaxed text-ts-danger"
+        >
+          {errorMsg}
+        </div>
+      )}
+      {okMsg && (
+        <div
+          role="status"
+          aria-live="polite"
+          class="rounded-ts-lg border border-ts-primary/30 bg-ts-primary/5 px-4 py-3 text-sm leading-relaxed text-ts-primary"
+        >
+          {okMsg}
+        </div>
+      )}
+
+      {/* BUDGET CARD */}
+      {primary && (
+        <Card padding="md" elevation="sm">
+          <div class="flex flex-wrap items-baseline justify-between gap-3">
+            <div>
+              <p class="text-sm font-medium text-ts-text">Available this season</p>
+              <p class="mt-1 text-2xl font-semibold tabular-nums text-ts-text">
+                {totalAvailable}
+                <span class="ml-1 text-base font-normal text-ts-text-muted">
+                  of {primary.total_weeks} {primary.total_weeks === 1 ? 'week' : 'weeks'}
+                </span>
+              </p>
+            </div>
+            {totalAvailable > 0 ? (
+              <Button href="/account/vacation/new" variant="primary" size="md">
+                Schedule new hold
+              </Button>
+            ) : (
+              <span class="rounded-ts-md border border-ts-border bg-ts-bg-muted px-4 py-2 text-sm text-ts-text-muted">
+                No vacation weeks left this season
+              </span>
+            )}
+          </div>
+          {primary.vacation_weeks_used > 0 && (
+            <div class="mt-4 h-2 w-full overflow-hidden rounded-full bg-ts-bg-muted">
+              <div
+                class="h-full rounded-full bg-ts-primary transition-all duration-300"
+                style={`width: ${Math.round((primary.vacation_weeks_used / primary.total_weeks) * 100)}%`}
+                role="progressbar"
+                aria-valuenow={primary.vacation_weeks_used}
+                aria-valuemin="0"
+                aria-valuemax={primary.total_weeks}
+                aria-label={`${primary.vacation_weeks_used} of ${primary.total_weeks} weeks used`}
+              ></div>
+            </div>
+          )}
+        </Card>
+      )}
+
+      {/* UPCOMING / ACTIVE */}
+      <section aria-labelledby="upcoming-heading" class="flex flex-col gap-3">
+        <h2 id="upcoming-heading" class="font-display text-xl font-bold text-ts-text sm:text-2xl">
+          Scheduled
+        </h2>
+
+        {upcomingOrActive.length === 0 ? (
+          <EmptyState
+            title="No vacation holds yet"
+            icon="🏖️"
+            tone="default"
+            dashed={true}
+          >
+            When you've got a trip coming up, schedule a hold here so we don't pack a box you can't pick up.
+            <Fragment slot="action">
+              {primary && totalAvailable > 0 && (
+                <Button href="/account/vacation/new" variant="primary" size="md">
+                  Schedule a hold
+                </Button>
+              )}
+            </Fragment>
+          </EmptyState>
+        ) : (
+          <ul class="flex flex-col gap-3" role="list">
+            {upcomingOrActive.map((h) => {
+              const display = displayHoldStatus(h.status, h.start_date, h.end_date, today);
+              const pill = holdBadge(display);
+              const weeks = weeksInRange(h.start_date, h.end_date);
+              return (
+                <li>
+                  <article class="rounded-ts-xl border border-ts-border bg-ts-bg-surface p-5 shadow-ts-sm sm:p-6">
+                    <div class="flex flex-wrap items-start justify-between gap-3">
+                      <div class="min-w-0">
+                        <p class="text-base font-semibold text-ts-text">
+                          {prettyDate(h.start_date)} <span class="text-ts-text-muted">→</span> {prettyDate(h.end_date)}
+                        </p>
+                        <p class="mt-1 text-sm text-ts-text-muted tabular-nums">
+                          {weeks} {weeks === 1 ? 'week' : 'weeks'}
+                        </p>
+                        {h.reason && (
+                          <p class="mt-2 text-sm leading-snug text-ts-text-secondary">
+                            <span class="font-medium text-ts-text">Note:</span> {h.reason}
+                          </p>
+                        )}
+                      </div>
+                      <Badge variant={pill.variant} size="sm" uppercase dot>
+                        {pill.label}
+                      </Badge>
+                    </div>
+
+                    <div class="mt-4 border-t border-ts-border pt-4">
+                      <form
+                        method="POST"
+                        action="/api/account/vacation/cancel"
+                        class="m-0"
+                        data-cancel-form
+                        onsubmit={`return confirm('Cancel this vacation hold? Your weeks will be ${display === 'active' ? 'partially refunded (only the future portion)' : 'refunded'}.');`}
+                      >
+                        <input type="hidden" name="hold_id" value={h.id} />
+                        <input type="hidden" name="member_id" value={h.member_id} />
+                        <button
+                          type="submit"
+                          class="inline-flex items-center justify-center gap-2 rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 py-2 text-sm font-medium text-ts-text-secondary transition-colors duration-150 hover:border-ts-danger/40 hover:bg-ts-danger/5 hover:text-ts-danger focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+                        >
+                          Cancel hold
+                        </button>
+                      </form>
+                    </div>
+                  </article>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+
+      {/* HISTORY */}
+      {past.length > 0 && (
+        <section aria-labelledby="history-heading" class="flex flex-col gap-3">
+          <h2 id="history-heading" class="sr-only">History</h2>
+          <Disclosure tone="muted">
+            <span slot="summary">Show history ({past.length})</span>
+            <ul role="list" class="flex flex-col gap-2">
+              {past.map((h) => {
+                const display = displayHoldStatus(h.status, h.start_date, h.end_date, today);
+                const pill = holdBadge(display);
+                return (
+                  <li class="flex items-center justify-between gap-3 rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 py-3 text-sm">
+                    <div class="min-w-0">
+                      <p class="font-medium text-ts-text">
+                        {prettyDate(h.start_date)} → {prettyDate(h.end_date)}
+                      </p>
+                      {h.reason && (
+                        <p class="mt-0.5 truncate text-xs text-ts-text-muted">{h.reason}</p>
+                      )}
+                    </div>
+                    <Badge variant={pill.variant} size="xs" uppercase>
+                      {pill.label}
+                    </Badge>
+                  </li>
+                );
+              })}
+            </ul>
+          </Disclosure>
+        </section>
+      )}
+
+      <footer class="mt-auto border-t border-ts-border pt-6 text-center text-xs text-ts-text-muted">
+        <p>Signed in as <span class="font-medium text-ts-text-secondary">{user.email}</span></p>
+      </footer>
+    </main>
+  </div>
+</BaseLayout>

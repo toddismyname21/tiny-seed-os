@@ -46,6 +46,7 @@ const PROTECTED_PREFIXES = [
   '/preferences',
   '/profile',
   '/onboarding',
+  '/account',
 ];
 
 // Routes a logged-in user shouldn't see — bounce them to /dashboard.

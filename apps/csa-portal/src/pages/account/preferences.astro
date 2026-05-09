@@ -1,0 +1,348 @@
+---
+/**
+ * /account/preferences — edit dietary + contact preferences.
+ *
+ * Reuses the chips UX from /onboarding/preferences (now extracted into
+ * the <Tags /> component) plus the radio-card UX from
+ * /onboarding/contact for contact_preference.
+ *
+ * Auth: middleware. Writes go through RLS-scoped client.
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Button from '../../components/Button.astro';
+import Card from '../../components/Card.astro';
+import EmptyState from '../../components/EmptyState.astro';
+import Tags from '../../components/Tags.astro';
+import FormRow from '../../components/FormRow.astro';
+import { PREFS_ERROR_COPY } from '../../lib/account';
+
+const user = Astro.locals.user;
+if (!user || !user.email) {
+  return Astro.redirect('/login', 303);
+}
+const supabase = Astro.locals.supabase;
+
+// ─── Member + prefs ──────────────────────────────────────────────────
+type MemberWithPrefs = {
+  id: string;
+  share_type: string;
+  status: string;
+  member_preferences: {
+    dislikes: string[];
+    allergies: string[];
+    delivery_notes: string | null;
+    contact_preference: 'email' | 'sms' | 'both' | 'none';
+    newsletter_opt_in: boolean;
+  } | null;
+};
+
+const { data: memberRows, error: memberErr } = await supabase
+  .from('members')
+  .select(
+    `
+    id,
+    share_type,
+    status,
+    member_preferences (
+      dislikes,
+      allergies,
+      delivery_notes,
+      contact_preference,
+      newsletter_opt_in
+    )
+  `
+  )
+  .in('status', ['active', 'paused', 'onboarding'])
+  .order('start_date', { ascending: false })
+  .overrideTypes<MemberWithPrefs[], { merge: false }>();
+
+if (memberErr) {
+  console.error('[account/preferences] member fetch failed:', memberErr.message);
+}
+
+const primary = (memberRows ?? [])[0] ?? null;
+const prefs = primary?.member_preferences ?? null;
+const dislikes = prefs?.dislikes ?? [];
+const allergies = prefs?.allergies ?? [];
+const deliveryNotes = prefs?.delivery_notes ?? '';
+const contactPref = prefs?.contact_preference ?? 'email';
+const newsletter = prefs?.newsletter_opt_in ?? true;
+
+// ─── Flash ───────────────────────────────────────────────────────────
+const errorParam = Astro.url.searchParams.get('error');
+const okParam = Astro.url.searchParams.get('ok');
+const errorMsg = errorParam ? PREFS_ERROR_COPY[errorParam] ?? PREFS_ERROR_COPY.invalid_input : null;
+const okMsg = okParam === 'saved' ? 'Preferences saved.' : null;
+
+const SHARE_TYPE_LABELS: Record<string, string> = {
+  spring_veg: 'Spring Vegetable Share',
+  summer_veg: 'Summer Vegetable Share',
+  fall_veg: 'Fall Vegetable Share',
+  flower: 'Flower Share',
+  flex: 'Flex Share',
+  add_on: 'Add-On',
+  wholesale_csa: 'Wholesale CSA',
+};
+
+const CONTACT_OPTIONS: Array<{
+  value: 'email' | 'sms' | 'both' | 'none';
+  label: string;
+  hint: string;
+  disabled?: boolean;
+}> = [
+  { value: 'email', label: 'Email', hint: 'Box previews + farm news' },
+  { value: 'sms',   label: 'Text only',  hint: 'Coming soon — opt in via SMS verify', disabled: true },
+  { value: 'both',  label: 'Email + text', hint: 'Coming soon — opt in via SMS verify', disabled: true },
+  { value: 'none',  label: 'Quiet mode', hint: 'No marketing or updates (delivery-critical messages still sent)' },
+];
+---
+
+<BaseLayout
+  title="Preferences — Tiny Seed Farm CSA"
+  description="Edit dietary preferences, allergies, delivery notes, and contact preferences for your CSA share."
+  canonical="https://csa.tinyseedfarm.com/account/preferences"
+>
+  <a
+    href="#main"
+    class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-ts-md focus:bg-ts-primary focus:px-4 focus:py-2 focus:text-white focus:shadow-ts-md"
+  >
+    Skip to main content
+  </a>
+
+  <div class="min-h-screen bg-ts-bg-base">
+    <header class="border-b border-ts-border bg-ts-bg-surface/80 backdrop-blur-sm">
+      <div class="mx-auto flex max-w-3xl items-center justify-between px-5 py-4 sm:px-6 sm:py-5">
+        <a
+          href="/dashboard"
+          class="flex items-center gap-2 rounded-ts-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ts-primary"
+          aria-label="Tiny Seed Farm CSA dashboard home"
+        >
+          <span class="inline-block h-2.5 w-2.5 rounded-full bg-ts-primary" aria-hidden="true"></span>
+          <span class="font-display text-lg font-bold tracking-tight text-ts-text">Tiny Seed Farm</span>
+        </a>
+        <form method="POST" action="/logout" class="m-0">
+          <button
+            type="submit"
+            class="rounded-ts-md px-3 py-2 text-sm font-medium text-ts-text-secondary transition-colors duration-150 hover:bg-ts-bg-muted hover:text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+          >
+            Sign out
+          </button>
+        </form>
+      </div>
+    </header>
+
+    <main id="main" class="mx-auto flex w-full max-w-3xl flex-col gap-6 px-5 py-8 sm:px-6 sm:py-12">
+      <nav aria-label="Breadcrumb" class="text-sm">
+        <a
+          href="/account"
+          class="inline-flex items-center gap-1 text-ts-text-secondary transition-colors hover:text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+        >
+          <span aria-hidden="true">←</span>
+          <span>Account</span>
+        </a>
+      </nav>
+
+      <section aria-labelledby="prefs-heading">
+        <h1 id="prefs-heading" class="font-display text-3xl font-bold tracking-tight text-ts-text sm:text-4xl">
+          Preferences
+        </h1>
+        <p class="mt-2 text-base text-ts-text-secondary">
+          Tell us what to skip, what's risky, and how you'd like to hear from us.
+        </p>
+      </section>
+
+      {!primary ? (
+        <EmptyState title="No active share" icon="🌱" tone="default" dashed={false}>
+          You'll be able to manage preferences once your CSA share is active.
+          <Fragment slot="action">
+            <Button href="/account" variant="secondary" size="md">Back to account</Button>
+          </Fragment>
+        </EmptyState>
+      ) : (
+        <>
+          {errorMsg && (
+            <div
+              role="alert"
+              aria-live="polite"
+              class="rounded-ts-lg border border-ts-danger/30 bg-ts-danger/5 px-4 py-3 text-sm leading-relaxed text-ts-danger"
+            >
+              {errorMsg}
+            </div>
+          )}
+          {okMsg && (
+            <div
+              role="status"
+              aria-live="polite"
+              class="rounded-ts-lg border border-ts-primary/30 bg-ts-primary/5 px-4 py-3 text-sm leading-relaxed text-ts-primary"
+            >
+              {okMsg}
+            </div>
+          )}
+
+          <form
+            method="POST"
+            action="/api/account/preferences"
+            class="flex flex-col gap-6"
+            novalidate
+            data-prefs-form
+          >
+            <input type="hidden" name="member_id" value={primary.id} />
+
+            {/* DISLIKES */}
+            <Card padding="md" elevation="sm">
+              <FormRow
+                label="Things to skip"
+                htmlFor="dislikes-input"
+                help="Type and press Enter or comma. We'll never put these in your box."
+              >
+                <Tags
+                  id="dislikes-input"
+                  name="dislikes"
+                  values={dislikes}
+                  placeholder="cilantro, eggplant, beets…"
+                  tone="primary"
+                  ariaLabel="Add an item to skip"
+                />
+              </FormRow>
+            </Card>
+
+            {/* ALLERGIES */}
+            <Card padding="md" elevation="sm">
+              <FormRow
+                label="Allergies"
+                htmlFor="allergies-input"
+                help="Even items we don't grow ourselves — we'll flag anything from neighboring farms."
+              >
+                <Tags
+                  id="allergies-input"
+                  name="allergies"
+                  values={allergies}
+                  placeholder="nuts, shellfish, dairy…"
+                  tone="warning"
+                  ariaLabel="Add an allergy"
+                />
+              </FormRow>
+            </Card>
+
+            {/* DELIVERY NOTES */}
+            <Card padding="md" elevation="sm">
+              <FormRow
+                label="Delivery notes"
+                htmlFor="delivery-notes"
+                help="Anything your pickup host should know? Gate codes, where to leave the box, that kind of thing."
+              >
+                <textarea
+                  id="delivery-notes"
+                  name="delivery_notes"
+                  rows="3"
+                  maxlength="500"
+                  class="w-full resize-y rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text placeholder:text-ts-text-muted shadow-inner transition-colors duration-150 focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30"
+                  placeholder="e.g. Gate code 1234. Please leave on the porch in the shade."
+                  aria-describedby="notes-counter"
+                >{deliveryNotes}</textarea>
+                <p
+                  id="notes-counter"
+                  class="mt-1.5 text-right text-xs tabular-nums text-ts-text-muted"
+                >
+                  <span data-notes-current>{deliveryNotes.length}</span>/500
+                </p>
+              </FormRow>
+            </Card>
+
+            {/* CONTACT */}
+            <Card padding="md" elevation="sm">
+              <fieldset class="m-0 border-0 p-0">
+                <legend class="mb-2 text-sm font-semibold text-ts-text">How should we reach you?</legend>
+                <p class="mb-4 text-xs text-ts-text-muted">
+                  Delivery-critical notices (e.g. weather cancellations) are always sent regardless.
+                </p>
+                <div role="radiogroup" aria-label="Contact preference" class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  {CONTACT_OPTIONS.map((opt) => {
+                    const isSelected = contactPref === opt.value;
+                    return (
+                      <label
+                        class={[
+                          'group relative flex cursor-pointer items-start gap-3 rounded-ts-md border p-4 transition-all duration-150',
+                          isSelected
+                            ? 'border-ts-primary bg-ts-primary/5'
+                            : 'border-ts-border bg-ts-bg-surface hover:border-ts-primary/40',
+                          opt.disabled ? 'cursor-not-allowed opacity-60' : '',
+                        ].join(' ')}
+                      >
+                        <input
+                          type="radio"
+                          name="contact_preference"
+                          value={opt.value}
+                          checked={isSelected}
+                          disabled={opt.disabled}
+                          required
+                          class="mt-0.5 h-4 w-4 shrink-0 accent-ts-primary"
+                        />
+                        <span class="flex-1">
+                          <span class="block text-sm font-semibold text-ts-text">{opt.label}</span>
+                          <span class="mt-0.5 block text-xs leading-snug text-ts-text-muted">{opt.hint}</span>
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </fieldset>
+
+              <div class="mt-5 border-t border-ts-border pt-4">
+                <label class="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    name="newsletter_opt_in"
+                    value="true"
+                    checked={newsletter}
+                    class="mt-0.5 h-4 w-4 shrink-0 accent-ts-primary"
+                  />
+                  <span class="flex-1 text-sm">
+                    <span class="font-medium text-ts-text">Send me the weekly newsletter</span>
+                    <span class="mt-0.5 block text-xs text-ts-text-muted">
+                      Recipes, what's in the box, and farm updates. About one email per week during the season.
+                    </span>
+                  </span>
+                </label>
+              </div>
+            </Card>
+
+            <div class="flex flex-col-reverse items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <Button href="/account" variant="secondary" size="md">Cancel</Button>
+              <Button type="submit" variant="primary" size="md" data-submit-btn>
+                <span data-submit-label>Save preferences</span>
+              </Button>
+            </div>
+          </form>
+        </>
+      )}
+
+      <footer class="mt-auto border-t border-ts-border pt-6 text-center text-xs text-ts-text-muted">
+        <p>Signed in as <span class="font-medium text-ts-text-secondary">{user.email}</span></p>
+      </footer>
+    </main>
+  </div>
+
+  <script>
+    /**
+     * Live counter for delivery-notes textarea + submit feedback.
+     */
+    const notesEl = document.getElementById('delivery-notes') as HTMLTextAreaElement | null;
+    const notesCurrent = document.querySelector<HTMLElement>('[data-notes-current]');
+    if (notesEl && notesCurrent) {
+      const update = () => { notesCurrent.textContent = String(notesEl.value.length); };
+      notesEl.addEventListener('input', update);
+      update();
+    }
+
+    const form = document.querySelector<HTMLFormElement>('[data-prefs-form]');
+    const submitBtn = document.querySelector<HTMLButtonElement>('[data-submit-btn]');
+    const submitLabel = document.querySelector<HTMLElement>('[data-submit-label]');
+    if (form && submitBtn && submitLabel) {
+      form.addEventListener('submit', () => {
+        submitBtn.disabled = true;
+        submitLabel.textContent = 'Saving…';
+      });
+    }
+  </script>
+</BaseLayout>

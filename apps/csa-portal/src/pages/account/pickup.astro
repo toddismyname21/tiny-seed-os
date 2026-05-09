@@ -1,0 +1,434 @@
+---
+/**
+ * /account/pickup — change pickup location or switch to home delivery.
+ *
+ * Two modes (radio-driven):
+ *   - "Pickup at a stop" — show a Select of all active pickup locations
+ *     where is_delivery_zone=false
+ *   - "Home delivery" — show a delivery_address textarea
+ *
+ * Server enforces:
+ *   - Mode + payload consistency (pickup XOR delivery)
+ *   - Capacity check via change_pickup_location() function
+ *
+ * Auth: middleware. RLS scopes member lookup; pickup_locations is
+ * public-read for authenticated users.
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Button from '../../components/Button.astro';
+import Card from '../../components/Card.astro';
+import EmptyState from '../../components/EmptyState.astro';
+import Select from '../../components/Select.astro';
+import FormRow from '../../components/FormRow.astro';
+import { PICKUP_ERROR_COPY } from '../../lib/account';
+
+const user = Astro.locals.user;
+if (!user || !user.email) {
+  return Astro.redirect('/login', 303);
+}
+const supabase = Astro.locals.supabase;
+
+// ─── Member context ─────────────────────────────────────────────────
+type MemberRow = {
+  id: string;
+  share_type: string;
+  status: string;
+  pickup_location_id: string | null;
+  delivery_address: string | null;
+  pickup_location: {
+    id: string;
+    name: string;
+    city: string | null;
+    day_of_week: string | null;
+    time_start: string | null;
+    time_end: string | null;
+    is_delivery_zone: boolean;
+  } | null;
+};
+
+const { data: memberRows, error: memberErr } = await supabase
+  .from('members')
+  .select(
+    `
+    id,
+    share_type,
+    status,
+    pickup_location_id,
+    delivery_address,
+    pickup_location:pickup_locations (
+      id, name, city, day_of_week, time_start, time_end, is_delivery_zone
+    )
+  `
+  )
+  .in('status', ['active', 'paused', 'onboarding'])
+  .order('start_date', { ascending: false })
+  .overrideTypes<MemberRow[], { merge: false }>();
+
+if (memberErr) {
+  console.error('[account/pickup] member fetch failed:', memberErr.message);
+}
+
+const primary = (memberRows ?? [])[0] ?? null;
+
+// ─── All available pickup locations (excluding the delivery zones) ──
+type LocationRow = {
+  id: string;
+  name: string;
+  city: string | null;
+  day_of_week: string | null;
+  time_start: string | null;
+  time_end: string | null;
+  max_capacity: number | null;
+  is_active: boolean;
+  is_delivery_zone: boolean;
+};
+
+const { data: locationRows, error: locErr } = await supabase
+  .from('pickup_locations')
+  .select('id, name, city, day_of_week, time_start, time_end, max_capacity, is_active, is_delivery_zone')
+  .eq('is_active', true)
+  .eq('is_delivery_zone', false)
+  .order('day_of_week', { ascending: true })
+  .order('name', { ascending: true })
+  .overrideTypes<LocationRow[], { merge: false }>();
+
+if (locErr) {
+  console.error('[account/pickup] location fetch failed:', locErr.message);
+}
+const locations = locationRows ?? [];
+
+// ─── Flash ──────────────────────────────────────────────────────────
+const errorParam = Astro.url.searchParams.get('error');
+const okParam = Astro.url.searchParams.get('ok');
+const errorMsg = errorParam ? PICKUP_ERROR_COPY[errorParam] ?? PICKUP_ERROR_COPY.invalid_input : null;
+const okMsg = okParam === 'saved' ? 'Pickup location updated. Effective next Wednesday.' : null;
+
+const dayLong: Record<string, string> = {
+  Sun: 'Sunday', Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday',
+  Thu: 'Thursday', Fri: 'Friday', Sat: 'Saturday',
+};
+
+function formatTimeRange(start: string | null, end: string | null): string {
+  if (!start || !end) return '';
+  const fmt = (t: string): string => {
+    const [hStr, mStr] = t.split(':');
+    let h = Number(hStr);
+    const m = Number(mStr);
+    const period = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 === 0 ? 12 : h % 12;
+    return m === 0 ? `${h} ${period}` : `${h}:${mStr.padStart(2, '0')} ${period}`;
+  };
+  return `${fmt(start)}–${fmt(end)}`;
+}
+
+function locationLabel(loc: LocationRow): string {
+  const parts: string[] = [loc.name];
+  if (loc.city) parts.push(loc.city);
+  const head = parts.join(', ');
+  const day = loc.day_of_week ? dayLong[loc.day_of_week] ?? loc.day_of_week : null;
+  const time = formatTimeRange(loc.time_start, loc.time_end);
+  const tail = [day, time].filter(Boolean).join(' ');
+  return tail ? `${head} — ${tail}` : head;
+}
+
+const isHomeDelivery = primary != null && !primary.pickup_location_id && !!primary.delivery_address;
+const initialMode: 'pickup' | 'delivery' = isHomeDelivery ? 'delivery' : 'pickup';
+---
+
+<BaseLayout
+  title="Pickup location — Tiny Seed Farm CSA"
+  description="Change your CSA pickup location or switch to home delivery."
+  canonical="https://csa.tinyseedfarm.com/account/pickup"
+>
+  <a
+    href="#main"
+    class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-ts-md focus:bg-ts-primary focus:px-4 focus:py-2 focus:text-white focus:shadow-ts-md"
+  >
+    Skip to main content
+  </a>
+
+  <div class="min-h-screen bg-ts-bg-base">
+    <header class="border-b border-ts-border bg-ts-bg-surface/80 backdrop-blur-sm">
+      <div class="mx-auto flex max-w-3xl items-center justify-between px-5 py-4 sm:px-6 sm:py-5">
+        <a
+          href="/dashboard"
+          class="flex items-center gap-2 rounded-ts-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ts-primary"
+          aria-label="Tiny Seed Farm CSA dashboard home"
+        >
+          <span class="inline-block h-2.5 w-2.5 rounded-full bg-ts-primary" aria-hidden="true"></span>
+          <span class="font-display text-lg font-bold tracking-tight text-ts-text">Tiny Seed Farm</span>
+        </a>
+        <form method="POST" action="/logout" class="m-0">
+          <button
+            type="submit"
+            class="rounded-ts-md px-3 py-2 text-sm font-medium text-ts-text-secondary transition-colors duration-150 hover:bg-ts-bg-muted hover:text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+          >
+            Sign out
+          </button>
+        </form>
+      </div>
+    </header>
+
+    <main id="main" class="mx-auto flex w-full max-w-3xl flex-col gap-6 px-5 py-8 sm:px-6 sm:py-12">
+      <nav aria-label="Breadcrumb" class="text-sm">
+        <a
+          href="/account"
+          class="inline-flex items-center gap-1 text-ts-text-secondary transition-colors hover:text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+        >
+          <span aria-hidden="true">←</span>
+          <span>Account</span>
+        </a>
+      </nav>
+
+      <section aria-labelledby="pickup-heading">
+        <h1 id="pickup-heading" class="font-display text-3xl font-bold tracking-tight text-ts-text sm:text-4xl">
+          Pickup location
+        </h1>
+        <p class="mt-2 text-base text-ts-text-secondary">
+          Change which stop you pick up at, or switch to home delivery.
+        </p>
+      </section>
+
+      {!primary ? (
+        <EmptyState title="No active share" icon="🌱" tone="default" dashed={false}>
+          You'll be able to change pickup details once your CSA share is active.
+          <Fragment slot="action">
+            <Button href="/account" variant="secondary" size="md">Back to account</Button>
+          </Fragment>
+        </EmptyState>
+      ) : (
+        <>
+          {/* CURRENT */}
+          <Card padding="md" elevation="sm" tone="muted">
+            <p class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Current</p>
+            {isHomeDelivery ? (
+              <div class="mt-2 flex items-start gap-3">
+                <span class="mt-0.5 text-lg" aria-hidden="true">🏡</span>
+                <div class="min-w-0">
+                  <p class="text-sm font-medium text-ts-text">Home delivery</p>
+                  <p class="mt-0.5 text-sm text-ts-text-secondary">{primary.delivery_address}</p>
+                </div>
+              </div>
+            ) : primary.pickup_location ? (
+              <div class="mt-2 flex items-start gap-3">
+                <span class="mt-0.5 text-lg" aria-hidden="true">📍</span>
+                <div class="min-w-0">
+                  <p class="text-sm font-medium text-ts-text">{primary.pickup_location.name}</p>
+                  <p class="mt-0.5 text-sm text-ts-text-secondary">
+                    {primary.pickup_location.day_of_week
+                      ? dayLong[primary.pickup_location.day_of_week] ?? primary.pickup_location.day_of_week
+                      : 'Day TBD'}
+                    {primary.pickup_location.time_start && primary.pickup_location.time_end && (
+                      <>
+                        {' '}·{' '}
+                        <span class="tabular-nums">
+                          {formatTimeRange(primary.pickup_location.time_start, primary.pickup_location.time_end)}
+                        </span>
+                      </>
+                    )}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <p class="mt-2 text-sm text-ts-text-muted">No pickup set yet — pick one below.</p>
+            )}
+          </Card>
+
+          {errorMsg && (
+            <div
+              role="alert"
+              aria-live="polite"
+              class="rounded-ts-lg border border-ts-danger/30 bg-ts-danger/5 px-4 py-3 text-sm leading-relaxed text-ts-danger"
+            >
+              {errorMsg}
+            </div>
+          )}
+          {okMsg && (
+            <div
+              role="status"
+              aria-live="polite"
+              class="rounded-ts-lg border border-ts-primary/30 bg-ts-primary/5 px-4 py-3 text-sm leading-relaxed text-ts-primary"
+            >
+              {okMsg}
+            </div>
+          )}
+
+          <form
+            method="POST"
+            action="/api/account/pickup-location"
+            class="flex flex-col gap-6"
+            novalidate
+            data-pickup-form
+          >
+            <input type="hidden" name="member_id" value={primary.id} />
+
+            {/* MODE TOGGLE */}
+            <Card padding="md" elevation="sm">
+              <fieldset class="m-0 border-0 p-0">
+                <legend class="mb-3 text-sm font-semibold text-ts-text">Where should we deliver?</legend>
+                <div role="radiogroup" aria-label="Pickup mode" class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <label
+                    class={[
+                      'group relative flex cursor-pointer items-start gap-3 rounded-ts-md border p-4 transition-all duration-150',
+                      initialMode === 'pickup' ? 'border-ts-primary bg-ts-primary/5' : 'border-ts-border bg-ts-bg-surface hover:border-ts-primary/40',
+                    ].join(' ')}
+                  >
+                    <input
+                      type="radio"
+                      name="mode"
+                      value="pickup"
+                      checked={initialMode === 'pickup'}
+                      class="mt-0.5 h-4 w-4 shrink-0 accent-ts-primary"
+                      data-mode-radio="pickup"
+                      required
+                    />
+                    <span class="flex-1">
+                      <span class="block text-sm font-semibold text-ts-text">Pickup at a stop</span>
+                      <span class="mt-0.5 block text-xs leading-snug text-ts-text-muted">Wednesday afternoons</span>
+                    </span>
+                  </label>
+                  <label
+                    class={[
+                      'group relative flex cursor-pointer items-start gap-3 rounded-ts-md border p-4 transition-all duration-150',
+                      initialMode === 'delivery' ? 'border-ts-primary bg-ts-primary/5' : 'border-ts-border bg-ts-bg-surface hover:border-ts-primary/40',
+                    ].join(' ')}
+                  >
+                    <input
+                      type="radio"
+                      name="mode"
+                      value="delivery"
+                      checked={initialMode === 'delivery'}
+                      class="mt-0.5 h-4 w-4 shrink-0 accent-ts-primary"
+                      data-mode-radio="delivery"
+                    />
+                    <span class="flex-1">
+                      <span class="block text-sm font-semibold text-ts-text">Home delivery</span>
+                      <span class="mt-0.5 block text-xs leading-snug text-ts-text-muted">Within our delivery zone</span>
+                    </span>
+                  </label>
+                </div>
+              </fieldset>
+            </Card>
+
+            {/* PICKUP STOP SELECT */}
+            <Card padding="md" elevation="sm" data-mode-section="pickup" hidden={initialMode !== 'pickup'}>
+              <FormRow
+                label="Choose a stop"
+                htmlFor="pickup_location_id"
+                help="We'll switch your pickup starting next Wednesday. If your stop is full, we'll show an error."
+              >
+                <Select
+                  id="pickup_location_id"
+                  name="pickup_location_id"
+                  value={primary.pickup_location_id ?? ''}
+                  placeholder="Select a pickup location…"
+                  options={locations.map((l) => ({ value: l.id, label: locationLabel(l) }))}
+                />
+              </FormRow>
+            </Card>
+
+            {/* HOME DELIVERY ADDRESS */}
+            <Card padding="md" elevation="sm" data-mode-section="delivery" hidden={initialMode !== 'delivery'}>
+              <FormRow
+                label="Delivery address"
+                htmlFor="delivery_address"
+                help="Street, city, ZIP. We deliver Wednesdays between 11 AM and 4 PM."
+              >
+                <textarea
+                  id="delivery_address"
+                  name="delivery_address"
+                  rows="3"
+                  maxlength="500"
+                  placeholder="123 Main St, Pittsburgh, PA 15206"
+                  class="w-full resize-y rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text placeholder:text-ts-text-muted shadow-inner transition-colors duration-150 focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30"
+                >{primary.delivery_address ?? ''}</textarea>
+              </FormRow>
+            </Card>
+
+            <p class="-mt-2 text-xs text-ts-text-muted">
+              Heads up: changes take effect <span class="font-medium text-ts-text">next Wednesday</span>.
+              This week's box already in motion.
+            </p>
+
+            <div class="flex flex-col-reverse items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <Button href="/account" variant="secondary" size="md">Cancel</Button>
+              <Button type="submit" variant="primary" size="md" data-submit-btn>
+                <span data-submit-label>Save change</span>
+              </Button>
+            </div>
+          </form>
+        </>
+      )}
+
+      <footer class="mt-auto border-t border-ts-border pt-6 text-center text-xs text-ts-text-muted">
+        <p>Signed in as <span class="font-medium text-ts-text-secondary">{user.email}</span></p>
+      </footer>
+    </main>
+  </div>
+
+  <script>
+    /**
+     * Toggle which section is shown based on the chosen radio. We also
+     * uncheck/clear the hidden section's required attribute so the
+     * native form-validate doesn't block the submit.
+     */
+    const radios = document.querySelectorAll<HTMLInputElement>('[data-mode-radio]');
+    const sections = document.querySelectorAll<HTMLElement>('[data-mode-section]');
+
+    function refresh(mode: string): void {
+      sections.forEach((s) => {
+        const myMode = s.dataset.modeSection;
+        if (myMode === mode) {
+          s.hidden = false;
+        } else {
+          s.hidden = true;
+        }
+      });
+      // Manage required state on inner controls so a hidden one
+      // doesn't block submit.
+      const pickupSel = document.getElementById('pickup_location_id') as HTMLSelectElement | null;
+      const deliveryTa = document.getElementById('delivery_address') as HTMLTextAreaElement | null;
+      if (pickupSel)  pickupSel.required = (mode === 'pickup');
+      if (deliveryTa) deliveryTa.required = (mode === 'delivery');
+    }
+
+    radios.forEach((r) => {
+      r.addEventListener('change', () => {
+        if (r.checked) refresh(r.value);
+      });
+    });
+
+    // Re-style the parent <label> when its radio is selected (we already
+    // server-rendered the initial state; this keeps the highlight in
+    // sync as the user toggles).
+    function reflectLabels(): void {
+      radios.forEach((r) => {
+        const parent = r.closest('label');
+        if (!parent) return;
+        if (r.checked) {
+          parent.classList.add('border-ts-primary', 'bg-ts-primary/5');
+          parent.classList.remove('border-ts-border', 'bg-ts-bg-surface');
+        } else {
+          parent.classList.remove('border-ts-primary', 'bg-ts-primary/5');
+          parent.classList.add('border-ts-border', 'bg-ts-bg-surface');
+        }
+      });
+    }
+    radios.forEach((r) => r.addEventListener('change', reflectLabels));
+
+    // Submit feedback.
+    const form = document.querySelector<HTMLFormElement>('[data-pickup-form]');
+    const submitBtn = document.querySelector<HTMLButtonElement>('[data-submit-btn]');
+    const submitLabel = document.querySelector<HTMLElement>('[data-submit-label]');
+    if (form && submitBtn && submitLabel) {
+      form.addEventListener('submit', () => {
+        submitBtn.disabled = true;
+        submitLabel.textContent = 'Saving…';
+      });
+    }
+
+    // Set initial required state once on load.
+    const initial = Array.from(radios).find((r) => r.checked);
+    if (initial) refresh(initial.value);
+  </script>
+</BaseLayout>

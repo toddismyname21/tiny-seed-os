@@ -1,0 +1,87 @@
+---
+/**
+ * FormRow — label + input wrapper + optional error/help text.
+ *
+ * Wraps a single field in the standard CSA-portal form layout:
+ *   <label> + (optional <span>required</span>) + <slot> + help/error
+ *
+ * Visual rules:
+ *   - Label: 14px / semibold / text-ts-text
+ *   - Help text: 12px / text-ts-text-muted
+ *   - Error text: 13px / text-ts-danger, with role="alert" + aria-live
+ *
+ * Accessibility:
+ *   - Caller is responsible for setting `id` on the inner control AND
+ *     `for={id}` on the FormRow via the `for` prop (we render the
+ *     `<label>`).
+ *   - When `error` is present, the help slot is hidden and the error
+ *     replaces it. Caller should also set `aria-invalid="true"` and
+ *     `aria-describedby={`${id}-error`}` on the control for screen
+ *     readers — we render the error with that id.
+ *
+ * Props:
+ *   - label    Required. The field label text.
+ *   - htmlFor  The id of the control inside the slot (renders as `<label for>`).
+ *   - required Optional. Renders a "Required" hint.
+ *   - error    Optional. If set, renders below the slot in danger color.
+ *   - help     Optional. If set AND no error, renders subtle help text.
+ *   - hideLabel Optional. Render label as sr-only (still announced).
+ */
+interface Props {
+  label: string;
+  htmlFor: string;
+  required?: boolean;
+  error?: string | null;
+  help?: string;
+  hideLabel?: boolean;
+  class?: string;
+}
+
+const {
+  label,
+  htmlFor,
+  required = false,
+  error = null,
+  help,
+  hideLabel = false,
+  class: extraClass = '',
+} = Astro.props as Props;
+
+const errorId = `${htmlFor}-error`;
+const helpId  = `${htmlFor}-help`;
+---
+
+<div class={['flex flex-col gap-1.5', extraClass].filter(Boolean).join(' ')}>
+  <label
+    for={htmlFor}
+    class={
+      hideLabel
+        ? 'sr-only'
+        : 'text-sm font-semibold text-ts-text'
+    }
+  >
+    <span>{label}</span>
+    {required && (
+      <span class="ml-1.5 text-xs font-medium uppercase tracking-wide text-ts-text-muted" aria-hidden="true">
+        Required
+      </span>
+    )}
+  </label>
+
+  <slot />
+
+  {error ? (
+    <p
+      id={errorId}
+      role="alert"
+      aria-live="polite"
+      class="text-[13px] leading-snug text-ts-danger"
+    >
+      {error}
+    </p>
+  ) : help ? (
+    <p id={helpId} class="text-xs leading-snug text-ts-text-muted">
+      {help}
+    </p>
+  ) : null}
+</div>

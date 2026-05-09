@@ -243,6 +243,30 @@ export interface Database {
         };
         Returns: Json;
       };
+      schedule_vacation_hold: {
+        Args: {
+          p_member_id: string;
+          p_start_date: string;  // YYYY-MM-DD
+          p_end_date: string;    // YYYY-MM-DD
+          p_reason: string | null;
+        };
+        Returns: Json;
+      };
+      cancel_vacation_hold: {
+        Args: {
+          p_member_id: string;
+          p_hold_id: string;
+        };
+        Returns: Json;
+      };
+      change_pickup_location: {
+        Args: {
+          p_member_id: string;
+          p_new_location_id: string | null;
+          p_new_delivery_address: string | null;
+        };
+        Returns: Json;
+      };
     };
     Enums: { [_: string]: never };
   };

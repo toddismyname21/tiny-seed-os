@@ -1,0 +1,84 @@
+---
+/**
+ * Disclosure — show/hide section using the native <details>/<summary>
+ * elements.
+ *
+ * Why <details>?
+ *   - Free keyboard support (Enter / Space toggles)
+ *   - Free screen-reader semantics (announced as "expanded"/"collapsed")
+ *   - Works without JavaScript
+ *   - State persists in the DOM (a form submit redirect won't lose
+ *     "Show history" being open)
+ *
+ * Visual treatment:
+ *   - The summary row has a chevron that rotates 180° when open.
+ *   - prefers-reduced-motion is respected (transition opacity, not
+ *     transform, when reduced).
+ *
+ * Slots:
+ *   - default  Hidden body content
+ *   - summary  Visible always — the toggle row
+ *
+ * Props:
+ *   - open     Default closed. Set true to render `<details open>`.
+ *   - id       Optional. Useful when programmatically toggling.
+ *   - tone     "default" (subtle) | "muted" (filled background)
+ */
+type Tone = 'default' | 'muted';
+
+interface Props {
+  open?: boolean;
+  id?: string;
+  tone?: Tone;
+  class?: string;
+}
+
+const {
+  open = false,
+  id,
+  tone = 'default',
+  class: extraClass = '',
+} = Astro.props as Props;
+
+const TONE_BORDER: Record<Tone, string> = {
+  default: 'border-ts-border',
+  muted: 'border-ts-border bg-ts-bg-muted/40',
+};
+
+const summaryClasses = [
+  'flex cursor-pointer select-none items-center justify-between gap-3 rounded-ts-md px-4 py-3',
+  'text-sm font-semibold text-ts-text transition-colors duration-150',
+  'hover:bg-ts-bg-muted',
+  'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary',
+  '[&::-webkit-details-marker]:hidden [&::marker]:hidden',
+  '[touch-action:manipulation]',
+  'min-h-11',
+].join(' ');
+
+const detailsClasses = [
+  'group rounded-ts-lg border',
+  TONE_BORDER[tone],
+  extraClass,
+]
+  .filter(Boolean)
+  .join(' ');
+---
+
+<details id={id} open={open} class={detailsClasses}>
+  <summary class={summaryClasses}>
+    <span class="flex-1">
+      <slot name="summary" />
+    </span>
+    <span
+      class="inline-flex h-5 w-5 shrink-0 items-center justify-center text-ts-text-muted transition-transform duration-200 group-open:rotate-180 motion-reduce:transition-none"
+      aria-hidden="true"
+    >
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+        <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+    </span>
+  </summary>
+  <div class="border-t border-ts-border px-4 py-4">
+    <slot />
+  </div>
+</details>

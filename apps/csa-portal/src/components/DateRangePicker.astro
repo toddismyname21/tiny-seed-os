@@ -1,0 +1,167 @@
+---
+/**
+ * DateRangePicker — accessible start/end date inputs.
+ *
+ * For Day 8 we use two native `<input type="date">` controls. iOS,
+ * Android, and modern desktop browsers all render their own polished
+ * native picker — far better than a hand-rolled calendar widget for
+ * one-handed mobile input. (Phase 4 may swap in a custom widget.)
+ *
+ * The component:
+ *   - Renders two stacked FormRow-style fields with semantic <label>s
+ *     wired via `for` and unique ids.
+ *   - Adds `min` (today) on both fields server-side so a member can't
+ *     pick a past date even before submitting.
+ *   - On the start input's `change` event, bumps the end input's `min`
+ *     to the chosen start date so end can never be before start.
+ *   - Server is the source of truth — same range is re-validated in
+ *     /api/account/vacation/schedule.
+ *
+ * Props:
+ *   - startName / endName  Form-data keys.
+ *   - startId / endId      Element ids (used by the page's <label> for
+ *                          attributes when wrapped in a FormRow). If
+ *                          omitted, falls back to `${startName}` etc.
+ *   - startValue / endValue  Pre-fill (e.g. when re-rendering after
+ *                            a server-side validation error).
+ *   - minDate              ISO YYYY-MM-DD. Default: today (US/Eastern).
+ *   - required             Default true (both fields required).
+ */
+interface Props {
+  startName?: string;
+  endName?: string;
+  startId?: string;
+  endId?: string;
+  startValue?: string | null;
+  endValue?: string | null;
+  minDate?: string;
+  required?: boolean;
+  startError?: string | null;
+  endError?: string | null;
+  class?: string;
+}
+
+const {
+  startName = 'start_date',
+  endName = 'end_date',
+  startId,
+  endId,
+  startValue = null,
+  endValue = null,
+  minDate,
+  required = true,
+  startError = null,
+  endError = null,
+  class: extraClass = '',
+} = Astro.props as Props;
+
+const sId = startId ?? startName;
+const eId = endId ?? endName;
+
+// Today in America/New_York. We don't ship a TZ database; Intl handles
+// the calendar conversion.
+const todayET = (() => {
+  const fmt = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/New_York',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+  return fmt.format(new Date()); // YYYY-MM-DD
+})();
+
+const minStart = minDate ?? todayET;
+---
+
+<div class={['grid grid-cols-1 gap-4 sm:grid-cols-2', extraClass].filter(Boolean).join(' ')}>
+  {/* START DATE */}
+  <div class="flex flex-col gap-1.5">
+    <label for={sId} class="text-sm font-semibold text-ts-text">
+      Start date
+      {required && (
+        <span class="ml-1.5 text-xs font-medium uppercase tracking-wide text-ts-text-muted" aria-hidden="true">
+          Required
+        </span>
+      )}
+    </label>
+    <input
+      type="date"
+      id={sId}
+      name={startName}
+      required={required}
+      min={minStart}
+      value={startValue ?? ''}
+      data-date-range-start
+      aria-invalid={startError ? 'true' : undefined}
+      aria-describedby={startError ? `${sId}-error` : undefined}
+      class={[
+        'min-h-11 w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text shadow-inner transition-colors duration-150',
+        'focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30',
+        startError ? 'border-ts-danger' : '',
+      ].filter(Boolean).join(' ')}
+    />
+    {startError && (
+      <p id={`${sId}-error`} role="alert" class="text-[13px] leading-snug text-ts-danger">
+        {startError}
+      </p>
+    )}
+  </div>
+
+  {/* END DATE */}
+  <div class="flex flex-col gap-1.5">
+    <label for={eId} class="text-sm font-semibold text-ts-text">
+      End date
+      {required && (
+        <span class="ml-1.5 text-xs font-medium uppercase tracking-wide text-ts-text-muted" aria-hidden="true">
+          Required
+        </span>
+      )}
+    </label>
+    <input
+      type="date"
+      id={eId}
+      name={endName}
+      required={required}
+      min={startValue ?? minStart}
+      value={endValue ?? ''}
+      data-date-range-end
+      aria-invalid={endError ? 'true' : undefined}
+      aria-describedby={endError ? `${eId}-error` : undefined}
+      class={[
+        'min-h-11 w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text shadow-inner transition-colors duration-150',
+        'focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30',
+        endError ? 'border-ts-danger' : '',
+      ].filter(Boolean).join(' ')}
+    />
+    {endError && (
+      <p id={`${eId}-error`} role="alert" class="text-[13px] leading-snug text-ts-danger">
+        {endError}
+      </p>
+    )}
+  </div>
+</div>
+
+<script>
+  /**
+   * Keep the end-date `min` >= the chosen start-date so the native
+   * picker never offers an invalid range. We also clear an end-date
+   * value that becomes invalid after a start-date change (forces
+   * member to re-pick rather than silently shipping a bogus range).
+   */
+  document.querySelectorAll<HTMLInputElement>('[data-date-range-start]').forEach((startEl) => {
+    // Find sibling end input within the same container.
+    const container = startEl.closest('.grid');
+    if (!container) return;
+    const endEl = container.querySelector<HTMLInputElement>('[data-date-range-end]');
+    if (!endEl) return;
+
+    startEl.addEventListener('change', () => {
+      const v = startEl.value;
+      if (!v) return;
+      endEl.min = v;
+      if (endEl.value && endEl.value < v) {
+        endEl.value = '';
+      }
+    });
+  });
+</script>

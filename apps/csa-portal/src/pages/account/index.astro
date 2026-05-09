@@ -1,0 +1,324 @@
+---
+/**
+ * /account — member account hub.
+ *
+ * Cards link to:
+ *   - /account/preferences  (dietary + contact prefs)
+ *   - /account/pickup       (pickup location / home delivery)
+ *   - /account/vacation     (vacation hold list + scheduler)
+ *
+ * The Profile section is read-only (email is the auth identity, name +
+ * phone live on the customer record but we don't yet expose an editor —
+ * that's planned for Day 11+).
+ *
+ * Sign-out is a POST to /logout (same as /dashboard).
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Badge from '../../components/Badge.astro';
+import Card from '../../components/Card.astro';
+
+const user = Astro.locals.user;
+if (!user || !user.email) {
+  return Astro.redirect('/login', 303);
+}
+const supabase = Astro.locals.supabase;
+
+// ─── Pull customer + members + prefs + holds in one go ───────────────
+type AccountMember = {
+  id: string;
+  share_type: string;
+  share_size: string | null;
+  season: string;
+  total_weeks: number;
+  vacation_weeks_used: number;
+  status: string;
+  pickup_location_id: string | null;
+  delivery_address: string | null;
+  pickup_location: {
+    name: string;
+    city: string | null;
+    day_of_week: string | null;
+  } | null;
+  member_preferences: {
+    dislikes: string[];
+    allergies: string[];
+    contact_preference: 'email' | 'sms' | 'both' | 'none';
+    newsletter_opt_in: boolean;
+  } | null;
+};
+
+type CustomerWithAccount = {
+  id: string;
+  contact_name: string;
+  email: string;
+  phone: string | null;
+  members: AccountMember[];
+};
+
+const { data: customerRows, error: customerError } = await supabase
+  .from('customers')
+  .select(
+    `
+    id,
+    contact_name,
+    email,
+    phone,
+    members (
+      id,
+      share_type,
+      share_size,
+      season,
+      total_weeks,
+      vacation_weeks_used,
+      status,
+      pickup_location_id,
+      delivery_address,
+      pickup_location:pickup_locations (
+        name,
+        city,
+        day_of_week
+      ),
+      member_preferences (
+        dislikes,
+        allergies,
+        contact_preference,
+        newsletter_opt_in
+      )
+    )
+  `
+  )
+  .limit(1)
+  .maybeSingle()
+  .overrideTypes<CustomerWithAccount, { merge: false }>();
+
+if (customerError) {
+  console.error('[account] customer fetch failed:', customerError.message);
+}
+
+const customer = customerRows ?? null;
+const liveStatuses = new Set(['active', 'paused', 'onboarding']);
+const allMembers = customer?.members ?? [];
+const liveMembers = allMembers.filter((m) => liveStatuses.has(m.status));
+
+// Pick a "primary" member for summary copy. If a member has multiple
+// shares (e.g. Spring Veg + Flower), the most-budgeted one is shown
+// in the Pickup card; the page itself handles per-member detail.
+const primary = liveMembers[0] ?? null;
+
+const SHARE_TYPE_LABELS: Record<string, string> = {
+  spring_veg: 'Spring Vegetable Share',
+  summer_veg: 'Summer Vegetable Share',
+  fall_veg: 'Fall Vegetable Share',
+  flower: 'Flower Share',
+  flex: 'Flex Share',
+  add_on: 'Add-On',
+  wholesale_csa: 'Wholesale CSA',
+};
+
+const dayLong: Record<string, string> = {
+  Sun: 'Sunday', Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday',
+  Thu: 'Thursday', Fri: 'Friday', Sat: 'Saturday',
+};
+
+const firstName = (customer?.contact_name ?? user.email!.split('@')[0])
+  .trim()
+  .split(/\s+/)[0];
+
+const totalVacationLeft =
+  primary != null
+    ? Math.max(0, primary.total_weeks - primary.vacation_weeks_used)
+    : 0;
+
+const prefsCount =
+  (primary?.member_preferences?.dislikes?.length ?? 0) +
+  (primary?.member_preferences?.allergies?.length ?? 0);
+
+const pickupSummary: string = (() => {
+  if (!primary) return '';
+  if (!primary.pickup_location_id && primary.delivery_address) {
+    return `Home delivery — ${primary.delivery_address}`;
+  }
+  if (primary.pickup_location) {
+    const day = primary.pickup_location.day_of_week
+      ? dayLong[primary.pickup_location.day_of_week] ?? primary.pickup_location.day_of_week
+      : null;
+    const where = primary.pickup_location.city
+      ? `${primary.pickup_location.name}, ${primary.pickup_location.city}`
+      : primary.pickup_location.name;
+    return day ? `${where} · ${day}s` : where;
+  }
+  return 'No pickup location set';
+})();
+---
+
+<BaseLayout
+  title="Account — Tiny Seed Farm CSA"
+  description="Manage your CSA account: pickup location, dietary preferences, and vacation holds."
+  canonical="https://csa.tinyseedfarm.com/account"
+>
+  <a
+    href="#main"
+    class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-ts-md focus:bg-ts-primary focus:px-4 focus:py-2 focus:text-white focus:shadow-ts-md"
+  >
+    Skip to main content
+  </a>
+
+  <div class="min-h-screen bg-ts-bg-base">
+    {/* TOP BAR */}
+    <header class="border-b border-ts-border bg-ts-bg-surface/80 backdrop-blur-sm">
+      <div class="mx-auto flex max-w-3xl items-center justify-between px-5 py-4 sm:px-6 sm:py-5">
+        <a
+          href="/dashboard"
+          class="flex items-center gap-2 rounded-ts-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ts-primary"
+          aria-label="Tiny Seed Farm CSA dashboard home"
+        >
+          <span class="inline-block h-2.5 w-2.5 rounded-full bg-ts-primary" aria-hidden="true"></span>
+          <span class="font-display text-lg font-bold tracking-tight text-ts-text">Tiny Seed Farm</span>
+        </a>
+
+        <form method="POST" action="/logout" class="m-0">
+          <button
+            type="submit"
+            class="rounded-ts-md px-3 py-2 text-sm font-medium text-ts-text-secondary transition-colors duration-150 hover:bg-ts-bg-muted hover:text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+          >
+            Sign out
+          </button>
+        </form>
+      </div>
+    </header>
+
+    <main
+      id="main"
+      class="mx-auto flex w-full max-w-3xl flex-col gap-6 px-5 py-8 sm:gap-8 sm:px-6 sm:py-12"
+    >
+      {/* BREADCRUMB / BACK */}
+      <nav aria-label="Breadcrumb" class="text-sm">
+        <a
+          href="/dashboard"
+          class="inline-flex items-center gap-1 text-ts-text-secondary transition-colors hover:text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+        >
+          <span aria-hidden="true">←</span>
+          <span>Dashboard</span>
+        </a>
+      </nav>
+
+      <section aria-labelledby="account-heading">
+        <h1 id="account-heading" class="font-display text-3xl font-bold tracking-tight text-ts-text sm:text-4xl">
+          Your account
+        </h1>
+        <p class="mt-2 text-base text-ts-text-secondary">
+          Hi {firstName} — manage your share, preferences, and pickup details.
+        </p>
+      </section>
+
+      {/* PROFILE (read-only) */}
+      <Card padding="md" elevation="sm" class="text-sm">
+        <header class="mb-3 flex items-center justify-between">
+          <h2 class="text-base font-semibold text-ts-text">Profile</h2>
+          <Badge variant="gray" size="xs" uppercase>Read only</Badge>
+        </header>
+        <dl class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div>
+            <dt class="text-xs font-medium uppercase tracking-wide text-ts-text-muted">Name</dt>
+            <dd class="mt-1 text-ts-text">{customer?.contact_name ?? '—'}</dd>
+          </div>
+          <div>
+            <dt class="text-xs font-medium uppercase tracking-wide text-ts-text-muted">Email</dt>
+            <dd class="mt-1 break-all text-ts-text">{user.email}</dd>
+          </div>
+          <div>
+            <dt class="text-xs font-medium uppercase tracking-wide text-ts-text-muted">Phone</dt>
+            <dd class="mt-1 text-ts-text">{customer?.phone ?? <span class="text-ts-text-muted">Not set</span>}</dd>
+          </div>
+          {primary && (
+            <div>
+              <dt class="text-xs font-medium uppercase tracking-wide text-ts-text-muted">Active share</dt>
+              <dd class="mt-1 text-ts-text">
+                {SHARE_TYPE_LABELS[primary.share_type] ?? primary.share_type}
+                <span class="text-ts-text-muted"> · {primary.season}</span>
+              </dd>
+            </div>
+          )}
+        </dl>
+        <p class="mt-4 text-xs text-ts-text-muted">
+          Need to update your name or email?
+          {' '}
+          <a
+            href="mailto:todd@tinyseedfarmpgh.com?subject=Update%20account%20info"
+            class="font-medium text-ts-primary underline-offset-2 hover:underline"
+          >
+            Email Todd
+          </a>
+          {' '}— he'll handle it personally.
+        </p>
+      </Card>
+
+      {/* CARDS */}
+      {primary ? (
+        <section aria-labelledby="settings-heading" class="flex flex-col gap-3">
+          <h2 id="settings-heading" class="sr-only">Settings</h2>
+
+          {/* PICKUP */}
+          <a
+            href="/account/pickup"
+            class="group flex items-start gap-4 rounded-ts-xl border border-ts-border bg-ts-bg-surface p-5 shadow-ts-sm transition-all duration-200 hover:border-ts-primary/40 hover:shadow-ts-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+          >
+            <span class="text-3xl" aria-hidden="true">📍</span>
+            <div class="min-w-0 flex-1">
+              <h3 class="text-base font-semibold text-ts-text">Pickup location</h3>
+              <p class="mt-1 text-sm leading-snug text-ts-text-secondary">{pickupSummary}</p>
+              <p class="mt-1 text-xs text-ts-text-muted">Change stop or switch to home delivery</p>
+            </div>
+            <span class="self-center text-ts-text-muted transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden="true">→</span>
+          </a>
+
+          {/* PREFERENCES */}
+          <a
+            href="/account/preferences"
+            class="group flex items-start gap-4 rounded-ts-xl border border-ts-border bg-ts-bg-surface p-5 shadow-ts-sm transition-all duration-200 hover:border-ts-primary/40 hover:shadow-ts-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+          >
+            <span class="text-3xl" aria-hidden="true">🥬</span>
+            <div class="min-w-0 flex-1">
+              <h3 class="text-base font-semibold text-ts-text">Preferences</h3>
+              <p class="mt-1 text-sm leading-snug text-ts-text-secondary">
+                {prefsCount === 0
+                  ? 'No dietary notes on file. Add dislikes or allergies.'
+                  : `${prefsCount} dietary ${prefsCount === 1 ? 'note' : 'notes'} on file`}
+              </p>
+              <p class="mt-1 text-xs text-ts-text-muted">Dislikes, allergies, delivery notes, contact preference</p>
+            </div>
+            <span class="self-center text-ts-text-muted transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden="true">→</span>
+          </a>
+
+          {/* VACATION */}
+          <a
+            href="/account/vacation"
+            class="group flex items-start gap-4 rounded-ts-xl border border-ts-border bg-ts-bg-surface p-5 shadow-ts-sm transition-all duration-200 hover:border-ts-primary/40 hover:shadow-ts-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+          >
+            <span class="text-3xl" aria-hidden="true">🏖️</span>
+            <div class="min-w-0 flex-1">
+              <h3 class="text-base font-semibold text-ts-text">Vacation holds</h3>
+              <p class="mt-1 text-sm leading-snug text-ts-text-secondary">
+                {totalVacationLeft} of {primary.total_weeks} {primary.total_weeks === 1 ? 'week' : 'weeks'} available
+              </p>
+              <p class="mt-1 text-xs text-ts-text-muted">Pause delivery while you're away</p>
+            </div>
+            <span class="self-center text-ts-text-muted transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden="true">→</span>
+          </a>
+        </section>
+      ) : (
+        <Card padding="md" elevation="sm">
+          <p class="text-sm text-ts-text-secondary">
+            We don't have an active CSA share on your account yet. Once Todd activates your share you can manage your pickup, preferences, and vacation holds here.
+          </p>
+        </Card>
+      )}
+
+      {/* FOOTER */}
+      <footer class="mt-auto border-t border-ts-border pt-6 text-center text-xs text-ts-text-muted">
+        <p>Signed in as <span class="font-medium text-ts-text-secondary">{user.email}</span></p>
+        <p class="mt-1">Tiny Seed Farm · 257 Zeigler Rd, Rochester, PA · Certified Organic</p>
+      </footer>
+    </main>
+  </div>
+</BaseLayout>

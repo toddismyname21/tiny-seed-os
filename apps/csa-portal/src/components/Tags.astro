@@ -1,0 +1,195 @@
+---
+/**
+ * Tags — chips/tags input.
+ *
+ * Refactored from the inline chips used in
+ * `/onboarding/preferences.astro`. Same UX:
+ *   - Type and press Enter or comma to add a chip
+ *   - Click × to remove
+ *   - Backspace on empty input removes the last chip
+ *   - Chips serialize as `<input type="hidden" name="${name}[]"
+ *     value="..." />` so the form submits naturally
+ *   - No-JS fallback: typing comma-separated text into the visible
+ *     input still submits as a single comma-separated string under
+ *     `name` (no brackets) — server reads via `formData.getAll(name+'[]')`
+ *     first, then falls back to `formData.get(name)` split-on-comma.
+ *
+ * Visual variants:
+ *   - tone="primary" — green chips (general dislikes / preferences)
+ *   - tone="warning" — amber chips (allergies)
+ *
+ * Props:
+ *   - id          Required. Used by FormRow's <label for=...>.
+ *   - name        Required. Form-data key (we render hidden inputs
+ *                 under `name+'[]'`).
+ *   - values      Optional. Pre-existing chips to render server-side.
+ *   - placeholder Optional. Visible input placeholder.
+ *   - tone        "primary" (default) | "warning"
+ *   - ariaLabel   Optional. Accessible name for the typing input
+ *                 (in case the FormRow's <label> isn't paired tightly).
+ *
+ * Behavior is implemented via a small, framework-free <script> that
+ * delegates to all `[data-tags-container]` elements on the page —
+ * shared logic across multiple Tags components.
+ */
+type Tone = 'primary' | 'warning';
+
+interface Props {
+  id: string;
+  name: string;
+  values?: string[];
+  placeholder?: string;
+  tone?: Tone;
+  ariaLabel?: string;
+  class?: string;
+}
+
+const {
+  id,
+  name,
+  values = [],
+  placeholder = 'Type and press Enter…',
+  tone = 'primary',
+  ariaLabel,
+  class: extraClass = '',
+} = Astro.props as Props;
+
+const TONE_CHIP: Record<Tone, string> = {
+  primary: 'bg-ts-primary/10 text-ts-primary',
+  warning: 'bg-ts-warning/10 text-ts-warning',
+};
+
+const TONE_REMOVE: Record<Tone, string> = {
+  primary: 'hover:bg-ts-primary/20 focus-visible:outline-ts-primary',
+  warning: 'hover:bg-ts-warning/20 focus-visible:outline-ts-warning',
+};
+---
+
+<div
+  class={[
+    'flex min-h-[3rem] flex-wrap items-center gap-2 rounded-ts-md border border-ts-border bg-ts-bg-base px-3 py-2 transition-colors duration-150 focus-within:border-ts-primary focus-within:ring-2 focus-within:ring-ts-primary/30',
+    extraClass,
+  ].filter(Boolean).join(' ')}
+  data-tags-container
+  data-tags-name={name}
+  data-tags-tone={tone}
+>
+  {values.map((v) => (
+    <span
+      class={`inline-flex items-center gap-1.5 rounded-full ${TONE_CHIP[tone]} px-3 py-1 text-sm font-medium`}
+      data-chip
+    >
+      <span data-chip-label>{v}</span>
+      <button
+        type="button"
+        class={`-mr-1 inline-flex h-4 w-4 items-center justify-center rounded-full ${TONE_REMOVE[tone]} focus-visible:outline-2 focus-visible:outline-offset-1`}
+        aria-label={`Remove ${v}`}
+        data-chip-remove
+      >
+        <span aria-hidden="true">×</span>
+      </button>
+      <input type="hidden" name={`${name}[]`} value={v} data-chip-input />
+    </span>
+  ))}
+  <input
+    id={id}
+    type="text"
+    class="min-w-[8rem] flex-1 border-0 bg-transparent text-base text-ts-text outline-none placeholder:text-ts-text-muted"
+    placeholder={values.length === 0 ? placeholder : 'Add another…'}
+    data-tags-input
+    autocomplete="off"
+    aria-label={ariaLabel}
+  />
+</div>
+
+<script>
+  /**
+   * Shared chip-input logic for every <Tags /> on the page.
+   * Tone is inferred from the `data-tags-tone` attribute so newly-
+   * created chips match the server-rendered ones visually.
+   */
+  type Container = HTMLElement & {
+    dataset: { tagsContainer: string; tagsName: string; tagsTone: string };
+  };
+
+  function escapeHtml(s: string): string {
+    const div = document.createElement('div');
+    div.textContent = s;
+    return div.innerHTML;
+  }
+
+  const TONE_CHIP_CLASSES: Record<string, string> = {
+    primary: 'bg-ts-primary/10 text-ts-primary',
+    warning: 'bg-ts-warning/10 text-ts-warning',
+  };
+  const TONE_REMOVE_CLASSES: Record<string, string> = {
+    primary: 'hover:bg-ts-primary/20 focus-visible:outline-ts-primary',
+    warning: 'hover:bg-ts-warning/20 focus-visible:outline-ts-warning',
+  };
+
+  function addChip(container: Container, value: string): void {
+    const trimmed = value.trim();
+    if (!trimmed) return;
+    const existing = Array.from(
+      container.querySelectorAll<HTMLInputElement>('input[data-chip-input]')
+    ).map((i) => i.value.toLowerCase());
+    if (existing.includes(trimmed.toLowerCase())) return;
+
+    const tone = container.dataset.tagsTone || 'primary';
+    const name = container.dataset.tagsName;
+    const chipClasses = TONE_CHIP_CLASSES[tone] ?? TONE_CHIP_CLASSES.primary;
+    const removeClasses = TONE_REMOVE_CLASSES[tone] ?? TONE_REMOVE_CLASSES.primary;
+    const safe = escapeHtml(trimmed);
+
+    const chip = document.createElement('span');
+    chip.className = `inline-flex items-center gap-1.5 rounded-full ${chipClasses} px-3 py-1 text-sm font-medium`;
+    chip.setAttribute('data-chip', '');
+    chip.innerHTML = `
+      <span data-chip-label>${safe}</span>
+      <button
+        type="button"
+        class="-mr-1 inline-flex h-4 w-4 items-center justify-center rounded-full ${removeClasses} focus-visible:outline-2 focus-visible:outline-offset-1"
+        aria-label="Remove ${safe}"
+        data-chip-remove
+      ><span aria-hidden="true">×</span></button>
+      <input type="hidden" name="${name}[]" value="${safe}" data-chip-input />
+    `;
+    const typingInput = container.querySelector<HTMLInputElement>('[data-tags-input]');
+    container.insertBefore(chip, typingInput);
+  }
+
+  document.querySelectorAll<HTMLElement>('[data-tags-container]').forEach((rawContainer) => {
+    const container = rawContainer as Container;
+    const input = container.querySelector<HTMLInputElement>('[data-tags-input]');
+    if (!input) return;
+
+    input.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Enter' || ev.key === ',') {
+        ev.preventDefault();
+        addChip(container, input.value);
+        input.value = '';
+      } else if (ev.key === 'Backspace' && input.value === '') {
+        const chips = container.querySelectorAll<HTMLElement>('[data-chip]');
+        const last = chips[chips.length - 1];
+        last?.remove();
+      }
+    });
+
+    input.addEventListener('blur', () => {
+      if (input.value.trim()) {
+        addChip(container, input.value);
+        input.value = '';
+      }
+    });
+  });
+
+  // Removal: event delegation over the whole document so all Tags
+  // instances share one listener.
+  document.addEventListener('click', (ev) => {
+    const target = ev.target as Element | null;
+    const removeBtn = target?.closest('[data-chip-remove]');
+    if (!removeBtn) return;
+    const chip = removeBtn.closest('[data-chip]');
+    chip?.remove();
+  });
+</script>
