@@ -246,6 +246,12 @@ const targetWeekPretty = new Intl.DateTimeFormat('en-US', {
   timeZone: 'America/New_York',
 }).format(new Date(`${targetWeek}T12:00:00-04:00`));
 
+// One-time welcome banner shown immediately after onboarding activation
+// (set by /api/onboarding/activate redirecting to /dashboard?welcome=1).
+// We only render the banner when the URL flag is present — a simple
+// page reload drops it.
+const justActivated = Astro.url.searchParams.get('welcome') === '1';
+
 // Page title — personalized
 const title = `Welcome back, ${firstName} — Tiny Seed Farm CSA`;
 ---
@@ -292,6 +298,45 @@ const title = `Welcome back, ${firstName} — Tiny Seed Farm CSA`;
       id="main"
       class="mx-auto flex w-full max-w-3xl flex-col gap-8 px-5 py-8 sm:gap-10 sm:px-6 sm:py-12"
     >
+      {/* ═════════════════════════════════════════════════════════════
+          POST-ACTIVATION WELCOME BANNER (one-time, ?welcome=1)
+          ═════════════════════════════════════════════════════════════ */}
+      {justActivated && (
+        <section
+          role="status"
+          aria-live="polite"
+          class="rounded-ts-xl border border-ts-primary/30 bg-ts-primary/5 p-5 shadow-ts-sm sm:p-6"
+          data-welcome-banner
+        >
+          <div class="flex items-start gap-4">
+            <div
+              class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-ts-primary/15 text-2xl"
+              aria-hidden="true"
+            >
+              🌱
+            </div>
+            <div class="min-w-0 flex-1">
+              <h2 class="font-display text-xl font-semibold text-ts-text">
+                You're in. Welcome to the farm.
+              </h2>
+              <p class="mt-1.5 text-sm leading-relaxed text-ts-text-secondary">
+                Your share is active. We'll send a box preview the day before each
+                pickup, and you can swap items, request a vacation hold, or update
+                preferences anytime from this dashboard.
+              </p>
+            </div>
+            <button
+              type="button"
+              class="-mr-1 -mt-1 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-ts-text-muted transition-colors duration-150 hover:bg-ts-primary/10 hover:text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+              data-welcome-dismiss
+              aria-label="Dismiss welcome banner"
+            >
+              <span aria-hidden="true">×</span>
+            </button>
+          </div>
+        </section>
+      )}
+
       {/* ═════════════════════════════════════════════════════════════
           GREETING
           ═════════════════════════════════════════════════════════════ */}
@@ -620,4 +665,20 @@ const title = `Welcome back, ${firstName} — Tiny Seed Farm CSA`;
       </footer>
     </main>
   </div>
+
+  <script>
+    // Dismiss the post-activation welcome banner. Removes the `?welcome=1`
+    // flag from the URL via `history.replaceState` so a refresh doesn't
+    // re-show the banner.
+    const banner = document.querySelector<HTMLElement>('[data-welcome-banner]');
+    const dismissBtn = document.querySelector<HTMLButtonElement>('[data-welcome-dismiss]');
+    if (banner && dismissBtn) {
+      dismissBtn.addEventListener('click', () => {
+        banner.remove();
+        const url = new URL(window.location.href);
+        url.searchParams.delete('welcome');
+        window.history.replaceState({}, '', url.toString());
+      });
+    }
+  </script>
 </BaseLayout>

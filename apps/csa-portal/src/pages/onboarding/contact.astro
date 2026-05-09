@@ -1,0 +1,240 @@
+---
+/**
+ * /onboarding/contact — Step 4 of 5.
+ *
+ * Confirms the email on file (read-only — auth is by email so we
+ * already trust this), captures an optional phone, asks how the user
+ * prefers to hear from us (email / sms / both / none) and a newsletter
+ * opt-in.
+ *
+ * Submits → /api/onboarding/contact → /onboarding/confirm.
+ *
+ * Resumability: pre-fills with anything already saved.
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { resolveOnboardingContext } from '../../lib/onboarding';
+import OnboardingShell from '../../components/OnboardingShell.astro';
+
+const user = Astro.locals.user;
+if (!user || !user.email) return Astro.redirect('/login', 303);
+
+const ctx = await resolveOnboardingContext(Astro.locals.supabase, user.email);
+if (!ctx) return Astro.redirect('/dashboard', 303);
+
+const errorParam = Astro.url.searchParams.get('error');
+const ERROR_COPY: Record<string, string> = {
+  invalid_phone:
+    "That phone number doesn't look right. Please use the format (412) 555-0123 or just digits.",
+  invalid_preference:
+    'Please choose how you\'d like us to reach you.',
+  invalid_input: 'Sorry, we couldn\'t save that. Please try again.',
+  network: 'We couldn\'t reach the server. Please try again.',
+};
+const errorMsg = errorParam ? ERROR_COPY[errorParam] ?? null : null;
+
+const existingPhone = ctx.customer.phone ?? '';
+const existingPreference = ctx.prefs?.contact_preference ?? 'email';
+const existingNewsletter = ctx.prefs?.newsletter_opt_in ?? true;
+
+const RADIO_OPTIONS = [
+  { value: 'email', label: 'Email', helper: "We'll send box previews and farm news." },
+  { value: 'sms', label: 'Text message', helper: 'Quick reminders the morning of pickup.' },
+  { value: 'both', label: 'Both email and text', helper: 'For when you really don\'t want to miss a thing.' },
+  { value: 'none', label: 'Just my dashboard', helper: 'No emails or texts — I\'ll check the site myself.' },
+] as const;
+---
+
+<BaseLayout
+  title="How should we reach you? — Step 4 of 5"
+  description="Set how Tiny Seed Farm contacts you about your CSA share."
+  canonical="https://csa.tinyseedfarm.com/onboarding/contact"
+>
+  <OnboardingShell currentStep="contact">
+    <h1
+      id="step-heading"
+      class="font-display text-3xl leading-tight font-bold tracking-tight text-ts-text sm:text-4xl"
+    >
+      How should we reach you?
+    </h1>
+    <p class="mt-3 max-w-prose text-base leading-relaxed text-ts-text-secondary">
+      We send box previews on Mondays and pickup reminders on the morning of
+      your stop. Pick the way you want to hear from us — you can change this
+      anytime.
+    </p>
+
+    {errorMsg && (
+      <div
+        role="alert"
+        class="mt-6 rounded-ts-lg border border-ts-danger/30 bg-ts-danger/5 px-4 py-3 text-sm leading-relaxed text-ts-danger"
+      >
+        {errorMsg}
+      </div>
+    )}
+
+    <form
+      method="POST"
+      action="/api/onboarding/contact"
+      class="mt-8 flex flex-col gap-6"
+      novalidate
+      data-onboarding-form
+    >
+      {/* EMAIL (read-only confirmation) */}
+      <fieldset class="rounded-ts-xl border border-ts-border bg-ts-bg-surface p-5 shadow-ts-sm sm:p-6">
+        <legend class="px-2 text-sm font-semibold text-ts-text">Email</legend>
+        <div class="mt-3 flex items-center justify-between gap-4">
+          <p class="break-all text-base text-ts-text">{ctx.customer.email}</p>
+          <span
+            class="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-ts-primary/10 px-2.5 py-0.5 text-xs font-medium text-ts-primary"
+          >
+            <span aria-hidden="true">✓</span>
+            verified
+          </span>
+        </div>
+        <p class="mt-2 text-xs text-ts-text-muted">
+          This is the email you signed in with. To change it, email Todd.
+        </p>
+      </fieldset>
+
+      {/* PHONE (optional) */}
+      <fieldset class="rounded-ts-xl border border-ts-border bg-ts-bg-surface p-5 shadow-ts-sm sm:p-6">
+        <legend class="px-2 text-sm font-semibold text-ts-text">
+          Phone <span class="font-normal text-ts-text-muted">(optional)</span>
+        </legend>
+        <p class="text-sm leading-relaxed text-ts-text-secondary">
+          Only required if you want pickup-day text reminders.
+        </p>
+        <label for="phone" class="sr-only">Phone number</label>
+        <input
+          id="phone"
+          name="phone"
+          type="tel"
+          inputmode="tel"
+          autocomplete="tel"
+          value={existingPhone}
+          maxlength="32"
+          placeholder="(412) 555-0123"
+          class="mt-4 w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text placeholder:text-ts-text-muted shadow-inner transition-colors duration-150 focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30"
+          aria-describedby="phone-help"
+        />
+        <p id="phone-help" class="mt-1.5 text-xs text-ts-text-muted">
+          We never share your number with anyone outside the farm.
+        </p>
+      </fieldset>
+
+      {/* CONTACT PREFERENCE */}
+      <fieldset class="rounded-ts-xl border border-ts-border bg-ts-bg-surface p-5 shadow-ts-sm sm:p-6">
+        <legend class="px-2 text-sm font-semibold text-ts-text">
+          How do you prefer to hear from us?
+        </legend>
+        <div class="mt-4 flex flex-col gap-2" role="radiogroup" aria-label="Contact preference">
+          {RADIO_OPTIONS.map((opt) => {
+            const checked = existingPreference === opt.value;
+            return (
+              <label
+                class={[
+                  'flex cursor-pointer items-start gap-3 rounded-ts-md border p-4 transition-colors duration-150',
+                  checked
+                    ? 'border-ts-primary bg-ts-primary/5'
+                    : 'border-ts-border bg-ts-bg-base hover:border-ts-border-strong hover:bg-ts-bg-muted',
+                ].join(' ')}
+                data-radio-card
+              >
+                <input
+                  type="radio"
+                  name="contact_preference"
+                  value={opt.value}
+                  checked={checked}
+                  required
+                  class="mt-1 h-4 w-4 shrink-0 cursor-pointer accent-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+                />
+                <div class="min-w-0 flex-1">
+                  <p class="text-base font-medium text-ts-text">{opt.label}</p>
+                  <p class="mt-0.5 text-sm text-ts-text-secondary">{opt.helper}</p>
+                </div>
+              </label>
+            );
+          })}
+        </div>
+      </fieldset>
+
+      {/* NEWSLETTER */}
+      <fieldset class="rounded-ts-xl border border-ts-border bg-ts-bg-surface p-5 shadow-ts-sm sm:p-6">
+        <legend class="sr-only">Newsletter</legend>
+        <label class="flex cursor-pointer items-start gap-3" data-newsletter-label>
+          <input
+            type="checkbox"
+            name="newsletter_opt_in"
+            value="true"
+            checked={existingNewsletter}
+            class="mt-1 h-4 w-4 shrink-0 cursor-pointer rounded border-ts-border accent-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+          />
+          <div class="min-w-0 flex-1">
+            <p class="text-base font-medium text-ts-text">
+              Send me weekly box previews and recipes
+            </p>
+            <p class="mt-0.5 text-sm text-ts-text-secondary">
+              One email a week, every Monday during the season. Unsubscribe anytime.
+            </p>
+          </div>
+        </label>
+      </fieldset>
+
+      <div class="flex flex-col-reverse items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <a
+          href="/onboarding/preferences"
+          class="inline-flex items-center justify-center gap-2 rounded-ts-md border border-ts-border bg-ts-bg-surface px-5 py-3 text-sm font-medium text-ts-text-secondary transition-colors duration-150 hover:border-ts-border-strong hover:text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+        >
+          <span aria-hidden="true">←</span>
+          <span>Back</span>
+        </a>
+        <button
+          type="submit"
+          class="inline-flex items-center justify-center gap-2 rounded-ts-md bg-ts-primary px-6 py-3 text-base font-semibold text-white shadow-ts-sm transition-all duration-150 hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary disabled:cursor-not-allowed disabled:opacity-60"
+          data-submit-btn
+        >
+          <span data-submit-label>Save & continue</span>
+          <span aria-hidden="true">→</span>
+        </button>
+      </div>
+    </form>
+  </OnboardingShell>
+
+  <script>
+    // Re-style radio cards as the user changes selection.
+    document.querySelectorAll<HTMLInputElement>(
+      'input[type=radio][name=contact_preference]'
+    ).forEach((radio) => {
+      radio.addEventListener('change', () => {
+        const cards = document.querySelectorAll<HTMLElement>('[data-radio-card]');
+        cards.forEach((card) => {
+          const input = card.querySelector<HTMLInputElement>('input[type=radio]');
+          if (!input) return;
+          if (input.checked) {
+            card.classList.remove(
+              'border-ts-border', 'bg-ts-bg-base',
+              'hover:border-ts-border-strong', 'hover:bg-ts-bg-muted'
+            );
+            card.classList.add('border-ts-primary', 'bg-ts-primary/5');
+          } else {
+            card.classList.add(
+              'border-ts-border', 'bg-ts-bg-base',
+              'hover:border-ts-border-strong', 'hover:bg-ts-bg-muted'
+            );
+            card.classList.remove('border-ts-primary', 'bg-ts-primary/5');
+          }
+        });
+      });
+    });
+
+    // Submit feedback.
+    const form = document.querySelector<HTMLFormElement>('[data-onboarding-form]');
+    const submitBtn = document.querySelector<HTMLButtonElement>('[data-submit-btn]');
+    const submitLabel = document.querySelector<HTMLElement>('[data-submit-label]');
+    if (form && submitBtn && submitLabel) {
+      form.addEventListener('submit', () => {
+        submitBtn.disabled = true;
+        submitLabel.textContent = 'Saving…';
+      });
+    }
+  </script>
+</BaseLayout>

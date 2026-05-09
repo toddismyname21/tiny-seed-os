@@ -1,0 +1,332 @@
+---
+/**
+ * /onboarding/preferences — Step 3 of 5.
+ *
+ * Free-form chips for "things to skip" + allergies + an optional
+ * delivery-notes textarea. Submits via POST → /api/onboarding/preferences.
+ *
+ * Resumability: if the user has already saved preferences (e.g.
+ * they're editing from the confirm step), we pre-fill the chips and
+ * textarea with whatever's in `member_preferences`.
+ *
+ * Server-side validation is the source of truth — the client-side JS
+ * is purely for ergonomics (turn typed text into a chip on Enter).
+ * If JS is disabled, the form still works: typed text submits as the
+ * raw string and the API splits by commas.
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { resolveOnboardingContext } from '../../lib/onboarding';
+import OnboardingShell from '../../components/OnboardingShell.astro';
+
+const user = Astro.locals.user;
+if (!user || !user.email) return Astro.redirect('/login', 303);
+
+const ctx = await resolveOnboardingContext(Astro.locals.supabase, user.email);
+if (!ctx) return Astro.redirect('/dashboard', 303);
+
+// Surface server-side validation errors (set by /api/onboarding/preferences
+// on validation failure via ?error=).
+const errorParam = Astro.url.searchParams.get('error');
+const ERROR_COPY: Record<string, string> = {
+  too_many_dislikes: 'Whoa — that\'s a lot of dislikes. Please keep it under 50 items.',
+  invalid_input: 'Sorry, we couldn\'t save that. Please try again.',
+  notes_too_long: 'Delivery notes are limited to 500 characters.',
+  network: 'We couldn\'t reach the server. Please try again.',
+};
+const errorMsg = errorParam ? ERROR_COPY[errorParam] ?? null : null;
+
+const existingDislikes = ctx.prefs?.dislikes ?? [];
+const existingAllergies = ctx.prefs?.allergies ?? [];
+const existingNotes = ctx.prefs?.delivery_notes ?? '';
+---
+
+<BaseLayout
+  title="Anything we should skip? — Step 3 of 5"
+  description="Tell us what to leave out of your Tiny Seed Farm box."
+  canonical="https://csa.tinyseedfarm.com/onboarding/preferences"
+>
+  <OnboardingShell currentStep="preferences">
+    <h1
+      id="step-heading"
+      class="font-display text-3xl leading-tight font-bold tracking-tight text-ts-text sm:text-4xl"
+    >
+      Anything we should skip?
+    </h1>
+    <p class="mt-3 max-w-prose text-base leading-relaxed text-ts-text-secondary">
+      Tell us what you don't eat. We'll leave it out of every box and put
+      something else in instead. You can change this anytime.
+    </p>
+
+    {errorMsg && (
+      <div
+        role="alert"
+        class="mt-6 rounded-ts-lg border border-ts-danger/30 bg-ts-danger/5 px-4 py-3 text-sm leading-relaxed text-ts-danger"
+      >
+        {errorMsg}
+      </div>
+    )}
+
+    <form
+      method="POST"
+      action="/api/onboarding/preferences"
+      class="mt-8 flex flex-col gap-6"
+      novalidate
+      data-onboarding-form
+    >
+      {/* DISLIKES */}
+      <fieldset class="rounded-ts-xl border border-ts-border bg-ts-bg-surface p-5 shadow-ts-sm sm:p-6">
+        <legend class="px-2 text-sm font-semibold text-ts-text">
+          Things to skip
+        </legend>
+        <p class="text-sm leading-relaxed text-ts-text-secondary">
+          Type and press <kbd class="rounded border border-ts-border bg-ts-bg-muted px-1 text-[0.7rem] font-medium">Enter</kbd> or comma to add. We'll never put these in your box.
+        </p>
+
+        <div
+          class="mt-4 flex min-h-[3rem] flex-wrap items-center gap-2 rounded-ts-md border border-ts-border bg-ts-bg-base px-3 py-2 transition-colors duration-150 focus-within:border-ts-primary focus-within:ring-2 focus-within:ring-ts-primary/30"
+          data-chips-container="dislikes"
+        >
+          {existingDislikes.map((d) => (
+            <span
+              class="inline-flex items-center gap-1.5 rounded-full bg-ts-primary/10 px-3 py-1 text-sm font-medium text-ts-primary"
+              data-chip
+            >
+              <span data-chip-label>{d}</span>
+              <button
+                type="button"
+                class="-mr-1 inline-flex h-4 w-4 items-center justify-center rounded-full text-ts-primary hover:bg-ts-primary/20 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ts-primary"
+                aria-label={`Remove ${d}`}
+                data-chip-remove
+              >
+                <span aria-hidden="true">×</span>
+              </button>
+              <input type="hidden" name="dislikes[]" value={d} data-chip-input />
+            </span>
+          ))}
+          <input
+            type="text"
+            class="min-w-[8rem] flex-1 border-0 bg-transparent text-base text-ts-text outline-none placeholder:text-ts-text-muted"
+            placeholder={existingDislikes.length === 0 ? 'cilantro, eggplant, beets…' : 'Add another…'}
+            data-chips-input
+            data-chips-target="dislikes"
+            autocomplete="off"
+            aria-label="Add an item to skip"
+          />
+        </div>
+        <p class="mt-2 text-xs text-ts-text-muted">
+          No JS? Just type a comma-separated list — we'll split it on save.
+        </p>
+      </fieldset>
+
+      {/* ALLERGIES */}
+      <fieldset class="rounded-ts-xl border border-ts-border bg-ts-bg-surface p-5 shadow-ts-sm sm:p-6">
+        <legend class="px-2 text-sm font-semibold text-ts-text">
+          Allergies
+        </legend>
+        <p class="text-sm leading-relaxed text-ts-text-secondary">
+          Anything we need to be extra careful about? Even items we don't grow,
+          we sometimes get from neighboring farms — we'll flag them.
+        </p>
+
+        <div
+          class="mt-4 flex min-h-[3rem] flex-wrap items-center gap-2 rounded-ts-md border border-ts-border bg-ts-bg-base px-3 py-2 transition-colors duration-150 focus-within:border-ts-primary focus-within:ring-2 focus-within:ring-ts-primary/30"
+          data-chips-container="allergies"
+        >
+          {existingAllergies.map((a) => (
+            <span
+              class="inline-flex items-center gap-1.5 rounded-full bg-ts-warning/10 px-3 py-1 text-sm font-medium text-ts-warning"
+              data-chip
+            >
+              <span data-chip-label>{a}</span>
+              <button
+                type="button"
+                class="-mr-1 inline-flex h-4 w-4 items-center justify-center rounded-full text-ts-warning hover:bg-ts-warning/20 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ts-warning"
+                aria-label={`Remove ${a}`}
+                data-chip-remove
+              >
+                <span aria-hidden="true">×</span>
+              </button>
+              <input type="hidden" name="allergies[]" value={a} data-chip-input />
+            </span>
+          ))}
+          <input
+            type="text"
+            class="min-w-[8rem] flex-1 border-0 bg-transparent text-base text-ts-text outline-none placeholder:text-ts-text-muted"
+            placeholder={existingAllergies.length === 0 ? 'nuts, shellfish, dairy…' : 'Add another…'}
+            data-chips-input
+            data-chips-target="allergies"
+            autocomplete="off"
+            aria-label="Add an allergy"
+          />
+        </div>
+      </fieldset>
+
+      {/* DELIVERY NOTES */}
+      <fieldset class="rounded-ts-xl border border-ts-border bg-ts-bg-surface p-5 shadow-ts-sm sm:p-6">
+        <legend class="px-2 text-sm font-semibold text-ts-text">
+          Delivery notes <span class="font-normal text-ts-text-muted">(optional)</span>
+        </legend>
+        <p class="text-sm leading-relaxed text-ts-text-secondary">
+          Anything your pickup host should know? Gate code, where to leave the
+          box, the dog who barks at strangers — that kind of thing.
+        </p>
+
+        <label for="delivery-notes" class="sr-only">Delivery notes</label>
+        <textarea
+          id="delivery-notes"
+          name="delivery_notes"
+          rows="3"
+          maxlength="500"
+          class="mt-4 w-full resize-y rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text placeholder:text-ts-text-muted shadow-inner transition-colors duration-150 focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30"
+          placeholder="e.g. Gate code 1234. Please leave on the porch in the shade."
+          aria-describedby="notes-counter"
+        >{existingNotes}</textarea>
+        <p
+          id="notes-counter"
+          class="mt-1.5 text-right text-xs tabular-nums text-ts-text-muted"
+          data-notes-counter
+        >
+          <span data-notes-current>{existingNotes.length}</span>/500
+        </p>
+      </fieldset>
+
+      {/* ACTIONS */}
+      <div class="flex flex-col-reverse items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <a
+          href="/onboarding/box-preview"
+          class="inline-flex items-center justify-center gap-2 rounded-ts-md border border-ts-border bg-ts-bg-surface px-5 py-3 text-sm font-medium text-ts-text-secondary transition-colors duration-150 hover:border-ts-border-strong hover:text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+        >
+          <span aria-hidden="true">←</span>
+          <span>Back</span>
+        </a>
+        <button
+          type="submit"
+          class="inline-flex items-center justify-center gap-2 rounded-ts-md bg-ts-primary px-6 py-3 text-base font-semibold text-white shadow-ts-sm transition-all duration-150 hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary disabled:cursor-not-allowed disabled:opacity-60"
+          data-submit-btn
+        >
+          <span data-submit-label>Save & continue</span>
+          <span aria-hidden="true">→</span>
+        </button>
+      </div>
+    </form>
+  </OnboardingShell>
+
+  <script>
+    /**
+     * Lightweight chips input behavior.
+     *
+     * For each `[data-chips-container]`:
+     *   - Listen on the inner `[data-chips-input]` for `Enter`, comma,
+     *     and blur — convert the text into a chip + a hidden input.
+     *   - Listen for clicks on `[data-chip-remove]` — remove the chip.
+     *
+     * Each chip carries a sibling `<input type="hidden" name="${target}[]"
+     * value="..." />` so the form serializes naturally on POST. The API
+     * route reads `formData.getAll('dislikes[]')`.
+     *
+     * No framework. ~80 LOC including the live counter for the textarea.
+     */
+    type Container = HTMLElement & { dataset: { chipsContainer: string } };
+
+    function escapeHtml(s: string): string {
+      const div = document.createElement('div');
+      div.textContent = s;
+      return div.innerHTML;
+    }
+
+    function addChip(container: Container, value: string) {
+      const trimmed = value.trim();
+      if (!trimmed) return;
+      // Dedupe (case-insensitive) against existing chips.
+      const existing = Array.from(
+        container.querySelectorAll<HTMLInputElement>('input[data-chip-input]')
+      ).map((i) => i.value.toLowerCase());
+      if (existing.includes(trimmed.toLowerCase())) return;
+
+      const target = container.dataset.chipsContainer;
+      const colorClasses =
+        target === 'allergies'
+          ? 'bg-ts-warning/10 text-ts-warning'
+          : 'bg-ts-primary/10 text-ts-primary';
+      const removeHoverClasses =
+        target === 'allergies'
+          ? 'hover:bg-ts-warning/20 focus-visible:outline-ts-warning'
+          : 'hover:bg-ts-primary/20 focus-visible:outline-ts-primary';
+
+      const safe = escapeHtml(trimmed);
+      const chip = document.createElement('span');
+      chip.className = `inline-flex items-center gap-1.5 rounded-full ${colorClasses} px-3 py-1 text-sm font-medium`;
+      chip.setAttribute('data-chip', '');
+      chip.innerHTML = `
+        <span data-chip-label>${safe}</span>
+        <button
+          type="button"
+          class="-mr-1 inline-flex h-4 w-4 items-center justify-center rounded-full ${removeHoverClasses} focus-visible:outline-2 focus-visible:outline-offset-1"
+          aria-label="Remove ${safe}"
+          data-chip-remove
+        ><span aria-hidden="true">×</span></button>
+        <input type="hidden" name="${target}[]" value="${safe}" data-chip-input />
+      `;
+      // Insert before the typing input so the chips visually flow left-to-right.
+      const typingInput = container.querySelector<HTMLInputElement>('[data-chips-input]');
+      container.insertBefore(chip, typingInput);
+    }
+
+    document.querySelectorAll<HTMLElement>('[data-chips-container]').forEach((rawContainer) => {
+      const container = rawContainer as Container;
+      const input = container.querySelector<HTMLInputElement>('[data-chips-input]');
+      if (!input) return;
+
+      input.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Enter' || ev.key === ',') {
+          ev.preventDefault();
+          addChip(container, input.value);
+          input.value = '';
+        } else if (ev.key === 'Backspace' && input.value === '') {
+          // Remove the last chip on backspace-when-empty.
+          const chips = container.querySelectorAll<HTMLElement>('[data-chip]');
+          const last = chips[chips.length - 1];
+          last?.remove();
+        }
+      });
+
+      input.addEventListener('blur', () => {
+        if (input.value.trim()) {
+          addChip(container, input.value);
+          input.value = '';
+        }
+      });
+    });
+
+    // Removal — event delegation.
+    document.addEventListener('click', (ev) => {
+      const target = ev.target as Element | null;
+      const removeBtn = target?.closest('[data-chip-remove]');
+      if (!removeBtn) return;
+      const chip = removeBtn.closest('[data-chip]');
+      chip?.remove();
+    });
+
+    // Live counter for the delivery-notes textarea.
+    const notesEl = document.getElementById('delivery-notes') as HTMLTextAreaElement | null;
+    const notesCurrent = document.querySelector<HTMLElement>('[data-notes-current]');
+    if (notesEl && notesCurrent) {
+      const update = () => {
+        notesCurrent.textContent = String(notesEl.value.length);
+      };
+      notesEl.addEventListener('input', update);
+      update();
+    }
+
+    // Submit feedback — dim the button while the POST is in flight.
+    const form = document.querySelector<HTMLFormElement>('[data-onboarding-form]');
+    const submitBtn = document.querySelector<HTMLButtonElement>('[data-submit-btn]');
+    const submitLabel = document.querySelector<HTMLElement>('[data-submit-label]');
+    if (form && submitBtn && submitLabel) {
+      form.addEventListener('submit', () => {
+        submitBtn.disabled = true;
+        submitLabel.textContent = 'Saving…';
+      });
+    }
+  </script>
+</BaseLayout>

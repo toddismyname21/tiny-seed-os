@@ -1,0 +1,359 @@
+---
+/**
+ * /onboarding/confirm — Step 5 of 5.
+ *
+ * Read-only summary of everything captured in steps 1-4. Each section
+ * has an "Edit" link back to the relevant step. The big primary
+ * action is a POST to /api/onboarding/activate which flips
+ * `members.status` to 'active' and redirects to /dashboard?welcome=1.
+ *
+ * Guardrail: middleware allows this page only if the member is in
+ * onboarding status. We additionally check the user has actually
+ * completed steps 3 + 4 — if not, bounce them back. This protects
+ * against URL-typing past the step ladder.
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { resolveOnboardingContext, stepUrl } from '../../lib/onboarding';
+import OnboardingShell from '../../components/OnboardingShell.astro';
+
+const user = Astro.locals.user;
+if (!user || !user.email) return Astro.redirect('/login', 303);
+
+const ctx = await resolveOnboardingContext(Astro.locals.supabase, user.email);
+if (!ctx) return Astro.redirect('/dashboard', 303);
+
+// You can only confirm if you've finished steps 3 and 4. We use
+// stepUrl() so the redirect target stays a single source of truth.
+if (!ctx.preferencesDone) return Astro.redirect(stepUrl('preferences'), 303);
+if (!ctx.contactDone) return Astro.redirect(stepUrl('contact'), 303);
+
+// Surface activation errors set by /api/onboarding/activate.
+const errorParam = Astro.url.searchParams.get('error');
+const ERROR_COPY: Record<string, string> = {
+  activation_failed:
+    "We couldn't activate your share. Please try again — if this keeps happening, email Todd.",
+  network: 'We couldn\'t reach the server. Please try again.',
+};
+const errorMsg = errorParam ? ERROR_COPY[errorParam] ?? null : null;
+
+// Pickup location lookup for the summary.
+type PickupLoc = {
+  name: string;
+  address: string | null;
+  city: string | null;
+  state: string;
+  day_of_week: 'Sun' | 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat' | null;
+  time_start: string | null;
+  time_end: string | null;
+};
+let pickup: PickupLoc | null = null;
+if (ctx.member.pickup_location_id) {
+  const { data } = await Astro.locals.supabase
+    .from('pickup_locations')
+    .select('name, address, city, state, day_of_week, time_start, time_end')
+    .eq('id', ctx.member.pickup_location_id)
+    .maybeSingle()
+    .overrideTypes<PickupLoc, { merge: false }>();
+  pickup = data ?? null;
+}
+
+const SHARE_TYPE_LABELS: Record<string, string> = {
+  spring_veg: 'Spring Vegetable Share',
+  summer_veg: 'Summer Vegetable Share',
+  fall_veg: 'Fall Vegetable Share',
+  flower: 'Flower Share',
+  flex: 'Flex Share',
+  add_on: 'Add-On',
+  wholesale_csa: 'Wholesale CSA',
+};
+const SHARE_SIZE_LABELS: Record<string, string> = {
+  small: 'Small', regular: 'Regular', family: 'Family', petite: 'Petite',
+  large: 'Large', light: 'Light', full: 'Full', half: 'Half',
+  quarter: 'Quarter', single: 'Single', double: 'Double',
+};
+const dayLong: Record<string, string> = {
+  Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday',
+  Thu: 'Thursday', Fri: 'Friday', Sat: 'Saturday', Sun: 'Sunday',
+};
+const PREFERENCE_LABELS: Record<string, string> = {
+  email: 'Email',
+  sms: 'Text message',
+  both: 'Email and text',
+  none: 'Just my dashboard — no email or text',
+};
+
+function fmtTime(t: string | null): string {
+  if (!t) return '';
+  const [hStr, mStr] = t.split(':');
+  let h = Number(hStr);
+  const m = Number(mStr);
+  const period = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 === 0 ? 12 : h % 12;
+  return m === 0 ? `${h} ${period}` : `${h}:${mStr.padStart(2, '0')} ${period}`;
+}
+
+const shareLabel = SHARE_TYPE_LABELS[ctx.member.share_type] ?? ctx.member.share_type;
+const sizeLabel = ctx.member.share_size ? SHARE_SIZE_LABELS[ctx.member.share_size] ?? ctx.member.share_size : null;
+const isHomeDelivery = !ctx.member.pickup_location_id && Boolean(ctx.member.delivery_address);
+
+const dislikes = ctx.prefs?.dislikes ?? [];
+const allergies = ctx.prefs?.allergies ?? [];
+const deliveryNotes = ctx.prefs?.delivery_notes ?? '';
+const contactPreference = ctx.prefs?.contact_preference ?? 'email';
+const newsletter = ctx.prefs?.newsletter_opt_in ?? true;
+---
+
+<BaseLayout
+  title="Activate your share — Step 5 of 5"
+  description="One last look. Activate your Tiny Seed Farm CSA membership."
+  canonical="https://csa.tinyseedfarm.com/onboarding/confirm"
+>
+  <OnboardingShell currentStep="confirm">
+    <h1
+      id="step-heading"
+      class="font-display text-3xl leading-tight font-bold tracking-tight text-ts-text sm:text-4xl"
+    >
+      You're all set.
+    </h1>
+    <p class="mt-3 max-w-prose text-base leading-relaxed text-ts-text-secondary">
+      One last look. Hit
+      <span class="font-semibold text-ts-text">Activate my membership</span>
+      and we'll see you at your first pickup.
+    </p>
+
+    {errorMsg && (
+      <div
+        role="alert"
+        class="mt-6 rounded-ts-lg border border-ts-danger/30 bg-ts-danger/5 px-4 py-3 text-sm leading-relaxed text-ts-danger"
+      >
+        {errorMsg}
+      </div>
+    )}
+
+    <div class="mt-8 flex flex-col gap-4">
+      {/* SHARE */}
+      <section
+        aria-labelledby="summary-share"
+        class="rounded-ts-xl border border-ts-border bg-ts-bg-surface p-5 shadow-ts-sm sm:p-6"
+      >
+        <header class="mb-4 flex items-baseline justify-between gap-3">
+          <h2 id="summary-share" class="font-display text-lg font-semibold text-ts-text">
+            Your share
+          </h2>
+          <a
+            href="/onboarding/welcome"
+            class="text-sm font-medium text-ts-primary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+            aria-label="Edit share details"
+          >
+            Edit
+          </a>
+        </header>
+        <dl class="flex flex-col gap-2 text-sm">
+          <div class="flex items-baseline justify-between gap-3">
+            <dt class="text-ts-text-muted">Share</dt>
+            <dd class="text-right font-medium text-ts-text">
+              {shareLabel}
+              {sizeLabel && <span class="font-normal text-ts-text-muted"> · {sizeLabel}</span>}
+            </dd>
+          </div>
+          <div class="flex items-baseline justify-between gap-3">
+            <dt class="text-ts-text-muted">Season</dt>
+            <dd class="text-right text-ts-text">{ctx.member.season}</dd>
+          </div>
+          <div class="flex items-baseline justify-between gap-3">
+            <dt class="text-ts-text-muted">Total weeks</dt>
+            <dd class="text-right tabular-nums text-ts-text">{ctx.member.total_weeks}</dd>
+          </div>
+        </dl>
+      </section>
+
+      {/* PICKUP */}
+      <section
+        aria-labelledby="summary-pickup"
+        class="rounded-ts-xl border border-ts-border bg-ts-bg-surface p-5 shadow-ts-sm sm:p-6"
+      >
+        <header class="mb-4 flex items-baseline justify-between gap-3">
+          <h2 id="summary-pickup" class="font-display text-lg font-semibold text-ts-text">
+            Pickup
+          </h2>
+          <a
+            href="/onboarding/welcome"
+            class="text-sm font-medium text-ts-primary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+            aria-label="Edit pickup details"
+          >
+            Edit
+          </a>
+        </header>
+        {isHomeDelivery ? (
+          <div class="flex items-start gap-3">
+            <span class="mt-0.5 text-lg" aria-hidden="true">🏡</span>
+            <div class="min-w-0">
+              <p class="text-base font-medium text-ts-text">Home delivery</p>
+              <p class="mt-0.5 text-sm leading-snug text-ts-text-secondary">
+                {ctx.member.delivery_address}
+              </p>
+            </div>
+          </div>
+        ) : pickup ? (
+          <div class="flex items-start gap-3">
+            <span class="mt-0.5 text-lg" aria-hidden="true">📍</span>
+            <div class="min-w-0">
+              <p class="text-base font-medium text-ts-text">{pickup.name}</p>
+              <p class="mt-0.5 text-sm leading-snug text-ts-text-secondary">
+                {pickup.day_of_week ? dayLong[pickup.day_of_week] ?? pickup.day_of_week : 'Day TBD'}
+                {pickup.time_start && pickup.time_end && (
+                  <>
+                    {' '}·{' '}
+                    <span class="tabular-nums">{fmtTime(pickup.time_start)}–{fmtTime(pickup.time_end)}</span>
+                  </>
+                )}
+              </p>
+              {(pickup.address || pickup.city) && (
+                <p class="mt-0.5 text-xs text-ts-text-muted">
+                  {[pickup.address, pickup.city, pickup.state].filter(Boolean).join(', ')}
+                </p>
+              )}
+            </div>
+          </div>
+        ) : (
+          <p class="text-sm text-ts-text-muted">Pickup details coming soon.</p>
+        )}
+      </section>
+
+      {/* PREFERENCES */}
+      <section
+        aria-labelledby="summary-prefs"
+        class="rounded-ts-xl border border-ts-border bg-ts-bg-surface p-5 shadow-ts-sm sm:p-6"
+      >
+        <header class="mb-4 flex items-baseline justify-between gap-3">
+          <h2 id="summary-prefs" class="font-display text-lg font-semibold text-ts-text">
+            Box preferences
+          </h2>
+          <a
+            href="/onboarding/preferences"
+            class="text-sm font-medium text-ts-primary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+            aria-label="Edit box preferences"
+          >
+            Edit
+          </a>
+        </header>
+        <div class="flex flex-col gap-4 text-sm">
+          <div>
+            <p class="text-xs font-medium uppercase tracking-wide text-ts-text-muted">Skip</p>
+            {dislikes.length === 0 ? (
+              <p class="mt-1 italic text-ts-text-muted">No items to skip — bring it on.</p>
+            ) : (
+              <ul class="mt-1.5 flex flex-wrap gap-1.5">
+                {dislikes.map((d) => (
+                  <li class="inline-flex items-center rounded-full bg-ts-primary/10 px-2.5 py-0.5 text-xs font-medium text-ts-primary">
+                    {d}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+          <div>
+            <p class="text-xs font-medium uppercase tracking-wide text-ts-text-muted">Allergies</p>
+            {allergies.length === 0 ? (
+              <p class="mt-1 italic text-ts-text-muted">None on file.</p>
+            ) : (
+              <ul class="mt-1.5 flex flex-wrap gap-1.5">
+                {allergies.map((a) => (
+                  <li class="inline-flex items-center rounded-full bg-ts-warning/10 px-2.5 py-0.5 text-xs font-medium text-ts-warning">
+                    {a}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+          {deliveryNotes && (
+            <div>
+              <p class="text-xs font-medium uppercase tracking-wide text-ts-text-muted">
+                Notes for your host
+              </p>
+              <p class="mt-1 whitespace-pre-wrap break-words text-ts-text">{deliveryNotes}</p>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* CONTACT */}
+      <section
+        aria-labelledby="summary-contact"
+        class="rounded-ts-xl border border-ts-border bg-ts-bg-surface p-5 shadow-ts-sm sm:p-6"
+      >
+        <header class="mb-4 flex items-baseline justify-between gap-3">
+          <h2 id="summary-contact" class="font-display text-lg font-semibold text-ts-text">
+            Contact
+          </h2>
+          <a
+            href="/onboarding/contact"
+            class="text-sm font-medium text-ts-primary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+            aria-label="Edit contact preferences"
+          >
+            Edit
+          </a>
+        </header>
+        <dl class="flex flex-col gap-2 text-sm">
+          <div class="flex items-baseline justify-between gap-3">
+            <dt class="text-ts-text-muted">Email</dt>
+            <dd class="break-all text-right text-ts-text">{ctx.customer.email}</dd>
+          </div>
+          {ctx.customer.phone && (
+            <div class="flex items-baseline justify-between gap-3">
+              <dt class="text-ts-text-muted">Phone</dt>
+              <dd class="text-right tabular-nums text-ts-text">{ctx.customer.phone}</dd>
+            </div>
+          )}
+          <div class="flex items-baseline justify-between gap-3">
+            <dt class="text-ts-text-muted">Reach me by</dt>
+            <dd class="text-right text-ts-text">
+              {PREFERENCE_LABELS[contactPreference] ?? contactPreference}
+            </dd>
+          </div>
+          <div class="flex items-baseline justify-between gap-3">
+            <dt class="text-ts-text-muted">Newsletter</dt>
+            <dd class="text-right text-ts-text">
+              {newsletter ? 'Yes — send me the weekly preview' : "I'll pass for now"}
+            </dd>
+          </div>
+        </dl>
+      </section>
+    </div>
+
+    <form
+      method="POST"
+      action="/api/onboarding/activate"
+      class="mt-8 flex flex-col-reverse items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between"
+      data-onboarding-form
+    >
+      <a
+        href="/onboarding/contact"
+        class="inline-flex items-center justify-center gap-2 rounded-ts-md border border-ts-border bg-ts-bg-surface px-5 py-3 text-sm font-medium text-ts-text-secondary transition-colors duration-150 hover:border-ts-border-strong hover:text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+      >
+        <span aria-hidden="true">←</span>
+        <span>Back</span>
+      </a>
+      <button
+        type="submit"
+        class="inline-flex items-center justify-center gap-2 rounded-ts-md bg-ts-primary px-7 py-3.5 text-base font-semibold text-white shadow-ts-md transition-all duration-150 hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary disabled:cursor-not-allowed disabled:opacity-60"
+        data-submit-btn
+      >
+        <span data-submit-label>Activate my membership</span>
+        <span aria-hidden="true">→</span>
+      </button>
+    </form>
+  </OnboardingShell>
+
+  <script>
+    const form = document.querySelector<HTMLFormElement>('[data-onboarding-form]');
+    const submitBtn = document.querySelector<HTMLButtonElement>('[data-submit-btn]');
+    const submitLabel = document.querySelector<HTMLElement>('[data-submit-label]');
+    if (form && submitBtn && submitLabel) {
+      form.addEventListener('submit', () => {
+        submitBtn.disabled = true;
+        submitLabel.textContent = 'Activating…';
+      });
+    }
+  </script>
+</BaseLayout>

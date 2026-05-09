@@ -1,0 +1,188 @@
+---
+/**
+ * Shared chrome for the 5-step onboarding flow.
+ *
+ * Renders:
+ *   - The top bar (logo + sign-out form, mirroring /dashboard)
+ *   - A progress indicator (1/5, 2/5, ...) with all 5 step labels for
+ *     orientation, the current step highlighted
+ *   - A `<main>` landmark with the page slot
+ *   - A help footer (email link + privacy note)
+ *
+ * Each onboarding page passes its own `currentStep` and the slot content.
+ *
+ * Accessibility:
+ *   - The progress indicator uses `role="list"` + `aria-current="step"`
+ *     on the active item, so screen readers announce "Step 3 of 5,
+ *     current" rather than reading the styling.
+ *   - Skip-to-main link mirrors the dashboard's pattern.
+ */
+import type { OnboardingStep } from '../lib/onboarding';
+import { ONBOARDING_STEPS } from '../lib/onboarding';
+
+interface Props {
+  currentStep: OnboardingStep;
+}
+const { currentStep } = Astro.props;
+
+const STEP_LABELS: Record<OnboardingStep, string> = {
+  welcome: 'Welcome',
+  'box-preview': 'Your first box',
+  preferences: 'Preferences',
+  contact: 'Contact',
+  confirm: 'Confirm',
+};
+
+const currentIdx = ONBOARDING_STEPS.indexOf(currentStep);
+const totalSteps = ONBOARDING_STEPS.length;
+---
+
+<a
+  href="#main"
+  class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-ts-md focus:bg-ts-primary focus:px-4 focus:py-2 focus:text-white focus:shadow-ts-md"
+>
+  Skip to main content
+</a>
+
+<div class="min-h-screen bg-ts-bg-base">
+  {/* TOP BAR */}
+  <header class="border-b border-ts-border bg-ts-bg-surface/80 backdrop-blur-sm">
+    <div class="mx-auto flex max-w-3xl items-center justify-between px-5 py-4 sm:px-6 sm:py-5">
+      <span
+        class="flex items-center gap-2"
+        aria-label="Tiny Seed Farm CSA"
+      >
+        <span class="inline-block h-2.5 w-2.5 rounded-full bg-ts-primary" aria-hidden="true"></span>
+        <span class="font-display text-lg font-bold tracking-tight text-ts-text">
+          Tiny Seed Farm
+        </span>
+      </span>
+
+      <form method="POST" action="/logout" class="m-0">
+        <button
+          type="submit"
+          class="rounded-ts-md px-3 py-2 text-sm font-medium text-ts-text-secondary transition-colors duration-150 hover:bg-ts-bg-muted hover:text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+        >
+          Sign out
+        </button>
+      </form>
+    </div>
+  </header>
+
+  {/* PROGRESS INDICATOR */}
+  <nav
+    aria-label={`Onboarding progress, step ${currentIdx + 1} of ${totalSteps}`}
+    class="border-b border-ts-border bg-ts-bg-surface"
+  >
+    <div class="mx-auto max-w-3xl px-5 py-4 sm:px-6">
+      {/* Compact (mobile) — just "Step N of 5: <Label>" + a track bar */}
+      <div class="flex items-baseline justify-between gap-3 sm:hidden">
+        <span class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">
+          Step {currentIdx + 1} of {totalSteps}
+        </span>
+        <span class="text-sm font-medium text-ts-text">{STEP_LABELS[currentStep]}</span>
+      </div>
+      <div
+        class="mt-2 h-1 w-full overflow-hidden rounded-full bg-ts-bg-muted sm:hidden"
+        role="progressbar"
+        aria-valuenow={currentIdx + 1}
+        aria-valuemin="1"
+        aria-valuemax={totalSteps}
+        aria-label={`${Math.round(((currentIdx + 1) / totalSteps) * 100)} percent complete`}
+      >
+        <div
+          class="h-full rounded-full bg-ts-primary transition-all duration-300"
+          style={`width: ${((currentIdx + 1) / totalSteps) * 100}%`}
+        ></div>
+      </div>
+
+      {/* Detailed (sm+) — labelled steps with active dot */}
+      <ol
+        role="list"
+        class="hidden items-center justify-between gap-2 sm:flex"
+      >
+        {ONBOARDING_STEPS.map((step, idx) => {
+          const isCurrent = idx === currentIdx;
+          const isComplete = idx < currentIdx;
+          return (
+            <li
+              class="flex flex-1 items-center"
+              aria-current={isCurrent ? 'step' : undefined}
+            >
+              <div class="flex flex-col items-center text-center">
+                <span
+                  class={[
+                    'flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold tabular-nums transition-colors',
+                    isCurrent && 'bg-ts-primary text-white shadow-ts-sm',
+                    isComplete && 'bg-ts-primary/15 text-ts-primary',
+                    !isCurrent && !isComplete && 'bg-ts-bg-muted text-ts-text-muted',
+                  ].filter(Boolean).join(' ')}
+                  aria-hidden="true"
+                >
+                  {isComplete ? '✓' : idx + 1}
+                </span>
+                <span
+                  class={[
+                    'mt-1.5 text-xs font-medium tracking-wide',
+                    isCurrent ? 'text-ts-text' : 'text-ts-text-muted',
+                  ].join(' ')}
+                >
+                  {STEP_LABELS[step]}
+                </span>
+              </div>
+              {idx < ONBOARDING_STEPS.length - 1 && (
+                <span
+                  class={[
+                    'mx-2 h-px flex-1 transition-colors',
+                    idx < currentIdx ? 'bg-ts-primary/40' : 'bg-ts-border',
+                  ].join(' ')}
+                  aria-hidden="true"
+                ></span>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  </nav>
+
+  <main
+    id="main"
+    class="mx-auto flex w-full max-w-3xl flex-col px-5 py-8 sm:px-6 sm:py-12"
+  >
+    <slot />
+  </main>
+
+  <footer class="mx-auto max-w-3xl px-5 pb-10 text-center text-xs text-ts-text-muted sm:px-6">
+    <p>
+      Stuck? Email
+      <a
+        href="mailto:todd@tinyseedfarmpgh.com?subject=CSA%20onboarding%20question"
+        class="font-medium text-ts-text-secondary underline-offset-4 hover:text-ts-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+      >
+        todd@tinyseedfarmpgh.com
+      </a>
+      — he answers personally.
+    </p>
+    <p class="mt-1">Tiny Seed Farm · Certified Organic · Rochester, PA</p>
+  </footer>
+</div>
+
+<script>
+  // Move focus to the page-level heading on each step. Each onboarding
+  // page renders an `id="step-heading"` h1 — focusing it announces the
+  // new step to screen readers (because forms and links don't bubble
+  // a "page changed" event in a normal SSR navigation, this is a
+  // belt-and-suspenders for users with `prefers-reduced-motion: reduce`
+  // and for soft-navigation cases where Astro's view-transitions may
+  // be added later).
+  document.addEventListener('DOMContentLoaded', () => {
+    const heading = document.getElementById('step-heading');
+    if (heading instanceof HTMLElement) {
+      // tabindex=-1 makes it programmatically focusable without
+      // adding it to the tab order.
+      heading.setAttribute('tabindex', '-1');
+      heading.focus({ preventScroll: true });
+    }
+  });
+</script>

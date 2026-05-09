@@ -1,0 +1,204 @@
+---
+/**
+ * /onboarding/welcome — Step 1 of 5.
+ *
+ * Read-only landing pad for newly-confirmed members. Shows their share
+ * details + pickup location pre-assigned from the Shopify webhook so
+ * they can verify the order matches what they bought.
+ *
+ * No state is written. Single CTA → /onboarding/box-preview.
+ *
+ * Auth + onboarding-status are enforced by middleware.ts. By the time
+ * we render, we know:
+ *   - Astro.locals.user is non-null
+ *   - the user has at least one members row with status='onboarding'
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { resolveOnboardingContext } from '../../lib/onboarding';
+import OnboardingShell from '../../components/OnboardingShell.astro';
+
+const user = Astro.locals.user;
+if (!user || !user.email) return Astro.redirect('/login', 303);
+
+const ctx = await resolveOnboardingContext(Astro.locals.supabase, user.email);
+if (!ctx) return Astro.redirect('/dashboard', 303);
+
+// Pickup location lookup — pure read, RLS allows authenticated SELECT
+// on pickup_locations. Skipped if home delivery.
+type PickupLoc = {
+  name: string;
+  address: string | null;
+  city: string | null;
+  state: string;
+  day_of_week: 'Sun' | 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat' | null;
+  time_start: string | null;
+  time_end: string | null;
+  is_delivery_zone: boolean;
+};
+let pickup: PickupLoc | null = null;
+if (ctx.member.pickup_location_id) {
+  const { data } = await Astro.locals.supabase
+    .from('pickup_locations')
+    .select('name, address, city, state, day_of_week, time_start, time_end, is_delivery_zone')
+    .eq('id', ctx.member.pickup_location_id)
+    .maybeSingle()
+    .overrideTypes<PickupLoc, { merge: false }>();
+  pickup = data ?? null;
+}
+
+const SHARE_TYPE_LABELS: Record<string, string> = {
+  spring_veg: 'Spring Vegetable Share',
+  summer_veg: 'Summer Vegetable Share',
+  fall_veg: 'Fall Vegetable Share',
+  flower: 'Flower Share',
+  flex: 'Flex Share',
+  add_on: 'Add-On',
+  wholesale_csa: 'Wholesale CSA',
+};
+const SHARE_SIZE_LABELS: Record<string, string> = {
+  small: 'Small', regular: 'Regular', family: 'Family', petite: 'Petite',
+  large: 'Large', light: 'Light', full: 'Full', half: 'Half',
+  quarter: 'Quarter', single: 'Single', double: 'Double',
+};
+const dayLong: Record<string, string> = {
+  Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday',
+  Thu: 'Thursday', Fri: 'Friday', Sat: 'Saturday', Sun: 'Sunday',
+};
+
+function fmtTime(t: string | null): string {
+  if (!t) return '';
+  const [hStr, mStr] = t.split(':');
+  let h = Number(hStr);
+  const m = Number(mStr);
+  const period = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 === 0 ? 12 : h % 12;
+  return m === 0 ? `${h} ${period}` : `${h}:${mStr.padStart(2, '0')} ${period}`;
+}
+
+const firstName = (ctx.customer.contact_name ?? user.email.split('@')[0])
+  .trim()
+  .split(/\s+/)[0];
+const shareLabel = SHARE_TYPE_LABELS[ctx.member.share_type] ?? ctx.member.share_type;
+const sizeLabel = ctx.member.share_size ? SHARE_SIZE_LABELS[ctx.member.share_size] ?? ctx.member.share_size : null;
+const isHomeDelivery = !ctx.member.pickup_location_id && Boolean(ctx.member.delivery_address);
+
+// Pretty-print start–end as "May 21 – Aug 27" (local-agnostic — dates
+// are stored as DATE so timezone doesn't apply).
+const startPretty = new Intl.DateTimeFormat('en-US', {
+  month: 'long', day: 'numeric',
+}).format(new Date(`${ctx.member.start_date}T12:00:00Z`));
+const endPretty = new Intl.DateTimeFormat('en-US', {
+  month: 'long', day: 'numeric', year: 'numeric',
+}).format(new Date(`${ctx.member.end_date}T12:00:00Z`));
+---
+
+<BaseLayout
+  title="Welcome to Tiny Seed Farm — Step 1 of 5"
+  description="Welcome to your Tiny Seed Farm CSA. Let's get your share set up — five quick questions, about three minutes."
+  canonical="https://csa.tinyseedfarm.com/onboarding/welcome"
+>
+  <OnboardingShell currentStep="welcome">
+    <h1
+      class="font-display text-4xl leading-tight font-bold tracking-tight text-ts-text sm:text-5xl"
+      id="step-heading"
+    >
+      Welcome to Tiny Seed Farm, {firstName}.
+    </h1>
+    <p class="mt-4 max-w-prose text-base leading-relaxed text-ts-text-secondary sm:text-lg">
+      We'll ask you 5 quick questions — about 3 minutes total — so we can pack
+      your box the way you want it. Everything you tell us today, you can change
+      anytime from your dashboard.
+    </p>
+
+    <section
+      aria-labelledby="share-summary-heading"
+      class="mt-8 rounded-ts-xl border border-ts-border bg-ts-bg-surface p-6 shadow-ts-md sm:p-8"
+    >
+      <header class="mb-5 flex items-baseline justify-between gap-3">
+        <h2 id="share-summary-heading" class="font-display text-xl font-semibold text-ts-text sm:text-2xl">
+          Your share
+        </h2>
+        <span class="text-xs font-medium uppercase tracking-wide text-ts-text-muted">
+          Pre-filled from your order
+        </span>
+      </header>
+
+      <dl class="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2">
+        <div>
+          <dt class="text-xs font-medium uppercase tracking-wide text-ts-text-muted">Share</dt>
+          <dd class="mt-0.5 text-base font-semibold text-ts-text">
+            {shareLabel}
+            {sizeLabel && <span class="ml-1 font-normal text-ts-text-muted">· {sizeLabel}</span>}
+          </dd>
+        </div>
+        <div>
+          <dt class="text-xs font-medium uppercase tracking-wide text-ts-text-muted">Season</dt>
+          <dd class="mt-0.5 text-base text-ts-text">{ctx.member.season}</dd>
+        </div>
+        <div>
+          <dt class="text-xs font-medium uppercase tracking-wide text-ts-text-muted">Runs</dt>
+          <dd class="mt-0.5 text-base text-ts-text">
+            <span class="tabular-nums">{startPretty} – {endPretty}</span>
+          </dd>
+        </div>
+        <div>
+          <dt class="text-xs font-medium uppercase tracking-wide text-ts-text-muted">Total weeks</dt>
+          <dd class="mt-0.5 text-base tabular-nums text-ts-text">{ctx.member.total_weeks}</dd>
+        </div>
+      </dl>
+
+      <div class="mt-6 border-t border-ts-border pt-5">
+        <h3 class="text-xs font-medium uppercase tracking-wide text-ts-text-muted">
+          Pickup
+        </h3>
+        {isHomeDelivery ? (
+          <div class="mt-2 flex items-start gap-3">
+            <span class="mt-0.5 text-lg" aria-hidden="true">🏡</span>
+            <div class="min-w-0">
+              <p class="text-base font-medium text-ts-text">Home delivery</p>
+              <p class="mt-0.5 text-sm leading-snug text-ts-text-secondary">
+                {ctx.member.delivery_address}
+              </p>
+            </div>
+          </div>
+        ) : pickup ? (
+          <div class="mt-2 flex items-start gap-3">
+            <span class="mt-0.5 text-lg" aria-hidden="true">📍</span>
+            <div class="min-w-0">
+              <p class="text-base font-medium text-ts-text">{pickup.name}</p>
+              <p class="mt-0.5 text-sm leading-snug text-ts-text-secondary">
+                {pickup.day_of_week ? dayLong[pickup.day_of_week] ?? pickup.day_of_week : 'Day TBD'}
+                {pickup.time_start && pickup.time_end && (
+                  <>
+                    {' '}·{' '}
+                    <span class="tabular-nums">{fmtTime(pickup.time_start)}–{fmtTime(pickup.time_end)}</span>
+                  </>
+                )}
+              </p>
+              {(pickup.address || pickup.city) && (
+                <p class="mt-0.5 text-xs text-ts-text-muted">
+                  {[pickup.address, pickup.city, pickup.state].filter(Boolean).join(', ')}
+                </p>
+              )}
+            </div>
+          </div>
+        ) : (
+          <p class="mt-2 text-sm text-ts-text-muted">
+            Pickup details coming — we'll email you once your stop is set.
+          </p>
+        )}
+      </div>
+    </section>
+
+    <div class="mt-8 flex flex-col-reverse items-stretch gap-3 sm:flex-row sm:items-center sm:justify-end">
+      <a
+        href="/onboarding/box-preview"
+        data-onboarding-cta
+        class="inline-flex items-center justify-center gap-2 rounded-ts-md bg-ts-primary px-6 py-3 text-base font-semibold text-white shadow-ts-sm transition-all duration-150 hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+      >
+        <span>Let's go</span>
+        <span aria-hidden="true">→</span>
+      </a>
+    </div>
+  </OnboardingShell>
+</BaseLayout>

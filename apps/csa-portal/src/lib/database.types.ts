@@ -51,6 +51,7 @@ export interface Database {
           customer_type: Database['public']['Tables']['customers']['Row']['customer_type'];
         };
         Update: Partial<Database['public']['Tables']['customers']['Row']>;
+        Relationships: [];
       };
       members: {
         Row: {
@@ -88,6 +89,7 @@ export interface Database {
           weeks_remaining: number;
         };
         Update: Partial<Database['public']['Tables']['members']['Row']>;
+        Relationships: [];
       };
       pickup_locations: {
         Row: {
@@ -113,6 +115,7 @@ export interface Database {
           name: string;
         };
         Update: Partial<Database['public']['Tables']['pickup_locations']['Row']>;
+        Relationships: [];
       };
       member_preferences: {
         Row: {
@@ -127,6 +130,7 @@ export interface Database {
         };
         Insert: { member_id: string } & Partial<Database['public']['Tables']['member_preferences']['Row']>;
         Update: Partial<Database['public']['Tables']['member_preferences']['Row']>;
+        Relationships: [];
       };
       vacation_holds: {
         Row: {
@@ -143,6 +147,7 @@ export interface Database {
           Database['public']['Tables']['vacation_holds']['Row']
         >;
         Update: Partial<Database['public']['Tables']['vacation_holds']['Row']>;
+        Relationships: [];
       };
       box_contents: {
         Row: {
@@ -164,6 +169,7 @@ export interface Database {
           Database['public']['Tables']['box_contents']['Row']
         >;
         Update: Partial<Database['public']['Tables']['box_contents']['Row']>;
+        Relationships: [];
       };
       notification_log: {
         Row: {
@@ -190,6 +196,7 @@ export interface Database {
                   provider: Database['public']['Tables']['notification_log']['Row']['provider'] }
                 & Partial<Database['public']['Tables']['notification_log']['Row']>;
         Update: Partial<Database['public']['Tables']['notification_log']['Row']>;
+        Relationships: [];
       };
     };
     Views: {
@@ -201,6 +208,7 @@ export interface Database {
           balance: number;
           transaction_count: number;
         };
+        Relationships: [];
       };
     };
     Functions: { [_: string]: never };
