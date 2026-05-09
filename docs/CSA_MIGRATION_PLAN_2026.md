@@ -471,6 +471,8 @@ CREATE POLICY members_self_update ON members FOR UPDATE
 | **13** | Wed 5/21 | Production cutover | DNS update: `csa.tinyseedfarm.com` points at Vercel. Apps Script CSA endpoints log "use new portal" message + redirect. Old `app.tinyseedfarm.com/web_app/csa.html` → 301 to new portal. Send announcement email to Spring members. |
 | **14** | Thu 5/22 | Buffer + open issues | Triage soft-launch feedback. Performance tuning. Documentation. Prepare for Summer onboarding (begins ~5/23-5/27). |
 
+**🆕 Plan extended +1 day on 2026-05-08** — Todd added CSA delivery tracking ("members want to see where their box is, not just chefs"). Inserted as new **Day 9**, all subsequent days shift by 1, total now **15 days** ending 5/23. New Day 9 spec: `docs/specs/DAY9_CSA_DELIVERY_TRACKING_SPEC.md`. Original Day 9 (Admin Dashboard) → Day 10. Email → Day 11. Shopify webhook → Day 12. Soft launch → Day 13. Cutover → Day 14. Buffer → Day 15.
+
 ---
 
 ## 4. Data Migration Strategy (Zero-Loss)
