@@ -23,6 +23,9 @@
  */
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { supabaseAdmin } from '../lib/supabase';
+import EmptyState from '../components/EmptyState.astro';
+import Button from '../components/Button.astro';
+import Badge from '../components/Badge.astro';
 
 const user = Astro.locals.user;
 const supabase = Astro.locals.supabase;
@@ -217,10 +220,11 @@ const SHARE_SIZE_LABELS: Record<string, string> = {
   quarter: 'Quarter', single: 'Single', double: 'Double',
 };
 
-const STATUS_PILL: Record<string, { label: string; classes: string }> = {
-  active: { label: 'Active', classes: 'bg-ts-primary/10 text-ts-primary ring-1 ring-ts-primary/30' },
-  paused: { label: 'Paused', classes: 'bg-ts-warning/10 text-ts-warning ring-1 ring-ts-warning/30' },
-  onboarding: { label: 'Onboarding', classes: 'bg-ts-info/10 text-ts-info ring-1 ring-ts-info/30' },
+type BadgeVariant = 'green' | 'amber' | 'sky' | 'gray';
+const STATUS_PILL: Record<string, { label: string; variant: BadgeVariant }> = {
+  active:     { label: 'Active',     variant: 'green' },
+  paused:     { label: 'Paused',     variant: 'amber' },
+  onboarding: { label: 'Onboarding', variant: 'sky' },
 };
 
 const dayLong: Record<string, string> = {
@@ -357,51 +361,36 @@ const title = `Welcome back, ${firstName} — Tiny Seed Farm CSA`;
           there are no live member rows
           ═════════════════════════════════════════════════════════════ */}
       {(!customer || activeShares.length === 0) && (
-        <section
-          aria-labelledby="no-share-heading"
-          class="rounded-ts-xl border border-ts-border bg-ts-bg-surface p-6 shadow-ts-md sm:p-8"
+        <EmptyState
+          title="No active share on file"
+          icon="🌱"
+          tone="default"
+          dashed={false}
         >
-          <div class="flex flex-col items-start gap-4">
-            <div
-              class="flex h-12 w-12 items-center justify-center rounded-ts-lg bg-ts-primary/10 text-2xl"
-              aria-hidden="true"
+          {customer
+            ? "We have you on file as a Tiny Seed customer, but you don't have a CSA share signed up for this season yet."
+            : <>We didn't find a customer record for <span class="font-medium text-ts-text">{user.email}</span>.</>
+          }
+          {' '}Browse our shares or get in touch — we'd love to have you for the season.
+          <Fragment slot="action">
+            <Button
+              href="https://tinyseedfarm.com/collections/tiny-seed-farm-csa"
+              variant="primary"
+              size="md"
+              rel="noopener noreferrer"
+              target="_blank"
             >
-              🌱
-            </div>
-            <div>
-              <h2 id="no-share-heading" class="font-display text-xl font-semibold text-ts-text">
-                No active share on file
-              </h2>
-              <p class="mt-2 text-base leading-relaxed text-ts-text-secondary">
-                {customer
-                  ? "We have you on file as a Tiny Seed customer, but you don't have a CSA share signed up for this season yet."
-                  : "We didn't find a customer record for "}
-                {!customer && (
-                  <span class="font-medium text-ts-text">{user.email}</span>
-                )}
-                {!customer && '.'}
-                {' '}Browse our shares or get in touch — we'd love to have you for the season.
-              </p>
-            </div>
-            <div class="flex flex-wrap gap-3">
-              <a
-                href="https://tinyseedfarm.com/collections/csa"
-                rel="noopener noreferrer"
-                target="_blank"
-                class="inline-flex items-center gap-2 rounded-ts-md bg-ts-primary px-5 py-3 text-sm font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
-              >
-                Browse CSA shares
-                <span aria-hidden="true">→</span>
-              </a>
-              <a
-                href="mailto:todd@tinyseedfarmpgh.com?subject=CSA%20share%20question"
-                class="inline-flex items-center gap-2 rounded-ts-md border border-ts-border bg-ts-bg-surface px-5 py-3 text-sm font-medium text-ts-text transition-colors duration-150 hover:border-ts-primary/40 hover:text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
-              >
-                Contact the farm
-              </a>
-            </div>
-          </div>
-        </section>
+              Browse CSA shares <span aria-hidden="true">→</span>
+            </Button>
+            <Button
+              href="mailto:todd@tinyseedfarmpgh.com?subject=CSA%20share%20question"
+              variant="secondary"
+              size="md"
+            >
+              Contact the farm
+            </Button>
+          </Fragment>
+        </EmptyState>
       )}
 
       {/* ═════════════════════════════════════════════════════════════
@@ -441,12 +430,9 @@ const title = `Welcome back, ${firstName} — Tiny Seed Farm CSA`;
                       </div>
                       <p class="mt-1 text-sm text-ts-text-muted">{share.season}</p>
                     </div>
-                    <span
-                      class={`inline-flex h-fit shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide ${pill.classes}`}
-                    >
-                      <span class="inline-block h-1.5 w-1.5 rounded-full bg-current" aria-hidden="true"></span>
+                    <Badge variant={pill.variant} size="sm" uppercase dot>
                       {pill.label}
-                    </span>
+                    </Badge>
                   </div>
 
                   {/* Progress */}
@@ -578,12 +564,9 @@ const title = `Welcome back, ${firstName} — Tiny Seed Farm CSA`;
                             </span>
                           )}
                           {item.is_swappable && (
-                            <span
-                              class="ml-2 inline-flex items-center rounded-full bg-ts-info/10 px-2 py-0.5 text-xs font-medium text-ts-info"
-                              aria-label="This item can be swapped"
-                            >
-                              swappable
-                            </span>
+                            <Badge variant="sky" size="xs" uppercase class="ml-2">
+                              Swappable
+                            </Badge>
                           )}
                         </div>
                         <span class="shrink-0 text-sm text-ts-text-secondary tabular-nums">
