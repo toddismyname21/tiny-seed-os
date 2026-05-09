@@ -1,0 +1,29 @@
+---
+/**
+ * /onboarding (no trailing step) — index page.
+ *
+ * The middleware already routes onboarding-status users to their
+ * resume step before reaching this file, so under normal flow a
+ * request only lands here if the user typed `/onboarding` directly
+ * with no step suffix. We treat this as: "send them where they
+ * should go." Authed + still in onboarding → resume step. Authed +
+ * already activated → /dashboard. Unauthed → /login (handled by
+ * middleware).
+ *
+ * This page exists primarily so a bare `/onboarding` URL resolves
+ * to a real route (avoiding Astro/Vercel's 404 path) before the
+ * redirect happens.
+ */
+import { resolveOnboardingContext, stepUrl } from '../../lib/onboarding';
+
+const user = Astro.locals.user;
+if (!user || !user.email) return Astro.redirect('/login?next=/onboarding', 303);
+
+const ctx = await resolveOnboardingContext(Astro.locals.supabase, user.email);
+if (!ctx) return Astro.redirect('/dashboard', 303);
+
+// Members in onboarding always start at welcome unless they've
+// already progressed past steps 3+.
+const target = ctx.preferencesDone ? ctx.nextStep : 'welcome';
+return Astro.redirect(stepUrl(target), 303);
+---
