@@ -580,6 +580,32 @@ Items deferred to maintain the 14-day timeline:
 
 ---
 
+## 8.5. Scope Decision (2026-05-08, post-CSA_IMPROVEMENT_ROADMAP review)
+
+After reviewing the Feb 2026 `CSA_IMPROVEMENT_ROADMAP.md`, Todd reaffirmed:
+
+| Roadmap item | Decision | Rationale |
+|---|---|---|
+| **Recipe integration** (Phase 4 differentiator) | ✅ KEEP — hits 42% of real churn causes (cooking confidence + box value perception) | High ROI |
+| **Auto-optimize box toggle** (Phase 4) | ✅ KEEP — but built as **preference-list filtering**, NOT as ML/AI scoring | Low overhead, real member value |
+| **Harvie-style AI box customization moat** | ❌ DROP | Single-farm math doesn't justify ML maintenance burden. Real churn drivers are pickup convenience, box value perception, cooking confidence — not algorithmic personalization. |
+
+### Schema implications
+
+| Originally planned | Now |
+|---|---|
+| `implicit_signals` table (KEPT_IN_BOX, SWAPPED_OUT, RECIPE_CLICKED weights) | ❌ Not migrated |
+| `member_health_scores` snapshots for ML | ❌ Not migrated |
+| Complex preference scoring logic in member_preferences | ⬇ Simplified to `dislikes[]` + `allergies[]` + `delivery_notes` (already in 0006) |
+
+### Time freed up — reallocated to:
+- More polish on the auth flow (passkey support, social SSO)
+- Better cooking confidence content (recipes per crop)
+- Faster box swap UX (sub-100ms feel)
+- Pickup attendance reminders (top churn driver)
+
+The 14-day timeline holds; we just spend it on things that actually move retention.
+
 ## 9. Approvals — Locked 2026-05-08
 
 | # | Decision | Status |
