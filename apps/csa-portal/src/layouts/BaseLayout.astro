@@ -1,0 +1,66 @@
+---
+/**
+ * BaseLayout — shared shell for every page in the CSA portal.
+ *
+ * Pulls in:
+ *  - Tailwind 4 + Tiny Seed design tokens (`global.css`)
+ *  - Inter (body) + Barlow Condensed (display) from Google Fonts, preconnected
+ *  - Mobile-first viewport meta + theme color
+ *  - Description, OG tags, canonical URL
+ *
+ * Every interior page should `import BaseLayout from '../layouts/BaseLayout.astro'`
+ * and render its content as the default slot.
+ */
+import '../styles/global.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+  canonical?: string;
+}
+
+const {
+  title = 'Tiny Seed Farm CSA — Member Portal',
+  description = 'Tiny Seed Farm CSA member portal. Manage your weekly share, schedule vacation holds, and stay connected to the farm.',
+  canonical = 'https://csa.tinyseedfarm.com',
+} = Astro.props;
+---
+
+<!doctype html>
+<html lang="en" class="bg-ts-bg-base text-ts-text">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#16a34a" />
+    <meta name="color-scheme" content="light" />
+    <meta name="generator" content={Astro.generator} />
+
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+
+    {/* OG tags */}
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:site_name" content="Tiny Seed Farm" />
+
+    {/* Favicons */}
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" href="/favicon.ico" />
+
+    {/* Fonts: preconnect, then load Inter + Barlow Condensed.
+        Using `display=swap` so text renders immediately while the custom
+        font streams in (avoids FOIT on slow networks). */}
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700;800&display=swap"
+    />
+  </head>
+  <body class="min-h-screen antialiased">
+    <slot />
+  </body>
+</html>

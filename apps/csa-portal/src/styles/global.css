@@ -1,0 +1,77 @@
+@import 'tailwindcss';
+
+/* ═══════════════════════════════════════════════════════════════════
+   Tiny Seed Farm Design Tokens
+   Ported from web_app/tiny-seed-design-system.css to Tailwind 4
+   theme variables. Use these as Tailwind classes (e.g. bg-ts-bg-base,
+   text-ts-text, border-ts-border).
+   ═══════════════════════════════════════════════════════════════════ */
+
+@theme {
+  /* Color palette — light theme (customer-facing CSA portal) */
+  --color-ts-bg-base:        #fafaf7;       /* Soft warm off-white */
+  --color-ts-bg-surface:     #ffffff;       /* Pure white card surface */
+  --color-ts-bg-muted:       #f3f4f0;       /* Subtle muted surface */
+  --color-ts-text:           #0f172a;       /* Near-black primary text */
+  --color-ts-text-secondary: #475569;       /* Slate gray secondary */
+  --color-ts-text-muted:     #64748b;       /* Lighter muted text */
+  --color-ts-border:         #e2e8f0;       /* Soft border */
+  --color-ts-border-strong:  #cbd5e1;       /* Stronger border */
+
+  /* Brand colors (light theme) */
+  --color-ts-primary:        #16a34a;       /* Tiny Seed green */
+  --color-ts-primary-dark:   #15803d;       /* Darker green hover */
+  --color-ts-primary-light:  #22c55e;       /* Lighter green accent */
+  --color-ts-accent:         #be185d;       /* Magenta — flowers, sale signs */
+  --color-ts-accent-dark:    #831843;       /* Darker wine — high-contrast */
+  --color-ts-warning:        #d97706;       /* Amber */
+  --color-ts-danger:         #dc2626;       /* Red */
+  --color-ts-success:        #16a34a;       /* Same as primary */
+  --color-ts-info:           #0369a1;       /* Sky */
+
+  /* Typography */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-display: 'Barlow Condensed', 'Inter', sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
+
+  /* Spacing scale — 4px base */
+  --spacing: 0.25rem;          /* Tailwind 4 base unit */
+
+  /* Radius */
+  --radius-ts-sm:  0.25rem;
+  --radius-ts-md:  0.5rem;
+  --radius-ts-lg:  0.75rem;
+  --radius-ts-xl:  1rem;
+  --radius-ts-2xl: 1.5rem;
+
+  /* Shadows */
+  --shadow-ts-sm:  0 1px 2px 0 rgba(0, 0, 0, 0.04);
+  --shadow-ts-md:  0 4px 12px -2px rgba(0, 0, 0, 0.06);
+  --shadow-ts-lg:  0 12px 24px -6px rgba(0, 0, 0, 0.10);
+  --shadow-ts-xl:  0 24px 48px -12px rgba(0, 0, 0, 0.16);
+
+  /* Transitions */
+  --ease-ts: cubic-bezier(0.4, 0, 0.2, 1);
+  --duration-ts-fast:   150ms;
+  --duration-ts-normal: 250ms;
+  --duration-ts-slow:   400ms;
+}
+
+/* Base reset/quality-of-life */
+html {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  background-color: var(--color-ts-bg-base);
+  color: var(--color-ts-text);
+}
+
+/* Focus ring — accessible + branded */
+*:focus-visible {
+  outline: 2px solid var(--color-ts-primary);
+  outline-offset: 2px;
+}
