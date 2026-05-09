@@ -6,6 +6,23 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-05-08] CSA Migration Day 1 — DATA SUCCESSFULLY MIGRATED to Supabase Postgres
+
+- Files: `supabase/migrations/0013_customer_type_add_retail.sql` (new — adds 'retail' to customer_type enum, source has 1503 retail customers), `supabase/migrations/0014_expand_member_enums.sql` (new — adds 'inactive'+'pending' to status, expands share_size to {'small','regular','family','petite','large','light','full','half','quarter','single','double'} per real source data), `scripts/migrate-csa/sheets_to_supabase.py` (updated — adds `autocreate_customer_for_orphan()` + day-of-week normalization + share_size pass-through)
+- Role: PM_ARCHITECT (data migration execution + schema patches via Management API)
+- Status: ✅ LIVE — 14 schema migrations applied to Supabase project `melizsvabemhaqeaqtyw`. Data migration successful.
+- Final row counts post-migration:
+  - customers: 441 (deduped by email — 439 from SALES_Customers + 2 net new from orphan auto-create)
+  - members: 303 (out of 308 source; 5 skipped were Todd's test rows / "Guest")
+  - pickup_locations: 12 (seeded from migration 0012)
+  - box_contents: 35
+  - flex_transactions: 1
+  - audit_log: 858 entries (every insert/update auto-recorded via the trigger)
+  - 0 orphan members (all FK resolve cleanly)
+- Critical fix during migration: 78 of 308 source members had a `Customer_ID` that didn't exist in `SALES_Customers` (orphan rows from the pre-2026-05-05 Shopify import bug). Migration auto-creates synthetic customer records using the email/name/phone stored on the member row, recovering all 77 active 2026 customers (1 was Inactive). No data loss.
+- Active 2026 distribution verified: 78 active members across 11 of 12 pickup locations.
+- Day 1 work remaining: provision Vercel + Resend + Twilio Verify + DNS for csa.tinyseedfarm.com.
+
 ## [2026-05-08] CSA Migration Day 1 — Supabase Project Provisioned + Schema/Migration Code Committed
 
 - Files: `docs/CSA_MIGRATION_PLAN_2026.md` (architecture decision record, 600 lines), `supabase/migrations/0001-0012_*.sql` (12 schema migrations, 539 lines total), `scripts/migrate-csa/sheets_to_supabase.py` (474 lines, idempotent), `scripts/migrate-csa/README.md` (runbook), `.env.csa` (gitignored)

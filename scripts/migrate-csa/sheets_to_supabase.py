@@ -149,6 +149,21 @@ def safe_date(v: Any) -> Optional[str]:
     return None
 
 
+DAY_MAP = {
+    'sunday': 'Sun', 'sun': 'Sun',
+    'monday': 'Mon', 'mon': 'Mon',
+    'tuesday': 'Tue', 'tue': 'Tue', 'tues': 'Tue',
+    'wednesday': 'Wed', 'wed': 'Wed', 'weds': 'Wed',
+    'thursday': 'Thu', 'thu': 'Thu', 'thur': 'Thu', 'thurs': 'Thu',
+    'friday': 'Fri', 'fri': 'Fri',
+    'saturday': 'Sat', 'sat': 'Sat',
+}
+
+def normalize_day(s: str) -> Optional[str]:
+    if not s: return None
+    return DAY_MAP.get(s.strip().lower(), None)
+
+
 def normalize_share_type(s: str) -> str:
     """Map free-text share types from sheet → enum values."""
     s = (s or '').lower()
@@ -162,8 +177,13 @@ def normalize_share_type(s: str) -> str:
     return 'summer_veg'  # default
 
 
+VALID_SHARE_SIZES = {'small','regular','family','petite','large','light','full','half','quarter','single','double'}
+
 def normalize_share_size(s: str) -> Optional[str]:
-    s = (s or '').lower()
+    s = (s or '').strip().lower()
+    if s in VALID_SHARE_SIZES:
+        return s
+    # Fallback keyword matches for legacy free-text values
     if 'full' in s: return 'full'
     if 'half' in s: return 'half'
     if 'quarter' in s: return 'quarter'
@@ -221,7 +241,10 @@ def migrate_customers(dry_run: bool = False) -> int:
         print(f"  [DRY-RUN] would upsert {len(out)} customers")
         if out: print(f"  Sample: {json.dumps(out[0], default=str, indent=2)[:500]}")
         return len(out)
-    n = supabase_upsert('customers', out, on_conflict='legacy_id')
+    # Use email as conflict key: SALES_Customers occasionally has same email under
+    # different Customer_IDs, and orphan auto-create may also have inserted on email.
+    # Email is the true natural key for a customer.
+    n = supabase_upsert('customers', out, on_conflict='email')
     print(f"  ✓ Upserted {n} customers")
     return n
 
@@ -277,12 +300,51 @@ def get_pickup_location_id_by_name(name: str) -> Optional[str]:
     return None
 
 
+def autocreate_customer_for_orphan(member_row: dict) -> Optional[str]:
+    """For members whose Customer_ID doesn't exist in customers table, auto-create
+    a customer record using contact info on the member row.
+    Returns the new customer's UUID, or None if creation failed.
+
+    Background: prior to the 2026-05-05 fix in createCSAMemberFromShopify, ~77
+    Shopify-imported CSA members never had matching SALES_Customers rows created.
+    Their email/name/phone live only on the member row. We backfill them here
+    so no data is lost in the migration.
+    """
+    customer_legacy_id = safe_str(member_row.get('Customer_ID'))
+    email = safe_str(member_row.get('Email'))
+    name = safe_str(member_row.get('Customer_Name'))
+    phone = safe_str(member_row.get('Phone'))
+    if not (email and name and customer_legacy_id):
+        return None
+    payload = {
+        'legacy_id':     customer_legacy_id,
+        'customer_type': 'csa',
+        'contact_name':  name,
+        'email':         email.lower(),
+        'phone':         phone,
+        'is_active':     True,
+        'notes':         'Auto-created during 2026-05-08 migration from CSA_Members orphan (no SALES_Customers row existed).',
+    }
+    url = f"{SUPABASE_URL}/rest/v1/customers?on_conflict=email"
+    headers = {
+        'apikey': SUPABASE_KEY,
+        'Authorization': f'Bearer {SUPABASE_KEY}',
+        'Content-Type': 'application/json',
+        'Prefer': 'resolution=merge-duplicates,return=representation',
+    }
+    r = requests.post(url, headers=headers, json=[payload], timeout=30)
+    if r.ok and r.json():
+        return r.json()[0]['id']
+    return None
+
+
 def migrate_members(dry_run: bool = False) -> int:
     print("\n=== Migrating CSA_Members → members + member_preferences ===")
     rows = fetch_sheet('CSA_Members')
     print(f"  Source rows: {len(rows)}")
     out_members = []
     skipped = 0
+    autocreated_customers = 0
     for r in rows:
         legacy_id = safe_str(r.get('Member_ID'))
         customer_legacy_id = safe_str(r.get('Customer_ID'))
@@ -296,9 +358,14 @@ def migrate_members(dry_run: bool = False) -> int:
         else:
             customer_id = get_customer_id_by_legacy(customer_legacy_id)
             if not customer_id:
-                print(f"  ⚠️  Member {legacy_id}: customer {customer_legacy_id} not found in customers table — skipping")
-                skipped += 1
-                continue
+                # Auto-create customer from member row data (handles orphans from
+                # pre-2026-05-05 Shopify import bug — see autocreate_customer_for_orphan)
+                customer_id = autocreate_customer_for_orphan(r)
+                if not customer_id:
+                    print(f"  ⚠️  Member {legacy_id}: cannot resolve customer (no Email/Name on member row) — skipping")
+                    skipped += 1
+                    continue
+                autocreated_customers += 1
             pickup_loc_id = get_pickup_location_id_by_name(safe_str(r.get('Pickup_Location')))
 
         total_weeks = safe_int(r.get('Total_Weeks')) or 0
@@ -314,7 +381,7 @@ def migrate_members(dry_run: bool = False) -> int:
             'end_date':             safe_date(r.get('End_Date')) or date.today().isoformat(),
             'total_weeks':          max(total_weeks, 1),
             'weeks_remaining':      min(weeks_remaining, total_weeks) if total_weeks else 0,
-            'pickup_day':           safe_str(r.get('Pickup_Day')),
+            'pickup_day':           normalize_day(safe_str(r.get('Pickup_Day')) or ''),
             'pickup_location_id':   pickup_loc_id,
             'delivery_address':     safe_str(r.get('Delivery_Address')),
             'customization_allowed': safe_bool(r.get('Customization_Allowed')) if r.get('Customization_Allowed') else True,
@@ -328,6 +395,8 @@ def migrate_members(dry_run: bool = False) -> int:
         })
 
     print(f"  Transformed: {len(out_members)} valid, {skipped} skipped")
+    if not dry_run and autocreated_customers > 0:
+        print(f"  ↳ Auto-created {autocreated_customers} customer rows for orphan members (pre-2026-05-05 Shopify bug)")
     if dry_run:
         print(f"  [DRY-RUN] would upsert {len(out_members)} members")
         return len(out_members)
