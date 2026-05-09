@@ -198,6 +198,20 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['notification_log']['Row']>;
         Relationships: [];
       };
+      box_swaps: {
+        Row: {
+          id: string;
+          member_id: string;
+          week_date: string;
+          original_item: string;
+          swapped_for: string;
+          created_at: string;
+        };
+        Insert: { member_id: string; week_date: string; original_item: string; swapped_for: string }
+              & Partial<Database['public']['Tables']['box_swaps']['Row']>;
+        Update: Partial<Database['public']['Tables']['box_swaps']['Row']>;
+        Relationships: [];
+      };
     };
     Views: {
       member_flex_balance: {
@@ -211,7 +225,25 @@ export interface Database {
         Relationships: [];
       };
     };
-    Functions: { [_: string]: never };
+    Functions: {
+      swap_box_item: {
+        Args: {
+          p_member_id: string;
+          p_week_date: string;
+          p_original_item: string;
+          p_swapped_for: string;
+        };
+        Returns: Json;
+      };
+      undo_box_swap: {
+        Args: {
+          p_member_id: string;
+          p_week_date: string;
+          p_original_item: string;
+        };
+        Returns: Json;
+      };
+    };
     Enums: { [_: string]: never };
   };
 }

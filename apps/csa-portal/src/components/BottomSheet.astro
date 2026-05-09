@@ -1,0 +1,272 @@
+---
+/**
+ * BottomSheet — mobile-first slide-up sheet, falls back to centered
+ * modal on desktop (>= md / 768px).
+ *
+ * Behavior (driven by data-attributes + a small inline script):
+ *   - Hidden by default (display:none + aria-hidden=true).
+ *   - Open via `BottomSheet.open('<id>')` — exposed as a window helper.
+ *   - Close via Escape, click on backdrop, or click on any element with
+ *     `data-bottom-sheet-close` inside the sheet.
+ *   - Focus trap while open: Tab and Shift+Tab cycle inside the sheet;
+ *     focus moves to the first focusable element on open and returns to
+ *     the trigger element on close.
+ *   - prefers-reduced-motion: respected — animation is skipped.
+ *   - Body scroll locked while open (overflow:hidden on <body>).
+ *
+ * Mobile (< md):
+ *   - Slides up from the bottom: translateY(100%) → 0
+ *   - Drag-handle indicator at the top
+ *   - Max-height 90vh; content scrolls inside if longer
+ *   - Rounded top corners only
+ *
+ * Desktop (>= md):
+ *   - Centered modal: scale(0.97) + opacity 0 → scale(1) + opacity 1
+ *   - Fully rounded corners
+ *   - Max-width 28rem (sized for a list of swap options)
+ *
+ * Slots:
+ *   - default          Body content
+ *   - title (optional) Sheet header — bold, large; rendered above the body
+ *
+ * Props:
+ *   - id           Required. Unique DOM id used by `open(id)`.
+ *   - titleId      Required. The id of the heading inside the sheet for
+ *                  aria-labelledby. Caller renders the heading + sets
+ *                  this id, so screen readers announce the sheet correctly.
+ *   - size         "sm" | "md" (default) | "lg"
+ *   - closeLabel   aria-label for the X close button (default "Close")
+ */
+type Size = 'sm' | 'md' | 'lg';
+
+interface Props {
+  id: string;
+  titleId: string;
+  size?: Size;
+  closeLabel?: string;
+}
+
+const { id, titleId, size = 'md', closeLabel = 'Close' } = Astro.props as Props;
+
+const SIZE_CLASSES: Record<Size, string> = {
+  sm: 'md:max-w-sm',  // 24rem
+  md: 'md:max-w-md',  // 28rem — default for swap option lists
+  lg: 'md:max-w-lg',  // 32rem
+};
+---
+
+<div
+  id={id}
+  class="bottom-sheet fixed inset-0 z-50 hidden"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby={titleId}
+  aria-hidden="true"
+  data-bottom-sheet
+>
+  {/* Backdrop — clicking it closes the sheet */}
+  <div
+    class="bottom-sheet-backdrop absolute inset-0 bg-black/40 opacity-0 transition-opacity duration-200 ease-[var(--ease-ts)] motion-reduce:transition-none"
+    data-bottom-sheet-close
+    aria-hidden="true"
+  ></div>
+
+  {/* Container —
+      MOBILE: pinned to bottom, full-width, rounded top, slide-up
+      DESKTOP (>=md): centered, rounded all, modal-style scale+fade */}
+  <div
+    class={`bottom-sheet-panel absolute right-0 bottom-0 left-0 mx-auto flex max-h-[90vh] w-full flex-col rounded-t-2xl bg-ts-bg-surface shadow-ts-xl translate-y-full transition-transform duration-300 ease-[var(--ease-ts)] motion-reduce:transition-none md:top-1/2 md:right-auto md:bottom-auto md:left-1/2 md:max-h-[85vh] md:rounded-2xl md:opacity-0 md:transition-[opacity,transform] md:duration-200 md:[transform:translate(-50%,-50%)_scale(0.97)] ${SIZE_CLASSES[size]}`}
+    role="document"
+  >
+    {/* Drag handle — purely decorative on mobile, hidden on desktop.
+        Reinforces the "swipeable sheet" affordance. */}
+    <div
+      class="flex justify-center pt-3 pb-1 md:hidden"
+      aria-hidden="true"
+    >
+      <span class="block h-1.5 w-12 rounded-full bg-ts-border-strong"></span>
+    </div>
+
+    {/* Close button — top-right, generous tap target */}
+    <button
+      type="button"
+      class="absolute top-3 right-3 inline-flex h-10 w-10 items-center justify-center rounded-full text-ts-text-muted transition-colors duration-150 hover:bg-ts-bg-muted hover:text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary md:top-4 md:right-4 [touch-action:manipulation]"
+      data-bottom-sheet-close
+      aria-label={closeLabel}
+    >
+      <span aria-hidden="true" class="text-2xl leading-none">×</span>
+    </button>
+
+    {Astro.slots.has('title') && (
+      <header class="border-b border-ts-border px-5 pt-4 pr-12 pb-4 sm:px-6">
+        <slot name="title" />
+      </header>
+    )}
+
+    <div class="flex-1 overflow-y-auto px-5 py-5 sm:px-6">
+      <slot />
+    </div>
+  </div>
+</div>
+
+<script>
+  // ─── Bottom sheet state machine + focus trap ─────────────────────────
+  //
+  // Exposes a single window-level helper `BottomSheet.open(id, trigger?)`
+  // and `BottomSheet.close(id)` so any page-level script can show/hide a
+  // sheet by its DOM id without re-implementing this plumbing.
+  //
+  // The implementation is intentionally vanilla — no React / Svelte
+  // dependency. Reads `data-bottom-sheet`, `data-bottom-sheet-close`
+  // attributes; cooperates with any element that has either.
+
+  type SheetState = {
+    el: HTMLElement;
+    backdrop: HTMLElement;
+    panel: HTMLElement;
+    previouslyFocused: HTMLElement | null;
+    keydownHandler: (e: KeyboardEvent) => void;
+  };
+
+  const FOCUSABLE_SELECTOR = [
+    'a[href]',
+    'button:not([disabled])',
+    'input:not([disabled]):not([type="hidden"])',
+    'select:not([disabled])',
+    'textarea:not([disabled])',
+    '[tabindex]:not([tabindex="-1"])',
+  ].join(',');
+
+  const openSheets = new Map<string, SheetState>();
+
+  function getFocusable(panel: HTMLElement): HTMLElement[] {
+    return Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR))
+      .filter((el) => !el.hasAttribute('aria-hidden') && el.offsetParent !== null);
+  }
+
+  function lockBody(): void {
+    document.body.style.overflow = 'hidden';
+  }
+  function unlockBody(): void {
+    if (openSheets.size === 0) document.body.style.overflow = '';
+  }
+
+  function open(id: string, trigger?: HTMLElement): void {
+    const el = document.getElementById(id);
+    if (!el || !el.hasAttribute('data-bottom-sheet')) {
+      console.warn(`[BottomSheet] no sheet found for id="${id}"`);
+      return;
+    }
+    if (openSheets.has(id)) return; // already open
+
+    const backdrop = el.querySelector<HTMLElement>('.bottom-sheet-backdrop');
+    const panel = el.querySelector<HTMLElement>('.bottom-sheet-panel');
+    if (!backdrop || !panel) return;
+
+    const previouslyFocused = (trigger ?? (document.activeElement as HTMLElement | null)) ?? null;
+
+    el.classList.remove('hidden');
+    el.setAttribute('aria-hidden', 'false');
+
+    // Trigger animation in the next frame so the browser commits the
+    // "hidden → visible" change before we apply the open state.
+    requestAnimationFrame(() => {
+      backdrop.classList.remove('opacity-0');
+      backdrop.classList.add('opacity-100');
+      panel.classList.remove('translate-y-full');
+      panel.classList.remove('md:[transform:translate(-50%,-50%)_scale(0.97)]');
+      panel.classList.remove('md:opacity-0');
+      panel.classList.add('md:opacity-100');
+    });
+
+    lockBody();
+
+    // Move focus to the first focusable element inside the panel.
+    const focusables = getFocusable(panel);
+    const initial = focusables[0] ?? panel;
+    if (!initial.hasAttribute('tabindex')) initial.setAttribute('tabindex', '-1');
+    initial.focus({ preventScroll: true });
+
+    // Keyboard handling: Escape closes; Tab/Shift+Tab trapped inside.
+    const keydownHandler = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        close(id);
+        return;
+      }
+      if (e.key === 'Tab') {
+        const f = getFocusable(panel);
+        if (f.length === 0) {
+          e.preventDefault();
+          return;
+        }
+        const first = f[0];
+        const last = f[f.length - 1];
+        const active = document.activeElement as HTMLElement | null;
+        if (e.shiftKey && active === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && active === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
+    document.addEventListener('keydown', keydownHandler);
+
+    openSheets.set(id, { el, backdrop, panel, previouslyFocused, keydownHandler });
+  }
+
+  function close(id: string): void {
+    const state = openSheets.get(id);
+    if (!state) return;
+
+    const { el, backdrop, panel, previouslyFocused, keydownHandler } = state;
+
+    document.removeEventListener('keydown', keydownHandler);
+
+    backdrop.classList.remove('opacity-100');
+    backdrop.classList.add('opacity-0');
+    panel.classList.add('translate-y-full');
+    panel.classList.remove('md:opacity-100');
+    panel.classList.add('md:opacity-0');
+    panel.classList.add('md:[transform:translate(-50%,-50%)_scale(0.97)]');
+
+    // After animation, hide entirely.
+    const onEnd = (): void => {
+      el.classList.add('hidden');
+      el.setAttribute('aria-hidden', 'true');
+      panel.removeEventListener('transitionend', onEnd);
+    };
+    panel.addEventListener('transitionend', onEnd);
+    // Safety net: fire the same teardown if transitionend doesn't fire
+    // (e.g. prefers-reduced-motion → no transition).
+    setTimeout(onEnd, 350);
+
+    openSheets.delete(id);
+    unlockBody();
+
+    // Return focus to whatever opened the sheet.
+    if (previouslyFocused && document.contains(previouslyFocused)) {
+      previouslyFocused.focus({ preventScroll: true });
+    }
+  }
+
+  // Wire up `data-bottom-sheet-close` clicks once globally.
+  document.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement | null;
+    if (!target) return;
+    const closer = target.closest<HTMLElement>('[data-bottom-sheet-close]');
+    if (!closer) return;
+    const sheet = closer.closest<HTMLElement>('[data-bottom-sheet]');
+    if (!sheet) return;
+    close(sheet.id);
+  });
+
+  // Expose a typed helper.
+  type BottomSheetHelper = {
+    open: (id: string, trigger?: HTMLElement) => void;
+    close: (id: string) => void;
+  };
+  (window as unknown as { BottomSheet: BottomSheetHelper }).BottomSheet = { open, close };
+</script>

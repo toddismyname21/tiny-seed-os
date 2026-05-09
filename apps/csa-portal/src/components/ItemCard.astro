@@ -1,0 +1,148 @@
+---
+/**
+ * ItemCard — a single line in a CSA box.
+ *
+ * Renders product name + variety + quantity + unit, with optional
+ * status badges (swappable, swapped) and an optional swap action.
+ *
+ * Designed for two contexts:
+ *   1. /dashboard "this week's box" preview (read-only, no swap button)
+ *   2. /box detailed view (swap buttons enabled)
+ *
+ * The component itself is presentation-only — all interactivity lives in
+ * the parent page's `<script>` (it owns the bottom-sheet state machine).
+ * We expose `data-*` attributes so the parent can wire click handlers
+ * by selector without prop-drilling refs.
+ *
+ * Props:
+ *   - product    The product name (e.g. "Kohlrabi"). Required.
+ *   - variety    Optional cultivar (e.g. "Kolibri"). Italic suffix.
+ *   - quantity   Required. Decimal allowed (0.5 lb).
+ *   - unit       Required. Pluralized as-is by the caller.
+ *   - swappable  Whether this item has is_swappable=true on box_contents
+ *   - swapped    If user already swapped, the *new* item name (string)
+ *                or null/undefined for "not swapped"
+ *   - swapDisabled  Disable the swap button (e.g. cutoff passed,
+ *                  no credits, no swap_options for this item)
+ *   - swapDisabledReason  Tooltip / aria-label on the disabled button
+ *   - readOnly   If true, never render any action UI (dashboard preview)
+ *
+ * Data attributes emitted on the root `<li>`:
+ *   - data-item="<product_name>"
+ *   - data-swappable="true|false"
+ *   - data-swapped="<new_item>" (only when actually swapped)
+ *
+ * On the swap button (when rendered):
+ *   - data-action="swap"
+ *   - data-item="<product>"
+ *   - data-swap-options-id="<id>" — caller sets this so the click
+ *     handler can find the matching option list to render in the sheet
+ */
+import Badge from './Badge.astro';
+
+interface Props {
+  product: string;
+  variety?: string | null;
+  quantity: number;
+  unit: string;
+  swappable?: boolean;
+  swapped?: string | null;
+  swapDisabled?: boolean;
+  swapDisabledReason?: string;
+  swapOptionsId?: string;
+  readOnly?: boolean;
+  class?: string;
+}
+
+const {
+  product,
+  variety = null,
+  quantity,
+  unit,
+  swappable = false,
+  swapped = null,
+  swapDisabled = false,
+  swapDisabledReason,
+  swapOptionsId,
+  readOnly = false,
+  class: extraClass = '',
+} = Astro.props as Props;
+
+// Display the swapped item when present (member swapped this row).
+const displayProduct = swapped ?? product;
+const isSwapped = Boolean(swapped);
+
+// Quantity formatting: drop trailing zeros (1.0 → 1, 0.50 → 0.5).
+const qtyText = Number.isInteger(quantity)
+  ? String(quantity)
+  : Number(quantity).toString();
+
+const showSwapButton = !readOnly && swappable && !isSwapped;
+const showUndoButton = !readOnly && isSwapped;
+---
+
+<li
+  class={`flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-6 ${extraClass}`}
+  data-item={product}
+  data-swappable={swappable ? 'true' : 'false'}
+  data-swapped={swapped ?? undefined}
+>
+  <div class="min-w-0 flex-1">
+    <div class="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+      <span class="font-medium text-ts-text">
+        {displayProduct}
+      </span>
+      {variety && !isSwapped && (
+        <span class="text-sm italic text-ts-text-muted">({variety})</span>
+      )}
+
+      {isSwapped && (
+        <Badge variant="magenta" size="xs" uppercase>
+          Swapped from {product}
+        </Badge>
+      )}
+      {!isSwapped && swappable && !readOnly && (
+        <Badge variant="sky" size="xs" uppercase>
+          Swappable
+        </Badge>
+      )}
+    </div>
+  </div>
+
+  <div class="flex items-center justify-between gap-4 sm:justify-end">
+    <span class="text-sm text-ts-text-secondary tabular-nums">
+      {qtyText} {unit}
+    </span>
+
+    {showSwapButton && (
+      <button
+        type="button"
+        class="inline-flex h-9 min-h-[36px] items-center gap-1.5 rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm font-medium text-ts-text transition-all duration-150 hover:border-ts-primary/40 hover:text-ts-primary active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-ts-border disabled:hover:text-ts-text [touch-action:manipulation]"
+        data-action="swap"
+        data-item={product}
+        data-swap-options-id={swapOptionsId}
+        disabled={swapDisabled}
+        aria-label={`Swap ${product}`}
+        title={swapDisabled ? swapDisabledReason : undefined}
+      >
+        <span aria-hidden="true">⇄</span>
+        Swap
+      </button>
+    )}
+
+    {showUndoButton && (
+      <button
+        type="button"
+        class="inline-flex h-9 min-h-[36px] items-center gap-1.5 rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm font-medium text-ts-text transition-all duration-150 hover:border-ts-danger/40 hover:text-ts-danger active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
+        data-action="undo"
+        data-item={product}
+        disabled={swapDisabled}
+        aria-label={`Undo swap of ${product}`}
+        title={swapDisabled ? swapDisabledReason : undefined}
+      >
+        <span aria-hidden="true">↺</span>
+        Undo
+      </button>
+    )}
+  </div>
+</li>

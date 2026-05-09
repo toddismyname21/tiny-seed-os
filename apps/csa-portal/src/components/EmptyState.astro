@@ -1,0 +1,99 @@
+---
+/**
+ * EmptyState — icon + headline + body + action slot.
+ *
+ * Used wherever a list / panel has nothing to show:
+ *   - "Your box for this week hasn't been published yet."
+ *   - "No active share on file."
+ *   - "No swap options available for this item."
+ *
+ * NEVER show a blank container. Always use this component (or another
+ * with a comparable affordance + explanatory copy).
+ *
+ * Slots:
+ *   - default      Body copy (paragraph). Required.
+ *   - action       Optional CTA — typically a Button. Will render below
+ *                  the body in a centered column.
+ *
+ * Props:
+ *   - icon         Emoji or short string. Rendered in a circular tinted
+ *                  icon well at the top. Default: 🌱
+ *   - tone         "default" (gray) | "primary" (green) | "info" (sky)
+ *   - title        Required. Bold headline above the body.
+ *   - dashed       Whether the surrounding card uses a dashed border
+ *                  (the "this is empty" cue). Default true.
+ */
+type Tone = 'default' | 'primary' | 'info' | 'warning';
+
+interface Props {
+  icon?: string;
+  tone?: Tone;
+  title: string;
+  dashed?: boolean;
+  class?: string;
+}
+
+const {
+  icon = '🌱',
+  tone = 'default',
+  title,
+  dashed = true,
+  class: extraClass = '',
+} = Astro.props as Props;
+
+const TONE_BORDER: Record<Tone, string> = {
+  default: 'border-ts-border',
+  primary: 'border-ts-primary/30',
+  info:    'border-ts-info/30',
+  warning: 'border-ts-warning/30',
+};
+
+const TONE_BG: Record<Tone, string> = {
+  default: 'bg-ts-bg-muted/40',
+  primary: 'bg-ts-primary/5',
+  info:    'bg-ts-info/5',
+  warning: 'bg-ts-warning/5',
+};
+
+const TONE_ICON_BG: Record<Tone, string> = {
+  default: 'bg-ts-bg-muted text-ts-text-muted',
+  primary: 'bg-ts-primary/15 text-ts-primary',
+  info:    'bg-ts-info/15 text-ts-info',
+  warning: 'bg-ts-warning/15 text-ts-warning',
+};
+
+const classes = [
+  'rounded-ts-xl border',
+  dashed ? 'border-dashed' : '',
+  TONE_BORDER[tone],
+  TONE_BG[tone],
+  'p-6 sm:p-8 text-center',
+  extraClass,
+]
+  .filter(Boolean)
+  .join(' ');
+
+const hasAction = Astro.slots.has('action');
+---
+
+<div class={classes} role="status">
+  <div class="mx-auto flex flex-col items-center gap-3">
+    <div
+      class={`flex h-12 w-12 items-center justify-center rounded-full text-2xl ${TONE_ICON_BG[tone]}`}
+      aria-hidden="true"
+    >
+      {icon}
+    </div>
+    <h3 class="font-display text-lg font-semibold text-ts-text sm:text-xl">
+      {title}
+    </h3>
+    <div class="max-w-prose text-sm leading-relaxed text-ts-text-secondary sm:text-base">
+      <slot />
+    </div>
+    {hasAction && (
+      <div class="mt-2 flex flex-wrap items-center justify-center gap-3">
+        <slot name="action" />
+      </div>
+    )}
+  </div>
+</div>

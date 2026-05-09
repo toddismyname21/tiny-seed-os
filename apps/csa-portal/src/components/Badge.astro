@@ -1,0 +1,80 @@
+---
+/**
+ * Badge — small pill / status chip.
+ *
+ * Used for status indicators (Active, Paused, Onboarding), inline
+ * affordance hints ("Swappable"), and category tags.
+ *
+ * Variants map to brand semantic colors:
+ *   - green   primary / active / success
+ *   - gray    neutral / muted (default)
+ *   - magenta accent (flowers, sale signs)
+ *   - amber   warning / paused / pending
+ *   - red     danger / cancelled / sold out
+ *   - sky     info
+ *
+ * Sizes:
+ *   - xs  10px text, tight padding — for inline-with-text use.
+ *   - sm  12px text — default. Reads as a discrete pill.
+ *
+ * Visual style:
+ *   - tinted background (color/10), ring (color/30), color text
+ *   - tabular-nums on numeric content, uppercase tracking-wide for short
+ *     labels (active/paused), normal-case for free-form text
+ *
+ * Optional `dot` prop renders a leading colored dot (cosmetically
+ * matches the dashboard's status indicators).
+ */
+type Variant = 'green' | 'gray' | 'magenta' | 'amber' | 'red' | 'sky';
+type Size = 'xs' | 'sm';
+
+interface Props {
+  variant?: Variant;
+  size?: Size;
+  dot?: boolean;
+  uppercase?: boolean;
+  class?: string;
+}
+
+const {
+  variant = 'gray',
+  size = 'sm',
+  dot = false,
+  uppercase = false,
+  class: extraClass = '',
+} = Astro.props as Props;
+
+const VARIANT_CLASSES: Record<Variant, string> = {
+  green:   'bg-ts-primary/10 text-ts-primary ring-ts-primary/30',
+  gray:    'bg-ts-bg-muted   text-ts-text-secondary ring-ts-border',
+  magenta: 'bg-ts-accent/10  text-ts-accent  ring-ts-accent/30',
+  amber:   'bg-ts-warning/10 text-ts-warning ring-ts-warning/30',
+  red:     'bg-ts-danger/10  text-ts-danger  ring-ts-danger/30',
+  sky:     'bg-ts-info/10    text-ts-info    ring-ts-info/30',
+};
+
+const SIZE_CLASSES: Record<Size, string> = {
+  xs: 'px-2 py-0.5 text-[10px] gap-1',
+  sm: 'px-2.5 py-0.5 text-xs gap-1.5',
+};
+
+const classes = [
+  'inline-flex h-fit shrink-0 items-center rounded-full font-semibold ring-1',
+  uppercase ? 'uppercase tracking-wide' : 'tracking-tight',
+  VARIANT_CLASSES[variant],
+  SIZE_CLASSES[size],
+  extraClass,
+]
+  .filter(Boolean)
+  .join(' ');
+---
+
+<span class={classes}>
+  {dot && (
+    <span
+      class="inline-block h-1.5 w-1.5 rounded-full bg-current"
+      aria-hidden="true"
+    ></span>
+  )}
+  <slot />
+</span>

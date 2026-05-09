@@ -1,0 +1,221 @@
+/**
+ * POST /api/box/swap
+ *
+ * Body (application/json):
+ *   {
+ *     member_id:     string,  // UUID of the active member row
+ *     week_date:     string,  // YYYY-MM-DD (the upcoming Wednesday)
+ *     original_item: string,  // product_name on box_contents
+ *     swapped_for:   string,  // product_name from the original's swap_options
+ *   }
+ *
+ * Response (application/json):
+ *   200  { ok: true,  remaining_credits: number, swap_id: string }
+ *   400  { ok: false, error: 'invalid_input' | 'invalid_member' | 'invalid_item' | 'invalid_swap' }
+ *   401  { ok: false, error: 'unauthenticated' }
+ *   402  { ok: false, error: 'no_credits',     remaining_credits: 0 }
+ *   403  { ok: false, error: 'cutoff_passed' | 'forbidden' }
+ *   409  { ok: false, error: 'already_swapped', remaining_credits: number }
+ *   500  { ok: false, error: 'internal' }
+ *
+ * Authentication is enforced by `Astro.locals.user` (set in middleware).
+ *
+ * Authorization is layered:
+ *   1. The member_id must belong to a `members` row whose customer_id
+ *      maps to the caller's `auth.jwt()->>'email'`. We verify this by
+ *      SELECTING the row through the cookie-aware (RLS-scoped) client —
+ *      RLS returns zero rows if the user doesn't own this member.
+ *   2. The member's status must be 'active' or 'paused' or 'onboarding'.
+ *      A 'cancelled' / 'lapsed' member cannot swap.
+ *   3. The (week_date, share_type, original_item) must exist in
+ *      box_contents AND have is_swappable=true AND swapped_for must
+ *      appear in its swap_options array.
+ *   4. The 8 AM Eastern cutoff (Tuesday 8 AM, since boxes deliver Wed)
+ *      must not have passed. Override allowed only for the owner email
+ *      (todd@tinyseedfarmpgh.com) when ?override_cutoff=true is set —
+ *      this is for QA, not a member-facing feature.
+ *
+ * After all validation, the actual write is delegated to the Postgres
+ * function `swap_box_item(...)` (migration 0015), which uses
+ * `SELECT ... FOR UPDATE` on the members row to serialize concurrent
+ * swap attempts and the UNIQUE (member_id, week_date, original_item)
+ * constraint on box_swaps to make repeated calls idempotent at the DB
+ * level. We invoke this RPC via the cookie-aware client so Postgres
+ * audit logs attribute the call to the authenticated user.
+ */
+import type { APIRoute } from 'astro';
+import { z } from 'zod';
+import { isSameOriginPost, PORTAL_ORIGIN } from '../../../lib/onboarding';
+import { isCutoffPassed, OWNER_EMAIL } from '../../../lib/box';
+
+export const prerender = false;
+
+const Body = z.object({
+  member_id: z.uuid('invalid_input'),
+  week_date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'invalid_input'),
+  original_item: z.string().trim().min(1, 'invalid_input').max(100, 'invalid_input'),
+  swapped_for: z.string().trim().min(1, 'invalid_input').max(100, 'invalid_input'),
+});
+
+function jsonResponse(status: number, body: unknown): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'content-type': 'application/json; charset=utf-8' },
+  });
+}
+
+export const POST: APIRoute = async ({ request, locals, url }) => {
+  // CSRF: only accept same-origin POSTs. Astro 6 enforces Origin checks
+  // on form posts by default, but this route is JSON-only — we belt-
+  // and-suspenders the check ourselves.
+  if (!isSameOriginPost(request, PORTAL_ORIGIN)) {
+    return jsonResponse(403, { ok: false, error: 'forbidden' });
+  }
+
+  const user = locals.user;
+  if (!user || !user.email) {
+    return jsonResponse(401, { ok: false, error: 'unauthenticated' });
+  }
+
+  // Body parsing.
+  let raw: unknown;
+  try {
+    raw = await request.json();
+  } catch {
+    return jsonResponse(400, { ok: false, error: 'invalid_input' });
+  }
+
+  const parsed = Body.safeParse(raw);
+  if (!parsed.success) {
+    return jsonResponse(400, { ok: false, error: 'invalid_input' });
+  }
+  const { member_id, week_date, original_item, swapped_for } = parsed.data;
+
+  // ─── Authorization: confirm caller owns this member ────────────────
+  // RLS on members restricts SELECT to rows where customer_id matches
+  // current_customer_id() (the user's customer row). If the user doesn't
+  // own this member, the query returns zero rows.
+  type MemberRow = {
+    id: string;
+    share_type: string;
+    status: string;
+    swap_credits: number;
+  };
+
+  const { data: memberData, error: memberErr } = await locals.supabase
+    .from('members')
+    .select('id, share_type, status, swap_credits')
+    .eq('id', member_id)
+    .maybeSingle()
+    .overrideTypes<MemberRow, { merge: false }>();
+
+  if (memberErr) {
+    console.error('[api/box/swap] member lookup failed:', memberErr.message);
+    return jsonResponse(500, { ok: false, error: 'internal' });
+  }
+  if (!memberData) {
+    return jsonResponse(400, { ok: false, error: 'invalid_member' });
+  }
+
+  // Block swaps for cancelled / lapsed / expired shares — those rows
+  // shouldn't have credits anyway, but defense in depth.
+  if (!['active', 'paused', 'onboarding'].includes(memberData.status)) {
+    return jsonResponse(403, { ok: false, error: 'forbidden' });
+  }
+
+  // ─── Cutoff enforcement ────────────────────────────────────────────
+  // Cutoff is 8 AM Eastern on (week_date - 1 day). After cutoff, swaps
+  // are frozen. The owner can bypass with ?override_cutoff=true for QA.
+  const overrideCutoff =
+    url.searchParams.get('override_cutoff') === 'true' &&
+    user.email === OWNER_EMAIL;
+  if (!overrideCutoff && isCutoffPassed(week_date, new Date())) {
+    return jsonResponse(403, { ok: false, error: 'cutoff_passed' });
+  }
+
+  // ─── Validate the box-contents row + swap option ───────────────────
+  // Look up the original item for the user's share_type on this week.
+  // box_contents has RLS allowing all authenticated reads.
+  type BoxRow = {
+    is_swappable: boolean;
+    swap_options: string[] | null;
+  };
+
+  const { data: boxRow, error: boxErr } = await locals.supabase
+    .from('box_contents')
+    .select('is_swappable, swap_options')
+    .eq('week_date', week_date)
+    .eq('share_type', memberData.share_type)
+    .eq('product_name', original_item)
+    .maybeSingle()
+    .overrideTypes<BoxRow, { merge: false }>();
+
+  if (boxErr) {
+    console.error('[api/box/swap] box lookup failed:', boxErr.message);
+    return jsonResponse(500, { ok: false, error: 'internal' });
+  }
+  if (!boxRow) {
+    return jsonResponse(400, { ok: false, error: 'invalid_item' });
+  }
+  if (!boxRow.is_swappable) {
+    return jsonResponse(400, { ok: false, error: 'invalid_swap' });
+  }
+  const options = boxRow.swap_options ?? [];
+  if (!options.includes(swapped_for)) {
+    return jsonResponse(400, { ok: false, error: 'invalid_swap' });
+  }
+
+  // ─── Atomic mutation via Postgres function ─────────────────────────
+  // FOR UPDATE on the members row + UNIQUE constraint on box_swaps
+  // give us race-safety + idempotency without an application-level
+  // transaction. See migration 0015 for the function body.
+  type SwapResult =
+    | { ok: true; swap_id: string; remaining_credits: number }
+    | { error: 'already_swapped' | 'no_credits' | 'member_not_found' | 'invalid_input';
+        remaining_credits?: number };
+
+  const { data: rpcData, error: rpcErr } = await locals.supabase.rpc('swap_box_item', {
+    p_member_id: member_id,
+    p_week_date: week_date,
+    p_original_item: original_item,
+    p_swapped_for: swapped_for,
+  });
+
+  if (rpcErr) {
+    console.error('[api/box/swap] rpc failed:', rpcErr.message);
+    return jsonResponse(500, { ok: false, error: 'internal' });
+  }
+
+  const result = rpcData as unknown as SwapResult;
+
+  if ('error' in result) {
+    if (result.error === 'already_swapped') {
+      return jsonResponse(409, {
+        ok: false,
+        error: 'already_swapped',
+        remaining_credits: result.remaining_credits ?? memberData.swap_credits,
+      });
+    }
+    if (result.error === 'no_credits') {
+      return jsonResponse(402, {
+        ok: false,
+        error: 'no_credits',
+        remaining_credits: result.remaining_credits ?? 0,
+      });
+    }
+    if (result.error === 'member_not_found') {
+      return jsonResponse(400, { ok: false, error: 'invalid_member' });
+    }
+    // 'invalid_input' from the function — should never happen since
+    // we validated above, but surface as 400 just in case.
+    return jsonResponse(400, { ok: false, error: 'invalid_input' });
+  }
+
+  return jsonResponse(200, {
+    ok: true,
+    swap_id: result.swap_id,
+    remaining_credits: result.remaining_credits,
+  });
+};

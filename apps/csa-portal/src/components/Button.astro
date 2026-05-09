@@ -1,0 +1,160 @@
+---
+/**
+ * Button — design-system primitive for the CSA portal.
+ *
+ * Renders a `<button>` by default, or an `<a>` when an `href` is provided
+ * (so menu / nav use cases can share the same visual treatment without
+ * resorting to `role="button"` hacks).
+ *
+ * Variants:
+ *   - primary    Tiny Seed green, white text. The "do the thing" action.
+ *   - secondary  Bordered surface, text-color. Calmer affordance.
+ *   - ghost      No border, no background. For tertiary actions in
+ *                tight UI (e.g. "Cancel" inside a sheet).
+ *   - danger     Red, white text. Destructive / negative-irreversible.
+ *
+ * Sizes:
+ *   - sm  32px height, compact spacing. For inline / dense UI.
+ *   - md  44px height (mobile-tap target). Default.
+ *   - lg  52px height. For hero CTAs and modal-confirm flows.
+ *
+ * All variants:
+ *   - 200ms transition on color + transform
+ *   - active:scale-[0.98] tactile press
+ *   - focus-visible ring using the brand primary
+ *   - disabled state: opacity + cursor-not-allowed (NEVER greyed-out only)
+ *
+ * Accessibility:
+ *   - `aria-label` passes through (use it for icon-only triggers)
+ *   - `aria-pressed`, `aria-expanded` pass through for toggle / disclosure
+ *   - When rendered as an anchor, we set `role="button"` only if a click
+ *     handler is needed semantically (we don't, by default).
+ *
+ * Mobile:
+ *   - md/lg sizes meet 44px minimum tap target.
+ *   - touch-action: manipulation prevents iOS double-tap zoom on rapid
+ *     successive taps.
+ */
+import type { HTMLAttributes } from 'astro/types';
+
+type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
+type Size = 'sm' | 'md' | 'lg';
+type ButtonType = 'button' | 'submit' | 'reset';
+
+interface BaseProps {
+  variant?: Variant;
+  size?: Size;
+  fullWidth?: boolean;
+  loading?: boolean;
+  class?: string;
+}
+
+interface AnchorProps extends BaseProps, Omit<HTMLAttributes<'a'>, 'class' | 'type'> {
+  href: string;
+  type?: never;
+  disabled?: boolean;
+}
+
+interface ButtonProps extends BaseProps, Omit<HTMLAttributes<'button'>, 'class' | 'type' | 'disabled'> {
+  href?: undefined;
+  type?: ButtonType;
+  disabled?: boolean;
+}
+
+type Props = AnchorProps | ButtonProps;
+
+const {
+  variant = 'primary',
+  size = 'md',
+  fullWidth = false,
+  loading = false,
+  disabled = false,
+  href,
+  type = 'button',
+  class: extraClass = '',
+  ...rest
+} = Astro.props as Props;
+
+// ─── Tailwind class lookup ──────────────────────────────────────────
+const VARIANT_CLASSES: Record<Variant, string> = {
+  primary:
+    'bg-ts-primary text-white shadow-ts-sm hover:bg-ts-primary-dark active:bg-ts-primary-dark',
+  secondary:
+    'border border-ts-border bg-ts-bg-surface text-ts-text shadow-ts-sm hover:border-ts-primary/40 hover:text-ts-primary',
+  ghost:
+    'bg-transparent text-ts-text-secondary hover:bg-ts-bg-muted hover:text-ts-text',
+  danger:
+    'bg-ts-danger text-white shadow-ts-sm hover:bg-ts-danger/90 active:bg-ts-danger/90',
+};
+
+const SIZE_CLASSES: Record<Size, string> = {
+  sm: 'h-8  px-3 text-sm gap-1.5 rounded-ts-md',
+  md: 'h-11 px-5 text-base gap-2 rounded-ts-md',
+  lg: 'h-13 min-h-13 px-6 text-base gap-2 rounded-ts-md sm:text-lg',
+};
+
+const baseClasses = [
+  'inline-flex items-center justify-center font-semibold tracking-tight',
+  'transition-all duration-150 ease-[var(--ease-ts)]',
+  'active:scale-[0.98]',
+  'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary',
+  'disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-current',
+  'select-none',
+  '[touch-action:manipulation]',
+  fullWidth ? 'w-full' : '',
+  VARIANT_CLASSES[variant],
+  SIZE_CLASSES[size],
+  extraClass,
+]
+  .filter(Boolean)
+  .join(' ');
+
+// Loading state: visually replace contents with a spinner; the `<slot/>`
+// content is kept in DOM for screen readers via aria-hidden flip.
+const isDisabled = disabled || loading;
+---
+
+{
+  href ? (
+    <a
+      href={isDisabled ? undefined : href}
+      class={baseClasses}
+      aria-disabled={isDisabled ? 'true' : undefined}
+      tabindex={isDisabled ? -1 : undefined}
+      data-loading={loading ? 'true' : undefined}
+      {...(rest as HTMLAttributes<'a'>)}
+    >
+      {loading ? (
+        <>
+          <span
+            class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"
+            aria-hidden="true"
+          ></span>
+          <span class="sr-only"><slot /></span>
+        </>
+      ) : (
+        <slot />
+      )}
+    </a>
+  ) : (
+    <button
+      type={type}
+      class={baseClasses}
+      disabled={isDisabled}
+      data-loading={loading ? 'true' : undefined}
+      {...(rest as HTMLAttributes<'button'>)}
+    >
+      {loading ? (
+        <>
+          <span
+            class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"
+            aria-hidden="true"
+          ></span>
+          <span class="sr-only"><slot /></span>
+        </>
+      ) : (
+        <slot />
+      )}
+    </button>
+  )
+}

@@ -1,0 +1,137 @@
+---
+/**
+ * Card — generic surface card.
+ *
+ * The default visual is the same shadowed white panel that
+ * dashboard.astro and onboarding/welcome.astro hand-roll today
+ * (rounded-ts-xl + border-ts-border + bg-ts-bg-surface + shadow-ts-md).
+ *
+ * Slots:
+ *   - default  Body content
+ *   - header   Optional header row (renders inside a flex container,
+ *              separated by a thin border-bottom)
+ *   - footer   Optional footer row (separated by a thin border-top)
+ *
+ * Props:
+ *   - tone="default" | "muted" | "primary" | "warning" | "danger"
+ *   - padding="md" (default) | "sm" | "lg" | "none"  — controls inner padding
+ *   - elevation="md" (default) | "sm" | "lg" | "none"  — shadow depth
+ *   - as="article" (default) | "section" | "div"  — semantic root tag
+ *   - hover=false (default) | true  — adds a subtle shadow lift on hover
+ *
+ * Why a generic Card with slots?
+ *   We have ~7 places in the portal that hand-roll the same panel
+ *   (dashboard active-share card, onboarding share-summary, this-week's-box
+ *   list, login form, no-share state, welcome banner, vacation list).
+ *   Centralizing the shape means we can tune the shadow / radius once and
+ *   the whole portal moves together.
+ *
+ * Slots only render when the named slot has content (Astro.slots.has).
+ */
+import type { HTMLAttributes } from 'astro/types';
+
+type Tone = 'default' | 'muted' | 'primary' | 'warning' | 'danger';
+type Padding = 'none' | 'sm' | 'md' | 'lg';
+type Elevation = 'none' | 'sm' | 'md' | 'lg';
+type RootTag = 'article' | 'section' | 'div';
+
+interface Props extends Omit<HTMLAttributes<'div'>, 'class'> {
+  tone?: Tone;
+  padding?: Padding;
+  elevation?: Elevation;
+  as?: RootTag;
+  hover?: boolean;
+  class?: string;
+}
+
+const {
+  tone = 'default',
+  padding = 'md',
+  elevation = 'md',
+  as = 'article',
+  hover = false,
+  class: extraClass = '',
+  ...rest
+} = Astro.props as Props;
+
+const TONE_CLASSES: Record<Tone, string> = {
+  default: 'border-ts-border bg-ts-bg-surface',
+  muted:   'border-ts-border bg-ts-bg-muted/40',
+  primary: 'border-ts-primary/30 bg-ts-primary/5',
+  warning: 'border-ts-warning/30 bg-ts-warning/5',
+  danger:  'border-ts-danger/30 bg-ts-danger/5',
+};
+
+const PADDING_CLASSES: Record<Padding, string> = {
+  none: '',
+  sm:   'p-4 sm:p-5',
+  md:   'p-5 sm:p-6',
+  lg:   'p-6 sm:p-8',
+};
+
+const ELEVATION_CLASSES: Record<Elevation, string> = {
+  none: '',
+  sm:   'shadow-ts-sm',
+  md:   'shadow-ts-md',
+  lg:   'shadow-ts-lg',
+};
+
+const HEADER_PAD: Record<Padding, string> = {
+  none: 'px-0 py-0',
+  sm:   'px-4 py-3 sm:px-5',
+  md:   'px-5 py-3 sm:px-6 sm:py-4',
+  lg:   'px-6 py-4 sm:px-8 sm:py-5',
+};
+
+const BODY_PAD: Record<Padding, string> = {
+  none: '',
+  sm:   'p-4 sm:p-5',
+  md:   'p-5 sm:p-6',
+  lg:   'p-6 sm:p-8',
+};
+
+// Has-slot detection so we only render header/footer wrappers when
+// the slot is actually used. Saves a stray empty <header> element.
+const hasHeader = Astro.slots.has('header');
+const hasFooter = Astro.slots.has('footer');
+
+// When header or footer is present, we strip the default outer padding
+// from the root and apply per-section padding instead so the borders
+// stretch fully across the card.
+const rootPaddingClass = hasHeader || hasFooter ? '' : PADDING_CLASSES[padding];
+
+const rootClasses = [
+  'rounded-ts-xl border',
+  TONE_CLASSES[tone],
+  ELEVATION_CLASSES[elevation],
+  rootPaddingClass,
+  hover ? 'transition-shadow duration-200 ease-[var(--ease-ts)] hover:shadow-ts-lg' : '',
+  extraClass,
+]
+  .filter(Boolean)
+  .join(' ');
+
+const Tag = as;
+---
+
+<Tag class={rootClasses} {...rest}>
+  {hasHeader && (
+    <header class={`border-b border-ts-border ${HEADER_PAD[padding]}`}>
+      <slot name="header" />
+    </header>
+  )}
+
+  {hasHeader || hasFooter ? (
+    <div class={BODY_PAD[padding]}>
+      <slot />
+    </div>
+  ) : (
+    <slot />
+  )}
+
+  {hasFooter && (
+    <footer class={`border-t border-ts-border ${HEADER_PAD[padding]}`}>
+      <slot name="footer" />
+    </footer>
+  )}
+</Tag>

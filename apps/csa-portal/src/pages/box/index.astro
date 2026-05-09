@@ -1,0 +1,895 @@
+---
+/**
+ * /box — this week's box, with per-item swap UI.
+ *
+ * Layout per share type (members can have multiple — e.g. Spring Veg
+ * + Flower share). Each share type renders as its own card with its
+ * own list of items. A member with one share sees one card; a member
+ * with two sees two stacked cards.
+ *
+ * Authentication is enforced by middleware. By the time we render,
+ * `Astro.locals.user` is non-null and the user owns at least one
+ * customer row.
+ *
+ * Data fetched server-side:
+ *   1. Customer + members + per-member share details (RLS-scoped)
+ *   2. Box contents for the upcoming Wednesday × user's share types
+ *   3. Existing box_swaps for those (member, week) pairs — so we know
+ *      what's already been swapped
+ *
+ * Customization closes Tuesday 8 AM Eastern. The cutoff state is
+ * computed once on the server and rendered as either:
+ *   - "Customization closes <date>" (informational)
+ *   - "Customization closed for this week" (read-only banner + all
+ *     swap buttons disabled)
+ *
+ * Interactivity:
+ *   - Per-item swap buttons open a single shared <BottomSheet>, with
+ *     the option list rendered dynamically from a JSON blob baked into
+ *     the page (data-swap-options).
+ *   - Confirmation step: "Swap kohlrabi for spinach? — [Cancel] [Swap]"
+ *   - Network call → /api/box/swap. On success, optimistically update
+ *     the row's display + the credit pill; on error, restore + show
+ *     toast (aria-live="polite").
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Card from '../../components/Card.astro';
+import Badge from '../../components/Badge.astro';
+import Button from '../../components/Button.astro';
+import EmptyState from '../../components/EmptyState.astro';
+import ItemCard from '../../components/ItemCard.astro';
+import BottomSheet from '../../components/BottomSheet.astro';
+import {
+  isCutoffPassed,
+  upcomingWednesdayET,
+  prettyDateET,
+  SHARE_TYPE_LABELS,
+  OWNER_EMAIL,
+} from '../../lib/box';
+
+const user = Astro.locals.user;
+if (!user || !user.email) {
+  return Astro.redirect('/login', 303);
+}
+
+const supabase = Astro.locals.supabase;
+
+// ─── Resolve target week ─────────────────────────────────────────────
+const targetWeek = upcomingWednesdayET();
+const targetWeekPretty = prettyDateET(targetWeek);
+
+// ─── Cutoff state ────────────────────────────────────────────────────
+// Owner can override for QA via ?override_cutoff=true.
+const overrideRequested = Astro.url.searchParams.get('override_cutoff') === 'true';
+const isOwnerOverride = overrideRequested && user.email === OWNER_EMAIL;
+const cutoffPassed = !isOwnerOverride && isCutoffPassed(targetWeek, new Date());
+
+// ─── Customer + members ──────────────────────────────────────────────
+type ActiveMember = {
+  id: string;
+  share_type: string;
+  share_size: string | null;
+  status: string;
+  swap_credits: number;
+};
+type CustomerWithMembers = {
+  id: string;
+  contact_name: string;
+  email: string;
+  members: ActiveMember[];
+};
+
+const { data: customerRows, error: customerError } = await supabase
+  .from('customers')
+  .select(
+    `
+    id,
+    contact_name,
+    email,
+    members (
+      id,
+      share_type,
+      share_size,
+      status,
+      swap_credits
+    )
+  `
+  )
+  .limit(1)
+  .overrideTypes<CustomerWithMembers[], { merge: false }>();
+
+if (customerError) {
+  console.error('[/box] customer fetch failed:', customerError.message);
+}
+
+const customer = customerRows?.[0] ?? null;
+const allMembers = customer?.members ?? [];
+const liveStatuses = new Set(['active', 'paused', 'onboarding']);
+const activeMembers = allMembers.filter((m) => liveStatuses.has(m.status));
+
+const firstName = (customer?.contact_name ?? user.email!.split('@')[0])
+  .trim()
+  .split(/\s+/)[0];
+
+// ─── Box contents for the user's share types ────────────────────────
+type BoxItem = {
+  share_type: string;
+  product_name: string;
+  variety: string | null;
+  quantity: number;
+  unit: string;
+  is_swappable: boolean;
+  swap_options: string[] | null;
+};
+
+const userShareTypes = Array.from(new Set(activeMembers.map((m) => m.share_type)));
+
+let boxItems: BoxItem[] = [];
+if (userShareTypes.length > 0) {
+  const { data: rows, error: boxErr } = await supabase
+    .from('box_contents')
+    .select('share_type, product_name, variety, quantity, unit, is_swappable, swap_options')
+    .eq('week_date', targetWeek)
+    .in('share_type', userShareTypes)
+    .order('share_type', { ascending: true })
+    .order('product_name', { ascending: true })
+    .overrideTypes<BoxItem[], { merge: false }>();
+  if (boxErr) {
+    console.error('[/box] box contents fetch failed:', boxErr.message);
+  }
+  boxItems = rows ?? [];
+}
+
+// ─── Existing swaps for this member × this week ──────────────────────
+type SwapRow = {
+  id: string;
+  member_id: string;
+  original_item: string;
+  swapped_for: string;
+};
+let swaps: SwapRow[] = [];
+if (activeMembers.length > 0) {
+  const memberIds = activeMembers.map((m) => m.id);
+  const { data: swapRows, error: swapErr } = await supabase
+    .from('box_swaps')
+    .select('id, member_id, original_item, swapped_for')
+    .eq('week_date', targetWeek)
+    .in('member_id', memberIds)
+    .overrideTypes<SwapRow[], { merge: false }>();
+  if (swapErr) {
+    console.error('[/box] swap rows fetch failed:', swapErr.message);
+  }
+  swaps = swapRows ?? [];
+}
+
+// Index swaps by (member_id, original_item) for fast lookup.
+const swapsByKey = new Map<string, SwapRow>();
+for (const s of swaps) {
+  swapsByKey.set(`${s.member_id}|${s.original_item}`, s);
+}
+
+// Group items by share_type AND keep a mapping back to the active
+// member row so per-item-card we know which member_id to send to the
+// swap API. (A user with TWO shares of the same share_type — rare —
+// would only see one card; that's fine for now.)
+type ShareSection = {
+  member: ActiveMember;
+  items: BoxItem[];
+};
+const sections: ShareSection[] = [];
+for (const member of activeMembers) {
+  const items = boxItems.filter((i) => i.share_type === member.share_type);
+  if (items.length === 0 && boxItems.length > 0) continue; // skip empties only if other shares have data
+  sections.push({ member, items });
+}
+
+// Total credits remaining is the *minimum* across all active member
+// rows. (In practice each member has its own pool — UI shows per-share.)
+const totalCredits = activeMembers.reduce((sum, m) => sum + m.swap_credits, 0);
+
+// ─── Build the JSON payload the client script needs ──────────────────
+// We bake a small JSON object into the page (NOT all server data —
+// just what the swap UI needs). Includes per-item swap_options for the
+// bottom sheet to render.
+const clientPayload = {
+  week_date: targetWeek,
+  cutoff_passed: cutoffPassed,
+  members: activeMembers.map((m) => ({
+    id: m.id,
+    share_type: m.share_type,
+    swap_credits: m.swap_credits,
+  })),
+  items: boxItems.map((i) => ({
+    share_type: i.share_type,
+    product_name: i.product_name,
+    swap_options: i.swap_options ?? [],
+  })),
+  // Echo ?override_cutoff=true onto API calls so the owner's QA tests
+  // bypass the cutoff at the API too. Empty string for normal users.
+  api_qs: isOwnerOverride ? '?override_cutoff=true' : '',
+};
+
+const noShare = !customer || activeMembers.length === 0;
+const boxNotPosted = !noShare && boxItems.length === 0;
+---
+
+<BaseLayout
+  title={`Your box for ${targetWeekPretty} — Tiny Seed Farm CSA`}
+  description="View this week's box and swap individual items for alternatives."
+  canonical="https://csa.tinyseedfarm.com/box"
+>
+  <a
+    href="#main"
+    class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-ts-md focus:bg-ts-primary focus:px-4 focus:py-2 focus:text-white focus:shadow-ts-md"
+  >
+    Skip to main content
+  </a>
+
+  <div class="min-h-screen bg-ts-bg-base">
+    {/* ═════════════════════════════════════════════════════════════
+        TOP BAR (mirrors /dashboard)
+        ═════════════════════════════════════════════════════════════ */}
+    <header class="border-b border-ts-border bg-ts-bg-surface/80 backdrop-blur-sm">
+      <div class="mx-auto flex max-w-3xl items-center justify-between px-5 py-4 sm:px-6 sm:py-5">
+        <a
+          href="/dashboard"
+          class="flex items-center gap-2 rounded-ts-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ts-primary"
+          aria-label="Tiny Seed Farm CSA dashboard"
+        >
+          <span class="inline-block h-2.5 w-2.5 rounded-full bg-ts-primary" aria-hidden="true"></span>
+          <span class="font-display text-lg font-bold tracking-tight text-ts-text">
+            Tiny Seed Farm
+          </span>
+        </a>
+
+        <form method="POST" action="/logout" class="m-0">
+          <button
+            type="submit"
+            class="rounded-ts-md px-3 py-2 text-sm font-medium text-ts-text-secondary transition-colors duration-150 hover:bg-ts-bg-muted hover:text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+          >
+            Sign out
+          </button>
+        </form>
+      </div>
+    </header>
+
+    <main
+      id="main"
+      class="mx-auto flex w-full max-w-3xl flex-col gap-6 px-5 py-8 sm:gap-8 sm:px-6 sm:py-12"
+    >
+      {/* ═════════════════════════════════════════════════════════════
+          BREADCRUMB / BACK
+          ═════════════════════════════════════════════════════════════ */}
+      <nav aria-label="Breadcrumb" class="-mb-2">
+        <a
+          href="/dashboard"
+          class="inline-flex items-center gap-1 text-sm font-medium text-ts-text-secondary underline-offset-2 hover:text-ts-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+        >
+          <span aria-hidden="true">←</span>
+          Back to dashboard
+        </a>
+      </nav>
+
+      {/* ═════════════════════════════════════════════════════════════
+          HEADING
+          ═════════════════════════════════════════════════════════════ */}
+      <section aria-labelledby="box-heading">
+        <h1
+          id="box-heading"
+          class="font-display text-3xl leading-tight font-bold tracking-tight text-ts-text sm:text-4xl"
+        >
+          Your box for {targetWeekPretty}
+        </h1>
+        <p class="mt-2 text-base text-ts-text-secondary">
+          Hi {firstName} — review what's coming and make swaps before the cutoff.
+        </p>
+      </section>
+
+      {/* ═════════════════════════════════════════════════════════════
+          STATE: NO SHARE
+          ═════════════════════════════════════════════════════════════ */}
+      {noShare && (
+        <EmptyState
+          title="No active share on file"
+          icon="🌱"
+          tone="default"
+        >
+          We didn't find a CSA share signed up for {user.email} this season.
+          Browse our shares or get in touch.
+          <slot name="action">
+            <Button href="https://tinyseedfarm.com/collections/tiny-seed-farm-csa" variant="primary" size="md">
+              Browse CSA shares <span aria-hidden="true">→</span>
+            </Button>
+          </slot>
+        </EmptyState>
+      )}
+
+      {/* ═════════════════════════════════════════════════════════════
+          STATE: SHARE BUT BOX NOT POSTED
+          ═════════════════════════════════════════════════════════════ */}
+      {boxNotPosted && (
+        <EmptyState
+          title={`Box for ${targetWeekPretty} hasn't been published yet`}
+          icon="📋"
+          tone="default"
+        >
+          We post box contents the day before pickup. Check back Tuesday morning,
+          or watch your inbox for the preview email.
+        </EmptyState>
+      )}
+
+      {/* ═════════════════════════════════════════════════════════════
+          STATUS BANNER — credits + cutoff
+          ═════════════════════════════════════════════════════════════ */}
+      {!noShare && !boxNotPosted && (
+        <Card tone={cutoffPassed ? 'warning' : 'primary'} elevation="sm" padding="md">
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div class="flex items-start gap-3">
+              <span class="text-2xl" aria-hidden="true">
+                {cutoffPassed ? '🔒' : '🌿'}
+              </span>
+              <div class="min-w-0">
+                <p class="font-semibold text-ts-text">
+                  {cutoffPassed
+                    ? 'Customization closed for this week'
+                    : <>
+                        <span data-credit-display>{totalCredits}</span>
+                        {' '}swap{totalCredits === 1 ? '' : 's'} remaining this season
+                      </>
+                  }
+                </p>
+                <p class="mt-0.5 text-sm leading-snug text-ts-text-secondary">
+                  {cutoffPassed
+                    ? "The box ships as shown. We'll see you on pickup day."
+                    : 'Swaps close Tuesday at 8:00 AM Eastern, the day before delivery.'
+                  }
+                </p>
+              </div>
+            </div>
+            {!cutoffPassed && (
+              <Badge variant={totalCredits > 0 ? 'green' : 'amber'} size="sm" uppercase dot>
+                <span data-credit-display>{totalCredits}</span> left
+              </Badge>
+            )}
+          </div>
+        </Card>
+      )}
+
+      {/* ═════════════════════════════════════════════════════════════
+          PER-SHARE BOXES
+          ═════════════════════════════════════════════════════════════ */}
+      {!noShare && !boxNotPosted && sections.map((section) => {
+        const shareLabel = SHARE_TYPE_LABELS[section.member.share_type] ?? section.member.share_type;
+        const memberId = section.member.id;
+        const memberCredits = section.member.swap_credits;
+
+        return (
+          <section
+            aria-labelledby={`share-${memberId}-heading`}
+            data-member-id={memberId}
+            data-member-credits={memberCredits}
+          >
+            <Card padding="none" elevation="md">
+              <h2
+                slot="header"
+                id={`share-${memberId}-heading`}
+                class="font-display text-lg font-semibold text-ts-text sm:text-xl"
+              >
+                {shareLabel}
+                {sections.length > 1 && (
+                  <span class="ml-2 text-sm font-normal text-ts-text-muted">
+                    · <span data-member-credit-display={memberId}>{memberCredits}</span> swap{memberCredits === 1 ? '' : 's'} left
+                  </span>
+                )}
+              </h2>
+
+              {section.items.length === 0 ? (
+                <div class="px-5 py-8 text-center sm:px-6">
+                  <p class="text-sm text-ts-text-muted">
+                    No items posted yet for this share.
+                  </p>
+                </div>
+              ) : (
+                <ul class="divide-y divide-ts-border/60">
+                  {section.items.map((item) => {
+                    const swapKey = `${memberId}|${item.product_name}`;
+                    const existingSwap = swapsByKey.get(swapKey) ?? null;
+                    const swappedFor = existingSwap?.swapped_for ?? null;
+
+                    // Disable reasons (in priority order):
+                    //   - cutoff passed
+                    //   - already swapped (covered by `swapped` rendering — undo button)
+                    //   - no credits + not yet swapped
+                    //   - swappable but no options available
+                    const noOptions =
+                      item.is_swappable &&
+                      (item.swap_options ?? []).length === 0;
+                    const noCredits = memberCredits === 0 && !swappedFor;
+                    let disabled = false;
+                    let reason: string | undefined;
+                    if (cutoffPassed) {
+                      disabled = true;
+                      reason = 'Customization closed for this week';
+                    } else if (noOptions) {
+                      disabled = true;
+                      reason = 'No swap options available for this item this week';
+                    } else if (noCredits) {
+                      disabled = true;
+                      reason = 'Out of swap credits this season';
+                    }
+
+                    return (
+                      <ItemCard
+                        product={item.product_name}
+                        variety={item.variety}
+                        quantity={item.quantity}
+                        unit={item.unit}
+                        swappable={item.is_swappable}
+                        swapped={swappedFor}
+                        swapDisabled={disabled}
+                        swapDisabledReason={reason}
+                        swapOptionsId={`opts-${memberId}-${item.product_name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`}
+                      />
+                    );
+                  })}
+                </ul>
+              )}
+
+              <p slot="footer" class="text-xs text-ts-text-muted">
+                {cutoffPassed
+                  ? 'Customization closed Tuesday at 8 AM Eastern. The box ships as shown.'
+                  : 'Customization closes Tuesday at 8 AM Eastern. After that, the box ships as shown.'
+                }
+              </p>
+            </Card>
+          </section>
+        );
+      })}
+
+      {/* ═════════════════════════════════════════════════════════════
+          OWNER QA NOTICE — only visible if ?override_cutoff=true
+          ═════════════════════════════════════════════════════════════ */}
+      {isOwnerOverride && (
+        <Card tone="warning" elevation="sm" padding="sm">
+          <p class="text-sm text-ts-warning">
+            <strong>QA mode:</strong> the 8 AM cutoff is being bypassed for this
+            session because you (todd@tinyseedfarmpgh.com) opened
+            <code class="mx-1 rounded bg-ts-warning/10 px-1.5 py-0.5 font-mono">?override_cutoff=true</code>.
+            Members never see this banner.
+          </p>
+        </Card>
+      )}
+
+      {/* ═════════════════════════════════════════════════════════════
+          FOOTER
+          ═════════════════════════════════════════════════════════════ */}
+      <footer class="mt-auto border-t border-ts-border pt-6 text-center text-xs text-ts-text-muted">
+        <p>
+          Signed in as <span class="font-medium text-ts-text-secondary">{user.email}</span>
+        </p>
+        <p class="mt-1">
+          Tiny Seed Farm · 257 Zeigler Rd, Rochester, PA · Certified Organic
+        </p>
+      </footer>
+    </main>
+  </div>
+
+  {/* ═════════════════════════════════════════════════════════════════
+      BOTTOM SHEETS — one for swap-option selection, one for confirmation.
+      ═════════════════════════════════════════════════════════════════ */}
+  <BottomSheet id="sheet-swap-options" titleId="sheet-swap-options-title" size="md">
+    <h2
+      slot="title"
+      id="sheet-swap-options-title"
+      class="font-display text-xl font-semibold text-ts-text"
+    >
+      Swap <span data-sheet-original>this item</span>
+    </h2>
+    <p class="mb-4 text-sm text-ts-text-secondary">
+      Pick what you'd like instead. You'll have one chance to confirm.
+    </p>
+    <ul
+      class="flex flex-col gap-2"
+      data-sheet-options-list
+      role="list"
+    >
+      {/* Populated by JS at open-time */}
+    </ul>
+    <div class="mt-5 border-t border-ts-border pt-4">
+      <Button variant="ghost" size="md" fullWidth>
+        <span data-bottom-sheet-close>Cancel</span>
+      </Button>
+    </div>
+  </BottomSheet>
+
+  <BottomSheet id="sheet-confirm" titleId="sheet-confirm-title" size="sm">
+    <h2
+      slot="title"
+      id="sheet-confirm-title"
+      class="font-display text-xl font-semibold text-ts-text"
+    >
+      Confirm swap
+    </h2>
+    <p class="text-base leading-relaxed text-ts-text">
+      Swap <strong data-confirm-original>—</strong> for <strong data-confirm-new>—</strong>?
+    </p>
+    <p class="mt-2 text-sm text-ts-text-secondary">
+      This uses 1 of your remaining swap credits. You can undo until the cutoff.
+    </p>
+    <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+      <button
+        type="button"
+        class="inline-flex h-11 items-center justify-center rounded-ts-md px-5 text-base font-semibold text-ts-text-secondary transition-colors duration-150 hover:bg-ts-bg-muted hover:text-ts-text active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary [touch-action:manipulation]"
+        data-bottom-sheet-close
+      >
+        Cancel
+      </button>
+      <button
+        type="button"
+        class="inline-flex h-11 min-w-[8rem] items-center justify-center gap-2 rounded-ts-md bg-ts-primary px-5 text-base font-semibold text-white shadow-ts-sm transition-all duration-150 hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
+        data-confirm-swap
+      >
+        <span data-confirm-label>Yes, swap</span>
+      </button>
+    </div>
+  </BottomSheet>
+
+  {/* Toast region for swap success / error announcements */}
+  <div
+    class="pointer-events-none fixed right-4 bottom-4 left-4 z-[60] flex flex-col items-center gap-2 sm:right-6 sm:left-auto sm:bottom-6 sm:items-end"
+    aria-live="polite"
+    aria-atomic="false"
+    data-toast-region
+  ></div>
+
+  {/* Server-baked client payload */}
+  <script is:inline type="application/json" data-box-payload set:html={JSON.stringify(clientPayload)}></script>
+
+  <script>
+    // ─────────────────────────────────────────────────────────────────
+    // /box client logic — swap selection + confirmation + API call
+    // ─────────────────────────────────────────────────────────────────
+    type Member = { id: string; share_type: string; swap_credits: number };
+    type Item = { share_type: string; product_name: string; swap_options: string[] };
+    type Payload = {
+      week_date: string;
+      cutoff_passed: boolean;
+      members: Member[];
+      items: Item[];
+      api_qs: string;
+    };
+
+    const payloadEl = document.querySelector<HTMLScriptElement>('[data-box-payload]');
+    if (!payloadEl) {
+      console.warn('[/box] no payload element');
+    }
+    const payload: Payload = JSON.parse(payloadEl?.textContent ?? '{}') as Payload;
+
+    // Index members by share_type for O(1) lookup of (item) → member.
+    const memberByShareType = new Map<string, Member>();
+    for (const m of payload.members) memberByShareType.set(m.share_type, m);
+
+    // Index items by (share_type, product_name) for swap-option lookup.
+    const itemKey = (shareType: string, product: string): string =>
+      `${shareType}|${product}`;
+    const itemByKey = new Map<string, Item>();
+    for (const i of payload.items) itemByKey.set(itemKey(i.share_type, i.product_name), i);
+
+    // ─── Swap options sheet ────────────────────────────────────────
+    const optionsList = document.querySelector<HTMLUListElement>('[data-sheet-options-list]');
+    const optionsSheetOriginal = document.querySelector<HTMLElement>('[data-sheet-original]');
+
+    type PendingContext = {
+      memberId: string;
+      shareType: string;
+      originalItem: string;
+      originalLi: HTMLLIElement;
+      triggerBtn: HTMLButtonElement;
+    };
+    let pending: PendingContext | null = null;
+
+    function findShareTypeForMemberId(memberId: string): string | null {
+      const m = payload.members.find((mm) => mm.id === memberId);
+      return m?.share_type ?? null;
+    }
+
+    function openOptionsSheet(li: HTMLLIElement, btn: HTMLButtonElement): void {
+      const original = li.dataset.item ?? '';
+      const section = li.closest<HTMLElement>('[data-member-id]');
+      const memberId = section?.dataset.memberId ?? '';
+      const shareType = findShareTypeForMemberId(memberId);
+      if (!original || !memberId || !shareType || !optionsList || !optionsSheetOriginal) return;
+
+      const item = itemByKey.get(itemKey(shareType, original));
+      const options = item?.swap_options ?? [];
+
+      pending = {
+        memberId,
+        shareType,
+        originalItem: original,
+        originalLi: li,
+        triggerBtn: btn,
+      };
+
+      optionsSheetOriginal.textContent = original;
+      optionsList.innerHTML = '';
+
+      if (options.length === 0) {
+        const li = document.createElement('li');
+        li.className = 'rounded-ts-md border border-ts-border bg-ts-bg-muted/40 p-4 text-center text-sm text-ts-text-muted';
+        li.textContent = 'No swap options available for this item this week.';
+        optionsList.appendChild(li);
+      } else {
+        for (const opt of options) {
+          const liEl = document.createElement('li');
+          const btnEl = document.createElement('button');
+          btnEl.type = 'button';
+          btnEl.className =
+            'flex w-full min-h-[52px] items-center justify-between gap-3 rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 py-3 text-left text-base font-medium text-ts-text transition-all duration-150 hover:border-ts-primary/40 hover:bg-ts-primary/5 active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary [touch-action:manipulation]';
+          btnEl.dataset.optionValue = opt;
+          btnEl.innerHTML =
+            '<span>' + escapeHtml(opt) + '</span>' +
+            '<span aria-hidden="true" class="text-ts-text-muted">→</span>';
+          btnEl.addEventListener('click', () => {
+            // Move into confirm step.
+            window.BottomSheet.close('sheet-swap-options');
+            openConfirmSheet(opt, btnEl);
+          });
+          liEl.appendChild(btnEl);
+          optionsList.appendChild(liEl);
+        }
+      }
+
+      window.BottomSheet.open('sheet-swap-options', btn);
+    }
+
+    // ─── Confirm sheet ─────────────────────────────────────────────
+    const confirmOriginalEl = document.querySelector<HTMLElement>('[data-confirm-original]');
+    const confirmNewEl = document.querySelector<HTMLElement>('[data-confirm-new]');
+    const confirmBtn = document.querySelector<HTMLButtonElement>('[data-confirm-swap]');
+    const confirmLabel = document.querySelector<HTMLElement>('[data-confirm-label]');
+
+    let chosenSwap: string | null = null;
+
+    function openConfirmSheet(newItem: string, trigger: HTMLElement): void {
+      if (!pending || !confirmOriginalEl || !confirmNewEl) return;
+      confirmOriginalEl.textContent = pending.originalItem;
+      confirmNewEl.textContent = newItem;
+      chosenSwap = newItem;
+      window.BottomSheet.open('sheet-confirm', trigger);
+    }
+
+    confirmBtn?.addEventListener('click', async () => {
+      if (!pending || !chosenSwap || !confirmBtn || !confirmLabel) return;
+
+      // Loading state on the confirm button.
+      confirmBtn.disabled = true;
+      confirmLabel.textContent = 'Swapping…';
+
+      try {
+        const res = await fetch('/api/box/swap' + payload.api_qs, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({
+            member_id: pending.memberId,
+            week_date: payload.week_date,
+            original_item: pending.originalItem,
+            swapped_for: chosenSwap,
+          }),
+        });
+
+        const json = (await res.json().catch(() => ({}))) as {
+          ok?: boolean;
+          error?: string;
+          remaining_credits?: number;
+        };
+
+        if (res.ok && json.ok) {
+          // Optimistically rewrite the row to show the swapped item.
+          applySwapToDom(pending.originalLi, pending.originalItem, chosenSwap);
+          updateCredits(pending.memberId, json.remaining_credits ?? 0);
+          showToast('success', `Swapped ${pending.originalItem} for ${chosenSwap}.`);
+          window.BottomSheet.close('sheet-confirm');
+        } else if (json.error === 'already_swapped') {
+          showToast('info', 'This item was already swapped.');
+          window.BottomSheet.close('sheet-confirm');
+          // Best-effort: refresh to pull the existing swap into view.
+          window.location.reload();
+        } else if (json.error === 'no_credits') {
+          showToast('error', 'You\'ve used all your swap credits this season.');
+          updateCredits(pending.memberId, 0);
+          window.BottomSheet.close('sheet-confirm');
+        } else if (json.error === 'cutoff_passed') {
+          showToast('error', 'Customization is closed for this week.');
+          window.BottomSheet.close('sheet-confirm');
+          window.location.reload();
+        } else {
+          showToast('error', errorCopyFor(json.error));
+        }
+      } catch (e) {
+        console.error('[/box] swap fetch failed:', e);
+        showToast('error', 'Network error — try again.');
+      } finally {
+        confirmBtn.disabled = false;
+        confirmLabel.textContent = 'Yes, swap';
+      }
+    });
+
+    // ─── Undo flow ─────────────────────────────────────────────────
+    async function performUndo(li: HTMLLIElement, original: string): Promise<void> {
+      const section = li.closest<HTMLElement>('[data-member-id]');
+      const memberId = section?.dataset.memberId ?? '';
+      if (!memberId) return;
+
+      const btn = li.querySelector<HTMLButtonElement>('button[data-action="undo"]');
+      if (btn) btn.disabled = true;
+
+      try {
+        const res = await fetch('/api/box/swap-undo' + payload.api_qs, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({
+            member_id: memberId,
+            week_date: payload.week_date,
+            original_item: original,
+          }),
+        });
+        const json = (await res.json().catch(() => ({}))) as {
+          ok?: boolean;
+          error?: string;
+          remaining_credits?: number;
+        };
+        if (res.ok && json.ok) {
+          showToast('success', `Restored ${original}.`);
+          updateCredits(memberId, json.remaining_credits ?? 0);
+          // Reload to re-render the row; cheaper than mutating DOM here.
+          window.location.reload();
+        } else if (json.error === 'cutoff_passed') {
+          showToast('error', 'Customization is closed for this week.');
+        } else {
+          showToast('error', errorCopyFor(json.error));
+          if (btn) btn.disabled = false;
+        }
+      } catch (e) {
+        console.error('[/box] undo fetch failed:', e);
+        showToast('error', 'Network error — try again.');
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    // ─── Wire item-card buttons ────────────────────────────────────
+    document.addEventListener('click', (e) => {
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+      const btn = target.closest<HTMLButtonElement>('button[data-action]');
+      if (!btn) return;
+      const action = btn.dataset.action;
+      const li = btn.closest<HTMLLIElement>('li');
+      if (!li) return;
+      if (action === 'swap') {
+        openOptionsSheet(li, btn);
+      } else if (action === 'undo') {
+        const original = li.dataset.item ?? '';
+        if (original && confirm(`Undo the swap of ${original}? Your credit will be refunded.`)) {
+          performUndo(li, original);
+        }
+      }
+    });
+
+    // ─── DOM helpers ───────────────────────────────────────────────
+    function applySwapToDom(li: HTMLLIElement, original: string, newItem: string): void {
+      // Replace the visible product name with the new item, mark the
+      // row as swapped, and swap the action button from "Swap" to "Undo".
+      li.dataset.swapped = newItem;
+
+      const nameSpan = li.querySelector<HTMLElement>('span.font-medium.text-ts-text');
+      if (nameSpan) nameSpan.textContent = newItem;
+
+      // Drop the variety + "Swappable" badge; add the "Swapped from X" badge.
+      const labelLine = li.querySelector<HTMLElement>('.flex.flex-wrap.items-baseline');
+      if (labelLine) {
+        // Remove any italic variety + sky badge.
+        labelLine.querySelectorAll('span.italic, span.text-ts-info').forEach((el) => el.remove());
+        const badge = document.createElement('span');
+        badge.className =
+          'inline-flex h-fit shrink-0 items-center rounded-full font-semibold ring-1 px-2 py-0.5 text-[10px] gap-1 uppercase tracking-wide bg-ts-accent/10 text-ts-accent ring-ts-accent/30';
+        badge.textContent = `Swapped from ${original}`;
+        labelLine.appendChild(badge);
+      }
+
+      // Swap the Swap button for an Undo button.
+      const swapBtn = li.querySelector<HTMLButtonElement>('button[data-action="swap"]');
+      if (swapBtn) {
+        const undoBtn = document.createElement('button');
+        undoBtn.type = 'button';
+        undoBtn.className = swapBtn.className.replace('hover:border-ts-primary/40', 'hover:border-ts-danger/40').replace('hover:text-ts-primary', 'hover:text-ts-danger');
+        undoBtn.dataset.action = 'undo';
+        undoBtn.dataset.item = original;
+        undoBtn.setAttribute('aria-label', `Undo swap of ${original}`);
+        undoBtn.innerHTML = '<span aria-hidden="true">↺</span> Undo';
+        swapBtn.replaceWith(undoBtn);
+      }
+    }
+
+    function updateCredits(memberId: string, remaining: number): void {
+      // Per-member credit display (in section headers when multi-share)
+      document.querySelectorAll<HTMLElement>(
+        `[data-member-credit-display="${memberId}"]`
+      ).forEach((el) => {
+        el.textContent = String(remaining);
+      });
+      // Total banner credit display: sum across all members.
+      // Approximation: we trust the per-member value. For multi-share,
+      // re-sum from data-member-credits attributes.
+      const section = document.querySelector<HTMLElement>(
+        `[data-member-id="${memberId}"]`
+      );
+      if (section) {
+        section.dataset.memberCredits = String(remaining);
+      }
+      let total = 0;
+      document.querySelectorAll<HTMLElement>('[data-member-credits]').forEach((s) => {
+        total += Number(s.dataset.memberCredits ?? '0');
+      });
+      document.querySelectorAll<HTMLElement>('[data-credit-display]').forEach((el) => {
+        el.textContent = String(total);
+      });
+    }
+
+    function showToast(kind: 'success' | 'error' | 'info', message: string): void {
+      const region = document.querySelector<HTMLElement>('[data-toast-region]');
+      if (!region) return;
+      const toast = document.createElement('div');
+      const tone =
+        kind === 'success' ? 'border-ts-primary/30 bg-ts-primary/10 text-ts-primary'
+        : kind === 'error' ? 'border-ts-danger/30 bg-ts-danger/10 text-ts-danger'
+        : 'border-ts-info/30 bg-ts-info/10 text-ts-info';
+      toast.className =
+        `pointer-events-auto rounded-ts-md border ${tone} px-4 py-3 text-sm font-medium shadow-ts-md transition-opacity duration-300 max-w-sm`;
+      toast.setAttribute('role', kind === 'error' ? 'alert' : 'status');
+      toast.textContent = message;
+      region.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 350);
+      }, 3500);
+    }
+
+    function errorCopyFor(code: string | undefined): string {
+      const map: Record<string, string> = {
+        invalid_input: 'Something looks off with this request.',
+        invalid_member: 'We can\'t verify your share — try refreshing.',
+        invalid_item: 'That item isn\'t in this week\'s box.',
+        invalid_swap: 'That swap isn\'t available.',
+        cutoff_passed: 'Customization is closed for this week.',
+        no_credits: 'You\'ve used all your swap credits this season.',
+        forbidden: 'You don\'t have permission to do that.',
+        unauthenticated: 'Please sign in to swap items.',
+        already_swapped: 'This item was already swapped.',
+        internal: 'Something went wrong. Try again.',
+      };
+      return map[code ?? ''] ?? 'Something went wrong. Try again.';
+    }
+
+    function escapeHtml(s: string): string {
+      return s
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    // Type augmentation for the BottomSheet helper.
+    declare global {
+      interface Window {
+        BottomSheet: {
+          open: (id: string, trigger?: HTMLElement) => void;
+          close: (id: string) => void;
+        };
+      }
+    }
+  </script>
+</BaseLayout>
