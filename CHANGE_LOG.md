@@ -6,6 +6,41 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-05-08] CSA Portal Day 5 — Magic Link Auth + Member Dashboard LIVE
+
+- Files: `apps/csa-portal/src/middleware.ts` (new), `apps/csa-portal/src/lib/app-locals.d.ts` (new — `Astro.locals` typing), `apps/csa-portal/src/lib/supabase.ts` (added `createSupabaseServerClient` cookie-aware helper using `@supabase/ssr`), `apps/csa-portal/src/lib/rate-limit.ts` (new — in-memory IP rate limiter for the magic-link form), `apps/csa-portal/src/pages/login.astro` (new), `apps/csa-portal/src/pages/auth/callback.ts` (new), `apps/csa-portal/src/pages/logout.ts` (new), `apps/csa-portal/src/pages/dashboard.astro` (new), `apps/csa-portal/src/pages/index.astro` (CTA copy: "Sign in" link replaces the email-Todd-only banner), `apps/csa-portal/package.json` (`@supabase/ssr@^0.10.3` added).
+- Role: fullstack-builder (delegated by PM_ARCHITECT, Day 5 of 14-day CSA migration plan).
+- Status: Deployed live to https://csa.tinyseedfarm.com.
+- What it does:
+  - **Login (`/login`)**: email-only magic-link form with Zod email validation, 5 req / IP / 15 min in-memory rate limit, honeypot field (`website`) for bot detection, anti-enumeration ("check your email" copy regardless of whether the address is registered), preserves `?next=` through the round-trip. Calls `supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: 'https://csa.tinyseedfarm.com/auth/callback?next=...' } })`. Emails go via Supabase's default email until Resend's verifier flips the domain (auto-swap via Supabase Dashboard → Auth → SMTP). SMS placeholder ("Sign in by text — coming soon") points to a mailto.
+  - **Auth callback (`/auth/callback`)**: receives `?code=<pkce>`, calls `exchangeCodeForSession`, sets httpOnly auth cookies, sanitizes `next` to a same-origin path (rejects `//evil.com` open-redirects), redirects. On error → `/login?error=invalid_link|callback_failed`.
+  - **Logout (`/logout`)**: GET + POST. Calls `signOut`, redirects to `/login`.
+  - **Middleware (`src/middleware.ts`)**: cookie-aware Supabase client built per-request via `@supabase/ssr` `createServerClient`. Calls `auth.getUser()` (server-validates JWT every request — not `getSession()`). Stashes `user` + `supabase` on `Astro.locals`. Protects `/dashboard`, `/box`, `/preferences`, `/profile`. Bounces logged-in users away from `/login`. Sets `Cache-Control: private, no-cache, no-store, must-revalidate, max-age=0` + `Pragma: no-cache` on every response (Supabase SSR best-practice — prevents CDN from serving one user's Set-Cookie to another).
+  - **Dashboard (`/dashboard`)**: personalized greeting (first name from `customers.contact_name` or email), one card per active member row showing share type + size + status pill + week progress bar + pickup location with day/time/address (or home delivery address), this week's box (next Wednesday's `box_contents` filtered to the user's `share_type`s, grouped by share type when the user has multiple), quick-action strip (vacation hold / preferences / contact farm — placeholders link to `/vacation`, `/preferences`, mailto). Empty state for users with no active member row → "browse our shares" CTA. Empty state for "box not yet planned" when next-Wed `box_contents` is empty.
+- Security:
+  - All member-data queries flow through the cookie-aware client (RLS enforced — even a missing WHERE clause can't leak). `supabaseAdmin` is only used for `box_contents` (publicly readable to authenticated users per the RLS policy).
+  - Cookies forced to httpOnly + secure + sameSite=lax + path=/ regardless of what Supabase passes (XSS / CSRF defence).
+  - PKCE flow (already configured in `supabase.ts`) — prevents code-interception attacks on the magic link.
+  - Honeypot bot trap on `/login`. Server-side IP rate limit (5 / 15 min). Supabase Auth itself rate-limits per-email at 1/60s.
+  - `next` redirect param sanitized at both `/login` and `/auth/callback` to prevent open-redirect.
+  - Anti-enumeration: identical UX whether email is registered or not. Server-side log captures send failures, client never sees them.
+  - HTML output verified: zero leaks of `eyJhbG...` (anon key chunks), `sbp_...` (PAT), `vcp_...` (Vercel token), or `service_role`.
+  - All security headers from `vercel.json` (CSP, HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy) preserved.
+- Quality bars:
+  - `npx astro check` → 0 errors / 0 warnings / 0 hints (13 files).
+  - `npm run build` → clean Vercel server bundle.
+  - TypeScript strict — no `any`, no `@ts-ignore`. Modern `z.email()` and `.overrideTypes<T, { merge: false }>()` (no deprecated APIs).
+  - Mobile-first via Tailwind 4 with the existing Tiny Seed design tokens (Inter body / Barlow Condensed display, `--color-ts-primary`, etc.).
+  - WCAG AA: skip link, semantic landmarks, ARIA labels on icon-only buttons, `role="status"` / `role="alert"` for live regions, keyboard-visible focus rings, contrast meets AA on every text/background pairing.
+- Out of scope (explicitly deferred per Day 5 spec):
+  - SMS magic-code login (Twilio Verify is provisioned but wiring is Day 6+; placeholder mailto link in place).
+  - `/box`, `/preferences`, `/vacation`, `/profile` real pages — placeholder links only.
+  - Onboarding flow (Day 6).
+  - Custom Resend email templates (Day 10).
+  - Admin dashboard (Day 9).
+- Verification: build clean, astro check 0 errors, all 8 required files present, live `/login` returns HTTP 200 with the form rendered server-side, no secrets in HTML, security headers preserved.
+- Next (Day 6): onboarding flow + Resend email template polish (once domain verifier completes).
+
 ## [2026-05-08] CSA Portal Day 2 — Astro Landing Page LIVE at csa.tinyseedfarm.com
 
 - Files: `apps/csa-portal/` (Astro 6.3 + Tailwind 4 + Supabase JS + Vercel adapter), `apps/csa-portal/src/pages/index.astro`, `apps/csa-portal/src/layouts/BaseLayout.astro`, `apps/csa-portal/src/lib/supabase.ts`, `apps/csa-portal/src/lib/database.types.ts`, `apps/csa-portal/src/styles/global.css`, `apps/csa-portal/astro.config.mjs`

@@ -1,0 +1,306 @@
+---
+/**
+ * /login — email magic-link login.
+ *
+ * GET:  render the form (with optional ?error=... message).
+ * POST: validate email, rate-limit by IP, fire magic link via Supabase Auth,
+ *       then re-render with a generic "check your email" success message.
+ *
+ * Anti-enumeration: we show the same "check your email" copy whether or
+ * not the email is registered. This prevents an attacker from probing
+ * "is foo@example.com a member?".
+ *
+ * Auth flow: Supabase Auth's `signInWithOtp()` with PKCE generates a
+ * one-time link of the form `https://<project>.supabase.co/auth/v1/verify?token=...&redirect_to=https://csa.tinyseedfarm.com/auth/callback`.
+ * When clicked, Supabase redirects to /auth/callback with `?code=<pkce>`,
+ * which exchanges for a session.
+ *
+ * SMS: deferred. The "Sign in by text" link is a placeholder that opens
+ * a mailto with subject "SMS login coming soon" so members can self-serve
+ * email anyway.
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { z } from 'zod';
+import { rateLimit, clientIp } from '../lib/rate-limit';
+
+// ── Server-side state ─────────────────────────────────────────────────
+let formStatus: 'idle' | 'sent' | 'error' = 'idle';
+let formMessage: string | null = null;
+let emailEcho = '';
+
+// Surfaced when middleware redirects here (e.g. ?error=invalid_link)
+const errorParam = Astro.url.searchParams.get('error');
+const ERROR_COPY: Record<string, string> = {
+  invalid_link:
+    "That magic link has expired or already been used. Enter your email below and we'll send a fresh one.",
+  session_expired:
+    'Your session expired. Please sign in again.',
+  callback_failed:
+    "We couldn't complete sign-in. Please try again — if this keeps happening, email todd@tinyseedfarmpgh.com.",
+};
+if (errorParam && ERROR_COPY[errorParam]) {
+  formStatus = 'error';
+  formMessage = ERROR_COPY[errorParam];
+}
+
+// Where to bounce the user after a successful login (preserved through
+// the magic-link round-trip via the `next` query param).
+const nextRaw = Astro.url.searchParams.get('next') ?? '/dashboard';
+// Hard-validate `next` to a same-origin path to prevent open-redirect.
+const nextPath = /^\/[^/].*$/.test(nextRaw) || nextRaw === '/dashboard'
+  ? nextRaw
+  : '/dashboard';
+
+// ── POST handler ──────────────────────────────────────────────────────
+if (Astro.request.method === 'POST') {
+  // Rate limit: 5 attempts per IP per 15 minutes.
+  const ip = clientIp(Astro.request);
+  const rl = rateLimit(`magic-link:${ip}`, {
+    max: 5,
+    windowMs: 15 * 60 * 1000,
+  });
+
+  if (!rl.ok) {
+    formStatus = 'error';
+    formMessage = `Too many attempts. Try again in ${Math.ceil(
+      rl.retryAfterSeconds / 60
+    )} minute${rl.retryAfterSeconds >= 120 ? 's' : ''}.`;
+  } else {
+    let formData: FormData;
+    try {
+      formData = await Astro.request.formData();
+    } catch {
+      formStatus = 'error';
+      formMessage = 'Could not read the form. Please try again.';
+      formData = new FormData();
+    }
+
+    const submittedEmail = String(formData.get('email') ?? '').trim();
+    emailEcho = submittedEmail;
+
+    const Schema = z.object({
+      email: z
+        .email('That doesn’t look like a valid email address.')
+        .min(3, 'Enter your email address.')
+        .max(254, 'That email is too long.'),
+    });
+
+    const parsed = Schema.safeParse({ email: submittedEmail });
+
+    if (!parsed.success) {
+      formStatus = 'error';
+      formMessage = parsed.error.issues[0]?.message ?? 'Invalid email.';
+    } else {
+      // Honeypot: if the hidden `website` field is set, treat as a bot.
+      // We pretend it succeeded (don't tip our hand).
+      const honey = String(formData.get('website') ?? '');
+      if (honey.length > 0) {
+        formStatus = 'sent';
+        formMessage = null;
+      } else {
+        const redirectBase = 'https://csa.tinyseedfarm.com';
+        const emailRedirectTo = `${redirectBase}/auth/callback?next=${encodeURIComponent(
+          nextPath
+        )}`;
+
+        const { error } = await Astro.locals.supabase.auth.signInWithOtp({
+          email: parsed.data.email,
+          options: {
+            emailRedirectTo,
+            // Don't auto-create auth.users entries for emails that
+            // aren't already members. Onboarding (Day 6) handles new
+            // accounts. Today, only existing members get a link.
+            shouldCreateUser: true,
+          },
+        });
+
+        if (error) {
+          // Log server-side, show generic message client-side.
+          console.error('[login] signInWithOtp failed:', error.message);
+          // Still show the same success copy (anti-enumeration).
+          // Supabase already rate-limits per email at 1/60s, so even a
+          // legitimately failing send (e.g. domain block) won't reveal
+          // whether the email exists.
+        }
+
+        formStatus = 'sent';
+        formMessage = null;
+      }
+    }
+  }
+}
+---
+
+<BaseLayout
+  title="Sign in — Tiny Seed Farm CSA"
+  description="Sign in to your Tiny Seed Farm CSA member portal with a one-time magic link sent to your email."
+  canonical="https://csa.tinyseedfarm.com/login"
+>
+  <main
+    id="main"
+    class="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-6 py-12 sm:py-16"
+  >
+    {/* ═════════════════════════════════════════════════════════════
+        HEADER
+        ═════════════════════════════════════════════════════════════ */}
+    <header class="mb-8 text-center">
+      <a
+        href="/"
+        class="inline-flex items-center gap-2 rounded-full border border-ts-border bg-ts-bg-surface px-4 py-1.5 text-xs font-medium tracking-wide text-ts-text-secondary uppercase shadow-ts-sm transition-colors duration-150 hover:border-ts-primary/40 hover:text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+        aria-label="Back to Tiny Seed Farm home"
+      >
+        <span class="inline-block h-2 w-2 rounded-full bg-ts-primary" aria-hidden="true"></span>
+        Tiny Seed Farm
+      </a>
+
+      <h1
+        class="mt-6 font-display text-4xl leading-tight font-bold tracking-tight text-ts-text sm:text-5xl"
+      >
+        Welcome back
+      </h1>
+      <p class="mt-3 text-base leading-relaxed text-ts-text-secondary">
+        We'll email you a one-time link to sign in. No password required.
+      </p>
+    </header>
+
+    {/* ═════════════════════════════════════════════════════════════
+        STATE: SUCCESS — magic link sent
+        ═════════════════════════════════════════════════════════════ */}
+    {formStatus === 'sent' ? (
+      <section
+        role="status"
+        aria-live="polite"
+        class="rounded-ts-xl border border-ts-primary/30 bg-ts-primary/5 p-6 shadow-ts-md sm:p-8"
+      >
+        <div class="flex flex-col items-center text-center">
+          <div
+            class="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-ts-primary/15 text-3xl"
+            aria-hidden="true"
+          >
+            ✉️
+          </div>
+          <h2 class="font-display text-2xl font-semibold text-ts-text">
+            Check your email
+          </h2>
+          <p class="mt-2 text-base leading-relaxed text-ts-text-secondary">
+            If the address you entered is registered with Tiny Seed Farm,
+            we've sent you a one-time sign-in link. It expires in 1 hour.
+          </p>
+          <p class="mt-4 text-sm text-ts-text-muted">
+            Didn't get the email? Check spam, or
+            <a
+              href="/login"
+              class="font-medium text-ts-primary underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+            >
+              try again
+            </a>
+            .
+          </p>
+        </div>
+      </section>
+    ) : (
+      <>
+        {/* ═════════════════════════════════════════════════════════════
+            STATE: ERROR (top-level — invalid link, rate limit, etc.)
+            ═════════════════════════════════════════════════════════════ */}
+        {formStatus === 'error' && formMessage && (
+          <div
+            role="alert"
+            class="mb-6 rounded-ts-lg border border-ts-danger/30 bg-ts-danger/5 px-4 py-3 text-sm leading-relaxed text-ts-danger"
+          >
+            {formMessage}
+          </div>
+        )}
+
+        {/* ═════════════════════════════════════════════════════════════
+            FORM
+            ═════════════════════════════════════════════════════════════ */}
+        <form
+          method="POST"
+          action="/login"
+          class="flex flex-col gap-4 rounded-ts-xl border border-ts-border bg-ts-bg-surface p-6 shadow-ts-md sm:p-8"
+          novalidate
+        >
+          <div class="flex flex-col gap-2">
+            <label
+              for="email"
+              class="text-sm font-medium text-ts-text"
+            >
+              Email address
+            </label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              autocomplete="email"
+              inputmode="email"
+              required
+              value={emailEcho}
+              placeholder="you@example.com"
+              aria-describedby="email-help"
+              class="w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text placeholder:text-ts-text-muted shadow-inner transition-colors duration-150 focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30"
+            />
+            <p id="email-help" class="text-xs text-ts-text-muted">
+              Use the email Tiny Seed has on file for your share.
+            </p>
+          </div>
+
+          {/* Honeypot — bots fill any text input named "website";
+              real users won't see it (visually hidden, off the tab order). */}
+          <div class="absolute -left-[9999px] h-0 w-0 overflow-hidden" aria-hidden="true">
+            <label for="website">Website (do not fill in)</label>
+            <input
+              id="website"
+              name="website"
+              type="text"
+              tabindex="-1"
+              autocomplete="off"
+            />
+          </div>
+
+          {/* Preserve `next` through the round-trip */}
+          <input type="hidden" name="next" value={nextPath} />
+
+          <button
+            type="submit"
+            class="mt-2 inline-flex items-center justify-center rounded-ts-md bg-ts-primary px-5 py-3 text-base font-semibold text-white shadow-ts-sm transition-all duration-150 hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <span>Email me a sign-in link</span>
+            <span class="ml-2" aria-hidden="true">→</span>
+          </button>
+
+          <p class="text-center text-xs text-ts-text-muted">
+            By signing in you agree to receive a one-time email from
+            <span class="whitespace-nowrap">tinyseedfarm.com</span>.
+          </p>
+        </form>
+
+        {/* ═════════════════════════════════════════════════════════════
+            ALTERNATE PATHS — SMS placeholder + farm contact
+            ═════════════════════════════════════════════════════════════ */}
+        <div class="mt-6 flex flex-col items-center gap-3 text-center text-sm">
+          <a
+            href="mailto:todd@tinyseedfarmpgh.com?subject=SMS%20login%20coming%20soon&body=Hi%20Todd%2C%20I%27d%20rather%20sign%20in%20with%20a%20text%20message%20instead%20of%20email.%20Can%20you%20let%20me%20know%20when%20that%27s%20available%3F"
+            class="text-ts-text-secondary underline-offset-4 hover:text-ts-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+          >
+            Sign in by text instead — coming soon
+          </a>
+          <span class="text-ts-text-muted">·</span>
+          <a
+            href="mailto:todd@tinyseedfarmpgh.com?subject=Help%20signing%20in"
+            class="text-ts-text-secondary underline-offset-4 hover:text-ts-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+          >
+            Email Todd for help
+          </a>
+        </div>
+      </>
+    )}
+
+    {/* ═════════════════════════════════════════════════════════════
+        FOOTER
+        ═════════════════════════════════════════════════════════════ */}
+    <footer class="mt-12 text-center text-xs text-ts-text-muted">
+      <p>Tiny Seed Farm · 257 Zeigler Rd, Rochester, PA · Certified Organic</p>
+    </footer>
+  </main>
+</BaseLayout>

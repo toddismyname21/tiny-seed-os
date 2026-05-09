@@ -1,0 +1,623 @@
+---
+/**
+ * /dashboard — logged-in member home.
+ *
+ * Auth is enforced by middleware.ts: by the time we run, `Astro.locals.user`
+ * is non-null. We fetch via `Astro.locals.supabase` (cookie-aware,
+ * RLS-scoped) so even if RLS lets a query through, the user can only
+ * see their own customer + member rows. We use `supabaseAdmin` ONLY for
+ * box_contents (public-read, but we already have the share types we
+ * need in hand and want to avoid a second auth check).
+ *
+ * Data shown:
+ *   - "Welcome back, {first_name}!" + logout link
+ *   - One Active Share card per member row (status, weeks remaining,
+ *     pickup details OR home-delivery address)
+ *   - This week's box: items for the upcoming Wednesday matching ANY
+ *     of the user's active share_types
+ *   - Quick-action strip (vacation hold / preferences / contact farm)
+ *
+ * If the authenticated user has no customer record → "no share" state.
+ * If the user has a customer record but no active member rows → same
+ * "no share" state with a slightly different message.
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { supabaseAdmin } from '../lib/supabase';
+
+const user = Astro.locals.user;
+const supabase = Astro.locals.supabase;
+
+// Defensive: middleware should have already handled this, but if a
+// page-level type-narrowing slipped through (e.g. a future refactor),
+// bounce to login rather than crash.
+if (!user || !user.email) {
+  return Astro.redirect('/login', 303);
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Resolve upcoming Wednesday in America/New_York (matches index.astro)
+// ─────────────────────────────────────────────────────────────────────
+function upcomingWednesday(now: Date = new Date()): string {
+  const fmt = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/New_York',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    weekday: 'short',
+  });
+  const parts = fmt.formatToParts(now);
+  const get = (t: string): string => parts.find((p) => p.type === t)?.value ?? '';
+  const dayIndex: Record<string, number> = {
+    Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6,
+  };
+  const todayIdx = dayIndex[get('weekday')] ?? 0;
+  const daysUntilWed = (3 - todayIdx + 7) % 7;
+  const todayET = new Date(`${get('year')}-${get('month')}-${get('day')}T00:00:00-05:00`);
+  const wed = new Date(todayET.getTime() + daysUntilWed * 86_400_000);
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/New_York',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(wed);
+}
+
+const targetWeek = upcomingWednesday();
+
+// ─────────────────────────────────────────────────────────────────────
+// 1. Customer + active members in one round-trip via embedded select.
+//    RLS on `customers` filters to the row matching auth.jwt() email,
+//    and `members` is filtered by customer_id = current_customer_id().
+//    The join below pulls the user's customer plus every member row
+//    they have plus the pickup_location for each.
+// ─────────────────────────────────────────────────────────────────────
+type ActiveShare = {
+  id: string;
+  share_type: string;
+  share_size: string | null;
+  season: string;
+  start_date: string;
+  end_date: string;
+  total_weeks: number;
+  weeks_remaining: number;
+  pickup_day: string | null;
+  pickup_location_id: string | null;
+  delivery_address: string | null;
+  status: string;
+  swap_credits: number;
+  vacation_weeks_used: number;
+  pickup_location: {
+    name: string;
+    address: string | null;
+    city: string | null;
+    state: string;
+    day_of_week: string | null;
+    time_start: string | null;
+    time_end: string | null;
+    is_delivery_zone: boolean;
+  } | null;
+};
+
+type CustomerWithShares = {
+  id: string;
+  contact_name: string;
+  email: string;
+  members: ActiveShare[];
+};
+
+const { data: customerRows, error: customerError } = await supabase
+  .from('customers')
+  .select(
+    `
+    id,
+    contact_name,
+    email,
+    members (
+      id,
+      share_type,
+      share_size,
+      season,
+      start_date,
+      end_date,
+      total_weeks,
+      weeks_remaining,
+      pickup_day,
+      pickup_location_id,
+      delivery_address,
+      status,
+      swap_credits,
+      vacation_weeks_used,
+      pickup_location:pickup_locations (
+        name,
+        address,
+        city,
+        state,
+        day_of_week,
+        time_start,
+        time_end,
+        is_delivery_zone
+      )
+    )
+  `
+  )
+  .limit(1)
+  .overrideTypes<CustomerWithShares[], { merge: false }>();
+
+if (customerError) {
+  console.error('[dashboard] customer fetch failed:', customerError);
+}
+
+const customer = customerRows?.[0] ?? null;
+const allShares = customer?.members ?? [];
+
+// Show only "live" shares — status in {'active','paused','onboarding'}.
+// Anything else (cancelled, lapsed, expired, inactive) is historical
+// and is hidden on the dashboard.
+const liveStatuses = new Set(['active', 'paused', 'onboarding']);
+const activeShares = allShares.filter((s) => liveStatuses.has(s.status));
+
+// First name extraction: take first whitespace-separated token.
+const firstName = (customer?.contact_name ?? user.email!.split('@')[0])
+  .trim()
+  .split(/\s+/)[0];
+
+// ─────────────────────────────────────────────────────────────────────
+// 2. Box contents for upcoming Wednesday × this user's share types.
+// ─────────────────────────────────────────────────────────────────────
+type BoxItem = {
+  share_type: string;
+  product_name: string;
+  variety: string | null;
+  quantity: number;
+  unit: string;
+  is_swappable: boolean;
+};
+
+const userShareTypes = Array.from(new Set(activeShares.map((s) => s.share_type)));
+
+let boxItems: BoxItem[] = [];
+if (userShareTypes.length > 0) {
+  const { data: boxRows, error: boxError } = await supabaseAdmin
+    .from('box_contents')
+    .select('share_type, product_name, variety, quantity, unit, is_swappable')
+    .eq('week_date', targetWeek)
+    .in('share_type', userShareTypes)
+    .order('share_type', { ascending: true })
+    .order('product_name', { ascending: true })
+    .overrideTypes<BoxItem[], { merge: false }>();
+  if (boxError) {
+    console.error('[dashboard] box contents fetch failed:', boxError);
+  }
+  boxItems = boxRows ?? [];
+}
+
+// Group items by share_type so a multi-share member sees them split.
+const itemsByShareType = new Map<string, BoxItem[]>();
+for (const item of boxItems) {
+  if (!itemsByShareType.has(item.share_type)) {
+    itemsByShareType.set(item.share_type, []);
+  }
+  itemsByShareType.get(item.share_type)!.push(item);
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Display helpers
+// ─────────────────────────────────────────────────────────────────────
+const SHARE_TYPE_LABELS: Record<string, string> = {
+  spring_veg: 'Spring Vegetable Share',
+  summer_veg: 'Summer Vegetable Share',
+  fall_veg: 'Fall Vegetable Share',
+  flower: 'Flower Share',
+  flex: 'Flex Share',
+  add_on: 'Add-On',
+  wholesale_csa: 'Wholesale CSA',
+};
+
+const SHARE_SIZE_LABELS: Record<string, string> = {
+  small: 'Small', regular: 'Regular', family: 'Family', petite: 'Petite',
+  large: 'Large', light: 'Light', full: 'Full', half: 'Half',
+  quarter: 'Quarter', single: 'Single', double: 'Double',
+};
+
+const STATUS_PILL: Record<string, { label: string; classes: string }> = {
+  active: { label: 'Active', classes: 'bg-ts-primary/10 text-ts-primary ring-1 ring-ts-primary/30' },
+  paused: { label: 'Paused', classes: 'bg-ts-warning/10 text-ts-warning ring-1 ring-ts-warning/30' },
+  onboarding: { label: 'Onboarding', classes: 'bg-ts-info/10 text-ts-info ring-1 ring-ts-info/30' },
+};
+
+const dayLong: Record<string, string> = {
+  Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday',
+  Thu: 'Thursday', Fri: 'Friday', Sat: 'Saturday', Sun: 'Sunday',
+};
+
+function formatTimeRange(start: string | null, end: string | null): string {
+  if (!start || !end) return '';
+  const fmt = (t: string): string => {
+    const [hStr, mStr] = t.split(':');
+    let h = Number(hStr);
+    const m = Number(mStr);
+    const period = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 === 0 ? 12 : h % 12;
+    return m === 0 ? `${h} ${period}` : `${h}:${mStr.padStart(2, '0')} ${period}`;
+  };
+  return `${fmt(start)}–${fmt(end)}`;
+}
+
+const targetWeekPretty = new Intl.DateTimeFormat('en-US', {
+  weekday: 'long', month: 'long', day: 'numeric',
+  timeZone: 'America/New_York',
+}).format(new Date(`${targetWeek}T12:00:00-04:00`));
+
+// Page title — personalized
+const title = `Welcome back, ${firstName} — Tiny Seed Farm CSA`;
+---
+
+<BaseLayout title={title} canonical="https://csa.tinyseedfarm.com/dashboard">
+  <a
+    href="#main"
+    class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-ts-md focus:bg-ts-primary focus:px-4 focus:py-2 focus:text-white focus:shadow-ts-md"
+  >
+    Skip to main content
+  </a>
+
+  <div class="min-h-screen bg-ts-bg-base">
+    {/* ═════════════════════════════════════════════════════════════
+        TOP BAR
+        ═════════════════════════════════════════════════════════════ */}
+    <header
+      class="border-b border-ts-border bg-ts-bg-surface/80 backdrop-blur-sm"
+    >
+      <div class="mx-auto flex max-w-3xl items-center justify-between px-5 py-4 sm:px-6 sm:py-5">
+        <a
+          href="/dashboard"
+          class="flex items-center gap-2 rounded-ts-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ts-primary"
+          aria-label="Tiny Seed Farm CSA dashboard home"
+        >
+          <span class="inline-block h-2.5 w-2.5 rounded-full bg-ts-primary" aria-hidden="true"></span>
+          <span class="font-display text-lg font-bold tracking-tight text-ts-text">
+            Tiny Seed Farm
+          </span>
+        </a>
+
+        <form method="POST" action="/logout" class="m-0">
+          <button
+            type="submit"
+            class="rounded-ts-md px-3 py-2 text-sm font-medium text-ts-text-secondary transition-colors duration-150 hover:bg-ts-bg-muted hover:text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+          >
+            Sign out
+          </button>
+        </form>
+      </div>
+    </header>
+
+    <main
+      id="main"
+      class="mx-auto flex w-full max-w-3xl flex-col gap-8 px-5 py-8 sm:gap-10 sm:px-6 sm:py-12"
+    >
+      {/* ═════════════════════════════════════════════════════════════
+          GREETING
+          ═════════════════════════════════════════════════════════════ */}
+      <section aria-labelledby="greeting-heading">
+        <h1
+          id="greeting-heading"
+          class="font-display text-3xl leading-tight font-bold tracking-tight text-ts-text sm:text-4xl"
+        >
+          Welcome back, {firstName}.
+        </h1>
+        <p class="mt-2 text-base text-ts-text-secondary">
+          Here's what's happening with your share this week.
+        </p>
+      </section>
+
+      {/* ═════════════════════════════════════════════════════════════
+          NO SHARE — fallback when customer record is missing OR
+          there are no live member rows
+          ═════════════════════════════════════════════════════════════ */}
+      {(!customer || activeShares.length === 0) && (
+        <section
+          aria-labelledby="no-share-heading"
+          class="rounded-ts-xl border border-ts-border bg-ts-bg-surface p-6 shadow-ts-md sm:p-8"
+        >
+          <div class="flex flex-col items-start gap-4">
+            <div
+              class="flex h-12 w-12 items-center justify-center rounded-ts-lg bg-ts-primary/10 text-2xl"
+              aria-hidden="true"
+            >
+              🌱
+            </div>
+            <div>
+              <h2 id="no-share-heading" class="font-display text-xl font-semibold text-ts-text">
+                No active share on file
+              </h2>
+              <p class="mt-2 text-base leading-relaxed text-ts-text-secondary">
+                {customer
+                  ? "We have you on file as a Tiny Seed customer, but you don't have a CSA share signed up for this season yet."
+                  : "We didn't find a customer record for "}
+                {!customer && (
+                  <span class="font-medium text-ts-text">{user.email}</span>
+                )}
+                {!customer && '.'}
+                {' '}Browse our shares or get in touch — we'd love to have you for the season.
+              </p>
+            </div>
+            <div class="flex flex-wrap gap-3">
+              <a
+                href="https://tinyseedfarm.com/collections/csa"
+                rel="noopener noreferrer"
+                target="_blank"
+                class="inline-flex items-center gap-2 rounded-ts-md bg-ts-primary px-5 py-3 text-sm font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+              >
+                Browse CSA shares
+                <span aria-hidden="true">→</span>
+              </a>
+              <a
+                href="mailto:todd@tinyseedfarmpgh.com?subject=CSA%20share%20question"
+                class="inline-flex items-center gap-2 rounded-ts-md border border-ts-border bg-ts-bg-surface px-5 py-3 text-sm font-medium text-ts-text transition-colors duration-150 hover:border-ts-primary/40 hover:text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+              >
+                Contact the farm
+              </a>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ═════════════════════════════════════════════════════════════
+          ACTIVE SHARE CARDS
+          ═════════════════════════════════════════════════════════════ */}
+      {customer && activeShares.length > 0 && (
+        <section aria-labelledby="shares-heading" class="flex flex-col gap-4">
+          <h2 id="shares-heading" class="font-display text-xl font-bold text-ts-text sm:text-2xl">
+            Your share{activeShares.length > 1 ? 's' : ''}
+          </h2>
+
+          <div class="flex flex-col gap-4">
+            {activeShares.map((share) => {
+              const shareLabel = SHARE_TYPE_LABELS[share.share_type] ?? share.share_type;
+              const sizeLabel = share.share_size ? SHARE_SIZE_LABELS[share.share_size] ?? share.share_size : null;
+              const pill = STATUS_PILL[share.status] ?? STATUS_PILL.active;
+              const weeksUsed = Math.max(0, share.total_weeks - share.weeks_remaining);
+              const progressPct = share.total_weeks > 0
+                ? Math.round((weeksUsed / share.total_weeks) * 100)
+                : 0;
+              const isHomeDelivery =
+                !share.pickup_location_id && Boolean(share.delivery_address);
+
+              return (
+                <article
+                  class="rounded-ts-xl border border-ts-border bg-ts-bg-surface p-5 shadow-ts-md transition-shadow duration-200 hover:shadow-ts-lg sm:p-6"
+                >
+                  <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div class="min-w-0">
+                      <div class="flex flex-wrap items-center gap-2">
+                        <h3 class="font-display text-lg font-semibold text-ts-text sm:text-xl">
+                          {shareLabel}
+                        </h3>
+                        {sizeLabel && (
+                          <span class="text-sm text-ts-text-muted">· {sizeLabel}</span>
+                        )}
+                      </div>
+                      <p class="mt-1 text-sm text-ts-text-muted">{share.season}</p>
+                    </div>
+                    <span
+                      class={`inline-flex h-fit shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide ${pill.classes}`}
+                    >
+                      <span class="inline-block h-1.5 w-1.5 rounded-full bg-current" aria-hidden="true"></span>
+                      {pill.label}
+                    </span>
+                  </div>
+
+                  {/* Progress */}
+                  <div class="mt-5">
+                    <div class="flex items-baseline justify-between text-sm">
+                      <span class="font-medium text-ts-text">
+                        Week {weeksUsed} of {share.total_weeks}
+                      </span>
+                      <span class="text-ts-text-muted tabular-nums">
+                        {share.weeks_remaining} {share.weeks_remaining === 1 ? 'week' : 'weeks'} remaining
+                      </span>
+                    </div>
+                    <div
+                      class="mt-2 h-2 w-full overflow-hidden rounded-full bg-ts-bg-muted"
+                      role="progressbar"
+                      aria-valuenow={progressPct}
+                      aria-valuemin="0"
+                      aria-valuemax="100"
+                      aria-label={`Share progress: ${progressPct}% complete`}
+                    >
+                      <div
+                        class="h-full rounded-full bg-ts-primary transition-all duration-300"
+                        style={`width: ${progressPct}%`}
+                      ></div>
+                    </div>
+                  </div>
+
+                  {/* Pickup / delivery */}
+                  <div class="mt-5 border-t border-ts-border pt-4">
+                    {isHomeDelivery ? (
+                      <div class="flex items-start gap-3">
+                        <span class="mt-0.5 text-lg" aria-hidden="true">🏡</span>
+                        <div class="min-w-0">
+                          <p class="text-sm font-medium text-ts-text">Home delivery</p>
+                          <p class="mt-0.5 text-sm leading-snug text-ts-text-secondary">
+                            {share.delivery_address}
+                          </p>
+                        </div>
+                      </div>
+                    ) : share.pickup_location ? (
+                      <div class="flex items-start gap-3">
+                        <span class="mt-0.5 text-lg" aria-hidden="true">📍</span>
+                        <div class="min-w-0">
+                          <p class="text-sm font-medium text-ts-text">
+                            {share.pickup_location.name}
+                          </p>
+                          <p class="mt-0.5 text-sm leading-snug text-ts-text-secondary">
+                            {share.pickup_location.day_of_week
+                              ? dayLong[share.pickup_location.day_of_week] ?? share.pickup_location.day_of_week
+                              : 'Day TBD'}
+                            {share.pickup_location.time_start && share.pickup_location.time_end && (
+                              <>
+                                {' '}·{' '}
+                                <span class="tabular-nums">
+                                  {formatTimeRange(share.pickup_location.time_start, share.pickup_location.time_end)}
+                                </span>
+                              </>
+                            )}
+                          </p>
+                          {(share.pickup_location.address || share.pickup_location.city) && (
+                            <p class="mt-0.5 text-xs text-ts-text-muted">
+                              {[share.pickup_location.address, share.pickup_location.city, share.pickup_location.state]
+                                .filter(Boolean)
+                                .join(', ')}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <div class="flex items-start gap-3">
+                        <span class="mt-0.5 text-lg" aria-hidden="true">📍</span>
+                        <p class="text-sm text-ts-text-muted">
+                          Pickup details coming — we'll email you once your stop is set.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* ═════════════════════════════════════════════════════════════
+          THIS WEEK'S BOX
+          ═════════════════════════════════════════════════════════════ */}
+      {customer && activeShares.length > 0 && (
+        <section aria-labelledby="box-heading" class="flex flex-col gap-4">
+          <div class="flex items-baseline justify-between gap-4">
+            <h2 id="box-heading" class="font-display text-xl font-bold text-ts-text sm:text-2xl">
+              This week's box
+            </h2>
+            <span class="text-sm text-ts-text-muted tabular-nums">{targetWeekPretty}</span>
+          </div>
+
+          {boxItems.length === 0 ? (
+            <div
+              class="rounded-ts-xl border border-dashed border-ts-border bg-ts-bg-muted/40 p-6 text-center"
+            >
+              <p class="text-base text-ts-text-secondary">
+                Your box for {targetWeekPretty} is being planned.
+              </p>
+              <p class="mt-1 text-sm text-ts-text-muted">
+                We post box contents the day before pickup. Check back Tuesday evening.
+              </p>
+            </div>
+          ) : (
+            <div class="flex flex-col gap-4">
+              {Array.from(itemsByShareType.entries()).map(([shareType, items]) => (
+                <article
+                  class="rounded-ts-xl border border-ts-border bg-ts-bg-surface shadow-ts-sm"
+                >
+                  {itemsByShareType.size > 1 && (
+                    <header class="border-b border-ts-border px-5 py-3 sm:px-6">
+                      <h3 class="text-sm font-semibold uppercase tracking-wide text-ts-text-secondary">
+                        {SHARE_TYPE_LABELS[shareType] ?? shareType}
+                      </h3>
+                    </header>
+                  )}
+                  <ul class="divide-y divide-ts-border/60">
+                    {items.map((item) => (
+                      <li class="flex items-baseline gap-3 px-5 py-3 sm:px-6">
+                        <div class="min-w-0 flex-1">
+                          <span class="font-medium text-ts-text">{item.product_name}</span>
+                          {item.variety && (
+                            <span class="ml-1.5 text-sm text-ts-text-muted">
+                              ({item.variety})
+                            </span>
+                          )}
+                          {item.is_swappable && (
+                            <span
+                              class="ml-2 inline-flex items-center rounded-full bg-ts-info/10 px-2 py-0.5 text-xs font-medium text-ts-info"
+                              aria-label="This item can be swapped"
+                            >
+                              swappable
+                            </span>
+                          )}
+                        </div>
+                        <span class="shrink-0 text-sm text-ts-text-secondary tabular-nums">
+                          {item.quantity} {item.unit}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                  <footer class="border-t border-ts-border px-5 py-3 sm:px-6">
+                    <a
+                      href="/box"
+                      class="inline-flex items-center gap-1 text-sm font-medium text-ts-primary underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+                      aria-label={`View full details for ${SHARE_TYPE_LABELS[shareType] ?? shareType}`}
+                    >
+                      View full details
+                      <span aria-hidden="true">→</span>
+                    </a>
+                  </footer>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* ═════════════════════════════════════════════════════════════
+          QUICK ACTIONS
+          ═════════════════════════════════════════════════════════════ */}
+      {customer && activeShares.length > 0 && (
+        <section aria-labelledby="actions-heading">
+          <h2 id="actions-heading" class="sr-only">Quick actions</h2>
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <a
+              href="/vacation"
+              class="group flex flex-col items-start gap-2 rounded-ts-xl border border-ts-border bg-ts-bg-surface p-5 shadow-ts-sm transition-all duration-200 hover:border-ts-primary/40 hover:shadow-ts-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+            >
+              <span class="text-2xl" aria-hidden="true">🏖️</span>
+              <span class="font-semibold text-ts-text">Vacation hold</span>
+              <span class="text-sm leading-snug text-ts-text-secondary">
+                Pause delivery while you're away.
+              </span>
+            </a>
+            <a
+              href="/preferences"
+              class="group flex flex-col items-start gap-2 rounded-ts-xl border border-ts-border bg-ts-bg-surface p-5 shadow-ts-sm transition-all duration-200 hover:border-ts-primary/40 hover:shadow-ts-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+            >
+              <span class="text-2xl" aria-hidden="true">🥬</span>
+              <span class="font-semibold text-ts-text">Preferences</span>
+              <span class="text-sm leading-snug text-ts-text-secondary">
+                Tell us what you don't eat — we'll never put it in your box.
+              </span>
+            </a>
+            <a
+              href="mailto:todd@tinyseedfarmpgh.com?subject=CSA%20question"
+              class="group flex flex-col items-start gap-2 rounded-ts-xl border border-ts-border bg-ts-bg-surface p-5 shadow-ts-sm transition-all duration-200 hover:border-ts-primary/40 hover:shadow-ts-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+            >
+              <span class="text-2xl" aria-hidden="true">✉️</span>
+              <span class="font-semibold text-ts-text">Contact the farm</span>
+              <span class="text-sm leading-snug text-ts-text-secondary">
+                Email Todd directly. He answers personally.
+              </span>
+            </a>
+          </div>
+        </section>
+      )}
+
+      {/* ═════════════════════════════════════════════════════════════
+          FOOTER
+          ═════════════════════════════════════════════════════════════ */}
+      <footer
+        class="mt-auto border-t border-ts-border pt-6 text-center text-xs text-ts-text-muted"
+      >
+        <p>
+          Signed in as <span class="font-medium text-ts-text-secondary">{user.email}</span>
+        </p>
+        <p class="mt-1">
+          Tiny Seed Farm · 257 Zeigler Rd, Rochester, PA · Certified Organic
+        </p>
+      </footer>
+    </main>
+  </div>
+</BaseLayout>
