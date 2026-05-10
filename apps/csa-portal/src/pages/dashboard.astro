@@ -26,6 +26,12 @@ import { supabaseAdmin } from '../lib/supabase';
 import EmptyState from '../components/EmptyState.astro';
 import Button from '../components/Button.astro';
 import Badge from '../components/Badge.astro';
+import DeliveryTracker from '../components/DeliveryTracker.astro';
+import {
+  shouldShowTracker,
+  fetchDeliveryStatus,
+  type DeliveryStatus,
+} from '../lib/delivery';
 
 const user = Astro.locals.user;
 const supabase = Astro.locals.supabase;
@@ -101,6 +107,7 @@ type ActiveShare = {
 
 type CustomerWithShares = {
   id: string;
+  legacy_id: string | null;
   contact_name: string;
   email: string;
   members: ActiveShare[];
@@ -111,6 +118,7 @@ const { data: customerRows, error: customerError } = await supabase
   .select(
     `
     id,
+    legacy_id,
     contact_name,
     email,
     members (
@@ -161,6 +169,51 @@ const activeShares = allShares.filter((s) => liveStatuses.has(s.status));
 const firstName = (customer?.contact_name ?? user.email!.split('@')[0])
   .trim()
   .split(/\s+/)[0];
+
+// ─────────────────────────────────────────────────────────────────────
+// Delivery tracker gate (Day 9). Show <DeliveryTracker> at the TOP of
+// the dashboard ONLY when:
+//   1. The member has an ACTIVE share (paused/onboarding don't qualify).
+//   2. Today is the share's pickup day in America/New_York.
+//   3. Pickup is NOT the farm self-pickup (Rochester) — those members
+//      walk up to the farm; no driver is involved.
+// We check across ALL active shares — a multi-share member (Spring Veg
+// + Flower) gets the widget if ANY share's pickup day is today. We
+// SSR the initial status from Apps Script so the widget renders with
+// real state (not a loading skeleton) — the client then polls for updates.
+// ─────────────────────────────────────────────────────────────────────
+const trackerEligibleShare = activeShares.find((s) => {
+  if (s.status !== 'active') return false;
+  const isHomeDelivery = !s.pickup_location_id && Boolean(s.delivery_address);
+  return shouldShowTracker({
+    pickup_day: s.pickup_day,
+    pickup_location_name: s.pickup_location?.name ?? null,
+    pickup_location_day: s.pickup_location?.day_of_week ?? null,
+    is_home_delivery: isHomeDelivery,
+    is_active_status: true,
+  });
+});
+
+let initialDeliveryStatus: DeliveryStatus | null = null;
+if (trackerEligibleShare && customer?.legacy_id) {
+  // Server-side initial fetch. `fetchDeliveryStatus` is fail-soft — on
+  // any upstream failure (Apps Script timeout, parse error, etc.) it
+  // returns { state: 'none', ... } and we render the widget hidden.
+  // The 8s timeout inside the helper guards dashboard load time.
+  initialDeliveryStatus = await fetchDeliveryStatus(customer.legacy_id);
+}
+
+// Pretty "Wed May 14" for the "packed for ___" copy. Always today in
+// ET — the widget only renders on a pickup day, so "today" is always
+// the relevant delivery date.
+const deliveryDateLabel = trackerEligibleShare
+  ? new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/New_York',
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+    }).format(new Date())
+  : '';
 
 // ─────────────────────────────────────────────────────────────────────
 // 2. Box contents for upcoming Wednesday × this user's share types.
@@ -302,6 +355,20 @@ const title = `Welcome back, ${firstName} — Tiny Seed Farm CSA`;
       id="main"
       class="mx-auto flex w-full max-w-3xl flex-col gap-8 px-5 py-8 sm:gap-10 sm:px-6 sm:py-12"
     >
+      {/* ═════════════════════════════════════════════════════════════
+          DELIVERY TRACKER (Day 9 — Phase 1 Apps Script bridge)
+          Only renders on pickup days for active members whose pickup
+          is NOT the farm self-pickup. State updates by polling
+          /api/delivery-status (60s default, 15s when driver en route,
+          paused when tab is hidden).
+          ═════════════════════════════════════════════════════════════ */}
+      {trackerEligibleShare && initialDeliveryStatus && (
+        <DeliveryTracker
+          initialStatus={initialDeliveryStatus}
+          pickupDateLabel={deliveryDateLabel}
+        />
+      )}
+
       {/* ═════════════════════════════════════════════════════════════
           POST-ACTIVATION WELCOME BANNER (one-time, ?welcome=1)
           ═════════════════════════════════════════════════════════════ */}
