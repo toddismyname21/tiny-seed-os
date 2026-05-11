@@ -88,7 +88,7 @@ This becomes the foundation for the **Employee migration** that follows wholesal
 | **14** | 6/4 | Product availability "notify me" | Subscribe to product, trigger email/SMS when back in stock |
 | **15** | 6/5 | Driver auth + clock in/out | PIN-based auth (separate from member magic link). GPS-verified clock in/out. |
 | **16** | 6/6 | Driver app: route + stops | Stop list, navigate, mark delivered, photo capture, signature capture |
-| **17** | 6/7 | Driver app: offline + status updates | IndexedDB queue for offline mutations; sync when online. Real-time `delivery_stops` updates trigger Supabase Realtime → chef portal sees live status |
+| **17** | 6/7 | Driver app: offline + status updates | IndexedDB queue for offline mutations; sync when online. Real-time `delivery_stops` updates trigger Supabase Realtime → chef portal sees live status. **🆕 Also unblocks CSA delivery tracking** — the `DeliveryTracker` widget shipped CSA Day 9 has been inert since 2026-05-10 because the Apps Script `getDeliveryHistory` endpoint isn't whitelisted for member access. When driver writes land in Postgres on this day, the widget queries Supabase directly via Realtime and becomes live for CSA members at the same time as chefs. Verification gate: log into the CSA portal as an active Spring member on a Wednesday, confirm the widget shows real status. |
 | **18** | 6/8 | Chef delivery tracking | Same widget pattern as CSA Day 9 — chefs see "your order is on the way" with status pill, driver name, ETA |
 | **19** | 6/9 | Offline-first chef PWA | Service worker, IndexedDB product catalog cache, offline order queue |
 | **20** | 6/10 | Florist-specific features | Florist customer type, flower-only catalog filter, stem count vs bunch pricing |
