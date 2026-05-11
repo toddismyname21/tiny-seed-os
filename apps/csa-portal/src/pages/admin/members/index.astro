@@ -28,6 +28,13 @@ import SearchInput from '../../../components/SearchInput.astro';
 import Pagination from '../../../components/Pagination.astro';
 import CSVExport from '../../../components/CSVExport.astro';
 import Select from '../../../components/Select.astro';
+import {
+  DISPLAY_ORDER,
+  filtersFor,
+  parseBucketId,
+  LARGE_SIZES,
+  SMALL_SIZES,
+} from '../../../lib/share-buckets';
 
 const supabase = Astro.locals.supabase;
 const url = Astro.url;
@@ -38,6 +45,7 @@ const q = (params.get('q') ?? '').trim();
 const status = params.get('status') ?? 'all';
 const shareType = params.get('share_type') ?? 'all';
 const pickupFilter = params.get('pickup_location') ?? 'all';
+const shareBucket = parseBucketId(params.get('share_bucket'));
 const pageRaw = Number.parseInt(params.get('page') ?? '1', 10);
 const page = Number.isFinite(pageRaw) && pageRaw > 0 ? pageRaw : 1;
 const PAGE_SIZE = 50;
@@ -85,6 +93,33 @@ if (status !== 'all') {
 }
 if (shareType !== 'all') {
   query = query.eq('share_type', shareType as ShareTypeEnum);
+}
+// share_bucket: granular bucket filter. Translates the bucket id into
+// a sequence of column predicates. The "unknown" bucket is special:
+// it represents rows where share_type expects a size (summer_veg or
+// flower) but share_size is NULL or unrecognised — that can't be
+// expressed via `filtersFor`, so we handle it inline.
+if (shareBucket === 'unknown') {
+  const knownSizes = [...SMALL_SIZES, ...LARGE_SIZES];
+  // share_type ∈ {summer_veg, flower} AND (share_size IS NULL OR share_size NOT IN (knownSizes))
+  query = query
+    .in('share_type', ['summer_veg', 'flower'] as ShareTypeEnum[])
+    .or(`share_size.is.null,share_size.not.in.(${knownSizes.join(',')})`);
+} else if (shareBucket) {
+  const f = filtersFor(shareBucket);
+  if (f.share_type) {
+    query = query.eq('share_type', f.share_type as ShareTypeEnum);
+  }
+  if (f.share_size_in && f.share_size_in.length > 0) {
+    type ShareSizeEnum = 'small' | 'regular' | 'family' | 'petite' | 'large' | 'light' | 'full' | 'half' | 'quarter' | 'single' | 'double';
+    query = query.in('share_size', f.share_size_in as ShareSizeEnum[]);
+  }
+  if (f.biweekly_week_is_null) {
+    query = query.is('biweekly_week', null);
+  }
+  if (typeof f.biweekly_week_eq === 'number') {
+    query = query.eq('biweekly_week', f.biweekly_week_eq);
+  }
 }
 if (pickupFilter === 'home_delivery') {
   query = query.is('pickup_location_id', null);
@@ -199,7 +234,7 @@ const subtitle = totalRows === 1
         ariaLabel="Search members"
       />
 
-      <div class="grid grid-cols-1 gap-3 sm:grid-cols-3" data-filter-group>
+      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4" data-filter-group>
         <label class="block">
           <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-ts-text-muted">
             Status
@@ -261,6 +296,21 @@ const subtitle = totalRows === 1
             ]}
           />
         </label>
+
+        <label class="block">
+          <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-ts-text-muted">
+            Share group
+          </span>
+          <Select
+            id="filter-bucket"
+            name="share_bucket"
+            value={shareBucket ?? ''}
+            options={[
+              { value: '', label: 'All groups' },
+              ...DISPLAY_ORDER.map((d) => ({ value: d.id, label: d.label })),
+            ]}
+          />
+        </label>
       </div>
 
       <div class="flex items-center gap-3">
@@ -270,7 +320,7 @@ const subtitle = totalRows === 1
         >
           Apply filters
         </button>
-        {(q || status !== 'all' || shareType !== 'all' || pickupFilter !== 'all') && (
+        {(q || status !== 'all' || shareType !== 'all' || pickupFilter !== 'all' || shareBucket) && (
           <a
             href="/admin/members"
             class="text-sm font-medium text-ts-text-secondary underline-offset-2 hover:text-ts-primary hover:underline"
@@ -303,7 +353,7 @@ const subtitle = totalRows === 1
       { key: 'view',     label: 'View',     srOnly: true, align: 'right' },
     ]}
     empty={members.length === 0}
-    emptyTitle={q || status !== 'all' || shareType !== 'all' || pickupFilter !== 'all'
+    emptyTitle={q || status !== 'all' || shareType !== 'all' || pickupFilter !== 'all' || shareBucket
       ? 'No members match these filters'
       : 'No members yet'}
     emptyIcon="🌱"

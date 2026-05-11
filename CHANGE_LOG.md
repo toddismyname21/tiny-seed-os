@@ -6,6 +6,23 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-05-11] CSA Portal Day 10 follow-up — Admin overview reconciliation + granular share buckets
+
+- Files: apps/csa-portal/src/lib/share-buckets.ts (NEW) + apps/csa-portal/src/pages/admin/index.astro + apps/csa-portal/src/pages/admin/members/index.astro + apps/csa-portal/src/pages/api/admin/reports/[name].csv.ts
+- Role: fullstack-builder (delegated by PM_ARCHITECT)
+- What it does:
+  1. Reconciliation fix on /admin pickup-location list: adds a "Home delivery / no pickup assigned" row showing the count of active members with `pickup_location_id IS NULL` and a footer that explicitly proves the math (`63 at pickup + 230 home/unassigned = 293 active ✓`). Live audit found 293 active members, only 63 at named pickup locations, 230 with no location — the previous UI silently hid those 230 members from the location summary.
+  2. Granular "Members by share" breakdown replaces the simple share_type list. 19 display buckets in stable order: spring_veg, 6 summer_veg variants (small/large × weekly/biweekly_a/biweekly_b), fall_veg, 6 flower variants (same matrix), flex, 3 add_on variants (weekly/biweekly_a/biweekly_b), wholesale_csa, and an "unbucketed" catch-all for rows missing a valid share_size. Each row links straight to a filtered /admin/members view.
+  3. /admin/members gains a "Share group" filter dropdown wired to the same bucket ids. The CSV export endpoint mirrors the filter so what Todd sees on screen is what he downloads.
+  4. Bucketing logic centralised in lib/share-buckets.ts: LARGE_SIZES, SMALL_SIZES, bucketSize(), bucketWeek(), classifyShare(), countByBucket(), filtersFor(), parseBucketId(). All display-only — no schema change.
+- Audit data (run via Supabase Management API at session start):
+  - 293 active members total
+  - 230 active with `pickup_location_id IS NULL` (these were not in any location row)
+  - All 11 share_size values in active data are mappable: small/petite/light → "small"; regular/family/large/full → "large". Zero unbucketed.
+  - All 293 active members have `biweekly_week IS NULL` today, so all bi-weekly bucket rows show 0 — they will populate once biweekly_week starts being written.
+- Out of scope (kept as-is per spec): no schema migration, no enum rename, no special treatment for members with multiple shares (they already appear in both groups).
+- Verification: `npm run build` clean, `npx astro check` 0 errors / 0 warnings (8 pre-existing hints unchanged), gate-4 grep returns 8 hits (spec required ≥3).
+
 ## [2026-05-10] CSA Portal Day 10 — Admin Dashboard LIVE
 
 - Files: apps/csa-portal/src/pages/admin/* + apps/csa-portal/src/pages/api/admin/* + components (Table, Tabs, SearchInput, Pagination, StatusPill, CSVExport, AdminShell) + apps/csa-portal/src/lib/admin.ts + apps/csa-portal/src/middleware.ts + supabase/migrations/0017_admin_role_and_rls.sql

@@ -28,6 +28,7 @@
  */
 import AdminShell from '../../components/AdminShell.astro';
 import Card from '../../components/Card.astro';
+import { DISPLAY_ORDER, countByBucket, type MemberShareRow } from '../../lib/share-buckets';
 
 const supabase = Astro.locals.supabase;
 
@@ -76,7 +77,7 @@ const [
   totalMembersRes,
 ] = await Promise.all([
   supabase.from('members').select('id', { count: 'exact', head: true }).eq('status', 'active'),
-  supabase.from('members').select('share_type, share_size, status').eq('status', 'active'),
+  supabase.from('members').select('share_type, share_size, biweekly_week, status').eq('status', 'active'),
   supabase.from('members')
     .select('pickup_location_id, pickup_location:pickup_locations(name, day_of_week, max_capacity)')
     .eq('status', 'active'),
@@ -100,12 +101,23 @@ const [
 const activeCount = activeCountRes.count ?? 0;
 const totalCount = totalMembersRes.count ?? 0;
 
-// ─── Share-type breakdown ───────────────────────────────────────────
-type ShareBreakdownRow = { share_type: string; share_size: string | null; status: string };
+// ─── Share-type breakdown (granular) ────────────────────────────────
+// We bucket each active member into one of the granular display
+// groups defined in lib/share-buckets.ts (Summer Small Weekly, Summer
+// Large Bi-weekly Wk A, Add-on Weekly, etc.). The simple share_type
+// rollup is still kept around for the "unfilled boxes" task pill.
+type ShareBreakdownRow = {
+  share_type: string;
+  share_size: string | null;
+  biweekly_week: number | null;
+  status: string;
+};
+const shareBreakdownRows = (byShareTypeRes.data ?? []) as unknown as ShareBreakdownRow[];
 const byShareType = new Map<string, number>();
-for (const row of (byShareTypeRes.data ?? []) as unknown as ShareBreakdownRow[]) {
+for (const row of shareBreakdownRows) {
   byShareType.set(row.share_type, (byShareType.get(row.share_type) ?? 0) + 1);
 }
+const bucketCounts = countByBucket(shareBreakdownRows as ReadonlyArray<MemberShareRow>);
 
 // ─── Location breakdown ─────────────────────────────────────────────
 type LocationBreakdownRow = {
@@ -360,47 +372,78 @@ const pendingTaskCount =
     )}
   </section>
 
-  {/* ════ Members by share type ════ */}
+  {/* ════ Members by share (granular) ════ */}
   <section aria-labelledby="share-heading" class="flex flex-col gap-4">
-    <h2 id="share-heading" class="font-display text-xl font-bold text-ts-text sm:text-2xl">
-      Members by share type
-    </h2>
+    <div class="flex items-baseline justify-between gap-3">
+      <h2 id="share-heading" class="font-display text-xl font-bold text-ts-text sm:text-2xl">
+        Members by share
+      </h2>
+      <span class="text-xs text-ts-text-muted">
+        Bi-weekly Wk A = even pickups · Wk B = odd pickups
+      </span>
+    </div>
     <Card padding="none" elevation="sm">
       <ul class="divide-y divide-ts-border/60">
-        {Array.from(byShareType.entries()).sort((a, b) => b[1] - a[1]).map(([type, count]) => {
-          const pct = activeCount > 0 ? Math.round((count / activeCount) * 100) : 0;
-          return (
-            <li class="flex items-center gap-4 px-5 py-3 sm:px-6">
-              <div class="min-w-0 flex-1">
-                <div class="flex items-baseline justify-between gap-3">
-                  <span class="font-medium text-ts-text">{shareLabel(type)}</span>
-                  <span class="text-sm text-ts-text-secondary tabular-nums">
-                    {count} · {pct}%
-                  </span>
-                </div>
-                <div
-                  class="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-ts-bg-muted"
-                  role="progressbar"
-                  aria-valuenow={pct}
-                  aria-valuemin="0"
-                  aria-valuemax="100"
-                  aria-label={`${shareLabel(type)}: ${pct}% of active members`}
-                >
+        {DISPLAY_ORDER
+          .filter((def) => (bucketCounts.get(def.id) ?? 0) > 0)
+          .map((def) => {
+            const count = bucketCounts.get(def.id) ?? 0;
+            const pct = activeCount > 0 ? Math.round((count / activeCount) * 100) : 0;
+            const isUnknown = def.id === 'unknown';
+            return (
+              <li class="flex items-center gap-4 px-5 py-3 sm:px-6">
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-baseline justify-between gap-3">
+                    <a
+                      href={`/admin/members?share_bucket=${def.id}&status=active`}
+                      class={[
+                        'truncate font-medium underline-offset-2 hover:underline',
+                        isUnknown ? 'text-ts-warning' : 'text-ts-text hover:text-ts-primary',
+                      ].join(' ')}
+                    >
+                      {def.label}
+                    </a>
+                    <span class="shrink-0 text-sm text-ts-text-secondary tabular-nums">
+                      {count} · {pct}%
+                    </span>
+                  </div>
                   <div
-                    class="h-full rounded-full bg-ts-primary"
-                    style={`width: ${pct}%`}
-                  ></div>
+                    class="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-ts-bg-muted"
+                    role="progressbar"
+                    aria-valuenow={pct}
+                    aria-valuemin="0"
+                    aria-valuemax="100"
+                    aria-label={`${def.label}: ${pct}% of active members`}
+                  >
+                    <div
+                      class={[
+                        'h-full rounded-full',
+                        isUnknown ? 'bg-ts-warning' : 'bg-ts-primary',
+                      ].join(' ')}
+                      style={`width: ${pct}%`}
+                    ></div>
+                  </div>
                 </div>
-              </div>
-            </li>
-          );
-        })}
-        {byShareType.size === 0 && (
+              </li>
+            );
+          })
+        }
+        {Array.from(bucketCounts.values()).reduce((a, b) => a + b, 0) === 0 && (
           <li class="px-5 py-6 text-center text-sm text-ts-text-muted sm:px-6">
             No active members yet.
           </li>
         )}
       </ul>
+      {(bucketCounts.get('unknown') ?? 0) > 0 && (
+        <div class="border-t border-ts-border/60 bg-ts-warning-bg/40 px-5 py-3 text-xs text-ts-text-secondary sm:px-6">
+          <strong class="font-semibold text-ts-warning">
+            {bucketCounts.get('unknown')} unbucketed
+          </strong>
+          {' '}member{(bucketCounts.get('unknown') ?? 0) === 1 ? '' : 's'} need a valid
+          {' '}<code class="rounded bg-ts-bg-muted px-1 py-0.5 font-mono text-[11px]">share_size</code>{' '}
+          assignment. Open any unbucketed row to set it.
+        </div>
+      )}
     </Card>
   </section>
 
@@ -419,7 +462,7 @@ const pendingTaskCount =
     </div>
     <Card padding="none" elevation="sm">
       <ul class="divide-y divide-ts-border/60">
-        {sortedLocations.length === 0 && (
+        {sortedLocations.length === 0 && homeDeliveryCount === 0 && (
           <li class="px-5 py-6 text-center text-sm text-ts-text-muted sm:px-6">
             No active pickup locations.
           </li>
@@ -449,7 +492,54 @@ const pendingTaskCount =
             </li>
           );
         })}
+        {homeDeliveryCount > 0 && (
+          <li class="flex items-center gap-4 bg-ts-bg-muted/30 px-5 py-3 sm:px-6">
+            <div class="min-w-0 flex-1">
+              <div class="flex items-baseline justify-between gap-3">
+                <a
+                  href="/admin/members?pickup_location=home_delivery&status=active"
+                  class="truncate font-medium text-ts-text underline-offset-2 hover:text-ts-primary hover:underline"
+                >
+                  Home delivery / no pickup assigned
+                </a>
+                <span class="shrink-0 text-sm font-semibold text-ts-text-secondary tabular-nums">
+                  {homeDeliveryCount}
+                </span>
+              </div>
+              <p class="mt-0.5 text-xs text-ts-text-muted">
+                Members with no <code class="rounded bg-ts-bg-muted px-1 py-0.5 font-mono text-[11px]">pickup_location_id</code>
+                {' '}(home delivery, on-farm, or unassigned)
+              </p>
+            </div>
+          </li>
+        )}
       </ul>
+      {/* Reconciliation footer — sums MUST match the headline active count. */}
+      {(() => {
+        const locSum = sortedLocations.reduce((a, l) => a + l.count, 0);
+        const grandTotal = locSum + homeDeliveryCount;
+        const mismatch = grandTotal !== activeCount;
+        return (
+          <div class={[
+            'border-t border-ts-border/60 px-5 py-3 text-xs sm:px-6',
+            mismatch ? 'bg-ts-danger-bg/40 text-ts-danger' : 'text-ts-text-muted',
+          ].join(' ')}>
+            <span class="tabular-nums">{locSum}</span>
+            {' '}at pickup locations + <span class="tabular-nums">{homeDeliveryCount}</span>
+            {' '}home delivery / unassigned ={' '}
+            <strong class="font-semibold tabular-nums">{grandTotal}</strong>
+            {mismatch ? (
+              <>
+                {' '}≠ <span class="tabular-nums">{activeCount}</span> active total — data inconsistency, please report.
+              </>
+            ) : (
+              <>
+                {' '}= <span class="tabular-nums">{activeCount}</span> active members ✓
+              </>
+            )}
+          </div>
+        );
+      })()}
     </Card>
   </section>
 

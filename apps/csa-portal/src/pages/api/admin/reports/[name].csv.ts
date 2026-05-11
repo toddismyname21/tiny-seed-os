@@ -22,6 +22,12 @@
  */
 import type { APIRoute } from 'astro';
 import { requireAdmin } from '../../../../lib/admin';
+import {
+  filtersFor,
+  parseBucketId,
+  LARGE_SIZES,
+  SMALL_SIZES,
+} from '../../../../lib/share-buckets';
 
 export const prerender = false;
 
@@ -109,6 +115,24 @@ export const GET: APIRoute = async ({ url, locals, params }) => {
     type ShareTypeEnum = 'spring_veg' | 'summer_veg' | 'fall_veg' | 'flower' | 'flex' | 'add_on' | 'wholesale_csa';
     if (status !== 'all') query = query.eq('status', status as MemberStatus);
     if (shareType !== 'all') query = query.eq('share_type', shareType as ShareTypeEnum);
+    // share_bucket filter — kept in lock-step with /admin/members/index.astro
+    // so the CSV download matches what's on screen.
+    const shareBucket = parseBucketId(url.searchParams.get('share_bucket'));
+    if (shareBucket === 'unknown') {
+      const knownSizes = [...SMALL_SIZES, ...LARGE_SIZES];
+      query = query
+        .in('share_type', ['summer_veg', 'flower'] as ShareTypeEnum[])
+        .or(`share_size.is.null,share_size.not.in.(${knownSizes.join(',')})`);
+    } else if (shareBucket) {
+      const f = filtersFor(shareBucket);
+      if (f.share_type) query = query.eq('share_type', f.share_type as ShareTypeEnum);
+      if (f.share_size_in && f.share_size_in.length > 0) {
+        type ShareSizeEnum = 'small' | 'regular' | 'family' | 'petite' | 'large' | 'light' | 'full' | 'half' | 'quarter' | 'single' | 'double';
+        query = query.in('share_size', f.share_size_in as ShareSizeEnum[]);
+      }
+      if (f.biweekly_week_is_null) query = query.is('biweekly_week', null);
+      if (typeof f.biweekly_week_eq === 'number') query = query.eq('biweekly_week', f.biweekly_week_eq);
+    }
     if (pickupFilter === 'home_delivery') query = query.is('pickup_location_id', null);
     else if (pickupFilter !== 'all') query = query.eq('pickup_location_id', pickupFilter);
     if (q.length > 0) {
