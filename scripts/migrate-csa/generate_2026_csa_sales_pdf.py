@@ -53,9 +53,36 @@ CATEGORIES = [
 CAT_LOOKUP = {c[0]: c for c in CATEGORIES}
 
 
+def categorize_line_item(title: str) -> str | None:
+    """Return the category for ONE line item, or None if not CSA-related.
+    Used so we count SHARES not ORDERS — an order with Spring + Summer counts
+    as 1 Spring share AND 1 Summer share in their respective sections."""
+    t = (title or "").lower()
+    # Skip non-line-item junk
+    if t in ("tip", "tips", "donation", "branch"):
+        return None
+    # Add-on first (more specific match)
+    if "add-on" in t or "addon" in t:
+        return "addon"
+    # Share types
+    if "summer" in t and ("share" in t or "csa" in t or "vegetable" in t):
+        return "summer_veg"
+    if "spring" in t and ("share" in t or "csa" in t or "vegetable" in t):
+        return "spring_veg"
+    if "fall" in t and ("share" in t or "csa" in t or "vegetable" in t):
+        return "fall_veg"
+    if "flower" in t or "bouquet" in t or "bloom" in t or "fleurs" in t:
+        return "flower"
+    if "flex" in t and ("csa" in t or "share" in t):
+        return "flex"
+    # Everything else (market produce, Shopify seedlings) → not CSA
+    return None
+
+
 def categorize_order(line_items: list[dict]) -> str:
-    """Return the primary category for an order, ignoring add-on items.
-    Priority: summer_veg > spring_veg > flower > flex > seedlings_shop > addon_only > market_misc"""
+    """Legacy: return the primary category for an order, ignoring add-ons.
+    Kept for the summary section / per-order display ordering.
+    Priority: summer_veg > spring_veg > flower > flex > addon_only"""
     has_summer = has_spring = has_flower = has_flex = has_seedling = has_addon = False
     has_market = False
     for it in line_items:
@@ -160,7 +187,11 @@ def main():
     seedling_sales = fetch_sheet("SEEDLING_SALES", token)
     print(f"  total: {len(seedling_sales)}")
 
-    # ── Categorize 2026 Shopify orders ──────────────────────────────────────
+    # ── Categorize 2026 Shopify orders BY LINE ITEM (a share = a line item) ──
+    # Each section shows every SHARE that falls into that category, with the
+    # order it came from. An order with both Spring + Summer appears in both
+    # sections (one row per share). This matches how Todd counts: "32 Spring
+    # shares" not "X orders that contain at least one Spring share."
     by_cat: dict[str, list[dict]] = defaultdict(list)
     for o in orders_all:
         if "2026" not in (o.get("Created_At") or ""):
@@ -168,13 +199,44 @@ def main():
         li = parse_li(o.get("Line_Items_JSON", ""))
         if not li:
             continue
-        cat = categorize_order(li)
         o["_line_items"] = li
-        by_cat[cat].append(o)
+        # Group this order's line items by category
+        items_by_cat: dict[str, list[dict]] = defaultdict(list)
+        for it in li:
+            cat = categorize_line_item(it.get("title") or it.get("name") or "")
+            if cat == "addon":
+                # Add-ons go with the order's PRIMARY category (don't appear in addon section unless that's the only thing)
+                items_by_cat["addon"].append(it)
+            elif cat:
+                items_by_cat[cat].append(it)
+        # Determine primary share for the order (for add-on attachment)
+        primary = None
+        for c in ("summer_veg", "spring_veg", "fall_veg", "flower", "flex"):
+            if c in items_by_cat:
+                primary = c; break
+        # Emit an entry per CSA share line item
+        for cat, items in items_by_cat.items():
+            if cat == "addon":
+                # Attach to primary if exists; else stand-alone
+                target = primary if primary else "addon_only"
+                # If target is primary, find the order entry already added there
+                # (or add a new one if not yet)
+                pass  # handled below
+            else:
+                for it in items:
+                    by_cat[cat].append({
+                        "_order": o,
+                        "_item": it,
+                        "_addons": items_by_cat.get("addon", []) if primary == cat else [],
+                    })
+        # Stand-alone add-on orders (no primary share)
+        if not primary and "addon" in items_by_cat:
+            for it in items_by_cat["addon"]:
+                by_cat["addon_only"].append({"_order": o, "_item": it, "_addons": []})
 
-    # Sort each category by date
+    # Sort each category by order date then qty desc
     for cat in by_cat:
-        by_cat[cat].sort(key=lambda x: x.get("Created_At", ""))
+        by_cat[cat].sort(key=lambda x: (x["_order"].get("Created_At", ""), -int(x["_item"].get("quantity", 1) or 1)))
 
     # ── Categorize 2026 seedling-tool sales ─────────────────────────────────
     seedling_2026 = []
@@ -185,68 +247,97 @@ def main():
         seedling_2026.append(s)
     seedling_2026.sort(key=lambda x: x.get("Sale_Date") or x.get("Created_At") or "")
 
-    # ── Compute grand totals ─────────────────────────────────────────────────
-    shopify_grand_total = sum(
-        safe_float(o.get("Total_Price")) for orders in by_cat.values() for o in orders
-    )
+    # ── Compute totals — by SHARE (line item), not by ORDER ─────────────────
     seedling_tool_revenue = sum(
         safe_float(s.get("Revenue") or (safe_float(s.get("Price_Each")) * safe_float(s.get("Quantity_Sold"))))
         for s in seedling_2026
     )
     seedling_tool_units = sum(safe_float(s.get("Quantity_Sold")) for s in seedling_2026)
 
-    csa_only_revenue = sum(
-        safe_float(o.get("Total_Price"))
-        for cat in ("spring_veg", "summer_veg", "flower", "flex", "addon_only")
-        for o in by_cat.get(cat, [])
-    )
+    # CSA revenue: sum of line-item prices × qty for everything in CSA categories
+    csa_only_revenue = 0.0
+    csa_share_count = 0  # total shares sold across all CSA categories
+    for cat in ("spring_veg", "summer_veg", "fall_veg", "flower", "flex", "addon_only"):
+        for entry in by_cat.get(cat, []):
+            it = entry["_item"]
+            qty = int(it.get("quantity", 1) or 1)
+            price = safe_float(it.get("price") or 0)
+            csa_only_revenue += price * qty
+            csa_share_count += qty
+            # Also include add-ons attached to primary share orders
+            for addon in entry.get("_addons", []):
+                aq = int(addon.get("quantity", 1) or 1)
+                ap = safe_float(addon.get("price") or 0)
+                csa_only_revenue += ap * aq
 
-    total_orders = sum(len(v) for v in by_cat.values())
+    # Order count (distinct orders touched across all CSA categories)
+    distinct_orders = {entry["_order"].get("Shopify_Order_Number") for cat in by_cat.values() for entry in cat}
+    total_orders = len(distinct_orders)
+    shopify_grand_total = csa_only_revenue  # alias for compat with later code
 
-    # ── Render HTML ─────────────────────────────────────────────────────────
+    # ── Render HTML — each row = ONE SHARE (line item) ───────────────────────
     sections_html = []
     for key, label, icon, accent, accent_dark in CATEGORIES:
-        orders = by_cat.get(key, [])
-        if not orders:
+        entries = by_cat.get(key, [])
+        if not entries:
             continue
-        cat_total = sum(safe_float(o.get("Total_Price")) for o in orders)
 
+        # Count shares + revenue at the share level
+        cat_shares = 0
+        cat_revenue = 0.0
         rows_html = []
-        for o in orders:
+        for entry in entries:
+            o = entry["_order"]
+            it = entry["_item"]
+            addons = entry.get("_addons", [])
             order_num = html_escape(o.get("Shopify_Order_Number") or o.get("Order_ID") or "")
             created = html_escape((o.get("Created_At") or "")[:10])
             name = html_escape(o.get("Customer_Name") or "")
             email = html_escape(o.get("Customer_Email") or "")
-            total = safe_float(o.get("Total_Price"))
-            items_lines = []
-            for it in o["_line_items"]:
-                t = html_escape((it.get("title") or it.get("name") or "(unknown)").strip())
-                q = it.get("quantity", 1)
-                is_addon = "add-on" in t.lower() or "addon" in t.lower()
-                line_cls = "li-addon" if is_addon else "li-main"
-                items_lines.append(f'<div class="{line_cls}">{q}× {t}</div>')
-            items_html = "".join(items_lines) if items_lines else "<em>(no line items)</em>"
+            qty = int(it.get("quantity", 1) or 1)
+            price = safe_float(it.get("price") or 0)
+            line_total = price * qty
+            cat_shares += qty
+            cat_revenue += line_total
+            title = html_escape((it.get("title") or it.get("name") or "(unknown)").strip())
+            # Inline add-ons (only shown in the primary share's row)
+            addon_html = ""
+            if addons:
+                addon_lines = []
+                for addon in addons:
+                    at = html_escape((addon.get("title") or addon.get("name") or "").strip())
+                    aq = int(addon.get("quantity", 1) or 1)
+                    ap = safe_float(addon.get("price") or 0)
+                    addon_revenue = ap * aq
+                    cat_revenue += addon_revenue  # add-on revenue counts in this section since attached
+                    addon_lines.append(f'<div class="li-addon">{aq}× {at} <span class="addon-amt">${addon_revenue:,.2f}</span></div>')
+                addon_html = "".join(addon_lines)
             rows_html.append(f"""
               <tr>
                 <td class="ono">#{order_num}</td>
                 <td class="dt">{created}</td>
                 <td><strong>{name}</strong><br><span class="muted">{email}</span></td>
-                <td class="items">{items_html}</td>
-                <td class="amt">${total:,.2f}</td>
+                <td class="items">
+                  <div class="li-main">{qty}× {title}</div>
+                  {addon_html}
+                </td>
+                <td class="qty">{qty}</td>
+                <td class="amt">${line_total:,.2f}</td>
               </tr>""")
 
         sections_html.append(f"""
         <section class="cat" style="--accent:{accent}; --accent-dark:{accent_dark};">
           <h2><span class="cat-icon">{icon}</span> {html_escape(label)}
-              <span class="cat-meta">{len(orders)} orders · ${cat_total:,.2f}</span></h2>
+              <span class="cat-meta">{cat_shares} shares · ${cat_revenue:,.2f}</span></h2>
           <table>
             <thead>
               <tr>
-                <th style="width: 65pt;">Order #</th>
+                <th style="width: 60pt;">Order #</th>
                 <th style="width: 55pt;">Date</th>
-                <th style="width: 135pt;">Customer</th>
-                <th>Items</th>
-                <th style="width: 75pt; text-align:right;">Total</th>
+                <th style="width: 130pt;">Customer</th>
+                <th>Share (+ add-ons inline)</th>
+                <th style="width: 30pt; text-align:right;">Qty</th>
+                <th style="width: 70pt; text-align:right;">Revenue</th>
               </tr>
             </thead>
             <tbody>{''.join(rows_html)}</tbody>
@@ -289,19 +380,24 @@ def main():
           </table>
         </section>""")
 
-    # Summary cards
+    # Summary cards — count SHARES per category
     summary_cards = []
     for key, label, icon, accent, accent_dark in CATEGORIES:
-        orders = by_cat.get(key, [])
-        if not orders:
+        entries = by_cat.get(key, [])
+        if not entries:
             continue
-        total = sum(safe_float(o.get("Total_Price")) for o in orders)
+        cat_shares = sum(int(e["_item"].get("quantity", 1) or 1) for e in entries)
+        cat_rev = sum(
+            safe_float(e["_item"].get("price") or 0) * int(e["_item"].get("quantity", 1) or 1)
+            + sum(safe_float(a.get("price") or 0) * int(a.get("quantity", 1) or 1) for a in e.get("_addons", []))
+            for e in entries
+        )
         summary_cards.append(f"""
           <div class="card" style="--accent:{accent};">
             <div class="card-icon">{icon}</div>
             <div class="card-label">{html_escape(label)}</div>
-            <div class="card-orders">{len(orders)} orders</div>
-            <div class="card-rev">${total:,.0f}</div>
+            <div class="card-orders">{cat_shares} shares</div>
+            <div class="card-rev">${cat_rev:,.0f}</div>
           </div>""")
     if seedling_2026:
         summary_cards.append(f"""
@@ -457,10 +553,15 @@ tbody tr:nth-child(even) td {{ background: #f8fafc; }}
     print()
     print(f"Summary:")
     for key, label, icon, _, _ in CATEGORIES:
-        orders = by_cat.get(key, [])
-        if orders:
-            total = sum(safe_float(o.get("Total_Price")) for o in orders)
-            print(f"  {icon} {label:40s} {len(orders):4d} orders   ${total:>10,.2f}")
+        entries = by_cat.get(key, [])
+        if entries:
+            cat_shares = sum(int(e["_item"].get("quantity", 1) or 1) for e in entries)
+            cat_rev = sum(
+                safe_float(e["_item"].get("price") or 0) * int(e["_item"].get("quantity", 1) or 1)
+                + sum(safe_float(a.get("price") or 0) * int(a.get("quantity", 1) or 1) for a in e.get("_addons", []))
+                for e in entries
+            )
+            print(f"  {icon} {label:40s} {cat_shares:4d} shares   ${cat_rev:>10,.2f}")
     print(f"  🌱 Seedlings Tool                          {int(seedling_tool_units):4d} units    ${seedling_tool_revenue:>10,.2f}")
     print(f"  {'─'*70}")
     print(f"     GRAND TOTAL                                          ${grand_total_all:>10,.2f}")
