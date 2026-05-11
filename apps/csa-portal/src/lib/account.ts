@@ -122,3 +122,9 @@ export const PICKUP_ERROR_COPY: Record<string, string> = {
   member_not_found: "We couldn't find that share on your account.",
   network: "We couldn't reach the server. Please try again.",
 };
+
+export const BIWEEKLY_ERROR_COPY: Record<string, string> = {
+  invalid_input: 'Please choose Week A, Week B, or "no preference".',
+  no_active_share: "We don't have an active share on your account yet.",
+  network: "We couldn't reach the server. Please try again.",
+};

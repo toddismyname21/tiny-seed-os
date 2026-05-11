@@ -6,6 +6,25 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-05-11] CSA Portal — member-facing biweekly chooser + admin auto-assign
+
+- Files: apps/csa-portal/src/pages/account/biweekly-schedule.astro (NEW), apps/csa-portal/src/pages/api/account/biweekly-schedule.ts (NEW), apps/csa-portal/src/pages/api/admin/biweekly/auto-assign.ts (NEW), apps/csa-portal/src/lib/biweekly-assign.ts (NEW), apps/csa-portal/src/lib/biweekly-assign.test.ts (NEW), apps/csa-portal/src/lib/account.ts (UPDATED — new BIWEEKLY_ERROR_COPY map), apps/csa-portal/src/pages/account/index.astro (UPDATED — added biweekly link card + summary), apps/csa-portal/src/pages/admin/index.astro (UPDATED — added Auto-assign panel + modal)
+- Role: fullstack-builder (delegated by Todd via PM_ARCHITECT)
+- What changed:
+  1. /account/biweekly-schedule: members pick Week A (1st/3rd Wed), Week B (2nd/4th Wed), or "no preference" (NULL). Radio-card UI matching /account/pickup. Saves via POST /api/account/biweekly-schedule, which updates EVERY live member row for the caller (so a multi-share household stays on one schedule). RLS-scoped writes via cookie-aware client.
+  2. /account hub: new "Bi-weekly schedule" card showing the current state ("Week A — 1st & 3rd Wednesdays" / "Week B — …" / "Not yet assigned").
+  3. /admin index: new "Auto-assign bi-weekly schedule" panel showing unassigned count. Opens a modal that GET ?preview=1 → renders the per-location A/B preview, then POST commits. Confirm button stays disabled until the preview successfully loads.
+  4. Algorithm in lib/biweekly-assign.ts: pure function, group by pickup_location_id (NULL is its own group), deterministic sort by legacy_id ASC then id ASC, greedy fair-share (assign to whichever week has lower running count, A on tie). Includes per-location preview helper for the UI. 11 unit tests via tsx — all passing — covering empty input, balanced split, severe imbalance recovery, NULL-vs-known location independence, determinism (input-order invariance), full coverage, and per-location ≤1 balance.
+  5. POST /api/admin/biweekly/auto-assign: requireAdmin gate, isSameOriginPost CSRF check, two Supabase UPDATEs (one IN-list per week) so the audit trigger captures Todd's email. Idempotent — re-running with no unassigned members returns ok with zeroes.
+- Behavior preserved:
+  - members.biweekly_week IS the assignment (no separate preference field). Members setting their own week = the assignment going forward; admin override via /admin/members/[id] still wins after.
+  - Members with current 'A' or 'B' are NEVER touched by auto-assign (only NULL rows considered).
+  - /account/pickup unchanged (Day 8 — confirmed working live).
+- Verification: `npx astro check` → 0 errors, `npm run build` → server bundle clean, 11/11 unit tests pass.
+- Why: enables Todd to bulk-assign ~190 NULL-week active members fairly across pickup locations, while letting members self-select going forward.
+
+---
+
 ## [2026-05-11] CSA Portal — biweekly_week INT→TEXT migration + Week A/B admin assignment UI
 
 - Files: supabase/migrations/0018_biweekly_week_text.sql (NEW), scripts/migrate-csa/fix_biweekly_week.py (NEW), scripts/migrate-csa/sheets_to_supabase.py (UPDATED), apps/csa-portal/src/lib/share-buckets.ts (REWRITTEN), apps/csa-portal/src/lib/database.types.ts, apps/csa-portal/src/pages/admin/index.astro, apps/csa-portal/src/pages/admin/members/index.astro, apps/csa-portal/src/pages/admin/members/[id].astro, apps/csa-portal/src/pages/api/admin/reports/[name].csv.ts, apps/csa-portal/src/pages/api/admin/members/[id]/biweekly-week.ts (NEW)

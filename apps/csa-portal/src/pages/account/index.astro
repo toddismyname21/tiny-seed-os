@@ -34,6 +34,7 @@ type AccountMember = {
   status: string;
   pickup_location_id: string | null;
   delivery_address: string | null;
+  biweekly_week: 'A' | 'B' | null;
   pickup_location: {
     name: string;
     city: string | null;
@@ -73,6 +74,7 @@ const { data: customerRows, error: customerError } = await supabase
       status,
       pickup_location_id,
       delivery_address,
+      biweekly_week,
       pickup_location:pickup_locations (
         name,
         city,
@@ -148,6 +150,13 @@ const pickupSummary: string = (() => {
     return day ? `${where} · ${day}s` : where;
   }
   return 'No pickup location set';
+})();
+
+const biweeklySummary: string = (() => {
+  if (!primary) return '';
+  if (primary.biweekly_week === 'A') return 'Week A — 1st & 3rd Wednesdays';
+  if (primary.biweekly_week === 'B') return 'Week B — 2nd & 4th Wednesdays';
+  return 'Not yet assigned — pick a week or let the farm decide';
 })();
 ---
 
@@ -268,6 +277,20 @@ const pickupSummary: string = (() => {
               <h3 class="text-base font-semibold text-ts-text">Pickup location</h3>
               <p class="mt-1 text-sm leading-snug text-ts-text-secondary">{pickupSummary}</p>
               <p class="mt-1 text-xs text-ts-text-muted">Change stop or switch to home delivery</p>
+            </div>
+            <span class="self-center text-ts-text-muted transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden="true">→</span>
+          </a>
+
+          {/* BI-WEEKLY SCHEDULE */}
+          <a
+            href="/account/biweekly-schedule"
+            class="group flex items-start gap-4 rounded-ts-xl border border-ts-border bg-ts-bg-surface p-5 shadow-ts-sm transition-all duration-200 hover:border-ts-primary/40 hover:shadow-ts-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+          >
+            <span class="text-3xl" aria-hidden="true">🗓</span>
+            <div class="min-w-0 flex-1">
+              <h3 class="text-base font-semibold text-ts-text">Bi-weekly schedule</h3>
+              <p class="mt-1 text-sm leading-snug text-ts-text-secondary">{biweeklySummary}</p>
+              <p class="mt-1 text-xs text-ts-text-muted">Week A or Week B — change any time</p>
             </div>
             <span class="self-center text-ts-text-muted transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden="true">→</span>
           </a>

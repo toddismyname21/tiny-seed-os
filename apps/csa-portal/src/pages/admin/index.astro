@@ -119,6 +119,12 @@ for (const row of shareBreakdownRows) {
 }
 const bucketCounts = countByBucket(shareBreakdownRows as ReadonlyArray<MemberShareRow>);
 
+// How many active members still need a Week A/B assignment? Drives
+// the "Auto-assign" panel below.
+const unassignedBiweeklyCount = shareBreakdownRows.filter(
+  (r) => r.biweekly_week === null
+).length;
+
 // ─── Location breakdown ─────────────────────────────────────────────
 type LocationBreakdownRow = {
   pickup_location_id: string | null;
@@ -446,6 +452,253 @@ const pendingTaskCount =
       )}
     </Card>
   </section>
+
+  {/* ════ Auto-assign bi-weekly schedule ════ */}
+  <section aria-labelledby="biweekly-heading" class="flex flex-col gap-4">
+    <h2 id="biweekly-heading" class="font-display text-xl font-bold text-ts-text sm:text-2xl">
+      Auto-assign bi-weekly schedule
+    </h2>
+    <Card padding="md" elevation="sm">
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div class="min-w-0 flex-1">
+          <p class="text-sm leading-relaxed text-ts-text">
+            <span class="tabular-nums font-semibold">{unassignedBiweeklyCount}</span>
+            {' '}of <span class="tabular-nums">{activeCount}</span> active member{activeCount === 1 ? '' : 's'}
+            {' '}{unassignedBiweeklyCount === 1 ? 'is' : 'are'} missing a Week A or Week B assignment.
+          </p>
+          <p class="mt-1 text-xs text-ts-text-muted">
+            The algorithm balances each pickup location's headcount across Week A
+            and Week B. Members who already have a week stay put.
+          </p>
+        </div>
+        {unassignedBiweeklyCount > 0 ? (
+          <button
+            type="button"
+            data-biweekly-open
+            class="inline-flex h-10 shrink-0 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+          >
+            Preview &amp; auto-assign
+          </button>
+        ) : (
+          <span class="inline-flex items-center gap-2 rounded-ts-md bg-ts-primary/10 px-3 py-2 text-xs font-semibold text-ts-primary">
+            <span aria-hidden="true">✓</span> All members assigned
+          </span>
+        )}
+      </div>
+    </Card>
+  </section>
+
+  {/* ════ Auto-assign modal ════ */}
+  {unassignedBiweeklyCount > 0 && (
+    <div
+      id="biweekly-modal"
+      class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4"
+      data-biweekly-modal
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="biweekly-modal-heading"
+    >
+      <div class="w-full max-w-lg rounded-ts-xl bg-ts-bg-surface p-6 shadow-ts-lg">
+        <header class="flex items-start justify-between gap-4">
+          <div>
+            <h3 id="biweekly-modal-heading" class="font-display text-lg font-bold text-ts-text">
+              Auto-assign bi-weekly schedule
+            </h3>
+            <p class="mt-1 text-sm text-ts-text-secondary">
+              This will assign Week A or Week B to all {unassignedBiweeklyCount}
+              {' '}member{unassignedBiweeklyCount === 1 ? '' : 's'} who don't have one yet.
+            </p>
+          </div>
+          <button
+            type="button"
+            data-biweekly-close
+            aria-label="Close dialog"
+            class="rounded-ts-md p-1 text-ts-text-muted transition-colors hover:bg-ts-bg-muted hover:text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+          >
+            <span aria-hidden="true">×</span>
+          </button>
+        </header>
+
+        <ul class="mt-4 space-y-1.5 text-sm text-ts-text-secondary">
+          <li class="flex gap-2"><span aria-hidden="true">·</span><span>Balances each location's A/B headcount.</span></li>
+          <li class="flex gap-2"><span aria-hidden="true">·</span><span>Members who already have Week A or Week B will <strong class="font-medium text-ts-text">not</strong> be changed.</span></li>
+          <li class="flex gap-2"><span aria-hidden="true">·</span><span>Members can change their own week later via the member portal.</span></li>
+        </ul>
+
+        <div
+          data-biweekly-preview
+          class="mt-4 max-h-64 overflow-y-auto rounded-ts-md border border-ts-border bg-ts-bg-base p-3 text-xs text-ts-text-muted"
+        >
+          <p class="text-center" data-biweekly-preview-loading>Loading preview…</p>
+        </div>
+
+        <div
+          role="alert"
+          aria-live="polite"
+          class="mt-3 hidden rounded-ts-md border border-ts-danger/30 bg-ts-danger/5 px-3 py-2 text-xs text-ts-danger"
+          data-biweekly-error
+        ></div>
+
+        <footer class="mt-5 flex flex-col-reverse items-stretch gap-2 sm:flex-row sm:items-center sm:justify-end">
+          <button
+            type="button"
+            data-biweekly-close
+            class="inline-flex h-10 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-medium text-ts-text transition-colors duration-150 hover:border-ts-primary/40 hover:text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            data-biweekly-confirm
+            disabled
+            class="inline-flex h-10 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <span data-biweekly-confirm-label>Confirm auto-assign</span>
+          </button>
+        </footer>
+      </div>
+    </div>
+
+    <script is:inline>
+      // Auto-assign modal logic — vanilla JS, no framework. Hooks:
+      //   data-biweekly-open    → open the modal + fetch the preview
+      //   data-biweekly-close   → close the modal
+      //   data-biweekly-confirm → POST to /api/admin/biweekly/auto-assign
+      //
+      // The confirm button stays DISABLED until the preview successfully
+      // loads — so the admin can't fire a write blindly.
+      (function () {
+        const modal      = document.querySelector('[data-biweekly-modal]');
+        const opener     = document.querySelector('[data-biweekly-open]');
+        const closers    = document.querySelectorAll('[data-biweekly-close]');
+        const previewBox = document.querySelector('[data-biweekly-preview]');
+        const errorBox   = document.querySelector('[data-biweekly-error]');
+        const confirmBtn = document.querySelector('[data-biweekly-confirm]');
+        const confirmLbl = document.querySelector('[data-biweekly-confirm-label]');
+
+        if (!modal || !opener || !previewBox || !confirmBtn) return;
+
+        function setError(msg) {
+          if (!errorBox) return;
+          if (!msg) {
+            errorBox.classList.add('hidden');
+            errorBox.textContent = '';
+          } else {
+            errorBox.classList.remove('hidden');
+            errorBox.textContent = msg;
+          }
+        }
+
+        function open() {
+          modal.classList.remove('hidden');
+          modal.classList.add('flex');
+          confirmBtn.disabled = true;
+          confirmBtn.removeAttribute('data-loaded');
+          setError(null);
+          previewBox.innerHTML = '<p class="text-center">Loading preview…</p>';
+          fetch('/api/admin/biweekly/auto-assign?preview=1', {
+            method: 'GET',
+            credentials: 'same-origin',
+            headers: { accept: 'application/json' },
+          })
+            .then((r) => r.json().then((j) => ({ status: r.status, body: j })))
+            .then(({ status, body }) => {
+              if (status !== 200 || !body || body.ok !== true) {
+                setError((body && body.error) || 'Could not load preview.');
+                return;
+              }
+              renderPreview(body);
+              confirmBtn.disabled = false;
+              confirmBtn.setAttribute('data-loaded', '1');
+            })
+            .catch(() => setError('Network error. Try again.'));
+        }
+
+        function renderPreview(payload) {
+          const rows = (payload.byLocation || []);
+          if (rows.length === 0) {
+            previewBox.innerHTML = '<p class="text-center">Nothing to assign — every active member already has a week.</p>';
+            return;
+          }
+          const html = [
+            '<table class="w-full text-left text-xs"><thead><tr class="border-b border-ts-border/60 text-ts-text-muted">',
+            '<th class="py-1.5 pr-2 font-semibold">Location</th>',
+            '<th class="py-1.5 pr-2 text-right font-semibold">Total</th>',
+            '<th class="py-1.5 pr-2 text-right font-semibold">→ A</th>',
+            '<th class="py-1.5 text-right font-semibold">→ B</th>',
+            '</tr></thead><tbody>',
+            ...rows.map((r) => {
+              const name = String(r.location_name || '');
+              return [
+                '<tr class="border-b border-ts-border/30 last:border-b-0">',
+                '<td class="py-1.5 pr-2 text-ts-text">' + escapeHtml(name) + '</td>',
+                '<td class="py-1.5 pr-2 text-right tabular-nums text-ts-text-secondary">' + r.unassigned + '</td>',
+                '<td class="py-1.5 pr-2 text-right tabular-nums text-ts-primary">' + r.to_a + '</td>',
+                '<td class="py-1.5 text-right tabular-nums text-ts-primary">' + r.to_b + '</td>',
+                '</tr>',
+              ].join('');
+            }),
+            '</tbody><tfoot><tr class="border-t border-ts-border/60 font-semibold text-ts-text">',
+            '<td class="pt-2 pr-2">Total</td>',
+            '<td class="pt-2 pr-2 text-right tabular-nums">' + (payload.totals?.unassigned ?? 0) + '</td>',
+            '<td class="pt-2 pr-2 text-right tabular-nums">' + (payload.totals?.to_a ?? 0) + '</td>',
+            '<td class="pt-2 text-right tabular-nums">' + (payload.totals?.to_b ?? 0) + '</td>',
+            '</tr></tfoot></table>',
+          ].join('');
+          previewBox.innerHTML = html;
+        }
+
+        function escapeHtml(s) {
+          return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        }
+
+        function close() {
+          modal.classList.add('hidden');
+          modal.classList.remove('flex');
+        }
+
+        function confirm() {
+          if (confirmBtn.disabled) return;
+          confirmBtn.disabled = true;
+          if (confirmLbl) confirmLbl.textContent = 'Assigning…';
+          setError(null);
+          fetch('/api/admin/biweekly/auto-assign', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { accept: 'application/json' },
+            // Empty body — auth-cookie carries identity, no payload needed.
+            body: new FormData(),
+          })
+            .then((r) => r.json().then((j) => ({ status: r.status, body: j })))
+            .then(({ status, body }) => {
+              if (status !== 200 || !body || body.ok !== true) {
+                setError((body && body.error) || 'Auto-assign failed.');
+                confirmBtn.disabled = false;
+                if (confirmLbl) confirmLbl.textContent = 'Confirm auto-assign';
+                return;
+              }
+              // Reload to refresh all counts. Cheaper than building a
+              // toast + manually re-querying.
+              window.location.reload();
+            })
+            .catch(() => {
+              setError('Network error. Try again.');
+              confirmBtn.disabled = false;
+              if (confirmLbl) confirmLbl.textContent = 'Confirm auto-assign';
+            });
+        }
+
+        opener.addEventListener('click', open);
+        closers.forEach((c) => c.addEventListener('click', close));
+        confirmBtn.addEventListener('click', confirm);
+        // Close on backdrop click + ESC.
+        modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape' && !modal.classList.contains('hidden')) close();
+        });
+      })();
+    </script>
+  )}
 
   {/* ════ Members by pickup location ════ */}
   <section aria-labelledby="locations-heading" class="flex flex-col gap-4">
