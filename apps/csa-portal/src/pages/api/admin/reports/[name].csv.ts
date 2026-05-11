@@ -131,7 +131,7 @@ export const GET: APIRoute = async ({ url, locals, params }) => {
         query = query.in('share_size', f.share_size_in as ShareSizeEnum[]);
       }
       if (f.biweekly_week_is_null) query = query.is('biweekly_week', null);
-      if (typeof f.biweekly_week_eq === 'number') query = query.eq('biweekly_week', f.biweekly_week_eq);
+      if (typeof f.biweekly_week_eq === 'string') query = query.eq('biweekly_week', f.biweekly_week_eq);
     }
     if (pickupFilter === 'home_delivery') query = query.is('pickup_location_id', null);
     else if (pickupFilter !== 'all') query = query.eq('pickup_location_id', pickupFilter);

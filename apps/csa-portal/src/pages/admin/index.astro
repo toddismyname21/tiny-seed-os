@@ -109,7 +109,7 @@ const totalCount = totalMembersRes.count ?? 0;
 type ShareBreakdownRow = {
   share_type: string;
   share_size: string | null;
-  biweekly_week: number | null;
+  biweekly_week: 'A' | 'B' | null;
   status: string;
 };
 const shareBreakdownRows = (byShareTypeRes.data ?? []) as unknown as ShareBreakdownRow[];
@@ -379,7 +379,7 @@ const pendingTaskCount =
         Members by share
       </h2>
       <span class="text-xs text-ts-text-muted">
-        Bi-weekly Wk A = even pickups · Wk B = odd pickups
+        Every member is bi-weekly · Week A · Week B · Unassigned = needs assignment
       </span>
     </div>
     <Card padding="none" elevation="sm">

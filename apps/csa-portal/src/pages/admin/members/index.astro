@@ -117,7 +117,7 @@ if (shareBucket === 'unknown') {
   if (f.biweekly_week_is_null) {
     query = query.is('biweekly_week', null);
   }
-  if (typeof f.biweekly_week_eq === 'number') {
+  if (typeof f.biweekly_week_eq === 'string') {
     query = query.eq('biweekly_week', f.biweekly_week_eq);
   }
 }

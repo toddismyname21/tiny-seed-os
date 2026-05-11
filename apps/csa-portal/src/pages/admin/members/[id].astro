@@ -57,6 +57,7 @@ type MemberDetail = {
   status: string;
   payment_status: string | null;
   amount_paid: number | null;
+  biweekly_week: 'A' | 'B' | null;
   pickup_day: string | null;
   pickup_location_id: string | null;
   delivery_address: string | null;
@@ -104,7 +105,7 @@ const { data: memberData, error: memberError } = !isUuid
         `
         id, legacy_id, share_type, share_size, season, start_date, end_date,
         total_weeks, weeks_remaining, swap_credits, vacation_weeks_used, status,
-        payment_status, amount_paid, pickup_day, pickup_location_id,
+        payment_status, amount_paid, biweekly_week, pickup_day, pickup_location_id,
         delivery_address, customization_allowed, notes, created_at, updated_at,
         customer:customers!inner(
           id, legacy_id, contact_name, email, phone, city, state, zip, address,
@@ -297,6 +298,7 @@ const successCopy: Record<string, string> = {
   preferences_updated: 'Preferences saved.',
   flex_credited: 'Flex credit applied.',
   hold_cancelled: 'Vacation hold cancelled.',
+  biweekly_week_updated: 'Bi-weekly schedule updated.',
 };
 const errorCopy: Record<string, string> = {
   invalid_input: 'Something in the form was off. Try again.',
@@ -444,6 +446,18 @@ const errorCopy: Record<string, string> = {
             <dt class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Swap credits</dt>
             <dd class="mt-0.5 text-sm text-ts-text tabular-nums">{member.swap_credits}</dd>
           </div>
+          <div>
+            <dt class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Bi-weekly</dt>
+            <dd class="mt-0.5 text-sm text-ts-text">
+              {member.biweekly_week === 'A' ? (
+                <span class="inline-flex items-center rounded-full bg-ts-primary/10 px-2 py-0.5 text-xs font-semibold text-ts-primary">Week A</span>
+              ) : member.biweekly_week === 'B' ? (
+                <span class="inline-flex items-center rounded-full bg-ts-primary/10 px-2 py-0.5 text-xs font-semibold text-ts-primary">Week B</span>
+              ) : (
+                <span class="inline-flex items-center rounded-full bg-ts-warning/10 px-2 py-0.5 text-xs font-semibold text-ts-warning">Unassigned</span>
+              )}
+            </dd>
+          </div>
         </dl>
 
         <form
@@ -467,6 +481,37 @@ const errorCopy: Record<string, string> = {
               </button>
             </div>
           </FormRow>
+        </form>
+
+        <form
+          method="POST"
+          action={`/api/admin/members/${member.id}/biweekly-week`}
+          class="mt-4 border-t border-ts-border pt-4"
+        >
+          <FormRow label="Bi-weekly schedule" htmlFor={`biweekly-${member.id}`}>
+            <div class="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto]">
+              <Select
+                id={`biweekly-${member.id}`}
+                name="biweekly_week"
+                value={member.biweekly_week ?? 'unassigned'}
+                options={[
+                  { value: 'A',          label: 'Week A' },
+                  { value: 'B',          label: 'Week B' },
+                  { value: 'unassigned', label: 'Unassigned (not yet picked)' },
+                ]}
+              />
+              <button
+                type="submit"
+                class="inline-flex h-11 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark"
+              >
+                Save week
+              </button>
+            </div>
+          </FormRow>
+          <p class="mt-1.5 text-xs text-ts-text-muted">
+            Every CSA member is bi-weekly. Week A and Week B alternate pickups.
+            Unassigned members need a week before their first pickup.
+          </p>
         </form>
       </Card>
 

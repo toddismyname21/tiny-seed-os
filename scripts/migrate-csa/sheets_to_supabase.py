@@ -390,7 +390,14 @@ def migrate_members(dry_run: bool = False) -> int:
             'status':               (safe_str(r.get('Status')) or 'active').lower(),
             'payment_status':       safe_str(r.get('Payment_Status')),
             'amount_paid':          safe_decimal(r.get('Amount_Paid')),
-            'biweekly_week':        safe_int(r.get('Biweekly_Week')),
+            # biweekly_week is TEXT('A'|'B'|NULL) since migration 0018.
+            # Source values: 'A' = Week A, 'BOTH' = unassigned (legacy),
+            # empty = unassigned. 'B' will start appearing as Todd assigns
+            # members via the admin UI; we map any unrecognised value to
+            # NULL so a future schema-tightening doesn't break the import.
+            'biweekly_week':        (lambda v: v if v in ('A','B') else None)(
+                                        (safe_str(r.get('Biweekly_Week')) or '').strip().upper()
+                                    ),
             'notes':                safe_str(r.get('Notes')),
         })
 

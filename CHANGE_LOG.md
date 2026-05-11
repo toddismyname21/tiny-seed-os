@@ -6,6 +6,26 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-05-11] CSA Portal — biweekly_week INT→TEXT migration + Week A/B admin assignment UI
+
+- Files: supabase/migrations/0018_biweekly_week_text.sql (NEW), scripts/migrate-csa/fix_biweekly_week.py (NEW), scripts/migrate-csa/sheets_to_supabase.py (UPDATED), apps/csa-portal/src/lib/share-buckets.ts (REWRITTEN), apps/csa-portal/src/lib/database.types.ts, apps/csa-portal/src/pages/admin/index.astro, apps/csa-portal/src/pages/admin/members/index.astro, apps/csa-portal/src/pages/admin/members/[id].astro, apps/csa-portal/src/pages/api/admin/reports/[name].csv.ts, apps/csa-portal/src/pages/api/admin/members/[id]/biweekly-week.ts (NEW)
+- Role: fullstack-builder (delegated by Todd via PM_ARCHITECT)
+- Background: 2026-05-08 migration silently lost 225 rows of Biweekly_Week data because the source column was strings ('A'/'BOTH'/empty) but the destination was INT with CHECK in (0,1,NULL). All 303 members landed with biweekly_week=NULL.
+- What changed:
+  1. Migration 0018: DROP CHECK; ALTER COLUMN biweekly_week TYPE TEXT; ADD CHECK biweekly_week IN ('A','B') OR NULL; partial index `members_biweekly_week_idx` on non-null rows.
+  2. fix_biweekly_week.py re-reads CSA_Members from sheet, maps 'A'→'A', 'BOTH'/''→NULL, anything else→NULL with log. Joined on legacy_id. Result: 115 set to A, 188 set to NULL (95 known-unassigned + 92 BOTH legacy), 0 set to B (Todd will assign as members come through), 0 failed, 22 source legacy_ids not in Postgres (matches pre-existing orphan-skip count).
+  3. share-buckets.ts rewritten for the new data model: every member is bi-weekly. Buckets are now {Week A, Week B, Unassigned} per share group, replacing the prior {Weekly, Bi-weekly A, Bi-weekly B}. 25 display buckets total (3 each for spring/fall/flex/addon, 6 each for sized summer/flower, 1 for wholesale, 1 unknown). biweekly_week is now `'A' | 'B' | null` in TS.
+  4. /admin/members/[id] gains a "Bi-weekly schedule" form with Week A / Week B / Unassigned (not yet picked) options. Saves to new POST endpoint /api/admin/members/[id]/biweekly-week which validates via zod, uses cookie-aware Supabase client (audit trigger captures Todd's email), and returns success/error banner via 303 redirect — same pattern as /status.
+  5. Membership card now shows a pill badge for the current Week A/B/Unassigned state.
+  6. sheets_to_supabase.py updated to map source values 'A'/'B' → DB, everything else → NULL, so future re-runs don't reintroduce the bug.
+- Audit data (live Supabase via Management API):
+  - Pre-migration: 303 members, ALL biweekly_week=NULL (was INT)
+  - Post-backfill: 115 'A', 0 'B', 188 NULL; 293 active members
+  - Bucket reconciliation: sum of new buckets = 293 ✓ (exact match)
+  - Top buckets: summer_small_a=51, summer_small_unassigned=52, spring_veg_unassigned=31, flex_unassigned=32, addon_a=26
+- Verification: `npx astro check` 0 errors / 0 warnings; `npm run build` clean; Supabase schema confirms `data_type=text`; all 4 verification gates passed.
+- Out of scope: bulk-assign UI (Todd will assign one-by-one per spec); pickup_day derivation from biweekly_week (not requested).
+
 ## [2026-05-11] CSA Portal Day 10 follow-up — Admin overview reconciliation + granular share buckets
 
 - Files: apps/csa-portal/src/lib/share-buckets.ts (NEW) + apps/csa-portal/src/pages/admin/index.astro + apps/csa-portal/src/pages/admin/members/index.astro + apps/csa-portal/src/pages/api/admin/reports/[name].csv.ts

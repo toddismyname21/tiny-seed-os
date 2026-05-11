@@ -76,7 +76,7 @@ export interface Database {
           status: 'active' | 'inactive' | 'paused' | 'pending' | 'cancelled' | 'lapsed' | 'onboarding' | 'expired';
           payment_status: string | null;
           amount_paid: number | null;
-          biweekly_week: number | null;
+          biweekly_week: 'A' | 'B' | null;
           notes: string | null;
           created_at: string;
           updated_at: string;
