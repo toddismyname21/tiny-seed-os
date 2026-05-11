@@ -139,6 +139,22 @@ export const onRequest = defineMiddleware(async (context, next) => {
   }
 
   // ───────────────────────────────────────────────────────────────────
+  // Admin landing redirect. Authenticated admins/staff who hit the
+  // member dashboard exact path (/dashboard) are redirected to /admin.
+  // Todd (role=admin) is the farm owner — not a CSA subscriber — so
+  // /dashboard's "no active share" empty-state is wrong for him. This
+  // is intentionally exact-match: admins remain free to visit /box,
+  // /onboarding/*, and other member-facing pages for QA. Sub-paths of
+  // /dashboard (none exist today) would also pass through unchanged.
+  // ───────────────────────────────────────────────────────────────────
+  if (user && pathname === '/dashboard') {
+    const adminCtx = await resolveAdminRole(supabase, user);
+    if (adminCtx) {
+      return redirect('/admin', 303);
+    }
+  }
+
+  // ───────────────────────────────────────────────────────────────────
   // Admin gate. Routes under /admin/* require role in ('admin','staff').
   // If the user is authenticated but not admin, redirect to /dashboard
   // with ?error=admin_only so the dashboard can flash a banner.
