@@ -1,0 +1,186 @@
+---
+/**
+ * SearchInput — debounced search box with a clear button.
+ *
+ * Used in admin tables for client-side filtering and as a form-submit
+ * trigger when filtering must be done server-side (large lists).
+ *
+ * Two modes:
+ *
+ *   1. Form-submit (default): wrapped in a <form method="GET"> by the
+ *      consumer. The input is name="q", typing triggers a debounced
+ *      `form.submit()` so URL stays canonical and bookmarkable.
+ *
+ *   2. Client-only (when `data-search-target="<selector>"` is set on
+ *      the parent <form>): the input filters DOM rows by matching
+ *      against a `data-search-text` attribute. No form submit.
+ *
+ * The clear (×) button:
+ *   - shows only when the input has a value
+ *   - clicking it clears the input AND submits the form (mode 1) OR
+ *     re-runs the client filter (mode 2)
+ *
+ * No-JS fallback: the form posts normally on Enter; the × is a
+ * <button type="submit" name="q" value="">, which submits an empty
+ * query equivalent.
+ *
+ * Visual:
+ *   - h-11 (mobile-tap), rounded-ts-md
+ *   - magnifier icon on the left, × on the right
+ *   - focus ring uses ts-primary
+ */
+
+interface Props {
+  /** Form field name. Defaults to 'q'. */
+  name?: string;
+  /** Default value (server-rendered, persists across reloads). */
+  value?: string;
+  /** Placeholder copy. */
+  placeholder?: string;
+  /** Accessible label (the visual label can be sr-only). */
+  ariaLabel?: string;
+  /**
+   * Optional CSS selector. When provided, the script switches to
+   * client-only filtering: it hides any row whose
+   * data-search-text doesn't contain the query (case-insensitive).
+   */
+  filterTarget?: string;
+  class?: string;
+}
+
+const {
+  name = 'q',
+  value = '',
+  placeholder = 'Search…',
+  ariaLabel = 'Search',
+  filterTarget,
+  class: extraClass = '',
+} = Astro.props as Props;
+---
+
+<div
+  class={[
+    'relative w-full',
+    extraClass,
+  ].filter(Boolean).join(' ')}
+  data-search-root
+  data-search-target={filterTarget ?? undefined}
+>
+  <label class="sr-only" for={`search-${name}`}>{ariaLabel}</label>
+  <span
+    class="pointer-events-none absolute left-3 top-1/2 inline-flex h-5 w-5 -translate-y-1/2 items-center justify-center text-ts-text-muted"
+    aria-hidden="true"
+  >
+    {/* Magnifier — pure SVG, ~150 bytes, no icon font dependency. */}
+    <svg viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4">
+      <path
+        fill-rule="evenodd"
+        d="M9 3.5a5.5 5.5 0 1 0 3.286 9.93l3.142 3.142a.75.75 0 1 0 1.06-1.06l-3.142-3.142A5.5 5.5 0 0 0 9 3.5ZM5 9a4 4 0 1 1 8 0 4 4 0 0 1-8 0Z"
+        clip-rule="evenodd"
+      />
+    </svg>
+  </span>
+
+  <input
+    id={`search-${name}`}
+    type="search"
+    name={name}
+    value={value}
+    placeholder={placeholder}
+    aria-label={ariaLabel}
+    autocomplete="off"
+    spellcheck="false"
+    class="block h-11 w-full rounded-ts-md border border-ts-border bg-ts-bg-surface pl-9 pr-9 text-base text-ts-text placeholder:text-ts-text-muted focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30"
+    data-search-input
+  />
+
+  <button
+    type="button"
+    class="absolute right-1.5 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-ts-text-muted transition-colors duration-150 hover:bg-ts-bg-muted hover:text-ts-text focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ts-primary"
+    data-search-clear
+    aria-label="Clear search"
+    hidden={value === '' ? true : undefined}
+  >
+    <span aria-hidden="true" class="text-lg leading-none">×</span>
+  </button>
+</div>
+
+<script>
+  /**
+   * Debounce helper — preserves `this`-free arrow-function ergonomics.
+   * Reset on each call; fires `fn()` once the user pauses for `wait` ms.
+   */
+  function debounce<T extends (...args: unknown[]) => void>(fn: T, wait: number): T {
+    let t: number | undefined;
+    return ((...args: unknown[]) => {
+      if (t !== undefined) window.clearTimeout(t);
+      t = window.setTimeout(() => fn(...args), wait);
+    }) as T;
+  }
+
+  document.querySelectorAll<HTMLElement>('[data-search-root]').forEach((root) => {
+    const input = root.querySelector<HTMLInputElement>('[data-search-input]');
+    const clearBtn = root.querySelector<HTMLButtonElement>('[data-search-clear]');
+    if (!input) return;
+
+    const targetSelector = root.dataset.searchTarget;
+    const form = root.closest('form');
+
+    function toggleClear(): void {
+      if (!clearBtn) return;
+      if (input!.value === '') {
+        clearBtn.setAttribute('hidden', '');
+      } else {
+        clearBtn.removeAttribute('hidden');
+      }
+    }
+
+    function clientFilter(): void {
+      if (!targetSelector) return;
+      const q = input!.value.trim().toLowerCase();
+      const rows = document.querySelectorAll<HTMLElement>(targetSelector);
+      let visible = 0;
+      rows.forEach((row) => {
+        const haystack = (row.dataset.searchText ?? row.textContent ?? '').toLowerCase();
+        const match = q === '' || haystack.includes(q);
+        row.toggleAttribute('hidden', !match);
+        if (match) visible += 1;
+      });
+      // Surface "no results" via a sibling element with [data-search-empty].
+      const empty = document.querySelector<HTMLElement>('[data-search-empty]');
+      if (empty) empty.toggleAttribute('hidden', visible !== 0);
+    }
+
+    const debounced = debounce(() => {
+      if (targetSelector) {
+        clientFilter();
+      } else if (form) {
+        // Server-side: submit the form. Browsers send the search input's
+        // current value with the GET request.
+        form.submit();
+      }
+    }, 300);
+
+    input.addEventListener('input', () => {
+      toggleClear();
+      debounced();
+    });
+
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => {
+        input.value = '';
+        toggleClear();
+        if (targetSelector) {
+          clientFilter();
+          input.focus();
+        } else if (form) {
+          form.submit();
+        }
+      });
+    }
+
+    // Initial sync.
+    toggleClear();
+    if (targetSelector) clientFilter();
+  });
+</script>

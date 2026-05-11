@@ -42,6 +42,8 @@ export interface Database {
           total_orders: number;
           total_spent: number;
           notes: string | null;
+          /** Authorization role (migration 0017). 'admin'/'staff' bypass member-self RLS. */
+          role: 'member' | 'admin' | 'staff';
           created_at: string;
           updated_at: string;
         };
@@ -212,6 +214,59 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['box_swaps']['Row']>;
         Relationships: [];
       };
+      flex_transactions: {
+        Row: {
+          id: string;
+          member_id: string | null;
+          email: string;
+          type: 'credit' | 'debit' | 'refund' | 'transfer' | 'adjustment';
+          amount: number;
+          reason: string | null;
+          admin_email: string | null;
+          gift_card_id: string | null;
+          order_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          email: string;
+          type: Database['public']['Tables']['flex_transactions']['Row']['type'];
+          amount: number;
+        } & Partial<Database['public']['Tables']['flex_transactions']['Row']>;
+        Update: Partial<Database['public']['Tables']['flex_transactions']['Row']>;
+        Relationships: [];
+      };
+      pickup_attendance: {
+        Row: {
+          id: string;
+          member_id: string;
+          week_date: string;
+          picked_up: boolean;
+          picked_up_at: string | null;
+          notes: string | null;
+        };
+        Insert: { member_id: string; week_date: string } & Partial<
+          Database['public']['Tables']['pickup_attendance']['Row']
+        >;
+        Update: Partial<Database['public']['Tables']['pickup_attendance']['Row']>;
+        Relationships: [];
+      };
+      audit_log: {
+        Row: {
+          id: number;
+          table_name: string;
+          row_id: string;
+          operation: 'insert' | 'update' | 'delete';
+          changed_by: string | null;
+          changed_by_email: string | null;
+          diff: Json | null;
+          changed_at: string;
+          ip_address: string | null;
+          user_agent: string | null;
+        };
+        Insert: never;  // managed by trigger only
+        Update: never;
+        Relationships: [];
+      };
     };
     Views: {
       member_flex_balance: {
@@ -266,6 +321,10 @@ export interface Database {
           p_new_delivery_address: string | null;
         };
         Returns: Json;
+      };
+      is_admin_caller: {
+        Args: Record<string, never>;
+        Returns: boolean;
       };
     };
     Enums: { [_: string]: never };

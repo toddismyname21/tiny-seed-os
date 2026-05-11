@@ -6,6 +6,14 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-05-10] CSA Portal Day 10 — Admin Dashboard LIVE
+
+- Files: apps/csa-portal/src/pages/admin/* + apps/csa-portal/src/pages/api/admin/* + components (Table, Tabs, SearchInput, Pagination, StatusPill, CSVExport, AdminShell) + apps/csa-portal/src/lib/admin.ts + apps/csa-portal/src/middleware.ts + supabase/migrations/0017_admin_role_and_rls.sql
+- Role: fullstack-builder (delegated by PM_ARCHITECT)
+- Status: Deployed live to csa.tinyseedfarm.com/admin
+- What it does: Todd-only admin dashboard with member search/filter, member detail editing (status, prefs, phone, flex credit), box content editor (using canonical share_type enum — solves Day 7 finding), pickup location management (edit + add new), basic reports with CSV export. Admin role flag in customers table + admin-bypass RLS policies for all 12 member-facing tables. Non-admin users hitting /admin redirect to /dashboard with banner.
+- Verification: 7 gates passed.
+
 ## [2026-05-10] CSA Portal Day 9 — Member Delivery Tracking Widget LIVE
 
 - Files: `apps/csa-portal/src/components/DeliveryTracker.astro` (new — real-time delivery status widget with 6 visual states, server-rendered + client-polled with 60s/15s adaptive cadence + Page Visibility API pause, photo lightbox via native `<dialog>`, soft-pulse animation gated by `prefers-reduced-motion`, all DOM updates via textContent / class toggles — never innerHTML — to keep the path XSS-safe), `apps/csa-portal/src/lib/delivery.ts` (new — `deriveState(stop)` pure helper translating Apps Script `SALES_DeliveryStops` rows to one of `none | packed | out_for_delivery | near_you | delivered | issue`, `fetchDeliveryStatus(legacyId)` fail-soft Apps Script proxy with 8s `AbortController` timeout + ET-localized date filtering, `shouldShowTracker()` gate for active membership + today-is-pickup-day + non-farm-pickup, `firstNameOf()` for driver-name privacy, `isFarmPickup()` for the Rochester self-pickup exclusion, `APPS_SCRIPT_URL` constant mirroring `web_app/api-config.js` MAIN_API since the JS shim isn't safe under Astro SSR), `apps/csa-portal/src/pages/api/delivery-status.ts` (new — auth-gated GET route returning `{state, eta, driver_name, completed_at, photo_url, issue_notes, last_updated}`, 401 on no-session, fail-soft `state: 'none'` on every error path, `Cache-Control: private, no-store`), `apps/csa-portal/src/pages/dashboard.astro` (added `customers.legacy_id` to the SSR select, computed `trackerEligibleShare` + initial Apps Script fetch + `deliveryDateLabel`, render `<DeliveryTracker>` as the FIRST card on the dashboard above the welcome banner — only on the member's pickup day, only for active shares, only when pickup isn't Rochester farm self-pickup).

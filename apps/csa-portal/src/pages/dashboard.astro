@@ -309,6 +309,11 @@ const targetWeekPretty = new Intl.DateTimeFormat('en-US', {
 // page reload drops it.
 const justActivated = Astro.url.searchParams.get('welcome') === '1';
 
+// Banner: non-admin user tried to access /admin/*. The middleware
+// redirects them here with ?error=admin_only. Same URL-flag-only
+// pattern as the welcome banner.
+const adminOnlyError = Astro.url.searchParams.get('error') === 'admin_only';
+
 // Page title — personalized
 const title = `Welcome back, ${firstName} — Tiny Seed Farm CSA`;
 ---
@@ -367,6 +372,48 @@ const title = `Welcome back, ${firstName} — Tiny Seed Farm CSA`;
           initialStatus={initialDeliveryStatus}
           pickupDateLabel={deliveryDateLabel}
         />
+      )}
+
+      {/* ═════════════════════════════════════════════════════════════
+          ADMIN-ONLY DENIAL BANNER (one-time, ?error=admin_only)
+          Shown when a non-admin lands here after trying /admin/*.
+          ═════════════════════════════════════════════════════════════ */}
+      {adminOnlyError && (
+        <section
+          role="alert"
+          aria-live="polite"
+          class="rounded-ts-xl border border-ts-warning/30 bg-ts-warning/5 p-5 shadow-ts-sm sm:p-6"
+          data-admin-only-banner
+        >
+          <div class="flex items-start gap-4">
+            <div
+              class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ts-warning/15 text-xl"
+              aria-hidden="true"
+            >
+              🔒
+            </div>
+            <div class="min-w-0 flex-1">
+              <h2 class="font-display text-lg font-semibold text-ts-text">
+                Admin access required
+              </h2>
+              <p class="mt-1 text-sm leading-relaxed text-ts-text-secondary">
+                The admin dashboard is for farm staff only. Email
+                <a href="mailto:todd@tinyseedfarmpgh.com" class="font-medium text-ts-primary underline-offset-2 hover:underline">
+                  todd@tinyseedfarmpgh.com
+                </a>
+                if you think this is a mistake.
+              </p>
+            </div>
+            <button
+              type="button"
+              class="-mr-1 -mt-1 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-ts-text-muted transition-colors duration-150 hover:bg-ts-warning/10 hover:text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-warning"
+              data-admin-only-dismiss
+              aria-label="Dismiss banner"
+            >
+              <span aria-hidden="true">×</span>
+            </button>
+          </div>
+        </section>
       )}
 
       {/* ═════════════════════════════════════════════════════════════
@@ -727,6 +774,18 @@ const title = `Welcome back, ${firstName} — Tiny Seed Farm CSA`;
         banner.remove();
         const url = new URL(window.location.href);
         url.searchParams.delete('welcome');
+        window.history.replaceState({}, '', url.toString());
+      });
+    }
+
+    // Same dismiss pattern for the admin-only denial banner.
+    const adminBanner = document.querySelector<HTMLElement>('[data-admin-only-banner]');
+    const adminBannerDismiss = document.querySelector<HTMLButtonElement>('[data-admin-only-dismiss]');
+    if (adminBanner && adminBannerDismiss) {
+      adminBannerDismiss.addEventListener('click', () => {
+        adminBanner.remove();
+        const url = new URL(window.location.href);
+        url.searchParams.delete('error');
         window.history.replaceState({}, '', url.toString());
       });
     }

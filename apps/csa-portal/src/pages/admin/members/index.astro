@@ -1,0 +1,374 @@
+---
+/**
+ * /admin/members — searchable, filterable members table.
+ *
+ * URL params drive the query:
+ *   - q                 free-text (matches contact_name, email, legacy_id)
+ *   - status            members.status filter (single value, or 'all')
+ *   - share_type        members.share_type filter (single value, or 'all')
+ *   - pickup_location   pickup_location_id filter ('all' | 'home_delivery' | <uuid>)
+ *   - page              1-indexed
+ *
+ * Pagination is server-side (50 per page). Total count comes from a
+ * head:true count query in parallel with the row fetch.
+ *
+ * Each row links to /admin/members/[id]. CSV export streams from
+ * /api/admin/reports/members.csv with the same filters applied so what
+ * Todd sees is what he downloads.
+ *
+ * RLS: admin_all_members policy lets the cookie-aware client return
+ * every member row (the member-self policy would have restricted us
+ * to Todd's own row).
+ */
+import AdminShell from '../../../components/AdminShell.astro';
+import Card from '../../../components/Card.astro';
+import Table from '../../../components/Table.astro';
+import StatusPill from '../../../components/StatusPill.astro';
+import SearchInput from '../../../components/SearchInput.astro';
+import Pagination from '../../../components/Pagination.astro';
+import CSVExport from '../../../components/CSVExport.astro';
+import Select from '../../../components/Select.astro';
+
+const supabase = Astro.locals.supabase;
+const url = Astro.url;
+const params = url.searchParams;
+
+// ─── Parse filters ──────────────────────────────────────────────────
+const q = (params.get('q') ?? '').trim();
+const status = params.get('status') ?? 'all';
+const shareType = params.get('share_type') ?? 'all';
+const pickupFilter = params.get('pickup_location') ?? 'all';
+const pageRaw = Number.parseInt(params.get('page') ?? '1', 10);
+const page = Number.isFinite(pageRaw) && pageRaw > 0 ? pageRaw : 1;
+const PAGE_SIZE = 50;
+
+// ─── Build query ────────────────────────────────────────────────────
+// We use the embedded select pattern so each row carries its customer
+// + pickup_location in one trip.
+let query = supabase
+  .from('members')
+  .select(
+    `
+    id,
+    share_type,
+    share_size,
+    season,
+    status,
+    pickup_location_id,
+    delivery_address,
+    weeks_remaining,
+    total_weeks,
+    legacy_id,
+    customer:customers!inner(
+      id,
+      contact_name,
+      email,
+      legacy_id
+    ),
+    pickup_location:pickup_locations(
+      id,
+      name,
+      day_of_week
+    )
+    `,
+    { count: 'exact' }
+  );
+
+// The URL string is constrained to enum values by the dropdown, but
+// it arrives as `string`. Cast to the enum union for the typed
+// `.eq` overload; PostgREST will reject anything outside the CHECK
+// constraint regardless.
+type MemberStatus = 'active' | 'inactive' | 'paused' | 'pending' | 'cancelled' | 'lapsed' | 'onboarding' | 'expired';
+type ShareTypeEnum = 'spring_veg' | 'summer_veg' | 'fall_veg' | 'flower' | 'flex' | 'add_on' | 'wholesale_csa';
+if (status !== 'all') {
+  query = query.eq('status', status as MemberStatus);
+}
+if (shareType !== 'all') {
+  query = query.eq('share_type', shareType as ShareTypeEnum);
+}
+if (pickupFilter === 'home_delivery') {
+  query = query.is('pickup_location_id', null);
+} else if (pickupFilter !== 'all') {
+  query = query.eq('pickup_location_id', pickupFilter);
+}
+if (q.length > 0) {
+  // OR across name/email/legacy_id. PostgREST `.or()` syntax accepts a
+  // comma-separated list of filter expressions; the embedded customer
+  // table is reachable via the `customer.column` dotted path.
+  const safe = q.replace(/[%,]/g, '\\$&'); // escape % and ,
+  query = query.or(
+    `customer.contact_name.ilike.%${safe}%,customer.email.ilike.%${safe}%,legacy_id.ilike.%${safe}%`
+  );
+}
+
+const from = (page - 1) * PAGE_SIZE;
+const to = from + PAGE_SIZE - 1;
+query = query
+  .order('created_at', { ascending: false })
+  .range(from, to);
+
+type MemberRow = {
+  id: string;
+  share_type: string;
+  share_size: string | null;
+  season: string;
+  status: string;
+  pickup_location_id: string | null;
+  delivery_address: string | null;
+  weeks_remaining: number;
+  total_weeks: number;
+  legacy_id: string | null;
+  customer: {
+    id: string;
+    contact_name: string;
+    email: string;
+    legacy_id: string | null;
+  } | null;
+  pickup_location: {
+    id: string;
+    name: string;
+    day_of_week: string | null;
+  } | null;
+};
+
+const { data: rows, count, error } = await query.overrideTypes<MemberRow[], { merge: false }>();
+if (error) {
+  console.error('[admin/members] fetch failed:', error.message);
+}
+
+const members = rows ?? [];
+const totalRows = count ?? 0;
+const totalPages = Math.max(1, Math.ceil(totalRows / PAGE_SIZE));
+
+// ─── Locations for the filter dropdown ──────────────────────────────
+const { data: locationRows } = await supabase
+  .from('pickup_locations')
+  .select('id, name, is_active')
+  .order('name', { ascending: true });
+
+type LocRow = { id: string; name: string; is_active: boolean };
+const locations = (locationRows ?? []) as LocRow[];
+
+// ─── Label helpers ──────────────────────────────────────────────────
+const SHARE_LABEL: Record<string, string> = {
+  spring_veg: 'Spring Veg',
+  summer_veg: 'Summer Veg',
+  fall_veg: 'Fall Veg',
+  flower: 'Flower',
+  flex: 'Flex',
+  add_on: 'Add-on',
+  wholesale_csa: 'Wholesale',
+};
+const SIZE_LABEL: Record<string, string> = {
+  small: 'Small', regular: 'Regular', family: 'Family', petite: 'Petite',
+  large: 'Large', light: 'Light', full: 'Full', half: 'Half',
+  quarter: 'Quarter', single: 'Single', double: 'Double',
+};
+
+function shareLabel(s: string): string { return SHARE_LABEL[s] ?? s; }
+function sizeLabel(s: string | null): string { return s ? SIZE_LABEL[s] ?? s : ''; }
+
+// CSV export carries the same filter set
+const csvParams = new URLSearchParams(params);
+csvParams.delete('page');
+const csvHref = `/api/admin/reports/members.csv?${csvParams.toString()}`;
+
+const subtitle = totalRows === 1
+  ? '1 member matches your filters'
+  : `${totalRows.toLocaleString('en-US')} members match your filters`;
+---
+
+<AdminShell
+  title="Members"
+  subtitle={subtitle}
+  pageTitle="Members — Tiny Seed Admin"
+  canonical="https://csa.tinyseedfarm.com/admin/members"
+>
+  <Fragment slot="actions">
+    <CSVExport href={csvHref} filename="members.csv" size="sm" />
+  </Fragment>
+
+  {/* ════ Filters ════ */}
+  <Card padding="md" elevation="sm">
+    <form method="GET" action="/admin/members" class="flex flex-col gap-4">
+      {/* Keep search/page logic separate: typing in search re-submits */}
+      <SearchInput
+        name="q"
+        value={q}
+        placeholder="Search by name, email, or member ID…"
+        ariaLabel="Search members"
+      />
+
+      <div class="grid grid-cols-1 gap-3 sm:grid-cols-3" data-filter-group>
+        <label class="block">
+          <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-ts-text-muted">
+            Status
+          </span>
+          <Select
+            id="filter-status"
+            name="status"
+            value={status}
+            options={[
+              { value: 'all',        label: 'All statuses' },
+              { value: 'active',     label: 'Active' },
+              { value: 'paused',     label: 'Paused' },
+              { value: 'onboarding', label: 'Onboarding' },
+              { value: 'pending',    label: 'Pending' },
+              { value: 'cancelled',  label: 'Cancelled' },
+              { value: 'lapsed',     label: 'Lapsed' },
+              { value: 'expired',    label: 'Expired' },
+              { value: 'inactive',   label: 'Inactive' },
+            ]}
+          />
+        </label>
+
+        <label class="block">
+          <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-ts-text-muted">
+            Share type
+          </span>
+          <Select
+            id="filter-share"
+            name="share_type"
+            value={shareType}
+            options={[
+              { value: 'all',           label: 'All share types' },
+              { value: 'spring_veg',    label: 'Spring Veg' },
+              { value: 'summer_veg',    label: 'Summer Veg' },
+              { value: 'fall_veg',      label: 'Fall Veg' },
+              { value: 'flower',        label: 'Flower' },
+              { value: 'flex',          label: 'Flex' },
+              { value: 'add_on',        label: 'Add-on' },
+              { value: 'wholesale_csa', label: 'Wholesale' },
+            ]}
+          />
+        </label>
+
+        <label class="block">
+          <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-ts-text-muted">
+            Pickup location
+          </span>
+          <Select
+            id="filter-pickup"
+            name="pickup_location"
+            value={pickupFilter}
+            options={[
+              { value: 'all',           label: 'All locations' },
+              { value: 'home_delivery', label: 'Home delivery' },
+              ...locations.filter((l) => l.is_active).map((l) => ({
+                value: l.id,
+                label: l.name,
+              })),
+            ]}
+          />
+        </label>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <button
+          type="submit"
+          class="inline-flex h-9 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+        >
+          Apply filters
+        </button>
+        {(q || status !== 'all' || shareType !== 'all' || pickupFilter !== 'all') && (
+          <a
+            href="/admin/members"
+            class="text-sm font-medium text-ts-text-secondary underline-offset-2 hover:text-ts-primary hover:underline"
+          >
+            Clear all
+          </a>
+        )}
+      </div>
+    </form>
+    <script>
+      // Auto-submit when any filter dropdown changes (JS-enabled clients).
+      document.querySelectorAll<HTMLSelectElement>('[data-filter-group] select').forEach((sel) => {
+        sel.addEventListener('change', () => {
+          const form = sel.closest('form');
+          if (form) form.submit();
+        });
+      });
+    </script>
+  </Card>
+
+  {/* ════ Results table ════ */}
+  <Table
+    tableLabel="Members"
+    columns={[
+      { key: 'name',     label: 'Member' },
+      { key: 'share',    label: 'Share' },
+      { key: 'pickup',   label: 'Pickup' },
+      { key: 'progress', label: 'Progress', align: 'right' },
+      { key: 'status',   label: 'Status' },
+      { key: 'view',     label: 'View',     srOnly: true, align: 'right' },
+    ]}
+    empty={members.length === 0}
+    emptyTitle={q || status !== 'all' || shareType !== 'all' || pickupFilter !== 'all'
+      ? 'No members match these filters'
+      : 'No members yet'}
+    emptyIcon="🌱"
+    emptyMessage={q ? `Nothing matched "${q}". Try clearing filters above.` : ''}
+    rowCount={totalRows}
+  >
+    <Fragment slot="body">
+      {members.map((m) => {
+        const isHome = !m.pickup_location_id && Boolean(m.delivery_address);
+        const pickupLabel = isHome
+          ? 'Home delivery'
+          : m.pickup_location?.name ?? '(no location)';
+        return (
+          <tr
+            class="cursor-pointer transition-colors duration-150 hover:bg-ts-bg-muted/40"
+            onclick={`window.location.href='/admin/members/${m.id}'`}
+          >
+            <td class="px-4 py-3 first:pl-5 sm:px-5 sm:first:pl-6">
+              <a
+                href={`/admin/members/${m.id}`}
+                class="font-medium text-ts-text underline-offset-2 hover:text-ts-primary hover:underline"
+                onclick="event.stopPropagation()"
+              >
+                {m.customer?.contact_name ?? '(unknown)'}
+              </a>
+              <p class="mt-0.5 text-xs text-ts-text-muted">
+                {m.customer?.email ?? ''}
+              </p>
+            </td>
+            <td class="px-4 py-3 text-sm text-ts-text-secondary sm:px-5">
+              <span class="font-medium text-ts-text">{shareLabel(m.share_type)}</span>
+              {m.share_size && (
+                <span class="ml-1 text-xs text-ts-text-muted">· {sizeLabel(m.share_size)}</span>
+              )}
+              <p class="mt-0.5 text-xs text-ts-text-muted">{m.season}</p>
+            </td>
+            <td class="px-4 py-3 text-sm text-ts-text-secondary sm:px-5">
+              {pickupLabel}
+            </td>
+            <td class="px-4 py-3 text-right text-sm text-ts-text-secondary tabular-nums sm:px-5">
+              {m.weeks_remaining}/{m.total_weeks}
+            </td>
+            <td class="px-4 py-3 sm:px-5">
+              <StatusPill status={m.status} />
+            </td>
+            <td class="px-4 py-3 text-right last:pr-5 sm:px-5 sm:last:pr-6">
+              <a
+                href={`/admin/members/${m.id}`}
+                class="inline-flex items-center gap-1 text-sm font-medium text-ts-primary underline-offset-2 hover:underline"
+                onclick="event.stopPropagation()"
+                aria-label={`View ${m.customer?.contact_name ?? 'member'}`}
+              >
+                View <span aria-hidden="true">→</span>
+              </a>
+            </td>
+          </tr>
+        );
+      })}
+    </Fragment>
+  </Table>
+
+  <Pagination
+    currentPage={page}
+    totalPages={totalPages}
+    baseUrl="/admin/members"
+    currentParams={params}
+  />
+</AdminShell>

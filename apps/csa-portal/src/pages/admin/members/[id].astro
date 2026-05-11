@@ -1,0 +1,778 @@
+---
+/**
+ * /admin/members/[id] — member detail + admin editing.
+ *
+ * Pulls EVERYTHING about a member into one server-rendered view:
+ *   - customer profile (read-only name + email; editable phone)
+ *   - membership card (status editable, plus share metadata)
+ *   - preferences (dislikes / allergies / delivery_notes editable)
+ *   - vacation holds (list + cancel button per scheduled/active)
+ *   - swap history
+ *   - flex transactions + current balance
+ *   - notification log (last 20)
+ *   - audit log (last 20)
+ *
+ * Each edit-form posts to a dedicated API route under /api/admin/...
+ * which verifies admin auth + uses supabaseAdmin to bypass RLS. The
+ * forms POST back to this URL with ?ok=<token> or ?error=<code> so
+ * a refresh-friendly success banner renders without client JS.
+ *
+ * Defensive 404: if no member is found with the given UUID we render
+ * a 404-style not-found page. RLS admin policy lets us read every
+ * row, so "not found" really means the UUID doesn't exist in the
+ * table.
+ */
+import AdminShell from '../../../components/AdminShell.astro';
+import Card from '../../../components/Card.astro';
+import Badge from '../../../components/Badge.astro';
+import StatusPill from '../../../components/StatusPill.astro';
+import FormRow from '../../../components/FormRow.astro';
+import Select from '../../../components/Select.astro';
+import Tags from '../../../components/Tags.astro';
+
+const supabase = Astro.locals.supabase;
+const memberId = Astro.params.id ?? '';
+
+// Basic UUID sanity check — short-circuit a malformed URL into a 404.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const isUuid = UUID_RE.test(memberId);
+
+// ─── Banner state ───────────────────────────────────────────────────
+const okFlag = Astro.url.searchParams.get('ok');
+const errorFlag = Astro.url.searchParams.get('error');
+
+// ─── Fetch member + everything ─────────────────────────────────────
+type MemberDetail = {
+  id: string;
+  legacy_id: string | null;
+  share_type: string;
+  share_size: string | null;
+  season: string;
+  start_date: string;
+  end_date: string;
+  total_weeks: number;
+  weeks_remaining: number;
+  swap_credits: number;
+  vacation_weeks_used: number;
+  status: string;
+  payment_status: string | null;
+  amount_paid: number | null;
+  pickup_day: string | null;
+  pickup_location_id: string | null;
+  delivery_address: string | null;
+  customization_allowed: boolean;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  customer: {
+    id: string;
+    legacy_id: string | null;
+    contact_name: string;
+    email: string;
+    phone: string | null;
+    city: string | null;
+    state: string | null;
+    zip: string | null;
+    address: string | null;
+    last_order_date: string | null;
+    total_orders: number;
+    total_spent: number;
+  } | null;
+  pickup_location: {
+    id: string;
+    name: string;
+    day_of_week: string | null;
+    address: string | null;
+    city: string | null;
+    state: string;
+  } | null;
+  member_preferences: {
+    dislikes: string[];
+    allergies: string[];
+    delivery_notes: string | null;
+    contact_preference: 'email' | 'sms' | 'both' | 'none';
+    newsletter_opt_in: boolean;
+    updated_at: string;
+  } | null;
+};
+
+const { data: memberData, error: memberError } = !isUuid
+  ? { data: null, error: null as null | { message: string } }
+  : await supabase
+      .from('members')
+      .select(
+        `
+        id, legacy_id, share_type, share_size, season, start_date, end_date,
+        total_weeks, weeks_remaining, swap_credits, vacation_weeks_used, status,
+        payment_status, amount_paid, pickup_day, pickup_location_id,
+        delivery_address, customization_allowed, notes, created_at, updated_at,
+        customer:customers!inner(
+          id, legacy_id, contact_name, email, phone, city, state, zip, address,
+          last_order_date, total_orders, total_spent
+        ),
+        pickup_location:pickup_locations(
+          id, name, day_of_week, address, city, state
+        ),
+        member_preferences (
+          dislikes, allergies, delivery_notes, contact_preference,
+          newsletter_opt_in, updated_at
+        )
+        `
+      )
+      .eq('id', memberId)
+      .maybeSingle()
+      .overrideTypes<MemberDetail, { merge: false }>();
+
+if (memberError) {
+  console.error('[admin/member-detail] fetch failed:', memberError.message);
+}
+
+const member = memberData ?? null;
+
+// ─── If not found, render a small not-found shell and bail out ─────
+if (!member) {
+  return Astro.redirect('/admin/members?error=member_not_found', 303);
+}
+
+// ─── Fetch related collections in parallel ──────────────────────────
+// locations dropdown reserved for a future "change pickup" admin
+// action; we don't render an editor here yet, so we skip the query.
+const [holdsRes, swapsRes, flexRes, notifRes, auditRes, balanceRes] = await Promise.all([
+  supabase
+    .from('vacation_holds')
+    .select('id, start_date, end_date, reason, status, created_at, cancelled_at')
+    .eq('member_id', member.id)
+    .order('start_date', { ascending: false }),
+  supabase
+    .from('box_swaps')
+    .select('id, week_date, original_item, swapped_for, created_at')
+    .eq('member_id', member.id)
+    .order('week_date', { ascending: false })
+    .limit(30),
+  supabase
+    .from('flex_transactions')
+    .select('id, type, amount, reason, admin_email, created_at')
+    .eq('member_id', member.id)
+    .order('created_at', { ascending: false })
+    .limit(30),
+  supabase
+    .from('notification_log')
+    .select('id, channel, notification_type, recipient, status, subject, sent_at, error_message')
+    .or(`member_id.eq.${member.id},customer_id.eq.${member.customer?.id ?? '00000000-0000-0000-0000-000000000000'}`)
+    .order('sent_at', { ascending: false })
+    .limit(20),
+  supabase
+    .from('audit_log')
+    .select('id, table_name, operation, changed_by_email, diff, changed_at')
+    .or(`row_id.eq.${member.id}${member.customer?.id ? `,row_id.eq.${member.customer.id}` : ''}`)
+    .order('changed_at', { ascending: false })
+    .limit(20),
+  supabase
+    .from('member_flex_balance')
+    .select('balance, transaction_count')
+    .eq('member_id', member.id)
+    .maybeSingle(),
+]);
+
+type HoldRow = {
+  id: string; start_date: string; end_date: string;
+  reason: string | null; status: 'scheduled' | 'active' | 'completed' | 'cancelled';
+  created_at: string; cancelled_at: string | null;
+};
+type SwapRow = {
+  id: string; week_date: string; original_item: string;
+  swapped_for: string; created_at: string;
+};
+type FlexRow = {
+  id: string; type: 'credit' | 'debit' | 'refund' | 'transfer' | 'adjustment';
+  amount: number; reason: string | null; admin_email: string | null;
+  created_at: string;
+};
+type NotifRow = {
+  id: string; channel: 'email' | 'sms' | 'push'; notification_type: string;
+  recipient: string; status: string; subject: string | null;
+  sent_at: string; error_message: string | null;
+};
+type AuditRow = {
+  id: number; table_name: string; operation: 'insert' | 'update' | 'delete';
+  changed_by_email: string | null; diff: unknown; changed_at: string;
+};
+type BalanceRow = { balance: number; transaction_count: number };
+
+const holds = (holdsRes.data ?? []) as HoldRow[];
+const swaps = (swapsRes.data ?? []) as SwapRow[];
+const flex = (flexRes.data ?? []) as FlexRow[];
+const notifs = (notifRes.data ?? []) as NotifRow[];
+const audits = (auditRes.data ?? []) as AuditRow[];
+const balance = (balanceRes.data ?? { balance: 0, transaction_count: 0 }) as BalanceRow;
+
+// ─── Helpers ────────────────────────────────────────────────────────
+const SHARE_LABEL: Record<string, string> = {
+  spring_veg: 'Spring Vegetable',
+  summer_veg: 'Summer Vegetable',
+  fall_veg: 'Fall Vegetable',
+  flower: 'Flower',
+  flex: 'Flex',
+  add_on: 'Add-on',
+  wholesale_csa: 'Wholesale CSA',
+};
+const SIZE_LABEL: Record<string, string> = {
+  small: 'Small', regular: 'Regular', family: 'Family', petite: 'Petite',
+  large: 'Large', light: 'Light', full: 'Full', half: 'Half',
+  quarter: 'Quarter', single: 'Single', double: 'Double',
+};
+const DAY_LONG: Record<string, string> = {
+  Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday',
+  Thu: 'Thursday', Fri: 'Friday', Sat: 'Saturday', Sun: 'Sunday',
+};
+
+function fmtDate(s: string | null): string {
+  if (!s) return '—';
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short', day: 'numeric', year: 'numeric',
+    timeZone: 'America/New_York',
+  }).format(new Date(s));
+}
+function fmtDateTime(s: string | null): string {
+  if (!s) return '—';
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
+    timeZone: 'America/New_York',
+  }).format(new Date(s));
+}
+function fmtMoney(n: number | null): string {
+  if (n === null || n === undefined) return '—';
+  return n.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+}
+
+// Format a JSONB diff for the audit log display. We only show the keys
+// that changed between before/after, not the whole row dump.
+function summarizeAuditDiff(diff: unknown): string {
+  if (!diff || typeof diff !== 'object') return '—';
+  const d = diff as Record<string, unknown>;
+  const before = (d.before ?? null) as Record<string, unknown> | null;
+  const after = (d.after ?? null) as Record<string, unknown> | null;
+  if (before === null && after !== null) return `created (${Object.keys(after).length} fields)`;
+  if (before !== null && after === null) return `deleted`;
+  if (before === null || after === null) return '—';
+  const keys = new Set([...Object.keys(before), ...Object.keys(after)]);
+  const changes: string[] = [];
+  // Skip noisy columns that change on every update.
+  const SKIP = new Set(['updated_at', 'created_at']);
+  for (const k of keys) {
+    if (SKIP.has(k)) continue;
+    const b = before[k];
+    const a = after[k];
+    if (JSON.stringify(b) !== JSON.stringify(a)) {
+      const bs = b === null || b === undefined ? '∅' : String(b).slice(0, 40);
+      const as = a === null || a === undefined ? '∅' : String(a).slice(0, 40);
+      changes.push(`${k}: ${bs} → ${as}`);
+    }
+  }
+  if (changes.length === 0) return '(no field changes)';
+  return changes.slice(0, 3).join(', ') + (changes.length > 3 ? ` +${changes.length - 3} more` : '');
+}
+
+const isHomeDelivery = !member.pickup_location_id && Boolean(member.delivery_address);
+
+const flexBalance = balance.balance ?? 0;
+
+const subtitle = member.customer?.email ?? '';
+const title = member.customer?.contact_name ?? '(unknown member)';
+
+// Status options for the dropdown — match the enum from migrations/0014.
+const statusOptions: { value: string; label: string }[] = [
+  { value: 'active', label: 'Active' },
+  { value: 'paused', label: 'Paused' },
+  { value: 'onboarding', label: 'Onboarding' },
+  { value: 'pending', label: 'Pending' },
+  { value: 'cancelled', label: 'Cancelled' },
+  { value: 'lapsed', label: 'Lapsed' },
+  { value: 'expired', label: 'Expired' },
+  { value: 'inactive', label: 'Inactive' },
+];
+
+const successCopy: Record<string, string> = {
+  status_updated: 'Status updated.',
+  preferences_updated: 'Preferences saved.',
+  flex_credited: 'Flex credit applied.',
+  hold_cancelled: 'Vacation hold cancelled.',
+};
+const errorCopy: Record<string, string> = {
+  invalid_input: 'Something in the form was off. Try again.',
+  forbidden: 'You don’t have permission for that action.',
+  member_not_found: 'Member not found.',
+  hold_not_found: 'Vacation hold not found.',
+  cannot_cancel: 'That hold can’t be cancelled in its current state.',
+};
+---
+
+<AdminShell
+  title={title}
+  subtitle={subtitle}
+  pageTitle={`${title} — Tiny Seed Admin`}
+  canonical={`https://csa.tinyseedfarm.com/admin/members/${member.id}`}
+>
+  <Fragment slot="actions">
+    <a
+      href="/admin/members"
+      class="inline-flex h-9 items-center gap-1 rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm font-medium text-ts-text transition-colors duration-150 hover:border-ts-primary/40 hover:text-ts-primary"
+    >
+      <span aria-hidden="true">←</span> All members
+    </a>
+  </Fragment>
+
+  {/* ════ Banner: success or error ════ */}
+  {okFlag && successCopy[okFlag] && (
+    <div
+      role="status"
+      aria-live="polite"
+      class="rounded-ts-md border border-ts-primary/30 bg-ts-primary/5 px-4 py-3 text-sm text-ts-text"
+    >
+      <span class="font-semibold text-ts-primary">Saved.</span>{' '}
+      {successCopy[okFlag]}
+    </div>
+  )}
+  {errorFlag && (
+    <div
+      role="alert"
+      class="rounded-ts-md border border-ts-danger/30 bg-ts-danger/5 px-4 py-3 text-sm text-ts-text"
+    >
+      <span class="font-semibold text-ts-danger">Couldn't save.</span>{' '}
+      {errorCopy[errorFlag] ?? errorFlag}
+    </div>
+  )}
+
+  <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+    {/* ═══════════════════════════════════════════════════════════════
+        LEFT COLUMN — profile + membership + preferences + pickup +
+                       admin actions
+        ═══════════════════════════════════════════════════════════════ */}
+    <div class="space-y-6 lg:col-span-2">
+      {/* ─── Profile ─── */}
+      <Card padding="md" elevation="sm">
+        <h2 class="font-display text-lg font-bold text-ts-text">Profile</h2>
+        <dl class="mt-4 grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
+          <div>
+            <dt class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Name</dt>
+            <dd class="mt-0.5 text-sm text-ts-text">{member.customer?.contact_name ?? '—'}</dd>
+          </div>
+          <div>
+            <dt class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Email</dt>
+            <dd class="mt-0.5 text-sm text-ts-text font-mono">{member.customer?.email ?? '—'}</dd>
+          </div>
+          <div>
+            <dt class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Member ID</dt>
+            <dd class="mt-0.5 text-sm text-ts-text-secondary font-mono">{member.legacy_id ?? member.id.slice(0, 8)}</dd>
+          </div>
+          <div>
+            <dt class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Address</dt>
+            <dd class="mt-0.5 text-sm text-ts-text-secondary">
+              {[member.customer?.address, member.customer?.city, member.customer?.state, member.customer?.zip]
+                .filter(Boolean).join(', ') || '—'}
+            </dd>
+          </div>
+        </dl>
+
+        <form
+          method="POST"
+          action={`/api/admin/members/${member.id}/preferences`}
+          class="mt-4 border-t border-ts-border pt-4"
+        >
+          <input type="hidden" name="form" value="contact" />
+          <FormRow label="Phone" htmlFor={`phone-${member.id}`}>
+            <input
+              id={`phone-${member.id}`}
+              type="tel"
+              name="phone"
+              value={member.customer?.phone ?? ''}
+              placeholder="+1 412-555-0100"
+              class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30"
+            />
+          </FormRow>
+          <div class="mt-3">
+            <button
+              type="submit"
+              class="inline-flex h-9 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark"
+            >
+              Save phone
+            </button>
+          </div>
+        </form>
+      </Card>
+
+      {/* ─── Membership ─── */}
+      <Card padding="md" elevation="sm">
+        <div class="flex items-baseline justify-between">
+          <h2 class="font-display text-lg font-bold text-ts-text">Membership</h2>
+          <StatusPill status={member.status} />
+        </div>
+        <dl class="mt-4 grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3">
+          <div>
+            <dt class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Share</dt>
+            <dd class="mt-0.5 text-sm text-ts-text">
+              {SHARE_LABEL[member.share_type] ?? member.share_type}
+              {member.share_size && (
+                <span class="text-ts-text-muted"> · {SIZE_LABEL[member.share_size] ?? member.share_size}</span>
+              )}
+            </dd>
+          </div>
+          <div>
+            <dt class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Season</dt>
+            <dd class="mt-0.5 text-sm text-ts-text">{member.season}</dd>
+          </div>
+          <div>
+            <dt class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Weeks</dt>
+            <dd class="mt-0.5 text-sm text-ts-text tabular-nums">
+              {member.weeks_remaining} of {member.total_weeks} remaining
+            </dd>
+          </div>
+          <div>
+            <dt class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Dates</dt>
+            <dd class="mt-0.5 text-sm text-ts-text">{fmtDate(member.start_date)} → {fmtDate(member.end_date)}</dd>
+          </div>
+          <div>
+            <dt class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Payment</dt>
+            <dd class="mt-0.5 text-sm text-ts-text">
+              {member.payment_status ?? '—'}
+              {member.amount_paid !== null && (
+                <span class="ml-1 text-ts-text-muted">· {fmtMoney(member.amount_paid)}</span>
+              )}
+            </dd>
+          </div>
+          <div>
+            <dt class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Swap credits</dt>
+            <dd class="mt-0.5 text-sm text-ts-text tabular-nums">{member.swap_credits}</dd>
+          </div>
+        </dl>
+
+        <form
+          method="POST"
+          action={`/api/admin/members/${member.id}/status`}
+          class="mt-4 border-t border-ts-border pt-4"
+        >
+          <FormRow label="Update status" htmlFor={`status-${member.id}`}>
+            <div class="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto]">
+              <Select
+                id={`status-${member.id}`}
+                name="status"
+                value={member.status}
+                options={statusOptions}
+              />
+              <button
+                type="submit"
+                class="inline-flex h-11 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark"
+              >
+                Save status
+              </button>
+            </div>
+          </FormRow>
+        </form>
+      </Card>
+
+      {/* ─── Pickup ─── */}
+      <Card padding="md" elevation="sm">
+        <h2 class="font-display text-lg font-bold text-ts-text">Pickup</h2>
+        <dl class="mt-4 grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
+          <div>
+            <dt class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Mode</dt>
+            <dd class="mt-0.5 text-sm text-ts-text">
+              {isHomeDelivery ? 'Home delivery' : member.pickup_location?.name ?? 'Not set'}
+            </dd>
+          </div>
+          {!isHomeDelivery && member.pickup_location && (
+            <div>
+              <dt class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Day</dt>
+              <dd class="mt-0.5 text-sm text-ts-text">
+                {member.pickup_location.day_of_week
+                  ? DAY_LONG[member.pickup_location.day_of_week] ?? member.pickup_location.day_of_week
+                  : '—'}
+              </dd>
+            </div>
+          )}
+          {isHomeDelivery && (
+            <div class="sm:col-span-2">
+              <dt class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Delivery address</dt>
+              <dd class="mt-0.5 text-sm text-ts-text">{member.delivery_address}</dd>
+            </div>
+          )}
+        </dl>
+        <p class="mt-3 text-xs text-ts-text-muted">
+          To change a member's pickup location, log in as that member or use the
+          existing change-pickup RPC. (UI deferred until Phase 2.)
+        </p>
+      </Card>
+
+      {/* ─── Preferences ─── */}
+      <Card padding="md" elevation="sm">
+        <h2 class="font-display text-lg font-bold text-ts-text">Preferences</h2>
+        <form
+          method="POST"
+          action={`/api/admin/members/${member.id}/preferences`}
+          class="mt-4 space-y-4"
+        >
+          <input type="hidden" name="form" value="preferences" />
+          <FormRow label="Dislikes" htmlFor={`dislikes-${member.id}`}>
+            <Tags
+              id={`dislikes-${member.id}`}
+              name="dislikes"
+              values={member.member_preferences?.dislikes ?? []}
+              placeholder="Add an item the member doesn't want…"
+              tone="primary"
+              ariaLabel="Dislikes"
+            />
+          </FormRow>
+          <FormRow label="Allergies" htmlFor={`allergies-${member.id}`}>
+            <Tags
+              id={`allergies-${member.id}`}
+              name="allergies"
+              values={member.member_preferences?.allergies ?? []}
+              placeholder="Add an allergen to avoid…"
+              tone="warning"
+              ariaLabel="Allergies"
+            />
+          </FormRow>
+          <FormRow label="Delivery notes" htmlFor={`notes-${member.id}`}>
+            <textarea
+              id={`notes-${member.id}`}
+              name="delivery_notes"
+              rows="3"
+              maxlength="500"
+              class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30"
+            >{member.member_preferences?.delivery_notes ?? ''}</textarea>
+          </FormRow>
+          <FormRow label="Contact preference" htmlFor={`contact-${member.id}`}>
+            <Select
+              id={`contact-${member.id}`}
+              name="contact_preference"
+              value={member.member_preferences?.contact_preference ?? 'email'}
+              options={[
+                { value: 'email', label: 'Email only' },
+                { value: 'sms',   label: 'SMS only' },
+                { value: 'both',  label: 'Email + SMS' },
+                { value: 'none',  label: 'No marketing contact' },
+              ]}
+            />
+          </FormRow>
+          <label class="flex items-center gap-3">
+            <input
+              type="checkbox"
+              name="newsletter_opt_in"
+              value="true"
+              checked={member.member_preferences?.newsletter_opt_in ?? true}
+              class="h-5 w-5 rounded border-ts-border text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+            />
+            <span class="text-sm text-ts-text">Subscribed to newsletter</span>
+          </label>
+          <div>
+            <button
+              type="submit"
+              class="inline-flex h-9 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark"
+            >
+              Save preferences
+            </button>
+          </div>
+        </form>
+      </Card>
+
+      {/* ─── Vacation holds ─── */}
+      <Card padding="md" elevation="sm">
+        <h2 class="font-display text-lg font-bold text-ts-text">Vacation holds</h2>
+        {holds.length === 0 ? (
+          <p class="mt-3 text-sm text-ts-text-muted">No holds on file.</p>
+        ) : (
+          <ul class="mt-4 divide-y divide-ts-border/60">
+            {holds.map((h) => (
+              <li class="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0">
+                <div class="min-w-0 flex-1">
+                  <p class="text-sm font-medium text-ts-text">
+                    {fmtDate(h.start_date)} → {fmtDate(h.end_date)}
+                  </p>
+                  {h.reason && (
+                    <p class="mt-0.5 text-xs text-ts-text-muted">{h.reason}</p>
+                  )}
+                </div>
+                <div class="flex items-center gap-3">
+                  <Badge
+                    size="xs"
+                    variant={h.status === 'cancelled' ? 'gray' : h.status === 'completed' ? 'gray' : h.status === 'active' ? 'amber' : 'sky'}
+                    uppercase
+                  >
+                    {h.status}
+                  </Badge>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+
+      {/* ─── Swap history ─── */}
+      <Card padding="md" elevation="sm">
+        <h2 class="font-display text-lg font-bold text-ts-text">Swap history</h2>
+        {swaps.length === 0 ? (
+          <p class="mt-3 text-sm text-ts-text-muted">No swaps yet.</p>
+        ) : (
+          <ul class="mt-3 divide-y divide-ts-border/60">
+            {swaps.map((s) => (
+              <li class="flex items-center justify-between gap-3 py-2.5 text-sm first:pt-0 last:pb-0">
+                <span class="text-ts-text">
+                  {s.original_item}
+                  <span class="text-ts-text-muted"> → </span>
+                  <span class="font-medium text-ts-text">{s.swapped_for}</span>
+                </span>
+                <span class="text-xs text-ts-text-muted tabular-nums">
+                  {fmtDate(s.week_date)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+    </div>
+
+    {/* ═══════════════════════════════════════════════════════════════
+        RIGHT COLUMN — flex / notifications / audit
+        ═══════════════════════════════════════════════════════════════ */}
+    <div class="space-y-6">
+      {/* ─── Flex balance ─── */}
+      <Card padding="md" elevation="sm">
+        <h2 class="font-display text-lg font-bold text-ts-text">Flex balance</h2>
+        <div class="mt-3 font-display text-4xl font-bold text-ts-text tabular-nums">
+          {fmtMoney(flexBalance)}
+        </div>
+        <p class="mt-1 text-xs text-ts-text-muted">
+          {balance.transaction_count ?? 0} transactions
+        </p>
+
+        <form
+          method="POST"
+          action={`/api/admin/members/${member.id}/flex-credit`}
+          class="mt-4 space-y-3 border-t border-ts-border pt-4"
+        >
+          <FormRow label="Add flex credit (USD)" htmlFor={`flex-amount-${member.id}`}>
+            <input
+              id={`flex-amount-${member.id}`}
+              type="number"
+              name="amount"
+              min="0.01"
+              max="10000"
+              step="0.01"
+              required
+              placeholder="25.00"
+              class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30"
+            />
+          </FormRow>
+          <FormRow label="Reason" htmlFor={`flex-reason-${member.id}`}>
+            <input
+              id={`flex-reason-${member.id}`}
+              type="text"
+              name="reason"
+              maxlength="200"
+              placeholder="e.g. missed pickup makeup"
+              class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30"
+            />
+          </FormRow>
+          <button
+            type="submit"
+            class="inline-flex h-9 w-full items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark"
+          >
+            Apply credit
+          </button>
+        </form>
+
+        {flex.length > 0 && (
+          <ul class="mt-4 max-h-64 divide-y divide-ts-border/60 overflow-y-auto border-t border-ts-border pt-3">
+            {flex.map((t) => {
+              const sign = ['credit', 'refund'].includes(t.type) ? '+' : '−';
+              const colorCls = sign === '+' ? 'text-ts-primary' : 'text-ts-danger';
+              return (
+                <li class="flex items-start justify-between gap-2 py-2 text-xs">
+                  <div class="min-w-0 flex-1">
+                    <span class="text-ts-text">{t.type}</span>
+                    {t.reason && (
+                      <p class="mt-0.5 text-ts-text-muted">{t.reason}</p>
+                    )}
+                    <p class="text-ts-text-muted">{fmtDateTime(t.created_at)}</p>
+                  </div>
+                  <span class={`shrink-0 font-semibold tabular-nums ${colorCls}`}>
+                    {sign}{fmtMoney(t.amount)}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </Card>
+
+      {/* ─── Notifications ─── */}
+      <Card padding="md" elevation="sm">
+        <h2 class="font-display text-lg font-bold text-ts-text">Notifications</h2>
+        {notifs.length === 0 ? (
+          <p class="mt-3 text-sm text-ts-text-muted">No notifications sent.</p>
+        ) : (
+          <ul class="mt-3 max-h-96 divide-y divide-ts-border/60 overflow-y-auto">
+            {notifs.map((n) => (
+              <li class="py-2.5 text-xs first:pt-0 last:pb-0">
+                <div class="flex items-baseline justify-between gap-2">
+                  <span class="font-semibold text-ts-text">
+                    {n.notification_type}
+                  </span>
+                  <Badge
+                    size="xs"
+                    variant={
+                      n.status === 'delivered' || n.status === 'opened' ? 'green' :
+                      n.status === 'bounced' || n.status === 'failed' || n.status === 'complained' ? 'red' :
+                      'gray'
+                    }
+                    uppercase
+                  >
+                    {n.status}
+                  </Badge>
+                </div>
+                <p class="mt-0.5 text-ts-text-muted">
+                  {n.channel} · {n.recipient}
+                </p>
+                {n.subject && (
+                  <p class="mt-0.5 truncate text-ts-text">{n.subject}</p>
+                )}
+                <p class="mt-0.5 text-ts-text-muted tabular-nums">
+                  {fmtDateTime(n.sent_at)}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+
+      {/* ─── Audit log ─── */}
+      <Card padding="md" elevation="sm">
+        <h2 class="font-display text-lg font-bold text-ts-text">Recent changes</h2>
+        {audits.length === 0 ? (
+          <p class="mt-3 text-sm text-ts-text-muted">No changes recorded.</p>
+        ) : (
+          <ul class="mt-3 max-h-96 divide-y divide-ts-border/60 overflow-y-auto">
+            {audits.map((a) => (
+              <li class="py-2.5 text-xs first:pt-0 last:pb-0">
+                <div class="flex items-baseline justify-between gap-2">
+                  <span class="font-semibold text-ts-text">
+                    {a.table_name} · {a.operation}
+                  </span>
+                  <span class="text-ts-text-muted tabular-nums">
+                    {fmtDateTime(a.changed_at)}
+                  </span>
+                </div>
+                <p class="mt-0.5 text-ts-text-muted truncate" title={summarizeAuditDiff(a.diff)}>
+                  {summarizeAuditDiff(a.diff)}
+                </p>
+                <p class="mt-0.5 text-ts-text-muted">
+                  by {a.changed_by_email ?? '(system)'}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+    </div>
+  </div>
+</AdminShell>

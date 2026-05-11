@@ -1,0 +1,534 @@
+---
+/**
+ * /admin/box-contents — weekly box content editor.
+ *
+ * The most important admin page on Day 10. Day 7 surfaced that legacy
+ * box_contents.share_type values use 'Veggie-CSA' / 'Flower-Share' etc.,
+ * which don't match the enum the rest of the system uses. This editor
+ * uses ONLY the canonical share_type enum (spring_veg, summer_veg,
+ * fall_veg, flower, flex, add_on, wholesale_csa) so every NEW box
+ * content row Todd publishes lines up with the rest of the schema.
+ *
+ * URL params:
+ *   - week       YYYY-MM-DD (defaults to the upcoming Wednesday)
+ *   - share_type one of the canonical enum (defaults to 'summer_veg')
+ *
+ * Layout:
+ *   1. Week selector at the top: dropdown of "this Wednesday" + next 4
+ *      Wednesdays + an arbitrary date picker
+ *   2. Tabs for share_type (URL-mode tabs so each tab is a separate
+ *      server-render of the editor)
+ *   3. Editable item list:
+ *      - product_name (text)
+ *      - variety (text, optional)
+ *      - quantity (number)
+ *      - unit (select)
+ *      - is_swappable (checkbox)
+ *      - swap_options (chips)
+ *      - delete row
+ *   4. Buttons: Add row, Copy from previous week, Save
+ *
+ * All edits are batched into one POST to /api/admin/box-contents/save
+ * which UPSERTs (replaces) the full set of items for (week_date,
+ * share_type). The endpoint deletes any (week_date, share_type, product_name)
+ * not in the new payload so removed items are actually removed.
+ */
+import AdminShell from '../../components/AdminShell.astro';
+import Card from '../../components/Card.astro';
+import Tabs from '../../components/Tabs.astro';
+import Select from '../../components/Select.astro';
+import FormRow from '../../components/FormRow.astro';
+
+const supabase = Astro.locals.supabase;
+const url = Astro.url;
+
+// ─── Canonical share_type list ──────────────────────────────────────
+const CANONICAL_SHARE_TYPES = [
+  { value: 'spring_veg',    label: 'Spring Veg' },
+  { value: 'summer_veg',    label: 'Summer Veg' },
+  { value: 'fall_veg',      label: 'Fall Veg' },
+  { value: 'flower',        label: 'Flower' },
+  { value: 'flex',          label: 'Flex' },
+  { value: 'add_on',        label: 'Add-on' },
+  { value: 'wholesale_csa', label: 'Wholesale' },
+] as const;
+
+const CANONICAL_VALUES: Set<string> = new Set(CANONICAL_SHARE_TYPES.map((s) => s.value));
+
+// ─── Week selector ──────────────────────────────────────────────────
+function upcomingWednesday(now: Date = new Date()): string {
+  const fmt = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/New_York',
+    year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short',
+  });
+  const parts = fmt.formatToParts(now);
+  const get = (t: string): string => parts.find((p) => p.type === t)?.value ?? '';
+  const dayIndex: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  const todayIdx = dayIndex[get('weekday')] ?? 0;
+  const daysUntilWed = (3 - todayIdx + 7) % 7;
+  const todayET = new Date(`${get('year')}-${get('month')}-${get('day')}T00:00:00-05:00`);
+  const wed = new Date(todayET.getTime() + daysUntilWed * 86_400_000);
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/New_York',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(wed);
+}
+
+function fmtWeekPretty(s: string): string {
+  return new Intl.DateTimeFormat('en-US', {
+    weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
+    timeZone: 'America/New_York',
+  }).format(new Date(`${s}T12:00:00-04:00`));
+}
+
+function addWeeks(date: string, weeks: number): string {
+  const d = new Date(`${date}T12:00:00-04:00`);
+  const future = new Date(d.getTime() + weeks * 7 * 86_400_000);
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/New_York',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(future);
+}
+
+const nextWed = upcomingWednesday();
+const week = url.searchParams.get('week') ?? nextWed;
+const shareTypeRaw = url.searchParams.get('share_type') ?? 'summer_veg';
+const shareType = CANONICAL_VALUES.has(shareTypeRaw) ? shareTypeRaw : 'summer_veg';
+
+// Week dropdown options: this week + next 4
+const weekOptions = [
+  { value: nextWed, label: `${fmtWeekPretty(nextWed)} (this week)` },
+  { value: addWeeks(nextWed, 1), label: fmtWeekPretty(addWeeks(nextWed, 1)) },
+  { value: addWeeks(nextWed, 2), label: fmtWeekPretty(addWeeks(nextWed, 2)) },
+  { value: addWeeks(nextWed, 3), label: fmtWeekPretty(addWeeks(nextWed, 3)) },
+  { value: addWeeks(nextWed, 4), label: fmtWeekPretty(addWeeks(nextWed, 4)) },
+];
+// Include the currently-selected week if it's a past week (out of band)
+if (!weekOptions.some((o) => o.value === week)) {
+  weekOptions.unshift({ value: week, label: `${fmtWeekPretty(week)} (selected)` });
+}
+
+// ─── Fetch box contents for (week, share_type) ──────────────────────
+type ItemRow = {
+  id: string;
+  product_name: string;
+  variety: string | null;
+  quantity: number;
+  unit: string;
+  is_swappable: boolean;
+  swap_options: string[] | null;
+  notes: string | null;
+};
+
+const { data: itemRows, error: fetchErr } = await supabase
+  .from('box_contents')
+  .select('id, product_name, variety, quantity, unit, is_swappable, swap_options, notes')
+  .eq('week_date', week)
+  .eq('share_type', shareType)
+  .order('product_name', { ascending: true });
+
+if (fetchErr) {
+  console.error('[admin/box-contents] fetch failed:', fetchErr.message);
+}
+
+const items: ItemRow[] = (itemRows ?? []) as ItemRow[];
+
+// ─── Count for each share_type for the tabs ─────────────────────────
+const { data: countsRaw } = await supabase
+  .from('box_contents')
+  .select('share_type')
+  .eq('week_date', week);
+
+const counts = new Map<string, number>();
+for (const r of (countsRaw ?? []) as { share_type: string }[]) {
+  counts.set(r.share_type, (counts.get(r.share_type) ?? 0) + 1);
+}
+
+// ─── Build tabs (canonical only) ────────────────────────────────────
+const tabs = CANONICAL_SHARE_TYPES.map((s) => ({
+  id: s.value,
+  label: s.label,
+  href: `/admin/box-contents?week=${week}&share_type=${s.value}`,
+  count: counts.get(s.value) ?? 0,
+}));
+
+// ─── Banner state ───────────────────────────────────────────────────
+const okFlag = url.searchParams.get('ok');
+const errorFlag = url.searchParams.get('error');
+
+// ─── Unit options ───────────────────────────────────────────────────
+const UNIT_OPTIONS = [
+  { value: 'lb',     label: 'pounds (lb)' },
+  { value: 'oz',     label: 'ounces (oz)' },
+  { value: 'bunch',  label: 'bunch' },
+  { value: 'each',   label: 'each' },
+  { value: 'head',   label: 'head' },
+  { value: 'pint',   label: 'pint' },
+  { value: 'quart',  label: 'quart' },
+  { value: 'bag',    label: 'bag' },
+  { value: 'bouquet', label: 'bouquet' },
+  { value: 'stem',   label: 'stem' },
+];
+---
+
+<AdminShell
+  title="Box contents"
+  subtitle={`${fmtWeekPretty(week)} · ${CANONICAL_SHARE_TYPES.find((s) => s.value === shareType)?.label}`}
+  pageTitle="Box contents — Tiny Seed Admin"
+  canonical="https://csa.tinyseedfarm.com/admin/box-contents"
+>
+  {okFlag === 'saved' && (
+    <div
+      role="status"
+      aria-live="polite"
+      class="rounded-ts-md border border-ts-primary/30 bg-ts-primary/5 px-4 py-3 text-sm text-ts-text"
+    >
+      <span class="font-semibold text-ts-primary">Saved.</span> Box contents updated.
+    </div>
+  )}
+  {errorFlag && (
+    <div
+      role="alert"
+      class="rounded-ts-md border border-ts-danger/30 bg-ts-danger/5 px-4 py-3 text-sm text-ts-text"
+    >
+      <span class="font-semibold text-ts-danger">Couldn't save.</span> {errorFlag}
+    </div>
+  )}
+
+  {/* ════ Week selector ════ */}
+  <Card padding="md" elevation="sm">
+    <form method="GET" action="/admin/box-contents" class="flex flex-col gap-4 sm:flex-row sm:items-end">
+      <input type="hidden" name="share_type" value={shareType} />
+      <div class="flex-1">
+        <FormRow label="Pickup week" htmlFor="week-select">
+          <Select
+            id="week-select"
+            name="week"
+            value={week}
+            options={weekOptions}
+          />
+        </FormRow>
+      </div>
+      <div class="flex-1">
+        <FormRow label="Custom date" htmlFor="week-custom">
+          <input
+            id="week-custom"
+            type="date"
+            name="week"
+            value={week}
+            class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30 min-h-11"
+          />
+        </FormRow>
+      </div>
+      <button
+        type="submit"
+        class="inline-flex h-11 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark"
+      >
+        Switch week
+      </button>
+    </form>
+    <script>
+      // Custom date picker — when user picks a date, blank out the
+      // dropdown so its hidden value doesn't override the picker.
+      const custom = document.querySelector<HTMLInputElement>('#week-custom');
+      const dropdown = document.querySelector<HTMLSelectElement>('#week-select');
+      if (custom && dropdown) {
+        custom.addEventListener('change', () => {
+          // The custom field's value wins because it appears LAST in
+          // the URLSearchParams serialization — but to be explicit, we
+          // also set the dropdown to match it so the visual stays
+          // consistent on the next render.
+          dropdown.disabled = true;
+        });
+      }
+    </script>
+  </Card>
+
+  {/* ════ Share-type tabs ════ */}
+  <Tabs
+    tabs={tabs}
+    activeId={shareType}
+    ariaLabel="Share type"
+  />
+
+  {/* ════ Editor form ════ */}
+  <Card padding="md" elevation="sm">
+    <form
+      method="POST"
+      action="/api/admin/box-contents/save"
+      class="space-y-4"
+      data-box-form
+    >
+      <input type="hidden" name="week_date" value={week} />
+      <input type="hidden" name="share_type" value={shareType} />
+
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <h2 class="font-display text-lg font-bold text-ts-text">
+          {items.length === 0 ? 'No items yet' : `${items.length} ${items.length === 1 ? 'item' : 'items'}`}
+        </h2>
+        <div class="flex flex-wrap gap-2">
+          <button
+            type="button"
+            class="inline-flex h-9 items-center justify-center gap-1 rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm font-medium text-ts-text transition-colors duration-150 hover:border-ts-primary/40 hover:text-ts-primary"
+            data-add-row
+          >
+            <span aria-hidden="true">+</span> Add item
+          </button>
+          <button
+            type="button"
+            class="inline-flex h-9 items-center justify-center gap-1 rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm font-medium text-ts-text transition-colors duration-150 hover:border-ts-primary/40 hover:text-ts-primary"
+            data-copy-prev
+            data-prev-week={addWeeks(week, -1)}
+          >
+            <span aria-hidden="true">↺</span> Copy from previous week
+          </button>
+        </div>
+      </div>
+
+      <div data-rows class="space-y-3">
+        {items.length === 0 && (
+          <div
+            class="rounded-ts-md border border-dashed border-ts-border bg-ts-bg-muted/40 p-6 text-center text-sm text-ts-text-secondary"
+            data-empty-msg
+          >
+            <p>No items for this share type and week yet.</p>
+            <p class="mt-1 text-xs text-ts-text-muted">
+              Use “Add item” above or “Copy from previous week” to start.
+            </p>
+          </div>
+        )}
+        {items.map((it, idx) => (
+          <div
+            class="grid grid-cols-1 gap-3 rounded-ts-md border border-ts-border bg-ts-bg-base p-3 sm:grid-cols-[2fr_1.5fr_5rem_8rem_auto] sm:items-end"
+            data-row
+            data-idx={idx}
+          >
+            <FormRow label="Product" htmlFor={`product-${idx}`}>
+              <input
+                id={`product-${idx}`}
+                type="text"
+                name={`items[${idx}][product_name]`}
+                value={it.product_name}
+                required
+                maxlength="80"
+                class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 py-2 text-sm text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30"
+              />
+            </FormRow>
+            <FormRow label="Variety" htmlFor={`variety-${idx}`}>
+              <input
+                id={`variety-${idx}`}
+                type="text"
+                name={`items[${idx}][variety]`}
+                value={it.variety ?? ''}
+                maxlength="80"
+                class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 py-2 text-sm text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30"
+              />
+            </FormRow>
+            <FormRow label="Qty" htmlFor={`qty-${idx}`}>
+              <input
+                id={`qty-${idx}`}
+                type="number"
+                name={`items[${idx}][quantity]`}
+                value={it.quantity}
+                step="0.01"
+                min="0"
+                required
+                class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 py-2 text-sm text-ts-text tabular-nums focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30"
+              />
+            </FormRow>
+            <FormRow label="Unit" htmlFor={`unit-${idx}`}>
+              <select
+                id={`unit-${idx}`}
+                name={`items[${idx}][unit]`}
+                class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 py-2 text-sm text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30"
+              >
+                {UNIT_OPTIONS.map((u) => (
+                  <option value={u.value} selected={u.value === it.unit}>{u.label}</option>
+                ))}
+                {!UNIT_OPTIONS.some((u) => u.value === it.unit) && (
+                  <option value={it.unit} selected>{it.unit}</option>
+                )}
+              </select>
+            </FormRow>
+            <div class="flex items-end gap-2">
+              <button
+                type="button"
+                class="inline-flex h-9 items-center justify-center rounded-ts-md border border-ts-danger/30 bg-ts-danger/5 px-3 text-sm font-medium text-ts-danger transition-colors duration-150 hover:bg-ts-danger/10"
+                data-remove-row
+                aria-label="Remove item"
+              >
+                Remove
+              </button>
+            </div>
+            <div class="sm:col-span-5">
+              <label class="flex items-center gap-2 text-sm text-ts-text">
+                <input
+                  type="checkbox"
+                  name={`items[${idx}][is_swappable]`}
+                  value="true"
+                  checked={it.is_swappable}
+                  class="h-4 w-4 rounded border-ts-border text-ts-primary"
+                  data-swap-toggle
+                />
+                Allow members to swap this item
+              </label>
+              <div
+                class={['mt-2', it.is_swappable ? '' : 'hidden'].join(' ')}
+                data-swap-options-wrap
+              >
+                <label class="block text-xs font-medium text-ts-text-secondary">
+                  Swap options (comma-separated)
+                </label>
+                <input
+                  type="text"
+                  name={`items[${idx}][swap_options]`}
+                  value={(it.swap_options ?? []).join(', ')}
+                  placeholder="e.g. spinach, arugula, kale"
+                  class="mt-1 block w-full rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 py-2 text-sm text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30"
+                />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div class="flex flex-wrap items-center gap-3 border-t border-ts-border pt-4">
+        <button
+          type="submit"
+          class="inline-flex h-11 items-center justify-center rounded-ts-md bg-ts-primary px-5 text-base font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark"
+        >
+          Save box contents
+        </button>
+        <p class="text-xs text-ts-text-muted">
+          Saving replaces ALL items for this week + share. Items you remove disappear.
+        </p>
+      </div>
+    </form>
+    <script>
+      // Editor wiring: add/remove rows + show/hide swap-options block.
+      const form = document.querySelector<HTMLFormElement>('[data-box-form]');
+      const rowsContainer = document.querySelector<HTMLElement>('[data-rows]');
+      const addBtn = document.querySelector<HTMLButtonElement>('[data-add-row]');
+      const copyBtn = document.querySelector<HTMLButtonElement>('[data-copy-prev]');
+      if (!form || !rowsContainer) {
+        /* nothing more to wire */
+      } else {
+        let nextIdx = rowsContainer.querySelectorAll('[data-row]').length;
+
+        const UNIT_OPTIONS = [
+          'lb','oz','bunch','each','head','pint','quart','bag','bouquet','stem'
+        ];
+
+        function makeRowHTML(idx: number): string {
+          const unitOpts = UNIT_OPTIONS.map((u) => `<option value="${u}">${u}</option>`).join('');
+          return `
+<div class="grid grid-cols-1 gap-3 rounded-ts-md border border-ts-border bg-ts-bg-base p-3 sm:grid-cols-[2fr_1.5fr_5rem_8rem_auto] sm:items-end" data-row data-idx="${idx}">
+  <div class="flex flex-col gap-1.5">
+    <label class="text-sm font-semibold text-ts-text" for="product-${idx}">Product</label>
+    <input id="product-${idx}" type="text" name="items[${idx}][product_name]" required maxlength="80" class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 py-2 text-sm text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30" />
+  </div>
+  <div class="flex flex-col gap-1.5">
+    <label class="text-sm font-semibold text-ts-text" for="variety-${idx}">Variety</label>
+    <input id="variety-${idx}" type="text" name="items[${idx}][variety]" maxlength="80" class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 py-2 text-sm text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30" />
+  </div>
+  <div class="flex flex-col gap-1.5">
+    <label class="text-sm font-semibold text-ts-text" for="qty-${idx}">Qty</label>
+    <input id="qty-${idx}" type="number" name="items[${idx}][quantity]" step="0.01" min="0" required class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 py-2 text-sm text-ts-text tabular-nums focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30" />
+  </div>
+  <div class="flex flex-col gap-1.5">
+    <label class="text-sm font-semibold text-ts-text" for="unit-${idx}">Unit</label>
+    <select id="unit-${idx}" name="items[${idx}][unit]" class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 py-2 text-sm text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30">${unitOpts}</select>
+  </div>
+  <div class="flex items-end gap-2">
+    <button type="button" class="inline-flex h-9 items-center justify-center rounded-ts-md border border-ts-danger/30 bg-ts-danger/5 px-3 text-sm font-medium text-ts-danger" data-remove-row aria-label="Remove item">Remove</button>
+  </div>
+  <div class="sm:col-span-5">
+    <label class="flex items-center gap-2 text-sm text-ts-text">
+      <input type="checkbox" name="items[${idx}][is_swappable]" value="true" class="h-4 w-4 rounded border-ts-border text-ts-primary" data-swap-toggle />
+      Allow members to swap this item
+    </label>
+    <div class="mt-2 hidden" data-swap-options-wrap>
+      <label class="block text-xs font-medium text-ts-text-secondary">Swap options (comma-separated)</label>
+      <input type="text" name="items[${idx}][swap_options]" placeholder="e.g. spinach, arugula, kale" class="mt-1 block w-full rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 py-2 text-sm text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30" />
+    </div>
+  </div>
+</div>`;
+        }
+
+        function clearEmptyMessage(): void {
+          document.querySelector('[data-empty-msg]')?.remove();
+        }
+
+        addBtn?.addEventListener('click', () => {
+          clearEmptyMessage();
+          const html = makeRowHTML(nextIdx);
+          nextIdx += 1;
+          rowsContainer.insertAdjacentHTML('beforeend', html);
+          // Focus the new product input
+          const newRow = rowsContainer.lastElementChild as HTMLElement | null;
+          newRow?.querySelector<HTMLInputElement>('input[type="text"]')?.focus();
+        });
+
+        rowsContainer.addEventListener('click', (ev) => {
+          const t = ev.target as HTMLElement;
+          if (t.closest('[data-remove-row]')) {
+            t.closest<HTMLElement>('[data-row]')?.remove();
+          }
+        });
+
+        // Show/hide swap-options input when checkbox toggles.
+        rowsContainer.addEventListener('change', (ev) => {
+          const t = ev.target as HTMLInputElement;
+          if (t.matches('[data-swap-toggle]')) {
+            const wrap = t.closest('[data-row]')?.querySelector<HTMLElement>('[data-swap-options-wrap]');
+            if (wrap) wrap.classList.toggle('hidden', !t.checked);
+          }
+        });
+
+        copyBtn?.addEventListener('click', async () => {
+          const prevWeek = copyBtn.dataset.prevWeek;
+          const shareType = (document.querySelector<HTMLInputElement>('input[name="share_type"]')?.value) ?? '';
+          if (!prevWeek || !shareType) return;
+          copyBtn.disabled = true;
+          copyBtn.textContent = 'Loading…';
+          try {
+            const resp = await fetch(
+              `/api/admin/box-contents/list?week=${encodeURIComponent(prevWeek)}&share_type=${encodeURIComponent(shareType)}`,
+              { credentials: 'same-origin' }
+            );
+            const data = await resp.json();
+            if (!data || !Array.isArray(data.items)) throw new Error('bad response');
+            clearEmptyMessage();
+            type CopyItem = {
+              product_name: string; variety: string | null; quantity: number;
+              unit: string; is_swappable: boolean; swap_options: string[] | null;
+            };
+            for (const item of data.items as CopyItem[]) {
+              const html = makeRowHTML(nextIdx);
+              rowsContainer.insertAdjacentHTML('beforeend', html);
+              const row = rowsContainer.lastElementChild as HTMLElement;
+              const $ = <T extends Element = HTMLInputElement>(sel: string) => row.querySelector<T>(sel);
+              ($('input[name$="[product_name]"]') as HTMLInputElement).value = item.product_name;
+              ($('input[name$="[variety]"]') as HTMLInputElement).value = item.variety ?? '';
+              ($('input[name$="[quantity]"]') as HTMLInputElement).value = String(item.quantity);
+              ($('select[name$="[unit]"]') as unknown as HTMLSelectElement).value = item.unit;
+              const swap = $('input[name$="[is_swappable]"]') as HTMLInputElement;
+              swap.checked = item.is_swappable;
+              if (item.is_swappable) {
+                ($('[data-swap-options-wrap]') as HTMLElement).classList.remove('hidden');
+                ($('input[name$="[swap_options]"]') as HTMLInputElement).value = (item.swap_options ?? []).join(', ');
+              }
+              nextIdx += 1;
+            }
+          } catch (err) {
+            console.error('copy-from-previous failed:', err);
+            alert('Could not copy from previous week.');
+          } finally {
+            copyBtn.disabled = false;
+            copyBtn.innerHTML = '<span aria-hidden="true">↺</span> Copy from previous week';
+          }
+        });
+      }
+    </script>
+  </Card>
+</AdminShell>

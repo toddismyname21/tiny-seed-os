@@ -1,0 +1,180 @@
+---
+/**
+ * AdminShell — wraps every /admin/* page with a consistent top bar +
+ * left/top nav.
+ *
+ * Layout: full-bleed background, a sticky header with breadcrumbs +
+ * sign-out, and a content container max-w-7xl. Admin views are
+ * desktop-first (we showed Todd manages from his laptop), but the
+ * shell still works on mobile via a horizontally scrolling nav strip.
+ *
+ * Nav items: Home, Members, Box contents, Pickup locations, Reports.
+ * The active item is highlighted by comparing `Astro.url.pathname`
+ * against each nav entry's `match` prefix.
+ *
+ * Sign-out is a POST to /logout (same pattern as the dashboard
+ * header) so server-side session cookies actually clear.
+ *
+ * Props:
+ *   - title      Page title (rendered in <h1> within the breadcrumb).
+ *   - subtitle   Optional one-line description rendered below the h1.
+ *
+ * Slots:
+ *   - default    Page body.
+ *   - actions    Optional row of right-aligned buttons in the header
+ *                (e.g. "Add member", "Export CSV").
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+interface Props {
+  title: string;
+  subtitle?: string;
+  pageTitle?: string;
+  canonical?: string;
+}
+
+const {
+  title,
+  subtitle,
+  pageTitle,
+  canonical,
+} = Astro.props as Props;
+
+const pathname = Astro.url.pathname;
+const adminEmail = Astro.locals.user?.email ?? '';
+
+interface NavItem {
+  href: string;
+  label: string;
+  match: string;
+  icon: string;
+}
+
+const navItems: NavItem[] = [
+  { href: '/admin',                   label: 'Home',     match: '/admin',                  icon: '🏠' },
+  { href: '/admin/members',           label: 'Members',  match: '/admin/members',          icon: '👥' },
+  { href: '/admin/box-contents',      label: 'Box',      match: '/admin/box-contents',     icon: '📦' },
+  { href: '/admin/pickup-locations',  label: 'Pickups',  match: '/admin/pickup-locations', icon: '📍' },
+  { href: '/admin/reports',           label: 'Reports',  match: '/admin/reports',          icon: '📊' },
+];
+
+function isActive(match: string): boolean {
+  // /admin is only active on exact match — every nav item starts with /admin
+  // so a `startsWith('/admin')` rule would mark Home active on every page.
+  if (match === '/admin') return pathname === '/admin';
+  return pathname === match || pathname.startsWith(`${match}/`);
+}
+
+const hasActions = Astro.slots.has('actions');
+---
+
+<BaseLayout
+  title={pageTitle ?? `${title} — Tiny Seed Admin`}
+  canonical={canonical}
+>
+  <a
+    href="#admin-main"
+    class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-ts-md focus:bg-ts-primary focus:px-4 focus:py-2 focus:text-white focus:shadow-ts-md"
+  >
+    Skip to main content
+  </a>
+
+  <div class="min-h-screen bg-ts-bg-base">
+    {/* ════ TOP BAR ════ */}
+    <header
+      class="sticky top-0 z-10 border-b border-ts-border bg-ts-bg-surface/95 backdrop-blur-sm"
+    >
+      <div class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
+        <a
+          href="/admin"
+          class="flex items-center gap-2 rounded-ts-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ts-primary"
+          aria-label="Tiny Seed admin home"
+        >
+          <span class="inline-block h-2.5 w-2.5 rounded-full bg-ts-primary" aria-hidden="true"></span>
+          <span class="font-display text-base font-bold tracking-tight text-ts-text sm:text-lg">
+            Tiny Seed Admin
+          </span>
+        </a>
+
+        <div class="flex items-center gap-3">
+          <span class="hidden text-xs text-ts-text-muted sm:inline">
+            {adminEmail}
+          </span>
+          <a
+            href="/dashboard"
+            class="hidden text-sm font-medium text-ts-text-secondary transition-colors duration-150 hover:text-ts-primary sm:inline"
+            aria-label="Switch to member view"
+          >
+            Member view
+          </a>
+          <form method="POST" action="/logout" class="m-0">
+            <button
+              type="submit"
+              class="rounded-ts-md px-3 py-2 text-sm font-medium text-ts-text-secondary transition-colors duration-150 hover:bg-ts-bg-muted hover:text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+            >
+              Sign out
+            </button>
+          </form>
+        </div>
+      </div>
+
+      {/* ════ NAV STRIP ════ */}
+      <nav
+        aria-label="Admin sections"
+        class="border-t border-ts-border bg-ts-bg-surface"
+      >
+        <div class="mx-auto max-w-7xl overflow-x-auto px-4 sm:px-6">
+          <ul class="flex gap-1">
+            {navItems.map((item) => {
+              const active = isActive(item.match);
+              return (
+                <li>
+                  <a
+                    href={item.href}
+                    aria-current={active ? 'page' : undefined}
+                    class={[
+                      'inline-flex h-11 items-center gap-2 border-b-2 px-3 text-sm font-medium transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary sm:px-4',
+                      active
+                        ? 'border-ts-primary text-ts-primary'
+                        : 'border-transparent text-ts-text-secondary hover:border-ts-border-strong hover:text-ts-text',
+                    ].join(' ')}
+                  >
+                    <span aria-hidden="true">{item.icon}</span>
+                    <span>{item.label}</span>
+                  </a>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      </nav>
+    </header>
+
+    {/* ════ PAGE HEADING ════ */}
+    <div class="mx-auto max-w-7xl px-4 pt-6 sm:px-6 sm:pt-8">
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
+        <div class="min-w-0">
+          <h1 class="font-display text-2xl font-bold tracking-tight text-ts-text sm:text-3xl">
+            {title}
+          </h1>
+          {subtitle && (
+            <p class="mt-1 text-sm text-ts-text-secondary sm:text-base">{subtitle}</p>
+          )}
+        </div>
+        {hasActions && (
+          <div class="flex flex-wrap items-center gap-2">
+            <slot name="actions" />
+          </div>
+        )}
+      </div>
+    </div>
+
+    {/* ════ MAIN ════ */}
+    <main
+      id="admin-main"
+      class="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 pb-12 pt-6 sm:px-6 sm:pb-16 sm:pt-8"
+    >
+      <slot />
+    </main>
+  </div>
+</BaseLayout>

@@ -1,0 +1,142 @@
+---
+/**
+ * Pagination — query-string-based page nav.
+ *
+ * Renders a "Prev / 1 2 3 … N / Next" strip. Page links preserve all
+ * other query-string params except `page`, which is rewritten. The
+ * current page renders as a non-link <span aria-current="page">.
+ *
+ * Sliding window: when there are many pages, we show first + last +
+ * up-to-five pages around the current one, joined by ellipsis. This
+ * matches GitHub / Stripe-style pagination.
+ *
+ * Props:
+ *   - currentPage  1-indexed
+ *   - totalPages   total number of pages (>= 1)
+ *   - baseUrl      pathname (e.g. '/admin/members') — query string is
+ *                  derived from `currentParams`
+ *   - currentParams  URLSearchParams (e.g. Astro.url.searchParams).
+ *                    We CLONE it before mutating `page`.
+ *   - pageParam    name of the query-string key. Default 'page'.
+ */
+
+interface Props {
+  currentPage: number;
+  totalPages: number;
+  baseUrl: string;
+  currentParams: URLSearchParams;
+  pageParam?: string;
+  class?: string;
+}
+
+const {
+  currentPage,
+  totalPages,
+  baseUrl,
+  currentParams,
+  pageParam = 'page',
+  class: extraClass = '',
+} = Astro.props as Props;
+
+function pageHref(p: number): string {
+  const params = new URLSearchParams(currentParams);
+  if (p <= 1) {
+    params.delete(pageParam);
+  } else {
+    params.set(pageParam, String(p));
+  }
+  const qs = params.toString();
+  return qs ? `${baseUrl}?${qs}` : baseUrl;
+}
+
+// Compute the sliding window of visible page numbers.
+// Always show 1, currentPage−2 to currentPage+2, and totalPages.
+// We then insert ellipses (`'…'`) where there's a gap.
+type PageItem = number | 'ellipsis';
+
+function buildPageList(current: number, total: number): PageItem[] {
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, i) => i + 1);
+  }
+  const window = new Set<number>([1, total, current]);
+  for (let i = current - 2; i <= current + 2; i += 1) {
+    if (i >= 1 && i <= total) window.add(i);
+  }
+  const sorted = Array.from(window).sort((a, b) => a - b);
+  const out: PageItem[] = [];
+  for (let i = 0; i < sorted.length; i += 1) {
+    if (i > 0 && sorted[i] - sorted[i - 1] > 1) out.push('ellipsis');
+    out.push(sorted[i]);
+  }
+  return out;
+}
+
+const pages = buildPageList(currentPage, Math.max(1, totalPages));
+const showPrev = currentPage > 1;
+const showNext = currentPage < totalPages;
+---
+
+{totalPages > 1 && (
+  <nav
+    aria-label="Pagination"
+    class={[
+      'flex items-center justify-center gap-1 py-4',
+      extraClass,
+    ].filter(Boolean).join(' ')}
+  >
+    {showPrev ? (
+      <a
+        href={pageHref(currentPage - 1)}
+        rel="prev"
+        class="inline-flex h-9 items-center gap-1 rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm font-medium text-ts-text transition-colors duration-150 hover:border-ts-primary/40 hover:text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+      >
+        <span aria-hidden="true">←</span> Prev
+      </a>
+    ) : (
+      <span
+        class="inline-flex h-9 items-center gap-1 rounded-ts-md border border-ts-border bg-ts-bg-muted/40 px-3 text-sm font-medium text-ts-text-muted opacity-50"
+        aria-disabled="true"
+      >
+        <span aria-hidden="true">←</span> Prev
+      </span>
+    )}
+
+    {pages.map((p) =>
+      p === 'ellipsis' ? (
+        <span class="px-2 text-sm text-ts-text-muted" aria-hidden="true">…</span>
+      ) : p === currentPage ? (
+        <span
+          aria-current="page"
+          class="inline-flex h-9 min-w-9 items-center justify-center rounded-ts-md bg-ts-primary px-3 text-sm font-semibold text-white tabular-nums"
+        >
+          {p}
+        </span>
+      ) : (
+        <a
+          href={pageHref(p)}
+          class="inline-flex h-9 min-w-9 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm font-medium text-ts-text tabular-nums transition-colors duration-150 hover:border-ts-primary/40 hover:text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+          aria-label={`Go to page ${p}`}
+        >
+          {p}
+        </a>
+      )
+    )}
+
+    {showNext ? (
+      <a
+        href={pageHref(currentPage + 1)}
+        rel="next"
+        class="inline-flex h-9 items-center gap-1 rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm font-medium text-ts-text transition-colors duration-150 hover:border-ts-primary/40 hover:text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+      >
+        Next <span aria-hidden="true">→</span>
+      </a>
+    ) : (
+      <span
+        class="inline-flex h-9 items-center gap-1 rounded-ts-md border border-ts-border bg-ts-bg-muted/40 px-3 text-sm font-medium text-ts-text-muted opacity-50"
+        aria-disabled="true"
+      >
+        Next <span aria-hidden="true">→</span>
+      </span>
+    )}
+  </nav>
+)}

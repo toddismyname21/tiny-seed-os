@@ -1,0 +1,69 @@
+---
+/**
+ * StatusPill — status badge with a canonical color mapping.
+ *
+ * Centralizes the status → variant mapping that's currently scattered
+ * across dashboard.astro and account/index.astro. Used in the admin
+ * tables to keep the visual language consistent.
+ *
+ * Members table maps statuses:
+ *   active     → green
+ *   paused     → amber
+ *   onboarding → sky
+ *   pending    → sky
+ *   cancelled  → red
+ *   lapsed     → red
+ *   expired    → gray
+ *   inactive   → gray
+ *
+ * Anything not recognized falls through as a gray pill with the raw
+ * status text — defensive in case the enum widens.
+ *
+ * Wraps Badge internally so the visual primitive (rounded chip, ring,
+ * tint) stays in one place. Props are forwarded so callers can still
+ * tweak size / dot / uppercase if needed.
+ */
+import Badge from './Badge.astro';
+
+type Variant = 'green' | 'gray' | 'magenta' | 'amber' | 'red' | 'sky';
+type Size = 'xs' | 'sm';
+
+interface Props {
+  status: string;
+  size?: Size;
+  uppercase?: boolean;
+  dot?: boolean;
+  class?: string;
+}
+
+const {
+  status,
+  size = 'sm',
+  uppercase = true,
+  dot = true,
+  class: extraClass = '',
+} = Astro.props as Props;
+
+const STATUS_MAP: Record<string, { label: string; variant: Variant }> = {
+  active:     { label: 'Active',     variant: 'green' },
+  paused:     { label: 'Paused',     variant: 'amber' },
+  onboarding: { label: 'Onboarding', variant: 'sky' },
+  pending:    { label: 'Pending',    variant: 'sky' },
+  cancelled:  { label: 'Cancelled',  variant: 'red' },
+  lapsed:     { label: 'Lapsed',     variant: 'red' },
+  expired:    { label: 'Expired',    variant: 'gray' },
+  inactive:   { label: 'Inactive',   variant: 'gray' },
+};
+
+const lookup = STATUS_MAP[status] ?? { label: status, variant: 'gray' as Variant };
+---
+
+<Badge
+  variant={lookup.variant}
+  size={size}
+  uppercase={uppercase}
+  dot={dot}
+  class={extraClass}
+>
+  {lookup.label}
+</Badge>

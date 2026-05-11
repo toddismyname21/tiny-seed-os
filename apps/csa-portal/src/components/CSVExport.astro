@@ -1,0 +1,64 @@
+---
+/**
+ * CSVExport — link/button that triggers a CSV download.
+ *
+ * The actual CSV is streamed from a server endpoint (e.g.
+ * /api/admin/reports/<name>.csv). Browsers default-download
+ * `Content-Disposition: attachment` responses, so the visual is just
+ * an <a download> wrapped in our Button styling.
+ *
+ * Why a dedicated component? It centralizes the icon + the
+ * `download` attribute hint + the analytic-tagging pattern, and we
+ * want a single look across the admin (reports + bulk export from
+ * the members table).
+ *
+ * Props:
+ *   - href      URL of the CSV endpoint.
+ *   - filename  Suggested filename. Browsers honor this via the
+ *               download attribute UNLESS the server sends its own
+ *               Content-Disposition (which our endpoints do — the
+ *               attribute is a fallback only).
+ *   - label     Visible button text.
+ *   - size      'sm' | 'md' (default md)
+ */
+
+type Size = 'sm' | 'md';
+
+interface Props {
+  href: string;
+  filename: string;
+  label?: string;
+  size?: Size;
+  class?: string;
+}
+
+const {
+  href,
+  filename,
+  label = 'Export CSV',
+  size = 'md',
+  class: extraClass = '',
+} = Astro.props as Props;
+
+const SIZE_CLASSES: Record<Size, string> = {
+  sm: 'h-8 px-3 text-sm gap-1.5',
+  md: 'h-11 px-5 text-base gap-2',
+};
+---
+
+<a
+  href={href}
+  download={filename}
+  class={[
+    'inline-flex items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface font-semibold text-ts-text shadow-ts-sm transition-all duration-150 hover:border-ts-primary/40 hover:text-ts-primary active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary',
+    SIZE_CLASSES[size],
+    extraClass,
+  ].filter(Boolean).join(' ')}
+  data-csv-export
+>
+  <svg viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4 shrink-0" aria-hidden="true">
+    <path d="M10 2.5a.75.75 0 0 1 .75.75v8.69l2.22-2.22a.75.75 0 1 1 1.06 1.06l-3.5 3.5a.75.75 0 0 1-1.06 0l-3.5-3.5a.75.75 0 0 1 1.06-1.06l2.22 2.22V3.25a.75.75 0 0 1 .75-.75Z" />
+    <path d="M3.5 12.75a.75.75 0 0 1 .75.75v2a1 1 0 0 0 1 1h9.5a1 1 0 0 0 1-1v-2a.75.75 0 0 1 1.5 0v2a2.5 2.5 0 0 1-2.5 2.5h-9.5A2.5 2.5 0 0 1 2.75 15.5v-2a.75.75 0 0 1 .75-.75Z" />
+  </svg>
+  <span>{label}</span>
+</a>

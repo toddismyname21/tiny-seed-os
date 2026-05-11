@@ -22,6 +22,10 @@ declare global {
        * member-data query.
        */
       supabase: SupabaseClient<Database>;
+      /** Admin role, set by middleware on /admin/* routes only. */
+      adminRole?: 'admin' | 'staff';
+      /** The admin user's own customers.id, set on /admin/* routes. */
+      adminCustomerId?: string;
     }
   }
 }

@@ -1,0 +1,418 @@
+---
+/**
+ * /admin/pickup-locations — list + edit pickup locations.
+ *
+ * Table of every row in `pickup_locations`, with inline edit (via a
+ * per-row POST form) for the fields most likely to need tuning:
+ * max_capacity, host_name, host_phone, is_active. Day-of-week and time
+ * are also editable inline. The location name + address are NOT shown
+ * for inline edit (those are stable; changing them would require Todd
+ * to coordinate with members directly, so we keep them read-only in
+ * this UI).
+ *
+ * Each row also shows the current member count so Todd can see at a
+ * glance whether a location is full.
+ *
+ * "Add new location" expands an empty form at the top of the table.
+ *
+ * The save action posts to /api/admin/pickup-locations/[id]. The
+ * "create" form posts to /api/admin/pickup-locations/new (a separate
+ * convention; no [id] in the URL means "create").
+ */
+import AdminShell from '../../components/AdminShell.astro';
+import Card from '../../components/Card.astro';
+import FormRow from '../../components/FormRow.astro';
+import Select from '../../components/Select.astro';
+
+const supabase = Astro.locals.supabase;
+
+const url = Astro.url;
+const okFlag = url.searchParams.get('ok');
+const errorFlag = url.searchParams.get('error');
+
+// ─── Fetch locations + current member count per location ────────────
+type LocRow = {
+  id: string;
+  legacy_id: string | null;
+  name: string;
+  address: string | null;
+  city: string | null;
+  state: string;
+  zip: string | null;
+  day_of_week: 'Sun' | 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat' | null;
+  time_start: string | null;
+  time_end: string | null;
+  is_delivery_zone: boolean;
+  max_capacity: number | null;
+  host_name: string | null;
+  host_phone: string | null;
+  notes: string | null;
+  is_active: boolean;
+};
+
+const [locationsRes, membersRes] = await Promise.all([
+  supabase
+    .from('pickup_locations')
+    .select('*')
+    .order('is_active', { ascending: false })
+    .order('name', { ascending: true }),
+  supabase
+    .from('members')
+    .select('pickup_location_id, status')
+    .in('status', ['active', 'paused', 'onboarding']),
+]);
+
+const locations = (locationsRes.data ?? []) as LocRow[];
+
+// Active member count per pickup_location_id
+const memberCounts = new Map<string, number>();
+type SmallMember = { pickup_location_id: string | null };
+for (const m of (membersRes.data ?? []) as SmallMember[]) {
+  if (!m.pickup_location_id) continue;
+  memberCounts.set(m.pickup_location_id, (memberCounts.get(m.pickup_location_id) ?? 0) + 1);
+}
+
+const DAY_OPTIONS = [
+  { value: '', label: '(not set)' },
+  { value: 'Sun', label: 'Sunday' },
+  { value: 'Mon', label: 'Monday' },
+  { value: 'Tue', label: 'Tuesday' },
+  { value: 'Wed', label: 'Wednesday' },
+  { value: 'Thu', label: 'Thursday' },
+  { value: 'Fri', label: 'Friday' },
+  { value: 'Sat', label: 'Saturday' },
+];
+
+function fmtTime(t: string | null): string {
+  if (!t) return '';
+  // pickup_locations.time_* is a TIME — Postgres returns HH:MM:SS.
+  return t.slice(0, 5);
+}
+
+const successCopy: Record<string, string> = {
+  saved: 'Pickup location updated.',
+  created: 'Pickup location created.',
+};
+const errorCopy: Record<string, string> = {
+  invalid_input: 'Something in the form was off. Try again.',
+  forbidden: 'You don’t have permission for that action.',
+  not_found: 'Pickup location not found.',
+  duplicate: 'A location with that name already exists.',
+};
+---
+
+<AdminShell
+  title="Pickup locations"
+  subtitle={`${locations.filter((l) => l.is_active).length} active · ${locations.length} total`}
+  pageTitle="Pickup locations — Tiny Seed Admin"
+  canonical="https://csa.tinyseedfarm.com/admin/pickup-locations"
+>
+  <Fragment slot="actions">
+    <button
+      type="button"
+      class="inline-flex h-9 items-center justify-center gap-1 rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark"
+      data-toggle-new
+    >
+      <span aria-hidden="true">+</span> Add location
+    </button>
+  </Fragment>
+
+  {okFlag && successCopy[okFlag] && (
+    <div
+      role="status"
+      aria-live="polite"
+      class="rounded-ts-md border border-ts-primary/30 bg-ts-primary/5 px-4 py-3 text-sm text-ts-text"
+    >
+      <span class="font-semibold text-ts-primary">Saved.</span>{' '}
+      {successCopy[okFlag]}
+    </div>
+  )}
+  {errorFlag && (
+    <div
+      role="alert"
+      class="rounded-ts-md border border-ts-danger/30 bg-ts-danger/5 px-4 py-3 text-sm text-ts-text"
+    >
+      <span class="font-semibold text-ts-danger">Couldn't save.</span>{' '}
+      {errorCopy[errorFlag] ?? errorFlag}
+    </div>
+  )}
+
+  {/* ════ New-location form (hidden by default) ════ */}
+  <Card padding="md" elevation="sm" class="hidden" data-new-form-wrap>
+    <h2 class="font-display text-lg font-bold text-ts-text">Add pickup location</h2>
+    <form method="POST" action="/api/admin/pickup-locations/new" class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <FormRow label="Name" htmlFor="new-name" required>
+        <input
+          id="new-name"
+          type="text"
+          name="name"
+          required
+          maxlength="80"
+          class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30"
+        />
+      </FormRow>
+      <FormRow label="Day of week" htmlFor="new-day">
+        <Select id="new-day" name="day_of_week" value="" options={DAY_OPTIONS} />
+      </FormRow>
+      <FormRow label="Start time" htmlFor="new-time-start">
+        <input
+          id="new-time-start"
+          type="time"
+          name="time_start"
+          class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30 min-h-11"
+        />
+      </FormRow>
+      <FormRow label="End time" htmlFor="new-time-end">
+        <input
+          id="new-time-end"
+          type="time"
+          name="time_end"
+          class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30 min-h-11"
+        />
+      </FormRow>
+      <FormRow label="Address" htmlFor="new-address" class="sm:col-span-2">
+        <input
+          id="new-address"
+          type="text"
+          name="address"
+          maxlength="200"
+          class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30"
+        />
+      </FormRow>
+      <FormRow label="City" htmlFor="new-city">
+        <input
+          id="new-city"
+          type="text"
+          name="city"
+          maxlength="80"
+          class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30"
+        />
+      </FormRow>
+      <FormRow label="ZIP" htmlFor="new-zip">
+        <input
+          id="new-zip"
+          type="text"
+          name="zip"
+          maxlength="10"
+          class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30"
+        />
+      </FormRow>
+      <FormRow label="Max capacity" htmlFor="new-capacity">
+        <input
+          id="new-capacity"
+          type="number"
+          name="max_capacity"
+          min="0"
+          max="1000"
+          class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30"
+        />
+      </FormRow>
+      <FormRow label="Host name" htmlFor="new-host">
+        <input
+          id="new-host"
+          type="text"
+          name="host_name"
+          maxlength="80"
+          class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30"
+        />
+      </FormRow>
+      <FormRow label="Host phone" htmlFor="new-host-phone">
+        <input
+          id="new-host-phone"
+          type="tel"
+          name="host_phone"
+          maxlength="30"
+          class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30"
+        />
+      </FormRow>
+      <label class="flex items-center gap-3 sm:col-span-2">
+        <input
+          type="checkbox"
+          name="is_delivery_zone"
+          value="true"
+          class="h-5 w-5 rounded border-ts-border text-ts-primary"
+        />
+        <span class="text-sm text-ts-text">Treat as delivery zone (home deliveries, no on-site pickup)</span>
+      </label>
+      <div class="sm:col-span-2 flex flex-wrap items-center gap-3">
+        <button
+          type="submit"
+          class="inline-flex h-11 items-center justify-center rounded-ts-md bg-ts-primary px-5 text-base font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark"
+        >
+          Create location
+        </button>
+        <button
+          type="button"
+          data-cancel-new
+          class="inline-flex h-11 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-5 text-base font-medium text-ts-text-secondary transition-colors duration-150 hover:text-ts-text"
+        >
+          Cancel
+        </button>
+      </div>
+    </form>
+  </Card>
+
+  {/* ════ Locations list ════ */}
+  <div class="space-y-4">
+    {locations.length === 0 ? (
+      <Card padding="lg" elevation="sm">
+        <p class="text-center text-sm text-ts-text-muted">
+          No pickup locations yet. Click “Add location” to create one.
+        </p>
+      </Card>
+    ) : locations.map((loc) => {
+      const memberCount = memberCounts.get(loc.id) ?? 0;
+      const overCapacity = loc.max_capacity !== null && memberCount > loc.max_capacity;
+      const nearCapacity = loc.max_capacity !== null && !overCapacity && memberCount >= 0.8 * loc.max_capacity;
+      return (
+        <Card padding="md" elevation="sm" class={loc.is_active ? '' : 'opacity-70'}>
+          <div class="flex flex-wrap items-start justify-between gap-3 border-b border-ts-border pb-3">
+            <div class="min-w-0 flex-1">
+              <div class="flex items-baseline gap-3">
+                <h3 class="font-display text-lg font-bold text-ts-text">{loc.name}</h3>
+                {!loc.is_active && (
+                  <span class="rounded-full bg-ts-bg-muted px-2 py-0.5 text-xs font-semibold text-ts-text-muted">
+                    Inactive
+                  </span>
+                )}
+                {loc.is_delivery_zone && (
+                  <span class="rounded-full bg-ts-info/10 px-2 py-0.5 text-xs font-semibold text-ts-info">
+                    Delivery zone
+                  </span>
+                )}
+              </div>
+              <p class="mt-0.5 text-xs text-ts-text-muted">
+                {[loc.address, loc.city, loc.state, loc.zip].filter(Boolean).join(', ') || '(no address)'}
+              </p>
+            </div>
+            <div class="text-right">
+              <p class={[
+                'font-display text-xl font-bold tabular-nums',
+                overCapacity ? 'text-ts-danger' :
+                nearCapacity ? 'text-ts-warning' :
+                'text-ts-text',
+              ].join(' ')}>
+                {memberCount}
+                {loc.max_capacity !== null && (
+                  <span class="text-base text-ts-text-secondary"> / {loc.max_capacity}</span>
+                )}
+              </p>
+              <p class="text-xs text-ts-text-muted">members</p>
+            </div>
+          </div>
+
+          <form
+            method="POST"
+            action={`/api/admin/pickup-locations/${loc.id}`}
+            class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4"
+          >
+            <FormRow label="Day" htmlFor={`day-${loc.id}`}>
+              <Select
+                id={`day-${loc.id}`}
+                name="day_of_week"
+                value={loc.day_of_week ?? ''}
+                options={DAY_OPTIONS}
+              />
+            </FormRow>
+            <FormRow label="Start" htmlFor={`time-start-${loc.id}`}>
+              <input
+                id={`time-start-${loc.id}`}
+                type="time"
+                name="time_start"
+                value={fmtTime(loc.time_start)}
+                class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-3 py-2 text-sm text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30 min-h-11"
+              />
+            </FormRow>
+            <FormRow label="End" htmlFor={`time-end-${loc.id}`}>
+              <input
+                id={`time-end-${loc.id}`}
+                type="time"
+                name="time_end"
+                value={fmtTime(loc.time_end)}
+                class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-3 py-2 text-sm text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30 min-h-11"
+              />
+            </FormRow>
+            <FormRow label="Max capacity" htmlFor={`cap-${loc.id}`}>
+              <input
+                id={`cap-${loc.id}`}
+                type="number"
+                name="max_capacity"
+                value={loc.max_capacity ?? ''}
+                min="0"
+                max="1000"
+                placeholder="—"
+                class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-3 py-2 text-sm text-ts-text tabular-nums focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30 min-h-11"
+              />
+            </FormRow>
+            <FormRow label="Host name" htmlFor={`host-${loc.id}`}>
+              <input
+                id={`host-${loc.id}`}
+                type="text"
+                name="host_name"
+                value={loc.host_name ?? ''}
+                maxlength="80"
+                class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-3 py-2 text-sm text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30 min-h-11"
+              />
+            </FormRow>
+            <FormRow label="Host phone" htmlFor={`host-phone-${loc.id}`}>
+              <input
+                id={`host-phone-${loc.id}`}
+                type="tel"
+                name="host_phone"
+                value={loc.host_phone ?? ''}
+                maxlength="30"
+                class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-3 py-2 text-sm text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30 min-h-11"
+              />
+            </FormRow>
+            <FormRow label="Notes" htmlFor={`notes-${loc.id}`} class="sm:col-span-2 lg:col-span-2">
+              <input
+                id={`notes-${loc.id}`}
+                type="text"
+                name="notes"
+                value={loc.notes ?? ''}
+                maxlength="500"
+                placeholder="(optional)"
+                class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-3 py-2 text-sm text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30 min-h-11"
+              />
+            </FormRow>
+            <label class="flex items-center gap-2 sm:col-span-2 lg:col-span-4">
+              <input
+                type="checkbox"
+                name="is_active"
+                value="true"
+                checked={loc.is_active}
+                class="h-4 w-4 rounded border-ts-border text-ts-primary"
+              />
+              <span class="text-sm text-ts-text">Active (accepting members)</span>
+            </label>
+            <div class="sm:col-span-2 lg:col-span-4">
+              <button
+                type="submit"
+                class="inline-flex h-9 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark"
+              >
+                Save location
+              </button>
+            </div>
+          </form>
+        </Card>
+      );
+    })}
+  </div>
+
+  <script>
+    const toggleBtn = document.querySelector<HTMLButtonElement>('[data-toggle-new]');
+    const formWrap = document.querySelector<HTMLElement>('[data-new-form-wrap]');
+    const cancelBtn = document.querySelector<HTMLButtonElement>('[data-cancel-new]');
+    if (toggleBtn && formWrap) {
+      toggleBtn.addEventListener('click', () => {
+        formWrap.classList.toggle('hidden');
+        if (!formWrap.classList.contains('hidden')) {
+          formWrap.querySelector<HTMLInputElement>('input[name="name"]')?.focus();
+        }
+      });
+    }
+    if (cancelBtn && formWrap) {
+      cancelBtn.addEventListener('click', () => formWrap.classList.add('hidden'));
+    }
+  </script>
+</AdminShell>

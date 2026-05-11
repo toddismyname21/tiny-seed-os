@@ -37,6 +37,7 @@ import {
   ONBOARDING_STEPS,
   type OnboardingStep,
 } from './lib/onboarding';
+import { resolveAdminRole } from './lib/admin';
 
 // Routes that require an authenticated session. Glob matching by
 // path-prefix. A request to `/dashboard/anything` matches `/dashboard`.
@@ -47,7 +48,15 @@ const PROTECTED_PREFIXES = [
   '/profile',
   '/onboarding',
   '/account',
+  '/admin',
 ];
+
+// Admin-only prefixes. Authenticated users without role='admin'/'staff'
+// are bounced back to /dashboard with an explanatory banner. The
+// /api/admin/* endpoints are excluded from THIS middleware redirect
+// (they need JSON 403s, not HTML redirects) and enforce their own
+// role check via `requireAdmin()` in the route handler.
+const ADMIN_PREFIXES = ['/admin'];
 
 // Routes a logged-in user shouldn't see — bounce them to /dashboard.
 const AUTH_ONLY_PREFIXES = ['/login'];
@@ -62,6 +71,11 @@ const ONBOARDING_ALLOWED_PREFIXES = [
   '/api/onboarding',
   '/logout',
   '/auth',
+  // Admin routes bypass the onboarding funnel — Todd is an admin, not
+  // a CSA member-in-progress. If a future admin somehow has an
+  // onboarding members row, they still need to reach /admin to do work.
+  '/admin',
+  '/api/admin',
 ];
 
 function isProtected(pathname: string): boolean {
@@ -78,6 +92,12 @@ function isAuthOnly(pathname: string): boolean {
 
 function isOnboardingAllowed(pathname: string): boolean {
   return ONBOARDING_ALLOWED_PREFIXES.some(
+    (p) => pathname === p || pathname.startsWith(`${p}/`)
+  );
+}
+
+function isAdminRoute(pathname: string): boolean {
+  return ADMIN_PREFIXES.some(
     (p) => pathname === p || pathname.startsWith(`${p}/`)
   );
 }
@@ -116,6 +136,23 @@ export const onRequest = defineMiddleware(async (context, next) => {
   // Logged-in users shouldn't sit on /login.
   if (user && isAuthOnly(pathname)) {
     return redirect('/dashboard', 303);
+  }
+
+  // ───────────────────────────────────────────────────────────────────
+  // Admin gate. Routes under /admin/* require role in ('admin','staff').
+  // If the user is authenticated but not admin, redirect to /dashboard
+  // with ?error=admin_only so the dashboard can flash a banner.
+  // Unauth users hitting /admin/* are already redirected to /login by
+  // the protected-route check above (since /admin is in PROTECTED_PREFIXES).
+  // ───────────────────────────────────────────────────────────────────
+  if (user && isAdminRoute(pathname)) {
+    const adminCtx = await resolveAdminRole(supabase, user);
+    if (!adminCtx) {
+      return redirect('/dashboard?error=admin_only', 303);
+    }
+    // Stash so admin pages don't re-query.
+    locals.adminRole = adminCtx.role;
+    locals.adminCustomerId = adminCtx.customerId;
   }
 
   // ───────────────────────────────────────────────────────────────────

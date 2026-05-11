@@ -1,0 +1,187 @@
+---
+/**
+ * Tabs — accessible tab navigation.
+ *
+ * Two modes, chosen by whether `tabs[i].href` is set:
+ *
+ *   1. URL tabs (href set): each tab is an <a>. The "active" tab is
+ *      determined by props. Navigating clicks reload the page (server
+ *      pulls fresh data per share-type / per filter). This is the
+ *      mode we use for the box-content editor (tab per share-type)
+ *      where each tab corresponds to a different server-rendered view.
+ *
+ *   2. JS tabs (no href): each tab is a <button>. Clicking swaps
+ *      visibility of matching `[role="tabpanel"]` elements with
+ *      `data-tab-panel="<id>"`. Tab content is rendered once and
+ *      shown/hidden client-side. We use this when the data is small
+ *      enough to render up-front (member-detail tabs).
+ *
+ * The visual is a horizontal underline pattern: active tab gets a
+ * primary-color bottom border + bolder weight; inactive tabs are
+ * muted. Tabs scroll horizontally on overflow (no wrap) so a long
+ * tab strip on mobile doesn't break the layout.
+ *
+ * Keyboard:
+ *   - Arrow Left/Right: move focus to prev/next tab (JS mode only)
+ *   - Home/End: move focus to first/last tab
+ *   - Enter/Space: activate the focused tab
+ *
+ * ARIA:
+ *   - role="tablist", role="tab", role="tabpanel"
+ *   - aria-selected on the active tab
+ *   - aria-controls / id linkage between tabs and panels (caller must
+ *     set the panel id="<id>" if using JS mode)
+ */
+
+interface Tab {
+  /** Stable id. Used as the slot for tab content in JS mode. */
+  id: string;
+  /** Visible label. */
+  label: string;
+  /** Optional. Sets URL mode. */
+  href?: string;
+  /** Optional count / badge — rendered as a parenthetical or chip. */
+  count?: number | string;
+}
+
+interface Props {
+  tabs: Tab[];
+  /** id of the currently active tab. */
+  activeId: string;
+  /** Accessible name for the tablist. */
+  ariaLabel: string;
+  class?: string;
+}
+
+const { tabs, activeId, ariaLabel, class: extraClass = '' } = Astro.props as Props;
+---
+
+<div
+  class={[
+    'border-b border-ts-border',
+    extraClass,
+  ].filter(Boolean).join(' ')}
+  data-tabs-root
+>
+  <div
+    role="tablist"
+    aria-label={ariaLabel}
+    class="-mb-px flex gap-1 overflow-x-auto whitespace-nowrap"
+  >
+    {tabs.map((t) => {
+      const isActive = t.id === activeId;
+      const className = [
+        'inline-flex h-11 shrink-0 items-center gap-1.5 border-b-2 px-4 text-sm font-medium transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary',
+        isActive
+          ? 'border-ts-primary text-ts-primary'
+          : 'border-transparent text-ts-text-secondary hover:border-ts-border-strong hover:text-ts-text',
+      ].join(' ');
+
+      if (t.href) {
+        return (
+          <a
+            href={t.href}
+            role="tab"
+            id={`tab-${t.id}`}
+            aria-current={isActive ? 'page' : undefined}
+            aria-selected={isActive ? 'true' : 'false'}
+            tabindex={isActive ? 0 : -1}
+            class={className}
+          >
+            <span>{t.label}</span>
+            {t.count !== undefined && (
+              <span class="rounded-full bg-ts-bg-muted px-1.5 text-xs font-semibold text-ts-text-secondary tabular-nums">
+                {t.count}
+              </span>
+            )}
+          </a>
+        );
+      }
+      return (
+        <button
+          type="button"
+          role="tab"
+          id={`tab-${t.id}`}
+          aria-selected={isActive ? 'true' : 'false'}
+          aria-controls={t.id}
+          tabindex={isActive ? 0 : -1}
+          data-tab-id={t.id}
+          class={className}
+        >
+          <span>{t.label}</span>
+          {t.count !== undefined && (
+            <span class="rounded-full bg-ts-bg-muted px-1.5 text-xs font-semibold text-ts-text-secondary tabular-nums">
+              {t.count}
+            </span>
+          )}
+        </button>
+      );
+    })}
+  </div>
+</div>
+
+<script>
+  /**
+   * Wire JS-mode tabs. URL-mode tabs (anchors) handle themselves —
+   * we never run for tablists without buttons.
+   */
+  document.querySelectorAll<HTMLElement>('[data-tabs-root]').forEach((root) => {
+    const buttons = Array.from(
+      root.querySelectorAll<HTMLButtonElement>('button[role="tab"][data-tab-id]')
+    );
+    if (buttons.length === 0) return;
+
+    function activate(id: string): void {
+      buttons.forEach((b) => {
+        const isActive = b.dataset.tabId === id;
+        b.setAttribute('aria-selected', isActive ? 'true' : 'false');
+        b.tabIndex = isActive ? 0 : -1;
+        if (isActive) {
+          b.classList.add('border-ts-primary', 'text-ts-primary');
+          b.classList.remove('border-transparent', 'text-ts-text-secondary', 'hover:border-ts-border-strong', 'hover:text-ts-text');
+        } else {
+          b.classList.remove('border-ts-primary', 'text-ts-primary');
+          b.classList.add('border-transparent', 'text-ts-text-secondary', 'hover:border-ts-border-strong', 'hover:text-ts-text');
+        }
+      });
+      // Show/hide panels with matching data-tab-panel attribute.
+      document.querySelectorAll<HTMLElement>('[data-tab-panel]').forEach((panel) => {
+        const matchedTablist = panel.closest('[data-tab-panel-group]') === root.nextElementSibling?.closest('[data-tab-panel-group]');
+        // If the tab-panel-group is set, restrict to siblings. Otherwise
+        // hide every panel whose data-tab-panel matches another tab in
+        // this group.
+        if (matchedTablist || buttons.some((b) => b.dataset.tabId === panel.dataset.tabPanel)) {
+          panel.hidden = panel.dataset.tabPanel !== id;
+        }
+      });
+    }
+
+    buttons.forEach((btn, idx) => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.tabId;
+        if (id) activate(id);
+      });
+      btn.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+          e.preventDefault();
+          const dir = e.key === 'ArrowRight' ? 1 : -1;
+          const next = buttons[(idx + dir + buttons.length) % buttons.length];
+          next.focus();
+          const id = next.dataset.tabId;
+          if (id) activate(id);
+        } else if (e.key === 'Home') {
+          e.preventDefault();
+          buttons[0].focus();
+          const id = buttons[0].dataset.tabId;
+          if (id) activate(id);
+        } else if (e.key === 'End') {
+          e.preventDefault();
+          const last = buttons[buttons.length - 1];
+          last.focus();
+          const id = last.dataset.tabId;
+          if (id) activate(id);
+        }
+      });
+    });
+  });
+</script>

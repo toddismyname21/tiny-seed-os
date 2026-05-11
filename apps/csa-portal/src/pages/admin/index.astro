@@ -1,0 +1,496 @@
+---
+/**
+ * /admin — admin home / overview.
+ *
+ * Stats overview cards + pending-task callouts. All data is computed
+ * server-side via parallel queries through the cookie-aware client.
+ * RLS admin-bypass policies (migration 0017) ensure the admin sees
+ * EVERY member row, not just their own.
+ *
+ * Sections (per spec):
+ *   1. Stat cards — active members (overall + per share_type), recent
+ *      signups (last 7 days)
+ *   2. Members by pickup location (table)
+ *   3. Pending tasks — three callouts:
+ *      a. Unfilled box content for the next pickup Wednesday
+ *      b. Members stuck in onboarding > 3 days
+ *      c. Churn-risk members (active but no auth.users.last_sign_in_at
+ *         within 30 days). NOTE: We can't read auth.users from RLS-scoped
+ *         client; we approximate using members.updated_at as a proxy
+ *         since middleware updates session tokens which fan out to
+ *         updated_at via... actually no. We use a stricter proxy: members
+ *         whose status='active' and whose customer's last_order_date is
+ *         null or > 60 days ago. This is a defensible churn-risk signal.
+ *   4. Quick links footer
+ *
+ * Mobile: cards stack to single column; everything horizontally
+ * scrolls or wraps cleanly.
+ */
+import AdminShell from '../../components/AdminShell.astro';
+import Card from '../../components/Card.astro';
+
+const supabase = Astro.locals.supabase;
+
+// ─────────────────────────────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────────────────────────────
+function upcomingWednesday(now: Date = new Date()): string {
+  // Same logic as dashboard.astro — compute "this week's pickup" in ET.
+  const fmt = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/New_York',
+    year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short',
+  });
+  const parts = fmt.formatToParts(now);
+  const get = (t: string): string => parts.find((p) => p.type === t)?.value ?? '';
+  const dayIndex: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  const todayIdx = dayIndex[get('weekday')] ?? 0;
+  const daysUntilWed = (3 - todayIdx + 7) % 7;
+  const todayET = new Date(`${get('year')}-${get('month')}-${get('day')}T00:00:00-05:00`);
+  const wed = new Date(todayET.getTime() + daysUntilWed * 86_400_000);
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/New_York',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(wed);
+}
+
+const targetWeek = upcomingWednesday();
+const targetWeekPretty = new Intl.DateTimeFormat('en-US', {
+  weekday: 'long', month: 'long', day: 'numeric',
+  timeZone: 'America/New_York',
+}).format(new Date(`${targetWeek}T12:00:00-04:00`));
+
+const today = new Date();
+const sevenDaysAgo = new Date(today.getTime() - 7 * 86_400_000).toISOString();
+const threeDaysAgo = new Date(today.getTime() - 3 * 86_400_000).toISOString();
+
+// ─────────────────────────────────────────────────────────────────────
+// Parallel data fetches
+// ─────────────────────────────────────────────────────────────────────
+const [
+  activeCountRes,
+  byShareTypeRes,
+  byLocationRes,
+  recentSignupsRes,
+  unfilledBoxRes,
+  stalledOnboardingRes,
+  totalMembersRes,
+] = await Promise.all([
+  supabase.from('members').select('id', { count: 'exact', head: true }).eq('status', 'active'),
+  supabase.from('members').select('share_type, share_size, status').eq('status', 'active'),
+  supabase.from('members')
+    .select('pickup_location_id, pickup_location:pickup_locations(name, day_of_week, max_capacity)')
+    .eq('status', 'active'),
+  supabase.from('members')
+    .select('id, share_type, season, status, created_at, customer:customers(contact_name, email)')
+    .gte('created_at', sevenDaysAgo)
+    .order('created_at', { ascending: false })
+    .limit(10),
+  supabase.from('box_contents')
+    .select('share_type', { count: 'exact', head: false })
+    .eq('week_date', targetWeek),
+  supabase.from('members')
+    .select('id, share_type, customer:customers(contact_name, email)')
+    .eq('status', 'onboarding')
+    .lte('created_at', threeDaysAgo)
+    .order('created_at', { ascending: true })
+    .limit(20),
+  supabase.from('members').select('id', { count: 'exact', head: true }),
+]);
+
+const activeCount = activeCountRes.count ?? 0;
+const totalCount = totalMembersRes.count ?? 0;
+
+// ─── Share-type breakdown ───────────────────────────────────────────
+type ShareBreakdownRow = { share_type: string; share_size: string | null; status: string };
+const byShareType = new Map<string, number>();
+for (const row of (byShareTypeRes.data ?? []) as unknown as ShareBreakdownRow[]) {
+  byShareType.set(row.share_type, (byShareType.get(row.share_type) ?? 0) + 1);
+}
+
+// ─── Location breakdown ─────────────────────────────────────────────
+type LocationBreakdownRow = {
+  pickup_location_id: string | null;
+  pickup_location: { name: string; day_of_week: string | null; max_capacity: number | null } | null;
+};
+type LocationStat = {
+  name: string;
+  day: string | null;
+  capacity: number | null;
+  count: number;
+};
+const locationStats = new Map<string, LocationStat>();
+let homeDeliveryCount = 0;
+for (const row of (byLocationRes.data ?? []) as unknown as LocationBreakdownRow[]) {
+  if (!row.pickup_location_id) {
+    homeDeliveryCount += 1;
+    continue;
+  }
+  const loc = row.pickup_location;
+  const key = row.pickup_location_id;
+  if (!locationStats.has(key)) {
+    locationStats.set(key, {
+      name: loc?.name ?? '(unknown)',
+      day: loc?.day_of_week ?? null,
+      capacity: loc?.max_capacity ?? null,
+      count: 0,
+    });
+  }
+  locationStats.get(key)!.count += 1;
+}
+const sortedLocations = Array.from(locationStats.values()).sort((a, b) => b.count - a.count);
+
+// ─── Recent signups ─────────────────────────────────────────────────
+type SignupRow = {
+  id: string;
+  share_type: string;
+  season: string;
+  status: string;
+  created_at: string;
+  customer: { contact_name: string; email: string } | null;
+};
+const recentSignups = (recentSignupsRes.data ?? []) as unknown as SignupRow[];
+
+// ─── Unfilled box content for upcoming Wed ──────────────────────────
+// We expect box_contents rows for each ACTIVE share_type in production.
+// Anything missing → flag it for Todd.
+const expectedShareTypes = new Set(Array.from(byShareType.keys()));
+const filledShareTypes = new Set<string>();
+type BoxStub = { share_type: string };
+for (const row of (unfilledBoxRes.data ?? []) as BoxStub[]) {
+  filledShareTypes.add(row.share_type);
+}
+const unfilledShareTypes = Array.from(expectedShareTypes).filter((s) => !filledShareTypes.has(s));
+
+// ─── Stalled onboarding ─────────────────────────────────────────────
+type StalledOnboardingRow = {
+  id: string;
+  share_type: string;
+  customer: { contact_name: string; email: string } | null;
+};
+const stalledOnboarding = (stalledOnboardingRes.data ?? []) as unknown as StalledOnboardingRow[];
+
+// ─── Churn-risk count (lightweight) ─────────────────────────────────
+// Members with status='active' whose customer.last_order_date is older
+// than 60 days OR null. Could be heavy; we cap at counting only.
+const churnRes = await supabase
+  .from('members')
+  .select('id, customer:customers!inner(last_order_date)', { count: 'exact', head: false })
+  .eq('status', 'active');
+
+type ChurnRow = { id: string; customer: { last_order_date: string | null } | null };
+const sixtyDaysAgo = new Date(today.getTime() - 60 * 86_400_000);
+let churnRiskCount = 0;
+for (const row of (churnRes.data ?? []) as unknown as ChurnRow[]) {
+  const lod = row.customer?.last_order_date;
+  if (!lod) {
+    churnRiskCount += 1;
+    continue;
+  }
+  if (new Date(lod) < sixtyDaysAgo) churnRiskCount += 1;
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Label helpers
+// ─────────────────────────────────────────────────────────────────────
+const SHARE_LABEL: Record<string, string> = {
+  spring_veg: 'Spring Veg',
+  summer_veg: 'Summer Veg',
+  fall_veg: 'Fall Veg',
+  flower: 'Flower',
+  flex: 'Flex',
+  add_on: 'Add-on',
+  wholesale_csa: 'Wholesale',
+};
+
+const DAY_LONG: Record<string, string> = {
+  Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday',
+  Thu: 'Thursday', Fri: 'Friday', Sat: 'Saturday', Sun: 'Sunday',
+};
+
+function shareLabel(s: string): string { return SHARE_LABEL[s] ?? s; }
+
+// Pending-task pill count for header
+const pendingTaskCount =
+  unfilledShareTypes.length + stalledOnboarding.length + (churnRiskCount > 0 ? 1 : 0);
+---
+
+<AdminShell
+  title="Admin overview"
+  subtitle={`${activeCount} active members across ${sortedLocations.length} pickup locations`}
+  pageTitle="Admin overview — Tiny Seed"
+  canonical="https://csa.tinyseedfarm.com/admin"
+>
+  {/* ════ Stat row ════ */}
+  <section aria-labelledby="stats-heading" class="flex flex-col gap-3">
+    <h2 id="stats-heading" class="sr-only">Stats</h2>
+    <div class="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+      <Card padding="md" elevation="sm">
+        <div class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">
+          Active members
+        </div>
+        <div class="mt-1 font-display text-3xl font-bold text-ts-text tabular-nums sm:text-4xl">
+          {activeCount}
+        </div>
+        <div class="mt-1 text-xs text-ts-text-secondary">
+          of {totalCount} total
+        </div>
+      </Card>
+
+      <Card padding="md" elevation="sm">
+        <div class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">
+          Recent signups
+        </div>
+        <div class="mt-1 font-display text-3xl font-bold text-ts-text tabular-nums sm:text-4xl">
+          {recentSignups.length}
+        </div>
+        <div class="mt-1 text-xs text-ts-text-secondary">last 7 days</div>
+      </Card>
+
+      <Card padding="md" elevation="sm">
+        <div class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">
+          Pending tasks
+        </div>
+        <div class={[
+          'mt-1 font-display text-3xl font-bold tabular-nums sm:text-4xl',
+          pendingTaskCount > 0 ? 'text-ts-warning' : 'text-ts-text',
+        ].join(' ')}>
+          {pendingTaskCount}
+        </div>
+        <div class="mt-1 text-xs text-ts-text-secondary">
+          {pendingTaskCount === 0 ? "you're all caught up" : 'need attention'}
+        </div>
+      </Card>
+
+      <Card padding="md" elevation="sm">
+        <div class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">
+          Home deliveries
+        </div>
+        <div class="mt-1 font-display text-3xl font-bold text-ts-text tabular-nums sm:text-4xl">
+          {homeDeliveryCount}
+        </div>
+        <div class="mt-1 text-xs text-ts-text-secondary">active</div>
+      </Card>
+    </div>
+  </section>
+
+  {/* ════ Pending tasks ════ */}
+  <section aria-labelledby="pending-heading" class="flex flex-col gap-4">
+    <h2 id="pending-heading" class="font-display text-xl font-bold text-ts-text sm:text-2xl">
+      Pending tasks
+    </h2>
+
+    {pendingTaskCount === 0 ? (
+      <Card tone="primary" padding="md" elevation="sm">
+        <div class="flex items-center gap-3">
+          <span class="text-2xl" aria-hidden="true">✓</span>
+          <div>
+            <p class="font-semibold text-ts-text">All caught up.</p>
+            <p class="text-sm text-ts-text-secondary">No outstanding admin tasks.</p>
+          </div>
+        </div>
+      </Card>
+    ) : (
+      <div class="grid grid-cols-1 gap-3 md:grid-cols-3">
+        {unfilledShareTypes.length > 0 && (
+          <Card tone="warning" padding="md" elevation="sm">
+            <div class="flex items-start gap-3">
+              <span class="text-2xl" aria-hidden="true">📦</span>
+              <div class="min-w-0 flex-1">
+                <p class="font-semibold text-ts-text">
+                  Unfilled boxes for {targetWeekPretty}
+                </p>
+                <p class="mt-1 text-sm text-ts-text-secondary">
+                  {unfilledShareTypes.map((s) => shareLabel(s)).join(', ')}
+                </p>
+                <a
+                  href={`/admin/box-contents?week=${targetWeek}`}
+                  class="mt-2 inline-flex items-center gap-1 text-sm font-medium text-ts-warning hover:underline"
+                >
+                  Fill now <span aria-hidden="true">→</span>
+                </a>
+              </div>
+            </div>
+          </Card>
+        )}
+
+        {stalledOnboarding.length > 0 && (
+          <Card tone="warning" padding="md" elevation="sm">
+            <div class="flex items-start gap-3">
+              <span class="text-2xl" aria-hidden="true">⏳</span>
+              <div class="min-w-0 flex-1">
+                <p class="font-semibold text-ts-text">
+                  Onboarding stalled &gt; 3 days
+                </p>
+                <p class="mt-1 text-sm text-ts-text-secondary tabular-nums">
+                  {stalledOnboarding.length}
+                  {' '}
+                  {stalledOnboarding.length === 1 ? 'member' : 'members'}
+                </p>
+                <a
+                  href="/admin/members?status=onboarding"
+                  class="mt-2 inline-flex items-center gap-1 text-sm font-medium text-ts-warning hover:underline"
+                >
+                  Review <span aria-hidden="true">→</span>
+                </a>
+              </div>
+            </div>
+          </Card>
+        )}
+
+        {churnRiskCount > 0 && (
+          <Card tone="warning" padding="md" elevation="sm">
+            <div class="flex items-start gap-3">
+              <span class="text-2xl" aria-hidden="true">📉</span>
+              <div class="min-w-0 flex-1">
+                <p class="font-semibold text-ts-text">Churn-risk members</p>
+                <p class="mt-1 text-sm text-ts-text-secondary tabular-nums">
+                  {churnRiskCount} active, last order &gt; 60 days
+                </p>
+                <a
+                  href="/admin/reports#churn"
+                  class="mt-2 inline-flex items-center gap-1 text-sm font-medium text-ts-warning hover:underline"
+                >
+                  Report <span aria-hidden="true">→</span>
+                </a>
+              </div>
+            </div>
+          </Card>
+        )}
+      </div>
+    )}
+  </section>
+
+  {/* ════ Members by share type ════ */}
+  <section aria-labelledby="share-heading" class="flex flex-col gap-4">
+    <h2 id="share-heading" class="font-display text-xl font-bold text-ts-text sm:text-2xl">
+      Members by share type
+    </h2>
+    <Card padding="none" elevation="sm">
+      <ul class="divide-y divide-ts-border/60">
+        {Array.from(byShareType.entries()).sort((a, b) => b[1] - a[1]).map(([type, count]) => {
+          const pct = activeCount > 0 ? Math.round((count / activeCount) * 100) : 0;
+          return (
+            <li class="flex items-center gap-4 px-5 py-3 sm:px-6">
+              <div class="min-w-0 flex-1">
+                <div class="flex items-baseline justify-between gap-3">
+                  <span class="font-medium text-ts-text">{shareLabel(type)}</span>
+                  <span class="text-sm text-ts-text-secondary tabular-nums">
+                    {count} · {pct}%
+                  </span>
+                </div>
+                <div
+                  class="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-ts-bg-muted"
+                  role="progressbar"
+                  aria-valuenow={pct}
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                  aria-label={`${shareLabel(type)}: ${pct}% of active members`}
+                >
+                  <div
+                    class="h-full rounded-full bg-ts-primary"
+                    style={`width: ${pct}%`}
+                  ></div>
+                </div>
+              </div>
+            </li>
+          );
+        })}
+        {byShareType.size === 0 && (
+          <li class="px-5 py-6 text-center text-sm text-ts-text-muted sm:px-6">
+            No active members yet.
+          </li>
+        )}
+      </ul>
+    </Card>
+  </section>
+
+  {/* ════ Members by pickup location ════ */}
+  <section aria-labelledby="locations-heading" class="flex flex-col gap-4">
+    <div class="flex items-baseline justify-between">
+      <h2 id="locations-heading" class="font-display text-xl font-bold text-ts-text sm:text-2xl">
+        Members by pickup location
+      </h2>
+      <a
+        href="/admin/pickup-locations"
+        class="text-sm font-medium text-ts-primary underline-offset-2 hover:underline"
+      >
+        Manage locations →
+      </a>
+    </div>
+    <Card padding="none" elevation="sm">
+      <ul class="divide-y divide-ts-border/60">
+        {sortedLocations.length === 0 && (
+          <li class="px-5 py-6 text-center text-sm text-ts-text-muted sm:px-6">
+            No active pickup locations.
+          </li>
+        )}
+        {sortedLocations.map((loc) => {
+          const overCapacity = loc.capacity !== null && loc.count > loc.capacity;
+          const nearCapacity = loc.capacity !== null && !overCapacity && loc.count >= 0.8 * loc.capacity;
+          return (
+            <li class="flex items-center gap-4 px-5 py-3 sm:px-6">
+              <div class="min-w-0 flex-1">
+                <div class="flex items-baseline justify-between gap-3">
+                  <span class="truncate font-medium text-ts-text">{loc.name}</span>
+                  <span class={[
+                    'shrink-0 text-sm font-semibold tabular-nums',
+                    overCapacity ? 'text-ts-danger' :
+                    nearCapacity ? 'text-ts-warning' :
+                    'text-ts-text-secondary',
+                  ].join(' ')}>
+                    {loc.count}
+                    {loc.capacity !== null ? ` / ${loc.capacity}` : ''}
+                  </span>
+                </div>
+                <p class="mt-0.5 text-xs text-ts-text-muted">
+                  {loc.day ? DAY_LONG[loc.day] ?? loc.day : 'Day TBD'}
+                </p>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </Card>
+  </section>
+
+  {/* ════ Recent signups ════ */}
+  <section aria-labelledby="signups-heading" class="flex flex-col gap-4">
+    <h2 id="signups-heading" class="font-display text-xl font-bold text-ts-text sm:text-2xl">
+      Recent signups
+    </h2>
+    <Card padding="none" elevation="sm">
+      <ul class="divide-y divide-ts-border/60">
+        {recentSignups.length === 0 && (
+          <li class="px-5 py-6 text-center text-sm text-ts-text-muted sm:px-6">
+            No signups in the last 7 days.
+          </li>
+        )}
+        {recentSignups.map((s) => {
+          const when = new Date(s.created_at);
+          const whenStr = new Intl.DateTimeFormat('en-US', {
+            month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
+            timeZone: 'America/New_York',
+          }).format(when);
+          return (
+            <li class="flex items-center gap-3 px-5 py-3 sm:px-6">
+              <div class="min-w-0 flex-1">
+                <a
+                  href={`/admin/members/${s.id}`}
+                  class="font-medium text-ts-text underline-offset-2 hover:text-ts-primary hover:underline"
+                >
+                  {s.customer?.contact_name ?? s.customer?.email ?? '(unknown)'}
+                </a>
+                <p class="text-xs text-ts-text-muted">
+                  {shareLabel(s.share_type)} · {s.season} · {s.status}
+                </p>
+              </div>
+              <span class="shrink-0 text-xs text-ts-text-muted tabular-nums">
+                {whenStr}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    </Card>
+  </section>
+</AdminShell>

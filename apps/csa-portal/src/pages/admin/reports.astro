@@ -1,0 +1,281 @@
+---
+/**
+ * /admin/reports — basic operational reports.
+ *
+ * Day 10 keeps charts out of scope (Phase 4). All reports below are
+ * simple HTML tables with CSV download buttons. Server-side queries
+ * via the cookie-aware RLS client (admin policies let us see all rows).
+ *
+ * Reports:
+ *   1. Active members by share + size + season
+ *   2. Churn risk — active members whose customer.last_order_date is
+ *      older than 60 days OR null
+ *   3. Pickup attendance summary (last 8 weeks). Counts rows in
+ *      pickup_attendance where picked_up=true vs total scheduled
+ *      pickups inferred from active members on that week. If the
+ *      pickup_attendance table is empty (no attendance has been
+ *      recorded yet) we show an "(no data — capture attendance to
+ *      populate this report)" empty state.
+ */
+import AdminShell from '../../components/AdminShell.astro';
+import Table from '../../components/Table.astro';
+import CSVExport from '../../components/CSVExport.astro';
+
+const supabase = Astro.locals.supabase;
+
+const today = new Date();
+const sixtyDaysAgo = new Date(today.getTime() - 60 * 86_400_000);
+const eightWeeksAgo = new Date(today.getTime() - 8 * 7 * 86_400_000);
+const eightWeeksAgoIso = eightWeeksAgo.toISOString().slice(0, 10);
+
+// ─── Report 1: members by share / size / season ─────────────────────
+const { data: countsRaw } = await supabase
+  .from('members')
+  .select('share_type, share_size, season, status')
+  .eq('status', 'active');
+
+type RawCountRow = { share_type: string; share_size: string | null; season: string; status: string };
+const grouped = new Map<string, { share: string; size: string | null; season: string; count: number }>();
+for (const r of (countsRaw ?? []) as RawCountRow[]) {
+  const key = `${r.share_type}|${r.share_size ?? ''}|${r.season}`;
+  const existing = grouped.get(key);
+  if (existing) existing.count += 1;
+  else grouped.set(key, { share: r.share_type, size: r.share_size, season: r.season, count: 1 });
+}
+const shareCounts = Array.from(grouped.values()).sort((a, b) => {
+  if (a.season !== b.season) return a.season.localeCompare(b.season);
+  if (a.share !== b.share) return a.share.localeCompare(b.share);
+  return (a.size ?? '').localeCompare(b.size ?? '');
+});
+
+// ─── Report 2: churn risk ───────────────────────────────────────────
+const { data: churnRaw } = await supabase
+  .from('members')
+  .select(`
+    id, share_type, share_size, season, weeks_remaining, total_weeks,
+    customer:customers!inner(id, contact_name, email, last_order_date, total_orders)
+  `)
+  .eq('status', 'active')
+  .limit(500);
+
+type ChurnRow = {
+  id: string;
+  share_type: string;
+  share_size: string | null;
+  season: string;
+  weeks_remaining: number;
+  total_weeks: number;
+  customer: {
+    id: string;
+    contact_name: string;
+    email: string;
+    last_order_date: string | null;
+    total_orders: number;
+  } | null;
+};
+
+const churnList = ((churnRaw ?? []) as unknown as ChurnRow[])
+  .filter((m) => {
+    const lod = m.customer?.last_order_date;
+    if (!lod) return true; // never ordered → flag
+    return new Date(lod) < sixtyDaysAgo;
+  })
+  .sort((a, b) => {
+    const la = a.customer?.last_order_date ?? '';
+    const lb = b.customer?.last_order_date ?? '';
+    return la.localeCompare(lb);
+  })
+  .slice(0, 100);
+
+// ─── Report 3: pickup attendance ────────────────────────────────────
+const { data: attendanceRaw } = await supabase
+  .from('pickup_attendance')
+  .select('week_date, picked_up')
+  .gte('week_date', eightWeeksAgoIso);
+
+type AttRow = { week_date: string; picked_up: boolean };
+const weekStats = new Map<string, { picked: number; missed: number }>();
+for (const r of (attendanceRaw ?? []) as AttRow[]) {
+  const slot = weekStats.get(r.week_date) ?? { picked: 0, missed: 0 };
+  if (r.picked_up) slot.picked += 1; else slot.missed += 1;
+  weekStats.set(r.week_date, slot);
+}
+const attendanceRows = Array.from(weekStats.entries())
+  .sort((a, b) => b[0].localeCompare(a[0]))
+  .map(([week, stats]) => ({ week, ...stats, total: stats.picked + stats.missed }));
+
+const SHARE_LABEL: Record<string, string> = {
+  spring_veg: 'Spring Veg',
+  summer_veg: 'Summer Veg',
+  fall_veg: 'Fall Veg',
+  flower: 'Flower',
+  flex: 'Flex',
+  add_on: 'Add-on',
+  wholesale_csa: 'Wholesale',
+};
+
+function fmtDate(s: string | null): string {
+  if (!s) return 'never';
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short', day: 'numeric', year: 'numeric',
+    timeZone: 'America/New_York',
+  }).format(new Date(s));
+}
+
+function daysSince(s: string | null): string {
+  if (!s) return '∞';
+  const ms = today.getTime() - new Date(s).getTime();
+  return String(Math.floor(ms / 86_400_000));
+}
+---
+
+<AdminShell
+  title="Reports"
+  subtitle="Basic operational reports. CSV exports available for each."
+  pageTitle="Reports — Tiny Seed Admin"
+  canonical="https://csa.tinyseedfarm.com/admin/reports"
+>
+  {/* ════ Report 1: Active members by share + size + season ════ */}
+  <section id="members" aria-labelledby="report-members-h" class="flex flex-col gap-4">
+    <div class="flex flex-wrap items-baseline justify-between gap-3">
+      <h2 id="report-members-h" class="font-display text-xl font-bold text-ts-text sm:text-2xl">
+        Active members by share / size / season
+      </h2>
+      <CSVExport
+        href="/api/admin/reports/active-members-by-share.csv"
+        filename="active-members-by-share.csv"
+        size="sm"
+      />
+    </div>
+    <Table
+      tableLabel="Active members by share, size, and season"
+      columns={[
+        { key: 'season', label: 'Season' },
+        { key: 'share',  label: 'Share type' },
+        { key: 'size',   label: 'Size' },
+        { key: 'count',  label: 'Active', align: 'right' },
+      ]}
+      empty={shareCounts.length === 0}
+      emptyTitle="No active members"
+      emptyIcon="🌱"
+    >
+      <Fragment slot="body">
+        {shareCounts.map((row) => (
+          <tr>
+            <td class="px-4 py-3 first:pl-5 sm:px-5 sm:first:pl-6 text-sm text-ts-text">{row.season}</td>
+            <td class="px-4 py-3 sm:px-5 text-sm text-ts-text">{SHARE_LABEL[row.share] ?? row.share}</td>
+            <td class="px-4 py-3 sm:px-5 text-sm text-ts-text-secondary">{row.size ?? '—'}</td>
+            <td class="px-4 py-3 last:pr-5 sm:px-5 sm:last:pr-6 text-right text-sm font-semibold text-ts-text tabular-nums">{row.count}</td>
+          </tr>
+        ))}
+      </Fragment>
+    </Table>
+  </section>
+
+  {/* ════ Report 2: Churn risk ════ */}
+  <section id="churn" aria-labelledby="report-churn-h" class="flex flex-col gap-4">
+    <div class="flex flex-wrap items-baseline justify-between gap-3">
+      <h2 id="report-churn-h" class="font-display text-xl font-bold text-ts-text sm:text-2xl">
+        Churn risk
+      </h2>
+      <CSVExport
+        href="/api/admin/reports/churn-risk.csv"
+        filename="churn-risk.csv"
+        size="sm"
+      />
+    </div>
+    <p class="text-sm text-ts-text-secondary">
+      Active members whose last order was &gt; 60 days ago or never recorded.
+      First 100 shown — full list in the CSV.
+    </p>
+    <Table
+      tableLabel="Churn risk members"
+      columns={[
+        { key: 'name',  label: 'Member' },
+        { key: 'share', label: 'Share' },
+        { key: 'last',  label: 'Last order' },
+        { key: 'days',  label: 'Days since', align: 'right' },
+        { key: 'view',  label: 'View', srOnly: true, align: 'right' },
+      ]}
+      empty={churnList.length === 0}
+      emptyTitle="No churn-risk members"
+      emptyIcon="✓"
+      emptyMessage="Every active member has ordered in the last 60 days. Nice."
+      rowCount={churnList.length === 100 ? undefined : churnList.length}
+    >
+      <Fragment slot="body">
+        {churnList.map((m) => (
+          <tr class="hover:bg-ts-bg-muted/40">
+            <td class="px-4 py-3 first:pl-5 sm:px-5 sm:first:pl-6">
+              <a
+                href={`/admin/members/${m.id}`}
+                class="font-medium text-ts-text underline-offset-2 hover:text-ts-primary hover:underline"
+              >
+                {m.customer?.contact_name ?? '(unknown)'}
+              </a>
+              <p class="mt-0.5 text-xs text-ts-text-muted">{m.customer?.email ?? ''}</p>
+            </td>
+            <td class="px-4 py-3 sm:px-5 text-sm text-ts-text-secondary">
+              {SHARE_LABEL[m.share_type] ?? m.share_type}
+              {m.share_size && <span class="text-ts-text-muted"> · {m.share_size}</span>}
+              <p class="mt-0.5 text-xs text-ts-text-muted">{m.season}</p>
+            </td>
+            <td class="px-4 py-3 sm:px-5 text-sm text-ts-text">{fmtDate(m.customer?.last_order_date ?? null)}</td>
+            <td class="px-4 py-3 sm:px-5 text-right text-sm text-ts-text tabular-nums">{daysSince(m.customer?.last_order_date ?? null)}</td>
+            <td class="px-4 py-3 last:pr-5 sm:px-5 sm:last:pr-6 text-right">
+              <a
+                href={`/admin/members/${m.id}`}
+                class="text-sm font-medium text-ts-primary underline-offset-2 hover:underline"
+              >
+                View →
+              </a>
+            </td>
+          </tr>
+        ))}
+      </Fragment>
+    </Table>
+  </section>
+
+  {/* ════ Report 3: Pickup attendance ════ */}
+  <section id="attendance" aria-labelledby="report-att-h" class="flex flex-col gap-4">
+    <div class="flex flex-wrap items-baseline justify-between gap-3">
+      <h2 id="report-att-h" class="font-display text-xl font-bold text-ts-text sm:text-2xl">
+        Pickup attendance (last 8 weeks)
+      </h2>
+      <CSVExport
+        href="/api/admin/reports/pickup-attendance.csv"
+        filename="pickup-attendance.csv"
+        size="sm"
+      />
+    </div>
+    <Table
+      tableLabel="Pickup attendance summary"
+      columns={[
+        { key: 'week',   label: 'Week' },
+        { key: 'total',  label: 'Tracked', align: 'right' },
+        { key: 'picked', label: 'Picked up', align: 'right' },
+        { key: 'missed', label: 'Missed', align: 'right' },
+        { key: 'rate',   label: 'Rate', align: 'right' },
+      ]}
+      empty={attendanceRows.length === 0}
+      emptyTitle="No attendance recorded yet"
+      emptyIcon="📋"
+      emptyMessage="Once you mark members as picked-up at each location, this report will populate."
+    >
+      <Fragment slot="body">
+        {attendanceRows.map((r) => {
+          const rate = r.total > 0 ? Math.round((r.picked / r.total) * 100) : 0;
+          return (
+            <tr>
+              <td class="px-4 py-3 first:pl-5 sm:px-5 sm:first:pl-6 text-sm text-ts-text tabular-nums">{fmtDate(r.week)}</td>
+              <td class="px-4 py-3 sm:px-5 text-right text-sm text-ts-text-secondary tabular-nums">{r.total}</td>
+              <td class="px-4 py-3 sm:px-5 text-right text-sm font-semibold text-ts-primary tabular-nums">{r.picked}</td>
+              <td class="px-4 py-3 sm:px-5 text-right text-sm font-semibold text-ts-warning tabular-nums">{r.missed}</td>
+              <td class="px-4 py-3 last:pr-5 sm:px-5 sm:last:pr-6 text-right text-sm font-semibold text-ts-text tabular-nums">{rate}%</td>
+            </tr>
+          );
+        })}
+      </Fragment>
+    </Table>
+  </section>
+</AdminShell>

@@ -1,0 +1,151 @@
+---
+/**
+ * Table — opinionated data table for admin views.
+ *
+ * The component renders the table chrome (header row, scroll
+ * container, empty state) and exposes a `<slot name="body">` for the
+ * <tr>s. Callers pass the column definitions as `columns`; we render
+ * the <thead> automatically with the labels.
+ *
+ * Why slot the body? Astro can't (cleanly) pass a generic render
+ * function for rows, and we want callers to use server-resolved data
+ * with the full power of Astro templating. The header is small,
+ * declarative, and benefits from a typed `columns` array.
+ *
+ * Horizontal scroll on mobile: the outer wrapper is `overflow-x-auto`
+ * so wide tables (members, audit log) don't blow up the viewport. We
+ * pair this with `min-w-full` on the <table> so the columns stretch
+ * naturally on desktop.
+ *
+ * Empty state: when `empty=true` (caller sets after counting rows),
+ * we render an EmptyState-style panel inside the body wrapper instead
+ * of the <tbody>.
+ *
+ * Props:
+ *   - columns       Array of { key, label, align?, width?, srOnly? }
+ *   - empty         true → show empty state instead of <tbody>
+ *   - emptyTitle    string. Required when empty=true.
+ *   - emptyIcon     string. Default 🪴
+ *   - tableLabel    Accessible name for the <table>
+ *   - rowCount      Optional. Renders a "N results" caption above the
+ *                   table when supplied. Helpful when paginated.
+ *
+ * Slots:
+ *   - body          The <tr> rows (caller renders these inside <tbody>
+ *                   themselves — we leave the body fully under caller
+ *                   control because pagination + per-row markup varies)
+ *   - empty         Override the default empty state body
+ *   - footer        Optional caption-style footer below the table
+ */
+
+interface Column {
+  key: string;
+  label: string;
+  align?: 'left' | 'right' | 'center';
+  /** Tailwind width class (e.g. 'w-24', 'min-w-[12rem]'). */
+  width?: string;
+  /** sr-only header (for actions / chevron columns). */
+  srOnly?: boolean;
+}
+
+interface Props {
+  columns: Column[];
+  empty?: boolean;
+  emptyTitle?: string;
+  emptyIcon?: string;
+  emptyMessage?: string;
+  tableLabel: string;
+  rowCount?: number;
+  class?: string;
+}
+
+const {
+  columns,
+  empty = false,
+  emptyTitle = 'No results',
+  emptyIcon = '🪴',
+  emptyMessage = '',
+  tableLabel,
+  rowCount,
+  class: extraClass = '',
+} = Astro.props as Props;
+
+const ALIGN: Record<NonNullable<Column['align']>, string> = {
+  left: 'text-left',
+  right: 'text-right',
+  center: 'text-center',
+};
+
+const hasFooter = Astro.slots.has('footer');
+const hasCustomEmpty = Astro.slots.has('empty');
+---
+
+<div
+  class={[
+    'rounded-ts-xl border border-ts-border bg-ts-bg-surface shadow-ts-sm',
+    extraClass,
+  ].filter(Boolean).join(' ')}
+>
+  {rowCount !== undefined && !empty && (
+    <div class="border-b border-ts-border px-5 py-2 text-xs text-ts-text-muted tabular-nums sm:px-6">
+      {rowCount} {rowCount === 1 ? 'result' : 'results'}
+    </div>
+  )}
+
+  {empty ? (
+    hasCustomEmpty ? (
+      <div class="p-6 sm:p-8">
+        <slot name="empty" />
+      </div>
+    ) : (
+      <div class="flex flex-col items-center gap-3 p-8 text-center sm:p-12">
+        <div
+          class="flex h-12 w-12 items-center justify-center rounded-full bg-ts-bg-muted text-2xl text-ts-text-muted"
+          aria-hidden="true"
+        >
+          {emptyIcon}
+        </div>
+        <h3 class="font-display text-lg font-semibold text-ts-text">
+          {emptyTitle}
+        </h3>
+        {emptyMessage && (
+          <p class="max-w-prose text-sm text-ts-text-secondary">{emptyMessage}</p>
+        )}
+      </div>
+    )
+  ) : (
+    <div class="overflow-x-auto">
+      <table
+        aria-label={tableLabel}
+        class="min-w-full divide-y divide-ts-border"
+      >
+        <thead class="bg-ts-bg-muted/40">
+          <tr>
+            {columns.map((c) => (
+              <th
+                scope="col"
+                class={[
+                  'px-4 py-3 text-xs font-semibold uppercase tracking-wide text-ts-text-secondary first:pl-5 last:pr-5 sm:px-5 sm:first:pl-6 sm:last:pr-6',
+                  ALIGN[c.align ?? 'left'],
+                  c.width ?? '',
+                  c.srOnly ? 'sr-only' : '',
+                ].filter(Boolean).join(' ')}
+              >
+                {c.label}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-ts-border/60 bg-ts-bg-surface">
+          <slot name="body" />
+        </tbody>
+      </table>
+    </div>
+  )}
+
+  {hasFooter && (
+    <footer class="border-t border-ts-border px-5 py-3 text-sm text-ts-text-secondary sm:px-6">
+      <slot name="footer" />
+    </footer>
+  )}
+</div>
