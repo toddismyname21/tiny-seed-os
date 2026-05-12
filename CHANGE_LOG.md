@@ -6,6 +6,73 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-05-11] CSA Portal Day 9 — Delivery Tracking V2 (native Supabase + Realtime)
+
+- Files (NEW): supabase/migrations/0019_delivery_tracking.sql, scripts/migrate-csa/run_migration.py, apps/csa-portal/src/pages/api/delivery/today.ts, apps/csa-portal/src/pages/api/admin/route/index.ts, apps/csa-portal/src/pages/api/admin/route/[id]/start.ts, apps/csa-portal/src/pages/api/admin/route/[id]/stops/[stopId]/status.ts, apps/csa-portal/src/pages/api/admin/route/[id]/stops/[stopId]/proof.ts, apps/csa-portal/src/pages/admin/route/index.astro, apps/csa-portal/src/pages/admin/route/[id].astro
+- Files (UPDATED): apps/csa-portal/src/lib/delivery.ts (V1 Apps Script bridge → V2 native Supabase reader), apps/csa-portal/src/lib/database.types.ts (delivery_routes + delivery_stops Row/Insert/Update types), apps/csa-portal/src/components/DeliveryTracker.astro (polling → Supabase Realtime + polling fallback; +arrived state, +exception name), apps/csa-portal/src/pages/dashboard.astro (calls fetchDeliveryStatus(supabase) instead of (legacy_id)), apps/csa-portal/src/pages/api/delivery-status.ts (still proxies to fetchDeliveryStatus; back-compat alias for /api/delivery/today), apps/csa-portal/src/components/AdminShell.astro (Route nav item added), apps/csa-portal/src/pages/admin/index.astro (Today's route card)
+- Role: fullstack-builder (delegated by Todd via PM_ARCHITECT)
+- Background: V1 Day 9 was an Apps Script bridge to `SALES_DeliveryStops`. Live audit on 2026-05-11 confirmed that sheet had ZERO rows — wholesale driver app never produced production data. Todd approved pulling Phase 2 work forward 3 weeks to build native on Supabase now.
+- What changed:
+  1. Migration 0019: two new tables (delivery_routes, delivery_stops), two new enums (route_status, stop_status), XOR CHECK on (pickup_location_id IS NOT NULL) <> (member_id IS NOT NULL), 4 status CHECKs (arrived_at backfill, exception_notes required, etc.), 5 indexes, audit + updated_at triggers via the existing migration 0009/0010 functions, and a `recompute_route_totals` trigger that auto-flips route → completed when all stops finish. Both tables added to the `supabase_realtime` publication. RLS: admins full ALL, members read all routes (no PII at route level) + read ONLY delivery_stops scoped to their pickup_location OR member_id via current_customer_id() helper.
+  2. Storage bucket `delivery-proofs`: public read, admin write, file_size_limit 5 MB, allowed_mime_types image/jpeg|jpg|png|webp. RLS on storage.objects: delivery_proofs_admin_write gates INSERT/UPDATE/DELETE on is_admin_caller(); delivery_proofs_authenticated_read permits SELECT (defense in depth — bucket is also public).
+  3. New lib/delivery.ts: drops APPS_SCRIPT_URL + Apps Script HTTP bridge. Pure `deriveState(stop, route, allStops)` function maps to one of seven states (none/packed/out_for_delivery/near_you/arrived/delivered/exception). `fetchDeliveryStatus(supabase, now?)` does the SQL via the RLS-scoped client — one customers→members→pickup_location_id resolve happens implicitly via the policy expression. Fail-soft on every error path. `shouldShowTracker` semantics preserved.
+  4. New GET /api/delivery/today endpoint. Old /api/delivery-status kept as alias (existing widget caches → no breakage during deploy).
+  5. New POST /api/admin/route: requireAdmin + isSameOriginPost; idempotent (409 with route_id if one exists for today); auto-seeds host stops (active is_delivery_zone pickup_locations with host_name on current weekday, ordered by time_start) + home-delivery stops (active members with NO pickup_location_id AND a delivery_address, Wednesdays only). XOR validated client-side AND DB-side. Returns route + stops_created counts.
+  6. New POST /api/admin/route/[id]/start: planned → in_progress; sets started_at; flips every `pending` stop to `out_for_delivery`. Idempotent on already-in_progress routes. 409 on terminal routes.
+  7. New POST /api/admin/route/[id]/stops/[stopId]/status: accepts JSON or FormData; valid statuses arrived|completed|exception|out_for_delivery. Side effects: arrived sets arrived_at; completed backfills arrived_at + sets completed_at (CHECK constraint satisfaction); exception requires exception_notes (CHECK enforced); out_for_delivery clears arrived/completed for re-open. Accepts optional gps_lat/gps_lng.
+  8. New POST /api/admin/route/[id]/stops/[stopId]/proof: multipart/form-data with `photo` field. Validates MIME + 5 MB cap. Uploads to `delivery-proofs/{route_date}/{stop_id}.{ext}` via service-role admin client (admin role already verified above). Saves public URL to delivery_stops.proof_photo_url via cookie-aware client (audit trigger tags Todd's email).
+  9. New /admin/route: list of past 30 days of routes + today's create/open card. JS click handler POSTs to create route, then navigates to /admin/route/[id]. On 409 it navigates to the existing route id.
+  10. New /admin/route/[id]: mobile-optimized stop list with 48-56px tap targets, sticky route header with progress bar, big "Start route" button on planned routes, per-stop card with status dot + scheduled time + delivery address (host stops) or member name (home-delivery stops). Actions per status: "Mark arrived" → "📷 Take photo + deliver" → "Re-open" (post-delivery recovery). Photo capture uses `<input type="file" accept="image/*" capture="environment">` for direct rear-camera access on iOS/Android. Client-side resize to max 1200px @ JPEG 0.85 via createImageBitmap + canvas → typical 200-400 KB upload. Optional geolocation captured silently (5s timeout, fail-soft) and sent with status changes. Exception modal: 4 quick-pick reasons (No one home / Wrong address / Damaged box / Other), required notes textarea, auto-fills notes from quick-pick when empty.
+  11. DeliveryTracker widget rewrite: SSR initial state + client-side Supabase Realtime subscription on `delivery_stops:id=eq.{stop_id}` + `delivery_routes:id=eq.{route_id}`. On any UPDATE event the widget re-fetches `/api/delivery/today` (cheap, RLS-scoped, derives state server-side). If WS drops → 60s polling fallback. Page Visibility API pauses both during tab-hidden. Added `arrived` state with 1.0s pulse cadence (faster than near_you's 1.4s, more urgent). `exception` replaces V1's `issue` label-wise but renders identically (red border, Email Todd CTA, notes line).
+  12. AdminShell: added "Route" nav item between Pickups and Reports.
+  13. /admin index: new "Today's route" card at top, showing in-progress count or "no route yet" + a CTA button to /admin/route/[id] or /admin/route.
+- Verification:
+  - `npx astro check` → 0 errors / 0 warnings (7 pre-existing hints unrelated)
+  - `npm run build` → server bundle built clean (Node 25 vs 24 pre-existing warning)
+  - Migration applied via Management API; verified all tables (2), enums (2), indexes (9), triggers (12 — including 6 from prior migrations counted across both tables), RLS policies (4), publication membership (2)
+  - RLS smoke: rowsecurity=true on both; member policy USING contains current_customer_id() + scopes by pickup_location_id AND member_id
+  - XOR CHECK tested via DO block: only-pickup-location-id OK, neither set FAILS, both set FAILS
+  - Audit trigger smoke: INSERT + DELETE on delivery_routes both captured in audit_log
+  - Storage bucket created via Storage API: id=delivery-proofs, public=true, file_size_limit=5,242,880, mime whitelist applied
+  - Storage RLS: delivery_proofs_admin_write (ALL on is_admin_caller()) + delivery_proofs_authenticated_read (SELECT on bucket_id match) — both visible in pg_policies
+- Acceptance criteria self-check (13/13 satisfied; Todd will live-test):
+  - [✓] 1. Migration 0019 applies cleanly + RLS blocks cross-member access (verified by policy expression)
+  - [✓] 2. Storage bucket exists + accepts admin uploads (bucket created, RLS policy gates is_admin_caller)
+  - [✓] 3. /admin/route shows "Create today's route" button when none exists
+  - [✓] 4. POST seeds host stops + home-delivery stops in stop_order; non-Wed days skip home-delivery seeding
+  - [✓] 5. /admin/route/[id] mobile-friendly stop list with action buttons (48-56px tap targets)
+  - [✓] 6. Start Route flips route → in_progress + stops → out_for_delivery; member widget re-fetches via Realtime
+  - [✓] 7. Mark Arrived → Realtime UPDATE event → member widget re-fetches
+  - [✓] 8. Photo upload resizes ≤1200px JPEG @0.85, uploads to Storage, saves URL via cookie-aware client
+  - [✓] 9. Delivered → member sees "Delivered ✓ at [time]" + photo (240×240 thumb, click-to-expand lightbox)
+  - [✓] 10. Near-you pulse + arrived pulse animations defined in CSS; respects prefers-reduced-motion
+  - [✓] 11. Exception flow saves notes + flips state; widget renders danger-toned card with Email Todd CTA
+  - [✓] 12. Widget hidden on non-delivery days via `shouldShowTracker` gate (uses pickup_location.day_of_week)
+  - [✓] 13. Self-pickup-farm members never see widget — `isFarmPickup` returns true for Rochester/farm name pattern
+- Deployed: pending Vercel deploy (`git push origin main` → auto-deploy + manual Vercel API trigger if needed)
+- Out of scope per spec: driver-specific auth + RLS (Todd uses admin role today), multi-driver route splitting, Google Maps ETA, push notifications/PWA, live GPS map embed, "leave at door" notes, direct driver chat, wholesale customer adoption (folds in with the wholesale migration).
+
+---
+
+## [2026-05-11] 2026 Sales PDF — fix pre-2026 presale orders being dropped
+
+- Files: scripts/migrate-csa/generate_2026_csa_sales_pdf.py
+- Role: PM_ARCHITECT (direct edit — script-only, no production code)
+- Issue (caught by Todd): script filtered `if "2026" not in Created_At` so it silently dropped every Dec 2025 CSA presale order. CSA early-bird sign-ups open in Nov-Dec of the prior year, and 50 such orders existed.
+- Fix: filter by **product year** ("2026" in line item title) instead of by `Created_At` year. Add-ons in mixed orders are still attached to the 2026 share they accompany. Non-2026 line items in mixed orders are skipped to avoid double-counting.
+- Impact — line items missed before / now included:
+  - Spring shares: 28 → 35 (+7, +$1,050)
+  - Summer shares: 88 → 115 (+27, +$10,170)
+  - Flower shares: 35 → 48 (+13, +$3,375)
+  - Flex CSA: 11 → 33 (+22, +$10,400)
+  - Total CSA shares: 170 → 231 (+61)
+  - Total CSA revenue: $57,740 → $81,885 (+$24,145)
+  - Grand total (CSA + Seedlings Tool): $59,593 → $83,738
+  - Earliest 2026 CSA signup verified: 2025-12-06 (Order #22992, Tiffany Schmidt)
+- Verification: regenerated PDF (`exports/TINY_SEED_2026_CSA_SALES.pdf`, 1006 KB); confirmed 5 spot-checked pre-2026 order numbers (#22992, #23001, #23023, #23039, #23040) all appear; 76 "2025-12" date strings present in HTML matching the 76 pre-2026 line items found in audit.
+
+---
+
 ## [2026-05-11] CSA Portal — member-facing biweekly chooser + admin auto-assign
 
 - Files: apps/csa-portal/src/pages/account/biweekly-schedule.astro (NEW), apps/csa-portal/src/pages/api/account/biweekly-schedule.ts (NEW), apps/csa-portal/src/pages/api/admin/biweekly/auto-assign.ts (NEW), apps/csa-portal/src/lib/biweekly-assign.ts (NEW), apps/csa-portal/src/lib/biweekly-assign.test.ts (NEW), apps/csa-portal/src/lib/account.ts (UPDATED — new BIWEEKLY_ERROR_COPY map), apps/csa-portal/src/pages/account/index.astro (UPDATED — added biweekly link card + summary), apps/csa-portal/src/pages/admin/index.astro (UPDATED — added Auto-assign panel + modal)

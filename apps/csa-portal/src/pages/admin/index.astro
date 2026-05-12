@@ -29,8 +29,28 @@
 import AdminShell from '../../components/AdminShell.astro';
 import Card from '../../components/Card.astro';
 import { DISPLAY_ORDER, countByBucket, type MemberShareRow } from '../../lib/share-buckets';
+import { todayET, todayWeekdayET } from '../../lib/delivery';
 
 const supabase = Astro.locals.supabase;
+
+// Day 9 — today's delivery route (if a route exists for the current date)
+const todayDate = todayET();
+const todayWeekday = todayWeekdayET();
+type TodayRoute = {
+  id: string;
+  status: 'planned' | 'in_progress' | 'completed' | 'cancelled';
+  total_stops: number;
+  completed_stops: number;
+};
+const { data: todayRouteRows } = await supabase
+  .from('delivery_routes')
+  .select('id, status, total_stops, completed_stops')
+  .eq('route_date', todayDate)
+  .order('created_at', { ascending: false })
+  .limit(1)
+  .overrideTypes<TodayRoute[], { merge: false }>();
+const todayRoute = todayRouteRows?.[0] ?? null;
+const isDeliveryDay = todayWeekday === 'Wed';
 
 // ─────────────────────────────────────────────────────────────────────
 // Helpers
@@ -289,6 +309,53 @@ const pendingTaskCount =
         <div class="mt-1 text-xs text-ts-text-secondary">active</div>
       </Card>
     </div>
+  </section>
+
+  {/* ════ Today's route (Day 9) ════ */}
+  <section aria-labelledby="today-route-heading" class="flex flex-col gap-4">
+    <h2 id="today-route-heading" class="font-display text-xl font-bold text-ts-text sm:text-2xl">
+      Today's route
+    </h2>
+    <Card padding="md" elevation="sm">
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div class="min-w-0 flex-1">
+          {todayRoute ? (
+            <>
+              <p class="font-semibold text-ts-text">
+                Route {todayRoute.status === 'in_progress' ? 'in progress' : todayRoute.status}
+              </p>
+              <p class="mt-1 text-sm text-ts-text-secondary tabular-nums">
+                {todayRoute.completed_stops} of {todayRoute.total_stops} stops done
+              </p>
+            </>
+          ) : isDeliveryDay ? (
+            <>
+              <p class="font-semibold text-ts-text">
+                No route created for today yet
+              </p>
+              <p class="mt-1 text-sm text-ts-text-secondary">
+                Wednesday is a delivery day. Open the Route page to auto-seed stops.
+              </p>
+            </>
+          ) : (
+            <>
+              <p class="font-semibold text-ts-text-secondary">
+                Not a delivery day
+              </p>
+              <p class="mt-1 text-sm text-ts-text-muted">
+                Routes run on Wednesdays. View past routes via the Route page.
+              </p>
+            </>
+          )}
+        </div>
+        <a
+          href={todayRoute ? `/admin/route/${todayRoute.id}` : '/admin/route'}
+          class="inline-flex h-11 shrink-0 items-center justify-center rounded-ts-md bg-ts-primary px-5 text-sm font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+        >
+          {todayRoute ? 'Open route →' : 'Open Route page →'}
+        </a>
+      </div>
+    </Card>
   </section>
 
   {/* ════ Pending tasks ════ */}

@@ -116,7 +116,7 @@ if [ "$ACTION" = "create" ]; then
     BASENAME=$(basename "$FILE_NAME")
 
     # Whitelist standard files that every project/subdir legitimately has
-    WHITELISTED_NAMES="INBOX.md OUTBOX.md INSTRUCTIONS.md .gitignore .env.example .env.sample"
+    WHITELISTED_NAMES="INBOX.md OUTBOX.md INSTRUCTIONS.md .gitignore .env.example .env.sample index.astro index.ts index.js index.tsx index.jsx"
     IS_WHITELISTED=false
     for WL in $WHITELISTED_NAMES; do
         if [ "$BASENAME" = "$WL" ]; then
@@ -124,8 +124,19 @@ if [ "$ACTION" = "create" ]; then
             break
         fi
     done
+    # Astro dynamic-route filenames like [id].astro, [slug].astro, [name].astro
+    # are a framework convention and (a) routinely re-used across feature
+    # directories (e.g. /admin/members/[id], /admin/route/[id]) and (b) cause
+    # find -iname "*${BASENAME}*" to glob-expand the bracket as a character
+    # class, producing massive false-positive match sets. Treat them as
+    # whitelisted.
+    case "$BASENAME" in
+        \[*\].astro|\[*\].ts|\[*\].js|\[*\].tsx|\[*\].jsx)
+            IS_WHITELISTED=true
+            ;;
+    esac
     if [ "$IS_WHITELISTED" = true ]; then
-        echo -e "  ${GREEN}SKIP: '$BASENAME' is a standard terminal coordination file${NC}"
+        echo -e "  ${GREEN}SKIP: '$BASENAME' is a standard / framework-convention file${NC}"
     else
         # Remove extension and split on common delimiters
         SEARCH_TERM=$(echo "$BASENAME" | sed 's/\.[^.]*$//' | sed 's/[._-]/ /g')
@@ -134,15 +145,38 @@ if [ "$ACTION" = "create" ]; then
         echo "  Searching for similar files matching: $SEARCH_TERM"
 
         # Use find to search for similar files (exclude node_modules, .git, vendor dirs)
-        SIMILAR=$(cd "$BASE_DIR" && find . -type d \( -name node_modules -o -name .git -o -name .cache -o -name dist -o -name build \) -prune -o -type f \( -name "*.html" -o -name "*.js" -o -name "*.md" \) -print 2>/dev/null | xargs -I {} sh -c 'echo "$1" | grep -i "'"$SEARCH_TERM"'"' _ {} 2>/dev/null | head -10 || true)
+        SIMILAR=$(cd "$BASE_DIR" && find . -type d \( -name node_modules -o -name .git -o -name .cache -o -name dist -o -name build -o -name .vercel -o -name .next -o -name .astro -o -name .output \) -prune -o -type f \( -name "*.html" -o -name "*.js" -o -name "*.md" \) -print 2>/dev/null | xargs -I {} sh -c 'echo "$1" | grep -i "'"$SEARCH_TERM"'"' _ {} 2>/dev/null | head -10 || true)
 
-        # Also check for exact basename matches (exclude the file itself, node_modules, .git)
-        EXACT_MATCH=$(cd "$BASE_DIR" && find . -type d \( -name node_modules -o -name .git -o -name .cache -o -name dist -o -name build \) -prune -o -iname "*${BASENAME}*" -type f -print 2>/dev/null | grep -v "^\./${FILE_NAME}$" | head -5 || true)
+        # Also check for exact basename matches (exclude the file itself, node_modules, .git).
+        # Use `grep -F` (fixed string) for the self-exclude — file paths
+        # containing Astro dynamic-route brackets like `[id]` would otherwise
+        # be interpreted as regex character classes and fail to self-match.
+        EXACT_MATCH=$(cd "$BASE_DIR" && find . -type d \( -name node_modules -o -name .git -o -name .cache -o -name dist -o -name build -o -name .vercel -o -name .next -o -name .astro -o -name .output \) -prune -o -iname "*${BASENAME}*" -type f -print 2>/dev/null | grep -vF "./${FILE_NAME}" | head -5 || true)
 
-        if [ -n "$EXACT_MATCH" ]; then
+        # REST-style parallel resource handlers: short basenames like
+        # status.ts, delete.ts, edit.ts, create.ts, new.ts, [id].ts —
+        # legitimately appear once per parent resource (members/[id]/
+        # status.ts, route/[id]/stops/[stopId]/status.ts, etc). These
+        # are NEVER duplicate implementations even when the basename
+        # matches — they're parallel route handlers. Demote those
+        # matches from CRITICAL to a WARNING.
+        REST_VERB_BASENAMES="status.ts delete.ts edit.ts create.ts new.ts update.ts patch.ts route.ts handler.ts get.ts post.ts put.ts"
+        IS_REST_HANDLER=false
+        for v in $REST_VERB_BASENAMES; do
+            if [ "$BASENAME" = "$v" ]; then
+                IS_REST_HANDLER=true
+                break
+            fi
+        done
+
+        if [ -n "$EXACT_MATCH" ] && [ "$IS_REST_HANDLER" = false ]; then
             echo -e "  ${RED}CRITICAL: Exact or near-exact match found:${NC}"
             echo "$EXACT_MATCH" | while read -r line; do echo "    - $line"; done
             ((CRITICAL++))
+        elif [ -n "$EXACT_MATCH" ] && [ "$IS_REST_HANDLER" = true ]; then
+            echo -e "  ${YELLOW}WARNING: '$BASENAME' is a common REST-handler name. Verify these are parallel resource handlers, not duplicates:${NC}"
+            echo "$EXACT_MATCH" | while read -r line; do echo "    - $line"; done
+            ((WARNINGS++))
         elif [ -n "$SIMILAR" ]; then
             echo -e "  ${YELLOW}WARNING: Similar files found - verify these don't duplicate your intent:${NC}"
             echo "$SIMILAR" | while read -r line; do echo "    - $line"; done

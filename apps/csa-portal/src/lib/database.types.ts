@@ -267,6 +267,52 @@ export interface Database {
         Update: never;
         Relationships: [];
       };
+      delivery_routes: {
+        Row: {
+          id: string;
+          route_date: string;
+          driver_id: string | null;
+          driver_name: string;
+          status: 'planned' | 'in_progress' | 'completed' | 'cancelled';
+          total_stops: number;
+          completed_stops: number;
+          started_at: string | null;
+          completed_at: string | null;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: { route_date: string } & Partial<
+          Database['public']['Tables']['delivery_routes']['Row']
+        >;
+        Update: Partial<Database['public']['Tables']['delivery_routes']['Row']>;
+        Relationships: [];
+      };
+      delivery_stops: {
+        Row: {
+          id: string;
+          route_id: string;
+          pickup_location_id: string | null;
+          member_id: string | null;
+          stop_order: number;
+          status: 'pending' | 'out_for_delivery' | 'arrived' | 'completed' | 'exception';
+          scheduled_time: string | null;
+          eta: string | null;
+          arrived_at: string | null;
+          completed_at: string | null;
+          proof_photo_url: string | null;
+          exception_notes: string | null;
+          gps_lat: number | null;
+          gps_lng: number | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: { route_id: string; stop_order: number } & Partial<
+          Database['public']['Tables']['delivery_stops']['Row']
+        >;
+        Update: Partial<Database['public']['Tables']['delivery_stops']['Row']>;
+        Relationships: [];
+      };
     };
     Views: {
       member_flex_balance: {

@@ -195,12 +195,11 @@ const trackerEligibleShare = activeShares.find((s) => {
 });
 
 let initialDeliveryStatus: DeliveryStatus | null = null;
-if (trackerEligibleShare && customer?.legacy_id) {
-  // Server-side initial fetch. `fetchDeliveryStatus` is fail-soft — on
-  // any upstream failure (Apps Script timeout, parse error, etc.) it
-  // returns { state: 'none', ... } and we render the widget hidden.
-  // The 8s timeout inside the helper guards dashboard load time.
-  initialDeliveryStatus = await fetchDeliveryStatus(customer.legacy_id);
+if (trackerEligibleShare) {
+  // Server-side initial fetch. V2 (Day 9, 2026-05-11): reads native
+  // Supabase tables via the RLS-scoped cookie client. Fail-soft — any
+  // error path returns { state: 'none', ... } and the widget hides.
+  initialDeliveryStatus = await fetchDeliveryStatus(supabase);
 }
 
 // Pretty "Wed May 14" for the "packed for ___" copy. Always today in

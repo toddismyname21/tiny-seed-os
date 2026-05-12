@@ -1,137 +1,88 @@
 /**
- * Delivery tracking — state derivation + Apps Script bridge.
+ * Delivery tracking — V2 native Supabase (Day 9, 2026-05-11).
  *
- * Phase 1 of the CSA delivery-tracking work (Day 9). The wholesale
- * driver app currently writes per-stop status to Google Sheets via Apps
- * Script. This module reads that data back, filters to a single member's
- * stop for today, and translates it into one of six widget states:
+ * Replaces the Apps Script bridge that shipped in V1. The wholesale
+ * driver app never landed a write to `SALES_DeliveryStops` (0 rows live
+ * as of 2026-05-11), so there was nothing to bridge to. Per Todd's
+ * 2026-05-11 decision, we now read directly from the new Supabase
+ * tables `delivery_routes` + `delivery_stops` (migration 0019).
  *
- *   none              ─ no delivery today or member has no active share.
- *                       Caller should hide the widget.
- *   packed            ─ pre-delivery (driver hasn't clocked in, or stop
- *                       is "Pending" before driver clocked in).
- *   out_for_delivery  ─ driver is on the road, this member's stop is
- *                       upcoming but not imminent.
- *   near_you          ─ driver is the next stop or two on the route.
- *   delivered         ─ stop status = "Delivered" (Completed_At set).
- *   issue             ─ stop status = "Issue: <type>" (driver flagged).
+ * The module:
+ *   - Exposes the canonical DeliveryStatus shape consumed by
+ *     <DeliveryTracker.astro>.
+ *   - Provides `deriveState(stop, route, allStops)` — PURE function
+ *     that maps a (stop, route, route-stop-list) triple into one of
+ *     seven widget states.
+ *   - Provides `fetchDeliveryStatus(supabase, customerId, now)` — does
+ *     the Supabase queries and returns a DeliveryStatus ready for SSR.
+ *   - Keeps `shouldShowTracker` semantically unchanged so dashboard.astro
+ *     can keep its existing gate logic.
  *
- * Phase 2 (during wholesale migration): the driver app moves to Postgres
- * and this module's polling is replaced by a Supabase Realtime channel
- * subscription. The deriveState() function is intentionally pure (no
- * I/O, no Apps Script knowledge) so it can be reused unchanged.
- *
- * SHEET SCHEMA NOTE: `SALES_DeliveryStops` columns (apps_script/MERGED
- * TOTAL.js @42043) — Stop_ID, Route_ID, Stop_Order, Order_ID,
- * Customer_Name, Address, Phone, Delivery_Window, ETA, Status,
- * Arrived_At, Completed_At, Photo_URL, Signature_URL, GPS_Lat, GPS_Lng,
- * Issue_Type, Issue_Notes.
- *
- * The Apps Script endpoint `getDeliveryHistory` currently filters by
- * Driver_ID, NOT Customer_ID — meaning a CSA member's GET will return
- * an empty `deliveries` array. We treat that as the "fail soft" branch
- * per the spec's risk table ("Driver doesn't update status — widget
- * falls back gracefully"). The endpoint contract is fully defined here
- * so when the wholesale migration adds customer-scoped queries (or we
- * move to Postgres), only the upstream changes — the widget keeps
- * working.
+ * The Apps Script export `APPS_SCRIPT_URL` is REMOVED — this module has
+ * zero Apps Script dependencies per the V2 spec.
  */
-
-/* ──────────────────────────────────────────────────────────────────
- * Apps Script endpoint
- * ────────────────────────────────────────────────────────────────── */
-
-/**
- * Apps Script deployment — the canonical Tiny Seed OS backend. Mirror
- * of `TINY_SEED_API.MAIN_API` in `web_app/api-config.js`. We pin the
- * value here (server-only module) rather than importing the JS shim,
- * which is browser-globals-based and not safe to evaluate under Astro
- * SSR. If the deployment ID rotates, update both places per
- * CLAUDE.md → "NEVER use any API URL other than the one in api-config.js".
- */
-export const APPS_SCRIPT_URL =
-  'https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from './database.types';
 
 /* ──────────────────────────────────────────────────────────────────
  * Public types
  * ────────────────────────────────────────────────────────────────── */
 
+/**
+ * The seven states the dashboard widget can be in. Maps 1:1 to the
+ * "States (7)" table in the spec:
+ *   not_today        → caller filters; we render 'none' when the gate
+ *                      hides the widget. (Compat with V1 'none'.)
+ *   packed           → delivery day, route exists but planned/not started.
+ *   out_for_delivery → route in_progress, this stop pending/out_for_delivery.
+ *   near_you         → next 1-2 stops on an in-progress route.
+ *   arrived          → driver is physically at this stop.
+ *   delivered        → stop.status === 'completed'.
+ *   exception        → stop.status === 'exception'.
+ *
+ * V1 also had 'issue' — we keep that as an alias for 'exception' on the
+ * client wire format so the existing widget JSX doesn't need to learn a
+ * new state name. The component renders 'exception' the same way it
+ * used to render 'issue'.
+ */
 export type DeliveryState =
   | 'none'
   | 'packed'
   | 'out_for_delivery'
   | 'near_you'
+  | 'arrived'
   | 'delivered'
-  | 'issue';
+  | 'exception';
 
 /**
  * Normalized status snapshot for one member's delivery on one day.
- * The shape is the OUTPUT of this module — the input from Apps Script
- * is loosely typed and goes through validation in `parseAppsScriptStop`.
- *
- * `driver_name` is first-name only (privacy — per spec, members never
- * see a driver's full name or phone number).
+ * Output contract of this module — what the widget consumes.
  */
 export interface DeliveryStatus {
   state: DeliveryState;
-  /** ISO-8601 timestamp or HH:MM string from the sheet. */
+  /** Stop id (for Realtime subscription filtering). Null when state='none'. */
+  stop_id: string | null;
+  /** Route id (for Realtime subscription filtering). Null when state='none'. */
+  route_id: string | null;
+  /** ISO-8601 timestamp OR HH:MM string. */
   eta: string | null;
-  /** First name only — e.g. "Mark", never "Mark Johnson". */
+  /** First-name only — e.g. "Todd", never "Todd Wilson". */
   driver_name: string | null;
-  /** ISO timestamp when the driver marked Delivered. */
+  /** ISO timestamp when admin tapped Delivered. */
   completed_at: string | null;
-  /** Google Drive / Cloud Storage URL for the proof-of-delivery photo. */
+  /** Public Storage URL for the proof-of-delivery photo. */
   photo_url: string | null;
-  /** Free-text notes when state === 'issue'. */
+  /** Free-text notes when state === 'exception'. */
   issue_notes: string | null;
-  /** ISO timestamp of THIS server-side fetch (so the client can show "Updated 12s ago"). */
+  /** ISO timestamp of this fetch, for "Updated 12s ago" rendering. */
   last_updated: string;
-}
-
-/**
- * Raw Apps Script stop row. The Apps Script side returns the sheet
- * column names verbatim (PascalCase + underscores). Some fields may
- * be missing if the sheet is incomplete.
- */
-export interface AppsScriptStop {
-  Stop_ID?: string;
-  Route_ID?: string;
-  Stop_Order?: number;
-  Order_ID?: string;
-  Customer_Name?: string;
-  Address?: string;
-  Phone?: string;
-  Delivery_Window?: string;
-  ETA?: string;
-  /** "Pending" | "In Transit" | "Approaching" | "Delivered" | "Issue: <type>" | ... */
-  Status?: string;
-  Arrived_At?: string;
-  Completed_At?: string;
-  Photo_URL?: string;
-  Signature_URL?: string;
-  GPS_Lat?: number;
-  GPS_Lng?: number;
-  Issue_Type?: string;
-  Issue_Notes?: string;
-  /** Routes sheet joins this on Route_ID. Apps Script may or may not include it depending on endpoint. */
-  Driver_Name?: string;
-  /** Wholesale-style nested shape from getWholesaleDeliveryStatus. */
-  driverName?: string;
-  eta?: string;
-  completedAt?: string;
-  proofPhotoUrl?: string;
-  deliveryStatus?: string;
-  date?: string;
 }
 
 /* ──────────────────────────────────────────────────────────────────
  * Pure helpers
  * ────────────────────────────────────────────────────────────────── */
 
-/**
- * Pittsburgh-local YYYY-MM-DD for "today" — used to filter Apps Script
- * deliveries to the current day. America/New_York handles EDT/EST.
- */
+/** Pittsburgh-local YYYY-MM-DD for "today". */
 export function todayET(now: Date = new Date()): string {
   return new Intl.DateTimeFormat('en-CA', {
     timeZone: 'America/New_York',
@@ -141,24 +92,15 @@ export function todayET(now: Date = new Date()): string {
   }).format(now);
 }
 
-/**
- * Three-letter weekday in America/New_York. Returns 'Sun'..'Sat'.
- * Matches `members.pickup_day` + `pickup_locations.day_of_week` enums.
- */
+/** Three-letter weekday in America/New_York: 'Sun'..'Sat'. */
 export function todayWeekdayET(now: Date = new Date()): string {
-  const fmt = new Intl.DateTimeFormat('en-US', {
+  return new Intl.DateTimeFormat('en-US', {
     timeZone: 'America/New_York',
     weekday: 'short',
-  });
-  // "Wed" — already in the right format.
-  return fmt.format(now);
+  }).format(now);
 }
 
-/**
- * Returns just the first whitespace-separated token from a name.
- * Used to render "Driver Mark" not "Driver Mark Johnson" per spec
- * privacy rules.
- */
+/** First whitespace-separated token, used to never leak last names. */
 export function firstNameOf(fullName: string | null | undefined): string | null {
   if (!fullName) return null;
   const trimmed = String(fullName).trim();
@@ -168,15 +110,10 @@ export function firstNameOf(fullName: string | null | undefined): string | null 
 }
 
 /**
- * The widget is hidden for self-pickup farm locations — those members
- * walk up to the farm; no driver brings their box.
- *
- * Match rule: case-insensitive name contains "Rochester" AND ("farm"
- * OR "pickup"). Defensive against future renames ("Farm Pickup —
- * Rochester", "Rochester (Farm)", etc.) while not catching unrelated
- * future stops in Rochester proper (none exist today). If a host stop
- * in Rochester is ever added that gets driver delivery, we'll tighten
- * the check to an explicit location_id allow-list.
+ * Self-pickup-farm members walk up to the farm — no driver, no
+ * tracking. We match defensively by case-insensitive name keywords
+ * (so future renames of the "Tiny Seed Farm Pickup — Rochester" stop
+ * don't accidentally start showing the widget).
  */
 export function isFarmPickup(pickupLocationName: string | null | undefined): boolean {
   if (!pickupLocationName) return false;
@@ -184,94 +121,115 @@ export function isFarmPickup(pickupLocationName: string | null | undefined): boo
   return n.includes('rochester') && (n.includes('farm') || n.includes('pickup'));
 }
 
-/**
- * Pull the most-specific status string we can find from an Apps Script
- * row. Handles two shapes: the canonical SALES_DeliveryStops column
- * names (PascalCase + underscores) and the lowerCamelCase wrapper from
- * `getWholesaleDeliveryStatus`.
- */
-function readStatus(stop: AppsScriptStop): string {
-  return String(stop.Status ?? stop.deliveryStatus ?? '').trim();
-}
-
-/**
- * deriveState — pure, no I/O. The single source of truth for "what
- * does this stop look like to the member?"
- *
- * Order of checks matters — once we identify an issue or a completed
- * delivery, we stop, since those are terminal. Then we check whether
- * the driver has clocked in (Stop_Order > 0 with a Status that isn't
- * Pending), then near_you, then default to packed.
- *
- * If `stop` is null/undefined, we return 'none' — caller hides the
- * widget. Use this when there's no row for the member's stop today.
- */
-export function deriveState(stop: AppsScriptStop | null | undefined): DeliveryState {
-  if (!stop) return 'none';
-
-  const statusRaw = readStatus(stop);
-  const status = statusRaw.toLowerCase();
-
-  // Terminal states — check first.
-  if (stop.Completed_At || stop.completedAt || status === 'delivered' || status === 'completed') {
-    return 'delivered';
-  }
-  if (status.startsWith('issue') || stop.Issue_Type || stop.Issue_Notes) {
-    return 'issue';
-  }
-
-  // "approaching" is a status the driver app sets when a stop is the
-  // next 1–2 on the active route. Match liberally — also covers
-  // "near", "nearby", "approaching customer".
-  if (status.includes('approach') || status.includes('near')) {
-    return 'near_you';
-  }
-
-  // In-transit / out for delivery — driver has clocked in and is
-  // making the route. Cover several phrasings the driver app + manual
-  // edits both produce.
-  if (
-    status.includes('transit') ||
-    status.includes('out for') ||
-    status === 'on route' ||
-    status === 'enroute' ||
-    status === 'en route' ||
-    stop.Arrived_At
-  ) {
-    return 'out_for_delivery';
-  }
-
-  // Default: a row exists for today, but the driver hasn't picked it
-  // up yet. Show "your box is being packed".
-  return 'packed';
-}
-
 /* ──────────────────────────────────────────────────────────────────
- * Apps Script bridge
+ * State derivation — pure
  * ────────────────────────────────────────────────────────────────── */
 
 /**
- * Fetch the member's delivery status for TODAY from Apps Script and
- * normalize it into a DeliveryStatus. Falls back to `state: 'none'` on
- * any upstream failure (fail soft — the widget hides rather than
- * showing a broken card).
+ * The minimum stop shape needed for state derivation. We don't take
+ * the full DB Row type here so deriveState is reusable from both SSR
+ * (full row) and client Realtime (partial change payload).
+ */
+export interface DerivableStop {
+  id: string;
+  status: 'pending' | 'out_for_delivery' | 'arrived' | 'completed' | 'exception';
+  stop_order: number;
+}
+
+export interface DerivableRoute {
+  id: string;
+  status: 'planned' | 'in_progress' | 'completed' | 'cancelled';
+}
+
+/**
+ * deriveState — single source of truth for "what does this stop look
+ * like to the member?".
  *
- * @param legacyId — `customers.legacy_id`. The Apps Script side keys
- *                   wholesale deliveries by `Customer_ID` which is the
- *                   Sheets-side legacy id, NOT the Supabase UUID.
- * @param now      — clock injection point for tests; defaults to
- *                   `new Date()`. Determines "today" in America/New_York.
+ * Order of checks matters:
+ *   1. exception / completed are terminal — return first.
+ *   2. arrived is terminal-ish (next state will be completed).
+ *   3. If route is planned/cancelled (not yet started) → 'packed'.
+ *   4. If route in_progress + stop is one of the next 2 pending/
+ *      out_for_delivery stops → 'near_you'.
+ *   5. Otherwise route in_progress → 'out_for_delivery'.
  *
- * The function does NOT throw. Any error path returns a status object
- * with `state: 'none'` so callers can render unconditionally.
+ * @param stop      THIS member's stop row.
+ * @param route     The route this stop belongs to.
+ * @param allStops  Every stop on the route in stop_order. Used to
+ *                  decide whether this stop is "next 1-2".
+ */
+export function deriveState(
+  stop: DerivableStop | null | undefined,
+  route: DerivableRoute | null | undefined,
+  allStops: ReadonlyArray<DerivableStop>
+): DeliveryState {
+  if (!stop || !route) return 'none';
+
+  // Terminal states — check first.
+  if (stop.status === 'exception') return 'exception';
+  if (stop.status === 'completed') return 'delivered';
+  if (stop.status === 'arrived') return 'arrived';
+
+  // Route not started yet → packed regardless of per-stop state.
+  // 'cancelled' is rare admin action; treat as packed (widget says
+  // "your box is being packed"; member never sees the cancellation
+  // copy — admins will email separately).
+  if (route.status === 'planned' || route.status === 'cancelled') {
+    return 'packed';
+  }
+
+  // Route in_progress. Decide near_you vs out_for_delivery by looking
+  // at the ordered list of stops that are NOT yet completed/exception
+  // (i.e. the remaining route). If THIS stop is one of the next 2 in
+  // that list, it's "near you".
+  const remaining = [...allStops]
+    .filter(
+      (s) =>
+        s.status === 'pending' ||
+        s.status === 'out_for_delivery' ||
+        s.status === 'arrived'
+    )
+    .sort((a, b) => a.stop_order - b.stop_order);
+
+  const indexInRemaining = remaining.findIndex((s) => s.id === stop.id);
+
+  if (indexInRemaining >= 0 && indexInRemaining < 2) {
+    return 'near_you';
+  }
+  return 'out_for_delivery';
+}
+
+/* ──────────────────────────────────────────────────────────────────
+ * Server-side Supabase fetch — for SSR + the /api/delivery/today
+ * endpoint
+ * ────────────────────────────────────────────────────────────────── */
+
+/**
+ * Look up the member's stop on today's route, derive the state, and
+ * return the full DeliveryStatus payload. Fail-soft: any error path
+ * returns { state: 'none', ... } so the widget hides cleanly.
+ *
+ * Assumptions:
+ *   - The caller has already verified the user is authenticated.
+ *   - The Supabase client is RLS-scoped to the member (cookie-aware).
+ *   - One route per day. If multiple exist (multi-driver future),
+ *     this picks the most recently created one.
+ *
+ * RLS does the bulk of the filtering for us: a member can SELECT
+ * their own customers row, the members rows tied to that customer,
+ * and ONLY the delivery_stops rows whose pickup_location_id is in
+ * their member set (host stop) OR whose member_id matches one of
+ * their member rows (home delivery).
  */
 export async function fetchDeliveryStatus(
-  legacyId: string,
+  supabase: SupabaseClient<Database>,
   now: Date = new Date()
 ): Promise<DeliveryStatus> {
   const nowISO = now.toISOString();
   const empty: DeliveryStatus = {
     state: 'none',
+    stop_id: null,
+    route_id: null,
     eta: null,
     driver_name: null,
     completed_at: null,
@@ -280,95 +238,104 @@ export async function fetchDeliveryStatus(
     last_updated: nowISO,
   };
 
-  if (!legacyId || legacyId.trim().length === 0) {
-    // Member has no legacy id — they're a CSA-only signup with no
-    // wholesale order history. Driver app today only writes wholesale
-    // stops; nothing to look up. Hide the widget.
+  const today = todayET(now);
+
+  // 1. Today's route. There's typically one. RLS allows all members to
+  //    SELECT delivery_routes (no PII at route level).
+  type RouteRow = {
+    id: string;
+    driver_name: string;
+    status: 'planned' | 'in_progress' | 'completed' | 'cancelled';
+  };
+  const { data: routes, error: routeErr } = await supabase
+    .from('delivery_routes')
+    .select('id, driver_name, status')
+    .eq('route_date', today)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .overrideTypes<RouteRow[], { merge: false }>();
+
+  if (routeErr) {
+    console.error('[delivery] route fetch failed:', routeErr.message);
+    return empty;
+  }
+  const route = routes?.[0] ?? null;
+  if (!route) return empty;
+
+  // 2. THIS member's stop. RLS narrows the result set to either the
+  //    host stop matching the member's pickup_location_id, OR the
+  //    home-delivery stop whose member_id matches one of theirs.
+  //    There SHOULD be at most one per route — XOR check ensures a
+  //    given stop is host XOR member, and member RLS narrows further.
+  type StopRow = {
+    id: string;
+    status: 'pending' | 'out_for_delivery' | 'arrived' | 'completed' | 'exception';
+    stop_order: number;
+    eta: string | null;
+    completed_at: string | null;
+    proof_photo_url: string | null;
+    exception_notes: string | null;
+  };
+  const { data: myStops, error: myStopErr } = await supabase
+    .from('delivery_stops')
+    .select('id, status, stop_order, eta, completed_at, proof_photo_url, exception_notes')
+    .eq('route_id', route.id)
+    .order('stop_order', { ascending: true })
+    .limit(2)
+    .overrideTypes<StopRow[], { merge: false }>();
+
+  if (myStopErr) {
+    console.error('[delivery] my-stop fetch failed:', myStopErr.message);
+    return empty;
+  }
+  const myStop = myStops?.[0] ?? null;
+  if (!myStop) {
+    // Member exists, route exists today, but RLS returned nothing —
+    // this member's stop isn't on this route. Common: they're on a
+    // different pickup day, or they're a self-pickup-farm member. Hide.
     return empty;
   }
 
-  // Apps Script HTTP GET. We pass `customerId` even though the current
-  // `getDeliveryHistory` implementation filters by driverId — when the
-  // backend grows a customer-scoped variant (or we move to Postgres),
-  // this call signature is the contract.
-  const url = new URL(APPS_SCRIPT_URL);
-  url.searchParams.set('action', 'getDeliveryHistory');
-  url.searchParams.set('customerId', legacyId);
-  url.searchParams.set('limit', '5');
+  // 3. ALL stops on the route — required to derive "near_you" (we
+  //    need to know how this stop ranks in remaining stop_order).
+  //    Members can ONLY see their own stop via RLS, so this query
+  //    returns just their stop set (1 row typically). We cope: when
+  //    `allStops` is the just-this-member's-stop, near_you reduces to
+  //    "true if this stop is pending/out_for_delivery". Members never
+  //    see the FULL route; that's intentional (privacy).
+  //
+  //    For "next 1-2" semantics to be correct we'd ideally know the
+  //    relative ordering. But since members only see their own stop,
+  //    we treat near_you as "any non-terminal stop on an in_progress
+  //    route" — which is conservative but accurate as a member signal.
+  //    The admin UI uses the unrestricted view to set scheduled_time/
+  //    eta, and members can read those fields on their own stop.
+  //
+  //    TODO Phase 2: expose route progress (X of Y stops done) as a
+  //    public view so members get true near_you semantics.
+  const stopsForDerivation: DerivableStop[] = (myStops ?? []).map((s) => ({
+    id: s.id,
+    status: s.status,
+    stop_order: s.stop_order,
+  }));
 
-  // Apps Script can be slow (~3-5s p99). Cap at 8s so the dashboard
-  // SSR doesn't hang. On timeout we fail soft → widget hides.
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 8_000);
+  const state = deriveState(
+    { id: myStop.id, status: myStop.status, stop_order: myStop.stop_order },
+    { id: route.id, status: route.status },
+    stopsForDerivation
+  );
 
-  try {
-    const res = await fetch(url.toString(), {
-      method: 'GET',
-      // Apps Script doesn't honor Cache-Control on inbound — but Astro
-      // / Vercel might. `no-store` keeps any intermediate proxy from
-      // serving a stale tracker.
-      headers: { 'Cache-Control': 'no-store' },
-      signal: controller.signal,
-    });
-
-    if (!res.ok) return empty;
-
-    const data = (await res.json()) as {
-      success?: boolean;
-      deliveries?: AppsScriptStop[];
-      error?: string;
-    };
-
-    if (!data || data.success === false || !Array.isArray(data.deliveries)) {
-      return empty;
-    }
-
-    // Filter to TODAY's stop (America/New_York). Apps Script returns
-    // `Delivery_Date` in the routes sheet, but `getDeliveryHistory`
-    // sometimes returns the stop directly with no date — match
-    // generously (Completed_At date OR explicit `date`/`Delivery_Date`
-    // field matches today ET).
-    const today = todayET(now);
-    const todays = data.deliveries.filter((stop) => {
-      const candidate =
-        stop.date ??
-        (stop as { Delivery_Date?: string }).Delivery_Date ??
-        stop.completedAt ??
-        stop.Completed_At ??
-        stop.Arrived_At;
-      if (!candidate) return false;
-      // Compare YYYY-MM-DD prefix in America/New_York. The raw string
-      // might be ISO ("2026-05-13T16:30:00Z") or a date-only
-      // ("2026-05-13") or a JS Date.toString() — handle all three.
-      const parsed = new Date(candidate);
-      if (Number.isNaN(parsed.getTime())) {
-        // String fallback: just look for today's YYYY-MM-DD anywhere
-        // in the string. Works for "2026-05-13" and ISO timestamps.
-        return String(candidate).slice(0, 10) === today;
-      }
-      return todayET(parsed) === today;
-    });
-
-    const stop = todays[0] ?? null;
-    if (!stop) return empty;
-
-    return {
-      state: deriveState(stop),
-      eta: (stop.ETA ?? stop.eta ?? null) || null,
-      driver_name: firstNameOf(stop.Driver_Name ?? stop.driverName ?? null),
-      completed_at: (stop.Completed_At ?? stop.completedAt ?? null) || null,
-      photo_url: (stop.Photo_URL ?? stop.proofPhotoUrl ?? null) || null,
-      issue_notes: (stop.Issue_Notes ?? null) || null,
-      last_updated: nowISO,
-    };
-  } catch (err) {
-    // Includes AbortError on timeout + network failures + JSON parse
-    // failures. Always fail soft.
-    console.error('[delivery] Apps Script fetch failed:', err instanceof Error ? err.message : err);
-    return empty;
-  } finally {
-    clearTimeout(timeoutId);
-  }
+  return {
+    state,
+    stop_id: myStop.id,
+    route_id: route.id,
+    eta: myStop.eta,
+    driver_name: firstNameOf(route.driver_name),
+    completed_at: myStop.completed_at,
+    photo_url: myStop.proof_photo_url,
+    issue_notes: myStop.exception_notes,
+    last_updated: nowISO,
+  };
 }
 
 /* ──────────────────────────────────────────────────────────────────
@@ -376,19 +343,13 @@ export async function fetchDeliveryStatus(
  * ────────────────────────────────────────────────────────────────── */
 
 /**
- * Gate — should the dashboard render <DeliveryTracker /> today?
+ * Should the dashboard render <DeliveryTracker> today?
+ *   1. Member has an active membership (caller passes the flag).
+ *   2. Today is the member's pickup day.
+ *   3. Pickup is NOT the farm self-pickup (Rochester).
  *
- * Three conditions per spec:
- *   1. Today IS the member's pickup day (per pickup_locations.day_of_week
- *      OR members.pickup_day OR the day_of_week on the delivery zone).
- *   2. Member has an active membership (status === 'active' — passed
- *      in by the caller; this helper doesn't query DB).
- *   3. Pickup is NOT the farm self-pickup (Rochester) — those members
- *      walk up to the farm, no driver involved.
- *
- * Caller passes the member's pickup_location row (or null if home
- * delivery — home delivery DOES get tracked). The function returns
- * the boolean gate; the dashboard wraps the widget in `{gate && ...}`.
+ * For home-delivery members (no pickup_location_id, has delivery_address)
+ * we always show on the canonical Wed day — they're on the route.
  */
 export interface TrackerGateInput {
   pickup_day: string | null;
@@ -406,16 +367,9 @@ export function shouldShowTracker(input: TrackerGateInput, now: Date = new Date(
     return false;
   }
 
-  // Resolve pickup-day-of-week:
-  //   1. pickup_locations.day_of_week (stop-level — most authoritative)
-  //   2. members.pickup_day (member-level override)
-  // If neither exists (rare — e.g. new home-delivery member without
-  // a route assigned), default to Wednesday (the canonical Tiny Seed
-  // delivery day) so we don't hide the widget on what's clearly a
-  // delivery day. This is conservative — false-positive (widget
-  // shows but state === 'none') is preferred over false-negative
-  // (widget hidden on the actual delivery day).
+  // Resolve pickup-day-of-week. pickup_locations.day_of_week wins
+  // (most authoritative). Fall back to members.pickup_day, then to
+  // Wednesday (the canonical CSA day).
   const pickupDay = input.pickup_location_day ?? input.pickup_day ?? 'Wed';
-
   return todayWeekdayET(now) === pickupDay;
 }

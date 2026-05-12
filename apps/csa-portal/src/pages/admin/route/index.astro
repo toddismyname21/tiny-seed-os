@@ -1,0 +1,248 @@
+---
+/**
+ * /admin/route — list past 30 days of routes + today's create/open card.
+ *
+ * Mobile-first: Todd uses this from his phone while standing in the
+ * pack-shed. Tap targets are 48px+ minimum. One-thumb operation.
+ *
+ * Top of page:
+ *   - Today's route card. If no route exists → "Create today's route"
+ *     button (POST /api/admin/route). If exists → status badge + "Open
+ *     route" button → /admin/route/[id].
+ *
+ * Below:
+ *   - List of recent routes (past 30 days), most recent first. Each
+ *     row links to the route detail.
+ */
+import AdminShell from '../../../components/AdminShell.astro';
+import Card from '../../../components/Card.astro';
+import { todayET, todayWeekdayET } from '../../../lib/delivery';
+
+const supabase = Astro.locals.supabase;
+
+const today = todayET();
+const weekday = todayWeekdayET();
+
+// Past 30 days of routes — most recent first.
+const thirtyDaysAgo = new Date(Date.now() - 30 * 86_400_000).toISOString().slice(0, 10);
+
+type RouteRow = {
+  id: string;
+  route_date: string;
+  driver_name: string;
+  status: 'planned' | 'in_progress' | 'completed' | 'cancelled';
+  total_stops: number;
+  completed_stops: number;
+  started_at: string | null;
+  completed_at: string | null;
+};
+
+const { data: routes, error: routesErr } = await supabase
+  .from('delivery_routes')
+  .select('id, route_date, driver_name, status, total_stops, completed_stops, started_at, completed_at')
+  .gte('route_date', thirtyDaysAgo)
+  .order('route_date', { ascending: false })
+  .overrideTypes<RouteRow[], { merge: false }>();
+
+if (routesErr) {
+  console.error('[admin/route] list fetch failed:', routesErr.message);
+}
+
+const allRoutes = routes ?? [];
+const todaysRoute = allRoutes.find((r) => r.route_date === today) ?? null;
+const otherRoutes = allRoutes.filter((r) => r.route_date !== today);
+
+// Pretty status labels + tones for the badge column.
+const STATUS_LABEL: Record<RouteRow['status'], string> = {
+  planned:     'Planned',
+  in_progress: 'In progress',
+  completed:   'Completed',
+  cancelled:   'Cancelled',
+};
+const STATUS_TONE: Record<RouteRow['status'], string> = {
+  planned:     'bg-ts-bg-muted text-ts-text-secondary',
+  in_progress: 'bg-ts-primary/15 text-ts-primary',
+  completed:   'bg-ts-primary/10 text-ts-text-secondary',
+  cancelled:   'bg-ts-danger/15 text-ts-danger',
+};
+
+const DAY_LONG: Record<string, string> = {
+  Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday',
+  Thu: 'Thursday', Fri: 'Friday', Sat: 'Saturday', Sun: 'Sunday',
+};
+
+function prettyDate(yyyymmdd: string): string {
+  return new Intl.DateTimeFormat('en-US', {
+    weekday: 'short', month: 'short', day: 'numeric',
+    timeZone: 'America/New_York',
+  }).format(new Date(`${yyyymmdd}T12:00:00-04:00`));
+}
+
+const todayPretty = prettyDate(today);
+---
+
+<AdminShell
+  title="Delivery routes"
+  subtitle={`Today is ${DAY_LONG[weekday] ?? weekday}, ${todayPretty}`}
+  pageTitle="Routes — Tiny Seed Admin"
+  canonical="https://csa.tinyseedfarm.com/admin/route"
+>
+  {/* ════ Today's route card ════ */}
+  <section aria-labelledby="today-heading" class="flex flex-col gap-4">
+    <h2 id="today-heading" class="font-display text-xl font-bold text-ts-text sm:text-2xl">
+      Today
+    </h2>
+
+    {todaysRoute ? (
+      <Card padding="md" elevation="md">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div class="min-w-0 flex-1">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="font-display text-lg font-semibold text-ts-text sm:text-xl">
+                {todayPretty} route
+              </span>
+              <span class={[
+                'inline-flex items-center rounded-ts-md px-2 py-0.5 text-xs font-semibold',
+                STATUS_TONE[todaysRoute.status],
+              ].join(' ')}>
+                {STATUS_LABEL[todaysRoute.status]}
+              </span>
+            </div>
+            <p class="mt-1 text-sm text-ts-text-secondary tabular-nums">
+              {todaysRoute.completed_stops} of {todaysRoute.total_stops} stops done
+              · Driver {todaysRoute.driver_name}
+            </p>
+          </div>
+          <a
+            href={`/admin/route/${todaysRoute.id}`}
+            class="inline-flex h-12 items-center justify-center rounded-ts-md bg-ts-primary px-6 text-base font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary sm:h-11 sm:text-sm"
+          >
+            Open route →
+          </a>
+        </div>
+      </Card>
+    ) : (
+      <Card padding="md" elevation="sm">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div class="min-w-0 flex-1">
+            <p class="font-semibold text-ts-text">
+              No route for {todayPretty} yet.
+            </p>
+            <p class="mt-1 text-sm text-ts-text-secondary">
+              Tap "Create today's route" to auto-seed stops from
+              {' '}{DAY_LONG[weekday] ?? weekday}'s active pickup
+              locations + home-delivery members (Wednesdays only).
+            </p>
+            <p class="mt-2 text-xs text-ts-text-muted" data-create-error role="alert" aria-live="polite" hidden></p>
+          </div>
+          <button
+            type="button"
+            data-create-route
+            class="inline-flex h-12 items-center justify-center rounded-ts-md bg-ts-primary px-6 text-base font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary disabled:cursor-not-allowed disabled:opacity-60 sm:h-11 sm:text-sm"
+          >
+            <span data-create-label>Create today's route</span>
+          </button>
+        </div>
+      </Card>
+    )}
+  </section>
+
+  {/* ════ Recent routes ════ */}
+  <section aria-labelledby="recent-heading" class="flex flex-col gap-4">
+    <h2 id="recent-heading" class="font-display text-xl font-bold text-ts-text sm:text-2xl">
+      Recent routes
+    </h2>
+
+    {otherRoutes.length === 0 ? (
+      <Card padding="md" elevation="sm">
+        <p class="text-center text-sm text-ts-text-muted">
+          No routes in the past 30 days.
+        </p>
+      </Card>
+    ) : (
+      <Card padding="none" elevation="sm">
+        <ul class="divide-y divide-ts-border/60">
+          {otherRoutes.map((r) => (
+            <li>
+              <a
+                href={`/admin/route/${r.id}`}
+                class="flex items-center justify-between gap-4 px-5 py-4 transition-colors duration-150 hover:bg-ts-bg-muted/40 sm:px-6"
+              >
+                <div class="min-w-0 flex-1">
+                  <p class="font-medium text-ts-text">
+                    {prettyDate(r.route_date)}
+                  </p>
+                  <p class="mt-0.5 text-xs text-ts-text-muted tabular-nums">
+                    {r.completed_stops} / {r.total_stops} stops · Driver {r.driver_name}
+                  </p>
+                </div>
+                <span class={[
+                  'inline-flex shrink-0 items-center rounded-ts-md px-2 py-0.5 text-xs font-semibold',
+                  STATUS_TONE[r.status],
+                ].join(' ')}>
+                  {STATUS_LABEL[r.status]}
+                </span>
+                <span class="text-ts-text-muted" aria-hidden="true">→</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </Card>
+    )}
+  </section>
+</AdminShell>
+
+<script>
+  // Create today's route — POST /api/admin/route, then navigate to it.
+  const btn = document.querySelector<HTMLButtonElement>('[data-create-route]');
+  const label = document.querySelector<HTMLElement>('[data-create-label]');
+  const err = document.querySelector<HTMLElement>('[data-create-error]');
+
+  function setError(msg: string | null): void {
+    if (!err) return;
+    if (!msg) {
+      err.hidden = true;
+      err.textContent = '';
+    } else {
+      err.hidden = false;
+      err.textContent = msg;
+    }
+  }
+
+  if (btn && label) {
+    btn.addEventListener('click', async () => {
+      btn.disabled = true;
+      label.textContent = 'Creating…';
+      setError(null);
+      try {
+        const res = await fetch('/api/admin/route', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { Accept: 'application/json' },
+          body: new FormData(),
+        });
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok || !body.ok) {
+          if (res.status === 409 && body.route_id) {
+            // Route already exists — navigate to it.
+            window.location.href = `/admin/route/${body.route_id}`;
+            return;
+          }
+          setError(body.message || body.error || `Could not create route (HTTP ${res.status}).`);
+          btn.disabled = false;
+          label.textContent = "Create today's route";
+          return;
+        }
+        if (body.route?.id) {
+          window.location.href = `/admin/route/${body.route.id}`;
+        } else {
+          window.location.reload();
+        }
+      } catch (e) {
+        setError('Network error. Try again.');
+        btn.disabled = false;
+        label.textContent = "Create today's route";
+      }
+    });
+  }
+</script>

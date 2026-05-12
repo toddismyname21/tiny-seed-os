@@ -1,0 +1,798 @@
+---
+/**
+ * /admin/route/[id] — mobile-optimized stop list + driver actions.
+ *
+ * Todd's primary screen while on delivery Wednesdays. One-thumb
+ * operation while holding boxes. 48px+ tap targets, sticky header,
+ * minimal text, big buttons.
+ *
+ * Per stop:
+ *   - "Mark Arrived" button (when out_for_delivery)
+ *   - "Take Photo + Mark Delivered" file input (when arrived)
+ *   - "Report Issue" → modal with 4 quick-pick reasons + notes
+ *   - "Re-open" link (when delivered) — admin recovery for misclicks
+ *
+ * Top header:
+ *   - Route date + driver + status badge
+ *   - "Start Route" button (when planned) or "X of Y done" progress
+ */
+import AdminShell from '../../../components/AdminShell.astro';
+import Card from '../../../components/Card.astro';
+
+const supabase = Astro.locals.supabase;
+const routeId = String(Astro.params.id ?? '').trim();
+if (!routeId) {
+  return Astro.redirect('/admin/route', 303);
+}
+
+// ─── Load the route ──────────────────────────────────────────────────
+type RouteRow = {
+  id: string;
+  route_date: string;
+  driver_name: string;
+  status: 'planned' | 'in_progress' | 'completed' | 'cancelled';
+  total_stops: number;
+  completed_stops: number;
+  started_at: string | null;
+  completed_at: string | null;
+  notes: string | null;
+};
+const { data: route, error: routeErr } = await supabase
+  .from('delivery_routes')
+  .select('id, route_date, driver_name, status, total_stops, completed_stops, started_at, completed_at, notes')
+  .eq('id', routeId)
+  .maybeSingle()
+  .overrideTypes<RouteRow, { merge: false }>();
+
+if (routeErr) {
+  console.error('[admin/route/[id]] route fetch failed:', routeErr.message);
+}
+if (!route) {
+  return Astro.redirect('/admin/route?error=not_found', 303);
+}
+
+// ─── Load stops with joins for display ──────────────────────────────
+type StopRow = {
+  id: string;
+  pickup_location_id: string | null;
+  member_id: string | null;
+  stop_order: number;
+  status: 'pending' | 'out_for_delivery' | 'arrived' | 'completed' | 'exception';
+  scheduled_time: string | null;
+  eta: string | null;
+  arrived_at: string | null;
+  completed_at: string | null;
+  proof_photo_url: string | null;
+  exception_notes: string | null;
+  pickup_location: { name: string; address: string | null; city: string | null; host_name: string | null } | null;
+  member: { id: string; delivery_address: string | null; customer: { contact_name: string; email: string; phone: string | null } | null } | null;
+};
+const { data: stops, error: stopsErr } = await supabase
+  .from('delivery_stops')
+  .select(`
+    id, pickup_location_id, member_id, stop_order, status,
+    scheduled_time, eta, arrived_at, completed_at, proof_photo_url, exception_notes,
+    pickup_location:pickup_locations(name, address, city, host_name),
+    member:members(id, delivery_address, customer:customers(contact_name, email, phone))
+  `)
+  .eq('route_id', routeId)
+  .order('stop_order', { ascending: true })
+  .overrideTypes<StopRow[], { merge: false }>();
+
+if (stopsErr) {
+  console.error('[admin/route/[id]] stops fetch failed:', stopsErr.message);
+}
+
+const stopList = stops ?? [];
+
+// ─── Display helpers ────────────────────────────────────────────────
+const STATUS_LABEL: Record<RouteRow['status'], string> = {
+  planned: 'Planned',
+  in_progress: 'In progress',
+  completed: 'Completed',
+  cancelled: 'Cancelled',
+};
+const STATUS_TONE: Record<RouteRow['status'], string> = {
+  planned: 'bg-ts-bg-muted text-ts-text-secondary',
+  in_progress: 'bg-ts-primary/15 text-ts-primary',
+  completed: 'bg-ts-primary/10 text-ts-text-secondary',
+  cancelled: 'bg-ts-danger/15 text-ts-danger',
+};
+
+const STOP_STATUS_LABEL: Record<StopRow['status'], string> = {
+  pending: 'Waiting',
+  out_for_delivery: 'En route',
+  arrived: 'At door',
+  completed: 'Delivered',
+  exception: 'Issue',
+};
+const STOP_STATUS_DOT: Record<StopRow['status'], string> = {
+  pending: 'bg-ts-text-muted',
+  out_for_delivery: 'bg-ts-primary',
+  arrived: 'bg-ts-warning',
+  completed: 'bg-ts-primary',
+  exception: 'bg-ts-danger',
+};
+
+function prettyTime(raw: string | null): string {
+  if (!raw) return '';
+  // TIME values come as 'HH:MM:SS' from Postgres. Strip seconds.
+  if (/^\d{2}:\d{2}:\d{2}/.test(raw)) {
+    const [h, m] = raw.split(':');
+    const hh = Number(h);
+    const period = hh >= 12 ? 'PM' : 'AM';
+    const h12 = hh % 12 === 0 ? 12 : hh % 12;
+    return m === '00' ? `${h12} ${period}` : `${h12}:${m} ${period}`;
+  }
+  const d = new Date(raw);
+  if (Number.isNaN(d.getTime())) return raw;
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit', hour12: true,
+  }).format(d);
+}
+
+function prettyDate(yyyymmdd: string): string {
+  return new Intl.DateTimeFormat('en-US', {
+    weekday: 'long', month: 'long', day: 'numeric',
+    timeZone: 'America/New_York',
+  }).format(new Date(`${yyyymmdd}T12:00:00-04:00`));
+}
+
+function stopHeading(stop: StopRow): string {
+  if (stop.pickup_location) {
+    return stop.pickup_location.name;
+  }
+  if (stop.member?.customer) {
+    return stop.member.customer.contact_name || stop.member.customer.email;
+  }
+  return 'Stop';
+}
+
+function stopSubtitle(stop: StopRow): string {
+  if (stop.pickup_location) {
+    const parts = [stop.pickup_location.host_name, stop.pickup_location.address, stop.pickup_location.city].filter(Boolean);
+    return parts.join(' · ');
+  }
+  if (stop.member) {
+    return stop.member.delivery_address ?? '';
+  }
+  return '';
+}
+
+const routeReady = stopList.length > 0;
+const allDone = route.total_stops > 0 && route.completed_stops === route.total_stops;
+---
+
+<AdminShell
+  title={prettyDate(route.route_date)}
+  subtitle={`Driver ${route.driver_name} · ${stopList.length} stop${stopList.length === 1 ? '' : 's'}`}
+  pageTitle={`Route ${route.route_date} — Tiny Seed Admin`}
+>
+  {/* ════ Route header card ════ */}
+  <section aria-labelledby="route-header" class="flex flex-col gap-4">
+    <h2 id="route-header" class="sr-only">Route summary</h2>
+    <Card padding="md" elevation="md">
+      <div class="flex flex-col gap-4">
+        <div class="flex flex-wrap items-center gap-3">
+          <span class={[
+            'inline-flex items-center rounded-ts-md px-2.5 py-1 text-sm font-semibold',
+            STATUS_TONE[route.status],
+          ].join(' ')}>
+            {STATUS_LABEL[route.status]}
+          </span>
+          <span class="text-sm text-ts-text-secondary tabular-nums">
+            {route.completed_stops} of {route.total_stops} done
+          </span>
+        </div>
+
+        {/* Progress bar */}
+        {route.total_stops > 0 && (
+          <div
+            class="h-2 w-full overflow-hidden rounded-full bg-ts-bg-muted"
+            role="progressbar"
+            aria-valuenow={route.completed_stops}
+            aria-valuemin="0"
+            aria-valuemax={route.total_stops}
+            aria-label={`${route.completed_stops} of ${route.total_stops} stops completed`}
+          >
+            <div
+              class="h-full rounded-full bg-ts-primary transition-all duration-300"
+              style={`width: ${Math.round((route.completed_stops / route.total_stops) * 100)}%`}
+            ></div>
+          </div>
+        )}
+
+        {/* Action button */}
+        {route.status === 'planned' && routeReady && (
+          <button
+            type="button"
+            data-start-route
+            data-route-id={route.id}
+            class="inline-flex h-14 items-center justify-center rounded-ts-md bg-ts-primary px-6 text-lg font-semibold text-white shadow-ts-md transition-colors duration-150 hover:bg-ts-primary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <span data-start-label>Start route</span>
+          </button>
+        )}
+        {route.status === 'in_progress' && allDone && (
+          <p class="rounded-ts-md bg-ts-primary/10 px-4 py-3 text-sm text-ts-text">
+            ✓ All stops complete. Route will auto-complete on the next status change.
+          </p>
+        )}
+      </div>
+      <p class="mt-3 hidden text-xs text-ts-danger" data-route-error role="alert" aria-live="polite"></p>
+    </Card>
+  </section>
+
+  {/* ════ Stop list ════ */}
+  <section aria-labelledby="stops-heading" class="flex flex-col gap-4">
+    <h2 id="stops-heading" class="font-display text-xl font-bold text-ts-text sm:text-2xl">
+      Stops
+    </h2>
+
+    {stopList.length === 0 ? (
+      <Card padding="md" elevation="sm">
+        <p class="text-center text-sm text-ts-text-muted">
+          This route has no stops yet.
+        </p>
+      </Card>
+    ) : (
+      <ul class="flex flex-col gap-3">
+        {stopList.map((stop) => {
+          const isHost = !!stop.pickup_location_id;
+          const heading = stopHeading(stop);
+          const subtitle = stopSubtitle(stop);
+          const scheduled = stop.scheduled_time ? prettyTime(stop.scheduled_time) : '';
+          const arrived = stop.arrived_at ? prettyTime(stop.arrived_at) : '';
+          const completed = stop.completed_at ? prettyTime(stop.completed_at) : '';
+
+          return (
+            <li
+              data-stop-card
+              data-stop-id={stop.id}
+              data-route-id={route.id}
+              data-stop-status={stop.status}
+              class:list={[
+                'rounded-ts-xl border bg-ts-bg-surface p-5 shadow-ts-sm transition-colors duration-200',
+                stop.status === 'completed' ? 'border-ts-primary/30 bg-ts-primary/5' :
+                stop.status === 'exception' ? 'border-ts-danger/30 bg-ts-danger/5' :
+                stop.status === 'arrived'   ? 'border-ts-warning/40 bg-ts-warning/5' :
+                'border-ts-border',
+              ]}
+            >
+              {/* Stop header */}
+              <div class="flex items-start gap-3">
+                <span class="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ts-bg-muted text-sm font-bold text-ts-text-secondary tabular-nums">
+                  {stop.stop_order}
+                </span>
+                <div class="min-w-0 flex-1">
+                  <p class="font-display text-base font-semibold text-ts-text sm:text-lg">
+                    {heading}
+                  </p>
+                  {subtitle && (
+                    <p class="mt-0.5 text-sm text-ts-text-secondary">
+                      {subtitle}
+                    </p>
+                  )}
+                  {scheduled && (
+                    <p class="mt-0.5 text-xs text-ts-text-muted tabular-nums">
+                      Scheduled {scheduled}
+                    </p>
+                  )}
+                  {isHost ? null : (
+                    <p class="mt-0.5 text-xs text-ts-text-muted">Home delivery</p>
+                  )}
+                </div>
+                <div class="flex shrink-0 items-center gap-2">
+                  <span aria-hidden="true" class={[
+                    'inline-block h-2 w-2 rounded-full',
+                    STOP_STATUS_DOT[stop.status],
+                  ].join(' ')}></span>
+                  <span class="text-xs font-semibold uppercase tracking-wide text-ts-text-secondary" data-status-label>
+                    {STOP_STATUS_LABEL[stop.status]}
+                  </span>
+                </div>
+              </div>
+
+              {/* Timestamps */}
+              {(arrived || completed) && (
+                <div class="mt-3 text-xs text-ts-text-muted tabular-nums">
+                  {arrived && <span class="mr-3" data-arrived-time>Arrived {arrived}</span>}
+                  {completed && <span data-completed-time>Delivered {completed}</span>}
+                </div>
+              )}
+
+              {/* Notes (exception) */}
+              {stop.exception_notes && (
+                <div class="mt-3 rounded-ts-md border border-ts-danger/30 bg-ts-bg-surface px-3 py-2 text-sm text-ts-text" data-notes>
+                  <span class="font-semibold text-ts-danger">Issue: </span>{stop.exception_notes}
+                </div>
+              )}
+
+              {/* Photo */}
+              {stop.proof_photo_url && (
+                <div class="mt-3" data-photo-display>
+                  <img
+                    src={stop.proof_photo_url}
+                    alt="Proof of delivery"
+                    width="120"
+                    height="120"
+                    loading="lazy"
+                    class="h-30 w-30 rounded-ts-md border border-ts-border object-cover"
+                  />
+                </div>
+              )}
+
+              {/* Actions */}
+              <div class="mt-4 flex flex-wrap gap-2" data-stop-actions>
+                {stop.status === 'out_for_delivery' && (
+                  <button
+                    type="button"
+                    data-action="arrived"
+                    class="inline-flex h-14 flex-1 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-base font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary disabled:cursor-not-allowed disabled:opacity-60 sm:flex-none sm:h-12"
+                  >
+                    Mark arrived
+                  </button>
+                )}
+
+                {stop.status === 'arrived' && (
+                  <label
+                    class="inline-flex h-14 flex-1 cursor-pointer items-center justify-center rounded-ts-md bg-ts-primary px-4 text-base font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ts-primary sm:flex-none sm:h-12"
+                  >
+                    <span data-photo-label>📷 Take photo + deliver</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      data-photo-input
+                      class="sr-only"
+                    />
+                  </label>
+                )}
+
+                {stop.status === 'pending' && (
+                  <span class="text-sm text-ts-text-muted self-center">
+                    Tap "Start route" above to begin.
+                  </span>
+                )}
+
+                {stop.status === 'completed' && (
+                  <button
+                    type="button"
+                    data-action="out_for_delivery"
+                    class="inline-flex h-11 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-medium text-ts-text-secondary transition-colors duration-150 hover:border-ts-warning/40 hover:text-ts-warning focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-warning"
+                  >
+                    Re-open
+                  </button>
+                )}
+
+                {(stop.status === 'out_for_delivery' || stop.status === 'arrived') && (
+                  <button
+                    type="button"
+                    data-open-issue
+                    class="inline-flex h-14 items-center justify-center rounded-ts-md border border-ts-danger/40 bg-ts-bg-surface px-4 text-base font-semibold text-ts-danger transition-colors duration-150 hover:bg-ts-danger/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-danger sm:h-12 sm:text-sm"
+                  >
+                    Report issue
+                  </button>
+                )}
+
+                {stop.status === 'exception' && (
+                  <button
+                    type="button"
+                    data-action="out_for_delivery"
+                    class="inline-flex h-11 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-medium text-ts-text-secondary transition-colors duration-150 hover:border-ts-primary/40 hover:text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+                  >
+                    Clear issue
+                  </button>
+                )}
+              </div>
+
+              <p class="mt-2 hidden text-xs text-ts-danger" data-stop-error role="alert" aria-live="polite"></p>
+            </li>
+          );
+        })}
+      </ul>
+    )}
+  </section>
+
+  {/* ════ Exception modal ════ */}
+  <div
+    id="issue-modal"
+    data-issue-modal
+    class="fixed inset-0 z-50 hidden items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="issue-modal-heading"
+  >
+    <div class="w-full max-w-lg rounded-t-ts-xl bg-ts-bg-surface p-6 shadow-ts-lg sm:rounded-ts-xl">
+      <header class="flex items-start justify-between gap-4">
+        <h3 id="issue-modal-heading" class="font-display text-lg font-bold text-ts-text">
+          Report an issue
+        </h3>
+        <button
+          type="button"
+          data-issue-close
+          aria-label="Close dialog"
+          class="rounded-ts-md p-1 text-ts-text-muted transition-colors hover:bg-ts-bg-muted hover:text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+        >
+          <span aria-hidden="true" class="text-xl">×</span>
+        </button>
+      </header>
+
+      <fieldset class="mt-4">
+        <legend class="text-sm font-medium text-ts-text">What happened?</legend>
+        <div class="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <label class="flex h-12 cursor-pointer items-center gap-2 rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm text-ts-text transition-colors hover:border-ts-primary/40 has-checked:border-ts-primary has-checked:bg-ts-primary/5">
+            <input type="radio" name="issue_reason" value="No one home" data-issue-quick class="accent-ts-primary" />
+            <span>No one home</span>
+          </label>
+          <label class="flex h-12 cursor-pointer items-center gap-2 rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm text-ts-text transition-colors hover:border-ts-primary/40 has-checked:border-ts-primary has-checked:bg-ts-primary/5">
+            <input type="radio" name="issue_reason" value="Wrong address" data-issue-quick class="accent-ts-primary" />
+            <span>Wrong address</span>
+          </label>
+          <label class="flex h-12 cursor-pointer items-center gap-2 rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm text-ts-text transition-colors hover:border-ts-primary/40 has-checked:border-ts-primary has-checked:bg-ts-primary/5">
+            <input type="radio" name="issue_reason" value="Damaged box" data-issue-quick class="accent-ts-primary" />
+            <span>Damaged box</span>
+          </label>
+          <label class="flex h-12 cursor-pointer items-center gap-2 rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm text-ts-text transition-colors hover:border-ts-primary/40 has-checked:border-ts-primary has-checked:bg-ts-primary/5">
+            <input type="radio" name="issue_reason" value="Other" data-issue-quick class="accent-ts-primary" />
+            <span>Other</span>
+          </label>
+        </div>
+      </fieldset>
+
+      <label class="mt-4 block">
+        <span class="text-sm font-medium text-ts-text">Details</span>
+        <textarea
+          data-issue-notes
+          rows="3"
+          required
+          class="mt-1 block w-full rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 py-2 text-base text-ts-text focus:border-ts-primary focus:outline-2 focus:outline-offset-0 focus:outline-ts-primary"
+          placeholder="e.g. Boxes left in entryway, member texted to confirm"
+        ></textarea>
+      </label>
+
+      <p class="mt-2 hidden text-xs text-ts-danger" data-issue-error role="alert" aria-live="polite"></p>
+
+      <footer class="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        <button
+          type="button"
+          data-issue-close
+          class="inline-flex h-12 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-medium text-ts-text transition-colors duration-150 hover:border-ts-primary/40 hover:text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary sm:h-11"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          data-issue-submit
+          class="inline-flex h-12 items-center justify-center rounded-ts-md bg-ts-danger px-4 text-sm font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-danger-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-danger disabled:cursor-not-allowed disabled:opacity-60 sm:h-11"
+        >
+          <span data-issue-submit-label>Report issue</span>
+        </button>
+      </footer>
+    </div>
+  </div>
+</AdminShell>
+
+<script>
+  // ────────────────────────────────────────────────────────────────────
+  // Driver actions — vanilla JS. Big tap targets, optimistic UI.
+  // ────────────────────────────────────────────────────────────────────
+
+  type StopStatus = 'pending' | 'out_for_delivery' | 'arrived' | 'completed' | 'exception';
+
+  // After every mutation we reload the page rather than reconcile UI in
+  // place — simpler, fewer drift bugs, and the network round-trip
+  // matches what the member's Realtime subscription is going to do
+  // anyway. If we ever need optimistic UI, the constants for status
+  // labels/dots/card classes live above in the SSR section.
+
+  // ─── Start route ────────────────────────────────────────────────────
+  const startBtn = document.querySelector<HTMLButtonElement>('[data-start-route]');
+  const startLabel = document.querySelector<HTMLElement>('[data-start-label]');
+  const routeErrEl = document.querySelector<HTMLElement>('[data-route-error]');
+
+  function setRouteError(msg: string | null): void {
+    if (!routeErrEl) return;
+    if (!msg) { routeErrEl.classList.add('hidden'); routeErrEl.textContent = ''; }
+    else { routeErrEl.classList.remove('hidden'); routeErrEl.textContent = msg; }
+  }
+
+  if (startBtn && startLabel) {
+    startBtn.addEventListener('click', async () => {
+      const id = startBtn.getAttribute('data-route-id') || '';
+      startBtn.disabled = true;
+      startLabel.textContent = 'Starting…';
+      setRouteError(null);
+      try {
+        const res = await fetch(`/api/admin/route/${id}/start`, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { Accept: 'application/json' },
+          body: new FormData(),
+        });
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok || !body.ok) {
+          setRouteError(body.error || `Could not start (HTTP ${res.status})`);
+          startBtn.disabled = false;
+          startLabel.textContent = 'Start route';
+          return;
+        }
+        // Reload so the page shows the new state cleanly (every stop
+        // flips to out_for_delivery, route flips to in_progress).
+        window.location.reload();
+      } catch (e) {
+        setRouteError('Network error.');
+        startBtn.disabled = false;
+        startLabel.textContent = 'Start route';
+      }
+    });
+  }
+
+  // ─── Per-stop actions ────────────────────────────────────────────────
+  const stopCards = Array.from(document.querySelectorAll<HTMLElement>('[data-stop-card]'));
+
+  function setStopError(card: HTMLElement, msg: string | null): void {
+    const el = card.querySelector<HTMLElement>('[data-stop-error]');
+    if (!el) return;
+    if (!msg) { el.classList.add('hidden'); el.textContent = ''; }
+    else { el.classList.remove('hidden'); el.textContent = msg; }
+  }
+
+  /**
+   * POST status change. Returns true on success.
+   */
+  async function postStatus(
+    routeId: string,
+    stopId: string,
+    payload: { status: StopStatus; exception_notes?: string; gps_lat?: number; gps_lng?: number }
+  ): Promise<{ ok: boolean; error?: string }> {
+    const body = new FormData();
+    body.set('status', payload.status);
+    if (payload.exception_notes) body.set('exception_notes', payload.exception_notes);
+    if (typeof payload.gps_lat === 'number') body.set('gps_lat', String(payload.gps_lat));
+    if (typeof payload.gps_lng === 'number') body.set('gps_lng', String(payload.gps_lng));
+    try {
+      const res = await fetch(`/api/admin/route/${routeId}/stops/${stopId}/status`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json' },
+        body,
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok || !j.ok) {
+        return { ok: false, error: j.error || `HTTP ${res.status}` };
+      }
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, error: 'network' };
+    }
+  }
+
+  /**
+   * Best-effort one-shot geolocation. Resolves with {lat, lng} or null
+   * — never rejects. 5s timeout so it doesn't block the tap.
+   */
+  function tryGeolocate(): Promise<{ lat: number; lng: number } | null> {
+    return new Promise((resolve) => {
+      if (!('geolocation' in navigator)) { resolve(null); return; }
+      let done = false;
+      const finish = (v: { lat: number; lng: number } | null) => {
+        if (done) return;
+        done = true;
+        resolve(v);
+      };
+      setTimeout(() => finish(null), 5_000);
+      navigator.geolocation.getCurrentPosition(
+        (pos) => finish({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        () => finish(null),
+        { enableHighAccuracy: false, timeout: 4_000, maximumAge: 60_000 }
+      );
+    });
+  }
+
+  /**
+   * Client-side Canvas resize. Returns a JPEG Blob ≤ 1200px wide @ 0.85.
+   * Falls back to the original file if Canvas is unavailable.
+   */
+  async function resizeImage(file: File): Promise<Blob> {
+    if (typeof document === 'undefined' || typeof createImageBitmap !== 'function') return file;
+    try {
+      const bmp = await createImageBitmap(file);
+      const MAX_WIDTH = 1200;
+      const scale = Math.min(1, MAX_WIDTH / bmp.width);
+      const w = Math.round(bmp.width * scale);
+      const h = Math.round(bmp.height * scale);
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return file;
+      ctx.drawImage(bmp, 0, 0, w, h);
+      bmp.close?.();
+      const blob = await new Promise<Blob | null>((resolve) =>
+        canvas.toBlob((b) => resolve(b), 'image/jpeg', 0.85)
+      );
+      return blob ?? file;
+    } catch {
+      return file;
+    }
+  }
+
+  async function uploadPhoto(routeId: string, stopId: string, file: File): Promise<{ ok: boolean; error?: string }> {
+    const blob = await resizeImage(file);
+    const form = new FormData();
+    form.set('photo', new File([blob], `${stopId}.jpg`, { type: 'image/jpeg' }));
+    try {
+      const res = await fetch(`/api/admin/route/${routeId}/stops/${stopId}/proof`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json' },
+        body: form,
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok || !j.ok) {
+        return { ok: false, error: j.error || `HTTP ${res.status}` };
+      }
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, error: 'network' };
+    }
+  }
+
+  // Wire each stop card.
+  for (const card of stopCards) {
+    const routeId = card.getAttribute('data-route-id') || '';
+    const stopId = card.getAttribute('data-stop-id') || '';
+
+    // Generic action buttons (Mark arrived, Re-open, Clear issue).
+    const actionBtns = Array.from(card.querySelectorAll<HTMLButtonElement>('[data-action]'));
+    for (const btn of actionBtns) {
+      const status = (btn.getAttribute('data-action') || '') as StopStatus;
+      btn.addEventListener('click', async () => {
+        btn.disabled = true;
+        setStopError(card, null);
+        const gps = await tryGeolocate();
+        const payload: { status: StopStatus; gps_lat?: number; gps_lng?: number } = { status };
+        if (gps) {
+          payload.gps_lat = gps.lat;
+          payload.gps_lng = gps.lng;
+        }
+        const r = await postStatus(routeId, stopId, payload);
+        if (!r.ok) {
+          setStopError(card, r.error || 'Could not update.');
+          btn.disabled = false;
+          return;
+        }
+        // Reload to pick up the new status + cascading buttons.
+        window.location.reload();
+      });
+    }
+
+    // Photo input — capture, upload, then mark delivered.
+    const photoInput = card.querySelector<HTMLInputElement>('[data-photo-input]');
+    const photoLabel = card.querySelector<HTMLElement>('[data-photo-label]');
+    if (photoInput && photoLabel) {
+      photoInput.addEventListener('change', async () => {
+        const file = photoInput.files?.[0];
+        if (!file) return;
+        const origLabel = photoLabel.textContent;
+        photoLabel.textContent = 'Uploading…';
+        photoInput.disabled = true;
+        setStopError(card, null);
+
+        const up = await uploadPhoto(routeId, stopId, file);
+        if (!up.ok) {
+          setStopError(card, up.error || 'Photo upload failed.');
+          photoLabel.textContent = origLabel;
+          photoInput.disabled = false;
+          photoInput.value = '';
+          return;
+        }
+        photoLabel.textContent = 'Saving…';
+
+        const gps = await tryGeolocate();
+        const payload: { status: StopStatus; gps_lat?: number; gps_lng?: number } = { status: 'completed' };
+        if (gps) {
+          payload.gps_lat = gps.lat;
+          payload.gps_lng = gps.lng;
+        }
+        const r = await postStatus(routeId, stopId, payload);
+        if (!r.ok) {
+          setStopError(card, r.error || 'Could not mark delivered.');
+          photoLabel.textContent = origLabel;
+          photoInput.disabled = false;
+          return;
+        }
+        window.location.reload();
+      });
+    }
+
+    // Open issue modal.
+    const openIssueBtn = card.querySelector<HTMLButtonElement>('[data-open-issue]');
+    if (openIssueBtn) {
+      openIssueBtn.addEventListener('click', () => {
+        openIssueModal(routeId, stopId, card);
+      });
+    }
+  }
+
+  // ─── Exception modal ────────────────────────────────────────────────
+  const modal = document.querySelector<HTMLElement>('[data-issue-modal]');
+  const modalCloses = Array.from(document.querySelectorAll<HTMLElement>('[data-issue-close]'));
+  const issueNotes = document.querySelector<HTMLTextAreaElement>('[data-issue-notes]');
+  const issueQuickRadios = Array.from(document.querySelectorAll<HTMLInputElement>('[data-issue-quick]'));
+  const issueSubmit = document.querySelector<HTMLButtonElement>('[data-issue-submit]');
+  const issueSubmitLabel = document.querySelector<HTMLElement>('[data-issue-submit-label]');
+  const issueError = document.querySelector<HTMLElement>('[data-issue-error]');
+
+  let issueContext: { routeId: string; stopId: string; card: HTMLElement } | null = null;
+
+  function setIssueError(msg: string | null): void {
+    if (!issueError) return;
+    if (!msg) { issueError.classList.add('hidden'); issueError.textContent = ''; }
+    else { issueError.classList.remove('hidden'); issueError.textContent = msg; }
+  }
+
+  function openIssueModal(routeId: string, stopId: string, card: HTMLElement): void {
+    if (!modal) return;
+    issueContext = { routeId, stopId, card };
+    setIssueError(null);
+    if (issueNotes) issueNotes.value = '';
+    issueQuickRadios.forEach((r) => { r.checked = false; });
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    setTimeout(() => issueNotes?.focus(), 30);
+  }
+  function closeIssueModal(): void {
+    if (!modal) return;
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    issueContext = null;
+  }
+  modalCloses.forEach((c) => c.addEventListener('click', closeIssueModal));
+  modal?.addEventListener('click', (e) => { if (e.target === modal) closeIssueModal(); });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal && !modal.classList.contains('hidden')) closeIssueModal();
+  });
+
+  // Auto-fill notes when a quick-pick is chosen IF the textarea is empty.
+  issueQuickRadios.forEach((r) => {
+    r.addEventListener('change', () => {
+      if (!r.checked || !issueNotes) return;
+      if (issueNotes.value.trim().length === 0) issueNotes.value = r.value;
+    });
+  });
+
+  if (issueSubmit && issueSubmitLabel) {
+    issueSubmit.addEventListener('click', async () => {
+      if (!issueContext || !issueNotes) return;
+      const notes = issueNotes.value.trim();
+      if (notes.length === 0) {
+        setIssueError('Please describe what happened.');
+        issueNotes.focus();
+        return;
+      }
+      issueSubmit.disabled = true;
+      issueSubmitLabel.textContent = 'Reporting…';
+      setIssueError(null);
+      const gps = await tryGeolocate();
+      const payload: { status: 'exception'; exception_notes: string; gps_lat?: number; gps_lng?: number } = {
+        status: 'exception',
+        exception_notes: notes,
+      };
+      if (gps) {
+        payload.gps_lat = gps.lat;
+        payload.gps_lng = gps.lng;
+      }
+      const r = await postStatus(issueContext.routeId, issueContext.stopId, payload);
+      if (!r.ok) {
+        setIssueError(r.error || 'Could not report.');
+        issueSubmit.disabled = false;
+        issueSubmitLabel.textContent = 'Report issue';
+        return;
+      }
+      closeIssueModal();
+      window.location.reload();
+    });
+  }
+</script>

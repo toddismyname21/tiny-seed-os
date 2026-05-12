@@ -1,40 +1,47 @@
 ---
 /**
  * DeliveryTracker — real-time delivery status widget for the member
- * dashboard. Renders the current state server-side, then polls
- * `/api/delivery-status` to stay fresh.
+ * dashboard. V2 (Day 9, 2026-05-11): native Supabase Realtime, no
+ * polling-as-primary, no Apps Script.
  *
- * Visual states:
- *   none              — root <section> not rendered (caller's gate
- *                       already filtered, but defensive in case JS
- *                       receives a 'none' update mid-session).
- *   packed            — neutral card, "being packed for [date]".
- *   out_for_delivery  — primary tone + pulse animation, driver name + ETA.
- *   near_you          — primary tone + faster pulse, "approaching ~5 min".
- *   delivered         — primary tone, no pulse, photo (240×240) if present.
- *   issue             — danger tone, issue notes, contact link.
+ * Visual states (seven):
+ *   none              — root <section> hidden (caller's gate filtered).
+ *   packed            — route exists but not started yet.
+ *   out_for_delivery  — route in_progress, this stop pending.
+ *   near_you          — this stop is one of the next 1-2 remaining.
+ *   arrived           — admin tapped Arrived at this stop.
+ *   delivered         — admin tapped Delivered + photo uploaded.
+ *   exception         — admin reported an issue with this stop.
  *
- * Polling:
- *   60s default, 15s when state === 'out_for_delivery' (driver actively
- *   moving toward the member's stop). Paused via Page Visibility API
- *   when the tab is hidden — saves Apps Script quota + member's battery.
+ * Real-time:
+ *   1. SSR renders the initial state.
+ *   2. On mount, the client subscribes to Supabase Realtime via the
+ *      anon client (RLS-enforced) on two filters:
+ *        a. delivery_stops:id=eq.{stop_id} for THIS member's stop
+ *        b. delivery_routes:id=eq.{route_id} for the parent route
+ *   3. On any UPDATE event, the client fetches `/api/delivery/today`
+ *      to recompute the derived state server-side (we can't run
+ *      deriveState in the browser reliably without all-stops, which
+ *      RLS hides from members). This is one tiny GET per state change
+ *      — typically 5-10 per delivery.
+ *   4. If the WebSocket drops, we fall back to a 60s poll.
  *
  * Privacy:
- *   - Driver shown by first name only (resolved server-side in
- *     `firstNameOf`). The widget can never display a last name even
- *     if Apps Script sends one (defense in depth).
- *   - No GPS map in Phase 1. Coordinates from Apps Script are
- *     intentionally ignored.
- *   - Member sees only THEIR stop — the SSR + API both filter to the
- *     row matching their `customers.legacy_id`.
+ *   - Driver shown by first name only.
+ *   - No GPS map.
+ *   - Member sees only THEIR stop via RLS.
  *
  * Props:
- *   - initialStatus   The status fetched server-side at page render.
- *   - pickupDateLabel Pretty date string for the "packed for ___" copy
- *                     (e.g. "Wed May 14") — produced by the caller in
- *                     America/New_York to avoid TZ confusion.
+ *   - initialStatus    The status fetched server-side at SSR.
+ *   - pickupDateLabel  Pretty date string for the "packed for ___" copy.
+ *   - supabaseUrl      For the client-side Realtime connection.
+ *   - supabaseAnonKey  Anon JWT for Realtime subscription. RLS is
+ *                      enforced via the user's session cookie that
+ *                      the Realtime client picks up automatically
+ *                      from the SDK.
  */
 import type { DeliveryStatus } from '../lib/delivery';
+import { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY } from 'astro:env/client';
 
 interface Props {
   initialStatus: DeliveryStatus;
@@ -43,20 +50,11 @@ interface Props {
 
 const { initialStatus, pickupDateLabel } = Astro.props as Props;
 
-// Pretty time helpers — both ETA and Completed_At may come from Apps
-// Script as ISO timestamps OR short "4:15 PM"-style strings. The
-// helpers below cope with either and never throw.
-
-/**
- * "4:15 PM" given ISO or already-formatted input. Returns the input
- * verbatim if it's not parseable, since Apps Script sometimes
- * pre-formats ETAs ("4:15 PM") as text in the sheet.
- */
+// Time formatting helpers — both ETA and Completed_At may come as
+// ISO timestamps OR short clock strings.
 function formatTime(raw: string | null): string {
   if (!raw) return '';
   const trimmed = String(raw).trim();
-  // Heuristic: if the string already looks like a clock ("4:15 PM",
-  // "16:30"), don't try to parse + reformat — pass through.
   if (/^\d{1,2}:\d{2}(?:\s?(?:AM|PM|am|pm))?$/.test(trimmed)) return trimmed.toUpperCase();
   const d = new Date(trimmed);
   if (Number.isNaN(d.getTime())) return trimmed;
@@ -68,55 +66,35 @@ function formatTime(raw: string | null): string {
   }).format(d);
 }
 
-/**
- * "12:14 PM" — same as formatTime but for ISO Completed_At timestamps.
- */
-function formatTimestamp(raw: string | null): string {
-  if (!raw) return '';
-  return formatTime(raw);
-}
-
 const etaPretty = formatTime(initialStatus.eta);
-const completedPretty = formatTimestamp(initialStatus.completed_at);
-const lastUpdatedPretty = formatTimestamp(initialStatus.last_updated);
-
-// Driver string — already first-name-only from `firstNameOf` in lib.
+const completedPretty = formatTime(initialStatus.completed_at);
+const lastUpdatedPretty = formatTime(initialStatus.last_updated);
 const driverFirst = initialStatus.driver_name ?? '';
-
-// State-derived flags consumed by the markup below. We encode visual
-// intent as class names so CSS / Tailwind drives the look, not JS.
 const state = initialStatus.state;
 ---
 
-{/*
-   The widget intentionally always renders the wrapper (even for state
-   = 'none') so the client-side update path can flip states without
-   re-running SSR. CSS hides it when state='none' via the data-state
-   attribute. Caller is still expected to skip rendering entirely on
-   non-delivery days (we don't poll a hidden widget — efficiency).
-*/}
 <section
   aria-labelledby="delivery-tracker-heading"
   data-delivery-tracker
   data-state={state}
+  data-stop-id={initialStatus.stop_id ?? ''}
+  data-route-id={initialStatus.route_id ?? ''}
+  data-supabase-url={PUBLIC_SUPABASE_URL}
+  data-supabase-anon-key={PUBLIC_SUPABASE_ANON_KEY}
   class:list={[
     "relative overflow-hidden rounded-ts-xl border bg-ts-bg-surface shadow-ts-md transition-all duration-300",
     state === 'none'      ? 'hidden' : '',
     state === 'packed'    ? 'border-ts-border' : '',
     state === 'out_for_delivery' ? 'border-ts-primary/30 bg-ts-primary/5' : '',
     state === 'near_you'  ? 'border-ts-primary/40 bg-ts-primary/5' : '',
+    state === 'arrived'   ? 'border-ts-primary/40 bg-ts-primary/5' : '',
     state === 'delivered' ? 'border-ts-primary/30 bg-ts-primary/5' : '',
-    state === 'issue'     ? 'border-ts-danger/30 bg-ts-danger/5' : '',
+    state === 'exception' ? 'border-ts-danger/30 bg-ts-danger/5' : '',
   ]}
 >
-  {/*
-     Pulse layer — only animated for states that demand attention.
-     Uses `data-pulse` so the JS poller can toggle it directly without
-     re-rendering. CSS keyframes defined in the <style> block.
-  */}
   <span
     aria-hidden="true"
-    data-pulse={state === 'out_for_delivery' || state === 'near_you' ? state : 'off'}
+    data-pulse={state === 'out_for_delivery' || state === 'near_you' || state === 'arrived' ? state : 'off'}
     class="pointer-events-none absolute inset-0"
   ></span>
 
@@ -130,16 +108,18 @@ const state = initialStatus.state;
           state === 'packed'           ? 'bg-ts-bg-muted text-ts-text-secondary' : '',
           state === 'out_for_delivery' ? 'bg-ts-primary/15 text-ts-primary' : '',
           state === 'near_you'         ? 'bg-ts-primary/20 text-ts-primary' : '',
+          state === 'arrived'          ? 'bg-ts-primary/25 text-ts-primary' : '',
           state === 'delivered'        ? 'bg-ts-primary/15 text-ts-primary' : '',
-          state === 'issue'            ? 'bg-ts-danger/15 text-ts-danger' : '',
+          state === 'exception'        ? 'bg-ts-danger/15 text-ts-danger' : '',
         ]}
       >
         <span data-icon-glyph>
           {state === 'packed'           && '📦'}
           {state === 'out_for_delivery' && '🚚'}
           {state === 'near_you'         && '📍'}
+          {state === 'arrived'          && '🚪'}
           {state === 'delivered'        && '✓'}
-          {state === 'issue'            && '!'}
+          {state === 'exception'        && '!'}
         </span>
       </span>
 
@@ -151,18 +131,21 @@ const state = initialStatus.state;
         >
           {state === 'packed'           && `Your box is being packed for ${pickupDateLabel}`}
           {state === 'out_for_delivery' && (driverFirst
-            ? `Driver ${driverFirst} is on the road`
+            ? `${driverFirst} is on the road`
             : 'Your box is out for delivery')}
           {state === 'near_you'         && (driverFirst
-            ? `Driver ${driverFirst} is approaching`
+            ? `${driverFirst} is approaching`
             : 'Driver is approaching')}
+          {state === 'arrived'          && (driverFirst
+            ? `${driverFirst} has arrived`
+            : 'The driver has arrived')}
           {state === 'delivered'        && 'Delivered'}
-          {state === 'issue'            && 'We had an issue with your delivery'}
+          {state === 'exception'        && 'We had an issue with your delivery'}
         </h2>
 
         <p data-subheading class="mt-1 text-sm leading-relaxed text-ts-text-secondary">
           {state === 'packed' && (
-            <span>We'll update this card once the driver is on the road.</span>
+            <span>We'll update this card the moment the driver heads out.</span>
           )}
           {state === 'out_for_delivery' && (
             <span>
@@ -175,6 +158,9 @@ const state = initialStatus.state;
               {etaPretty && <> · ETA <span class="tabular-nums">{etaPretty}</span></>}
             </span>
           )}
+          {state === 'arrived' && (
+            <span>Dropping off now.</span>
+          )}
           {state === 'delivered' && (
             <span>
               {completedPretty
@@ -182,7 +168,7 @@ const state = initialStatus.state;
                 : 'Your box has been delivered.'}
             </span>
           )}
-          {state === 'issue' && (
+          {state === 'exception' && (
             <span>
               We'll be in touch shortly.
               {initialStatus.issue_notes && (
@@ -194,13 +180,7 @@ const state = initialStatus.state;
       </div>
     </header>
 
-    {/*
-       Delivery photo — only renders when state === 'delivered' AND a
-       photo URL is present. We use a native <details>/<summary>-style
-       click-to-expand pattern but implemented as a plain <button>
-       toggling a modal for finer styling control. The thumbnail is
-       240×240 fixed per spec; the expanded view is full-width.
-    */}
+    {/* Delivery photo block. Renders inline only when state='delivered' AND photo_url set. */}
     {state === 'delivered' && initialStatus.photo_url && (
       <div data-photo-block class="mt-5">
         <button
@@ -222,11 +202,6 @@ const state = initialStatus.state;
         </button>
       </div>
     )}
-    {/*
-       For non-delivered states we still emit a hidden block so the
-       client-side update path can populate it when state flips to
-       'delivered'. The JS in the <script> below shows/hides this.
-    */}
     {!(state === 'delivered' && initialStatus.photo_url) && (
       <div data-photo-block class="mt-5 hidden">
         <button
@@ -249,13 +224,7 @@ const state = initialStatus.state;
       </div>
     )}
 
-    {/*
-       Issue-state CTA — visible only when state === 'issue'. Linked
-       to a pre-filled mailto so members can reply with context. The
-       mailto is statically composed (no PII in the URL beyond the
-       subject) so it works with the user's default mail client.
-    */}
-    {state === 'issue' && (
+    {state === 'exception' && (
       <div data-issue-block class="mt-4">
         <a
           href="mailto:todd@tinyseedfarmpgh.com?subject=CSA%20delivery%20issue"
@@ -271,18 +240,13 @@ const state = initialStatus.state;
         Updated <span data-last-updated>{lastUpdatedPretty}</span>
         <span data-poll-indicator aria-hidden="true" class="ml-1 inline-block align-middle text-ts-text-muted/60"></span>
       </p>
-      <p class="text-xs text-ts-text-muted">
-        Phase 1 · status updates every minute
+      <p class="text-xs text-ts-text-muted" data-conn-indicator>
+        Live updates
       </p>
     </footer>
   </div>
 
-  {/*
-     Lightbox dialog for the proof-of-delivery photo. Hidden by
-     default — opened by the photo-trigger button. Closing options:
-     click backdrop, press Escape, click the close button. Focus
-     returns to the trigger on close.
-  */}
+  {/* Photo lightbox */}
   <dialog
     data-photo-lightbox
     class="m-0 max-h-[100dvh] max-w-[100dvw] bg-transparent p-0 backdrop:bg-black/70 backdrop:backdrop-blur-sm"
@@ -311,22 +275,10 @@ const state = initialStatus.state;
   </dialog>
 </section>
 
-{/*
-   ─────────────────────────────────────────────────────────────────
-   Styles. Pulse keyframes are defined here (not in global.css)
-   because they're only used by this widget — keeps the global
-   stylesheet lean. `prefers-reduced-motion` disables the pulse so
-   we don't trigger vestibular issues; the colored card still
-   conveys urgency visually.
-   ───────────────────────────────────────────────────────────────── */}
 <style>
-  /*
-     Pulse animation — a soft expanding ring that draws attention
-     without being disruptive. Slower for 'out_for_delivery' (still
-     ETA-distant) and faster for 'near_you' (driver imminent).
-  */
   [data-pulse="out_for_delivery"]::before,
-  [data-pulse="near_you"]::before {
+  [data-pulse="near_you"]::before,
+  [data-pulse="arrived"]::before {
     content: '';
     position: absolute;
     inset: 0;
@@ -335,9 +287,8 @@ const state = initialStatus.state;
     opacity: 0;
     animation: ts-delivery-pulse 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
   }
-  [data-pulse="near_you"]::before {
-    animation-duration: 1.4s;
-  }
+  [data-pulse="near_you"]::before { animation-duration: 1.4s; }
+  [data-pulse="arrived"]::before  { animation-duration: 1.0s; }
 
   @keyframes ts-delivery-pulse {
     0%   { opacity: 0.6; transform: scale(1); }
@@ -347,93 +298,70 @@ const state = initialStatus.state;
 
   @media (prefers-reduced-motion: reduce) {
     [data-pulse="out_for_delivery"]::before,
-    [data-pulse="near_you"]::before {
+    [data-pulse="near_you"]::before,
+    [data-pulse="arrived"]::before {
       animation: none;
       opacity: 0;
     }
   }
 
-  /*
-     <dialog> backdrop is opaque by default in some browsers — make
-     sure we always have the soft black we want.
-  */
-  dialog[data-photo-lightbox] {
-    border: none;
-  }
+  dialog[data-photo-lightbox] { border: none; }
 </style>
 
-<script is:inline>
-  /*
-     ────────────────────────────────────────────────────────────────
-     Delivery tracker — client logic.
-     ────────────────────────────────────────────────────────────────
-     Responsibilities:
-       1. Poll /api/delivery-status to keep the widget fresh.
-          - 60s default, 15s when state === 'out_for_delivery'.
-          - Paused when document.visibilityState !== 'visible'
-            (Page Visibility API — saves Apps Script quota + battery).
-       2. Update the visual state in place — no full re-render —
-          when the server returns a new state.
-       3. Wire the photo lightbox.
+<script>
+  // ────────────────────────────────────────────────────────────────────
+  // Delivery tracker — V2 client logic with Supabase Realtime
+  // ────────────────────────────────────────────────────────────────────
+  //
+  // 1. On mount: subscribe to the two channels via @supabase/supabase-js
+  //    (loaded via the same SDK the rest of the portal uses).
+  // 2. On any change: re-fetch /api/delivery/today (RLS-scoped, derives
+  //    state server-side with full visibility into route.status).
+  // 3. Apply the response to the DOM in place (no innerHTML, no
+  //    re-render).
+  // 4. Fall back to a 60s poll if Realtime disconnects.
 
-     Defensive notes:
-       - We use `is:inline` so this script runs immediately on render
-         and isn't bundled. The polling loop is self-contained — no
-         imports, no shared state with other widgets.
-       - All DOM lookups are scoped to a SINGLE widget instance via
-         the [data-delivery-tracker] root. Even though only one
-         widget renders per page today, scoping is correct for
-         future multi-share-row layouts.
-       - We never trust the server's `last_updated` blindly — we
-         re-format it client-side in the visitor's timezone so
-         "Updated 12s ago" math is accurate.
-  */
-  (function () {
-    const root = document.querySelector('[data-delivery-tracker]');
-    if (!root) return;
+  import { createClient } from '@supabase/supabase-js';
 
-    /** @type {HTMLElement} */
-    const headingEl = root.querySelector('[data-heading]');
-    /** @type {HTMLElement} */
-    const subheadingEl = root.querySelector('[data-subheading]');
-    /** @type {HTMLElement} */
-    const pulseEl = root.querySelector('[data-pulse]');
-    /** @type {HTMLElement} */
-    const iconEl = root.querySelector('[data-icon]');
-    /** @type {HTMLElement} */
-    const iconGlyphEl = root.querySelector('[data-icon-glyph]');
-    /** @type {HTMLElement} */
-    const photoBlockEl = root.querySelector('[data-photo-block]');
-    /** @type {HTMLImageElement} */
-    const photoThumbEl = root.querySelector('[data-photo-thumb]');
-    /** @type {HTMLImageElement} */
-    const photoFullEl = root.querySelector('[data-photo-full]');
-    /** @type {HTMLButtonElement} */
-    const photoTriggerEl = root.querySelector('[data-photo-trigger]');
-    /** @type {HTMLDialogElement} */
-    const lightboxEl = root.querySelector('[data-photo-lightbox]');
-    /** @type {HTMLButtonElement} */
-    const photoCloseEl = root.querySelector('[data-photo-close]');
-    /** @type {HTMLElement} */
-    const lastUpdatedEl = root.querySelector('[data-last-updated]');
-    /** @type {HTMLElement} */
-    const pollIndicatorEl = root.querySelector('[data-poll-indicator]');
+  const root = document.querySelector<HTMLElement>('[data-delivery-tracker]');
+  if (root) {
+    const stopId = root.getAttribute('data-stop-id') || '';
+    const routeId = root.getAttribute('data-route-id') || '';
+    const supabaseUrl = root.getAttribute('data-supabase-url') || '';
+    const supabaseAnonKey = root.getAttribute('data-supabase-anon-key') || '';
 
-    const POLL_INTERVAL_DEFAULT = 60_000;   // 60s
-    const POLL_INTERVAL_ACTIVE  = 15_000;   // 15s when out_for_delivery
-    let pollTimer = null;
-    let inFlight = false;
-    let currentState = root.getAttribute('data-state') || 'none';
+    // DOM refs scoped to this widget instance.
+    const headingEl       = root.querySelector<HTMLElement>('[data-heading]');
+    const subheadingEl    = root.querySelector<HTMLElement>('[data-subheading]');
+    const pulseEl         = root.querySelector<HTMLElement>('[data-pulse]');
+    const iconEl          = root.querySelector<HTMLElement>('[data-icon]');
+    const iconGlyphEl     = root.querySelector<HTMLElement>('[data-icon-glyph]');
+    const photoBlockEl    = root.querySelector<HTMLElement>('[data-photo-block]');
+    const photoThumbEl    = root.querySelector<HTMLImageElement>('[data-photo-thumb]');
+    const photoFullEl     = root.querySelector<HTMLImageElement>('[data-photo-full]');
+    const photoTriggerEl  = root.querySelector<HTMLButtonElement>('[data-photo-trigger]');
+    const lightboxEl      = root.querySelector<HTMLDialogElement>('[data-photo-lightbox]');
+    const lastUpdatedEl   = root.querySelector<HTMLElement>('[data-last-updated]');
+    const pollIndicatorEl = root.querySelector<HTMLElement>('[data-poll-indicator]');
+    const connIndicatorEl = root.querySelector<HTMLElement>('[data-conn-indicator]');
+
     let lastUpdatedISO = new Date().toISOString();
+    let inFlight = false;
+    let pollTimer: ReturnType<typeof setInterval> | null = null;
 
-    /* ──────────────────────────────────────────────────────────────
-       Rendering helpers — applied to the SAME DOM that SSR produced.
-       Each is idempotent so we can call them on every poll without
-       worrying about state divergence.
-       ──────────────────────────────────────────────────────────── */
+    type StatusPayload = {
+      state: string;
+      stop_id: string | null;
+      route_id: string | null;
+      eta: string | null;
+      driver_name: string | null;
+      completed_at: string | null;
+      photo_url: string | null;
+      issue_notes: string | null;
+      last_updated: string;
+    };
 
-    /** Translate ISO/short time to "4:15 PM". Pure. */
-    function fmtTime(raw) {
+    function fmtTime(raw: string | null): string {
       if (!raw) return '';
       const trimmed = String(raw).trim();
       if (/^\d{1,2}:\d{2}(?:\s?(?:AM|PM|am|pm))?$/.test(trimmed)) return trimmed.toUpperCase();
@@ -444,90 +372,77 @@ const state = initialStatus.state;
         hour: 'numeric', minute: '2-digit', hour12: true,
       }).format(d);
     }
-
-    /** Pretty "Updated 12s ago" — clock relative to lastUpdatedISO. */
-    function fmtRelative(isoString) {
+    function fmtRelative(isoString: string): string {
       const then = new Date(isoString);
       if (Number.isNaN(then.getTime())) return '';
       const deltaSec = Math.max(0, Math.round((Date.now() - then.getTime()) / 1000));
       if (deltaSec < 5) return 'just now';
-      if (deltaSec < 60) return deltaSec + 's ago';
+      if (deltaSec < 60) return `${deltaSec}s ago`;
       const deltaMin = Math.round(deltaSec / 60);
-      if (deltaMin < 60) return deltaMin + 'm ago';
+      if (deltaMin < 60) return `${deltaMin}m ago`;
       return fmtTime(isoString);
     }
 
-    const TONE_CLASSES = {
+    const TONE_CLASSES: Record<string, string[]> = {
       none:      ['border-ts-border'],
       packed:    ['border-ts-border'],
       out_for_delivery: ['border-ts-primary/30', 'bg-ts-primary/5'],
       near_you:  ['border-ts-primary/40', 'bg-ts-primary/5'],
+      arrived:   ['border-ts-primary/40', 'bg-ts-primary/5'],
       delivered: ['border-ts-primary/30', 'bg-ts-primary/5'],
-      issue:     ['border-ts-danger/30', 'bg-ts-danger/5'],
+      exception: ['border-ts-danger/30', 'bg-ts-danger/5'],
     };
-    const ALL_TONE_CLASSES = Object.values(TONE_CLASSES).flat();
+    const ALL_TONE_CLASSES = Array.from(new Set(Object.values(TONE_CLASSES).flat()));
 
-    const ICON_TONE_CLASSES = {
+    const ICON_TONE_CLASSES: Record<string, string[]> = {
       none:      ['bg-ts-bg-muted', 'text-ts-text-secondary'],
       packed:    ['bg-ts-bg-muted', 'text-ts-text-secondary'],
       out_for_delivery: ['bg-ts-primary/15', 'text-ts-primary'],
       near_you:  ['bg-ts-primary/20', 'text-ts-primary'],
+      arrived:   ['bg-ts-primary/25', 'text-ts-primary'],
       delivered: ['bg-ts-primary/15', 'text-ts-primary'],
-      issue:     ['bg-ts-danger/15', 'text-ts-danger'],
+      exception: ['bg-ts-danger/15', 'text-ts-danger'],
     };
-    const ALL_ICON_TONE_CLASSES = Object.values(ICON_TONE_CLASSES).flat();
+    const ALL_ICON_TONE_CLASSES = Array.from(new Set(Object.values(ICON_TONE_CLASSES).flat()));
 
-    const ICON_GLYPHS = {
+    const ICON_GLYPHS: Record<string, string> = {
       none: '', packed: '📦', out_for_delivery: '🚚',
-      near_you: '📍', delivered: '✓', issue: '!',
+      near_you: '📍', arrived: '🚪', delivered: '✓', exception: '!',
     };
 
-    /**
-     * Apply a new DeliveryStatus to the existing DOM. SAFE on every
-     * call (no growing classlists, no leaked nodes). Switches
-     * heading/subheading text node by node — never innerHTML — so
-     * we can never inject untrusted markup from the server.
-     */
-    function applyStatus(status) {
+    function applyStatus(status: StatusPayload): void {
       const state = status.state;
       const driverFirst = status.driver_name || '';
       const etaPretty = fmtTime(status.eta);
       const completedPretty = fmtTime(status.completed_at);
 
-      // Wrapper visibility + tone
-      root.setAttribute('data-state', state);
-      if (state === 'none') {
-        root.classList.add('hidden');
-      } else {
-        root.classList.remove('hidden');
-      }
-      // Clear all tone classes then apply the target set.
-      root.classList.remove(...ALL_TONE_CLASSES);
-      (TONE_CLASSES[state] || []).forEach(function (c) { root.classList.add(c); });
+      root!.setAttribute('data-state', state);
+      if (state === 'none') root!.classList.add('hidden');
+      else root!.classList.remove('hidden');
+      root!.classList.remove(...ALL_TONE_CLASSES);
+      (TONE_CLASSES[state] || []).forEach((c) => root!.classList.add(c));
 
-      // Pulse layer
       if (pulseEl) {
         pulseEl.setAttribute('data-pulse',
-          state === 'out_for_delivery' || state === 'near_you' ? state : 'off'
+          state === 'out_for_delivery' || state === 'near_you' || state === 'arrived' ? state : 'off'
         );
       }
 
-      // Icon + glyph
       if (iconEl) {
         iconEl.classList.remove(...ALL_ICON_TONE_CLASSES);
-        (ICON_TONE_CLASSES[state] || []).forEach(function (c) { iconEl.classList.add(c); });
+        (ICON_TONE_CLASSES[state] || []).forEach((c) => iconEl.classList.add(c));
       }
       if (iconGlyphEl) iconGlyphEl.textContent = ICON_GLYPHS[state] || '';
 
-      // Heading + subheading — set as text nodes only (XSS safe).
       if (headingEl) {
         let heading = '';
         switch (state) {
-          case 'packed':           heading = headingEl.textContent || ''; break; // SSR already set it
-          case 'out_for_delivery': heading = driverFirst ? 'Driver ' + driverFirst + ' is on the road' : 'Your box is out for delivery'; break;
-          case 'near_you':         heading = driverFirst ? 'Driver ' + driverFirst + ' is approaching' : 'Driver is approaching'; break;
+          case 'packed':           heading = headingEl.textContent || ''; break;
+          case 'out_for_delivery': heading = driverFirst ? `${driverFirst} is on the road` : 'Your box is out for delivery'; break;
+          case 'near_you':         heading = driverFirst ? `${driverFirst} is approaching` : 'Driver is approaching'; break;
+          case 'arrived':          heading = driverFirst ? `${driverFirst} has arrived` : 'The driver has arrived'; break;
           case 'delivered':        heading = 'Delivered'; break;
-          case 'issue':            heading = 'We had an issue with your delivery'; break;
+          case 'exception':        heading = 'We had an issue with your delivery'; break;
         }
         if (state !== 'packed') headingEl.textContent = heading;
       }
@@ -536,15 +451,14 @@ const state = initialStatus.state;
         subheadingEl.textContent = '';
         switch (state) {
           case 'packed':
-            subheadingEl.textContent = "We'll update this card once the driver is on the road.";
+            subheadingEl.textContent = "We'll update this card the moment the driver heads out.";
             break;
           case 'out_for_delivery':
             if (etaPretty) {
-              const lead = document.createTextNode('ETA at your stop ');
+              subheadingEl.appendChild(document.createTextNode('ETA at your stop '));
               const span = document.createElement('span');
               span.className = 'font-medium tabular-nums text-ts-text';
               span.textContent = etaPretty;
-              subheadingEl.appendChild(lead);
               subheadingEl.appendChild(span);
             } else {
               subheadingEl.textContent = 'Your box is on its way.';
@@ -564,6 +478,9 @@ const state = initialStatus.state;
             }
             break;
           }
+          case 'arrived':
+            subheadingEl.textContent = 'Dropping off now.';
+            break;
           case 'delivered':
             if (completedPretty) {
               subheadingEl.appendChild(document.createTextNode('Marked delivered at '));
@@ -575,7 +492,7 @@ const state = initialStatus.state;
               subheadingEl.textContent = 'Your box has been delivered.';
             }
             break;
-          case 'issue':
+          case 'exception':
             subheadingEl.appendChild(document.createTextNode("We'll be in touch shortly."));
             if (status.issue_notes) {
               const span = document.createElement('span');
@@ -587,7 +504,6 @@ const state = initialStatus.state;
         }
       }
 
-      // Photo block — only visible when delivered + photo_url present.
       if (photoBlockEl && photoThumbEl && photoFullEl) {
         if (state === 'delivered' && status.photo_url) {
           photoThumbEl.src = status.photo_url;
@@ -598,131 +514,131 @@ const state = initialStatus.state;
         }
       }
 
-      // Updated state + timestamp
-      currentState = state;
       lastUpdatedISO = status.last_updated || new Date().toISOString();
       if (lastUpdatedEl) lastUpdatedEl.textContent = fmtRelative(lastUpdatedISO);
     }
 
-    /* ──────────────────────────────────────────────────────────────
-       Polling loop
-       ──────────────────────────────────────────────────────────── */
-
-    function pollInterval() {
-      return currentState === 'out_for_delivery' ? POLL_INTERVAL_ACTIVE : POLL_INTERVAL_DEFAULT;
-    }
-
-    async function fetchOnce() {
+    async function refresh(): Promise<void> {
       if (inFlight) return;
       if (document.visibilityState !== 'visible') return;
       inFlight = true;
       if (pollIndicatorEl) pollIndicatorEl.textContent = ' · checking…';
       try {
-        const res = await fetch('/api/delivery-status', {
+        const res = await fetch('/api/delivery/today', {
           method: 'GET',
           credentials: 'same-origin',
           headers: { 'Accept': 'application/json' },
         });
         if (!res.ok) {
-          // 401 means session expired — stop polling. Anything else
-          // is transient; we'll retry on the next tick.
           if (res.status === 401) {
-            stopPolling();
+            stopFallbackPoll();
             return;
           }
           return;
         }
-        const status = await res.json();
+        const status = (await res.json()) as StatusPayload;
         applyStatus(status);
       } catch (e) {
-        // Network / parse error — silent, retry on next tick.
-        console.warn('[delivery-tracker] poll failed:', e && e.message ? e.message : e);
+        console.warn('[delivery-tracker] refresh failed:', e instanceof Error ? e.message : e);
       } finally {
         inFlight = false;
         if (pollIndicatorEl) pollIndicatorEl.textContent = '';
       }
     }
 
-    /*
-       Adaptive polling — interval depends on currentState. Each tick:
-       fetch, then check if the cadence needs to change; if so, drop
-       the existing timer and arm a new one. This way 'out_for_delivery'
-       transitions to 15s polling on the next tick after a state change.
-    */
-    function startPolling() {
-      stopPolling();
-      let lastInterval = pollInterval();
-      const tick = function () {
-        fetchOnce();
-        const desired = pollInterval();
-        if (desired !== lastInterval) {
-          lastInterval = desired;
-          stopPolling();
-          pollTimer = setInterval(tick, desired);
-        }
-      };
-      pollTimer = setInterval(tick, lastInterval);
+    // ─── Fallback poll — used when Realtime is not connected ─────────
+    function startFallbackPoll(): void {
+      stopFallbackPoll();
+      pollTimer = setInterval(refresh, 60_000);
     }
-
-    function stopPolling() {
+    function stopFallbackPoll(): void {
       if (pollTimer) {
         clearInterval(pollTimer);
         pollTimer = null;
       }
     }
 
-    // Pause on hidden, resume + fetch-once on visible. Page Visibility
-    // API is supported in all browsers we target (iOS Safari 14+).
-    document.addEventListener('visibilitychange', function () {
+    // ─── Realtime subscription ──────────────────────────────────────
+    let realtimeConnected = false;
+    function setConnStatus(connected: boolean): void {
+      realtimeConnected = connected;
+      if (connIndicatorEl) {
+        connIndicatorEl.textContent = connected ? 'Live updates' : 'Updates every minute';
+      }
+    }
+
+    if (supabaseUrl && supabaseAnonKey && stopId && routeId) {
+      try {
+        const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+          auth: { persistSession: false, autoRefreshToken: false },
+        });
+        const channel = supabase.channel(`delivery:${routeId}:${stopId}`)
+          .on(
+            'postgres_changes',
+            { event: 'UPDATE', schema: 'public', table: 'delivery_stops', filter: `id=eq.${stopId}` },
+            () => { refresh(); }
+          )
+          .on(
+            'postgres_changes',
+            { event: 'UPDATE', schema: 'public', table: 'delivery_routes', filter: `id=eq.${routeId}` },
+            () => { refresh(); }
+          )
+          .subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+              setConnStatus(true);
+              stopFallbackPoll();
+            } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+              setConnStatus(false);
+              startFallbackPoll();
+            }
+          });
+
+        // Cleanup on page unload to avoid leaking WS connections.
+        window.addEventListener('beforeunload', () => {
+          try { supabase.removeChannel(channel); } catch (_) { /* noop */ }
+        });
+      } catch (e) {
+        console.warn('[delivery-tracker] realtime init failed:', e instanceof Error ? e.message : e);
+        setConnStatus(false);
+        startFallbackPoll();
+      }
+    } else {
+      // No stop yet (state='none' or 'packed' before route created) —
+      // poll so the widget catches the moment the route appears.
+      setConnStatus(false);
+      startFallbackPoll();
+    }
+
+    // ─── Visibility handling — pause polling when tab hidden ────────
+    document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') {
-        // Immediately refresh on return so the user doesn't stare at
-        // stale data while waiting for the next interval tick.
-        fetchOnce();
-        startPolling();
+        refresh();
+        if (!realtimeConnected) startFallbackPoll();
       } else {
-        stopPolling();
+        stopFallbackPoll();
       }
     });
 
-    /* ──────────────────────────────────────────────────────────────
-       Lightbox wiring
-       ──────────────────────────────────────────────────────────── */
+    // ─── Lightbox wiring ────────────────────────────────────────────
     if (photoTriggerEl && lightboxEl) {
-      photoTriggerEl.addEventListener('click', function () {
-        // <dialog>.showModal() handles focus trap + Escape-to-close
-        // for free. We just open + restore focus on close.
-        if (typeof lightboxEl.showModal === 'function') {
-          lightboxEl.showModal();
-        } else {
-          // Old browsers without <dialog> — minimal fallback.
+      photoTriggerEl.addEventListener('click', () => {
+        if (typeof lightboxEl.showModal === 'function') lightboxEl.showModal();
+        else {
           lightboxEl.setAttribute('open', '');
           lightboxEl.style.display = 'block';
         }
       });
-      lightboxEl.addEventListener('click', function (event) {
-        // Click on backdrop (outside the image) closes — the inner
-        // <form method="dialog"> + close button handles the rest.
-        if (event.target === lightboxEl) {
-          lightboxEl.close && lightboxEl.close();
-        }
+      lightboxEl.addEventListener('click', (event) => {
+        if (event.target === lightboxEl) lightboxEl.close?.();
       });
-      lightboxEl.addEventListener('close', function () {
-        // Return focus to trigger.
+      lightboxEl.addEventListener('close', () => {
         photoTriggerEl.focus();
       });
     }
 
-    /* ──────────────────────────────────────────────────────────────
-       Bootstrap. Update the "Updated …" relative time once per second
-       (cheap — no DOM rewiring, just text replacement) and start
-       polling.
-       ──────────────────────────────────────────────────────────── */
-    setInterval(function () {
+    // ─── "Updated 12s ago" tick ─────────────────────────────────────
+    setInterval(() => {
       if (lastUpdatedEl) lastUpdatedEl.textContent = fmtRelative(lastUpdatedISO);
     }, 1000);
-
-    if (document.visibilityState === 'visible') {
-      startPolling();
-    }
-  })();
+  }
 </script>
