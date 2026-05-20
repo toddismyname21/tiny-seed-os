@@ -6,6 +6,19 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-05-20] CSA dashboard — fix vacation/preferences quick-action 404s (Day-5 placeholder links never updated to /account/* routes)
+
+- Files: apps/csa-portal/src/pages/dashboard.astro
+- Role: fullstack-builder (delegated by PM_ARCHITECT)
+- Bug: The "Quick actions" section had two cards whose links were Day-5 placeholders that were never updated when the real account pages shipped on Day 8 under /account/*. The 🏖️ "Vacation hold" card linked to `/vacation` and the 🥬 "Preferences" card linked to `/preferences` — neither route exists, so both 404'd. (The 3rd card, ✉️ Contact-the-farm mailto, and the "View full details" /box link were already valid and were left untouched.)
+- Fix: `href="/vacation"` → `href="/account/vacation"` (line 716); `href="/preferences"` → `href="/account/preferences"` (line 726). 2-string change, 2 insertions / 2 deletions, no other edits. Confirmed both targets exist: src/pages/account/vacation.astro and src/pages/account/preferences.astro.
+- Verification:
+  - `grep -nE 'href="/(vacation|preferences)"' src/pages/dashboard.astro` → ZERO matches (no bare placeholders remain)
+  - `grep -nE 'href="/account/(vacation|preferences)"' src/pages/dashboard.astro` → lines 716 and 726 (both fixed links present)
+  - `npx astro check` → 0 errors / 0 warnings / 7 hints across 88 files (all 7 hints pre-existing in OTHER files — none in dashboard.astro)
+  - `npm run build` → completed clean (only the pre-existing Node 25-vs-24 Vercel warning)
+- Deployed: `git push origin csa-migration` (working branch). NOT promoted to production — PM handles production promotion after review.
+
 ## [2026-05-20] CSA Auth — 6-digit code login (iPhone in-app-browser fix) + landing escape hatch & anti-phishing copy
 
 - Files: apps/csa-portal/src/pages/login.astro, apps/csa-portal/src/pages/index.astro
