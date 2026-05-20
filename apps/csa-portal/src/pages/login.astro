@@ -22,10 +22,20 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { z } from 'zod';
 import { rateLimit, clientIp } from '../lib/rate-limit';
+import { isSameOriginPost, PORTAL_ORIGIN } from '../lib/onboarding';
 
 // ── Server-side state ─────────────────────────────────────────────────
+// `formStatus`:
+//   - 'idle'  → render the email form
+//   - 'sent'  → render the "check your email" success state, which now
+//               ALSO carries the 6-digit code-entry form
+//   - 'error' → render the email form with a top-level error banner
+// `codeError` is a SEPARATE inline error shown inside the success state
+// when a submitted 6-digit code is wrong/expired (we stay on 'sent' so
+// the code form remains visible).
 let formStatus: 'idle' | 'sent' | 'error' = 'idle';
 let formMessage: string | null = null;
+let codeError: string | null = null;
 let emailEcho = '';
 
 // Surfaced when middleware redirects here (e.g. ?error=invalid_link)
@@ -52,79 +62,162 @@ const nextPath = /^\/[^/].*$/.test(nextRaw) || nextRaw === '/dashboard'
   : '/dashboard';
 
 // ── POST handler ──────────────────────────────────────────────────────
+// Two modes, discriminated by the hidden `mode` field:
+//   - 'verify_code' → user typed the 6-digit OTP from the email. This is
+//                     the iPhone fix: the in-app browser opened by Mail/
+//                     Gmail can't complete the PKCE `?code=` exchange in
+//                     /auth/callback (different cookie jar than Safari →
+//                     "nonce does not match"). Typing the code is device-
+//                     agnostic and bypasses the trap.
+//   - (default)     → user requested a sign-in link/code (existing flow).
 if (Astro.request.method === 'POST') {
-  // Rate limit: 5 attempts per IP per 15 minutes.
   const ip = clientIp(Astro.request);
-  const rl = rateLimit(`magic-link:${ip}`, {
-    max: 5,
-    windowMs: 15 * 60 * 1000,
-  });
 
-  if (!rl.ok) {
+  let formData: FormData;
+  try {
+    formData = await Astro.request.formData();
+  } catch {
     formStatus = 'error';
-    formMessage = `Too many attempts. Try again in ${Math.ceil(
-      rl.retryAfterSeconds / 60
-    )} minute${rl.retryAfterSeconds >= 120 ? 's' : ''}.`;
-  } else {
-    let formData: FormData;
-    try {
-      formData = await Astro.request.formData();
-    } catch {
-      formStatus = 'error';
-      formMessage = 'Could not read the form. Please try again.';
-      formData = new FormData();
-    }
+    formMessage = 'Could not read the form. Please try again.';
+    formData = new FormData();
+  }
 
+  const mode = String(formData.get('mode') ?? '').trim();
+
+  if (mode === 'verify_code') {
+    // ── BRANCH: verify the typed 6-digit code ──────────────────────────
+    // Keep the user on the success state regardless of outcome so the
+    // code form stays visible and the hidden email field stays populated.
     const submittedEmail = String(formData.get('email') ?? '').trim();
     emailEcho = submittedEmail;
+    formStatus = 'sent';
 
-    const Schema = z.object({
-      email: z
-        .email('That doesn’t look like a valid email address.')
-        .min(3, 'Enter your email address.')
-        .max(254, 'That email is too long.'),
-    });
-
-    const parsed = Schema.safeParse({ email: submittedEmail });
-
-    if (!parsed.success) {
-      formStatus = 'error';
-      formMessage = parsed.error.issues[0]?.message ?? 'Invalid email.';
+    // CSRF: only accept same-origin POSTs. Mirrors every API route in
+    // this codebase (isSameOriginPost + PORTAL_ORIGIN from lib/onboarding).
+    if (!isSameOriginPost(Astro.request, PORTAL_ORIGIN)) {
+      codeError =
+        'Something went wrong with that request. Please reload the page and try again.';
     } else {
-      // Honeypot: if the hidden `website` field is set, treat as a bot.
-      // We pretend it succeeded (don't tip our hand).
-      const honey = String(formData.get('website') ?? '');
-      if (honey.length > 0) {
-        formStatus = 'sent';
-        formMessage = null;
-      } else {
-        const redirectBase = 'https://csa.tinyseedfarm.com';
-        const emailRedirectTo = `${redirectBase}/auth/callback?next=${encodeURIComponent(
-          nextPath
-        )}`;
+      // Rate-limit code attempts to defend the 6-digit (1M) space against
+      // brute force: 8 attempts / IP / 15 min. Separate bucket from the
+      // link-send limiter so requesting a fresh link can't lock you out
+      // of verifying, and vice-versa.
+      const rl = rateLimit(`verify-code:${ip}`, {
+        max: 8,
+        windowMs: 15 * 60 * 1000,
+      });
 
-        const { error } = await Astro.locals.supabase.auth.signInWithOtp({
-          email: parsed.data.email,
-          options: {
-            emailRedirectTo,
-            // Don't auto-create auth.users entries for emails that
-            // aren't already members. Onboarding (Day 6) handles new
-            // accounts. Today, only existing members get a link.
-            shouldCreateUser: true,
-          },
+      if (!rl.ok) {
+        codeError =
+          'Too many attempts. Request a new code in a few minutes.';
+      } else {
+        const CodeSchema = z.object({
+          email: z
+            .email('Enter the email you used above.')
+            .max(254),
+          code: z
+            .string()
+            .trim()
+            .regex(/^\d{6}$/, 'Enter the 6-digit code from the email.'),
         });
 
-        if (error) {
-          // Log server-side, show generic message client-side.
-          console.error('[login] signInWithOtp failed:', error.message);
-          // Still show the same success copy (anti-enumeration).
-          // Supabase already rate-limits per email at 1/60s, so even a
-          // legitimately failing send (e.g. domain block) won't reveal
-          // whether the email exists.
-        }
+        const parsed = CodeSchema.safeParse({
+          email: submittedEmail,
+          code: String(formData.get('code') ?? ''),
+        });
 
-        formStatus = 'sent';
-        formMessage = null;
+        if (!parsed.success) {
+          codeError =
+            parsed.error.issues[0]?.message ??
+            'Enter the 6-digit code from the email.';
+        } else {
+          // verifyOtp on the cookie-aware client → on success it writes
+          // the httpOnly session cookies via `setAll` in supabase.ts.
+          const { data, error } =
+            await Astro.locals.supabase.auth.verifyOtp({
+              email: parsed.data.email,
+              token: parsed.data.code,
+              type: 'email',
+            });
+
+          if (error || !data?.session) {
+            if (error) {
+              console.error('[login] verifyOtp failed:', error.message);
+            }
+            codeError =
+              'That code is incorrect or has expired. Check the most recent email, or request a new link below.';
+          } else {
+            // Session cookies are set; bounce to the intended page.
+            return Astro.redirect(nextPath, 303);
+          }
+        }
+      }
+    }
+  } else {
+    // ── BRANCH: request a sign-in link + code (existing behavior) ──────
+    // Rate limit: 5 attempts per IP per 15 minutes.
+    const rl = rateLimit(`magic-link:${ip}`, {
+      max: 5,
+      windowMs: 15 * 60 * 1000,
+    });
+
+    if (!rl.ok) {
+      formStatus = 'error';
+      formMessage = `Too many attempts. Try again in ${Math.ceil(
+        rl.retryAfterSeconds / 60
+      )} minute${rl.retryAfterSeconds >= 120 ? 's' : ''}.`;
+    } else {
+      const submittedEmail = String(formData.get('email') ?? '').trim();
+      emailEcho = submittedEmail;
+
+      const Schema = z.object({
+        email: z
+          .email('That doesn’t look like a valid email address.')
+          .min(3, 'Enter your email address.')
+          .max(254, 'That email is too long.'),
+      });
+
+      const parsed = Schema.safeParse({ email: submittedEmail });
+
+      if (!parsed.success) {
+        formStatus = 'error';
+        formMessage = parsed.error.issues[0]?.message ?? 'Invalid email.';
+      } else {
+        // Honeypot: if the hidden `website` field is set, treat as a bot.
+        // We pretend it succeeded (don't tip our hand).
+        const honey = String(formData.get('website') ?? '');
+        if (honey.length > 0) {
+          formStatus = 'sent';
+          formMessage = null;
+        } else {
+          const redirectBase = 'https://csa.tinyseedfarm.com';
+          const emailRedirectTo = `${redirectBase}/auth/callback?next=${encodeURIComponent(
+            nextPath
+          )}`;
+
+          const { error } = await Astro.locals.supabase.auth.signInWithOtp({
+            email: parsed.data.email,
+            options: {
+              emailRedirectTo,
+              // Don't auto-create auth.users entries for emails that
+              // aren't already members. Onboarding (Day 6) handles new
+              // accounts. Today, only existing members get a link.
+              shouldCreateUser: true,
+            },
+          });
+
+          if (error) {
+            // Log server-side, show generic message client-side.
+            console.error('[login] signInWithOtp failed:', error.message);
+            // Still show the same success copy (anti-enumeration).
+            // Supabase already rate-limits per email at 1/60s, so even a
+            // legitimately failing send (e.g. domain block) won't reveal
+            // whether the email exists.
+          }
+
+          formStatus = 'sent';
+          formMessage = null;
+        }
       }
     }
   }
@@ -159,7 +252,7 @@ if (Astro.request.method === 'POST') {
         Welcome back
       </h1>
       <p class="mt-3 text-base leading-relaxed text-ts-text-secondary">
-        We'll email you a one-time link to sign in. No password required.
+        We'll email you a one-time code and a sign-in link. No password required.
       </p>
     </header>
 
@@ -183,20 +276,84 @@ if (Astro.request.method === 'POST') {
             Check your email
           </h2>
           <p class="mt-2 text-base leading-relaxed text-ts-text-secondary">
-            If the address you entered is registered with Tiny Seed Farm,
-            we've sent you a one-time sign-in link. It expires in 1 hour.
-          </p>
-          <p class="mt-4 text-sm text-ts-text-muted">
-            Didn't get the email? Check spam, or
-            <a
-              href="/login"
-              class="font-medium text-ts-primary underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
-            >
-              try again
-            </a>
-            .
+            If that address is registered, we've emailed you a 6-digit code
+            and a sign-in link. Both expire in 1 hour.
           </p>
         </div>
+
+        {/* ─────────────────────────────────────────────────────────────
+            6-DIGIT CODE ENTRY — the iPhone fix.
+            On iPhone, tapping the link from the Mail/Gmail app opens an
+            in-app browser that can't complete the PKCE exchange (separate
+            cookie jar from Safari). Typing the code works on any device.
+            ───────────────────────────────────────────────────────────── */}
+        <form
+          method="POST"
+          action="/login"
+          class="mt-6 flex flex-col gap-3 border-t border-ts-primary/20 pt-6"
+          novalidate
+        >
+          <label
+            for="code"
+            class="text-sm font-medium text-ts-text"
+          >
+            Or enter the 6-digit code from the email:
+          </label>
+
+          {/* Inline error: code wrong/expired or too many attempts.
+              We stay on the success state so this form stays visible. */}
+          {codeError && (
+            <div
+              role="alert"
+              class="rounded-ts-lg border border-ts-danger/30 bg-ts-danger/5 px-4 py-3 text-left text-sm leading-relaxed text-ts-danger"
+            >
+              {codeError}
+            </div>
+          )}
+
+          <input
+            id="code"
+            name="code"
+            type="text"
+            inputmode="numeric"
+            autocomplete="one-time-code"
+            pattern="[0-9]{6}"
+            maxlength="6"
+            minlength="6"
+            required
+            autofocus
+            placeholder="••••••"
+            aria-describedby="code-help"
+            class="w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-center text-2xl font-semibold tracking-[0.5em] text-ts-text placeholder:tracking-[0.4em] placeholder:text-ts-text-muted shadow-inner transition-colors duration-150 focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30"
+          />
+          <p id="code-help" class="text-xs text-ts-text-muted">
+            Best on iPhone — your keyboard may offer to fill the code for you.
+          </p>
+
+          {/* Carry the email + next path + mode discriminator so the POST
+              handler knows this is a code verification, not a link request. */}
+          <input type="hidden" name="email" value={emailEcho} />
+          <input type="hidden" name="next" value={nextPath} />
+          <input type="hidden" name="mode" value="verify_code" />
+
+          <button
+            type="submit"
+            class="mt-1 inline-flex min-h-[44px] items-center justify-center rounded-ts-md bg-ts-primary px-5 py-3 text-base font-semibold text-white shadow-ts-sm transition-all duration-150 hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+          >
+            Verify code
+          </button>
+        </form>
+
+        <p class="mt-6 text-center text-sm text-ts-text-muted">
+          Didn't get the email? Check spam, or
+          <a
+            href="/login"
+            class="font-medium text-ts-primary underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+          >
+            try again
+          </a>
+          .
+        </p>
       </section>
     ) : (
       <>

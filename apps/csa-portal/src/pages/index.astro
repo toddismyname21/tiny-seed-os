@@ -90,6 +90,27 @@ const description =
               Email Todd
             </a>
           </div>
+
+          {/* Anti-phishing reassurance — builds "this is legit" trust for
+              members wary of credential-stealing emails. */}
+          <p class="mt-3 text-sm leading-relaxed text-ts-text-muted">
+            We'll email you a secure sign-in code —
+            Tiny Seed will never ask for your password.
+          </p>
+
+          {/* Escape hatch for non-members. Returning members are the
+              priority, so this is a secondary link, not a button. The link
+              points at the Shopify CSA signup. */}
+          <p class="mt-4 border-t border-ts-border pt-4 text-sm text-ts-text-secondary">
+            Not a member yet?{' '}
+            <a
+              href="https://tinyseedfarm.com/collections/tiny-seed-farm-csa"
+              rel="noopener"
+              class="font-medium text-ts-primary underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+            >
+              Join the Tiny Seed CSA →
+            </a>
+          </p>
         </div>
       </div>
     </section>

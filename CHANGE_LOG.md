@@ -6,6 +6,30 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-05-20] CSA Auth — 6-digit code login (iPhone in-app-browser fix) + landing escape hatch & anti-phishing copy
+
+- Files: apps/csa-portal/src/pages/login.astro, apps/csa-portal/src/pages/index.astro
+- Role: fullstack-builder (delegated by PM_ARCHITECT)
+- Why (iPhone PKCE trap): The portal signs members in via Supabase magic-link with `flowType: 'pkce'`. Validated research finding: on iPhone, tapping the link inside the Mail/Gmail app opens an in-app browser with a SEPARATE cookie jar from Safari, so the PKCE `?code=` exchange in /auth/callback fails with "nonce does not match" — silently breaking login for our iPhone-heavy membership days before soft-launch. The fix (what Slack/Notion do) is an ADDITIONAL device-agnostic path: let the user type the 6-digit code. PM already configured the Supabase email template to include both `{{ .ConfirmationURL }}` and `{{ .Token }}` and pointed Supabase at Resend SMTP. This change is the FRONTEND code-entry path. The PKCE link path is untouched (desktop one-click still works); `src/lib/supabase.ts` flowType NOT changed.
+- What changed in login.astro:
+  1. Success state ("Check your email") now carries a 6-digit code form below the existing copy: numeric input + "Verify code" button. Input has `inputmode="numeric"`, `autocomplete="one-time-code"`, `pattern="[0-9]{6}"`, `maxlength/minlength=6`, centered/large, ≥44px tap target on the button, `aria-describedby` help text, and `autofocus` so the keyboard's OTP-fill suggestion surfaces immediately on iOS.
+  2. POST handler now branches on a hidden `mode` field. `mode === 'verify_code'`: same-origin CSRF check (REUSED existing `isSameOriginPost` + `PORTAL_ORIGIN` from src/lib/onboarding.ts — not reinvented), per-IP brute-force rate-limit (REUSED existing `rateLimit` from src/lib/rate-limit.ts, key `verify-code:${ip}`, max 8 / 15 min, separate bucket from link-send so neither path locks out the other), zod validation (exactly 6 digits via `/^\d{6}$/`), then `Astro.locals.supabase.auth.verifyOtp({ email, token, type: 'email' })` on the COOKIE-AWARE client so success writes the httpOnly session cookies via the `setAll` handler in supabase.ts. Success → `Astro.redirect(nextPath, 303)`. Failure → re-render the SUCCESS state (code form stays visible, hidden email field stays populated via emailEcho) with an inline `role="alert"`: "That code is incorrect or has expired. Check the most recent email, or request a new link below." A new `codeError` state var is rendered separately from the top-level `formMessage` so the success view is preserved on a bad code.
+  3. Default branch (email submit) is UNCHANGED: still `signInWithOtp`, still anti-enumeration (same copy regardless of membership), still honeypot, still the existing `magic-link:${ip}` IP rate-limit (5 / 15 min).
+  4. Copy updated to mention BOTH methods. Header subcopy: "We'll email you a one-time code and a sign-in link. No password required." Success intro: "If that address is registered, we've emailed you a 6-digit code and a sign-in link. Both expire in 1 hour." Kept the "Didn't get it? Check spam, or try again" line, SMS-coming-soon + Email-Todd links, and footer.
+- What changed in index.astro (still ZERO database calls — no Supabase queries re-added):
+  1. Anti-phishing trust line near the Sign in CTA: "We'll email you a secure sign-in code — Tiny Seed will never ask for your password."
+  2. Non-member escape hatch below the buttons: "Not a member yet?" + secondary link "Join the Tiny Seed CSA →" → https://tinyseedfarm.com/collections/tiny-seed-farm-csa (Shopify signup), `rel="noopener"`, same tab. Styled as a secondary link, not a button (returning members are the priority).
+- Reused (not duplicated): `isSameOriginPost` + `PORTAL_ORIGIN` (src/lib/onboarding.ts) for CSRF; `rateLimit` + `clientIp` (src/lib/rate-limit.ts) for brute-force throttle.
+- Verification:
+  - `npx astro check` → 0 errors / 0 warnings / 7 hints across 88 files (all 7 hints pre-existing in OTHER files: admin/members/index.astro, onboarding/index.astro, onboarding/confirm.astro — none in the two changed files)
+  - `npm run build` → completed clean (only the pre-existing Node 25-vs-24 Vercel warning)
+  - `grep -n "verifyOtp\|one-time-code\|verify_code" src/pages/login.astro` → matches at lines 87, 137, 145 (verifyOtp + handler branch), 319 (autocomplete="one-time-code"), 337 (hidden mode field)
+  - `grep -n "collections/tiny-seed-farm-csa\|never ask for your password" src/pages/index.astro` → both present (lines 98, 107)
+  - `grep -nc "supabaseAdmin\|count: 'exact'" src/pages/index.astro` → 0 (no business-data queries crept back in)
+- Deployed: `git push origin csa-migration` (working branch; triggers Vercel PREVIEW deploy). NOT promoted to production — PM handles production promotion after review.
+
+---
+
 ## [2026-05-20] CSA Landing Page — strip business data, sign-in-only public page (privacy)
 
 - File: apps/csa-portal/src/pages/index.astro (the public, logged-out landing at https://csa.tinyseedfarm.com)
