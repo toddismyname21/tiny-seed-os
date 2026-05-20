@@ -1,0 +1,206 @@
+---
+/**
+ * ContactFarm — reusable "get in touch" affordance that ALWAYS works,
+ * even when the device has no mail client configured.
+ *
+ * The problem it solves: bare `mailto:` links silently do nothing on
+ * phones/computers without a default mail app (a common iPhone-first
+ * member complaint). This component shows the email address as visible,
+ * selectable text with a Copy button (clipboard + graceful fallback),
+ * AND keeps a `mailto:` link for users who do have mail set up.
+ *
+ * Tones:
+ *   - 'card'    Bordered surface panel — for standalone "Contact the farm"
+ *               sections / empty-state CTAs. Default.
+ *   - 'inline'  Compact, borderless — for sitting inside an existing card
+ *               or paragraph (e.g. the account "Email Todd" line).
+ *
+ * Props:
+ *   - subject?  Pre-fills the mailto subject (URL-encoded for you).
+ *   - label?    Visible heading/label. Default "Contact the farm".
+ *   - tone?     'card' | 'inline'. Default 'card'.
+ *
+ * Accessibility:
+ *   - Copy button: 44px tap target, descriptive aria-label, keyboard
+ *     operable, and a polite aria-live region announces "Copied!".
+ *   - If `navigator.clipboard` is unavailable (older browsers, insecure
+ *     context), the button falls back to selecting the email text and the
+ *     status reads "Press Cmd/Ctrl+C to copy".
+ *   - The email is rendered as real, selectable text so a member can
+ *     always copy it by hand regardless of JS.
+ *
+ * The script is scoped per-instance via a unique data-id, so multiple
+ * <ContactFarm> on one page never cross-wire.
+ */
+const EMAIL = 'todd@tinyseedfarmpgh.com';
+
+interface Props {
+  subject?: string;
+  label?: string;
+  tone?: 'card' | 'inline';
+}
+
+const { subject, label = 'Contact the farm', tone = 'card' } = Astro.props as Props;
+
+const mailtoHref = subject
+  ? `mailto:${EMAIL}?subject=${encodeURIComponent(subject)}`
+  : `mailto:${EMAIL}`;
+
+// Unique per instance so the inline <script> only touches its own DOM.
+const uid = `cf-${Math.random().toString(36).slice(2, 10)}`;
+
+const isCard = tone === 'card';
+---
+
+<div
+  data-contact-farm={uid}
+  class:list={[
+    isCard
+      ? 'rounded-ts-xl border border-ts-border bg-ts-bg-surface p-5 shadow-ts-sm sm:p-6'
+      : 'rounded-ts-lg',
+  ]}
+>
+  {isCard && (
+    <div class="flex items-start gap-3">
+      <span
+        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ts-primary/10 text-xl"
+        aria-hidden="true"
+      >
+        ✉️
+      </span>
+      <div class="min-w-0 flex-1">
+        <h3 class="font-display text-base font-semibold text-ts-text">{label}</h3>
+        <p class="mt-1 text-sm leading-relaxed text-ts-text-secondary">
+          Email Todd directly — he answers personally.
+        </p>
+      </div>
+    </div>
+  )}
+
+  <div class:list={[isCard ? 'mt-4' : '']}>
+    {!isCard && (
+      <p class="text-sm text-ts-text-secondary">{label}</p>
+    )}
+
+    {/* Email + Copy: stacks on mobile, sits inline on wider screens. */}
+    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+      <span
+        data-cf-email
+        class="min-w-0 flex-1 truncate rounded-ts-md border border-ts-border bg-ts-bg-muted/50 px-3 py-2.5 font-mono text-sm text-ts-text select-all"
+        title={EMAIL}
+      >
+        {EMAIL}
+      </span>
+
+      <div class="flex shrink-0 gap-2">
+        <button
+          type="button"
+          data-cf-copy
+          aria-label={`Copy email address ${EMAIL} to clipboard`}
+          class="inline-flex h-11 min-w-[88px] items-center justify-center gap-1.5 rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-semibold text-ts-text shadow-ts-sm transition-all duration-150 ease-[var(--ease-ts)] hover:border-ts-primary/40 hover:text-ts-primary active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary [touch-action:manipulation]"
+        >
+          <span data-cf-copy-icon aria-hidden="true">⧉</span>
+          <span data-cf-copy-label>Copy</span>
+        </button>
+
+        <a
+          href={mailtoHref}
+          data-cf-mailto
+          class="inline-flex h-11 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm transition-all duration-150 ease-[var(--ease-ts)] hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary [touch-action:manipulation]"
+        >
+          Email
+        </a>
+      </div>
+    </div>
+
+    {/* Polite live region — announces the copy result to screen readers. */}
+    <p
+      data-cf-status
+      role="status"
+      aria-live="polite"
+      class="mt-2 h-4 text-xs font-medium text-ts-primary"
+    ></p>
+  </div>
+</div>
+
+<script>
+  // Wire every ContactFarm instance independently. Each root carries a
+  // unique data-contact-farm id; we scope all queries to that root so
+  // multiple instances on one page don't collide.
+  const roots = document.querySelectorAll<HTMLElement>('[data-contact-farm]');
+  roots.forEach((root) => {
+    const emailEl = root.querySelector<HTMLElement>('[data-cf-email]');
+    const copyBtn = root.querySelector<HTMLButtonElement>('[data-cf-copy]');
+    const copyLabel = root.querySelector<HTMLElement>('[data-cf-copy-label]');
+    const copyIcon = root.querySelector<HTMLElement>('[data-cf-copy-icon]');
+    const statusEl = root.querySelector<HTMLElement>('[data-cf-status]');
+    if (!emailEl || !copyBtn || !copyLabel || !statusEl) return;
+
+    const email = (emailEl.textContent || '').trim();
+    let resetTimer: ReturnType<typeof setTimeout> | null = null;
+
+    function selectEmailText(): void {
+      // Fallback path: select the visible email so the user can hit
+      // Cmd/Ctrl+C even when the Clipboard API is unavailable.
+      const range = document.createRange();
+      range.selectNodeContents(emailEl!);
+      const sel = window.getSelection();
+      sel?.removeAllRanges();
+      sel?.addRange(range);
+    }
+
+    function showCopied(): void {
+      copyLabel!.textContent = 'Copied!';
+      if (copyIcon) copyIcon.textContent = '✓';
+      statusEl!.textContent = 'Email address copied to clipboard.';
+      copyBtn!.classList.add('border-ts-primary/50', 'text-ts-primary');
+      scheduleReset();
+    }
+
+    function showSelectFallback(): void {
+      selectEmailText();
+      statusEl!.textContent =
+        'Email selected — press Cmd/Ctrl+C to copy, or tap Email to open your mail app.';
+    }
+
+    function scheduleReset(): void {
+      if (resetTimer) clearTimeout(resetTimer);
+      resetTimer = setTimeout(() => {
+        copyLabel!.textContent = 'Copy';
+        if (copyIcon) copyIcon.textContent = '⧉';
+        statusEl!.textContent = '';
+        copyBtn!.classList.remove('border-ts-primary/50', 'text-ts-primary');
+      }, 2400);
+    }
+
+    copyBtn.addEventListener('click', async () => {
+      // Prefer the async Clipboard API (requires a secure context).
+      if (navigator.clipboard && window.isSecureContext) {
+        try {
+          await navigator.clipboard.writeText(email);
+          showCopied();
+          return;
+        } catch {
+          // Permission denied / not allowed — fall through to selection.
+        }
+      }
+      // Legacy fallback: try execCommand('copy') after selecting. This
+      // API is deprecated (hence the TS deprecation hint) but it remains
+      // the only copy mechanism in non-secure contexts / older browsers
+      // where navigator.clipboard is absent — exactly the case we're
+      // guarding against here.
+      try {
+        selectEmailText();
+        const ok = document.execCommand && document.execCommand('copy');
+        if (ok) {
+          showCopied();
+          window.getSelection()?.removeAllRanges();
+          return;
+        }
+      } catch {
+        // ignore — drop to manual-select guidance below.
+      }
+      showSelectFallback();
+    });
+  });
+</script>

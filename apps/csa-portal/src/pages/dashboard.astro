@@ -26,12 +26,22 @@ import { supabaseAdmin } from '../lib/supabase';
 import EmptyState from '../components/EmptyState.astro';
 import Button from '../components/Button.astro';
 import Badge from '../components/Badge.astro';
+import ContactFarm from '../components/ContactFarm.astro';
 import DeliveryTracker from '../components/DeliveryTracker.astro';
 import {
   shouldShowTracker,
   fetchDeliveryStatus,
   type DeliveryStatus,
 } from '../lib/delivery';
+import {
+  getSchedule,
+  seasonPhase,
+  daysUntilStart,
+  currentWeekNumber,
+  firstDeliveryPretty,
+  type SeasonSchedule,
+  type SeasonPhase,
+} from '../lib/season';
 
 const user = Astro.locals.user;
 const supabase = Astro.locals.supabase;
@@ -171,6 +181,59 @@ const firstName = (customer?.contact_name ?? user.email!.split('@')[0])
   .split(/\s+/)[0];
 
 // ─────────────────────────────────────────────────────────────────────
+// Season awareness (2026-05-20). Among the member's active shares, pick
+// the controlling schedule: the one whose share_type HAS a configured
+// SEASON_SCHEDULE and the EARLIEST firstDelivery. That share's phase
+// drives the dashboard's "this week's box" section:
+//
+//   before    → countdown banner, NO box query (kills the false
+//               "box for <next Wednesday>" message before the season).
+//   active    → existing box behavior (query box_contents for the
+//               upcoming Wednesday) + a "Week N of TOTAL" label.
+//   complete  → "that's a wrap" card, NO box query.
+//
+// If NO active share has a configured schedule (e.g. a flower-only member
+// while flower is still TBD), we fall back to the legacy always-on box
+// behavior so non-summer members are completely unaffected.
+// ─────────────────────────────────────────────────────────────────────
+let controllingSchedule: SeasonSchedule | null = null;
+for (const s of activeShares) {
+  const sched = getSchedule(s.share_type);
+  if (!sched) continue;
+  if (
+    !controllingSchedule ||
+    sched.firstDelivery < controllingSchedule.firstDelivery
+  ) {
+    controllingSchedule = sched;
+  }
+}
+
+// Phase drives the box section. With no configured schedule we behave as
+// if the season is 'active' (legacy always-show-box behavior).
+const phase: SeasonPhase = controllingSchedule
+  ? seasonPhase(controllingSchedule)
+  : 'active';
+
+const daysToStart = controllingSchedule ? daysUntilStart(controllingSchedule) : 0;
+const seasonWeekNumber = controllingSchedule
+  ? currentWeekNumber(controllingSchedule)
+  : 0;
+const firstDeliveryLabel = controllingSchedule
+  ? firstDeliveryPretty(controllingSchedule)
+  : '';
+
+// "N days until Week One" copy. 0 → "starts today", 1 → "1 day".
+const countdownHeadline =
+  daysToStart === 0
+    ? 'Your CSA starts today!'
+    : daysToStart === 1
+      ? '1 day until Week One'
+      : `${daysToStart} days until Week One`;
+
+// Only query + render the box during the active phase.
+const showBoxSection = phase === 'active';
+
+// ─────────────────────────────────────────────────────────────────────
 // Delivery tracker gate (Day 9). Show <DeliveryTracker> at the TOP of
 // the dashboard ONLY when:
 //   1. The member has an ACTIVE share (paused/onboarding don't qualify).
@@ -229,7 +292,9 @@ type BoxItem = {
 const userShareTypes = Array.from(new Set(activeShares.map((s) => s.share_type)));
 
 let boxItems: BoxItem[] = [];
-if (userShareTypes.length > 0) {
+// Skip the box query entirely outside the active phase — before the
+// season there's no box to plan; after it the season is done.
+if (showBoxSection && userShareTypes.length > 0) {
   const { data: boxRows, error: boxError } = await supabaseAdmin
     .from('box_contents')
     .select('share_type, product_name, variety, quantity, unit, is_swappable')
@@ -359,6 +424,40 @@ const title = `Welcome back, ${firstName} — Tiny Seed Farm CSA`;
       id="main"
       class="mx-auto flex w-full max-w-3xl flex-col gap-8 px-5 py-8 sm:gap-10 sm:px-6 sm:py-12"
     >
+      {/* ═════════════════════════════════════════════════════════════
+          WEEK-ONE COUNTDOWN (2026-05-20)
+          Shown only in the 'before' phase, for members whose controlling
+          share has a configured season schedule. Pinned to the very top
+          so it's the first thing a member sees before the season starts.
+          ═════════════════════════════════════════════════════════════ */}
+      {customer && activeShares.length > 0 && phase === 'before' && controllingSchedule && (
+        <section
+          role="status"
+          aria-live="polite"
+          class="overflow-hidden rounded-ts-xl border border-ts-primary/30 bg-ts-primary/5 p-5 shadow-ts-sm sm:p-6"
+          data-countdown-banner
+        >
+          <div class="flex items-center gap-4">
+            <span
+              class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-ts-primary/15 text-2xl"
+              aria-hidden="true"
+            >
+              🌱
+            </span>
+            <div class="min-w-0 flex-1">
+              <p class="font-display text-xl font-bold tracking-tight text-ts-text sm:text-2xl">
+                {countdownHeadline}
+              </p>
+              <p class="mt-1 text-sm leading-relaxed text-ts-text-secondary">
+                {daysToStart === 0
+                  ? <>Your first box arrives today — {firstDeliveryLabel}.</>
+                  : <>Your first box arrives {firstDeliveryLabel}.</>}
+              </p>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* ═════════════════════════════════════════════════════════════
           DELIVERY TRACKER (Day 9 — Phase 1 Apps Script bridge)
           Only renders on pickup days for active members whose pickup
@@ -631,14 +730,44 @@ const title = `Welcome back, ${firstName} — Tiny Seed Farm CSA`;
       )}
 
       {/* ═════════════════════════════════════════════════════════════
-          THIS WEEK'S BOX
+          SEASON COMPLETE (phase 'complete') — replaces the box section
           ═════════════════════════════════════════════════════════════ */}
-      {customer && activeShares.length > 0 && (
+      {customer && activeShares.length > 0 && phase === 'complete' && (
+        <section aria-labelledby="season-done-heading" class="flex flex-col gap-4">
+          <div
+            class="rounded-ts-xl border border-ts-primary/30 bg-ts-primary/5 p-6 text-center shadow-ts-sm sm:p-8"
+          >
+            <span class="text-4xl" aria-hidden="true">🌾</span>
+            <h2
+              id="season-done-heading"
+              class="mt-3 font-display text-xl font-bold text-ts-text sm:text-2xl"
+            >
+              That's a wrap on the 2026 season — thank you!
+            </h2>
+            <p class="mx-auto mt-2 max-w-md text-sm leading-relaxed text-ts-text-secondary">
+              It was a joy growing for you. We'll be in touch about next season —
+              keep an eye on your inbox.
+            </p>
+          </div>
+        </section>
+      )}
+
+      {/* ═════════════════════════════════════════════════════════════
+          THIS WEEK'S BOX (phase 'active' only)
+          ═════════════════════════════════════════════════════════════ */}
+      {customer && activeShares.length > 0 && showBoxSection && (
         <section aria-labelledby="box-heading" class="flex flex-col gap-4">
           <div class="flex items-baseline justify-between gap-4">
-            <h2 id="box-heading" class="font-display text-xl font-bold text-ts-text sm:text-2xl">
-              This week's box
-            </h2>
+            <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+              <h2 id="box-heading" class="font-display text-xl font-bold text-ts-text sm:text-2xl">
+                This week's box
+              </h2>
+              {controllingSchedule && seasonWeekNumber > 0 && (
+                <span class="text-sm font-medium text-ts-text-muted">
+                  Week {seasonWeekNumber} of {controllingSchedule.totalWeeks}
+                </span>
+              )}
+            </div>
             <span class="text-sm text-ts-text-muted tabular-nums">{targetWeekPretty}</span>
           </div>
 
@@ -709,9 +838,9 @@ const title = `Welcome back, ${firstName} — Tiny Seed Farm CSA`;
           QUICK ACTIONS
           ═════════════════════════════════════════════════════════════ */}
       {customer && activeShares.length > 0 && (
-        <section aria-labelledby="actions-heading">
+        <section aria-labelledby="actions-heading" class="flex flex-col gap-3">
           <h2 id="actions-heading" class="sr-only">Quick actions</h2>
-          <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <a
               href="/account/vacation"
               class="group flex flex-col items-start gap-2 rounded-ts-xl border border-ts-border bg-ts-bg-surface p-5 shadow-ts-sm transition-all duration-200 hover:border-ts-primary/40 hover:shadow-ts-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
@@ -732,17 +861,10 @@ const title = `Welcome back, ${firstName} — Tiny Seed Farm CSA`;
                 Tell us what you don't eat — we'll never put it in your box.
               </span>
             </a>
-            <a
-              href="mailto:todd@tinyseedfarmpgh.com?subject=CSA%20question"
-              class="group flex flex-col items-start gap-2 rounded-ts-xl border border-ts-border bg-ts-bg-surface p-5 shadow-ts-sm transition-all duration-200 hover:border-ts-primary/40 hover:shadow-ts-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
-            >
-              <span class="text-2xl" aria-hidden="true">✉️</span>
-              <span class="font-semibold text-ts-text">Contact the farm</span>
-              <span class="text-sm leading-snug text-ts-text-secondary">
-                Email Todd directly. He answers personally.
-              </span>
-            </a>
           </div>
+
+          {/* Contact: copyable email + mailto (always works without a mail app). */}
+          <ContactFarm subject="CSA question" />
         </section>
       )}
 

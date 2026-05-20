@@ -14,6 +14,7 @@ import Card from '../../../components/Card.astro';
 import EmptyState from '../../../components/EmptyState.astro';
 import DateRangePicker from '../../../components/DateRangePicker.astro';
 import FormRow from '../../../components/FormRow.astro';
+import ContactFarm from '../../../components/ContactFarm.astro';
 import { todayET, VACATION_ERROR_COPY } from '../../../lib/account';
 
 const user = Astro.locals.user;
@@ -154,15 +155,18 @@ const SHARE_TYPE_LABELS: Record<string, string> = {
           </Fragment>
         </EmptyState>
       ) : totalAvailable === 0 ? (
-        <EmptyState title="No vacation weeks left this season" icon="🏖️" tone="warning" dashed={false}>
-          You've used all {primary.total_weeks} of your vacation weeks. If you need to make a change, please email us.
-          <Fragment slot="action">
-            <Button href="mailto:todd@tinyseedfarmpgh.com?subject=Vacation%20hold%20question" variant="primary" size="md">
-              Email Todd
-            </Button>
-            <Button href="/account/vacation" variant="secondary" size="md">Back</Button>
-          </Fragment>
-        </EmptyState>
+        <>
+          <EmptyState title="No vacation weeks left this season" icon="🏖️" tone="warning" dashed={false}>
+            You've used all {primary.total_weeks} of your vacation weeks. If you need to make a change, please email us.
+            <Fragment slot="action">
+              <Button href="/account/vacation" variant="secondary" size="md">Back</Button>
+            </Fragment>
+          </EmptyState>
+          <ContactFarm
+            label="Email Todd about your vacation holds"
+            subject="Vacation hold question"
+          />
+        </>
       ) : (
         <>
           {/* CONTEXT */}

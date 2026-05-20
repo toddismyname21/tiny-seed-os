@@ -16,6 +16,7 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Badge from '../../components/Badge.astro';
 import Card from '../../components/Card.astro';
+import ContactFarm from '../../components/ContactFarm.astro';
 
 const user = Astro.locals.user;
 if (!user || !user.email) {
@@ -250,16 +251,15 @@ const biweeklySummary: string = (() => {
           )}
         </dl>
         <p class="mt-4 text-xs text-ts-text-muted">
-          Need to update your name or email?
-          {' '}
-          <a
-            href="mailto:todd@tinyseedfarmpgh.com?subject=Update%20account%20info"
-            class="font-medium text-ts-primary underline-offset-2 hover:underline"
-          >
-            Email Todd
-          </a>
-          {' '}— he'll handle it personally.
+          Need to update your name or email? Todd will handle it personally.
         </p>
+        <div class="mt-3">
+          <ContactFarm
+            tone="inline"
+            label="Email Todd to update your info"
+            subject="Update account info"
+          />
+        </div>
       </Card>
 
       {/* CARDS */}

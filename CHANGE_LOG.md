@@ -6,6 +6,37 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-05-20] CSA dashboard — Week-1 countdown + season-aware box (June 10, 18wk) + copyable contact fix
+
+- Files: apps/csa-portal/src/lib/season.ts (NEW), apps/csa-portal/src/lib/season.test.ts (NEW), apps/csa-portal/src/components/ContactFarm.astro (NEW), apps/csa-portal/src/pages/dashboard.astro, apps/csa-portal/src/pages/account/index.astro, apps/csa-portal/src/pages/account/vacation/new.astro
+- Role: fullstack-builder (delegated by PM_ARCHITECT)
+- Why (three member-facing fixes):
+  1. False "box for 5/20" message — the 2026 summer CSA season doesn't start until Wed June 10, but the dashboard always computed `targetWeek = upcomingWednesday()` and rendered "Your box for <next Wednesday> is being planned." Before the season that's wrong and confusing.
+  2. Member-requested Week-One countdown — members want to see how long until their first box.
+  3. mailto-does-nothing contact bug — bare `mailto:` links silently do nothing on devices (iPhone-heavy membership) with no configured mail app, so members couldn't reach Todd.
+- CHANGE 1 — season.ts (new, data-driven season module):
+  - `SEASON_SCHEDULE` keyed by share_type; only `summer_veg: { firstDelivery: '2026-06-10', totalWeeks: 18 }` configured (others TBD — owner adds with no code changes elsewhere).
+  - Pure helpers, all computed in America/New_York via noon-UTC date anchoring (DST-safe, no UTC off-by-one): `getSchedule`, `seasonPhase` (before/active/complete; active window extends 6 days past the final Wednesday so the last delivery week stays "active"), `daysUntilStart` (0 on the day), `currentWeekNumber` (1-based, clamped 1..totalWeeks), `firstDeliveryPretty` ("Wednesday, June 10"), plus `lastDelivery`.
+  - season.test.ts: 19 tsx unit tests covering before/active/complete boundaries (June 9 / June 10 / Oct 7 / Oct 13 / Oct 14), day-0 edge, the exact June-10 start, and week-number math at week 1 / mid (Aug 5 = wk 9) / 18, plus clamping. ALL 19 PASS.
+- CHANGE 2 — dashboard.astro (season-aware):
+  - Picks the controlling schedule = the active share whose share_type HAS a SEASON_SCHEDULE and the EARLIEST firstDelivery. No configured schedule → falls back to legacy always-show-box behavior (non-summer members unaffected).
+  - Phase 'before': prominent countdown banner pinned to the TOP (🌱 + "[N] days until Week One" / "1 day" / "Your CSA starts today!", sub-line "Your first box arrives Wednesday, June 10", aria-live polite, primary tone, design tokens). Box query + section SKIPPED entirely (kills the false 5/20 message).
+  - Phase 'active': existing box behavior preserved + a "Week N of 18" label by the heading.
+  - Phase 'complete': "That's a wrap on the 2026 season — thank you! 🌾" card, no box query.
+  - Delivery tracker logic untouched; no-active-share empty state + multi-share rendering untouched.
+- CHANGE 3 — ContactFarm.astro (new reusable component) + 3 CTA replacements:
+  - Shows todd@tinyseedfarmpgh.com as visible, selectable text + a Copy button (navigator.clipboard with execCommand + manual-select fallbacks, "Copied!" announced via aria-live polite) + a mailto link (optional `subject` prop) for users who do have mail set up. Props: `subject?`, `label?`, `tone? 'card'|'inline'`. 44px tap targets, keyboard operable, per-instance scoped script (data-id) so multiple instances never cross-wire.
+  - Replaced bare-mailto CTAs in: dashboard.astro (✉️ "Contact the farm" quick-action — grid reflowed 3-col → 2-col + ContactFarm below), account/index.astro ("Email Todd" → inline ContactFarm), account/vacation/new.astro (no-weeks-left empty-state "Email Todd" button → ContactFarm below the EmptyState).
+  - Left AS-IS per scope: DeliveryTracker + login.astro mailtos, dashboard admin-only-banner + no-active-share mailtos, landing page.
+- Verification:
+  - `npx tsx src/lib/season.test.ts` → 19 passed, 0 failed
+  - `npx astro check` → 0 errors / 0 warnings / 9 hints across 91 files (7 hints pre-existing in untouched files; 2 are intentional execCommand-deprecation hints on ContactFarm's documented fallback path)
+  - `npm run build` → completed clean (only the pre-existing Node 25-vs-24 Vercel warning)
+  - `grep -n "SEASON_SCHEDULE|daysUntilStart|Week One" src/pages/dashboard.astro` → countdown wired (import line 39, use line 217, copy lines 230-231)
+  - `grep -rn "ContactFarm" src/pages` → 3 page replacements confirmed (dashboard, account/index, account/vacation/new)
+  - account/index.astro + account/vacation/new.astro → 0 remaining `mailto:` (both replaced); dashboard retains only the 2 out-of-scope mailtos (admin banner, no-share empty state)
+- Deployed: `git push origin csa-migration` (working branch; triggers Vercel PREVIEW deploy). NOT promoted to production — PM handles production promotion after review.
+
 ## [2026-05-20] CSA dashboard — fix vacation/preferences quick-action 404s (Day-5 placeholder links never updated to /account/* routes)
 
 - Files: apps/csa-portal/src/pages/dashboard.astro
