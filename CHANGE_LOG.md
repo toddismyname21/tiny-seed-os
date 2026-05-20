@@ -6,6 +6,27 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-05-20] CSA Landing Page — strip business data, sign-in-only public page (privacy)
+
+- File: apps/csa-portal/src/pages/index.astro (the public, logged-out landing at https://csa.tinyseedfarm.com)
+- Role: fullstack-builder (delegated by PM_ARCHITECT)
+- Why (privacy): The Day-2 proof-of-concept landing page was rendering internal business data to ANY logged-out visitor — active member count, the full pickup-location list (names/cities/days/times), and the current week's box contents. These were leftover from proving the Supabase pipeline worked end-to-end and were never meant to ship publicly. Todd asked for it reduced to a clean sign-in page with no business-data leak.
+- What was removed:
+  1. The "LIVE STATS" section — two stat cards (activeMemberCount "Active members", activeLocationCount "Pickup locations").
+  2. The "PICKUP LOCATIONS LIST" section — full list of active pickup locations with names, cities, days, and time ranges.
+  3. The "THIS WEEK'S BOX" section — box_contents list for the upcoming Wednesday.
+  4. All now-dead frontmatter: the `import { supabaseAdmin }`, the `Promise.all([...])` block with the three Supabase queries (activeMembersRes, pickupLocationsRes, boxContentsRes), the error-logging `if` blocks, the extraction consts (activeMemberCount, pickupLocations, activeLocationCount, boxContents), the `PickupLocationCard` + `BoxItemCard` type defs, the `upcomingWednesday()` fn + targetWeek + targetWeekPretty, and the `formatTimeRange()` fn + dayOrder + dayLong + sortedLocations.
+  5. Rewrote the `description` const so it no longer embeds the member/location counts — now a static string ("Sign in to your Tiny Seed Farm CSA member account to manage your weekly share, customize your box, and schedule vacation holds.").
+- What was kept (markup untouched, still renders): HERO header, STATUS BANNER (Sign in button → /login + Email Todd link), FOOTER (farm address, Certified Organic, Astro/Supabase/Vercel credits). All Tailwind design tokens and accessibility attributes preserved on kept elements.
+- Result: frontmatter is now just `import BaseLayout` + the static `description` const + the inline `title` prop. The page makes ZERO database calls. No new data fetching, no demo/sample data added.
+- Verification:
+  - `npx astro check` → 0 errors / 0 warnings / 7 hints across 88 files (all hints + the few ts(6133)/ts(6385) warnings are pre-existing in OTHER files: admin/members/index.astro, onboarding/index.astro, onboarding/confirm.astro — none in pages/index.astro)
+  - `npm run build` → completed clean (only the pre-existing Node 25-vs-24 Vercel warning)
+  - `grep -n "supabaseAdmin\|activeMemberCount\|pickupLocations\|boxContents\|upcomingWednesday\|formatTimeRange" apps/csa-portal/src/pages/index.astro` → ZERO matches (exit code 1)
+- Deployed: `git push origin csa-migration` (working branch; Vercel auto-deploys a preview, production aliased to csa.tinyseedfarm.com)
+
+---
+
 ## [2026-05-11] CSA Portal Day 9 — Delivery Tracking V2 (native Supabase + Realtime)
 
 - Files (NEW): supabase/migrations/0019_delivery_tracking.sql, scripts/migrate-csa/run_migration.py, apps/csa-portal/src/pages/api/delivery/today.ts, apps/csa-portal/src/pages/api/admin/route/index.ts, apps/csa-portal/src/pages/api/admin/route/[id]/start.ts, apps/csa-portal/src/pages/api/admin/route/[id]/stops/[stopId]/status.ts, apps/csa-portal/src/pages/api/admin/route/[id]/stops/[stopId]/proof.ts, apps/csa-portal/src/pages/admin/route/index.astro, apps/csa-portal/src/pages/admin/route/[id].astro
@@ -51,6 +72,76 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
   - [✓] 13. Self-pickup-farm members never see widget — `isFarmPickup` returns true for Rochester/farm name pattern
 - Deployed: pending Vercel deploy (`git push origin main` → auto-deploy + manual Vercel API trigger if needed)
 - Out of scope per spec: driver-specific auth + RLS (Todd uses admin role today), multi-driver route splitting, Google Maps ETA, push notifications/PWA, live GPS map embed, "leave at door" notes, direct driver chat, wholesale customer adoption (folds in with the wholesale migration).
+
+---
+
+## [2026-05-13] CSA Member Migration — 19 missed member rows recovered (home delivery + ADD ON case-sensitivity)
+
+- Files: none — database operation via Supabase Management API (SQL captured in this log entry for reversibility)
+- Role: PM_ARCHITECT (executed directly after Todd authorization: "Migrate the home delivery and audit you have missed no other shares!")
+- Background: Routing system audit revealed 12 home delivery customers and 7 case-sensitivity-affected ADD ON line items had failed to migrate from Shopify into the Supabase `members` table. Root causes:
+  - Migration script `scripts/migrate-csa/sheets_to_supabase.py` `categorize_line_item()` function only recognized share titles containing `share` / `csa` / `vegetable` / `flower` / `bouquet` / `add-on` (with hyphen). "Home Delivery Options" titles didn't match any pattern.
+  - Same function checked `"add-on"` and `"addon"` but not `"add on"` (with space). All-caps variants like "2026 MUSHROOM CSA ADD ON (BIWEEKLY)" slipped through.
+- Total missed revenue: ~$7,315 (12 HD × $270-$990 avg + 7 ADD ON × $75-$95).
+- Operations executed (today, Wed 5/13):
+  1. **Home delivery migration** (12 rows): for each Shopify "2026 Home Delivery Options" line item, parsed the `variant_title` field to determine share_type + share_size (family/small/petite + weekly/biweekly). Created member rows with `pickup_location_id = NULL`, `delivery_address` from customer record, `status = 'active'`, `payment_status = 'paid'`, `start_date = 2026-06-01`, `end_date = 2026-10-03` (Summer season — no Spring home delivery per Todd's directive). Legacy IDs prefixed `HD-{order_num}-{ms}`.
+  2. **ADD ON case-sensitivity migration** (7 rows): for line items matching `'ADD ON' in title AND '2026' in title`, created `share_type='add_on'` rows with `share_size=NULL` (subtype goes in notes: mushroom/bread/cheese). Same Summer season.
+  3. **Missing customer record creation** (3 rows): Vito Cortese (vacproc@verizon.net), Marsha Haley (haleym@upmc.edu), Jackie Weaver-Agostoni (jackie.weaver@gmail.com) existed in Shopify but not in Supabase. Created with `customer_type='csa'` from Shopify customer data. Backfilled shipping address from `SHOPIFY_Orders.Shipping_Address` column where available.
+- Post-migration state:
+  - Total HD member rows in Supabase: **12** (was 0 specifically attributed to Shopify HD product)
+  - Total active members: 244 (was 225 pre-migration today)
+  - share_type counts: summer_veg=112 (+2), flower=41 (+2), add_on=32 (+7), spring_veg=31 (=), flex=28 (=)
+  - 3 home delivery members still need delivery_address from member via portal: Doug Holscher (TBD), Marsha Haley (NULL), Vito Cortese (NULL)
+- Reversibility: all changes INSERT only, with notes containing `'Home delivery migration 2026-05-13'` or `'ADD ON case-sensitivity migration 2026-05-13'`. Reversible via `UPDATE members SET status='inactive' WHERE notes ILIKE '%migration 2026-05-13%'`.
+- Outstanding: source migration script `sheets_to_supabase.py` still has the bug; next re-run would re-introduce duplicate rows OR re-skip these. Fix needed before any future migration re-runs.
+
+---
+
+## [2026-05-12] CSA Pickup Locations — populate addresses + host contacts from Todd's CSV
+
+- Files: supabase/migrations/0020_pickup_location_host_email.sql (NEW)
+- Role: PM_ARCHITECT (direct execution, decisions confirmed by Todd in session)
+- Background: Todd provided `CSA Host Contact Info - Sheet1.csv` with 20 host entries (11 confirmed YES, 9 pending/emailed). Existing Supabase pickup_locations had names but no addresses, host names, or contact info — making the data unusable for the admin route UI and member-facing display.
+- Operations executed:
+  1. **Schema migration 0020**: added `host_email text` column to pickup_locations
+  2. **Updated 9 existing Wed locations** with addresses + host contacts: Allison Park - Simons (address only, host not confirmed), Bloomfield (market venue address), Cranberry (Laurie Bittel), Fox Chapel (Whitney Gray + phone), Highland Park (Bryant St. Market), Mt. Lebanon (Lora Zemanek + phone), North Side (Ann/Mayfly with follow-up note), Squirrel Hill (Pete Cormas + Hannah backup), Rochester (Kretschmann Farm address)
+  3. **Marked Sewickley (CSA) Wed inactive** — no Wed Sewickley host confirmed in CSV. 0 members assigned, no impact.
+  4. **Inserted 4 new confirmed Wed locations**: Allison Park - St. Paul's UMC (Carla Porterfield), Harmony (Nancy Bergman), North Park (Heather Kitson), Zelienople (Tisha Konvolinkatm). All 4 are confirmed YES per CSV.
+  5. **Re-seeded Wed 2026-05-13 test route** to reflect new location set: now 12 stops in alpha order (was 9). Route id `c2c59422-54b9-408f-a2c9-0029dc359189`.
+- Active Wed pickup_locations now: 13 total (12 delivery zones + 1 self-pickup farm) — was 10
+- Impact on the 163 NULL-pickup active members: 4 new pickup choices unblock specific clusters when those members log in — particularly Zelienople (11 members from that city), North Park (9 Glenshaw + 3 Gibsonia + 4 Allison Park), Harmony (5 members from that city), Allison Park St. Paul's (alt to Simons).
+- Outstanding follow-ups (queued, not blocking):
+  - Simon's Farm Stand host name still TBD — Todd to confirm with Dan
+  - Mayfly / North Side — Todd to convince Ann
+  - Schema gap: pickup_locations has no `updated_at` column (only `created_at`); skipping for now, can add via trigger later if needed
+  - apps/csa-portal/src/lib/database.types.ts not regenerated — host_email field works at SQL level but TS types don't know about it yet (not blocking, regenerate via Supabase CLI later)
+
+---
+
+## [2026-05-11] CSA Member Data — Tier 1 cleanup (test data + webhook duplicates)
+
+- Files: none — pure database operation via Supabase Management API
+- Role: PM_ARCHITECT (executed directly after Todd approval; SQL captured in this log entry for reversibility)
+- Background: Audit of 230 active members with NULL pickup_location revealed 174 primary share rows representing only 111 unique customers — meaning ~63 rows were duplicates from Shopify webhook double-fires recorded in the source CSA_Members sheet, plus 5 test purchases under freetodd21@gmail.com (confirmed test by Todd).
+- Operations executed:
+  1. **Test data cleanup** (freetodd21@gmail.com — confirmed test by Todd):
+     - Marked 5 rows inactive: flex/regular ($1000), summer_veg/large ($360), flower/small ($150), summer_veg/regular ($0 pending), summer_veg/family ($450)
+     - Notes appended: `TEST DATA cleanup 2026-05-11 — confirmed by Todd`
+  2. **Webhook duplicate dedupe** (identical-field rows only):
+     - Detection: GROUP BY (customer_id, share_type, share_size, season, biweekly_week, COALESCE(amount_paid,0)) HAVING count(*) > 1 → 63 dup groups, 64 excess rows
+     - Resolution: kept row with lowest legacy_id (oldest insertion), marked others inactive
+     - Notes appended: `Duplicate from Shopify webhook double-fire 2026-05-11 — original kept at legacy_id=[X]`
+     - Example: Katie Bardol had 3 identical summer_veg/small/Summer rows, legacy_ids 1.1 seconds apart in source sheet — 2 deduped, 1 kept
+  3. **Manual-review queue** (different-field dup pairs — NOT auto-touched):
+     - 1 pair remaining: Martina Hilldorfer summer_veg/regular ($95) + summer_veg/small ($270). Looks like deposit + full payment pattern. Needs Todd to review.
+- Post-cleanup state (verified via SQL):
+  - Total active members: 293 → **225** (−68)
+  - Active with pickup: 63 → **62** (one was freetodd21)
+  - Active NULL pickup: 230 → **163** (−67 — most deduped rows were unassigned)
+  - Total inactive members: ~10 → **78** (+69 from cleanup)
+  - Unique customers still needing pickup outreach: **126** (down from 174 mixed rows)
+- Reversibility: all changes UPDATE status='inactive' with annotated notes — no DELETEs. Reversible via `UPDATE members SET status='active' WHERE notes ILIKE '%2026-05-11%cleanup%' OR notes ILIKE '%webhook double-fire 2026-05-11%'`.
+- Outstanding: Tier 2 (bulk email outreach to 126 customers with NULL pickup) gated on Day 11 Resend integration. Tier 3 (prevent recurrence) auto-resolves at Day 14 when Shopify webhooks land directly in Supabase.
 
 ---
 
