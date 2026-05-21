@@ -6,6 +6,33 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-05-21] CSA sync: Shopify→Supabase order sync endpoint (idempotent, dry-run) + spring season config + idempotency tables
+
+- Files (NEW): apps/csa-portal/src/lib/shopify.ts, apps/csa-portal/src/pages/api/sync/shopify-orders.ts, supabase/migrations/0022_shopify_sync.sql
+- Files (MODIFIED): apps/csa-portal/src/lib/season.ts, apps/csa-portal/src/lib/season.test.ts, apps/csa-portal/src/lib/database.types.ts, apps/csa-portal/astro.config.mjs
+- Role: fullstack-builder (delegated by PM_ARCHITECT)
+- Why: The 2026 CSA migration was a point-in-time snapshot, so new Shopify orders stopped syncing into Supabase (~100 customers developed gaps, since manually reconciled). This builds the automated catch-up so future orders never drop — the Step 4 item left outstanding in the prior reconciliation entry below.
+- TASK A — season.ts: added `spring_veg` (2026 Spring, Week 1 = 2026-05-06, 4 weeks → last delivery 2026-05-27); confirmed `summer_veg` (2026-06-10, 18 weeks). Added 11 spring lifecycle tests. Tests: 30 passed, 0 failed. NOTE: the brief sketched "2026-05-28 → complete", but seasonPhase intentionally keeps a season 'active' through its WHOLE final delivery week (mirrors the summer Oct-7→Oct-13 contract). Spring is therefore 'active' on 5/28 and flips to 'complete' on 6/3 — tests assert the true behavior and document why.
+- TASK B — migration 0022: `shopify_sync_state` (single-row watermark, CHECK(id=1), seeded last_synced_at=deploy-time NOW() so the first run ignores all historical/already-reconciled orders) + `shopify_order_sync` (per-order idempotency ledger keyed by shopify_order_id; records members_upserted, flex_credited, last_error). RLS enabled, admin-only policies via is_admin_caller() (service role bypasses). Applied via Management API (HTTP 201); verified both tables, seed row, RLS, policies, indexes, columns live.
+- TASK C — /api/sync/shopify-orders (GET+POST): Bearer-CRON_SECRET auth (401 otherwise); `?dry_run=1` does all reads + reports planned actions as JSON with ZERO writes; ports backfill_missing_members.py categorize() + member-row mapping and flex_credit_shopify.py storeCreditAccountCredit issuance (balance-guarded) to TS. Per-order idempotency (ledger + deterministic legacy_id `SYNC-<orderId>-<lineItemId>`); flex double-guarded (ledger flex_credited==0 + Shopify balance). Each order in try/catch (records last_error, continues); watermark only advances at end of a completed run. Writes via service-role client.
+- Verification: npx tsx season.test.ts → 30/30 pass; npx astro check → 0 errors, 0 warnings, 9 hints (all pre-existing .astro files, none in new code); npm run build → clean (sync route bundled).
+- Per task DO-NOT: no vercel.json crons entry added (Hobby tier daily-only); endpoint only acts when called. PM verifies + handles production deploy + the 15-min schedule (Supabase pg_cron / GitHub Actions) separately.
+
+---
+
+## [2026-05-21] CSA Flex store credit migration + 17 missing-member backfill (Shopify reconciliation)
+
+- Scripts (NEW): scripts/migrate-csa/flex_credit_shopify.py, scripts/migrate-csa/backfill_missing_members.py, scripts/migrate-csa/flex_credit_migration.py (superseded), /tmp/audit_2026_csa_orders.py (audit), /tmp/check_flex_zero_orders.py
+- Role: PM_ARCHITECT (direct execution after Todd "see it through" authorization)
+- Background: A full 2026 CSA reconciliation (all Shopify orders since 2025-10-01 vs Supabase members) found the migration was significantly incomplete — 17 members MISSING entirely, 82 with uncaptured amounts ($35,200), and `members.amount_paid` broadly unreliable. Root causes: (1) migration was a point-in-time snapshot (~5/13) so later orders never came in; (2) amount_paid largely never populated.
+- **Flex store credit (Shopify = source of truth):** scanned all 2026 orders for "Flex" CSA line items, summed per customer, issued Shopify Store Credit via `storeCreditAccountCredit`. Result: **29 customers, $10,100** credited (all had $0 prior balance — no double-credit). Caught 2 customers Supabase missed entirely (jackie.weaver $400, hme901 $150) and corrected jenvanderplaats to $300 (2 orders). Idempotency guard skips anyone already credited. Reversible via storeCreditAccountDebit.
+- **17 missing-member backfill:** created customer + member rows from Shopify orders for 16 customers (24 member rows; speedy55l excluded — refunded). Parsed share_type/size/frequency from line-item titles (verified pricing: small wk $540 / bw $270, family bw $360, flower full $200 / petite $150, add-ons). All set status='active', payment_status='Paid', amount_paid from Shopify, pickup_location_id=NULL (member self-selects), season Summer (start 2026-06-10, end 2026-10-07, 18wk weekly / 9 biweekly). Notes tagged 'missing-member audit' for reversibility.
+- Verification: active members 245→269; distinct active customers now 193 (matches Shopify CSA count); audit re-run confirms MISSING 17→1 (the 1 = speedy55l refunded, correctly excluded), OK 91→107.
+- **Step 3 (amount_paid backfill) — DONE:** matched each active member to its Shopify line item; updated 99 rows ($30,380). Audit gaps dropped 82→25 ($35,200→$5,620); remaining are mostly home-delivery line items (a delivery method, not a share — correctly no member row) + minor add-on granularity, not member-facing. Test rows excluded (freetodd21, test@test.com).
+- OUTSTANDING (not launch-blocking): Step 4 — automated Shopify→Supabase SYNC. NOTE: the Shopify API *secret* (for webhook HMAC) is NOT in `.secrets/CREDENTIALS.md` (only the access token is). Recommended approach = Vercel Cron polling sync using the access token (no secret needed, 15-min latency, reuses categorization + flex-credit logic) — pending Todd's nod on an automated member-creation + flex-credit job. 1 inactive-only member (katherine.j.bowen) to review.
+
+---
+
 ## [2026-05-20] CSA dashboard — Week-1 countdown + season-aware box (June 10, 18wk) + copyable contact fix
 
 - Files: apps/csa-portal/src/lib/season.ts (NEW), apps/csa-portal/src/lib/season.test.ts (NEW), apps/csa-portal/src/components/ContactFarm.astro (NEW), apps/csa-portal/src/pages/dashboard.astro, apps/csa-portal/src/pages/account/index.astro, apps/csa-portal/src/pages/account/vacation/new.astro

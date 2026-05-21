@@ -6,9 +6,10 @@
  * `active`, or `complete`, how many days remain until Week 1, and which
  * delivery week we're currently in.
  *
- * EXTENSIBILITY: Only `summer_veg` is configured today (2026 season starts
- * Wednesday June 10, runs 18 weeks → last delivery Oct 7). To add another
- * season (spring_veg / flower / flex / fall_veg) the owner only edits the
+ * EXTENSIBILITY: `spring_veg` (2026 Spring starts Wednesday May 6, runs 4
+ * weeks → last delivery May 27) and `summer_veg` (2026 Summer starts
+ * Wednesday June 10, runs 18 weeks → last delivery Oct 7) are configured.
+ * To add another season (flower / flex / fall_veg) the owner only edits the
  * `SEASON_SCHEDULE` map below — no other code changes are required. Every
  * helper takes a `SeasonSchedule` and is pure, so adding a share type can
  * never break the others.
@@ -28,14 +29,18 @@ export interface SeasonSchedule {
 }
 
 /**
- * Keyed by `share_type`. Only the summer veg share is known today; the
- * others are intentionally left unconfigured until the owner supplies
- * their start dates. A `share_type` with no entry → `getSchedule` returns
- * `null` and the dashboard falls back to its pre-season-aware behavior.
+ * Keyed by `share_type`. Spring + summer veg shares are configured; the
+ * others (flower / flex / fall_veg) are intentionally left unconfigured
+ * until the owner supplies their start dates. A `share_type` with no entry
+ * → `getSchedule` returns `null` and the dashboard falls back to its
+ * pre-season-aware behavior.
  */
 export const SEASON_SCHEDULE: Record<string, SeasonSchedule> = {
+  // 2026 Spring: Week 1 = Wed May 6, 4 weeks → last delivery May 27.
+  spring_veg: { firstDelivery: '2026-05-06', totalWeeks: 4 },
+  // 2026 Summer: Week 1 = Wed June 10, 18 weeks → last delivery Oct 7.
   summer_veg: { firstDelivery: '2026-06-10', totalWeeks: 18 },
-  // spring_veg / flower / flex / fall_veg: TBD — owner will provide.
+  // flower / flex / fall_veg: TBD — owner will provide.
 };
 
 /** Season lifecycle phase relative to `now`. */

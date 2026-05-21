@@ -313,6 +313,31 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['delivery_stops']['Row']>;
         Relationships: [];
       };
+      shopify_sync_state: {
+        Row: {
+          id: number;
+          last_synced_at: string | null;
+          updated_at: string;
+        };
+        Insert: Partial<Database['public']['Tables']['shopify_sync_state']['Row']>;
+        Update: Partial<Database['public']['Tables']['shopify_sync_state']['Row']>;
+        Relationships: [];
+      };
+      shopify_order_sync: {
+        Row: {
+          shopify_order_id: string;
+          order_name: string | null;
+          members_upserted: number;
+          flex_credited: number;
+          processed_at: string;
+          last_error: string | null;
+        };
+        Insert: { shopify_order_id: string } & Partial<
+          Database['public']['Tables']['shopify_order_sync']['Row']
+        >;
+        Update: Partial<Database['public']['Tables']['shopify_order_sync']['Row']>;
+        Relationships: [];
+      };
     };
     Views: {
       member_flex_balance: {

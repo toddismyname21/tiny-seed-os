@@ -51,11 +51,16 @@ function etNoon(ymd: string): Date {
 }
 
 const summer: SeasonSchedule = SEASON_SCHEDULE.summer_veg;
+const spring: SeasonSchedule = SEASON_SCHEDULE.spring_veg;
 
 // ─── getSchedule ────────────────────────────────────────────────────
 
 test('getSchedule returns the summer_veg config', () => {
   assertEqual(getSchedule('summer_veg'), { firstDelivery: '2026-06-10', totalWeeks: 18 });
+});
+
+test('getSchedule returns the spring_veg config', () => {
+  assertEqual(getSchedule('spring_veg'), { firstDelivery: '2026-05-06', totalWeeks: 4 });
 });
 
 test('getSchedule returns null for an unconfigured share type', () => {
@@ -135,6 +140,61 @@ test('currentWeekNumber clamps to 18 even after the season ends (Oct 20)', () =>
 
 test('currentWeekNumber clamps to 1 before the season (May 20)', () => {
   assertEqual(currentWeekNumber(summer, etNoon('2026-05-20')), 1);
+});
+
+// ─── Spring season (spring_veg): 4 weeks, May 6 → May 27 ─────────────
+//
+// May is EDT (UTC-4), so the same noon-UTC anchoring trick used for the
+// summer cases lands every `now` on the intended Eastern calendar date.
+
+test('spring lastDelivery is May 27 (firstDelivery + 3 weeks)', () => {
+  assertEqual(lastDelivery(spring), '2026-05-27');
+});
+
+test("spring seasonPhase is 'before' the day prior to first delivery (May 5)", () => {
+  assertEqual(seasonPhase(spring, etNoon('2026-05-05')), 'before');
+});
+
+test("spring seasonPhase flips to 'active' exactly on the May 6 start", () => {
+  assertEqual(seasonPhase(spring, etNoon('2026-05-06')), 'active');
+});
+
+test("spring is 'active' at week 3 on May 21 (per task spec)", () => {
+  // dayDelta = 15 → floor(15/7)+1 = 3.
+  assertEqual(seasonPhase(spring, etNoon('2026-05-21')), 'active');
+  assertEqual(currentWeekNumber(spring, etNoon('2026-05-21')), 3);
+});
+
+test('spring currentWeekNumber is 4 on the final delivery (May 27)', () => {
+  assertEqual(currentWeekNumber(spring, etNoon('2026-05-27')), 4);
+});
+
+// The task brief sketched "May 28 → complete", but seasonPhase
+// intentionally keeps the season 'active' through the WHOLE final delivery
+// week (the final Wednesday + the following 6 days), mirroring the summer
+// contract above (Oct 7 final delivery stays 'active' through Oct 13). So
+// May 28 — two days into the final delivery week — is still 'active'. The
+// season flips to 'complete' on June 3 (the day after the May 27 +6 = June
+// 2 active-window end). Asserting the TRUE behavior here so the test is a
+// faithful spec of seasonPhase, not a contradiction of it.
+test("spring stays 'active' on May 28 (still inside the final delivery week)", () => {
+  assertEqual(seasonPhase(spring, etNoon('2026-05-28')), 'active');
+});
+
+test("spring stays 'active' through the end of the final delivery week (June 2)", () => {
+  assertEqual(seasonPhase(spring, etNoon('2026-06-02')), 'active');
+});
+
+test("spring flips to 'complete' once the final week elapses (June 3)", () => {
+  assertEqual(seasonPhase(spring, etNoon('2026-06-03')), 'complete');
+});
+
+test('spring currentWeekNumber clamps to 4 after the season ends (June 10)', () => {
+  assertEqual(currentWeekNumber(spring, etNoon('2026-06-10')), 4);
+});
+
+test('spring firstDeliveryPretty renders "Wednesday, May 6"', () => {
+  assertEqual(firstDeliveryPretty(spring), 'Wednesday, May 6');
 });
 
 // ─── firstDeliveryPretty ─────────────────────────────────────────────

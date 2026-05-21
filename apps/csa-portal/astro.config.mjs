@@ -37,6 +37,27 @@ export default defineConfig({
         context: 'server',
         access: 'secret',
       }),
+
+      // ── Shopify → Supabase order sync (/api/sync/shopify-orders) ──
+      // All three live as Vercel env vars on this project. Declared
+      // `optional` so a local build/check (where they're absent) still
+      // succeeds; the endpoint guards their presence at runtime and
+      // returns 500 if any is missing in production.
+      SHOPIFY_ACCESS_TOKEN: envField.string({
+        context: 'server',
+        access: 'secret',
+        optional: true,
+      }),
+      SHOPIFY_STORE_NAME: envField.string({
+        context: 'server',
+        access: 'secret',
+        optional: true,
+      }),
+      CRON_SECRET: envField.string({
+        context: 'server',
+        access: 'secret',
+        optional: true,
+      }),
     },
   },
 });
