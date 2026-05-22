@@ -115,6 +115,14 @@ export const PREFS_ERROR_COPY: Record<string, string> = {
   network: "We couldn't reach the server. Please try again.",
 };
 
+export const PROFILE_ERROR_COPY: Record<string, string> = {
+  name_required: 'Please enter your name.',
+  name_too_long: 'Your name is a little long — please keep it under 120 characters.',
+  phone_too_long: 'That phone number looks too long — please double-check it.',
+  invalid_input: "We couldn't save that — please check your entries and try again.",
+  network: "We couldn't reach the server. Please try again.",
+};
+
 export const PICKUP_ERROR_COPY: Record<string, string> = {
   invalid_input: 'Please pick a pickup location or enter a delivery address.',
   location_not_found: 'That pickup location is no longer available.',

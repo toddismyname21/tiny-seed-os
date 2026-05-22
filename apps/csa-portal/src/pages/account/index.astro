@@ -3,20 +3,19 @@
  * /account — member account hub.
  *
  * Cards link to:
+ *   - /account/profile      (self-service name / phone / mailing address)
  *   - /account/preferences  (dietary + contact prefs)
  *   - /account/pickup       (pickup location / home delivery)
  *   - /account/vacation     (vacation hold list + scheduler)
  *
- * The Profile section is read-only (email is the auth identity, name +
- * phone live on the customer record but we don't yet expose an editor —
- * that's planned for Day 11+).
+ * The Profile card shows name + email + phone with an "Edit profile"
+ * action linking to /account/profile (self-service editing, 2026-05-22).
+ * Email stays read-only there — it's the auth identity.
  *
  * Sign-out is a POST to /logout (same as /dashboard).
  */
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import Badge from '../../components/Badge.astro';
 import Card from '../../components/Card.astro';
-import ContactFarm from '../../components/ContactFarm.astro';
 import { getFlexBalance, formatFlexMoney, type FlexBalance } from '../../lib/flex';
 
 const user = Astro.locals.user;
@@ -227,11 +226,17 @@ const biweeklySummary: string = (() => {
         </p>
       </section>
 
-      {/* PROFILE (read-only) */}
+      {/* PROFILE — self-service editing via /account/profile */}
       <Card padding="md" elevation="sm" class="text-sm">
-        <header class="mb-3 flex items-center justify-between">
+        <header class="mb-3 flex items-center justify-between gap-3">
           <h2 class="text-base font-semibold text-ts-text">Profile</h2>
-          <Badge variant="gray" size="xs" uppercase>Read only</Badge>
+          <a
+            href="/account/profile"
+            class="inline-flex items-center gap-1 rounded-ts-md px-2.5 py-1.5 text-sm font-semibold text-ts-primary transition-colors duration-150 hover:bg-ts-primary/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+          >
+            Edit profile
+            <span aria-hidden="true">→</span>
+          </a>
         </header>
         <dl class="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
@@ -257,15 +262,9 @@ const biweeklySummary: string = (() => {
           )}
         </dl>
         <p class="mt-4 text-xs text-ts-text-muted">
-          Need to update your name or email? Todd will handle it personally.
+          Your email is how you sign in, so it's edited separately — pick
+          <a href="/account/profile" class="font-medium text-ts-primary underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary">Edit profile</a> to update your name, phone, or address.
         </p>
-        <div class="mt-3">
-          <ContactFarm
-            tone="inline"
-            label="Email Todd to update your info"
-            subject="Update account info"
-          />
-        </div>
       </Card>
 
       {/* FARM FLEX (always available — independent of an active veg share) */}

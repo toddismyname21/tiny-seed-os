@@ -6,6 +6,32 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-05-22] CSA account — member self-service profile editing + relabel flex "principal" → "Your funds" (fullstack-builder)
+
+- Files (NEW): apps/csa-portal/src/pages/account/profile.astro, apps/csa-portal/src/pages/api/account/profile.ts
+- Files (MODIFIED): apps/csa-portal/src/pages/account/index.astro, apps/csa-portal/src/lib/account.ts, apps/csa-portal/src/pages/account/flex.astro, apps/csa-portal/src/pages/dashboard.astro
+- Role: fullstack-builder (delegated by PM_ARCHITECT). Branch: csa-migration. NO production deploy — PM handles it.
+- CHANGE 1 — self-service profile editing (replaces "Email Todd to update"): Members asked to stop emailing the farm for profile changes. New /account/profile page lets a member edit contact_name (required, 1–120), phone (optional, ≤20 after stripping separators), and mailing address (address/city/state/zip, each optional ≤200). Email is rendered READ-ONLY (it's the auth identity) with a note + ContactFarm for the rare email-change request — email-change itself is out of scope (needs Supabase re-verification). Form pre-fills from the caller's customers row, has flash banners (?ok=saved / ?error=<code>), submit-disable feedback, design tokens, FormRow a11y, mobile-first layout.
+- API src/pages/api/account/profile.ts (POST): mirrors the /api/account/preferences contract exactly — isSameOriginPost/PORTAL_ORIGIN CSRF check, auth check (redirect /login if not signed in), Zod validation with per-field error codes, then an RLS-scoped `.update()` on `customers` filtered by `eq('email', user.email)`. That filter matches the `customers_self_update` policy predicate (migration 0011: email = auth.jwt()->>'email', WITH CHECK blocks email change) so a member can ONLY touch their own row and can NEVER change email. Does not write the email column. Redirects ?ok=saved / ?error=<code>.
+- account/index.astro: Profile card no longer read-only — removed the "Read only" badge + "Todd will handle it personally" note + "Email Todd to update" ContactFarm; added an "Edit profile →" action (header + footer link) to /account/profile. Dropped now-unused Badge/ContactFarm imports.
+- lib/account.ts: added PROFILE_ERROR_COPY map (name_required, name_too_long, phone_too_long, invalid_input, network).
+- CHANGE 2 — relabel "principal" → "Your funds" (member-facing): account/flex.astro sub-breakdown label "Prepaid principal" → "Your funds". dashboard.astro Farm Flex wallet now shows a compact "Your funds {principal} · Bonus 🎁 {bonus}" breakdown under the total (replacing the prose bonus sentence), matching the /account/flex vocabulary. PURE label/display change — getFlexBalance logic + the principal/bonus/total math are untouched; the field stays named `principal` in code. (Note: dashboard had NO principal line before — the relabel intent is honored by surfacing the already-fetched principal under the "Your funds" label, no new math.)
+- Verification: npx astro check → 0 errors (9 pre-existing hints, none in changed files); npm run build → clean; both routes registered in .vercel/output/config.json (account/profile/?$ + api/account/profile/?$) and their chunks bundled. grep confirms "Your funds" in flex.astro + dashboard.astro, and isSameOriginPost + customers_self_update + /account/profile wiring across the API + pages.
+
+---
+
+## [2026-05-22] CSA member portal — deep built-page UX audit & enhancement plan (UX_DESIGN_CLAUDE)
+
+- File (NEW): docs/research/CSA_PORTAL_UX_AUDIT_2026.md
+- Role: UX_DESIGN_CLAUDE (research/audit phase). Branch: csa-migration. NO code changes — audit only.
+- Why: Owner wants the live CSA portal (apps/csa-portal/, Astro+Tailwind+Supabase) taken to best-in-class. This audits the ACTUAL shipped pages (extends the pre-build MEMBER_PORTAL_UX_2026.md instead of duplicating it) and delivers a P0/P1/P2 enhancement plan with file-level specifics.
+- Pages read line-by-line: BaseLayout, global.css, index, login, dashboard, box/index, account/{index,flex,preferences,pickup,vacation,vacation/new,biweekly-schedule}; components Button/ItemCard/EmptyState; lib/box.ts.
+- Top findings: (P0) no persistent nav — top-bar duplicated inline 9x, bottom tab bar still unbuilt; cutoff has no live countdown though lib/box.ts computes it; native confirm() on swap-undo + vacation-cancel; landing page still says portal is "coming online"; (P1) vacation hold is 3 taps not <=2; dashboard box list has no thumbnails and the customize CTA is a small text link; no PWA manifest/icons/SW; (P2) SHARE_TYPE_LABELS copy-pasted 6x, post-action full-page reloads, no view transitions.
+- Strengths verified: 100% design-token discipline (zero raw hex in member pages, grep-verified), strong EmptyState rigor, season-aware dashboard phases, secure magic-link+6-digit auth, fail-soft data. Portal scores 7.5/10 today; gaps are system-level not card-level.
+- Verification: doc written + grep evidence captured (confirm() at box/index.astro:775, account/vacation.astro:285; no manifest/SW in public/ or src/; 9 files share the duplicated top bar). No deploy (audit only).
+
+---
+
 ## [2026-05-22] CSA Farm Flex wallet — Phase 1, read-only display (fullstack-builder)
 
 - Files (NEW): apps/csa-portal/src/lib/flex.ts, apps/csa-portal/src/pages/account/flex.astro

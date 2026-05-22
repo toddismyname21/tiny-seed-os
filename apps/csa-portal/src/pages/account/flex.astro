@@ -6,7 +6,9 @@
  * The defensive redirect below is belt-and-suspenders.
  *
  * Shows:
- *   - Total balance (big), with Principal + Bonus 🎁 sub-breakdown.
+ *   - Total balance (big), with "Your funds" + Bonus 🎁 sub-breakdown.
+ *     ("Your funds" is the member-facing label for the `principal` field;
+ *      the field stays named principal in code — see lib/flex.ts.)
  *   - A short never-expires explainer.
  *   - Transaction history (newest first, up to 25) or a friendly empty
  *     state.
@@ -147,11 +149,11 @@ const TYPE_FALLBACK_LABEL: Record<FlexTransaction['type'], string> = {
               {formatFlexMoney(balance.total, currency)}
             </p>
 
-            {/* Principal + Bonus sub-breakdown */}
+            {/* "Your funds" (principal) + Bonus sub-breakdown */}
             <dl class="mt-6 grid grid-cols-1 gap-px overflow-hidden rounded-ts-lg border border-ts-border bg-ts-border sm:grid-cols-2">
               <div class="bg-ts-bg-surface p-4">
                 <dt class="text-xs font-medium uppercase tracking-wide text-ts-text-muted">
-                  Prepaid principal
+                  Your funds
                 </dt>
                 <dd class="mt-1 font-display text-2xl font-bold tabular-nums text-ts-text">
                   {formatFlexMoney(balance.principal, currency)}

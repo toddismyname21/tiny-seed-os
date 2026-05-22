@@ -1,0 +1,335 @@
+---
+/**
+ * /account/profile — member self-service profile editing.
+ *
+ * Replaces the old read-only "Email Todd to update" profile section on the
+ * account hub. A member edits their own name, phone, and mailing address
+ * here; the write goes through the cookie-aware RLS-scoped client and is
+ * scoped to the caller's own `customers` row by policy
+ * `customers_self_update` (migration 0011).
+ *
+ * Email is the auth identity → rendered READ-ONLY with a note + the
+ * ContactFarm component for members who genuinely need it changed
+ * (which requires a re-verification flow — out of scope here).
+ *
+ * Auth: middleware (`/account` is a protected prefix). The defensive
+ * redirect below is belt-and-suspenders.
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Button from '../../components/Button.astro';
+import Card from '../../components/Card.astro';
+import EmptyState from '../../components/EmptyState.astro';
+import FormRow from '../../components/FormRow.astro';
+import ContactFarm from '../../components/ContactFarm.astro';
+import { PROFILE_ERROR_COPY } from '../../lib/account';
+
+const user = Astro.locals.user;
+if (!user || !user.email) {
+  return Astro.redirect('/login', 303);
+}
+const supabase = Astro.locals.supabase;
+
+// ─── Customer record (RLS scopes this to the caller's own row) ────────
+type CustomerProfile = {
+  id: string;
+  contact_name: string;
+  email: string;
+  phone: string | null;
+  address: string | null;
+  city: string | null;
+  state: string | null;
+  zip: string | null;
+};
+
+const { data: customer, error: customerErr } = await supabase
+  .from('customers')
+  .select('id, contact_name, email, phone, address, city, state, zip')
+  .limit(1)
+  .maybeSingle()
+  .overrideTypes<CustomerProfile, { merge: false }>();
+
+if (customerErr) {
+  console.error('[account/profile] customer fetch failed:', customerErr.message);
+}
+
+// Field values (form pre-fill). Fall back to '' so inputs are controlled.
+const nameValue = customer?.contact_name ?? '';
+const phoneValue = customer?.phone ?? '';
+const addressValue = customer?.address ?? '';
+const cityValue = customer?.city ?? '';
+const stateValue = customer?.state ?? '';
+const zipValue = customer?.zip ?? '';
+
+// ─── Flash ────────────────────────────────────────────────────────────
+const errorParam = Astro.url.searchParams.get('error');
+const okParam = Astro.url.searchParams.get('ok');
+const errorMsg = errorParam
+  ? PROFILE_ERROR_COPY[errorParam] ?? PROFILE_ERROR_COPY.invalid_input
+  : null;
+const okMsg = okParam === 'saved' ? 'Profile saved.' : null;
+
+// Shared input styling — matches the textarea/inputs on the other
+// /account form pages (preferences, pickup).
+const inputClass =
+  'w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text placeholder:text-ts-text-muted shadow-inner transition-colors duration-150 focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30';
+---
+
+<BaseLayout
+  title="Profile — Tiny Seed Farm CSA"
+  description="Update your name, phone, and mailing address for your Tiny Seed Farm CSA account."
+  canonical="https://csa.tinyseedfarm.com/account/profile"
+>
+  <a
+    href="#main"
+    class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-ts-md focus:bg-ts-primary focus:px-4 focus:py-2 focus:text-white focus:shadow-ts-md"
+  >
+    Skip to main content
+  </a>
+
+  <div class="min-h-screen bg-ts-bg-base">
+    <header class="border-b border-ts-border bg-ts-bg-surface/80 backdrop-blur-sm">
+      <div class="mx-auto flex max-w-3xl items-center justify-between px-5 py-4 sm:px-6 sm:py-5">
+        <a
+          href="/dashboard"
+          class="flex items-center gap-2 rounded-ts-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ts-primary"
+          aria-label="Tiny Seed Farm CSA dashboard home"
+        >
+          <span class="inline-block h-2.5 w-2.5 rounded-full bg-ts-primary" aria-hidden="true"></span>
+          <span class="font-display text-lg font-bold tracking-tight text-ts-text">Tiny Seed Farm</span>
+        </a>
+        <form method="POST" action="/logout" class="m-0">
+          <button
+            type="submit"
+            class="rounded-ts-md px-3 py-2 text-sm font-medium text-ts-text-secondary transition-colors duration-150 hover:bg-ts-bg-muted hover:text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+          >
+            Sign out
+          </button>
+        </form>
+      </div>
+    </header>
+
+    <main id="main" class="mx-auto flex w-full max-w-3xl flex-col gap-6 px-5 py-8 sm:px-6 sm:py-12">
+      <nav aria-label="Breadcrumb" class="text-sm">
+        <a
+          href="/account"
+          class="inline-flex items-center gap-1 text-ts-text-secondary transition-colors hover:text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+        >
+          <span aria-hidden="true">←</span>
+          <span>Account</span>
+        </a>
+      </nav>
+
+      <section aria-labelledby="profile-heading">
+        <h1 id="profile-heading" class="font-display text-3xl font-bold tracking-tight text-ts-text sm:text-4xl">
+          Profile
+        </h1>
+        <p class="mt-2 text-base text-ts-text-secondary">
+          Update your name, phone, and mailing address. Changes save right away — no need to email us.
+        </p>
+      </section>
+
+      {!customer ? (
+        <EmptyState title="Account not found" icon="🌱" tone="default" dashed={false}>
+          We couldn't find a customer record for your account yet. Once it's set up,
+          you'll be able to edit your details here.
+          <Fragment slot="action">
+            <Button href="/account" variant="secondary" size="md">Back to account</Button>
+          </Fragment>
+        </EmptyState>
+      ) : (
+        <>
+          {errorMsg && (
+            <div
+              role="alert"
+              aria-live="polite"
+              class="rounded-ts-lg border border-ts-danger/30 bg-ts-danger/5 px-4 py-3 text-sm leading-relaxed text-ts-danger"
+            >
+              {errorMsg}
+            </div>
+          )}
+          {okMsg && (
+            <div
+              role="status"
+              aria-live="polite"
+              class="rounded-ts-lg border border-ts-primary/30 bg-ts-primary/5 px-4 py-3 text-sm leading-relaxed text-ts-primary"
+            >
+              {okMsg}
+            </div>
+          )}
+
+          <form
+            method="POST"
+            action="/api/account/profile"
+            class="flex flex-col gap-6"
+            novalidate
+            data-profile-form
+          >
+            {/* CONTACT */}
+            <Card padding="md" elevation="sm">
+              <div class="flex flex-col gap-5">
+                <FormRow
+                  label="Name"
+                  htmlFor="contact_name"
+                  required
+                  help="The name we'll greet you by and put on your box."
+                >
+                  <input
+                    id="contact_name"
+                    name="contact_name"
+                    type="text"
+                    value={nameValue}
+                    required
+                    maxlength="120"
+                    autocomplete="name"
+                    class={inputClass}
+                    placeholder="Your name"
+                  />
+                </FormRow>
+
+                <FormRow
+                  label="Phone"
+                  htmlFor="phone"
+                  help="Optional. Used for delivery-day texts and the occasional time-sensitive note."
+                >
+                  <input
+                    id="phone"
+                    name="phone"
+                    type="tel"
+                    value={phoneValue}
+                    maxlength="40"
+                    autocomplete="tel"
+                    inputmode="tel"
+                    class={inputClass}
+                    placeholder="(412) 555-0123"
+                  />
+                </FormRow>
+              </div>
+            </Card>
+
+            {/* MAILING ADDRESS */}
+            <Card padding="md" elevation="sm">
+              <fieldset class="m-0 border-0 p-0">
+                <legend class="mb-1 text-sm font-semibold text-ts-text">Mailing address</legend>
+                <p class="mb-4 text-xs text-ts-text-muted">
+                  For our records. Home-delivery members: set your delivery
+                  address on the <a href="/account/pickup" class="font-medium text-ts-primary underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary">Pickup &amp; delivery</a> page instead.
+                </p>
+
+                <div class="flex flex-col gap-5">
+                  <FormRow label="Street address" htmlFor="address">
+                    <input
+                      id="address"
+                      name="address"
+                      type="text"
+                      value={addressValue}
+                      maxlength="200"
+                      autocomplete="street-address"
+                      class={inputClass}
+                      placeholder="123 Garden Row"
+                    />
+                  </FormRow>
+
+                  <div class="grid grid-cols-1 gap-5 sm:grid-cols-[2fr_1fr_1fr]">
+                    <FormRow label="City" htmlFor="city">
+                      <input
+                        id="city"
+                        name="city"
+                        type="text"
+                        value={cityValue}
+                        maxlength="200"
+                        autocomplete="address-level2"
+                        class={inputClass}
+                        placeholder="Rochester"
+                      />
+                    </FormRow>
+
+                    <FormRow label="State" htmlFor="state">
+                      <input
+                        id="state"
+                        name="state"
+                        type="text"
+                        value={stateValue}
+                        maxlength="200"
+                        autocomplete="address-level1"
+                        class={inputClass}
+                        placeholder="PA"
+                      />
+                    </FormRow>
+
+                    <FormRow label="ZIP" htmlFor="zip">
+                      <input
+                        id="zip"
+                        name="zip"
+                        type="text"
+                        value={zipValue}
+                        maxlength="200"
+                        autocomplete="postal-code"
+                        inputmode="numeric"
+                        class={inputClass}
+                        placeholder="15074"
+                      />
+                    </FormRow>
+                  </div>
+                </div>
+              </fieldset>
+            </Card>
+
+            {/* EMAIL (read-only — auth identity) */}
+            <Card padding="md" elevation="sm">
+              <FormRow
+                label="Email"
+                htmlFor="email-readonly"
+                help="This is how you sign in, so it can't be changed here. To change your email, contact the farm."
+              >
+                <input
+                  id="email-readonly"
+                  type="email"
+                  value={user.email}
+                  readonly
+                  aria-readonly="true"
+                  tabindex="-1"
+                  class="w-full cursor-not-allowed rounded-ts-md border border-ts-border bg-ts-bg-muted/50 px-4 py-3 text-base text-ts-text-secondary shadow-inner"
+                />
+              </FormRow>
+
+              <div class="mt-4 border-t border-ts-border pt-4">
+                <ContactFarm
+                  tone="inline"
+                  label="Need to change your email?"
+                  subject="Change account email"
+                />
+              </div>
+            </Card>
+
+            <div class="flex flex-col-reverse items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <Button href="/account" variant="secondary" size="md">Cancel</Button>
+              <Button type="submit" variant="primary" size="md" data-submit-btn>
+                <span data-submit-label>Save profile</span>
+              </Button>
+            </div>
+          </form>
+        </>
+      )}
+
+      <footer class="mt-auto border-t border-ts-border pt-6 text-center text-xs text-ts-text-muted">
+        <p>Signed in as <span class="font-medium text-ts-text-secondary">{user.email}</span></p>
+        <p class="mt-1">Tiny Seed Farm · 257 Zeigler Rd, Rochester, PA · Certified Organic</p>
+      </footer>
+    </main>
+  </div>
+
+  <script>
+    // Submit feedback: disable the button + swap the label so a member
+    // doesn't double-submit on a slow connection. Mirrors the
+    // preferences page pattern.
+    const form = document.querySelector<HTMLFormElement>('[data-profile-form]');
+    const submitBtn = document.querySelector<HTMLButtonElement>('[data-submit-btn]');
+    const submitLabel = document.querySelector<HTMLElement>('[data-submit-label]');
+    if (form && submitBtn && submitLabel) {
+      form.addEventListener('submit', () => {
+        submitBtn.disabled = true;
+        submitLabel.textContent = 'Saving…';
+      });
+    }
+  </script>
+</BaseLayout>
