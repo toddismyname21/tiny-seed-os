@@ -6,6 +6,18 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-05-22] CSA ContactFarm — make "Copy email" the primary action, demote mailto to secondary "Open mail app" (fullstack-builder)
+
+- File (MODIFIED): apps/csa-portal/src/components/ContactFarm.astro
+- Role: fullstack-builder (delegated by PM_ARCHITECT). Branch: csa-migration. NO production deploy — PM handles it.
+- Why (owner-reported): the prominent green primary button was a bare `mailto:` link, which silently does NOTHING on devices without a configured mail client (e.g. desktop browsers) — it looked broken. The reliable "Copy" action (clipboard, with fallbacks) was the demoted secondary outline button. The emphasis was backwards.
+- Fix: flipped the emphasis. The Copy button is now the PRIMARY action — it gets the green/filled styling (bg-ts-primary / text-white / hover:bg-ts-primary-dark), keeps all its existing clipboard logic (navigator.clipboard → execCommand fallback → manual-select fallback) and "Copied!" feedback, and is relabeled "Copy" → "Copy email" (min-width bumped 88px→112px so the longer labels don't jitter). The `mailto:` link is demoted to a SECONDARY convenience with the outline/secondary styling (border-ts-border / bg-ts-bg-surface / text-ts-text) and relabeled "Email" → "Open mail app" (with an explicit aria-label) to set the expectation that it depends on a mail client being set up.
+- Also: "Copied!" visual feedback switched from outline-button border/text classes to a ring (ring-2 ring-ts-primary/40 ring-offset-2) since the primary button is now filled; the scheduleReset label restores to "Copy email"; helper copy under the card heading now reads "Email Todd directly — copy his address, or open your mail app. He answers personally."; fallback status copy now says "tap Open mail app" instead of "tap Email".
+- Preserved (unchanged): the EMAIL constant, the component props/API (subject/label/tone), both 'card' + 'inline' tone variants, the selectable select-all email span, the aria-live status region, 44px tap targets / aria-labels / keyboard operability, the per-instance scoped script, and design-token discipline. The 3 call sites (dashboard.astro, account/profile.astro, account/vacation/new.astro) keep working unchanged.
+- Verification: npx astro check → 0 errors, 0 warnings, 9 hints (2 of the hints are on ContactFarm.astro line 198 — the pre-existing, intentional execCommand-deprecation hint on the legacy copy fallback, unrelated to this change; the other 7 are in unrelated files). npm run build → clean ("Complete!"). grep confirms data-cf-copy="Copy email" (primary, bg-ts-primary) + data-cf-mailto="Open mail app" (secondary, outline).
+
+---
+
 ## [2026-05-22] CSA account — member self-service profile editing + relabel flex "principal" → "Your funds" (fullstack-builder)
 
 - Files (NEW): apps/csa-portal/src/pages/account/profile.astro, apps/csa-portal/src/pages/api/account/profile.ts
