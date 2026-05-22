@@ -42,6 +42,7 @@ import {
   type SeasonSchedule,
   type SeasonPhase,
 } from '../lib/season';
+import { getFlexBalance, formatFlexMoney, type FlexBalance } from '../lib/flex';
 
 const user = Astro.locals.user;
 const supabase = Astro.locals.supabase;
@@ -367,6 +368,16 @@ const targetWeekPretty = new Intl.DateTimeFormat('en-US', {
   timeZone: 'America/New_York',
 }).format(new Date(`${targetWeek}T12:00:00-04:00`));
 
+// ─────────────────────────────────────────────────────────────────────
+// Farm Flex wallet (2026-05-22, Phase 1 — read-only). Resolve the
+// member's prepaid store-credit balance by email. getFlexBalance is
+// fail-soft (null on any error / no Shopify customer / Shopify down), so
+// a flex outage never breaks the dashboard. We render the wallet card
+// ONLY when there's a real, positive balance — otherwise nothing.
+// ─────────────────────────────────────────────────────────────────────
+const flexBalance: FlexBalance | null = await getFlexBalance(user.email!);
+const showFlexWallet = flexBalance != null && flexBalance.total > 0;
+
 // One-time welcome banner shown immediately after onboarding activation
 // (set by /api/onboarding/activate redirecting to /dashboard?welcome=1).
 // We only render the banner when the URL flag is present — a simple
@@ -567,6 +578,58 @@ const title = `Welcome back, ${firstName} — Tiny Seed Farm CSA`;
           Here's what's happening with your share this week.
         </p>
       </section>
+
+      {/* ═════════════════════════════════════════════════════════════
+          FARM FLEX WALLET (2026-05-22 — Phase 1, read-only)
+          Renders only when the member has a positive store-credit
+          balance. Sits above the share cards, below the countdown
+          banner. The loyalty-bonus line is the "surprise" — celebratory
+          primary tone. Add Funds is Phase 2a (link to /account/flex only).
+          ═════════════════════════════════════════════════════════════ */}
+      {showFlexWallet && flexBalance && (
+        <section
+          aria-labelledby="flex-wallet-heading"
+          class="overflow-hidden rounded-ts-xl border border-ts-primary/30 bg-ts-primary/5 p-5 shadow-ts-sm sm:p-6"
+          data-flex-wallet
+        >
+          <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div class="min-w-0">
+              <div class="flex items-center gap-2">
+                <span
+                  class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ts-primary/15 text-xl"
+                  aria-hidden="true"
+                >
+                  🌿
+                </span>
+                <h2
+                  id="flex-wallet-heading"
+                  class="text-sm font-semibold uppercase tracking-wide text-ts-primary"
+                >
+                  Farm Flex
+                </h2>
+              </div>
+              <p class="mt-3 font-display text-4xl font-bold tabular-nums tracking-tight text-ts-text sm:text-5xl">
+                {formatFlexMoney(flexBalance.total, flexBalance.currency)}
+              </p>
+              {flexBalance.bonus > 0 && (
+                <p class="mt-2 flex items-center gap-1.5 text-sm font-medium leading-relaxed text-ts-primary">
+                  <span aria-hidden="true">🎁</span>
+                  <span>
+                    Includes a {formatFlexMoney(flexBalance.bonus, flexBalance.currency)} loyalty
+                    bonus from Tiny Seed
+                  </span>
+                </p>
+              )}
+            </div>
+
+            <div class="shrink-0">
+              <Button href="/account/flex" variant="primary" size="md">
+                View Farm Flex <span aria-hidden="true">→</span>
+              </Button>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ═════════════════════════════════════════════════════════════
           NO SHARE — fallback when customer record is missing OR

@@ -6,6 +6,40 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-05-22] CSA Farm Flex wallet — Phase 1, read-only display (fullstack-builder)
+
+- Files (NEW): apps/csa-portal/src/lib/flex.ts, apps/csa-portal/src/pages/account/flex.astro
+- Files (MODIFIED): apps/csa-portal/src/pages/dashboard.astro, apps/csa-portal/src/pages/account/index.astro
+- Role: fullstack-builder (delegated by PM_ARCHITECT). Branch: csa-migration.
+- Why: First phase of the flex feature — give members a member-facing view of their prepaid Farm Flex / store-credit balance. Read-only (no money movement), so it's the safe foundation before Add Funds (Phase 2a) and Extras checkout (Phase 2b).
+- src/lib/flex.ts: `getFlexBalance(email)` resolves the member's Shopify customer by email (Admin GraphQL `customers(first:1, query:"email:..")` → sums `storeCreditAccounts.balance` = total, source of truth), then sums Supabase `flex_transactions` where reason ILIKE '%loyalty bonus%' = bonus; principal = max(0, total − bonus). FAIL-SOFT: single try/catch returns null on every error path (no Shopify creds, Shopify down/non-2xx via shopifyGraphQL throw, GraphQL errors, no customer, any exception) — caller hides the wallet. `getFlexTransactions(email)` returns the 25 most-recent flex_transactions (fail-soft → []). Plus pure helpers formatFlexMoney() + isCreditType(). SERVER-ONLY (imports astro:env/server via ./shopify + service-role supabaseAdmin). Reuses the existing shopifyGraphQL/shopifyConfigured helpers from shopify.ts.
+- dashboard.astro: renders a prominent "Farm Flex" wallet card ONLY when getFlexBalance(user.email) returns total > 0. Positioned above the share cards / below the countdown banner. Shows big tabular-nums balance, a celebratory primary-tone "Includes a $X loyalty bonus from Tiny Seed 🎁" line when bonus > 0, and a "View Farm Flex →" button to /account/flex. Renders NOTHING when null or total === 0. All existing dashboard logic (countdown, season box, share cards, delivery tracker, quick actions) untouched.
+- account/flex.astro (NEW): auth-gated detail page (middleware protects /account; defensive redirect too). Total balance big with Principal + Bonus 🎁 sub-breakdown, never-expires explainer, transaction-history list (newest first, friendly empty state), and a DISABLED "Add Funds" placeholder badged "Coming soon" (Phase 2a wires it). Calm "no Farm Flex yet" state when balance null/0. Reuses Card/Button/Badge/EmptyState/BaseLayout + design tokens; mobile-first; WCAG AA.
+- account/index.astro: added a "Farm Flex" hub card (always shown, independent of an active veg share) linking to /account/flex — shows the formatted balance number only when > 0, else a "Prepaid credit for extras and add-ons" subtitle.
+- Verification: npx astro check → 0 errors (9 pre-existing hints, none in new flex code); npm run build → clean (Vercel adapter; /account/flex registered in .vercel/output/config.json, flex lib chunk bundled, dashboard + account index chunks reference account/flex). grep confirms full wiring across src/pages + src/lib.
+- DO-NOT honored: no money movement, no Add Funds logic, no Extras, no production deploy — PM handles production + Phase 2. Add Funds is a disabled placeholder only.
+
+---
+
+## [2026-05-21] CSA flex loyalty bonus — retroactive 5/10/12 ladder (PM_ARCHITECT)
+
+- Script (NEW): scripts/migrate-csa/flex_loyalty_bonus.py
+- Issued $1,019 of promotional store credit to the 29 existing flex customers as a goodwill surprise (ladder Todd chose: <$250 +5%, $250-$499 +10%, $500+ +12%). NO expiry. Idempotent (skips if Shopify balance already > principal).
+- Recorded 29 rows in flex_transactions (type='credit', reason 'Flex loyalty bonus') so principal ($10,100, escheatment-exempt) vs promotional bonus ($1,019) is tracked separately for accounting/legal. Shopify shows one combined spendable balance; combined now $11,119.
+- Same ladder will be the standing Add Funds incentive in the flex feature build (Phase 2). Verified: flex_transactions has 29 bonus rows summing $1,019.
+
+---
+
+## [2026-05-21] CSA sync — DEPLOYED to production + scheduled (PM_ARCHITECT)
+
+- Deployed commit 104d80b to production (csa.tinyseedfarm.com) via REST git-source deploy.
+- Vercel env vars added to portal project: SHOPIFY_ACCESS_TOKEN, SHOPIFY_STORE_NAME, CRON_SECRET (encrypted).
+- Scheduled via Supabase pg_cron job `csa-shopify-sync` (*/15 * * * *) → pg_net POST to the endpoint with the CRON_SECRET bearer. NOT Vercel Cron (Hobby tier = daily-only).
+- Verified live: auth 401s on bad/missing secret; dry-run parse correct across 171 real orders (15 would-process, accurate share_type/size/amount/season); real run clean (0 new orders, watermark stable at deploy-time, 0 errors). Watermark seeded at deploy so historical reconciled orders are never reprocessed.
+- Reference: [[csa-shopify-sync]] memory. Watermark-reset dupe caveat documented there.
+
+---
+
 ## [2026-05-21] CSA sync: Shopify→Supabase order sync endpoint (idempotent, dry-run) + spring season config + idempotency tables
 
 - Files (NEW): apps/csa-portal/src/lib/shopify.ts, apps/csa-portal/src/pages/api/sync/shopify-orders.ts, supabase/migrations/0022_shopify_sync.sql
