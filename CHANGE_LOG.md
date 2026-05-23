@@ -6,6 +6,11 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-05-23] CSA Add Funds — Flex Top-Up Shopify product CREATED + variant IDs wired (PM_ARCHITECT)
+
+- Created the "CSA Farm Flex Top-Up" Shopify product (gid 8763606728857, productType flex-topup, ACTIVE, published to Online Store, inventory NOT tracked so always purchasable) with 4 fixed-price variants: $50 (47841200046233), $100 (47841222951065), $250 (47841222983833), $500 (47841223016601).
+- Wired the numeric variant IDs into `apps/csa-portal/src/lib/flex.ts` FLEX_TOPUP_VARIANTS → FLEX_TOPUP_PRODUCT_READY now true → Add Funds tiles go live (cart permalink → Shopify checkout → store credit + payment). Verified astro check 0 errors + build clean. Deployed to production.
+
 ## [2026-05-23] CSA Add Funds — Farm Flex top-up tiles + sync auto-credits principal+bonus (5/10/12 ladder) (fullstack-builder)
 
 - Files (MODIFIED): apps/csa-portal/src/lib/flex.ts, apps/csa-portal/src/pages/account/flex.astro, apps/csa-portal/src/pages/dashboard.astro, apps/csa-portal/src/pages/api/sync/shopify-orders.ts

@@ -303,20 +303,16 @@ export interface FlexTopUpTier {
 /**
  * The four preset top-up tiles ($50 / $100 / $250 / $500).
  *
- * ⚠️ variantId values are PENDING — the "CSA Farm Flex Top-Up" Shopify
- * product could not be created from the build environment (no Shopify
- * Admin token present locally; it lives only as a Vercel runtime secret).
- * PM must create the product (productType "flex-topup", ACTIVE, published,
- * 4 fixed-price variants $50/$100/$250/$500) and paste each variant's
- * numeric id here. Until then the Add-Funds tiles render in a calm
- * "coming soon" state (FLEX_TOPUP_PRODUCT_READY === false) instead of
- * linking to a broken cart.
+ * Wired 2026-05-23 by PM_ARCHITECT — the "CSA Farm Flex Top-Up" Shopify
+ * product (gid://shopify/Product/8763606728857, productType "flex-topup",
+ * ACTIVE, published to Online Store, inventory not tracked) was created via
+ * the Admin API and these are its 4 fixed-price variant numeric ids.
  */
 export const FLEX_TOPUP_VARIANTS: ReadonlyArray<FlexTopUpTier> = [
-  { amount: 50, variantId: null },
-  { amount: 100, variantId: null, highlight: true },
-  { amount: 250, variantId: null },
-  { amount: 500, variantId: null },
+  { amount: 50, variantId: '47841200046233' },
+  { amount: 100, variantId: '47841222951065', highlight: true },
+  { amount: 250, variantId: '47841222983833' },
+  { amount: 500, variantId: '47841223016601' },
 ];
 
 /** True once every tile has a real Shopify variant id wired in. */
