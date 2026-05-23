@@ -1,0 +1,369 @@
+---
+/**
+ * /account/household — shared access (household sharing).
+ *
+ * A PRIMARY member (the original account owner) can invite a partner /
+ * roommate by email to SHARE their CSA account. The invited person gets
+ * their own magic-link login that resolves to the SAME account (see
+ * migration 0023 + current_customer_id()'s household fallback) — full
+ * dashboard, box swaps, vacation, pickup, and Farm Flex.
+ *
+ * Role detection is SERVER-SIDE:
+ *   - auth_primary_customer_id() != null  → caller IS the primary →
+ *       show the invite form + Remove buttons.
+ *   - == null                             → caller is an INVITED member →
+ *       read-only household list + "Shared by [primary]" note. No controls.
+ *
+ * The account's owner identity (name/email) comes from household_owner(),
+ * a SECURITY DEFINER helper that returns ONLY the caller's resolved
+ * account owner — an invited member can't read the owner's customers row
+ * under RLS, so we surface just the name they need.
+ *
+ * Auth: middleware (`/account` is a protected prefix). The defensive
+ * redirect below is belt-and-suspenders.
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Button from '../../components/Button.astro';
+import Card from '../../components/Card.astro';
+import EmptyState from '../../components/EmptyState.astro';
+import FormRow from '../../components/FormRow.astro';
+import ContactFarm from '../../components/ContactFarm.astro';
+import { HOUSEHOLD_ERROR_COPY } from '../../lib/account';
+
+const user = Astro.locals.user;
+if (!user || !user.email) {
+  return Astro.redirect('/login', 303);
+}
+const supabase = Astro.locals.supabase;
+
+// ─── Role: is the caller the PRIMARY (direct customers owner)? ─────────
+// auth_primary_customer_id() returns the caller's own customer id, or
+// null if they're an invited member (no customers row of their own).
+const { data: ownPrimaryId, error: primaryErr } = await supabase.rpc(
+  'auth_primary_customer_id'
+);
+if (primaryErr) {
+  console.error('[account/household] primary resolve failed:', primaryErr.message);
+}
+const isPrimary = !!ownPrimaryId;
+
+// ─── Account owner identity (works for primary AND invited member) ────
+const { data: ownerRows, error: ownerErr } = await supabase.rpc('household_owner');
+if (ownerErr) {
+  console.error('[account/household] owner identity failed:', ownerErr.message);
+}
+const owner = (Array.isArray(ownerRows) ? ownerRows[0] : null) ?? null;
+const hasAccount = !!owner;
+const ownerName = owner?.contact_name?.trim() || owner?.email || 'the account owner';
+
+// ─── Active household members (RLS scopes this to the caller's account) ─
+type HouseholdMember = {
+  id: string;
+  member_email: string;
+  invited_by: string | null;
+  created_at: string;
+};
+
+let members: HouseholdMember[] = [];
+if (hasAccount) {
+  const { data: memberRows, error: membersErr } = await supabase
+    .from('account_members')
+    .select('id, member_email, invited_by, created_at')
+    .eq('status', 'active')
+    .order('created_at', { ascending: true })
+    .overrideTypes<HouseholdMember[], { merge: false }>();
+
+  if (membersErr) {
+    console.error('[account/household] members fetch failed:', membersErr.message);
+  } else {
+    members = memberRows ?? [];
+  }
+}
+
+// Pretty date for "Added [date]".
+const fmtDate = (iso: string): string => {
+  try {
+    return new Intl.DateTimeFormat('en-US', {
+      month: 'short', day: 'numeric', year: 'numeric',
+      timeZone: 'America/New_York',
+    }).format(new Date(iso));
+  } catch {
+    return '';
+  }
+};
+
+// ─── Flash ────────────────────────────────────────────────────────────
+const errorParam = Astro.url.searchParams.get('error');
+const okParam = Astro.url.searchParams.get('ok');
+const errorMsg = errorParam
+  ? HOUSEHOLD_ERROR_COPY[errorParam] ?? HOUSEHOLD_ERROR_COPY.invalid_input
+  : null;
+const okMsg =
+  okParam === 'invited'
+    ? 'Invite sent — they can now sign in with their email.'
+    : okParam === 'removed'
+      ? 'That person has been removed from your account.'
+      : null;
+
+// Shared input styling — matches the other /account form pages.
+const inputClass =
+  'w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text placeholder:text-ts-text-muted shadow-inner transition-colors duration-150 focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30';
+---
+
+<BaseLayout
+  title="Shared access — Tiny Seed Farm CSA"
+  description="Share your Tiny Seed Farm CSA account with a partner or roommate so you can both manage your box."
+  canonical="https://csa.tinyseedfarm.com/account/household"
+>
+  <a
+    href="#main"
+    class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-ts-md focus:bg-ts-primary focus:px-4 focus:py-2 focus:text-white focus:shadow-ts-md"
+  >
+    Skip to main content
+  </a>
+
+  <div class="min-h-screen bg-ts-bg-base">
+    <header class="border-b border-ts-border bg-ts-bg-surface/80 backdrop-blur-sm">
+      <div class="mx-auto flex max-w-3xl items-center justify-between px-5 py-4 sm:px-6 sm:py-5">
+        <a
+          href="/dashboard"
+          class="flex items-center gap-2 rounded-ts-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ts-primary"
+          aria-label="Tiny Seed Farm CSA dashboard home"
+        >
+          <span class="inline-block h-2.5 w-2.5 rounded-full bg-ts-primary" aria-hidden="true"></span>
+          <span class="font-display text-lg font-bold tracking-tight text-ts-text">Tiny Seed Farm</span>
+        </a>
+        <form method="POST" action="/logout" class="m-0">
+          <button
+            type="submit"
+            class="rounded-ts-md px-3 py-2 text-sm font-medium text-ts-text-secondary transition-colors duration-150 hover:bg-ts-bg-muted hover:text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+          >
+            Sign out
+          </button>
+        </form>
+      </div>
+    </header>
+
+    <main id="main" class="mx-auto flex w-full max-w-3xl flex-col gap-6 px-5 py-8 sm:px-6 sm:py-12">
+      <nav aria-label="Breadcrumb" class="text-sm">
+        <a
+          href="/account"
+          class="inline-flex items-center gap-1 text-ts-text-secondary transition-colors hover:text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+        >
+          <span aria-hidden="true">←</span>
+          <span>Account</span>
+        </a>
+      </nav>
+
+      <section aria-labelledby="household-heading">
+        <h1 id="household-heading" class="font-display text-3xl font-bold tracking-tight text-ts-text sm:text-4xl">
+          Shared access
+        </h1>
+        <p class="mt-2 text-base text-ts-text-secondary">
+          {isPrimary
+            ? 'Share your CSA account with a partner or roommate. They sign in with their own email and can manage the box, swaps, vacation, and pickup — just like you.'
+            : `You share this account with ${ownerName}. You both have full access to manage the box, swaps, vacation, and pickup.`}
+        </p>
+      </section>
+
+      {/* FLASH */}
+      {errorMsg && (
+        <div
+          role="alert"
+          aria-live="polite"
+          class="rounded-ts-lg border border-ts-danger/30 bg-ts-danger/5 px-4 py-3 text-sm leading-relaxed text-ts-danger"
+        >
+          {errorMsg}
+        </div>
+      )}
+      {okMsg && (
+        <div
+          role="status"
+          aria-live="polite"
+          class="rounded-ts-lg border border-ts-primary/30 bg-ts-primary/5 px-4 py-3 text-sm leading-relaxed text-ts-primary"
+        >
+          {okMsg}
+        </div>
+      )}
+
+      {!hasAccount ? (
+        <EmptyState title="Account not found" icon="🌱" tone="default" dashed={false}>
+          We couldn't find a CSA account for your login yet. Once it's set up,
+          you'll be able to manage shared access here.
+          <Fragment slot="action">
+            <Button href="/account" variant="secondary" size="md">Back to account</Button>
+          </Fragment>
+        </EmptyState>
+      ) : (
+        <>
+          {/* PEOPLE ON THIS ACCOUNT */}
+          <section aria-labelledby="people-heading">
+            <h2 id="people-heading" class="mb-3 text-base font-semibold text-ts-text">
+              People on this account
+            </h2>
+
+            <Card padding="none" elevation="sm">
+              <ul role="list" class="divide-y divide-ts-border">
+                {/* PRIMARY (the account owner) */}
+                <li class="flex items-center gap-4 px-5 py-4 sm:px-6">
+                  <span
+                    class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ts-primary/10 text-lg"
+                    aria-hidden="true"
+                  >
+                    🌱
+                  </span>
+                  <div class="min-w-0 flex-1">
+                    <p class="truncate font-medium text-ts-text">
+                      {owner!.contact_name?.trim() || owner!.email}
+                    </p>
+                    <p class="truncate text-sm text-ts-text-secondary">{owner!.email}</p>
+                  </div>
+                  <span class="shrink-0 rounded-full bg-ts-primary/10 px-2.5 py-1 text-xs font-semibold text-ts-primary">
+                    Account owner
+                  </span>
+                </li>
+
+                {/* INVITED MEMBERS */}
+                {members.map((m) => (
+                  <li class="flex items-center gap-4 px-5 py-4 sm:px-6">
+                    <span
+                      class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ts-bg-muted text-lg"
+                      aria-hidden="true"
+                    >
+                      👤
+                    </span>
+                    <div class="min-w-0 flex-1">
+                      <p class="truncate font-medium text-ts-text">{m.member_email}</p>
+                      <p class="truncate text-sm text-ts-text-secondary">
+                        {`Added ${fmtDate(m.created_at)}`}
+                      </p>
+                    </div>
+                    {isPrimary ? (
+                      <form method="POST" action="/api/account/household" class="m-0 shrink-0">
+                        <input type="hidden" name="action" value="remove" />
+                        <input type="hidden" name="email" value={m.member_email} />
+                        <button
+                          type="submit"
+                          class="inline-flex h-9 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm font-semibold text-ts-text-secondary transition-all duration-150 ease-[var(--ease-ts)] hover:border-ts-danger/40 hover:text-ts-danger active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-danger [touch-action:manipulation]"
+                          data-remove-btn
+                          aria-label={`Remove ${m.member_email} from your account`}
+                        >
+                          Remove
+                        </button>
+                      </form>
+                    ) : (
+                      <span class="shrink-0 rounded-full bg-ts-bg-muted px-2.5 py-1 text-xs font-medium text-ts-text-secondary">
+                        Shared access
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          </section>
+
+          {/* PRIMARY: invite form */}
+          {isPrimary && (
+            <section aria-labelledby="invite-heading">
+              <Card padding="md" elevation="sm">
+                <h2 id="invite-heading" class="text-base font-semibold text-ts-text">
+                  Invite someone
+                </h2>
+                <p class="mt-1 text-sm text-ts-text-secondary">
+                  Add a partner or roommate by email. We'll email them a link to
+                  sign in with that address. They'll see the same box and account
+                  as you.
+                </p>
+
+                <form
+                  method="POST"
+                  action="/api/account/household"
+                  class="mt-4 flex flex-col gap-4"
+                  novalidate
+                  data-invite-form
+                >
+                  <input type="hidden" name="action" value="invite" />
+                  <FormRow
+                    label="Their email"
+                    htmlFor="invite-email"
+                    required
+                    help="The email they'll use to sign in. It can't already have its own Tiny Seed Farm CSA account."
+                  >
+                    <input
+                      id="invite-email"
+                      name="email"
+                      type="email"
+                      required
+                      maxlength="254"
+                      autocomplete="off"
+                      inputmode="email"
+                      class={inputClass}
+                      placeholder="partner@example.com"
+                    />
+                  </FormRow>
+
+                  <div class="flex justify-end">
+                    <Button type="submit" variant="primary" size="md" data-submit-btn>
+                      <span data-submit-label>Send invite</span>
+                    </Button>
+                  </div>
+                </form>
+              </Card>
+            </section>
+          )}
+
+          {/* INVITED MEMBER: read-only note */}
+          {!isPrimary && (
+            <Card padding="md" elevation="sm" tone="muted">
+              <p class="text-sm leading-relaxed text-ts-text-secondary">
+                <span class="font-semibold text-ts-text">Shared by {ownerName}</span> —
+                contact them to change who has access to this account. You have full
+                access to manage the box, but only the account owner can add or
+                remove people.
+              </p>
+              <div class="mt-4 border-t border-ts-border pt-4">
+                <ContactFarm
+                  tone="inline"
+                  label="Questions about your shared account?"
+                  subject="Shared CSA account access"
+                />
+              </div>
+            </Card>
+          )}
+        </>
+      )}
+
+      <footer class="mt-auto border-t border-ts-border pt-6 text-center text-xs text-ts-text-muted">
+        <p>Signed in as <span class="font-medium text-ts-text-secondary">{user.email}</span></p>
+        <p class="mt-1">Tiny Seed Farm · 257 Zeigler Rd, Rochester, PA · Certified Organic</p>
+      </footer>
+    </main>
+  </div>
+
+  <script>
+    // Invite-form submit feedback: disable + swap label so the primary
+    // doesn't double-submit on a slow connection. Mirrors profile.astro.
+    const form = document.querySelector<HTMLFormElement>('[data-invite-form]');
+    const submitBtn = document.querySelector<HTMLButtonElement>('[data-submit-btn]');
+    const submitLabel = document.querySelector<HTMLElement>('[data-submit-label]');
+    if (form && submitBtn && submitLabel) {
+      form.addEventListener('submit', () => {
+        submitBtn.disabled = true;
+        submitLabel.textContent = 'Sending…';
+      });
+    }
+
+    // Remove buttons: confirm before submitting (destructive, removes a
+    // person's access). Native confirm() is fine here — it's a rare,
+    // deliberate action.
+    document.querySelectorAll<HTMLButtonElement>('[data-remove-btn]').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        const formEl = btn.closest('form');
+        const email = formEl?.querySelector<HTMLInputElement>('input[name="email"]')?.value ?? 'this person';
+        if (!window.confirm(`Remove ${email} from your account? They'll lose access right away.`)) {
+          e.preventDefault();
+        }
+      });
+    });
+  </script>
+</BaseLayout>

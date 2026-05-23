@@ -338,6 +338,26 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['shopify_order_sync']['Row']>;
         Relationships: [];
       };
+      // Household sharing (migration 0023). Maps an invited person's email
+      // to the owner's account so they can share one CSA login.
+      account_members: {
+        Row: {
+          id: string;
+          owner_customer_id: string;
+          /** citext — case-insensitive. The invited person's login email. */
+          member_email: string;
+          status: 'active' | 'removed';
+          /** citext — email of whoever sent the invite (the primary). */
+          invited_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          owner_customer_id: string;
+          member_email: string;
+        } & Partial<Database['public']['Tables']['account_members']['Row']>;
+        Update: Partial<Database['public']['Tables']['account_members']['Row']>;
+        Relationships: [];
+      };
     };
     Views: {
       member_flex_balance: {
@@ -396,6 +416,23 @@ export interface Database {
       is_admin_caller: {
         Args: Record<string, never>;
         Returns: boolean;
+      };
+      // Household sharing (migration 0023).
+      current_customer_id: {
+        Args: Record<string, never>;
+        Returns: string | null;
+      };
+      auth_primary_customer_id: {
+        Args: Record<string, never>;
+        Returns: string | null;
+      };
+      email_is_customer: {
+        Args: { p_email: string };
+        Returns: boolean;
+      };
+      household_owner: {
+        Args: Record<string, never>;
+        Returns: { owner_id: string; contact_name: string; email: string }[];
       };
     };
     Enums: { [_: string]: never };

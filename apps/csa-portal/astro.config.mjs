@@ -58,6 +58,21 @@ export default defineConfig({
         access: 'secret',
         optional: true,
       }),
+
+      // ── Transactional email (Resend) — household-share invites ──
+      // Live as Vercel env vars. `optional` so a local build/check (where
+      // they're absent) still succeeds; the invite send is best-effort and
+      // fail-soft at runtime, so a missing key just skips the email.
+      RESEND_API_KEY: envField.string({
+        context: 'server',
+        access: 'secret',
+        optional: true,
+      }),
+      RESEND_FROM_EMAIL: envField.string({
+        context: 'server',
+        access: 'secret',
+        optional: true,
+      }),
     },
   },
 });

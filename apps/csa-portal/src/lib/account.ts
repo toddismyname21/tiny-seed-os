@@ -136,3 +136,15 @@ export const BIWEEKLY_ERROR_COPY: Record<string, string> = {
   no_active_share: "We don't have an active share on your account yet.",
   network: "We couldn't reach the server. Please try again.",
 };
+
+export const HOUSEHOLD_ERROR_COPY: Record<string, string> = {
+  invalid_input: "We couldn't read that — please check the email and try again.",
+  invalid_email: 'Please enter a valid email address.',
+  already_member:
+    'That email already has its own Tiny Seed Farm CSA account, so it can’t be added here. If you think that’s a mistake, contact the farm.',
+  already_invited: 'That person is already on your account.',
+  self_invite: "That’s your own login email — you already have full access.",
+  not_primary:
+    'Only the account owner can add or remove people. Ask them to make changes for you.',
+  network: "We couldn't reach the server. Please try again.",
+};
