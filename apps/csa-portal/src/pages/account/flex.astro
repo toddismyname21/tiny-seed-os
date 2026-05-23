@@ -28,14 +28,35 @@ import {
   getFlexTransactions,
   formatFlexMoney,
   isCreditType,
+  flexBonusAmount,
+  flexBonusRate,
+  flexTopUpCartUrl,
+  FLEX_TOPUP_VARIANTS,
+  FLEX_TOPUP_PRODUCT_READY,
+  FLEX_SHOPIFY_STORE_DEFAULT,
   type FlexBalance,
   type FlexTransaction,
 } from '../../lib/flex';
+import { SHOPIFY_STORE_NAME } from 'astro:env/server';
 
 const user = Astro.locals.user;
 if (!user || !user.email) {
   return Astro.redirect('/login', 303);
 }
+
+// Storefront subdomain for the cart permalinks. Prefer the runtime env
+// (correct across environments); fall back to the known production store.
+const shopifyStore = SHOPIFY_STORE_NAME || FLEX_SHOPIFY_STORE_DEFAULT;
+
+// Precompute the Add-Funds tiles: principal, bonus dollars/rate, and the
+// Shopify cart-permalink (null until the product's variant ids are wired).
+const topUpTiles = FLEX_TOPUP_VARIANTS.map((tier) => ({
+  amount: tier.amount,
+  highlight: tier.highlight === true,
+  bonus: flexBonusAmount(tier.amount),
+  bonusPct: Math.round(flexBonusRate(tier.amount) * 100),
+  cartUrl: flexTopUpCartUrl(tier, shopifyStore),
+}));
 
 // Read-only data. Both fail-soft (null / []), so the page never errors out.
 const balance: FlexBalance | null = await getFlexBalance(user.email);
@@ -214,27 +235,6 @@ const TYPE_FALLBACK_LABEL: Record<FlexTransaction['type'], string> = {
               </EmptyState>
             )}
           </section>
-
-          {/* ADD FUNDS (coming soon — Phase 2a) */}
-          <Card padding="md" elevation="sm" as="section">
-            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div class="min-w-0">
-                <div class="flex items-center gap-2">
-                  <h2 class="font-display text-lg font-semibold text-ts-text">Add funds</h2>
-                  <Badge variant="amber" size="xs" uppercase>Coming soon</Badge>
-                </div>
-                <p class="mt-1 text-sm leading-relaxed text-ts-text-secondary">
-                  Top up your Farm Flex and earn a loyalty bonus. We're putting
-                  the finishing touches on this — check back soon.
-                </p>
-              </div>
-              <div class="shrink-0">
-                <Button variant="primary" size="md" disabled>
-                  Add funds
-                </Button>
-              </div>
-            </div>
-          </Card>
         </>
       ) : (
         /* NO FLEX BALANCE — calm, non-erroring state */
@@ -246,7 +246,9 @@ const TYPE_FALLBACK_LABEL: Record<FlexTransaction['type'], string> = {
         >
           You don't have a Farm Flex balance right now. Farm Flex lets you keep
           prepaid credit on hand for extras and add-ons — and it never expires.
-          We'll be opening up Add Funds soon.
+          {FLEX_TOPUP_PRODUCT_READY
+            ? ' Add funds below to get started — and earn a bonus while you do.'
+            : " We'll be opening up Add Funds soon."}
           <Fragment slot="action">
             <Button href="/account" variant="secondary" size="md">
               Back to account
@@ -254,6 +256,87 @@ const TYPE_FALLBACK_LABEL: Record<FlexTransaction['type'], string> = {
           </Fragment>
         </EmptyState>
       )}
+
+      {/* ═══════════════════════════════════════════════════════════════
+          ADD FUNDS — Phase 2a (preset top-up tiles → Shopify checkout).
+          Page-level (not gated on balance) so a member with $0 can start
+          a wallet, and a member with a balance can top it up. Deep-link
+          target #add-funds (the dashboard wallet "Add funds" CTA).
+          ═══════════════════════════════════════════════════════════════ */}
+      <section id="add-funds" aria-labelledby="add-funds-heading" class="scroll-mt-6 flex flex-col gap-4">
+        <div class="flex flex-wrap items-center gap-2">
+          <h2 id="add-funds-heading" class="font-display text-xl font-bold text-ts-text sm:text-2xl">
+            Add funds
+          </h2>
+          {!FLEX_TOPUP_PRODUCT_READY && (
+            <Badge variant="amber" size="xs" uppercase>Coming soon</Badge>
+          )}
+        </div>
+
+        {FLEX_TOPUP_PRODUCT_READY ? (
+          <Card padding="lg" elevation="sm" as="div">
+            <p class="max-w-prose text-sm leading-relaxed text-ts-text-secondary">
+              Preload your wallet and earn a loyalty bonus on top — the more
+              you add, the bigger the thank-you. Pick an amount to check out
+              on our farm store.
+            </p>
+
+            {/* TILES */}
+            <ul role="list" class="mt-5 grid grid-cols-2 gap-3 sm:gap-4">
+              {topUpTiles.map((tile) => (
+                <li>
+                  <a
+                    href={tile.cartUrl ?? '#'}
+                    class:list={[
+                      'group relative flex h-full flex-col items-center justify-center gap-1 rounded-ts-xl border p-5 text-center transition-all duration-200 ease-[var(--ease-ts)]',
+                      'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary',
+                      'hover:-translate-y-0.5 hover:shadow-ts-md active:scale-[0.98]',
+                      '[touch-action:manipulation] min-h-[7.5rem]',
+                      tile.highlight
+                        ? 'border-ts-primary bg-ts-primary/5 hover:border-ts-primary'
+                        : 'border-ts-border bg-ts-bg-surface hover:border-ts-primary/40',
+                    ]}
+                    aria-label={`Add ${formatFlexMoney(tile.amount, currency)} — earn a ${formatFlexMoney(tile.bonus, currency)} bonus`}
+                  >
+                    {tile.highlight && (
+                      <span class="absolute -top-2.5 left-1/2 -translate-x-1/2">
+                        <Badge variant="green" size="xs" uppercase>Most popular</Badge>
+                      </span>
+                    )}
+                    <span class="font-display text-3xl font-bold tabular-nums tracking-tight text-ts-text">
+                      {formatFlexMoney(tile.amount, currency)}
+                    </span>
+                    <span class="text-sm font-medium text-ts-primary">
+                      <span aria-hidden="true">🎁</span> +{formatFlexMoney(tile.bonus, currency)} bonus
+                    </span>
+                    <span class="text-xs text-ts-text-muted">
+                      {tile.bonusPct}% back · wallet gets {formatFlexMoney(tile.amount + tile.bonus, currency)}
+                    </span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+
+            <p class="mt-5 flex items-start gap-2 text-xs leading-relaxed text-ts-text-muted">
+              <span aria-hidden="true" class="mt-px">⏳</span>
+              <span>
+                Funds (plus your bonus) land in your wallet within ~15 minutes
+                of checkout. You'll complete payment on our farm store — sign in
+                with the same email so your credit lands here.
+              </span>
+            </p>
+          </Card>
+        ) : (
+          /* Product not yet created in Shopify — calm placeholder. */
+          <Card padding="md" elevation="sm" as="div">
+            <p class="max-w-prose text-sm leading-relaxed text-ts-text-secondary">
+              Top up your Farm Flex and earn a loyalty bonus — under $250 adds
+              5%, $250+ adds 10%, and $500+ adds 12%. We're putting the
+              finishing touches on checkout — check back soon.
+            </p>
+          </Card>
+        )}
+      </section>
 
       {/* FOOTER */}
       <footer class="mt-auto border-t border-ts-border pt-6 text-center text-xs text-ts-text-muted">

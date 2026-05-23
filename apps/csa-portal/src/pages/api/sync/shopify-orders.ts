@@ -3,8 +3,11 @@
  *
  * Catch-up sync: pulls Shopify orders updated since the last watermark,
  * upserts customers + CSA member rows into Supabase, and issues Shopify
- * store credit for "flex" line items. SENSITIVE — it creates member rows
- * and issues real money — so it is built defensively:
+ * store credit for flex-funds line items (the flex SHARE *and* the "CSA
+ * Farm Flex Top-Up" product). Flex purchases credit the principal PLUS a
+ * ladder loyalty bonus (<$250 +5%, $250–$499 +10%, $500+ +12%), with the
+ * bonus portion recorded as a flex_transactions row. SENSITIVE — it
+ * creates member rows and issues real money — so it is built defensively:
  *
  *   IDEMPOTENT  Every order is keyed in `shopify_order_sync` by its
  *               Shopify order id; an order with a row is skipped. Member
@@ -32,7 +35,8 @@
  *
  * Returns:
  *   { ok, dry_run, orders_seen, orders_processed, members_upserted,
- *     flex_credited_total, watermark_advanced_to, planned?, errors[] }
+ *     flex_credited_total, flex_bonus_total, watermark_advanced_to,
+ *     planned?, errors[] }
  */
 import type { APIRoute } from 'astro';
 import { CRON_SECRET } from 'astro:env/server';
@@ -53,6 +57,7 @@ import {
   type ShopifyOrder,
   type Category,
 } from '../../../lib/shopify';
+import { isFlexFundsTitle, planFlexCredit } from '../../../lib/flex';
 
 export const prerender = false;
 
@@ -155,6 +160,17 @@ function planOrder(order: ShopifyOrder): OrderPlan {
   const unschedulable: string[] = [];
 
   for (const li of order.lineItems) {
+    // Flex FUNDS line items load store credit, not a member row. This is
+    // broader than categorize()'s flex SHARE: it also catches the new
+    // "CSA Farm Flex Top-Up" product (whose title carries no "2026" /
+    // "summer csa", so categorize() would skip it). Any title containing
+    // "flex" loads the wallet → accumulate as principal here. Handle this
+    // BEFORE categorize() since top-ups categorize() to null.
+    if (isFlexFundsTitle(li.title)) {
+      flexAmount += li.amount;
+      continue;
+    }
+
     const cat = categorize(li.title);
     if (!cat) continue;
 
@@ -164,7 +180,9 @@ function planOrder(order: ShopifyOrder): OrderPlan {
       continue;
     }
 
-    // Flex line items: store credit, not a member row.
+    // Defensive: categorize() may still tag a flex SHARE as 'flex' for
+    // titles that contain "flex" but somehow slipped past the check above.
+    // Treat it as funds, never a member row.
     if (cat.share_type === 'flex') {
       flexAmount += li.amount;
       continue;
@@ -193,6 +211,11 @@ function planOrder(order: ShopifyOrder): OrderPlan {
   }
 
   return { members, flexAmount, homeDeliveryCount, unschedulable };
+}
+
+/** Order-level prefilter: does any line item load flex funds? */
+function hasFlexFundsLineItem(order: ShopifyOrder): boolean {
+  return order.lineItems.some((li) => isFlexFundsTitle(li.title));
 }
 
 function bestEmail(order: ShopifyOrder): string | null {
@@ -250,8 +273,13 @@ async function handle(request: Request, url: URL): Promise<Response> {
   }
 
   const ordersSeen = orders.length;
-  // Keep only non-cancelled orders carrying a 2026 CSA line item.
-  const candidates = orders.filter((o) => !isOrderSkippable(o) && hasCsaLineItem(o));
+  // Keep non-cancelled orders that carry either a 2026 CSA line item OR a
+  // flex-funds line item. A pure "Flex Top-Up" order has no "2026"/CSA
+  // title, so hasCsaLineItem() alone would drop it — we must also admit
+  // any order with a flex-funds line item so it gets credited.
+  const candidates = orders.filter(
+    (o) => !isOrderSkippable(o) && (hasCsaLineItem(o) || hasFlexFundsLineItem(o))
+  );
 
   // Track the max updated_at we observe so the watermark advances exactly
   // to the frontier we've covered (never past unseen orders).
@@ -263,6 +291,7 @@ async function handle(request: Request, url: URL): Promise<Response> {
   let ordersProcessed = 0;
   let membersUpserted = 0;
   let flexCreditedTotal = 0;
+  let flexBonusTotal = 0;
   const planned: Array<Record<string, unknown>> = [];
 
   // 5. Per-order processing.
@@ -284,6 +313,7 @@ async function handle(request: Request, url: URL): Promise<Response> {
 
       // ── DRY RUN: record the plan, write nothing ──────────────────
       if (dryRun) {
+        const creditPlan = planFlexCredit(plan.flexAmount);
         planned.push({
           order: order.name,
           order_id: order.id,
@@ -299,13 +329,17 @@ async function handle(request: Request, url: URL): Promise<Response> {
             total_weeks: m.total_weeks,
             amount_paid: m.amount_paid,
           })),
-          would_credit_flex: plan.flexAmount,
+          would_credit_flex_principal: creditPlan.principal,
+          would_credit_flex_bonus: creditPlan.bonus,
+          would_credit_flex_bonus_pct: Math.round(creditPlan.bonusRate * 100),
+          would_credit_flex_total: creditPlan.total,
           home_delivery_items_skipped: plan.homeDeliveryCount,
           unschedulable_titles: plan.unschedulable,
         });
         ordersProcessed += 1;
         membersUpserted += plan.members.length;
-        flexCreditedTotal += plan.flexAmount;
+        flexCreditedTotal += creditPlan.total;
+        flexBonusTotal += creditPlan.bonus;
         continue;
       }
 
@@ -362,14 +396,58 @@ async function handle(request: Request, url: URL): Promise<Response> {
         upsertedThisOrder += 1;
       }
 
-      // ── LIVE: issue flex store credit (double-guarded) ───────────
+      // ── LIVE: issue flex store credit + loyalty bonus ────────────
+      //
+      // The member paid `plan.flexAmount` (principal). On top, they earn
+      // a ladder bonus (planFlexCredit: <$250 +5%, $250–$499 +10%,
+      // $500+ +12%). We credit principal + bonus as ONE store-credit
+      // top-up, then record the BONUS portion as a flex_transactions row
+      // so accounting can split escheatment-exempt principal from the
+      // goodwill bonus (getLoyaltyBonusTotal reads these rows).
+      //
+      // Idempotency:
+      //   1. PRIMARY — the shopify_order_sync ledger row (checked at 5a)
+      //      means this whole block runs at most once per order. A re-run
+      //      sees the ledger row and `continue`s before reaching here, so
+      //      neither principal nor bonus can be issued twice.
+      //   2. SECONDARY — issueStoreCredit keeps its skip-if-already
+      //      balance guard intact (credits only up to the target, skips
+      //      if the balance already covers it).
       let flexCreditedThisOrder = 0;
+      let flexBonusThisOrder = 0;
       if (plan.flexAmount > 0) {
         if (!order.customerGid) {
           throw new Error('flex line item but order has no Shopify customer GID');
         }
-        const outcome = await issueStoreCredit(order.customerGid, plan.flexAmount);
+        const creditPlan = planFlexCredit(plan.flexAmount);
+        // Credit principal + bonus together (skip-if-already preserved).
+        const outcome = await issueStoreCredit(order.customerGid, creditPlan.total);
         flexCreditedThisOrder = outcome.credited;
+
+        // Record the loyalty-bonus portion in Supabase. Only if a credit
+        // actually happened (not skipped) and a bonus is owed — a skipped
+        // credit means the balance already covered it (no new money), so
+        // we don't log a phantom bonus. The per-order ledger guard above
+        // is what guarantees this row is written at most once. We count
+        // flexBonusThisOrder only when the row is actually written, so the
+        // reported flex_bonus_total reflects real recorded bonuses.
+        if (!outcome.skipped && creditPlan.bonus > 0) {
+          const pct = Math.round(creditPlan.bonusRate * 100);
+          const { error: bonusErr } = await supabaseAdmin.from('flex_transactions').insert({
+            email,
+            type: 'credit',
+            amount: creditPlan.bonus,
+            reason: `Flex loyalty bonus (auto, ${pct}%)`,
+            order_id: order.id,
+          });
+          if (bonusErr) {
+            // The store credit (principal + bonus) is already issued in
+            // Shopify — surface loudly so the bonus ledger row can be
+            // reconciled, but the credit itself stands.
+            throw new Error(`flex bonus row insert: ${bonusErr.message}`);
+          }
+          flexBonusThisOrder = creditPlan.bonus;
+        }
       }
 
       // ── LIVE: write the idempotency ledger row ───────────────────
@@ -391,6 +469,7 @@ async function handle(request: Request, url: URL): Promise<Response> {
       ordersProcessed += 1;
       membersUpserted += upsertedThisOrder;
       flexCreditedTotal += flexCreditedThisOrder;
+      flexBonusTotal += flexBonusThisOrder;
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
       console.error(`[sync] order ${order.name} (${order.id}) failed:`, message);
@@ -441,6 +520,7 @@ async function handle(request: Request, url: URL): Promise<Response> {
     orders_processed: ordersProcessed,
     members_upserted: membersUpserted,
     flex_credited_total: flexCreditedTotal,
+    flex_bonus_total: flexBonusTotal,
     watermark_was: lastSyncedAt,
     watermark_advanced_to: watermarkAdvancedTo,
     ...(dryRun ? { planned } : {}),

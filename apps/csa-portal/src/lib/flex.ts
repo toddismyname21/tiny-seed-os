@@ -229,3 +229,175 @@ export function formatFlexMoney(amount: number, currency = 'USD'): string {
 export function isCreditType(type: FlexTransaction['type']): boolean {
   return type === 'credit' || type === 'refund' || type === 'adjustment';
 }
+
+/* ──────────────────────────────────────────────────────────────────
+ * ADD FUNDS — Phase 2a (top-up tiles + Shopify "Flex Top-Up" product).
+ *
+ * Money never moves through this portal. A member taps a preset tile,
+ * we send them to a Shopify CART PERMALINK for the matching fixed-price
+ * variant, and they complete checkout on Shopify (signed into their
+ * Shopify account so store credit + payment work). The existing 15-min
+ * order sync (/api/sync/shopify-orders) then credits the principal + the
+ * loyalty bonus into their wallet.
+ *
+ * Custom/arbitrary amounts are OUT of scope for v1: Shopify cart
+ * permalinks require a fixed numeric variant id, so we expose presets
+ * only. Adding a tier later is just another row in FLEX_TOPUP_VARIANTS.
+ * ────────────────────────────────────────────────────────────────── */
+
+/**
+ * The standing Farm Flex loyalty ladder (decided 2026-05-21, see
+ * CHANGE_LOG):
+ *   under $250  → +5%
+ *   $250–$499   → +10%
+ *   $500 and up → +12%
+ *
+ * This is the SINGLE source of truth for the bonus percentage. Both the
+ * member-facing tiles (what bonus a tile earns) and the order sync (what
+ * bonus to actually credit) read it, so the displayed promise and the
+ * issued credit can never drift apart.
+ */
+export const FLEX_BONUS_TIERS: ReadonlyArray<{ min: number; rate: number }> = [
+  { min: 500, rate: 0.12 },
+  { min: 250, rate: 0.1 },
+  { min: 0, rate: 0.05 },
+];
+
+/**
+ * Loyalty-bonus RATE (as a decimal) earned for a given principal amount,
+ * per FLEX_BONUS_TIERS. e.g. flexBonusRate(250) → 0.10.
+ * Negative / non-finite input → 0 (no bonus, never negative).
+ */
+export function flexBonusRate(amount: number): number {
+  if (!Number.isFinite(amount) || amount <= 0) return 0;
+  for (const tier of FLEX_BONUS_TIERS) {
+    if (amount >= tier.min) return tier.rate;
+  }
+  return 0;
+}
+
+/**
+ * Loyalty-bonus DOLLARS earned for a given principal amount, rounded to
+ * cents (banker-safe: round on the cent, not the float). e.g.
+ * flexBonusAmount(250) → 25.00, flexBonusAmount(100) → 5.00.
+ */
+export function flexBonusAmount(amount: number): number {
+  if (!Number.isFinite(amount) || amount <= 0) return 0;
+  return Math.round(amount * flexBonusRate(amount) * 100) / 100;
+}
+
+/** A preset Add-Funds tile: the principal it loads + the Shopify variant. */
+export interface FlexTopUpTier {
+  /** Principal dollars the member pays (== the variant price). */
+  amount: number;
+  /**
+   * Shopify ProductVariant numeric id for the "CSA Farm Flex Top-Up"
+   * product, used to build the cart permalink. `null` until the product
+   * is created in Shopify (TASK 1) — see FLEX_TOPUP_PRODUCT_READY.
+   */
+  variantId: string | null;
+  /** Visually emphasize this tile as the suggested choice. */
+  highlight?: boolean;
+}
+
+/**
+ * The four preset top-up tiles ($50 / $100 / $250 / $500).
+ *
+ * ⚠️ variantId values are PENDING — the "CSA Farm Flex Top-Up" Shopify
+ * product could not be created from the build environment (no Shopify
+ * Admin token present locally; it lives only as a Vercel runtime secret).
+ * PM must create the product (productType "flex-topup", ACTIVE, published,
+ * 4 fixed-price variants $50/$100/$250/$500) and paste each variant's
+ * numeric id here. Until then the Add-Funds tiles render in a calm
+ * "coming soon" state (FLEX_TOPUP_PRODUCT_READY === false) instead of
+ * linking to a broken cart.
+ */
+export const FLEX_TOPUP_VARIANTS: ReadonlyArray<FlexTopUpTier> = [
+  { amount: 50, variantId: null },
+  { amount: 100, variantId: null, highlight: true },
+  { amount: 250, variantId: null },
+  { amount: 500, variantId: null },
+];
+
+/** True once every tile has a real Shopify variant id wired in. */
+export const FLEX_TOPUP_PRODUCT_READY: boolean = FLEX_TOPUP_VARIANTS.every(
+  (t) => typeof t.variantId === 'string' && t.variantId.length > 0
+);
+
+/**
+ * Shopify storefront subdomain (the `{store}` in
+ * `{store}.myshopify.com`). The cart-permalink target. Defaults to the
+ * known production store; a server caller may pass the runtime
+ * SHOPIFY_STORE_NAME to be safe across environments.
+ */
+export const FLEX_SHOPIFY_STORE_DEFAULT = 'tiny-seed-farmers-market';
+
+/**
+ * Build the Shopify CART PERMALINK that loads exactly one of the given
+ * top-up variant into the cart and starts checkout:
+ *   https://{store}.myshopify.com/cart/{variantId}:1
+ *
+ * Returns `null` when the variant isn't wired up yet (variantId null) —
+ * callers should render the tile as disabled rather than a dead link.
+ *
+ * @param tier  one entry from FLEX_TOPUP_VARIANTS
+ * @param store storefront subdomain (defaults to the production store)
+ */
+export function flexTopUpCartUrl(
+  tier: FlexTopUpTier,
+  store: string = FLEX_SHOPIFY_STORE_DEFAULT
+): string | null {
+  if (!tier.variantId) return null;
+  const sub = (store || FLEX_SHOPIFY_STORE_DEFAULT).trim();
+  return `https://${sub}.myshopify.com/cart/${tier.variantId}:1`;
+}
+
+/* ──────────────────────────────────────────────────────────────────
+ * SYNC SIDE — classify a Shopify line item as a "loads flex funds"
+ * purchase and compute the bonus to credit. Shared by the order sync so
+ * the bonus math lives in ONE place alongside the ladder above.
+ * ────────────────────────────────────────────────────────────────── */
+
+/**
+ * Does this Shopify line-item title load Farm Flex funds? True for BOTH
+ * the legacy flex SHARE ("...2026 Summer Flex CSA...") and the new
+ * "CSA Farm Flex Top-Up" product — anything whose title contains "flex"
+ * is a wallet load. Case-insensitive.
+ *
+ * NOTE: this is intentionally broader than shopify.ts `categorize()`,
+ * which only recognizes the flex *share* (it requires "2026"+"summer"+
+ * "csa"+"flex"). Top-up titles won't carry "2026"/"summer csa", so the
+ * sync must use THIS predicate to catch them.
+ */
+export function isFlexFundsTitle(title: string): boolean {
+  return title.toLowerCase().includes('flex');
+}
+
+/** A flex purchase split into the credited parts, ready for the sync. */
+export interface FlexCreditPlan {
+  /** Dollars the member paid (the line amount) — credited as principal. */
+  principal: number;
+  /** Bonus rate applied (decimal), per the ladder. */
+  bonusRate: number;
+  /** Bonus dollars to credit on top of principal. */
+  bonus: number;
+  /** principal + bonus — the total store credit this purchase yields. */
+  total: number;
+}
+
+/**
+ * Given the dollars paid for a flex line item, split into principal +
+ * ladder bonus + total. Pure; the sync uses `total` as the store-credit
+ * target and records `bonus` as a flex_transactions row.
+ */
+export function planFlexCredit(amountPaid: number): FlexCreditPlan {
+  const principal = Number.isFinite(amountPaid) && amountPaid > 0 ? amountPaid : 0;
+  const bonusRate = flexBonusRate(principal);
+  const bonus = flexBonusAmount(principal);
+  return {
+    principal,
+    bonusRate,
+    bonus,
+    total: Math.round((principal + bonus) * 100) / 100,
+  };
+}
