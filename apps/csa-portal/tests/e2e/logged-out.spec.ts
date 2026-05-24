@@ -1,0 +1,54 @@
+/**
+ * Unauthenticated route-protection probe. @unauth
+ *
+ * No storageState, no Supabase dependency — this runs even if the admin
+ * API is unreachable, proving the middleware gate independently.
+ *
+ * Contract (middleware.ts): a logged-out request to a PROTECTED route
+ * redirects to /login (303) with the original path preserved as ?next=.
+ * We assert the redirect at the HTTP layer (not after the browser follows
+ * it) so the test is exact and fast.
+ */
+import { test, expect } from '@playwright/test';
+
+const PROTECTED_ROUTES = [
+  '/dashboard',
+  '/box',
+  '/account',
+  '/account/profile',
+  '/account/preferences',
+  '/account/pickup',
+  '/account/vacation',
+  '/account/biweekly-schedule',
+  '/account/flex',
+  '/account/household',
+  '/account/refer',
+];
+
+test.describe('unauthenticated route protection @unauth', () => {
+  for (const route of PROTECTED_ROUTES) {
+    test(`${route} → 303 redirect to /login`, async ({ request }) => {
+      // maxRedirects:0 so we inspect the redirect itself, not the login page.
+      const res = await request.get(route, { maxRedirects: 0 });
+      expect(res.status(), `${route} should 303`).toBe(303);
+      const location = res.headers()['location'] ?? '';
+      expect(location, `${route} should redirect to /login`).toContain('/login');
+      // The intended path must be preserved for post-login bounce-back.
+      expect(location, `${route} should carry ?next=`).toContain('next=');
+    });
+  }
+
+  test('public landing page renders without auth', async ({ page }) => {
+    const res = await page.goto('/');
+    expect(res?.status()).toBe(200);
+    await expect(page).toHaveTitle(/Tiny Seed Farm CSA/i);
+  });
+
+  test('login page renders the email form without auth', async ({ page }) => {
+    await page.goto('/login');
+    await expect(page.getByLabel(/email address/i)).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: /email me a sign-in link/i })
+    ).toBeVisible();
+  });
+});

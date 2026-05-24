@@ -23,6 +23,17 @@ pnpm-debug.log*
 # environment variables
 .env
 .env.production
+.env.test
+# ...but DO commit the documented example (root .gitignore's `.env.*`
+# rule would otherwise swallow it).
+!.env.test.example
+
+# test / quality harness artifacts
+tests/e2e/.auth/
+test-results/
+playwright-report/
+blob-report/
+.lighthouseci/
 
 # macOS-specific files
 .DS_Store

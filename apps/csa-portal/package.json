@@ -9,7 +9,11 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "test:e2e": "playwright test",
+    "test:a11y": "playwright test tests/e2e/a11y.spec.ts",
+    "test:unauth": "playwright test --grep @unauth",
+    "lhci": "lhci autorun"
   },
   "dependencies": {
     "@astrojs/vercel": "^10.0.6",
@@ -24,6 +28,9 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.9",
+    "@axe-core/playwright": "^4.11.3",
+    "@lhci/cli": "^0.15.1",
+    "@playwright/test": "^1.58.2",
     "typescript": "^6.0.3"
   }
 }

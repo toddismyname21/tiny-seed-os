@@ -14,6 +14,16 @@ export default defineConfig({
 
   site: 'https://csa.tinyseedfarm.com',
 
+  // The dev toolbar injects an <astro-dev-toolbar> overlay that intercepts
+  // pointer events and adds DOM the a11y scanner would flag. The E2E
+  // harness runs against the SSR dev server (the Vercel adapter has no
+  // `preview`), so we disable the toolbar when ASTRO_DISABLE_DEV_TOOLBAR=1
+  // (set by the Playwright webServer command). Todd's normal `npm run dev`
+  // keeps the toolbar.
+  devToolbar: {
+    enabled: process.env.ASTRO_DISABLE_DEV_TOOLBAR !== '1',
+  },
+
   vite: {
     plugins: [tailwindcss()],
   },

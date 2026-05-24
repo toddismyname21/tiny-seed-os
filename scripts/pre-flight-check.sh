@@ -115,8 +115,14 @@ if [ "$ACTION" = "create" ]; then
     # Extract basename and create search pattern
     BASENAME=$(basename "$FILE_NAME")
 
-    # Whitelist standard files that every project/subdir legitimately has
-    WHITELISTED_NAMES="INBOX.md OUTBOX.md INSTRUCTIONS.md .gitignore .env.example .env.sample index.astro index.ts index.js index.tsx index.jsx"
+    # Whitelist standard files that every project/subdir legitimately has.
+    # Includes per-project toolchain configs (playwright.config.ts,
+    # lighthouserc.json, etc.) — a monorepo with multiple apps legitimately
+    # has one per app (e.g. e2e-tests/ for the legacy OS site +
+    # apps/csa-portal/ for the Astro portal), and Playwright/LHCI REQUIRE the
+    # config to live beside each app's package.json. These are framework
+    # conventions, never duplicate implementations.
+    WHITELISTED_NAMES="INBOX.md OUTBOX.md INSTRUCTIONS.md .gitignore .env.example .env.sample .env.test.example index.astro index.ts index.js index.tsx index.jsx playwright.config.ts playwright.config.js lighthouserc.json lighthouserc.js vitest.config.ts tsconfig.json"
     IS_WHITELISTED=false
     for WL in $WHITELISTED_NAMES; do
         if [ "$BASENAME" = "$WL" ]; then
