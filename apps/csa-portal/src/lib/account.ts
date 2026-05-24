@@ -3,6 +3,62 @@
  *
  * Used by `/account/*` pages and `/api/account/*` routes.
  */
+import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from './database.types';
+
+/**
+ * Does this logged-in member still need to choose a pickup location or home
+ * delivery?  TRUE when they have at least one ACTIVE share AND none of their
+ * active shares has either a `pickup_location_id` or a `delivery_address`.
+ *
+ * WHY THIS EXISTS (FIX 1, 2026-05-24): the ~191 members migrated from the
+ * 2026 CSA Shopify products are `status='active'`, but the CSA products did
+ * NOT capture a pickup choice at checkout. The onboarding funnel in
+ * middleware only catches `status='onboarding'`, so these active members are
+ * never prompted. They MUST choose a pickup/delivery before the first box
+ * (Wed June 10). This drives a persistent dashboard/box/account banner.
+ *
+ * Scope decision — ACTIVE only: paused/onboarding shares are excluded.
+ *   - onboarding members are already funnelled to /onboarding (which sets
+ *     pickup), so nudging them too would double up.
+ *   - a paused share isn't receiving a box, so a pickup nudge is premature.
+ * If ANY active share already has a pickup OR a delivery address, the member
+ * has made a choice → no nudge (a multi-share member who set one is done).
+ *
+ * Uses the caller's RLS-scoped cookie client, so it only ever sees the
+ * current member's own rows. FAIL-SOFT: any query error returns `false`
+ * (never block the page or show a false alarm on a transient DB hiccup).
+ */
+export async function memberNeedsPickupChoice(
+  supabase: SupabaseClient<Database>
+): Promise<boolean> {
+  try {
+    const { data, error } = await supabase
+      .from('members')
+      .select('pickup_location_id, delivery_address')
+      .eq('status', 'active');
+
+    if (error) {
+      console.error('[account] pickup-nudge check failed:', error.message);
+      return false; // fail-soft — don't show a false alarm
+    }
+
+    const rows = data ?? [];
+    if (rows.length === 0) return false; // no active share → nothing to nudge
+
+    // Needs a choice iff NO active share has a pickup OR a delivery address.
+    const anyChosen = rows.some((r) => {
+      const hasPickup = r.pickup_location_id != null;
+      const hasDelivery =
+        typeof r.delivery_address === 'string' && r.delivery_address.trim().length > 0;
+      return hasPickup || hasDelivery;
+    });
+    return !anyChosen;
+  } catch (e) {
+    console.error('[account] pickup-nudge check threw (→ false):', e);
+    return false;
+  }
+}
 
 /**
  * Compute the integer number of weeks covered by an inclusive date

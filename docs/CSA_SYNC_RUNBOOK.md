@@ -163,10 +163,25 @@ The sync is designed so re-running it is always safe.
 - **Member rows:** upserted on a deterministic `legacy_id =
   'SYNC-<orderId>-<lineItemId>'`, so even a forced re-process can't
   duplicate a member.
-- **Flex credit:** double-guarded — the ledger row above + `issueStoreCredit`
-  only tops up *to* a target balance (skips if already covered).
-- **Referrals:** `referrals.referred_order_id` is `UNIQUE`; a duplicate
-  insert (race) is caught and treated as a no-op.
+- **Flex credit + referral bonus:** these are PURE ADDITIVE credits
+  (`issueStoreCreditDelta` ADDS the amount server-side — no read-then-set).
+  An additive credit cannot be made idempotent by a balance read, so the
+  **per-order `shopify_order_sync` ledger row above is the sole guard**: the
+  sync checks it before issuing any credit, so each order pays out at most
+  once. The credit is ALWAYS issued before its ledger rows are written — if
+  Shopify rejects the credit, no ledger row is recorded (we never claim a
+  credit that didn't post), and if the ledger write fails the per-order
+  try/catch surfaces it for reconciliation.
+  - (History: credit used to be balance-TARGETED — top up *to* current +
+    amount — which self-guarded on the balance but could UNDER-CREDIT when a
+    fail-soft balance read returned 0, drifting Shopify from the ledger.
+    Switched to additive on 2026-05-24.)
+- **Referrals:** `referrals.referred_order_id` is `UNIQUE` — a durable
+  belt-and-suspenders backstop on top of the per-order ledger. A duplicate
+  insert (race) is caught; because the credit is now additive, a true
+  duplicate means a second credit may have posted, so the sync reports it as
+  an error for human reconciliation rather than silently treating it as a
+  no-op.
 
 ### 3.3 ⚠️ The watermark-reset duplicate caveat
 

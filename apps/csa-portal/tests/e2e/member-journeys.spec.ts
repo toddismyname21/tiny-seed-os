@@ -13,6 +13,25 @@
  * test member happens to have.
  */
 import { test, expect, type Page } from '@playwright/test';
+import { readFileSync, existsSync } from 'node:fs';
+import { PICKUP_FIXTURE_PATH } from './supabase-fixtures';
+
+/**
+ * Did global-setup clear the test member's pickup? (Only when they had an
+ * active share — otherwise the FIX-1 banner can't render and the test
+ * self-skips.) Read the snapshot sidecar global-setup wrote.
+ */
+function pickupWasCleared(): boolean {
+  if (!existsSync(PICKUP_FIXTURE_PATH)) return false;
+  const raw = readFileSync(PICKUP_FIXTURE_PATH, 'utf8').trim();
+  if (!raw || raw === 'null') return false;
+  try {
+    const snap = JSON.parse(raw) as { rows?: unknown[] };
+    return Array.isArray(snap.rows) && snap.rows.length > 0;
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Attach a console-error collector to a page. Returns a getter. We ignore
@@ -132,6 +151,46 @@ test.describe('account hub + sub-pages', () => {
       expect(getErrors(), `no console errors on ${path}`).toEqual([]);
     });
   }
+});
+
+test.describe('pickup forcing-nudge banner (FIX 1)', () => {
+  // global-setup cleared the test member's active-share pickup, so the
+  // "choose your pickup" nudge must render. Skip if the member had no active
+  // share to clear (banner is data-driven and correctly absent then).
+  test.skip(!pickupWasCleared(), 'test member has no active share to clear pickup on');
+
+  // The banner appears at the top of all three member hubs.
+  const HUBS = ['/dashboard', '/box', '/account'];
+
+  for (const path of HUBS) {
+    test(`no-pickup banner is present + actionable on ${path}`, async ({ page }) => {
+      await page.goto(path);
+
+      // role="alert" region with the data hook, announced to AT.
+      const banner = page.locator('[data-pickup-nudge]');
+      await expect(banner).toBeVisible();
+      await expect(banner).toHaveAttribute('role', 'alert');
+
+      // The forcing message + the primary CTA → /account/pickup.
+      await expect(
+        banner.getByRole('heading', { name: /action needed: choose your pickup/i })
+      ).toBeVisible();
+      const cta = banner.getByRole('link', { name: /choose pickup/i });
+      await expect(cta).toBeVisible();
+      await expect(cta).toHaveAttribute('href', '/account/pickup');
+    });
+  }
+
+  test('banner CTA navigates to the pickup chooser', async ({ page }) => {
+    await page.goto('/dashboard');
+    await page
+      .locator('[data-pickup-nudge]')
+      .getByRole('link', { name: /choose pickup/i })
+      .click();
+    await expect(page).toHaveURL(/\/account\/pickup\b/);
+    // The pickup page renders (heading present) — the member can now choose.
+    await expect(page.getByRole('heading', { name: /pickup location/i })).toBeVisible();
+  });
 });
 
 test.describe('bottom-nav navigation works', () => {

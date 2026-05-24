@@ -43,6 +43,7 @@ import {
   type SeasonPhase,
 } from '../lib/season';
 import FlexWallet from '../components/FlexWallet.astro';
+import PickupNudgeBanner from '../components/PickupNudgeBanner.astro';
 
 const user = Astro.locals.user;
 const supabase = Astro.locals.supabase;
@@ -175,6 +176,25 @@ const allShares = customer?.members ?? [];
 // and is hidden on the dashboard.
 const liveStatuses = new Set(['active', 'paused', 'onboarding']);
 const activeShares = allShares.filter((s) => liveStatuses.has(s.status));
+
+// ─────────────────────────────────────────────────────────────────────
+// Pickup forcing-nudge (FIX 1, 2026-05-24, gap P0). The ~191 migrated CSA
+// members are status='active' but never chose a pickup at checkout, and the
+// middleware onboarding funnel only catches status='onboarding' — so they're
+// never prompted. Show a persistent top banner until they pick a pickup or
+// home delivery. We compute it from the share rows already in hand (which
+// carry pickup_location_id + delivery_address + status) to avoid a second
+// DB round-trip: needs a choice iff there's ≥1 ACTIVE share AND none of the
+// active shares has a pickup OR a delivery address. (Mirrors the shared
+// memberNeedsPickupChoice helper, which the /box + /account hubs use.)
+const dashboardActiveShares = allShares.filter((s) => s.status === 'active');
+const needsPickup =
+  dashboardActiveShares.length > 0 &&
+  !dashboardActiveShares.some(
+    (s) =>
+      s.pickup_location_id != null ||
+      (typeof s.delivery_address === 'string' && s.delivery_address.trim().length > 0)
+  );
 
 // First name extraction: take first whitespace-separated token.
 const firstName = (customer?.contact_name ?? user.email!.split('@')[0])
@@ -400,6 +420,14 @@ const title = `Welcome back, ${firstName} — Tiny Seed Farm CSA`;
   active="home"
   mainClass="mx-auto flex w-full max-w-3xl flex-col gap-8 px-5 py-8 sm:gap-10 sm:px-6 sm:py-12"
 >
+      {/* ═════════════════════════════════════════════════════════════
+          PICKUP FORCING-NUDGE (FIX 1, 2026-05-24)
+          Pinned to the very top — active members who never chose a pickup
+          at checkout MUST pick one before their first box (June 10). Shows
+          until a pickup/delivery is set; not dismissible (data-driven).
+          ═════════════════════════════════════════════════════════════ */}
+      {needsPickup && <PickupNudgeBanner />}
+
       {/* ═════════════════════════════════════════════════════════════
           WEEK-ONE COUNTDOWN (2026-05-20)
           Shown only in the 'before' phase, for members whose controlling

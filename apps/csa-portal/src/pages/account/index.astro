@@ -18,6 +18,7 @@
 import MemberShell from '../../components/MemberShell.astro';
 import Card from '../../components/Card.astro';
 import FlexWallet from '../../components/FlexWallet.astro';
+import PickupNudgeBanner from '../../components/PickupNudgeBanner.astro';
 
 const user = Astro.locals.user;
 if (!user || !user.email) {
@@ -110,6 +111,20 @@ const liveStatuses = new Set(['active', 'paused', 'onboarding']);
 const allMembers = customer?.members ?? [];
 const liveMembers = allMembers.filter((m) => liveStatuses.has(m.status));
 
+// Pickup forcing-nudge (FIX 1, 2026-05-24, gap P0). Same rule as the
+// dashboard / shared memberNeedsPickupChoice helper: an ACTIVE member who
+// never chose a pickup at checkout must pick one before June 10. Computed
+// from the rows already in hand (carry pickup_location_id + delivery_address
+// + status) — no extra DB round-trip.
+const accountActiveMembers = allMembers.filter((m) => m.status === 'active');
+const needsPickup =
+  accountActiveMembers.length > 0 &&
+  !accountActiveMembers.some(
+    (m) =>
+      m.pickup_location_id != null ||
+      (typeof m.delivery_address === 'string' && m.delivery_address.trim().length > 0)
+  );
+
 // Pick a "primary" member for summary copy. If a member has multiple
 // shares (e.g. Spring Veg + Flower), the most-budgeted one is shown
 // in the Pickup card; the page itself handles per-member detail.
@@ -184,6 +199,11 @@ const biweeklySummary: string = (() => {
           Hi {firstName} — manage your share, preferences, and pickup details.
         </p>
       </section>
+
+      {/* PICKUP FORCING-NUDGE (FIX 1, 2026-05-24) — active members who never
+          chose a pickup at checkout must pick one before June 10. Shown at
+          the top of the hub until set (data-driven, not dismissible). */}
+      {needsPickup && <PickupNudgeBanner />}
 
       {/* PROFILE — self-service editing via /account/profile */}
       <Card padding="md" elevation="sm" class="text-sm">

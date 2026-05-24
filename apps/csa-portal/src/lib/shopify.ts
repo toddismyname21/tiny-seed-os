@@ -232,6 +232,15 @@ export interface CreditOutcome {
  * Mirrors flex_credit_shopify.py: reads the current balance, skips when
  * already >= target, otherwise credits the difference.
  *
+ * ⚠️ BALANCE-TARGETED (read-then-set). This is the right semantics for the
+ * IDEMPOTENT flex backfill (re-running an already-credited order is a no-op
+ * because the balance already covers the target). It is the WRONG semantics
+ * for a forward credit that must ADD a fixed amount: a fail-soft balance
+ * read returning 0 would top up only to `amount` instead of `current +
+ * amount`, under-crediting the customer while a ledger row still claims the
+ * full amount (Shopify↔ledger drift). For "ADD exactly N dollars" use
+ * `issueStoreCreditDelta` below — it adds server-side with NO read-then-set.
+ *
  * @param customerGid  Shopify customer GID (gid://shopify/Customer/123)
  * @param targetAmount Total flex dollars this customer should hold for
  *                     the order being processed.
@@ -263,6 +272,64 @@ export async function issueStoreCredit(
     res.data?.storeCreditAccountCredit?.storeCreditAccountTransaction?.account?.balance?.amount;
   return {
     credited: need,
+    newBalance: newBalanceStr != null ? Number.parseFloat(newBalanceStr) : null,
+    skipped: false,
+  };
+}
+
+/**
+ * ADD a fixed amount of store credit to a customer — a PURE additive delta.
+ *
+ * Unlike `issueStoreCredit` (balance-TARGETED: read current, top up to a
+ * target), this calls `storeCreditAccountCredit` with the full `amount`,
+ * which ADDS that amount to the existing balance SERVER-SIDE. There is NO
+ * read-then-set, so a Shopify balance read can never under-credit:
+ *
+ *   - issueStoreCredit($25 target)  on a $40 balance → credits $0 (skip).
+ *   - issueStoreCreditDelta($25)    on a $40 balance → credits $25 → $65.
+ *
+ * This is the correct primitive for a FORWARD credit that must always pay
+ * out exactly `amount` (the referral $25 bonus, the flex top-up principal +
+ * loyalty bonus). The caller owns idempotency (the per-order
+ * `shopify_order_sync` ledger guard runs FIRST, so this code path executes
+ * at most once per order — there is no balance guard here on purpose, since
+ * an additive call cannot be made idempotent by a balance read).
+ *
+ * `creditAmount` resolution: Shopify's MoneyInput is fixed-decimal; we round
+ * to 2dp. A non-positive amount is a no-op (returns credited 0, never calls
+ * Shopify) so callers don't have to guard a $0 bonus.
+ *
+ * @param customerGid Shopify customer GID (gid://shopify/Customer/123)
+ * @param amount      Dollars to ADD to the customer's store credit.
+ */
+export async function issueStoreCreditDelta(
+  customerGid: string,
+  amount: number
+): Promise<CreditOutcome> {
+  // Round to cents; a non-positive amount adds nothing.
+  const delta = Math.round(amount * 100) / 100;
+  if (!(delta > 0)) {
+    return { credited: 0, newBalance: null, skipped: true };
+  }
+
+  const res = await shopifyGraphQL<CreditResp>(CREDIT_MUTATION, {
+    id: customerGid,
+    amount: { amount: delta.toFixed(2), currencyCode: 'USD' },
+  });
+
+  const userErrors = res.data?.storeCreditAccountCredit?.userErrors ?? [];
+  if (res.errors?.length || userErrors.length) {
+    const msgs = [
+      ...(res.errors ?? []).map((e) => e.message),
+      ...userErrors.map((e) => e.message),
+    ];
+    throw new Error(`storeCreditAccountCredit (delta): ${msgs.join('; ')}`);
+  }
+
+  const newBalanceStr =
+    res.data?.storeCreditAccountCredit?.storeCreditAccountTransaction?.account?.balance?.amount;
+  return {
+    credited: delta,
     newBalance: newBalanceStr != null ? Number.parseFloat(newBalanceStr) : null,
     skipped: false,
   };

@@ -14,24 +14,53 @@ import { readFileSync, existsSync } from 'node:fs';
 import {
   readTestEnv,
   cleanupSwapFixture,
+  restoreTestMemberPickup,
   SWAP_FIXTURE_PATH,
+  PICKUP_FIXTURE_PATH,
   type SwapFixture,
+  type PickupSnapshot,
 } from './supabase-fixtures';
 
 teardown('clean up seeded fixtures', async () => {
-  if (!existsSync(SWAP_FIXTURE_PATH)) return;
-  const raw = readFileSync(SWAP_FIXTURE_PATH, 'utf8').trim();
-  if (!raw || raw === 'null') return;
-
-  const fx = JSON.parse(raw) as SwapFixture;
+  let env: ReturnType<typeof readTestEnv> | null = null;
   try {
-    const env = readTestEnv();
-    await cleanupSwapFixture(env, fx);
-    // eslint-disable-next-line no-console
-    console.log(`[e2e teardown] removed swap fixture "${fx.product}" (week ${fx.weekDate})`);
+    env = readTestEnv();
   } catch (err) {
-    // Teardown must never fail the run — log and move on.
+    // No env → nothing to clean up against.
     // eslint-disable-next-line no-console
-    console.warn('[e2e teardown] cleanup skipped:', err instanceof Error ? err.message : err);
+    console.warn('[e2e teardown] cleanup skipped (no env):', err instanceof Error ? err.message : err);
+    return;
+  }
+
+  // Swap fixture.
+  if (existsSync(SWAP_FIXTURE_PATH)) {
+    const raw = readFileSync(SWAP_FIXTURE_PATH, 'utf8').trim();
+    if (raw && raw !== 'null') {
+      const fx = JSON.parse(raw) as SwapFixture;
+      try {
+        await cleanupSwapFixture(env, fx);
+        // eslint-disable-next-line no-console
+        console.log(`[e2e teardown] removed swap fixture "${fx.product}" (week ${fx.weekDate})`);
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.warn('[e2e teardown] swap cleanup skipped:', err instanceof Error ? err.message : err);
+      }
+    }
+  }
+
+  // Pickup snapshot — RESTORE the test member's real pickup state.
+  if (existsSync(PICKUP_FIXTURE_PATH)) {
+    const raw = readFileSync(PICKUP_FIXTURE_PATH, 'utf8').trim();
+    if (raw && raw !== 'null') {
+      const snap = JSON.parse(raw) as PickupSnapshot;
+      try {
+        await restoreTestMemberPickup(env, snap);
+        // eslint-disable-next-line no-console
+        console.log(`[e2e teardown] restored pickup on ${snap.rows.length} active share(s)`);
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.warn('[e2e teardown] pickup restore skipped:', err instanceof Error ? err.message : err);
+      }
+    }
   }
 });

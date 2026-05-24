@@ -35,6 +35,11 @@ export const SWAP_FIXTURE_PATH = fileURLToPath(
   new URL('./.auth/swap-fixture.json', import.meta.url)
 );
 
+/** Sidecar snapshotting the test member's pickup state, restored on teardown. */
+export const PICKUP_FIXTURE_PATH = fileURLToPath(
+  new URL('./.auth/pickup-fixture.json', import.meta.url)
+);
+
 export interface TestEnv {
   supabaseUrl: string;
   anonKey: string;
@@ -287,6 +292,98 @@ export async function seedSwapFixture(env: TestEnv): Promise<SwapFixture | null>
   }
 
   return { weekDate, shareType, product: SWAP_FIXTURE_PRODUCT, options: SWAP_FIXTURE_OPTIONS };
+}
+
+// ── Pickup-nudge fixture ───────────────────────────────────────────────
+//
+// FIX 1 (2026-05-24) added a "choose your pickup" forcing-nudge banner that
+// renders for an ACTIVE member who has NO pickup_location_id AND no
+// delivery_address on any active share. To assert it DETERMINISTICALLY (not
+// flakily, depending on whatever pickup the real test member happens to
+// have), the harness SNAPSHOTS the test member's active-share pickup state,
+// CLEARS it for the run, and RESTORES it on teardown. Service-role only
+// (members has admin-bypass; clearing is a controlled test mutation).
+
+export interface PickupSnapshotRow {
+  id: string;
+  pickup_location_id: string | null;
+  delivery_address: string | null;
+}
+
+export interface PickupSnapshot {
+  /** The active member rows whose pickup we cleared, with prior values. */
+  rows: PickupSnapshotRow[];
+}
+
+/**
+ * Snapshot + clear the test member's pickup/delivery on every ACTIVE share,
+ * so the no-pickup nudge banner is guaranteed to render during the run.
+ * Returns the snapshot (restore it on teardown). Returns null when the
+ * member has no active share (nothing to clear → the banner won't show, and
+ * the banner test self-skips).
+ */
+export async function clearTestMemberPickup(
+  env: TestEnv
+): Promise<PickupSnapshot | null> {
+  const admin = adminClient(env);
+
+  // Resolve the test member's customer + active member rows.
+  const { data: customer, error: custErr } = await admin
+    .from('customers')
+    .select('id, members(id, status, pickup_location_id, delivery_address)')
+    .eq('email', env.testEmail)
+    .maybeSingle();
+  if (custErr) {
+    throw new Error(`[e2e] pickup fixture: customer lookup failed: ${custErr.message}`);
+  }
+  const members =
+    ((customer as {
+      members?: {
+        id: string;
+        status: string;
+        pickup_location_id: string | null;
+        delivery_address: string | null;
+      }[];
+    } | null)?.members) ?? [];
+
+  const active = members.filter((m) => m.status === 'active');
+  if (active.length === 0) return null;
+
+  const rows: PickupSnapshotRow[] = active.map((m) => ({
+    id: m.id,
+    pickup_location_id: m.pickup_location_id,
+    delivery_address: m.delivery_address,
+  }));
+
+  // Clear pickup + delivery on each active row.
+  for (const r of rows) {
+    const { error: updErr } = await admin
+      .from('members')
+      .update({ pickup_location_id: null, delivery_address: null })
+      .eq('id', r.id);
+    if (updErr) {
+      throw new Error(`[e2e] pickup fixture: clear failed for ${r.id}: ${updErr.message}`);
+    }
+  }
+
+  return { rows };
+}
+
+/** Restore the snapshotted pickup/delivery on each row. Best-effort. */
+export async function restoreTestMemberPickup(
+  env: TestEnv,
+  snap: PickupSnapshot
+): Promise<void> {
+  const admin = adminClient(env);
+  for (const r of snap.rows) {
+    await admin
+      .from('members')
+      .update({
+        pickup_location_id: r.pickup_location_id,
+        delivery_address: r.delivery_address,
+      })
+      .eq('id', r.id);
+  }
 }
 
 /** Remove the seeded fixture + any swap it produced. Best-effort. */

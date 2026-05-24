@@ -39,6 +39,8 @@ import Button from '../../components/Button.astro';
 import EmptyState from '../../components/EmptyState.astro';
 import ItemCard from '../../components/ItemCard.astro';
 import BottomSheet from '../../components/BottomSheet.astro';
+import PickupNudgeBanner from '../../components/PickupNudgeBanner.astro';
+import { memberNeedsPickupChoice } from '../../lib/account';
 import {
   isCutoffPassed,
   upcomingWednesdayET,
@@ -106,6 +108,12 @@ const customer = customerRows?.[0] ?? null;
 const allMembers = customer?.members ?? [];
 const liveStatuses = new Set(['active', 'paused', 'onboarding']);
 const activeMembers = allMembers.filter((m) => liveStatuses.has(m.status));
+
+// Pickup forcing-nudge (FIX 1, 2026-05-24, gap P0). The /box query doesn't
+// carry pickup_location_id / delivery_address, so use the shared RLS-scoped
+// helper (selects 2 cols on active rows — cheap). Shows a persistent top
+// banner for active members who never chose a pickup, until they set one.
+const needsPickup = await memberNeedsPickupChoice(supabase);
 
 const firstName = (customer?.contact_name ?? user.email!.split('@')[0])
   .trim()
@@ -221,6 +229,14 @@ const boxNotPosted = !noShare && boxItems.length === 0;
   active="box"
   back={{ href: '/dashboard', label: 'Back to dashboard' }}
 >
+      {/* ═════════════════════════════════════════════════════════════
+          PICKUP FORCING-NUDGE (FIX 1, 2026-05-24)
+          Pinned to the top so a member checking their box can't miss that
+          they still owe us a pickup choice before June 10. Data-driven —
+          disappears once a pickup/delivery is set.
+          ═════════════════════════════════════════════════════════════ */}
+      {needsPickup && <PickupNudgeBanner />}
+
       {/* ═════════════════════════════════════════════════════════════
           HEADING
           ═════════════════════════════════════════════════════════════ */}

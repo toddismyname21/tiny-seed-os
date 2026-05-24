@@ -1,0 +1,105 @@
+---
+/**
+ * PickupNudgeBanner — persistent "choose your pickup or delivery" forcing
+ * nudge for ACTIVE members who never set a pickup at checkout.
+ *
+ * WHY (FIX 1, 2026-05-24, gap analysis P0):
+ *   The ~191 members migrated from the 2026 CSA Shopify products are
+ *   `status='active'`, but those products did NOT capture a pickup choice at
+ *   checkout. The onboarding funnel in middleware only catches
+ *   `status='onboarding'`, so these active members are NEVER prompted to
+ *   choose. They MUST pick a pickup location or home delivery BEFORE their
+ *   first box (Wed June 10). This banner makes that impossible to miss.
+ *
+ * BEHAVIOUR:
+ *   - Renders ONLY when `memberNeedsPickupChoice(supabase)` is true (no
+ *     active share has a pickup_location_id or a delivery_address).
+ *   - It does NOT hard-block browsing (the member can still use the
+ *     dashboard/box/account) — it is a prominent, persistent banner pinned
+ *     to the top of each hub. Once a pickup/delivery is saved it disappears
+ *     on the next page load (the check is data-driven, not dismissible).
+ *   - Accessible: role="alert" + aria-live="assertive" so screen readers
+ *     announce it; the primary action is a real <a> link (works without JS).
+ *   - Mobile-first: stacks on small screens, 44px+ touch target on the CTA,
+ *     design tokens only (NO raw hex). Amber/warning palette frames the
+ *     ALERT (border + icon tint), but all TEXT uses --ts-text /
+ *     --ts-text-secondary (amber #d97706 is only ~3.4:1 on white → fails AA
+ *     for small text). The CTA is the portal's AA-tuned GREEN primary button
+ *     — global.css mandates the action accent stay a consistent green so the
+ *     "click here" signal never degrades (white-on-#166534 = 7.13:1).
+ *
+ * USAGE (server-side gate — do the data check on the page, pass the boolean):
+ *   ---
+ *   import { memberNeedsPickupChoice } from '../lib/account';
+ *   const needsPickup = await memberNeedsPickupChoice(Astro.locals.supabase);
+ *   ---
+ *   {needsPickup && <PickupNudgeBanner />}
+ *
+ * The component takes no props by default — the first-delivery date is read
+ * from the canonical season schedule so the deadline copy stays in sync if
+ * the season ever shifts. Pass `firstDeliveryLabel` to override.
+ */
+import { getSchedule, firstDeliveryPretty } from '../lib/season';
+
+interface Props {
+  /** Override the deadline label. Defaults to the summer_veg first delivery
+   *  ("Wednesday, June 10"). */
+  firstDeliveryLabel?: string;
+  /** Extra classes for the outer <section> (e.g. negative margins). */
+  class?: string;
+}
+
+const { firstDeliveryLabel, class: extraClass = '' } = Astro.props as Props;
+
+// The deadline is the FIRST box of the controlling season. summer_veg
+// (June 10) is the season every migrated member belongs to; if a future
+// caller needs a different season they pass the label explicitly.
+const summerSchedule = getSchedule('summer_veg');
+const deadlineLabel =
+  firstDeliveryLabel ??
+  (summerSchedule ? firstDeliveryPretty(summerSchedule) : 'your first box');
+---
+
+<section
+  role="alert"
+  aria-live="assertive"
+  data-pickup-nudge
+  class:list={[
+    'overflow-hidden rounded-ts-xl border-2 border-ts-warning/60 bg-ts-warning/10 p-5 shadow-ts-sm sm:p-6',
+    extraClass,
+  ]}
+>
+  <div class="flex flex-col gap-4 sm:flex-row sm:items-center">
+    <div class="flex min-w-0 flex-1 items-start gap-4">
+      <span
+        class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-ts-warning/20 text-2xl"
+        aria-hidden="true"
+      >
+        ⚠️
+      </span>
+      <div class="min-w-0 flex-1">
+        <h2 class="font-display text-lg font-bold tracking-tight text-ts-text sm:text-xl">
+          Action needed: choose your pickup
+        </h2>
+        <p class="mt-1 text-sm leading-relaxed text-ts-text-secondary">
+          We don't have a pickup location or home delivery on file for your
+          share yet. Please choose one before your first box
+          <span class="font-semibold text-ts-text">({deadlineLabel})</span>
+          so we know where to send it.
+        </p>
+      </div>
+    </div>
+
+    {/* CTA — a real link so it works with no JS. 44px+ tall (h-12),
+        thumb-friendly, full-width on mobile then auto on desktop. Uses the
+        AA-tuned GREEN primary (white-on-#166534 = 7.13:1) — the consistent
+        portal action accent — not amber (which would fail AA for the label). */}
+    <a
+      href="/account/pickup"
+      class="inline-flex h-12 w-full shrink-0 items-center justify-center gap-2 rounded-ts-md bg-ts-primary px-6 text-base font-semibold text-white shadow-ts-sm transition-all duration-150 ease-[var(--ease-ts)] hover:bg-ts-primary-dark hover:shadow-ts-md active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary [touch-action:manipulation] sm:w-auto"
+    >
+      Choose pickup
+      <span aria-hidden="true">→</span>
+    </a>
+  </div>
+</section>

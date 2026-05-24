@@ -1,0 +1,97 @@
+name: CSA Portal Uptime
+
+# Live-portal uptime monitor for https://csa.tinyseedfarm.com.
+#
+# WHY (FIX 3, 2026-05-24, gap analysis P0): the CSA Portal CI workflow only
+# exercises the BUILT site (Playwright against a local dev server), and the
+# legacy Site Health Monitor checks the OLD Apps Script app at
+# app.tinyseedfarm.com — NOTHING watches the live Astro/Vercel portal that
+# members actually use. This curls the production portal every ~15 minutes
+# and fails the job (which surfaces in the Actions tab + GitHub's
+# workflow-failure notifications) on any unexpected status.
+#
+# Checks (cheap, dependency-light — just curl + bash, no auth):
+#   1. GET /                          → expect 200 (portal is serving)
+#   2. GET /login                     → expect 200 (auth entry point is up)
+#   3. GET /api/sync/shopify-orders   → expect 401 WITHOUT a bearer token
+#      (proves the money-path API is up AND still protected — a 200/500 here
+#      would mean the auth gate regressed or the function crashed).
+#
+# SECRETS: none required. All three checks hit public, unauthenticated
+# endpoints. (Failure notifications use GitHub's built-in mechanism — repo
+# watchers / the Actions failure email — so no SMTP secret is needed either.)
+
+on:
+  schedule:
+    # Every 15 minutes. GitHub may delay scheduled runs under load; that is
+    # fine for an uptime probe (the next tick re-checks).
+    - cron: '*/15 * * * *'
+  # Run on changes to this workflow so a syntax slip is caught immediately.
+  push:
+    branches: [csa-migration, main]
+    paths:
+      - '.github/workflows/csa-portal-uptime.yml'
+  workflow_dispatch:
+
+# A single in-flight run is enough; cancel an older queued run if a new
+# tick fires while one is still going.
+concurrency:
+  group: csa-portal-uptime
+  cancel-in-progress: false
+
+env:
+  PORTAL_ORIGIN: https://csa.tinyseedfarm.com
+
+jobs:
+  probe:
+    name: Probe live portal
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Home page returns 200
+        run: |
+          set -euo pipefail
+          URL="${PORTAL_ORIGIN}/"
+          CODE=$(curl -sS -o /dev/null -w '%{http_code}' \
+            --max-time 30 --retry 2 --retry-delay 5 --retry-all-errors \
+            -A 'TinySeed-Uptime-Bot/1.0' "$URL")
+          echo "GET / -> $CODE"
+          if [ "$CODE" != "200" ]; then
+            echo "::error title=Portal home down::GET $URL returned HTTP $CODE (expected 200)"
+            exit 1
+          fi
+
+      - name: Login page returns 200
+        run: |
+          set -euo pipefail
+          URL="${PORTAL_ORIGIN}/login"
+          CODE=$(curl -sS -o /dev/null -w '%{http_code}' \
+            --max-time 30 --retry 2 --retry-delay 5 --retry-all-errors \
+            -A 'TinySeed-Uptime-Bot/1.0' "$URL")
+          echo "GET /login -> $CODE"
+          if [ "$CODE" != "200" ]; then
+            echo "::error title=Login page down::GET $URL returned HTTP $CODE (expected 200)"
+            exit 1
+          fi
+
+      - name: Sync API is up AND protected (401 without auth)
+        run: |
+          set -euo pipefail
+          # The cron-only sync endpoint requires Authorization: Bearer
+          # <CRON_SECRET>. WITHOUT a token it must answer 401 — that single
+          # response proves two things at once: the serverless function is
+          # alive (not a 500/timeout) and its auth gate still rejects the
+          # unauthenticated public. A 200 here would be a security regression;
+          # a 5xx would mean the money-path endpoint is broken.
+          URL="${PORTAL_ORIGIN}/api/sync/shopify-orders"
+          CODE=$(curl -sS -o /dev/null -w '%{http_code}' \
+            --max-time 30 --retry 2 --retry-delay 5 --retry-all-errors \
+            -A 'TinySeed-Uptime-Bot/1.0' "$URL")
+          echo "GET /api/sync/shopify-orders (no auth) -> $CODE"
+          if [ "$CODE" != "401" ]; then
+            echo "::error title=Sync API unexpected status::GET $URL without auth returned HTTP $CODE (expected 401 — a 200 means the auth gate regressed; a 5xx means the endpoint is down)"
+            exit 1
+          fi
+
+      - name: All checks passed
+        run: echo "Live CSA portal healthy — / 200, /login 200, sync API 401 (up + protected)."

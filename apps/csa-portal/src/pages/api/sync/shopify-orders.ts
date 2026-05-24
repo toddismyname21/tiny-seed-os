@@ -54,8 +54,7 @@ import {
   isOrderSkippable,
   isOrderPaid,
   categorize,
-  issueStoreCredit,
-  getStoreCreditBalance,
+  issueStoreCreditDelta,
   getCustomerGidByEmail,
   type ShopifyOrder,
   type Category,
@@ -493,22 +492,36 @@ async function attributeReferral(
       };
     }
 
-    // CREDIT the referrer $25 in store credit (Farm Flex). issueStoreCredit
-    // tops up TO a target above the current balance, so to ADD exactly $25
-    // we pass target = currentBalance + 25. We read the current balance
-    // here (fail-soft → 0; worst case we top up to $25 rather than adding).
-    let referrerBalance = 0;
-    try {
-      referrerBalance = await getStoreCreditBalance(referrerGid);
-    } catch (balErr) {
-      console.error('[sync] referral balance read failed (→ 0):', balErr);
+    // CREDIT the referrer $25 in store credit (Farm Flex) as a PURE ADDITIVE
+    // delta. issueStoreCreditDelta ADDS $25 server-side — there is NO
+    // read-then-set, so a fail-soft balance read can never under-credit while
+    // the ledger row claims +$25 (Shopify↔ledger drift). If Shopify rejects
+    // the credit it THROWS → caught below → NO ledger rows are written, so we
+    // never record a credit that didn't happen.
+    //
+    // ORDERING (credit success → ledger write):
+    //   1. issueStoreCreditDelta($25) — if it throws, we abort before any
+    //      Supabase write (the catch returns an error, no rows).
+    //   2. ONLY after a confirmed-successful credit do we write the
+    //      flex_transactions + referrals rows.
+    // Idempotency is owned UPSTREAM by the per-order shopify_order_sync
+    // ledger guard (checked at 5a before this code runs), so this path
+    // executes at most once per order; the referrals.referred_order_id
+    // UNIQUE is the durable belt-and-suspenders backstop.
+    const outcome = await issueStoreCreditDelta(referrerGid, REFERRAL_BONUS_AMOUNT);
+    const credited = outcome.credited;
+    if (!(credited > 0)) {
+      // Defensive: a positive amount should always credit. If Shopify
+      // somehow no-op'd it, do NOT write a ledger row claiming a credit
+      // that didn't happen — surface for reconciliation instead.
+      return {
+        credited: 0,
+        error: `referral: store credit did not post for ${referrerEmail} (order ${order.name}, code ${match.code})`,
+        matchedCode: match.code,
+      };
     }
-    const target = referrerBalance + REFERRAL_BONUS_AMOUNT;
-    const outcome = await issueStoreCredit(referrerGid, target);
-    // target = current + 25, so this always credits $25 unless the balance
-    // moved between our read and the credit (then skipped → treat as 0).
-    const credited = outcome.skipped ? 0 : outcome.credited;
 
+    // ── Credit confirmed. NOW write the ledger rows. ──────────────────
     // Record the flex transaction for the referrer (their ledger).
     const { error: ftErr } = await supabaseAdmin.from('flex_transactions').insert({
       email: referrerEmail,
@@ -519,15 +532,14 @@ async function attributeReferral(
     });
     if (ftErr) {
       // Store credit is already issued in Shopify — surface loudly so the
-      // ledger can be reconciled, but the credit + referrals row still
-      // proceed (the referrals row is the durable once-only proof).
+      // ledger can be reconciled, but the referrals row (the durable
+      // once-only proof) still proceeds.
       console.error(`[sync] referral flex_transactions insert failed: ${ftErr.message}`);
     }
 
     // Insert the referrals row — the UNIQUE referred_order_id makes this
-    // the durable once-only record. A duplicate (race) is harmless: the
-    // credit was balance-targeted, so a re-run would re-top-up to the same
-    // target and issueStoreCredit would skip (no double credit).
+    // the durable once-only record. A duplicate (race) is reported as
+    // already-credited so we don't double-count the $ in this run.
     const { error: insErr } = await supabaseAdmin.from('referrals').insert({
       referrer_customer_id: match.customer_id,
       code: match.code,
@@ -537,10 +549,18 @@ async function attributeReferral(
     });
     if (insErr) {
       if (insErr.code === '23505') {
-        // Lost a race — another run recorded it. Not an error.
-        return { credited: 0, error: null, matchedCode: match.code };
+        // Lost a race — another run already recorded this order. The credit
+        // we just posted is a DUPLICATE; surface it so a human can claw it
+        // back (the upstream per-order ledger guard makes this effectively
+        // impossible, hence belt-and-suspenders). Report credited:0 so the
+        // run total doesn't double-count.
+        return {
+          credited: 0,
+          error: `referral: duplicate attribution for order ${order.name} — a second $${REFERRAL_BONUS_AMOUNT} credit may have posted to ${referrerEmail}; verify in Shopify`,
+          matchedCode: match.code,
+        };
       }
-      // The credit is issued + the flex row may be written; surface so the
+      // The credit is issued + the flex row written; surface so the
       // referrals ledger can be reconciled.
       return {
         credited,
@@ -792,19 +812,30 @@ async function handle(request: Request, url: URL): Promise<Response> {
       //
       // The member paid `plan.flexAmount` (principal). On top, they earn
       // a ladder bonus (planFlexCredit: <$250 +5%, $250–$499 +10%,
-      // $500+ +12%). We credit principal + bonus as ONE store-credit
-      // top-up, then record the BONUS portion as a flex_transactions row
-      // so accounting can split escheatment-exempt principal from the
-      // goodwill bonus (getLoyaltyBonusTotal reads these rows).
+      // $500+ +12%). We credit principal + bonus as ONE store-credit ADD
+      // (issueStoreCreditDelta — PURE additive, no read-then-set), then
+      // record the BONUS portion as a flex_transactions row so accounting
+      // can split escheatment-exempt principal from the goodwill bonus
+      // (getLoyaltyBonusTotal reads these rows).
       //
-      // Idempotency:
-      //   1. PRIMARY — the shopify_order_sync ledger row (checked at 5a)
-      //      means this whole block runs at most once per order. A re-run
-      //      sees the ledger row and `continue`s before reaching here, so
-      //      neither principal nor bonus can be issued twice.
-      //   2. SECONDARY — issueStoreCredit keeps its skip-if-already
-      //      balance guard intact (credits only up to the target, skips
-      //      if the balance already covers it).
+      // Why additive (not balance-targeted): a balance-TARGETED top-up
+      // (issueStoreCredit) reads the current balance and tops up to a
+      // target. A fail-soft balance read of 0 would top up only to
+      // `total` instead of `current + total` → UNDER-CREDIT, while the
+      // ledger still records the full bonus. issueStoreCreditDelta ADDS
+      // `total` server-side, so the money posted always matches the plan.
+      //
+      // Idempotency: the shopify_order_sync ledger row (checked at 5a)
+      // means this whole block runs at most once per order. A re-run sees
+      // the ledger row and `continue`s before reaching here, so neither
+      // principal nor bonus can be issued twice. (The additive call has NO
+      // self-guard by design — additive credit can't be made idempotent
+      // by a balance read; the per-order ledger is the guard.)
+      //
+      // ORDERING (credit success → ledger write): issueStoreCreditDelta
+      // THROWS on a Shopify error → the per-order try/catch records the
+      // failure on the ledger and NO bonus row is written. We only write
+      // the bonus flex_transactions row AFTER a confirmed-successful credit.
       let flexCreditedThisOrder = 0;
       let flexBonusThisOrder = 0;
       if (plan.flexAmount > 0) {
@@ -812,18 +843,18 @@ async function handle(request: Request, url: URL): Promise<Response> {
           throw new Error('flex line item but order has no Shopify customer GID');
         }
         const creditPlan = planFlexCredit(plan.flexAmount);
-        // Credit principal + bonus together (skip-if-already preserved).
-        const outcome = await issueStoreCredit(order.customerGid, creditPlan.total);
+        // ADD principal + bonus together (throws on Shopify error → no
+        // ledger row written by the surrounding try/catch).
+        const outcome = await issueStoreCreditDelta(order.customerGid, creditPlan.total);
         flexCreditedThisOrder = outcome.credited;
 
-        // Record the loyalty-bonus portion in Supabase. Only if a credit
-        // actually happened (not skipped) and a bonus is owed — a skipped
-        // credit means the balance already covered it (no new money), so
-        // we don't log a phantom bonus. The per-order ledger guard above
-        // is what guarantees this row is written at most once. We count
-        // flexBonusThisOrder only when the row is actually written, so the
-        // reported flex_bonus_total reflects real recorded bonuses.
-        if (!outcome.skipped && creditPlan.bonus > 0) {
+        // Record the loyalty-bonus portion in Supabase — ONLY after a
+        // confirmed credit (credited > 0) and when a bonus is owed. The
+        // per-order ledger guard above is what guarantees this row is
+        // written at most once. We count flexBonusThisOrder only when the
+        // row is actually written, so flex_bonus_total reflects real
+        // recorded bonuses.
+        if (outcome.credited > 0 && creditPlan.bonus > 0) {
           const pct = Math.round(creditPlan.bonusRate * 100);
           const { error: bonusErr } = await supabaseAdmin.from('flex_transactions').insert({
             email,

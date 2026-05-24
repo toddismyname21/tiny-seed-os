@@ -24,9 +24,11 @@ import {
   readTestEnv,
   mintMemberCookies,
   seedSwapFixture,
+  clearTestMemberPickup,
   projectRef,
   STORAGE_STATE,
   SWAP_FIXTURE_PATH,
+  PICKUP_FIXTURE_PATH,
 } from './supabase-fixtures';
 
 setup('authenticate test member + seed fixtures', async ({}, testInfo) => {
@@ -53,11 +55,21 @@ setup('authenticate test member + seed fixtures', async ({}, testInfo) => {
   const fixture = await seedSwapFixture(env);
   writeFileSync(SWAP_FIXTURE_PATH, JSON.stringify(fixture, null, 2), 'utf8');
 
+  // 5. Snapshot + clear the test member's pickup so the FIX-1 no-pickup
+  //    nudge banner is deterministically present during the run. Restored
+  //    on teardown. Null when the member has no active share (banner test
+  //    self-skips).
+  const pickupSnapshot = await clearTestMemberPickup(env);
+  writeFileSync(PICKUP_FIXTURE_PATH, JSON.stringify(pickupSnapshot, null, 2), 'utf8');
+
   // eslint-disable-next-line no-console
   console.log(
     `[e2e setup] authenticated ${env.testEmail}; ` +
       (fixture
-        ? `seeded swap fixture "${fixture.product}" (${fixture.shareType}, week ${fixture.weekDate})`
-        : 'no live share → swap fixture skipped')
+        ? `seeded swap fixture "${fixture.product}" (${fixture.shareType}, week ${fixture.weekDate}); `
+        : 'no live share → swap fixture skipped; ') +
+      (pickupSnapshot
+        ? `cleared pickup on ${pickupSnapshot.rows.length} active share(s) (restored on teardown)`
+        : 'no active share → pickup-nudge fixture skipped')
   );
 });
