@@ -23,6 +23,8 @@ const PROTECTED_ROUTES = [
   '/account/flex',
   '/account/household',
   '/account/refer',
+  '/admin',
+  '/admin/sync',
 ];
 
 test.describe('unauthenticated route protection @unauth', () => {

@@ -39,7 +39,7 @@
  *     planned?, errors[] }
  */
 import type { APIRoute } from 'astro';
-import { CRON_SECRET } from 'astro:env/server';
+import { CRON_SECRET, RESEND_API_KEY, RESEND_FROM_EMAIL } from 'astro:env/server';
 import { supabaseAdmin } from '../../../lib/supabase';
 import type { Database } from '../../../lib/database.types';
 import {
@@ -68,11 +68,160 @@ export const prerender = false;
 /** Minimum referred-order total for a referral bonus to pay out ($300). */
 const REFERRAL_MINIMUM_TOTAL = 300;
 
+/** Where the error-alert email goes. Hardcoded to the farm owner — this is
+ *  an operational alert, not a member-facing send. */
+const SYNC_ALERT_TO = 'todd@tinyseedfarmpgh.com';
+
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body, null, 2), {
     status,
     headers: { 'content-type': 'application/json; charset=utf-8' },
   });
+}
+
+/** Minimal HTML escaping for interpolated strings in the alert email body. */
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/* ──────────────────────────────────────────────────────────────────
+ * ERROR ALERTING
+ *
+ * The sync runs unattended every 15 min and moves REAL money (store
+ * credit + referral payouts). Silent failure is exactly what caused the
+ * original ~100-customer data gap, so when a run touches ANY error we
+ * email the farm owner a summary. STRICTLY BEST-EFFORT:
+ *
+ *   - Only fires when there ARE errors (no spam on healthy runs — the
+ *     caller guards on this; we double-guard with an empty-check).
+ *   - Wrapped in try/catch end-to-end: a missing Resend key, Resend
+ *     being down, or a non-2xx response is logged and SWALLOWED. An
+ *     alerting failure must NEVER break the sync (the run already
+ *     completed + the watermark already advanced before we get here).
+ *   - Never throws.
+ * ────────────────────────────────────────────────────────────────── */
+
+interface SyncRunSummary {
+  ordersSeen: number;
+  ordersProcessed: number;
+  membersUpserted: number;
+  flexCreditedTotal: number;
+  flexBonusTotal: number;
+  referralBonusTotal: number;
+  errors: Array<{ order: string; message: string }>;
+}
+
+async function sendSyncErrorAlert(summary: SyncRunSummary): Promise<void> {
+  try {
+    if (summary.errors.length === 0) return; // never alert on a clean run
+
+    if (!RESEND_API_KEY || !RESEND_FROM_EMAIL) {
+      console.warn(
+        '[sync] error alert: Resend not configured — skipping email ' +
+          `(${summary.errors.length} error(s) this run)`
+      );
+      return;
+    }
+
+    const n = summary.errors.length;
+    const dateStr = new Intl.DateTimeFormat('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      timeZone: 'America/New_York',
+    }).format(new Date());
+
+    const subject = `⚠️ CSA sync: ${n} order(s) errored on ${dateStr}`;
+
+    const money = (v: number): string =>
+      new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(v);
+
+    // ── Plain-text body ──────────────────────────────────────────────
+    const textLines = [
+      `Tiny Seed CSA sync hit ${n} error(s) at ${dateStr} (America/New_York).`,
+      '',
+      `Orders seen:        ${summary.ordersSeen}`,
+      `Orders processed:   ${summary.ordersProcessed}`,
+      `Members upserted:   ${summary.membersUpserted}`,
+      `Flex credited:      ${money(summary.flexCreditedTotal)} (incl. ${money(summary.flexBonusTotal)} loyalty bonus)`,
+      `Referral payouts:   ${money(summary.referralBonusTotal)}`,
+      '',
+      'Failing orders:',
+      ...summary.errors.map((e) => `  • ${e.order}: ${e.message}`),
+      '',
+      'Review the sync-health page: https://csa.tinyseedfarm.com/admin/sync',
+      '— Tiny Seed CSA sync',
+    ];
+    const text = textLines.join('\n');
+
+    // ── HTML body ────────────────────────────────────────────────────
+    const errorRows = summary.errors
+      .map(
+        (e) =>
+          `<tr>` +
+          `<td style="padding:6px 10px;border-bottom:1px solid #e5e7eb;font-weight:600;white-space:nowrap;vertical-align:top">${escapeHtml(e.order)}</td>` +
+          `<td style="padding:6px 10px;border-bottom:1px solid #e5e7eb;color:#b91c1c">${escapeHtml(e.message)}</td>` +
+          `</tr>`
+      )
+      .join('');
+
+    const html =
+      `<div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;` +
+      `max-width:600px;margin:0 auto;color:#1f2937;line-height:1.6">` +
+      `<p style="font-size:18px;font-weight:700;margin:0 0 4px;color:#b91c1c">` +
+      `⚠️ CSA sync hit ${n} error${n === 1 ? '' : 's'}</p>` +
+      `<p style="color:#6b7280;font-size:14px;margin:0 0 16px">${escapeHtml(dateStr)} · America/New_York</p>` +
+      `<table style="border-collapse:collapse;font-size:14px;margin:0 0 16px">` +
+      `<tr><td style="padding:2px 16px 2px 0;color:#6b7280">Orders seen</td><td style="padding:2px 0;font-weight:600">${summary.ordersSeen}</td></tr>` +
+      `<tr><td style="padding:2px 16px 2px 0;color:#6b7280">Orders processed</td><td style="padding:2px 0;font-weight:600">${summary.ordersProcessed}</td></tr>` +
+      `<tr><td style="padding:2px 16px 2px 0;color:#6b7280">Members upserted</td><td style="padding:2px 0;font-weight:600">${summary.membersUpserted}</td></tr>` +
+      `<tr><td style="padding:2px 16px 2px 0;color:#6b7280">Flex credited</td><td style="padding:2px 0;font-weight:600">${money(summary.flexCreditedTotal)} <span style="color:#6b7280;font-weight:400">(incl. ${money(summary.flexBonusTotal)} bonus)</span></td></tr>` +
+      `<tr><td style="padding:2px 16px 2px 0;color:#6b7280">Referral payouts</td><td style="padding:2px 0;font-weight:600">${money(summary.referralBonusTotal)}</td></tr>` +
+      `</table>` +
+      `<p style="font-size:14px;font-weight:600;margin:0 0 6px">Failing orders</p>` +
+      `<table style="border-collapse:collapse;font-size:13px;width:100%;border:1px solid #e5e7eb">${errorRows}</table>` +
+      `<p style="margin:20px 0 0">` +
+      `<a href="https://csa.tinyseedfarm.com/admin/sync" style="display:inline-block;background:#15803d;color:#fff;` +
+      `text-decoration:none;padding:10px 20px;border-radius:8px;font-weight:600;font-size:14px">` +
+      `Open sync-health page</a></p>` +
+      `<p style="color:#6b7280;font-size:13px;margin-top:24px">` +
+      `Automated alert from the Shopify → Supabase CSA sync. You only receive this when a run has errors.</p>` +
+      `</div>`;
+
+    const resp = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: RESEND_FROM_EMAIL,
+        to: [SYNC_ALERT_TO],
+        subject,
+        text,
+        html,
+      }),
+    });
+
+    if (!resp.ok) {
+      const detail = await resp.text().catch(() => '');
+      console.error(
+        `[sync] error alert: Resend send failed (HTTP ${resp.status}): ${detail.slice(0, 300)}`
+      );
+    } else {
+      console.log(`[sync] error alert sent to ${SYNC_ALERT_TO} (${n} error(s))`);
+    }
+  } catch (e) {
+    // Alerting must never break the sync — log + swallow.
+    console.error('[sync] error alert send threw (swallowed):', e);
+  }
 }
 
 /* ──────────────────────────────────────────────────────────────────
@@ -772,6 +921,26 @@ async function handle(request: Request, url: URL): Promise<Response> {
     } else {
       watermarkAdvancedTo = advanceTo;
     }
+  }
+
+  // 7. ERROR ALERT — best-effort email to the farm owner if this run hit
+  //    ANY error. errors[] aggregates BOTH a thrown order failure (which
+  //    also stamps last_error on that order's ledger row) AND non-fatal
+  //    referral / watermark issues, so it's the complete "touched an
+  //    error" signal. Only live runs alert (a dry-run writes nothing and
+  //    is operator-initiated). sendSyncErrorAlert is fail-soft + only
+  //    sends when errors.length > 0, so this never spams a healthy run
+  //    and never throws.
+  if (!dryRun && errors.length > 0) {
+    await sendSyncErrorAlert({
+      ordersSeen,
+      ordersProcessed,
+      membersUpserted,
+      flexCreditedTotal,
+      flexBonusTotal,
+      referralBonusTotal,
+      errors,
+    });
   }
 
   return jsonResponse({

@@ -1,0 +1,412 @@
+---
+/**
+ * /admin/sync — Shopify → Supabase sync health (read-only).
+ *
+ * The 15-min sync (`/api/sync/shopify-orders`, pg_cron-triggered) issues
+ * REAL store credit + referral payouts. Nothing watched it before — silent
+ * failure is exactly what caused the original ~100-customer data gap. This
+ * page makes the sync's health visible at a glance:
+ *
+ *   1. LAST SUCCESSFUL RUN — shopify_sync_state.last_synced_at (the
+ *      watermark, advanced only at the end of a completed run) + a human
+ *      "X minutes ago" + a RED STALE warning if it's older than ~30 min
+ *      (the sync should run every 15).
+ *   2. THROUGHPUT — orders processed in the last 24h and 7d
+ *      (shopify_order_sync.processed_at).
+ *   3. NEEDS ATTENTION — every shopify_order_sync row with a non-null
+ *      last_error (order name + error + when).
+ *   4. MONEY ACTIVITY (last 7d) — flex credits (flex_transactions) +
+ *      referral payouts (referrals).
+ *
+ * Auth: middleware already gates /admin/* to role in ('admin','staff')
+ * (303 → /login if unauth, → /dashboard?error=admin_only if non-admin).
+ * Data reads use the cookie-aware RLS client (Astro.locals.supabase) —
+ * the admin-caller RLS policies on all four tables (migrations 0017, 0022,
+ * 0024) let the admin SELECT every row. This page does ZERO writes.
+ */
+import AdminShell from '../../components/AdminShell.astro';
+import Card from '../../components/Card.astro';
+import Table from '../../components/Table.astro';
+
+const supabase = Astro.locals.supabase;
+
+const now = new Date();
+const STALE_MINUTES = 30; // sync runs every 15 — > 2 missed runs = stale
+const day = 86_400_000;
+const since24hIso = new Date(now.getTime() - day).toISOString();
+const since7dIso = new Date(now.getTime() - 7 * day).toISOString();
+
+// ─── 1. Watermark (last successful run) ─────────────────────────────
+const { data: stateRow } = await supabase
+  .from('shopify_sync_state')
+  .select('last_synced_at, updated_at')
+  .eq('id', 1)
+  .maybeSingle();
+
+const lastSyncedAt = stateRow?.last_synced_at ?? null;
+const lastSyncedMs = lastSyncedAt ? new Date(lastSyncedAt).getTime() : null;
+const ageMinutes =
+  lastSyncedMs !== null ? Math.floor((now.getTime() - lastSyncedMs) / 60_000) : null;
+// STALE if we have no watermark at all, or it's older than the threshold.
+const isStale = ageMinutes === null || ageMinutes > STALE_MINUTES;
+
+// ─── 2. Throughput (processed counts) ───────────────────────────────
+const [processed24hRes, processed7dRes] = await Promise.all([
+  supabase
+    .from('shopify_order_sync')
+    .select('shopify_order_id', { count: 'exact', head: true })
+    .gte('processed_at', since24hIso),
+  supabase
+    .from('shopify_order_sync')
+    .select('shopify_order_id', { count: 'exact', head: true })
+    .gte('processed_at', since7dIso),
+]);
+const processed24h = processed24hRes.count ?? 0;
+const processed7d = processed7dRes.count ?? 0;
+
+// ─── 3. Needs attention (errored orders) ────────────────────────────
+type ErrorRow = {
+  shopify_order_id: string;
+  order_name: string | null;
+  last_error: string | null;
+  processed_at: string;
+};
+const { data: errorRowsRaw } = await supabase
+  .from('shopify_order_sync')
+  .select('shopify_order_id, order_name, last_error, processed_at')
+  .not('last_error', 'is', null)
+  .order('processed_at', { ascending: false })
+  .limit(100);
+const errorRows = (errorRowsRaw ?? []) as ErrorRow[];
+
+// ─── 4. Money activity (last 7d) ────────────────────────────────────
+type FlexTxRow = {
+  email: string;
+  type: string;
+  amount: number;
+  reason: string | null;
+  created_at: string;
+};
+type ReferralRow = {
+  referred_email: string | null;
+  code: string | null;
+  amount: number;
+  created_at: string;
+};
+const [flexTxRes, referralRes] = await Promise.all([
+  supabase
+    .from('flex_transactions')
+    .select('email, type, amount, reason, created_at')
+    .gte('created_at', since7dIso)
+    .order('created_at', { ascending: false })
+    .limit(50),
+  supabase
+    .from('referrals')
+    .select('referred_email, code, amount, created_at')
+    .gte('created_at', since7dIso)
+    .order('created_at', { ascending: false })
+    .limit(50),
+]);
+const flexTx = (flexTxRes.data ?? []) as FlexTxRow[];
+const referrals = (referralRes.data ?? []) as ReferralRow[];
+
+// Sum credits (money OUT to members) over the window. flex credits use
+// type='credit'; debits/refunds/adjustments net the other way — we sum
+// only the credit dollars for the "credited" headline, and net all for a
+// secondary figure isn't needed here (the per-row table shows the rest).
+const flexCreditedTotal = flexTx
+  .filter((t) => t.type === 'credit')
+  .reduce((sum, t) => sum + Number(t.amount), 0);
+const referralPaidTotal = referrals.reduce((sum, r) => sum + Number(r.amount), 0);
+
+// ─── Formatters ─────────────────────────────────────────────────────
+function fmtDateTime(s: string | null): string {
+  if (!s) return '—';
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZone: 'America/New_York',
+  }).format(new Date(s));
+}
+
+function ago(s: string | null): string {
+  if (!s) return 'never';
+  const mins = Math.floor((now.getTime() - new Date(s).getTime()) / 60_000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins} min ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs} hour${hrs === 1 ? '' : 's'} ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days} day${days === 1 ? '' : 's'} ago`;
+}
+
+function money(v: number): string {
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(v);
+}
+
+const FLEX_TYPE_LABEL: Record<string, string> = {
+  credit: 'Credit',
+  debit: 'Debit',
+  refund: 'Refund',
+  transfer: 'Transfer',
+  adjustment: 'Adjustment',
+};
+---
+
+<AdminShell
+  title="Sync health"
+  subtitle="Shopify → Supabase order sync. Read-only monitoring."
+  pageTitle="Sync health — Tiny Seed Admin"
+  canonical="https://csa.tinyseedfarm.com/admin/sync"
+>
+  {/* ════ 1. Last successful run + stale warning ════ */}
+  <section aria-labelledby="last-run-heading" class="flex flex-col gap-4">
+    <h2 id="last-run-heading" class="font-display text-xl font-bold text-ts-text sm:text-2xl">
+      Last successful run
+    </h2>
+    <Card tone={isStale ? 'danger' : 'primary'} padding="md" elevation="sm">
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div class="min-w-0">
+          <div class="flex items-center gap-2">
+            <span
+              class={[
+                'inline-block h-2.5 w-2.5 shrink-0 rounded-full',
+                isStale ? 'bg-ts-danger' : 'bg-ts-primary',
+              ].join(' ')}
+              aria-hidden="true"
+            ></span>
+            <p class="font-display text-2xl font-bold text-ts-text tabular-nums">
+              {ago(lastSyncedAt)}
+            </p>
+          </div>
+          <p class="mt-1 text-sm text-ts-text-secondary">
+            Watermark: {fmtDateTime(lastSyncedAt)}
+            <span class="text-ts-text-muted"> (America/New_York)</span>
+          </p>
+        </div>
+        <div class="shrink-0">
+          {isStale ? (
+            <div
+              role="alert"
+              class="flex items-start gap-2 rounded-ts-md bg-ts-danger/10 px-3 py-2 text-sm font-semibold text-ts-danger"
+            >
+              <span aria-hidden="true">⚠️</span>
+              <span>
+                STALE — no successful run in {STALE_MINUTES}+ min.
+                <span class="block font-normal">The sync should run every 15 min. Check the cron job.</span>
+              </span>
+            </div>
+          ) : (
+            <span class="inline-flex items-center gap-2 rounded-ts-md bg-ts-primary/10 px-3 py-2 text-sm font-semibold text-ts-primary">
+              <span aria-hidden="true">✓</span> Healthy
+            </span>
+          )}
+        </div>
+      </div>
+    </Card>
+  </section>
+
+  {/* ════ 2. Throughput ════ */}
+  <section aria-labelledby="throughput-heading" class="flex flex-col gap-4">
+    <h2 id="throughput-heading" class="font-display text-xl font-bold text-ts-text sm:text-2xl">
+      Orders processed
+    </h2>
+    <div class="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+      <Card padding="md" elevation="sm">
+        <div class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">
+          Last 24 hours
+        </div>
+        <div class="mt-1 font-display text-3xl font-bold text-ts-text tabular-nums sm:text-4xl">
+          {processed24h}
+        </div>
+        <div class="mt-1 text-xs text-ts-text-secondary">orders</div>
+      </Card>
+      <Card padding="md" elevation="sm">
+        <div class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">
+          Last 7 days
+        </div>
+        <div class="mt-1 font-display text-3xl font-bold text-ts-text tabular-nums sm:text-4xl">
+          {processed7d}
+        </div>
+        <div class="mt-1 text-xs text-ts-text-secondary">orders</div>
+      </Card>
+      <Card padding="md" elevation="sm">
+        <div class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">
+          Flex credited (7d)
+        </div>
+        <div class="mt-1 font-display text-3xl font-bold text-ts-text tabular-nums sm:text-4xl">
+          {money(flexCreditedTotal)}
+        </div>
+        <div class="mt-1 text-xs text-ts-text-secondary">store credit issued</div>
+      </Card>
+      <Card padding="md" elevation="sm">
+        <div class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">
+          Referral payouts (7d)
+        </div>
+        <div class="mt-1 font-display text-3xl font-bold text-ts-text tabular-nums sm:text-4xl">
+          {money(referralPaidTotal)}
+        </div>
+        <div class="mt-1 text-xs text-ts-text-secondary">
+          {referrals.length} payout{referrals.length === 1 ? '' : 's'}
+        </div>
+      </Card>
+    </div>
+  </section>
+
+  {/* ════ 3. Needs attention (errored orders) ════ */}
+  <section aria-labelledby="errors-heading" class="flex flex-col gap-4">
+    <div class="flex flex-wrap items-baseline justify-between gap-3">
+      <h2 id="errors-heading" class="font-display text-xl font-bold text-ts-text sm:text-2xl">
+        Needs attention
+      </h2>
+      {errorRows.length > 0 && (
+        <span class="inline-flex items-center gap-1.5 rounded-ts-md bg-ts-danger/10 px-2.5 py-1 text-sm font-semibold text-ts-danger">
+          {errorRows.length} order{errorRows.length === 1 ? '' : 's'} errored
+        </span>
+      )}
+    </div>
+    <p class="text-sm text-ts-text-secondary">
+      Orders whose last sync attempt recorded an error. The sync re-attempts each
+      run; a row stays here until a clean run clears its <code class="rounded bg-ts-bg-muted px-1 py-0.5 font-mono text-[11px]">last_error</code>.
+    </p>
+    <Table
+      tableLabel="Orders with sync errors"
+      columns={[
+        { key: 'order', label: 'Order' },
+        { key: 'error', label: 'Error' },
+        { key: 'when', label: 'Last attempt', align: 'right' },
+      ]}
+      empty={errorRows.length === 0}
+      emptyTitle="No sync errors"
+      emptyIcon="✓"
+      emptyMessage="Every order the sync has touched processed cleanly. Nice."
+    >
+      <Fragment slot="body">
+        {errorRows.map((r) => (
+          <tr class="hover:bg-ts-bg-muted/40 align-top">
+            <td class="px-4 py-3 first:pl-5 sm:px-5 sm:first:pl-6">
+              <span class="font-medium text-ts-text">{r.order_name ?? '(unnamed)'}</span>
+              <p class="mt-0.5 font-mono text-[11px] text-ts-text-muted">
+                {r.shopify_order_id}
+              </p>
+            </td>
+            <td class="px-4 py-3 sm:px-5 text-sm text-ts-danger">{r.last_error}</td>
+            <td class="px-4 py-3 last:pr-5 sm:px-5 sm:last:pr-6 text-right text-sm text-ts-text-secondary tabular-nums">
+              {fmtDateTime(r.processed_at)}
+              <p class="mt-0.5 text-xs text-ts-text-muted">{ago(r.processed_at)}</p>
+            </td>
+          </tr>
+        ))}
+      </Fragment>
+    </Table>
+  </section>
+
+  {/* ════ 4. Money activity (last 7d) ════ */}
+  <section aria-labelledby="money-heading" class="flex flex-col gap-4">
+    <h2 id="money-heading" class="font-display text-xl font-bold text-ts-text sm:text-2xl">
+      Recent money activity
+    </h2>
+
+    {/* 4a. Flex transactions */}
+    <div class="flex flex-col gap-3">
+      <h3 class="font-display text-lg font-semibold text-ts-text">
+        Flex transactions (last 7 days)
+      </h3>
+      <Table
+        tableLabel="Flex transactions in the last 7 days"
+        columns={[
+          { key: 'email', label: 'Member' },
+          { key: 'type', label: 'Type' },
+          { key: 'reason', label: 'Reason' },
+          { key: 'amount', label: 'Amount', align: 'right' },
+          { key: 'when', label: 'When', align: 'right' },
+        ]}
+        empty={flexTx.length === 0}
+        emptyTitle="No flex activity"
+        emptyIcon="💳"
+        emptyMessage="No store-credit movement in the last 7 days."
+      >
+        <Fragment slot="body">
+          {flexTx.map((t) => (
+            <tr class="hover:bg-ts-bg-muted/40">
+              <td class="px-4 py-3 first:pl-5 sm:px-5 sm:first:pl-6 text-sm text-ts-text">
+                {t.email}
+              </td>
+              <td class="px-4 py-3 sm:px-5 text-sm">
+                <span
+                  class={[
+                    'inline-flex rounded-ts-sm px-2 py-0.5 text-xs font-semibold',
+                    t.type === 'credit'
+                      ? 'bg-ts-primary/10 text-ts-primary'
+                      : 'bg-ts-bg-muted text-ts-text-secondary',
+                  ].join(' ')}
+                >
+                  {FLEX_TYPE_LABEL[t.type] ?? t.type}
+                </span>
+              </td>
+              <td class="px-4 py-3 sm:px-5 text-sm text-ts-text-secondary">
+                {t.reason ?? '—'}
+              </td>
+              <td
+                class={[
+                  'px-4 py-3 sm:px-5 text-right text-sm font-semibold tabular-nums',
+                  t.type === 'credit' ? 'text-ts-primary' : 'text-ts-text',
+                ].join(' ')}
+              >
+                {t.type === 'credit' ? '+' : ''}{money(Number(t.amount))}
+              </td>
+              <td class="px-4 py-3 last:pr-5 sm:px-5 sm:last:pr-6 text-right text-sm text-ts-text-secondary tabular-nums">
+                {fmtDateTime(t.created_at)}
+              </td>
+            </tr>
+          ))}
+        </Fragment>
+      </Table>
+    </div>
+
+    {/* 4b. Referral payouts */}
+    <div class="flex flex-col gap-3">
+      <h3 class="font-display text-lg font-semibold text-ts-text">
+        Referral payouts (last 7 days)
+      </h3>
+      <Table
+        tableLabel="Referral payouts in the last 7 days"
+        columns={[
+          { key: 'email', label: 'Referred friend' },
+          { key: 'code', label: 'Code' },
+          { key: 'amount', label: 'Bonus', align: 'right' },
+          { key: 'when', label: 'When', align: 'right' },
+        ]}
+        empty={referrals.length === 0}
+        emptyTitle="No referral payouts"
+        emptyIcon="🤝"
+        emptyMessage="No referral bonuses paid out in the last 7 days."
+      >
+        <Fragment slot="body">
+          {referrals.map((r) => (
+            <tr class="hover:bg-ts-bg-muted/40">
+              <td class="px-4 py-3 first:pl-5 sm:px-5 sm:first:pl-6 text-sm text-ts-text">
+                {r.referred_email ?? '—'}
+              </td>
+              <td class="px-4 py-3 sm:px-5 text-sm">
+                <code class="rounded bg-ts-bg-muted px-1.5 py-0.5 font-mono text-xs text-ts-text-secondary">
+                  {r.code ?? '—'}
+                </code>
+              </td>
+              <td class="px-4 py-3 sm:px-5 text-right text-sm font-semibold text-ts-primary tabular-nums">
+                +{money(Number(r.amount))}
+              </td>
+              <td class="px-4 py-3 last:pr-5 sm:px-5 sm:last:pr-6 text-right text-sm text-ts-text-secondary tabular-nums">
+                {fmtDateTime(r.created_at)}
+              </td>
+            </tr>
+          ))}
+        </Fragment>
+      </Table>
+    </div>
+  </section>
+</AdminShell>
+</content>
+</invoke>

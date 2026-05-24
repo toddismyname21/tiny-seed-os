@@ -358,6 +358,33 @@ const pendingTaskCount =
     </Card>
   </section>
 
+  {/* ════ Sync health link ════ */}
+  <section aria-labelledby="sync-heading" class="flex flex-col gap-4">
+    <h2 id="sync-heading" class="font-display text-xl font-bold text-ts-text sm:text-2xl">
+      Sync health
+    </h2>
+    <Card padding="md" elevation="sm">
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div class="flex min-w-0 flex-1 items-start gap-3">
+          <span class="text-2xl" aria-hidden="true">🔄</span>
+          <div class="min-w-0">
+            <p class="font-semibold text-ts-text">Shopify → Supabase order sync</p>
+            <p class="mt-1 text-sm text-ts-text-secondary">
+              Runs every 15 min, issuing store credit + referral payouts. Check the
+              last run, any errored orders, and recent money activity.
+            </p>
+          </div>
+        </div>
+        <a
+          href="/admin/sync"
+          class="inline-flex h-11 shrink-0 items-center justify-center rounded-ts-md bg-ts-primary px-5 text-sm font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+        >
+          View sync health →
+        </a>
+      </div>
+    </Card>
+  </section>
+
   {/* ════ Pending tasks ════ */}
   <section aria-labelledby="pending-heading" class="flex flex-col gap-4">
     <h2 id="pending-heading" class="font-display text-xl font-bold text-ts-text sm:text-2xl">
