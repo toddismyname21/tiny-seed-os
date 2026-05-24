@@ -29,13 +29,76 @@
   --color-ts-success:        #16a34a;       /* Same as primary */
   --color-ts-info:           #0369a1;       /* Sky */
 
+  /* ─────────────────────────────────────────────────────────────────
+     Seasonal accent (premium UX 2026, §7). A single token that shifts
+     subtly by season. Used ONLY for warmth accents (box hero, empty-
+     state illustrations) — NOT the action accent (which stays a
+     consistent green so the "click here" signal never degrades).
+     Defaults to the spring/summer green; rotate per-season later via a
+     `[data-season="..."]` override on <html> (ready, not yet applied).
+     ───────────────────────────────────────────────────────────────── */
+  --color-ts-seasonal: #16a34a;        /* spring/summer green (default) */
+
   /* Typography */
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-display: 'Barlow Condensed', 'Inter', sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
 
-  /* Spacing scale — 4px base */
-  --spacing: 0.25rem;          /* Tailwind 4 base unit */
+  /* ─────────────────────────────────────────────────────────────────
+     Type scale — premium UX 2026 §3.1 (Vercel/Linear 6-step modular
+     scale). Each size ships paired line-height + negative tracking so
+     a single `text-ts-*` class is always typographically correct.
+     Tailwind 4 reads `--text-*` / `--text-*--line-height` /
+     `--text-*--letter-spacing` triples from @theme, exposing them as
+     utilities: text-ts-display, text-ts-h2, text-ts-lg, etc.
+     Display/headings carry tight tracking; body is neutral; xs opens up.
+     ───────────────────────────────────────────────────────────────── */
+  --text-ts-display:                2rem;       /* 32px — box hero */
+  --text-ts-display--line-height:   1.15;
+  --text-ts-display--letter-spacing: -0.02em;
+
+  --text-ts-h2:                     1.5rem;     /* 24px — section titles */
+  --text-ts-h2--line-height:        1.2;
+  --text-ts-h2--letter-spacing:     -0.01em;
+
+  --text-ts-lg:                     1.125rem;   /* 18px — item names */
+  --text-ts-lg--line-height:        1.4;
+  --text-ts-lg--letter-spacing:     0em;
+
+  --text-ts-base:                   1rem;       /* 16px — body default */
+  --text-ts-base--line-height:      1.5;
+  --text-ts-base--letter-spacing:   0em;
+
+  --text-ts-sm:                     0.875rem;   /* 14px — meta, units */
+  --text-ts-sm--line-height:        1.5;
+  --text-ts-sm--letter-spacing:     0em;
+
+  --text-ts-xs:                     0.75rem;    /* 12px — badges, captions */
+  --text-ts-xs--line-height:        1.4;
+  --text-ts-xs--letter-spacing:     0.01em;
+
+  /* Standalone tracking + leading tokens (for use where the size is set
+     by a different utility, e.g. the display font on a larger hero). */
+  --tracking-ts-display: -0.04em;   /* large display headlines */
+  --tracking-ts-tight:   -0.01em;   /* normal body tightening */
+  --leading-ts-tight:    1.15;      /* headings */
+  --leading-ts-base:     1.5;       /* body */
+  --leading-ts-relaxed:  1.625;     /* long-form reading */
+
+  /* Spacing scale — strict 8px grid (premium UX 2026 §3.2).
+     4·8·12·16·24·32·48·64. Tailwind's default numeric scale already
+     lands on these (1=4 2=8 3=12 4=16 6=24 8=32 12=48 16=64); we keep
+     the 4px base unit and add named aliases for the canonical steps so
+     intent is explicit and off-grid values stay out of the codebase. */
+  --spacing: 0.25rem;          /* Tailwind 4 base unit (4px) */
+  --spacing-ts-1:  0.25rem;    /*  4px */
+  --spacing-ts-2:  0.5rem;     /*  8px */
+  --spacing-ts-3:  0.75rem;    /* 12px */
+  --spacing-ts-4:  1rem;       /* 16px */
+  --spacing-ts-6:  1.5rem;     /* 24px */
+  --spacing-ts-8:  2rem;       /* 32px */
+  --spacing-ts-12: 3rem;       /* 48px */
+  --spacing-ts-16: 4rem;       /* 64px */
 
   /* Radius */
   --radius-ts-sm:  0.25rem;
@@ -44,17 +107,49 @@
   --radius-ts-xl:  1rem;
   --radius-ts-2xl: 1.5rem;
 
-  /* Shadows */
-  --shadow-ts-sm:  0 1px 2px 0 rgba(0, 0, 0, 0.04);
-  --shadow-ts-md:  0 4px 12px -2px rgba(0, 0, 0, 0.06);
-  --shadow-ts-lg:  0 12px 24px -6px rgba(0, 0, 0, 0.10);
-  --shadow-ts-xl:  0 24px 48px -12px rgba(0, 0, 0, 0.16);
+  /* ─────────────────────────────────────────────────────────────────
+     Hairlines — 1px borders at low alpha (premium UX 2026 §3.5). Use
+     `border-ts-hairline` for everyday separation (8% alpha) and
+     `border-ts-hairline-strong` (15%) where a divider needs more
+     presence. The existing solid `--color-ts-border` tokens stay for
+     surfaces that want a defined edge; hairlines are the calmer default.
+     ───────────────────────────────────────────────────────────────── */
+  --color-ts-hairline:        rgba(15, 23, 42, 0.08);   /* slate-900 @ 8% */
+  --color-ts-hairline-strong: rgba(15, 23, 42, 0.15);   /* slate-900 @ 15% */
 
-  /* Transitions */
-  --ease-ts: cubic-bezier(0.4, 0, 0.2, 1);
-  --duration-ts-fast:   150ms;
-  --duration-ts-normal: 250ms;
-  --duration-ts-slow:   400ms;
+  /* ─────────────────────────────────────────────────────────────────
+     Shadows — soft, diffuse elevation (premium UX 2026 §3.4). Replaces
+     hard drop shadows. Two purpose-built tokens lead:
+       shadow-ts-card  resting cards (close-range, barely-there)
+       shadow-ts-pop   floating surfaces — bottom sheets, modals, toasts
+     The legacy sm/md/lg/xl ramp is retained (still referenced widely)
+     but softened to the diffuse style so nothing reads as a hard drop.
+     ───────────────────────────────────────────────────────────────── */
+  --shadow-ts-card: 0 1px 2px rgba(15, 23, 42, 0.04), 0 2px 8px rgba(15, 23, 42, 0.04);
+  --shadow-ts-pop:  0 0 24px 4px rgba(15, 23, 42, 0.10);
+
+  --shadow-ts-sm:  0 1px 2px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.04);
+  --shadow-ts-md:  0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 12px rgba(15, 23, 42, 0.06);
+  --shadow-ts-lg:  0 2px 6px rgba(15, 23, 42, 0.05), 0 12px 28px rgba(15, 23, 42, 0.08);
+  --shadow-ts-xl:  0 4px 12px rgba(15, 23, 42, 0.06), 0 24px 48px rgba(15, 23, 42, 0.12);
+
+  /* ─────────────────────────────────────────────────────────────────
+     Motion tokens — 3 durations + 3 easings (premium UX 2026 §4.1).
+     Entrances ease-out, exits ease-in, emphasis is spring-ish. Reused
+     everywhere via `duration-ts-*` / `ease-ts-*` utilities so motion is
+     consistent. `--ease-ts` is kept as the standard-curve alias (still
+     referenced by existing components like Button/ContactFarm).
+     ───────────────────────────────────────────────────────────────── */
+  --duration-ts-fast:   150ms;   /* hover, press, toggle */
+  --duration-ts-normal: 250ms;   /* sheet/toast enter, fade-in */
+  --duration-ts-exit:   200ms;   /* sheet/toast leave */
+  --duration-ts-slow:   350ms;   /* success / emphasis moments */
+
+  --ease-ts:          cubic-bezier(0.4, 0, 0.2, 1);   /* standard (alias) */
+  --ease-ts-standard: cubic-bezier(0.4, 0, 0.2, 1);   /* hover, toggle */
+  --ease-ts-out:      cubic-bezier(0, 0, 0.2, 1);      /* entrances */
+  --ease-ts-in:       cubic-bezier(0.4, 0, 1, 1);      /* exits */
+  --ease-ts-emphasis: cubic-bezier(0.2, 0.8, 0.2, 1);  /* success beats */
 }
 
 /* Base reset/quality-of-life */
@@ -74,4 +169,39 @@ body {
 *:focus-visible {
   outline: 2px solid var(--color-ts-primary);
   outline-offset: 2px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Reduced motion (premium UX 2026 §4.4 / W3C C39 / WCAG 2.3.3)
+   ───────────────────────────────────────────────────────────────────
+   One global block covering the whole portal. We KILL transform- and
+   translate-based motion (sheet slides, scale presses, the success
+   "draw-in", row flashes) — those are the vestibular triggers — but we
+   deliberately KEEP opacity fades and color transitions, which don't
+   cause dizziness and preserve state legibility.
+
+   Implementation: clamp transitions/animations to ~0.01ms so any
+   transform settles instantly (no visible movement) while a plain
+   `transition: opacity`/`transition: color` still resolves visually.
+   We also neutralize `transform` and `animation` outright as a
+   belt-and-suspenders for any element animating purely via @keyframes.
+   `scroll-behavior: auto` stops smooth-scroll jumps.
+   ═══════════════════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Cancel transform-based motion specifically — the part that can
+     trigger vestibular discomfort. Color/opacity transitions are
+     untouched (they finish in 0.01ms, i.e. instantly, but harmlessly). */
+  [data-motion='transform'],
+  .motion-transform {
+    transform: none !important;
+  }
 }

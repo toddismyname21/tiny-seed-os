@@ -21,7 +21,7 @@
  * If the user has a customer record but no active member rows → same
  * "no share" state with a slightly different message.
  */
-import BaseLayout from '../layouts/BaseLayout.astro';
+import MemberShell from '../components/MemberShell.astro';
 import { supabaseAdmin } from '../lib/supabase';
 import EmptyState from '../components/EmptyState.astro';
 import Button from '../components/Button.astro';
@@ -393,48 +393,13 @@ const adminOnlyError = Astro.url.searchParams.get('error') === 'admin_only';
 const title = `Welcome back, ${firstName} — Tiny Seed Farm CSA`;
 ---
 
-<BaseLayout title={title} canonical="https://csa.tinyseedfarm.com/dashboard">
-  <a
-    href="#main"
-    class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-ts-md focus:bg-ts-primary focus:px-4 focus:py-2 focus:text-white focus:shadow-ts-md"
-  >
-    Skip to main content
-  </a>
-
-  <div class="min-h-screen bg-ts-bg-base">
-    {/* ═════════════════════════════════════════════════════════════
-        TOP BAR
-        ═════════════════════════════════════════════════════════════ */}
-    <header
-      class="border-b border-ts-border bg-ts-bg-surface/80 backdrop-blur-sm"
-    >
-      <div class="mx-auto flex max-w-3xl items-center justify-between px-5 py-4 sm:px-6 sm:py-5">
-        <a
-          href="/dashboard"
-          class="flex items-center gap-2 rounded-ts-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ts-primary"
-          aria-label="Tiny Seed Farm CSA dashboard home"
-        >
-          <span class="inline-block h-2.5 w-2.5 rounded-full bg-ts-primary" aria-hidden="true"></span>
-          <span class="font-display text-lg font-bold tracking-tight text-ts-text">
-            Tiny Seed Farm
-          </span>
-        </a>
-
-        <form method="POST" action="/logout" class="m-0">
-          <button
-            type="submit"
-            class="rounded-ts-md px-3 py-2 text-sm font-medium text-ts-text-secondary transition-colors duration-150 hover:bg-ts-bg-muted hover:text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
-          >
-            Sign out
-          </button>
-        </form>
-      </div>
-    </header>
-
-    <main
-      id="main"
-      class="mx-auto flex w-full max-w-3xl flex-col gap-8 px-5 py-8 sm:gap-10 sm:px-6 sm:py-12"
-    >
+<MemberShell
+  title={title}
+  canonical="https://csa.tinyseedfarm.com/dashboard"
+  userEmail={user.email}
+  active="home"
+  mainClass="mx-auto flex w-full max-w-3xl flex-col gap-8 px-5 py-8 sm:gap-10 sm:px-6 sm:py-12"
+>
       {/* ═════════════════════════════════════════════════════════════
           WEEK-ONE COUNTDOWN (2026-05-20)
           Shown only in the 'before' phase, for members whose controlling
@@ -947,22 +912,7 @@ const title = `Welcome back, ${firstName} — Tiny Seed Farm CSA`;
         </section>
       )}
 
-      {/* ═════════════════════════════════════════════════════════════
-          FOOTER
-          ═════════════════════════════════════════════════════════════ */}
-      <footer
-        class="mt-auto border-t border-ts-border pt-6 text-center text-xs text-ts-text-muted"
-      >
-        <p>
-          Signed in as <span class="font-medium text-ts-text-secondary">{user.email}</span>
-        </p>
-        <p class="mt-1">
-          Tiny Seed Farm · 257 Zeigler Rd, Rochester, PA · Certified Organic
-        </p>
-      </footer>
-    </main>
-  </div>
-
+  <Fragment slot="overlays">
   <script>
     // Dismiss the post-activation welcome banner. Removes the `?welcome=1`
     // flag from the URL via `history.replaceState` so a refresh doesn't
@@ -990,4 +940,5 @@ const title = `Welcome back, ${firstName} — Tiny Seed Farm CSA`;
       });
     }
   </script>
-</BaseLayout>
+  </Fragment>
+</MemberShell>

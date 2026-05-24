@@ -14,7 +14,7 @@
  * Auth: middleware. RLS scopes member lookup; pickup_locations is
  * public-read for authenticated users.
  */
-import BaseLayout from '../../layouts/BaseLayout.astro';
+import MemberShell from '../../components/MemberShell.astro';
 import Button from '../../components/Button.astro';
 import Card from '../../components/Card.astro';
 import EmptyState from '../../components/EmptyState.astro';
@@ -135,51 +135,15 @@ const isHomeDelivery = primary != null && !primary.pickup_location_id && !!prima
 const initialMode: 'pickup' | 'delivery' = isHomeDelivery ? 'delivery' : 'pickup';
 ---
 
-<BaseLayout
+<MemberShell
   title="Pickup location — Tiny Seed Farm CSA"
   description="Change your CSA pickup location or switch to home delivery."
   canonical="https://csa.tinyseedfarm.com/account/pickup"
+  userEmail={user.email}
+  active="account"
+  back={{ href: "/account", label: "Account" }}
+  mainClass="mx-auto flex w-full max-w-3xl flex-col gap-6 px-5 py-8 sm:px-6 sm:py-12"
 >
-  <a
-    href="#main"
-    class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-ts-md focus:bg-ts-primary focus:px-4 focus:py-2 focus:text-white focus:shadow-ts-md"
-  >
-    Skip to main content
-  </a>
-
-  <div class="min-h-screen bg-ts-bg-base">
-    <header class="border-b border-ts-border bg-ts-bg-surface/80 backdrop-blur-sm">
-      <div class="mx-auto flex max-w-3xl items-center justify-between px-5 py-4 sm:px-6 sm:py-5">
-        <a
-          href="/dashboard"
-          class="flex items-center gap-2 rounded-ts-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ts-primary"
-          aria-label="Tiny Seed Farm CSA dashboard home"
-        >
-          <span class="inline-block h-2.5 w-2.5 rounded-full bg-ts-primary" aria-hidden="true"></span>
-          <span class="font-display text-lg font-bold tracking-tight text-ts-text">Tiny Seed Farm</span>
-        </a>
-        <form method="POST" action="/logout" class="m-0">
-          <button
-            type="submit"
-            class="rounded-ts-md px-3 py-2 text-sm font-medium text-ts-text-secondary transition-colors duration-150 hover:bg-ts-bg-muted hover:text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
-          >
-            Sign out
-          </button>
-        </form>
-      </div>
-    </header>
-
-    <main id="main" class="mx-auto flex w-full max-w-3xl flex-col gap-6 px-5 py-8 sm:px-6 sm:py-12">
-      <nav aria-label="Breadcrumb" class="text-sm">
-        <a
-          href="/account"
-          class="inline-flex items-center gap-1 text-ts-text-secondary transition-colors hover:text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
-        >
-          <span aria-hidden="true">←</span>
-          <span>Account</span>
-        </a>
-      </nav>
-
       <section aria-labelledby="pickup-heading">
         <h1 id="pickup-heading" class="font-display text-3xl font-bold tracking-tight text-ts-text sm:text-4xl">
           Pickup location
@@ -359,13 +323,7 @@ const initialMode: 'pickup' | 'delivery' = isHomeDelivery ? 'delivery' : 'pickup
           </form>
         </>
       )}
-
-      <footer class="mt-auto border-t border-ts-border pt-6 text-center text-xs text-ts-text-muted">
-        <p>Signed in as <span class="font-medium text-ts-text-secondary">{user.email}</span></p>
-      </footer>
-    </main>
-  </div>
-
+  <Fragment slot="overlays">
   <script>
     /**
      * Toggle which section is shown based on the chosen radio. We also
@@ -431,4 +389,5 @@ const initialMode: 'pickup' | 'delivery' = isHomeDelivery ? 'delivery' : 'pickup
     const initial = Array.from(radios).find((r) => r.checked);
     if (initial) refresh(initial.value);
   </script>
-</BaseLayout>
+  </Fragment>
+</MemberShell>
