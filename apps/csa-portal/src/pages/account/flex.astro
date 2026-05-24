@@ -1,6 +1,6 @@
 ---
 /**
- * /account/flex — Farm Flex wallet detail (Phase 1, read-only).
+ * /account/flex — Farm Flex wallet detail.
  *
  * Auth is enforced by middleware.ts (`/account` is a PROTECTED_PREFIX).
  * The defensive redirect below is belt-and-suspenders.
@@ -12,19 +12,23 @@
  *   - A short never-expires explainer.
  *   - Transaction history (newest first, up to 25) or a friendly empty
  *     state.
- *   - A disabled "Add Funds" placeholder — Phase 2a wires it up.
+ *   - Add Funds top-up tiles (Phase 2a).
  *
- * If the member has no flex balance at all (getFlexBalance → null), we
- * still render the page (they reached it intentionally) but show a calm
- * "no Farm Flex yet" state rather than a zeroed-out wallet.
+ * NON-BLOCKING balance (2026-05-24, gap P0-1): the big balance card is the
+ * <FlexWallet variant="detail"> island, which fetches the live Shopify
+ * balance from /api/account/flex-balance AFTER first paint instead of
+ * blocking SSR. Transaction history is a Supabase read and stays SSR. When
+ * the island reports total <= 0 with no history, it reveals a calm "no
+ * Farm Flex yet" state rather than a zeroed-out wallet (coordinated via the
+ * `flex:resolved` event — see the inline script at the bottom).
  */
 import MemberShell from '../../components/MemberShell.astro';
 import Card from '../../components/Card.astro';
 import Button from '../../components/Button.astro';
 import Badge from '../../components/Badge.astro';
 import EmptyState from '../../components/EmptyState.astro';
+import FlexWallet from '../../components/FlexWallet.astro';
 import {
-  getFlexBalance,
   getFlexTransactions,
   formatFlexMoney,
   isCreditType,
@@ -34,7 +38,6 @@ import {
   FLEX_TOPUP_VARIANTS,
   FLEX_TOPUP_PRODUCT_READY,
   FLEX_SHOPIFY_STORE_DEFAULT,
-  type FlexBalance,
   type FlexTransaction,
 } from '../../lib/flex';
 import { SHOPIFY_STORE_NAME } from 'astro:env/server';
@@ -58,12 +61,20 @@ const topUpTiles = FLEX_TOPUP_VARIANTS.map((tier) => ({
   cartUrl: flexTopUpCartUrl(tier, shopifyStore),
 }));
 
-// Read-only data. Both fail-soft (null / []), so the page never errors out.
-const balance: FlexBalance | null = await getFlexBalance(user.email);
+// ─────────────────────────────────────────────────────────────────────
+// The live BALANCE is loaded NON-BLOCKING (2026-05-24, gap P0-1): the
+// <FlexWallet variant="detail"> island fetches /api/account/flex-balance
+// after first paint instead of SSR-awaiting the Shopify call. Transaction
+// HISTORY is a Supabase read (fast, no Shopify) so it stays SSR. The
+// store is USD-only, so we format history + top-up tiles in USD (matches
+// the value getFlexBalance always returned).
+// ─────────────────────────────────────────────────────────────────────
 const transactions: FlexTransaction[] = await getFlexTransactions(user.email);
+const currency = 'USD';
 
-const hasBalance = balance != null && balance.total > 0;
-const currency = balance?.currency ?? 'USD';
+// Whether to show the activity section at all (independent of the live
+// balance — a member who spent down to $0 still has history to see).
+const hasTransactions = transactions.length > 0;
 
 // Pretty date for the history list: "May 21, 2026".
 function prettyDate(iso: string): string {
@@ -116,102 +127,95 @@ const TYPE_FALLBACK_LABEL: Record<FlexTransaction['type'], string> = {
         </p>
       </section>
 
-      {hasBalance && balance ? (
-        <>
-          {/* BALANCE BREAKDOWN */}
-          <Card tone="primary" padding="lg" elevation="md" as="section">
-            <p class="text-sm font-semibold uppercase tracking-wide text-ts-primary">
-              Available balance
-            </p>
-            <p class="mt-1 font-display text-5xl font-bold tabular-nums tracking-tight text-ts-text sm:text-6xl">
-              {formatFlexMoney(balance.total, currency)}
-            </p>
+      {/* ═══════════════════════════════════════════════════════════════
+          BALANCE — non-blocking island (2026-05-24, gap P0-1). Renders a
+          loading shell immediately, fetches /api/account/flex-balance
+          after first paint, then fills in total + "Your funds" + bonus.
+          Self-hides (fail-soft) when total <= 0 / on error — and dispatches
+          `flex:resolved` so the empty-state / activity blocks below can
+          pick the right state once the real balance is known.
+          ═══════════════════════════════════════════════════════════════ */}
+      <FlexWallet variant="detail" />
 
-            {/* "Your funds" (principal) + Bonus sub-breakdown */}
-            <dl class="mt-6 grid grid-cols-1 gap-px overflow-hidden rounded-ts-lg border border-ts-border bg-ts-border sm:grid-cols-2">
-              <div class="bg-ts-bg-surface p-4">
-                <dt class="text-xs font-medium uppercase tracking-wide text-ts-text-muted">
-                  Your funds
-                </dt>
-                <dd class="mt-1 font-display text-2xl font-bold tabular-nums text-ts-text">
-                  {formatFlexMoney(balance.principal, currency)}
-                </dd>
-                <p class="mt-1 text-xs text-ts-text-muted">Never expires</p>
-              </div>
-              <div class="bg-ts-bg-surface p-4">
-                <dt class="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-ts-text-muted">
-                  <span>Loyalty bonus</span>
-                  <span aria-hidden="true">🎁</span>
-                </dt>
-                <dd class="mt-1 font-display text-2xl font-bold tabular-nums text-ts-primary">
-                  {formatFlexMoney(balance.bonus, currency)}
-                </dd>
-                <p class="mt-1 text-xs text-ts-text-muted">
-                  {balance.bonus > 0 ? 'A thank-you from Tiny Seed' : 'Earn bonuses when you add funds'}
-                </p>
-              </div>
-            </dl>
+      {/* ═══════════════════════════════════════════════════════════════
+          ACTIVITY (transaction history) — Supabase read, SSR. Shown
+          whenever there ARE transactions (independent of the live
+          balance: a member who spent down to $0 still has history). When
+          there are none, the "No activity yet" card is held hidden and
+          revealed only if the resolved balance is > 0 (credit on Shopify
+          with no flex_transactions row). If balance resolves to 0 with no
+          history, the whole section stays hidden and the "No Farm Flex"
+          state below shows instead.
+          ═══════════════════════════════════════════════════════════════ */}
+      {hasTransactions ? (
+        <section aria-labelledby="history-heading" class="flex flex-col gap-3">
+          <h2 id="history-heading" class="font-display text-xl font-bold text-ts-text sm:text-2xl">
+            Activity
+          </h2>
+          <Card padding="none" elevation="sm" as="section">
+            <ul role="list" class="divide-y divide-ts-border">
+              {transactions.map((tx) => {
+                const credit = isCreditType(tx.type);
+                const label = tx.reason?.trim() || TYPE_FALLBACK_LABEL[tx.type];
+                const sign = credit ? '+' : '−';
+                const amountClass = credit ? 'text-ts-primary' : 'text-ts-text';
+                return (
+                  <li class="flex items-center justify-between gap-4 px-5 py-4 sm:px-6">
+                    <div class="min-w-0">
+                      <p class="truncate text-sm font-medium text-ts-text">{label}</p>
+                      <p class="mt-0.5 text-xs text-ts-text-muted">{prettyDate(tx.date)}</p>
+                    </div>
+                    <span class={`shrink-0 font-display text-base font-bold tabular-nums ${amountClass}`}>
+                      {sign}{formatFlexMoney(Math.abs(tx.amount), currency)}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
           </Card>
-
-          {/* TRANSACTION HISTORY */}
-          <section aria-labelledby="history-heading" class="flex flex-col gap-3">
-            <h2 id="history-heading" class="font-display text-xl font-bold text-ts-text sm:text-2xl">
-              Activity
-            </h2>
-
-            {transactions.length > 0 ? (
-              <Card padding="none" elevation="sm" as="section">
-                <ul role="list" class="divide-y divide-ts-border">
-                  {transactions.map((tx) => {
-                    const credit = isCreditType(tx.type);
-                    const label = tx.reason?.trim() || TYPE_FALLBACK_LABEL[tx.type];
-                    const sign = credit ? '+' : '−';
-                    const amountClass = credit ? 'text-ts-primary' : 'text-ts-text';
-                    return (
-                      <li class="flex items-center justify-between gap-4 px-5 py-4 sm:px-6">
-                        <div class="min-w-0">
-                          <p class="truncate text-sm font-medium text-ts-text">{label}</p>
-                          <p class="mt-0.5 text-xs text-ts-text-muted">{prettyDate(tx.date)}</p>
-                        </div>
-                        <span class={`shrink-0 font-display text-base font-bold tabular-nums ${amountClass}`}>
-                          {sign}{formatFlexMoney(Math.abs(tx.amount), currency)}
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </Card>
-            ) : (
-              <EmptyState
-                title="No activity yet"
-                icon="🧾"
-                tone="default"
-                dashed={true}
-              >
-                When you add funds or spend your Farm Flex, it'll show up here.
-              </EmptyState>
-            )}
-          </section>
-        </>
+        </section>
       ) : (
-        /* NO FLEX BALANCE — calm, non-erroring state */
-        <EmptyState
-          title="No Farm Flex on file yet"
-          icon="🌿"
-          tone="primary"
-          dashed={false}
+        <section
+          aria-labelledby="history-heading"
+          class="hidden flex-col gap-3"
+          data-flex-activity-empty
         >
-          You don't have a Farm Flex balance right now. Farm Flex lets you keep
-          prepaid credit on hand for extras and add-ons — and it never expires.
-          {FLEX_TOPUP_PRODUCT_READY
-            ? ' Add funds below to get started — and earn a bonus while you do.'
-            : " We'll be opening up Add Funds soon."}
-          <Fragment slot="action">
-            <Button href="/account" variant="secondary" size="md">
-              Back to account
-            </Button>
-          </Fragment>
-        </EmptyState>
+          <h2 id="history-heading" class="font-display text-xl font-bold text-ts-text sm:text-2xl">
+            Activity
+          </h2>
+          <EmptyState
+            title="No activity yet"
+            icon="🧾"
+            tone="default"
+            dashed={true}
+          >
+            When you add funds or spend your Farm Flex, it'll show up here.
+          </EmptyState>
+        </section>
+      )}
+
+      {/* NO FLEX BALANCE — calm, non-erroring state. Hidden until the
+          balance resolves to <= 0 AND there's no transaction history. */}
+      {!hasTransactions && (
+        <div class="hidden" data-flex-no-balance>
+          <EmptyState
+            title="No Farm Flex on file yet"
+            icon="🌿"
+            tone="primary"
+            dashed={false}
+          >
+            You don't have a Farm Flex balance right now. Farm Flex lets you keep
+            prepaid credit on hand for extras and add-ons — and it never expires.
+            {FLEX_TOPUP_PRODUCT_READY
+              ? ' Add funds below to get started — and earn a bonus while you do.'
+              : " We'll be opening up Add Funds soon."}
+            <Fragment slot="action">
+              <Button href="/account" variant="secondary" size="md">
+                Back to account
+              </Button>
+            </Fragment>
+          </EmptyState>
+        </div>
       )}
 
       {/* ═══════════════════════════════════════════════════════════════
@@ -296,4 +300,38 @@ const TYPE_FALLBACK_LABEL: Record<FlexTransaction['type'], string> = {
       </section>
 
       {/* FOOTER */}
+
+  {/* ─────────────────────────────────────────────────────────────────
+      Resolve the deferred empty states once the FlexWallet island reports
+      the real balance via the `flex:resolved` CustomEvent. Only runs the
+      no-history branch (when there ARE transactions, the Activity list is
+      SSR'd and neither hidden block exists). CSP allows inline scripts
+      (script-src 'unsafe-inline'), so define:vars is fine here.
+      ───────────────────────────────────────────────────────────────── */}
+  {!hasTransactions && (
+    <script is:inline define:vars={{ hasTransactions }}>
+      (function () {
+        var activityEmpty = document.querySelector('[data-flex-activity-empty]');
+        var noBalance = document.querySelector('[data-flex-no-balance]');
+        var done = false;
+        function onResolved(e) {
+          if (done) return;
+          done = true;
+          var total = e && e.detail ? Number(e.detail.total) : 0;
+          // No transactions on file:
+          //   balance > 0  → credit exists with no recorded activity → "No activity yet"
+          //   balance <= 0 → genuinely no wallet → "No Farm Flex on file yet"
+          if (total > 0) {
+            if (activityEmpty) {
+              activityEmpty.classList.remove('hidden');
+              activityEmpty.classList.add('flex');
+            }
+          } else {
+            if (noBalance) noBalance.classList.remove('hidden');
+          }
+        }
+        document.addEventListener('flex:resolved', onResolved, { once: true });
+      })();
+    </script>
+  )}
 </MemberShell>

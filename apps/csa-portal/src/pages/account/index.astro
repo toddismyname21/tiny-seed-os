@@ -17,7 +17,7 @@
  */
 import MemberShell from '../../components/MemberShell.astro';
 import Card from '../../components/Card.astro';
-import { getFlexBalance, formatFlexMoney, type FlexBalance } from '../../lib/flex';
+import FlexWallet from '../../components/FlexWallet.astro';
 
 const user = Astro.locals.user;
 if (!user || !user.email) {
@@ -25,10 +25,11 @@ if (!user || !user.email) {
 }
 const supabase = Astro.locals.supabase;
 
-// Farm Flex balance for the account hub card (read-only). Fail-soft → null.
-// We only show the balance number when it's > 0; the card always links.
-const flexBalance: FlexBalance | null = await getFlexBalance(user.email);
-const flexHasBalance = flexBalance != null && flexBalance.total > 0;
+// Farm Flex balance is loaded NON-BLOCKING (2026-05-24, gap P0-1): the
+// <FlexWallet variant="hub"> island fetches /api/account/flex-balance
+// after first paint instead of awaiting a live Shopify call during SSR.
+// The hub card always links to /account/flex; the balance number appears
+// once it loads (and stays hidden, showing the tagline, if total <= 0).
 
 // ─── Pull customer + members + prefs + holds in one go ───────────────
 type AccountMember = {
@@ -225,28 +226,10 @@ const biweeklySummary: string = (() => {
         </p>
       </Card>
 
-      {/* FARM FLEX (always available — independent of an active veg share) */}
-      <a
-        href="/account/flex"
-        class="group flex items-start gap-4 rounded-ts-xl border border-ts-primary/30 bg-ts-primary/5 p-5 shadow-ts-sm transition-all duration-200 hover:border-ts-primary/50 hover:shadow-ts-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
-        data-flex-account-link
-      >
-        <span class="text-3xl" aria-hidden="true">🌿</span>
-        <div class="min-w-0 flex-1">
-          <h3 class="text-base font-semibold text-ts-text">Farm Flex</h3>
-          {flexHasBalance && flexBalance ? (
-            <p class="mt-1 font-display text-2xl font-bold tabular-nums text-ts-text">
-              {formatFlexMoney(flexBalance.total, flexBalance.currency)}
-            </p>
-          ) : (
-            <p class="mt-1 text-sm leading-snug text-ts-text-secondary">
-              Prepaid credit for extras and add-ons
-            </p>
-          )}
-          <p class="mt-1 text-xs text-ts-text-muted">View balance, activity, and add funds</p>
-        </div>
-        <span class="self-center text-ts-text-muted transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden="true">→</span>
-      </a>
+      {/* FARM FLEX (always available — independent of an active veg share).
+          Non-blocking island (2026-05-24): the card renders + links
+          immediately; the balance number fills in after first paint. */}
+      <FlexWallet variant="hub" />
 
       {/* SHARED ACCESS (account-level — independent of an active veg share) */}
       <a

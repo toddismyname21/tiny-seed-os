@@ -42,7 +42,7 @@ import {
   type SeasonSchedule,
   type SeasonPhase,
 } from '../lib/season';
-import { getFlexBalance, formatFlexMoney, type FlexBalance } from '../lib/flex';
+import FlexWallet from '../components/FlexWallet.astro';
 
 const user = Astro.locals.user;
 const supabase = Astro.locals.supabase;
@@ -369,14 +369,14 @@ const targetWeekPretty = new Intl.DateTimeFormat('en-US', {
 }).format(new Date(`${targetWeek}T12:00:00-04:00`));
 
 // ─────────────────────────────────────────────────────────────────────
-// Farm Flex wallet (2026-05-22, Phase 1 — read-only). Resolve the
-// member's prepaid store-credit balance by email. getFlexBalance is
-// fail-soft (null on any error / no Shopify customer / Shopify down), so
-// a flex outage never breaks the dashboard. We render the wallet card
-// ONLY when there's a real, positive balance — otherwise nothing.
+// Farm Flex wallet (2026-05-22, Phase 1 — read-only). NON-BLOCKING as of
+// 2026-05-24 (gap analysis P0-1): the balance comes from a live Shopify
+// GraphQL call, so we NO LONGER await it during SSR — that gated first
+// paint on Shopify latency for every member on every load. The
+// <FlexWallet> island renders a loading shell immediately and fetches
+// /api/account/flex-balance after paint. Same fail-soft behavior: the
+// card hides when there's no positive balance (or on any error).
 // ─────────────────────────────────────────────────────────────────────
-const flexBalance: FlexBalance | null = await getFlexBalance(user.email!);
-const showFlexWallet = flexBalance != null && flexBalance.total > 0;
 
 // One-time welcome banner shown immediately after onboarding activation
 // (set by /api/onboarding/activate redirecting to /dashboard?welcome=1).
@@ -546,71 +546,16 @@ const title = `Welcome back, ${firstName} — Tiny Seed Farm CSA`;
 
       {/* ═════════════════════════════════════════════════════════════
           FARM FLEX WALLET (2026-05-22 — Phase 1, read-only)
-          Renders only when the member has a positive store-credit
-          balance. Sits above the share cards, below the countdown
-          banner. The total leads; "Your funds" (principal) + "Bonus 🎁"
-          break it out, matching the /account/flex vocabulary. The bonus
-          is the celebratory "surprise". Add Funds is Phase 2a (link to
-          /account/flex only). No math here — fields come straight from
-          getFlexBalance.
+          NON-BLOCKING (2026-05-24, gap P0-1): the <FlexWallet> island
+          renders a loading shell immediately, then fetches
+          /api/account/flex-balance after first paint — Shopify latency no
+          longer gates the dashboard render. The card sits above the share
+          cards, below the countdown banner. It hides itself (fail-soft)
+          when there's no positive balance or on any error, identical to
+          the old SSR behavior. Total leads; "Your funds" (principal) +
+          "Bonus 🎁" break it out; Add Funds links to /account/flex.
           ═════════════════════════════════════════════════════════════ */}
-      {showFlexWallet && flexBalance && (
-        <section
-          aria-labelledby="flex-wallet-heading"
-          class="overflow-hidden rounded-ts-xl border border-ts-primary/30 bg-ts-primary/5 p-5 shadow-ts-sm sm:p-6"
-          data-flex-wallet
-        >
-          <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div class="min-w-0">
-              <div class="flex items-center gap-2">
-                <span
-                  class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ts-primary/15 text-xl"
-                  aria-hidden="true"
-                >
-                  🌿
-                </span>
-                <h2
-                  id="flex-wallet-heading"
-                  class="text-sm font-semibold uppercase tracking-wide text-ts-primary"
-                >
-                  Farm Flex
-                </h2>
-              </div>
-              <p class="mt-3 font-display text-4xl font-bold tabular-nums tracking-tight text-ts-text sm:text-5xl">
-                {formatFlexMoney(flexBalance.total, flexBalance.currency)}
-              </p>
-              <dl class="mt-3 flex flex-wrap items-baseline gap-x-5 gap-y-1 text-sm">
-                <div class="flex items-baseline gap-1.5">
-                  <dt class="text-ts-text-muted">Your funds</dt>
-                  <dd class="font-semibold tabular-nums text-ts-text">
-                    {formatFlexMoney(flexBalance.principal, flexBalance.currency)}
-                  </dd>
-                </div>
-                {flexBalance.bonus > 0 && (
-                  <div class="flex items-baseline gap-1.5">
-                    <dt class="flex items-center gap-1 text-ts-text-muted">
-                      <span aria-hidden="true">🎁</span>
-                      <span>Bonus</span>
-                    </dt>
-                    <dd class="font-semibold tabular-nums text-ts-primary">
-                      {formatFlexMoney(flexBalance.bonus, flexBalance.currency)}
-                    </dd>
-                  </div>
-                )}
-              </dl>
-            </div>
-
-            <div class="flex shrink-0 flex-col gap-2 sm:items-end">
-              <Button href="/account/flex#add-funds" variant="primary" size="md">
-                Add funds <span aria-hidden="true">+</span>
-              </Button>
-              <Button href="/account/flex" variant="ghost" size="sm">
-                View Farm Flex <span aria-hidden="true">→</span>
-              </Button>
-            </div>
-          </div>
-        </section>
-      )}
+      <FlexWallet variant="dashboard" />
 
       {/* ═════════════════════════════════════════════════════════════
           NO SHARE — fallback when customer record is missing OR

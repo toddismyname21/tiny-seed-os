@@ -3,8 +3,10 @@
  * BaseLayout — shared shell for every page in the CSA portal.
  *
  * Pulls in:
- *  - Tailwind 4 + Tiny Seed design tokens (`global.css`)
- *  - Inter (body) + Barlow Condensed (display) from Google Fonts, preconnected
+ *  - Tailwind 4 + Tiny Seed design tokens (`global.css`), which also
+ *    declares the self-hosted @font-face rules for Inter (body) +
+ *    Barlow Condensed (display) — served from /fonts/*.woff2, no
+ *    external request (2026-05-24 LCP fix)
  *  - Mobile-first viewport meta + theme color
  *  - Description, OG tags, canonical URL
  *
@@ -50,14 +52,25 @@ const {
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" href="/favicon.ico" />
 
-    {/* Fonts: preconnect, then load Inter + Barlow Condensed.
-        Using `display=swap` so text renders immediately while the custom
-        font streams in (avoids FOIT on slow networks). */}
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    {/* Fonts: self-hosted (2026-05-24 LCP fix). The @font-face rules live
+        in global.css; here we PRELOAD only the two LCP-critical weights so
+        the largest above-the-fold text (Inter 400 body, Barlow Condensed
+        700 display headings) paints without waiting on the CSS-discovered
+        font request. The Google Fonts <link> that render-blocked ~839ms is
+        gone. `crossorigin` is required on font preloads even same-origin. */}
     <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700;800&display=swap"
+      rel="preload"
+      href="/fonts/inter-400.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="/fonts/barlow-condensed-700.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
     />
   </head>
   <body class="min-h-screen antialiased">

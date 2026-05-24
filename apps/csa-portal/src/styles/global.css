@@ -1,6 +1,76 @@
 @import 'tailwindcss';
 
 /* ═══════════════════════════════════════════════════════════════════
+   Self-hosted fonts (2026-05-24 — LCP fix)
+   ───────────────────────────────────────────────────────────────────
+   Inter (body) + Barlow Condensed (display) are served from
+   /public/fonts/*.woff2 (latin subset, sourced from the @fontsource
+   packages) instead of the render-blocking Google Fonts stylesheet that
+   previously gated first paint by ~839ms. Stable filenames let
+   BaseLayout <link rel="preload"> the LCP weights (Inter 400, Barlow
+   Condensed 700). `font-display: swap` renders fallback text instantly,
+   then swaps in the web font with no FOIT. Families/weights are
+   byte-identical to the prior Google Fonts request, so nothing visually
+   changes. NO external font request remains.
+   ═══════════════════════════════════════════════════════════════════ */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/inter-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/inter-500.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/inter-600.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/inter-700.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/barlow-condensed-500.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/barlow-condensed-600.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/barlow-condensed-700.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url('/fonts/barlow-condensed-800.woff2') format('woff2');
+}
+
+/* ═══════════════════════════════════════════════════════════════════
    Tiny Seed Farm Design Tokens
    Ported from web_app/tiny-seed-design-system.css to Tailwind 4
    theme variables. Use these as Tailwind classes (e.g. bg-ts-bg-base,

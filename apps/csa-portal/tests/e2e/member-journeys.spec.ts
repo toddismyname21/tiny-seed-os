@@ -89,9 +89,12 @@ test.describe('account hub + sub-pages', () => {
     // Profile section is always rendered (it's the auth identity card).
     await expect(page.getByRole('heading', { name: /^profile$/i })).toBeVisible();
     // Account-level cards that don't require an active share. The Farm Flex
-    // card is identified by its data attribute (the words "Farm Flex" also
-    // appear in the Refer card's body copy, so a name match is ambiguous).
-    await expect(page.locator('a[data-flex-account-link]')).toBeVisible();
+    // card is the <FlexWallet variant="hub"> island anchor (data-flex-wallet
+    // ="hub"); it's a nav link that always renders, so it's present
+    // immediately even though its balance number loads after first paint
+    // (the words "Farm Flex" also appear in the Refer card's body copy, so a
+    // name match would be ambiguous).
+    await expect(page.locator('a[data-flex-wallet="hub"]')).toBeVisible();
     await expect(page.getByRole('link', { name: /refer a friend/i })).toBeVisible();
     expect(getErrors(), 'no console errors on /account').toEqual([]);
   });

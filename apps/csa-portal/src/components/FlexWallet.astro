@@ -1,0 +1,384 @@
+---
+/**
+ * FlexWallet — Farm Flex balance card that loads its numbers OFF the SSR
+ * critical render path (2026-05-24, gap analysis P0-1).
+ *
+ * WHY: `getFlexBalance()` is a live Shopify GraphQL round-trip. Awaiting it
+ * during SSR (as dashboard / account / account-flex used to) gated first
+ * paint on Shopify latency for EVERY member on EVERY load — the top
+ * launch-day scaling risk at 176+ concurrent logins. This component renders
+ * the wallet shell instantly with a loading state, then the embedded island
+ * fetches `/api/account/flex-balance` after paint and fills in the numbers.
+ *
+ * WHAT IT SHOWS is unchanged from the prior inline SSR markup — same
+ * principal/bonus split, the bonus 🎁 line, the "Your funds" label, the
+ * Add funds / View CTAs. Only WHEN/HOW the data loads changed.
+ *
+ * FAIL-SOFT: the endpoint normalizes every error to a zeroed balance; the
+ * island treats `total <= 0` as "hide the wallet" — byte-identical to the
+ * old `getFlexBalance() == null` / `total > 0` SSR checks. A Shopify outage
+ * just hides the card; it never breaks the page.
+ *
+ * A11Y: the value region is `aria-live="polite"` + `aria-busy` while loading
+ * so the async fill is announced once without spamming.
+ *
+ * VARIANTS (one per surface; only one renders per page):
+ *   - 'dashboard' full hero card (icon + total + breakdown + CTAs)
+ *   - 'hub'       compact /account hub link card (total shown when > 0)
+ *   - 'detail'    /account/flex big balance Card + principal/bonus grid
+ *
+ * The detail page's transaction history + Add Funds section stay in
+ * flex.astro (they don't depend on the live Shopify balance).
+ */
+type Variant = 'dashboard' | 'hub' | 'detail';
+
+interface Props {
+  variant: Variant;
+}
+
+const { variant } = Astro.props as Props;
+---
+
+{variant === 'dashboard' && (
+  <section
+    aria-labelledby="flex-wallet-heading"
+    class="overflow-hidden rounded-ts-xl border border-ts-primary/30 bg-ts-primary/5 p-5 shadow-ts-sm sm:p-6"
+    data-flex-wallet="dashboard"
+    data-flex-state="loading"
+  >
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div class="min-w-0">
+        <div class="flex items-center gap-2">
+          <span
+            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ts-primary/15 text-xl"
+            aria-hidden="true"
+          >
+            🌿
+          </span>
+          <h2
+            id="flex-wallet-heading"
+            class="text-sm font-semibold uppercase tracking-wide text-ts-primary"
+          >
+            Farm Flex
+          </h2>
+        </div>
+
+        {/* Total — loading skeleton bar, swapped for the real value */}
+        <p
+          class="mt-3 font-display text-4xl font-bold tabular-nums tracking-tight text-ts-text sm:text-5xl"
+          data-flex-total
+          aria-live="polite"
+          aria-busy="true"
+        >
+          <span
+            class="inline-block h-9 w-32 rounded-ts-md bg-ts-primary/15 align-middle sm:h-11 sm:w-40"
+            data-flex-skeleton
+            aria-hidden="true"
+          ></span>
+          <span class="sr-only">Loading your Farm Flex balance…</span>
+        </p>
+
+        <dl class="mt-3 flex flex-wrap items-baseline gap-x-5 gap-y-1 text-sm" data-flex-breakdown>
+          <div class="flex items-baseline gap-1.5">
+            <dt class="text-ts-text-muted">Your funds</dt>
+            <dd class="font-semibold tabular-nums text-ts-text" data-flex-principal>—</dd>
+          </div>
+          <div class="flex items-baseline gap-1.5" data-flex-bonus-wrap>
+            <dt class="flex items-center gap-1 text-ts-text-muted">
+              <span aria-hidden="true">🎁</span>
+              <span>Bonus</span>
+            </dt>
+            <dd class="font-semibold tabular-nums text-ts-primary" data-flex-bonus>—</dd>
+          </div>
+        </dl>
+      </div>
+
+      <div class="flex shrink-0 flex-col gap-2 sm:items-end">
+        <a
+          href="/account/flex#add-funds"
+          class="inline-flex h-11 items-center justify-center gap-2 rounded-ts-md bg-ts-primary px-5 text-base font-semibold tracking-tight text-white shadow-ts-sm transition-all duration-150 ease-[var(--ease-ts)] hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary [touch-action:manipulation]"
+        >
+          Add funds <span aria-hidden="true">+</span>
+        </a>
+        <a
+          href="/account/flex"
+          class="inline-flex h-8 items-center justify-center gap-1.5 rounded-ts-md px-3 text-sm font-semibold tracking-tight text-ts-text-secondary transition-all duration-150 ease-[var(--ease-ts)] hover:bg-ts-bg-muted hover:text-ts-text active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary [touch-action:manipulation]"
+        >
+          View Farm Flex <span aria-hidden="true">→</span>
+        </a>
+      </div>
+    </div>
+  </section>
+)}
+
+{variant === 'hub' && (
+  <a
+    href="/account/flex"
+    class="group flex items-start gap-4 rounded-ts-xl border border-ts-primary/30 bg-ts-primary/5 p-5 shadow-ts-sm transition-all duration-200 hover:border-ts-primary/50 hover:shadow-ts-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+    data-flex-wallet="hub"
+    data-flex-state="loading"
+  >
+    <span class="text-3xl" aria-hidden="true">🌿</span>
+    <div class="min-w-0 flex-1">
+      <h3 class="text-base font-semibold text-ts-text">Farm Flex</h3>
+
+      {/* Balance line: shown only once a positive balance loads. While
+          loading we reserve a slim skeleton; if total <= 0 we keep the
+          generic tagline instead (state machine driven by the root's
+          data-flex-state / data-flex-balance-empty attrs — see <style>). */}
+      <p
+        class="mt-1 font-display text-2xl font-bold tabular-nums text-ts-text"
+        data-flex-total
+        aria-live="polite"
+        aria-busy="true"
+      >
+        <span
+          class="inline-block h-6 w-24 rounded-ts-md bg-ts-primary/15 align-middle"
+          data-flex-skeleton
+          aria-hidden="true"
+        ></span>
+        <span class="sr-only">Loading your Farm Flex balance…</span>
+      </p>
+      <p
+        class="mt-1 text-sm leading-snug text-ts-text-secondary"
+        data-flex-tagline
+      >
+        Prepaid credit for extras and add-ons
+      </p>
+
+      <p class="mt-1 text-xs text-ts-text-muted">View balance, activity, and add funds</p>
+    </div>
+    <span class="self-center text-ts-text-muted transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden="true">→</span>
+  </a>
+)}
+
+{variant === 'detail' && (
+  <section
+    aria-labelledby="flex-balance-heading"
+    class="rounded-ts-xl border border-ts-primary/30 bg-ts-primary/5 p-6 shadow-ts-md sm:p-8"
+    data-flex-wallet="detail"
+    data-flex-state="loading"
+  >
+    <p id="flex-balance-heading" class="text-sm font-semibold uppercase tracking-wide text-ts-primary">
+      Available balance
+    </p>
+
+    {/* Total — big. Loading skeleton bar swapped for the value. */}
+    <p
+      class="mt-1 font-display text-5xl font-bold tabular-nums tracking-tight text-ts-text sm:text-6xl"
+      data-flex-total
+      aria-live="polite"
+      aria-busy="true"
+    >
+      <span
+        class="inline-block h-11 w-44 rounded-ts-md bg-ts-primary/15 align-middle sm:h-14 sm:w-56"
+        data-flex-skeleton
+        aria-hidden="true"
+      ></span>
+      <span class="sr-only">Loading your Farm Flex balance…</span>
+    </p>
+
+    {/* "Your funds" (principal) + Loyalty bonus sub-breakdown */}
+    <dl class="mt-6 grid grid-cols-1 gap-px overflow-hidden rounded-ts-lg border border-ts-border bg-ts-border sm:grid-cols-2">
+      <div class="bg-ts-bg-surface p-4">
+        <dt class="text-xs font-medium uppercase tracking-wide text-ts-text-muted">
+          Your funds
+        </dt>
+        <dd class="mt-1 font-display text-2xl font-bold tabular-nums text-ts-text" data-flex-principal>—</dd>
+        <p class="mt-1 text-xs text-ts-text-muted">Never expires</p>
+      </div>
+      <div class="bg-ts-bg-surface p-4">
+        <dt class="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-ts-text-muted">
+          <span>Loyalty bonus</span>
+          <span aria-hidden="true">🎁</span>
+        </dt>
+        <dd class="mt-1 font-display text-2xl font-bold tabular-nums text-ts-primary" data-flex-bonus>—</dd>
+        <p class="mt-1 text-xs text-ts-text-muted" data-flex-bonus-note>A thank-you from Tiny Seed</p>
+      </div>
+    </dl>
+  </section>
+)}
+
+<style>
+  /* ── FlexWallet visual state machine (scoped to this component) ──────
+     Driven by `data-flex-state` (loading | ready | empty | hidden) +
+     `data-flex-balance-empty` on the root, toggled by the island script.
+     Defaulting to the loading look means the card is correct at first
+     paint even before JS runs (and stays calm if JS is disabled). */
+
+  /* Loading shimmer on the whole card (dashboard + detail). Respects
+     reduced-motion via the global block in global.css. */
+  [data-flex-wallet='dashboard'][data-flex-state='loading'],
+  [data-flex-wallet='detail'][data-flex-state='loading'] {
+    animation: ts-flex-pulse 1.4s ease-in-out infinite;
+  }
+
+  /* Skeleton bars only show while loading; gone once data lands. */
+  [data-flex-wallet]:not([data-flex-state='loading']) [data-flex-skeleton] {
+    display: none;
+  }
+
+  /* Dashboard: drop the bonus line entirely when bonus is 0. */
+  [data-flex-bonus-wrap][data-flex-bonus-empty] {
+    display: none;
+  }
+
+  /* ── Hub variant: skeleton ↔ balance ↔ tagline ─────────────────────
+     loading            → skeleton visible, tagline hidden
+     ready (has balance) → balance number visible, tagline hidden
+     empty (total<=0)    → balance line hidden, tagline visible */
+  [data-flex-wallet='hub'][data-flex-balance-empty] [data-flex-total] {
+    display: none;
+  }
+  [data-flex-wallet='hub']:not([data-flex-state='empty']) [data-flex-tagline] {
+    display: none;
+  }
+
+  @keyframes ts-flex-pulse {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.65; }
+  }
+</style>
+
+<script>
+  // ────────────────────────────────────────────────────────────────────
+  // FlexWallet island — fetch the balance AFTER first paint.
+  // ────────────────────────────────────────────────────────────────────
+  // Runs once per page. Finds whichever variant rendered (only one does),
+  // fetches /api/account/flex-balance, and patches the numbers in place
+  // (no innerHTML — same DOM-patch discipline as DeliveryTracker).
+  //
+  // Fail-soft, matching the OLD SSR behavior exactly:
+  //   - total <= 0  → remove the wallet entirely (was: `null` / `!showFlexWallet`)
+  //   - fetch error → remove the wallet entirely
+  //   - 401         → remove (session lost; the page will redirect anyway)
+  // The hub variant is special: its card ALWAYS stays (it's a nav link),
+  // we only toggle whether the balance number shows.
+
+  type FlexBalancePayload = {
+    total: number;
+    principal: number;
+    bonus: number;
+    currency: string;
+    error?: string;
+  };
+
+  const root = document.querySelector<HTMLElement>('[data-flex-wallet]');
+  if (root) {
+    const variant = root.getAttribute('data-flex-wallet'); // dashboard | hub | detail
+    const isHub = variant === 'hub';
+
+    const totalEl     = root.querySelector<HTMLElement>('[data-flex-total]');
+    const principalEl = root.querySelector<HTMLElement>('[data-flex-principal]');
+    const bonusEl     = root.querySelector<HTMLElement>('[data-flex-bonus]');
+    const bonusWrapEl = root.querySelector<HTMLElement>('[data-flex-bonus-wrap]');
+    const bonusNoteEl = root.querySelector<HTMLElement>('[data-flex-bonus-note]');
+    const skeletonEl  = root.querySelector<HTMLElement>('[data-flex-skeleton]');
+    const srOnlyEl    = totalEl?.querySelector<HTMLElement>('.sr-only') ?? null;
+
+    function fmtMoney(amount: number, currency: string): string {
+      // Mirrors lib/flex.ts formatFlexMoney (that module is server-only).
+      try {
+        return new Intl.NumberFormat('en-US', {
+          style: 'currency',
+          currency: currency || 'USD',
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        }).format(amount);
+      } catch {
+        return `$${amount.toFixed(2)}`;
+      }
+    }
+
+    function clearBusy(): void {
+      if (totalEl) totalEl.setAttribute('aria-busy', 'false');
+    }
+
+    /**
+     * Tell the host page the balance resolved. /account/flex listens for
+     * this to coordinate its sibling empty-state (only the page knows the
+     * SSR transaction count). `total` is 0 on the hide path. Dispatched
+     * once, regardless of variant.
+     */
+    function announceResolved(total: number): void {
+      document.dispatchEvent(
+        new CustomEvent('flex:resolved', { detail: { total } })
+      );
+    }
+
+    /**
+     * No positive balance (total<=0) or an error.
+     *  - dashboard/detail → remove the card entirely (matches the old SSR
+     *    `getFlexBalance() == null` / `total > 0` checks that rendered
+     *    nothing).
+     *  - hub → keep the card (it's a nav link); show the generic tagline,
+     *    no balance number. The <style> block reads data-flex-state="empty"
+     *    + data-flex-balance-empty on the root to switch skeleton→tagline.
+     */
+    function hideWallet(): void {
+      announceResolved(0);
+      if (isHub) {
+        root!.setAttribute('data-flex-state', 'empty');
+        root!.setAttribute('data-flex-balance-empty', '');
+        clearBusy();
+        return;
+      }
+      root!.setAttribute('data-flex-state', 'hidden');
+      root!.remove();
+    }
+
+    function showBalance(data: FlexBalancePayload): void {
+      const { total, principal, bonus, currency } = data;
+
+      // Reveal real content; <style> hides skeletons once state != loading.
+      root!.setAttribute('data-flex-state', 'ready');
+      root!.removeAttribute('data-flex-balance-empty');
+      if (skeletonEl) skeletonEl.remove();
+      if (srOnlyEl) srOnlyEl.remove();
+      clearBusy();
+
+      if (totalEl) totalEl.textContent = fmtMoney(total, currency);
+      if (principalEl) principalEl.textContent = fmtMoney(principal, currency);
+      if (bonusEl) bonusEl.textContent = fmtMoney(bonus, currency);
+
+      // Dashboard hides the whole bonus line when bonus is 0; detail keeps
+      // the cell but changes the note copy (matches the old SSR markup).
+      if (bonusWrapEl) {
+        if (bonus > 0) bonusWrapEl.removeAttribute('data-flex-bonus-empty');
+        else bonusWrapEl.setAttribute('data-flex-bonus-empty', '');
+      }
+      if (bonusNoteEl) {
+        bonusNoteEl.textContent =
+          bonus > 0 ? 'A thank-you from Tiny Seed' : 'Earn bonuses when you add funds';
+      }
+
+      announceResolved(total);
+    }
+
+    (async () => {
+      try {
+        const res = await fetch('/api/account/flex-balance', {
+          method: 'GET',
+          credentials: 'same-origin',
+          headers: { Accept: 'application/json' },
+        });
+        if (!res.ok) {
+          hideWallet();
+          return;
+        }
+        const data = (await res.json()) as FlexBalancePayload;
+        if (!data || typeof data.total !== 'number' || data.total <= 0) {
+          hideWallet();
+          return;
+        }
+        showBalance(data);
+      } catch (e) {
+        console.warn(
+          '[flex-wallet] balance fetch failed (fail-soft → hide):',
+          e instanceof Error ? e.message : e
+        );
+        hideWallet();
+      }
+    })();
+  }
+</script>
