@@ -138,7 +138,8 @@ if (!member) {
 // ─── Fetch related collections in parallel ──────────────────────────
 // locations dropdown reserved for a future "change pickup" admin
 // action; we don't render an editor here yet, so we skip the query.
-const [holdsRes, swapsRes, flexRes, notifRes, auditRes, balanceRes] = await Promise.all([
+const commsCustomerId = member.customer?.id ?? '00000000-0000-0000-0000-000000000000';
+const [holdsRes, swapsRes, flexRes, notifRes, auditRes, balanceRes, commsRes] = await Promise.all([
   supabase
     .from('vacation_holds')
     .select('id, start_date, end_date, reason, status, created_at, cancelled_at')
@@ -173,6 +174,12 @@ const [holdsRes, swapsRes, flexRes, notifRes, auditRes, balanceRes] = await Prom
     .select('balance, transaction_count')
     .eq('member_id', member.id)
     .maybeSingle(),
+  supabase
+    .from('member_comms')
+    .select('id, channel, author_email, summary, created_at')
+    .eq('customer_id', commsCustomerId)
+    .order('created_at', { ascending: false })
+    .limit(50),
 ]);
 
 type HoldRow = {
@@ -199,6 +206,10 @@ type AuditRow = {
   changed_by_email: string | null; diff: unknown; changed_at: string;
 };
 type BalanceRow = { balance: number; transaction_count: number };
+type CommRow = {
+  id: string; channel: 'email' | 'phone' | 'text' | 'note' | 'other';
+  author_email: string | null; summary: string; created_at: string;
+};
 
 const holds = (holdsRes.data ?? []) as HoldRow[];
 const swaps = (swapsRes.data ?? []) as SwapRow[];
@@ -206,6 +217,7 @@ const flex = (flexRes.data ?? []) as FlexRow[];
 const notifs = (notifRes.data ?? []) as NotifRow[];
 const audits = (auditRes.data ?? []) as AuditRow[];
 const balance = (balanceRes.data ?? { balance: 0, transaction_count: 0 }) as BalanceRow;
+const comms = (commsRes.data ?? []) as CommRow[];
 
 // ─── Helpers ────────────────────────────────────────────────────────
 const SHARE_LABEL: Record<string, string> = {
@@ -299,6 +311,15 @@ const successCopy: Record<string, string> = {
   flex_credited: 'Flex credit applied.',
   hold_cancelled: 'Vacation hold cancelled.',
   biweekly_week_updated: 'Bi-weekly schedule updated.',
+  logged: 'Communication logged.',
+};
+
+// Communication-log channel display + badge tone.
+const COMM_CHANNEL_LABEL: Record<CommRow['channel'], string> = {
+  email: 'Email', phone: 'Phone', text: 'Text', note: 'Note', other: 'Other',
+};
+const COMM_CHANNEL_VARIANT: Record<CommRow['channel'], 'green' | 'sky' | 'magenta' | 'gray' | 'amber'> = {
+  email: 'sky', phone: 'green', text: 'magenta', note: 'gray', other: 'amber',
 };
 const errorCopy: Record<string, string> = {
   invalid_input: 'Something in the form was off. Try again.',
@@ -783,6 +804,79 @@ const errorCopy: Record<string, string> = {
                 )}
                 <p class="mt-0.5 text-ts-text-muted tabular-nums">
                   {fmtDateTime(n.sent_at)}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+
+      {/* ─── Communication log ─── */}
+      <Card padding="md" elevation="sm">
+        <h2 class="font-display text-lg font-bold text-ts-text">Communication log</h2>
+        <p class="mt-1 text-xs text-ts-text-muted">
+          Every call, text, email reply, or note — so nothing slips through the cracks.
+        </p>
+
+        {/* Add entry */}
+        <form
+          method="POST"
+          action={`/api/admin/members/${member.id}/comms`}
+          class="mt-4 space-y-3 border-t border-ts-border pt-4"
+        >
+          <FormRow label="Channel" htmlFor={`comm-channel-${member.id}`}>
+            <Select
+              id={`comm-channel-${member.id}`}
+              name="channel"
+              value="note"
+              options={[
+                { value: 'note',  label: 'Note' },
+                { value: 'phone', label: 'Phone call' },
+                { value: 'text',  label: 'Text message' },
+                { value: 'email', label: 'Email' },
+                { value: 'other', label: 'Other' },
+              ]}
+            />
+          </FormRow>
+          <FormRow label="Summary" htmlFor={`comm-summary-${member.id}`}>
+            <textarea
+              id={`comm-summary-${member.id}`}
+              name="summary"
+              rows="3"
+              maxlength="2000"
+              required
+              placeholder="e.g. Called re: missed Wed pickup — rescheduled for next week, applied flex credit."
+              class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30"
+            ></textarea>
+          </FormRow>
+          <button
+            type="submit"
+            class="inline-flex h-9 w-full items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark"
+          >
+            Add entry
+          </button>
+        </form>
+
+        {/* History (newest first) */}
+        {comms.length === 0 ? (
+          <p class="mt-4 border-t border-ts-border pt-4 text-sm text-ts-text-muted">
+            No communications logged yet. Add the first entry above.
+          </p>
+        ) : (
+          <ul class="mt-4 max-h-96 divide-y divide-ts-border/60 overflow-y-auto border-t border-ts-border pt-3">
+            {comms.map((c) => (
+              <li class="py-2.5 text-xs first:pt-0 last:pb-0">
+                <div class="flex items-baseline justify-between gap-2">
+                  <Badge size="xs" variant={COMM_CHANNEL_VARIANT[c.channel]} uppercase>
+                    {COMM_CHANNEL_LABEL[c.channel]}
+                  </Badge>
+                  <span class="shrink-0 text-ts-text-muted tabular-nums">
+                    {fmtDateTime(c.created_at)}
+                  </span>
+                </div>
+                <p class="mt-1 whitespace-pre-line text-sm text-ts-text">{c.summary}</p>
+                <p class="mt-0.5 text-ts-text-muted">
+                  by {c.author_email ?? '(unknown)'}
                 </p>
               </li>
             ))}

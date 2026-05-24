@@ -33,8 +33,17 @@
  *
  * The script is scoped per-instance via a unique data-id, so multiple
  * <ContactFarm> on one page never cross-wire.
+ *
+ * Routing: the "Open mail app" link addresses BOTH the CSA comms inbox
+ * (Frankie) AND the owner (Todd) so no member message is missed. The
+ * COPIED/DISPLAYED address is the single CSA comms inbox
+ * (tinyseedcsa@gmail.com) — it's the address a member should keep on
+ * hand, and Frankie forwards/CCs Todd as needed.
  */
-const EMAIL = 'todd@tinyseedfarmpgh.com';
+import { CSA_PRIMARY_EMAIL, contactMailto } from '../lib/contact';
+
+// The visible, copyable address members should keep — the CSA comms inbox.
+const EMAIL = CSA_PRIMARY_EMAIL;
 
 interface Props {
   subject?: string;
@@ -44,9 +53,8 @@ interface Props {
 
 const { subject, label = 'Contact the farm', tone = 'card' } = Astro.props as Props;
 
-const mailtoHref = subject
-  ? `mailto:${EMAIL}?subject=${encodeURIComponent(subject)}`
-  : `mailto:${EMAIL}`;
+// The mail-app link reaches BOTH the CSA comms inbox AND the owner.
+const mailtoHref = contactMailto(subject);
 
 // Unique per instance so the inline <script> only touches its own DOM.
 const uid = `cf-${Math.random().toString(36).slice(2, 10)}`;
@@ -73,7 +81,7 @@ const isCard = tone === 'card';
       <div class="min-w-0 flex-1">
         <h3 class="font-display text-base font-semibold text-ts-text">{label}</h3>
         <p class="mt-1 text-sm leading-relaxed text-ts-text-secondary">
-          Email Todd directly — copy his address, or open your mail app. He answers personally.
+          Email the CSA team — copy the address, or open your mail app. A real person answers.
         </p>
       </div>
     </div>
@@ -108,7 +116,7 @@ const isCard = tone === 'card';
         <a
           href={mailtoHref}
           data-cf-mailto
-          aria-label="Open your mail app to email Todd"
+          aria-label="Open your mail app to email the CSA team"
           class="inline-flex h-11 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-semibold text-ts-text shadow-ts-sm transition-all duration-150 ease-[var(--ease-ts)] hover:border-ts-primary/40 hover:text-ts-primary active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary [touch-action:manipulation]"
         >
           Open mail app

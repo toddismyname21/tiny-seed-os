@@ -23,6 +23,16 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import { z } from 'zod';
 import { rateLimit, clientIp } from '../lib/rate-limit';
 import { isSameOriginPost, PORTAL_ORIGIN } from '../lib/onboarding';
+import { CSA_PRIMARY_EMAIL, contactMailto } from '../lib/contact';
+
+// Member→farm contact CTAs on this page reach BOTH the CSA comms inbox
+// (Frankie) AND the owner (Todd). NOTE: this does NOT touch the magic-link
+// from-address — that stays as the transactional sender below.
+const smsComingSoonMailto = contactMailto(
+  'SMS login coming soon',
+  "Hi Tiny Seed team, I'd rather sign in with a text message instead of email. Can you let me know when that's available?"
+);
+const helpSigningInMailto = contactMailto('Help signing in');
 
 // ── Server-side state ─────────────────────────────────────────────────
 // `formStatus`:
@@ -46,7 +56,7 @@ const ERROR_COPY: Record<string, string> = {
   session_expired:
     'Your session expired. Please sign in again.',
   callback_failed:
-    "We couldn't complete sign-in. Please try again — if this keeps happening, email todd@tinyseedfarmpgh.com.",
+    `We couldn't complete sign-in. Please try again — if this keeps happening, email ${CSA_PRIMARY_EMAIL}.`,
 };
 if (errorParam && ERROR_COPY[errorParam]) {
   formStatus = 'error';
@@ -437,17 +447,17 @@ if (Astro.request.method === 'POST') {
             ═════════════════════════════════════════════════════════════ */}
         <div class="mt-6 flex flex-col items-center gap-3 text-center text-sm">
           <a
-            href="mailto:todd@tinyseedfarmpgh.com?subject=SMS%20login%20coming%20soon&body=Hi%20Todd%2C%20I%27d%20rather%20sign%20in%20with%20a%20text%20message%20instead%20of%20email.%20Can%20you%20let%20me%20know%20when%20that%27s%20available%3F"
+            href={smsComingSoonMailto}
             class="text-ts-text-secondary underline-offset-4 hover:text-ts-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
           >
             Sign in by text instead — coming soon
           </a>
           <span class="text-ts-text-muted">·</span>
           <a
-            href="mailto:todd@tinyseedfarmpgh.com?subject=Help%20signing%20in"
+            href={helpSigningInMailto}
             class="text-ts-text-secondary underline-offset-4 hover:text-ts-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
           >
-            Email Todd for help
+            Email the farm for help
           </a>
         </div>
       </>

@@ -438,6 +438,25 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['email_log']['Row']>;
         Relationships: [];
       };
+      // Per-member HUMAN interaction log (migration 0028). Calls/texts/
+      // emails/notes logged by admin/staff from the member-detail page.
+      // Keyed on customer_id so it spans seasons. Admin/staff RLS only.
+      member_comms: {
+        Row: {
+          id: string;
+          customer_id: string;
+          author_email: string | null;
+          channel: 'email' | 'phone' | 'text' | 'note' | 'other';
+          summary: string;
+          created_at: string;
+        };
+        Insert: {
+          customer_id: string;
+          summary: string;
+        } & Partial<Database['public']['Tables']['member_comms']['Row']>;
+        Update: Partial<Database['public']['Tables']['member_comms']['Row']>;
+        Relationships: [];
+      };
     };
     Views: {
       member_flex_balance: {

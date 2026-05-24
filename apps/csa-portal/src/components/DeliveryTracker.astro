@@ -42,6 +42,10 @@
  */
 import type { DeliveryStatus } from '../lib/delivery';
 import { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY } from 'astro:env/client';
+import { contactMailto } from '../lib/contact';
+
+// Delivery-issue CTA reaches BOTH the CSA comms inbox AND the owner.
+const deliveryIssueMailto = contactMailto('CSA delivery issue');
 
 interface Props {
   initialStatus: DeliveryStatus;
@@ -227,10 +231,10 @@ const state = initialStatus.state;
     {state === 'exception' && (
       <div data-issue-block class="mt-4">
         <a
-          href="mailto:todd@tinyseedfarmpgh.com?subject=CSA%20delivery%20issue"
+          href={deliveryIssueMailto}
           class="inline-flex h-9 items-center rounded-ts-md border border-ts-danger/30 bg-ts-bg-surface px-3 text-sm font-semibold text-ts-danger transition-colors duration-150 hover:bg-ts-danger/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-danger"
         >
-          Email Todd directly
+          Email the farm directly
         </a>
       </div>
     )}
