@@ -1,0 +1,163 @@
+---
+/**
+ * /unsubscribe — CAN-SPAM one-click unsubscribe (NO login required).
+ *
+ * The weekly email embeds `/unsubscribe?token=<HMAC token>`. This page:
+ *   1. Verifies the HMAC token (lib/weekly-email.verifyUnsubscribeToken)
+ *      against UNSUBSCRIBE_SECRET. A forged/expired/malformed token → a
+ *      friendly "this link isn't valid" message (never reveals whether an
+ *      email exists).
+ *   2. On a valid token, calls the SECURITY DEFINER RPC
+ *      `unsubscribe_member_by_email` (migration 0026) via the service-role
+ *      client to set member_preferences.newsletter_opt_in = false for
+ *      every member owned by that email — no auth session needed.
+ *   3. Shows a friendly confirmation either way.
+ *
+ * This is "one-click": following the emailed link performs the
+ * unsubscribe immediately on GET (server-side). We DON'T require a second
+ * confirm button — that's the point of one-click — but we DO offer a
+ * "resubscribe" hint (sign in → preferences) for accidental clicks.
+ *
+ * PUBLIC route: NOT in middleware's PROTECTED_PREFIXES, so a logged-out
+ * recipient reaches it directly from their inbox.
+ *
+ * Note: the page is server-rendered (output: 'server') so the unsubscribe
+ * write happens server-side on the request. No client JS required.
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { verifyUnsubscribeToken } from '../lib/weekly-email';
+import { supabaseAdmin } from '../lib/supabase';
+import { UNSUBSCRIBE_SECRET } from 'astro:env/server';
+
+export const prerender = false;
+
+type Outcome = 'done' | 'invalid' | 'error';
+
+const token = Astro.url.searchParams.get('token') ?? '';
+let outcome: Outcome = 'invalid';
+let email: string | null = null;
+
+if (!UNSUBSCRIBE_SECRET) {
+  // Misconfiguration — never silently "succeed". Show a soft error so the
+  // recipient knows to contact us (and we can fix the env var).
+  console.error('[unsubscribe] UNSUBSCRIBE_SECRET not configured');
+  outcome = 'error';
+} else {
+  const verified = token ? verifyUnsubscribeToken(token, UNSUBSCRIBE_SECRET) : null;
+  if (!verified) {
+    outcome = 'invalid';
+  } else {
+    email = verified;
+    const { error } = await supabaseAdmin.rpc('unsubscribe_member_by_email', {
+      p_email: verified,
+    });
+    if (error) {
+      console.error('[unsubscribe] RPC failed:', error.message);
+      outcome = 'error';
+    } else {
+      // Whether 0 or N rows changed, the email is now unsubscribed (or was
+      // already). Friendly confirmation either way.
+      outcome = 'done';
+    }
+  }
+}
+---
+
+<BaseLayout
+  title="Unsubscribe — Tiny Seed Farm CSA"
+  canonical="https://csa.tinyseedfarm.com/unsubscribe"
+>
+  <main
+    class="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center px-6 py-16 text-center"
+  >
+    <p class="mb-1 text-xs font-semibold uppercase tracking-[0.3em] text-ts-primary">
+      🌱 Tiny Seed Farm
+    </p>
+
+    {outcome === 'done' && (
+      <>
+        <h1 class="font-display text-3xl font-bold tracking-tight text-ts-text">
+          You're unsubscribed
+        </h1>
+        <p class="mt-3 text-base leading-relaxed text-ts-text-secondary">
+          {email
+            ? `${email} won't receive any more weekly box emails from Tiny Seed Farm.`
+            : "You won't receive any more weekly box emails from Tiny Seed Farm."}
+        </p>
+        <p class="mt-2 text-sm leading-relaxed text-ts-text-muted">
+          Important account notices (like delivery changes) may still reach you.
+        </p>
+        <div class="mt-8 flex flex-col items-center gap-3">
+          <a
+            href="/account/preferences"
+            class="inline-flex h-11 items-center justify-center rounded-ts-md bg-ts-primary px-6 text-sm font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+          >
+            Changed your mind? Manage preferences
+          </a>
+          <a
+            href="/"
+            class="text-sm font-medium text-ts-text-secondary underline-offset-2 transition-colors hover:text-ts-primary hover:underline"
+          >
+            Back to the farm
+          </a>
+        </div>
+      </>
+    )}
+
+    {outcome === 'invalid' && (
+      <>
+        <h1 class="font-display text-3xl font-bold tracking-tight text-ts-text">
+          This link isn't valid
+        </h1>
+        <p class="mt-3 text-base leading-relaxed text-ts-text-secondary">
+          The unsubscribe link may have been mistyped or is no longer valid.
+          You can manage all your email preferences by signing in to your
+          account.
+        </p>
+        <div class="mt-8 flex flex-col items-center gap-3">
+          <a
+            href="/account/preferences"
+            class="inline-flex h-11 items-center justify-center rounded-ts-md bg-ts-primary px-6 text-sm font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+          >
+            Sign in to manage preferences
+          </a>
+          <a
+            href="/"
+            class="text-sm font-medium text-ts-text-secondary underline-offset-2 transition-colors hover:text-ts-primary hover:underline"
+          >
+            Back to the farm
+          </a>
+        </div>
+      </>
+    )}
+
+    {outcome === 'error' && (
+      <>
+        <h1 class="font-display text-3xl font-bold tracking-tight text-ts-text">
+          Something went wrong
+        </h1>
+        <p class="mt-3 text-base leading-relaxed text-ts-text-secondary">
+          We couldn't process your unsubscribe request right now. Please email
+          us at
+          {' '}
+          <a
+            href="mailto:hello@tinyseedfarm.com?subject=Unsubscribe"
+            class="font-semibold text-ts-primary underline-offset-2 hover:underline"
+          >
+            hello@tinyseedfarm.com
+          </a>
+          {' '}
+          and we'll take care of it.
+        </p>
+        <div class="mt-8">
+          <a
+            href="/"
+            class="text-sm font-medium text-ts-text-secondary underline-offset-2 transition-colors hover:text-ts-primary hover:underline"
+          >
+            Back to the farm
+          </a>
+        </div>
+      </>
+    )}
+  </main>
+</BaseLayout>

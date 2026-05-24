@@ -1,0 +1,427 @@
+---
+/**
+ * /admin/recipes — recipe library manager.
+ *
+ * Two parts:
+ *   1. Add/Edit form with a MODE TOGGLE:
+ *        · Link mode  → title + url + crops + optional image_url
+ *        · From-us mode → title + body/steps + crops + optional image_url
+ *      Editing pre-fills the form (via ?edit=<id>) and switches the
+ *      hidden action to 'update'.
+ *   2. The library list: title, source badge, crop tags, an active
+ *      toggle (inline form), Edit + Delete actions.
+ *
+ * All writes go to POST /api/admin/recipes (action=create|update|delete),
+ * which enforces CSRF + admin + Zod. The active toggle is its own tiny
+ * form posting action=update with the recipe's existing fields + flipped
+ * is_active.
+ *
+ * Crops = a free-text Tags input. A hint lists common crop names so Todd
+ * tags recipes with names that actually appear in box_contents.product_name
+ * (which is what the weekly-email matcher overlaps against).
+ *
+ * Gated by middleware (admin/staff) — no extra page-level check needed,
+ * but the API re-checks defensively.
+ */
+import AdminShell from '../../components/AdminShell.astro';
+import Card from '../../components/Card.astro';
+import FormRow from '../../components/FormRow.astro';
+import Tags from '../../components/Tags.astro';
+import { COMMON_CROP_TAGS, SOURCE_LABEL, type Recipe } from '../../lib/recipes';
+
+export const prerender = false;
+
+const supabase = Astro.locals.supabase;
+const url = Astro.url;
+
+const editId = url.searchParams.get('edit');
+const ok = url.searchParams.get('ok');
+const errorCode = url.searchParams.get('error');
+
+// ─── Load the library (admin RLS bypass) ────────────────────────────
+const { data: recipeRows, error: listErr } = await supabase
+  .from('recipes')
+  .select('*')
+  .order('created_at', { ascending: false })
+  .overrideTypes<Recipe[], { merge: false }>();
+
+if (listErr) {
+  console.error('[admin/recipes] list failed:', listErr.message);
+}
+const recipes = recipeRows ?? [];
+
+// ─── Resolve the recipe being edited (if any) ───────────────────────
+const editing = editId ? recipes.find((r) => r.id === editId) ?? null : null;
+
+// ─── Banner copy ─────────────────────────────────────────────────────
+const OK_MESSAGES: Record<string, string> = {
+  created: 'Recipe added to the library.',
+  updated: 'Recipe updated.',
+  deleted: 'Recipe deleted.',
+};
+const ERROR_MESSAGES: Record<string, string> = {
+  invalid_input: 'Something was off with that submission. Please try again.',
+  title_required: 'A title is required.',
+  title_too_long: 'That title is too long (max 160 characters).',
+  invalid_source: 'Pick a recipe type (Link or From us).',
+  url_required: 'A link recipe needs a URL.',
+  invalid_url: 'That URL needs to start with http:// or https://.',
+  body_required: 'A "From us" recipe needs the recipe body/steps.',
+  too_many_crops: 'That\'s a lot of crop tags — please keep it under 40.',
+  invalid_image_url: 'The image URL needs to start with http:// or https://.',
+  network: 'We hit a snag saving that. Please try again.',
+};
+const okMsg = ok ? OK_MESSAGES[ok] ?? null : null;
+const errMsg = errorCode ? ERROR_MESSAGES[errorCode] ?? ERROR_MESSAGES.invalid_input : null;
+
+const initialSource = editing?.source ?? 'link';
+const cropHint = COMMON_CROP_TAGS.join(', ');
+---
+
+<AdminShell
+  title="Recipe library"
+  subtitle="Tag recipes by crop. The weekly email auto-matches them to each week's box."
+  pageTitle="Recipe library — Tiny Seed Admin"
+  canonical="https://csa.tinyseedfarm.com/admin/recipes"
+>
+  <Fragment slot="actions">
+    <a
+      href="/admin/weekly-email"
+      class="inline-flex h-10 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-semibold text-ts-text transition-colors duration-150 hover:border-ts-primary/40 hover:text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+    >
+      Weekly email →
+    </a>
+  </Fragment>
+
+  {/* ════ Status banner ════ */}
+  {okMsg && (
+    <div
+      role="status"
+      class="rounded-ts-md border border-ts-primary/30 bg-ts-primary/10 px-4 py-3 text-sm font-medium text-ts-primary"
+    >
+      {okMsg}
+    </div>
+  )}
+  {errMsg && (
+    <div
+      role="alert"
+      class="rounded-ts-md border border-ts-danger/30 bg-ts-danger/5 px-4 py-3 text-sm font-medium text-ts-danger"
+    >
+      {errMsg}
+    </div>
+  )}
+
+  {/* ════ Add / Edit form ════ */}
+  <section aria-labelledby="form-heading" class="flex flex-col gap-4">
+    <div class="flex items-baseline justify-between gap-3">
+      <h2 id="form-heading" class="font-display text-xl font-bold text-ts-text sm:text-2xl">
+        {editing ? 'Edit recipe' : 'Add a recipe'}
+      </h2>
+      {editing && (
+        <a
+          href="/admin/recipes"
+          class="text-sm font-medium text-ts-text-secondary underline-offset-2 hover:text-ts-primary hover:underline"
+        >
+          Cancel edit
+        </a>
+      )}
+    </div>
+
+    <Card padding="lg" elevation="sm">
+      <form method="POST" action="/api/admin/recipes" class="flex flex-col gap-5" data-recipe-form>
+        <input type="hidden" name="action" value={editing ? 'update' : 'create'} />
+        {editing && <input type="hidden" name="id" value={editing.id} />}
+
+        {/* Mode toggle */}
+        <fieldset class="flex flex-col gap-2">
+          <legend class="text-sm font-semibold text-ts-text">Recipe type</legend>
+          <div class="inline-flex w-full max-w-sm rounded-ts-md border border-ts-border bg-ts-bg-base p-1" role="radiogroup" aria-label="Recipe type">
+            <label class="flex-1">
+              <input
+                type="radio"
+                name="source"
+                value="link"
+                class="peer sr-only"
+                checked={initialSource === 'link'}
+                data-source-radio
+              />
+              <span class="flex h-10 cursor-pointer items-center justify-center rounded-ts-sm text-sm font-medium text-ts-text-secondary transition-colors peer-checked:bg-ts-primary peer-checked:text-white peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ts-primary">
+                Link
+              </span>
+            </label>
+            <label class="flex-1">
+              <input
+                type="radio"
+                name="source"
+                value="farm"
+                class="peer sr-only"
+                checked={initialSource === 'farm'}
+                data-source-radio
+              />
+              <span class="flex h-10 cursor-pointer items-center justify-center rounded-ts-sm text-sm font-medium text-ts-text-secondary transition-colors peer-checked:bg-ts-primary peer-checked:text-white peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ts-primary">
+                From us
+              </span>
+            </label>
+          </div>
+          <p class="text-xs text-ts-text-muted">
+            <strong>Link</strong> = a recipe from the internet (we link out to it).
+            <strong>From us</strong> = a recipe we write here (steps shown in the email).
+          </p>
+        </fieldset>
+
+        {/* Title */}
+        <FormRow label="Title" htmlFor="recipe-title" required>
+          <input
+            id="recipe-title"
+            type="text"
+            name="title"
+            maxlength="160"
+            required
+            value={editing?.title ?? ''}
+            placeholder="e.g. Garlicky Sautéed Kale"
+            class="h-11 w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-3 text-base text-ts-text outline-none transition-colors focus:border-ts-primary focus:ring-2 focus:ring-ts-primary/30"
+          />
+        </FormRow>
+
+        {/* URL — link mode only */}
+        <div data-field-link class={initialSource === 'link' ? '' : 'hidden'}>
+          <FormRow label="Recipe URL" htmlFor="recipe-url" help="The page we'll link members to.">
+            <input
+              id="recipe-url"
+              type="url"
+              name="url"
+              maxlength="2000"
+              value={editing?.url ?? ''}
+              placeholder="https://…"
+              class="h-11 w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-3 text-base text-ts-text outline-none transition-colors focus:border-ts-primary focus:ring-2 focus:ring-ts-primary/30"
+            />
+          </FormRow>
+        </div>
+
+        {/* Body — farm mode only */}
+        <div data-field-farm class={initialSource === 'farm' ? '' : 'hidden'}>
+          <FormRow label="Recipe body / steps" htmlFor="recipe-body" help="Plain text. Line breaks are preserved in the email.">
+            <textarea
+              id="recipe-body"
+              name="body"
+              rows="8"
+              maxlength="20000"
+              placeholder={'Ingredients:\n- 1 bunch kale\n- 2 cloves garlic\n\nSteps:\n1. …'}
+              class="w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-3 py-2 text-base leading-relaxed text-ts-text outline-none transition-colors focus:border-ts-primary focus:ring-2 focus:ring-ts-primary/30"
+            >{editing?.body ?? ''}</textarea>
+          </FormRow>
+        </div>
+
+        {/* Crops */}
+        <FormRow
+          label="Crop tags"
+          htmlFor="recipe-crops"
+          help={`Match crop names that appear in box contents. Common: ${cropHint}`}
+        >
+          <Tags
+            id="recipe-crops"
+            name="crops"
+            values={editing?.crops ?? []}
+            placeholder="kale, garlic, tomatoes…"
+            ariaLabel="Crop tags"
+          />
+        </FormRow>
+
+        {/* Image URL (optional) */}
+        <FormRow label="Image URL (optional)" htmlFor="recipe-image" help="A photo shown at the top of the recipe card.">
+          <input
+            id="recipe-image"
+            type="url"
+            name="image_url"
+            maxlength="2000"
+            value={editing?.image_url ?? ''}
+            placeholder="https://…"
+            class="h-11 w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-3 text-base text-ts-text outline-none transition-colors focus:border-ts-primary focus:ring-2 focus:ring-ts-primary/30"
+          />
+        </FormRow>
+
+        {/* Active */}
+        <label class="flex items-center gap-3">
+          <input
+            type="checkbox"
+            name="is_active"
+            value="true"
+            checked={editing ? editing.is_active : true}
+            class="h-5 w-5 rounded border-ts-border text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+          />
+          <span class="text-sm font-medium text-ts-text">
+            Active — eligible to appear in weekly emails
+          </span>
+        </label>
+
+        <div class="flex items-center gap-3 pt-1">
+          <button
+            type="submit"
+            class="inline-flex h-11 items-center justify-center rounded-ts-md bg-ts-primary px-6 text-sm font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+          >
+            {editing ? 'Save changes' : 'Add recipe'}
+          </button>
+          {editing && (
+            <a
+              href="/admin/recipes"
+              class="inline-flex h-11 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-5 text-sm font-medium text-ts-text transition-colors duration-150 hover:border-ts-primary/40 hover:text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+            >
+              Cancel
+            </a>
+          )}
+        </div>
+      </form>
+    </Card>
+  </section>
+
+  {/* ════ Library list ════ */}
+  <section aria-labelledby="library-heading" class="flex flex-col gap-4">
+    <div class="flex items-baseline justify-between gap-3">
+      <h2 id="library-heading" class="font-display text-xl font-bold text-ts-text sm:text-2xl">
+        Library
+      </h2>
+      <span class="text-sm text-ts-text-muted tabular-nums">
+        {recipes.length} recipe{recipes.length === 1 ? '' : 's'}
+      </span>
+    </div>
+
+    {recipes.length === 0 ? (
+      <Card padding="lg" elevation="sm">
+        <div class="flex flex-col items-center gap-3 py-8 text-center">
+          <span class="text-4xl" aria-hidden="true">🥬</span>
+          <p class="font-semibold text-ts-text">No recipes yet</p>
+          <p class="max-w-sm text-sm text-ts-text-secondary">
+            Add your first recipe above. Tag it with the crops it uses, and it'll
+            automatically appear in the weekly email whenever those crops are in the box.
+          </p>
+        </div>
+      </Card>
+    ) : (
+      <Card padding="none" elevation="sm">
+        <ul class="divide-y divide-ts-border/60">
+          {recipes.map((r) => (
+            <li class="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-start sm:justify-between sm:px-6">
+              <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="font-semibold text-ts-text">{r.title}</span>
+                  <span class={[
+                    'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold',
+                    r.source === 'farm'
+                      ? 'bg-ts-primary/10 text-ts-primary'
+                      : 'bg-ts-bg-muted text-ts-text-secondary',
+                  ].join(' ')}>
+                    {SOURCE_LABEL[r.source]}
+                  </span>
+                  {!r.is_active && (
+                    <span class="inline-flex items-center rounded-full bg-ts-bg-muted px-2 py-0.5 text-xs font-semibold text-ts-text-muted">
+                      Inactive
+                    </span>
+                  )}
+                </div>
+                {r.crops.length > 0 ? (
+                  <div class="mt-2 flex flex-wrap gap-1.5">
+                    {r.crops.map((c) => (
+                      <span class="inline-flex items-center rounded-full bg-ts-bg-muted px-2 py-0.5 text-xs font-medium text-ts-text-secondary">
+                        {c}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p class="mt-2 text-xs text-ts-warning">No crop tags — won't match any box.</p>
+                )}
+                {r.source === 'link' && r.url && (
+                  <a
+                    href={r.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="mt-2 inline-block max-w-full truncate text-xs text-ts-primary underline-offset-2 hover:underline"
+                  >
+                    {r.url}
+                  </a>
+                )}
+              </div>
+
+              <div class="flex shrink-0 items-center gap-2">
+                {/* Active toggle — posts an update with flipped is_active. */}
+                <form method="POST" action="/api/admin/recipes" class="m-0">
+                  <input type="hidden" name="action" value="update" />
+                  <input type="hidden" name="id" value={r.id} />
+                  <input type="hidden" name="title" value={r.title} />
+                  <input type="hidden" name="source" value={r.source} />
+                  {r.url && <input type="hidden" name="url" value={r.url} />}
+                  {r.body && <input type="hidden" name="body" value={r.body} />}
+                  {r.image_url && <input type="hidden" name="image_url" value={r.image_url} />}
+                  {r.crops.map((c) => (
+                    <input type="hidden" name="crops[]" value={c} />
+                  ))}
+                  {/* Flip the active state: omit is_active to deactivate, send true to activate. */}
+                  {!r.is_active && <input type="hidden" name="is_active" value="true" />}
+                  <button
+                    type="submit"
+                    class={[
+                      'inline-flex h-9 items-center justify-center rounded-ts-md border px-3 text-xs font-semibold transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary',
+                      r.is_active
+                        ? 'border-ts-border bg-ts-bg-surface text-ts-text-secondary hover:border-ts-warning/40 hover:text-ts-warning'
+                        : 'border-ts-primary/30 bg-ts-primary/10 text-ts-primary hover:bg-ts-primary/20',
+                    ].join(' ')}
+                    aria-label={r.is_active ? `Deactivate ${r.title}` : `Activate ${r.title}`}
+                  >
+                    {r.is_active ? 'Deactivate' : 'Activate'}
+                  </button>
+                </form>
+
+                <a
+                  href={`/admin/recipes?edit=${r.id}#form-heading`}
+                  class="inline-flex h-9 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-xs font-semibold text-ts-text transition-colors duration-150 hover:border-ts-primary/40 hover:text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+                >
+                  Edit
+                </a>
+
+                <form method="POST" action="/api/admin/recipes" class="m-0" data-delete-form>
+                  <input type="hidden" name="action" value="delete" />
+                  <input type="hidden" name="id" value={r.id} />
+                  <button
+                    type="submit"
+                    class="inline-flex h-9 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-xs font-semibold text-ts-danger transition-colors duration-150 hover:border-ts-danger/40 hover:bg-ts-danger/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-danger"
+                    aria-label={`Delete ${r.title}`}
+                    data-delete-title={r.title}
+                  >
+                    Delete
+                  </button>
+                </form>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </Card>
+    )}
+  </section>
+
+  <script is:inline>
+    // Mode toggle: show URL field for 'link', body field for 'farm'.
+    (function () {
+      const linkField = document.querySelector('[data-field-link]');
+      const farmField = document.querySelector('[data-field-farm]');
+      const radios = document.querySelectorAll('[data-source-radio]');
+      function apply() {
+        const checked = document.querySelector('[data-source-radio]:checked');
+        const source = checked ? checked.value : 'link';
+        if (linkField) linkField.classList.toggle('hidden', source !== 'link');
+        if (farmField) farmField.classList.toggle('hidden', source !== 'farm');
+      }
+      radios.forEach((r) => r.addEventListener('change', apply));
+      apply();
+
+      // Delete confirmation.
+      document.querySelectorAll('[data-delete-form]').forEach((form) => {
+        form.addEventListener('submit', (e) => {
+          const btn = form.querySelector('[data-delete-title]');
+          const title = btn ? btn.getAttribute('data-delete-title') : 'this recipe';
+          if (!window.confirm(`Delete "${title}"? This can't be undone.`)) {
+            e.preventDefault();
+          }
+        });
+      });
+    })();
+  </script>
+</AdminShell>

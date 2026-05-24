@@ -385,6 +385,41 @@ const pendingTaskCount =
     </Card>
   </section>
 
+  {/* ════ Weekly email link ════ */}
+  <section aria-labelledby="weekly-email-heading" class="flex flex-col gap-4">
+    <h2 id="weekly-email-heading" class="font-display text-xl font-bold text-ts-text sm:text-2xl">
+      Weekly email
+    </h2>
+    <Card padding="md" elevation="sm">
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div class="flex min-w-0 flex-1 items-start gap-3">
+          <span class="text-2xl" aria-hidden="true">✉️</span>
+          <div class="min-w-0">
+            <p class="font-semibold text-ts-text">This week's box email</p>
+            <p class="mt-1 text-sm text-ts-text-secondary">
+              Preview the box-matched recipe email, send a test, then send to
+              opted-in members. Manage the recipe library that feeds it.
+            </p>
+          </div>
+        </div>
+        <div class="flex shrink-0 flex-col gap-2 sm:flex-row">
+          <a
+            href="/admin/recipes"
+            class="inline-flex h-11 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-5 text-sm font-semibold text-ts-text transition-colors duration-150 hover:border-ts-primary/40 hover:text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+          >
+            Recipes
+          </a>
+          <a
+            href="/admin/weekly-email"
+            class="inline-flex h-11 items-center justify-center rounded-ts-md bg-ts-primary px-5 text-sm font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+          >
+            Compose &amp; send →
+          </a>
+        </div>
+      </div>
+    </Card>
+  </section>
+
   {/* ════ Pending tasks ════ */}
   <section aria-labelledby="pending-heading" class="flex flex-col gap-4">
     <h2 id="pending-heading" class="font-display text-xl font-bold text-ts-text sm:text-2xl">

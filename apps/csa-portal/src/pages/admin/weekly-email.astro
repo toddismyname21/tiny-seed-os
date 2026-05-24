@@ -1,0 +1,392 @@
+---
+/**
+ * /admin/weekly-email — owner control panel for the weekly box email.
+ *
+ * Nothing is EVER sent automatically. This page lets Todd:
+ *   1. PREVIEW the composed email for the upcoming Wednesday (rendered in
+ *      a sandboxed iframe — exactly what members will see).
+ *   2. See the RECIPIENT COUNT (active members with newsletter_opt_in=true)
+ *      and how many have already been sent THIS week (idempotency state).
+ *   3. "Send test to me" — one email to his own inbox (not logged).
+ *   4. "Send to all opted-in members" — behind a typed confirm dialog.
+ *
+ * Send actions POST to /api/admin/weekly-email/send (mode=test|all). The
+ * send endpoint enforces opt-in filtering, per-week idempotency, batching/
+ * throttling, and the CAN-SPAM unsubscribe link.
+ *
+ * Recipient count + composed preview are computed server-side here using
+ * the cookie-aware admin client (RLS admin-bypass). The actual SEND uses
+ * the service-role client (in the API) — both see the same opted-in set.
+ */
+import AdminShell from '../../components/AdminShell.astro';
+import Card from '../../components/Card.astro';
+import { upcomingWednesdayET, prettyDateET } from '../../lib/box';
+import {
+  composeWeeklyEmail,
+  renderWeeklyEmailHtml,
+  WEEKLY_EMAIL_TYPE,
+  PORTAL_BASE_URL,
+} from '../../lib/weekly-email';
+
+export const prerender = false;
+
+const supabase = Astro.locals.supabase;
+const adminEmail = Astro.locals.user?.email ?? '';
+
+const weekDate = upcomingWednesdayET();
+const weekPretty = prettyDateET(weekDate);
+
+// ─── Compose the preview (admin RLS-bypass client) ──────────────────
+const composed = await composeWeeklyEmail(supabase, weekDate);
+
+// Preview unsubscribe/preferences links are illustrative only (the real
+// per-recipient HMAC token is minted at send time). We point the preview's
+// unsubscribe at the live route with no token so it renders a real link
+// shape without leaking a signing secret into the page.
+const previewHtml = renderWeeklyEmailHtml(composed, {
+  unsubscribeHref: `${PORTAL_BASE_URL}/unsubscribe`,
+  preferencesHref: `${PORTAL_BASE_URL}/account/preferences`,
+});
+
+// ─── Recipient count: active members, newsletter_opt_in=true ─────────
+// De-dupe by owning customer email (matches the send handler's logic).
+type RecipientRow = {
+  newsletter_opt_in: boolean;
+  member: { status: string; customer: { email: string; is_active: boolean } | null } | null;
+};
+const { data: prefRows, error: prefErr } = await supabase
+  .from('member_preferences')
+  .select(
+    `newsletter_opt_in,
+     member:members!inner(status, customer:customers!inner(email, is_active))`
+  )
+  .eq('newsletter_opt_in', true)
+  .overrideTypes<RecipientRow[], { merge: false }>();
+
+if (prefErr) {
+  console.error('[admin/weekly-email] recipient count failed:', prefErr.message);
+}
+
+const optedInEmails = new Set<string>();
+for (const row of prefRows ?? []) {
+  const m = row.member;
+  if (!m || m.status !== 'active') continue;
+  if (m.customer?.is_active === false) continue;
+  const email = m.customer?.email?.trim().toLowerCase();
+  if (email) optedInEmails.add(email);
+}
+const recipientCount = optedInEmails.size;
+
+// ─── Already-sent this week (idempotency state) ─────────────────────
+const { data: sentRows, error: sentErr } = await supabase
+  .from('email_log')
+  .select('member_email, status')
+  .eq('email_type', WEEKLY_EMAIL_TYPE)
+  .eq('week_date', weekDate);
+
+if (sentErr) {
+  console.error('[admin/weekly-email] email_log read failed:', sentErr.message);
+}
+const sentEmails = new Set(
+  (sentRows ?? []).filter((r) => r.status === 'sent').map((r) => (r.member_email ?? '').toLowerCase())
+);
+const alreadySentCount = sentEmails.size;
+const remainingCount = Math.max(0, recipientCount - Array.from(optedInEmails).filter((e) => sentEmails.has(e)).length);
+
+const activeRecipeCount = composed.recipes.length;
+const boxItemCount = composed.items.length;
+---
+
+<AdminShell
+  title="Weekly email"
+  subtitle={`Preview and send this week's box email — ${weekPretty}`}
+  pageTitle="Weekly email — Tiny Seed Admin"
+  canonical="https://csa.tinyseedfarm.com/admin/weekly-email"
+>
+  <Fragment slot="actions">
+    <a
+      href="/admin/recipes"
+      class="inline-flex h-10 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-semibold text-ts-text transition-colors duration-150 hover:border-ts-primary/40 hover:text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+    >
+      Manage recipes →
+    </a>
+  </Fragment>
+
+  {/* ════ Stat cards ════ */}
+  <section aria-labelledby="stats-heading" class="flex flex-col gap-3">
+    <h2 id="stats-heading" class="sr-only">Send overview</h2>
+    <div class="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+      <Card padding="md" elevation="sm">
+        <div class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Opted-in recipients</div>
+        <div class="mt-1 font-display text-3xl font-bold text-ts-text tabular-nums sm:text-4xl">{recipientCount}</div>
+        <div class="mt-1 text-xs text-ts-text-secondary">active + newsletter on</div>
+      </Card>
+      <Card padding="md" elevation="sm">
+        <div class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Already sent</div>
+        <div class="mt-1 font-display text-3xl font-bold text-ts-text tabular-nums sm:text-4xl">{alreadySentCount}</div>
+        <div class="mt-1 text-xs text-ts-text-secondary">this week</div>
+      </Card>
+      <Card padding="md" elevation="sm">
+        <div class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Box items</div>
+        <div class="mt-1 font-display text-3xl font-bold text-ts-text tabular-nums sm:text-4xl">{boxItemCount}</div>
+        <div class="mt-1 text-xs text-ts-text-secondary">for {weekPretty}</div>
+      </Card>
+      <Card padding="md" elevation="sm">
+        <div class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Recipes matched</div>
+        <div class={[
+          'mt-1 font-display text-3xl font-bold tabular-nums sm:text-4xl',
+          activeRecipeCount === 0 ? 'text-ts-warning' : 'text-ts-text',
+        ].join(' ')}>{activeRecipeCount}</div>
+        <div class="mt-1 text-xs text-ts-text-secondary">{activeRecipeCount === 0 ? 'none matched' : 'in this email'}</div>
+      </Card>
+    </div>
+  </section>
+
+  {/* ════ Send capacity note ════ */}
+  {recipientCount > 90 && (
+    <div role="status" class="rounded-ts-md border border-ts-warning/30 bg-ts-warning/5 px-4 py-3 text-sm text-ts-text-secondary">
+      <strong class="font-semibold text-ts-warning">Heads up:</strong> you have
+      {' '}<span class="tabular-nums">{recipientCount}</span> recipients. The send
+      processes up to ~90 per run (Resend free-tier limit). If it stops early,
+      just click "Send to all" again later — already-sent members are skipped
+      automatically.
+    </div>
+  )}
+
+  {/* ════ Actions ════ */}
+  <section aria-labelledby="actions-heading" class="flex flex-col gap-4">
+    <h2 id="actions-heading" class="font-display text-xl font-bold text-ts-text sm:text-2xl">Send</h2>
+    <Card padding="lg" elevation="sm">
+      <div class="flex flex-col gap-5">
+        <div class="flex flex-col gap-2">
+          <p class="text-sm leading-relaxed text-ts-text">
+            Review the preview below, then send a test to yourself first. When it
+            looks right, send to all <span class="font-semibold tabular-nums">{recipientCount}</span>
+            {' '}opted-in member{recipientCount === 1 ? '' : 's'}.
+          </p>
+          <p class="text-xs text-ts-text-muted">
+            Nothing is sent until you click. Every email includes a one-click
+            unsubscribe link (CAN-SPAM).
+          </p>
+        </div>
+
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <button
+            type="button"
+            data-send-test
+            class="inline-flex h-11 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-5 text-sm font-semibold text-ts-text transition-colors duration-150 hover:border-ts-primary/40 hover:text-ts-primary active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <span data-send-test-label>Send test to me{adminEmail ? ` (${adminEmail})` : ''}</span>
+          </button>
+
+          <button
+            type="button"
+            data-send-all
+            disabled={remainingCount === 0}
+            class="inline-flex h-11 items-center justify-center rounded-ts-md bg-ts-primary px-5 text-sm font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <span data-send-all-label>
+              {remainingCount === 0
+                ? 'All opted-in members already sent'
+                : `Send to ${remainingCount} member${remainingCount === 1 ? '' : 's'}`}
+            </span>
+          </button>
+        </div>
+
+        {/* Result region */}
+        <div
+          role="status"
+          aria-live="polite"
+          data-send-result
+          class="hidden rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-sm text-ts-text"
+        ></div>
+      </div>
+    </Card>
+  </section>
+
+  {/* ════ Preview ════ */}
+  <section aria-labelledby="preview-heading" class="flex flex-col gap-4">
+    <h2 id="preview-heading" class="font-display text-xl font-bold text-ts-text sm:text-2xl">Preview</h2>
+    {boxItemCount === 0 && (
+      <div role="status" class="rounded-ts-md border border-ts-warning/30 bg-ts-warning/5 px-4 py-3 text-sm text-ts-text-secondary">
+        <strong class="font-semibold text-ts-warning">No box contents</strong> are set for
+        {' '}{weekPretty} yet. Fill them in on
+        {' '}<a href={`/admin/box-contents?week=${weekDate}`} class="font-semibold text-ts-primary underline-offset-2 hover:underline">Box contents</a>
+        {' '}before sending.
+      </div>
+    )}
+    <Card padding="none" elevation="sm">
+      <iframe
+        title="Weekly email preview"
+        srcdoc={previewHtml}
+        sandbox=""
+        class="h-[680px] w-full rounded-ts-lg border-0 bg-white"
+        loading="lazy"
+      ></iframe>
+    </Card>
+  </section>
+
+  {/* ════ Confirm dialog (send to all) ════ */}
+  <div
+    id="confirm-modal"
+    class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4"
+    data-confirm-modal
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="confirm-heading"
+  >
+    <div class="w-full max-w-md rounded-ts-xl bg-ts-bg-surface p-6 shadow-ts-lg">
+      <h3 id="confirm-heading" class="font-display text-lg font-bold text-ts-text">Send to all opted-in members?</h3>
+      <p class="mt-2 text-sm leading-relaxed text-ts-text-secondary">
+        This will email this week's box to
+        {' '}<strong class="text-ts-text tabular-nums">{remainingCount}</strong>
+        {' '}member{remainingCount === 1 ? '' : 's'} who haven't been sent yet this week.
+        Members who already received it are skipped. This can't be undone.
+      </p>
+      <p class="mt-3 text-xs text-ts-text-muted">Type <strong>SEND</strong> to confirm:</p>
+      <input
+        type="text"
+        data-confirm-input
+        autocomplete="off"
+        class="mt-2 h-11 w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-3 text-base text-ts-text outline-none transition-colors focus:border-ts-primary focus:ring-2 focus:ring-ts-primary/30"
+        placeholder="SEND"
+      />
+      <footer class="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        <button
+          type="button"
+          data-confirm-cancel
+          class="inline-flex h-10 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-medium text-ts-text transition-colors duration-150 hover:border-ts-primary/40 hover:text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          data-confirm-go
+          disabled
+          class="inline-flex h-10 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          Send now
+        </button>
+      </footer>
+    </div>
+  </div>
+
+  <script is:inline>
+    (function () {
+      const result = document.querySelector('[data-send-result]');
+      const testBtn = document.querySelector('[data-send-test]');
+      const testLbl = document.querySelector('[data-send-test-label]');
+      const allBtn = document.querySelector('[data-send-all]');
+      const modal = document.querySelector('[data-confirm-modal]');
+      const confirmInput = document.querySelector('[data-confirm-input]');
+      const confirmGo = document.querySelector('[data-confirm-go]');
+      const confirmCancel = document.querySelector('[data-confirm-cancel]');
+
+      function showResult(msg, tone) {
+        if (!result) return;
+        result.classList.remove('hidden', 'border-ts-danger/30', 'bg-ts-danger/5', 'text-ts-danger', 'border-ts-primary/30', 'bg-ts-primary/10', 'text-ts-primary');
+        if (tone === 'error') {
+          result.classList.add('border-ts-danger/30', 'bg-ts-danger/5', 'text-ts-danger');
+        } else if (tone === 'success') {
+          result.classList.add('border-ts-primary/30', 'bg-ts-primary/10', 'text-ts-primary');
+        }
+        result.textContent = msg;
+      }
+
+      function post(mode) {
+        const fd = new FormData();
+        fd.append('mode', mode);
+        return fetch('/api/admin/weekly-email/send', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { accept: 'application/json' },
+          body: fd,
+        }).then((r) => r.json().then((j) => ({ status: r.status, body: j })));
+      }
+
+      function describe(body) {
+        const parts = [];
+        parts.push(`Sent ${body.sent}`);
+        if (body.skipped) parts.push(`skipped ${body.skipped} (already sent)`);
+        if (body.failed) parts.push(`${body.failed} failed`);
+        if (body.remaining) parts.push(`${body.remaining} remaining`);
+        let msg = parts.join(' · ') + '.';
+        if (body.rate_limited) msg += ' Stopped early (rate limit) — click again later to finish.';
+        else if (body.capped) msg += ' Hit the per-run cap — click again to continue.';
+        return msg;
+      }
+
+      // ── Send test ──
+      if (testBtn) {
+        testBtn.addEventListener('click', function () {
+          testBtn.disabled = true;
+          const orig = testLbl ? testLbl.textContent : '';
+          if (testLbl) testLbl.textContent = 'Sending test…';
+          showResult('Sending a test email…', null);
+          post('test')
+            .then(function (res) {
+              if (res.status === 200 && res.body && res.body.ok) {
+                showResult('Test email sent. Check your inbox.', 'success');
+              } else {
+                showResult('Test failed: ' + ((res.body && res.body.error) || 'unknown error') + '.', 'error');
+              }
+            })
+            .catch(function () { showResult('Network error sending test.', 'error'); })
+            .finally(function () {
+              testBtn.disabled = false;
+              if (testLbl) testLbl.textContent = orig;
+            });
+        });
+      }
+
+      // ── Send all (confirm gate) ──
+      function openModal() {
+        if (!modal) return;
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        if (confirmInput) { confirmInput.value = ''; confirmInput.focus(); }
+        if (confirmGo) confirmGo.disabled = true;
+      }
+      function closeModal() {
+        if (!modal) return;
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+      if (allBtn) allBtn.addEventListener('click', openModal);
+      if (confirmCancel) confirmCancel.addEventListener('click', closeModal);
+      if (modal) modal.addEventListener('click', function (e) { if (e.target === modal) closeModal(); });
+      if (confirmInput) {
+        confirmInput.addEventListener('input', function () {
+          if (confirmGo) confirmGo.disabled = confirmInput.value.trim().toUpperCase() !== 'SEND';
+        });
+      }
+      if (confirmGo) {
+        confirmGo.addEventListener('click', function () {
+          if (confirmGo.disabled) return;
+          confirmGo.disabled = true;
+          confirmGo.textContent = 'Sending…';
+          showResult('Sending to opted-in members…', null);
+          post('all')
+            .then(function (res) {
+              closeModal();
+              if (res.status === 200 && res.body && res.body.ok) {
+                showResult(describe(res.body), res.body.failed ? 'error' : 'success');
+                // Refresh counts after a short beat so the admin sees the new state.
+                setTimeout(function () { window.location.reload(); }, 2500);
+              } else {
+                showResult('Send failed: ' + ((res.body && res.body.error) || 'unknown error') + '.', 'error');
+              }
+            })
+            .catch(function () { closeModal(); showResult('Network error during send.', 'error'); })
+            .finally(function () {
+              confirmGo.textContent = 'Send now';
+            });
+        });
+      }
+      // ESC closes modal.
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && modal && !modal.classList.contains('hidden')) closeModal();
+      });
+    })();
+  </script>
+</AdminShell>

@@ -175,7 +175,41 @@ if [ "$ACTION" = "create" ]; then
             fi
         done
 
-        if [ -n "$EXACT_MATCH" ] && [ "$IS_REST_HANDLER" = false ]; then
+        # Shared-library / consumer-route layering: a module under src/lib/
+        # (or utils/ / helpers/) legitimately shares a basename with the
+        # route/page that IMPORTS it (e.g. src/lib/recipes.ts backing
+        # src/pages/api/admin/recipes.ts, or src/lib/flex.ts backing
+        # src/pages/account/flex.astro). They are intentionally different
+        # layers, NOT duplicate implementations. This holds in BOTH
+        # directions (whichever file is the "new" one), so demote to a
+        # WARNING when the new file and ALL its matches straddle the
+        # lib/-vs-route boundary (exactly one side is under lib/utils/helpers).
+        IS_LIB_MODULE=false
+        case "$FILE_NAME" in
+            */lib/*|lib/*|*/utils/*|utils/*|*/helpers/*|helpers/*) IS_LIB_MODULE=true ;;
+        esac
+        MATCHES_HAVE_LIB=false
+        MATCHES_HAVE_NONLIB=false
+        if [ -n "$EXACT_MATCH" ]; then
+            if echo "$EXACT_MATCH" | grep -Eq '/(lib|utils|helpers)/'; then MATCHES_HAVE_LIB=true; fi
+            if echo "$EXACT_MATCH" | grep -Eqv '/(lib|utils|helpers)/'; then MATCHES_HAVE_NONLIB=true; fi
+        fi
+        LIB_LAYER_OK=false
+        if [ -n "$EXACT_MATCH" ]; then
+            if [ "$IS_LIB_MODULE" = true ] && [ "$MATCHES_HAVE_LIB" = false ]; then
+                # New file is the lib module; every match is a consumer route.
+                LIB_LAYER_OK=true
+            elif [ "$IS_LIB_MODULE" = false ] && [ "$MATCHES_HAVE_NONLIB" = false ]; then
+                # New file is a route; every match is the backing lib module.
+                LIB_LAYER_OK=true
+            fi
+        fi
+
+        if [ -n "$EXACT_MATCH" ] && [ "$LIB_LAYER_OK" = true ]; then
+            echo -e "  ${YELLOW}WARNING: '$BASENAME' is a lib/ module sharing a basename with its consumer route(s). Verify it's the shared-logic layer, not a duplicate:${NC}"
+            echo "$EXACT_MATCH" | while read -r line; do echo "    - $line"; done
+            ((WARNINGS++))
+        elif [ -n "$EXACT_MATCH" ] && [ "$IS_REST_HANDLER" = false ]; then
             echo -e "  ${RED}CRITICAL: Exact or near-exact match found:${NC}"
             echo "$EXACT_MATCH" | while read -r line; do echo "    - $line"; done
             ((CRITICAL++))

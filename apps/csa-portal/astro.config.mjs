@@ -83,6 +83,19 @@ export default defineConfig({
         access: 'secret',
         optional: true,
       }),
+
+      // ── Unsubscribe-token HMAC secret (CAN-SPAM one-click unsubscribe) ──
+      // Used to sign + verify the tokenized unsubscribe links embedded in
+      // every weekly email (lib/weekly-email.ts → signUnsubscribeToken /
+      // verifyUnsubscribeToken). Lives as a Vercel env var. `optional` so a
+      // local build/check (where it's absent) still succeeds; the send +
+      // unsubscribe handlers guard its presence at runtime and refuse to
+      // operate (rather than mint forgeable links) if it's missing.
+      UNSUBSCRIBE_SECRET: envField.string({
+        context: 'server',
+        access: 'secret',
+        optional: true,
+      }),
     },
   },
 });

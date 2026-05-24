@@ -395,6 +395,49 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['referrals']['Row']>;
         Relationships: [];
       };
+      // Recipe library (migration 0026). source=link → external url;
+      // source=farm → our own body. crops[] overlaps box_contents.product_name.
+      recipes: {
+        Row: {
+          id: string;
+          title: string;
+          source: 'farm' | 'link';
+          url: string | null;
+          body: string | null;
+          crops: string[];
+          image_url: string | null;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          title: string;
+          source: 'farm' | 'link';
+        } & Partial<Database['public']['Tables']['recipes']['Row']>;
+        Update: Partial<Database['public']['Tables']['recipes']['Row']>;
+        Relationships: [];
+      };
+      // Per-recipient send ledger (migration 0026). UNIQUE(email_type,
+      // week_date, member_email) → per-week idempotency. Service-role write.
+      email_log: {
+        Row: {
+          id: string;
+          member_email: string;
+          email_type: string;
+          week_date: string;
+          status: 'sent' | 'failed' | 'skipped';
+          resend_id: string | null;
+          error_message: string | null;
+          sent_at: string;
+        };
+        Insert: {
+          member_email: string;
+          email_type: string;
+          week_date: string;
+        } & Partial<Database['public']['Tables']['email_log']['Row']>;
+        Update: Partial<Database['public']['Tables']['email_log']['Row']>;
+        Relationships: [];
+      };
     };
     Views: {
       member_flex_balance: {
@@ -470,6 +513,13 @@ export interface Database {
       household_owner: {
         Args: Record<string, never>;
         Returns: { owner_id: string; contact_name: string; email: string }[];
+      };
+      // CAN-SPAM one-click unsubscribe (migration 0026). SECURITY DEFINER —
+      // callable as anon after the /unsubscribe endpoint verifies the HMAC
+      // token. Returns the number of preference rows flipped to opt-out.
+      unsubscribe_member_by_email: {
+        Args: { p_email: string };
+        Returns: number;
       };
     };
     Enums: { [_: string]: never };

@@ -25,6 +25,8 @@ const PROTECTED_ROUTES = [
   '/account/refer',
   '/admin',
   '/admin/sync',
+  '/admin/recipes',
+  '/admin/weekly-email',
 ];
 
 test.describe('unauthenticated route protection @unauth', () => {
@@ -44,6 +46,15 @@ test.describe('unauthenticated route protection @unauth', () => {
     const res = await page.goto('/');
     expect(res?.status()).toBe(200);
     await expect(page).toHaveTitle(/Tiny Seed Farm CSA/i);
+  });
+
+  // /unsubscribe is a PUBLIC route (CAN-SPAM one-click, no login). It must
+  // render 200 even with no/invalid token (showing a friendly message),
+  // never redirect to /login.
+  test('unsubscribe page is public (200, no login redirect)', async ({ page }) => {
+    const res = await page.goto('/unsubscribe?token=invalid');
+    expect(res?.status()).toBe(200);
+    await expect(page.getByRole('heading', { name: /isn't valid|unsubscribed|went wrong/i })).toBeVisible();
   });
 
   test('login page renders the email form without auth', async ({ page }) => {
