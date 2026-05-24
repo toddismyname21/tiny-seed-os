@@ -2,9 +2,18 @@
  * POST /api/admin/route/[id]/stops/[stopId]/proof   (admin only)
  *
  * Accepts a single image upload (multipart/form-data, field name `photo`)
- * and stores it in the `delivery-proofs` Supabase Storage bucket at
- * the path `{route_date}/{stop_id}.jpg`. Saves the public URL on
- * `delivery_stops.proof_photo_url`.
+ * and stores it in the PRIVATE `delivery-proofs` Supabase Storage bucket
+ * at the path `{route_date}/{stop_id}.{ext}`. Saves the OBJECT PATH (not
+ * a URL) on `delivery_stops.proof_photo_url`.
+ *
+ * Privacy (migration 0025): the bucket is PRIVATE. We deliberately store
+ * the storage object PATH here — never a public URL — because public URLs
+ * to porch/front-door photos leak members' homes to anyone with the link.
+ * Display is done via short-lived SIGNED URLs minted server-side only
+ * after the caller is proven authorized:
+ *   - admin route page → src/pages/admin/route/[id].astro (admin verified)
+ *   - member tracker   → src/lib/delivery.ts (member's own stop RLS-scoped
+ *                        before signing). See lib/delivery-proof.ts.
  *
  * Client expectations:
  *   - JPEG preferred (the admin UI resizes to max 1200px wide via
@@ -18,19 +27,19 @@
  * client to upload (bucket-level policy gates on is_admin_caller()).
  *
  * Idempotency: re-uploading the same stop overwrites in place
- * (Supabase Storage with `upsert: true`). The DB column also gets
- * re-set so any browser caching is bypassed via the URL not changing
- * — that's a minor cache issue we accept (members will see the
- * latest photo on next page load).
+ * (Supabase Storage with `upsert: true`). The DB column (the path) is
+ * stable across re-uploads; each display request signs a fresh URL, so
+ * there is no stale-URL caching concern.
  */
 import type { APIRoute } from 'astro';
 import { requireAdmin } from '../../../../../../../lib/admin';
 import { isSameOriginPost, PORTAL_ORIGIN } from '../../../../../../../lib/onboarding';
 import { supabaseAdmin } from '../../../../../../../lib/supabase';
+import { PROOF_BUCKET, PROOF_SIGNED_URL_TTL_SECONDS } from '../../../../../../../lib/delivery-proof';
 
 export const prerender = false;
 
-const BUCKET = 'delivery-proofs';
+const BUCKET = PROOF_BUCKET;
 const MAX_BYTES = 5 * 1024 * 1024;  // 5 MB
 const ALLOWED_TYPES: ReadonlySet<string> = new Set([
   'image/jpeg', 'image/jpg', 'image/png', 'image/webp',
@@ -138,14 +147,13 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
     return jsonResponse({ ok: false, error: 'upload_failed', detail: uploadErr.message }, 500);
   }
 
-  const { data: pub } = supabaseAdmin.storage.from(BUCKET).getPublicUrl(path);
-  const publicUrl = pub.publicUrl;
-
-  // Save URL on the stop row (cookie-aware client → audit trigger
-  // captures Todd's email).
+  // Save the OBJECT PATH on the stop row (cookie-aware client → audit
+  // trigger captures Todd's email). The bucket is PRIVATE (migration
+  // 0025), so we NEVER persist a URL — display paths sign a fresh,
+  // short-lived URL on demand from this path.
   const { error: updErr } = await locals.supabase
     .from('delivery_stops')
-    .update({ proof_photo_url: publicUrl })
+    .update({ proof_photo_url: path })
     .eq('id', stopId);
 
   if (updErr) {
@@ -153,5 +161,13 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
     return jsonResponse({ ok: false, error: 'update_failed', detail: updErr.message }, 500);
   }
 
-  return jsonResponse({ ok: true, photo_url: publicUrl, path });
+  // Return a signed URL too, so a caller that wants to show the photo
+  // immediately (without a reload) can. The admin UI currently reloads,
+  // which re-signs server-side, but returning it keeps the contract
+  // useful and self-documenting. Service role can always sign.
+  const { data: signed } = await supabaseAdmin.storage
+    .from(BUCKET)
+    .createSignedUrl(path, PROOF_SIGNED_URL_TTL_SECONDS);
+
+  return jsonResponse({ ok: true, photo_url: signed?.signedUrl ?? null, path });
 };

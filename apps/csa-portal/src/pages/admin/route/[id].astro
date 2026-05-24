@@ -18,6 +18,8 @@
  */
 import AdminShell from '../../../components/AdminShell.astro';
 import Card from '../../../components/Card.astro';
+import { supabaseAdmin } from '../../../lib/supabase';
+import { signProofUrl } from '../../../lib/delivery-proof';
 
 const supabase = Astro.locals.supabase;
 const routeId = String(Astro.params.id ?? '').trim();
@@ -84,6 +86,21 @@ if (stopsErr) {
 }
 
 const stopList = stops ?? [];
+
+// ─── Sign proof-photo paths → short-lived signed URLs ───────────────
+// The delivery-proofs bucket is PRIVATE (migration 0025); proof_photo_url
+// stores an object PATH, not a URL. Admin already passed admin RLS to read
+// these stops, so we may sign with the service-role client. Build a
+// stop_id → signed-URL map for the template (sign in parallel).
+const proofUrlByStopId = new Map<string, string>();
+await Promise.all(
+  stopList
+    .filter((s) => s.proof_photo_url)
+    .map(async (s) => {
+      const url = await signProofUrl(supabaseAdmin, s.proof_photo_url);
+      if (url) proofUrlByStopId.set(s.id, url);
+    })
+);
 
 // ─── Display helpers ────────────────────────────────────────────────
 const STATUS_LABEL: Record<RouteRow['status'], string> = {
@@ -308,11 +325,11 @@ const allDone = route.total_stops > 0 && route.completed_stops === route.total_s
                 </div>
               )}
 
-              {/* Photo */}
-              {stop.proof_photo_url && (
+              {/* Photo — signed URL from the private delivery-proofs bucket */}
+              {stop.proof_photo_url && proofUrlByStopId.has(stop.id) && (
                 <div class="mt-3" data-photo-display>
                   <img
-                    src={stop.proof_photo_url}
+                    src={proofUrlByStopId.get(stop.id)}
                     alt="Proof of delivery"
                     width="120"
                     height="120"

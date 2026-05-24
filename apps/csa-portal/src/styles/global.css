@@ -88,15 +88,45 @@
   --color-ts-border:         #e2e8f0;       /* Soft border */
   --color-ts-border-strong:  #cbd5e1;       /* Stronger border */
 
-  /* Brand colors (light theme) */
-  --color-ts-primary:        #16a34a;       /* Tiny Seed green */
-  --color-ts-primary-dark:   #15803d;       /* Darker green hover */
-  --color-ts-primary-light:  #22c55e;       /* Lighter green accent */
-  --color-ts-accent:         #be185d;       /* Magenta — flowers, sale signs */
+  /* ─────────────────────────────────────────────────────────────────
+     Brand greens — WCAG AA tuned (2026-05-24)
+     ───────────────────────────────────────────────────────────────────
+     --ts-primary is the ACTION green: button labels, white-on-green
+     buttons, links, badges, the active bottom-nav label, and ~39 files'
+     `text-ts-primary`. It MUST clear 4.5:1 for normal text in EVERY real
+     context it appears in. The previous brand green #16a34a measured only
+     3.29:1 (green-on-white AND white-on-green) — and as little as 2.7:1
+     where green text sits on a green-tinted badge (the common
+     `bg-ts-primary/10 text-ts-primary` Badge/Tag pattern). That was the
+     lone serious WCAG AA violation the axe harness surfaced (17 nodes
+     across 6 pages).
+
+     #15803d (green-700) clears white (5.02:1) but NOT the green-on-own-
+     tint badges (#15803d on bg-ts-primary/10 ≈ 4.38:1, /15 ≈ 4.09:1 —
+     still failing). So per the task's "go a touch darker if needed",
+     deepened to #166534 (green-800), which clears EVERY context:
+       · green-on-white          = 7.13:1  ✓ AA
+       · white-on-green (buttons)= 7.13:1  ✓ AA
+       · on #fafaf7 page bg      = 6.82:1  ✓ AA
+       · on bg-ts-primary/10 tint≈ 6.1:1   ✓ AA (was 2.95:1)
+       · on bg-ts-primary/15 tint≈ 5.7:1   ✓ AA (was 2.7:1)
+     Still unmistakably Tiny Seed green — a deep, rich forest green, not
+     flattened. --ts-primary-dark (hover) deepened in step to #14532d
+     (green-900, 9.11:1) so the hover state stays visibly darker than the
+     new resting green. The brighter --ts-primary-light / --ts-seasonal
+     #22c55e are DELIBERATELY KEPT vibrant for large/decorative accents
+     (box hero, icon tints, empty-state art) — those only need 3:1, so the
+     brand keeps its vibrant feel. NOTE: do NOT use --ts-primary-light or
+     --ts-seasonal for small text/UI — they fail 4.5:1 by design.
+     ───────────────────────────────────────────────────────────────── */
+  --color-ts-primary:        #166534;       /* Tiny Seed green (AA 7.13:1) */
+  --color-ts-primary-dark:   #14532d;       /* Darker green hover (9.11:1) */
+  --color-ts-primary-light:  #22c55e;       /* Vibrant accent — decorative/large only (NOT small text) */
+  --color-ts-accent:         #be185d;       /* Magenta — flowers, sale signs (6.04:1) */
   --color-ts-accent-dark:    #831843;       /* Darker wine — high-contrast */
   --color-ts-warning:        #d97706;       /* Amber */
   --color-ts-danger:         #dc2626;       /* Red */
-  --color-ts-success:        #16a34a;       /* Same as primary */
+  --color-ts-success:        #166534;       /* Same as primary (AA-tuned) */
   --color-ts-info:           #0369a1;       /* Sky */
 
   /* ─────────────────────────────────────────────────────────────────
@@ -107,7 +137,7 @@
      Defaults to the spring/summer green; rotate per-season later via a
      `[data-season="..."]` override on <html> (ready, not yet applied).
      ───────────────────────────────────────────────────────────────── */
-  --color-ts-seasonal: #16a34a;        /* spring/summer green (default) */
+  --color-ts-seasonal: #22c55e;        /* spring/summer green — vibrant, decorative/large only (default) */
 
   /* Typography */
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;

@@ -23,6 +23,8 @@
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from './database.types';
+import { supabaseAdmin } from './supabase';
+import { signProofUrl } from './delivery-proof';
 
 /* ──────────────────────────────────────────────────────────────────
  * Public types
@@ -70,7 +72,13 @@ export interface DeliveryStatus {
   driver_name: string | null;
   /** ISO timestamp when admin tapped Delivered. */
   completed_at: string | null;
-  /** Public Storage URL for the proof-of-delivery photo. */
+  /**
+   * Short-lived SIGNED Storage URL for the proof-of-delivery photo, or
+   * null. The bucket is PRIVATE (migration 0025): proof_photo_url stores
+   * an object PATH which fetchDeliveryStatus signs server-side (after the
+   * RLS-scoped stop read proves the member owns the stop). Never a public
+   * URL.
+   */
   photo_url: string | null;
   /** Free-text notes when state === 'exception'. */
   issue_notes: string | null;
@@ -325,6 +333,16 @@ export async function fetchDeliveryStatus(
     stopsForDerivation
   );
 
+  // The proof photo lives in the PRIVATE delivery-proofs bucket (0025);
+  // proof_photo_url is an object PATH. The read above was RLS-scoped to
+  // THIS member's own stop, so the member is authorized — sign a short-
+  // lived URL with the service-role client for display. Only sign when
+  // there's actually a delivered photo to show (avoids a needless call).
+  const photoUrl =
+    myStop.proof_photo_url
+      ? await signProofUrl(supabaseAdmin, myStop.proof_photo_url)
+      : null;
+
   return {
     state,
     stop_id: myStop.id,
@@ -332,7 +350,7 @@ export async function fetchDeliveryStatus(
     eta: myStop.eta,
     driver_name: firstNameOf(route.driver_name),
     completed_at: myStop.completed_at,
-    photo_url: myStop.proof_photo_url,
+    photo_url: photoUrl,
     issue_notes: myStop.exception_notes,
     last_updated: nowISO,
   };
