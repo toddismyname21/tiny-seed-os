@@ -16,6 +16,13 @@
  */
 import { test, expect, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import {
+  readTestEnv,
+  seedStopNotesFixture,
+  cleanupStopNotesFixture,
+  type StopNotesFixture,
+  type TestEnv,
+} from './supabase-fixtures';
 
 const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
 
@@ -174,5 +181,27 @@ test.describe('accessibility (axe) — authenticated pages', () => {
   test('flex has no serious/critical violations', async ({ page }) => {
     await page.goto('/account/flex');
     await scan(page, 'flex /account/flex');
+  });
+});
+
+// Stop Notes scans the POPULATED notes UI (role badges, the note list, and —
+// when the member has >1 stop — the tablist), so the axe pass covers the real
+// component, not just the empty state. We seed our own fixture here so the
+// scan is independent of the stop-notes spec's run order.
+test.describe('accessibility (axe) — Stop Notes', () => {
+  let env: TestEnv | null = null;
+  let fixture: StopNotesFixture | null = null;
+
+  test.beforeAll(async () => {
+    env = readTestEnv();
+    fixture = await seedStopNotesFixture(env);
+  });
+  test.afterAll(async () => {
+    if (env && fixture) await cleanupStopNotesFixture(env, fixture);
+  });
+
+  test('stop-notes has no serious/critical violations', async ({ page }) => {
+    await page.goto('/stop-notes');
+    await scan(page, 'stop-notes /stop-notes');
   });
 });

@@ -1,0 +1,347 @@
+---
+/**
+ * /stop-notes — read-only "Stop Notes" board for members (chat Phase 0).
+ *
+ * Spec: docs/specs/CSA_BY_STOP_CHAT_SPEC.md (§6.1 — a dedicated page, not a
+ * dashboard widget). Phase 0 is READ-ONLY: the farm posts logistics notes
+ * per pickup location ("Highland Park: we're under the blue tent today";
+ * "gate code changed"); members at that stop read them. There is no member
+ * composer in Phase 0 (open posting is Phase 1).
+ *
+ * Nav: we do NOT add a 5th bottom-nav item (the spec caps the bar at the
+ * existing 4 — Home/Box/Account/Help — to respect Hick's Law). Members reach
+ * this page from a dashboard card (the spec's preferred alternative when
+ * keeping 4 tabs). The breadcrumb back-link returns to the dashboard.
+ *
+ * Data: fetched server-side via the cookie-aware RLS-scoped client. RLS
+ * (migration 0029) guarantees a member only ever receives NON-HIDDEN notes
+ * for pickup locations in current_member_location_ids() — i.e. their own
+ * active/paused/onboarding stop(s). A member at stop A literally cannot read
+ * stop B's notes; the read policy filters them out at the database. Household
+ * members resolve to the owner's stop(s) automatically (current_customer_id).
+ *
+ * Multi-location members (≥1 active share at different stops) see a tab
+ * switcher; single-location members (the vast majority) see no switcher.
+ *
+ * Realtime is intentionally NOT used in read-only Phase 0 — a note board is
+ * low-velocity (a handful of staff posts a week), so a fetch-on-load is
+ * correct and avoids a WebSocket per member. (Phase 1's live member chat
+ * adds the DeliveryTracker-style realtime client.)
+ */
+import MemberShell from '../components/MemberShell.astro';
+import EmptyState from '../components/EmptyState.astro';
+import {
+  ROLE_BADGE_LABEL,
+  formatNoteTimestamp,
+  type StopMessage,
+} from '../lib/stop-chat';
+
+export const prerender = false;
+
+const user = Astro.locals.user;
+const supabase = Astro.locals.supabase;
+
+// Middleware guarantees auth, but narrow defensively.
+if (!user || !user.email) {
+  return Astro.redirect('/login', 303);
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// 1. Resolve the member's live pickup location(s). RLS on `members`
+//    filters to the caller's resolved customer (household-aware), so this
+//    returns only THEIR shares. We keep active/paused/onboarding — the
+//    same liveStatuses set the dashboard uses, and the set
+//    current_member_location_ids() scopes notes to.
+// ─────────────────────────────────────────────────────────────────────
+type ShareLocation = {
+  status: string;
+  pickup_location_id: string | null;
+  pickup_location: {
+    name: string;
+    city: string | null;
+    state: string;
+  } | null;
+};
+
+const { data: shareRows, error: shareErr } = await supabase
+  .from('members')
+  .select(
+    `
+    status,
+    pickup_location_id,
+    pickup_location:pickup_locations ( name, city, state )
+  `
+  )
+  .overrideTypes<ShareLocation[], { merge: false }>();
+
+if (shareErr) {
+  console.error('[stop-notes] member/location fetch failed:', shareErr.message);
+}
+
+const liveStatuses = new Set(['active', 'paused', 'onboarding']);
+
+// Distinct locations the member belongs to (de-duped by id). A multi-share
+// member with two shares at the SAME stop collapses to one tab.
+interface LocationTab {
+  id: string;
+  name: string;
+  place: string; // "City, ST" or '' when unknown
+}
+const locationById = new Map<string, LocationTab>();
+for (const row of shareRows ?? []) {
+  if (!liveStatuses.has(row.status)) continue;
+  if (!row.pickup_location_id) continue;
+  if (locationById.has(row.pickup_location_id)) continue;
+  const loc = row.pickup_location;
+  const place = loc
+    ? [loc.city, loc.state].filter(Boolean).join(', ')
+    : '';
+  locationById.set(row.pickup_location_id, {
+    id: row.pickup_location_id,
+    name: loc?.name ?? 'Your pickup',
+    place,
+  });
+}
+const locations = Array.from(locationById.values());
+
+// Does the member have an active share at all (even without a pickup set)?
+// Drives the "you have no pickup yet" vs "you have no share" copy.
+const hasLiveShare = (shareRows ?? []).some((r) => liveStatuses.has(r.status));
+
+// ─────────────────────────────────────────────────────────────────────
+// 2. Fetch the visible notes for the member's location(s). RLS already
+//    restricts this to non-hidden notes for the caller's stop(s) — we add
+//    an explicit .in() on the resolved ids as a belt-and-suspenders filter
+//    + so the query is well-formed when the member has multiple stops.
+//    Newest LAST (chat convention: oldest at top, newest at bottom).
+// ─────────────────────────────────────────────────────────────────────
+const locationIds = locations.map((l) => l.id);
+
+let notes: StopMessage[] = [];
+if (locationIds.length > 0) {
+  const { data: noteRows, error: noteErr } = await supabase
+    .from('stop_messages')
+    .select('*')
+    .in('pickup_location_id', locationIds)
+    .is('hidden_at', null)
+    .order('created_at', { ascending: true })
+    .overrideTypes<StopMessage[], { merge: false }>();
+  if (noteErr) {
+    console.error('[stop-notes] notes fetch failed:', noteErr.message);
+  }
+  notes = noteRows ?? [];
+}
+
+// Group notes by location for the per-stop panels.
+const notesByLocation = new Map<string, StopMessage[]>();
+for (const id of locationIds) notesByLocation.set(id, []);
+for (const n of notes) {
+  const bucket = notesByLocation.get(n.pickup_location_id);
+  if (bucket) bucket.push(n);
+}
+
+const multiLocation = locations.length > 1;
+const title = 'Stop Notes — Tiny Seed Farm CSA';
+---
+
+<MemberShell
+  title={title}
+  canonical="https://csa.tinyseedfarm.com/stop-notes"
+  userEmail={user.email}
+  active="home"
+  back={{ href: '/dashboard', label: 'Dashboard' }}
+>
+  {/* ════ Header ════ */}
+  <section aria-labelledby="stop-notes-heading">
+    <h1
+      id="stop-notes-heading"
+      class="font-display text-3xl font-bold leading-tight tracking-tight text-ts-text sm:text-4xl"
+    >
+      Stop Notes
+    </h1>
+    <p class="mt-2 text-base leading-relaxed text-ts-text-secondary">
+      Logistics updates from the farm for your pickup
+      {locations.length > 1 ? ' locations' : ' location'} — gate codes, tent
+      changes, weather moves. We'll post here when something at your stop changes.
+    </p>
+  </section>
+
+  {/* ════ No pickup / no share ════ */}
+  {locations.length === 0 && (
+    <EmptyState
+      title={hasLiveShare ? 'No pickup set yet' : 'No active share on file'}
+      icon="📍"
+      tone="default"
+      dashed={false}
+    >
+      {hasLiveShare
+        ? "Once your pickup location is set, any notes the farm posts for that stop will show up here."
+        : "Stop Notes are for members with an active share. Sign up for the season and your stop's notes will appear here."}
+      <Fragment slot="action">
+        <a
+          href={hasLiveShare ? '/account/pickup' : 'https://tinyseedfarm.com/collections/tiny-seed-farm-csa'}
+          target={hasLiveShare ? undefined : '_blank'}
+          rel={hasLiveShare ? undefined : 'noopener noreferrer'}
+          class="inline-flex h-11 items-center justify-center rounded-ts-md bg-ts-primary px-6 text-sm font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+        >
+          {hasLiveShare ? 'Choose your pickup' : 'Browse CSA shares'}
+          <span aria-hidden="true" class="ml-1">→</span>
+        </a>
+      </Fragment>
+    </EmptyState>
+  )}
+
+  {/* ════ Location switcher (multi-location members only) ════ */}
+  {multiLocation && (
+    <div
+      role="tablist"
+      aria-label="Your pickup locations"
+      data-stop-tablist
+      class="flex flex-wrap gap-2"
+    >
+      {locations.map((loc, i) => (
+        <button
+          type="button"
+          role="tab"
+          id={`stop-tab-${loc.id}`}
+          aria-controls={`stop-panel-${loc.id}`}
+          aria-selected={i === 0 ? 'true' : 'false'}
+          tabindex={i === 0 ? 0 : -1}
+          data-stop-tab={loc.id}
+          class="inline-flex h-10 items-center gap-1.5 rounded-ts-md border px-4 text-sm font-semibold transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary aria-selected:border-ts-primary aria-selected:bg-ts-primary/10 aria-selected:text-ts-primary [&:not([aria-selected='true'])]:border-ts-border [&:not([aria-selected='true'])]:bg-ts-bg-surface [&:not([aria-selected='true'])]:text-ts-text-secondary [&:not([aria-selected='true'])]:hover:border-ts-primary/40 [&:not([aria-selected='true'])]:hover:text-ts-text"
+        >
+          <span aria-hidden="true">📍</span>
+          {loc.name}
+        </button>
+      ))}
+    </div>
+  )}
+
+  {/* ════ Per-location note panels ════ */}
+  {locations.map((loc, i) => {
+    const locNotes = notesByLocation.get(loc.id) ?? [];
+    return (
+      <section
+        id={`stop-panel-${loc.id}`}
+        role={multiLocation ? 'tabpanel' : undefined}
+        aria-labelledby={multiLocation ? `stop-tab-${loc.id}` : undefined}
+        tabindex={multiLocation ? 0 : undefined}
+        data-stop-panel={loc.id}
+        hidden={multiLocation && i !== 0}
+        class="flex flex-col gap-4"
+      >
+        {/* Panel header — always show the stop name as an h2 so the page
+            has a clear heading structure even for single-location members. */}
+        <div class="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 class="font-display text-xl font-bold text-ts-text sm:text-2xl">
+            {loc.name}
+          </h2>
+          {loc.place && (
+            <span class="text-sm text-ts-text-muted">{loc.place}</span>
+          )}
+        </div>
+
+        {locNotes.length === 0 ? (
+          <EmptyState
+            title="No notes for your pickup yet"
+            icon="🌿"
+            tone="primary"
+            dashed
+          >
+            When the farm posts an update for {loc.name} — a tent change, a
+            gate code, a weather move — it'll show up right here.
+          </EmptyState>
+        ) : (
+          <ol class="flex flex-col gap-3" aria-label={`Notes for ${loc.name}`}>
+            {locNotes.map((note) => {
+              const badge = ROLE_BADGE_LABEL[note.author_role] ?? 'Farm';
+              const when = formatNoteTimestamp(note.created_at);
+              return (
+                <li
+                  class="rounded-ts-xl border border-ts-primary/20 bg-ts-primary/5 p-4 shadow-ts-sm sm:p-5"
+                >
+                  <div class="flex flex-wrap items-center gap-2">
+                    <span
+                      class="inline-flex items-center rounded-full bg-ts-primary/15 px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-ts-primary"
+                    >
+                      {badge}
+                    </span>
+                    <span class="text-sm font-semibold text-ts-text">
+                      {note.author_display_name}
+                    </span>
+                    {when && (
+                      <>
+                        <span class="text-ts-text-secondary" aria-hidden="true">·</span>
+                        {/* text-secondary (slate-600 #475569), not text-muted
+                            (slate-500 #64748b): muted fails WCAG AA on this
+                            green-tinted card surface (≈4.3:1); secondary clears
+                            it comfortably. */}
+                        <time
+                          datetime={note.created_at}
+                          class="text-xs text-ts-text-secondary tabular-nums"
+                        >
+                          {when}
+                        </time>
+                      </>
+                    )}
+                  </div>
+                  <p class="mt-2 whitespace-pre-wrap break-words text-sm leading-relaxed text-ts-text sm:text-base">
+                    {note.body}
+                  </p>
+                </li>
+              );
+            })}
+          </ol>
+        )}
+      </section>
+    );
+  })}
+</MemberShell>
+
+{/* Multi-location tab switcher — progressive enhancement. Without JS the
+    first panel is shown and the rest are [hidden]; with JS the tabs toggle
+    visibility + manage roving-tabindex keyboard nav (ArrowLeft/Right). */}
+<script is:inline>
+  (function () {
+    var tablist = document.querySelector('[data-stop-tablist]');
+    if (!tablist) return;
+    var tabs = Array.prototype.slice.call(
+      document.querySelectorAll('[data-stop-tab]')
+    );
+    if (tabs.length < 2) return;
+
+    function select(id, focus) {
+      tabs.forEach(function (tab) {
+        var on = tab.getAttribute('data-stop-tab') === id;
+        tab.setAttribute('aria-selected', on ? 'true' : 'false');
+        tab.setAttribute('tabindex', on ? '0' : '-1');
+        if (on && focus) tab.focus();
+      });
+      var panels = document.querySelectorAll('[data-stop-panel]');
+      Array.prototype.forEach.call(panels, function (panel) {
+        var on = panel.getAttribute('data-stop-panel') === id;
+        if (on) panel.removeAttribute('hidden');
+        else panel.setAttribute('hidden', '');
+      });
+    }
+
+    tablist.addEventListener('click', function (e) {
+      var tab = e.target.closest('[data-stop-tab]');
+      if (tab) select(tab.getAttribute('data-stop-tab'), false);
+    });
+
+    tablist.addEventListener('keydown', function (e) {
+      var idx = tabs.indexOf(document.activeElement);
+      if (idx === -1) return;
+      var next = -1;
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next = (idx + 1) % tabs.length;
+      else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') next = (idx - 1 + tabs.length) % tabs.length;
+      else if (e.key === 'Home') next = 0;
+      else if (e.key === 'End') next = tabs.length - 1;
+      if (next !== -1) {
+        e.preventDefault();
+        select(tabs[next].getAttribute('data-stop-tab'), true);
+      }
+    });
+  })();
+</script>

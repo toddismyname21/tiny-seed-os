@@ -48,6 +48,7 @@ const PROTECTED_PREFIXES = [
   '/profile',
   '/onboarding',
   '/account',
+  '/stop-notes',
   '/admin',
 ];
 

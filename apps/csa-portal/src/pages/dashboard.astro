@@ -878,6 +878,26 @@ const title = `Welcome back, ${firstName} — Tiny Seed Farm CSA`;
                 Tell us what you don't eat — we'll never put it in your box.
               </span>
             </a>
+
+            {/* Stop Notes (chat Phase 0, 2026-05-24). Read-only logistics
+                board for the member's pickup stop(s). Shown only when ≥1 active
+                share HAS a pickup location set — otherwise the page would be
+                empty/no-stop, so we don't surface a dead-end card. Links to the
+                dedicated /stop-notes page (we keep the bottom nav at 4 items
+                per the spec, so this card is the entry point). */}
+            {activeShares.some((s) => s.pickup_location_id != null) && (
+              <a
+                href="/stop-notes"
+                class="group flex flex-col items-start gap-2 rounded-ts-xl border border-ts-border bg-ts-bg-surface p-5 shadow-ts-sm transition-all duration-200 hover:border-ts-primary/40 hover:shadow-ts-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary sm:col-span-2"
+              >
+                <span class="text-2xl" aria-hidden="true">📍</span>
+                <span class="font-semibold text-ts-text">Stop Notes</span>
+                <span class="text-sm leading-snug text-ts-text-secondary">
+                  Logistics updates from the farm for your pickup —
+                  gate codes, tent changes, weather moves.
+                </span>
+              </a>
+            )}
           </div>
 
           {/* Contact: copyable email + mailto (always works without a mail app). */}

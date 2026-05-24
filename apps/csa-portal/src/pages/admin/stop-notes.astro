@@ -1,0 +1,445 @@
+---
+/**
+ * /admin/stop-notes — staff compose + manage Stop Notes (chat Phase 0).
+ *
+ * This is the ONLY way notes are created in Phase 0 (members are read-only).
+ * Two parts:
+ *   1. Compose form: pick a pickup location, choose Farm (staff) or Host
+ *      voice, type the note, post. Host voice reveals a "host name" field
+ *      (Phase-0 host notes are posted by staff on the host's behalf —
+ *      spec §5.3a). Editing pre-fills the form via ?edit=<id>.
+ *   2. Recent notes, grouped by location, with Edit / Hide / Unhide. Hidden
+ *      notes are shown to staff (greyed, "Hidden" badge) so they can unhide;
+ *      members never see them (RLS read policy filters hidden_at IS NULL).
+ *
+ * All writes go to POST /api/admin/stop-notes (action=post|update|hide|
+ * unhide), which enforces CSRF + admin + Zod. We read with the cookie-aware
+ * client whose stop_messages_admin_all policy returns ALL notes incl. hidden.
+ *
+ * Gated by middleware (admin/staff); the API re-checks defensively.
+ */
+import AdminShell from '../../components/AdminShell.astro';
+import Card from '../../components/Card.astro';
+import FormRow from '../../components/FormRow.astro';
+import Select from '../../components/Select.astro';
+import { BODY_MAX, ROLE_BADGE_LABEL, formatNoteTimestamp, type StopMessage } from '../../lib/stop-chat';
+
+export const prerender = false;
+
+const supabase = Astro.locals.supabase;
+const url = Astro.url;
+
+const editId = url.searchParams.get('edit');
+const ok = url.searchParams.get('ok');
+const errorCode = url.searchParams.get('error');
+
+// ─── Load active pickup locations (for the select + grouping) ────────
+type LocRow = {
+  id: string;
+  name: string;
+  city: string | null;
+  state: string;
+  is_active: boolean;
+};
+const { data: locRows, error: locErr } = await supabase
+  .from('pickup_locations')
+  .select('id, name, city, state, is_active')
+  .order('is_active', { ascending: false })
+  .order('name', { ascending: true })
+  .overrideTypes<LocRow[], { merge: false }>();
+if (locErr) {
+  console.error('[admin/stop-notes] locations fetch failed:', locErr.message);
+}
+const locations = locRows ?? [];
+const activeLocations = locations.filter((l) => l.is_active);
+const locName = new Map(locations.map((l) => [l.id, l.name]));
+
+// ─── Load all notes (admin RLS bypass returns hidden too) ───────────
+const { data: noteRows, error: noteErr } = await supabase
+  .from('stop_messages')
+  .select('*')
+  .order('created_at', { ascending: false })
+  .overrideTypes<StopMessage[], { merge: false }>();
+if (noteErr) {
+  console.error('[admin/stop-notes] notes fetch failed:', noteErr.message);
+}
+const notes = noteRows ?? [];
+
+const editing = editId ? notes.find((n) => n.id === editId) ?? null : null;
+
+// Group notes by location (preserve the newest-first order within a group).
+const notesByLoc = new Map<string, StopMessage[]>();
+for (const n of notes) {
+  if (!notesByLoc.has(n.pickup_location_id)) notesByLoc.set(n.pickup_location_id, []);
+  notesByLoc.get(n.pickup_location_id)!.push(n);
+}
+// Render groups in active-location order, then any orphan locations.
+const orderedLocIds = [
+  ...locations.map((l) => l.id).filter((id) => notesByLoc.has(id)),
+  ...Array.from(notesByLoc.keys()).filter((id) => !locName.has(id)),
+];
+
+const locationOptions = activeLocations.map((l) => ({
+  value: l.id,
+  label: [l.name, [l.city, l.state].filter(Boolean).join(', ')].filter(Boolean).join(' — '),
+}));
+
+// ─── Banner copy ─────────────────────────────────────────────────────
+const OK_MESSAGES: Record<string, string> = {
+  posted: 'Note posted. Members at that stop will see it now.',
+  updated: 'Note updated.',
+  hidden: 'Note hidden — members no longer see it.',
+  unhidden: 'Note restored — members see it again.',
+};
+const ERROR_MESSAGES: Record<string, string> = {
+  invalid_input: 'Something was off with that submission. Please try again.',
+  location_required: 'Pick a pickup location.',
+  location_not_found: "That pickup location doesn't exist anymore.",
+  invalid_role: 'Pick a voice — Farm or Host.',
+  body_required: 'The note can\'t be empty.',
+  body_too_long: `That note is too long (max ${BODY_MAX} characters).`,
+  host_name_required: 'Add the host name to post in the host\'s voice.',
+  host_name_too_long: 'That host name is too long.',
+  network: 'We hit a snag saving that. Please try again.',
+};
+const okMsg = ok ? OK_MESSAGES[ok] ?? null : null;
+const errMsg = errorCode ? ERROR_MESSAGES[errorCode] ?? ERROR_MESSAGES.invalid_input : null;
+
+const initialRole = editing?.author_role === 'host' ? 'host' : 'staff';
+const noLocations = activeLocations.length === 0;
+---
+
+<AdminShell
+  title="Stop Notes"
+  subtitle="Post a logistics note to a pickup stop. Members at that stop see it on their Stop Notes page."
+  pageTitle="Stop Notes — Tiny Seed Admin"
+  canonical="https://csa.tinyseedfarm.com/admin/stop-notes"
+>
+  {/* ════ Status banner ════ */}
+  {okMsg && (
+    <div
+      role="status"
+      class="rounded-ts-md border border-ts-primary/30 bg-ts-primary/10 px-4 py-3 text-sm font-medium text-ts-primary"
+    >
+      {okMsg}
+    </div>
+  )}
+  {errMsg && (
+    <div
+      role="alert"
+      class="rounded-ts-md border border-ts-danger/30 bg-ts-danger/5 px-4 py-3 text-sm font-medium text-ts-danger"
+    >
+      {errMsg}
+    </div>
+  )}
+
+  {/* ════ Compose / Edit form ════ */}
+  <section aria-labelledby="compose-heading" class="flex flex-col gap-4">
+    <div class="flex items-baseline justify-between gap-3">
+      <h2 id="compose-heading" class="font-display text-xl font-bold text-ts-text sm:text-2xl">
+        {editing ? 'Edit note' : 'Post a note'}
+      </h2>
+      {editing && (
+        <a
+          href="/admin/stop-notes"
+          class="text-sm font-medium text-ts-text-secondary underline-offset-2 hover:text-ts-primary hover:underline"
+        >
+          Cancel edit
+        </a>
+      )}
+    </div>
+
+    {noLocations ? (
+      <Card padding="lg" elevation="sm">
+        <div class="flex flex-col items-center gap-3 py-6 text-center">
+          <span class="text-3xl" aria-hidden="true">📍</span>
+          <p class="font-semibold text-ts-text">No active pickup locations</p>
+          <p class="max-w-sm text-sm text-ts-text-secondary">
+            Add or activate a pickup location first, then you can post notes to it.
+          </p>
+          <a
+            href="/admin/pickup-locations"
+            class="mt-1 inline-flex h-10 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-semibold text-ts-text transition-colors duration-150 hover:border-ts-primary/40 hover:text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+          >
+            Manage pickup locations →
+          </a>
+        </div>
+      </Card>
+    ) : (
+      <Card padding="lg" elevation="sm">
+        <form
+          method="POST"
+          action="/api/admin/stop-notes"
+          class="flex flex-col gap-5"
+          data-note-form
+        >
+          <input type="hidden" name="action" value={editing ? 'update' : 'post'} />
+          {editing && <input type="hidden" name="id" value={editing.id} />}
+
+          {/* Location — read-only display when editing (can't move a note). */}
+          {editing ? (
+            <FormRow label="Pickup location" htmlFor="note-location-display">
+              <p
+                id="note-location-display"
+                class="flex h-11 items-center rounded-ts-md border border-ts-border bg-ts-bg-muted/50 px-4 text-base text-ts-text"
+              >
+                {locName.get(editing.pickup_location_id) ?? 'Unknown location'}
+              </p>
+            </FormRow>
+          ) : (
+            <FormRow label="Pickup location" htmlFor="note-location" required>
+              <Select
+                id="note-location"
+                name="pickup_location_id"
+                placeholder="Choose a stop…"
+                required
+                options={locationOptions}
+              />
+            </FormRow>
+          )}
+
+          {/* Voice: Farm (staff) vs Host. Edit keeps the original role
+              (role isn't editable post-hoc — author_role is captured at
+              post time), so we hide the toggle while editing. */}
+          {!editing && (
+            <fieldset class="flex flex-col gap-2">
+              <legend class="text-sm font-semibold text-ts-text">Voice</legend>
+              <div
+                class="inline-flex w-full max-w-sm rounded-ts-md border border-ts-border bg-ts-bg-base p-1"
+                role="radiogroup"
+                aria-label="Note voice"
+              >
+                <label class="flex-1">
+                  <input
+                    type="radio"
+                    name="role"
+                    value="staff"
+                    class="peer sr-only"
+                    checked={initialRole === 'staff'}
+                    data-role-radio
+                  />
+                  <span class="flex h-10 cursor-pointer items-center justify-center rounded-ts-sm text-sm font-medium text-ts-text-secondary transition-colors peer-checked:bg-ts-primary peer-checked:text-white peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ts-primary">
+                    Farm
+                  </span>
+                </label>
+                <label class="flex-1">
+                  <input
+                    type="radio"
+                    name="role"
+                    value="host"
+                    class="peer sr-only"
+                    checked={initialRole === 'host'}
+                    data-role-radio
+                  />
+                  <span class="flex h-10 cursor-pointer items-center justify-center rounded-ts-sm text-sm font-medium text-ts-text-secondary transition-colors peer-checked:bg-ts-primary peer-checked:text-white peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ts-primary">
+                    Host
+                  </span>
+                </label>
+              </div>
+              <p class="text-xs text-ts-text-muted">
+                <strong>Farm</strong> = posted as you ({ROLE_BADGE_LABEL.staff} badge).
+                <strong>Host</strong> = posted on a host's behalf ({ROLE_BADGE_LABEL.host} badge) — add their name below.
+              </p>
+            </fieldset>
+          )}
+
+          {/* Host name — host voice only (compose), hidden by default. */}
+          {!editing && (
+            <div data-field-host class={initialRole === 'host' ? '' : 'hidden'}>
+              <FormRow
+                label="Host name"
+                htmlFor="note-host-name"
+                help="Shown to members as the author (e.g. 'Brewery yard host'). First name + initial style."
+              >
+                <input
+                  id="note-host-name"
+                  type="text"
+                  name="host_name"
+                  maxlength="80"
+                  placeholder="e.g. Highland Park host"
+                  class="h-11 w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-3 text-base text-ts-text outline-none transition-colors focus:border-ts-primary focus:ring-2 focus:ring-ts-primary/30"
+                />
+              </FormRow>
+            </div>
+          )}
+
+          {/* Body */}
+          <FormRow
+            label="Note"
+            htmlFor="note-body"
+            required
+            help="Plain text. Line breaks are kept. Members at this stop will see it."
+          >
+            <textarea
+              id="note-body"
+              name="body"
+              rows="4"
+              required
+              maxlength={BODY_MAX}
+              placeholder="e.g. Highland Park: we're under the blue tent today by the side entrance."
+              class="w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-3 py-2 text-base leading-relaxed text-ts-text outline-none transition-colors focus:border-ts-primary focus:ring-2 focus:ring-ts-primary/30"
+            >{editing?.body ?? ''}</textarea>
+          </FormRow>
+
+          <div class="flex items-center gap-3 pt-1">
+            <button
+              type="submit"
+              class="inline-flex h-11 items-center justify-center rounded-ts-md bg-ts-primary px-6 text-sm font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+            >
+              {editing ? 'Save changes' : 'Post note'}
+            </button>
+            {editing && (
+              <a
+                href="/admin/stop-notes"
+                class="inline-flex h-11 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-5 text-sm font-medium text-ts-text transition-colors duration-150 hover:border-ts-primary/40 hover:text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+              >
+                Cancel
+              </a>
+            )}
+          </div>
+        </form>
+      </Card>
+    )}
+  </section>
+
+  {/* ════ Recent notes, grouped by location ════ */}
+  <section aria-labelledby="notes-heading" class="flex flex-col gap-4">
+    <div class="flex items-baseline justify-between gap-3">
+      <h2 id="notes-heading" class="font-display text-xl font-bold text-ts-text sm:text-2xl">
+        Posted notes
+      </h2>
+      <span class="text-sm text-ts-text-muted tabular-nums">
+        {notes.length} note{notes.length === 1 ? '' : 's'}
+      </span>
+    </div>
+
+    {notes.length === 0 ? (
+      <Card padding="lg" elevation="sm">
+        <div class="flex flex-col items-center gap-3 py-8 text-center">
+          <span class="text-4xl" aria-hidden="true">📭</span>
+          <p class="font-semibold text-ts-text">No notes posted yet</p>
+          <p class="max-w-sm text-sm text-ts-text-secondary">
+            Post your first note above. Use it for stop logistics — a tent
+            change, a gate code, a rain plan. Members at that stop see it instantly.
+          </p>
+        </div>
+      </Card>
+    ) : (
+      <div class="flex flex-col gap-6">
+        {orderedLocIds.map((locId) => {
+          const group = notesByLoc.get(locId) ?? [];
+          return (
+            <div class="flex flex-col gap-3">
+              <h3 class="font-display text-base font-semibold text-ts-text-secondary">
+                {locName.get(locId) ?? 'Unknown location'}
+                <span class="ml-2 text-xs font-normal text-ts-text-muted tabular-nums">
+                  {group.length} note{group.length === 1 ? '' : 's'}
+                </span>
+              </h3>
+              <Card padding="none" elevation="sm">
+                <ul class="divide-y divide-ts-border/60">
+                  {group.map((note) => {
+                    const hidden = note.hidden_at != null;
+                    const badge = ROLE_BADGE_LABEL[note.author_role] ?? 'Farm';
+                    const when = formatNoteTimestamp(note.created_at);
+                    return (
+                      <li
+                        class={[
+                          'flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-start sm:justify-between sm:px-6',
+                          hidden ? 'bg-ts-bg-muted/40' : '',
+                        ].join(' ')}
+                      >
+                        <div class="min-w-0 flex-1">
+                          <div class="flex flex-wrap items-center gap-2">
+                            <span class="inline-flex items-center rounded-full bg-ts-primary/10 px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-ts-primary">
+                              {badge}
+                            </span>
+                            <span class="text-sm font-semibold text-ts-text">
+                              {note.author_display_name}
+                            </span>
+                            {when && (
+                              <span class="text-xs text-ts-text-muted tabular-nums">· {when}</span>
+                            )}
+                            {hidden && (
+                              <span class="inline-flex items-center rounded-full bg-ts-bg-muted px-2 py-0.5 text-xs font-semibold text-ts-text-muted">
+                                Hidden
+                              </span>
+                            )}
+                          </div>
+                          <p class={[
+                            'mt-2 whitespace-pre-wrap break-words text-sm leading-relaxed',
+                            hidden ? 'text-ts-text-muted line-through' : 'text-ts-text',
+                          ].join(' ')}>
+                            {note.body}
+                          </p>
+                        </div>
+
+                        <div class="flex shrink-0 items-center gap-2">
+                          {!hidden && (
+                            <a
+                              href={`/admin/stop-notes?edit=${note.id}#compose-heading`}
+                              class="inline-flex h-9 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-xs font-semibold text-ts-text transition-colors duration-150 hover:border-ts-primary/40 hover:text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+                            >
+                              Edit
+                            </a>
+                          )}
+                          {hidden ? (
+                            <form method="POST" action="/api/admin/stop-notes" class="m-0">
+                              <input type="hidden" name="action" value="unhide" />
+                              <input type="hidden" name="id" value={note.id} />
+                              <button
+                                type="submit"
+                                class="inline-flex h-9 items-center justify-center rounded-ts-md border border-ts-primary/30 bg-ts-primary/10 px-3 text-xs font-semibold text-ts-primary transition-colors duration-150 hover:bg-ts-primary/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+                              >
+                                Unhide
+                              </button>
+                            </form>
+                          ) : (
+                            <form method="POST" action="/api/admin/stop-notes" class="m-0" data-hide-form>
+                              <input type="hidden" name="action" value="hide" />
+                              <input type="hidden" name="id" value={note.id} />
+                              <button
+                                type="submit"
+                                class="inline-flex h-9 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-xs font-semibold text-ts-danger transition-colors duration-150 hover:border-ts-danger/40 hover:bg-ts-danger/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-danger"
+                              >
+                                Hide
+                              </button>
+                            </form>
+                          )}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </Card>
+            </div>
+          );
+        })}
+      </div>
+    )}
+  </section>
+
+  <script is:inline>
+    (function () {
+      // Voice toggle: reveal the host-name field for the Host voice.
+      var hostField = document.querySelector('[data-field-host]');
+      var radios = document.querySelectorAll('[data-role-radio]');
+      function applyVoice() {
+        var checked = document.querySelector('[data-role-radio]:checked');
+        var role = checked ? checked.value : 'staff';
+        if (hostField) hostField.classList.toggle('hidden', role !== 'host');
+      }
+      radios.forEach(function (r) { r.addEventListener('change', applyVoice); });
+      applyVoice();
+
+      // Hide confirmation (soft-delete; reversible via Unhide).
+      document.querySelectorAll('[data-hide-form]').forEach(function (form) {
+        form.addEventListener('submit', function (e) {
+          if (!window.confirm('Hide this note from members? You can unhide it later.')) {
+            e.preventDefault();
+          }
+        });
+      });
+    })();
+  </script>
+</AdminShell>

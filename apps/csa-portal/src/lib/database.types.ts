@@ -457,6 +457,54 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['member_comms']['Row']>;
         Relationships: [];
       };
+      // Per-pickup-location note board (migration 0029, Stop Notes / chat
+      // Phase 0). Phase 0: staff/host authored, members read-only (no member
+      // INSERT policy). author_role is reserved-'member' for the Phase-1
+      // open-chat upgrade. Soft-delete via hidden_at. report_count + the
+      // stop_message_reports table exist now so Phase 1 is policy/trigger-only.
+      stop_messages: {
+        Row: {
+          id: string;
+          pickup_location_id: string;
+          author_customer_id: string;
+          author_display_name: string;
+          author_role: 'member' | 'staff' | 'host';
+          body: string;
+          hidden_at: string | null;
+          hidden_by: string | null;
+          hidden_reason: 'staff' | 'auto_reports' | 'author' | null;
+          report_count: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          pickup_location_id: string;
+          author_customer_id: string;
+          author_display_name: string;
+          body: string;
+        } & Partial<Database['public']['Tables']['stop_messages']['Row']>;
+        Update: Partial<Database['public']['Tables']['stop_messages']['Row']>;
+        Relationships: [];
+      };
+      // Phase-1 member reporting of stop_messages (migration 0029). Created in
+      // Phase 0 so the Phase-1 upgrade is policy/trigger/RPC only; stays empty
+      // until member reporting ships. Admin-only RLS in Phase 0.
+      stop_message_reports: {
+        Row: {
+          id: string;
+          message_id: string;
+          reporter_customer_id: string;
+          reason: 'spam' | 'harassment' | 'offensive' | 'off_topic' | 'other' | null;
+          note: string | null;
+          created_at: string;
+        };
+        Insert: {
+          message_id: string;
+          reporter_customer_id: string;
+        } & Partial<Database['public']['Tables']['stop_message_reports']['Row']>;
+        Update: Partial<Database['public']['Tables']['stop_message_reports']['Row']>;
+        Relationships: [];
+      };
     };
     Views: {
       member_flex_balance: {
@@ -539,6 +587,13 @@ export interface Database {
       unsubscribe_member_by_email: {
         Args: { p_email: string };
         Returns: number;
+      };
+      // Stop Notes (migration 0029). The set of pickup_location_ids the
+      // caller belongs to (active/paused/onboarding shares), household-resolved
+      // via current_customer_id(). Drives the stop_messages member-read policy.
+      current_member_location_ids: {
+        Args: Record<string, never>;
+        Returns: string[];
       };
     };
     Enums: { [_: string]: never };

@@ -386,6 +386,169 @@ export async function restoreTestMemberPickup(
   }
 }
 
+// ── Stop Notes fixture (chat Phase 0) ──────────────────────────────────
+//
+// Proves the migration-0029 read-scoping end to end: a member at stop A sees
+// a staff-posted note for stop A and does NOT see a note posted at stop B.
+//
+// We can't rely on the test member's real pickup (global-setup CLEARS it for
+// the FIX-1 banner test). So this fixture, run in the stop-notes spec's
+// beforeAll via service-role:
+//   1. creates two ephemeral pickup locations (A, B),
+//   2. points the member's first active share at location A (snapshotting the
+//      prior pickup so afterAll restores it),
+//   3. inserts one staff note at A (must be visible) and one at B (must be
+//      hidden from this member by RLS).
+// afterAll deletes the notes + locations + restores the share's pickup.
+//
+// Service-role only (controlled test mutation; members + stop_messages both
+// have admin/service-role write paths, and stop_messages has NO member insert
+// policy by design in Phase 0).
+
+export const STOP_NOTE_A_BODY = 'E2E Stop A note — under the blue tent today.';
+export const STOP_NOTE_B_BODY = 'E2E Stop B note — you should NOT see this.';
+const STOP_LOC_A_NAME = 'E2E Stop A (Highland Park)';
+const STOP_LOC_B_NAME = 'E2E Stop B (Bloomfield)';
+
+export interface StopNotesFixture {
+  /** The member share row we re-pointed (to restore on teardown). */
+  memberId: string;
+  /** The share's prior pickup state (restored on teardown). */
+  priorPickupLocationId: string | null;
+  priorDeliveryAddress: string | null;
+  /** The two ephemeral locations we created. */
+  locationAId: string;
+  locationBId: string;
+}
+
+/**
+ * Seed the cross-stop isolation fixture. Returns the fixture, or null when the
+ * test member has no active share to re-point (the spec self-skips then).
+ */
+export async function seedStopNotesFixture(env: TestEnv): Promise<StopNotesFixture | null> {
+  const admin = adminClient(env);
+
+  // Resolve the test member's customer + an active share to re-point, plus an
+  // author customer id for the notes (the owner/admin if present, else the
+  // member's own customer — the FK only needs ANY valid customers row).
+  const { data: customer, error: custErr } = await admin
+    .from('customers')
+    .select('id, members(id, status, pickup_location_id, delivery_address)')
+    .eq('email', env.testEmail)
+    .maybeSingle();
+  if (custErr) {
+    throw new Error(`[e2e] stop-notes fixture: customer lookup failed: ${custErr.message}`);
+  }
+  const cust = customer as
+    | {
+        id: string;
+        members?: {
+          id: string;
+          status: string;
+          pickup_location_id: string | null;
+          delivery_address: string | null;
+        }[];
+      }
+    | null;
+  const active = (cust?.members ?? []).find((m) => m.status === 'active');
+  if (!cust || !active) return null;
+
+  // Author for the notes: prefer an admin/staff customer; fall back to the
+  // member's own customer id (valid FK target either way).
+  const { data: adminRow } = await admin
+    .from('customers')
+    .select('id')
+    .in('role', ['admin', 'staff'])
+    .limit(1)
+    .maybeSingle();
+  const authorId = (adminRow as { id: string } | null)?.id ?? cust.id;
+
+  // 1. Create two ephemeral locations.
+  const { data: locs, error: locErr } = await admin
+    .from('pickup_locations')
+    .insert([
+      { name: STOP_LOC_A_NAME, state: 'PA', is_active: true },
+      { name: STOP_LOC_B_NAME, state: 'PA', is_active: true },
+    ])
+    .select('id, name');
+  if (locErr || !locs || locs.length !== 2) {
+    throw new Error(`[e2e] stop-notes fixture: location create failed: ${locErr?.message ?? 'no rows'}`);
+  }
+  const locA = (locs as { id: string; name: string }[]).find((l) => l.name === STOP_LOC_A_NAME)!;
+  const locB = (locs as { id: string; name: string }[]).find((l) => l.name === STOP_LOC_B_NAME)!;
+
+  // 2. Point the member's active share at location A (snapshot prior state).
+  const prior = {
+    memberId: active.id,
+    priorPickupLocationId: active.pickup_location_id,
+    priorDeliveryAddress: active.delivery_address,
+  };
+  const { error: updErr } = await admin
+    .from('members')
+    .update({ pickup_location_id: locA.id, delivery_address: null })
+    .eq('id', active.id);
+  if (updErr) {
+    throw new Error(`[e2e] stop-notes fixture: re-point member failed: ${updErr.message}`);
+  }
+
+  // 3. Insert one visible staff note at A, one at B.
+  const { error: noteErr } = await admin.from('stop_messages').insert([
+    {
+      pickup_location_id: locA.id,
+      author_customer_id: authorId,
+      author_display_name: 'Todd',
+      author_role: 'staff',
+      body: STOP_NOTE_A_BODY,
+    },
+    {
+      pickup_location_id: locB.id,
+      author_customer_id: authorId,
+      author_display_name: 'Todd',
+      author_role: 'staff',
+      body: STOP_NOTE_B_BODY,
+    },
+  ]);
+  if (noteErr) {
+    throw new Error(`[e2e] stop-notes fixture: note insert failed: ${noteErr.message}`);
+  }
+
+  return {
+    memberId: prior.memberId,
+    priorPickupLocationId: prior.priorPickupLocationId,
+    priorDeliveryAddress: prior.priorDeliveryAddress,
+    locationAId: locA.id,
+    locationBId: locB.id,
+  };
+}
+
+/** Tear down the stop-notes fixture: delete notes + locations, restore pickup. */
+export async function cleanupStopNotesFixture(
+  env: TestEnv,
+  fx: StopNotesFixture
+): Promise<void> {
+  const admin = adminClient(env);
+  // Restore the member's original pickup FIRST (so it's never left pointing at
+  // a location we're about to delete).
+  await admin
+    .from('members')
+    .update({
+      pickup_location_id: fx.priorPickupLocationId,
+      delivery_address: fx.priorDeliveryAddress,
+    })
+    .eq('id', fx.memberId);
+  // Deleting the locations CASCADEs the notes (stop_messages FK is ON DELETE
+  // CASCADE), but delete notes explicitly too in case the cascade is ever
+  // loosened.
+  await admin
+    .from('stop_messages')
+    .delete()
+    .in('pickup_location_id', [fx.locationAId, fx.locationBId]);
+  await admin
+    .from('pickup_locations')
+    .delete()
+    .in('id', [fx.locationAId, fx.locationBId]);
+}
+
 /** Remove the seeded fixture + any swap it produced. Best-effort. */
 export async function cleanupSwapFixture(env: TestEnv, fx: SwapFixture): Promise<void> {
   const admin = adminClient(env);

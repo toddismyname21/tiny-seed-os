@@ -205,8 +205,41 @@ if [ "$ACTION" = "create" ]; then
             fi
         fi
 
+        # Admin-page / member-page layering: a page under */admin/* and its
+        # member-facing counterpart NOT under admin/ are intentionally
+        # DIFFERENT surfaces (admin management/compose vs member view), not
+        # duplicate implementations — e.g. src/pages/admin/stop-notes.astro
+        # (AdminShell compose/moderate) vs src/pages/stop-notes.astro
+        # (MemberShell read-only view). Mirrors the lib/-vs-route logic: when
+        # the new file and ALL its matches straddle the admin-vs-non-admin
+        # boundary (exactly one side is under admin/), demote to a WARNING.
+        IS_ADMIN_PAGE=false
+        case "$FILE_NAME" in
+            */admin/*|admin/*) IS_ADMIN_PAGE=true ;;
+        esac
+        MATCHES_HAVE_ADMIN=false
+        MATCHES_HAVE_NONADMIN=false
+        if [ -n "$EXACT_MATCH" ]; then
+            if echo "$EXACT_MATCH" | grep -Eq '/admin/'; then MATCHES_HAVE_ADMIN=true; fi
+            if echo "$EXACT_MATCH" | grep -Eqv '/admin/'; then MATCHES_HAVE_NONADMIN=true; fi
+        fi
+        ADMIN_LAYER_OK=false
+        if [ -n "$EXACT_MATCH" ]; then
+            if [ "$IS_ADMIN_PAGE" = true ] && [ "$MATCHES_HAVE_ADMIN" = false ]; then
+                # New file is the admin page; every match is a member-side page.
+                ADMIN_LAYER_OK=true
+            elif [ "$IS_ADMIN_PAGE" = false ] && [ "$MATCHES_HAVE_NONADMIN" = false ]; then
+                # New file is the member page; every match is the admin page.
+                ADMIN_LAYER_OK=true
+            fi
+        fi
+
         if [ -n "$EXACT_MATCH" ] && [ "$LIB_LAYER_OK" = true ]; then
             echo -e "  ${YELLOW}WARNING: '$BASENAME' is a lib/ module sharing a basename with its consumer route(s). Verify it's the shared-logic layer, not a duplicate:${NC}"
+            echo "$EXACT_MATCH" | while read -r line; do echo "    - $line"; done
+            ((WARNINGS++))
+        elif [ -n "$EXACT_MATCH" ] && [ "$ADMIN_LAYER_OK" = true ]; then
+            echo -e "  ${YELLOW}WARNING: '$BASENAME' is an admin/member page pair (different surfaces, same feature). Verify it's not a true duplicate:${NC}"
             echo "$EXACT_MATCH" | while read -r line; do echo "    - $line"; done
             ((WARNINGS++))
         elif [ -n "$EXACT_MATCH" ] && [ "$IS_REST_HANDLER" = false ]; then
