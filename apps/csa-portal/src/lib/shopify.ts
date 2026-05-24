@@ -268,6 +268,37 @@ export async function issueStoreCredit(
   };
 }
 
+/**
+ * Resolve a Shopify customer GID by email (exact match). Returns null
+ * when no customer has that email. Used by the referral attribution to
+ * find the REFERRER's customer so we can credit their store credit.
+ *
+ * Mirrors flex.ts's email-resolution query but returns just the GID.
+ * Throws on transport / GraphQL error (caller decides severity).
+ */
+const CUSTOMER_GID_BY_EMAIL = `
+  query($q: String!) {
+    customers(first: 1, query: $q) {
+      edges { node { id } }
+    }
+  }
+`;
+
+interface CustomerGidResp {
+  customers: { edges: Array<{ node: { id: string } }> };
+}
+
+export async function getCustomerGidByEmail(email: string): Promise<string | null> {
+  const safe = email.trim().toLowerCase().replace(/(["\\])/g, '\\$1');
+  const res = await shopifyGraphQL<CustomerGidResp>(CUSTOMER_GID_BY_EMAIL, {
+    q: `email:"${safe}"`,
+  });
+  if (res.errors?.length) {
+    throw new Error(`customer-by-email query: ${res.errors.map((e) => e.message).join('; ')}`);
+  }
+  return res.data?.customers?.edges?.[0]?.node?.id ?? null;
+}
+
 /* ──────────────────────────────────────────────────────────────────
  * Order pulling — paginated `orders` query (TS port of the pagination
  * loop in flex_credit_shopify.py / the ORD_Q shape in the backfill).
@@ -302,6 +333,13 @@ export interface ShopifyOrder {
   phone: string | null;
   address: ShopifyAddress | null;
   lineItems: ShopifyLineItem[];
+  /** Discount code strings applied to the order (uppercased by Shopify),
+   *  e.g. ['MARIA-K7Q2']. Empty when no code was used. Used by the
+   *  referral attribution in the order sync. */
+  discountCodes: string[];
+  /** Order total (currentTotalPriceSet.shopMoney.amount, parsed). Used by
+   *  the referral qualifier (> $300). */
+  totalPrice: number;
 }
 
 interface OrdersResp {
@@ -315,6 +353,8 @@ interface OrdersResp {
         displayFinancialStatus: string | null;
         cancelledAt: string | null;
         email: string | null;
+        discountCodes: string[];
+        currentTotalPriceSet: { shopMoney: { amount: string } } | null;
         customer: {
           id: string;
           email: string | null;
@@ -344,6 +384,8 @@ const ORDERS_QUERY = `
       pageInfo { hasNextPage endCursor }
       edges { node {
         id name updatedAt displayFinancialStatus cancelledAt email
+        discountCodes
+        currentTotalPriceSet { shopMoney { amount } }
         customer { id email firstName lastName phone
           defaultAddress { city province zip address1 } }
         lineItems(first: 50) { edges { node {
@@ -408,6 +450,10 @@ export async function fetchOrders(
           quantity: le.node.quantity,
           amount: Number.parseFloat(le.node.originalTotalSet.shopMoney.amount),
         })),
+        discountCodes: Array.isArray(o.discountCodes) ? o.discountCodes : [],
+        totalPrice: o.currentTotalPriceSet
+          ? Number.parseFloat(o.currentTotalPriceSet.shopMoney.amount)
+          : 0,
       });
     }
 
@@ -446,4 +492,18 @@ export function isOrderSkippable(order: ShopifyOrder): boolean {
   if (order.cancelledAt) return true;
   const fs = (order.financialStatus ?? '').toUpperCase();
   return fs === 'REFUNDED' || fs === 'VOIDED';
+}
+
+/**
+ * Is the order fully PAID? Shopify displayFinancialStatus is 'PAID' once
+ * the order is settled. Used by the referral qualifier — we only pay the
+ * referrer once the referred order is actually paid (not pending /
+ * partially paid / authorized). PARTIALLY_REFUNDED still counts as paid
+ * for the referral (the friend completed; a later partial refund on an
+ * add-on shouldn't claw the bonus), but a full REFUND is already excluded
+ * by isOrderSkippable upstream.
+ */
+export function isOrderPaid(order: ShopifyOrder): boolean {
+  const fs = (order.financialStatus ?? '').toUpperCase();
+  return fs === 'PAID' || fs === 'PARTIALLY_REFUNDED';
 }

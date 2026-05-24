@@ -52,14 +52,21 @@ import {
   fetchOrders,
   hasCsaLineItem,
   isOrderSkippable,
+  isOrderPaid,
   categorize,
   issueStoreCredit,
+  getStoreCreditBalance,
+  getCustomerGidByEmail,
   type ShopifyOrder,
   type Category,
 } from '../../../lib/shopify';
 import { isFlexFundsTitle, planFlexCredit } from '../../../lib/flex';
+import { REFERRAL_BONUS_AMOUNT } from '../../../lib/referral';
 
 export const prerender = false;
+
+/** Minimum referred-order total for a referral bonus to pay out ($300). */
+const REFERRAL_MINIMUM_TOTAL = 300;
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body, null, 2), {
@@ -229,6 +236,236 @@ function bestName(order: ShopifyOrder, email: string): string {
 }
 
 /* ──────────────────────────────────────────────────────────────────
+ * REFERRAL ATTRIBUTION
+ *
+ * When a referred order COMPLETES and QUALIFIES, the REFERRER earns $25
+ * in Farm Flex (Shopify store credit). Qualification:
+ *   - the order has a 2026 CSA line item (hasCsaLineItem), AND
+ *   - order total > $300, AND
+ *   - the order is paid + not cancelled/refunded (checked by the caller),
+ *   - it used a discount code that matches a referral_codes.code, AND
+ *   - no referrals row exists yet for this referred_order_id.
+ *
+ * Guards:
+ *   - SELF-REFERRAL: skip if the referred order's email == the referrer's
+ *     email (a member can't refer themselves).
+ *   - IDEMPOTENCY: `referrals.referred_order_id` is UNIQUE. We credit the
+ *     referrer, THEN insert the referrals row. On a duplicate insert
+ *     (re-run / race) the UNIQUE constraint rejects it — but the per-order
+ *     `shopify_order_sync` ledger guard upstream means this code runs at
+ *     most once per order anyway, so the UNIQUE constraint is
+ *     belt-and-suspenders. We re-check for an existing referrals row
+ *     FIRST as a cheap short-circuit.
+ *
+ * Returns the bonus dollars actually paid (0 when nothing qualified /
+ * was skipped). NEVER throws — a referral failure must not fail the
+ * order's core sync (members + flex are already committed). It logs +
+ * records into `errors` via the returned message.
+ * ────────────────────────────────────────────────────────────────── */
+
+interface ReferralOutcome {
+  /** Bonus dollars credited to the referrer this order (0 if none). */
+  credited: number;
+  /** Non-fatal message to surface in the run's errors[] (null = clean). */
+  error: string | null;
+  /** The matched code (for dry-run / logging), or null. */
+  matchedCode: string | null;
+}
+
+async function attributeReferral(
+  order: ShopifyOrder,
+  referredEmail: string
+): Promise<ReferralOutcome> {
+  const none: ReferralOutcome = { credited: 0, error: null, matchedCode: null };
+  try {
+    // No discount codes → nothing to attribute.
+    const codes = order.discountCodes.filter((c) => c && c.trim().length > 0);
+    if (codes.length === 0) return none;
+
+    // QUALIFIER: must have a CSA line item AND total > $300. (paid /
+    // not-cancelled is enforced by the caller before we get here.)
+    if (!hasCsaLineItem(order)) return none;
+    if (!(order.totalPrice > REFERRAL_MINIMUM_TOTAL)) return none;
+
+    // Find a referral_codes row matching ANY code on the order. Shopify
+    // uppercases codes; our codes are stored uppercase, but compare
+    // case-insensitively to be safe.
+    const { data: codeRows, error: codeErr } = await supabaseAdmin
+      .from('referral_codes')
+      .select('code, customer_id')
+      .in('code', codes);
+    if (codeErr) throw new Error(`referral_codes lookup: ${codeErr.message}`);
+
+    // Case-insensitive match (defensive — `.in` is case-sensitive).
+    const upper = new Set(codes.map((c) => c.trim().toUpperCase()));
+    const match =
+      (codeRows ?? []).find((r) => upper.has(r.code.trim().toUpperCase())) ?? null;
+    if (!match) return none; // a discount code, but not one of ours
+
+    // Resolve the REFERRER's customer (email needed for self-ref guard +
+    // flex_transactions row + Shopify credit).
+    const { data: referrer, error: refErr } = await supabaseAdmin
+      .from('customers')
+      .select('email')
+      .eq('id', match.customer_id)
+      .maybeSingle();
+    if (refErr) throw new Error(`referrer lookup: ${refErr.message}`);
+    if (!referrer?.email) {
+      return { credited: 0, error: null, matchedCode: match.code };
+    }
+    const referrerEmail = referrer.email.trim().toLowerCase();
+
+    // SELF-REFERRAL GUARD: a member can't refer themselves.
+    if (referrerEmail === referredEmail.trim().toLowerCase()) {
+      console.warn(
+        `[sync] referral self-use skipped: order ${order.name}, code ${match.code}`
+      );
+      return { credited: 0, error: null, matchedCode: match.code };
+    }
+
+    // IDEMPOTENCY short-circuit: already attributed this order?
+    const { data: existingRef, error: existRefErr } = await supabaseAdmin
+      .from('referrals')
+      .select('id')
+      .eq('referred_order_id', order.id)
+      .maybeSingle();
+    if (existRefErr) throw new Error(`referrals dedupe read: ${existRefErr.message}`);
+    if (existingRef) return { credited: 0, error: null, matchedCode: match.code };
+
+    // Resolve the referrer's Shopify customer to credit store credit.
+    const referrerGid = await getCustomerGidByEmail(referrerEmail);
+    if (!referrerGid) {
+      // The referrer has no Shopify customer — can't credit. Surface so a
+      // human can reconcile, but don't fail the whole order.
+      return {
+        credited: 0,
+        error: `referral: referrer ${referrerEmail} has no Shopify customer (order ${order.name}, code ${match.code})`,
+        matchedCode: match.code,
+      };
+    }
+
+    // CREDIT the referrer $25 in store credit (Farm Flex). issueStoreCredit
+    // tops up TO a target above the current balance, so to ADD exactly $25
+    // we pass target = currentBalance + 25. We read the current balance
+    // here (fail-soft → 0; worst case we top up to $25 rather than adding).
+    let referrerBalance = 0;
+    try {
+      referrerBalance = await getStoreCreditBalance(referrerGid);
+    } catch (balErr) {
+      console.error('[sync] referral balance read failed (→ 0):', balErr);
+    }
+    const target = referrerBalance + REFERRAL_BONUS_AMOUNT;
+    const outcome = await issueStoreCredit(referrerGid, target);
+    // target = current + 25, so this always credits $25 unless the balance
+    // moved between our read and the credit (then skipped → treat as 0).
+    const credited = outcome.skipped ? 0 : outcome.credited;
+
+    // Record the flex transaction for the referrer (their ledger).
+    const { error: ftErr } = await supabaseAdmin.from('flex_transactions').insert({
+      email: referrerEmail,
+      type: 'credit',
+      amount: REFERRAL_BONUS_AMOUNT,
+      reason: `Referral bonus — order ${order.name}`,
+      order_id: order.id,
+    });
+    if (ftErr) {
+      // Store credit is already issued in Shopify — surface loudly so the
+      // ledger can be reconciled, but the credit + referrals row still
+      // proceed (the referrals row is the durable once-only proof).
+      console.error(`[sync] referral flex_transactions insert failed: ${ftErr.message}`);
+    }
+
+    // Insert the referrals row — the UNIQUE referred_order_id makes this
+    // the durable once-only record. A duplicate (race) is harmless: the
+    // credit was balance-targeted, so a re-run would re-top-up to the same
+    // target and issueStoreCredit would skip (no double credit).
+    const { error: insErr } = await supabaseAdmin.from('referrals').insert({
+      referrer_customer_id: match.customer_id,
+      code: match.code,
+      referred_order_id: order.id,
+      referred_email: referredEmail,
+      amount: REFERRAL_BONUS_AMOUNT,
+    });
+    if (insErr) {
+      if (insErr.code === '23505') {
+        // Lost a race — another run recorded it. Not an error.
+        return { credited: 0, error: null, matchedCode: match.code };
+      }
+      // The credit is issued + the flex row may be written; surface so the
+      // referrals ledger can be reconciled.
+      return {
+        credited,
+        error: `referral row insert (order ${order.name}): ${insErr.message}`,
+        matchedCode: match.code,
+      };
+    }
+
+    console.log(
+      `[sync] referral credited: ${referrerEmail} +$${REFERRAL_BONUS_AMOUNT} (order ${order.name}, code ${match.code})`
+    );
+    return { credited, error: null, matchedCode: match.code };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    console.error(`[sync] referral attribution failed for ${order.name}:`, message);
+    return { credited: 0, error: `referral (${order.name}): ${message}`, matchedCode: null };
+  }
+}
+
+/**
+ * Dry-run preview of what attributeReferral WOULD do — read-only (no
+ * credit, no inserts). Returns flags for the planned[] report. Mirrors the
+ * live qualifier logic but stops before any write. Fail-soft → no-referral.
+ */
+async function planReferralPreview(
+  order: ShopifyOrder,
+  referredEmail: string
+): Promise<{ would_credit_referral_bonus: boolean; referral_code_matched: string | null; referral_skip_reason?: string }> {
+  const noRef = { would_credit_referral_bonus: false, referral_code_matched: null };
+  try {
+    const codes = order.discountCodes.filter((c) => c && c.trim().length > 0);
+    if (codes.length === 0) return noRef;
+    if (!hasCsaLineItem(order)) return { ...noRef, referral_skip_reason: 'no CSA line item' };
+    if (!(order.totalPrice > REFERRAL_MINIMUM_TOTAL))
+      return { ...noRef, referral_skip_reason: `total ${order.totalPrice} <= ${REFERRAL_MINIMUM_TOTAL}` };
+    if (!isOrderPaid(order)) return { ...noRef, referral_skip_reason: 'not paid' };
+
+    const { data: codeRows } = await supabaseAdmin
+      .from('referral_codes')
+      .select('code, customer_id')
+      .in('code', codes);
+    const upper = new Set(codes.map((c) => c.trim().toUpperCase()));
+    const match = (codeRows ?? []).find((r) => upper.has(r.code.trim().toUpperCase())) ?? null;
+    if (!match) return noRef; // a code, but not one of ours
+
+    const { data: referrer } = await supabaseAdmin
+      .from('customers')
+      .select('email')
+      .eq('id', match.customer_id)
+      .maybeSingle();
+    if (
+      referrer?.email &&
+      referrer.email.trim().toLowerCase() === referredEmail.trim().toLowerCase()
+    ) {
+      return { would_credit_referral_bonus: false, referral_code_matched: match.code, referral_skip_reason: 'self-referral' };
+    }
+
+    const { data: existingRef } = await supabaseAdmin
+      .from('referrals')
+      .select('id')
+      .eq('referred_order_id', order.id)
+      .maybeSingle();
+    if (existingRef) {
+      return { would_credit_referral_bonus: false, referral_code_matched: match.code, referral_skip_reason: 'already attributed' };
+    }
+
+    return { would_credit_referral_bonus: true, referral_code_matched: match.code };
+  } catch (e) {
+    console.error('[sync] referral preview failed (→ no-referral):', e);
+    return noRef;
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────────
  * The handler (shared by GET + POST).
  * ────────────────────────────────────────────────────────────────── */
 
@@ -292,6 +529,7 @@ async function handle(request: Request, url: URL): Promise<Response> {
   let membersUpserted = 0;
   let flexCreditedTotal = 0;
   let flexBonusTotal = 0;
+  let referralBonusTotal = 0;
   const planned: Array<Record<string, unknown>> = [];
 
   // 5. Per-order processing.
@@ -314,6 +552,7 @@ async function handle(request: Request, url: URL): Promise<Response> {
       // ── DRY RUN: record the plan, write nothing ──────────────────
       if (dryRun) {
         const creditPlan = planFlexCredit(plan.flexAmount);
+        const refPreview = await planReferralPreview(order, email);
         planned.push({
           order: order.name,
           order_id: order.id,
@@ -335,11 +574,15 @@ async function handle(request: Request, url: URL): Promise<Response> {
           would_credit_flex_total: creditPlan.total,
           home_delivery_items_skipped: plan.homeDeliveryCount,
           unschedulable_titles: plan.unschedulable,
+          ...refPreview,
         });
         ordersProcessed += 1;
         membersUpserted += plan.members.length;
         flexCreditedTotal += creditPlan.total;
         flexBonusTotal += creditPlan.bonus;
+        if (refPreview.would_credit_referral_bonus) {
+          referralBonusTotal += REFERRAL_BONUS_AMOUNT;
+        }
         continue;
       }
 
@@ -466,6 +709,24 @@ async function handle(request: Request, url: URL): Promise<Response> {
         throw new Error(`ledger insert: ${ledgerErr.message}`);
       }
 
+      // ── LIVE: referral attribution (runs AFTER the core order sync) ──
+      //
+      // If this PAID order used a referral code that belongs to another
+      // member and qualifies (CSA line item + total > $300), credit the
+      // REFERRER $25 in Farm Flex and record the referrals row. This is a
+      // SEPARATE concern from the per-order ledger above: attributeReferral
+      // NEVER throws (a referral hiccup must not fail an order whose
+      // members + flex are already committed). It has its own idempotency
+      // (referrals.referred_order_id UNIQUE) on top of the per-order ledger
+      // guard. We only attempt it for paid orders.
+      if (isOrderPaid(order)) {
+        const refOutcome = await attributeReferral(order, email);
+        referralBonusTotal += refOutcome.credited;
+        if (refOutcome.error) {
+          errors.push({ order: order.name, message: refOutcome.error });
+        }
+      }
+
       ordersProcessed += 1;
       membersUpserted += upsertedThisOrder;
       flexCreditedTotal += flexCreditedThisOrder;
@@ -521,6 +782,7 @@ async function handle(request: Request, url: URL): Promise<Response> {
     members_upserted: membersUpserted,
     flex_credited_total: flexCreditedTotal,
     flex_bonus_total: flexBonusTotal,
+    referral_bonus_total: referralBonusTotal,
     watermark_was: lastSyncedAt,
     watermark_advanced_to: watermarkAdvancedTo,
     ...(dryRun ? { planned } : {}),

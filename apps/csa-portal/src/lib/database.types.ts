@@ -358,6 +358,43 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['account_members']['Row']>;
         Relationships: [];
       };
+      // Referral bonus (migration 0024). One code per member; one referrals
+      // row per qualifying referred order (referred_order_id UNIQUE = idempotency).
+      referral_codes: {
+        Row: {
+          id: string;
+          customer_id: string;
+          /** The discount code the member shares (also the Shopify code). */
+          code: string;
+          /** Shopify DiscountCodeNode GID from discountCodeBasicCreate. */
+          shopify_discount_node_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          customer_id: string;
+          code: string;
+        } & Partial<Database['public']['Tables']['referral_codes']['Row']>;
+        Update: Partial<Database['public']['Tables']['referral_codes']['Row']>;
+        Relationships: [];
+      };
+      referrals: {
+        Row: {
+          id: string;
+          referrer_customer_id: string | null;
+          code: string | null;
+          /** The Shopify order that triggered the bonus. UNIQUE — idempotency. */
+          referred_order_id: string;
+          /** citext — the friend's email. */
+          referred_email: string | null;
+          amount: number;
+          created_at: string;
+        };
+        Insert: {
+          referred_order_id: string;
+        } & Partial<Database['public']['Tables']['referrals']['Row']>;
+        Update: Partial<Database['public']['Tables']['referrals']['Row']>;
+        Relationships: [];
+      };
     };
     Views: {
       member_flex_balance: {

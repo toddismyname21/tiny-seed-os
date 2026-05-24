@@ -1,0 +1,442 @@
+---
+/**
+ * /account/refer — refer a friend, earn $25 in Farm Flex.
+ *
+ * Auth is enforced by middleware.ts (`/account` is a PROTECTED_PREFIX).
+ * The defensive redirect below is belt-and-suspenders.
+ *
+ * What the member sees:
+ *   - Their personal referral CODE, big + a one-tap copyable share message.
+ *   - "How it works" — 3 steps.
+ *   - Stats: how many friends they've referred + total Farm Flex earned.
+ *
+ * The code is minted ON DEMAND the first time this page loads
+ * (getOrCreateReferralCode → create the Shopify $25-off discount → store
+ * the row). If Shopify is unreachable on that FIRST load we DON'T write a
+ * half row — we show a calm "try again" card so the next load mints
+ * cleanly. Once minted, the code shows even if Shopify later hiccups.
+ *
+ * The customer identity (id / name / email) is resolved through the
+ * RLS-scoped cookie client; household-shared members resolve to the owner
+ * account (current_customer_id()), so a couple shares one referral code —
+ * matching how the rest of the account behaves.
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Card from '../../components/Card.astro';
+import Button from '../../components/Button.astro';
+import ContactFarm from '../../components/ContactFarm.astro';
+import {
+  getOrCreateReferralCode,
+  getReferralStats,
+  ReferralCodeError,
+  REFERRAL_BONUS_AMOUNT,
+  REFERRAL_DISCOUNT_AMOUNT,
+  REFERRAL_MINIMUM_SUBTOTAL,
+  type ReferralCode,
+  type ReferralStats,
+} from '../../lib/referral';
+
+const user = Astro.locals.user;
+if (!user || !user.email) {
+  return Astro.redirect('/login', 303);
+}
+const supabase = Astro.locals.supabase;
+
+// ─── Resolve the caller's customer row (RLS-scoped → own or household) ─
+type ReferCustomer = { id: string; contact_name: string; email: string };
+const { data: customer, error: customerErr } = await supabase
+  .from('customers')
+  .select('id, contact_name, email')
+  .limit(1)
+  .maybeSingle()
+  .overrideTypes<ReferCustomer, { merge: false }>();
+
+if (customerErr) {
+  console.error('[account/refer] customer fetch failed:', customerErr.message);
+}
+
+// ─── Mint (or read) the code + load stats. Fail-soft on the create path ─
+let referral: ReferralCode | null = null;
+let referralError = false;
+let stats: ReferralStats = { count: 0, totalEarned: 0 };
+
+if (customer) {
+  try {
+    referral = await getOrCreateReferralCode({
+      id: customer.id,
+      contact_name: customer.contact_name,
+      email: customer.email,
+    });
+  } catch (err) {
+    // ReferralCodeError (or anything) → show the friendly retry card. We
+    // never wrote a half row, so a reload attempts a clean creation.
+    referralError = true;
+    if (!(err instanceof ReferralCodeError)) {
+      console.error('[account/refer] unexpected error minting code:', err);
+    } else {
+      console.error('[account/refer] code mint failed (retry shown):', err.message);
+    }
+  }
+
+  stats = await getReferralStats(customer.id);
+}
+
+const firstName = (customer?.contact_name ?? user.email.split('@')[0]).trim().split(/\s+/)[0];
+
+// Money formatters (match the Farm Flex page).
+function money(n: number): string {
+  try {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: n % 1 === 0 ? 0 : 2,
+      maximumFractionDigits: 2,
+    }).format(n);
+  } catch {
+    return `$${n}`;
+  }
+}
+
+const bonusLabel = money(REFERRAL_BONUS_AMOUNT); // "$25"
+const discountLabel = money(REFERRAL_DISCOUNT_AMOUNT); // "$25"
+const minLabel = money(REFERRAL_MINIMUM_SUBTOTAL); // "$300"
+
+// The shareable message the Copy button puts on the clipboard.
+const CSA_SIGNUP_URL = 'tinyseedfarm.com/collections/tiny-seed-farm-csa';
+const shareMessage = referral
+  ? `Use my code ${referral.code} for ${discountLabel} off your first Tiny Seed CSA order over ${minLabel} — sign up at ${CSA_SIGNUP_URL}`
+  : '';
+---
+
+<BaseLayout
+  title="Refer a friend — Tiny Seed Farm CSA"
+  description={`Share your code and earn ${bonusLabel} in Farm Flex when a friend joins the Tiny Seed Farm CSA. They get ${discountLabel} off their first order.`}
+  canonical="https://csa.tinyseedfarm.com/account/refer"
+>
+  <a
+    href="#main"
+    class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-ts-md focus:bg-ts-primary focus:px-4 focus:py-2 focus:text-white focus:shadow-ts-md"
+  >
+    Skip to main content
+  </a>
+
+  <div class="min-h-screen bg-ts-bg-base">
+    {/* TOP BAR */}
+    <header class="border-b border-ts-border bg-ts-bg-surface/80 backdrop-blur-sm">
+      <div class="mx-auto flex max-w-3xl items-center justify-between px-5 py-4 sm:px-6 sm:py-5">
+        <a
+          href="/dashboard"
+          class="flex items-center gap-2 rounded-ts-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ts-primary"
+          aria-label="Tiny Seed Farm CSA dashboard home"
+        >
+          <span class="inline-block h-2.5 w-2.5 rounded-full bg-ts-primary" aria-hidden="true"></span>
+          <span class="font-display text-lg font-bold tracking-tight text-ts-text">Tiny Seed Farm</span>
+        </a>
+
+        <form method="POST" action="/logout" class="m-0">
+          <button
+            type="submit"
+            class="rounded-ts-md px-3 py-2 text-sm font-medium text-ts-text-secondary transition-colors duration-150 hover:bg-ts-bg-muted hover:text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+          >
+            Sign out
+          </button>
+        </form>
+      </div>
+    </header>
+
+    <main
+      id="main"
+      class="mx-auto flex w-full max-w-3xl flex-col gap-6 px-5 py-8 sm:gap-8 sm:px-6 sm:py-12"
+    >
+      {/* BREADCRUMB / BACK */}
+      <nav aria-label="Breadcrumb" class="text-sm">
+        <a
+          href="/account"
+          class="inline-flex items-center gap-1 text-ts-text-secondary transition-colors hover:text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+        >
+          <span aria-hidden="true">←</span>
+          <span>Account</span>
+        </a>
+      </nav>
+
+      {/* HEADER */}
+      <section aria-labelledby="refer-heading">
+        <div class="flex items-center gap-3">
+          <span
+            class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-ts-primary/15 text-2xl"
+            aria-hidden="true"
+          >
+            🎁
+          </span>
+          <h1 id="refer-heading" class="font-display text-3xl font-bold tracking-tight text-ts-text sm:text-4xl">
+            Refer a friend
+          </h1>
+        </div>
+        <p class="mt-3 max-w-prose text-base leading-relaxed text-ts-text-secondary">
+          Share Tiny Seed Farm with friends, {firstName}. They get {discountLabel} off
+          their first CSA order over {minLabel}, and you earn {bonusLabel} in Farm Flex
+          for every friend who joins. There's no limit.
+        </p>
+      </section>
+
+      {!customer ? (
+        /* No customer row resolved — calm explainer. */
+        <Card padding="md" elevation="sm">
+          <p class="text-sm leading-relaxed text-ts-text-secondary">
+            We don't have a CSA account on your login yet. Once Todd activates
+            your share, you'll be able to grab your referral code here.
+          </p>
+        </Card>
+      ) : referralError || !referral ? (
+        /* Code couldn't be minted this load (Shopify hiccup). Retry. */
+        <Card tone="warning" padding="lg" elevation="md" as="section">
+          <div class="flex items-start gap-3">
+            <span class="text-2xl" aria-hidden="true">🌧️</span>
+            <div class="min-w-0">
+              <h2 class="font-display text-lg font-semibold text-ts-text">
+                Hang on a sec
+              </h2>
+              <p class="mt-1 text-sm leading-relaxed text-ts-text-secondary">
+                We couldn't set up your referral code just now. This is almost
+                always a brief hiccup — give it another try in a moment.
+              </p>
+              <div class="mt-4">
+                <Button href="/account/refer" variant="primary" size="md">
+                  Try again
+                </Button>
+              </div>
+            </div>
+          </div>
+        </Card>
+      ) : (
+        <>
+          {/* THE CODE — big, copyable, with a ready-to-send share message */}
+          <Card tone="primary" padding="lg" elevation="md" as="section">
+            <p class="text-sm font-semibold uppercase tracking-wide text-ts-primary">
+              Your referral code
+            </p>
+
+            <div
+              data-refer-code-display
+              class="mt-2 select-all font-display text-4xl font-bold tracking-tight text-ts-text sm:text-5xl"
+            >
+              {referral.code}
+            </div>
+
+            {/* Copy code button (primary one-tap action) */}
+            <div class="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
+              <button
+                type="button"
+                data-copy-target="code"
+                data-copy-value={referral.code}
+                aria-label={`Copy your referral code ${referral.code} to the clipboard`}
+                class="inline-flex h-11 min-w-[160px] items-center justify-center gap-1.5 rounded-ts-md bg-ts-primary px-5 text-sm font-semibold text-white shadow-ts-sm transition-all duration-150 ease-[var(--ease-ts)] hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary [touch-action:manipulation]"
+              >
+                <span data-copy-icon aria-hidden="true">⧉</span>
+                <span data-copy-label>Copy code</span>
+              </button>
+
+              <button
+                type="button"
+                data-copy-target="message"
+                data-copy-value={shareMessage}
+                aria-label="Copy the full share message to the clipboard"
+                class="inline-flex h-11 items-center justify-center gap-1.5 rounded-ts-md border border-ts-border bg-ts-bg-surface px-5 text-sm font-semibold text-ts-text shadow-ts-sm transition-all duration-150 ease-[var(--ease-ts)] hover:border-ts-primary/40 hover:text-ts-primary active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary [touch-action:manipulation]"
+              >
+                <span data-copy-icon aria-hidden="true">⧉</span>
+                <span data-copy-label>Copy share message</span>
+              </button>
+            </div>
+
+            {/* The exact message, shown so it can be copied by hand / read */}
+            <div class="mt-5">
+              <p class="text-xs font-medium uppercase tracking-wide text-ts-text-muted">
+                The message they'll get
+              </p>
+              <p
+                data-refer-message
+                class="mt-1.5 select-all rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 py-3 text-sm leading-relaxed text-ts-text"
+              >
+                Use my code <span class="font-semibold text-ts-primary">{referral.code}</span> for
+                {' '}{discountLabel} off your first Tiny Seed CSA order over {minLabel} — sign up
+                at <span class="font-medium">{CSA_SIGNUP_URL}</span>
+              </p>
+            </div>
+
+            {/* Polite live region — announces copy results to screen readers */}
+            <p
+              data-refer-status
+              role="status"
+              aria-live="polite"
+              class="mt-2 h-4 text-xs font-medium text-ts-primary"
+            ></p>
+          </Card>
+
+          {/* STATS */}
+          <section aria-labelledby="refer-stats-heading">
+            <h2 id="refer-stats-heading" class="mb-3 text-base font-semibold text-ts-text">
+              Your referrals
+            </h2>
+            <dl class="grid grid-cols-1 gap-px overflow-hidden rounded-ts-xl border border-ts-border bg-ts-border sm:grid-cols-2">
+              <div class="bg-ts-bg-surface p-5">
+                <dt class="text-xs font-medium uppercase tracking-wide text-ts-text-muted">
+                  Friends joined
+                </dt>
+                <dd class="mt-1 font-display text-3xl font-bold tabular-nums text-ts-text">
+                  {stats.count}
+                </dd>
+              </div>
+              <div class="bg-ts-bg-surface p-5">
+                <dt class="text-xs font-medium uppercase tracking-wide text-ts-text-muted">
+                  Farm Flex earned
+                </dt>
+                <dd class="mt-1 font-display text-3xl font-bold tabular-nums text-ts-primary">
+                  {money(stats.totalEarned)}
+                </dd>
+              </div>
+            </dl>
+            {stats.count === 0 && (
+              <p class="mt-3 text-sm leading-relaxed text-ts-text-secondary">
+                No referrals yet — share your code above and you'll see {bonusLabel} land
+                in your <a href="/account/flex" class="font-medium text-ts-primary underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary">Farm Flex</a> wallet
+                each time a friend's first order goes through.
+              </p>
+            )}
+          </section>
+
+          {/* HOW IT WORKS — 3 steps */}
+          <section aria-labelledby="refer-how-heading">
+            <h2 id="refer-how-heading" class="mb-3 text-base font-semibold text-ts-text">
+              How it works
+            </h2>
+            <ol role="list" class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <li class="rounded-ts-xl border border-ts-border bg-ts-bg-surface p-5 shadow-ts-sm">
+                <span class="flex h-8 w-8 items-center justify-center rounded-full bg-ts-primary/10 font-display text-base font-bold text-ts-primary" aria-hidden="true">1</span>
+                <h3 class="mt-3 text-sm font-semibold text-ts-text">Share your code</h3>
+                <p class="mt-1 text-sm leading-snug text-ts-text-secondary">
+                  Send your code to a friend who'd love fresh organic veggies.
+                </p>
+              </li>
+              <li class="rounded-ts-xl border border-ts-border bg-ts-bg-surface p-5 shadow-ts-sm">
+                <span class="flex h-8 w-8 items-center justify-center rounded-full bg-ts-primary/10 font-display text-base font-bold text-ts-primary" aria-hidden="true">2</span>
+                <h3 class="mt-3 text-sm font-semibold text-ts-text">They save {discountLabel}</h3>
+                <p class="mt-1 text-sm leading-snug text-ts-text-secondary">
+                  They enter it at checkout for {discountLabel} off a CSA order over {minLabel}.
+                </p>
+              </li>
+              <li class="rounded-ts-xl border border-ts-border bg-ts-bg-surface p-5 shadow-ts-sm">
+                <span class="flex h-8 w-8 items-center justify-center rounded-full bg-ts-primary/10 font-display text-base font-bold text-ts-primary" aria-hidden="true">3</span>
+                <h3 class="mt-3 text-sm font-semibold text-ts-text">You earn {bonusLabel}</h3>
+                <p class="mt-1 text-sm leading-snug text-ts-text-secondary">
+                  Once their order is paid, {bonusLabel} in Farm Flex lands in your wallet.
+                </p>
+              </li>
+            </ol>
+            <p class="mt-3 text-xs leading-relaxed text-ts-text-muted">
+              Your code works for unlimited friends. The {discountLabel} discount applies to
+              Tiny Seed Farm CSA shares only, with a {minLabel} minimum. Your {bonusLabel} bonus
+              is added after the referred order is paid — cancelled or refunded orders don't count.
+            </p>
+          </section>
+
+          {/* CONTACT */}
+          <ContactFarm
+            tone="inline"
+            label="Questions about referrals?"
+            subject="CSA referral program"
+          />
+        </>
+      )}
+
+      {/* FOOTER */}
+      <footer class="mt-auto border-t border-ts-border pt-6 text-center text-xs text-ts-text-muted">
+        <p>Signed in as <span class="font-medium text-ts-text-secondary">{user.email}</span></p>
+        <p class="mt-1">Tiny Seed Farm · 257 Zeigler Rd, Rochester, PA · Certified Organic</p>
+      </footer>
+    </main>
+  </div>
+
+  <script>
+    // Copy buttons (code + full share message). Mirrors the ContactFarm
+    // copy pattern: prefer navigator.clipboard, fall back to execCommand,
+    // and finally to selecting the visible text. A shared polite live
+    // region announces the result; each button restores its own label.
+    const statusEl = document.querySelector<HTMLElement>('[data-refer-status]');
+    const buttons = document.querySelectorAll<HTMLButtonElement>('[data-copy-value]');
+    let resetTimer: ReturnType<typeof setTimeout> | null = null;
+
+    function selectVisible(target: string): void {
+      // Fallback: select the visible code or message so the user can hit
+      // Cmd/Ctrl+C even when the Clipboard API is unavailable.
+      const el =
+        target === 'code'
+          ? document.querySelector<HTMLElement>('[data-refer-code-display]')
+          : document.querySelector<HTMLElement>('[data-refer-message]');
+      if (!el) return;
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      const sel = window.getSelection();
+      sel?.removeAllRanges();
+      sel?.addRange(range);
+    }
+
+    function restore(btn: HTMLButtonElement): void {
+      const label = btn.querySelector<HTMLElement>('[data-copy-label]');
+      const icon = btn.querySelector<HTMLElement>('[data-copy-icon]');
+      const isCode = btn.getAttribute('data-copy-target') === 'code';
+      if (label) label.textContent = isCode ? 'Copy code' : 'Copy share message';
+      if (icon) icon.textContent = '⧉';
+      btn.classList.remove('ring-2', 'ring-ts-primary/40', 'ring-offset-2');
+    }
+
+    function showCopied(btn: HTMLButtonElement, what: string): void {
+      const label = btn.querySelector<HTMLElement>('[data-copy-label]');
+      const icon = btn.querySelector<HTMLElement>('[data-copy-icon]');
+      if (label) label.textContent = 'Copied!';
+      if (icon) icon.textContent = '✓';
+      btn.classList.add('ring-2', 'ring-ts-primary/40', 'ring-offset-2');
+      if (statusEl) statusEl.textContent = `${what} copied to clipboard.`;
+      if (resetTimer) clearTimeout(resetTimer);
+      resetTimer = setTimeout(() => {
+        buttons.forEach(restore);
+        if (statusEl) statusEl.textContent = '';
+      }, 2400);
+    }
+
+    buttons.forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const value = btn.getAttribute('data-copy-value') ?? '';
+        const target = btn.getAttribute('data-copy-target') ?? 'code';
+        const what = target === 'code' ? 'Code' : 'Share message';
+        if (!value) return;
+
+        if (navigator.clipboard && window.isSecureContext) {
+          try {
+            await navigator.clipboard.writeText(value);
+            showCopied(btn, what);
+            return;
+          } catch {
+            // fall through to legacy path
+          }
+        }
+        // Legacy fallback: select + execCommand('copy'). Deprecated, but
+        // the only mechanism in non-secure contexts / older browsers.
+        try {
+          selectVisible(target);
+          const ok = document.execCommand && document.execCommand('copy');
+          if (ok) {
+            showCopied(btn, what);
+            window.getSelection()?.removeAllRanges();
+            return;
+          }
+        } catch {
+          // ignore — drop to manual-select guidance
+        }
+        selectVisible(target);
+        if (statusEl) {
+          statusEl.textContent = `${what} selected — press Cmd/Ctrl+C to copy.`;
+        }
+      });
+    });
+  </script>
+</BaseLayout>
