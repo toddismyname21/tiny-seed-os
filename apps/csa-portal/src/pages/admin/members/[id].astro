@@ -61,6 +61,8 @@ type MemberDetail = {
   pickup_day: string | null;
   pickup_location_id: string | null;
   delivery_address: string | null;
+  home_delivery_requested_at: string | null;
+  home_delivery_requested_address: string | null;
   customization_allowed: boolean;
   notes: string | null;
   created_at: string;
@@ -106,7 +108,8 @@ const { data: memberData, error: memberError } = !isUuid
         id, legacy_id, share_type, share_size, season, start_date, end_date,
         total_weeks, weeks_remaining, swap_credits, vacation_weeks_used, status,
         payment_status, amount_paid, biweekly_week, pickup_day, pickup_location_id,
-        delivery_address, customization_allowed, notes, created_at, updated_at,
+        delivery_address, home_delivery_requested_at, home_delivery_requested_address,
+        customization_allowed, notes, created_at, updated_at,
         customer:customers!inner(
           id, legacy_id, contact_name, email, phone, city, state, zip, address,
           last_order_date, total_orders, total_spent
@@ -135,9 +138,24 @@ if (!member) {
   return Astro.redirect('/admin/members?error=member_not_found', 303);
 }
 
+// ─── Active pickup locations (for the admin set-pickup editor) ──────
+type LocationOption = {
+  id: string;
+  name: string;
+  city: string | null;
+  day_of_week: string | null;
+};
+const { data: locationRows } = await supabase
+  .from('pickup_locations')
+  .select('id, name, city, day_of_week')
+  .eq('is_active', true)
+  .eq('is_delivery_zone', false)
+  .order('day_of_week', { ascending: true })
+  .order('name', { ascending: true })
+  .overrideTypes<LocationOption[], { merge: false }>();
+const locations = locationRows ?? [];
+
 // ─── Fetch related collections in parallel ──────────────────────────
-// locations dropdown reserved for a future "change pickup" admin
-// action; we don't render an editor here yet, so we skip the query.
 const commsCustomerId = member.customer?.id ?? '00000000-0000-0000-0000-000000000000';
 const [holdsRes, swapsRes, flexRes, notifRes, auditRes, balanceRes, commsRes] = await Promise.all([
   supabase
@@ -312,6 +330,7 @@ const successCopy: Record<string, string> = {
   hold_cancelled: 'Vacation hold cancelled.',
   biweekly_week_updated: 'Bi-weekly schedule updated.',
   logged: 'Communication logged.',
+  pickup_updated: 'Pickup / delivery updated.',
 };
 
 // Communication-log channel display + badge tone.
@@ -327,7 +346,25 @@ const errorCopy: Record<string, string> = {
   member_not_found: 'Member not found.',
   hold_not_found: 'Vacation hold not found.',
   cannot_cancel: 'That hold can’t be cancelled in its current state.',
+  location_not_found: 'That pickup location is no longer available.',
+  location_full: 'That location is at capacity.',
+  delivery_admin_only: 'Home delivery must be set by an admin (you should have permission — check you’re signed in as admin/staff).',
 };
+
+const DAY_LONG_ADMIN: Record<string, string> = {
+  Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday',
+  Thu: 'Thursday', Fri: 'Friday', Sat: 'Saturday', Sun: 'Sunday',
+};
+function locOptionLabel(l: { name: string; city: string | null; day_of_week: string | null }): string {
+  const head = [l.name, l.city].filter(Boolean).join(', ');
+  const day = l.day_of_week ? DAY_LONG_ADMIN[l.day_of_week] ?? l.day_of_week : null;
+  return day ? `${head} — ${day}` : head;
+}
+
+// A home-delivery request is pending when the marker is set AND no delivery
+// address has been set yet (admin hasn't approved + fulfilled it).
+const hasPendingDeliveryRequest =
+  member.home_delivery_requested_at != null && !isHomeDelivery;
 ---
 
 <AdminShell
@@ -536,9 +573,31 @@ const errorCopy: Record<string, string> = {
         </form>
       </Card>
 
-      {/* ─── Pickup ─── */}
+      {/* ─── Pickup / Home delivery ─── */}
       <Card padding="md" elevation="sm">
-        <h2 class="font-display text-lg font-bold text-ts-text">Pickup</h2>
+        <h2 class="font-display text-lg font-bold text-ts-text">Pickup &amp; delivery</h2>
+
+        {/* Pending home-delivery request — admins approve here. */}
+        {hasPendingDeliveryRequest && (
+          <div
+            role="status"
+            class="mt-4 rounded-ts-md border border-ts-warning/40 bg-ts-warning/10 px-4 py-3"
+          >
+            <p class="text-sm font-semibold text-ts-text">
+              ⏳ Home delivery requested ($15/week — pending approval)
+            </p>
+            {member.home_delivery_requested_address && (
+              <p class="mt-1 whitespace-pre-line text-sm text-ts-text-secondary">
+                Requested address: {member.home_delivery_requested_address}
+              </p>
+            )}
+            <p class="mt-1 text-xs text-ts-text-muted">
+              Requested {fmtDateTime(member.home_delivery_requested_at)}. Collect the
+              $15/week in Shopify, then set the delivery address below to fulfil it.
+            </p>
+          </div>
+        )}
+
         <dl class="mt-4 grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
           <div>
             <dt class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Mode</dt>
@@ -559,14 +618,73 @@ const errorCopy: Record<string, string> = {
           {isHomeDelivery && (
             <div class="sm:col-span-2">
               <dt class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Delivery address</dt>
-              <dd class="mt-0.5 text-sm text-ts-text">{member.delivery_address}</dd>
+              <dd class="mt-0.5 whitespace-pre-line text-sm text-ts-text">{member.delivery_address}</dd>
             </div>
           )}
         </dl>
-        <p class="mt-3 text-xs text-ts-text-muted">
-          To change a member's pickup location, log in as that member or use the
-          existing change-pickup RPC. (UI deferred until Phase 2.)
-        </p>
+
+        {/* Set pickup stop */}
+        <form
+          method="POST"
+          action={`/api/admin/members/${member.id}/pickup`}
+          class="mt-4 border-t border-ts-border pt-4"
+        >
+          <input type="hidden" name="mode" value="pickup" />
+          <FormRow label="Set pickup stop" htmlFor={`pickup-loc-${member.id}`}>
+            <div class="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto]">
+              <Select
+                id={`pickup-loc-${member.id}`}
+                name="pickup_location_id"
+                value={member.pickup_location_id ?? ''}
+                placeholder="Select a pickup location…"
+                options={locations.map((l) => ({ value: l.id, label: locOptionLabel(l) }))}
+              />
+              <button
+                type="submit"
+                class="inline-flex h-11 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark"
+              >
+                Set pickup
+              </button>
+            </div>
+          </FormRow>
+          <p class="mt-1.5 text-xs text-ts-text-muted">
+            Setting a pickup stop clears any home delivery on this share.
+          </p>
+        </form>
+
+        {/* Set home delivery (admin-only — this is the approval action) */}
+        <form
+          method="POST"
+          action={`/api/admin/members/${member.id}/pickup`}
+          class="mt-4 border-t border-ts-border pt-4"
+        >
+          <input type="hidden" name="mode" value="delivery" />
+          <FormRow
+            label="Set home delivery ($15/week — approved)"
+            htmlFor={`pickup-deliv-${member.id}`}
+          >
+            <textarea
+              id={`pickup-deliv-${member.id}`}
+              name="delivery_address"
+              rows="3"
+              maxlength="500"
+              placeholder={member.home_delivery_requested_address ?? '123 Main St, Pittsburgh, PA 15206'}
+              class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30"
+            >{member.delivery_address ?? ''}</textarea>
+          </FormRow>
+          <div class="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <p class="text-xs text-ts-text-muted">
+              Only set this AFTER collecting the $15/week in Shopify. Members can't
+              self-select delivery.
+            </p>
+            <button
+              type="submit"
+              class="inline-flex h-11 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark"
+            >
+              Set delivery
+            </button>
+          </div>
+        </form>
       </Card>
 
       {/* ─── Preferences ─── */}

@@ -549,6 +549,123 @@ export async function cleanupStopNotesFixture(
     .in('id', [fx.locationAId, fx.locationBId]);
 }
 
+// ── Home-delivery gate (migration 0030) ────────────────────────────────
+//
+// Proves the revenue-leak fix at the DATABASE level: a MEMBER cannot set their
+// own delivery_address through change_pickup_location() — the RPC rejects it
+// with {error:'delivery_admin_only'} when is_admin_caller() is false. We mint
+// a REAL member session token for the test member (same magic-link-without-
+// email path mintMemberCookies uses) and call the RPC through an RLS-scoped
+// client carrying that member's JWT, so is_admin_caller() evaluates the
+// member's identity (not service-role, which carries no JWT). Service-role
+// .rpc() bypasses RLS but is ALSO rejected here (no JWT → not admin), so this
+// is the honest member-identity proof.
+
+export interface DeliveryGateProof {
+  /** The result the member-JWT RPC returned for a delivery-set attempt. */
+  memberSetDeliveryResult: unknown;
+  /**
+   * Did a DIRECT member UPDATE of delivery_address (bypassing the RPC) get
+   * blocked? The defense-in-depth trigger (migration 0030) must reject it,
+   * so this is the error the REST update returned (truthy = blocked = good).
+   */
+  directUpdateError: string | null;
+  /** delivery_address on the member's row BEFORE the attempt. */
+  beforeAddress: string | null;
+  /** delivery_address on the member's row AFTER both attempts (must == before). */
+  afterAddress: string | null;
+}
+
+/**
+ * Mint a real access token for the test member (no email round-trip), then call
+ * change_pickup_location() to SET a delivery address through an RLS-scoped
+ * client carrying that member's JWT. Returns the RPC result + the member row's
+ * delivery_address before/after, so the spec can assert (a) the RPC rejected it
+ * and (b) nothing was written. Returns null when the member has no member row
+ * to target (spec self-skips). Read-only against the DB (the gate blocks the
+ * write); no cleanup needed.
+ */
+export async function proveMemberCannotSetDelivery(
+  env: TestEnv
+): Promise<DeliveryGateProof | null> {
+  const admin = adminClient(env);
+
+  // Resolve the test member's first member row id + current delivery_address.
+  const { data: customer, error: custErr } = await admin
+    .from('customers')
+    .select('id, members(id, status, delivery_address)')
+    .eq('email', env.testEmail)
+    .maybeSingle();
+  if (custErr) {
+    throw new Error(`[e2e] delivery-gate: customer lookup failed: ${custErr.message}`);
+  }
+  const members =
+    ((customer as { members?: { id: string; status: string; delivery_address: string | null }[] } | null)
+      ?.members) ?? [];
+  // Prefer an active share; fall back to any share row.
+  const target = members.find((m) => m.status === 'active') ?? members[0];
+  if (!target) return null;
+
+  // Mint a member session token (magic link → verifyOtp, no email sent).
+  await ensureAuthUser(env);
+  const { data: link, error: linkErr } = await admin.auth.admin.generateLink({
+    type: 'magiclink',
+    email: env.testEmail,
+  });
+  if (linkErr || !link?.properties?.hashed_token) {
+    throw new Error(`[e2e] delivery-gate: generateLink failed: ${linkErr?.message ?? 'no token'}`);
+  }
+  const anon = createClient(env.supabaseUrl, env.anonKey, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+  });
+  const { data: verified, error: verifyErr } = await anon.auth.verifyOtp({
+    type: 'magiclink',
+    token_hash: link.properties.hashed_token,
+  });
+  if (verifyErr || !verified?.session) {
+    throw new Error(`[e2e] delivery-gate: verifyOtp failed: ${verifyErr?.message ?? 'no session'}`);
+  }
+
+  // RLS-scoped client carrying the MEMBER's JWT — is_admin_caller() = false.
+  const asMember = createClient(env.supabaseUrl, env.anonKey, {
+    global: { headers: { Authorization: `Bearer ${verified.session.access_token}` } },
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+
+  const beforeAddress = target.delivery_address;
+
+  const { data: rpcData, error: rpcErr } = await asMember.rpc('change_pickup_location', {
+    p_member_id: target.id,
+    p_new_location_id: null,
+    p_new_delivery_address: '999 E2E Leak Test Ave, Pittsburgh, PA 15206',
+  });
+  if (rpcErr) {
+    // A hard RPC error (not the JSON {error} we expect) is itself a pass-ish
+    // signal the write was blocked, but surface it so the spec sees it.
+    throw new Error(`[e2e] delivery-gate: rpc threw: ${rpcErr.message}`);
+  }
+
+  // Also prove the DEFENSE-IN-DEPTH trigger: a member can't bypass the RPC
+  // with a raw table UPDATE of delivery_address. members_self_update is
+  // row-scoped, so without the trigger this would succeed. The trigger must
+  // raise (REST surfaces it as an error). directUpdateError truthy = blocked.
+  const { error: directErr } = await asMember
+    .from('members')
+    .update({ delivery_address: '888 E2E Direct Bypass St, Pittsburgh, PA 15206' })
+    .eq('id', target.id);
+  const directUpdateError = directErr?.message ?? null;
+
+  // Re-read the row via service role to confirm nothing was written by either.
+  const { data: after } = await admin
+    .from('members')
+    .select('delivery_address')
+    .eq('id', target.id)
+    .maybeSingle();
+  const afterAddress = (after as { delivery_address: string | null } | null)?.delivery_address ?? null;
+
+  return { memberSetDeliveryResult: rpcData, directUpdateError, beforeAddress, afterAddress };
+}
+
 /** Remove the seeded fixture + any swap it produced. Best-effort. */
 export async function cleanupSwapFixture(env: TestEnv, fx: SwapFixture): Promise<void> {
   const admin = adminClient(env);

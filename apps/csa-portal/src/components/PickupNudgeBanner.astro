@@ -13,7 +13,10 @@
  *
  * BEHAVIOUR:
  *   - Renders ONLY when `memberNeedsPickupChoice(supabase)` is true (no
- *     active share has a pickup_location_id or a delivery_address).
+ *     active share has a pickup_location_id or a delivery_address). Note:
+ *     home delivery is now $15/week + admin-approved (migration 0030), so a
+ *     member can only REQUEST it — the banner copy points them at the pickup
+ *     chooser, which offers both choosing a stop and requesting delivery.
  *   - It does NOT hard-block browsing (the member can still use the
  *     dashboard/box/account) — it is a prominent, persistent banner pinned
  *     to the top of each hub. Once a pickup/delivery is saved it disappears
@@ -82,8 +85,8 @@ const deadlineLabel =
           Action needed: choose your pickup
         </h2>
         <p class="mt-1 text-sm leading-relaxed text-ts-text-secondary">
-          We don't have a pickup location or home delivery on file for your
-          share yet. Please choose one before your first box
+          We don't have a pickup location on file for your share yet. Choose your
+          pickup location (or request home delivery — $15/week) before your first box
           <span class="font-semibold text-ts-text">({deadlineLabel})</span>
           so we know where to send it.
         </p>

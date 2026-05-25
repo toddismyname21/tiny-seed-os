@@ -1,19 +1,24 @@
 /**
  * POST /api/account/pickup-location
  *
+ * Members may ONLY switch their PICKUP LOCATION here (pickup ↔ pickup). They
+ * can NOT switch themselves to home delivery — home delivery is paid
+ * ($15/week) + admin-approved, so it goes through a REQUEST flow
+ * (/api/account/request-delivery) and is set by an admin. The
+ * change_pickup_location RPC (migration 0030) rejects a member-initiated
+ * delivery set with {error:'delivery_admin_only'} as defense-in-depth, so
+ * even a hand-crafted POST can't open the revenue leak.
+ *
  * Body (multipart/form-data):
  *   - member_id            UUID — which member's pickup to change
- *   - mode                 'pickup' | 'delivery'
- *   - pickup_location_id   UUID (when mode='pickup'); ignored otherwise
- *   - delivery_address     String (when mode='delivery'); ignored otherwise
+ *   - pickup_location_id   UUID — the stop to switch to
  *
  * On success: 303 → /account/pickup?ok=saved
  * On failure: 303 → /account/pickup?error=<code>
  *
  * The mutation is delegated to the SECURITY DEFINER function
- * `change_pickup_location()` in migration 0016 — it locks the member
- * row and (if pickup) counts existing live members at the new location
- * to enforce max_capacity.
+ * `change_pickup_location()` — it locks the member row and counts existing
+ * live members at the new location to enforce max_capacity.
  */
 import type { APIRoute } from 'astro';
 import { z } from 'zod';
@@ -21,24 +26,20 @@ import { isSameOriginPost, PORTAL_ORIGIN } from '../../../lib/onboarding';
 
 export const prerender = false;
 
-const FormSchema = z
-  .object({
-    member_id: z.uuid('invalid_input'),
-    mode: z.enum(['pickup', 'delivery'], { message: 'invalid_input' }),
-    pickup_location_id: z.union([z.uuid(), z.literal(''), z.null()]),
-    delivery_address: z.string().max(500, 'invalid_input').nullable(),
-  })
-  .refine(
-    (d) =>
-      (d.mode === 'pickup' && typeof d.pickup_location_id === 'string' && d.pickup_location_id.length > 0) ||
-      (d.mode === 'delivery' && d.delivery_address !== null && d.delivery_address.trim().length > 0),
-    { message: 'invalid_input' }
-  );
+const FormSchema = z.object({
+  member_id: z.uuid('invalid_input'),
+  pickup_location_id: z.uuid('invalid_input'),
+});
 
 type ChangeResult =
   | { ok: true }
   | {
-      error: 'invalid_input' | 'member_not_found' | 'location_not_found' | 'location_full';
+      error:
+        | 'invalid_input'
+        | 'member_not_found'
+        | 'location_not_found'
+        | 'location_full'
+        | 'delivery_admin_only';
       max_capacity?: number;
       current?: number;
     };
@@ -61,16 +62,9 @@ export const POST: APIRoute = async ({ request, redirect, locals }) => {
     return redirect('/account/pickup?error=invalid_input', 303);
   }
 
-  const memberId = String(formData.get('member_id') ?? '');
-  const mode = String(formData.get('mode') ?? '');
-  const pickupId = String(formData.get('pickup_location_id') ?? '');
-  const deliveryAddr = String(formData.get('delivery_address') ?? '').trim();
-
   const parsed = FormSchema.safeParse({
-    member_id: memberId,
-    mode,
-    pickup_location_id: pickupId,
-    delivery_address: deliveryAddr === '' ? null : deliveryAddr,
+    member_id: String(formData.get('member_id') ?? ''),
+    pickup_location_id: String(formData.get('pickup_location_id') ?? ''),
   });
 
   if (!parsed.success) {
@@ -94,17 +88,15 @@ export const POST: APIRoute = async ({ request, redirect, locals }) => {
     return redirect('/account/pickup?error=member_not_found', 303);
   }
 
-  const isPickup = parsed.data.mode === 'pickup';
-  const newLocation = isPickup ? (parsed.data.pickup_location_id as string) : null;
-  const newAddress = !isPickup ? parsed.data.delivery_address : null;
-
   // ─── Atomic write via SECURITY DEFINER function ────────────────────
+  // Always a pickup switch (delivery is NULL) — the RPC's delivery branch is
+  // admin-gated, so we never reach it from this member route.
   const { data: rpcData, error: rpcErr } = await locals.supabase.rpc(
     'change_pickup_location',
     {
       p_member_id: parsed.data.member_id,
-      p_new_location_id: newLocation,
-      p_new_delivery_address: newAddress,
+      p_new_location_id: parsed.data.pickup_location_id,
+      p_new_delivery_address: null,
     }
   );
 

@@ -70,6 +70,15 @@ export interface Database {
           pickup_day: 'Sun' | 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat' | null;
           pickup_location_id: string | null;
           delivery_address: string | null;
+          /** Home-delivery REQUEST marker (migration 0030). NULL = no request.
+           *  Pending while set AND delivery_address is still NULL (admin hasn't
+           *  approved + set delivery). Set by /api/account/request-delivery —
+           *  never charges or sets delivery itself. */
+          home_delivery_requested_at: string | null;
+          /** The address the member supplied with their home-delivery request
+           *  (migration 0030). Captured for staff review; does NOT become
+           *  delivery_address until an admin sets it. */
+          home_delivery_requested_address: string | null;
           customization_allowed: boolean;
           swap_credits: number;
           vacation_weeks_used: number;

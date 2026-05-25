@@ -180,10 +180,18 @@ export const PROFILE_ERROR_COPY: Record<string, string> = {
 };
 
 export const PICKUP_ERROR_COPY: Record<string, string> = {
-  invalid_input: 'Please pick a pickup location or enter a delivery address.',
+  invalid_input: 'Please pick a pickup location, or enter a valid delivery address to request home delivery.',
   location_not_found: 'That pickup location is no longer available.',
   location_full: 'That location is at capacity. Try another or contact us.',
   member_not_found: "We couldn't find that share on your account.",
+  // Home delivery is paid + admin-approved, so a member can't set it directly —
+  // they request it instead (this code should be unreachable from the UI, since
+  // the member form posts to /api/account/request-delivery, but we map it so a
+  // hand-crafted POST gets a clear message rather than a generic one).
+  delivery_admin_only:
+    'Home delivery is $15/week and needs farm approval — use “Request home delivery” and we’ll set it up for you.',
+  already_delivery: "You're already set up for home delivery. Contact us to make changes.",
+  no_active_share: "We don't have an active share on your account yet.",
   network: "We couldn't reach the server. Please try again.",
 };
 
