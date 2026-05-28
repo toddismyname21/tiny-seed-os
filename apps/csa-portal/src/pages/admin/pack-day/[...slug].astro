@@ -1,0 +1,220 @@
+---
+/**
+ * /admin/pack-day/[week] — minimal command center for the morning of
+ * pack day.
+ *
+ * Spec §4.14 (Phase-1 minimal version):
+ *   - Hero card: total boxes + breakdown + add-on totals + flex order
+ *     totals.
+ *   - Vendor order status (sent ✅ / drafted ⏳ per vendor).
+ *   - Members who owe a balance (list).
+ *   - Quick links: harvest, pack sheet, labels, manifests, vendor orders.
+ *
+ * Phase-3 will add the "Changes since last refresh" delta view. Phase 1
+ * just shows the live cycle snapshot.
+ */
+import AdminShell from '../../../components/AdminShell.astro';
+import Card from '../../../components/Card.astro';
+import {
+  resolveCycle, prettyWeekHeader,
+  mondayOfWeek, isMonday, type CycleMember,
+} from '../../../lib/cycle';
+import { formatCents } from '../../../lib/cycle-ui';
+
+const supabase = Astro.locals.supabase;
+const slugParam = (Astro.params.slug ?? '') as string;
+const segments = slugParam.split('/').filter(Boolean);
+const week_input = segments[0] ?? '';
+if (!/^\d{4}-\d{2}-\d{2}$/.test(week_input)) {
+  return Astro.redirect('/admin/pack-day', 303);
+}
+const week_starting = isMonday(week_input) ? week_input : mondayOfWeek(week_input);
+
+const cycle = await resolveCycle(supabase, week_starting);
+
+// ─── Aggregate live totals ─────────────────────────────────────────
+const totalBoxes = cycle.members.filter((m) => m.share_type === 'summer_veg').length;
+const smallBoxes = cycle.members.filter(
+  (m) => m.share_type === 'summer_veg' && m.size_bucket === 'small',
+).length;
+const largeBoxes = totalBoxes - smallBoxes;
+const totalAddons = cycle.members.filter((m) => m.share_type === 'add_on').length;
+const addonByType = cycle.addOnTotals;
+
+// ─── Vendor order status ───────────────────────────────────────────
+type VendorJoin = {
+  id: string;
+  name: string;
+  contact_email: string;
+  add_on_types: string[];
+  notes: string | null;
+};
+const { data: vendorRows } = await supabase
+  .from('vendors')
+  .select('id, name, contact_email, add_on_types, notes')
+  .eq('is_active', true)
+  .order('name', { ascending: true })
+  .overrideTypes<VendorJoin[], { merge: false }>();
+const vendors = (vendorRows ?? []) as VendorJoin[];
+
+type OrderRow = { vendor_id: string; sent_at: string | null; sent_to: string | null };
+const { data: orderRows } = await supabase
+  .from('vendor_orders')
+  .select('vendor_id, sent_at, sent_to')
+  .eq('cycle_code', 'WEEKLY')
+  .eq('week_starting', week_starting)
+  .overrideTypes<OrderRow[], { merge: false }>();
+const orderByVendor = new Map<string, OrderRow>();
+for (const o of (orderRows ?? [])) orderByVendor.set(o.vendor_id, o);
+
+// ─── Owes-balance list ────────────────────────────────────────────
+const owesMembers: CycleMember[] = cycle.members.filter((m) => {
+  const p = (m.payment_status ?? '').trim().toLowerCase();
+  return !!p && p !== 'paid';
+});
+owesMembers.sort((a, b) => a.contact_name.localeCompare(b.contact_name));
+---
+
+<AdminShell
+  title="Pack-day dashboard"
+  subtitle={prettyWeekHeader(week_starting)}
+  pageTitle="Pack-day dashboard — Tiny Seed Admin"
+>
+  {/* ── HERO: cycle totals ────────────────────────────────────────── */}
+  <section aria-label="Cycle totals">
+    <Card padding="lg" elevation="md" tone="primary">
+      <div class="grid grid-cols-2 gap-6 sm:grid-cols-4">
+        <div>
+          <div class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Total boxes</div>
+          <div class="mt-1 font-display text-5xl font-extrabold tabular-nums text-ts-primary">{totalBoxes}</div>
+          <div class="mt-1 text-xs text-ts-text-secondary">{smallBoxes} small · {largeBoxes} large</div>
+        </div>
+        <div>
+          <div class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Add-on members</div>
+          <div class="mt-1 font-display text-5xl font-extrabold tabular-nums text-ts-text">{totalAddons}</div>
+          <div class="mt-1 text-xs text-ts-text-secondary">
+            {(['mushroom', 'bread', 'cheese', 'coffee'] as const).map((t, i) => (
+              <span>{i > 0 ? ' · ' : ''}{addonByType[t].total} {t}</span>
+            ))}
+          </div>
+        </div>
+        <div>
+          <div class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Flex orders</div>
+          <div class="mt-1 font-display text-5xl font-extrabold tabular-nums text-ts-text">{cycle.flexOrderTotals.order_count}</div>
+          <div class="mt-1 text-xs text-ts-text-secondary">
+            {formatCents(cycle.flexOrderTotals.grand_total_cents)} total
+          </div>
+        </div>
+        <div>
+          <div class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Active stops</div>
+          <div class="mt-1 font-display text-5xl font-extrabold tabular-nums text-ts-text">{cycle.activeStops.length}</div>
+          <div class="mt-1 text-xs text-ts-text-secondary">Tue / Wed / Sat</div>
+        </div>
+      </div>
+      {(cycle.excluded_biweekly.length > 0 || cycle.excluded_on_hold.length > 0) && (
+        <p class="mt-4 text-xs text-ts-text-muted">
+          Excluded from this cycle:
+          <strong class="font-semibold"> {cycle.excluded_biweekly.length}</strong> biweekly off-week
+          {cycle.excluded_on_hold.length > 0 && (
+            <>, <strong class="font-semibold">{cycle.excluded_on_hold.length}</strong> on vacation hold</>
+          )}.
+        </p>
+      )}
+    </Card>
+  </section>
+
+  {/* ── Vendor order status ──────────────────────────────────────── */}
+  <section aria-labelledby="vendor-status" class="flex flex-col gap-3">
+    <h2 id="vendor-status" class="font-display text-xl font-bold text-ts-text">Vendor order status</h2>
+    <Card padding="none" elevation="sm">
+      <ul class="divide-y divide-ts-border/60">
+        {vendors.length === 0 && (
+          <li class="px-5 py-6 text-center text-sm text-ts-text-muted">No active vendors.</li>
+        )}
+        {vendors.map((v) => {
+          const o = orderByVendor.get(v.id);
+          const sent = !!o?.sent_at;
+          return (
+            <li class="flex items-center gap-4 px-5 py-3">
+              <span class={[
+                'inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm',
+                sent ? 'bg-ts-primary/15 text-ts-primary' : 'bg-ts-warning/15 text-ts-warning',
+              ].join(' ')} aria-hidden="true">
+                {sent ? '✓' : '⏳'}
+              </span>
+              <div class="min-w-0 flex-1">
+                <p class="font-medium text-ts-text">{v.name}</p>
+                <p class="mt-0.5 text-xs text-ts-text-muted">
+                  {v.add_on_types.join(', ') || '(no add-on types)'} ·
+                  {sent
+                    ? <span> sent {o!.sent_at && new Date(o!.sent_at).toLocaleString('en-US', { timeZone: 'America/New_York' })} to {o!.sent_to}</span>
+                    : <span> not sent yet</span>}
+                </p>
+              </div>
+              <a
+                href={`/admin/vendor-orders/${week_starting}`}
+                class="shrink-0 text-sm font-semibold text-ts-primary hover:underline"
+              >
+                Open →
+              </a>
+            </li>
+          );
+        })}
+      </ul>
+    </Card>
+  </section>
+
+  {/* ── Members who owe a balance ────────────────────────────────── */}
+  <section aria-labelledby="owes-heading" class="flex flex-col gap-3">
+    <h2 id="owes-heading" class="font-display text-xl font-bold text-ts-text">Owes balance</h2>
+    <Card padding="none" elevation="sm">
+      {owesMembers.length === 0 ? (
+        <p class="px-5 py-6 text-center text-sm text-ts-text-muted">All paid up ✓</p>
+      ) : (
+        <ul class="divide-y divide-ts-border/60">
+          {owesMembers.map((m) => (
+            <li class="flex items-center gap-3 px-5 py-2.5">
+              <div class="min-w-0 flex-1">
+                <a
+                  href={`/admin/members/${m.id}`}
+                  class="font-medium text-ts-text underline-offset-2 hover:text-ts-primary hover:underline"
+                >
+                  {m.contact_name}
+                </a>
+                <p class="mt-0.5 text-xs text-ts-text-muted">
+                  {m.share_type} · {m.pickup_location?.name ?? (m.delivery_address ? 'Home delivery' : 'No stop')}
+                </p>
+              </div>
+              <span class="shrink-0 text-xs font-semibold text-ts-warning">⚠ {m.payment_status}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
+  </section>
+
+  {/* ── Quick links ──────────────────────────────────────────────── */}
+  <section aria-labelledby="links-heading" class="flex flex-col gap-3">
+    <h2 id="links-heading" class="font-display text-xl font-bold text-ts-text">Quick links</h2>
+    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      {[
+        { href: `/admin/stop-manifest?week=${week_starting}`, label: 'Per-stop manifests', icon: '🚚' },
+        { href: `/admin/labels/${week_starting}`,             label: 'Box labels (Avery 5164)', icon: '🏷️' },
+        { href: `/admin/harvest/${week_starting}?day=mon`,    label: 'Harvest list — Mon', icon: '🌾' },
+        { href: `/admin/harvest/${week_starting}?day=thu`,    label: 'Harvest list — Thu', icon: '🌾' },
+        { href: `/admin/pack-sheet/${week_starting}?day=wed`, label: 'Pack sheet (Wed)', icon: '📋' },
+        { href: `/admin/vendor-orders/${week_starting}`,      label: 'Vendor orders', icon: '🤝' },
+        { href: `/admin/box-plan/${week_starting}`,           label: 'Box plan editor', icon: '📦' },
+      ].map((link) => (
+        <a
+          href={link.href}
+          class="flex items-center gap-3 rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 py-3 text-sm font-medium text-ts-text shadow-ts-sm transition-colors hover:border-ts-primary/40 hover:text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+        >
+          <span aria-hidden="true" class="text-xl">{link.icon}</span>
+          <span class="flex-1">{link.label}</span>
+          <span aria-hidden="true" class="text-ts-text-muted">→</span>
+        </a>
+      ))}
+    </div>
+  </section>
+</AdminShell>

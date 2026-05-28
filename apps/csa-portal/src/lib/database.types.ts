@@ -514,6 +514,212 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['stop_message_reports']['Row']>;
         Relationships: [];
       };
+      // ── CSA Operations Admin Phase 1 (migration 0031) ───────────────
+      // Per-week base box composition. contents is a JSONB array of
+      // {crop, qty, unit, notes}. published_at NULL = draft (admin only);
+      // non-null = locked + member-visible.
+      weekly_box_plan: {
+        Row: {
+          id: string;
+          /** Reserved for future multi-cycle support. Always 'WEEKLY' for Phase 1. */
+          cycle_code: 'WEEKLY';
+          /** Monday of the cycle's week. */
+          week_starting: string;
+          share_size: 'small' | 'large' | 'family' | 'regular' | 'light';
+          /** JSONB array of {crop: string, qty: number, unit: string, notes?: string}. */
+          contents: Json;
+          published_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          week_starting: string;
+          share_size: Database['public']['Tables']['weekly_box_plan']['Row']['share_size'];
+        } & Partial<Database['public']['Tables']['weekly_box_plan']['Row']>;
+        Update: Partial<Database['public']['Tables']['weekly_box_plan']['Row']>;
+        Relationships: [];
+      };
+      // Curated swap menu for the week. side=swap_out (what can come out
+      // of the box) / swap_in (what can go in). available_qty NULL =
+      // unlimited; integer caps swap_in supply.
+      weekly_swap_menu: {
+        Row: {
+          id: string;
+          cycle_code: 'WEEKLY';
+          week_starting: string;
+          side: 'swap_out' | 'swap_in';
+          item: string;
+          unit: string | null;
+          available_qty: number | null;
+          display_order: number;
+          created_at: string;
+        };
+        Insert: {
+          week_starting: string;
+          side: 'swap_out' | 'swap_in';
+          item: string;
+        } & Partial<Database['public']['Tables']['weekly_swap_menu']['Row']>;
+        Update: Partial<Database['public']['Tables']['weekly_swap_menu']['Row']>;
+        Relationships: [];
+      };
+      // Per-week extras catalog. remaining_qty decrements on order;
+      // resets each week. is_active is auto-flipped to false at cutoff
+      // by the cron (Phase 2).
+      flex_inventory: {
+        Row: {
+          id: string;
+          cycle_code: 'WEEKLY';
+          week_starting: string;
+          name: string;
+          category: string | null;
+          unit: string;
+          price_cents: number;
+          available_qty: number;
+          remaining_qty: number;
+          photo_url: string | null;
+          description: string | null;
+          is_active: boolean;
+          restock_alert_threshold: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          week_starting: string;
+          name: string;
+          unit: string;
+          price_cents: number;
+          available_qty: number;
+          remaining_qty: number;
+        } & Partial<Database['public']['Tables']['flex_inventory']['Row']>;
+        Update: Partial<Database['public']['Tables']['flex_inventory']['Row']>;
+        Relationships: [];
+      };
+      // Member orders against flex_inventory. status pending (editable)
+      // → locked (cutoff passed, paid) → fulfilled. Cancelled/refunded
+      // are end states. cycle close debits Shopify store credit on
+      // locked rows.
+      flex_orders: {
+        Row: {
+          id: string;
+          cycle_code: 'WEEKLY';
+          week_starting: string;
+          member_id: string;
+          flex_item_id: string;
+          qty: number;
+          unit_price_cents: number;
+          total_cents: number;
+          status: 'pending' | 'locked' | 'fulfilled' | 'cancelled' | 'refunded';
+          ordered_at: string;
+          fulfilled_at: string | null;
+        };
+        Insert: {
+          week_starting: string;
+          member_id: string;
+          flex_item_id: string;
+          qty: number;
+          unit_price_cents: number;
+          total_cents: number;
+        } & Partial<Database['public']['Tables']['flex_orders']['Row']>;
+        Update: Partial<Database['public']['Tables']['flex_orders']['Row']>;
+        Relationships: [];
+      };
+      // One row per (cycle, week, member). Host or admin marks status=
+      // picked_up at the stop. UNIQUE (cycle_code, week_starting,
+      // member_id) — at most one check-in per member per cycle.
+      pickup_checkins: {
+        Row: {
+          id: string;
+          cycle_code: 'WEEKLY';
+          week_starting: string;
+          member_id: string;
+          pickup_location_id: string | null;
+          status: 'pending' | 'picked_up' | 'no_show' | 'donated' | 'held' | 'contacted';
+          checked_in_at: string | null;
+          checked_in_by: string | null;
+          note: string | null;
+        };
+        Insert: {
+          week_starting: string;
+          member_id: string;
+        } & Partial<Database['public']['Tables']['pickup_checkins']['Row']>;
+        Update: Partial<Database['public']['Tables']['pickup_checkins']['Row']>;
+        Relationships: [];
+      };
+      // Add-on vendor catalog. lead_time_days default 7 per Todd 2026-05-27
+      // (one weekly vendor delivery). add_on_types names what add-on type
+      // this vendor supplies (matches member subscription tags).
+      vendors: {
+        Row: {
+          id: string;
+          slug: string;
+          name: string;
+          contact_email: string;
+          contact_phone: string | null;
+          lead_time_days: number;
+          order_template: string | null;
+          add_on_types: string[];
+          is_active: boolean;
+          notes: string | null;
+          created_at: string;
+        };
+        Insert: {
+          slug: string;
+          name: string;
+          contact_email: string;
+        } & Partial<Database['public']['Tables']['vendors']['Row']>;
+        Update: Partial<Database['public']['Tables']['vendors']['Row']>;
+        Relationships: [];
+      };
+      // Per-cycle vendor order log. totals auto-computed at the cycle
+      // resolve; override_qty captures admin edits before send; sent_at
+      // is NULL until admin explicitly clicks Send.
+      vendor_orders: {
+        Row: {
+          id: string;
+          cycle_code: 'WEEKLY';
+          week_starting: string;
+          vendor_id: string;
+          totals: Json;
+          email_subject: string | null;
+          email_body: string | null;
+          sent_at: string | null;
+          sent_to: string | null;
+          override_qty: Json | null;
+          notes: string | null;
+        };
+        Insert: {
+          week_starting: string;
+          vendor_id: string;
+          totals: Json;
+        } & Partial<Database['public']['Tables']['vendor_orders']['Row']>;
+        Update: Partial<Database['public']['Tables']['vendor_orders']['Row']>;
+        Relationships: [];
+      };
+      // Per-member box swap events. status pending → locked (cutoff
+      // passed, applied to pack list) → reverted. credits_used drives
+      // members.swap_credits decrement.
+      box_swap_events: {
+        Row: {
+          id: string;
+          cycle_code: 'WEEKLY';
+          week_starting: string;
+          member_id: string;
+          swap_out_item: string;
+          swap_in_item: string;
+          credits_used: number;
+          status: 'pending' | 'locked' | 'reverted';
+          ordered_at: string;
+          locked_at: string | null;
+        };
+        Insert: {
+          week_starting: string;
+          member_id: string;
+          swap_out_item: string;
+          swap_in_item: string;
+        } & Partial<Database['public']['Tables']['box_swap_events']['Row']>;
+        Update: Partial<Database['public']['Tables']['box_swap_events']['Row']>;
+        Relationships: [];
+      };
     };
     Views: {
       member_flex_balance: {

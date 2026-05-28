@@ -1,0 +1,174 @@
+---
+/**
+ * /admin/box-plan/[week] — minimal week-plan editor.
+ *
+ * Spec §4.2 (Phase 1: minimal JSON editor — friendly form lands Phase 2).
+ *
+ * Per share_size (small + large for now), edit a JSONB contents array of
+ * `{crop, qty, unit, notes?}` objects via a textarea. Save creates or
+ * updates the weekly_box_plan row. Publish flips published_at to now()
+ * (makes it visible to members + locks the plan for the cycle).
+ */
+import AdminShell from '../../../components/AdminShell.astro';
+import Card from '../../../components/Card.astro';
+import {
+  prettyWeekHeader, mondayOfWeek, isMonday,
+  type BoxContentLine,
+} from '../../../lib/cycle';
+
+const supabase = Astro.locals.supabase;
+const slugParam = (Astro.params.slug ?? '') as string;
+const segments = slugParam.split('/').filter(Boolean);
+const week_input = segments[0] ?? '';
+if (!/^\d{4}-\d{2}-\d{2}$/.test(week_input)) {
+  return Astro.redirect('/admin/box-plan', 303);
+}
+const week_starting = isMonday(week_input) ? week_input : mondayOfWeek(week_input);
+
+const okFlash = Astro.url.searchParams.get('ok');
+const errorFlash = Astro.url.searchParams.get('error');
+
+// ─── Fetch the existing plans for this week ────────────────────────
+type PlanRow = {
+  share_size: string;
+  contents: unknown;
+  published_at: string | null;
+  updated_at: string;
+};
+const { data: planRows, error: planErr } = await supabase
+  .from('weekly_box_plan')
+  .select('share_size, contents, published_at, updated_at')
+  .eq('cycle_code', 'WEEKLY')
+  .eq('week_starting', week_starting)
+  .overrideTypes<PlanRow[], { merge: false }>();
+if (planErr) throw new Error(`weekly_box_plan fetch: ${planErr.message}`);
+
+const planBySize = new Map<string, PlanRow>();
+for (const p of (planRows ?? [])) planBySize.set(p.share_size, p);
+
+const SIZES = ['small', 'large'] as const;
+type Size = typeof SIZES[number];
+
+function jsonString(v: unknown): string {
+  try {
+    return JSON.stringify(v ?? [], null, 2);
+  } catch {
+    return '[]';
+  }
+}
+
+function planSummary(p: PlanRow | undefined): string {
+  if (!p) return 'Not started';
+  const items = Array.isArray(p.contents) ? p.contents : [];
+  const count = items.length;
+  if (p.published_at) {
+    return `Published · ${count} item${count === 1 ? '' : 's'}`;
+  }
+  return `Draft · ${count} item${count === 1 ? '' : 's'}`;
+}
+
+const FLASH_OK: Record<string, string> = {
+  saved: 'Plan saved as draft.',
+  published: 'Plan published — members can now see it.',
+  unpublished: 'Plan moved back to draft.',
+};
+const FLASH_ERR: Record<string, string> = {
+  invalid_input: 'The contents JSON is invalid. Each row needs {crop, qty, unit}.',
+  bad_size: 'Unknown share size.',
+  db_save_failed: 'Database save failed.',
+};
+---
+
+<AdminShell
+  title={`Box plan · ${prettyWeekHeader(week_starting)}`}
+  subtitle="Edit this week's box contents per share size. Publish to make it visible to members."
+  pageTitle="Box plan — Tiny Seed Admin"
+>
+  {okFlash && FLASH_OK[okFlash] && (
+    <div class="rounded-ts-md border border-ts-primary/30 bg-ts-primary/5 px-4 py-3 text-sm font-medium text-ts-primary">
+      ✓ {FLASH_OK[okFlash]}
+    </div>
+  )}
+  {errorFlash && FLASH_ERR[errorFlash] && (
+    <div class="rounded-ts-md border border-ts-danger/30 bg-ts-danger/5 px-4 py-3 text-sm font-medium text-ts-danger">
+      ⚠ {FLASH_ERR[errorFlash]}
+    </div>
+  )}
+
+  <Card padding="md" elevation="sm">
+    <p class="text-sm text-ts-text">
+      <strong class="font-semibold">JSON format:</strong> an array of <code class="rounded bg-ts-bg-muted px-1 font-mono text-xs">{`{ "crop": "Lettuce", "qty": 1, "unit": "head", "notes": "" }`}</code> objects.
+      Save creates a draft (admin only); Publish locks the plan and makes it visible to members.
+    </p>
+  </Card>
+
+  <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+    {SIZES.map((size: Size) => {
+      const existing = planBySize.get(size);
+      const initialJson = jsonString(existing?.contents ?? []);
+      return (
+        <Card padding="md" elevation="sm" as="section">
+          <header class="flex items-start justify-between gap-3 border-b border-ts-border pb-3">
+            <div>
+              <h2 class="font-display text-xl font-bold text-ts-text capitalize">{size} box</h2>
+              <p class="mt-0.5 text-xs text-ts-text-muted">
+                {planSummary(existing)}
+                {existing?.updated_at && (
+                  <> · last edit {new Date(existing.updated_at).toLocaleString('en-US', { timeZone: 'America/New_York' })}</>
+                )}
+              </p>
+            </div>
+            {existing?.published_at && (
+              <span class="shrink-0 rounded-ts-md bg-ts-primary/10 px-3 py-1 text-xs font-bold text-ts-primary">
+                PUBLISHED
+              </span>
+            )}
+          </header>
+          <form method="POST" action="/api/admin/box-plan/save" class="mt-4 flex flex-col gap-3">
+            <input type="hidden" name="week_starting" value={week_starting} />
+            <input type="hidden" name="share_size" value={size} />
+            <label class="flex flex-col gap-1">
+              <span class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Contents (JSON)</span>
+              <textarea
+                name="contents"
+                rows="14"
+                class="rounded-ts-md border border-ts-border bg-ts-bg-surface p-3 font-mono text-xs leading-relaxed text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+              >{initialJson}</textarea>
+            </label>
+            <div class="flex flex-col gap-2 sm:flex-row sm:justify-end">
+              <button
+                type="submit"
+                name="action"
+                value="save_draft"
+                class="inline-flex h-10 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-semibold text-ts-text hover:border-ts-primary/40 hover:text-ts-primary"
+              >
+                Save draft
+              </button>
+              {existing?.published_at ? (
+                <button
+                  type="submit"
+                  name="action"
+                  value="unpublish"
+                  class="inline-flex h-10 items-center justify-center rounded-ts-md border border-ts-warning/40 bg-ts-warning/5 px-4 text-sm font-semibold text-ts-warning hover:bg-ts-warning/10"
+                  onclick="return confirm('Move this plan back to draft? Members will no longer see it.');"
+                >
+                  Unpublish
+                </button>
+              ) : (
+                <button
+                  type="submit"
+                  name="action"
+                  value="publish"
+                  class="inline-flex h-10 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm hover:bg-ts-primary-dark"
+                  onclick="return confirm('Publish this plan? It will be visible to members.');"
+                >
+                  Save &amp; publish
+                </button>
+              )}
+            </div>
+          </form>
+        </Card>
+      );
+    })}
+  </div>
+</AdminShell>

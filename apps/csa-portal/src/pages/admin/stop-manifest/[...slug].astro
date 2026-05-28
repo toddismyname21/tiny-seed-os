@@ -1,0 +1,324 @@
+---
+/**
+ * /admin/stop-manifest/[week]/[stop-slug] — printable per-stop manifest.
+ * /admin/stop-manifest/[week]               — list of stops for the week.
+ * /admin/stop-manifest/[week]?all=1         — print every stop, page-broken.
+ *
+ * Spec §4.8. The host/driver's checklist at each stop. Bold cover totals
+ * + per-member rows with add-ons, flex summary, flex balance, ⚠ owes flag.
+ *
+ * Layout decision: this slug page is INTENTIONALLY printable. It uses
+ * the AdminShell only for the header + week selector; the manifest body
+ * itself is wrapped in `.print-doc` and the print stylesheet hides the
+ * shell (header / nav / actions row).
+ */
+import AdminShell from '../../../components/AdminShell.astro';
+import Card from '../../../components/Card.astro';
+import { CSA_CONTACT_EMAILS } from '../../../lib/contact';
+import {
+  resolveCycle, slugStop, prettyWeekHeader, prettyShortDate,
+  HOME_DELIVERY_BUCKET_ID,
+  mondayOfWeek, isMonday,
+  type StopTotals, type CycleMember,
+} from '../../../lib/cycle';
+import { getFlexBalance, formatFlexMoney } from '../../../lib/flex';
+
+const supabase = Astro.locals.supabase;
+const slugParam = (Astro.params.slug ?? '') as string;
+const segments = slugParam.split('/').filter(Boolean);
+
+if (segments.length === 0) {
+  // /admin/stop-manifest/  → bounce to landing
+  return Astro.redirect('/admin/stop-manifest', 303);
+}
+
+const week_starting_input = segments[0];
+if (!/^\d{4}-\d{2}-\d{2}$/.test(week_starting_input)) {
+  return Astro.redirect('/admin/stop-manifest?error=bad_week', 303);
+}
+const week_starting = isMonday(week_starting_input)
+  ? week_starting_input
+  : mondayOfWeek(week_starting_input);
+
+const stopSlugRaw = segments[1] ?? '';
+const printAll = Astro.url.searchParams.get('all') === '1';
+
+const cycle = await resolveCycle(supabase, week_starting);
+
+// ─── Decide which stop(s) to render ──────────────────────────────────
+let stopsToRender: StopTotals[] = [];
+let title = '';
+if (printAll) {
+  stopsToRender = cycle.activeStops;
+  title = `All stops · ${prettyWeekHeader(week_starting)}`;
+} else if (stopSlugRaw) {
+  const found = cycle.activeStops.find((s) => slugStop(s.stop_name) === stopSlugRaw);
+  if (!found) {
+    return Astro.redirect(`/admin/stop-manifest?week=${week_starting}&error=stop_not_found`, 303);
+  }
+  stopsToRender = [found];
+  title = `${found.stop_name} · ${prettyWeekHeader(week_starting)}`;
+} else {
+  // /admin/stop-manifest/2026-06-08 (no stop) — show landing-style list inline
+  return Astro.redirect(`/admin/stop-manifest?week=${week_starting}`, 303);
+}
+
+// ─── Fetch flex balances for the members at the rendered stop(s).
+//     Bounded concurrency (8 parallel Shopify GraphQL calls) so we don't
+//     hammer Shopify on a big "print all stops" page. fail-soft per
+//     member → null balance just renders "—".
+type BalanceLookup = Map<string, { total: number; principal: number; currency: string } | null>;
+async function fetchBalancesForMembers(members: CycleMember[]): Promise<BalanceLookup> {
+  const out: BalanceLookup = new Map();
+  const uniqueEmails = Array.from(new Set(members.map((m) => m.email).filter((e) => !!e)));
+  const MAX_PARALLEL = 8;
+  for (let i = 0; i < uniqueEmails.length; i += MAX_PARALLEL) {
+    const slice = uniqueEmails.slice(i, i + MAX_PARALLEL);
+    const results = await Promise.all(slice.map((email) => getFlexBalance(email).catch(() => null)));
+    slice.forEach((email, idx) => out.set(email, results[idx]));
+  }
+  return out;
+}
+
+// Collect ALL members across rendered stops in one batch (de-duped by email).
+const allRenderedMembers: CycleMember[] = stopsToRender.flatMap(
+  (s) => cycle.byStop.get(s.stop_id) ?? [],
+);
+const balances = await fetchBalancesForMembers(allRenderedMembers);
+
+// Pickup flex orders per member (sum qty by member from cycle).
+const flexQtyByMember = new Map<string, number>();
+const flexLinesByMember = new Map<string, Array<{ name: string | null; qty: number }>>();
+{
+  // Re-derive per-member flex lines from cycle's aggregated set won't work
+  // (cycle aggregates by item, not by member). We do one more query to get
+  // per-member flex order lines for the rendered stops.
+  const memberIds = allRenderedMembers.map((m) => m.id);
+  if (memberIds.length > 0) {
+    type FlexLineRow = {
+      member_id: string;
+      qty: number;
+      flex_item: { name: string | null } | null;
+    };
+    const { data, error } = await supabase
+      .from('flex_orders')
+      .select('member_id, qty, flex_item:flex_inventory ( name )')
+      .eq('cycle_code', 'WEEKLY')
+      .eq('week_starting', week_starting)
+      .in('status', ['locked', 'fulfilled'])
+      .in('member_id', memberIds)
+      .overrideTypes<FlexLineRow[], { merge: false }>();
+    if (!error) {
+      for (const r of (data ?? []) as FlexLineRow[]) {
+        flexQtyByMember.set(r.member_id, (flexQtyByMember.get(r.member_id) ?? 0) + r.qty);
+        const arr = flexLinesByMember.get(r.member_id) ?? [];
+        arr.push({ name: r.flex_item?.name ?? null, qty: r.qty });
+        flexLinesByMember.set(r.member_id, arr);
+      }
+    }
+  }
+}
+
+const DAY_LONG: Record<string, string> = {
+  Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday',
+  Thu: 'Thursday', Fri: 'Friday', Sat: 'Saturday', Sun: 'Sunday',
+};
+
+function distDateForStop(stop: StopTotals): string {
+  if (stop.day_of_week === 'Tue') return cycle.distribution_dates.Tue;
+  if (stop.day_of_week === 'Sat') return cycle.distribution_dates.Sat;
+  return cycle.distribution_dates.Wed;
+}
+
+function memberShareLabel(m: CycleMember): string {
+  if (m.share_type === 'summer_veg') {
+    const sz = m.size_bucket === 'large' ? 'Large' : 'Small';
+    return `${sz} (summer)`;
+  }
+  if (m.share_type === 'add_on') {
+    const t = m.addon_type === 'unknown' ? 'add-on' : m.addon_type;
+    const f = m.addon_frequency === 'weekly' ? 'wkly' : 'bi-wk';
+    return `${t.charAt(0).toUpperCase()}${t.slice(1)} (${f})`;
+  }
+  return m.share_type;
+}
+
+function owesFlag(m: CycleMember): string | null {
+  const p = (m.payment_status ?? '').trim().toLowerCase();
+  if (!p || p === 'paid') return null;
+  return p;
+}
+---
+
+<AdminShell
+  title="Stop manifest"
+  subtitle={title}
+  pageTitle={`${title} — Tiny Seed Admin`}
+>
+  <Fragment slot="actions">
+    <button
+      type="button"
+      onclick="window.print()"
+      class="inline-flex h-10 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm transition-colors hover:bg-ts-primary-dark"
+    >
+      🖨 Print
+    </button>
+    <a
+      href="/admin/stop-manifest"
+      class="inline-flex h-10 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-semibold text-ts-text hover:border-ts-primary/40 hover:text-ts-primary"
+    >
+      ← Back to all stops
+    </a>
+  </Fragment>
+
+  <div class="print-doc flex flex-col gap-8">
+    {stopsToRender.map((stop, stopIdx) => {
+      const members = (cycle.byStop.get(stop.stop_id) ?? [])
+        .slice()
+        .sort((a, b) => a.contact_name.localeCompare(b.contact_name));
+      const distDate = distDateForStop(stop);
+      const totalBoxes = stop.boxes_small + stop.boxes_large;
+      const addonsList: { type: string; n: number }[] = [];
+      (['mushroom', 'bread', 'cheese', 'coffee', 'eggs', 'unknown'] as const).forEach((t) => {
+        if (stop.addons[t] > 0) addonsList.push({ type: t, n: stop.addons[t] });
+      });
+      const isLast = stopIdx === stopsToRender.length - 1;
+      return (
+        <section class="page-break" aria-labelledby={`stop-${stop.stop_id}`}>
+          {/* COVER HEADER ─────────────────────────────────────────── */}
+          <header class="border-b-2 border-ts-text pb-4">
+            <p class="text-xs font-semibold uppercase tracking-wider text-ts-text-muted">
+              TINY SEED FARM CSA · {prettyWeekHeader(week_starting)}
+            </p>
+            <h2
+              id={`stop-${stop.stop_id}`}
+              class="mt-1 font-display text-3xl font-bold text-ts-text sm:text-4xl"
+            >
+              {stop.stop_name}
+            </h2>
+            <p class="mt-1 text-sm text-ts-text-secondary">
+              {stop.day_of_week ? DAY_LONG[stop.day_of_week] : ''} · {prettyShortDate(distDate)}
+            </p>
+          </header>
+
+          {/* BOLD COVER COUNT ──────────────────────────────────────── */}
+          <div class="my-6 rounded-ts-xl border-4 border-ts-primary bg-ts-primary/5 p-6 text-center">
+            <p class="font-display text-5xl font-extrabold text-ts-primary tabular-nums sm:text-6xl">
+              ★ {totalBoxes} BOX{totalBoxes === 1 ? '' : 'ES'} ★
+            </p>
+            <p class="mt-3 text-base font-semibold text-ts-text">
+              {stop.boxes_small} Small · {stop.boxes_large} Large
+              {addonsList.length > 0 && (
+                <> · {addonsList.reduce((a, x) => a + x.n, 0)} add-ons</>
+              )}
+              {stop.flex_orders > 0 && <> · {stop.flex_orders} flex orders</>}
+            </p>
+            {addonsList.length > 0 && (
+              <p class="mt-2 text-sm text-ts-text-secondary">
+                {addonsList.map((a) => `${a.n} ${a.type}`).join(' · ')}
+              </p>
+            )}
+            {stop.owes_count > 0 && (
+              <p class="mt-3 text-sm font-bold text-ts-warning">
+                ⚠ {stop.owes_count} member{stop.owes_count === 1 ? '' : 's'} owes a balance
+              </p>
+            )}
+          </div>
+
+          {/* MEMBERS LIST ──────────────────────────────────────────── */}
+          {members.length === 0 ? (
+            <Card tone="muted" padding="md" elevation="sm">
+              <p class="text-center text-sm text-ts-text-secondary">
+                No members at this stop this cycle.
+              </p>
+            </Card>
+          ) : (
+            <ol class="divide-y divide-ts-border/60">
+              {members.map((m) => {
+                const owes = owesFlag(m);
+                const flexQty = flexQtyByMember.get(m.id) ?? 0;
+                const flexLines = flexLinesByMember.get(m.id) ?? [];
+                const bal = balances.get(m.email) ?? null;
+                return (
+                  <li class="grid grid-cols-12 gap-3 px-1 py-3 sm:px-2">
+                    <div class="col-span-1 flex items-start pt-0.5">
+                      <span
+                        class="inline-block h-5 w-5 rounded border-2 border-ts-text print:border-black"
+                        aria-hidden="true"
+                      ></span>
+                    </div>
+                    <div class="col-span-6 sm:col-span-5">
+                      <p class="font-semibold text-ts-text">{m.contact_name}</p>
+                      <p class="mt-0.5 text-xs text-ts-text-secondary">
+                        {memberShareLabel(m)}
+                      </p>
+                      {m.allergies.length > 0 && (
+                        <p class="mt-0.5 text-xs font-medium text-ts-warning">
+                          ⚠ allergy: {m.allergies.join(', ')}
+                        </p>
+                      )}
+                      {m.delivery_notes && (
+                        <p class="mt-0.5 text-xs italic text-ts-text-muted">
+                          note: {m.delivery_notes}
+                        </p>
+                      )}
+                    </div>
+                    <div class="col-span-3">
+                      {flexLines.length > 0 && (
+                        <p class="text-xs text-ts-text">
+                          <strong class="font-semibold">🎯 FLEX:</strong>{' '}
+                          {flexLines.map((l, i) => (
+                            <span>
+                              {i > 0 ? ', ' : ''}
+                              {l.qty}× {l.name ?? 'item'}
+                            </span>
+                          ))}
+                        </p>
+                      )}
+                    </div>
+                    <div class="col-span-2 text-right text-xs text-ts-text-secondary">
+                      {bal && bal.total > 0 && (
+                        <p class="tabular-nums">
+                          flex bal: <strong class="font-semibold text-ts-text">{formatFlexMoney(bal.total, bal.currency)}</strong>
+                        </p>
+                      )}
+                      {owes && (
+                        <p class="mt-1 font-bold text-ts-warning">
+                          ⚠ owes
+                        </p>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
+          )}
+
+          <footer class="mt-6 text-xs text-ts-text-muted">
+            <p>Questions? Contact {CSA_CONTACT_EMAILS}.</p>
+          </footer>
+        </section>
+      );
+    })}
+  </div>
+</AdminShell>
+
+<style is:global>
+  /* ── Print-friendly: hide the AdminShell chrome, page-break between stops */
+  @media print {
+    @page { size: Letter portrait; margin: 0.5in; }
+
+    body, html { background: white !important; }
+    /* AdminShell header + nav + h1 row + page actions: hide. */
+    header[class*="sticky"], nav[aria-label="Admin sections"],
+    .ts-admin-actions, button[onclick*="print"], a[href="/admin/stop-manifest"]:not(.print-doc a) {
+      display: none !important;
+    }
+    /* Hide the AdminShell page heading and subtitle so the cover header is the first thing. */
+    main > div:first-child { display: none !important; }
+    main { padding: 0 !important; }
+
+    .page-break { break-after: page; page-break-after: always; }
+    .page-break:last-child { break-after: auto; page-break-after: auto; }
+  }
+</style>

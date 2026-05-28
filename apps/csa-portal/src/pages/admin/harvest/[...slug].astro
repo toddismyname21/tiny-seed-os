@@ -1,0 +1,229 @@
+---
+/**
+ * /admin/harvest/[week] — printable harvest list for the cycle.
+ *
+ * Spec §4.5. Per crop, total quantity to pick this cycle.
+ *
+ * UI:
+ *   - Two tabs: "Mon harvest" (needed for Tue + Wed distributions) and
+ *     "Thu harvest" (needed for Sat distributions). All drawn from the
+ *     same single cycle (one Mon 6 AM cutoff).
+ *   - Per crop row: total qty + unit, plus a breakdown column
+ *     ("Box: 168 lb · Flex: 12 lb").
+ *   - "Biweekly off-week excluded" badge for transparency (count).
+ *   - Print button.
+ */
+import AdminShell from '../../../components/AdminShell.astro';
+import Card from '../../../components/Card.astro';
+import {
+  resolveCycle, prettyWeekHeader, prettyShortDate,
+  mondayOfWeek, isMonday,
+  type CycleMember, type BoxContentLine,
+} from '../../../lib/cycle';
+
+const supabase = Astro.locals.supabase;
+const slugParam = (Astro.params.slug ?? '') as string;
+const segments = slugParam.split('/').filter(Boolean);
+const week_input = segments[0] ?? '';
+if (!/^\d{4}-\d{2}-\d{2}$/.test(week_input)) {
+  return Astro.redirect('/admin/harvest', 303);
+}
+const week_starting = isMonday(week_input) ? week_input : mondayOfWeek(week_input);
+
+const dayTabRaw = Astro.url.searchParams.get('day') ?? 'mon';
+const dayTab = dayTabRaw === 'thu' ? 'thu' : 'mon';
+
+const cycle = await resolveCycle(supabase, week_starting);
+
+// ─── Determine which members ship on the selected harvest day ──────
+// Mon harvest serves Tue + Wed distributions; Thu serves Sat.
+const targetDays: ('Tue' | 'Wed' | 'Sat')[] = dayTab === 'mon' ? ['Tue', 'Wed'] : ['Sat'];
+const membersForHarvest: CycleMember[] = targetDays.flatMap(
+  (d) => cycle.byDistributionDay.get(d) ?? [],
+);
+
+// ─── Aggregate harvest quantities by crop + unit ───────────────────
+interface HarvestRow {
+  crop: string;
+  unit: string;
+  /** From summer_veg boxes (default contents + locked swaps + allergy subs). */
+  box_qty: number;
+  /** From flex_orders that mention a crop in the item name (Phase 1: skip;
+   *  flex inventory doesn't carry a structured crop name yet). */
+  flex_qty: number;
+  /** Number of members contributing to this crop's box_qty. */
+  member_count: number;
+}
+
+const harvestMap = new Map<string, HarvestRow>(); // key = `${crop}|${unit}`
+
+// Box (summer_veg) contributions — sum each member's resolved composition.
+for (const m of membersForHarvest) {
+  if (m.share_type !== 'summer_veg') continue;
+  const comp = cycle.boxCompositionByMember.get(m.id);
+  if (!comp) continue;
+  for (const line of comp.items) {
+    const key = `${line.crop.toLowerCase()}|${line.unit.toLowerCase()}`;
+    const existing = harvestMap.get(key);
+    if (existing) {
+      existing.box_qty += line.qty;
+      existing.member_count += 1;
+    } else {
+      harvestMap.set(key, {
+        crop: line.crop,
+        unit: line.unit,
+        box_qty: line.qty,
+        flex_qty: 0,
+        member_count: 1,
+      });
+    }
+  }
+}
+
+// Flex contributions — Phase 1 caveat: flex_inventory.name is free text
+// (e.g. "Dozen Eggs", "Cherry Tomato Pint"), not a structured crop name,
+// so we can't reliably attribute it to a harvest row. We surface the
+// total flex order count separately. A Phase-2 enhancement would add a
+// `crop` column to flex_inventory.
+
+const rows = Array.from(harvestMap.values()).sort((a, b) => {
+  // Bigger qty first (most-picked at the top); ties → alphabetical.
+  if (b.box_qty !== a.box_qty) return b.box_qty - a.box_qty;
+  return a.crop.localeCompare(b.crop);
+});
+
+const totalDistinctCrops = rows.length;
+const totalBoxesThisHarvest = membersForHarvest.filter((m) => m.share_type === 'summer_veg').length;
+const totalBiweeklyExcluded = cycle.excluded_biweekly.length;
+const totalOnHoldExcluded = cycle.excluded_on_hold.length;
+---
+
+<AdminShell
+  title={`Harvest list · ${dayTab === 'mon' ? 'Monday' : 'Thursday'}`}
+  subtitle={prettyWeekHeader(week_starting)}
+  pageTitle="Harvest list — Tiny Seed Admin"
+>
+  <Fragment slot="actions">
+    <button
+      type="button"
+      onclick="window.print()"
+      class="inline-flex h-10 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm transition-colors hover:bg-ts-primary-dark"
+    >
+      🖨 Print
+    </button>
+  </Fragment>
+
+  {/* ── Tab strip ─────────────────────────────────────────────────── */}
+  <nav aria-label="Harvest day" class="flex gap-2 border-b border-ts-border">
+    <a
+      href={`/admin/harvest/${week_starting}?day=mon`}
+      aria-current={dayTab === 'mon' ? 'page' : undefined}
+      class={[
+        'inline-flex h-10 items-center border-b-2 px-4 text-sm font-semibold transition-colors',
+        dayTab === 'mon'
+          ? 'border-ts-primary text-ts-primary'
+          : 'border-transparent text-ts-text-secondary hover:border-ts-border-strong hover:text-ts-text',
+      ].join(' ')}
+    >
+      Monday harvest <span class="ml-2 text-xs text-ts-text-muted">→ Tue + Wed</span>
+    </a>
+    <a
+      href={`/admin/harvest/${week_starting}?day=thu`}
+      aria-current={dayTab === 'thu' ? 'page' : undefined}
+      class={[
+        'inline-flex h-10 items-center border-b-2 px-4 text-sm font-semibold transition-colors',
+        dayTab === 'thu'
+          ? 'border-ts-primary text-ts-primary'
+          : 'border-transparent text-ts-text-secondary hover:border-ts-border-strong hover:text-ts-text',
+      ].join(' ')}
+    >
+      Thursday harvest <span class="ml-2 text-xs text-ts-text-muted">→ Sat</span>
+    </a>
+  </nav>
+
+  {/* ── Stat row ──────────────────────────────────────────────────── */}
+  <section aria-label="Stats" class="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4 print:grid-cols-3">
+    <Card padding="md" elevation="sm">
+      <div class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Boxes to pick</div>
+      <div class="mt-1 font-display text-3xl font-bold tabular-nums text-ts-text">{totalBoxesThisHarvest}</div>
+      <div class="mt-1 text-xs text-ts-text-secondary">summer_veg members on {targetDays.join(' + ')}</div>
+    </Card>
+    <Card padding="md" elevation="sm">
+      <div class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Distinct crops</div>
+      <div class="mt-1 font-display text-3xl font-bold tabular-nums text-ts-text">{totalDistinctCrops}</div>
+    </Card>
+    <Card padding="md" elevation="sm">
+      <div class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Biweekly off-week</div>
+      <div class="mt-1 font-display text-3xl font-bold tabular-nums text-ts-text">{totalBiweeklyExcluded}</div>
+      <div class="mt-1 text-xs text-ts-text-secondary">excluded from this cycle</div>
+    </Card>
+    <Card padding="md" elevation="sm">
+      <div class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">On vacation hold</div>
+      <div class="mt-1 font-display text-3xl font-bold tabular-nums text-ts-text">{totalOnHoldExcluded}</div>
+    </Card>
+  </section>
+
+  {/* ── Harvest table ────────────────────────────────────────────── */}
+  <section aria-labelledby="harvest-table-heading" class="flex flex-col gap-3">
+    <h2 id="harvest-table-heading" class="font-display text-xl font-bold text-ts-text">
+      Pick list
+    </h2>
+    {rows.length === 0 ? (
+      <Card tone="muted" padding="lg" elevation="sm">
+        <p class="text-center text-sm text-ts-text-secondary">
+          No box plan is published for this week yet — nothing to harvest.
+          Set this week's contents at <a href={`/admin/box-plan/${week_starting}`} class="font-semibold text-ts-primary hover:underline">Box plan</a>.
+        </p>
+      </Card>
+    ) : (
+      <Card padding="none" elevation="sm">
+        <table class="w-full text-left">
+          <thead class="border-b border-ts-border bg-ts-bg-muted/30">
+            <tr>
+              <th class="px-5 py-2 text-left text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Crop</th>
+              <th class="px-5 py-2 text-right text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Total</th>
+              <th class="px-5 py-2 text-left text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Unit</th>
+              <th class="px-5 py-2 text-left text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Breakdown</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-ts-border/60">
+            {rows.map((row) => {
+              const total = row.box_qty + row.flex_qty;
+              return (
+                <tr>
+                  <td class="px-5 py-3 text-sm font-medium text-ts-text">{row.crop}</td>
+                  <td class="px-5 py-3 text-right text-base font-bold tabular-nums text-ts-text">{total.toLocaleString()}</td>
+                  <td class="px-5 py-3 text-sm text-ts-text-secondary">{row.unit}</td>
+                  <td class="px-5 py-3 text-xs text-ts-text-secondary">
+                    Box: <strong class="font-semibold text-ts-text tabular-nums">{row.box_qty}</strong> {row.unit}
+                    {row.flex_qty > 0 && (
+                      <> · Flex: <strong class="font-semibold text-ts-text tabular-nums">{row.flex_qty}</strong> {row.unit}</>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </Card>
+    )}
+
+    <p class="text-xs text-ts-text-muted">
+      Box totals reflect each member's resolved composition (default plan + locked swaps + allergy subs).
+      Flex orders are tracked separately ({cycle.flexOrderTotals.order_count} flex lines this cycle —
+      Phase-1 caveat: flex inventory names aren't yet mapped to crops, so they're not split into the breakdown column).
+    </p>
+  </section>
+</AdminShell>
+
+<style is:global>
+  @media print {
+    @page { size: Letter portrait; margin: 0.5in; }
+    body, html { background: white !important; }
+    header[class*="sticky"], nav[aria-label="Admin sections"],
+    button[onclick*="print"], nav[aria-label="Harvest day"] {
+      display: none !important;
+    }
+    main > div:first-child { padding-top: 0 !important; }
+  }
+</style>

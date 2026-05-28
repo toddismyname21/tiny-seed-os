@@ -1,0 +1,452 @@
+---
+/**
+ * /admin/labels/[week] — Avery 5164 box labels for the cycle.
+ *
+ * Spec §4.7. One sticker per box; goes on the box at pack time.
+ *
+ * Avery 5164 standard dimensions (verified against Avery's product spec,
+ * NOT the rough numbers in the task brief — the brief had width and
+ * height transposed):
+ *   - Sheet: US Letter 8.5" × 11", portrait
+ *   - Label: 4" WIDE × 3.33" TALL  (the spec brief said 3.33×4 — wrong)
+ *   - 6 labels per sheet (2 cols × 3 rows)
+ *   - Top margin: 0.5"
+ *   - Bottom margin: ~0.51" (fills the remainder)
+ *   - Side margin: 0.156"  (~5/32")
+ *   - Column gap: 0.188"   (~3/16")
+ *   - Row gap: 0"
+ *
+ *   Verification of width:    2 × 4" + 2 × 0.156" + 0.188" = 8.5" ✓
+ *   Verification of height:   3 × 3.33" + 0.5" + 0.51"      = 11"  ✓
+ *
+ * Pack order (Harvie's gold-standard practice — keeps the line fast):
+ *   1. Group by stop in distribution-day order (Tue → Wed → Sat)
+ *   2. Within each stop, alphabetical by member name
+ *   This is the order the boxes are PHYSICALLY assembled, so the printed
+ *   stack reads top-down as you pack.
+ *
+ * Content per label (matches spec §4.7 mock):
+ *   TINY SEED FARM CSA · Week of <date>
+ *   <STOP> · <Day> pickup
+ *   ────────────────────────────────────
+ *   <Member name>          <Size>
+ *   ✅ <add-on(s)>
+ *   🎯 Flex: <items>
+ *   ⚠ ALLERGY: <list>
+ *   ⚠ PAYMENT: balance due
+ *   This box: <contents>
+ *    (swap: <out> → <in>)
+ *
+ * Re-print one member: not in the URL (the spec mentions individual
+ * re-print) — the whole sheet renders; admin can manually re-print one
+ * page from the browser's print dialog (Pages: 1-of-N).
+ */
+import AdminShell from '../../../components/AdminShell.astro';
+import Card from '../../../components/Card.astro';
+import {
+  resolveCycle, prettyWeekHeader, prettyShortDate, mondayOfWeek, isMonday,
+  type CycleMember, type StopTotals,
+} from '../../../lib/cycle';
+
+const supabase = Astro.locals.supabase;
+const slugParam = (Astro.params.slug ?? '') as string;
+const segments = slugParam.split('/').filter(Boolean);
+
+const week_input = segments[0] ?? '';
+if (!/^\d{4}-\d{2}-\d{2}$/.test(week_input)) {
+  return Astro.redirect('/admin/labels', 303);
+}
+const week_starting = isMonday(week_input) ? week_input : mondayOfWeek(week_input);
+
+const cycle = await resolveCycle(supabase, week_starting);
+
+// ─── Build the LABEL list in pack order ─────────────────────────────
+// One label per BOX. summer_veg members get a box; add_on, flex, etc.
+// also need a label IF they're being delivered separately (we treat each
+// non-summer share as its own label so the host has one sticker per
+// item handed to the member).
+//
+// Pack order: stop by distribution-day (Tue → Wed → Sat), then
+// alphabetical within stop.
+const DAY_RANK: Record<string, number> = { Tue: 1, Wed: 2, Sat: 3 };
+const stopsOrdered = cycle.activeStops.slice().sort((a, b) => {
+  const da = a.day_of_week ? (DAY_RANK[a.day_of_week] ?? 99) : 99;
+  const db = b.day_of_week ? (DAY_RANK[b.day_of_week] ?? 99) : 99;
+  if (da !== db) return da - db;
+  return a.stop_name.localeCompare(b.stop_name);
+});
+
+interface LabelData {
+  member: CycleMember;
+  stop: StopTotals;
+  distDate: string;
+  composition: ReturnType<typeof getComposition>;
+  addonNames: string[];
+  flexLines: Array<{ name: string | null; qty: number }>;
+  owes: boolean;
+}
+
+function getComposition(member: CycleMember) {
+  return cycle.boxCompositionByMember.get(member.id) ?? null;
+}
+
+function distDateForStop(stop: StopTotals): string {
+  if (stop.day_of_week === 'Tue') return cycle.distribution_dates.Tue;
+  if (stop.day_of_week === 'Sat') return cycle.distribution_dates.Sat;
+  return cycle.distribution_dates.Wed;
+}
+
+// Pre-fetch all flex lines for the cycle in one round trip.
+type FlexLineRow = {
+  member_id: string;
+  qty: number;
+  flex_item: { name: string | null } | null;
+};
+const flexByMember = new Map<string, Array<{ name: string | null; qty: number }>>();
+{
+  const memberIds = Array.from(new Set(cycle.members.map((m) => m.id)));
+  if (memberIds.length > 0) {
+    const { data, error } = await supabase
+      .from('flex_orders')
+      .select('member_id, qty, flex_item:flex_inventory ( name )')
+      .eq('cycle_code', 'WEEKLY')
+      .eq('week_starting', week_starting)
+      .in('status', ['locked', 'fulfilled'])
+      .in('member_id', memberIds)
+      .overrideTypes<FlexLineRow[], { merge: false }>();
+    if (!error) {
+      for (const r of (data ?? []) as FlexLineRow[]) {
+        const arr = flexByMember.get(r.member_id) ?? [];
+        arr.push({ name: r.flex_item?.name ?? null, qty: r.qty });
+        flexByMember.set(r.member_id, arr);
+      }
+    }
+  }
+}
+
+// Group add-on members onto their main share's label when same customer
+// — but for Phase 1 simplicity, each share row gets its own label. (One
+// member with summer + cheese + bread = 3 labels.) Pack-floor advice
+// in the brief calls for separating add-ons clearly, and a dedicated
+// label per item is the clearest version of that.
+
+const labels: LabelData[] = [];
+for (const stop of stopsOrdered) {
+  const members = (cycle.byStop.get(stop.stop_id) ?? [])
+    .slice()
+    .sort((a, b) => a.contact_name.localeCompare(b.contact_name));
+  for (const m of members) {
+    const owes = !!(m.payment_status && m.payment_status.trim().toLowerCase() !== 'paid');
+    let addonName: string | null = null;
+    if (m.share_type === 'add_on') {
+      addonName = m.addon_type === 'unknown' ? 'Add-on' :
+                  m.addon_type.charAt(0).toUpperCase() + m.addon_type.slice(1);
+    }
+    labels.push({
+      member: m,
+      stop,
+      distDate: distDateForStop(stop),
+      composition: getComposition(m),
+      addonNames: addonName ? [addonName] : [],
+      flexLines: flexByMember.get(m.id) ?? [],
+      owes,
+    });
+  }
+}
+
+const totalLabels = labels.length;
+const totalSheets = Math.ceil(totalLabels / 6);
+
+// Pad to a multiple of 6 with blank slots so each sheet stays whole.
+const PADDED_LENGTH = totalSheets * 6;
+const padded: Array<LabelData | null> = [...labels, ...Array(PADDED_LENGTH - totalLabels).fill(null)];
+
+function shareSizeLabel(m: CycleMember): string {
+  if (m.share_type === 'summer_veg') {
+    return m.size_bucket === 'large' ? 'Summer Large' : 'Summer Small';
+  }
+  if (m.share_type === 'add_on') {
+    return m.addon_type === 'unknown' ? 'Add-on' :
+           `${m.addon_type.charAt(0).toUpperCase() + m.addon_type.slice(1)} add-on`;
+  }
+  if (m.share_type === 'flex') return 'Flex share';
+  if (m.share_type === 'flower') return 'Flower share';
+  if (m.share_type === 'spring_veg') return 'Spring veg';
+  return m.share_type;
+}
+
+const DAY_LONG: Record<string, string> = {
+  Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday',
+  Thu: 'Thursday', Fri: 'Friday', Sat: 'Saturday', Sun: 'Sunday',
+};
+---
+
+<AdminShell
+  title="Box labels"
+  subtitle={`Avery 5164 · ${prettyWeekHeader(week_starting)} · ${totalLabels} labels (${totalSheets} sheet${totalSheets === 1 ? '' : 's'})`}
+  pageTitle="Box labels — Tiny Seed Admin"
+>
+  <Fragment slot="actions">
+    <button
+      type="button"
+      onclick="window.print()"
+      class="inline-flex h-10 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm transition-colors hover:bg-ts-primary-dark"
+    >
+      🖨 Print labels
+    </button>
+    <a
+      href="/admin/labels"
+      class="inline-flex h-10 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-semibold text-ts-text hover:border-ts-primary/40 hover:text-ts-primary"
+    >
+      ← Change week
+    </a>
+  </Fragment>
+
+  <Card padding="md" elevation="sm" class="screen-only">
+    <p class="text-sm text-ts-text">
+      <strong class="font-semibold">Print preview:</strong> set your browser's Print options
+      to <em>Letter</em>, <em>Portrait</em>, <em>Margins: None</em> (or default),
+      <em>Scale: 100%</em>. Verify alignment on a blank Avery 5164 sheet before
+      committing to a full run.
+    </p>
+    <p class="mt-2 text-xs text-ts-text-secondary">
+      Pack order: stops in distribution-day order (Tue → Wed → Sat), then alphabetical within stop.
+      One label per share — a member with a Summer + Cheese add-on gets 2 labels.
+    </p>
+  </Card>
+
+  {labels.length === 0 ? (
+    <Card tone="muted" padding="lg" elevation="sm">
+      <p class="text-center text-sm text-ts-text-secondary">
+        No active members in this cycle. Pick a different week.
+      </p>
+    </Card>
+  ) : (
+    <div class="label-doc">
+      {Array.from({ length: totalSheets }, (_, sheetIdx) => {
+        const slice = padded.slice(sheetIdx * 6, sheetIdx * 6 + 6);
+        return (
+          <section class="label-sheet" aria-label={`Sheet ${sheetIdx + 1} of ${totalSheets}`}>
+            {slice.map((label, i) => (
+              <div class="label">
+                {label ? (
+                  <div class="label-body">
+                    <div class="label-hdr">
+                      <div class="label-hdr-farm">TINY SEED FARM CSA</div>
+                      <div class="label-hdr-week">{prettyWeekHeader(week_starting)}</div>
+                    </div>
+                    <div class="label-stop">
+                      <strong>{label.stop.stop_name}</strong>
+                      {label.stop.day_of_week && (
+                        <span> · {DAY_LONG[label.stop.day_of_week]} pickup</span>
+                      )}
+                    </div>
+                    <hr class="label-divider" />
+                    <div class="label-member">
+                      <div class="label-name">{label.member.contact_name}</div>
+                      <div class="label-size">{shareSizeLabel(label.member)}</div>
+                    </div>
+                    {label.addonNames.length > 0 && (
+                      <div class="label-line">
+                        ✅ {label.addonNames.join(' · ')}
+                      </div>
+                    )}
+                    {label.flexLines.length > 0 && (
+                      <div class="label-line">
+                        🎯 Flex: {label.flexLines.map((l) => `${l.qty}× ${l.name ?? 'item'}`).join(' · ')}
+                      </div>
+                    )}
+                    {label.member.allergies.length > 0 && (
+                      <div class="label-flag">
+                        ⚠ ALLERGY: {label.member.allergies.join(', ')}
+                      </div>
+                    )}
+                    {label.owes && (
+                      <div class="label-flag">⚠ PAYMENT: balance due</div>
+                    )}
+                    {label.composition && label.composition.items.length > 0 && (
+                      <div class="label-contents">
+                        <div class="label-contents-hdr">This box:</div>
+                        <div class="label-contents-body">
+                          {label.composition.items.map((it) => it.crop).join(' · ')}
+                        </div>
+                        {label.composition.swapped_in.length > 0 && (
+                          <div class="label-swap">
+                            (swap: {label.composition.swapped_out.join(', ')} → {label.composition.swapped_in.join(', ')})
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div class="label-blank" aria-hidden="true"></div>
+                )}
+              </div>
+            ))}
+          </section>
+        );
+      })}
+    </div>
+  )}
+</AdminShell>
+
+<style>
+  /* ── Screen preview: show the labels at scale (50%) inside a paper-like
+   *    container so the admin can eyeball the layout before printing. */
+  .label-doc {
+    --label-w: 4in;
+    --label-h: 3.33in;
+    --sheet-w: 8.5in;
+    --sheet-h: 11in;
+    --margin-top: 0.5in;
+    --margin-side: 0.156in;
+    --col-gap: 0.188in;
+  }
+
+  .label-sheet {
+    box-sizing: border-box;
+    width: var(--sheet-w);
+    height: var(--sheet-h);
+    padding: var(--margin-top) var(--margin-side) 0 var(--margin-side);
+    display: grid;
+    grid-template-columns: var(--label-w) var(--label-w);
+    grid-template-rows: repeat(3, var(--label-h));
+    column-gap: var(--col-gap);
+    row-gap: 0;
+    background: #fff;
+    margin: 0 auto 1in auto;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+  }
+
+  .label {
+    box-sizing: border-box;
+    width: var(--label-w);
+    height: var(--label-h);
+    overflow: hidden;
+    padding: 0.15in;
+    font-family: var(--font-system, system-ui, -apple-system, Segoe UI, Roboto, sans-serif);
+    color: #0f172a;
+    display: flex;
+    flex-direction: column;
+    gap: 0.04in;
+    border: 1px dashed rgba(0,0,0,0.08); /* screen guide only */
+  }
+
+  @media print { .label { border: none; } }
+
+  .label-blank { width: 100%; height: 100%; }
+  .label-body { display: flex; flex-direction: column; gap: 0.05in; height: 100%; overflow: hidden; }
+
+  .label-hdr {
+    display: flex;
+    justify-content: space-between;
+    font-size: 8pt;
+    color: #475569;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+
+  .label-stop {
+    font-size: 11pt;
+    line-height: 1.2;
+  }
+
+  .label-divider {
+    margin: 0.05in 0;
+    border: 0;
+    border-top: 1px solid #94a3b8;
+  }
+
+  .label-member {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.1in;
+  }
+
+  .label-name {
+    font-size: 14pt;
+    font-weight: 700;
+    line-height: 1.1;
+    max-width: 65%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .label-size {
+    font-size: 10pt;
+    font-weight: 500;
+    color: #1f2937;
+    flex-shrink: 0;
+  }
+
+  .label-line {
+    font-size: 9.5pt;
+    line-height: 1.25;
+    color: #166534;
+    font-weight: 500;
+  }
+
+  .label-flag {
+    font-size: 9.5pt;
+    line-height: 1.25;
+    color: #b91c1c;
+    font-weight: 700;
+  }
+
+  .label-contents {
+    margin-top: auto;
+    border-top: 1px dotted #94a3b8;
+    padding-top: 0.05in;
+    font-size: 8.5pt;
+    line-height: 1.3;
+    overflow: hidden;
+  }
+
+  .label-contents-hdr {
+    font-weight: 600;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-size: 7.5pt;
+    margin-bottom: 0.02in;
+  }
+
+  .label-contents-body { color: #0f172a; }
+
+  .label-swap {
+    margin-top: 0.02in;
+    font-size: 8pt;
+    color: #b45309;
+    font-style: italic;
+  }
+
+  .screen-only { display: block; }
+
+  /* ── Print: kill the AdminShell chrome, hit Avery 5164 dimensions exactly */
+  @media print {
+    @page { size: Letter portrait; margin: 0; }
+
+    body, html { background: white !important; }
+
+    header[class*="sticky"], nav[aria-label="Admin sections"],
+    .screen-only, button[onclick*="print"], a[href="/admin/labels"] {
+      display: none !important;
+    }
+    main > div:first-child { display: none !important; }
+    main { padding: 0 !important; max-width: none !important; }
+
+    .label-sheet {
+      box-shadow: none !important;
+      page-break-after: always;
+      break-after: page;
+      margin: 0 !important;
+    }
+    .label-sheet:last-child {
+      page-break-after: auto;
+      break-after: auto;
+    }
+  }
+</style>

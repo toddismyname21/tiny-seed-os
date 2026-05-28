@@ -1,0 +1,51 @@
+---
+/**
+ * /admin/box-plan — week-picker landing.
+ */
+import AdminShell from '../../../components/AdminShell.astro';
+import Card from '../../../components/Card.astro';
+import { mondayOfWeek, upcomingMonday } from '../../../lib/cycle';
+import { weekOptions } from '../../../lib/cycle-ui';
+
+const options = weekOptions();
+const defaultWeek = mondayOfWeek(upcomingMonday());
+---
+
+<AdminShell
+  title="Box plan"
+  subtitle="Set the weekly box contents per share size."
+  pageTitle="Box plan — Tiny Seed Admin"
+>
+  <section aria-label="Week selector">
+    <form id="goto-form" class="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-4">
+      <label class="flex flex-col gap-1">
+        <span class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Cycle week</span>
+        <select id="week-select" class="h-10 min-w-[260px] rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm text-ts-text">
+          {options.map((opt) => (
+            <option value={opt.value} selected={opt.value === defaultWeek}>{opt.label}</option>
+          ))}
+        </select>
+      </label>
+      <button type="submit" class="inline-flex h-10 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm hover:bg-ts-primary-dark">
+        Open box plan →
+      </button>
+    </form>
+  </section>
+
+  <Card padding="md" elevation="sm">
+    <h2 class="font-display text-lg font-bold text-ts-text">Plan → harvest → pack → label</h2>
+    <p class="mt-2 text-sm text-ts-text-secondary">
+      Editing the plan here flows into every downstream report: harvest totals,
+      pack-sheet "box contents" column, labels, and the member-facing box view.
+      Phase-1 editor is JSON; a friendly form lands in Phase 2.
+    </p>
+  </Card>
+</AdminShell>
+
+<script is:inline>
+  document.getElementById('goto-form')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const wk = (document.getElementById('week-select')).value;
+    if (wk) window.location.href = `/admin/box-plan/${wk}`;
+  });
+</script>

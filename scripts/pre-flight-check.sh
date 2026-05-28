@@ -166,7 +166,13 @@ if [ "$ACTION" = "create" ]; then
         # are NEVER duplicate implementations even when the basename
         # matches — they're parallel route handlers. Demote those
         # matches from CRITICAL to a WARNING.
-        REST_VERB_BASENAMES="status.ts delete.ts edit.ts create.ts new.ts update.ts patch.ts route.ts handler.ts get.ts post.ts put.ts"
+        # Note: save.ts + send.ts are added (2026-05-27) — they're the same
+        # pattern: "verb the resource" handlers that legitimately appear once
+        # per parent resource folder (api/admin/box-contents/save.ts vs
+        # api/admin/box-plan/save.ts vs api/admin/biweekly/save.ts; or
+        # api/admin/weekly-email/send.ts vs api/admin/vendor-orders/send.ts).
+        # They are NEVER duplicate implementations.
+        REST_VERB_BASENAMES="status.ts delete.ts edit.ts create.ts new.ts update.ts patch.ts route.ts handler.ts get.ts post.ts put.ts save.ts send.ts"
         IS_REST_HANDLER=false
         for v in $REST_VERB_BASENAMES; do
             if [ "$BASENAME" = "$v" ]; then

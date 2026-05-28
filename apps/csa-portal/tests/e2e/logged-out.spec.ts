@@ -29,6 +29,21 @@ const PROTECTED_ROUTES = [
   '/admin/recipes',
   '/admin/weekly-email',
   '/admin/stop-notes',
+  // CSA Operations Admin Phase 1 (migration 0031 + 2026-05-27)
+  '/admin/pack-day',
+  '/admin/pack-day/2026-06-08',
+  '/admin/stop-manifest',
+  '/admin/stop-manifest/2026-06-08',
+  '/admin/labels',
+  '/admin/labels/2026-06-08',
+  '/admin/harvest',
+  '/admin/harvest/2026-06-08',
+  '/admin/pack-sheet',
+  '/admin/pack-sheet/2026-06-08',
+  '/admin/vendor-orders',
+  '/admin/vendor-orders/2026-06-08',
+  '/admin/box-plan',
+  '/admin/box-plan/2026-06-08',
 ];
 
 test.describe('unauthenticated route protection @unauth', () => {

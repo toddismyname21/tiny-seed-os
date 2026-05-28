@@ -1,0 +1,62 @@
+---
+/**
+ * /admin/pack-sheet — week-picker landing.
+ */
+import AdminShell from '../../../components/AdminShell.astro';
+import Card from '../../../components/Card.astro';
+import { mondayOfWeek, upcomingMonday } from '../../../lib/cycle';
+import { weekOptions } from '../../../lib/cycle-ui';
+
+const options = weekOptions();
+const defaultWeek = mondayOfWeek(upcomingMonday());
+---
+
+<AdminShell
+  title="Pack sheet"
+  subtitle="Per-member checklist for the packing line."
+  pageTitle="Pack sheet — Tiny Seed Admin"
+>
+  <section aria-label="Week selector">
+    <form id="goto-form" class="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-4">
+      <label class="flex flex-col gap-1">
+        <span class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Cycle week</span>
+        <select id="week-select" class="h-10 min-w-[260px] rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm text-ts-text">
+          {options.map((opt) => (
+            <option value={opt.value} selected={opt.value === defaultWeek}>{opt.label}</option>
+          ))}
+        </select>
+      </label>
+      <label class="flex flex-col gap-1">
+        <span class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Distribution day</span>
+        <select id="day-select" class="h-10 min-w-[180px] rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm text-ts-text">
+          <option value="wed" selected>Wednesday (most stops)</option>
+          <option value="tue">Tuesday (Lawrenceville)</option>
+          <option value="sat">Saturday (markets)</option>
+          <option value="all">All days</option>
+        </select>
+      </label>
+      <button type="submit" class="inline-flex h-10 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm hover:bg-ts-primary-dark">
+        Open pack sheet →
+      </button>
+    </form>
+  </section>
+
+  <Card padding="md" elevation="sm">
+    <h2 class="font-display text-lg font-bold text-ts-text">Reading the pack sheet</h2>
+    <ul class="mt-3 space-y-1.5 text-sm text-ts-text-secondary">
+      <li>• Grouped by stop, page-break between stops on print so packers can stage per stop.</li>
+      <li>• Add-ons are in their own column — never inside the box-contents list (they ship from a different cooler).</li>
+      <li>• Flex items are listed under the member name as their own sub-row.</li>
+      <li>• ⚠ allergy / ⚠ owes flags are colored warning so they don't get missed at speed.</li>
+    </ul>
+  </Card>
+</AdminShell>
+
+<script is:inline>
+  document.getElementById('goto-form')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const wk = (document.getElementById('week-select')).value;
+    const day = (document.getElementById('day-select')).value;
+    if (wk) window.location.href = `/admin/pack-sheet/${wk}?day=${day}`;
+  });
+</script>

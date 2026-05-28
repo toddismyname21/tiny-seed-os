@@ -51,16 +51,23 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { href: '/admin',                   label: 'Home',     match: '/admin',                  icon: '🏠' },
-  { href: '/admin/members',           label: 'Members',  match: '/admin/members',          icon: '👥' },
-  { href: '/admin/box-contents',      label: 'Box',      match: '/admin/box-contents',     icon: '📦' },
-  { href: '/admin/pickup-locations',  label: 'Pickups',  match: '/admin/pickup-locations', icon: '📍' },
-  { href: '/admin/route',             label: 'Route',    match: '/admin/route',            icon: '🚚' },
-  { href: '/admin/recipes',           label: 'Recipes',  match: '/admin/recipes',          icon: '🥬' },
-  { href: '/admin/weekly-email',      label: 'Email',    match: '/admin/weekly-email',     icon: '✉️' },
-  { href: '/admin/stop-notes',        label: 'Stop Notes', match: '/admin/stop-notes',     icon: '📍' },
-  { href: '/admin/reports',           label: 'Reports',  match: '/admin/reports',          icon: '📊' },
-  { href: '/admin/sync',              label: 'Sync',     match: '/admin/sync',             icon: '🔄' },
+  { href: '/admin',                   label: 'Home',          match: '/admin',                  icon: '🏠' },
+  { href: '/admin/pack-day',          label: 'Pack day',      match: '/admin/pack-day',         icon: '⭐' },
+  { href: '/admin/members',           label: 'Members',       match: '/admin/members',          icon: '👥' },
+  { href: '/admin/box-plan',          label: 'Box plan',      match: '/admin/box-plan',         icon: '📦' },
+  { href: '/admin/harvest',           label: 'Harvest',       match: '/admin/harvest',          icon: '🌾' },
+  { href: '/admin/pack-sheet',        label: 'Pack sheet',    match: '/admin/pack-sheet',       icon: '📋' },
+  { href: '/admin/labels',            label: 'Labels',        match: '/admin/labels',           icon: '🏷️' },
+  { href: '/admin/stop-manifest',     label: 'Manifests',     match: '/admin/stop-manifest',    icon: '🚚' },
+  { href: '/admin/vendor-orders',     label: 'Vendors',       match: '/admin/vendor-orders',    icon: '🤝' },
+  { href: '/admin/pickup-locations',  label: 'Pickups',       match: '/admin/pickup-locations', icon: '📍' },
+  { href: '/admin/route',             label: 'Route',         match: '/admin/route',            icon: '🛣️' },
+  { href: '/admin/recipes',           label: 'Recipes',       match: '/admin/recipes',          icon: '🥬' },
+  { href: '/admin/weekly-email',      label: 'Email',         match: '/admin/weekly-email',     icon: '✉️' },
+  { href: '/admin/stop-notes',        label: 'Notes',         match: '/admin/stop-notes',       icon: '📝' },
+  { href: '/admin/box-contents',      label: 'Box (legacy)',  match: '/admin/box-contents',     icon: '📦' },
+  { href: '/admin/reports',           label: 'Reports',       match: '/admin/reports',          icon: '📊' },
+  { href: '/admin/sync',              label: 'Sync',          match: '/admin/sync',             icon: '🔄' },
 ];
 
 function isActive(match: string): boolean {
