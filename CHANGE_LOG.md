@@ -6,6 +6,16 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-05-29] CSA — Flower CSA schedule (Week 1 = June 24, 16 weeks) (PM_ARCHITECT)
+
+- WHY: Todd confirmed (from Loren) the Flower CSA runs **16 weeks and starts 2 weeks after the veg CSA** → Week 1 = Wed June 24, last delivery Oct 7. This was the pending flower-start blocker. Needed before the portal invite so flower members see June 24, not June 10.
+- `apps/csa-portal/src/lib/season.ts` — added `flower: { firstDelivery: '2026-06-24', totalWeeks: 16 }` to SEASON_SCHEDULE.
+- Supabase data: normalized all 50 active flower member rows → `start_date=2026-06-24`, `end_date=2026-10-07`; `total_weeks` by frequency (biweekly=8: 41 rows, weekly=16: 9 rows); `weeks_remaining` reset to match. (Previously had inconsistent summer/bouquet dates from the migration.)
+- Also raised Supabase Auth `rate_limit_email_sent` 2→100/hr (was a silent magic-link blocker for the 189-member invite rollout).
+- VERIFY: astro check 0 errors. Deployed to prod + main synced.
+
+---
+
 ## [2026-05-27] CSA Ops Admin Phase 1 — data model + cycle resolver + per-stop manifest + Avery 5164 labels + harvest/pack/vendor-orders/box-plan/pack-day (fullstack-builder)
 
 - WHY: Spec docs/specs/CSA_OPERATIONS_ADMIN_SPEC.md Phase 1 — must be runnable by Mon June 8, 2026 for the June 10 CSA Week-1 launch. One weekly cutoff (Mon 6 AM) covers Tue Lawrenceville + Wed CSA + Sat markets per Todd's 2026-05-27 locked decisions (cycle_code = 'WEEKLY' only for now; lead time 7d; forfeit unused swaps; admin-only late-add).

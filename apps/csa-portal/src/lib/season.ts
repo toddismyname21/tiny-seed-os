@@ -40,7 +40,10 @@ export const SEASON_SCHEDULE: Record<string, SeasonSchedule> = {
   spring_veg: { firstDelivery: '2026-05-06', totalWeeks: 4 },
   // 2026 Summer: Week 1 = Wed June 10, 18 weeks → last delivery Oct 7.
   summer_veg: { firstDelivery: '2026-06-10', totalWeeks: 18 },
-  // flower / flex / fall_veg: TBD — owner will provide.
+  // 2026 Flower: starts 2 weeks after summer veg → Week 1 = Wed June 24,
+  // 16 weeks → last delivery Oct 7. (Biweekly flower members get 8 of these.)
+  flower: { firstDelivery: '2026-06-24', totalWeeks: 16 },
+  // flex / fall_veg: TBD — owner will provide.
 };
 
 /** Season lifecycle phase relative to `now`. */
