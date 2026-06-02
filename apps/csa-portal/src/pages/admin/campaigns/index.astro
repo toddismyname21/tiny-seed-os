@@ -1,0 +1,211 @@
+---
+/**
+ * /admin/campaigns — list of every composed campaign.
+ *
+ * Sorted newest-first by created_at. Status pill colored by lifecycle.
+ * Click a row → /admin/campaigns/[id] (detail + per-recipient table).
+ * "New Campaign" → /admin/campaigns/new (composer).
+ *
+ * Auth: gated by middleware (admin/staff). No member visibility.
+ * Reads via the cookie-aware admin client (RLS admin-bypass on the
+ * campaigns table per migration 0032).
+ */
+import AdminShell from '../../../components/AdminShell.astro';
+import Card from '../../../components/Card.astro';
+import type { Campaign } from '../../../lib/campaign';
+
+export const prerender = false;
+
+const supabase = Astro.locals.supabase;
+
+const { data: rows, error: listErr } = await supabase
+  .from('campaigns')
+  .select(
+    'id, name, subject, status, total_recipients, total_sent, total_delivered, total_opened, sent_at, created_at, scheduled_for'
+  )
+  .order('created_at', { ascending: false })
+  .limit(200)
+  .overrideTypes<
+    Array<
+      Pick<
+        Campaign,
+        | 'id'
+        | 'name'
+        | 'subject'
+        | 'status'
+        | 'total_recipients'
+        | 'total_sent'
+        | 'total_delivered'
+        | 'total_opened'
+        | 'sent_at'
+        | 'created_at'
+        | 'scheduled_for'
+      >
+    >,
+    { merge: false }
+  >();
+
+if (listErr) {
+  console.error('[admin/campaigns] list failed:', listErr.message);
+}
+const campaigns = rows ?? [];
+
+function statusPillClasses(status: string): string {
+  switch (status) {
+    case 'draft':
+      return 'border-ts-border bg-ts-bg-muted/40 text-ts-text-secondary';
+    case 'sending':
+      return 'border-ts-warning/30 bg-ts-warning/10 text-ts-warning';
+    case 'sent':
+      return 'border-ts-primary/30 bg-ts-primary/10 text-ts-primary';
+    case 'partial':
+      return 'border-ts-warning/30 bg-ts-warning/10 text-ts-warning';
+    case 'failed':
+      return 'border-ts-danger/30 bg-ts-danger/10 text-ts-danger';
+    default:
+      return 'border-ts-border bg-ts-bg-muted/40 text-ts-text-secondary';
+  }
+}
+
+function statusLabel(status: string): string {
+  switch (status) {
+    case 'draft':
+      return 'Draft';
+    case 'sending':
+      return 'Sending…';
+    case 'sent':
+      return 'Sent';
+    case 'partial':
+      return 'Partial';
+    case 'failed':
+      return 'Failed';
+    default:
+      return status;
+  }
+}
+
+function fmtDate(iso: string | null): string {
+  if (!iso) return '—';
+  try {
+    return new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/New_York',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    }).format(new Date(iso));
+  } catch {
+    return iso;
+  }
+}
+---
+
+<AdminShell
+  title="Campaigns"
+  subtitle="Compose and send portal-wide email campaigns to your CSA members."
+  pageTitle="Campaigns — Tiny Seed Admin"
+  canonical="https://csa.tinyseedfarm.com/admin/campaigns"
+>
+  <Fragment slot="actions">
+    <a
+      href="/admin/campaigns/new"
+      class="inline-flex h-10 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+    >
+      + New campaign
+    </a>
+  </Fragment>
+
+  {listErr && (
+    <div role="alert" class="rounded-ts-md border border-ts-danger/30 bg-ts-danger/5 px-4 py-3 text-sm text-ts-danger">
+      Couldn't load campaigns: {listErr.message}
+    </div>
+  )}
+
+  {campaigns.length === 0 ? (
+    <Card padding="lg" elevation="sm">
+      <div class="flex flex-col items-center gap-4 py-8 text-center">
+        <div
+          aria-hidden="true"
+          class="flex h-14 w-14 items-center justify-center rounded-full border border-ts-border bg-ts-bg-muted/40 text-3xl"
+        >
+          📣
+        </div>
+        <h2 class="font-display text-xl font-bold text-ts-text">No campaigns yet</h2>
+        <p class="max-w-md text-sm text-ts-text-secondary">
+          Compose a portal-wide email to your CSA members — for the portal
+          launch, a seasonal kickoff, or a one-off announcement.
+        </p>
+        <a
+          href="/admin/campaigns/new"
+          class="inline-flex h-11 items-center justify-center rounded-ts-md bg-ts-primary px-5 text-sm font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark active:scale-[0.98]"
+        >
+          + New campaign
+        </a>
+      </div>
+    </Card>
+  ) : (
+    <Card padding="none" elevation="sm">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-ts-border">
+          <thead class="bg-ts-bg-muted/30 text-left text-xs font-semibold uppercase tracking-wide text-ts-text-muted">
+            <tr>
+              <th scope="col" class="px-4 py-3 sm:px-6">Name</th>
+              <th scope="col" class="px-4 py-3">Status</th>
+              <th scope="col" class="px-4 py-3 text-right tabular-nums">Recipients</th>
+              <th scope="col" class="px-4 py-3 text-right tabular-nums">Sent</th>
+              <th scope="col" class="hidden px-4 py-3 text-right tabular-nums sm:table-cell">Delivered</th>
+              <th scope="col" class="hidden px-4 py-3 text-right tabular-nums sm:table-cell">Opened</th>
+              <th scope="col" class="hidden px-4 py-3 sm:table-cell">Sent at</th>
+              <th scope="col" class="px-4 py-3 sm:px-6"></th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-ts-border bg-ts-bg-surface">
+            {campaigns.map((c) => (
+              <tr class="transition-colors hover:bg-ts-bg-muted/40">
+                <td class="px-4 py-3 sm:px-6">
+                  <a
+                    href={`/admin/campaigns/${c.id}`}
+                    class="block focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+                  >
+                    <div class="font-semibold text-ts-text">{c.name}</div>
+                    <div class="mt-0.5 text-xs text-ts-text-secondary truncate max-w-[36ch]">{c.subject}</div>
+                  </a>
+                </td>
+                <td class="px-4 py-3">
+                  <span
+                    class={[
+                      'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide',
+                      statusPillClasses(c.status),
+                    ].join(' ')}
+                  >
+                    {statusLabel(c.status)}
+                  </span>
+                </td>
+                <td class="px-4 py-3 text-right text-sm tabular-nums text-ts-text">{c.total_recipients}</td>
+                <td class="px-4 py-3 text-right text-sm tabular-nums text-ts-text">{c.total_sent}</td>
+                <td class="hidden px-4 py-3 text-right text-sm tabular-nums text-ts-text-secondary sm:table-cell">
+                  {c.total_delivered}
+                </td>
+                <td class="hidden px-4 py-3 text-right text-sm tabular-nums text-ts-text-secondary sm:table-cell">
+                  {c.total_opened}
+                </td>
+                <td class="hidden px-4 py-3 text-sm text-ts-text-secondary sm:table-cell">
+                  {fmtDate(c.sent_at) || fmtDate(c.created_at)}
+                </td>
+                <td class="px-4 py-3 text-right sm:px-6">
+                  <a
+                    href={`/admin/campaigns/${c.id}`}
+                    class="text-sm font-semibold text-ts-primary hover:underline"
+                  >
+                    View →
+                  </a>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </Card>
+  )}
+</AdminShell>

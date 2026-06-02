@@ -200,6 +200,8 @@ export interface Database {
           opened_at: string | null;
           error_message: string | null;
           metadata: Json;
+          /** Tag a notification with its originating campaign (migration 0032). NULL for legacy / non-campaign sends. */
+          campaign_id: string | null;
         };
         Insert: { channel: Database['public']['Tables']['notification_log']['Row']['channel'];
                   notification_type: string; recipient: string;
@@ -718,6 +720,78 @@ export interface Database {
           swap_in_item: string;
         } & Partial<Database['public']['Tables']['box_swap_events']['Row']>;
         Update: Partial<Database['public']['Tables']['box_swap_events']['Row']>;
+        Relationships: [];
+      };
+      // ──────────────────────────────────────────────────────────────
+      // Admin campaign sender (migration 0032).
+      //
+      // campaigns: one row per composed marketing email. status moves
+      //   draft → sending → sent | partial | failed. recipient_filter is
+      //   resolved at send time by lib/campaign.ts → resolveRecipients.
+      // ──────────────────────────────────────────────────────────────
+      campaigns: {
+        Row: {
+          id: string;
+          name: string;
+          subject: string;
+          preview_text: string;
+          body_html: string;
+          recipient_filter: Json;
+          status: 'draft' | 'sending' | 'sent' | 'failed' | 'partial';
+          scheduled_for: string | null;
+          sent_at: string | null;
+          sent_by: string | null;
+          total_recipients: number;
+          total_sent: number;
+          total_delivered: number;
+          total_opened: number;
+          total_clicked: number;
+          total_bounced: number;
+          total_complained: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          name: string;
+          subject: string;
+          preview_text: string;
+          body_html: string;
+        } & Partial<Database['public']['Tables']['campaigns']['Row']>;
+        Update: Partial<Database['public']['Tables']['campaigns']['Row']>;
+        Relationships: [];
+      };
+      // campaign_recipients: per-(campaign, customer) send ledger.
+      // UNIQUE(campaign_id, customer_id) is the idempotency backstop —
+      // a re-run after a daily-cap pause picks up rows still in
+      // status='pending' and never double-sends.
+      campaign_recipients: {
+        Row: {
+          id: string;
+          campaign_id: string;
+          customer_id: string;
+          email: string;
+          status:
+            | 'pending'
+            | 'sending'
+            | 'sent'
+            | 'delivered'
+            | 'opened'
+            | 'clicked'
+            | 'bounced'
+            | 'complained'
+            | 'unsubscribed'
+            | 'failed';
+          resend_email_id: string | null;
+          sent_at: string | null;
+          last_event_at: string | null;
+          error_text: string | null;
+        };
+        Insert: {
+          campaign_id: string;
+          customer_id: string;
+          email: string;
+        } & Partial<Database['public']['Tables']['campaign_recipients']['Row']>;
+        Update: Partial<Database['public']['Tables']['campaign_recipients']['Row']>;
         Relationships: [];
       };
     };

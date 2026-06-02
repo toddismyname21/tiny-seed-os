@@ -1,0 +1,346 @@
+---
+/**
+ * /admin/campaigns/[id] — per-campaign detail + per-recipient table.
+ *
+ * Shows:
+ *   - Header: name, subject, status pill, sent_at
+ *   - Stat cards: Recipients, Sent, Delivered, Opened, Clicked, Bounced,
+ *     Complained (the last 5 stay at 0 until the Resend webhook is wired
+ *     in Phase 2)
+ *   - "Resume send" button when status='partial' or 'failed'
+ *   - Recipient table: Customer email, Status, Sent at, Last event
+ *
+ * Auth: middleware-gated (admin/staff). Cookie-aware admin client; RLS
+ * admin-bypass policies on campaigns + campaign_recipients (migration
+ * 0032) make this read possible without service-role.
+ */
+import AdminShell from '../../../components/AdminShell.astro';
+import Card from '../../../components/Card.astro';
+import type { Campaign, CampaignRecipient } from '../../../lib/campaign';
+
+export const prerender = false;
+
+const id = Astro.params.id;
+const supabase = Astro.locals.supabase;
+
+if (!id || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+  return Astro.redirect('/admin/campaigns?error=invalid_id');
+}
+
+const { data: campaign, error: campErr } = await supabase
+  .from('campaigns')
+  .select('*')
+  .eq('id', id)
+  .maybeSingle()
+  .overrideTypes<Campaign, { merge: false }>();
+
+if (campErr) {
+  console.error('[admin/campaigns/[id]] load failed:', campErr.message);
+}
+if (!campaign) {
+  return Astro.redirect('/admin/campaigns?error=not_found');
+}
+
+const { data: recipientRows, error: recErr } = await supabase
+  .from('campaign_recipients')
+  .select('*')
+  .eq('campaign_id', id)
+  .order('email', { ascending: true })
+  .limit(500)
+  .overrideTypes<CampaignRecipient[], { merge: false }>();
+
+if (recErr) {
+  console.error('[admin/campaigns/[id]] recipients load failed:', recErr.message);
+}
+const recipients = recipientRows ?? [];
+
+function statusPillClasses(status: string): string {
+  switch (status) {
+    case 'draft':
+      return 'border-ts-border bg-ts-bg-muted/40 text-ts-text-secondary';
+    case 'sending':
+      return 'border-ts-warning/30 bg-ts-warning/10 text-ts-warning';
+    case 'sent':
+    case 'delivered':
+    case 'opened':
+    case 'clicked':
+      return 'border-ts-primary/30 bg-ts-primary/10 text-ts-primary';
+    case 'partial':
+    case 'pending':
+      return 'border-ts-warning/30 bg-ts-warning/10 text-ts-warning';
+    case 'failed':
+    case 'bounced':
+    case 'complained':
+    case 'unsubscribed':
+      return 'border-ts-danger/30 bg-ts-danger/10 text-ts-danger';
+    default:
+      return 'border-ts-border bg-ts-bg-muted/40 text-ts-text-secondary';
+  }
+}
+
+function statusLabel(status: string): string {
+  switch (status) {
+    case 'draft':
+      return 'Draft';
+    case 'sending':
+      return 'Sending…';
+    case 'sent':
+      return 'Sent';
+    case 'partial':
+      return 'Partial';
+    case 'failed':
+      return 'Failed';
+    case 'delivered':
+      return 'Delivered';
+    case 'opened':
+      return 'Opened';
+    case 'clicked':
+      return 'Clicked';
+    case 'bounced':
+      return 'Bounced';
+    case 'complained':
+      return 'Complained';
+    case 'unsubscribed':
+      return 'Unsubscribed';
+    case 'pending':
+      return 'Pending';
+    default:
+      return status;
+  }
+}
+
+function fmtDate(iso: string | null): string {
+  if (!iso) return '—';
+  try {
+    return new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/New_York',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    }).format(new Date(iso));
+  } catch {
+    return iso;
+  }
+}
+
+const canResume = campaign.status === 'partial' || campaign.status === 'failed';
+const isFinal = campaign.status === 'sent';
+
+const statCards: Array<{ label: string; value: number }> = [
+  { label: 'Recipients', value: campaign.total_recipients },
+  { label: 'Sent', value: campaign.total_sent },
+  { label: 'Delivered', value: campaign.total_delivered },
+  { label: 'Opened', value: campaign.total_opened },
+  { label: 'Clicked', value: campaign.total_clicked },
+  { label: 'Bounced', value: campaign.total_bounced },
+  { label: 'Complained', value: campaign.total_complained },
+];
+
+// Phase 1: open/click/delivered/bounced come from the Resend webhook
+// (Phase 2). Surface a small note when those are all 0 + status=sent so
+// Todd isn't confused.
+const tracksAreEmpty =
+  isFinal &&
+  campaign.total_delivered === 0 &&
+  campaign.total_opened === 0 &&
+  campaign.total_clicked === 0 &&
+  campaign.total_bounced === 0;
+---
+
+<AdminShell
+  title={campaign.name}
+  subtitle={`Status: ${statusLabel(campaign.status)} · Subject: ${campaign.subject}`}
+  pageTitle={`${campaign.name} — Tiny Seed Admin`}
+>
+  <Fragment slot="actions">
+    <a
+      href="/admin/campaigns"
+      class="inline-flex h-10 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-semibold text-ts-text transition-colors duration-150 hover:border-ts-primary/40 hover:text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+    >
+      ← All campaigns
+    </a>
+  </Fragment>
+
+  {/* ════ Status banner ════ */}
+  <section aria-labelledby="status-heading">
+    <h2 id="status-heading" class="sr-only">Campaign status</h2>
+    <Card padding="lg" elevation="sm">
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div class="flex flex-col gap-1">
+          <span
+            class={[
+              'self-start inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide',
+              statusPillClasses(campaign.status),
+            ].join(' ')}
+          >
+            {statusLabel(campaign.status)}
+          </span>
+          <p class="text-sm text-ts-text-secondary">
+            Created {fmtDate(campaign.created_at)}
+            {campaign.sent_at ? ` · Sent ${fmtDate(campaign.sent_at)}` : ''}
+            {campaign.scheduled_for ? ` · Next batch: ${fmtDate(campaign.scheduled_for)}` : ''}
+          </p>
+        </div>
+        {canResume && (
+          <button
+            type="button"
+            data-resume-send
+            data-campaign-id={campaign.id}
+            class="inline-flex h-11 items-center justify-center rounded-ts-md bg-ts-primary px-5 text-sm font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Resume send
+          </button>
+        )}
+      </div>
+      <div
+        role="status"
+        aria-live="polite"
+        data-resume-result
+        class="mt-4 hidden rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-sm text-ts-text"
+      ></div>
+    </Card>
+  </section>
+
+  {/* ════ Stat cards ════ */}
+  <section aria-labelledby="stats-heading" class="flex flex-col gap-3">
+    <h2 id="stats-heading" class="font-display text-xl font-bold text-ts-text sm:text-2xl">Stats</h2>
+    <div class="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
+      {statCards.map((s) => (
+        <Card padding="md" elevation="sm">
+          <div class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">{s.label}</div>
+          <div class="mt-1 font-display text-3xl font-bold text-ts-text tabular-nums sm:text-4xl">{s.value}</div>
+        </Card>
+      ))}
+    </div>
+    {tracksAreEmpty && (
+      <p class="text-xs text-ts-text-muted">
+        Delivery/open/click tracking goes live after we wire Resend's webhook (Phase 2).
+        For tonight, the "Sent" count is the authoritative number.
+      </p>
+    )}
+  </section>
+
+  {/* ════ Recipients ════ */}
+  <section aria-labelledby="recipients-heading" class="flex flex-col gap-3">
+    <h2 id="recipients-heading" class="font-display text-xl font-bold text-ts-text sm:text-2xl">
+      Recipients <span class="text-ts-text-muted text-base font-normal">({recipients.length})</span>
+    </h2>
+    {recipients.length === 0 ? (
+      <Card padding="lg" elevation="sm">
+        <div class="flex flex-col items-center gap-3 py-6 text-center">
+          <div aria-hidden="true" class="text-3xl">📭</div>
+          <p class="text-sm text-ts-text-secondary">
+            No recipients have been resolved yet. {campaign.status === 'draft'
+              ? "Click 'Send' from the composer to resolve and send."
+              : 'Try resuming the send.'}
+          </p>
+        </div>
+      </Card>
+    ) : (
+      <Card padding="none" elevation="sm">
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-ts-border">
+            <thead class="bg-ts-bg-muted/30 text-left text-xs font-semibold uppercase tracking-wide text-ts-text-muted">
+              <tr>
+                <th scope="col" class="px-4 py-3 sm:px-6">Email</th>
+                <th scope="col" class="px-4 py-3">Status</th>
+                <th scope="col" class="hidden px-4 py-3 sm:table-cell">Sent at</th>
+                <th scope="col" class="hidden px-4 py-3 sm:table-cell">Last event</th>
+                <th scope="col" class="hidden px-4 py-3 sm:table-cell">Notes</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-ts-border bg-ts-bg-surface">
+              {recipients.map((r) => (
+                <tr>
+                  <td class="px-4 py-3 sm:px-6">
+                    <div class="font-medium text-ts-text">{r.email}</div>
+                  </td>
+                  <td class="px-4 py-3">
+                    <span
+                      class={[
+                        'inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide',
+                        statusPillClasses(r.status),
+                      ].join(' ')}
+                    >
+                      {statusLabel(r.status)}
+                    </span>
+                  </td>
+                  <td class="hidden px-4 py-3 text-sm text-ts-text-secondary sm:table-cell">
+                    {fmtDate(r.sent_at)}
+                  </td>
+                  <td class="hidden px-4 py-3 text-sm text-ts-text-secondary sm:table-cell">
+                    {fmtDate(r.last_event_at)}
+                  </td>
+                  <td class="hidden px-4 py-3 text-sm text-ts-text-secondary sm:table-cell">
+                    {r.error_text ? <span class="text-ts-danger">{r.error_text}</span> : '—'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+    )}
+  </section>
+
+  <script is:inline>
+    (function () {
+      const btn = document.querySelector('[data-resume-send]');
+      const result = document.querySelector('[data-resume-result]');
+      if (!btn) return;
+
+      function show(msg, tone) {
+        if (!result) return;
+        result.classList.remove(
+          'hidden',
+          'border-ts-danger/30', 'bg-ts-danger/5', 'text-ts-danger',
+          'border-ts-primary/30', 'bg-ts-primary/10', 'text-ts-primary'
+        );
+        if (tone === 'error') {
+          result.classList.add('border-ts-danger/30', 'bg-ts-danger/5', 'text-ts-danger');
+        } else if (tone === 'success') {
+          result.classList.add('border-ts-primary/30', 'bg-ts-primary/10', 'text-ts-primary');
+        }
+        result.textContent = msg;
+      }
+
+      btn.addEventListener('click', async function () {
+        const id = btn.getAttribute('data-campaign-id');
+        if (!id) return;
+        btn.disabled = true;
+        const orig = btn.textContent;
+        btn.textContent = 'Sending…';
+        show('Resuming send — this may take a few minutes…', null);
+        try {
+          const res = await fetch('/api/admin/campaigns/send', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'content-type': 'application/json', accept: 'application/json' },
+            body: JSON.stringify({ campaign_id: id }),
+          });
+          const body = await res.json();
+          if (res.ok && body.ok) {
+            const parts = ['Sent ' + body.sent];
+            if (body.failed) parts.push(body.failed + ' failed');
+            if (body.remaining) parts.push(body.remaining + ' remaining');
+            let msg = parts.join(' · ') + '.';
+            if (body.rate_limited || body.status === 'partial') {
+              msg += ' Hit the daily cap — click again tomorrow to finish.';
+            }
+            show(msg, body.failed ? 'error' : 'success');
+            setTimeout(function () { window.location.reload(); }, 1800);
+          } else {
+            show('Send failed: ' + (body.error || 'unknown error') + '.', 'error');
+          }
+        } catch (e) {
+          show('Network error during send.', 'error');
+        } finally {
+          btn.disabled = false;
+          btn.textContent = orig;
+        }
+      });
+    })();
+  </script>
+</AdminShell>

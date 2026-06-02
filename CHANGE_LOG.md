@@ -6,6 +6,45 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-06-02] CSA — In-portal admin Campaign Sender (Resend + Supabase) (fullstack-builder)
+
+- WHY: Replace Shopify Email for marketing blasts with an in-portal admin tool so Todd composes a branded campaign at /admin/campaigns/new, targets by share_type + newsletter_opt_in (Supabase-resolved), previews, sends a test, then sends to all — without ever leaving the portal. Need-by: tonight (portal-launch email to ~195 CSA members). Branch: csa-migration. NO production deploy — PM verifies + deploys.
+- Files (NEW backend): supabase/migrations/0032_campaigns.sql (campaigns + campaign_recipients tables, notification_log.campaign_id column, RLS admin-only, set_updated_at + log_audit_event triggers on campaigns; campaign_recipients deliberately not audit-triggered — high-cardinality append-style ledger).
+- Files (NEW lib): apps/csa-portal/src/lib/campaign.ts (resolveRecipients + countRecipients with share-type filter + opt-in + TEST_EXCLUDES dedupe-by-customer; normalizeRecipientFilter; renderCampaignHtml branded shell with hidden preheader, personalization via {{first_name}} / {{customers.column}}; sendTestEmail + sendCampaign with throttled Resend calls, DAILY_SEND_CAP=80, idempotent campaign_recipients upsert + status='pending' loop, partial→scheduled_for=tomorrow auto-stagger; two seeded CAMPAIGN_TEMPLATES — "Portal Launch — Summer/Flex" and "Portal Launch — Flower").
+- Files (NEW pages): apps/csa-portal/src/pages/admin/campaigns/index.astro (list, status pills, stat columns), .../new.astro (recipient picker with live count, compose form with template dropdown, preview iframe modal, send-test, send-with-typed-SEND confirm), .../[id].astro (per-campaign detail + recipient table + Resume-send for partial/failed).
+- Files (NEW API): apps/csa-portal/src/pages/api/admin/campaigns/recipients-count.ts (GET; live count for picker), draft.ts (POST; create-or-update; rejects mutation of in-flight sends), preview.ts (POST; renders branded HTML), send-test.ts (POST; one [TEST] email, not logged), send.ts (POST; main flow, stamps sent_by, returns SendCampaignResult), webhook.ts (Phase-2 stub, accepts + 200s without acting).
+- Files (MODIFIED): apps/csa-portal/src/components/AdminShell.astro (added Campaigns nav item between Email and Notes), apps/csa-portal/src/lib/database.types.ts (added campaigns + campaign_recipients tables, notification_log.campaign_id column), apps/csa-portal/tests/e2e/logged-out.spec.ts (added /admin/campaigns + /admin/campaigns/new to PROTECTED_ROUTES).
+- Files (NEW test): apps/csa-portal/tests/e2e/admin-campaigns.spec.ts (unauth gate; auth flow with temporary admin promotion + restore; recipient-count round-trip; draft create + detail render; list shows draft; CSRF-aware via production Origin header — matches existing admin-POST dev-test convention).
+- MIGRATION APPLIED LIVE: Management API (project melizsvabemhaqeaqtyw) returned HTTP 201; verification SELECT confirmed campaigns + campaign_recipients exist with RLS enabled and notification_log.campaign_id column added (uuid, nullable).
+- VERIFICATION GATES PASSED:
+  - npx astro check → 0 errors, 0 warnings, 30 hints (pre-existing).
+  - npm run build → server build complete in 3.03s.
+  - npm run test:unauth → 36 of 36 passed (includes new /admin/campaigns gates).
+  - npx playwright test tests/e2e/admin-campaigns.spec.ts → 8 of 8 passed (setup+1 unauth+5 composer flow+teardown).
+  - Full npx playwright test → 74 of 75 passed; 1 pre-existing flake in box.spec.ts:76 (swap UI; unrelated — confirmed by stashing my changes + re-running).
+- LIVE-DB SANITY CHECK (service-role SQL): summer_veg+flex+opt-in = 149 deliverable customers (spec expected ~147); flower+opt-in = 45 deliverable (spec expected ~48). Within tolerance — tag-drift cleanup yesterday is reflected.
+- CAN-SPAM: every campaign email embeds a tokenized one-click unsubscribe (reuses signUnsubscribeToken from lib/weekly-email.ts) + farm physical address; sendCampaign + sendTestEmail abort if UNSUBSCRIBE_SECRET is missing.
+- IDEMPOTENCY: campaign_recipients UNIQUE(campaign_id, customer_id) backs the upsert; sendCampaign re-runs pick up status='pending' rows only. Daily-cap pause sets status='partial' + scheduled_for=tomorrow; Resume-send on /admin/campaigns/[id] re-invokes sendCampaign safely.
+- READY FOR PM REVIEW + DEPLOY.
+
+---
+
+## [2026-06-02] CSA — Tag drift fix + flower segment + reconciliation script (PM_ARCHITECT)
+
+- WHY: Pre-launch-email audit (Todd: "we should have gotten some more [orders]") found 7 new Shopify CSA orders since the 2026-05-25 reconciliation. All 7 properly synced to Supabase (auto-sync working), but a tag-drift bug meant 6 of them carried the WRONG Shopify customer tag `csa-2026-summer` instead of the segment-matching `2026-summer-csa`. They would have been silently excluded from the launch email. Also discovered: NO flower-specific segment existed at all; only the (now-superseded) "20 flower-only customers removed from summer segment" memory note documented this gap.
+- SCRIPT (NEW, permanent): `scripts/migrate-csa/sync_csa_tags.py` — idempotent self-healing reconciliation that walks every Supabase-active CSA member, looks up their Shopify customer, and ADDS the canonical segment-matching tag (`2026-summer-csa` for summer_veg+flex, `2026-flower-csa` for flower) if missing. Safe (only adds, never removes), idempotent (re-run = 0 changes), and runnable on a cron pre-campaign. `--commit` flag required; default is dry-run.
+- TAG SCOPE EXECUTED (--commit): 55 customer tag additions. 48 flower members received the new canonical `2026-flower-csa` tag (this tag did not previously exist — created today). 7 summer/flex members received `2026-summer-csa` (drift fix). 4 customers got BOTH tags (members with summer+flower shares).
+- POST-FIX SEGMENT COUNTS (Shopify, live):
+  - `2026 Summer CSA Members` (filter: tag `2026-summer-csa`): 156 → **163** members (147 email-deliverable; 16 NOT_SUBSCRIBED skipped by Shopify Email per consent).
+  - `2026 Flower CSA Members` (filter: tag `2026-flower-csa`): CREATED today as a new Shopify segment (`gid://shopify/Segment/526538637465`); **52** members (48 email-deliverable).
+- TAG DRIFT ROOT CAUSE: Shopify Flow IS installed. The `csa-2026-summer` tag (wrong hyphenation order) is being auto-applied by a Flow workflow we have not yet inspected (Flow definitions are UI-only — no Admin GraphQL exposure). 26 customers carry `csa-2026-summer` today; 20 of them also have the right `2026-summer-csa` so they're in-segment, 6 had only the wrong tag (now corrected). FOLLOW-UP for Todd in Shopify Admin → Apps → Flow: find the workflow tagging new CSA buyers and change the tag string from `csa-2026-summer` → `2026-summer-csa`. Until that's done, run sync_csa_tags.py before any segment-based campaign to self-heal.
+- NOT-SUBSCRIBED FLAG: Mollie Rosenzweig has both `2026-summer-csa` and `2026-flower-csa` tags but marketingState=NOT_SUBSCRIBED. She is in BOTH segments but Shopify Email won't deliver. Todd to reach out personally about the portal launch (she has summer+flower shares).
+- DRY-RUN RE-VERIFICATION: post-commit, `python3 sync_csa_tags.py` reports 183 customers / 0 changes / 0 not-found → script is fully idempotent + the canonical state is achieved.
+
+---
+
+---
+
 ## [2026-05-29] CSA — Flower CSA schedule (Week 1 = June 24, 16 weeks) (PM_ARCHITECT)
 
 - WHY: Todd confirmed (from Loren) the Flower CSA runs **16 weeks and starts 2 weeks after the veg CSA** → Week 1 = Wed June 24, last delivery Oct 7. This was the pending flower-start blocker. Needed before the portal invite so flower members see June 24, not June 10.

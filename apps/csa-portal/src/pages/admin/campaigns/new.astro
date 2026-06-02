@@ -1,0 +1,697 @@
+---
+/**
+ * /admin/campaigns/new — campaign composer.
+ *
+ * Three vertical sections + a confirm-modal:
+ *
+ *   1. Pick recipients  — share-type checkboxes + opt-in toggle, with a
+ *                          LIVE count fetched from
+ *                          /api/admin/campaigns/recipients-count on
+ *                          every change. Defaults: summer_veg+flex,
+ *                          opt-in=true (the most common Tonight send).
+ *
+ *   2. Compose          — name (admin label), subject, preview text,
+ *                          body HTML textarea. A "Use template" dropdown
+ *                          above the body pre-fills the form with one of
+ *                          the seeded CAMPAIGN_TEMPLATES.
+ *
+ *   3. Actions          — Save draft, Preview (iframe modal), Send test
+ *                          to me, Send to all (confirm-typed).
+ *
+ * All UX matches /admin/weekly-email (CSRF same-origin POST, in-page
+ * confirm modal, result toast). The body textarea is plain HTML — Todd's
+ * comfortable with that, and a rich-text editor is explicitly out of
+ * scope for v1 per spec.
+ */
+import AdminShell from '../../../components/AdminShell.astro';
+import Card from '../../../components/Card.astro';
+import FormRow from '../../../components/FormRow.astro';
+import {
+  CAMPAIGN_TEMPLATES,
+  TARGETABLE_SHARE_TYPES,
+} from '../../../lib/campaign';
+
+export const prerender = false;
+
+const adminEmail = Astro.locals.user?.email ?? '';
+
+// Default form values = the first seeded template (Portal Launch — Summer
+// Veg + Flex). The "Use template" dropdown swaps in the chosen template
+// client-side; this default lets Todd land on the page and be ready to
+// send the most-likely tonight blast in one click.
+const defaultTemplate = CAMPAIGN_TEMPLATES[0];
+
+// Pretty labels for the share-type checkboxes.
+const SHARE_LABELS: Record<(typeof TARGETABLE_SHARE_TYPES)[number], string> = {
+  summer_veg: 'Summer Veg',
+  flex: 'Flex',
+  flower: 'Flower',
+  add_on: 'Add-on',
+};
+
+// Serialize the seeded templates for client-side use (the dropdown
+// applies them to the form on selection). Strip any non-template fields.
+const templatesJson = JSON.stringify(
+  CAMPAIGN_TEMPLATES.map((t) => ({
+    id: t.id,
+    label: t.label,
+    name: t.name,
+    subject: t.subject,
+    preview_text: t.preview_text,
+    body_html: t.body_html,
+    recipient_filter: t.recipient_filter,
+  }))
+);
+---
+
+<AdminShell
+  title="New campaign"
+  subtitle="Compose a portal-wide email. Members will receive it from the farm address with a one-click unsubscribe."
+  pageTitle="New campaign — Tiny Seed Admin"
+  canonical="https://csa.tinyseedfarm.com/admin/campaigns/new"
+>
+  <Fragment slot="actions">
+    <a
+      href="/admin/campaigns"
+      class="inline-flex h-10 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-semibold text-ts-text transition-colors duration-150 hover:border-ts-primary/40 hover:text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+    >
+      ← All campaigns
+    </a>
+  </Fragment>
+
+  <form id="campaign-form" class="flex flex-col gap-6" novalidate>
+    <input type="hidden" name="id" value="" data-field-id />
+
+    {/* ════ 1. Recipients ════ */}
+    <section aria-labelledby="recipients-heading" class="flex flex-col gap-3">
+      <h2 id="recipients-heading" class="font-display text-xl font-bold text-ts-text sm:text-2xl">
+        1. Pick recipients
+      </h2>
+      <Card padding="lg" elevation="sm">
+        <div class="flex flex-col gap-5">
+          <fieldset>
+            <legend class="text-sm font-semibold text-ts-text">Share types</legend>
+            <p class="mt-1 text-xs text-ts-text-muted">Members with at least one active share of these types will receive this email.</p>
+            <div class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {TARGETABLE_SHARE_TYPES.map((t) => (
+                <label class="flex cursor-pointer items-center gap-2 rounded-ts-md border border-ts-border bg-ts-bg-base px-3 py-2 text-sm text-ts-text transition-colors hover:border-ts-primary/40">
+                  <input
+                    type="checkbox"
+                    name="share_types[]"
+                    value={t}
+                    data-share-type
+                    checked={defaultTemplate.recipient_filter.share_types.includes(t)}
+                    class="h-4 w-4 rounded border-ts-border text-ts-primary focus:ring-ts-primary"
+                  />
+                  <span>{SHARE_LABELS[t]}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+
+          <label class="inline-flex cursor-pointer items-center gap-2 text-sm text-ts-text">
+            <input
+              type="checkbox"
+              name="newsletter_opt_in"
+              value="true"
+              data-opt-in
+              checked={defaultTemplate.recipient_filter.newsletter_opt_in}
+              class="h-4 w-4 rounded border-ts-border text-ts-primary focus:ring-ts-primary"
+            />
+            <span>Only members who have newsletter opted-in (recommended)</span>
+          </label>
+
+          <div
+            role="status"
+            aria-live="polite"
+            class="flex flex-col gap-1 rounded-ts-md border border-ts-primary/20 bg-ts-primary/5 px-4 py-3 text-sm text-ts-text sm:flex-row sm:items-baseline sm:gap-2"
+          >
+            <span class="font-display text-2xl font-bold text-ts-primary tabular-nums" data-recipient-count>—</span>
+            <span class="text-sm text-ts-text-secondary">customers will receive this email <span data-recipient-detail class="text-xs text-ts-text-muted"></span></span>
+          </div>
+        </div>
+      </Card>
+    </section>
+
+    {/* ════ 2. Compose ════ */}
+    <section aria-labelledby="compose-heading" class="flex flex-col gap-3">
+      <h2 id="compose-heading" class="font-display text-xl font-bold text-ts-text sm:text-2xl">
+        2. Compose
+      </h2>
+      <Card padding="lg" elevation="sm">
+        <div class="flex flex-col gap-5">
+          <FormRow label="Use template" htmlFor="template-pick" help="Pre-fills the form. You can still edit anything below.">
+            <select
+              id="template-pick"
+              data-template-pick
+              class="h-11 w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-3 text-base text-ts-text outline-none transition-colors focus:border-ts-primary focus:ring-2 focus:ring-ts-primary/30"
+            >
+              <option value="">— Don't apply a template —</option>
+              {CAMPAIGN_TEMPLATES.map((t) => (
+                <option value={t.id} selected={t.id === defaultTemplate.id}>{t.label}</option>
+              ))}
+            </select>
+          </FormRow>
+
+          <FormRow label="Campaign name (internal)" htmlFor="field-name" required help="Just for you to find this campaign later — never shown to members.">
+            <input
+              id="field-name"
+              name="name"
+              data-field-name
+              type="text"
+              required
+              maxlength="160"
+              value={defaultTemplate.name}
+              class="h-11 w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-3 text-base text-ts-text outline-none transition-colors focus:border-ts-primary focus:ring-2 focus:ring-ts-primary/30"
+            />
+          </FormRow>
+
+          <FormRow label="Subject" htmlFor="field-subject" required help="What members see in their inbox.">
+            <input
+              id="field-subject"
+              name="subject"
+              data-field-subject
+              type="text"
+              required
+              maxlength="200"
+              value={defaultTemplate.subject}
+              class="h-11 w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-3 text-base text-ts-text outline-none transition-colors focus:border-ts-primary focus:ring-2 focus:ring-ts-primary/30"
+            />
+          </FormRow>
+
+          <FormRow label="Preview text" htmlFor="field-preview" required help="Shows in the inbox alongside the subject, ~80 chars.">
+            <input
+              id="field-preview"
+              name="preview_text"
+              data-field-preview
+              type="text"
+              required
+              maxlength="200"
+              value={defaultTemplate.preview_text}
+              class="h-11 w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-3 text-base text-ts-text outline-none transition-colors focus:border-ts-primary focus:ring-2 focus:ring-ts-primary/30"
+            />
+          </FormRow>
+
+          <FormRow
+            label="Body (HTML)"
+            htmlFor="field-body"
+            required
+            help='Plain HTML. Use <p>, <a href>, <strong>, etc. The farm header + unsubscribe footer are added automatically. {{first_name}} is replaced per recipient.'
+          >
+            <textarea
+              id="field-body"
+              name="body_html"
+              data-field-body
+              required
+              rows="16"
+              class="w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-3 py-2 font-mono text-sm leading-relaxed text-ts-text outline-none transition-colors focus:border-ts-primary focus:ring-2 focus:ring-ts-primary/30"
+              set:html={defaultTemplate.body_html}
+            />
+          </FormRow>
+        </div>
+      </Card>
+    </section>
+
+    {/* ════ 3. Actions ════ */}
+    <section aria-labelledby="actions-heading" class="flex flex-col gap-3">
+      <h2 id="actions-heading" class="font-display text-xl font-bold text-ts-text sm:text-2xl">
+        3. Send
+      </h2>
+      <Card padding="lg" elevation="sm">
+        <div class="flex flex-col gap-5">
+          <div class="flex flex-col gap-2">
+            <p class="text-sm leading-relaxed text-ts-text">
+              Save your draft, preview it, send a test to yourself first. When
+              it looks right, send to all recipients. Every email includes a
+              one-click unsubscribe link (CAN-SPAM).
+            </p>
+            <p class="text-xs text-ts-text-muted">
+              Resend free tier: ~100 sends/day. If you have more recipients
+              than that, the send will pause and you can resume tomorrow —
+              no double-sends.
+            </p>
+          </div>
+
+          <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+            <button
+              type="button"
+              data-action-save
+              class="inline-flex h-11 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-5 text-sm font-semibold text-ts-text transition-colors duration-150 hover:border-ts-primary/40 hover:text-ts-primary active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Save draft
+            </button>
+
+            <button
+              type="button"
+              data-action-preview
+              class="inline-flex h-11 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-5 text-sm font-semibold text-ts-text transition-colors duration-150 hover:border-ts-primary/40 hover:text-ts-primary active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Preview
+            </button>
+
+            <button
+              type="button"
+              data-action-send-test
+              class="inline-flex h-11 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-5 text-sm font-semibold text-ts-text transition-colors duration-150 hover:border-ts-primary/40 hover:text-ts-primary active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Send test to me{adminEmail ? ` (${adminEmail})` : ''}
+            </button>
+
+            <button
+              type="button"
+              data-action-send
+              class="inline-flex h-11 items-center justify-center rounded-ts-md bg-ts-primary px-5 text-sm font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Send to all recipients
+            </button>
+          </div>
+
+          <div
+            role="status"
+            aria-live="polite"
+            data-result
+            class="hidden rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-sm text-ts-text"
+          ></div>
+        </div>
+      </Card>
+    </section>
+  </form>
+
+  {/* ════ Preview modal ════ */}
+  <div
+    id="preview-modal"
+    class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 p-4"
+    data-preview-modal
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="preview-heading"
+  >
+    <div class="flex h-full max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-ts-xl bg-ts-bg-surface shadow-ts-lg">
+      <div class="flex items-center justify-between border-b border-ts-border px-5 py-3">
+        <h3 id="preview-heading" class="font-display text-lg font-bold text-ts-text">Email preview</h3>
+        <button
+          type="button"
+          data-preview-close
+          class="rounded-ts-md px-3 py-1.5 text-sm font-medium text-ts-text-secondary transition-colors hover:bg-ts-bg-muted hover:text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+        >
+          Close
+        </button>
+      </div>
+      <iframe
+        title="Campaign preview"
+        data-preview-iframe
+        sandbox=""
+        class="h-full w-full flex-1 border-0 bg-white"
+      ></iframe>
+    </div>
+  </div>
+
+  {/* ════ Confirm send modal ════ */}
+  <div
+    id="confirm-modal"
+    class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4"
+    data-confirm-modal
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="confirm-heading"
+  >
+    <div class="w-full max-w-md rounded-ts-xl bg-ts-bg-surface p-6 shadow-ts-lg">
+      <h3 id="confirm-heading" class="font-display text-lg font-bold text-ts-text">
+        Send to all recipients?
+      </h3>
+      <p class="mt-2 text-sm leading-relaxed text-ts-text-secondary">
+        This will email this campaign to <strong class="text-ts-text tabular-nums" data-confirm-count>0</strong> recipient(s).
+        Once sent, this cannot be undone.
+      </p>
+      <p class="mt-3 text-xs text-ts-text-muted">Type <strong>SEND</strong> to confirm:</p>
+      <input
+        type="text"
+        data-confirm-input
+        autocomplete="off"
+        class="mt-2 h-11 w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-3 text-base text-ts-text outline-none transition-colors focus:border-ts-primary focus:ring-2 focus:ring-ts-primary/30"
+        placeholder="SEND"
+      />
+      <footer class="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        <button
+          type="button"
+          data-confirm-cancel
+          class="inline-flex h-10 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-medium text-ts-text transition-colors duration-150 hover:border-ts-primary/40 hover:text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          data-confirm-go
+          disabled
+          class="inline-flex h-10 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          Send now
+        </button>
+      </footer>
+    </div>
+  </div>
+
+  {/* Serialized template payload for the client. */}
+  <script type="application/json" id="templates-data" set:html={templatesJson} />
+
+  <script is:inline>
+    (function () {
+      // ── Element refs ──────────────────────────────────────────────
+      const form = document.getElementById('campaign-form');
+      const fieldId = form.querySelector('[data-field-id]');
+      const fieldName = form.querySelector('[data-field-name]');
+      const fieldSubject = form.querySelector('[data-field-subject]');
+      const fieldPreview = form.querySelector('[data-field-preview]');
+      const fieldBody = form.querySelector('[data-field-body]');
+      const shareInputs = form.querySelectorAll('[data-share-type]');
+      const optInInput = form.querySelector('[data-opt-in]');
+      const templatePick = document.getElementById('template-pick');
+
+      const countEl = document.querySelector('[data-recipient-count]');
+      const detailEl = document.querySelector('[data-recipient-detail]');
+
+      const btnSave = document.querySelector('[data-action-save]');
+      const btnPreview = document.querySelector('[data-action-preview]');
+      const btnSendTest = document.querySelector('[data-action-send-test]');
+      const btnSend = document.querySelector('[data-action-send]');
+
+      const result = document.querySelector('[data-result]');
+
+      const previewModal = document.querySelector('[data-preview-modal]');
+      const previewIframe = document.querySelector('[data-preview-iframe]');
+      const previewClose = document.querySelector('[data-preview-close]');
+
+      const confirmModal = document.querySelector('[data-confirm-modal]');
+      const confirmInput = document.querySelector('[data-confirm-input]');
+      const confirmGo = document.querySelector('[data-confirm-go]');
+      const confirmCancel = document.querySelector('[data-confirm-cancel]');
+      const confirmCount = document.querySelector('[data-confirm-count]');
+
+      // Parse the inlined templates.
+      let templates = [];
+      try {
+        templates = JSON.parse(document.getElementById('templates-data').textContent || '[]');
+      } catch (e) {
+        templates = [];
+      }
+
+      // ── Helpers ───────────────────────────────────────────────────
+      function selectedShareTypes() {
+        const out = [];
+        shareInputs.forEach((el) => { if (el.checked) out.push(el.value); });
+        return out;
+      }
+
+      function currentFilter() {
+        return {
+          share_types: selectedShareTypes(),
+          newsletter_opt_in: !!optInInput.checked,
+        };
+      }
+
+      function showResult(msg, tone) {
+        if (!result) return;
+        result.classList.remove(
+          'hidden',
+          'border-ts-danger/30', 'bg-ts-danger/5', 'text-ts-danger',
+          'border-ts-primary/30', 'bg-ts-primary/10', 'text-ts-primary'
+        );
+        if (tone === 'error') {
+          result.classList.add('border-ts-danger/30', 'bg-ts-danger/5', 'text-ts-danger');
+        } else if (tone === 'success') {
+          result.classList.add('border-ts-primary/30', 'bg-ts-primary/10', 'text-ts-primary');
+        }
+        result.textContent = msg;
+      }
+
+      function setBusy(busy) {
+        [btnSave, btnPreview, btnSendTest, btnSend].forEach((b) => {
+          if (b) b.disabled = !!busy;
+        });
+      }
+
+      // Currently-tracked recipient count (for the confirm modal).
+      let lastDeliverable = 0;
+
+      // ── Live recipient count ──────────────────────────────────────
+      let countCtrl = null;
+      let countDebounce = null;
+      async function refreshCount() {
+        if (countCtrl) countCtrl.abort();
+        countCtrl = new AbortController();
+        const filter = currentFilter();
+        const params = new URLSearchParams({
+          share_types: filter.share_types.join(','),
+          newsletter_opt_in: filter.newsletter_opt_in ? 'true' : 'false',
+        });
+        try {
+          const res = await fetch(`/api/admin/campaigns/recipients-count?${params}`, {
+            credentials: 'same-origin',
+            headers: { accept: 'application/json' },
+            signal: countCtrl.signal,
+          });
+          if (!res.ok) {
+            countEl.textContent = '—';
+            detailEl.textContent = '(could not load)';
+            lastDeliverable = 0;
+            return;
+          }
+          const body = await res.json();
+          if (!body || !body.ok) {
+            countEl.textContent = '—';
+            detailEl.textContent = '(could not load)';
+            lastDeliverable = 0;
+            return;
+          }
+          lastDeliverable = body.deliverable_count ?? 0;
+          countEl.textContent = String(lastDeliverable);
+          const skipped = (body.count ?? 0) - lastDeliverable;
+          detailEl.textContent = skipped > 0
+            ? `(${body.count} matched, ${skipped} excluded as test accounts)`
+            : '';
+        } catch (e) {
+          if (e && e.name === 'AbortError') return;
+          countEl.textContent = '—';
+          detailEl.textContent = '(network error)';
+        }
+      }
+
+      function scheduleCount() {
+        if (countDebounce) clearTimeout(countDebounce);
+        countDebounce = setTimeout(refreshCount, 200);
+      }
+
+      shareInputs.forEach((el) => el.addEventListener('change', scheduleCount));
+      optInInput.addEventListener('change', scheduleCount);
+
+      // Initial count.
+      refreshCount();
+
+      // ── Template picker ───────────────────────────────────────────
+      templatePick.addEventListener('change', function () {
+        const id = templatePick.value;
+        if (!id) return;
+        const t = templates.find((x) => x.id === id);
+        if (!t) return;
+        fieldName.value = t.name;
+        fieldSubject.value = t.subject;
+        fieldPreview.value = t.preview_text;
+        fieldBody.value = t.body_html;
+        // Recipient filter:
+        shareInputs.forEach((el) => {
+          el.checked = t.recipient_filter.share_types.indexOf(el.value) >= 0;
+        });
+        optInInput.checked = !!t.recipient_filter.newsletter_opt_in;
+        refreshCount();
+        showResult(`Loaded template "${t.label}".`, null);
+      });
+
+      // ── Save draft ────────────────────────────────────────────────
+      async function saveDraft() {
+        setBusy(true);
+        showResult('Saving draft…', null);
+        const payload = {
+          id: fieldId.value || null,
+          name: fieldName.value,
+          subject: fieldSubject.value,
+          preview_text: fieldPreview.value,
+          body_html: fieldBody.value,
+          recipient_filter: currentFilter(),
+        };
+        try {
+          const res = await fetch('/api/admin/campaigns/draft', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'content-type': 'application/json', accept: 'application/json' },
+            body: JSON.stringify(payload),
+          });
+          const body = await res.json();
+          if (res.ok && body.ok && body.campaign && body.campaign.id) {
+            fieldId.value = body.campaign.id;
+            showResult('Draft saved.', 'success');
+            return body.campaign;
+          }
+          showResult('Could not save draft: ' + (body.error || 'unknown error') + '.', 'error');
+          return null;
+        } catch (e) {
+          showResult('Network error saving draft.', 'error');
+          return null;
+        } finally {
+          setBusy(false);
+        }
+      }
+
+      btnSave.addEventListener('click', function () { saveDraft(); });
+
+      // ── Preview ──────────────────────────────────────────────────
+      btnPreview.addEventListener('click', async function () {
+        setBusy(true);
+        showResult('Rendering preview…', null);
+        try {
+          const res = await fetch('/api/admin/campaigns/preview', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'content-type': 'application/json', accept: 'text/html' },
+            body: JSON.stringify({
+              body_html: fieldBody.value,
+              subject: fieldSubject.value,
+              preview_text: fieldPreview.value,
+              first_name: 'Todd',
+            }),
+          });
+          if (!res.ok) {
+            let err = 'unknown';
+            try { const j = await res.json(); err = j.error || err; } catch {}
+            showResult('Preview failed: ' + err + '.', 'error');
+            return;
+          }
+          const html = await res.text();
+          previewIframe.setAttribute('srcdoc', html);
+          previewModal.classList.remove('hidden');
+          previewModal.classList.add('flex');
+          showResult('', null);
+          result.classList.add('hidden');
+        } catch (e) {
+          showResult('Network error rendering preview.', 'error');
+        } finally {
+          setBusy(false);
+        }
+      });
+      previewClose.addEventListener('click', function () {
+        previewModal.classList.add('hidden');
+        previewModal.classList.remove('flex');
+      });
+      previewModal.addEventListener('click', function (e) {
+        if (e.target === previewModal) {
+          previewModal.classList.add('hidden');
+          previewModal.classList.remove('flex');
+        }
+      });
+
+      // ── Send test ────────────────────────────────────────────────
+      btnSendTest.addEventListener('click', async function () {
+        // Save first so the test goes against the draft id (preserves
+        // any edits Todd has made since loading the page).
+        const saved = await saveDraft();
+        if (!saved || !saved.id) return;
+        setBusy(true);
+        showResult('Sending a test to your inbox…', null);
+        try {
+          const res = await fetch('/api/admin/campaigns/send-test', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'content-type': 'application/json', accept: 'application/json' },
+            body: JSON.stringify({ campaign_id: saved.id }),
+          });
+          const body = await res.json();
+          if (res.ok && body.ok) {
+            showResult('Test email sent to ' + (body.recipient || 'you') + '. Check your inbox.', 'success');
+          } else {
+            showResult('Test failed: ' + (body.error || 'unknown error') + '.', 'error');
+          }
+        } catch (e) {
+          showResult('Network error sending test.', 'error');
+        } finally {
+          setBusy(false);
+        }
+      });
+
+      // ── Send to all (with confirmation) ──────────────────────────
+      function openConfirm() {
+        confirmCount.textContent = String(lastDeliverable);
+        confirmInput.value = '';
+        confirmGo.disabled = true;
+        confirmModal.classList.remove('hidden');
+        confirmModal.classList.add('flex');
+        confirmInput.focus();
+      }
+      function closeConfirm() {
+        confirmModal.classList.add('hidden');
+        confirmModal.classList.remove('flex');
+      }
+      btnSend.addEventListener('click', async function () {
+        if (lastDeliverable === 0) {
+          showResult('No recipients match the current filter. Pick at least one share type.', 'error');
+          return;
+        }
+        // Save first.
+        const saved = await saveDraft();
+        if (!saved || !saved.id) return;
+        openConfirm();
+      });
+      confirmCancel.addEventListener('click', closeConfirm);
+      confirmModal.addEventListener('click', function (e) {
+        if (e.target === confirmModal) closeConfirm();
+      });
+      confirmInput.addEventListener('input', function () {
+        confirmGo.disabled = confirmInput.value.trim().toUpperCase() !== 'SEND';
+      });
+      confirmGo.addEventListener('click', async function () {
+        if (confirmGo.disabled) return;
+        confirmGo.disabled = true;
+        confirmGo.textContent = 'Sending…';
+        showResult('Sending campaign — this may take a few minutes…', null);
+        try {
+          const res = await fetch('/api/admin/campaigns/send', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'content-type': 'application/json', accept: 'application/json' },
+            body: JSON.stringify({ campaign_id: fieldId.value }),
+          });
+          const body = await res.json();
+          closeConfirm();
+          if (res.ok && body.ok) {
+            const parts = ['Sent ' + body.sent + ' of ' + body.total_recipients];
+            if (body.failed) parts.push(body.failed + ' failed');
+            if (body.remaining) parts.push(body.remaining + ' remaining');
+            let msg = parts.join(' · ') + '.';
+            if (body.rate_limited || body.status === 'partial') {
+              msg += ' Hit the daily cap — click "View" on the campaign detail page and resume tomorrow.';
+            }
+            showResult(msg, body.failed ? 'error' : 'success');
+            setTimeout(function () {
+              window.location.href = '/admin/campaigns/' + fieldId.value;
+            }, 1800);
+          } else {
+            showResult('Send failed: ' + (body.error || 'unknown error') + '.', 'error');
+          }
+        } catch (e) {
+          closeConfirm();
+          showResult('Network error during send.', 'error');
+        } finally {
+          confirmGo.textContent = 'Send now';
+        }
+      });
+
+      // ESC closes either open modal.
+      document.addEventListener('keydown', function (e) {
+        if (e.key !== 'Escape') return;
+        if (previewModal && !previewModal.classList.contains('hidden')) {
+          previewModal.classList.add('hidden');
+          previewModal.classList.remove('flex');
+        }
+        if (confirmModal && !confirmModal.classList.contains('hidden')) closeConfirm();
+      });
+    })();
+  </script>
+</AdminShell>

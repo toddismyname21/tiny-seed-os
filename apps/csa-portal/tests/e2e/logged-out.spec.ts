@@ -28,6 +28,8 @@ const PROTECTED_ROUTES = [
   '/admin/sync',
   '/admin/recipes',
   '/admin/weekly-email',
+  '/admin/campaigns',
+  '/admin/campaigns/new',
   '/admin/stop-notes',
   // CSA Operations Admin Phase 1 (migration 0031 + 2026-05-27)
   '/admin/pack-day',
