@@ -596,6 +596,13 @@ interface SendOneResult {
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
+/**
+ * Where member replies go. Members are told "just reply" in the body, so
+ * replies MUST hit a monitored human inbox — not the send-only `from`.
+ * Routes to Todd + the CSA staff inbox (Frankie) so either can respond.
+ */
+export const CAMPAIGN_REPLY_TO = ['todd@tinyseedfarmpgh.com', 'tinyseedcsa@gmail.com'];
+
 /** One Resend send; never throws. */
 async function sendOne(
   apiKey: string,
@@ -612,7 +619,7 @@ async function sendOne(
         Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ from, to: [to], subject, html, text }),
+      body: JSON.stringify({ from, to: [to], reply_to: CAMPAIGN_REPLY_TO, subject, html, text }),
     });
     if (resp.ok) {
       const data = (await resp.json().catch(() => null)) as { id?: string } | null;
