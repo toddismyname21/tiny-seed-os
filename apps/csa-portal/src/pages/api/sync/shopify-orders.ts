@@ -61,6 +61,10 @@ import {
 } from '../../../lib/shopify';
 import { isFlexFundsTitle, planFlexCredit } from '../../../lib/flex';
 import { REFERRAL_BONUS_AMOUNT } from '../../../lib/referral';
+import {
+  matchVariantToPickup,
+  type PickupLocation,
+} from '../../../lib/pickup-from-variant';
 
 export const prerender = false;
 
@@ -299,6 +303,10 @@ interface PlannedMember {
   total_weeks: number;
   amount_paid: number;
   title: string;
+  /** The Shopify variant title for this line item — feeds the
+   *  pickup_location matcher (see lib/pickup-from-variant.ts). May be null
+   *  for legacy variant-less products. */
+  variantTitle: string | null;
 }
 
 interface OrderPlan {
@@ -362,6 +370,7 @@ function planOrder(order: ShopifyOrder): OrderPlan {
       total_weeks: dates.total_weeks,
       amount_paid: li.amount,
       title: li.title,
+      variantTitle: li.variantTitle ?? null,
     });
   }
 
@@ -694,12 +703,37 @@ async function handle(request: Request, url: URL): Promise<Response> {
     if (o.updatedAt > maxUpdatedAt) maxUpdatedAt = o.updatedAt;
   }
 
+  // 4b. Pre-load the active pickup_locations once for the whole run. The
+  //     pickup-from-variant matcher only depends on (id, name), and
+  //     day_of_week is consumed when we set the member's pickup_day. Empty
+  //     array on read failure (matching becomes a no-op rather than crashing
+  //     the sync — pickup-fill is non-fatal for member creation).
+  const { data: pickupRows, error: pickupErr } = await supabaseAdmin
+    .from('pickup_locations')
+    .select('id, name, day_of_week')
+    .eq('is_active', true);
+  if (pickupErr) {
+    console.error('[sync] pickup_locations read failed (proceeding with no auto-pickup):', pickupErr.message);
+  }
+  const pickupLocations: PickupLocation[] = (pickupRows ?? []).map((r) => ({
+    id: r.id,
+    name: r.name,
+  }));
+  /** id → day_of_week (Mon/Tue/.../Sat), used to set members.pickup_day on a match. */
+  const pickupDayById: Map<string, Database['public']['Tables']['members']['Row']['pickup_day']> =
+    new Map((pickupRows ?? []).map((r) => [r.id, r.day_of_week]));
+
   let ordersProcessed = 0;
   let membersUpserted = 0;
   let flexCreditedTotal = 0;
   let flexBonusTotal = 0;
   let referralBonusTotal = 0;
+  let pickupsAutoAssigned = 0;
   const planned: Array<Record<string, unknown>> = [];
+  /** Variants we saw on CSA line items that the matcher could NOT resolve.
+   *  Surfaced in the response so the PM can investigate naming drift. Each
+   *  entry is the verbatim variantTitle, kept short to bound payload size. */
+  const unmatchedVariants: string[] = [];
 
   // 5. Per-order processing.
   for (const order of candidates) {
@@ -727,16 +761,22 @@ async function handle(request: Request, url: URL): Promise<Response> {
           order_id: order.id,
           email,
           customer_gid: order.customerGid,
-          would_upsert_members: plan.members.map((m) => ({
-            legacy_id: m.legacy_id,
-            share_type: m.share_type,
-            share_size: m.share_size,
-            season: m.season,
-            start_date: m.start_date,
-            end_date: m.end_date,
-            total_weeks: m.total_weeks,
-            amount_paid: m.amount_paid,
-          })),
+          would_upsert_members: plan.members.map((m) => {
+            const match = matchVariantToPickup(m.variantTitle, pickupLocations);
+            return {
+              legacy_id: m.legacy_id,
+              share_type: m.share_type,
+              share_size: m.share_size,
+              season: m.season,
+              start_date: m.start_date,
+              end_date: m.end_date,
+              total_weeks: m.total_weeks,
+              amount_paid: m.amount_paid,
+              variant_title: m.variantTitle,
+              would_fill_pickup_location_id: match.locationId,
+              pickup_match_reason: match.reason,
+            };
+          }),
           would_credit_flex_principal: creditPlan.principal,
           would_credit_flex_bonus: creditPlan.bonus,
           would_credit_flex_bonus_pct: Math.round(creditPlan.bonusRate * 100),
@@ -781,31 +821,153 @@ async function handle(request: Request, url: URL): Promise<Response> {
       const customerId = custRow.id;
 
       // ── LIVE: upsert each member row (idempotent on legacy_id) ────
+      //
+      // PICKUP AUTO-ASSIGN (2026-06-04): for every CSA line item with a
+      // resolvable variantTitle, set members.pickup_location_id + pickup_day
+      // from the matcher. Strict idempotency: NEVER overwrite a non-NULL
+      // pickup_location_id (a member may have manually changed pickup via
+      // /account/pickup — the sync must only FILL IN nulls).
+      //
+      // Implementation: pre-read each member's existing row. If it doesn't
+      // exist yet (new member) OR exists with pickup_location_id IS NULL,
+      // include the matched pickup in the upsert payload. Otherwise omit
+      // both pickup fields so the upsert leaves them untouched.
       let upsertedThisOrder = 0;
+      /** member.id of every row we touched this order — feeds the sibling-
+       *  share fallback below. We need .id (not legacy_id) because the
+       *  fallback queries the customer's full member set by customer_id. */
+      const touchedMemberIds: string[] = [];
       for (const m of plan.members) {
-        const { error: memErr } = await supabaseAdmin
+        // Resolve the pickup match up-front (pure, no IO).
+        const match = matchVariantToPickup(m.variantTitle, pickupLocations);
+        if (match.reason.startsWith('unmatched:') && m.variantTitle) {
+          // Surface for human review (de-dup'd at end, capped at 25).
+          if (!unmatchedVariants.includes(m.variantTitle) && unmatchedVariants.length < 25) {
+            unmatchedVariants.push(m.variantTitle);
+          }
+        }
+
+        // Read existing row (if any) so we never overwrite a non-NULL pickup.
+        const { data: existingMember, error: existingMemErr } = await supabaseAdmin
+          .from('members')
+          .select('id, pickup_location_id')
+          .eq('legacy_id', m.legacy_id)
+          .maybeSingle();
+        if (existingMemErr) {
+          throw new Error(`member existence check (${m.legacy_id}): ${existingMemErr.message}`);
+        }
+        const existingHasPickup =
+          existingMember != null && existingMember.pickup_location_id != null;
+
+        // Build the upsert payload. The pickup fields are CONDITIONALLY
+        // included so a re-run can't NULL out a manually-set pickup.
+        const basePayload = {
+          legacy_id: m.legacy_id,
+          customer_id: customerId,
+          share_type: m.share_type,
+          share_size: m.share_size,
+          season: m.season,
+          start_date: m.start_date,
+          end_date: m.end_date,
+          total_weeks: m.total_weeks,
+          weeks_remaining: m.total_weeks,
+          status: 'active' as const,
+          payment_status: 'Paid',
+          amount_paid: m.amount_paid,
+          notes: `Synced from Shopify ${order.name} on ${new Date().toISOString().slice(0, 10)}. ${m.title}`,
+        };
+
+        const pickupPayload: {
+          pickup_location_id?: string | null;
+          pickup_day?: Database['public']['Tables']['members']['Row']['pickup_day'];
+        } = {};
+        let wouldFillPickup = false;
+        if (existingHasPickup) {
+          // Leave both fields untouched. Member-chosen pickup wins forever.
+        } else if (match.locationId) {
+          // No prior pickup (or row didn't exist) AND we matched → fill in.
+          pickupPayload.pickup_location_id = match.locationId;
+          pickupPayload.pickup_day = pickupDayById.get(match.locationId) ?? null;
+          wouldFillPickup = true;
+        } else {
+          // No match (home_delivery, allison_park_tbd, unmatched:*, no_variant).
+          // Force the field to NULL on a fresh insert only; on an update of an
+          // existing NULL-pickup row this is a harmless no-op.
+          pickupPayload.pickup_location_id = null;
+        }
+
+        const { data: upserted, error: memErr } = await supabaseAdmin
           .from('members')
           .upsert(
-            {
-              legacy_id: m.legacy_id,
-              customer_id: customerId,
-              share_type: m.share_type,
-              share_size: m.share_size,
-              season: m.season,
-              start_date: m.start_date,
-              end_date: m.end_date,
-              total_weeks: m.total_weeks,
-              weeks_remaining: m.total_weeks,
-              status: 'active',
-              payment_status: 'Paid',
-              amount_paid: m.amount_paid,
-              pickup_location_id: null,
-              notes: `Synced from Shopify ${order.name} on ${new Date().toISOString().slice(0, 10)}. ${m.title}`,
-            },
+            { ...basePayload, ...pickupPayload },
             { onConflict: 'legacy_id' }
-          );
+          )
+          .select('id')
+          .maybeSingle();
         if (memErr) throw new Error(`member upsert (${m.legacy_id}): ${memErr.message}`);
         upsertedThisOrder += 1;
+        if (wouldFillPickup) pickupsAutoAssigned += 1;
+        if (upserted?.id) touchedMemberIds.push(upserted.id);
+      }
+
+      // ── LIVE: SIBLING-SHARE FALLBACK (flower follows veg) ─────────
+      //
+      // For each member in THIS order that's still NULL on pickup AND is a
+      // flower share, copy the pickup from the SAME customer's active veg/
+      // flex share (real-world rule: flower customers who also buy veg pick
+      // up flowers at the same stop). Same strict idempotency: only fills
+      // nulls, never overwrites. Best-effort: a query failure here logs and
+      // does not block the order's core sync.
+      try {
+        if (touchedMemberIds.length > 0) {
+          const { data: customerActiveMembers, error: siblingsErr } = await supabaseAdmin
+            .from('members')
+            .select('id, share_type, pickup_location_id, pickup_day')
+            .eq('customer_id', customerId)
+            .eq('status', 'active');
+          if (siblingsErr) throw new Error(`sibling-share read: ${siblingsErr.message}`);
+
+          const sourceMember = (customerActiveMembers ?? []).find(
+            (m) =>
+              (m.share_type === 'summer_veg' || m.share_type === 'flex') &&
+              m.pickup_location_id != null
+          );
+          if (sourceMember) {
+            const targets = (customerActiveMembers ?? []).filter(
+              (m) =>
+                m.share_type === 'flower' &&
+                m.pickup_location_id == null &&
+                touchedMemberIds.includes(m.id)
+            );
+            for (const t of targets) {
+              const { error: updErr } = await supabaseAdmin
+                .from('members')
+                .update({
+                  pickup_location_id: sourceMember.pickup_location_id,
+                  pickup_day:
+                    sourceMember.pickup_day ??
+                    pickupDayById.get(sourceMember.pickup_location_id!) ??
+                    null,
+                })
+                .eq('id', t.id)
+                .is('pickup_location_id', null); // defensive: only-if-still-null
+              if (updErr) {
+                console.error(
+                  `[sync] sibling-share fill failed for member ${t.id}: ${updErr.message}`
+                );
+              } else {
+                pickupsAutoAssigned += 1;
+              }
+            }
+          }
+        }
+      } catch (e) {
+        // Sibling-fill is best-effort; the order's member rows are already
+        // committed. Log + continue.
+        console.error(
+          `[sync] sibling-share fallback failed for order ${order.name}:`,
+          e instanceof Error ? e.message : String(e)
+        );
       }
 
       // ── LIVE: issue flex store credit + loyalty bonus ────────────
@@ -980,6 +1142,15 @@ async function handle(request: Request, url: URL): Promise<Response> {
     orders_seen: ordersSeen,
     orders_processed: ordersProcessed,
     members_upserted: membersUpserted,
+    /** Number of member rows whose pickup_location_id was filled in this run
+     *  (incl. sibling-share fallback). Surfaces "auto-pickup is working" to
+     *  the admin sync page. Always 0 on dry-run (no writes happen). */
+    pickups_auto_assigned: pickupsAutoAssigned,
+    /** Variants seen on CSA line items that the matcher could not resolve.
+     *  De-dup'd, capped at 25. Surfaces drift in Shopify variant naming so
+     *  it can be fixed (either as a new REWRITE entry or by renaming the
+     *  Shopify variant). Empty array on a clean run. */
+    unmatched_variants: unmatchedVariants,
     flex_credited_total: flexCreditedTotal,
     flex_bonus_total: flexBonusTotal,
     referral_bonus_total: referralBonusTotal,

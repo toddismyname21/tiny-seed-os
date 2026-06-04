@@ -381,6 +381,13 @@ export interface ShopifyAddress {
 export interface ShopifyLineItem {
   id: string;
   title: string;
+  /** The Shopify variant title — for CSA products this carries the PICKUP
+   *  choice (e.g. "Squirrel Hill (CSA CUSTOMER PORCH)", "Bloomfield (SATURDAY
+   *  FARMER'S MARKET)", "$150 / Allison Park (TBD)", "Home Delivery — $15/wk").
+   *  The sync feeds this to `pickup-from-variant.matchVariantToPickup` to
+   *  auto-set `members.pickup_location_id` when it resolves. May be null on
+   *  non-variant products. */
+  variantTitle: string | null;
   quantity: number;
   amount: number; // originalTotalSet.shopMoney.amount, parsed to number
 }
@@ -435,6 +442,9 @@ interface OrdersResp {
             node: {
               id: string;
               title: string;
+              /** Optional — null when the product has no variants. Carries the
+               *  pickup-location choice for CSA products (see ShopifyLineItem). */
+              variantTitle: string | null;
               quantity: number;
               originalTotalSet: { shopMoney: { amount: string } };
             };
@@ -456,7 +466,7 @@ const ORDERS_QUERY = `
         customer { id email firstName lastName phone
           defaultAddress { city province zip address1 } }
         lineItems(first: 50) { edges { node {
-          id title quantity originalTotalSet { shopMoney { amount } }
+          id title variantTitle quantity originalTotalSet { shopMoney { amount } }
         } } }
       } }
     }
@@ -514,6 +524,7 @@ export async function fetchOrders(
         lineItems: o.lineItems.edges.map((le) => ({
           id: gidToId(le.node.id),
           title: le.node.title,
+          variantTitle: le.node.variantTitle ?? null,
           quantity: le.node.quantity,
           amount: Number.parseFloat(le.node.originalTotalSet.shopMoney.amount),
         })),

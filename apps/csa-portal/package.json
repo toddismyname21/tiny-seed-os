@@ -13,6 +13,7 @@
     "test:e2e": "playwright test",
     "test:a11y": "playwright test tests/e2e/a11y.spec.ts",
     "test:unauth": "playwright test --grep @unauth",
+    "test:unit": "for f in src/lib/*.test.ts; do echo \"==> $f\"; npx tsx \"$f\" || exit 1; done",
     "lhci": "lhci autorun"
   },
   "dependencies": {
