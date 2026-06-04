@@ -577,8 +577,12 @@ function htmlToText(
 // Send mechanics (Resend)
 // ─────────────────────────────────────────────────────────────────────
 
-/** Conservative cap, under Resend's 100/day free-tier. */
-export const DAILY_SEND_CAP = 80;
+/**
+ * Per-run send cap. On Resend Pro (paid) the daily limit is 50k+, so we
+ * raise this well above any single CSA/wholesale campaign size to send a
+ * full list in one click. (Was 80 under the free-tier 100/day limit.)
+ */
+export const DAILY_SEND_CAP = 5000;
 /** Inter-send throttle. ~5/sec — well under Resend's 2/sec quota
  *  (we go slower to leave headroom for retries + co-tenant noise). */
 export const THROTTLE_MS = 200;
