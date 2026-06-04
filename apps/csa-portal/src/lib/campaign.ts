@@ -440,12 +440,60 @@ export interface RenderedEmail {
  * inbox clients show it in the snippet but the body opens with the
  * actual content.
  */
+/**
+ * Auto-format the campaign body. If the admin typed plain text, convert
+ * to nice HTML (paragraphs, lists, bold, auto-linked URLs). If the admin
+ * pasted real HTML (we detect any `<tag>`), pass it through untouched.
+ *
+ * Plain-text conventions supported:
+ *   • blank line  → paragraph break
+ *   • lines starting with "- " or "* "  → bullet list
+ *   • **text**    → bold
+ *   • https://... → auto-linked
+ *   • single newline inside a paragraph → <br>
+ */
+export function formatBodyAsHtml(input: string): string {
+  if (!input) return '';
+  // Detect raw HTML — if any tag is present, trust the author.
+  if (/<[a-z][^>]*>/i.test(input)) return input;
+
+  // Plain-text mode: HTML-escape first so user text can't inject tags.
+  let txt = input
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+
+  // **bold** → <strong>
+  txt = txt.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
+
+  // Auto-link bare URLs. (Run after escaping so we don't double-escape.)
+  txt = txt.replace(
+    /(https?:\/\/[^\s<]+)/g,
+    '<a href="$1" style="color:#166534;font-weight:600;text-decoration:underline">$1</a>'
+  );
+
+  // Split into blocks on blank lines, then classify each block.
+  const blocks = txt.split(/\n{2,}/).map((b) => b.trim()).filter(Boolean);
+  const htmlBlocks = blocks.map((block) => {
+    const lines = block.split('\n').map((l) => l.trim()).filter(Boolean);
+    const isList = lines.length > 0 && lines.every((l) => /^[-*]\s+/.test(l));
+    if (isList) {
+      const items = lines.map((l) => `<li style="margin:6px 0">${l.replace(/^[-*]\s+/, '')}</li>`);
+      return `<ul style="margin:12px 0;padding-left:24px">${items.join('')}</ul>`;
+    }
+    return `<p style="margin:12px 0">${block.replace(/\n/g, '<br>')}</p>`;
+  });
+
+  return htmlBlocks.join('\n');
+}
+
 export function renderCampaignHtml(
   input: RenderInput,
   opts: RenderOptions
 ): RenderedEmail {
   const recipient = opts.recipient ?? { first_name: 'there', email: '', contact_name: '' };
-  const personalizedBody = personalize(input.body_html, recipient);
+  // Auto-format plain text to HTML; pass real HTML through untouched.
+  const personalizedBody = personalize(formatBodyAsHtml(input.body_html), recipient);
   const subject = personalize(input.subject, recipient);
   const previewText = escapeHtml(input.preview_text);
 
@@ -1034,36 +1082,47 @@ export interface CampaignTemplate {
   recipient_filter: RecipientFilter;
 }
 
-const PORTAL_LAUNCH_SUMMER_BODY = `<p>Hi {{first_name}},</p>
-<p>We've upgraded your CSA member portal. It's faster, cleaner, and works much better on your phone.</p>
-<p><strong>Your new home:</strong> <a href="https://csa.tinyseedfarm.com">csa.tinyseedfarm.com</a></p>
-<p>You'll sign in with this email — we send you a one-time link, no password to remember. Your membership, share, vacation holds, and Farm Flex balance are all there.</p>
-<p>A few things you can do right away:</p>
-<ul>
-  <li>Update your dietary preferences (we'll automatically swap items you can't have)</li>
-  <li>Schedule a vacation hold</li>
-  <li>Customize your weekly box (when the menu opens)</li>
-  <li>Add funds to your Farm Flex wallet</li>
-</ul>
-<p><strong>Week 1 of the Summer CSA starts Wednesday, June 10.</strong> If you have a flower share, that begins June 24 (separate note coming).</p>
-<p>If anything looks off or you have trouble logging in, just reply to this email — I'll fix it personally.</p>
-<p>Thanks for being part of Tiny Seed Farm.</p>
-<p>— Todd</p>`;
+const PORTAL_LAUNCH_SUMMER_BODY = `Hi {{first_name}},
 
-const PORTAL_LAUNCH_FLOWER_BODY = `<p>Hi {{first_name}},</p>
-<p>We've upgraded your Flower CSA portal. Sign-in is faster, the layout works much better on a phone, and your share + schedule live in one place.</p>
-<p><strong>Your new home:</strong> <a href="https://csa.tinyseedfarm.com">csa.tinyseedfarm.com</a></p>
-<p>You'll sign in with this email — we send you a one-time link, no password to remember. Your membership and pickup details are already there.</p>
-<p><strong>Week 1 of the Flower CSA starts Wednesday, June 24</strong> and runs 16 weeks (last pickup Wednesday, October 7). That's about 2 weeks behind the Summer Veg CSA — the early-summer arrangements are some of our best of the year.</p>
-<p>A few things to know:</p>
-<ul>
-  <li>If you also have a Summer Veg share, you can manage both from the same login</li>
-  <li>You can schedule a vacation hold any time from your account</li>
-  <li>Pickups happen at the same location and time as the veg CSA</li>
-</ul>
-<p>If anything looks off or you have trouble logging in, just reply to this email — I'll fix it personally.</p>
-<p>Thanks for trusting us with your table (and your home) this season.</p>
-<p>— Todd</p>`;
+You can now manage your whole CSA from your phone at https://csa.tinyseedfarm.com/login?email={{email}}
+
+Sign in with your email — we'll send you a one-time link. No password.
+
+**What's there for you:**
+
+- **Set "always avoid" preferences** — tell us once, we'll auto-swap allergies and dislikes every week. No thinking required.
+- **Schedule a vacation hold** when you're out of town
+- **Add funds to your Farm Flex wallet** for extras
+- **Change your pickup location** anytime
+
+**Why this is better for all of us:** when you tell us your preferences, we pack what you'll actually eat. Less food in the compost. Fewer "please skip my box" emails. More time for everyone to enjoy the actual food.
+
+**Week 1 starts Wednesday, June 10.** Pop in before then to set your preferences so your first box comes out right.
+
+Anything off? Just reply — I'll fix it.
+
+— Farmer Todd and the Tiny Seed Crew`;
+
+const PORTAL_LAUNCH_FLOWER_BODY = `Hi {{first_name}},
+
+You can now manage your Flower CSA from your phone at https://csa.tinyseedfarm.com/login?email={{email}}
+
+Sign in with your email — we'll send you a one-time link. No password.
+
+**What's there for you:**
+
+- **Schedule a vacation** when you're out of town
+- **Change your pickup location** anytime
+- **Set notification preferences**
+- See your share details + weeks remaining
+
+**Why this is better for all of us:** when you tell us in advance, we can save your bouquet for someone who'll enjoy it instead of composting it. And you get back from vacation to a fresh bouquet on the right week.
+
+**Week 1 starts Wednesday, June 24** — two weeks behind the Summer CSA so the field has time to bloom. Sixteen weeks of fresh-cut flowers ahead.
+
+Anything off? Just reply.
+
+— Farmer Todd and the Tiny Seed Crew`;
 
 export const CAMPAIGN_TEMPLATES: readonly CampaignTemplate[] = [
   {

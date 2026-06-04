@@ -196,7 +196,7 @@ const templatesJson = JSON.stringify(
             label="Body (HTML)"
             htmlFor="field-body"
             required
-            help='Plain HTML. Use <p>, <a href>, <strong>, etc. The farm header + unsubscribe footer are added automatically. {{first_name}} is replaced per recipient.'
+            help="Just type. Blank line = new paragraph. Lines starting with `-` or `*` become bullet lists. **wrap in stars** for bold. Paste a link and it auto-links. The farm header + unsubscribe footer get added automatically. Use {{first_name}} where you want the recipient's first name."
           >
             <textarea
               id="field-body"
