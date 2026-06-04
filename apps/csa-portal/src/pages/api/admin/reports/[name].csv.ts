@@ -97,9 +97,45 @@ export const GET: APIRoute = async ({ url, locals, params }) => {
   // ─── members.csv ────────────────────────────────────────────────────
   if (slug === 'members') {
     const q = (url.searchParams.get('q') ?? '').trim();
-    const status = url.searchParams.get('status') ?? 'all';
-    const shareType = url.searchParams.get('share_type') ?? 'all';
+    // Default status follows the page (2026-06-04 redesign): 'active' unless
+    // the URL explicitly asks for something else. Old links carrying
+    // status=all keep working.
+    const status = url.searchParams.get('status') ?? 'active';
     const pickupFilter = url.searchParams.get('pickup_location') ?? 'all';
+
+    // share_types (plural, comma-sep) is the new multi-select param the
+    // page uses. Legacy share_type (single) is still accepted for back-
+    // compat with old CSV download links / saved searches. When NEITHER
+    // is present we fall back to the page's default set (all except
+    // add_on) so the download matches what's on screen.
+    type ShareTypeEnum = 'spring_veg' | 'summer_veg' | 'fall_veg' | 'flower' | 'flex' | 'add_on' | 'wholesale_csa';
+    const ALL_SHARE_TYPES: ShareTypeEnum[] = [
+      'spring_veg', 'summer_veg', 'fall_veg', 'flower', 'flex', 'add_on', 'wholesale_csa',
+    ];
+    const DEFAULT_SHARE_TYPES: ShareTypeEnum[] = [
+      'spring_veg', 'summer_veg', 'fall_veg', 'flower', 'flex', 'wholesale_csa',
+    ];
+    let shareTypes: ShareTypeEnum[];
+    const rawMulti = url.searchParams.get('share_types');
+    const legacy = url.searchParams.get('share_type');
+    if (rawMulti !== null) {
+      if (rawMulti === 'all') {
+        shareTypes = ALL_SHARE_TYPES.slice();
+      } else {
+        const set = new Set<ShareTypeEnum>();
+        for (const tok of rawMulti.split(',')) {
+          const t = tok.trim();
+          if ((ALL_SHARE_TYPES as string[]).includes(t)) set.add(t as ShareTypeEnum);
+        }
+        shareTypes = Array.from(set);
+      }
+    } else if (legacy && legacy !== 'all' && (ALL_SHARE_TYPES as string[]).includes(legacy)) {
+      shareTypes = [legacy as ShareTypeEnum];
+    } else if (legacy === 'all') {
+      shareTypes = ALL_SHARE_TYPES.slice();
+    } else {
+      shareTypes = DEFAULT_SHARE_TYPES.slice();
+    }
 
     let query = locals.supabase
       .from('members')
@@ -112,9 +148,10 @@ export const GET: APIRoute = async ({ url, locals, params }) => {
       `);
     // Same enum cast pattern as the page route — see /admin/members/index.astro.
     type MemberStatus = 'active' | 'inactive' | 'paused' | 'pending' | 'cancelled' | 'lapsed' | 'onboarding' | 'expired';
-    type ShareTypeEnum = 'spring_veg' | 'summer_veg' | 'fall_veg' | 'flower' | 'flex' | 'add_on' | 'wholesale_csa';
     if (status !== 'all') query = query.eq('status', status as MemberStatus);
-    if (shareType !== 'all') query = query.eq('share_type', shareType as ShareTypeEnum);
+    if (shareTypes.length > 0 && shareTypes.length < ALL_SHARE_TYPES.length) {
+      query = query.in('share_type', shareTypes);
+    }
     // share_bucket filter — kept in lock-step with /admin/members/index.astro
     // so the CSV download matches what's on screen.
     const shareBucket = parseBucketId(url.searchParams.get('share_bucket'));

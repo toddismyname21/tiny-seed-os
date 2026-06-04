@@ -31,11 +31,56 @@ import Select from '../../../components/Select.astro';
 import Tags from '../../../components/Tags.astro';
 
 const supabase = Astro.locals.supabase;
-const memberId = Astro.params.id ?? '';
+const routeId = Astro.params.id ?? '';
 
 // Basic UUID sanity check — short-circuit a malformed URL into a 404.
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const isUuid = UUID_RE.test(memberId);
+const isUuid = UUID_RE.test(routeId);
+
+// ─── Customer-id deep-link support (2026-06-04) ─────────────────────
+// /admin/members/<id> historically expected a MEMBER uuid. The redesigned
+// /admin/members index keys rows by CUSTOMER uuid (one row per customer,
+// not per share), so links from the index land here with a customers.id.
+// Approach: try the route id as a customers.id first; if it resolves,
+// 303 to that customer's primary active member-row detail (the page
+// where editing actually happens). If no customers row matches, fall
+// through to the original member-row lookup — old links keep working.
+// We only do the customer round-trip when the route id is a syntactically
+// valid uuid (no point pinging Postgres for a 404 path).
+if (isUuid) {
+  const { data: custMatch } = await supabase
+    .from('customers')
+    .select('id, members(id, share_type, status)')
+    .eq('id', routeId)
+    .maybeSingle();
+  const custRow = custMatch as
+    | { id: string; members?: { id: string; share_type: string; status: string }[] }
+    | null;
+  if (custRow) {
+    const memberRows = custRow.members ?? [];
+    if (memberRows.length === 0) {
+      return Astro.redirect('/admin/members?error=member_not_found', 303);
+    }
+    // Pick the same SHARE_PRIORITY the index uses so the redirect lands
+    // on the share Todd is most likely to want to edit.
+    const SHARE_PRIORITY: Record<string, number> = {
+      summer_veg: 0, flex: 1, flower: 2, spring_veg: 3,
+      fall_veg: 4, wholesale_csa: 5, add_on: 6,
+    };
+    // Preserve any ?ok=/?error= query string the caller passed.
+    const primaryId = memberRows
+      .slice()
+      .sort((a, b) => {
+        const aActive = a.status === 'active' ? 0 : 1;
+        const bActive = b.status === 'active' ? 0 : 1;
+        if (aActive !== bActive) return aActive - bActive;
+        return (SHARE_PRIORITY[a.share_type] ?? 99) - (SHARE_PRIORITY[b.share_type] ?? 99);
+      })[0]!.id;
+    return Astro.redirect(`/admin/members/${primaryId}${Astro.url.search}`, 303);
+  }
+}
+
+const memberId = routeId;
 
 // ─── Banner state ───────────────────────────────────────────────────
 const okFlag = Astro.url.searchParams.get('ok');

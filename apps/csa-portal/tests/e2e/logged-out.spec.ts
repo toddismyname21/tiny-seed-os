@@ -30,6 +30,7 @@ const PROTECTED_ROUTES = [
   '/admin/weekly-email',
   '/admin/campaigns',
   '/admin/campaigns/new',
+  '/admin/health',
   '/admin/stop-notes',
   // CSA Operations Admin Phase 1 (migration 0031 + 2026-05-27)
   '/admin/pack-day',
@@ -82,5 +83,26 @@ test.describe('unauthenticated route protection @unauth', () => {
     await expect(
       page.getByRole('button', { name: /email me a sign-in link/i })
     ).toBeVisible();
+  });
+
+  // /api/admin/health/* endpoints are JSON APIs, not HTML pages. Middleware
+  // doesn't redirect /api/* routes — each handler enforces requireAdmin()
+  // itself and returns a 403 JSON body. (No-auth callers must see a hard
+  // refusal, not a 200 leaking health data.)
+  test('GET /api/admin/health/status without auth → 403 JSON', async ({ request }) => {
+    const res = await request.get('/api/admin/health/status', { maxRedirects: 0 });
+    expect(res.status(), 'unauth health/status should 403').toBe(403);
+    const body = await res.json().catch(() => null);
+    expect(body, 'response must be JSON').toBeTruthy();
+    expect(body.ok ?? body.error, 'JSON should carry an error code').toBeDefined();
+  });
+
+  test('POST /api/admin/health/run without auth → 403 JSON', async ({ request }) => {
+    const res = await request.post('/api/admin/health/run', {
+      maxRedirects: 0,
+      headers: { 'content-type': 'application/json', origin: 'https://csa.tinyseedfarm.com' },
+      data: {},
+    });
+    expect(res.status(), 'unauth health/run should 403').toBe(403);
   });
 });

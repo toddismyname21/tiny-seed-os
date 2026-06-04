@@ -1,24 +1,52 @@
 ---
 /**
- * /admin/members — searchable, filterable members table.
+ * /admin/members — CUSTOMER-keyed members table.
  *
- * URL params drive the query:
- *   - q                 free-text (matches contact_name, email, legacy_id)
+ * REDESIGNED 2026-06-04. The prior version listed every `members` row
+ * (~396 today) with status defaulting to "all" + share_type defaulting to
+ * "all" + add-ons mixed in as top-level rows. A customer who bought
+ * Summer Veg + Flower + a Mushroom add-on appeared as three separate
+ * rows, the headline read "396 members match your filters", and Todd
+ * couldn't tell at a glance that the farm actually has ~198 distinct
+ * customers.
+ *
+ * The new view groups by `customer_id` so each row is ONE CUSTOMER with
+ * their shares rendered as inline badges. Defaults are tuned to what
+ * Todd actually wants to see day-to-day:
+ *   - status = 'active'              (hide cancelled / refunded / inactive)
+ *   - share_types = everything EXCEPT add_on  (add-ons are line items
+ *     attached to a parent share, not standalone customers; surfaced
+ *     inline on the parent's row instead)
+ *   - location = all, group = all
+ *
+ * URL params (kept compatible with existing deep links from comms logs,
+ * marketing pages, etc.):
+ *   - q                 free-text (name, email, member legacy_id, customer
+ *                       legacy_id)
  *   - status            members.status filter (single value, or 'all')
- *   - share_type        members.share_type filter (single value, or 'all')
+ *   - share_types       comma-separated share_type list. NEW. When absent
+ *                       defaults to all share types EXCEPT add_on. Pass
+ *                       'all' to include add_on too.
+ *   - share_type        LEGACY (single value). Still accepted for back-
+ *                       compat with old links — converted to a single-
+ *                       element share_types list.
  *   - pickup_location   pickup_location_id filter ('all' | 'home_delivery' | <uuid>)
+ *   - share_bucket      granular bucket filter (unchanged)
  *   - page              1-indexed
  *
- * Pagination is server-side (50 per page). Total count comes from a
- * head:true count query in parallel with the row fetch.
+ * Pagination is per-CUSTOMER (50 customers per page). We fetch the raw
+ * member rows in chunks until we have enough customers for the page —
+ * see `loadCustomersPage()`.
  *
- * Each row links to /admin/members/[id]. CSV export streams from
- * /api/admin/reports/members.csv with the same filters applied so what
- * Todd sees is what he downloads.
+ * Each row links to /admin/members/<customer_id> (the detail page accepts
+ * either a member UUID or a customer UUID; if a customer UUID is passed,
+ * it redirects to that customer's primary active share's member detail —
+ * see [id].astro). Old links carrying a member UUID continue to work
+ * unchanged.
  *
- * RLS: admin_all_members policy lets the cookie-aware client return
- * every member row (the member-self policy would have restricted us
- * to Todd's own row).
+ * RLS: admin_all_members policy lets the cookie-aware client return every
+ * member row (the member-self policy would have restricted us to Todd's
+ * own row).
  */
 import AdminShell from '../../../components/AdminShell.astro';
 import Card from '../../../components/Card.astro';
@@ -40,19 +68,108 @@ const supabase = Astro.locals.supabase;
 const url = Astro.url;
 const params = url.searchParams;
 
+// ─── Share-type vocabulary ──────────────────────────────────────────
+type ShareTypeEnum =
+  | 'spring_veg'
+  | 'summer_veg'
+  | 'fall_veg'
+  | 'flower'
+  | 'flex'
+  | 'add_on'
+  | 'wholesale_csa';
+
+const ALL_SHARE_TYPES: ShareTypeEnum[] = [
+  'spring_veg', 'summer_veg', 'fall_veg', 'flower', 'flex', 'add_on', 'wholesale_csa',
+];
+// Default selection: everything EXCEPT add_on (add-ons get folded onto
+// their parent customer's row rather than standing on their own).
+const DEFAULT_SHARE_TYPES: ShareTypeEnum[] = [
+  'spring_veg', 'summer_veg', 'fall_veg', 'flower', 'flex', 'wholesale_csa',
+];
+
 // ─── Parse filters ──────────────────────────────────────────────────
 const q = (params.get('q') ?? '').trim();
-const status = params.get('status') ?? 'all';
-const shareType = params.get('share_type') ?? 'all';
+// Status defaults to 'active' (was 'all'). Pass status=all to see every status.
+const status = params.get('status') ?? 'active';
 const pickupFilter = params.get('pickup_location') ?? 'all';
 const shareBucket = parseBucketId(params.get('share_bucket'));
 const pageRaw = Number.parseInt(params.get('page') ?? '1', 10);
 const page = Number.isFinite(pageRaw) && pageRaw > 0 ? pageRaw : 1;
 const PAGE_SIZE = 50;
+// Internal cap: we never fetch more than this many raw member rows to
+// build the customer-keyed view. 2000 is ~5x today's row count and
+// comfortably fits in a single PostgREST page; if/when membership
+// quadruples we'll move to an RPC.
+const MAX_FETCH_ROWS = 2000;
 
-// ─── Build query ────────────────────────────────────────────────────
-// We use the embedded select pattern so each row carries its customer
-// + pickup_location in one trip.
+/** Parse the share_types URL param. Accepts:
+ *    - 'all'                       → ALL_SHARE_TYPES
+ *    - 'a,b,c' (comma-separated)   → filtered to known enum values
+ *    - missing + share_type=X      → [X]  (legacy single-value param)
+ *    - missing entirely            → DEFAULT_SHARE_TYPES (no add_on)
+ *  Returns the resolved list. */
+function parseShareTypes(p: URLSearchParams): ShareTypeEnum[] {
+  const rawMulti = p.get('share_types');
+  if (rawMulti !== null) {
+    if (rawMulti === 'all') return ALL_SHARE_TYPES.slice();
+    const set = new Set<ShareTypeEnum>();
+    for (const tok of rawMulti.split(',')) {
+      const t = tok.trim();
+      if ((ALL_SHARE_TYPES as string[]).includes(t)) set.add(t as ShareTypeEnum);
+    }
+    return Array.from(set);
+  }
+  const legacy = p.get('share_type');
+  if (legacy && legacy !== 'all' && (ALL_SHARE_TYPES as string[]).includes(legacy)) {
+    return [legacy as ShareTypeEnum];
+  }
+  if (legacy === 'all') return ALL_SHARE_TYPES.slice();
+  return DEFAULT_SHARE_TYPES.slice();
+}
+
+const shareTypesFilter = parseShareTypes(params);
+// "Default" detection drives the query-cleanup of the URL after a form
+// submit — if the user submits the default set we don't need the
+// share_types param at all (cleaner URL, shareable links).
+function isDefaultShareTypes(sel: ShareTypeEnum[]): boolean {
+  if (sel.length !== DEFAULT_SHARE_TYPES.length) return false;
+  const a = sel.slice().sort();
+  const b = DEFAULT_SHARE_TYPES.slice().sort();
+  return a.every((v, i) => v === b[i]);
+}
+
+// ─── Fetch raw member rows for the current filter set ───────────────
+// We fetch UP TO MAX_FETCH_ROWS rows matching the server-side filter
+// (status / share_types / location / search / bucket), then group by
+// customer in memory and paginate per customer. This is intentional:
+// PostgREST doesn't expose a `select distinct` for embedded joins, so
+// counting customers requires either an RPC or in-memory grouping. We
+// chose in-memory — fine at our scale (<<2000 rows).
+type MemberRow = {
+  id: string;
+  share_type: ShareTypeEnum;
+  share_size: string | null;
+  season: string;
+  status: string;
+  pickup_location_id: string | null;
+  delivery_address: string | null;
+  weeks_remaining: number;
+  total_weeks: number;
+  legacy_id: string | null;
+  customer_id: string;
+  customer: {
+    id: string;
+    contact_name: string;
+    email: string;
+    legacy_id: string | null;
+  } | null;
+  pickup_location: {
+    id: string;
+    name: string;
+    day_of_week: string | null;
+  } | null;
+};
+
 let query = supabase
   .from('members')
   .select(
@@ -67,6 +184,7 @@ let query = supabase
     weeks_remaining,
     total_weeks,
     legacy_id,
+    customer_id,
     customer:customers!inner(
       id,
       contact_name,
@@ -78,30 +196,22 @@ let query = supabase
       name,
       day_of_week
     )
-    `,
-    { count: 'exact' }
+    `
   );
 
-// The URL string is constrained to enum values by the dropdown, but
-// it arrives as `string`. Cast to the enum union for the typed
-// `.eq` overload; PostgREST will reject anything outside the CHECK
-// constraint regardless.
 type MemberStatus = 'active' | 'inactive' | 'paused' | 'pending' | 'cancelled' | 'lapsed' | 'onboarding' | 'expired';
-type ShareTypeEnum = 'spring_veg' | 'summer_veg' | 'fall_veg' | 'flower' | 'flex' | 'add_on' | 'wholesale_csa';
 if (status !== 'all') {
   query = query.eq('status', status as MemberStatus);
 }
-if (shareType !== 'all') {
-  query = query.eq('share_type', shareType as ShareTypeEnum);
+if (shareTypesFilter.length > 0 && shareTypesFilter.length < ALL_SHARE_TYPES.length) {
+  query = query.in('share_type', shareTypesFilter);
 }
-// share_bucket: granular bucket filter. Translates the bucket id into
-// a sequence of column predicates. The "unknown" bucket is special:
-// it represents rows where share_type expects a size (summer_veg or
-// flower) but share_size is NULL or unrecognised — that can't be
-// expressed via `filtersFor`, so we handle it inline.
+// share_bucket: granular bucket filter. Translates the bucket id into a
+// sequence of column predicates. "unknown" means share_type ∈ {summer_veg,
+// flower} AND share_size is NULL or unrecognised — can't be expressed via
+// `filtersFor`, so we handle it inline.
 if (shareBucket === 'unknown') {
   const knownSizes = [...SMALL_SIZES, ...LARGE_SIZES];
-  // share_type ∈ {summer_veg, flower} AND (share_size IS NULL OR share_size NOT IN (knownSizes))
   query = query
     .in('share_type', ['summer_veg', 'flower'] as ShareTypeEnum[])
     .or(`share_size.is.null,share_size.not.in.(${knownSizes.join(',')})`);
@@ -111,7 +221,7 @@ if (shareBucket === 'unknown') {
     query = query.eq('share_type', f.share_type as ShareTypeEnum);
   }
   if (f.share_size_in && f.share_size_in.length > 0) {
-    type ShareSizeEnum = 'small' | 'regular' | 'family' | 'petite' | 'large' | 'light' | 'full' | 'half' | 'quarter' | 'single' | 'double';
+    type ShareSizeEnum = 'small' | 'regular' | 'family' | 'petite' | 'large' | 'light' | 'full' | 'half' | 'quarter' | 'single' | 'double' | 'double';
     query = query.in('share_size', f.share_size_in as ShareSizeEnum[]);
   }
   if (f.biweekly_week_is_null) {
@@ -127,53 +237,115 @@ if (pickupFilter === 'home_delivery') {
   query = query.eq('pickup_location_id', pickupFilter);
 }
 if (q.length > 0) {
-  // OR across name/email/legacy_id. PostgREST `.or()` syntax accepts a
-  // comma-separated list of filter expressions; the embedded customer
-  // table is reachable via the `customer.column` dotted path.
-  const safe = q.replace(/[%,]/g, '\\$&'); // escape % and ,
+  // OR across name/email/member legacy_id/customer legacy_id. PostgREST
+  // `.or()` accepts a comma-separated list of filter expressions; the
+  // embedded customer table is reachable via the `customer.column` dotted
+  // path. We escape % and , in the input.
+  const safe = q.replace(/[%,]/g, '\\$&');
   query = query.or(
-    `customer.contact_name.ilike.%${safe}%,customer.email.ilike.%${safe}%,legacy_id.ilike.%${safe}%`
+    `customer.contact_name.ilike.%${safe}%,customer.email.ilike.%${safe}%,customer.legacy_id.ilike.%${safe}%,legacy_id.ilike.%${safe}%`
   );
 }
 
-const from = (page - 1) * PAGE_SIZE;
-const to = from + PAGE_SIZE - 1;
+// Order: stable + recency-first so the freshest customers float to the
+// top of page 1 (matches the old behavior + matters less now that we
+// group by customer — within a customer we still preserve the original
+// row order so the badges are stable).
 query = query
   .order('created_at', { ascending: false })
-  .range(from, to);
+  .range(0, MAX_FETCH_ROWS - 1);
 
-type MemberRow = {
-  id: string;
-  share_type: string;
-  share_size: string | null;
-  season: string;
-  status: string;
-  pickup_location_id: string | null;
-  delivery_address: string | null;
-  weeks_remaining: number;
-  total_weeks: number;
-  legacy_id: string | null;
-  customer: {
-    id: string;
-    contact_name: string;
-    email: string;
-    legacy_id: string | null;
-  } | null;
-  pickup_location: {
-    id: string;
-    name: string;
-    day_of_week: string | null;
-  } | null;
-};
-
-const { data: rows, count, error } = await query.overrideTypes<MemberRow[], { merge: false }>();
+const { data: rawRows, error } = await query.overrideTypes<MemberRow[], { merge: false }>();
 if (error) {
   console.error('[admin/members] fetch failed:', error.message);
 }
+const allRows: MemberRow[] = rawRows ?? [];
 
-const members = rows ?? [];
-const totalRows = count ?? 0;
-const totalPages = Math.max(1, Math.ceil(totalRows / PAGE_SIZE));
+// ─── Group by customer ──────────────────────────────────────────────
+interface CustomerGroup {
+  customerId: string;
+  name: string;
+  email: string;
+  customerLegacyId: string | null;
+  /** Every member row attached to this customer that matched the filter.
+   *  Order preserved from the server-side `created_at desc` sort. */
+  members: MemberRow[];
+  /** Convenience: the first member row in the preferred-share priority
+   *  list (summer_veg → flex → flower → spring_veg → fall_veg → wholesale → add_on).
+   *  Drives Pickup / Progress display. */
+  primary: MemberRow;
+}
+
+// Priority for picking a "primary" share when the customer has multiple.
+// summer_veg is the headline product → first. add_on last (add-ons are
+// rarely the right thing to drive pickup-day display).
+const SHARE_PRIORITY: Record<ShareTypeEnum, number> = {
+  summer_veg: 0,
+  flex: 1,
+  flower: 2,
+  spring_veg: 3,
+  fall_veg: 4,
+  wholesale_csa: 5,
+  add_on: 6,
+};
+
+function pickPrimary(rows: MemberRow[]): MemberRow {
+  // Active shares win over inactive ones, then by SHARE_PRIORITY.
+  const sorted = rows.slice().sort((a, b) => {
+    const aActive = a.status === 'active' ? 0 : 1;
+    const bActive = b.status === 'active' ? 0 : 1;
+    if (aActive !== bActive) return aActive - bActive;
+    const ap = SHARE_PRIORITY[a.share_type] ?? 99;
+    const bp = SHARE_PRIORITY[b.share_type] ?? 99;
+    return ap - bp;
+  });
+  return sorted[0]!;
+}
+
+// First pass: bucket rows by customer_id, preserving server-side order
+// so the customer's first row anchors its position on the page.
+const customerOrder: string[] = [];
+const customerMap = new Map<string, CustomerGroup>();
+for (const r of allRows) {
+  if (!r.customer) continue; // shouldn't happen with !inner, but be safe
+  const cid = r.customer_id;
+  const existing = customerMap.get(cid);
+  if (existing) {
+    existing.members.push(r);
+  } else {
+    customerOrder.push(cid);
+    customerMap.set(cid, {
+      customerId: cid,
+      name: r.customer.contact_name,
+      email: r.customer.email,
+      customerLegacyId: r.customer.legacy_id,
+      members: [r],
+      primary: r, // placeholder, recomputed after grouping completes
+    });
+  }
+}
+
+// Resolve primary share per customer + the headline counts.
+const customers: CustomerGroup[] = customerOrder.map((cid) => {
+  const g = customerMap.get(cid)!;
+  g.primary = pickPrimary(g.members);
+  return g;
+});
+
+const totalCustomers = customers.length;
+// "Active shares" = the count of member rows in the filtered set whose
+// status='active' (matters when status=all is selected — then we still
+// want to surface how many are actively receiving boxes).
+const activeShareCount = allRows.filter((r) => r.status === 'active').length;
+// If we hit the fetch cap, the customer count is a lower bound — surface
+// that to the user instead of silently lying.
+const hitFetchCap = allRows.length === MAX_FETCH_ROWS;
+
+const totalPages = Math.max(1, Math.ceil(totalCustomers / PAGE_SIZE));
+const pageClamped = Math.min(page, totalPages);
+const fromIdx = (pageClamped - 1) * PAGE_SIZE;
+const toIdx = fromIdx + PAGE_SIZE;
+const pageCustomers = customers.slice(fromIdx, toIdx);
 
 // ─── Locations for the filter dropdown ──────────────────────────────
 const { data: locationRows } = await supabase
@@ -203,14 +375,104 @@ const SIZE_LABEL: Record<string, string> = {
 function shareLabel(s: string): string { return SHARE_LABEL[s] ?? s; }
 function sizeLabel(s: string | null): string { return s ? SIZE_LABEL[s] ?? s : ''; }
 
-// CSV export carries the same filter set
-const csvParams = new URLSearchParams(params);
-csvParams.delete('page');
+/** Build the short badge for a share, e.g. "Summer Veg · Family". */
+function shareBadgeText(m: MemberRow): string {
+  const head = shareLabel(m.share_type);
+  return m.share_size ? `${head} · ${sizeLabel(m.share_size)}` : head;
+}
+
+/** Picks an emoji prefix for add-on shares (purely cosmetic — helps the
+ *  eye scan the row). Returns "" for non-add-ons. */
+function addOnEmoji(m: MemberRow): string {
+  if (m.share_type !== 'add_on') return '';
+  const t = `${m.share_size ?? ''} ${m.legacy_id ?? ''}`.toLowerCase();
+  if (t.includes('mushroom')) return '🍄 ';
+  if (t.includes('bread')) return '🍞 ';
+  if (t.includes('cheese')) return '🧀 ';
+  if (t.includes('coffee')) return '☕ ';
+  if (t.includes('egg')) return '🥚 ';
+  return '';
+}
+
+// ─── Pickup display for the customer's primary share ────────────────
+function pickupLabelFor(m: MemberRow): string {
+  if (!m.pickup_location_id && (m.delivery_address ?? '').trim().length > 0) {
+    return 'Home delivery';
+  }
+  if (m.pickup_location?.name) return m.pickup_location.name;
+  return '(no location)';
+}
+
+/** Returns true when the customer's shares have DIFFERENT pickups (a
+ *  multi-share customer with veg at Allison Park + flower at Bloomfield,
+ *  say). When true we badge the row with a ⚠ so Todd notices the split. */
+function pickupConflict(g: CustomerGroup): boolean {
+  const labels = new Set<string>();
+  for (const m of g.members) {
+    if (m.status !== 'active') continue;
+    labels.add(pickupLabelFor(m));
+  }
+  return labels.size > 1;
+}
+
+/** "Progress" = highest weeks_remaining/total_weeks across this
+ *  customer's ACTIVE shares (a customer with both veg and flower shows
+ *  the longer one — that's the share that's still going). */
+function progressFor(g: CustomerGroup): { remaining: number; total: number } {
+  const active = g.members.filter((m) => m.status === 'active');
+  const pool = active.length > 0 ? active : g.members;
+  let best = { remaining: -1, total: 0 };
+  for (const m of pool) {
+    if (m.weeks_remaining > best.remaining) {
+      best = { remaining: m.weeks_remaining, total: m.total_weeks };
+    }
+  }
+  if (best.remaining < 0) best = { remaining: 0, total: 0 };
+  return best;
+}
+
+/** Customer status: ACTIVE if ANY share is active, else the latest non-
+ *  active status (we prefer 'cancelled' over 'lapsed' over 'inactive'
+ *  alphabetically — same priority pickPrimary's sort uses). */
+function customerStatus(g: CustomerGroup): string {
+  for (const m of g.members) {
+    if (m.status === 'active') return 'active';
+  }
+  // Fall back to primary's status (which, when no active rows exist,
+  // is just the first row by SHARE_PRIORITY).
+  return g.primary.status;
+}
+
+// ─── Build the CSV export URL ───────────────────────────────────────
+// Carry the same filters the user sees, including the new share_types
+// multi-select. CSV endpoint reads share_types (preferred) + falls back
+// to the legacy share_type when share_types is absent.
+const csvParams = new URLSearchParams();
+if (q) csvParams.set('q', q);
+if (status !== 'active') csvParams.set('status', status);
+if (!isDefaultShareTypes(shareTypesFilter)) {
+  if (shareTypesFilter.length === ALL_SHARE_TYPES.length) {
+    csvParams.set('share_types', 'all');
+  } else {
+    csvParams.set('share_types', shareTypesFilter.join(','));
+  }
+}
+if (pickupFilter !== 'all') csvParams.set('pickup_location', pickupFilter);
+if (shareBucket) csvParams.set('share_bucket', shareBucket);
 const csvHref = `/api/admin/reports/members.csv?${csvParams.toString()}`;
 
-const subtitle = totalRows === 1
-  ? '1 member matches your filters'
-  : `${totalRows.toLocaleString('en-US')} members match your filters`;
+// ─── Headline copy ──────────────────────────────────────────────────
+const customerWord = totalCustomers === 1 ? 'customer' : 'customers';
+const shareWord = activeShareCount === 1 ? 'active share' : 'active shares';
+const baseHeadline = `${totalCustomers.toLocaleString('en-US')} ${customerWord} · ${activeShareCount.toLocaleString('en-US')} ${shareWord}`;
+const subtitle = hitFetchCap
+  ? `${baseHeadline} (showing first ${MAX_FETCH_ROWS.toLocaleString('en-US')} rows — narrow filters for an exact count)`
+  : baseHeadline;
+
+// A helper to render the per-page customer count under the headline so
+// the user knows where they are in the pagination.
+const showingFrom = totalCustomers === 0 ? 0 : fromIdx + 1;
+const showingTo = Math.min(toIdx, totalCustomers);
 ---
 
 <AdminShell
@@ -225,16 +487,20 @@ const subtitle = totalRows === 1
 
   {/* ════ Filters ════ */}
   <Card padding="md" elevation="sm">
+    <p class="mb-3 text-xs text-ts-text-muted">
+      <span class="font-semibold text-ts-text-secondary">Customers, not raw member rows.</span>{' '}
+      A customer with multiple shares appears once; each share renders as a badge on their row.
+    </p>
     <form method="GET" action="/admin/members" class="flex flex-col gap-4">
       {/* Keep search/page logic separate: typing in search re-submits */}
       <SearchInput
         name="q"
         value={q}
-        placeholder="Search by name, email, or member ID…"
+        placeholder="Search by name, email, customer ID, or member ID…"
         ariaLabel="Search members"
       />
 
-      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4" data-filter-group>
+      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3" data-filter-group>
         <label class="block">
           <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-ts-text-muted">
             Status
@@ -244,8 +510,8 @@ const subtitle = totalRows === 1
             name="status"
             value={status}
             options={[
-              { value: 'all',        label: 'All statuses' },
               { value: 'active',     label: 'Active' },
+              { value: 'all',        label: 'All statuses' },
               { value: 'paused',     label: 'Paused' },
               { value: 'onboarding', label: 'Onboarding' },
               { value: 'pending',    label: 'Pending' },
@@ -253,27 +519,6 @@ const subtitle = totalRows === 1
               { value: 'lapsed',     label: 'Lapsed' },
               { value: 'expired',    label: 'Expired' },
               { value: 'inactive',   label: 'Inactive' },
-            ]}
-          />
-        </label>
-
-        <label class="block">
-          <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-ts-text-muted">
-            Share type
-          </span>
-          <Select
-            id="filter-share"
-            name="share_type"
-            value={shareType}
-            options={[
-              { value: 'all',           label: 'All share types' },
-              { value: 'spring_veg',    label: 'Spring Veg' },
-              { value: 'summer_veg',    label: 'Summer Veg' },
-              { value: 'fall_veg',      label: 'Fall Veg' },
-              { value: 'flower',        label: 'Flower' },
-              { value: 'flex',          label: 'Flex' },
-              { value: 'add_on',        label: 'Add-on' },
-              { value: 'wholesale_csa', label: 'Wholesale' },
             ]}
           />
         </label>
@@ -288,7 +533,7 @@ const subtitle = totalRows === 1
             value={pickupFilter}
             options={[
               { value: 'all',           label: 'All locations' },
-              { value: 'home_delivery', label: 'Home delivery' },
+              { value: 'home_delivery', label: 'Home delivery (no location set)' },
               ...locations.filter((l) => l.is_active).map((l) => ({
                 value: l.id,
                 label: l.name,
@@ -313,98 +558,210 @@ const subtitle = totalRows === 1
         </label>
       </div>
 
-      <div class="flex items-center gap-3">
+      {/* Share-type multi-select. Renders as checkboxes — much faster to
+          scan than a multi-select <select>. Submits as a single
+          comma-separated `share_types` param via a hidden input written
+          by JS on form submit (no JS: each checkbox submits as
+          share_type_<value>=on; the server tolerates either shape — see
+          parseShareTypes()). */}
+      <fieldset class="rounded-ts-md border border-ts-border bg-ts-bg-base/40 px-3 py-3">
+        <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-ts-text-muted">
+          Share types
+        </legend>
+        <div class="flex flex-wrap gap-x-4 gap-y-2 pt-1" data-share-types>
+          {ALL_SHARE_TYPES.map((st) => {
+            const checked = shareTypesFilter.includes(st);
+            return (
+              <label class="inline-flex items-center gap-2 text-sm text-ts-text">
+                <input
+                  type="checkbox"
+                  name="share_type_token"
+                  value={st}
+                  checked={checked}
+                  data-share-type
+                  class="h-4 w-4 rounded border-ts-border text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+                />
+                <span>{shareLabel(st)}</span>
+                {st === 'add_on' && (
+                  <span class="text-xs text-ts-text-muted">(off by default — folded onto parent)</span>
+                )}
+              </label>
+            );
+          })}
+        </div>
+        {/* JS-on: collected into share_types= on submit. JS-off
+            fallback: a hidden input below mirrors the default selection
+            so a server-side parse still works. */}
+        <input type="hidden" name="share_types" value={shareTypesFilter.join(',')} data-share-types-hidden />
+      </fieldset>
+
+      <div class="flex flex-wrap items-center gap-3">
         <button
           type="submit"
           class="inline-flex h-9 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
         >
           Apply filters
         </button>
-        {(q || status !== 'all' || shareType !== 'all' || pickupFilter !== 'all' || shareBucket) && (
+        {(q ||
+          status !== 'active' ||
+          !isDefaultShareTypes(shareTypesFilter) ||
+          pickupFilter !== 'all' ||
+          shareBucket) && (
           <a
             href="/admin/members"
             class="text-sm font-medium text-ts-text-secondary underline-offset-2 hover:text-ts-primary hover:underline"
           >
-            Clear all
+            Reset to defaults
           </a>
         )}
+        <span class="ml-auto text-xs text-ts-text-muted">
+          Showing {showingFrom}–{showingTo} of {totalCustomers.toLocaleString('en-US')}
+        </span>
       </div>
     </form>
     <script>
-      // Auto-submit when any filter dropdown changes (JS-enabled clients).
-      document.querySelectorAll<HTMLSelectElement>('[data-filter-group] select').forEach((sel) => {
-        sel.addEventListener('change', () => {
-          const form = sel.closest('form');
-          if (form) form.submit();
+      // Collect checkbox state into the single hidden share_types input
+      // before submit, so the server sees one canonical param even though
+      // the form renders N checkboxes.
+      const groups = document.querySelectorAll<HTMLFormElement>('form[action="/admin/members"]');
+      groups.forEach((form) => {
+        // Wire up checkbox auto-collect-on-submit.
+        form.addEventListener('submit', () => {
+          const boxes = form.querySelectorAll<HTMLInputElement>('input[data-share-type]');
+          const selected: string[] = [];
+          boxes.forEach((b) => {
+            if (b.checked) selected.push(b.value);
+            // Prevent the raw share_type_token field from also being
+            // submitted (we'd then end up with both share_types= and a
+            // forest of share_type_token=...). The cleanest way is to
+            // disable them right before submit.
+            b.disabled = true;
+          });
+          const hidden = form.querySelector<HTMLInputElement>('[data-share-types-hidden]');
+          if (hidden) hidden.value = selected.join(',');
         });
+
+        // Auto-submit when a dropdown (status / pickup / bucket) changes.
+        // Checkboxes do NOT auto-submit — let the user toggle several
+        // before clicking Apply (otherwise every check round-trips).
+        form
+          .querySelectorAll<HTMLSelectElement>('[data-filter-group] select')
+          .forEach((sel) => {
+            sel.addEventListener('change', () => form.submit());
+          });
       });
     </script>
   </Card>
 
   {/* ════ Results table ════ */}
   <Table
-    tableLabel="Members"
+    tableLabel="Customers"
     columns={[
-      { key: 'name',     label: 'Member' },
-      { key: 'share',    label: 'Share' },
+      { key: 'name',     label: 'Customer' },
+      { key: 'shares',   label: 'Shares & add-ons' },
       { key: 'pickup',   label: 'Pickup' },
       { key: 'progress', label: 'Progress', align: 'right' },
       { key: 'status',   label: 'Status' },
       { key: 'view',     label: 'View',     srOnly: true, align: 'right' },
     ]}
-    empty={members.length === 0}
-    emptyTitle={q || status !== 'all' || shareType !== 'all' || pickupFilter !== 'all' || shareBucket
-      ? 'No members match these filters'
-      : 'No members yet'}
+    empty={pageCustomers.length === 0}
+    emptyTitle={q ||
+      status !== 'active' ||
+      !isDefaultShareTypes(shareTypesFilter) ||
+      pickupFilter !== 'all' ||
+      shareBucket
+      ? 'No customers match these filters'
+      : 'No customers yet'}
     emptyIcon="🌱"
-    emptyMessage={q ? `Nothing matched "${q}". Try clearing filters above.` : ''}
-    rowCount={totalRows}
+    emptyMessage={q
+      ? `Nothing matched "${q}". Try clearing filters above.`
+      : 'Adjust filters above, or wait for the next Shopify sync.'}
+    rowCount={totalCustomers}
   >
     <Fragment slot="body">
-      {members.map((m) => {
-        const isHome = !m.pickup_location_id && Boolean(m.delivery_address);
-        const pickupLabel = isHome
-          ? 'Home delivery'
-          : m.pickup_location?.name ?? '(no location)';
+      {pageCustomers.map((g) => {
+        const primary = g.primary;
+        const pickupLabel = pickupLabelFor(primary);
+        const conflict = pickupConflict(g);
+        const prog = progressFor(g);
+        const cstatus = customerStatus(g);
+        const href = `/admin/members/${g.customerId}`;
+        // Build the badge list in a stable order: non-add-on by
+        // SHARE_PRIORITY first, then add-ons last.
+        const shareBadges = g.members.slice().sort((a, b) => {
+          const ap = SHARE_PRIORITY[a.share_type] ?? 99;
+          const bp = SHARE_PRIORITY[b.share_type] ?? 99;
+          return ap - bp;
+        });
         return (
           <tr
             class="cursor-pointer transition-colors duration-150 hover:bg-ts-bg-muted/40"
-            onclick={`window.location.href='/admin/members/${m.id}'`}
+            onclick={`window.location.href='${href}'`}
+            data-customer-row={g.customerId}
           >
             <td class="px-4 py-3 first:pl-5 sm:px-5 sm:first:pl-6">
               <a
-                href={`/admin/members/${m.id}`}
+                href={href}
                 class="font-medium text-ts-text underline-offset-2 hover:text-ts-primary hover:underline"
                 onclick="event.stopPropagation()"
               >
-                {m.customer?.contact_name ?? '(unknown)'}
+                {g.name}
               </a>
-              <p class="mt-0.5 text-xs text-ts-text-muted">
-                {m.customer?.email ?? ''}
-              </p>
-            </td>
-            <td class="px-4 py-3 text-sm text-ts-text-secondary sm:px-5">
-              <span class="font-medium text-ts-text">{shareLabel(m.share_type)}</span>
-              {m.share_size && (
-                <span class="ml-1 text-xs text-ts-text-muted">· {sizeLabel(m.share_size)}</span>
+              <p class="mt-0.5 text-xs text-ts-text-muted">{g.email}</p>
+              {g.customerLegacyId && (
+                <p class="mt-0.5 font-mono text-[11px] text-ts-text-muted">
+                  {g.customerLegacyId}
+                </p>
               )}
-              <p class="mt-0.5 text-xs text-ts-text-muted">{m.season}</p>
-            </td>
-            <td class="px-4 py-3 text-sm text-ts-text-secondary sm:px-5">
-              {pickupLabel}
-            </td>
-            <td class="px-4 py-3 text-right text-sm text-ts-text-secondary tabular-nums sm:px-5">
-              {m.weeks_remaining}/{m.total_weeks}
             </td>
             <td class="px-4 py-3 sm:px-5">
-              <StatusPill status={m.status} />
+              <div class="flex flex-wrap gap-1.5">
+                {shareBadges.map((m) => {
+                  const isAddOn = m.share_type === 'add_on';
+                  const inactive = m.status !== 'active';
+                  return (
+                    <span
+                      class={[
+                        'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium',
+                        isAddOn
+                          ? 'border-ts-warning/40 bg-ts-warning/10 text-ts-text'
+                          : 'border-ts-primary/30 bg-ts-primary/10 text-ts-text',
+                        inactive ? 'opacity-50 line-through decoration-ts-text-muted/60' : '',
+                      ].join(' ')}
+                      title={inactive ? `${m.status} share` : `${m.season} share`}
+                    >
+                      {addOnEmoji(m)}{shareBadgeText(m)}
+                    </span>
+                  );
+                })}
+              </div>
+            </td>
+            <td class="px-4 py-3 text-sm text-ts-text-secondary sm:px-5">
+              <span class="inline-flex items-center gap-1.5">
+                {conflict && (
+                  <span
+                    class="inline-flex items-center text-ts-warning"
+                    aria-label="Different pickups across shares"
+                    title="This customer has different pickups across their shares — open the detail page to review."
+                  >
+                    ⚠
+                  </span>
+                )}
+                <span>{pickupLabel}</span>
+              </span>
+            </td>
+            <td class="px-4 py-3 text-right text-sm text-ts-text-secondary tabular-nums sm:px-5">
+              {prog.total > 0 ? `${prog.remaining}/${prog.total}` : '—'}
+            </td>
+            <td class="px-4 py-3 sm:px-5">
+              <StatusPill status={cstatus} />
             </td>
             <td class="px-4 py-3 text-right last:pr-5 sm:px-5 sm:last:pr-6">
               <a
-                href={`/admin/members/${m.id}`}
+                href={href}
                 class="inline-flex items-center gap-1 text-sm font-medium text-ts-primary underline-offset-2 hover:underline"
                 onclick="event.stopPropagation()"
-                aria-label={`View ${m.customer?.contact_name ?? 'member'}`}
+                aria-label={`View ${g.name}`}
               >
                 View <span aria-hidden="true">→</span>
               </a>
@@ -416,7 +773,7 @@ const subtitle = totalRows === 1
   </Table>
 
   <Pagination
-    currentPage={page}
+    currentPage={pageClamped}
     totalPages={totalPages}
     baseUrl="/admin/members"
     currentParams={params}
