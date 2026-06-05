@@ -194,7 +194,6 @@ const { data: locationRows } = await supabase
   .from('pickup_locations')
   .select('id, name, city, day_of_week')
   .eq('is_active', true)
-  .eq('is_delivery_zone', false)
   .order('day_of_week', { ascending: true })
   .order('name', { ascending: true })
   .overrideTypes<LocationOption[], { merge: false }>();

@@ -94,11 +94,16 @@ type LocationRow = {
   is_delivery_zone: boolean;
 };
 
+// Show ALL active pickup locations. `is_delivery_zone` is a ROUTING flag
+// (does the farm drive boxes to this host's porch) — it must NOT gate the
+// customer's pickup choice. All 16 stops (porches, markets, farm) are valid
+// pickup options; home delivery is a separate flow (delivery_address), not
+// a pickup_location. The old `.eq('is_delivery_zone', false)` hid 11 real
+// stops (Allison Park, Mt. Lebanon, North Park, Zelienople, Squirrel Hill…).
 const { data: locationRows, error: locErr } = await supabase
   .from('pickup_locations')
   .select('id, name, city, day_of_week, time_start, time_end, max_capacity, is_active, is_delivery_zone')
   .eq('is_active', true)
-  .eq('is_delivery_zone', false)
   .order('day_of_week', { ascending: true })
   .order('name', { ascending: true })
   .overrideTypes<LocationRow[], { merge: false }>();
