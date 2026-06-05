@@ -164,9 +164,14 @@ export const GET: APIRoute = async ({ locals }) => {
   ]);
 
   // ─── 1. Sync state ────────────────────────────────────────────────
+  // IMPORTANT: health is "did the sync JOB run recently" — use updated_at
+  // (touched on every 15-min run). last_synced_at is the watermark =
+  // newest ORDER processed, which legitimately sits still when no new
+  // orders come in, so it must NOT drive the staleness color.
+  const lastRunAt = syncStateRes.data?.updated_at ?? null;
   const lastSyncedAt = syncStateRes.data?.last_synced_at ?? null;
-  const syncAgeMin = lastSyncedAt
-    ? Math.floor((now.getTime() - new Date(lastSyncedAt).getTime()) / 60_000)
+  const syncAgeMin = lastRunAt
+    ? Math.floor((now.getTime() - new Date(lastRunAt).getTime()) / 60_000)
     : null;
   const syncStatus: 'green' | 'yellow' | 'red' =
     syncAgeMin === null
@@ -280,6 +285,8 @@ export const GET: APIRoute = async ({ locals }) => {
     ok: true,
     generated_at: now.toISOString(),
     sync: {
+      last_run_at: lastRunAt,
+      newest_order_at: lastSyncedAt,
       last_synced_at: lastSyncedAt,
       age_minutes: syncAgeMin,
       status: syncStatus,

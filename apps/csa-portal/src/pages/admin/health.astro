@@ -333,7 +333,7 @@ import Card from '../../components/Card.astro';
     interface StatusBody {
       ok: boolean;
       generated_at: string;
-      sync: { last_synced_at: string | null; age_minutes: number | null; status: string };
+      sync: { last_run_at: string | null; newest_order_at: string | null; last_synced_at: string | null; age_minutes: number | null; status: string };
       null_pickups: { total: number; allison_park_tbd: number; actionable: number; status: string };
       tags: { missing_canonical: number | null; last_checked_at: string | null; status: string };
       wrong_tags: { count: number | null; last_checked_at: string | null; status: string };
@@ -396,11 +396,11 @@ import Card from '../../components/Card.astro';
         big: body.sync.age_minutes === null
           ? 'No data'
           : body.sync.age_minutes < 1
-            ? 'Just now'
-            : `${body.sync.age_minutes} min ago`,
-        sub: body.sync.last_synced_at
-          ? `Last successful watermark: ${fmtDateTime(body.sync.last_synced_at)}`
-          : 'No successful sync recorded yet.',
+            ? 'Ran just now'
+            : `Ran ${body.sync.age_minutes} min ago`,
+        sub: (body.sync.newest_order_at ?? body.sync.last_synced_at)
+          ? `Sync runs every 15 min. Newest order processed: ${fmtDateTime(body.sync.newest_order_at ?? body.sync.last_synced_at)} (this only moves when a NEW order comes in — normal that it sits still).`
+          : 'Sync runs every 15 min.',
       });
 
       // ── 2. NULL pickups ──
