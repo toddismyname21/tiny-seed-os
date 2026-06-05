@@ -666,6 +666,140 @@ export async function proveMemberCannotSetDelivery(
   return { memberSetDeliveryResult: rpcData, directUpdateError, beforeAddress, afterAddress };
 }
 
+// ── Dashboard cards fixture (pickup + schedule, 2026-06-05) ────────────
+//
+// Proves the dashboard's PickupCard + ScheduleCard render correctly for a
+// known member state. The test member's pickup is cleared by global-setup
+// (FIX-1 banner test), so we can't lean on it: this fixture points the
+// member's first active share at an ephemeral pickup stop, forces its
+// share_type to a season-configured one (so the schedule card has real
+// dates), and sets a chosen biweekly_week — snapshotting everything for an
+// exact restore. Service-role only (controlled test mutation).
+
+const DASHBOARD_STOP_NAME = 'E2E Dashboard Stop (Squirrel Hill)';
+
+export interface DashboardCardsFixture {
+  memberId: string;
+  /** Prior values, restored on teardown. */
+  priorPickupLocationId: string | null;
+  priorDeliveryAddress: string | null;
+  priorShareType: string;
+  priorBiweeklyWeek: 'A' | 'B' | null;
+  /** The ephemeral pickup location we created. */
+  locationId: string;
+  /** What we set the share to (so the spec can assert against it). */
+  stopName: string;
+  shareType: 'summer_veg';
+  biweeklyWeek: 'A' | 'B' | null;
+}
+
+/**
+ * Seed the dashboard-cards fixture. `biweeklyWeek` controls the cadence the
+ * ScheduleCard shows: null → weekly, 'A'/'B' → biweekly. Returns null when
+ * the member has no active share (the spec self-skips then).
+ */
+export async function seedDashboardCardsFixture(
+  env: TestEnv,
+  biweeklyWeek: 'A' | 'B' | null
+): Promise<DashboardCardsFixture | null> {
+  const admin = adminClient(env);
+
+  const { data: customer, error: custErr } = await admin
+    .from('customers')
+    .select('id, members(id, status, pickup_location_id, delivery_address, share_type, biweekly_week)')
+    .eq('email', env.testEmail)
+    .maybeSingle();
+  if (custErr) {
+    throw new Error(`[e2e] dashboard-cards fixture: customer lookup failed: ${custErr.message}`);
+  }
+  const cust = customer as
+    | {
+        id: string;
+        members?: {
+          id: string;
+          status: string;
+          pickup_location_id: string | null;
+          delivery_address: string | null;
+          share_type: string;
+          biweekly_week: 'A' | 'B' | null;
+        }[];
+      }
+    | null;
+  const active = (cust?.members ?? []).find((m) => m.status === 'active');
+  if (!cust || !active) return null;
+
+  // 1. Create an ephemeral pickup location (Wednesday, with a time window so
+  //    the card renders day + time). Stable name for cleanup.
+  const { data: loc, error: locErr } = await admin
+    .from('pickup_locations')
+    .insert({
+      name: DASHBOARD_STOP_NAME,
+      city: 'Pittsburgh',
+      state: 'PA',
+      day_of_week: 'Wed',
+      time_start: '15:00',
+      time_end: '18:00',
+      is_active: true,
+      is_delivery_zone: false,
+    })
+    .select('id')
+    .single();
+  if (locErr || !loc) {
+    throw new Error(`[e2e] dashboard-cards fixture: location create failed: ${locErr?.message ?? 'no row'}`);
+  }
+  const locationId = (loc as { id: string }).id;
+
+  // 2. Snapshot + re-point the active share onto the stop with a known
+  //    share_type (season-configured) + biweekly_week.
+  const fixture: DashboardCardsFixture = {
+    memberId: active.id,
+    priorPickupLocationId: active.pickup_location_id,
+    priorDeliveryAddress: active.delivery_address,
+    priorShareType: active.share_type,
+    priorBiweeklyWeek: active.biweekly_week,
+    locationId,
+    stopName: DASHBOARD_STOP_NAME,
+    shareType: 'summer_veg',
+    biweeklyWeek,
+  };
+
+  const { error: updErr } = await admin
+    .from('members')
+    .update({
+      pickup_location_id: locationId,
+      delivery_address: null,
+      share_type: 'summer_veg',
+      biweekly_week: biweeklyWeek,
+    })
+    .eq('id', active.id);
+  if (updErr) {
+    // Roll back the location so we don't leak it.
+    await admin.from('pickup_locations').delete().eq('id', locationId);
+    throw new Error(`[e2e] dashboard-cards fixture: re-point member failed: ${updErr.message}`);
+  }
+
+  return fixture;
+}
+
+/** Tear down the dashboard-cards fixture: restore the share, delete the stop. */
+export async function cleanupDashboardCardsFixture(
+  env: TestEnv,
+  fx: DashboardCardsFixture
+): Promise<void> {
+  const admin = adminClient(env);
+  // Restore the share FIRST so it never dangles at a location we delete.
+  await admin
+    .from('members')
+    .update({
+      pickup_location_id: fx.priorPickupLocationId,
+      delivery_address: fx.priorDeliveryAddress,
+      share_type: fx.priorShareType,
+      biweekly_week: fx.priorBiweeklyWeek,
+    })
+    .eq('id', fx.memberId);
+  await admin.from('pickup_locations').delete().eq('id', fx.locationId);
+}
+
 /** Remove the seeded fixture + any swap it produced. Best-effort. */
 export async function cleanupSwapFixture(env: TestEnv, fx: SwapFixture): Promise<void> {
   const admin = adminClient(env);

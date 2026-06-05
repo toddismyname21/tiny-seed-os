@@ -64,7 +64,10 @@ test('getSchedule returns the spring_veg config', () => {
 });
 
 test('getSchedule returns null for an unconfigured share type', () => {
-  assertEqual(getSchedule('flower'), null);
+  // flower IS configured now (Week 1 Jun 24, 16 weeks); fall_veg + flex
+  // remain TBD until the owner supplies start dates.
+  assertEqual(getSchedule('fall_veg'), null);
+  assertEqual(getSchedule('flex'), null);
   assertEqual(getSchedule('not_a_real_type'), null);
 });
 

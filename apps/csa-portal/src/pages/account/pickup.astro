@@ -185,11 +185,11 @@ const contactChangeHref = contactMailto(
 >
       <section aria-labelledby="pickup-heading">
         <h1 id="pickup-heading" class="font-display text-3xl font-bold tracking-tight text-ts-text sm:text-4xl">
-          Pickup location
+          Your pickup location
         </h1>
         <p class="mt-2 text-base text-ts-text-secondary">
-          Choose which stop you pick up at — or request home delivery
-          ($15/week, subject to approval).
+          This is where you'll pick up your box each week. Choose a different
+          stop below — or request home delivery ($15/week, subject to approval).
         </p>
       </section>
 
@@ -248,14 +248,19 @@ const contactChangeHref = contactMailto(
         </Card>
       ) : (
         <>
-          {/* CURRENT (pickup stop, or not set yet) */}
-          <Card padding="md" elevation="sm" tone="muted">
-            <p class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Current</p>
+          {/* CURRENT (pickup stop, or not set yet) — prominent so the
+              member instantly sees where they pick up today. */}
+          <Card padding="md" elevation="sm" tone={primary.pickup_location ? 'primary' : 'muted'}>
+            <p class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">
+              Where you pick up now
+            </p>
             {primary.pickup_location ? (
               <div class="mt-2 flex items-start gap-3">
-                <span class="mt-0.5 text-lg" aria-hidden="true">📍</span>
+                <span class="mt-0.5 text-2xl" aria-hidden="true">📍</span>
                 <div class="min-w-0">
-                  <p class="text-sm font-medium text-ts-text">{primary.pickup_location.name}</p>
+                  <p class="font-display text-lg font-bold tracking-tight text-ts-text sm:text-xl">
+                    {primary.pickup_location.name}
+                  </p>
                   <p class="mt-0.5 text-sm text-ts-text-secondary">
                     {primary.pickup_location.day_of_week
                       ? dayLong[primary.pickup_location.day_of_week] ?? primary.pickup_location.day_of_week
@@ -278,10 +283,13 @@ const contactChangeHref = contactMailto(
 
           {/* ─── Choose a pickup stop ─── */}
           <Card padding="md" elevation="sm">
+            <h2 class="text-base font-semibold text-ts-text">
+              {primary.pickup_location ? 'Change your pickup stop' : 'Choose your pickup stop'}
+            </h2>
             <form
               method="POST"
               action="/api/account/pickup-location"
-              class="flex flex-col gap-5"
+              class="mt-4 flex flex-col gap-5"
               data-pickup-form
             >
               <input type="hidden" name="member_id" value={primary.id} />

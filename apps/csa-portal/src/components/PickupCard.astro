@@ -1,0 +1,132 @@
+---
+/**
+ * PickupCard — prominent dashboard surface for "where do I pick up?".
+ *
+ * Members were emailing that they couldn't find or change their pickup
+ * stop. The data lived on /account/pickup, but nothing on the dashboard
+ * surfaced it. This card puts the CURRENT pickup front-and-center with an
+ * obvious primary action to change it (≤2 taps from landing).
+ *
+ * Three states (driven by the props the dashboard computes from the
+ * member's primary share):
+ *   - pickup stop set → "📍 <name> (<day>s)" + "Change pickup location"
+ *   - home delivery   → "🚚 Home delivery to <address>" + change CTA
+ *   - nothing set yet → prompt to choose (links to the chooser)
+ *
+ * The PickupNudgeBanner already covers the hard "you MUST choose" case at
+ * the very top of the page; this card is the always-present, calmer
+ * "here's your pickup, change it here" affordance for members who HAVE a
+ * stop. The dashboard hides this card when the nudge banner is showing to
+ * avoid a duplicate ask.
+ *
+ * Pure presentation. Mobile-first, design-token only.
+ */
+import Button from './Button.astro';
+
+type Mode = 'pickup' | 'delivery' | 'unset';
+
+interface Props {
+  mode: Mode;
+  /** Stop name (pickup mode) — e.g. "Squirrel Hill". */
+  locationName?: string | null;
+  /** Long weekday — e.g. "Wednesday" (pickup mode). */
+  dayLong?: string | null;
+  /** "9 AM–1 PM" formatted time range (pickup mode). */
+  timeRange?: string | null;
+  /** City line (pickup mode), optional. */
+  city?: string | null;
+  /** Delivery address (delivery mode). */
+  deliveryAddress?: string | null;
+}
+
+const {
+  mode,
+  locationName = null,
+  dayLong = null,
+  timeRange = null,
+  city = null,
+  deliveryAddress = null,
+} = Astro.props as Props;
+---
+
+<section
+  aria-labelledby="pickup-card-heading"
+  class="rounded-ts-xl border border-ts-border bg-ts-bg-surface p-5 shadow-ts-sm sm:p-6"
+  data-pickup-card
+  data-mode={mode}
+>
+  <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <div class="flex min-w-0 items-start gap-4">
+      <span
+        class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-ts-primary/10 text-2xl"
+        aria-hidden="true"
+      >
+        {mode === 'delivery' ? '🚚' : '📍'}
+      </span>
+      <div class="min-w-0">
+        <h2
+          id="pickup-card-heading"
+          class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted"
+        >
+          Your pickup
+        </h2>
+
+        {mode === 'pickup' && (
+          <>
+            <p class="mt-1 font-display text-lg font-bold tracking-tight text-ts-text sm:text-xl">
+              {locationName}
+              {dayLong && (
+                <span class="font-medium text-ts-text-secondary"> · {dayLong}s</span>
+              )}
+            </p>
+            {(timeRange || city) && (
+              <p class="mt-0.5 text-sm text-ts-text-secondary">
+                {[city, timeRange].filter(Boolean).join(' · ')}
+              </p>
+            )}
+          </>
+        )}
+
+        {mode === 'delivery' && (
+          <>
+            <p class="mt-1 font-display text-lg font-bold tracking-tight text-ts-text sm:text-xl">
+              Home delivery
+            </p>
+            {deliveryAddress && (
+              <p class="mt-0.5 whitespace-pre-line text-sm text-ts-text-secondary">
+                {deliveryAddress}
+              </p>
+            )}
+          </>
+        )}
+
+        {mode === 'unset' && (
+          <>
+            <p class="mt-1 font-display text-lg font-bold tracking-tight text-ts-text sm:text-xl">
+              No pickup chosen yet
+            </p>
+            <p class="mt-0.5 text-sm text-ts-text-secondary">
+              Pick the stop that's easiest for you before your first box.
+            </p>
+          </>
+        )}
+      </div>
+    </div>
+
+    {/* Primary action — always the obvious next tap. */}
+    <div class="shrink-0">
+      <Button
+        href="/account/pickup"
+        variant={mode === 'unset' ? 'primary' : 'secondary'}
+        size="md"
+        class="w-full sm:w-auto"
+      >
+        {mode === 'unset'
+          ? 'Choose pickup location'
+          : mode === 'delivery'
+            ? 'Manage delivery'
+            : 'Change pickup location'}
+      </Button>
+    </div>
+  </div>
+</section>

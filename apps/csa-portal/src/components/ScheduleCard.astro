@@ -1,0 +1,134 @@
+---
+/**
+ * ScheduleCard — plain-language "when do I get a box?" explainer.
+ *
+ * Members were emailing that they didn't understand their delivery
+ * schedule after the weekly vs. Week A / Week B assignment. This card
+ * translates the `biweekly_week` data model into warm, jargon-free copy:
+ *
+ *   - Weekly (biweekly_week null): "a box EVERY week" + first/last dates.
+ *   - Biweekly A/B:                 "every OTHER week" + the next 3-4
+ *                                   actual delivery dates, computed from
+ *                                   season.ts firstDelivery + cycle.ts
+ *                                   parity (via lib/schedule.ts).
+ *
+ * It NEVER renders for flex (wallet) members — that's a different model
+ * with its own FlexWallet card; the dashboard simply doesn't pass a
+ * schedule for them.
+ *
+ * Pure presentation: the caller resolves the schedule (server-side) and
+ * passes the already-computed copy fields. Mobile-first, design-token
+ * only, matches the dashboard's rounded-ts-xl surface cards.
+ */
+import type { DeliveryCadence } from '../lib/schedule';
+
+interface Props {
+  cadence: DeliveryCadence;
+  /** 'A' | 'B' for biweekly; null for weekly. Drives the "Why" copy. */
+  biweeklyWeek: 'A' | 'B' | null;
+  /** "Wednesday, June 10" — the member's first delivery. */
+  firstDeliveryLong: string;
+  /** "October 7" — season end (member's last delivery). */
+  seasonEndShort: string;
+  /** ["June 24", "July 8", "July 22"] — upcoming delivery date chips. */
+  upcomingShort: string[];
+  /** Optional share label for context ("Summer Vegetable Share"). */
+  shareLabel?: string;
+}
+
+const {
+  cadence,
+  biweeklyWeek,
+  firstDeliveryLong,
+  seasonEndShort,
+  upcomingShort,
+  shareLabel,
+} = Astro.props as Props;
+
+const isWeekly = cadence === 'weekly';
+---
+
+<section
+  aria-labelledby="schedule-heading"
+  class="rounded-ts-xl border border-ts-border bg-ts-bg-surface p-5 shadow-ts-sm sm:p-6"
+  data-schedule-card
+  data-cadence={cadence}
+>
+  <div class="flex items-start gap-4">
+    <span
+      class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-ts-primary/10 text-2xl"
+      aria-hidden="true"
+    >
+      📦
+    </span>
+    <div class="min-w-0 flex-1">
+      <h2
+        id="schedule-heading"
+        class="font-display text-lg font-bold tracking-tight text-ts-text sm:text-xl"
+      >
+        {isWeekly ? 'You get a box every week' : 'You get a box every other week'}
+      </h2>
+
+      {shareLabel && (
+        <p class="mt-0.5 text-xs font-medium uppercase tracking-wide text-ts-text-muted">
+          {shareLabel}
+        </p>
+      )}
+
+      <p class="mt-2 text-sm leading-relaxed text-ts-text-secondary">
+        {isWeekly ? (
+          <>
+            Your first box arrives{' '}
+            <span class="font-semibold text-ts-text">{firstDeliveryLong}</span>, and
+            you'll get one every week through{' '}
+            <span class="font-semibold text-ts-text">{seasonEndShort}</span>.
+          </>
+        ) : (
+          <>
+            Your first box arrives{' '}
+            <span class="font-semibold text-ts-text">{firstDeliveryLong}</span>, then
+            every other week through{' '}
+            <span class="font-semibold text-ts-text">{seasonEndShort}</span>.
+          </>
+        )}
+      </p>
+
+      {/* Upcoming-dates chips — only for biweekly, where the rhythm isn't
+          obvious. Weekly members don't need a list ("every Wednesday"
+          says it all). */}
+      {!isWeekly && upcomingShort.length > 0 && (
+        <div class="mt-4">
+          <p class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">
+            Your upcoming boxes
+          </p>
+          <ul class="mt-2 flex flex-wrap gap-2" data-upcoming-dates>
+            {upcomingShort.map((d) => (
+              <li
+                class="inline-flex items-center gap-1.5 rounded-full border border-ts-primary/30 bg-ts-primary/5 px-3 py-1.5 text-sm font-medium text-ts-text"
+              >
+                <span class="h-1.5 w-1.5 rounded-full bg-ts-primary" aria-hidden="true"></span>
+                {d}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Plain-language "why" — answers the email that prompted this work. */}
+      {!isWeekly && (
+        <p class="mt-4 rounded-ts-md border border-ts-border bg-ts-bg-muted/40 px-3 py-2.5 text-xs leading-relaxed text-ts-text-secondary">
+          <span class="font-medium text-ts-text">Why every other week?</span>{' '}
+          You signed up for a bi-weekly share, so we pack you a box on
+          {biweeklyWeek === 'A' ? ' Week A' : ' Week B'} of our two-week rhythm.
+          Want to switch your weeks?{' '}
+          <a
+            href="/account/biweekly-schedule"
+            class="font-semibold text-ts-primary underline decoration-ts-primary/40 underline-offset-2 hover:decoration-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+          >
+            Change your schedule
+          </a>.
+        </p>
+      )}
+    </div>
+  </div>
+</section>

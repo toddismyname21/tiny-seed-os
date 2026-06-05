@@ -42,8 +42,18 @@ import {
   type SeasonSchedule,
   type SeasonPhase,
 } from '../lib/season';
+import {
+  resolveMemberSchedule,
+  upcomingDeliveries,
+  firstMemberDelivery,
+  seasonEndDate,
+  prettyDeliveryLong,
+  prettyDeliveryShort,
+} from '../lib/schedule';
 import FlexWallet from '../components/FlexWallet.astro';
 import PickupNudgeBanner from '../components/PickupNudgeBanner.astro';
+import PickupCard from '../components/PickupCard.astro';
+import ScheduleCard from '../components/ScheduleCard.astro';
 
 const user = Astro.locals.user;
 const supabase = Astro.locals.supabase;
@@ -105,6 +115,7 @@ type ActiveShare = {
   status: string;
   swap_credits: number;
   vacation_weeks_used: number;
+  biweekly_week: 'A' | 'B' | null;
   pickup_location: {
     name: string;
     address: string | null;
@@ -148,6 +159,7 @@ const { data: customerRows, error: customerError } = await supabase
       status,
       swap_credits,
       vacation_weeks_used,
+      biweekly_week,
       pickup_location:pickup_locations (
         name,
         address,
@@ -389,6 +401,96 @@ const targetWeekPretty = new Intl.DateTimeFormat('en-US', {
 }).format(new Date(`${targetWeek}T12:00:00-04:00`));
 
 // ─────────────────────────────────────────────────────────────────────
+// PICKUP + SCHEDULE CARDS (2026-06-05). Members were emailing that they
+// couldn't find/change their pickup, or understand their delivery cadence.
+// We surface both prominently on the dashboard, computed from the same
+// active-share rows the rest of the page already uses.
+//
+// `primaryShare` = the first active share that drives a box (NOT flex —
+// flex is a wallet model with its own FlexWallet card — and we prefer a
+// veg/flower share over an add-on for the pickup/schedule summary). If the
+// member is flex-only, primaryShare is null and neither card renders.
+// ─────────────────────────────────────────────────────────────────────
+const primaryShare =
+  activeShares.find((s) => s.share_type !== 'flex' && s.share_type !== 'add_on') ??
+  activeShares.find((s) => s.share_type !== 'flex') ??
+  null;
+
+// ── Pickup card props ──
+type PickupCardMode = 'pickup' | 'delivery' | 'unset';
+let pickupCardMode: PickupCardMode = 'unset';
+let pickupLocationName: string | null = null;
+let pickupDayLong: string | null = null;
+let pickupTimeRange: string | null = null;
+let pickupCity: string | null = null;
+let pickupDeliveryAddress: string | null = null;
+
+if (primaryShare) {
+  const isHomeDelivery =
+    !primaryShare.pickup_location_id &&
+    typeof primaryShare.delivery_address === 'string' &&
+    primaryShare.delivery_address.trim().length > 0;
+  if (isHomeDelivery) {
+    pickupCardMode = 'delivery';
+    pickupDeliveryAddress = primaryShare.delivery_address;
+  } else if (primaryShare.pickup_location) {
+    pickupCardMode = 'pickup';
+    pickupLocationName = primaryShare.pickup_location.name;
+    pickupDayLong = primaryShare.pickup_location.day_of_week
+      ? dayLong[primaryShare.pickup_location.day_of_week] ?? primaryShare.pickup_location.day_of_week
+      : null;
+    pickupTimeRange = formatTimeRange(
+      primaryShare.pickup_location.time_start,
+      primaryShare.pickup_location.time_end,
+    ) || null;
+    pickupCity = primaryShare.pickup_location.city;
+  } else {
+    pickupCardMode = 'unset';
+  }
+}
+
+// Show the calmer pickup card only when the hard forcing-nudge banner is
+// NOT showing (avoid a duplicate "choose your pickup" ask) and we have a
+// box-bearing share to describe.
+const showPickupCard = Boolean(primaryShare) && !needsPickup;
+
+// ── Schedule card props ──
+// Resolve the member's delivery calendar from the primary share's season
+// schedule + its biweekly_week. Only render when the season IS configured
+// (so the dates are real) AND not yet complete. For a flex-only member
+// there's no schedule.
+const primarySchedule = primaryShare ? getSchedule(primaryShare.share_type) : null;
+
+let scheduleCadence: 'weekly' | 'biweekly' = 'weekly';
+let scheduleBiweeklyWeek: 'A' | 'B' | null = null;
+let scheduleFirstLong = '';
+let scheduleSeasonEndShort = '';
+let scheduleUpcomingShort: string[] = [];
+
+if (primaryShare && primarySchedule) {
+  const resolved = resolveMemberSchedule({
+    schedule: primarySchedule,
+    biweeklyWeek: primaryShare.biweekly_week,
+  });
+  scheduleCadence = resolved.cadence;
+  scheduleBiweeklyWeek = primaryShare.biweekly_week;
+  const firstDate = firstMemberDelivery(resolved);
+  scheduleFirstLong = firstDate ? prettyDeliveryLong(firstDate) : '';
+  scheduleSeasonEndShort = prettyDeliveryShort(seasonEndDate(resolved, primarySchedule));
+  // Next 4 upcoming dates (only used by the biweekly card's chip list).
+  scheduleUpcomingShort = upcomingDeliveries(resolved, 4).map(prettyDeliveryShort);
+}
+
+// Hide the schedule card once the season is fully complete (the "that's a
+// wrap" card covers that state instead).
+const showScheduleCard =
+  Boolean(primaryShare && primarySchedule) && phase !== 'complete';
+
+const scheduleShareLabel = primaryShare
+  ? SHARE_TYPE_LABELS[primaryShare.share_type] ?? primaryShare.share_type
+  : undefined;
+
+// ─────────────────────────────────────────────────────────────────────
 // Farm Flex wallet (2026-05-22, Phase 1 — read-only). NON-BLOCKING as of
 // 2026-05-24 (gap analysis P0-1): the balance comes from a live Shopify
 // GraphQL call, so we NO LONGER await it during SSR — that gated first
@@ -571,6 +673,42 @@ const title = `Welcome back, ${firstName} — Tiny Seed Farm CSA`;
           Here's what's happening with your share this week.
         </p>
       </section>
+
+      {/* ═════════════════════════════════════════════════════════════
+          PICKUP CARD (2026-06-05)
+          Surfaces the member's CURRENT pickup stop / home delivery with an
+          obvious "Change pickup location" action (≤2 taps from landing).
+          Hidden when the forcing-nudge banner is already asking them to
+          choose (avoids a duplicate ask), and for flex-only members.
+          ═════════════════════════════════════════════════════════════ */}
+      {customer && activeShares.length > 0 && showPickupCard && (
+        <PickupCard
+          mode={pickupCardMode}
+          locationName={pickupLocationName}
+          dayLong={pickupDayLong}
+          timeRange={pickupTimeRange}
+          city={pickupCity}
+          deliveryAddress={pickupDeliveryAddress}
+        />
+      )}
+
+      {/* ═════════════════════════════════════════════════════════════
+          SCHEDULE CARD (2026-06-05)
+          Plain-language "when do I get a box?" — weekly vs. Week A / Week B,
+          with the member's actual upcoming delivery dates. Computed from
+          season.ts + cycle.ts parity (lib/schedule.ts). Skipped for
+          flex-only members + once the season is complete.
+          ═════════════════════════════════════════════════════════════ */}
+      {customer && activeShares.length > 0 && showScheduleCard && (
+        <ScheduleCard
+          cadence={scheduleCadence}
+          biweeklyWeek={scheduleBiweeklyWeek}
+          firstDeliveryLong={scheduleFirstLong}
+          seasonEndShort={scheduleSeasonEndShort}
+          upcomingShort={scheduleUpcomingShort}
+          shareLabel={scheduleShareLabel}
+        />
+      )}
 
       {/* ═════════════════════════════════════════════════════════════
           FARM FLEX WALLET (2026-05-22 — Phase 1, read-only)
