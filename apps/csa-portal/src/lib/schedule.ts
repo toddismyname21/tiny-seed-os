@@ -30,6 +30,13 @@ import type { SeasonSchedule } from './season';
 import { lastDelivery } from './season';
 import { addDays, mondayOfWeek, weekParity } from './cycle';
 
+/**
+ * Fallback pickup time shown in the "Next delivery" banner when a stop has
+ * no `pickup_locations.time_start` configured. Todd flagged 2 PM as a
+ * PLACEHOLDER — change it HERE, in one place, when the real cutoff is known.
+ */
+export const DEFAULT_PICKUP_TIME = '2 PM';
+
 /** A member's delivery cadence, derived from their biweekly_week. */
 export type DeliveryCadence = 'weekly' | 'biweekly';
 
@@ -168,4 +175,27 @@ export function prettyDeliveryShort(dateYMD: string): string {
     month: 'long',
     day: 'numeric',
   }).format(new Date(`${dateYMD}T12:00:00Z`));
+}
+
+/**
+ * Format a single pickup time for the "after [2 PM]" banner copy.
+ *
+ * Accepts a `pickup_locations.time_start` value (`'HH:MM'` or `'HH:MM:SS'`),
+ * returning a human label like "2 PM" / "2:30 PM". Falls back to the
+ * single-source-of-truth `DEFAULT_PICKUP_TIME` constant when the stop has no
+ * time configured (null/blank/unparseable) — so the banner ALWAYS reads
+ * "after <time>" and the placeholder is changeable in exactly one place.
+ */
+export function prettyPickupTime(timeStart: string | null | undefined): string {
+  if (!timeStart) return DEFAULT_PICKUP_TIME;
+  const m = /^(\d{1,2}):(\d{2})/.exec(timeStart.trim());
+  if (!m) return DEFAULT_PICKUP_TIME;
+  let h = Number(m[1]);
+  const min = Number(m[2]);
+  if (Number.isNaN(h) || Number.isNaN(min) || h > 23 || min > 59) {
+    return DEFAULT_PICKUP_TIME;
+  }
+  const period = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 === 0 ? 12 : h % 12;
+  return min === 0 ? `${h} ${period}` : `${h}:${String(min).padStart(2, '0')} ${period}`;
 }

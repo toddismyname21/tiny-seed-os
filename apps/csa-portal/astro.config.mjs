@@ -84,6 +84,22 @@ export default defineConfig({
         optional: true,
       }),
 
+      // ── Resend webhook signing secret (svix-style) ──
+      // Resend signs delivery/open/click/bounce webhook payloads with a
+      // per-endpoint secret (whsec_...). /api/admin/campaigns/webhook
+      // verifies the svix-id / svix-timestamp / svix-signature headers
+      // against it. `optional` so a build/check (and the window before the
+      // secret is configured in the Resend dashboard) still succeeds; the
+      // webhook gracefully no-op-ACCEPTS unsigned payloads when this is
+      // unset so Resend's delivery attempts don't hard-fail before the
+      // secret is wired up. Set this in Vercel once the endpoint is
+      // registered in the Resend dashboard.
+      RESEND_WEBHOOK_SECRET: envField.string({
+        context: 'server',
+        access: 'secret',
+        optional: true,
+      }),
+
       // ── Unsubscribe-token HMAC secret (CAN-SPAM one-click unsubscribe) ──
       // Used to sign + verify the tokenized unsubscribe links embedded in
       // every weekly email (lib/weekly-email.ts → signUnsubscribeToken /

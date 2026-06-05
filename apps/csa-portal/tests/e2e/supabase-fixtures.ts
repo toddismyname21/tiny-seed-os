@@ -99,6 +99,40 @@ async function ensureAuthUser(env: TestEnv): Promise<void> {
   }
 }
 
+/**
+ * Mint an RLS-scoped Supabase client carrying the TEST MEMBER's real JWT
+ * (magic-link → verifyOtp, no email sent). Used when a fixture must exercise
+ * a path that keys on the caller's identity inside the database (e.g. the
+ * home-delivery gate's `is_admin_caller()` — service-role carries no JWT, so
+ * it can't stand in for "an admin did this"). The caller is responsible for
+ * having promoted/demoted the member's `customers.role` as needed.
+ */
+export async function mintMemberJwtClient(env: TestEnv): Promise<SupabaseClient> {
+  await ensureAuthUser(env);
+  const admin = adminClient(env);
+  const { data: link, error: linkErr } = await admin.auth.admin.generateLink({
+    type: 'magiclink',
+    email: env.testEmail,
+  });
+  if (linkErr || !link?.properties?.hashed_token) {
+    throw new Error(`[e2e] mintMemberJwtClient: generateLink failed: ${linkErr?.message ?? 'no token'}`);
+  }
+  const anon = createClient(env.supabaseUrl, env.anonKey, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+  });
+  const { data: verified, error: verifyErr } = await anon.auth.verifyOtp({
+    type: 'magiclink',
+    token_hash: link.properties.hashed_token,
+  });
+  if (verifyErr || !verified?.session) {
+    throw new Error(`[e2e] mintMemberJwtClient: verifyOtp failed: ${verifyErr?.message ?? 'no session'}`);
+  }
+  return createClient(env.supabaseUrl, env.anonKey, {
+    global: { headers: { Authorization: `Bearer ${verified.session.access_token}` } },
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
+
 export interface MintedCookie {
   name: string;
   value: string;
@@ -678,35 +712,77 @@ export async function proveMemberCannotSetDelivery(
 
 const DASHBOARD_STOP_NAME = 'E2E Dashboard Stop (Squirrel Hill)';
 
+/** A deterministic home-delivery address used by the delivery-mode fixture. */
+const DASHBOARD_DELIVERY_ADDRESS = '742 E2E Evergreen Terrace, Pittsburgh, PA 15206';
+
+export interface DashboardCardsOptions {
+  /** Cadence: null → weekly, 'A'/'B' → biweekly. */
+  biweeklyWeek?: 'A' | 'B' | null;
+  /** Seed a HOME-DELIVERY share (no pickup stop) instead of a pickup stop. */
+  homeDelivery?: boolean;
+  /**
+   * Phone-prompt control for the NextDeliveryBanner:
+   *   'clear' → blank the customer's phone (banner shows the prominent
+   *             "Update your phone number" button)
+   *   'set'   → set a phone (banner shows the subtle inline "Update" link)
+   *   undefined → leave the phone as-is (snapshot still taken so restore is
+   *             a no-op-safe write).
+   */
+  phone?: 'clear' | 'set';
+}
+
 export interface DashboardCardsFixture {
   memberId: string;
+  /** Owning customer id (for the phone snapshot/restore). */
+  customerId: string;
   /** Prior values, restored on teardown. */
   priorPickupLocationId: string | null;
   priorDeliveryAddress: string | null;
   priorShareType: string;
   priorBiweeklyWeek: 'A' | 'B' | null;
-  /** The ephemeral pickup location we created. */
-  locationId: string;
+  priorPhone: string | null;
+  /** Prior customers.role — only snapshotted when home-delivery mode flips it to admin. */
+  priorRole: 'member' | 'admin' | 'staff' | null;
+  /** The ephemeral pickup location we created (null in home-delivery mode). */
+  locationId: string | null;
   /** What we set the share to (so the spec can assert against it). */
   stopName: string;
+  deliveryAddress: string | null;
   shareType: 'summer_veg';
   biweeklyWeek: 'A' | 'B' | null;
+  /** Did we set a phone (true) or clear it (false)? null = left as-is. */
+  hasPhone: boolean | null;
 }
 
+/** Phone we set when opts.phone === 'set' — obviously a test value. */
+const DASHBOARD_TEST_PHONE = '(412) 555-0100';
+
 /**
- * Seed the dashboard-cards fixture. `biweeklyWeek` controls the cadence the
- * ScheduleCard shows: null → weekly, 'A'/'B' → biweekly. Returns null when
- * the member has no active share (the spec self-skips then).
+ * Seed the dashboard-cards fixture.
+ *
+ * Backward compatible: callers may pass the legacy `biweeklyWeek` argument
+ * directly (`seedDashboardCardsFixture(env, 'A')`) OR an options object
+ * (`seedDashboardCardsFixture(env, { homeDelivery: true, phone: 'clear' })`).
+ *
+ * Controls the cadence the ScheduleCard shows (null → weekly, 'A'/'B' →
+ * biweekly), whether the share is a pickup stop or home delivery, and the
+ * customer's phone (to assert the NextDeliveryBanner's phone-prompt states).
+ * Returns null when the member has no active share (the spec self-skips).
  */
 export async function seedDashboardCardsFixture(
   env: TestEnv,
-  biweeklyWeek: 'A' | 'B' | null
+  arg: ('A' | 'B' | null) | DashboardCardsOptions
 ): Promise<DashboardCardsFixture | null> {
+  const opts: DashboardCardsOptions =
+    arg === null || arg === 'A' || arg === 'B' ? { biweeklyWeek: arg } : arg;
+  const biweeklyWeek = opts.biweeklyWeek ?? null;
+  const homeDelivery = opts.homeDelivery ?? false;
+
   const admin = adminClient(env);
 
   const { data: customer, error: custErr } = await admin
     .from('customers')
-    .select('id, members(id, status, pickup_location_id, delivery_address, share_type, biweekly_week)')
+    .select('id, phone, role, members(id, status, pickup_location_id, delivery_address, share_type, biweekly_week)')
     .eq('email', env.testEmail)
     .maybeSingle();
   if (custErr) {
@@ -715,6 +791,8 @@ export async function seedDashboardCardsFixture(
   const cust = customer as
     | {
         id: string;
+        phone: string | null;
+        role: 'member' | 'admin' | 'staff';
         members?: {
           id: string;
           status: string;
@@ -728,41 +806,55 @@ export async function seedDashboardCardsFixture(
   const active = (cust?.members ?? []).find((m) => m.status === 'active');
   if (!cust || !active) return null;
 
-  // 1. Create an ephemeral pickup location (Wednesday, with a time window so
-  //    the card renders day + time). Stable name for cleanup.
-  const { data: loc, error: locErr } = await admin
-    .from('pickup_locations')
-    .insert({
-      name: DASHBOARD_STOP_NAME,
-      city: 'Pittsburgh',
-      state: 'PA',
-      day_of_week: 'Wed',
-      time_start: '15:00',
-      time_end: '18:00',
-      is_active: true,
-      is_delivery_zone: false,
-    })
-    .select('id')
-    .single();
-  if (locErr || !loc) {
-    throw new Error(`[e2e] dashboard-cards fixture: location create failed: ${locErr?.message ?? 'no row'}`);
+  // 1. Pickup mode → create an ephemeral stop. Home-delivery mode → no stop.
+  let locationId: string | null = null;
+  if (!homeDelivery) {
+    const { data: loc, error: locErr } = await admin
+      .from('pickup_locations')
+      .insert({
+        name: DASHBOARD_STOP_NAME,
+        city: 'Pittsburgh',
+        state: 'PA',
+        day_of_week: 'Wed',
+        time_start: '15:00',
+        time_end: '18:00',
+        is_active: true,
+        is_delivery_zone: false,
+      })
+      .select('id')
+      .single();
+    if (locErr || !loc) {
+      throw new Error(`[e2e] dashboard-cards fixture: location create failed: ${locErr?.message ?? 'no row'}`);
+    }
+    locationId = (loc as { id: string }).id;
   }
-  const locationId = (loc as { id: string }).id;
 
-  // 2. Snapshot + re-point the active share onto the stop with a known
-  //    share_type (season-configured) + biweekly_week.
+  // 2. Snapshot everything we'll mutate, then re-point the active share.
+  let hasPhone: boolean | null = null;
+  if (opts.phone === 'clear') hasPhone = false;
+  else if (opts.phone === 'set') hasPhone = true;
+
   const fixture: DashboardCardsFixture = {
     memberId: active.id,
+    customerId: cust.id,
     priorPickupLocationId: active.pickup_location_id,
     priorDeliveryAddress: active.delivery_address,
     priorShareType: active.share_type,
     priorBiweeklyWeek: active.biweekly_week,
+    priorPhone: cust.phone,
+    priorRole: null,
     locationId,
     stopName: DASHBOARD_STOP_NAME,
+    deliveryAddress: homeDelivery ? DASHBOARD_DELIVERY_ADDRESS : null,
     shareType: 'summer_veg',
     biweeklyWeek,
+    hasPhone,
   };
 
+  // Service-role write for the ungated fields (share_type, biweekly_week,
+  // pickup). delivery_address is GATED by migration 0030's admin-only trigger,
+  // so we clear it here and (for home-delivery mode) set it through the
+  // admin-JWT RPC below — never a raw non-admin write.
   const { error: updErr } = await admin
     .from('members')
     .update({
@@ -773,31 +865,146 @@ export async function seedDashboardCardsFixture(
     })
     .eq('id', active.id);
   if (updErr) {
-    // Roll back the location so we don't leak it.
-    await admin.from('pickup_locations').delete().eq('id', locationId);
+    if (locationId) await admin.from('pickup_locations').delete().eq('id', locationId);
     throw new Error(`[e2e] dashboard-cards fixture: re-point member failed: ${updErr.message}`);
+  }
+
+  // Home-delivery mode: set delivery_address through change_pickup_location()
+  // as an ADMIN. We temporarily promote the test member's customer to
+  // role='admin' (snapshotting the prior role), mint that member's JWT (now
+  // is_admin_caller() = TRUE), call the RPC, then demote. This mirrors the
+  // ONLY legitimate path — the /api/admin/members/[id]/pickup endpoint — so
+  // the fixture respects the gate instead of fighting it.
+  if (homeDelivery) {
+    fixture.priorRole = cust.role;
+    const { error: promoteErr } = await admin
+      .from('customers')
+      .update({ role: 'admin' })
+      .eq('id', cust.id);
+    if (promoteErr) {
+      if (locationId) await admin.from('pickup_locations').delete().eq('id', locationId);
+      throw new Error(`[e2e] dashboard-cards fixture: promote-to-admin failed: ${promoteErr.message}`);
+    }
+
+    try {
+      const asAdmin = await mintMemberJwtClient(env);
+      const { data: rpcData, error: rpcErr } = await asAdmin.rpc('change_pickup_location', {
+        p_member_id: active.id,
+        p_new_location_id: null,
+        p_new_delivery_address: DASHBOARD_DELIVERY_ADDRESS,
+      });
+      if (rpcErr) {
+        throw new Error(`rpc threw: ${rpcErr.message}`);
+      }
+      const result = rpcData as { error?: string } | null;
+      if (result && 'error' in result && result.error) {
+        throw new Error(`rpc rejected: ${result.error}`);
+      }
+    } catch (e) {
+      // Roll back everything we mutated so we don't leave a half-seeded admin.
+      await admin.from('customers').update({ role: cust.role }).eq('id', cust.id);
+      await admin
+        .from('members')
+        .update({
+          pickup_location_id: fixture.priorPickupLocationId,
+          delivery_address: fixture.priorDeliveryAddress,
+          share_type: fixture.priorShareType,
+          biweekly_week: fixture.priorBiweeklyWeek,
+        })
+        .eq('id', active.id);
+      throw new Error(
+        `[e2e] dashboard-cards fixture: set delivery via admin RPC failed: ${
+          e instanceof Error ? e.message : String(e)
+        }`
+      );
+    }
+
+    // Demote immediately — the delivery_address is now set and persisted.
+    await admin.from('customers').update({ role: cust.role }).eq('id', cust.id);
+  }
+
+  // 3. Phone control (only when requested, so default runs don't touch it).
+  if (opts.phone) {
+    const newPhone = opts.phone === 'set' ? DASHBOARD_TEST_PHONE : null;
+    const { error: phoneErr } = await admin
+      .from('customers')
+      .update({ phone: newPhone })
+      .eq('id', cust.id);
+    if (phoneErr) {
+      // Roll back the member + location so we don't leave a half-seeded state.
+      await admin
+        .from('members')
+        .update({
+          pickup_location_id: fixture.priorPickupLocationId,
+          delivery_address: fixture.priorDeliveryAddress,
+          share_type: fixture.priorShareType,
+          biweekly_week: fixture.priorBiweeklyWeek,
+        })
+        .eq('id', active.id);
+      if (locationId) await admin.from('pickup_locations').delete().eq('id', locationId);
+      throw new Error(`[e2e] dashboard-cards fixture: phone update failed: ${phoneErr.message}`);
+    }
   }
 
   return fixture;
 }
 
-/** Tear down the dashboard-cards fixture: restore the share, delete the stop. */
+/** Tear down the dashboard-cards fixture: restore the share + phone, delete the stop. */
 export async function cleanupDashboardCardsFixture(
   env: TestEnv,
   fx: DashboardCardsFixture
 ): Promise<void> {
   const admin = adminClient(env);
-  // Restore the share FIRST so it never dangles at a location we delete.
+
+  // Restore the non-delivery fields (ungated) FIRST so the share never dangles
+  // at a location we delete. We restore pickup + share_type + biweekly here.
   await admin
     .from('members')
     .update({
       pickup_location_id: fx.priorPickupLocationId,
-      delivery_address: fx.priorDeliveryAddress,
       share_type: fx.priorShareType,
       biweekly_week: fx.priorBiweeklyWeek,
     })
     .eq('id', fx.memberId);
-  await admin.from('pickup_locations').delete().eq('id', fx.locationId);
+
+  // delivery_address is GATED by migration 0030's trigger (non-admin writes
+  // are rejected). If we seeded home delivery (priorRole set), restore the
+  // prior delivery_address through an ADMIN-JWT direct update — is_admin_caller()
+  // is TRUE for that JWT, so the trigger allows it, AND a direct update can
+  // restore the exact prior value (including null, which the RPC's
+  // one-of-location-or-address contract won't accept). We re-promote, write,
+  // then always demote.
+  if (fx.priorRole !== null) {
+    await admin.from('customers').update({ role: 'admin' }).eq('id', fx.customerId);
+    try {
+      const asAdmin = await mintMemberJwtClient(env);
+      const { error: restoreErr } = await asAdmin
+        .from('members')
+        .update({
+          pickup_location_id: fx.priorPickupLocationId,
+          delivery_address: fx.priorDeliveryAddress,
+        })
+        .eq('id', fx.memberId);
+      if (restoreErr) {
+        // Surface but don't throw — demotion below must still run. A leaked
+        // delivery_address would break later specs, so log loudly.
+        console.error(
+          `[e2e] dashboard-cards cleanup: admin delivery restore failed: ${restoreErr.message}`
+        );
+      }
+    } finally {
+      // Always demote back, even if the restore write hiccupped.
+      await admin.from('customers').update({ role: fx.priorRole }).eq('id', fx.customerId);
+    }
+  }
+
+  // Restore the phone only if we touched it.
+  if (fx.hasPhone !== null) {
+    await admin.from('customers').update({ phone: fx.priorPhone }).eq('id', fx.customerId);
+  }
+  if (fx.locationId) {
+    await admin.from('pickup_locations').delete().eq('id', fx.locationId);
+  }
 }
 
 /** Remove the seeded fixture + any swap it produced. Best-effort. */

@@ -1,0 +1,450 @@
+---
+/**
+ * /admin/campaigns/templates — campaign template library CRUD (Feature 4).
+ *
+ * Lists every reusable template (campaign_templates, migration 0034),
+ * grouped by category. Each row → edit (loads into the inline editor)
+ * or delete (confirm). "New template" opens the editor blank.
+ *
+ * The composer (/admin/campaigns/new) reads the SAME table for its
+ * "Use template" dropdown, so anything saved here is immediately
+ * available there.
+ *
+ * Auth: middleware-gated (admin/staff). Reads via the cookie-aware admin
+ * client (campaign_templates_admin_all RLS policy).
+ */
+import AdminShell from '../../../components/AdminShell.astro';
+import Card from '../../../components/Card.astro';
+import {
+  TARGETABLE_SHARE_TYPES,
+  TEMPLATE_CATEGORIES,
+  TEMPLATE_CATEGORY_LABELS,
+  type CampaignTemplateRow,
+} from '../../../lib/campaign';
+
+export const prerender = false;
+
+const supabase = Astro.locals.supabase;
+
+const { data: rows, error: listErr } = await supabase
+  .from('campaign_templates')
+  .select('*')
+  .order('category', { ascending: true })
+  .order('name', { ascending: true })
+  .limit(500)
+  .overrideTypes<CampaignTemplateRow[], { merge: false }>();
+
+if (listErr) {
+  console.error('[admin/campaigns/templates] list failed:', listErr.message);
+}
+const templates = rows ?? [];
+
+// Serialize for the client-side editor (load on "Edit").
+const templatesJson = JSON.stringify(
+  templates.map((t) => ({
+    id: t.id,
+    name: t.name,
+    category: t.category,
+    subject: t.subject,
+    preview_text: t.preview_text,
+    body_html: t.body_html,
+    recipient_filter: t.recipient_filter,
+  }))
+);
+
+const SHARE_LABELS: Record<(typeof TARGETABLE_SHARE_TYPES)[number], string> = {
+  summer_veg: 'Summer Veg',
+  flex: 'Flex',
+  flower: 'Flower',
+  add_on: 'Add-on',
+};
+
+// Group by category for the list.
+const byCategory = new Map<string, CampaignTemplateRow[]>();
+for (const t of templates) {
+  const arr = byCategory.get(t.category) ?? [];
+  arr.push(t);
+  byCategory.set(t.category, arr);
+}
+---
+
+<AdminShell
+  title="Template library"
+  subtitle="Reusable campaign starters. Anything saved here shows up in the composer's 'Use template' dropdown."
+  pageTitle="Campaign templates — Tiny Seed Admin"
+  canonical="https://csa.tinyseedfarm.com/admin/campaigns/templates"
+>
+  <Fragment slot="actions">
+    <a
+      href="/admin/campaigns"
+      class="inline-flex h-10 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-semibold text-ts-text transition-colors duration-150 hover:border-ts-primary/40 hover:text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+    >
+      ← All campaigns
+    </a>
+    <button
+      type="button"
+      data-new-template
+      class="inline-flex h-10 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+    >
+      + New template
+    </button>
+  </Fragment>
+
+  {listErr && (
+    <div role="alert" class="rounded-ts-md border border-ts-danger/30 bg-ts-danger/5 px-4 py-3 text-sm text-ts-danger">
+      Couldn't load templates: {listErr.message}
+    </div>
+  )}
+
+  {templates.length === 0 ? (
+    <Card padding="lg" elevation="sm">
+      <div class="flex flex-col items-center gap-4 py-8 text-center">
+        <div aria-hidden="true" class="flex h-14 w-14 items-center justify-center rounded-full border border-ts-border bg-ts-bg-muted/40 text-3xl">
+          🗂️
+        </div>
+        <h2 class="font-display text-xl font-bold text-ts-text">No templates yet</h2>
+        <p class="max-w-md text-sm text-ts-text-secondary">
+          Save a campaign as a template from the composer, or create one here
+          to reuse across announcements, weekly updates, reminders, and more.
+        </p>
+        <button
+          type="button"
+          data-new-template
+          class="inline-flex h-11 items-center justify-center rounded-ts-md bg-ts-primary px-5 text-sm font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark active:scale-[0.98]"
+        >
+          + New template
+        </button>
+      </div>
+    </Card>
+  ) : (
+    <div class="flex flex-col gap-6">
+      {TEMPLATE_CATEGORIES.filter((cat) => (byCategory.get(cat)?.length ?? 0) > 0).map((cat) => (
+        <section aria-labelledby={`cat-${cat}`} class="flex flex-col gap-3">
+          <h2 id={`cat-${cat}`} class="font-display text-lg font-bold text-ts-text">
+            {TEMPLATE_CATEGORY_LABELS[cat]}
+          </h2>
+          <Card padding="none" elevation="sm">
+            <ul class="divide-y divide-ts-border">
+              {(byCategory.get(cat) ?? []).map((t) => (
+                <li class="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+                  <div class="min-w-0">
+                    <div class="font-semibold text-ts-text">{t.name}</div>
+                    <div class="mt-0.5 truncate text-xs text-ts-text-secondary">{t.subject}</div>
+                  </div>
+                  <div class="flex shrink-0 items-center gap-2">
+                    <button
+                      type="button"
+                      data-edit-template
+                      data-template-id={t.id}
+                      class="inline-flex h-9 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm font-semibold text-ts-text transition-colors hover:border-ts-primary/40 hover:text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      data-delete-template
+                      data-template-id={t.id}
+                      data-template-name={t.name}
+                      class="inline-flex h-9 items-center justify-center rounded-ts-md border border-ts-danger/30 bg-ts-bg-surface px-3 text-sm font-semibold text-ts-danger transition-colors hover:bg-ts-danger/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-danger"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        </section>
+      ))}
+    </div>
+  )}
+
+  <div
+    role="status"
+    aria-live="polite"
+    data-result
+    class="hidden rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-sm text-ts-text"
+  ></div>
+
+  {/* ════ Editor modal ════ */}
+  <div
+    id="editor-modal"
+    class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4"
+    data-editor-modal
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="editor-heading"
+  >
+    <div class="flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-ts-xl bg-ts-bg-surface shadow-ts-lg">
+      <div class="flex items-center justify-between border-b border-ts-border px-5 py-3">
+        <h3 id="editor-heading" class="font-display text-lg font-bold text-ts-text">New template</h3>
+        <button
+          type="button"
+          data-editor-close
+          class="rounded-ts-md px-3 py-1.5 text-sm font-medium text-ts-text-secondary transition-colors hover:bg-ts-bg-muted hover:text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+        >
+          Close
+        </button>
+      </div>
+      <div class="flex flex-col gap-4 overflow-y-auto p-5">
+        <input type="hidden" data-tpl-id value="" />
+
+        <div class="flex flex-col gap-1.5">
+          <label for="tpl-name" class="text-sm font-semibold text-ts-text">Name</label>
+          <input
+            id="tpl-name"
+            data-tpl-name
+            type="text"
+            maxlength="160"
+            class="h-11 w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-3 text-base text-ts-text outline-none transition-colors focus:border-ts-primary focus:ring-2 focus:ring-ts-primary/30"
+          />
+        </div>
+
+        <div class="flex flex-col gap-1.5">
+          <label for="tpl-category" class="text-sm font-semibold text-ts-text">Category</label>
+          <select
+            id="tpl-category"
+            data-tpl-category
+            class="h-11 w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-3 text-base text-ts-text outline-none transition-colors focus:border-ts-primary focus:ring-2 focus:ring-ts-primary/30"
+          >
+            {TEMPLATE_CATEGORIES.map((cat) => (
+              <option value={cat}>{TEMPLATE_CATEGORY_LABELS[cat]}</option>
+            ))}
+          </select>
+        </div>
+
+        <div class="flex flex-col gap-1.5">
+          <label for="tpl-subject" class="text-sm font-semibold text-ts-text">Subject</label>
+          <input
+            id="tpl-subject"
+            data-tpl-subject
+            type="text"
+            maxlength="200"
+            class="h-11 w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-3 text-base text-ts-text outline-none transition-colors focus:border-ts-primary focus:ring-2 focus:ring-ts-primary/30"
+          />
+        </div>
+
+        <div class="flex flex-col gap-1.5">
+          <label for="tpl-preview" class="text-sm font-semibold text-ts-text">Preview text</label>
+          <input
+            id="tpl-preview"
+            data-tpl-preview
+            type="text"
+            maxlength="200"
+            class="h-11 w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-3 text-base text-ts-text outline-none transition-colors focus:border-ts-primary focus:ring-2 focus:ring-ts-primary/30"
+          />
+        </div>
+
+        <div class="flex flex-col gap-1.5">
+          <label for="tpl-body" class="text-sm font-semibold text-ts-text">Body (HTML or plain text)</label>
+          <textarea
+            id="tpl-body"
+            data-tpl-body
+            rows="10"
+            class="w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-3 py-2 font-mono text-sm leading-relaxed text-ts-text outline-none transition-colors focus:border-ts-primary focus:ring-2 focus:ring-ts-primary/30"
+          ></textarea>
+          <p class="text-xs text-ts-text-muted">
+            Plain text auto-formats (blank line = paragraph, `-` = bullet,
+            **bold**). Or paste HTML. Use {`{{first_name}}`} for personalization.
+          </p>
+        </div>
+
+        <fieldset>
+          <legend class="text-sm font-semibold text-ts-text">Suggested recipients</legend>
+          <div class="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {TARGETABLE_SHARE_TYPES.map((t) => (
+              <label class="flex cursor-pointer items-center gap-2 rounded-ts-md border border-ts-border bg-ts-bg-base px-3 py-2 text-sm text-ts-text transition-colors hover:border-ts-primary/40">
+                <input type="checkbox" data-tpl-share value={t} class="h-4 w-4 rounded border-ts-border text-ts-primary focus:ring-ts-primary" />
+                <span>{SHARE_LABELS[t]}</span>
+              </label>
+            ))}
+          </div>
+          <label class="mt-2 inline-flex cursor-pointer items-center gap-2 text-sm text-ts-text">
+            <input type="checkbox" data-tpl-optin class="h-4 w-4 rounded border-ts-border text-ts-primary focus:ring-ts-primary" checked />
+            <span>Only newsletter opt-in members</span>
+          </label>
+        </fieldset>
+      </div>
+      <footer class="flex flex-col-reverse gap-2 border-t border-ts-border px-5 py-4 sm:flex-row sm:justify-end">
+        <button
+          type="button"
+          data-editor-cancel
+          class="inline-flex h-10 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-medium text-ts-text transition-colors hover:border-ts-primary/40 hover:text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          data-editor-save
+          class="inline-flex h-10 items-center justify-center rounded-ts-md bg-ts-primary px-5 text-sm font-semibold text-white shadow-ts-sm transition-colors hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          Save template
+        </button>
+      </footer>
+    </div>
+  </div>
+
+  <script type="application/json" id="templates-data" set:html={templatesJson} />
+
+  <script is:inline>
+    (function () {
+      let templates = [];
+      try {
+        templates = JSON.parse(document.getElementById('templates-data').textContent || '[]');
+      } catch (e) { templates = []; }
+
+      const modal = document.querySelector('[data-editor-modal]');
+      const heading = document.getElementById('editor-heading');
+      const result = document.querySelector('[data-result]');
+
+      const fId = modal.querySelector('[data-tpl-id]');
+      const fName = modal.querySelector('[data-tpl-name]');
+      const fCategory = modal.querySelector('[data-tpl-category]');
+      const fSubject = modal.querySelector('[data-tpl-subject]');
+      const fPreview = modal.querySelector('[data-tpl-preview]');
+      const fBody = modal.querySelector('[data-tpl-body]');
+      const shareInputs = modal.querySelectorAll('[data-tpl-share]');
+      const fOptIn = modal.querySelector('[data-tpl-optin]');
+
+      const btnSave = modal.querySelector('[data-editor-save]');
+
+      function showResult(msg, tone) {
+        if (!result) return;
+        result.classList.remove('hidden', 'border-ts-danger/30', 'bg-ts-danger/5', 'text-ts-danger', 'border-ts-primary/30', 'bg-ts-primary/10', 'text-ts-primary');
+        if (tone === 'error') result.classList.add('border-ts-danger/30', 'bg-ts-danger/5', 'text-ts-danger');
+        else if (tone === 'success') result.classList.add('border-ts-primary/30', 'bg-ts-primary/10', 'text-ts-primary');
+        result.textContent = msg;
+      }
+
+      function openModal() {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        fName.focus();
+      }
+      function closeModal() {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+
+      function resetForm() {
+        fId.value = '';
+        fName.value = '';
+        fCategory.value = 'announcement';
+        fSubject.value = '';
+        fPreview.value = '';
+        fBody.value = '';
+        shareInputs.forEach((el) => { el.checked = false; });
+        fOptIn.checked = true;
+      }
+
+      function loadTemplate(t) {
+        fId.value = t.id || '';
+        fName.value = t.name || '';
+        fCategory.value = t.category || 'announcement';
+        fSubject.value = t.subject || '';
+        fPreview.value = t.preview_text || '';
+        fBody.value = t.body_html || '';
+        const rf = t.recipient_filter || {};
+        const shares = Array.isArray(rf.share_types) ? rf.share_types : [];
+        shareInputs.forEach((el) => { el.checked = shares.indexOf(el.value) >= 0; });
+        fOptIn.checked = rf.newsletter_opt_in !== false;
+      }
+
+      document.querySelectorAll('[data-new-template]').forEach((b) =>
+        b.addEventListener('click', function () {
+          resetForm();
+          heading.textContent = 'New template';
+          openModal();
+        })
+      );
+
+      document.querySelectorAll('[data-edit-template]').forEach((b) =>
+        b.addEventListener('click', function () {
+          const id = b.getAttribute('data-template-id');
+          const t = templates.find((x) => x.id === id);
+          if (!t) return;
+          loadTemplate(t);
+          heading.textContent = 'Edit template';
+          openModal();
+        })
+      );
+
+      modal.querySelector('[data-editor-close]').addEventListener('click', closeModal);
+      modal.querySelector('[data-editor-cancel]').addEventListener('click', closeModal);
+      modal.addEventListener('click', function (e) { if (e.target === modal) closeModal(); });
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && !modal.classList.contains('hidden')) closeModal();
+      });
+
+      function selectedShares() {
+        const out = [];
+        shareInputs.forEach((el) => { if (el.checked) out.push(el.value); });
+        return out;
+      }
+
+      btnSave.addEventListener('click', async function () {
+        btnSave.disabled = true;
+        const orig = btnSave.textContent;
+        btnSave.textContent = 'Saving…';
+        try {
+          const res = await fetch('/api/admin/campaigns/templates', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'content-type': 'application/json', accept: 'application/json' },
+            body: JSON.stringify({
+              action: 'save',
+              id: fId.value || null,
+              name: fName.value,
+              category: fCategory.value,
+              subject: fSubject.value,
+              preview_text: fPreview.value,
+              body_html: fBody.value,
+              recipient_filter: { share_types: selectedShares(), newsletter_opt_in: !!fOptIn.checked },
+            }),
+          });
+          const body = await res.json();
+          if (res.ok && body.ok) {
+            closeModal();
+            showResult('Template saved.', 'success');
+            setTimeout(function () { window.location.reload(); }, 700);
+          } else {
+            const msg = body.error === 'name_taken'
+              ? 'A template with that name already exists.'
+              : 'Could not save: ' + (body.error || 'unknown error') + '.';
+            showResult(msg, 'error');
+          }
+        } catch (e) {
+          showResult('Network error saving template.', 'error');
+        } finally {
+          btnSave.disabled = false;
+          btnSave.textContent = orig;
+        }
+      });
+
+      document.querySelectorAll('[data-delete-template]').forEach((b) =>
+        b.addEventListener('click', async function () {
+          const id = b.getAttribute('data-template-id');
+          const name = b.getAttribute('data-template-name') || 'this template';
+          if (!window.confirm('Delete "' + name + '"? This cannot be undone.')) return;
+          try {
+            const res = await fetch('/api/admin/campaigns/templates', {
+              method: 'POST',
+              credentials: 'same-origin',
+              headers: { 'content-type': 'application/json', accept: 'application/json' },
+              body: JSON.stringify({ action: 'delete', id: id }),
+            });
+            const body = await res.json();
+            if (res.ok && body.ok) {
+              showResult('Template deleted.', 'success');
+              setTimeout(function () { window.location.reload(); }, 700);
+            } else {
+              showResult('Could not delete: ' + (body.error || 'unknown error') + '.', 'error');
+            }
+          } catch (e) {
+            showResult('Network error deleting template.', 'error');
+          }
+        })
+      );
+    })();
+  </script>
+</AdminShell>

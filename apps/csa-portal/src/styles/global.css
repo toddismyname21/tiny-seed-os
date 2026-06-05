@@ -305,3 +305,69 @@ body {
     transform: none !important;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   Campaign WYSIWYG editor (TipTap / ProseMirror)
+   ───────────────────────────────────────────────────────────────────
+   Styles the contenteditable surface on /admin/campaigns/new. TipTap
+   ships unstyled — these rules give the editing surface the same visual
+   weight as the rendered email body (headings, lists, links, images) so
+   what Todd sees while composing closely matches what members receive.
+   Scoped to .prose-campaign (the class set on the editor element) so it
+   never leaks into the rest of the portal.
+   ═══════════════════════════════════════════════════════════════════ */
+.prose-campaign:focus {
+  outline: none;
+}
+.prose-campaign p {
+  margin: 0.75rem 0;
+}
+.prose-campaign h2 {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1.2;
+  margin: 1.25rem 0 0.5rem;
+}
+.prose-campaign h3 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin: 1rem 0 0.5rem;
+}
+.prose-campaign ul,
+.prose-campaign ol {
+  margin: 0.75rem 0;
+  padding-left: 1.5rem;
+}
+.prose-campaign ul {
+  list-style: disc;
+}
+.prose-campaign ol {
+  list-style: decimal;
+}
+.prose-campaign li {
+  margin: 0.25rem 0;
+}
+.prose-campaign a {
+  color: #166534;
+  font-weight: 600;
+  text-decoration: underline;
+}
+.prose-campaign img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin: 0.5rem 0;
+}
+.prose-campaign strong {
+  font-weight: 700;
+}
+/* Empty-state placeholder (TipTap adds .is-editor-empty to the first
+   node when the doc is empty). */
+.prose-campaign p.is-editor-empty:first-child::before {
+  content: 'Write your message…';
+  color: var(--color-ts-text-muted, #94a3b8);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}

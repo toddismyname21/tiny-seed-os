@@ -57,6 +57,33 @@ export { signUnsubscribeToken, unsubscribeUrl, escapeHtml };
 export type Campaign = Database['public']['Tables']['campaigns']['Row'];
 export type CampaignRecipient =
   Database['public']['Tables']['campaign_recipients']['Row'];
+export type CampaignTemplateRow =
+  Database['public']['Tables']['campaign_templates']['Row'];
+
+/**
+ * Template categories. Mirrors the CHECK constraint on
+ * campaign_templates.category (migration 0034). Used by the
+ * /admin/campaigns/templates CRUD page + the draft/template API
+ * validation.
+ */
+export const TEMPLATE_CATEGORIES = [
+  'announcement',
+  'weekly',
+  'reminder',
+  'wholesale',
+  'welcome',
+] as const;
+
+export type TemplateCategory = (typeof TEMPLATE_CATEGORIES)[number];
+
+/** Pretty labels for the template categories. */
+export const TEMPLATE_CATEGORY_LABELS: Record<TemplateCategory, string> = {
+  announcement: 'Announcement',
+  weekly: 'Weekly update',
+  reminder: 'Reminder',
+  wholesale: 'Wholesale',
+  welcome: 'Welcome',
+};
 
 /**
  * The four share buckets Todd can target. Mirrors members.share_type but
@@ -1052,6 +1079,36 @@ export async function sendCampaign(
     console.error('[campaign] aggregate update failed:', aggErr.message);
   }
 
+  // ── 4. Team copy (Feature 3) ────────────────────────────────────────
+  // Send ONE archival copy to each internal address — but ONLY when the
+  // member send has fully completed (status='sent') and at least one
+  // member was mailed in this run. We skip on 'partial' so the team gets
+  // exactly one copy when the campaign finishes, not one per batch.
+  // Fail-soft: wrapped in try/catch so a copy failure can NEVER surface
+  // as a member-send failure.
+  if (nextStatus === 'sent' && totalSentForCampaign > 0) {
+    try {
+      const copyResult = await sendTeamCopies({
+        apiKey: opts.apiKey,
+        from: opts.from,
+        unsubscribeSecret: opts.unsubscribeSecret,
+        campaign: {
+          subject: campaign.subject,
+          preview_text: campaign.preview_text,
+          body_html: campaign.body_html,
+          name: campaign.name,
+        },
+        memberCount: totalSentForCampaign,
+      });
+      console.info(
+        `[campaign] team copies: ${copyResult.sent}/${copyResult.attempted} sent` +
+          (copyResult.failed ? `, ${copyResult.failed} failed` : '')
+      );
+    } catch (e) {
+      console.warn('[campaign] team-copy fan-out threw (ignored):', e);
+    }
+  }
+
   return {
     ok: true,
     campaignId,
@@ -1064,6 +1121,321 @@ export async function sendCampaign(
     remaining,
     rate_limited: rateLimited,
     scheduled_for: nextScheduledFor,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Team-copy fan-out (Feature 3 — auto-copy each send to the team)
+// ─────────────────────────────────────────────────────────────────────
+
+/**
+ * Internal addresses that receive ONE copy of every campaign after the
+ * member send completes. Edit here to add/remove a teammate.
+ *
+ *   - todd@tinyseedfarmpgh.com   (Todd)
+ *   - tinyseedcsa@gmail.com      (Frankie)
+ *   - tinyseedfleurs@gmail.com   (Loren)
+ *
+ * These are NOT per-recipient — exactly one email goes to each address
+ * per campaign, regardless of how many members were mailed.
+ */
+export const CAMPAIGN_TEAM_COPY: readonly string[] = [
+  'todd@tinyseedfarmpgh.com',
+  'tinyseedcsa@gmail.com',
+  'tinyseedfleurs@gmail.com',
+];
+
+/**
+ * Send ONE archival copy of the campaign to each internal team address.
+ *
+ * Fail-soft by contract: any failure here is logged and swallowed — a
+ * team-copy failure must NEVER affect the member send (which has already
+ * completed by the time this runs). Returns a small summary for logging.
+ *
+ * The copy is the SAME branded render the members got, with:
+ *   - subject prefixed "[Sent ✓] "
+ *   - a leading banner line "This went to N members on <date>."
+ * The unsubscribe link points at each teammate's own tokenized URL so
+ * the copy is itself CAN-SPAM-clean (and a teammate can opt their own
+ * inbox out if they ever want to).
+ */
+export async function sendTeamCopies(opts: {
+  apiKey: string;
+  from: string;
+  unsubscribeSecret: string;
+  campaign: Pick<Campaign, 'subject' | 'preview_text' | 'body_html' | 'name'>;
+  /** How many members actually received the campaign (for the banner). */
+  memberCount: number;
+  /** Override recipients (tests). Defaults to CAMPAIGN_TEAM_COPY. */
+  recipients?: readonly string[];
+}): Promise<{ attempted: number; sent: number; failed: number }> {
+  const recipients = opts.recipients ?? CAMPAIGN_TEAM_COPY;
+  let sent = 0;
+  let failed = 0;
+
+  if (!opts.apiKey || !opts.from || !opts.unsubscribeSecret) {
+    // Mis-configured — skip silently (member send already succeeded).
+    console.warn('[campaign] team-copy skipped: email/unsubscribe not configured');
+    return { attempted: 0, sent: 0, failed: 0 };
+  }
+
+  const sentDate = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(new Date());
+
+  const memberWord = opts.memberCount === 1 ? 'member' : 'members';
+  const banner =
+    `<div style="margin:0 0 18px;padding:12px 16px;border-radius:8px;` +
+    `background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;font-size:14px;` +
+    `font-weight:600;line-height:1.5">` +
+    `📬 This went to ${opts.memberCount} ${memberWord} on ${escapeHtml(sentDate)}.` +
+    `</div>`;
+
+  const preferencesHref = `${PORTAL_BASE_URL}/account/preferences`;
+
+  for (const to of recipients) {
+    const unsub = unsubscribeUrl(to, opts.unsubscribeSecret);
+    const rendered = renderCampaignHtml(
+      {
+        subject: opts.campaign.subject,
+        preview_text: opts.campaign.preview_text,
+        // Prepend the banner to the body. formatBodyAsHtml passes raw
+        // HTML through untouched, so this composes cleanly whether the
+        // body is plain text or HTML.
+        body_html: banner + formatBodyAsHtml(opts.campaign.body_html),
+      },
+      {
+        unsubscribeHref: unsub,
+        preferencesHref,
+        recipient: { first_name: 'team', email: to },
+      }
+    );
+    const result = await sendOne(
+      opts.apiKey,
+      opts.from,
+      to,
+      `[Sent ✓] ${opts.campaign.subject}`,
+      rendered.html,
+      rendered.text
+    );
+    if (result.ok) {
+      sent += 1;
+    } else {
+      failed += 1;
+      console.warn(
+        `[campaign] team-copy to ${to} failed (HTTP ${result.status}): ${result.error}`
+      );
+    }
+  }
+
+  return { attempted: recipients.length, sent, failed };
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Resend webhook event application (Feature 1 — open/click tracking)
+// ─────────────────────────────────────────────────────────────────────
+
+/**
+ * The Resend webhook event types we react to. Resend posts a JSON body
+ * shaped `{ type, created_at, data: { email_id, ... } }`. We key on
+ * `data.email_id` (== campaign_recipients.resend_email_id).
+ *
+ * Docs: https://resend.com/docs/dashboard/webhooks/event-types
+ */
+export const RESEND_EVENT_TYPES = [
+  'email.delivered',
+  'email.opened',
+  'email.clicked',
+  'email.bounced',
+  'email.complained',
+] as const;
+
+export type ResendEventType = (typeof RESEND_EVENT_TYPES)[number];
+
+export interface ResendWebhookEvent {
+  type: string;
+  created_at?: string;
+  data?: { email_id?: string; [k: string]: unknown };
+}
+
+/** Map a Resend event type → the recipient status + the campaign counter
+ *  column it should increment. Returns null for events we ignore. */
+function eventToStatus(
+  type: string
+):
+  | { status: CampaignRecipient['status']; counter: keyof Pick<
+        Campaign,
+        | 'total_delivered'
+        | 'total_opened'
+        | 'total_clicked'
+        | 'total_bounced'
+        | 'total_complained'
+      > }
+  | null {
+  switch (type) {
+    case 'email.delivered':
+      return { status: 'delivered', counter: 'total_delivered' };
+    case 'email.opened':
+      return { status: 'opened', counter: 'total_opened' };
+    case 'email.clicked':
+      return { status: 'clicked', counter: 'total_clicked' };
+    case 'email.bounced':
+      return { status: 'bounced', counter: 'total_bounced' };
+    case 'email.complained':
+      return { status: 'complained', counter: 'total_complained' };
+    default:
+      return null;
+  }
+}
+
+/**
+ * Status precedence — engagement only ever moves "forward". A recipient
+ * who already 'clicked' must not be downgraded to 'delivered' if a
+ * late-arriving delivered event shows up out of order. Higher number =
+ * stronger signal. Terminal negatives (bounced/complained) outrank
+ * positives so a bounce is never masked by a prior open.
+ */
+const STATUS_RANK: Record<string, number> = {
+  pending: 0,
+  sending: 1,
+  sent: 2,
+  delivered: 3,
+  opened: 4,
+  clicked: 5,
+  bounced: 6,
+  complained: 7,
+  unsubscribed: 7,
+  failed: 1,
+};
+
+export interface ApplyEventResult {
+  ok: boolean;
+  matched: boolean;
+  /** Did this event advance the recipient's status (and bump a counter)? */
+  applied: boolean;
+  status?: CampaignRecipient['status'];
+  campaign_id?: string;
+  error?: string;
+}
+
+/**
+ * Apply a single Resend webhook event to the DB. Idempotent + order-safe:
+ *
+ *   1. Look up the campaign_recipients row by resend_email_id.
+ *   2. Stamp last_event_at (always — even for ignored/duplicate events,
+ *      so the UI shows the most recent activity timestamp).
+ *   3. If the event maps to a status that OUTRANKS the current status,
+ *      advance the row status AND increment the parent campaign's
+ *      matching aggregate counter exactly once.
+ *
+ * Counter increments are deduped by the status-rank gate: we only bump a
+ * counter when we actually advance the row past that rank. A duplicate
+ * 'opened' for an already-'opened' (or 'clicked') row stamps
+ * last_event_at but does NOT double-count.
+ *
+ * NOTE: the counter increment is a read-then-write (not an atomic SQL
+ * increment) because the typed Supabase client has no `.increment()`.
+ * The webhook is single-flight per email_id in practice (Resend retries
+ * are serial), and the rank gate makes a re-applied event a no-op, so the
+ * race window is negligible for our volume (≤200 members/campaign).
+ */
+export async function applyResendEvent(
+  supabase: SupabaseClient<Database>,
+  event: ResendWebhookEvent
+): Promise<ApplyEventResult> {
+  const emailId = event?.data?.email_id;
+  if (!emailId || typeof emailId !== 'string') {
+    return { ok: true, matched: false, applied: false, error: 'no_email_id' };
+  }
+
+  const mapping = eventToStatus(event.type);
+  // Look up the recipient row regardless — we still stamp last_event_at
+  // for events we don't otherwise act on (e.g. email.sent).
+  const { data: rec, error: recErr } = await supabase
+    .from('campaign_recipients')
+    .select('id, campaign_id, status')
+    .eq('resend_email_id', emailId)
+    .maybeSingle()
+    .overrideTypes<
+      Pick<CampaignRecipient, 'id' | 'campaign_id' | 'status'>,
+      { merge: false }
+    >();
+
+  if (recErr) {
+    console.error('[campaign] webhook recipient lookup failed:', recErr.message);
+    return { ok: false, matched: false, applied: false, error: 'lookup_failed' };
+  }
+  if (!rec) {
+    // Unknown email_id — likely a test send, weekly email, or invite that
+    // isn't a campaign recipient. Accept + no-op.
+    return { ok: true, matched: false, applied: false };
+  }
+
+  const nowIso = event.created_at
+    ? new Date(event.created_at).toISOString()
+    : new Date().toISOString();
+
+  // No mapped status (ignored event) → just stamp last_event_at.
+  if (!mapping) {
+    await supabase
+      .from('campaign_recipients')
+      .update({ last_event_at: nowIso })
+      .eq('id', rec.id);
+    return { ok: true, matched: true, applied: false, campaign_id: rec.campaign_id };
+  }
+
+  const currentRank = STATUS_RANK[rec.status] ?? 0;
+  const nextRank = STATUS_RANK[mapping.status] ?? 0;
+  const advances = nextRank > currentRank;
+
+  // Always stamp last_event_at; advance status only when the event
+  // outranks the current state.
+  const patch: Partial<CampaignRecipient> = { last_event_at: nowIso };
+  if (advances) patch.status = mapping.status;
+  const { error: updErr } = await supabase
+    .from('campaign_recipients')
+    .update(patch)
+    .eq('id', rec.id);
+  if (updErr) {
+    console.error('[campaign] webhook recipient update failed:', updErr.message);
+    return { ok: false, matched: true, applied: false, campaign_id: rec.campaign_id };
+  }
+
+  if (!advances) {
+    // Duplicate / out-of-order — stamped the timestamp, no counter bump.
+    return { ok: true, matched: true, applied: false, campaign_id: rec.campaign_id };
+  }
+
+  // Increment the matching campaign counter (read-then-write).
+  const { data: campRow } = await supabase
+    .from('campaigns')
+    .select(mapping.counter)
+    .eq('id', rec.campaign_id)
+    .maybeSingle();
+  const current =
+    campRow && typeof (campRow as Record<string, unknown>)[mapping.counter] === 'number'
+      ? ((campRow as Record<string, number>)[mapping.counter])
+      : 0;
+  const bumpPatch: Partial<Campaign> = { [mapping.counter]: current + 1 };
+  const { error: bumpErr } = await supabase
+    .from('campaigns')
+    .update(bumpPatch)
+    .eq('id', rec.campaign_id);
+  if (bumpErr) {
+    console.error('[campaign] webhook counter bump failed:', bumpErr.message);
+    // The recipient row is already advanced; counter drift is the lesser
+    // evil and recoverable. Report applied=true so the webhook 200s.
+  }
+
+  return {
+    ok: true,
+    matched: true,
+    applied: true,
+    status: mapping.status,
+    campaign_id: rec.campaign_id,
   };
 }
 

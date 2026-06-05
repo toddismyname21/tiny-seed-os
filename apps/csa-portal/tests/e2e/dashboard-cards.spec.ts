@@ -35,7 +35,9 @@ test.describe('dashboard cards — WEEKLY member', () => {
 
   test.beforeAll(async () => {
     env = readTestEnv();
-    fixture = await seedDashboardCardsFixture(env, null); // null → weekly
+    // Weekly + a missing phone → banner should show the prominent
+    // "Update your phone number" button.
+    fixture = await seedDashboardCardsFixture(env, { biweeklyWeek: null, phone: 'clear' });
   });
 
   test.afterAll(async () => {
@@ -71,6 +73,28 @@ test.describe('dashboard cards — WEEKLY member', () => {
     await expect(scheduleCard.locator('[data-upcoming-dates]')).toHaveCount(0);
   });
 
+  test('shows a PICKUP next-delivery banner with date, stop + phone CTA', async ({ page }) => {
+    test.skip(!fixture, 'test member has no active share to re-point');
+    await page.goto('/dashboard');
+
+    const banner = page.locator('[data-next-delivery-banner]');
+    await expect(banner).toBeVisible();
+    await expect(banner).toHaveAttribute('data-mode', 'pickup');
+    // Required copy. The exact date is proven by the unit tests; here we
+    // assert the SHAPE + the stop name + a time ("after <time>").
+    await expect(banner).toContainText(/your next delivery is/i);
+    await expect(banner).toContainText(/pick up at/i);
+    await expect(banner).toContainText(fixture!.stopName);
+    await expect(banner).toContainText(/after\s+\d+/i);
+    await expect(banner).toContainText(/text message when your share arrives/i);
+    // Phone is BLANK → prominent button to the profile page.
+    const cta = banner.getByRole('link', { name: /update your phone number/i });
+    await expect(cta).toBeVisible();
+    await expect(cta).toHaveAttribute('href', '/account/profile');
+    // The subtle inline link is NOT present when the prominent CTA is.
+    await expect(banner.locator('[data-phone-update-link]')).toHaveCount(0);
+  });
+
   test('Change pickup CTA navigates to the chooser', async ({ page }) => {
     test.skip(!fixture, 'test member has no active share to re-point');
     await page.goto('/dashboard');
@@ -89,11 +113,27 @@ test.describe('dashboard cards — BIWEEKLY member', () => {
 
   test.beforeAll(async () => {
     env = readTestEnv();
-    fixture = await seedDashboardCardsFixture(env, 'A'); // 'A' → biweekly
+    // 'A' → biweekly; phone SET → banner shows the subtle inline "Update" link.
+    fixture = await seedDashboardCardsFixture(env, { biweeklyWeek: 'A', phone: 'set' });
   });
 
   test.afterAll(async () => {
     if (env && fixture) await cleanupDashboardCardsFixture(env, fixture);
+  });
+
+  test('next-delivery banner shows for a biweekly member with the subtle phone link', async ({ page }) => {
+    test.skip(!fixture, 'test member has no active share to re-point');
+    await page.goto('/dashboard');
+
+    const banner = page.locator('[data-next-delivery-banner]');
+    await expect(banner).toBeVisible();
+    await expect(banner).toHaveAttribute('data-mode', 'pickup');
+    await expect(banner).toContainText(/your next delivery is/i);
+    await expect(banner).toContainText(fixture!.stopName);
+    // Phone PRESENT → subtle inline "Update" link, no prominent button.
+    await expect(banner.locator('[data-phone-update-link]')).toBeVisible();
+    await expect(banner.getByRole('link', { name: /update your phone number/i })).toHaveCount(0);
+    await expect(banner.locator('[data-phone-update-link]')).toHaveAttribute('href', '/account/profile');
   });
 
   test('shows a BIWEEKLY schedule card with upcoming-date chips', async ({ page }) => {
@@ -123,5 +163,52 @@ test.describe('dashboard cards — BIWEEKLY member', () => {
     const pickupCard = page.locator('[data-pickup-card]');
     await expect(pickupCard).toBeVisible();
     await expect(pickupCard).toContainText(fixture!.stopName);
+  });
+});
+
+// ── Home-delivery member ─────────────────────────────────────────────────
+test.describe('dashboard cards — HOME-DELIVERY member', () => {
+  let fixture: DashboardCardsFixture | null = null;
+
+  test.beforeAll(async () => {
+    env = readTestEnv();
+    // Home delivery + missing phone → 🚚 banner shape + the phone CTA.
+    fixture = await seedDashboardCardsFixture(env, {
+      biweeklyWeek: null,
+      homeDelivery: true,
+      phone: 'clear',
+    });
+  });
+
+  test.afterAll(async () => {
+    if (env && fixture) await cleanupDashboardCardsFixture(env, fixture);
+  });
+
+  test('shows a DELIVERY next-delivery banner with the address + phone CTA', async ({ page }) => {
+    test.skip(!fixture, 'test member has no active share to re-point');
+    await page.goto('/dashboard');
+    await expect(page).toHaveURL(/\/dashboard\b/);
+
+    const banner = page.locator('[data-next-delivery-banner]');
+    await expect(banner).toBeVisible();
+    await expect(banner).toHaveAttribute('data-mode', 'delivery');
+    await expect(banner).toContainText(/your next delivery is/i);
+    // Delivery shape names the address, NOT a pickup stop/time.
+    await expect(banner).toContainText(fixture!.deliveryAddress!);
+    await expect(banner).not.toContainText(/pick up at/i);
+    await expect(banner).toContainText(/text when it's on the way/i);
+    // Phone blank → prominent button to the profile page.
+    const cta = banner.getByRole('link', { name: /update your phone number/i });
+    await expect(cta).toBeVisible();
+    await expect(cta).toHaveAttribute('href', '/account/profile');
+  });
+
+  test('pickup card renders in delivery mode for the home-delivery member', async ({ page }) => {
+    test.skip(!fixture, 'test member has no active share to re-point');
+    await page.goto('/dashboard');
+    const pickupCard = page.locator('[data-pickup-card]');
+    await expect(pickupCard).toBeVisible();
+    await expect(pickupCard).toHaveAttribute('data-mode', 'delivery');
+    await expect(pickupCard).toContainText(fixture!.deliveryAddress!);
   });
 });

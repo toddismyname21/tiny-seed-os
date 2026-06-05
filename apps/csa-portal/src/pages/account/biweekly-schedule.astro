@@ -2,9 +2,15 @@
 /**
  * /account/biweekly-schedule — member picks Week A, Week B, or "no preference".
  *
- * Bi-weekly schedule explainer:
- *   - Week A = 1st & 3rd Wednesday of each month
- *   - Week B = 2nd & 4th Wednesday of each month
+ * Bi-weekly cadence (CORRECTED 2026-06-05): Tiny Seed runs a 14-day PARITY
+ * cadence anchored to the first 2026 delivery (Wed 2026-06-10 = Week A), NOT
+ * a calendar-month position. The old copy here said "Week A = 1st & 3rd
+ * Wednesday of each month" — that is WRONG: on a 5-Wednesday month the
+ * month-position model drifts a week off the true every-other-week rhythm
+ * the pack floor actually runs (cycle.ts `weekParity`). We now resolve the
+ * member's ACTUAL upcoming dates for each week with the SAME schedule.ts /
+ * cycle.ts logic the dashboard's ScheduleCard + the ops resolver use, so the
+ * picker can never drift from reality.
  *
  * The picker is a radio-card UI (matches /account/pickup's mode toggle).
  * A 3rd option lets the member defer the choice; admin will auto-assign
@@ -21,6 +27,12 @@ import Button from '../../components/Button.astro';
 import Card from '../../components/Card.astro';
 import EmptyState from '../../components/EmptyState.astro';
 import { BIWEEKLY_ERROR_COPY } from '../../lib/account';
+import { getSchedule, type SeasonSchedule } from '../../lib/season';
+import {
+  resolveMemberSchedule,
+  upcomingDeliveries,
+  prettyDeliveryShort,
+} from '../../lib/schedule';
 
 const user = Astro.locals.user;
 if (!user || !user.email) {
@@ -60,6 +72,47 @@ const isMixed = distinctWeeks.size > 1;
 
 const currentWeek: 'A' | 'B' | null = primary?.biweekly_week ?? null;
 
+// ─── Resolve the member's ACTUAL upcoming dates per week ─────────────
+// Pick the controlling season schedule among the live members: the one
+// whose share_type HAS a configured SEASON_SCHEDULE with the EARLIEST
+// firstDelivery (matches the dashboard's controlling-schedule logic). From
+// that schedule we project the next few Week-A and Week-B delivery dates
+// using the SAME 14-day parity cadence as cycle.ts — so the picker shows
+// real dates, never a drifting "1st & 3rd Wednesday" approximation.
+let controllingSchedule: SeasonSchedule | null = null;
+for (const m of liveMembers) {
+  const sched = getSchedule(m.share_type);
+  if (!sched) continue;
+  if (!controllingSchedule || sched.firstDelivery < controllingSchedule.firstDelivery) {
+    controllingSchedule = sched;
+  }
+}
+
+// Next 3 delivery dates for each parity ("June 10, June 24, July 8"). Empty
+// when no live share has a configured schedule (e.g. flower-only while flower
+// is still TBD) OR the season is over — the copy falls back to the plain
+// "every other Wednesday" explainer in that case.
+const HOW_MANY_PREVIEW = 3;
+const upcomingByWeek = (week: 'A' | 'B'): string[] => {
+  if (!controllingSchedule) return [];
+  const resolved = resolveMemberSchedule({ schedule: controllingSchedule, biweeklyWeek: week });
+  return upcomingDeliveries(resolved, HOW_MANY_PREVIEW).map(prettyDeliveryShort);
+};
+const upcomingA = upcomingByWeek('A');
+const upcomingB = upcomingByWeek('B');
+const hasRealDates = upcomingA.length > 0 || upcomingB.length > 0;
+
+// The member's own next few dates (for the "Current" panel), using their
+// actual assigned week. Empty when unassigned or no configured schedule.
+const upcomingForCurrent = currentWeek ? upcomingByWeek(currentWeek) : [];
+
+/** "June 10, June 24 & July 8" — a friendly comma+ampersand join. */
+function joinDates(dates: string[]): string {
+  if (dates.length === 0) return '';
+  if (dates.length === 1) return dates[0];
+  return `${dates.slice(0, -1).join(', ')} & ${dates[dates.length - 1]}`;
+}
+
 // ─── Flash ──────────────────────────────────────────────────────────
 const errorParam = Astro.url.searchParams.get('error');
 const okParam = Astro.url.searchParams.get('ok');
@@ -75,26 +128,41 @@ const initialChoice: 'A' | 'B' | 'unassigned' =
   currentWeek === 'B' ? 'B' :
   'unassigned';
 
-// ─── Static option metadata ─────────────────────────────────────────
+// ─── Option metadata ─────────────────────────────────────────────────
+// Week A / Week B descriptions use the member's REAL upcoming dates when we
+// have a configured schedule; otherwise they fall back to the generic
+// "every other Wednesday" rhythm (no false "1st & 3rd" month claim).
 const CHOICES: Array<{
   value: 'A' | 'B' | 'unassigned';
   label: string;
+  /** Short right-aligned tag — the next date, or a generic cadence note. */
   schedule: string;
+  /** One-line hint under the label. */
   hint: string;
+  /** Concrete upcoming dates for this option (A/B only). */
+  dates: string[];
   icon: string;
 }> = [
   {
     value: 'A',
     label: 'Week A',
-    schedule: '1st & 3rd Wednesdays',
-    hint: 'You\'ll get a box on the first and third Wednesday of each month.',
+    schedule: upcomingA.length > 0 ? `Starts ${upcomingA[0]}` : 'Every other Wednesday',
+    hint:
+      upcomingA.length > 0
+        ? `Your boxes would come ${joinDates(upcomingA)}, and every other Wednesday after.`
+        : 'A box every other Wednesday, on the Week A rhythm.',
+    dates: upcomingA,
     icon: '🗓',
   },
   {
     value: 'B',
     label: 'Week B',
-    schedule: '2nd & 4th Wednesdays',
-    hint: 'You\'ll get a box on the second and fourth Wednesday of each month.',
+    schedule: upcomingB.length > 0 ? `Starts ${upcomingB[0]}` : 'Every other Wednesday',
+    hint:
+      upcomingB.length > 0
+        ? `Your boxes would come ${joinDates(upcomingB)}, and every other Wednesday after.`
+        : 'A box every other Wednesday, on the Week B rhythm.',
+    dates: upcomingB,
     icon: '🗓',
   },
   {
@@ -102,6 +170,7 @@ const CHOICES: Array<{
     label: "I don't have a preference",
     schedule: 'Farm will choose',
     hint: 'We\'ll assign you a week that keeps your pickup location balanced.',
+    dates: [],
     icon: '🌱',
   },
 ];
@@ -109,7 +178,7 @@ const CHOICES: Array<{
 
 <MemberShell
   title="Bi-weekly schedule — Tiny Seed Farm CSA"
-  description="Choose whether you'd like to get your CSA box on Week A (1st & 3rd Wednesdays) or Week B (2nd & 4th Wednesdays)."
+  description="Choose your bi-weekly CSA rhythm — Week A or Week B. We run every other Wednesday; pick the weeks that fit your kitchen."
   canonical="https://csa.tinyseedfarm.com/account/biweekly-schedule"
   userEmail={user.email}
   active="account"
@@ -141,18 +210,15 @@ const CHOICES: Array<{
             <div class="mt-2 flex items-start gap-3">
               <span class="mt-0.5 text-lg" aria-hidden="true">🗓</span>
               <div class="min-w-0">
-                {currentWeek === 'A' ? (
+                {currentWeek === 'A' || currentWeek === 'B' ? (
                   <>
-                    <p class="text-sm font-medium text-ts-text">Week A</p>
+                    <p class="text-sm font-medium text-ts-text">Week {currentWeek}</p>
                     <p class="mt-0.5 text-sm text-ts-text-secondary">
-                      1st &amp; 3rd Wednesdays of each month
-                    </p>
-                  </>
-                ) : currentWeek === 'B' ? (
-                  <>
-                    <p class="text-sm font-medium text-ts-text">Week B</p>
-                    <p class="mt-0.5 text-sm text-ts-text-secondary">
-                      2nd &amp; 4th Wednesdays of each month
+                      {upcomingForCurrent.length > 0 ? (
+                        <>Your next boxes: {joinDates(upcomingForCurrent)} — every other Wednesday.</>
+                      ) : (
+                        <>A box every other Wednesday, on the Week {currentWeek} rhythm.</>
+                      )}
                     </p>
                   </>
                 ) : (
@@ -234,6 +300,16 @@ const CHOICES: Array<{
                         <span class="mt-1 block text-xs leading-snug text-ts-text-muted">
                           {c.hint}
                         </span>
+                        {c.dates.length > 0 && (
+                          <span class="mt-2 flex flex-wrap gap-1.5" data-week-dates={c.value}>
+                            {c.dates.map((d) => (
+                              <span class="inline-flex items-center gap-1 rounded-full border border-ts-primary/30 bg-ts-primary/5 px-2 py-0.5 text-xs font-medium text-ts-text">
+                                <span class="h-1 w-1 rounded-full bg-ts-primary" aria-hidden="true"></span>
+                                {d}
+                              </span>
+                            ))}
+                          </span>
+                        )}
                       </span>
                     </label>
                   ))}
@@ -250,15 +326,30 @@ const CHOICES: Array<{
                 <li class="flex gap-2">
                   <span aria-hidden="true">·</span>
                   <span>
-                    <strong class="font-medium text-ts-text">Week A members</strong>
-                    {' '}get a box on the 1st and 3rd Wednesday of each month.
+                    We deliver <strong class="font-medium text-ts-text">every other Wednesday</strong>.
+                    Week A and Week B are the two halves of that rhythm — one gets a box
+                    one Wednesday, the other gets it the next.
                   </span>
                 </li>
                 <li class="flex gap-2">
                   <span aria-hidden="true">·</span>
                   <span>
-                    <strong class="font-medium text-ts-text">Week B members</strong>
-                    {' '}get a box on the 2nd and 4th Wednesday of each month.
+                    {hasRealDates ? (
+                      <>
+                        <strong class="font-medium text-ts-text">Week A</strong> boxes come
+                        {' '}{upcomingA.length > 0 ? joinDates(upcomingA) : 'on the Week A weeks'};
+                        {' '}<strong class="font-medium text-ts-text">Week B</strong> boxes come
+                        {' '}{upcomingB.length > 0 ? joinDates(upcomingB) : 'on the Week B weeks'}.
+                        After that, each continues every other Wednesday.
+                      </>
+                    ) : (
+                      <>
+                        <strong class="font-medium text-ts-text">Week A</strong> and
+                        {' '}<strong class="font-medium text-ts-text">Week B</strong> simply land on
+                        alternating Wednesdays — we'll confirm your exact dates once the
+                        season schedule is set.
+                      </>
+                    )}
                   </span>
                 </li>
                 <li class="flex gap-2">

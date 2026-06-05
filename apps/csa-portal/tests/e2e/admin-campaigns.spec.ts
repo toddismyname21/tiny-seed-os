@@ -213,4 +213,76 @@ test.describe('admin campaigns — composer flow', () => {
     // The campaign name appears in the table.
     await expect(page.getByText('[E2E] test draft').first()).toBeVisible();
   });
+
+  test('detail page shows the "View email as sent" archive panel', async ({ page }) => {
+    test.skip(!promo, 'test member has no customers row to promote to admin');
+    test.skip(!createdCampaignId, 'no campaign was created');
+    await page.goto(`/admin/campaigns/${createdCampaignId}`);
+    // The archive <details> summary is present (Feature 2).
+    await expect(page.getByText(/view email as sent/i).first()).toBeVisible();
+    // The phone-frame iframe exists.
+    await expect(page.locator('[data-archive-frame]')).toHaveCount(1);
+  });
+
+  test('composer mounts the rich-text editor + email-safe font dropdown', async ({ page }) => {
+    test.skip(!promo, 'test member has no customers row to promote to admin');
+    await page.goto('/admin/campaigns/new');
+    // TipTap renders a contenteditable inside the mount (Feature 4).
+    const editable = page.locator('[data-editor-mount] [contenteditable="true"]');
+    await expect(editable).toBeVisible({ timeout: 10_000 });
+    // Toolbar bold button present.
+    await expect(page.locator('[data-cmd="bold"]')).toBeVisible();
+    // Font dropdown is curated (email-safe only) — Georgia present, no
+    // arbitrary font like "Comic Sans".
+    const fontSelect = page.locator('[data-font-select]');
+    await expect(fontSelect).toBeVisible();
+    await expect(fontSelect.locator('option', { hasText: 'Georgia' })).toHaveCount(1);
+  });
+
+  test('templates page lists the seeded library', async ({ page }) => {
+    test.skip(!promo, 'test member has no customers row to promote to admin');
+    await page.goto('/admin/campaigns/templates');
+    await expect(
+      page.getByRole('heading', { name: /^template library$/i }).first()
+    ).toBeVisible();
+    // The two seeded portal-launch templates are present.
+    await expect(page.getByText(/Portal Launch — Summer\/Flex Wave/i).first()).toBeVisible();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────
+// Webhook — PUBLIC route (no admin cookie). Resend calls this
+// server-to-server; signature is the auth. We don't set a signing
+// secret in the test env, so the route no-op-ACCEPTS (200) unsigned
+// events. An unknown email_id matches no recipient → matched:false.
+// ─────────────────────────────────────────────────────────────────────
+test.describe('campaigns webhook — public route', () => {
+  test('accepts a Resend event with no admin cookie (unsigned no-op)', async ({ browser }) => {
+    // Fresh context with NO storageState → proves the route is public.
+    const ctx = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+    const req = ctx.request;
+    const res = await req.post('/api/admin/campaigns/webhook', {
+      data: {
+        type: 'email.opened',
+        created_at: new Date().toISOString(),
+        data: { email_id: 'e2e-unknown-id-' + Date.now() },
+      },
+      headers: { 'content-type': 'application/json' },
+    });
+    expect(res.status()).toBe(200);
+    const body = await res.json();
+    expect(body.ok).toBe(true);
+    expect(body.matched).toBe(false); // unknown email_id → no recipient
+    await ctx.close();
+  });
+
+  test('rejects malformed JSON with 400', async ({ browser }) => {
+    const ctx = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+    const res = await ctx.request.post('/api/admin/campaigns/webhook', {
+      data: 'not json{',
+      headers: { 'content-type': 'application/json' },
+    });
+    expect(res.status()).toBe(400);
+    await ctx.close();
+  });
 });

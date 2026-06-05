@@ -794,6 +794,35 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['campaign_recipients']['Row']>;
         Relationships: [];
       };
+      // campaign_templates: reusable campaign starters (migration 0034).
+      // Backs the composer's "Use template" dropdown + "Save as template"
+      // button + the /admin/campaigns/templates CRUD page.
+      campaign_templates: {
+        Row: {
+          id: string;
+          name: string;
+          category:
+            | 'announcement'
+            | 'weekly'
+            | 'reminder'
+            | 'wholesale'
+            | 'welcome';
+          subject: string;
+          preview_text: string;
+          body_html: string;
+          recipient_filter: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          name: string;
+          subject: string;
+          preview_text: string;
+          body_html: string;
+        } & Partial<Database['public']['Tables']['campaign_templates']['Row']>;
+        Update: Partial<Database['public']['Tables']['campaign_templates']['Row']>;
+        Relationships: [];
+      };
     };
     Views: {
       member_flex_balance: {

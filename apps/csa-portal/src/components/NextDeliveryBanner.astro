@@ -1,0 +1,151 @@
+---
+/**
+ * NextDeliveryBanner — the #1 thing a member sees on the dashboard.
+ *
+ * Todd's directive 2026-06-05 (docs/CSA_DASHBOARD_NEXT_DELIVERY_BANNER.md):
+ * pin a warm, scannable "your next delivery is ___" line to the very top of
+ * the dashboard, above every other card. Two shapes:
+ *
+ *   - Pickup members:
+ *       📦 Your next delivery is Wednesday, June 10.
+ *       Pick up at Squirrel Hill after 2 PM.
+ *       You'll get a text message when your share arrives — make sure your
+ *       phone number is up to date.
+ *
+ *   - Home-delivery members:
+ *       🚚 Your next delivery is Wednesday, June 10 to <address>.
+ *       You'll get a text when it's on the way — keep your phone number up
+ *       to date.
+ *
+ * Data sources (all resolved server-side by the caller, passed in here):
+ *   - nextDeliveryLong — member's next on-week date from lib/schedule.ts
+ *     (cycle.ts parity + season.ts), so weekly + Week A/B + flex all land on
+ *     the right date.
+ *   - stopName + dayLong — pickup_locations.name + day_of_week.
+ *   - pickupTime — pickup_locations.time_start (formatted), else the single
+ *     DEFAULT_PICKUP_TIME constant (lib/schedule.ts) — 2 PM is a placeholder.
+ *   - hasPhone — customers.phone present? Drives a prominent "Update your
+ *     phone number" button (missing) vs. a subtle "update" link (present).
+ *
+ * The "text when your share arrives" SMS is NOT live yet (pending Twilio A2P
+ * registration). We ship the copy + phone-update prompt NOW to collect/verify
+ * numbers ahead of SMS going live.
+ *
+ * Pure presentation. Mobile-first, design-token only. The dashboard keeps the
+ * separate PickupCard below for the "change pickup location" path — this
+ * banner is read-only awareness; that card is the action.
+ */
+import Button from './Button.astro';
+
+type Mode = 'pickup' | 'delivery';
+
+interface Props {
+  mode: Mode;
+  /** "Wednesday, June 10" — the member's next on-week delivery date. */
+  nextDeliveryLong: string;
+  /** Stop name (pickup mode) — e.g. "Squirrel Hill". */
+  stopName?: string | null;
+  /** Formatted pickup time — e.g. "2 PM" (pickup mode). Never blank: the
+   *  caller falls back to DEFAULT_PICKUP_TIME. */
+  pickupTime?: string | null;
+  /** Delivery address (delivery mode). */
+  deliveryAddress?: string | null;
+  /** Does customers.phone have a value? Drives the prompt vs. subtle link. */
+  hasPhone: boolean;
+}
+
+const {
+  mode,
+  nextDeliveryLong,
+  stopName = null,
+  pickupTime = null,
+  deliveryAddress = null,
+  hasPhone,
+} = Astro.props as Props;
+---
+
+<section
+  aria-labelledby="next-delivery-heading"
+  class="overflow-hidden rounded-ts-xl border border-ts-primary/30 bg-ts-primary/5 p-5 shadow-ts-sm sm:p-6"
+  data-next-delivery-banner
+  data-mode={mode}
+>
+  <div class="flex items-start gap-4">
+    <span
+      class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-ts-primary/15 text-2xl"
+      aria-hidden="true"
+    >
+      {mode === 'delivery' ? '🚚' : '📦'}
+    </span>
+
+    <div class="min-w-0 flex-1">
+      <h2
+        id="next-delivery-heading"
+        class="font-display text-xl font-bold leading-tight tracking-tight text-ts-text sm:text-2xl"
+      >
+        {mode === 'delivery' ? (
+          <>
+            Your next delivery is{' '}
+            <span class="text-ts-primary">{nextDeliveryLong}</span>
+            {deliveryAddress && (
+              <>
+                {' '}to <span class="text-ts-primary">{deliveryAddress}</span>
+              </>
+            )}.
+          </>
+        ) : (
+          <>
+            Your next delivery is{' '}
+            <span class="text-ts-primary">{nextDeliveryLong}</span>.
+          </>
+        )}
+      </h2>
+
+      {mode === 'pickup' && (
+        <p class="mt-1.5 text-base leading-relaxed text-ts-text-secondary">
+          Pick up at{' '}
+          <span class="font-semibold text-ts-text">{stopName}</span>{' '}
+          after{' '}
+          <span class="font-semibold text-ts-text">{pickupTime}</span>.
+        </p>
+      )}
+
+      {/* Phone / SMS line. Copy differs by mode, but the phone-prompt logic
+          is identical: prominent button when we have no number to text,
+          subtle inline "update" link when we do. */}
+      <p class="mt-2.5 text-sm leading-relaxed text-ts-text-secondary">
+        {mode === 'delivery' ? (
+          <>You'll get a text when it's on the way — keep your phone number up to date.</>
+        ) : (
+          <>You'll get a text message when your share arrives — make sure your phone number is up to date.</>
+        )}
+        {hasPhone && (
+          <>
+            {' '}
+            <a
+              href="/account/profile"
+              class="font-medium text-ts-primary underline decoration-ts-primary/40 underline-offset-2 hover:decoration-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+              data-phone-update-link
+            >
+              Update
+            </a>
+          </>
+        )}
+      </p>
+
+      {!hasPhone && (
+        <div class="mt-4">
+          <Button
+            href="/account/profile"
+            variant="primary"
+            size="md"
+            class="w-full sm:w-auto"
+            data-phone-update-cta
+          >
+            Update your phone number
+          </Button>
+        </div>
+      )}
+    </div>
+  </div>
+</section>

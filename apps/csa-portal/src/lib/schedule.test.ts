@@ -18,6 +18,8 @@ import {
   lastMemberDelivery,
   seasonEndDate,
   deliveryParity,
+  prettyPickupTime,
+  DEFAULT_PICKUP_TIME,
 } from './schedule.ts';
 import { SEASON_SCHEDULE, type SeasonSchedule } from './season.ts';
 
@@ -139,6 +141,55 @@ test('seasonEndDate uses the member last delivery', () => {
   assertEqual(seasonEndDate(weekly, summer), '2026-10-07');
   const a = resolveMemberSchedule({ schedule: summer, biweeklyWeek: 'A' });
   assertEqual(seasonEndDate(a, summer), '2026-09-30'); // last A week (week 17)
+});
+
+// ─── prettyPickupTime: banner "after [2 PM]" formatting ─────────────
+
+test('prettyPickupTime formats an on-the-hour PM time', () => {
+  assertEqual(prettyPickupTime('15:00'), '3 PM');
+  assertEqual(prettyPickupTime('15:00:00'), '3 PM'); // tolerates HH:MM:SS
+});
+
+test('prettyPickupTime formats AM + noon + midnight + minutes', () => {
+  assertEqual(prettyPickupTime('09:00'), '9 AM');
+  assertEqual(prettyPickupTime('12:00'), '12 PM'); // noon
+  assertEqual(prettyPickupTime('00:00'), '12 AM'); // midnight
+  assertEqual(prettyPickupTime('14:30'), '2:30 PM');
+});
+
+test('prettyPickupTime falls back to DEFAULT_PICKUP_TIME when unset/invalid', () => {
+  assertEqual(prettyPickupTime(null), DEFAULT_PICKUP_TIME);
+  assertEqual(prettyPickupTime(undefined), DEFAULT_PICKUP_TIME);
+  assertEqual(prettyPickupTime(''), DEFAULT_PICKUP_TIME);
+  assertEqual(prettyPickupTime('not-a-time'), DEFAULT_PICKUP_TIME);
+  assertEqual(prettyPickupTime('25:00'), DEFAULT_PICKUP_TIME); // out of range
+});
+
+test('DEFAULT_PICKUP_TIME is the single placeholder source of truth', () => {
+  // 2 PM is Todd's placeholder; this guards the one-line-changeable contract.
+  assertEqual(DEFAULT_PICKUP_TIME, '2 PM');
+});
+
+// ─── next-delivery date for the banner (upcomingDeliveries(_, 1)) ───
+
+test('banner next-delivery: weekly member before the season → June 10', () => {
+  const r = resolveMemberSchedule({ schedule: summer, biweeklyWeek: null });
+  assertEqual(upcomingDeliveries(r, 1, '2026-05-31')[0], '2026-06-10');
+});
+
+test('banner next-delivery: biweekly A before the season → June 10', () => {
+  const r = resolveMemberSchedule({ schedule: summer, biweeklyWeek: 'A' });
+  assertEqual(upcomingDeliveries(r, 1, '2026-05-31')[0], '2026-06-10');
+});
+
+test('banner next-delivery: biweekly B before the season → June 17', () => {
+  const r = resolveMemberSchedule({ schedule: summer, biweeklyWeek: 'B' });
+  assertEqual(upcomingDeliveries(r, 1, '2026-05-31')[0], '2026-06-17');
+});
+
+test('banner next-delivery: mid-season skips past dates (A on Jun 25 → Jul 8)', () => {
+  const r = resolveMemberSchedule({ schedule: summer, biweeklyWeek: 'A' });
+  assertEqual(upcomingDeliveries(r, 1, '2026-06-25')[0], '2026-07-08');
 });
 
 // ─── Summary ────────────────────────────────────────────────────────

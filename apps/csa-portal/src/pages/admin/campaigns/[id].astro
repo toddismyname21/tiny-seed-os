@@ -16,7 +16,12 @@
  */
 import AdminShell from '../../../components/AdminShell.astro';
 import Card from '../../../components/Card.astro';
-import type { Campaign, CampaignRecipient } from '../../../lib/campaign';
+import {
+  renderCampaignHtml,
+  type Campaign,
+  type CampaignRecipient,
+} from '../../../lib/campaign';
+import { PORTAL_BASE_URL } from '../../../lib/weekly-email';
 
 export const prerender = false;
 
@@ -138,15 +143,34 @@ const statCards: Array<{ label: string; value: number }> = [
   { label: 'Complained', value: campaign.total_complained },
 ];
 
-// Phase 1: open/click/delivered/bounced come from the Resend webhook
-// (Phase 2). Surface a small note when those are all 0 + status=sent so
-// Todd isn't confused.
-const tracksAreEmpty =
+// Open/click/delivered/bounced now come live from the Resend webhook
+// (/api/admin/campaigns/webhook). For a finished send that hasn't
+// received any engagement events yet (e.g. moments after sending, or
+// before the webhook secret is configured), surface a gentle note so the
+// zeros don't read as "broken".
+const noEngagementYet =
   isFinal &&
   campaign.total_delivered === 0 &&
   campaign.total_opened === 0 &&
   campaign.total_clicked === 0 &&
   campaign.total_bounced === 0;
+
+// ── Archive: render the email exactly as it was sent (Feature 2) ──
+// We render through the SAME renderCampaignHtml pipeline (branded header
+// + footer) members received. Links point at the live portal shapes (no
+// real signed token — this is a viewer, not a send).
+const archiveHtml = renderCampaignHtml(
+  {
+    subject: campaign.subject,
+    preview_text: campaign.preview_text,
+    body_html: campaign.body_html,
+  },
+  {
+    unsubscribeHref: `${PORTAL_BASE_URL}/unsubscribe`,
+    preferencesHref: `${PORTAL_BASE_URL}/account/preferences`,
+    recipient: { first_name: 'there', email: 'member@example.com' },
+  }
+).html;
 ---
 
 <AdminShell
@@ -214,12 +238,58 @@ const tracksAreEmpty =
         </Card>
       ))}
     </div>
-    {tracksAreEmpty && (
+    {noEngagementYet && (
       <p class="text-xs text-ts-text-muted">
-        Delivery/open/click tracking goes live after we wire Resend's webhook (Phase 2).
-        For tonight, the "Sent" count is the authoritative number.
+        Delivery, open and click counts arrive from Resend over the minutes
+        and hours after a send — they'll fill in here automatically. If they
+        stay at zero, the webhook endpoint may not be registered in Resend yet.
       </p>
     )}
+  </section>
+
+  {/* ════ Email archive — view as sent ════ */}
+  <section aria-labelledby="archive-heading" class="flex flex-col gap-3">
+    <div class="flex flex-col gap-1">
+      <h2 id="archive-heading" class="font-display text-xl font-bold text-ts-text sm:text-2xl">
+        Email as sent
+      </h2>
+      <p class="text-sm text-ts-text-secondary">
+        Exactly what landed in members' inboxes — branded header and footer included.
+      </p>
+    </div>
+    <Card padding="none" elevation="sm">
+      <details data-archive class="group">
+        <summary
+          class="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 text-sm font-semibold text-ts-text transition-colors hover:bg-ts-bg-muted/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+        >
+          <span class="flex items-center gap-2">
+            <span aria-hidden="true">✉️</span>
+            View email as sent
+          </span>
+          <span
+            aria-hidden="true"
+            class="text-ts-text-muted transition-transform duration-200 group-open:rotate-180"
+          >
+            ▾
+          </span>
+        </summary>
+        <div class="border-t border-ts-border bg-ts-bg-muted/20 p-4 sm:p-6">
+          {/* Phone-frame the rendered email. Sandboxed iframe — scripts
+              disabled, no same-origin — so archived HTML can never run
+              code in the admin origin. */}
+          <div class="mx-auto w-full max-w-[400px] overflow-hidden rounded-[28px] border-[10px] border-ts-text/80 bg-white shadow-ts-md">
+            <iframe
+              title={`Email archive — ${campaign.name}`}
+              data-archive-frame
+              sandbox=""
+              loading="lazy"
+              class="h-[640px] w-full border-0 bg-white"
+              srcdoc={archiveHtml}
+            ></iframe>
+          </div>
+        </div>
+      </details>
+    </Card>
   </section>
 
   {/* ════ Recipients ════ */}

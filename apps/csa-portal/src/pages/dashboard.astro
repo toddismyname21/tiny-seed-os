@@ -49,11 +49,13 @@ import {
   seasonEndDate,
   prettyDeliveryLong,
   prettyDeliveryShort,
+  prettyPickupTime,
 } from '../lib/schedule';
 import FlexWallet from '../components/FlexWallet.astro';
 import PickupNudgeBanner from '../components/PickupNudgeBanner.astro';
 import PickupCard from '../components/PickupCard.astro';
 import ScheduleCard from '../components/ScheduleCard.astro';
+import NextDeliveryBanner from '../components/NextDeliveryBanner.astro';
 
 const user = Astro.locals.user;
 const supabase = Astro.locals.supabase;
@@ -133,6 +135,7 @@ type CustomerWithShares = {
   legacy_id: string | null;
   contact_name: string;
   email: string;
+  phone: string | null;
   members: ActiveShare[];
 };
 
@@ -144,6 +147,7 @@ const { data: customerRows, error: customerError } = await supabase
     legacy_id,
     contact_name,
     email,
+    phone,
     members (
       id,
       share_type,
@@ -467,6 +471,11 @@ let scheduleFirstLong = '';
 let scheduleSeasonEndShort = '';
 let scheduleUpcomingShort: string[] = [];
 
+// Next-delivery date for the top-of-dashboard banner. The member's NEXT
+// on-week delivery (weekly = next week; biweekly A/B = their next parity
+// week; flex members carry an A/B too). Empty once the season is over.
+let nextDeliveryLong = '';
+
 if (primaryShare && primarySchedule) {
   const resolved = resolveMemberSchedule({
     schedule: primarySchedule,
@@ -479,7 +488,51 @@ if (primaryShare && primarySchedule) {
   scheduleSeasonEndShort = prettyDeliveryShort(seasonEndDate(resolved, primarySchedule));
   // Next 4 upcoming dates (only used by the biweekly card's chip list).
   scheduleUpcomingShort = upcomingDeliveries(resolved, 4).map(prettyDeliveryShort);
+  // Next single delivery (banner). upcomingDeliveries is inclusive of today,
+  // so a box being packed TODAY still reads as the next delivery.
+  const nextDate = upcomingDeliveries(resolved, 1)[0] ?? null;
+  nextDeliveryLong = nextDate ? prettyDeliveryLong(nextDate) : '';
 }
+
+// ── Next-delivery banner props (2026-06-05, Todd directive) ──
+// The #1 thing a member sees: a warm "your next delivery is ___" line at the
+// very top. Shows only when we can name a real upcoming date (configured
+// schedule + a future delivery) AND the member HAS a pickup/delivery to name
+// (so it never overlaps the hard "choose your pickup" forcing-nudge). The
+// pickup-vs-delivery shape mirrors the PickupCard's mode.
+type NextDeliveryMode = 'pickup' | 'delivery';
+let nextDeliveryMode: NextDeliveryMode = 'pickup';
+let nextDeliveryStopName: string | null = null;
+let nextDeliveryPickupTime: string | null = null;
+let nextDeliveryAddress: string | null = null;
+
+if (pickupCardMode === 'delivery') {
+  nextDeliveryMode = 'delivery';
+  nextDeliveryAddress = pickupDeliveryAddress;
+} else if (pickupCardMode === 'pickup') {
+  nextDeliveryMode = 'pickup';
+  nextDeliveryStopName = pickupLocationName;
+  // Single pickup time ("after 2 PM"). Falls back to DEFAULT_PICKUP_TIME
+  // inside the helper when the stop has no time_start.
+  nextDeliveryPickupTime = prettyPickupTime(
+    primaryShare?.pickup_location?.time_start ?? null,
+  );
+}
+
+// customers.phone present? Drives the prominent "Update your phone number"
+// button (missing) vs. the subtle inline "Update" link (present).
+const hasPhone =
+  typeof customer?.phone === 'string' && customer.phone.trim().length > 0;
+
+// Render the banner only when: we have a real next-delivery date, the member
+// is NOT in the hard pickup-nudge state, the season is configured + not
+// complete, and we can describe a pickup OR delivery (not the 'unset' card).
+const showNextDeliveryBanner =
+  Boolean(primaryShare && primarySchedule) &&
+  phase !== 'complete' &&
+  !needsPickup &&
+  nextDeliveryLong !== '' &&
+  (pickupCardMode === 'pickup' || pickupCardMode === 'delivery');
 
 // Hide the schedule card once the season is fully complete (the "that's a
 // wrap" card covers that state instead).
@@ -522,6 +575,25 @@ const title = `Welcome back, ${firstName} — Tiny Seed Farm CSA`;
   active="home"
   mainClass="mx-auto flex w-full max-w-3xl flex-col gap-8 px-5 py-8 sm:gap-10 sm:px-6 sm:py-12"
 >
+      {/* ═════════════════════════════════════════════════════════════
+          NEXT-DELIVERY BANNER (2026-06-05, Todd directive)
+          The #1 thing a member sees — pinned above everything. "Your next
+          delivery is <date>" + pickup/delivery details + a phone-number
+          prompt (to collect/verify numbers ahead of SMS going live).
+          Mutually exclusive with the forcing-nudge below (that handles the
+          "no pickup chosen" case); hidden once the season is complete.
+          ═════════════════════════════════════════════════════════════ */}
+      {customer && activeShares.length > 0 && showNextDeliveryBanner && (
+        <NextDeliveryBanner
+          mode={nextDeliveryMode}
+          nextDeliveryLong={nextDeliveryLong}
+          stopName={nextDeliveryStopName}
+          pickupTime={nextDeliveryPickupTime}
+          deliveryAddress={nextDeliveryAddress}
+          hasPhone={hasPhone}
+        />
+      )}
+
       {/* ═════════════════════════════════════════════════════════════
           PICKUP FORCING-NUDGE (FIX 1, 2026-05-24)
           Pinned to the very top — active members who never chose a pickup

@@ -29,17 +29,15 @@ import FormRow from '../../../components/FormRow.astro';
 import {
   CAMPAIGN_TEMPLATES,
   TARGETABLE_SHARE_TYPES,
+  TEMPLATE_CATEGORIES,
+  type CampaignTemplateRow,
 } from '../../../lib/campaign';
+import { EMAIL_SAFE_FONTS } from '../../../scripts/campaign-editor';
 
 export const prerender = false;
 
 const adminEmail = Astro.locals.user?.email ?? '';
-
-// Default form values = the first seeded template (Portal Launch — Summer
-// Veg + Flex). The "Use template" dropdown swaps in the chosen template
-// client-side; this default lets Todd land on the page and be ready to
-// send the most-likely tonight blast in one click.
-const defaultTemplate = CAMPAIGN_TEMPLATES[0];
+const supabase = Astro.locals.supabase;
 
 // Pretty labels for the share-type checkboxes.
 const SHARE_LABELS: Record<(typeof TARGETABLE_SHARE_TYPES)[number], string> = {
@@ -49,19 +47,85 @@ const SHARE_LABELS: Record<(typeof TARGETABLE_SHARE_TYPES)[number], string> = {
   add_on: 'Add-on',
 };
 
-// Serialize the seeded templates for client-side use (the dropdown
-// applies them to the form on selection). Strip any non-template fields.
-const templatesJson = JSON.stringify(
-  CAMPAIGN_TEMPLATES.map((t) => ({
-    id: t.id,
-    label: t.label,
-    name: t.name,
-    subject: t.subject,
-    preview_text: t.preview_text,
-    body_html: t.body_html,
-    recipient_filter: t.recipient_filter,
-  }))
-);
+// Load the template library from the DB (migration 0034). The composer's
+// "Use template" dropdown reads these; "Save as template" writes new
+// ones. If the table read fails for any reason, fall back to the
+// hard-coded CAMPAIGN_TEMPLATES so the composer is never empty.
+const { data: dbTemplates, error: tplErr } = await supabase
+  .from('campaign_templates')
+  .select('id, name, category, subject, preview_text, body_html, recipient_filter')
+  .order('category', { ascending: true })
+  .order('name', { ascending: true })
+  .limit(500)
+  .overrideTypes<CampaignTemplateRow[], { merge: false }>();
+
+if (tplErr) {
+  console.error('[admin/campaigns/new] template load failed:', tplErr.message);
+}
+
+type ClientFilter = {
+  share_types: string[];
+  newsletter_opt_in: boolean;
+};
+type ClientTemplate = {
+  id: string;
+  label: string;
+  name: string;
+  subject: string;
+  preview_text: string;
+  body_html: string;
+  recipient_filter: ClientFilter;
+};
+
+/** Coerce a JSONB recipient_filter into a safe ClientFilter shape. */
+function asClientFilter(raw: unknown): ClientFilter {
+  if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+    const o = raw as Record<string, unknown>;
+    const shares = Array.isArray(o.share_types)
+      ? o.share_types.filter((s): s is string => typeof s === 'string')
+      : [];
+    return {
+      share_types: shares,
+      newsletter_opt_in: o.newsletter_opt_in !== false,
+    };
+  }
+  return { share_types: [], newsletter_opt_in: true };
+}
+
+const templatesForClient: ClientTemplate[] =
+  dbTemplates && dbTemplates.length > 0
+    ? dbTemplates.map((t) => ({
+        id: t.id,
+        label: t.name,
+        name: t.name,
+        subject: t.subject,
+        preview_text: t.preview_text,
+        body_html: t.body_html,
+        recipient_filter: asClientFilter(t.recipient_filter),
+      }))
+    : CAMPAIGN_TEMPLATES.map((t) => ({
+        id: t.id,
+        label: t.label,
+        name: t.name,
+        subject: t.subject,
+        preview_text: t.preview_text,
+        body_html: t.body_html,
+        recipient_filter: asClientFilter(t.recipient_filter),
+      }));
+
+// Default form values = the Summer/Flex Portal Launch when present (the
+// documented "most-likely tonight blast" — Todd lands ready to send it in
+// one click), else the first template in the library. We pick it
+// explicitly rather than relying on sort order so adding/renaming
+// templates can't silently change the landing default.
+const defaultTemplate =
+  templatesForClient.find(
+    (t) =>
+      t.recipient_filter.share_types.includes('summer_veg') ||
+      t.recipient_filter.share_types.includes('flex')
+  ) ?? templatesForClient[0];
+
+const templatesJson = JSON.stringify(templatesForClient);
 ---
 
 <AdminShell
@@ -141,16 +205,24 @@ const templatesJson = JSON.stringify(
       <Card padding="lg" elevation="sm">
         <div class="flex flex-col gap-5">
           <FormRow label="Use template" htmlFor="template-pick" help="Pre-fills the form. You can still edit anything below.">
-            <select
-              id="template-pick"
-              data-template-pick
-              class="h-11 w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-3 text-base text-ts-text outline-none transition-colors focus:border-ts-primary focus:ring-2 focus:ring-ts-primary/30"
-            >
-              <option value="">— Don't apply a template —</option>
-              {CAMPAIGN_TEMPLATES.map((t) => (
-                <option value={t.id} selected={t.id === defaultTemplate.id}>{t.label}</option>
-              ))}
-            </select>
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <select
+                id="template-pick"
+                data-template-pick
+                class="h-11 w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-3 text-base text-ts-text outline-none transition-colors focus:border-ts-primary focus:ring-2 focus:ring-ts-primary/30"
+              >
+                <option value="">— Don't apply a template —</option>
+                {templatesForClient.map((t) => (
+                  <option value={t.id} selected={t.id === defaultTemplate.id}>{t.label}</option>
+                ))}
+              </select>
+              <a
+                href="/admin/campaigns/templates"
+                class="inline-flex h-11 shrink-0 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-semibold text-ts-text transition-colors hover:border-ts-primary/40 hover:text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+              >
+                Manage templates
+              </a>
+            </div>
           </FormRow>
 
           <FormRow label="Campaign name (internal)" htmlFor="field-name" required help="Just for you to find this campaign later — never shown to members.">
@@ -193,20 +265,96 @@ const templatesJson = JSON.stringify(
           </FormRow>
 
           <FormRow
-            label="Body (HTML)"
-            htmlFor="field-body"
+            label="Body"
+            htmlFor="editor-mount"
             required
-            help="Just type. Blank line = new paragraph. Lines starting with `-` or `*` become bullet lists. **wrap in stars** for bold. Paste a link and it auto-links. The farm header + unsubscribe footer get added automatically. Use {{first_name}} where you want the recipient's first name."
+            help="Format with the toolbar — bold, lists, links, color, images. The farm header + unsubscribe footer are added automatically. Use {{first_name}} where you want the recipient's first name."
           >
+            {/* Toolbar */}
+            <div
+              data-editor-toolbar
+              class="flex flex-wrap items-center gap-1 rounded-t-ts-md border border-ts-border bg-ts-bg-muted/40 p-2"
+            >
+              <button type="button" data-cmd="bold" aria-pressed="false" aria-label="Bold" title="Bold" class="inline-flex h-9 min-w-9 items-center justify-center rounded-ts-sm border border-transparent px-2 text-sm font-bold text-ts-text transition-colors hover:bg-ts-bg-surface focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ts-primary">B</button>
+              <button type="button" data-cmd="italic" aria-pressed="false" aria-label="Italic" title="Italic" class="inline-flex h-9 min-w-9 items-center justify-center rounded-ts-sm border border-transparent px-2 text-sm italic text-ts-text transition-colors hover:bg-ts-bg-surface focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ts-primary">I</button>
+              <button type="button" data-cmd="underline" aria-pressed="false" aria-label="Underline" title="Underline" class="inline-flex h-9 min-w-9 items-center justify-center rounded-ts-sm border border-transparent px-2 text-sm text-ts-text underline transition-colors hover:bg-ts-bg-surface focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ts-primary">U</button>
+
+              <span class="mx-1 h-6 w-px bg-ts-border" aria-hidden="true"></span>
+
+              <button type="button" data-cmd="h2" aria-pressed="false" aria-label="Heading" title="Heading" class="inline-flex h-9 min-w-9 items-center justify-center rounded-ts-sm border border-transparent px-2 text-sm font-bold text-ts-text transition-colors hover:bg-ts-bg-surface focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ts-primary">H2</button>
+              <button type="button" data-cmd="h3" aria-pressed="false" aria-label="Subheading" title="Subheading" class="inline-flex h-9 min-w-9 items-center justify-center rounded-ts-sm border border-transparent px-2 text-sm font-semibold text-ts-text transition-colors hover:bg-ts-bg-surface focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ts-primary">H3</button>
+
+              <span class="mx-1 h-6 w-px bg-ts-border" aria-hidden="true"></span>
+
+              <button type="button" data-cmd="bulletList" aria-pressed="false" aria-label="Bullet list" title="Bullet list" class="inline-flex h-9 min-w-9 items-center justify-center rounded-ts-sm border border-transparent px-2 text-sm text-ts-text transition-colors hover:bg-ts-bg-surface focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ts-primary">• List</button>
+              <button type="button" data-cmd="orderedList" aria-pressed="false" aria-label="Numbered list" title="Numbered list" class="inline-flex h-9 min-w-9 items-center justify-center rounded-ts-sm border border-transparent px-2 text-sm text-ts-text transition-colors hover:bg-ts-bg-surface focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ts-primary">1. List</button>
+
+              <span class="mx-1 h-6 w-px bg-ts-border" aria-hidden="true"></span>
+
+              <button type="button" data-cmd="link" aria-pressed="false" aria-label="Add link" title="Add link" class="inline-flex h-9 min-w-9 items-center justify-center rounded-ts-sm border border-transparent px-2 text-sm text-ts-text transition-colors hover:bg-ts-bg-surface focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ts-primary">🔗 Link</button>
+              <button type="button" data-cmd="unlink" aria-label="Remove link" title="Remove link" class="inline-flex h-9 min-w-9 items-center justify-center rounded-ts-sm border border-transparent px-2 text-sm text-ts-text transition-colors hover:bg-ts-bg-surface focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ts-primary">⛓️‍💥</button>
+
+              <span class="mx-1 h-6 w-px bg-ts-border" aria-hidden="true"></span>
+
+              {/* Text color */}
+              <label class="inline-flex h-9 items-center gap-1 rounded-ts-sm px-1 text-sm text-ts-text" title="Text color">
+                <span aria-hidden="true">A</span>
+                <input
+                  type="color"
+                  data-color-input
+                  aria-label="Text color"
+                  value="#166534"
+                  class="h-7 w-7 cursor-pointer rounded border border-ts-border bg-transparent p-0"
+                />
+              </label>
+              <button type="button" data-color-clear aria-label="Clear text color" title="Clear color" class="inline-flex h-9 min-w-9 items-center justify-center rounded-ts-sm border border-transparent px-2 text-xs text-ts-text-secondary transition-colors hover:bg-ts-bg-surface focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ts-primary">clear</button>
+
+              <span class="mx-1 h-6 w-px bg-ts-border" aria-hidden="true"></span>
+
+              {/* Font family */}
+              <select
+                data-font-select
+                aria-label="Font family"
+                title="Font family"
+                class="h-9 rounded-ts-sm border border-ts-border bg-ts-bg-base px-2 text-sm text-ts-text outline-none focus:border-ts-primary"
+              >
+                {EMAIL_SAFE_FONTS.map((f) => (
+                  <option value={f.value}>{f.label}</option>
+                ))}
+              </select>
+
+              <span class="mx-1 h-6 w-px bg-ts-border" aria-hidden="true"></span>
+
+              {/* Image upload */}
+              <label class="inline-flex h-9 cursor-pointer items-center justify-center rounded-ts-sm border border-ts-border bg-ts-bg-surface px-3 text-sm font-semibold text-ts-text transition-colors hover:border-ts-primary/40 hover:text-ts-primary">
+                🖼️ Image
+                <input type="file" data-image-input accept="image/png,image/jpeg,image/gif,image/webp" class="sr-only" />
+              </label>
+              <span data-upload-status class="text-xs text-ts-text-muted" role="status" aria-live="polite"></span>
+            </div>
+
+            {/* Editor mount — TipTap renders the contenteditable here. */}
+            <div id="editor-mount" data-editor-mount></div>
+
+            {/* Hidden field the form logic reads. Mirrored from the editor
+                on every change. set:html primes the initial content the
+                editor also receives. */}
             <textarea
               id="field-body"
               name="body_html"
               data-field-body
               required
-              rows="16"
-              class="w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-3 py-2 font-mono text-sm leading-relaxed text-ts-text outline-none transition-colors focus:border-ts-primary focus:ring-2 focus:ring-ts-primary/30"
+              class="sr-only"
+              tabindex="-1"
+              aria-hidden="true"
               set:html={defaultTemplate.body_html}
             />
+
+            <p class="mt-2 text-xs text-ts-text-muted">
+              Email apps only support a handful of fonts reliably — that's why
+              the font list is short. Anything you pick will fall back to a
+              safe font where it's not available.
+            </p>
           </FormRow>
         </div>
       </Card>
@@ -255,6 +403,14 @@ const templatesJson = JSON.stringify(
               class="inline-flex h-11 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-5 text-sm font-semibold text-ts-text transition-colors duration-150 hover:border-ts-primary/40 hover:text-ts-primary active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary disabled:cursor-not-allowed disabled:opacity-60"
             >
               Send test to me{adminEmail ? ` (${adminEmail})` : ''}
+            </button>
+
+            <button
+              type="button"
+              data-action-save-template
+              class="inline-flex h-11 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-5 text-sm font-semibold text-ts-text transition-colors duration-150 hover:border-ts-primary/40 hover:text-ts-primary active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Save as template
             </button>
 
             <button
@@ -351,8 +507,95 @@ const templatesJson = JSON.stringify(
     </div>
   </div>
 
+  {/* ════ Save-as-template modal ════ */}
+  <div
+    id="save-template-modal"
+    class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4"
+    data-save-template-modal
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="save-template-heading"
+  >
+    <div class="w-full max-w-md rounded-ts-xl bg-ts-bg-surface p-6 shadow-ts-lg">
+      <h3 id="save-template-heading" class="font-display text-lg font-bold text-ts-text">
+        Save as template
+      </h3>
+      <p class="mt-2 text-sm leading-relaxed text-ts-text-secondary">
+        Reuse this campaign's subject, body, and recipient filter later. It'll
+        appear in the "Use template" dropdown.
+      </p>
+      <div class="mt-4 flex flex-col gap-3">
+        <div class="flex flex-col gap-1.5">
+          <label for="save-tpl-name" class="text-sm font-semibold text-ts-text">Template name</label>
+          <input
+            id="save-tpl-name"
+            data-save-tpl-name
+            type="text"
+            maxlength="160"
+            autocomplete="off"
+            class="h-11 w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-3 text-base text-ts-text outline-none transition-colors focus:border-ts-primary focus:ring-2 focus:ring-ts-primary/30"
+          />
+        </div>
+        <div class="flex flex-col gap-1.5">
+          <label for="save-tpl-category" class="text-sm font-semibold text-ts-text">Category</label>
+          <select
+            id="save-tpl-category"
+            data-save-tpl-category
+            class="h-11 w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-3 text-base text-ts-text outline-none transition-colors focus:border-ts-primary focus:ring-2 focus:ring-ts-primary/30"
+          >
+            {TEMPLATE_CATEGORIES.map((cat) => (
+              <option value={cat}>{cat}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+      <footer class="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        <button
+          type="button"
+          data-save-tpl-cancel
+          class="inline-flex h-10 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-medium text-ts-text transition-colors duration-150 hover:border-ts-primary/40 hover:text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          data-save-tpl-go
+          class="inline-flex h-10 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          Save template
+        </button>
+      </footer>
+    </div>
+  </div>
+
   {/* Serialized template payload for the client. */}
   <script type="application/json" id="templates-data" set:html={templatesJson} />
+
+  {/* Editor init — bundled module (imports TipTap). Mounts the WYSIWYG
+      editor into [data-editor-mount], mirrors HTML into #field-body, and
+      exposes window.__campaignEditor so the inline form logic below can
+      push template content into the editor. Kept separate from the form
+      logic so that logic can stay `is:inline` (CSP 'unsafe-inline'). */}
+  <script>
+    import { initCampaignEditor } from '../../../scripts/campaign-editor';
+
+    const mount = document.querySelector('[data-editor-mount]');
+    const toolbar = document.querySelector('[data-editor-toolbar]');
+    const hidden = document.querySelector('[data-field-body]');
+    if (mount instanceof HTMLElement && toolbar instanceof HTMLElement && hidden instanceof HTMLTextAreaElement) {
+      const handle = initCampaignEditor({
+        mount,
+        toolbar,
+        hiddenField: hidden,
+        initialHTML: hidden.value || '',
+        imageUploadUrl: '/api/admin/campaigns/image',
+      });
+      // Expose for the inline form logic (template load → setHTML).
+      (window as unknown as { __campaignEditor?: { setHTML(h: string): void } }).__campaignEditor = {
+        setHTML: (h: string) => handle.setHTML(h),
+      };
+    }
+  </script>
 
   <script is:inline>
     (function () {
@@ -367,6 +610,15 @@ const templatesJson = JSON.stringify(
       const optInInput = form.querySelector('[data-opt-in]');
       const templatePick = document.getElementById('template-pick');
 
+      // Push body content through the editor (keeps the hidden field in
+      // sync). Falls back to writing the field directly if the editor
+      // module hasn't attached yet.
+      function setBodyContent(html) {
+        const ed = window.__campaignEditor;
+        if (ed && typeof ed.setHTML === 'function') ed.setHTML(html || '');
+        else if (fieldBody) fieldBody.value = html || '';
+      }
+
       const countEl = document.querySelector('[data-recipient-count]');
       const detailEl = document.querySelector('[data-recipient-detail]');
 
@@ -374,6 +626,13 @@ const templatesJson = JSON.stringify(
       const btnPreview = document.querySelector('[data-action-preview]');
       const btnSendTest = document.querySelector('[data-action-send-test]');
       const btnSend = document.querySelector('[data-action-send]');
+      const btnSaveTemplate = document.querySelector('[data-action-save-template]');
+
+      const saveTplModal = document.querySelector('[data-save-template-modal]');
+      const saveTplName = document.querySelector('[data-save-tpl-name]');
+      const saveTplCategory = document.querySelector('[data-save-tpl-category]');
+      const saveTplGo = document.querySelector('[data-save-tpl-go]');
+      const saveTplCancel = document.querySelector('[data-save-tpl-cancel]');
 
       const result = document.querySelector('[data-result]');
 
@@ -425,7 +684,7 @@ const templatesJson = JSON.stringify(
       }
 
       function setBusy(busy) {
-        [btnSave, btnPreview, btnSendTest, btnSend].forEach((b) => {
+        [btnSave, btnPreview, btnSendTest, btnSend, btnSaveTemplate].forEach((b) => {
           if (b) b.disabled = !!busy;
         });
       }
@@ -496,7 +755,7 @@ const templatesJson = JSON.stringify(
         fieldName.value = t.name;
         fieldSubject.value = t.subject;
         fieldPreview.value = t.preview_text;
-        fieldBody.value = t.body_html;
+        setBodyContent(t.body_html);
         // Recipient filter:
         shareInputs.forEach((el) => {
           el.checked = t.recipient_filter.share_types.indexOf(el.value) >= 0;
@@ -683,7 +942,80 @@ const templatesJson = JSON.stringify(
         }
       });
 
-      // ESC closes either open modal.
+      // ── Save as template ─────────────────────────────────────────
+      function openSaveTpl() {
+        if (!saveTplModal) return;
+        // Default the template name to the campaign's internal name.
+        saveTplName.value = fieldName.value || '';
+        saveTplModal.classList.remove('hidden');
+        saveTplModal.classList.add('flex');
+        saveTplName.focus();
+      }
+      function closeSaveTpl() {
+        if (!saveTplModal) return;
+        saveTplModal.classList.add('hidden');
+        saveTplModal.classList.remove('flex');
+      }
+      if (btnSaveTemplate) {
+        btnSaveTemplate.addEventListener('click', function () {
+          if (!fieldBody.value || !fieldSubject.value) {
+            showResult('Add a subject and body before saving a template.', 'error');
+            return;
+          }
+          openSaveTpl();
+        });
+      }
+      if (saveTplCancel) saveTplCancel.addEventListener('click', closeSaveTpl);
+      if (saveTplModal) {
+        saveTplModal.addEventListener('click', function (e) {
+          if (e.target === saveTplModal) closeSaveTpl();
+        });
+      }
+      if (saveTplGo) {
+        saveTplGo.addEventListener('click', async function () {
+          const name = (saveTplName.value || '').trim();
+          if (!name) {
+            saveTplName.focus();
+            return;
+          }
+          saveTplGo.disabled = true;
+          const orig = saveTplGo.textContent;
+          saveTplGo.textContent = 'Saving…';
+          try {
+            const res = await fetch('/api/admin/campaigns/templates', {
+              method: 'POST',
+              credentials: 'same-origin',
+              headers: { 'content-type': 'application/json', accept: 'application/json' },
+              body: JSON.stringify({
+                action: 'save',
+                name: name,
+                category: saveTplCategory.value,
+                subject: fieldSubject.value,
+                preview_text: fieldPreview.value,
+                body_html: fieldBody.value,
+                recipient_filter: currentFilter(),
+              }),
+            });
+            const body = await res.json();
+            if (res.ok && body.ok) {
+              closeSaveTpl();
+              showResult('Saved as template "' + name + '". It\'s now in the dropdown.', 'success');
+            } else {
+              const msg = body.error === 'name_taken'
+                ? 'A template with that name already exists — pick a different name.'
+                : 'Could not save template: ' + (body.error || 'unknown error') + '.';
+              showResult(msg, 'error');
+            }
+          } catch (e) {
+            showResult('Network error saving template.', 'error');
+          } finally {
+            saveTplGo.disabled = false;
+            saveTplGo.textContent = orig;
+          }
+        });
+      }
+
+      // ESC closes any open modal.
       document.addEventListener('keydown', function (e) {
         if (e.key !== 'Escape') return;
         if (previewModal && !previewModal.classList.contains('hidden')) {
@@ -691,6 +1023,7 @@ const templatesJson = JSON.stringify(
           previewModal.classList.remove('flex');
         }
         if (confirmModal && !confirmModal.classList.contains('hidden')) closeConfirm();
+        if (saveTplModal && !saveTplModal.classList.contains('hidden')) closeSaveTpl();
       });
     })();
   </script>
