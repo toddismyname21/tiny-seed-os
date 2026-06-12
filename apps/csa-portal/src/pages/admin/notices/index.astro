@@ -1,0 +1,469 @@
+---
+/**
+ * /admin/notices — 📌 Notices.
+ *
+ * Notes & notices: promises the farm made a member that stay OPEN until the
+ * team fulfills them. This page is the command center; the *crucial* surface
+ * is the pack sheets (/admin/pack-check + /admin/stop-manifest), where a
+ * stop-targeted notice prints as a LOUD checkbox block so the pack line can't
+ * close that stop without doing it ("How is my team going to know to pack the
+ * extra mushrooms for market?" — Todd).
+ *
+ * Sections:
+ *   1. Status banner (?ok / ?error from the API redirects).
+ *   2. OPEN notices grouped by due bucket (Overdue / Due this week / Upcoming /
+ *      No date), overdue + this-week visually loud. Each notice shows title,
+ *      detail, member name, stop_hint, due date, with "✓ Done" + "Cancel".
+ *   3. Add-notice form (collapsible <details>): title (req), detail, member
+ *      (optional), stop (active pickup names + HOME DELIVERY + General), due
+ *      week (optional). POSTs to /api/admin/notices/new.
+ *   4. "Recently completed" (collapsed <details>) — last 20 done, who/when.
+ *
+ * Reads via the cookie-aware admin client (table admin/staff ALL policy).
+ * General notices (stop_hint NULL) appear ONLY here, never on a pack sheet.
+ *
+ * Gated by middleware (admin/staff); the APIs re-check defensively.
+ */
+import AdminShell from '../../../components/AdminShell.astro';
+import Card from '../../../components/Card.astro';
+import FormRow from '../../../components/FormRow.astro';
+import Select from '../../../components/Select.astro';
+import { mondayOfWeek, upcomingMonday, prettyShortDate } from '../../../lib/cycle';
+import { weekOptions } from '../../../lib/cycle-ui';
+import { HOME_DELIVERY_HINT } from '../../../lib/notices';
+import {
+  fetchOpenNoticesWithMember,
+  fetchRecentDoneNotices,
+  bucketOpenNotices,
+  type NoticeBucketKey,
+} from '../../../lib/notices';
+
+export const prerender = false;
+
+const supabase = Astro.locals.supabase;
+const url = Astro.url;
+
+const ok = url.searchParams.get('ok');
+const errorCode = url.searchParams.get('error');
+
+const thisWeekMonday = mondayOfWeek(upcomingMonday());
+
+// ─── Load active pickup stop names (for the stop dropdown + grouping) ─
+type LocRow = { name: string; is_active: boolean };
+const { data: locRows, error: locErr } = await supabase
+  .from('pickup_locations')
+  .select('name, is_active')
+  .eq('is_active', true)
+  .order('name', { ascending: true })
+  .overrideTypes<LocRow[], { merge: false }>();
+if (locErr) {
+  console.error('[admin/notices] pickup locations fetch failed:', locErr.message);
+}
+const stopNames = Array.from(
+  new Set((locRows ?? []).map((l) => l.name?.trim()).filter((n): n is string => !!n)),
+);
+
+// ─── Load active members for the (optional) member dropdown ──────────
+// Distinct customers who hold an ACTIVE share — the people a promise is most
+// likely "for". One round trip; de-duped + sorted by name.
+type MemberRow = { customer: { id: string; contact_name: string | null } | null };
+const { data: memberRows, error: memberErr } = await supabase
+  .from('members')
+  .select('customer:customers ( id, contact_name )')
+  .eq('status', 'active')
+  .overrideTypes<MemberRow[], { merge: false }>();
+if (memberErr) {
+  console.error('[admin/notices] members fetch failed:', memberErr.message);
+}
+const memberById = new Map<string, string>();
+for (const r of memberRows ?? []) {
+  const c = r.customer;
+  if (c?.id) memberById.set(c.id, c.contact_name?.trim() || '(no name)');
+}
+const memberOptions = Array.from(memberById.entries())
+  .map(([value, label]) => ({ value, label }))
+  .sort((a, b) => a.label.localeCompare(b.label));
+
+// ─── Load open + recently-done notices ───────────────────────────────
+const [openNotices, doneNotices] = await Promise.all([
+  fetchOpenNoticesWithMember(supabase),
+  fetchRecentDoneNotices(supabase, 20),
+]);
+
+const buckets = bucketOpenNotices(openNotices, thisWeekMonday);
+const openCount = openNotices.length;
+
+// ─── Stop dropdown options: General + HOME DELIVERY + active pickups ──
+const stopOptions = [
+  { value: 'general', label: 'General (no stop — admin page only)' },
+  { value: HOME_DELIVERY_HINT, label: '🏠 HOME DELIVERY' },
+  ...stopNames.map((n) => ({ value: n, label: n })),
+];
+
+// ─── Due-week dropdown: blank ("next opportunity") + the week picker ──
+const weekOpts = weekOptions();
+
+// ─── Banner copy ─────────────────────────────────────────────────────
+const OK_MESSAGES: Record<string, string> = {
+  created: 'Notice added. It will show on the pack sheet for its stop until it\'s done.',
+  done: 'Notice marked done. Nice — that promise is kept.',
+  cancelled: 'Notice cancelled. It\'s off the open list and the pack sheets.',
+};
+const ERROR_MESSAGES: Record<string, string> = {
+  invalid_input: 'Something was off with that submission. Please try again.',
+  title_required: 'Give the notice a short title.',
+  title_too_long: 'That title is too long (max 200 characters).',
+  detail_too_long: 'That detail is too long (max 2000 characters).',
+  invalid_member: 'That member selection wasn\'t valid.',
+  member_not_found: 'That member no longer exists.',
+  invalid_due_week: 'That due week wasn\'t a valid date.',
+  network: 'We hit a snag saving that. Please try again.',
+};
+const okMsg = ok ? OK_MESSAGES[ok] ?? null : null;
+const errMsg = errorCode ? ERROR_MESSAGES[errorCode] ?? ERROR_MESSAGES.invalid_input : null;
+
+// ─── Display helpers ─────────────────────────────────────────────────
+/** Pretty due-week label, or the "next opportunity" sentinel for NULL. */
+function dueLabel(due_week: string | null): string {
+  if (!due_week) return 'Next opportunity';
+  return `Week of ${prettyShortDate(due_week).replace(/^[A-Za-z]+, /, '')}`;
+}
+/** Stop pill label — home-delivery sentinel gets the house glyph. */
+function stopLabel(stop_hint: string | null): string | null {
+  if (!stop_hint) return null;
+  if (stop_hint === HOME_DELIVERY_HINT) return '🏠 HOME DELIVERY';
+  return stop_hint;
+}
+/** Pretty "done by X on Mon Jun 8" for the completed list. */
+function fulfilledLabel(by: string | null, at: string | null): string {
+  const who = by ? by.split('@')[0] : 'staff';
+  const when = at ? prettyShortDate(at.slice(0, 10)).replace(/^[A-Za-z]+, /, '') : '';
+  return when ? `${who} · ${when}` : who;
+}
+
+// Loud styling for the urgent buckets (overdue / this week).
+const LOUD_BUCKETS: Set<NoticeBucketKey> = new Set(['overdue', 'this_week']);
+---
+
+<AdminShell
+  title="📌 Notices"
+  subtitle="Notes & notices — promises to members that stay open until the team fulfills them. Stop notices ride on the pack sheet for that stop."
+  pageTitle="Notices — Tiny Seed Admin"
+  canonical="https://csa.tinyseedfarm.com/admin/notices"
+>
+  {/* ════ Status banner ════ */}
+  {okMsg && (
+    <div
+      role="status"
+      class="rounded-ts-md border border-ts-primary/30 bg-ts-primary/10 px-4 py-3 text-sm font-medium text-ts-primary"
+    >
+      {okMsg}
+    </div>
+  )}
+  {errMsg && (
+    <div
+      role="alert"
+      class="rounded-ts-md border border-ts-danger/30 bg-ts-danger/5 px-4 py-3 text-sm font-medium text-ts-danger"
+    >
+      {errMsg}
+    </div>
+  )}
+
+  {/* ════ Add a notice (collapsible) ════ */}
+  <details class="group rounded-ts-lg border border-ts-border bg-ts-bg-surface shadow-ts-sm" open={openCount === 0}>
+    <summary
+      class="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 text-base font-semibold text-ts-text [&::-webkit-details-marker]:hidden"
+    >
+      <span class="flex items-center gap-2">
+        <span aria-hidden="true">➕</span>
+        Add a notice
+      </span>
+      <span
+        class="text-ts-text-muted transition-transform duration-150 group-open:rotate-180"
+        aria-hidden="true"
+      >▾</span>
+    </summary>
+
+    <div class="border-t border-ts-border px-5 py-5">
+      <form method="POST" action="/api/admin/notices/new" class="flex flex-col gap-5">
+        <FormRow
+          label="Title"
+          htmlFor="notice-title"
+          required
+          help="Short and clear — what's promised. e.g. 'Pack 2 extra mushroom for Saturday market'."
+        >
+          <input
+            id="notice-title"
+            type="text"
+            name="title"
+            required
+            maxlength="200"
+            placeholder="e.g. Add a bunch of dill to Jane's box"
+            class="h-11 w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-3 text-base text-ts-text outline-none transition-colors focus:border-ts-primary focus:ring-2 focus:ring-ts-primary/30"
+          />
+        </FormRow>
+
+        <FormRow
+          label="Detail"
+          htmlFor="notice-detail"
+          help="Optional. Any extra context the packer needs."
+        >
+          <textarea
+            id="notice-detail"
+            name="detail"
+            rows="3"
+            maxlength="2000"
+            placeholder="e.g. She emailed asking for dill — we said yes for this week."
+            class="w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-3 py-2 text-base leading-relaxed text-ts-text outline-none transition-colors focus:border-ts-primary focus:ring-2 focus:ring-ts-primary/30"
+          ></textarea>
+        </FormRow>
+
+        <div class="grid grid-cols-1 gap-5 sm:grid-cols-3">
+          <FormRow
+            label="Member"
+            htmlFor="notice-member"
+            help="Optional — who it's for."
+          >
+            <Select
+              id="notice-member"
+              name="customer_id"
+              placeholder="No specific member"
+              options={memberOptions}
+            />
+          </FormRow>
+
+          <FormRow
+            label="Stop"
+            htmlFor="notice-stop"
+            help="Picks which pack sheet it prints on."
+          >
+            <Select
+              id="notice-stop"
+              name="stop_hint"
+              value="general"
+              options={stopOptions}
+            />
+          </FormRow>
+
+          <FormRow
+            label="Due week"
+            htmlFor="notice-due"
+            help="Blank = next opportunity (always due)."
+          >
+            <select
+              id="notice-due"
+              name="due_week"
+              class="h-11 w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-3 text-base text-ts-text outline-none transition-colors focus:border-ts-primary focus:ring-2 focus:ring-ts-primary/30"
+            >
+              <option value="">Next opportunity (no date)</option>
+              {weekOpts.map((w) => (
+                <option value={w.value} selected={w.value === thisWeekMonday}>
+                  {w.label}
+                </option>
+              ))}
+            </select>
+          </FormRow>
+        </div>
+
+        <div class="pt-1">
+          <button
+            type="submit"
+            class="inline-flex h-11 items-center justify-center rounded-ts-md bg-ts-primary px-6 text-sm font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+          >
+            Add notice
+          </button>
+        </div>
+      </form>
+    </div>
+  </details>
+
+  {/* ════ Open notices, grouped by due bucket ════ */}
+  <section aria-labelledby="open-heading" class="flex flex-col gap-4">
+    <div class="flex items-baseline justify-between gap-3">
+      <h2 id="open-heading" class="font-display text-xl font-bold text-ts-text sm:text-2xl">
+        Open notices
+      </h2>
+      <span class="text-sm text-ts-text-muted tabular-nums">
+        {openCount} open
+      </span>
+    </div>
+
+    {openCount === 0 ? (
+      <Card padding="lg" elevation="sm">
+        <div class="flex flex-col items-center gap-3 py-8 text-center">
+          <span class="text-4xl" aria-hidden="true">📌</span>
+          <p class="font-semibold text-ts-text">No open notices</p>
+          <p class="max-w-md text-sm text-ts-text-secondary">
+            When you promise a member something — an extra item, a swap, a
+            special pack — add it above. Stop notices show up on that stop's
+            pack sheet so the team can't miss them.
+          </p>
+        </div>
+      </Card>
+    ) : (
+      <div class="flex flex-col gap-6">
+        {buckets.map((bucket) => {
+          const loud = LOUD_BUCKETS.has(bucket.key);
+          return (
+            <div class="flex flex-col gap-3">
+              <h3
+                class={[
+                  'flex items-center gap-2 font-display text-base font-bold',
+                  loud ? 'text-ts-danger' : 'text-ts-text-secondary',
+                ].join(' ')}
+              >
+                {loud && <span aria-hidden="true">⚠</span>}
+                {bucket.label}
+                <span class="text-xs font-normal text-ts-text-muted tabular-nums">
+                  {bucket.notices.length}
+                </span>
+              </h3>
+
+              <Card padding="none" elevation="sm">
+                <ul class="divide-y divide-ts-border/60">
+                  {bucket.notices.map((n) => {
+                    const stop = stopLabel(n.stop_hint);
+                    return (
+                      <li
+                        class={[
+                          'flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-start sm:justify-between sm:px-6',
+                          loud ? 'bg-ts-danger/5' : '',
+                        ].join(' ')}
+                      >
+                        <div class="min-w-0 flex-1">
+                          <p class="font-semibold text-ts-text">{n.title}</p>
+                          {n.detail && (
+                            <p class="mt-1 whitespace-pre-wrap break-words text-sm leading-relaxed text-ts-text-secondary">
+                              {n.detail}
+                            </p>
+                          )}
+                          <div class="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                            {n.member_name && (
+                              <span class="inline-flex items-center gap-1 rounded-full bg-ts-bg-muted px-2 py-0.5 font-semibold text-ts-text">
+                                <span aria-hidden="true">👤</span>
+                                {n.member_name}
+                              </span>
+                            )}
+                            {stop ? (
+                              <span class="inline-flex items-center gap-1 rounded-full bg-ts-primary/10 px-2 py-0.5 font-semibold text-ts-primary">
+                                <span aria-hidden="true">📍</span>
+                                {stop}
+                              </span>
+                            ) : (
+                              <span class="inline-flex items-center gap-1 rounded-full bg-ts-bg-muted px-2 py-0.5 font-medium text-ts-text-muted">
+                                General
+                              </span>
+                            )}
+                            <span
+                              class={[
+                                'inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-semibold',
+                                loud
+                                  ? 'bg-ts-danger/10 text-ts-danger'
+                                  : 'bg-ts-bg-muted text-ts-text-secondary',
+                              ].join(' ')}
+                            >
+                              <span aria-hidden="true">🗓</span>
+                              {dueLabel(n.due_week)}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div class="flex shrink-0 items-center gap-2">
+                          <form method="POST" action={`/api/admin/notices/${n.id}/done`} class="m-0">
+                            <input type="hidden" name="action" value="done" />
+                            <button
+                              type="submit"
+                              class="inline-flex h-9 items-center justify-center rounded-ts-md bg-ts-primary px-3 text-xs font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+                            >
+                              ✓ Done
+                            </button>
+                          </form>
+                          <form
+                            method="POST"
+                            action={`/api/admin/notices/${n.id}/done`}
+                            class="m-0"
+                            data-cancel-form
+                          >
+                            <input type="hidden" name="action" value="cancel" />
+                            <button
+                              type="submit"
+                              class="inline-flex h-9 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-xs font-semibold text-ts-text-secondary transition-colors duration-150 hover:border-ts-danger/40 hover:bg-ts-danger/5 hover:text-ts-danger focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-danger"
+                            >
+                              Cancel
+                            </button>
+                          </form>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </Card>
+            </div>
+          );
+        })}
+      </div>
+    )}
+  </section>
+
+  {/* ════ Recently completed (collapsed) ════ */}
+  <details class="group rounded-ts-lg border border-ts-border bg-ts-bg-surface shadow-ts-sm">
+    <summary
+      class="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 text-base font-semibold text-ts-text [&::-webkit-details-marker]:hidden"
+    >
+      <span class="flex items-center gap-2">
+        <span aria-hidden="true">✅</span>
+        Recently completed
+        <span class="text-xs font-normal text-ts-text-muted tabular-nums">
+          {doneNotices.length}
+        </span>
+      </span>
+      <span
+        class="text-ts-text-muted transition-transform duration-150 group-open:rotate-180"
+        aria-hidden="true"
+      >▾</span>
+    </summary>
+
+    <div class="border-t border-ts-border">
+      {doneNotices.length === 0 ? (
+        <p class="px-5 py-6 text-center text-sm text-ts-text-secondary">
+          Nothing completed yet. Done notices show here with who closed them and when.
+        </p>
+      ) : (
+        <ul class="divide-y divide-ts-border/60">
+          {doneNotices.map((n) => {
+            const stop = stopLabel(n.stop_hint);
+            return (
+              <li class="flex flex-col gap-1 px-5 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+                <div class="min-w-0 flex-1">
+                  <p class="text-sm font-medium text-ts-text-secondary line-through">
+                    {n.title}
+                  </p>
+                  <div class="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-ts-text-muted">
+                    {n.member_name && <span>👤 {n.member_name}</span>}
+                    {stop && <span>· 📍 {stop}</span>}
+                  </div>
+                </div>
+                <span class="shrink-0 text-xs text-ts-text-muted tabular-nums">
+                  ✓ {fulfilledLabel(n.fulfilled_by, n.fulfilled_at)}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  </details>
+
+  <script is:inline>
+    (function () {
+      // Cancel confirmation (it removes the notice from the open list + pack sheets).
+      document.querySelectorAll('[data-cancel-form]').forEach(function (form) {
+        form.addEventListener('submit', function (e) {
+          if (!window.confirm('Cancel this notice? It will leave the open list and the pack sheets.')) {
+            e.preventDefault();
+          }
+        });
+      });
+    })();
+  </script>
+</AdminShell>

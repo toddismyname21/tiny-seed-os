@@ -6,6 +6,20 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-06-12] Hooks — Fix false-positive CHANGE_LOG reminder loop in Stop hook (PM_Architect)
+
+**Bug:** `scripts/hooks/post-response-check.sh` warned "modified implementation files but haven't updated CHANGE_LOG" after EVERY response whenever ANY `.html/.js/.css` was dirty in `git status` — including the ~43 pre-existing dirty files (tinypm/, OUTBOX, etc.) the session never touched. Result: an unkillable reminder loop on a dirty tree.
+
+**Fix (session-scoped baseline):**
+- `scripts/hooks/session-start-context.sh` — now reads hook stdin for `session_id`/`source` and snapshots the dirty-file list to `/tmp/tsos_dirty_baseline_<session_id>` on fresh starts (`startup`/`clear`). On `resume`/`compact` it keeps the existing baseline (creates only if missing) so mid-session edits stay detectable.
+- `scripts/hooks/post-response-check.sh` — Check 1 now diffs current dirty impl files against the baseline; warns ONLY on files that became dirty during the session. Missing baseline (sessions predating the fix) → writes one and stays silent that round (self-heals instead of looping).
+
+**Known limitation (accepted):** a session edit to a file that was ALREADY dirty at session start won't trigger the reminder (name-based baseline, no hashing — hook must stay fast). CHANGE_LOG discipline for those still relies on the TeammateIdle/TaskCompleted gates.
+
+**Evidence:** 3 tests run — (A) pre-existing dirt only → silent ✅; (B) new dummy `.js` dirtied mid-session → warning fires ✅; (C) CHANGE_LOG.md also dirty → silent ✅. `bash -n` clean on both scripts.
+
+---
+
 ## [2026-06-12] CSA — Market Checkout: staff tool to deduct flex purchases at the market table (fullstack-builder)
 
 NOT committed/deployed — PM verifies & deploys. App: `apps/csa-portal`. `npm run build` passes; build artifacts removed. THIS MOVES MONEY (Shopify store-credit debit) — no real debit executed during testing.

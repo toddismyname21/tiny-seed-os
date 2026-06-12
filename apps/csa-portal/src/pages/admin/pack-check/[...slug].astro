@@ -29,6 +29,10 @@ import {
   mondayOfWeek, isMonday,
   type StopTotals, type CycleMember, type AddOnType,
 } from '../../../lib/cycle';
+import {
+  fetchDueNoticesForStops, groupNoticesByHint, HOME_DELIVERY_HINT,
+  type MemberNotice,
+} from '../../../lib/notices';
 
 const supabase = Astro.locals.supabase;
 const slugParam = (Astro.params.slug ?? '') as string;
@@ -275,6 +279,27 @@ const flexByMember = new Map<string, Array<{ name: string | null; qty: number }>
 // not a packable row, not counted. summer_veg boxes are unaffected.
 const flexOrderedMemberIds = new Set<string>(flexByMember.keys());
 
+// ─── Open NOTICES due for the rendered stops (ONE bounded query) ─────
+// The whole point (Todd): a promise made to a member ("pack the extra
+// mushrooms for market") rides on the pack sheet for THAT stop so the team
+// can't close the stop without doing it. We collect every rendered stop's
+// hint — its stop NAME, plus the literal HOME_DELIVERY_HINT for the
+// home-delivery section — then fetch all OPEN notices targeting those hints
+// that are DUE for this week in a single in('stop_hint', …) query, and group
+// by hint. Each stop section reads noticesByHint.get(<its hint>). General
+// notices (stop_hint NULL) are never fetched here — they live only on
+// /admin/notices. A fetch failure returns [] (the sheet still prints).
+const noticeHints: string[] = stopsToRender.map((s) =>
+  s.stop_id === HOME_DELIVERY_BUCKET_ID ? HOME_DELIVERY_HINT : s.stop_name,
+);
+const dueNotices = await fetchDueNoticesForStops(supabase, noticeHints, week_starting);
+const noticesByHint = groupNoticesByHint(dueNotices);
+/** The notices to print on a stop's sheet (by its hint). */
+function noticesForStop(stop: StopTotals): MemberNotice[] {
+  const hint = stop.stop_id === HOME_DELIVERY_BUCKET_ID ? HOME_DELIVERY_HINT : stop.stop_name;
+  return noticesByHint.get(hint) ?? [];
+}
+
 /* ── Collapse a stop's member rows into ONE pack ROW per customer ────
  * BOX SHARES define a row; add-on rows attach as chips (never their own row).
  * Mirrors the labels page so the checklist and the stickers line up 1:1. */
@@ -389,6 +414,7 @@ function memberShareLabel(m: CycleMember): string {
       const totalAddons = addonCounts.reduce((a, x) => a + x.n, 0);
       const band = bandForStop(stop);
       const isHomeDelivery = stop.stop_id === HOME_DELIVERY_BUCKET_ID;
+      const stopNotices = noticesForStop(stop);
       return (
         <section class="page-break" aria-labelledby={`pc-stop-${stop.stop_id}`}>
           {/* COLOR-CODED STOP BAND — matches labels + driver manifest. */}
@@ -497,6 +523,35 @@ function memberShareLabel(m: CycleMember): string {
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* 📌 NOTICES — LOUD, MUST PRINT. Promises owed at this stop that
+              are DUE this week. The pack line ticks each square; the stop
+              isn't done until they're all ticked. Warm-yellow band, color
+              forced through print (print-color-adjust:exact), kept whole on a
+              page (break-inside:avoid). */}
+          {stopNotices.length > 0 && (
+            <div class="stop-notices mt-4 rounded-ts-lg border-2 px-4 py-3">
+              <p class="notices-head flex items-center gap-2 text-sm font-extrabold uppercase tracking-wide">
+                <span aria-hidden="true">📌</span>
+                Notices — don't close this stop until these are done
+              </p>
+              <ul class="mt-2 flex flex-col gap-2">
+                {stopNotices.map((n) => (
+                  <li class="notice-row flex items-start gap-3">
+                    <span class="notice-check mt-0.5 inline-block h-6 w-6 shrink-0 rounded border-2 bg-white" aria-hidden="true"></span>
+                    <div class="min-w-0 flex-1">
+                      <p class="text-base font-bold leading-snug">{n.title}</p>
+                      {n.detail && (
+                        <p class="mt-0.5 whitespace-pre-wrap break-words text-sm leading-snug">
+                          {n.detail}
+                        </p>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
 
@@ -620,6 +675,24 @@ function memberShareLabel(m: CycleMember): string {
     print-color-adjust: exact;
   }
 
+  /* ── 📌 NOTICES block — warm-yellow, MUST print in color ─────────────
+   *    Fixed hex (not theme tokens): this is a print document and the loud
+   *    yellow must reproduce on paper so the packer can't miss it. The
+   *    checkbox is a real empty square ticked by hand. */
+  .stop-notices {
+    background: #fef3c7;          /* warm yellow band */
+    border-color: #d97706;        /* amber-600 frame */
+    color: #422006;               /* deep brown text for contrast */
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .stop-notices .notices-head { color: #92400e; }
+  .stop-notices .notice-check {
+    border-color: #78350f;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
   /* ── Print-friendly: page-break between stops ─────────────────────────
    *  AdminShell removes its own chrome (sticky header, nav, page-heading +
    *  the actions slot that holds the Print button & back link) at print time
@@ -640,6 +713,10 @@ function memberShareLabel(m: CycleMember): string {
 
     /* Keep a member's whole row (name + add-ons + flex) together on one page. */
     .pack-row { break-inside: avoid; page-break-inside: avoid; }
+
+    /* The notices block stays whole + keeps its yellow on paper. */
+    .stop-notices { break-inside: avoid; page-break-inside: avoid; }
+    .notice-row { break-inside: avoid; page-break-inside: avoid; }
   }
 </style>
 </content>

@@ -513,6 +513,32 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['stop_messages']['Row']>;
         Relationships: [];
       };
+      // member_notices — promises/notes made to a member ("notes & notices")
+      // that stay OPEN until the team fulfills them. Surfaced on the admin
+      // Notices page AND, when stop_hint targets a stop (pickup stop name or
+      // 'HOME DELIVERY'), as a LOUD checkbox block at the top of that stop's
+      // pack-check / stop-manifest page. stop_hint NULL = general (admin page
+      // only). due_week NULL = "next opportunity" (always due).
+      member_notices: {
+        Row: {
+          id: string;
+          customer_id: string | null;
+          title: string;
+          detail: string | null;
+          stop_hint: string | null;
+          due_week: string | null;
+          status: 'open' | 'done' | 'cancelled';
+          created_by: string | null;
+          created_at: string;
+          fulfilled_by: string | null;
+          fulfilled_at: string | null;
+        };
+        Insert: {
+          title: string;
+        } & Partial<Database['public']['Tables']['member_notices']['Row']>;
+        Update: Partial<Database['public']['Tables']['member_notices']['Row']>;
+        Relationships: [];
+      };
       // Phase-1 member reporting of stop_messages (migration 0029). Created in
       // Phase 0 so the Phase-1 upgrade is policy/trigger/RPC only; stays empty
       // until member reporting ships. Admin-only RLS in Phase 0.

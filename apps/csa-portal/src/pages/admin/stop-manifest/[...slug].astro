@@ -23,6 +23,10 @@ import {
   mondayOfWeek, isMonday,
   type StopTotals, type CycleMember, type AddOnType,
 } from '../../../lib/cycle';
+import {
+  fetchDueNoticesForStops, groupNoticesByHint, HOME_DELIVERY_HINT,
+  type MemberNotice,
+} from '../../../lib/notices';
 
 const supabase = Astro.locals.supabase;
 const slugParam = (Astro.params.slug ?? '') as string;
@@ -124,6 +128,27 @@ const flexLinesByMember = new Map<string, Array<{ name: string | null; qty: numb
       }
     }
   }
+}
+
+// ─── Open NOTICES due for the rendered stops (ONE bounded query) ─────
+// Mirrors /admin/pack-check: a promise made to a member ("pack the extra
+// mushrooms for market") rides on the manifest for THAT stop so the host/team
+// can't close the stop without doing it. We collect every rendered stop's hint
+// — its stop NAME, plus the literal HOME_DELIVERY_HINT for the home-delivery
+// section — fetch all OPEN notices targeting those hints that are DUE for this
+// week in ONE in('stop_hint', …) query, and group by hint. Each stop reads
+// noticesByHint.get(<its hint>). General notices (stop_hint NULL) are never
+// fetched here — they live only on /admin/notices. Fetch failure → [] (the
+// manifest still prints; the block is additive).
+const noticeHints: string[] = stopsToRender.map((s) =>
+  s.stop_id === HOME_DELIVERY_BUCKET_ID ? HOME_DELIVERY_HINT : s.stop_name,
+);
+const dueNotices = await fetchDueNoticesForStops(supabase, noticeHints, week_starting);
+const noticesByHint = groupNoticesByHint(dueNotices);
+/** The notices to print on a stop's manifest (by its hint). */
+function noticesForStop(stop: StopTotals): MemberNotice[] {
+  const hint = stop.stop_id === HOME_DELIVERY_BUCKET_ID ? HOME_DELIVERY_HINT : stop.stop_name;
+  return noticesByHint.get(hint) ?? [];
 }
 
 // ─── Per-customer add-on index (across the whole cycle) ──────────────
@@ -457,6 +482,7 @@ function movedFromLabel(m: CycleMember): string | null {
       const donationBoxes = donatedByStop.get(stop.stop_id) ?? 0;
       const band = bandForStop(stop);
       const isHomeDelivery = stop.stop_id === HOME_DELIVERY_BUCKET_ID;
+      const stopNotices = noticesForStop(stop);
       return (
         <section class="page-break" aria-labelledby={`stop-${stop.stop_id}`}>
           {/* COLOR-CODED STOP BAND — matches the box labels' band color so the
@@ -574,6 +600,34 @@ function movedFromLabel(m: CycleMember): string | null {
             )}
           </div>
 
+          {/* 📌 NOTICES — LOUD, MUST PRINT. Promises owed at this stop that
+              are DUE this week. The team ticks each square; the stop isn't
+              done until they're all ticked. Warm-yellow band, color forced
+              through print (print-color-adjust:exact), kept whole on a page. */}
+          {stopNotices.length > 0 && (
+            <div class="stop-notices mb-6 rounded-ts-lg border-2 px-4 py-3">
+              <p class="notices-head flex items-center gap-2 text-sm font-extrabold uppercase tracking-wide">
+                <span aria-hidden="true">📌</span>
+                Notices — don't close this stop until these are done
+              </p>
+              <ul class="mt-2 flex flex-col gap-2">
+                {stopNotices.map((n) => (
+                  <li class="notice-row flex items-start gap-3">
+                    <span class="notice-check mt-0.5 inline-block h-6 w-6 shrink-0 rounded border-2 bg-white" aria-hidden="true"></span>
+                    <div class="min-w-0 flex-1">
+                      <p class="text-base font-bold leading-snug">{n.title}</p>
+                      {n.detail && (
+                        <p class="mt-0.5 whitespace-pre-wrap break-words text-sm leading-snug">
+                          {n.detail}
+                        </p>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           {/* MEMBERS LIST — ONE row per CUSTOMER, add-ons inline ───────── */}
           {rows.length === 0 ? (
             <Card tone="muted" padding="md" elevation="sm">
@@ -690,6 +744,23 @@ function movedFromLabel(m: CycleMember): string | null {
     print-color-adjust: exact;
   }
 
+  /* ── 📌 NOTICES block — warm-yellow, MUST print in color ─────────────
+   *    Fixed hex (not theme tokens): print document, the loud yellow must
+   *    reproduce on paper. The checkbox is a real empty square ticked by hand. */
+  .stop-notices {
+    background: #fef3c7;          /* warm yellow band */
+    border-color: #d97706;        /* amber-600 frame */
+    color: #422006;               /* deep brown text */
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .stop-notices .notices-head { color: #92400e; }
+  .stop-notices .notice-check {
+    border-color: #78350f;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
   /* ── Print-friendly: page-break between stops ─────────────────────────
    *  The AdminShell chrome (sticky header, nav, page-heading + the actions
    *  slot that holds the Print button & "Back to all stops" link) is removed
@@ -714,5 +785,9 @@ function movedFromLabel(m: CycleMember): string | null {
 
     /* Keep a customer's whole row (name + inline add-ons + flex) on one page. */
     .manifest-row { break-inside: avoid; page-break-inside: avoid; }
+
+    /* The notices block stays whole + keeps its yellow on paper. */
+    .stop-notices { break-inside: avoid; page-break-inside: avoid; }
+    .notice-row { break-inside: avoid; page-break-inside: avoid; }
   }
 </style>
