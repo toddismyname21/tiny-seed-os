@@ -27,6 +27,8 @@ import {
   resolveMemberSchedule,
   upcomingDeliveries,
   prettyDeliveryLong,
+  pickupDateForWeek,
+  type PickupDay,
 } from '../../lib/schedule';
 import { resolveAccountCustomer } from '../../lib/account';
 
@@ -263,7 +265,14 @@ if (primary && primarySchedule && seasonPhase(primarySchedule) !== 'complete') {
   });
   const nextDate = upcomingDeliveries(resolved, 1)[0] ?? null;
   if (nextDate) {
-    nextBoxDateLong = prettyDeliveryLong(nextDate);
+    // Shift the cycle Wednesday to the member's ACTUAL pickup day so the date
+    // + weekday word match their stop (a Saturday-market member's Jun 17 cycle
+    // reads "Saturday, June 20", not "Wednesday, June 17"). Home delivery has
+    // no pickup_location → null → the anchor Wednesday (home delivery IS Wed).
+    const primaryPickupDay = (primary.pickup_location?.day_of_week ?? null) as
+      | PickupDay
+      | null;
+    nextBoxDateLong = prettyDeliveryLong(pickupDateForWeek(nextDate, primaryPickupDay));
     // Where: home delivery, a named stop, or nothing (omit the "at ___").
     if (!primary.pickup_location_id && primary.delivery_address) {
       nextBoxWhere = 'home delivery';

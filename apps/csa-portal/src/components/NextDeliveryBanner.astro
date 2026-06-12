@@ -7,10 +7,16 @@
  * the dashboard, above every other card. Two shapes:
  *
  *   - Pickup members:
- *       📦 Your next delivery is Wednesday, June 10.
- *       Pick up at Squirrel Hill after 2 PM.
+ *       📦 Your next delivery is Saturday, June 20.
+ *       Pick up at Sewickley Market from 9 AM–1 PM.   ← full window when known
  *       You'll get a text message when your share arrives — make sure your
  *       phone number is up to date.
+ *
+ *     The date + weekday word reflect the member's ACTUAL pickup day (a
+ *     Saturday-market member's cycle Wednesday is shifted +3 days by
+ *     lib/schedule.pickupDateForWeek BEFORE it reaches this banner), and the
+ *     pickup line shows the stop's real window ("9 AM–1 PM") when both a start
+ *     + end time exist, falling back to "after <time>" otherwise.
  *
  *   - Home-delivery members:
  *       🚚 Your next delivery is Wednesday, June 10 to <address>.
@@ -19,8 +25,9 @@
  *
  * Data sources (all resolved server-side by the caller, passed in here):
  *   - nextDeliveryLong — member's next on-week date from lib/schedule.ts
- *     (cycle.ts parity + season.ts), so weekly + Week A/B + flex all land on
- *     the right date.
+ *     (cycle.ts parity + season.ts), THEN shifted to the member's pickup
+ *     weekday via pickupDateForWeek, so weekly + Week A/B + flex AND the
+ *     pickup-day all land on the right date/weekday.
  *   - stopName + dayLong — pickup_locations.name + day_of_week.
  *   - pickupTime — pickup_locations.time_start (formatted), else the single
  *     DEFAULT_PICKUP_TIME constant (lib/schedule.ts) — 2 PM is a placeholder.
@@ -45,9 +52,15 @@ interface Props {
   nextDeliveryLong: string;
   /** Stop name (pickup mode) — e.g. "Squirrel Hill". */
   stopName?: string | null;
-  /** Formatted pickup time — e.g. "2 PM" (pickup mode). Never blank: the
-   *  caller falls back to DEFAULT_PICKUP_TIME. */
+  /** Formatted single pickup time — e.g. "2 PM" (pickup mode). Never blank:
+   *  the caller falls back to DEFAULT_PICKUP_TIME. Used for the "after <time>"
+   *  copy when no full window (`pickupWindow`) is available. */
   pickupTime?: string | null;
+  /** Full pickup window — e.g. "9 AM–1 PM" — when the stop has BOTH a start +
+   *  end time (caller formats it with the same helper the PickupCard uses).
+   *  When set, the banner reads "from 9 AM–1 PM" instead of the vaguer
+   *  "after 9 AM"; null falls back to the single-time copy. */
+  pickupWindow?: string | null;
   /** Delivery address (delivery mode). */
   deliveryAddress?: string | null;
   /** Does customers.phone have a value? Drives the prompt vs. subtle link. */
@@ -59,6 +72,7 @@ const {
   nextDeliveryLong,
   stopName = null,
   pickupTime = null,
+  pickupWindow = null,
   deliveryAddress = null,
   hasPhone,
 } = Astro.props as Props;
@@ -105,8 +119,17 @@ const {
         <p class="mt-1.5 text-base leading-relaxed text-ts-text-secondary">
           Pick up at{' '}
           <span class="font-semibold text-ts-text">{stopName}</span>{' '}
-          after{' '}
-          <span class="font-semibold text-ts-text">{pickupTime}</span>.
+          {pickupWindow ? (
+            <>
+              from{' '}
+              <span class="font-semibold text-ts-text">{pickupWindow}</span>.
+            </>
+          ) : (
+            <>
+              after{' '}
+              <span class="font-semibold text-ts-text">{pickupTime}</span>.
+            </>
+          )}
         </p>
       )}
 

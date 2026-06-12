@@ -48,6 +48,7 @@ import {
   SHARE_TYPE_LABELS,
   OWNER_EMAIL,
 } from '../../lib/box';
+import { pickupDateForWeek, type PickupDay } from '../../lib/schedule';
 
 const user = Astro.locals.user;
 if (!user || !user.email) {
@@ -57,8 +58,10 @@ if (!user || !user.email) {
 const supabase = Astro.locals.supabase;
 
 // ─── Resolve target week ─────────────────────────────────────────────
+// The cycle delivery WEDNESDAY — used as the box_contents query key + the swap
+// API's week_date (ops cutoff anchors on Wednesday). The member-facing display
+// date (shifted to their pickup day) is computed below as `titleDisplayPretty`.
 const targetWeek = upcomingWednesdayET();
-const targetWeekPretty = prettyDateET(targetWeek);
 
 // ─── Cutoff state ────────────────────────────────────────────────────
 // Owner can override for QA via ?override_cutoff=true.
@@ -73,6 +76,11 @@ type ActiveMember = {
   share_size: string | null;
   status: string;
   swap_credits: number;
+  pickup_location_id: string | null;
+  delivery_address: string | null;
+  pickup_location: {
+    day_of_week: 'Sun' | 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat' | null;
+  } | null;
 };
 type CustomerWithMembers = {
   id: string;
@@ -95,7 +103,11 @@ let allMembers: ActiveMember[] = [];
 if (account) {
   const { data: memberRows, error: customerError } = await supabase
     .from('members')
-    .select('id, share_type, share_size, status, swap_credits')
+    .select(`
+      id, share_type, share_size, status, swap_credits,
+      pickup_location_id, delivery_address,
+      pickup_location:pickup_locations ( day_of_week )
+    `)
     .eq('customer_id', account.id)
     .overrideTypes<ActiveMember[], { merge: false }>();
   if (customerError) {
@@ -114,6 +126,26 @@ const customer: CustomerWithMembers | null = account
   : null;
 const liveStatuses = new Set(['active', 'paused', 'onboarding']);
 const activeMembers = allMembers.filter((m) => liveStatuses.has(m.status));
+
+// ─── Member-facing pickup date for the title ─────────────────────────
+// `targetWeek` is the cycle's delivery WEDNESDAY — it stays the box_contents
+// query key + the swap API's week_date (the ops cutoff anchors on Wednesday).
+// But the TITLE should read the member's ACTUAL pickup day: a Saturday-market
+// member's box for the Jun 17 cycle is picked up Jun 20, so the title must say
+// "Your box for Saturday, June 20", not "Wednesday, June 17" (the page-
+// contradicts-itself bug). Pick the title's pickup day from the primary active
+// member: prefer one with a pickup location, else the first active member
+// (home-delivery / unset → null → the Wednesday anchor). A multi-stop household
+// is rare; the primary stop's day is the right single-title choice.
+const titlePickupMember =
+  activeMembers.find((m) => m.pickup_location?.day_of_week != null) ??
+  activeMembers[0] ??
+  null;
+const titlePickupDay = (titlePickupMember?.pickup_location?.day_of_week ?? null) as
+  | PickupDay
+  | null;
+const titleDisplayDate = pickupDateForWeek(targetWeek, titlePickupDay);
+const titleDisplayPretty = prettyDateET(titleDisplayDate);
 
 // Pickup forcing-nudge (FIX 1, 2026-05-24, gap P0). The /box query doesn't
 // carry pickup_location_id / delivery_address, so use the shared RLS-scoped
@@ -228,7 +260,7 @@ const boxNotPosted = !noShare && boxItems.length === 0;
 ---
 
 <MemberShell
-  title={`Your box for ${targetWeekPretty} — Tiny Seed Farm CSA`}
+  title={`Your box for ${titleDisplayPretty} — Tiny Seed Farm CSA`}
   description="View this week's box and swap individual items for alternatives."
   canonical="https://csa.tinyseedfarm.com/box"
   userEmail={user.email}
@@ -251,7 +283,7 @@ const boxNotPosted = !noShare && boxItems.length === 0;
           id="box-heading"
           class="font-display text-3xl leading-tight font-bold tracking-tight text-ts-text sm:text-4xl"
         >
-          Your box for {targetWeekPretty}
+          Your box for {titleDisplayPretty}
         </h1>
         <p class="mt-2 text-base text-ts-text-secondary">
           Hi {firstName} — review what's coming and make swaps before the cutoff.
@@ -297,7 +329,7 @@ const boxNotPosted = !noShare && boxItems.length === 0;
           ═════════════════════════════════════════════════════════════ */}
       {boxNotPosted && (
         <EmptyState
-          title={`Box for ${targetWeekPretty} hasn't been published yet`}
+          title={`Box for ${titleDisplayPretty} hasn't been published yet`}
           icon="📋"
           tone="default"
         >

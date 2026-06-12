@@ -19,6 +19,8 @@ import {
   seasonEndDate,
   deliveryParity,
   prettyPickupTime,
+  pickupDateForWeek,
+  prettyDeliveryLong,
   DEFAULT_PICKUP_TIME,
   memberIsBiweekly,
 } from './schedule.ts';
@@ -223,6 +225,74 @@ test('null week + no known schedule falls back to weekly (never guess biweekly)'
 test('null week + nonsensical totalWeeks (0/undefined) is weekly', () => {
   assertEqual(memberIsBiweekly({ biweeklyWeek: null, totalWeeks: 0, schedule: summer }), false);
   assertEqual(memberIsBiweekly({ biweeklyWeek: null, totalWeeks: undefined, schedule: summer }), false);
+});
+
+// ─── pickupDateForWeek: shift the Wednesday anchor to the pickup day ─
+// Regression for the member-reported bug: the dashboard banner read
+// "Wednesday, June 17 … Sewickley Market" but Sewickley is a SATURDAY stop
+// (actual pickup June 20). The Wednesday cycle anchor must be offset to the
+// member's pickup weekday before it's shown.
+
+test('pickupDateForWeek: Saturday market shifts the Wed anchor +3 days', () => {
+  // Cycle Wednesday Jun 17 → Saturday-market pickup Jun 20.
+  assertEqual(pickupDateForWeek('2026-06-17', 'Sat'), '2026-06-20');
+});
+
+test('pickupDateForWeek: Tuesday (Lawrenceville) shifts −1 (precedes the Wed)', () => {
+  // Cycle Wednesday Jun 17 → Lawrenceville Tuesday pickup Jun 16 (same Mon–Sun week).
+  assertEqual(pickupDateForWeek('2026-06-17', 'Tue'), '2026-06-16');
+});
+
+test('pickupDateForWeek: Wednesday stop is the anchor itself (unchanged)', () => {
+  assertEqual(pickupDateForWeek('2026-06-17', 'Wed'), '2026-06-17');
+});
+
+test('pickupDateForWeek: Thu/Fri/Sun offsets land in the same Mon–Sun week', () => {
+  assertEqual(pickupDateForWeek('2026-06-17', 'Thu'), '2026-06-18');
+  assertEqual(pickupDateForWeek('2026-06-17', 'Fri'), '2026-06-19');
+  assertEqual(pickupDateForWeek('2026-06-17', 'Sun'), '2026-06-21'); // Sunday closes the week
+  assertEqual(pickupDateForWeek('2026-06-17', 'Mon'), '2026-06-15'); // Monday opens the week
+});
+
+test('pickupDateForWeek: null/undefined pickup day → unchanged Wednesday (home delivery)', () => {
+  assertEqual(pickupDateForWeek('2026-06-17', null), '2026-06-17');
+  assertEqual(pickupDateForWeek('2026-06-17', undefined), '2026-06-17');
+});
+
+// ─── Full member-facing flow: schedule → next Wed → pickup-day shift ─
+// These compose resolveMemberSchedule + upcomingDeliveries + pickupDateForWeek
+// exactly as the dashboard / account / box surfaces do, proving the displayed
+// pickup date is right end-to-end.
+
+test('Sewickley (Sat) biweekly-B member, June → next pickup Jun 20 (NOT Jun 17)', () => {
+  // Biweekly B's first delivery week is the Jun 17 cycle (Week B parity).
+  const r = resolveMemberSchedule({ schedule: summer, biweeklyWeek: 'B' });
+  const nextWed = upcomingDeliveries(r, 1, '2026-06-12')[0]; // mid-June, before Jun 17
+  assertEqual(nextWed, '2026-06-17'); // the cycle anchor
+  const pickup = pickupDateForWeek(nextWed, 'Sat');
+  assertEqual(pickup, '2026-06-20'); // the member's ACTUAL Saturday pickup
+  // And the human label reads "Saturday, June 20", not "Wednesday, June 17".
+  assertEqual(prettyDeliveryLong(pickup), 'Saturday, June 20');
+  assertEqual(prettyDeliveryLong(nextWed), 'Wednesday, June 17'); // the wrong (anchor) label
+});
+
+test('Lawrenceville (Tue) weekly member, week of Jun 15 → next pickup Jun 16', () => {
+  // Weekly member; the upcoming cycle Wednesday from Jun 15 is Jun 17.
+  const r = resolveMemberSchedule({ schedule: summer, biweeklyWeek: null });
+  const nextWed = upcomingDeliveries(r, 1, '2026-06-15')[0];
+  assertEqual(nextWed, '2026-06-17');
+  const pickup = pickupDateForWeek(nextWed, 'Tue');
+  assertEqual(pickup, '2026-06-16'); // Tuesday Lawrenceville pickup
+  assertEqual(prettyDeliveryLong(pickup), 'Tuesday, June 16');
+});
+
+test('home delivery (Wed/null) weekly member → unchanged Wednesday Jun 17', () => {
+  const r = resolveMemberSchedule({ schedule: summer, biweeklyWeek: null });
+  const nextWed = upcomingDeliveries(r, 1, '2026-06-15')[0];
+  assertEqual(nextWed, '2026-06-17');
+  // Home delivery has no pickup_location → null pickup day → anchor unchanged.
+  assertEqual(pickupDateForWeek(nextWed, null), '2026-06-17');
+  assertEqual(prettyDeliveryLong(pickupDateForWeek(nextWed, null)), 'Wednesday, June 17');
 });
 
 // ─── Summary ────────────────────────────────────────────────────────

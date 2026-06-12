@@ -41,6 +41,72 @@ export const DEFAULT_PICKUP_TIME = '2 PM';
 export type DeliveryCadence = 'weekly' | 'biweekly';
 
 /**
+ * A pickup weekday — the shape stored in `pickup_locations.day_of_week`.
+ * Matches cycle.ts's `WeekdayCode`; re-declared locally so this member-facing
+ * module stays free of cross-imports from the ops resolver.
+ */
+export type PickupDay = 'Sun' | 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat';
+
+/**
+ * Day-offset (in whole days) from the cycle's delivery WEDNESDAY anchor to the
+ * member's ACTUAL pickup day, within the SAME Monday→Sunday cycle week.
+ *
+ * The whole fulfillment season is anchored on Wednesdays (season.ts
+ * firstDelivery is always a Wednesday; schedule.ts projects Wednesdays; the
+ * ops cycle keys on the Monday of that Wed's week). But members pick up on
+ * DIFFERENT weekdays within that one Mon–Sun cycle window:
+ *
+ *   - Lawrenceville (Tue) is the day BEFORE the Wednesday → offset −1.
+ *   - CSA stops + home delivery (Wed) are the anchor itself → offset 0.
+ *   - Weekend markets (Sat) come AFTER the Wednesday → offset +3.
+ *
+ * So a Week-B member whose cycle Wednesday is Jun 17 but who picks up at a
+ * Saturday market actually gets their box Jun 20 (Jun 17 + 3) — NOT Jun 17.
+ * Showing the bare Wednesday anchor was the bug a real member reported
+ * (banner said "Wednesday, June 17 … Sewickley Market" while Sewickley is a
+ * Saturday stop / pickup is Jun 20).
+ *
+ * null / unknown day → 0 (treat as the Wednesday anchor — home delivery and
+ * any unconfigured stop default to the anchor day).
+ */
+const PICKUP_DAY_OFFSET: Record<PickupDay, number> = {
+  Mon: -2, // before the Wednesday anchor, same Mon–Sun week
+  Tue: -1, // Lawrenceville — Tuesday precedes the Wednesday anchor
+  Wed: 0,  // CSA stops + home delivery — the anchor itself
+  Thu: 1,
+  Fri: 2,
+  Sat: 3,  // weekend markets (Bloomfield / Sewickley) — after the anchor
+  Sun: 4,  // end of the Mon–Sun cycle week
+};
+
+/**
+ * Shift a cycle's delivery WEDNESDAY (YYYY-MM-DD) to the member's ACTUAL
+ * pickup date, given their `pickup_locations.day_of_week`. Pure + DST-safe —
+ * delegates to cycle.ts's noon-UTC `addDays`.
+ *
+ * This is the single source of truth for "the member SEES which date?": every
+ * member-facing surface (dashboard banner, /account next-box line, /box title)
+ * must run the cycle Wednesday through this so the displayed date matches the
+ * member's real pickup day. The OPS side keeps anchoring on the Wednesday
+ * (the pack cutoff + cycle key are Wednesday/Monday) — only the DISPLAYED date
+ * shifts. Biweekly + flex semantics are unchanged: which Wednesday a member is
+ * "on" is resolved upstream (resolveMemberSchedule); this only re-labels it.
+ *
+ *   pickupDateForWeek('2026-06-17', 'Sat') → '2026-06-20'  (Saturday market)
+ *   pickupDateForWeek('2026-06-17', 'Tue') → '2026-06-16'  (Lawrenceville)
+ *   pickupDateForWeek('2026-06-17', 'Wed') → '2026-06-17'  (CSA stop / home)
+ *   pickupDateForWeek('2026-06-17', null)  → '2026-06-17'  (unknown → anchor)
+ */
+export function pickupDateForWeek(
+  deliveryWednesday: string,
+  pickupDay: PickupDay | null | undefined,
+): string {
+  if (!pickupDay) return deliveryWednesday;
+  const offset = PICKUP_DAY_OFFSET[pickupDay] ?? 0;
+  return offset === 0 ? deliveryWednesday : addDays(deliveryWednesday, offset);
+}
+
+/**
  * Robustly decide whether a member is on a BI-WEEKLY share.
  *
  * `members.biweekly_week` alone is ambiguous: it is null for a true WEEKLY

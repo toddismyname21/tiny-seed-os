@@ -50,6 +50,8 @@ import {
   prettyDeliveryLong,
   prettyDeliveryShort,
   prettyPickupTime,
+  pickupDateForWeek,
+  type PickupDay,
 } from '../lib/schedule';
 import FlexWallet from '../components/FlexWallet.astro';
 import PickupNudgeBanner from '../components/PickupNudgeBanner.astro';
@@ -562,12 +564,29 @@ if (primaryShare && primarySchedule) {
   const firstDate = firstMemberDelivery(resolved);
   scheduleFirstLong = firstDate ? prettyDeliveryLong(firstDate) : '';
   scheduleSeasonEndShort = prettyDeliveryShort(seasonEndDate(resolved, primarySchedule));
-  // Next 4 upcoming dates (only used by the biweekly card's chip list).
+  // The member's pickup weekday. pickup_locations.day_of_week is the canonical
+  // signal; home-delivery members have no pickup_location → null → the date
+  // math treats them as the Wednesday anchor (home delivery IS Wednesday).
+  const primaryPickupDay = (primaryShare.pickup_location?.day_of_week ?? null) as
+    | PickupDay
+    | null;
+  // Next 4 upcoming dates (only used by the biweekly card's chip list). These
+  // are the cycle Wednesdays; the schedule card frames cadence, not a specific
+  // pickup time, so they stay on the anchor (the chips are "every other week"
+  // markers, not "go to your stop on" instructions).
   scheduleUpcomingShort = upcomingDeliveries(resolved, 4).map(prettyDeliveryShort);
   // Next single delivery (banner). upcomingDeliveries is inclusive of today,
-  // so a box being packed TODAY still reads as the next delivery.
+  // so a box being packed TODAY still reads as the next delivery. SHIFT the
+  // cycle Wednesday to the member's ACTUAL pickup day so the banner date +
+  // weekday word match their stop (e.g. a Saturday-market member's Jun 17
+  // cycle reads "Saturday, June 20", not "Wednesday, June 17"). This was the
+  // member-reported bug. prettyDeliveryLong derives the weekday from the date
+  // string itself, so shifting the date fixes the weekday word automatically.
   const nextDate = upcomingDeliveries(resolved, 1)[0] ?? null;
-  nextDeliveryLong = nextDate ? prettyDeliveryLong(nextDate) : '';
+  const nextPickupDate = nextDate
+    ? pickupDateForWeek(nextDate, primaryPickupDay)
+    : null;
+  nextDeliveryLong = nextPickupDate ? prettyDeliveryLong(nextPickupDate) : '';
 }
 
 // ── Next-delivery banner props (2026-06-05, Todd directive) ──
@@ -580,6 +599,12 @@ type NextDeliveryMode = 'pickup' | 'delivery';
 let nextDeliveryMode: NextDeliveryMode = 'pickup';
 let nextDeliveryStopName: string | null = null;
 let nextDeliveryPickupTime: string | null = null;
+// Full pickup window ("9 AM–1 PM") when the stop has BOTH a start + end time —
+// reuses the same formatTimeRange the PickupCard already shows, so the banner
+// and the card never disagree. The banner renders "9 AM–1 PM" when this is set,
+// and falls back to "after <nextDeliveryPickupTime>" when it's null (a stop
+// with only a start time, or none).
+let nextDeliveryPickupWindow: string | null = null;
 let nextDeliveryAddress: string | null = null;
 
 if (pickupCardMode === 'delivery') {
@@ -593,6 +618,11 @@ if (pickupCardMode === 'delivery') {
   nextDeliveryPickupTime = prettyPickupTime(
     primaryShare?.pickup_location?.time_start ?? null,
   );
+  // pickupTimeRange was computed above from the SAME formatTimeRange the
+  // PickupCard uses (non-empty only when both time_start + time_end exist).
+  // Prefer the real window over the vaguer "after 9 AM" so a market member
+  // sees "9 AM–1 PM".
+  nextDeliveryPickupWindow = pickupTimeRange;
 }
 
 // customers.phone present? Drives the prominent "Update your phone number"
@@ -666,6 +696,7 @@ const title = `Welcome back, ${firstName} — Tiny Seed Farm CSA`;
           nextDeliveryLong={nextDeliveryLong}
           stopName={nextDeliveryStopName}
           pickupTime={nextDeliveryPickupTime}
+          pickupWindow={nextDeliveryPickupWindow}
           deliveryAddress={nextDeliveryAddress}
           hasPhone={hasPhone}
         />
