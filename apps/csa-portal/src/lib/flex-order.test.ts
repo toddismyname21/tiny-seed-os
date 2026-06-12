@@ -10,6 +10,7 @@ import {
   closeLabel, stockTier,
   upcomingMondayET, addWeeksYMD, isYMD, categoryEmoji,
   currentOrderWeek, windowLabels, formatWindowInstant,
+  isWeekendMarket,
 } from './flex-order.ts';
 
 /* ── money ── */
@@ -82,6 +83,93 @@ const winterCut = cutoffEpochMs('2026-01-05');
 assert.equal(new Date(winterCut).toISOString(), '2026-01-06T12:00:00.000Z', 'Standing close Tue 7am EST = 12:00 UTC');
 const winterOpen = opensEpochMs('2026-01-05');
 assert.equal(new Date(winterOpen).toISOString(), '2026-01-01T05:00:00.000Z', 'Standing open Thu 00:00 EST = 05:00 UTC');
+
+/* ── PICKUP-DAY-AWARE cutoff (Todd 2026-06-12) ──
+ *
+ * Weekend-market members (pickup day 'Sat'/'Sun') may order/edit/cancel/skip
+ * until WEDNESDAY 23:59:59 ET of the cycle week; Wed/home members keep the
+ * existing Tuesday cutoff. The OPEN instant (prior Thu 00:00 ET) is unchanged
+ * for everyone — only the CLOSE shifts.
+ */
+
+// isWeekendMarket predicate.
+assert.equal(isWeekendMarket('Sat'), true);
+assert.equal(isWeekendMarket('Sun'), true);
+assert.equal(isWeekendMarket('Wed'), false);
+assert.equal(isWeekendMarket('Mon'), false);
+assert.equal(isWeekendMarket(null), false, 'home delivery (null) is NOT weekend-market');
+assert.equal(isWeekendMarket(undefined), false);
+
+// — Standing week '2026-06-15' (Monday):
+//   Wed/home cutoff = Tue Jun 16 07:00 EDT = 2026-06-16T11:00:00Z (existing).
+//   Weekend-market cutoff = Wed Jun 17 23:59:59 EDT = 2026-06-18T03:59:59Z.
+const cutWed15 = cutoffEpochMs('2026-06-15');               // default = Tue
+const cutWedExplicit15 = cutoffEpochMs('2026-06-15', 'Wed'); // 'Wed' = Tue cutoff
+const cutSat15 = cutoffEpochMs('2026-06-15', 'Sat');
+const cutSun15 = cutoffEpochMs('2026-06-15', 'Sun');
+const cutHome15 = cutoffEpochMs('2026-06-15', null);
+assert.equal(cutWedExplicit15, cutWed15, "'Wed' pickup keeps the Tuesday cutoff");
+assert.equal(cutHome15, cutWed15, 'home delivery (null) keeps the Tuesday cutoff');
+assert.equal(new Date(cutSat15).toISOString(), '2026-06-18T03:59:59.000Z', 'Sat market close = Wed Jun 17 23:59:59 EDT = 03:59:59Z next day');
+assert.equal(cutSun15, cutSat15, 'Sun market close == Sat market close (both Wed 23:59:59 ET)');
+assert.ok(cutSat15 > cutWed15, 'weekend-market cutoff is strictly later than the Tuesday cutoff');
+
+// closeLabel reflects the member's own cutoff.
+assert.equal(closeLabel('2026-06-15'), 'Tuesday 7 AM');
+assert.equal(closeLabel('2026-06-15', 'Wed'), 'Tuesday 7 AM');
+assert.equal(closeLabel('2026-06-15', null), 'Tuesday 7 AM');
+assert.equal(closeLabel('2026-06-15', 'Sat'), 'Wednesday midnight');
+assert.equal(closeLabel('2026-06-15', 'Sun'), 'Wednesday midnight');
+// Week-1 weekend-market member still gets Wednesday midnight (later than Tue 6 PM).
+assert.equal(closeLabel('2026-06-08', 'Sat'), 'Wednesday midnight');
+assert.equal(closeLabel('2026-06-08'), 'Tuesday 6 PM');
+
+// windowLabels close phrase is pickup-day-aware (Wed 11:59 PM ET for market).
+assert.equal(windowLabels('2026-06-15').closesLabel, 'Tuesday, June 16 at 7:00 AM');
+assert.equal(windowLabels('2026-06-15', 'Sat').closesLabel, 'Wednesday, June 17 at 11:59 PM', 'market close label = Wed Jun 17 11:59 PM ET');
+assert.equal(windowLabels('2026-06-15', 'Sat').opensLabel, 'Thursday, June 11 at 12:00 AM', 'open label unchanged for market member');
+
+// — CORE SCENARIO (Todd's rule, the emailed promise):
+//   Tuesday 8 AM ET of the cycle week (= 2026-06-16 12:00 UTC, just past the
+//   Tue 07:00 ET = 11:00 UTC Wednesday-member cutoff):
+//     • Wed/home member is BLOCKED, • Sat-market member is still ALLOWED.
+const tue8amET = Date.UTC(2026, 5, 16, 12, 0, 0); // 08:00 EDT
+assert.equal(isPastCutoff('2026-06-15', tue8amET), true, 'Tue 8am ET: Wed member past cutoff');
+assert.equal(isPastCutoff('2026-06-15', tue8amET, null), true, 'Tue 8am ET: home member past cutoff');
+assert.equal(isPastCutoff('2026-06-15', tue8amET, 'Sat'), false, 'Tue 8am ET: Sat-market member NOT past cutoff');
+assert.equal(isWindowOpen('2026-06-15', tue8amET, 'Sat'), true, 'Tue 8am ET: Sat-market window still OPEN');
+assert.equal(isWindowOpen('2026-06-15', tue8amET), false, 'Tue 8am ET: Wed-member window CLOSED');
+
+// Wednesday 11:00 PM ET (before the 23:59:59 close) — market member still in.
+const wed11pmET = Date.UTC(2026, 5, 18, 3, 0, 0); // Wed Jun 17 23:00 EDT = Thu 03:00 UTC
+assert.equal(isPastCutoff('2026-06-15', wed11pmET, 'Sat'), false, 'Wed 11pm ET: Sat-market member still in');
+assert.equal(isWindowOpen('2026-06-15', wed11pmET, 'Sat'), true, 'Wed 11pm ET: Sat-market window open');
+// One second after the market close — now blocked.
+assert.equal(isPastCutoff('2026-06-15', cutSat15, 'Sat'), true, 'at market cutoff: blocked');
+assert.equal(isPastCutoff('2026-06-15', cutSat15 - 1000, 'Sat'), false, 'just before market cutoff: allowed');
+
+// — THURSDAY 00:01 ET of the NEXT calendar week: BOTH members are past the
+//   PRIOR week's cutoff (the prior week '2026-06-15' closed Tue/Wed; by Thu
+//   even the market cutoff Wed 23:59:59 has passed).
+const thu0001ET = Date.UTC(2026, 5, 18, 4, 1, 0); // Thu Jun 18 00:01 EDT = 04:01 UTC
+assert.equal(isPastCutoff('2026-06-15', thu0001ET), true, 'Thu 00:01: Wed member past prior-week cutoff');
+assert.equal(isPastCutoff('2026-06-15', thu0001ET, 'Sat'), true, 'Thu 00:01: market member ALSO past prior-week cutoff');
+
+// — currentOrderWeek is pickup-day-aware: on Tuesday 8 AM ET, a weekend-market
+//   member STAYS on the current week (6/15, still open) while a Wed member has
+//   already rolled to the before-open next week (6/22 opens Thu 6/18).
+assert.equal(currentOrderWeek(tue8amET, 'Sat'), '2026-06-15', 'Tue 8am ET market member → 6/15 (still open)');
+assert.equal(currentOrderWeek(tue8amET), '2026-06-22', 'Tue 8am ET Wed member → 6/22 (next, before-open)');
+// By Wed 11pm ET the market member is still on 6/15; the Wed member is on 6/22.
+assert.equal(currentOrderWeek(wed11pmET, 'Sat'), '2026-06-15', 'Wed 11pm ET market member → 6/15 (still open)');
+// After the market cutoff (Thu 00:01), the market member rolls to 6/22 too.
+assert.equal(currentOrderWeek(thu0001ET, 'Sat'), '2026-06-22', 'Thu 00:01 market member → 6/22 (rolled over)');
+
+// — DST SANITY: a WINTER weekend-market week (EST, UTC-5).
+//   Mon 2026-01-05 → market close Wed 2026-01-07 23:59:59 EST = 2026-01-08T04:59:59Z.
+const winterMarketCut = cutoffEpochMs('2026-01-05', 'Sat');
+assert.equal(new Date(winterMarketCut).toISOString(), '2026-01-08T04:59:59.000Z', 'Winter market close Wed 23:59:59 EST = 04:59:59Z');
+assert.ok(winterMarketCut > cutoffEpochMs('2026-01-05'), 'winter market cutoff later than winter Tuesday cutoff');
 
 /* ── week helpers ── */
 assert.ok(isYMD('2026-06-08'));

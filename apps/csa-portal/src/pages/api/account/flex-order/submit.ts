@@ -29,7 +29,7 @@ import { RESEND_API_KEY, RESEND_FROM_EMAIL } from 'astro:env/server';
 import { isSameOriginPost, PORTAL_ORIGIN } from '../../../../lib/onboarding';
 import { isYMD, isPastCutoff, isBeforeOpen, prettyWeek, closeLabel } from '../../../../lib/flex-order';
 import { getFlexBalance } from '../../../../lib/flex';
-import { resolveMemberPickup } from '../../../../lib/account';
+import { resolveMemberPickup, resolveFlexMemberPickupDay } from '../../../../lib/account';
 import { sendFlexOrderConfirmation, type FlexOrderEmailLine } from '../../../../lib/flex-order-email';
 
 export const prerender = false;
@@ -67,11 +67,17 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
     return redirect(back('error', 'invalid_input'), 303);
   }
 
-  // ── Window guard (gap research M7/G10): the week is writable only
-  //    between OPEN (prior Thu 00:00 ET) and CLOSE (Tue 07:00 ET, or
-  //    Tue 18:00 ET for Week 1 '2026-06-08'). Before open or after close
-  //    the week is read-only. ────────────────────────────────────────
-  if (isBeforeOpen(week) || isPastCutoff(week)) {
+  // ── Pickup-day-aware cutoff (Todd 2026-06-12). Resolve THIS caller's flex
+  //    member pickup day (RLS-scoped to their own row). Weekend-market members
+  //    (Sat/Sun pickup) order until Wed 23:59:59 ET; Wed/home members keep the
+  //    Tue 07:00 ET cutoff. A lookup miss → null → conservative Tue cutoff. ──
+  const pickupDay = await resolveFlexMemberPickupDay(locals.supabase, memberId);
+
+  // ── Window guard (gap research M7/G10): the week is writable only between
+  //    OPEN (prior Thu 00:00 ET) and CLOSE — Tue 07:00 ET (Tue 18:00 ET for
+  //    Week 1 '2026-06-08'), or Wed 23:59:59 ET for weekend-market members.
+  //    Before open or after that member's close the week is read-only. ──────
+  if (isBeforeOpen(week) || isPastCutoff(week, Date.now(), pickupDay)) {
     return redirect(back('error', 'window_closed'), 303);
   }
 
@@ -200,7 +206,7 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
         lines: emailLines,
         totalCents,
         weekLabel: prettyWeek(week),
-        cutoffLabel: closeLabel(week),
+        cutoffLabel: closeLabel(week, pickupDay),
         pickupLine,
         resendApiKey: RESEND_API_KEY,
         resendFromEmail: RESEND_FROM_EMAIL,

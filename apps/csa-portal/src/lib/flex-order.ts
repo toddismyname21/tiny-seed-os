@@ -101,6 +101,36 @@ export function formatCents(cents: number): string {
 /** The one-time Week-1 override week (season launch). */
 const WEEK_ONE = '2026-06-08';
 
+/* ──────────────────────────────────────────────────────────────────
+ * Pickup-day-aware cutoff (Todd 2026-06-12)
+ *
+ * Members who pick up at a WEEKEND MARKET (their pickup_location's
+ * day_of_week is 'Sat' or 'Sun') get a LATER cutoff: they may place /
+ * edit / cancel / skip their flex order until WEDNESDAY 23:59:59 ET of
+ * the cycle week — because their box is packed for the weekend run, not
+ * the Wednesday run. Members who pick up on Wednesday (or take home
+ * delivery, which runs Wednesday) keep the existing Tuesday 07:00 ET
+ * cutoff (Tuesday 18:00 ET for the Week-1 launch override).
+ *
+ * `PickupDay` is the raw `pickup_locations.day_of_week` short code (or
+ * null for home delivery / unresolved). `isWeekendMarket()` is the single
+ * predicate that decides which cutoff applies; every cutoff-aware helper
+ * below accepts an optional `pickupDay` and routes through it so the
+ * member page, the API guards, and the tests all agree.
+ * ────────────────────────────────────────────────────────────────── */
+
+/** Raw pickup-location weekday code, or null (home delivery / unresolved). */
+export type PickupDay = 'Sun' | 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat' | null | undefined;
+
+/**
+ * Does this pickup day mean a WEEKEND-MARKET member (Sat/Sun pickup)?
+ * Weekend-market members get the later Wednesday-midnight cutoff. Wednesday
+ * pickup and home delivery (null) both keep the Tuesday cutoff.
+ */
+export function isWeekendMarket(pickupDay: PickupDay): boolean {
+  return pickupDay === 'Sat' || pickupDay === 'Sun';
+}
+
 /**
  * Resolve an ET wall-clock instant (a given day-offset from `weekStarting`,
  * at `hour:minute` ET) to an absolute epoch-ms instant — DST-aware.
@@ -109,12 +139,14 @@ const WEEK_ONE = '2026-06-08';
  * @param dayOffset    days from that Monday (e.g. +1 = Tuesday, −4 = prior Thursday).
  * @param hour         wall-clock hour in ET (0–23).
  * @param minute       wall-clock minute in ET (default 0).
+ * @param second       wall-clock second in ET (default 0).
  */
 function etWallClockEpochMs(
   weekStarting: string,
   dayOffset: number,
   hour: number,
   minute: number = 0,
+  second: number = 0,
 ): number {
   const [y, m, d] = weekStarting.split('-').map((s) => Number.parseInt(s, 10));
   // Anchor noon UTC (DST-safe across the offset), then shift whole days.
@@ -125,19 +157,33 @@ function etWallClockEpochMs(
   const ty = dayDate.getUTCFullYear();
   const tm = dayDate.getUTCMonth();
   const td = dayDate.getUTCDate();
-  // Wall-clock hour:minute ET → UTC = (hour:minute) − offset.
-  return Date.UTC(ty, tm, td, hour, minute, 0) - offsetMin * 60_000;
+  // Wall-clock hour:minute:second ET → UTC = (hour:minute:second) − offset.
+  return Date.UTC(ty, tm, td, hour, minute, second) - offsetMin * 60_000;
 }
 
 /**
  * The order CUTOFF (close) for a cycle, as an absolute epoch-ms instant.
  *
- *   • Week 1 ('2026-06-08'): Tue Jun 9 2026 18:00 ET.
- *   • Standing weeks: that week's Tuesday (week_starting + 1 day) 07:00 ET.
+ * The cutoff depends on the member's PICKUP DAY (Todd 2026-06-12):
+ *
+ *   • WEEKEND-MARKET members (pickupDay 'Sat'/'Sun', `isWeekendMarket` true):
+ *     that week's WEDNESDAY (week_starting + 2 days) 23:59:59 ET. Their box
+ *     is packed for the weekend run, so they get until Wednesday midnight.
+ *     (The Week-1 launch override does NOT shorten this — a market member in
+ *     Week 1 still gets Wednesday midnight, which is later than Tue 18:00.)
+ *   • Wednesday / home-delivery members (pickupDay null/'Wed'/anything else):
+ *     - Week 1 ('2026-06-08'): Tue Jun 9 2026 18:00 ET.
+ *     - Standing weeks: that week's Tuesday (week_starting + 1 day) 07:00 ET.
  *
  * @param weekStarting 'YYYY-MM-DD' Monday of the delivery week.
+ * @param pickupDay    raw pickup_locations.day_of_week ('Sat'/'Sun' → later
+ *                     cutoff); null/undefined (home delivery) → Tuesday cutoff.
  */
-export function cutoffEpochMs(weekStarting: string): number {
+export function cutoffEpochMs(weekStarting: string, pickupDay: PickupDay = null): number {
+  if (isWeekendMarket(pickupDay)) {
+    // Wednesday = Monday + 2 days, at 23:59:59 ET.
+    return etWallClockEpochMs(weekStarting, 2, 23, 59, 59);
+  }
   const closeHour = weekStarting === WEEK_ONE ? 18 : 7;
   // Tuesday = Monday + 1 day in both cases.
   return etWallClockEpochMs(weekStarting, 1, closeHour, 0);
@@ -172,26 +218,34 @@ function etOffsetMinutes(at: Date): number {
   return Math.round((asUTC - at.getTime()) / 60_000);
 }
 
-/** Is the cutoff (close) for this week in the past relative to `now`? */
-export function isPastCutoff(weekStarting: string, now: number = Date.now()): boolean {
-  return now >= cutoffEpochMs(weekStarting);
+/**
+ * Is the cutoff (close) for this week in the past relative to `now`?
+ * `pickupDay` selects the member's cutoff (weekend-market → Wed 23:59:59 ET).
+ */
+export function isPastCutoff(weekStarting: string, now: number = Date.now(), pickupDay: PickupDay = null): boolean {
+  return now >= cutoffEpochMs(weekStarting, pickupDay);
 }
 
-/** Has the order window for this week NOT yet opened, relative to `now`? */
+/** Has the order window for this week NOT yet opened, relative to `now`?
+ *  The OPEN instant is the same for everyone (prior Thursday 00:00 ET) — only
+ *  the CLOSE shifts by pickup day — so this takes no `pickupDay`. */
 export function isBeforeOpen(weekStarting: string, now: number = Date.now()): boolean {
   return now < opensEpochMs(weekStarting);
 }
 
-/** Is the order window currently OPEN (opened and not yet closed)? */
-export function isWindowOpen(weekStarting: string, now: number = Date.now()): boolean {
-  return now >= opensEpochMs(weekStarting) && now < cutoffEpochMs(weekStarting);
+/** Is the order window currently OPEN (opened and not yet closed)?
+ *  `pickupDay` selects the member's cutoff (weekend-market → Wed 23:59:59 ET). */
+export function isWindowOpen(weekStarting: string, now: number = Date.now(), pickupDay: PickupDay = null): boolean {
+  return now >= opensEpochMs(weekStarting) && now < cutoffEpochMs(weekStarting, pickupDay);
 }
 
 /**
- * Human label for the close instant, e.g. "Tuesday 6 PM" (Week 1) or
- * "Tuesday 7 AM" (standing). Used in member copy + onboarding.
+ * Human label for the close instant, used in member copy + onboarding:
+ *   • weekend-market members → "Wednesday midnight"
+ *   • Wed/home members       → "Tuesday 6 PM" (Week 1) or "Tuesday 7 AM".
  */
-export function closeLabel(weekStarting: string): string {
+export function closeLabel(weekStarting: string, pickupDay: PickupDay = null): string {
+  if (isWeekendMarket(pickupDay)) return 'Wednesday midnight';
   return weekStarting === WEEK_ONE ? 'Tuesday 6 PM' : 'Tuesday 7 AM';
 }
 
@@ -268,14 +322,17 @@ export function upcomingMondayET(now: Date = new Date()): string {
  * else the soonest week that opens in the future. Falls back to the
  * upcoming Monday if nothing matches (defensive — shouldn't happen).
  */
-export function currentOrderWeek(now: number = Date.now()): string {
+export function currentOrderWeek(now: number = Date.now(), pickupDay: PickupDay = null): string {
   // The Monday of the week containing `now`, in ET, as our search anchor.
   const anchorMonday = upcomingMondayET_mondayOfWeek(new Date(now));
 
   // Candidate delivery weeks around the anchor. A standing week's window
-  // runs prior-Thursday → that-week's-Tuesday, so the open week for any
-  // instant is at most one week away from the calendar week; we scan a
-  // generous range to be safe and deterministic.
+  // runs prior-Thursday → that-week's-Tuesday (or Wednesday for a weekend-
+  // market member), so the open week for any instant is at most one week
+  // away from the calendar week; we scan a generous range to be safe and
+  // deterministic. The member's `pickupDay` selects which cutoff applies so
+  // a weekend-market member stays on the CURRENT week through Wed night
+  // instead of jumping early to the next (before-open) week.
   const candidates: string[] = [];
   for (let w = -2; w <= 3; w += 1) candidates.push(addWeeksYMD(anchorMonday, w));
 
@@ -284,7 +341,7 @@ export function currentOrderWeek(now: number = Date.now()): string {
   //    nearer deadline first).
   let earliestOpen: string | null = null;
   for (const wk of candidates) {
-    if (now >= opensEpochMs(wk) && now < cutoffEpochMs(wk)) {
+    if (now >= opensEpochMs(wk) && now < cutoffEpochMs(wk, pickupDay)) {
       if (earliestOpen === null || wk < earliestOpen) earliestOpen = wk;
     }
   }
@@ -375,10 +432,13 @@ export function formatWindowInstant(epochMs: number): string {
  * before-open brand-moment copy. `opensLabel` is null when the week is the
  * already-open Week-1 sentinel (no meaningful open date to show).
  */
-export function windowLabels(weekStarting: string): { opensLabel: string | null; closesLabel: string } {
+export function windowLabels(
+  weekStarting: string,
+  pickupDay: PickupDay = null,
+): { opensLabel: string | null; closesLabel: string } {
   const opensMs = opensEpochMs(weekStarting);
   return {
     opensLabel: opensMs > 0 ? formatWindowInstant(opensMs) : null,
-    closesLabel: formatWindowInstant(cutoffEpochMs(weekStarting)),
+    closesLabel: formatWindowInstant(cutoffEpochMs(weekStarting, pickupDay)),
   };
 }

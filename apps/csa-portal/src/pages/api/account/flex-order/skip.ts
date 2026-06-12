@@ -31,6 +31,7 @@ import type { APIRoute } from 'astro';
 import { z } from 'zod';
 import { isSameOriginPost, PORTAL_ORIGIN } from '../../../../lib/onboarding';
 import { isYMD, isPastCutoff } from '../../../../lib/flex-order';
+import { resolveFlexMemberPickupDay } from '../../../../lib/account';
 
 export const prerender = false;
 
@@ -61,10 +62,16 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
     return redirect(back('error', 'invalid_input'), 303);
   }
 
+  // ── Pickup-day-aware cutoff (Todd 2026-06-12): weekend-market members
+  //    (Sat/Sun pickup) may skip until Wed 23:59:59 ET; Wed/home members keep
+  //    the Tue cutoff. RLS-scoped to the caller's own row; miss → null → Tue. ─
+  const pickupDay = await resolveFlexMemberPickupDay(locals.supabase, memberId);
+
   // ── Window guard: skipping (which cancels any pending order) is only
-  //    meaningful while the week is still OPEN. After cutoff the order is
-  //    locked for harvest — refuse so a member can't yank stock late. ────
-  if (isPastCutoff(week)) {
+  //    meaningful while the week is still OPEN (before that member's cutoff).
+  //    After cutoff the order is locked for harvest — refuse so a member
+  //    can't yank stock late. ──────────────────────────────────────────────
+  if (isPastCutoff(week, Date.now(), pickupDay)) {
     return redirect(back('error', 'window_closed'), 303);
   }
 

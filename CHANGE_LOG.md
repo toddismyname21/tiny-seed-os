@@ -6,6 +6,24 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-06-12] CSA — Flex ordering: pickup-day-aware cutoff (weekend-market members order until Wed midnight) (fullstack-builder)
+
+NOT committed/deployed — PM verifies & deploys. App: `apps/csa-portal`. `npm run build` passes; flex-order tests green (`npx tsx src/lib/flex-order.test.ts`); build artifacts removed. No migration required — the place/cancel flex RPCs enforce cutoff at the APPLICATION layer (0037 line 28), and pickup day already lives in `pickup_locations.day_of_week`.
+
+### Todd's rule (members emailed the promise 2026-06-12 — must be live today)
+Members who pick up at a WEEKEND MARKET (their `pickup_locations.day_of_week` is 'Sat' or 'Sun') may place/edit/cancel/skip their flex order until **Wednesday 23:59:59 ET** of the cycle week. Wednesday-pickup and home-delivery members keep the existing **Tuesday 07:00 ET** cutoff (Tue 18:00 ET for the Week-1 '2026-06-08' launch override).
+
+### Changes
+- `src/lib/flex-order.ts` — single source of cutoff truth. New `PickupDay` type + `isWeekendMarket(pickupDay)` predicate. `cutoffEpochMs(weekStarting, pickupDay?)` now returns Wed 23:59:59 ET for Sat/Sun, Tue cutoff otherwise (added a `second` param to the DST-safe `etWallClockEpochMs`). `isPastCutoff`, `isWindowOpen`, `closeLabel`, `windowLabels`, `currentOrderWeek` all thread an optional `pickupDay` (default null = Tuesday cutoff; fully backward compatible). `opensEpochMs`/`isBeforeOpen` unchanged (open = prior Thu 00:00 ET for everyone).
+- `src/lib/account.ts` — new `resolveFlexMemberPickupDay(supabase, memberId)`: RLS-scoped read of the caller's member row + `pickup_locations.day_of_week`; home-delivery/miss → null (conservative Tuesday cutoff, never grants the later window on a hiccup).
+- API guards `submit.ts` / `cancel.ts` / `skip.ts` — resolve the caller's pickup day and pass it to `isPastCutoff`. submit's confirmation email `cutoffLabel` is now `closeLabel(week, pickupDay)`.
+- `src/pages/account/flex-order.astro` — fetches the flex member's pickup day in the same RLS query; threads it through all window math + display copy. Member-facing deadline now reads THEIR cutoff in: header explainer, "How Farm Flex works" bullet, empty-state, saved-order reassurance, countdown header, onboarding modal, and the closed/before-open window panel (`windowLabels`).
+
+### Ops safety (verified, no admin changes)
+The admin pack/pick lists query `flex_orders` by `week_starting = <week>` and status in {pending, locked, fulfilled} (`src/pages/admin/flex-orders.astro` PACKABLE_STATUSES; pack-check groups by stop via `pickup_locations.day_of_week`). A market member's Wednesday-night order is a `pending` row with the SAME `week_starting` (submit passes it unchanged to `place_flex_order`), so it lands in the same cycle week and routes to that member's WEEKEND stop manifest — not the Wednesday run. SEQUENCING CAVEAT for PM: this works naturally only if the weekend stops' pick/pack sheets are generated AFTER Wednesday midnight (or refreshed before the weekend run). If a weekend manifest were printed before Wed midnight it would miss late market orders. Lists are read live from the DB, so re-opening/printing them Thursday morning captures everything.
+
+---
+
 ## [2026-06-12] CSA — Household shared-access fix: invited members can now see the owner's share (fullstack-builder)
 
 NOT committed/deployed — PM verifies & deploys. App: `apps/csa-portal`. `npm run build` passes; build artifacts removed. No migration required (app-side fix using existing migration-0023 RPC).

@@ -56,10 +56,22 @@ if (!user || !user.email) {
 const supabase = Astro.locals.supabase;
 
 // ─── Resolve the caller's flex member (RLS-scoped). ──────────────────
-type FlexMemberRow = { id: string; share_type: string; status: string; share_size: string | null };
+// We also pull the member's pickup weekday (raw pickup_locations.day_of_week)
+// and delivery_address so we can apply the PICKUP-DAY-AWARE cutoff (Todd
+// 2026-06-12): weekend-market members (Sat/Sun pickup) order until Wed
+// 23:59:59 ET; Wed/home members keep the Tue cutoff. Home delivery (an
+// address, no pickup stop) runs Wednesday → Tuesday-cutoff semantics (null).
+type FlexMemberRow = {
+  id: string;
+  share_type: string;
+  status: string;
+  share_size: string | null;
+  delivery_address: string | null;
+  pickup_location: { day_of_week: string | null } | null;
+};
 const { data: memberRows, error: memberErr } = await supabase
   .from('members')
-  .select('id, share_type, status, share_size')
+  .select('id, share_type, status, share_size, delivery_address, pickup_location:pickup_locations ( day_of_week )')
   .eq('share_type', 'flex')
   .in('status', ['active', 'paused', 'onboarding'])
   .order('status', { ascending: true })
@@ -74,6 +86,18 @@ const flexMember = (memberRows ?? [])[0] ?? null;
 if (!flexMember) {
   return Astro.redirect('/account', 303);
 }
+
+// The member's pickup weekday for the cutoff. Home delivery (address set) →
+// null → Tuesday-cutoff semantics, matching the API guards' resolution.
+const VALID_DOW = new Set(['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']);
+const hasDeliveryAddress =
+  typeof flexMember.delivery_address === 'string' && flexMember.delivery_address.trim().length > 0;
+const rawDow = flexMember.pickup_location?.day_of_week ?? null;
+const pickupDay: 'Sun' | 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat' | null =
+  hasDeliveryAddress || !rawDow || !VALID_DOW.has(rawDow)
+    ? null
+    : (rawDow as 'Sun' | 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat');
+const isWeekendMarketMember = pickupDay === 'Sat' || pickupDay === 'Sun';
 
 // ─── Week + order window (open Thu / close Tue; Week-1 override). ─────
 // BUG B FIX (2026-06-08): select the delivery week by the CURRENT ORDER
@@ -96,23 +120,29 @@ const NOW: number = (() => {
   return Date.now();
 })();
 
-const week = currentOrderWeek(NOW);
-const cutoffMs = cutoffEpochMs(week);
+// The delivery week + all window math is PICKUP-DAY-AWARE (Todd 2026-06-12):
+// a weekend-market member's current week stays orderable through Wed 23:59:59
+// ET, so currentOrderWeek must use THEIR cutoff (else it would jump them to
+// next week early on Tuesday).
+const week = currentOrderWeek(NOW, pickupDay);
+const cutoffMs = cutoffEpochMs(week, pickupDay);
 const opensMs = opensEpochMs(week);
-const pastCutoff = isPastCutoff(week, NOW);
+const pastCutoff = isPastCutoff(week, NOW, pickupDay);
 const beforeOpen = isBeforeOpen(week, NOW);
 // The window is "live" (orderable) only between open and close.
 const windowOpen = !beforeOpen && !pastCutoff;
-// Human label for this week's close time ("Tuesday 6 PM" wk1 · "Tuesday 7 AM").
-const closeCopy = closeLabel(week);
+// Human label for this week's close time, in THE MEMBER'S terms:
+// weekend-market → "Wednesday midnight"; Wed/home → "Tuesday 6 PM" (wk1) /
+// "Tuesday 7 AM".
+const closeCopy = closeLabel(week, pickupDay);
 
 // Concrete ET open/close labels for the closed + before-open brand-moment
 // copy (Todd 2026-06-08). For the BEFORE-OPEN state, the resolved `week`
 // IS the next window. For the (defensive) CLOSED state, advance to the
 // next orderable window so we always show a real, future open+close. In
 // both cases `opensLabel` is null only for the already-open Week-1.
-const nextWindowWeek = pastCutoff ? currentOrderWeek(Math.max(cutoffMs, NOW)) : week;
-const { opensLabel: nextOpensLabel, closesLabel: nextClosesLabel } = windowLabels(nextWindowWeek);
+const nextWindowWeek = pastCutoff ? currentOrderWeek(Math.max(cutoffMs, NOW), pickupDay) : week;
+const { opensLabel: nextOpensLabel, closesLabel: nextClosesLabel } = windowLabels(nextWindowWeek, pickupDay);
 // "Opens Thursday" short date for the before-open headline + preview copy.
 const opensLabel = beforeOpen
   ? new Intl.DateTimeFormat('en-US', {
@@ -301,7 +331,28 @@ const savedHeading = hasLocked
   : '✅ Your order is in for this week';
 const savedReassurance = hasLocked
   ? "It's locked for packing — contact us if you need a change."
-  : 'You can update it until the Tuesday cutoff — just change your cart below and tap Update my order.';
+  : `You can update it until the ${closeCopy} cutoff — just change your cart below and tap Update my order.`;
+
+// ─── Pickup-day-aware member copy (Todd 2026-06-12). ─────────────────
+// Weekend-market members (Sat/Sun pickup) get a LATER cutoff (Wed midnight)
+// and pick up on their market day; Wed/home members order by Tuesday and pick
+// up Wednesday. These strings drive the header explainer, the How-Flex bullet,
+// and the empty state so every member reads THEIR OWN deadline + pickup.
+const pickupDayLongMap: Record<string, string> = {
+  Sun: 'Sunday', Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday',
+  Thu: 'Thursday', Fri: 'Friday', Sat: 'Saturday',
+};
+const pickupDayLong = pickupDay ? pickupDayLongMap[pickupDay] ?? null : null;
+// "Order by Wednesday midnight; pick up Saturday." vs the Wed/home default.
+const headerDeadlineLine = isWeekendMarketMember
+  ? `Order by ${closeCopy}; pick up ${pickupDayLong ?? 'at the market'}.`
+  : 'Order by Tuesday; pick up Wednesday.';
+// The "pick up" phrase reused in the How-Flex bullet.
+const pickupPhrase = isWeekendMarketMember
+  ? `Pick up your box ${pickupDayLong ? `on ${pickupDayLong}` : 'at the market'} at your stop.`
+  : 'Pick up your box on Wednesday at your stop.';
+// Empty-state window phrasing ("open Thursday and close <member cutoff>").
+const emptyStateCloseCopy = isWeekendMarketMember ? 'Wednesday midnight' : 'Tuesday 7 AM';
 ---
 
 <MemberShell
@@ -329,7 +380,7 @@ const savedReassurance = hasLocked
     </div>
     <p class="mt-2 text-sm leading-relaxed text-ts-text-secondary">
       You're on our Farm Flex plan — you choose what's in your box each week.
-      Order by Tuesday; pick up Wednesday.
+      {headerDeadlineLine}
     </p>
     <p class="mt-1 text-sm text-ts-text-muted">{prettyWeek(week)}</p>
   </section>
@@ -347,7 +398,7 @@ const savedReassurance = hasLocked
       </li>
       <li class="flex gap-2">
         <span aria-hidden="true">⏰</span>
-        <span><span class="font-medium text-ts-text">Order by {closeCopy}.</span> Pick up your box on Wednesday at your stop.</span>
+        <span><span class="font-medium text-ts-text">Order by {closeCopy}.</span> {pickupPhrase}</span>
       </li>
       <li class="flex gap-2">
         <span aria-hidden="true">🌿</span>
@@ -543,7 +594,7 @@ const savedReassurance = hasLocked
       {/* ITEM GRID (M2/M3/M5/M6) — one card per orderable item. */}
       {orderable.length === 0 ? (
         <EmptyState title="This week's items aren't up yet" icon="🌱" tone="default" dashed={true}>
-          Each week's box choices open Thursday and close Tuesday 7&nbsp;AM — check
+          Each week's box choices open Thursday and close {emptyStateCloseCopy} — check
           back to build your box. Nothing is packed until you order, and your Flex
           balance always carries forward.
         </EmptyState>

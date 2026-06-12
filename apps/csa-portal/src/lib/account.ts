@@ -369,6 +369,69 @@ export async function resolveMemberPickup(
 }
 
 /**
+ * Resolve a SPECIFIC flex member's pickup weekday (raw
+ * `pickup_locations.day_of_week` short code: 'Sat'/'Sun'/'Wed'/…), or null
+ * for a home-delivery member or a member with no resolvable pickup stop.
+ *
+ * This is the input the pickup-day-aware flex cutoff needs (Todd 2026-06-12):
+ * weekend-market members (Sat/Sun) order until Wed midnight; everyone else
+ * keeps the Tuesday cutoff. Home delivery runs Wednesday, so its null maps to
+ * the Tuesday (Wednesday-semantics) cutoff — exactly the default the cutoff
+ * helpers apply for null.
+ *
+ * RLS-SAFE: uses the caller's RLS-scoped client and filters to the given
+ * `memberId`, so a member can only ever read their OWN row. The join to
+ * `pickup_locations` is read-only reference data.
+ *
+ * FAIL-SOFT: on any error (or a delivery member / missing stop) returns null,
+ * which the cutoff helpers treat as the conservative Tuesday cutoff — a flex
+ * member is NEVER granted the later weekend cutoff on a lookup hiccup.
+ */
+export async function resolveFlexMemberPickupDay(
+  supabase: SupabaseClient<Database>,
+  memberId: string
+): Promise<'Sun' | 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat' | null> {
+  type Row = {
+    delivery_address: string | null;
+    pickup_location_id: string | null;
+    pickup_location: { day_of_week: string | null } | null;
+  };
+  try {
+    const { data, error } = await supabase
+      .from('members')
+      .select(
+        `
+        delivery_address,
+        pickup_location_id,
+        pickup_location:pickup_locations ( day_of_week )
+      `
+      )
+      .eq('id', memberId)
+      .maybeSingle()
+      .overrideTypes<Row, { merge: false }>();
+
+    if (error) {
+      console.error('[account] resolveFlexMemberPickupDay failed:', error.message);
+      return null;
+    }
+    if (!data) return null;
+
+    // Home delivery (runs Wednesday) → null → Tuesday-cutoff semantics.
+    if (typeof data.delivery_address === 'string' && data.delivery_address.trim().length > 0) {
+      return null;
+    }
+    const dow = data.pickup_location?.day_of_week ?? null;
+    const VALID = new Set(['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']);
+    return dow && VALID.has(dow)
+      ? (dow as 'Sun' | 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat')
+      : null;
+  } catch (e) {
+    console.error('[account] resolveFlexMemberPickupDay threw (→ null):', e);
+    return null;
+  }
+}
+
+/**
  * Compute the integer number of weeks covered by an inclusive date
  * range, matching the SQL function logic exactly:
  *
