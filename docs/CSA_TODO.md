@@ -11,6 +11,16 @@ _Started 2026-06-08. PM-maintained. Newest deferrals at top of each section._
 - [ ] **Biweekly add-on semantics check:** aligned all 13 mismatched add-ons to the customer's box week (a biweekly add-on should ride the box). If any customer genuinely wanted alternate-week add-ons, undo per their request.
 - [ ] **Verify Saturday market sheets fresh-printed** (flex fixes included) before Bloomfield/Sewickley.
 
+
+## 🛒 WEEKEND MARKET LOAD (Sat Jun 13 / Sun Jun 14)
+- [ ] **Bloomfield Sat:** Jen VanderPlaats flex order · Linda Cole flex order · **Drew Gifford 2× mushrooms (make-good)** · Marissa Norris + walk-up flex shoppers (use 💳 Market checkout)
+- [ ] **Sewickley Sat:** Josh Burke flex order · Melissa Schad shops table (Market checkout)
+- [ ] **South Side Sun:** possibly Laura McCurdy fresh remake (awaiting her "Sunday or Tuesday" reply)
+- [ ] **Jun 24 DOUBLE add-on list (UPDATED):** Kelly Corrigan (mushroom+cheese), Katy Brown (mushroom), Heather Edmondson (mushroom), Laura Zalaznik (bread), Denise Fazio (mushroom), Whitney/wmsunseri (cheese). **CARLY LAGODA REMOVED — refunded $18.89 instead (PENDING on her card).**
+- [ ] **Make-goods pending:** Ayça Akin herb seedling (Tue Lawrenceville) · Martina replacement radishes (next planting) · Emily Wender replacement box Wed IF she replies hers was gone · Cory Cope DOUBLE box Jun 24
+- [ ] **Maggie Debski upgrade:** small→Family biweekly — NEEDS TODD: price difference to quote (then I invoice + flip her share_size)
+- [ ] **Edgewood/Swissvale stop:** Kelly Corrigan moving late July; Todd promised a switch; NO such stop exists in portal — create stop (host?) or offer nearest alternative before Aug 1
+
 ## 🕓 Later (Todd-requested, not urgent)
 
 ## 🕓 Later (Todd-requested, not urgent)
