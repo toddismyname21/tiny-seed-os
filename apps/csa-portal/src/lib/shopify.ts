@@ -335,6 +335,162 @@ export async function issueStoreCreditDelta(
   };
 }
 
+/* ──────────────────────────────────────────────────────────────────
+ * Store-credit DEBIT — pull money OUT of a customer's store credit.
+ *
+ * Used by the Market Checkout staff tool: a member buys produce at the
+ * farmers-market table and we deduct the dollar amount from their flex
+ * (Shopify store credit) balance on the spot. The Admin API token carries
+ * the `write_store_credit_account_transactions` scope.
+ *
+ * Shopify's `storeCreditAccountDebit` mutation operates on a STORE CREDIT
+ * ACCOUNT id (gid://shopify/StoreCreditAccount/...), NOT the customer GID —
+ * so we first resolve the account id (and its current balance) from the
+ * customer, mirroring how getFlexBalance reads `storeCreditAccounts`.
+ *
+ * This is the inverse of `storeCreditAccountCredit`: it ADDS nothing and
+ * SUBTRACTS exactly `amount` server-side (no read-then-set), and Shopify
+ * itself rejects an over-debit (insufficient balance) via userErrors — but
+ * the API route ALSO re-checks the balance before calling, so the client
+ * value is never trusted.
+ * ────────────────────────────────────────────────────────────────── */
+
+const ACCOUNT_BY_CUSTOMER_QUERY = `
+  query($id: ID!) {
+    customer(id: $id) {
+      storeCreditAccounts(first: 5) {
+        edges { node { id balance { amount currencyCode } } }
+      }
+    }
+  }
+`;
+
+interface AccountByCustomerResp {
+  customer: {
+    storeCreditAccounts: {
+      edges: Array<{ node: { id: string; balance: { amount: string; currencyCode: string } } }>;
+    };
+  } | null;
+}
+
+const DEBIT_MUTATION = `
+  mutation($id: ID!, $amount: MoneyInput!) {
+    storeCreditAccountDebit(id: $id, debitInput: { debitAmount: $amount }) {
+      storeCreditAccountTransaction {
+        account { id balance { amount currencyCode } }
+      }
+      userErrors { field message }
+    }
+  }
+`;
+
+interface DebitResp {
+  storeCreditAccountDebit: {
+    storeCreditAccountTransaction: {
+      account: { id: string; balance: { amount: string; currencyCode: string } };
+    } | null;
+    userErrors: Array<{ field: string[] | null; message: string }>;
+  } | null;
+}
+
+/** A customer's primary store-credit account: its GID + current balance. */
+export interface StoreCreditAccount {
+  /** gid://shopify/StoreCreditAccount/... — the debit target. */
+  accountId: string;
+  /** Current spendable balance (USD), summed across the customer's accounts. */
+  balance: number;
+  /** Currency code reported by Shopify (e.g. 'USD'). */
+  currency: string;
+}
+
+/**
+ * Resolve a customer's store-credit account id + current balance by their
+ * Shopify customer GID. Returns null when the customer has no store-credit
+ * account (never funded). Throws on transport / GraphQL error.
+ *
+ * If a customer somehow has multiple accounts we debit the FIRST (normal
+ * case is exactly one) but report the SUMMED balance so the displayed
+ * number matches getFlexBalance.
+ */
+export async function getStoreCreditAccount(
+  customerGid: string
+): Promise<StoreCreditAccount | null> {
+  const res = await shopifyGraphQL<AccountByCustomerResp>(ACCOUNT_BY_CUSTOMER_QUERY, {
+    id: customerGid,
+  });
+  if (res.errors?.length) {
+    throw new Error(`store-credit account query: ${res.errors.map((e) => e.message).join('; ')}`);
+  }
+  const edges = res.data?.customer?.storeCreditAccounts?.edges ?? [];
+  if (edges.length === 0) return null;
+
+  let balance = 0;
+  let currency = 'USD';
+  for (const edge of edges) {
+    const amt = Number.parseFloat(edge.node.balance.amount);
+    if (Number.isFinite(amt)) balance += amt;
+    if (edge.node.balance.currencyCode) currency = edge.node.balance.currencyCode;
+  }
+  return { accountId: edges[0]!.node.id, balance, currency };
+}
+
+export interface DebitOutcome {
+  /** Dollars actually debited (== amount on success). */
+  debited: number;
+  /** Resulting balance after the debit (from Shopify). */
+  newBalance: number;
+  /** Currency code reported by Shopify on the resulting account balance. */
+  currency: string;
+}
+
+/**
+ * DEBIT a fixed amount from a store-credit ACCOUNT — pulls money out.
+ *
+ * `accountId` is the gid://shopify/StoreCreditAccount/... resolved via
+ * `getStoreCreditAccount`. The amount is debited server-side (no
+ * read-then-set). Rounds to cents; a non-positive amount throws (the caller
+ * validates > 0 first, but we guard against a $0 no-op masquerading as a
+ * success). Throws on transport, GraphQL, or userErrors (e.g. Shopify's own
+ * insufficient-balance rejection) so the caller can surface a clear error
+ * and deduct NOTHING.
+ *
+ * @param accountId Shopify StoreCreditAccount GID.
+ * @param amount    Dollars to subtract from the account balance.
+ */
+export async function debitStoreCredit(
+  accountId: string,
+  amount: number
+): Promise<DebitOutcome> {
+  const delta = Math.round(amount * 100) / 100;
+  if (!(delta > 0)) {
+    throw new Error('debitStoreCredit: amount must be greater than 0');
+  }
+
+  const res = await shopifyGraphQL<DebitResp>(DEBIT_MUTATION, {
+    id: accountId,
+    amount: { amount: delta.toFixed(2), currencyCode: 'USD' },
+  });
+
+  const userErrors = res.data?.storeCreditAccountDebit?.userErrors ?? [];
+  if (res.errors?.length || userErrors.length) {
+    const msgs = [
+      ...(res.errors ?? []).map((e) => e.message),
+      ...userErrors.map((e) => e.message),
+    ];
+    throw new Error(`storeCreditAccountDebit: ${msgs.join('; ')}`);
+  }
+
+  const account = res.data?.storeCreditAccountDebit?.storeCreditAccountTransaction?.account;
+  if (!account) {
+    throw new Error('storeCreditAccountDebit: no transaction returned (debit may not have applied)');
+  }
+  return {
+    debited: delta,
+    newBalance: Number.parseFloat(account.balance.amount),
+    currency: account.balance.currencyCode || 'USD',
+  };
+}
+
 /**
  * Resolve a Shopify customer GID by email (exact match). Returns null
  * when no customer has that email. Used by the referral attribution to

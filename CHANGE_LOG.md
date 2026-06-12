@@ -6,6 +6,14 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-06-12] CSA — Market Checkout: staff tool to deduct flex purchases at the market table (fullstack-builder)
+
+NOT committed/deployed — PM verifies & deploys. App: `apps/csa-portal`. `npm run build` passes; build artifacts removed. THIS MOVES MONEY (Shopify store-credit debit) — no real debit executed during testing.
+
+New mobile-first staff page `/admin/market-checkout` + API `/api/admin/market-checkout`: search an ACTIVE FLEX member → see LIVE balance (server-fetched via `getFlexBalance`) → deduct $ amount (+ optional items note). Server-side guards (never trust client): re-fetch live balance + reject over-debit (`insufficient_funds`); $500 cap; idempotency/double-submit guard (reject identical `MARKET CHECKOUT: -$X.XX` summary for same customer within 2 min, fails CLOSED on read error); requireAdmin + isSameOriginPost CSRF. On success: `storeCreditAccountDebit` (Shopify Admin API, debits the account resolved from the customer's `storeCreditAccounts`), log to `member_comms` (channel 'other', author = staff email), fail-soft Resend receipt to member (bcc Todd, reply_to team), redirect to BIG green confirmation w/ new balance. On Shopify error: clear red banner, NOTHING deducted.
+
+Files: NEW `src/lib/shopify.ts` (`getStoreCreditAccount` + `debitStoreCredit`), NEW `src/lib/market-checkout-email.ts`, NEW `src/pages/admin/market-checkout/index.astro`, NEW `src/pages/api/admin/market-checkout.ts`, EDIT `src/components/AdminShell.astro` (nav link "💳 Market checkout"). Note: pre-existing `astro check` error in `src/lib/cycle.ts:673` (vacation_holds disposition types) is unrelated — none of the new files error.
+
 ## [2026-06-12] CSA — Flex ordering: pickup-day-aware cutoff (weekend-market members order until Wed midnight) (fullstack-builder)
 
 NOT committed/deployed — PM verifies & deploys. App: `apps/csa-portal`. `npm run build` passes; flex-order tests green (`npx tsx src/lib/flex-order.test.ts`); build artifacts removed. No migration required — the place/cancel flex RPCs enforce cutoff at the APPLICATION layer (0037 line 28), and pickup day already lives in `pickup_locations.day_of_week`.

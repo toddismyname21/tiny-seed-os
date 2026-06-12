@@ -1,0 +1,529 @@
+---
+/**
+ * /admin/market-checkout — staff tool to DEDUCT a farmers-market purchase
+ * from a member's Farm Flex (Shopify store credit) balance on the spot.
+ *
+ * Mobile-FIRST. A staff member stands at the Tiny Seed table (Bloomfield /
+ * Sewickley / South Side), looks up an ACTIVE FLEX member, sees their LIVE
+ * balance, enters what they're taking ($ amount + optional items note), and
+ * deducts it. THIS MOVES MONEY — see /api/admin/market-checkout.ts for the
+ * server-side guards (re-fetch balance, never trust client, idempotency,
+ * $500 cap, Shopify debit).
+ *
+ * Two stages on ONE page, switched on the `customer_id` query param:
+ *   (1) no customer_id  → search box + matching active flex members list.
+ *   (2) customer_id set → that member's name + stop + LIVE balance + a
+ *       deduct form (amount required, optional items). The LIVE balance is
+ *       fetched server-side via getFlexBalance(email) so the cap shown is
+ *       real; the SERVER re-checks it again at submit.
+ *
+ * Confirmation: after a successful POST the API redirects back with
+ * ?ok=deducted&amount=&name=&new_balance= → a BIG green banner with the new
+ * balance. Errors come back as ?error=<code> with a clear red banner and
+ * NOTHING deducted.
+ *
+ * Admin/staff-gated by middleware (covers /admin/*). No hardcoded URLs.
+ */
+import AdminShell from '../../../components/AdminShell.astro';
+import Card from '../../../components/Card.astro';
+import { getFlexBalance, formatFlexMoney } from '../../../lib/flex';
+
+export const prerender = false;
+
+const supabase = Astro.locals.supabase;
+const params = Astro.url.searchParams;
+
+const rawQ = (params.get('q') ?? '').trim();
+const selectedCustomerId = (params.get('customer_id') ?? '').trim();
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// ─── Confirmation / error banner state (from the POST redirect) ──────────
+const okCode = params.get('ok');
+const okAmount = params.get('amount');
+const okName = params.get('name');
+const okNewBalance = params.get('new_balance');
+const errorCode = params.get('error');
+
+/** Human-readable error copy. NOTHING was deducted for any of these. */
+const ERROR_COPY: Record<string, string> = {
+  invalid_input: 'Something was off with that submission. Please try again.',
+  invalid_customer: 'That member could not be identified. Search and pick again.',
+  invalid_amount: 'Enter a valid dollar amount.',
+  amount_too_low: 'The amount must be more than $0.',
+  amount_too_high: 'The amount is over the $500 limit. Run two separate charges if needed.',
+  member_not_found: 'That member could not be found.',
+  not_flex_member: 'That member is not an active Flex member, so there is no balance to deduct.',
+  no_shopify_customer: 'No Shopify account found for that member — nothing deducted.',
+  insufficient_funds: 'Not enough Farm Flex balance for that amount — nothing was deducted.',
+  duplicate: 'That exact charge was just made moments ago — skipped to avoid charging twice.',
+  shopify_unconfigured: 'Store credit is not available right now — nothing deducted.',
+  shopify_error: "Couldn't reach the balance service — nothing was deducted. Try again.",
+  debit_failed: "The deduction didn't go through — nothing was deducted. Try again.",
+  network: 'A connection problem stopped the charge — nothing was deducted. Try again.',
+};
+const errorMessage = errorCode ? (ERROR_COPY[errorCode] ?? ERROR_COPY.invalid_input) : null;
+// On error, re-open the selected member's form if we know who it was.
+const errorCustomerId = (params.get('customer_id') ?? '').trim();
+
+// ─── Stage 1: search for active flex members ─────────────────────────────
+interface FlexMatch {
+  customer_id: string;
+  name: string;
+  email: string;
+  stop: string;
+}
+let matches: FlexMatch[] = [];
+let searchError = false;
+
+if (!selectedCustomerId && rawQ.length >= 2) {
+  // SEARCH. PostgREST cannot OR a base-table column with an EMBEDDED resource
+  // column in one logic tree, and a `referencedTable` .or() on an !inner join
+  // only NULLS non-matching embeds rather than dropping the parent member rows
+  // (so it would return every active flex member). The proven fix (mirrors
+  // admin/members/index.astro): resolve matching customer IDs FIRST on the
+  // customers table, then filter members by customer_id IN (…).
+  const safe = rawQ.replace(/[%,]/g, '\\$&');
+  const { data: matchedCustomers, error: custSearchError } = await supabase
+    .from('customers')
+    .select('id')
+    .or(`contact_name.ilike.%${safe}%,email.ilike.%${safe}%`)
+    .limit(100);
+  if (custSearchError) {
+    console.error('[admin/market-checkout] customer search failed:', custSearchError.message);
+    searchError = true;
+  }
+
+  const matchedIds = (matchedCustomers ?? []).map((c) => c.id);
+  if (!searchError && matchedIds.length > 0) {
+    type Row = {
+      customer_id: string;
+      pickup_location: { name: string } | { name: string }[] | null;
+      customer:
+        | { id: string; contact_name: string; email: string }
+        | { id: string; contact_name: string; email: string }[]
+        | null;
+    };
+    const { data, error } = await supabase
+      .from('members')
+      .select(
+        `customer_id,
+         pickup_location:pickup_locations(name),
+         customer:customers!inner(id, contact_name, email)`
+      )
+      .eq('share_type', 'flex')
+      .eq('status', 'active')
+      .in('customer_id', matchedIds)
+      .limit(50)
+      .overrideTypes<Row[], { merge: false }>();
+
+    if (error) {
+      console.error('[admin/market-checkout] member search failed:', error.message);
+      searchError = true;
+    } else {
+      const seen = new Set<string>();
+      for (const r of data ?? []) {
+        const cust = Array.isArray(r.customer) ? r.customer[0] : r.customer;
+        if (!cust || !cust.email) continue;
+        if (seen.has(r.customer_id)) continue; // one row per customer
+        seen.add(r.customer_id);
+        const pl = Array.isArray(r.pickup_location) ? r.pickup_location[0] : r.pickup_location;
+        matches.push({
+          customer_id: r.customer_id,
+          name: cust.contact_name,
+          email: cust.email,
+          stop: pl?.name ?? 'No stop set',
+        });
+      }
+      matches.sort((a, b) => a.name.localeCompare(b.name));
+    }
+  }
+}
+
+// ─── Stage 2: selected member — name + stop + LIVE balance + deduct form ──
+interface SelectedMember {
+  customer_id: string;
+  name: string;
+  email: string;
+  stop: string;
+  /** Live flex balance (dollars) from Shopify; null when unavailable. */
+  balance: number | null;
+}
+let selected: SelectedMember | null = null;
+let selectedNotFound = false;
+
+if (selectedCustomerId && UUID_RE.test(selectedCustomerId)) {
+  type Row = {
+    customer_id: string;
+    pickup_location: { name: string } | { name: string }[] | null;
+    customer: { id: string; contact_name: string; email: string } | { id: string; contact_name: string; email: string }[] | null;
+  };
+  const { data, error } = await supabase
+    .from('members')
+    .select(
+      `customer_id,
+       pickup_location:pickup_locations(name),
+       customer:customers!inner(id, contact_name, email)`
+    )
+    .eq('customer_id', selectedCustomerId)
+    .eq('share_type', 'flex')
+    .eq('status', 'active')
+    .limit(1)
+    .maybeSingle()
+    .overrideTypes<Row, { merge: false }>();
+
+  if (error) {
+    console.error('[admin/market-checkout] selected member lookup failed:', error.message);
+    selectedNotFound = true;
+  } else if (!data) {
+    selectedNotFound = true;
+  } else {
+    const cust = Array.isArray(data.customer) ? data.customer[0] : data.customer;
+    const pl = Array.isArray(data.pickup_location) ? data.pickup_location[0] : data.pickup_location;
+    if (!cust || !cust.email) {
+      selectedNotFound = true;
+    } else {
+      // LIVE balance — server-fetched. getFlexBalance fail-softs to null.
+      const bal = await getFlexBalance(cust.email);
+      selected = {
+        customer_id: data.customer_id,
+        name: cust.contact_name,
+        email: cust.email,
+        stop: pl?.name ?? 'No stop set',
+        balance: bal ? bal.total : null,
+      };
+    }
+  }
+}
+
+// A fresh idempotency token for this page render — embedded in the form so a
+// double-tap on submit replays the SAME token (the server matches on amount,
+// but this also lets us reason about a single logical submit).
+const idemToken = crypto.randomUUID();
+---
+
+<AdminShell
+  title="💳 Market checkout"
+  subtitle="Deduct a market purchase from a member's Farm Flex"
+  pageTitle="Market checkout — Tiny Seed Admin"
+>
+  {/* ── Success banner (BIG green) ──────────────────────────────────── */}
+  {okCode === 'deducted' && okAmount && (
+    <div
+      class="mb-4 rounded-ts-lg border-2 border-ts-primary bg-ts-primary/10 p-5 shadow-ts-sm"
+      role="status"
+      aria-live="polite"
+    >
+      <div class="flex flex-col gap-1 text-center">
+        <span class="text-4xl" aria-hidden="true">✅</span>
+        <p class="font-display text-2xl font-extrabold text-ts-primary tabular-nums">
+          Deducted ${okAmount}
+        </p>
+        {okName && (
+          <p class="text-sm font-semibold text-ts-text">from {okName}'s Farm Flex</p>
+        )}
+        {okNewBalance && (
+          <p class="mt-1 text-base font-bold text-ts-text tabular-nums">
+            New balance: ${okNewBalance}
+          </p>
+        )}
+      </div>
+      <div class="mt-4 flex justify-center">
+        <a
+          href="/admin/market-checkout"
+          class="inline-flex h-12 min-h-[44px] items-center justify-center rounded-ts-md bg-ts-primary px-6 text-base font-bold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+        >
+          Next member →
+        </a>
+      </div>
+    </div>
+  )}
+
+  {/* ── Error banner (red, NOTHING deducted) ────────────────────────── */}
+  {errorMessage && (
+    <div
+      class="mb-4 rounded-ts-lg border-2 border-ts-danger bg-ts-danger/10 p-4 shadow-ts-sm"
+      role="alert"
+      aria-live="assertive"
+    >
+      <p class="flex items-start gap-2 text-sm font-semibold text-ts-danger">
+        <span aria-hidden="true">⚠️</span>
+        <span>{errorMessage}</span>
+      </p>
+      {UUID_RE.test(errorCustomerId) && (
+        <div class="mt-3">
+          <a
+            href={`/admin/market-checkout?customer_id=${encodeURIComponent(errorCustomerId)}`}
+            class="inline-flex h-11 min-h-[44px] items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-semibold text-ts-text hover:border-ts-primary/40 hover:text-ts-primary"
+          >
+            ← Back to that member
+          </a>
+        </div>
+      )}
+    </div>
+  )}
+
+  {selected ? (
+    /* ════ STAGE 2: deduct from the selected member ════ */
+    <div class="flex flex-col gap-4">
+      <a
+        href="/admin/market-checkout"
+        class="inline-flex h-11 min-h-[44px] w-fit items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-semibold text-ts-text hover:border-ts-primary/40 hover:text-ts-primary"
+      >
+        ← New search
+      </a>
+
+      <Card padding="lg" elevation="sm">
+        <div class="flex flex-col gap-1">
+          <p class="font-display text-2xl font-extrabold text-ts-text">{selected.name}</p>
+          <p class="text-sm text-ts-text-secondary">📍 {selected.stop}</p>
+          <p class="text-xs text-ts-text-muted">{selected.email}</p>
+        </div>
+
+        {/* LIVE balance — the "before" number, big. */}
+        <div class="mt-4 rounded-ts-lg border border-ts-border bg-ts-bg-base p-4">
+          <p class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">
+            Farm Flex balance
+          </p>
+          {selected.balance !== null ? (
+            <p class="font-display text-3xl font-extrabold text-ts-primary tabular-nums">
+              {formatFlexMoney(selected.balance)}
+            </p>
+          ) : (
+            <p class="mt-1 text-sm font-semibold text-ts-danger">
+              ⚠️ Balance unavailable right now — can't safely deduct. Try again in a moment.
+            </p>
+          )}
+        </div>
+
+        {selected.balance !== null && selected.balance > 0 ? (
+          <form
+            method="POST"
+            action="/api/admin/market-checkout"
+            class="mt-5 flex flex-col gap-4"
+            data-checkout-form
+            data-balance={selected.balance.toFixed(2)}
+            data-name={selected.name}
+          >
+            <input type="hidden" name="customer_id" value={selected.customer_id} />
+            <input type="hidden" name="idem" value={idemToken} />
+
+            <div>
+              <label for="amount" class="mb-1 block text-sm font-semibold text-ts-text">
+                Amount to deduct
+              </label>
+              <div class="relative">
+                <span
+                  class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-lg font-bold text-ts-text-muted"
+                  aria-hidden="true"
+                >
+                  $
+                </span>
+                <input
+                  id="amount"
+                  name="amount"
+                  type="number"
+                  inputmode="decimal"
+                  step="0.01"
+                  min="0.01"
+                  max={Math.min(500, selected.balance).toFixed(2)}
+                  required
+                  autocomplete="off"
+                  placeholder="0.00"
+                  class="h-14 w-full rounded-ts-md border border-ts-border bg-ts-bg-surface pl-8 pr-3 text-2xl font-bold tabular-nums text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30"
+                />
+              </div>
+              <p class="mt-1 text-xs text-ts-text-muted tabular-nums" data-amount-hint>
+                Max {formatFlexMoney(Math.min(500, selected.balance))} · $500 cap per charge
+              </p>
+            </div>
+
+            <div>
+              <label for="note" class="mb-1 block text-sm font-semibold text-ts-text">
+                Items <span class="font-normal text-ts-text-muted">(optional)</span>
+              </label>
+              <input
+                id="note"
+                name="note"
+                type="text"
+                maxlength="280"
+                autocomplete="off"
+                placeholder="e.g. 2 lettuce, 1 garlic, tomatoes"
+                class="h-12 w-full rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-base text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30"
+              />
+            </div>
+
+            <button
+              type="submit"
+              data-submit
+              class="inline-flex h-14 min-h-[44px] items-center justify-center gap-2 rounded-ts-md bg-ts-primary px-6 text-lg font-extrabold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              💳 Deduct from Farm Flex
+            </button>
+            <p class="text-center text-xs text-ts-text-muted">
+              You'll confirm the amount before it's charged.
+            </p>
+          </form>
+        ) : selected.balance === 0 ? (
+          <p class="mt-5 rounded-ts-md border border-ts-border bg-ts-bg-base p-4 text-sm font-semibold text-ts-text-secondary">
+            This member has $0 in Farm Flex — nothing to deduct. They can add funds in their account.
+          </p>
+        ) : null}
+      </Card>
+    </div>
+  ) : selectedNotFound ? (
+    /* Selected id didn't resolve to an active flex member. */
+    <Card tone="warning" padding="lg" elevation="sm">
+      <div class="flex flex-col items-center gap-3 py-4 text-center">
+        <span class="text-4xl" aria-hidden="true">🔍</span>
+        <p class="text-sm text-ts-text-secondary">
+          That member isn't an active Flex member (or couldn't be found).
+        </p>
+        <a
+          href="/admin/market-checkout"
+          class="inline-flex h-11 min-h-[44px] items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-semibold text-ts-text hover:border-ts-primary/40 hover:text-ts-primary"
+        >
+          ← New search
+        </a>
+      </div>
+    </Card>
+  ) : (
+    /* ════ STAGE 1: search for an active flex member ════ */
+    <div class="flex flex-col gap-4">
+      <Card padding="lg" elevation="sm">
+        <form method="GET" action="/admin/market-checkout" class="flex flex-col gap-3" role="search">
+          <label for="q" class="text-sm font-semibold text-ts-text">
+            Find a Flex member
+          </label>
+          <div class="flex flex-col gap-2 sm:flex-row">
+            <input
+              id="q"
+              name="q"
+              type="search"
+              value={rawQ}
+              autocomplete="off"
+              autofocus
+              placeholder="Name or email…"
+              class="h-12 w-full rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-base text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30"
+            />
+            <button
+              type="submit"
+              class="inline-flex h-12 min-h-[44px] shrink-0 items-center justify-center rounded-ts-md bg-ts-primary px-6 text-base font-bold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+            >
+              Search
+            </button>
+          </div>
+          <p class="text-xs text-ts-text-muted">
+            Only active Flex members appear here. Type at least 2 letters.
+          </p>
+        </form>
+      </Card>
+
+      {/* Results / empty / prompt */}
+      {searchError ? (
+        <Card tone="danger" padding="md" elevation="sm">
+          <p class="text-sm font-semibold text-ts-danger">
+            ⚠️ Couldn't run that search. Check your connection and try again.
+          </p>
+        </Card>
+      ) : rawQ.length >= 2 && matches.length === 0 ? (
+        <Card tone="muted" padding="lg" elevation="sm">
+          <div class="flex flex-col items-center gap-3 py-4 text-center">
+            <span class="text-4xl" aria-hidden="true">🔍</span>
+            <p class="text-sm text-ts-text-secondary">
+              No active Flex members match "<strong class="text-ts-text">{rawQ}</strong>".
+            </p>
+            <p class="text-xs text-ts-text-muted">
+              Try a different spelling, or search by email.
+            </p>
+          </div>
+        </Card>
+      ) : rawQ.length >= 2 ? (
+        <ul class="flex flex-col gap-3">
+          {matches.map((m) => (
+            <li>
+              <a
+                href={`/admin/market-checkout?customer_id=${encodeURIComponent(m.customer_id)}`}
+                class="flex items-center justify-between gap-3 rounded-ts-lg border border-ts-border bg-ts-bg-surface p-4 shadow-ts-sm transition-colors duration-150 hover:border-ts-primary/50 active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+              >
+                <div class="min-w-0">
+                  <p class="font-display text-lg font-bold text-ts-text">{m.name}</p>
+                  <p class="mt-0.5 truncate text-xs text-ts-text-secondary">
+                    📍 {m.stop} · {m.email}
+                  </p>
+                </div>
+                <span class="shrink-0 text-2xl text-ts-text-muted" aria-hidden="true">›</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <Card tone="muted" padding="lg" elevation="sm">
+          <div class="flex flex-col items-center gap-3 py-4 text-center">
+            <span class="text-4xl" aria-hidden="true">💳</span>
+            <p class="text-sm text-ts-text-secondary">
+              Search a Flex member's name or email to see their balance and deduct a market purchase.
+            </p>
+          </div>
+        </Card>
+      )}
+    </div>
+  )}
+</AdminShell>
+
+{/* ── Double-submit protection + confirm() before charging ──────────────
+    The button disables on submit (prevents a second tap re-POSTing), and a
+    plain confirm() forces the staff to verify the amount before money moves.
+    The server ALSO enforces idempotency + balance re-check; this is the
+    client-side belt to the server's suspenders. */}
+<script is:inline>
+  (function () {
+    var form = document.querySelector('[data-checkout-form]');
+    if (!form) return;
+    var amountEl = form.querySelector('#amount');
+    var btn = form.querySelector('[data-submit]');
+    var balance = parseFloat(form.getAttribute('data-balance') || '0');
+    var name = form.getAttribute('data-name') || 'this member';
+    var CAP = 500;
+
+    form.addEventListener('submit', function (e) {
+      var raw = (amountEl && amountEl.value ? amountEl.value : '').trim();
+      var amt = parseFloat(raw);
+
+      if (!isFinite(amt) || amt <= 0) {
+        e.preventDefault();
+        alert('Enter a dollar amount greater than $0.');
+        return;
+      }
+      if (amt > CAP) {
+        e.preventDefault();
+        alert('That is over the $500 limit per charge. Run two separate charges if needed.');
+        return;
+      }
+      // Round to cents for the comparison + display.
+      amt = Math.round(amt * 100) / 100;
+      if (amt > balance + 0.001) {
+        e.preventDefault();
+        alert(
+          'That is more than the balance ($' +
+            balance.toFixed(2) +
+            '). Lower the amount — nothing has been charged.'
+        );
+        return;
+      }
+
+      var ok = window.confirm(
+        'Deduct $' + amt.toFixed(2) + ' from ' + name + "'s Farm Flex balance?"
+      );
+      if (!ok) {
+        e.preventDefault();
+        return;
+      }
+
+      // Confirmed → disable the button so a second tap can't double-charge.
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Charging…';
+      }
+    });
+  })();
+</script>
