@@ -19,6 +19,16 @@ import MemberShell from '../../components/MemberShell.astro';
 import Card from '../../components/Card.astro';
 import FlexWallet from '../../components/FlexWallet.astro';
 import PickupNudgeBanner from '../../components/PickupNudgeBanner.astro';
+import { closeLabel } from '../../lib/flex-order';
+import { upcomingMonday } from '../../lib/cycle';
+import { getSchedule, seasonPhase } from '../../lib/season';
+import {
+  memberIsBiweekly,
+  resolveMemberSchedule,
+  upcomingDeliveries,
+  prettyDeliveryLong,
+} from '../../lib/schedule';
+import { resolveAccountCustomer } from '../../lib/account';
 
 const user = Astro.locals.user;
 if (!user || !user.email) {
@@ -65,15 +75,22 @@ type CustomerWithAccount = {
   members: AccountMember[];
 };
 
-const { data: customerRows, error: customerError } = await supabase
-  .from('customers')
-  .select(
-    `
-    id,
-    contact_name,
-    email,
-    phone,
-    members (
+// HOUSEHOLD-SHARING FIX (2026-06-12): resolve "which customer am I?" via
+// household_owner() so an INVITED household member (no customers row of their
+// own — migration 0023) resolves to the OWNER's account. A direct
+// `from('customers')` query relies on customers_self_read (keyed on the auth
+// email), which returns ZERO rows for an invited member → they saw no shares.
+// members_self_read (keyed on current_customer_id()) grants them the owner's
+// member rows + nested prefs, so fetching members directly by the resolved
+// customer_id works for both a primary and an invited member.
+const account = await resolveAccountCustomer(supabase);
+
+let accountMembers: AccountMember[] = [];
+if (account) {
+  const { data: memberRows, error: customerError } = await supabase
+    .from('members')
+    .select(
+      `
       id,
       share_type,
       share_size,
@@ -95,21 +112,52 @@ const { data: customerRows, error: customerError } = await supabase
         contact_preference,
         newsletter_opt_in
       )
+    `
     )
-  `
-  )
-  .limit(1)
-  .maybeSingle()
-  .overrideTypes<CustomerWithAccount, { merge: false }>();
-
-if (customerError) {
-  console.error('[account] customer fetch failed:', customerError.message);
+    .eq('customer_id', account.id)
+    .overrideTypes<AccountMember[], { merge: false }>();
+  if (customerError) {
+    console.error('[account] members fetch failed:', customerError.message);
+  }
+  accountMembers = memberRows ?? [];
 }
 
-const customer = customerRows ?? null;
+// The caller's OWN phone (for the profile card). RLS scopes this to the
+// caller's own customers row: a primary gets their phone; an invited member
+// has no own row → null ("Not set"), and self-service profile editing targets
+// their own row anyway.
+let callerPhone: string | null = null;
+if (account && user.email) {
+  const { data: ownRow } = await supabase
+    .from('customers')
+    .select('phone')
+    .eq('email', user.email)
+    .maybeSingle()
+    .overrideTypes<{ phone: string | null }, { merge: false }>();
+  callerPhone = ownRow?.phone ?? null;
+}
+
+const customer: CustomerWithAccount | null = account
+  ? {
+      id: account.id,
+      contact_name: account.contactName,
+      email: account.email,
+      phone: callerPhone,
+      members: accountMembers,
+    }
+  : null;
 const liveStatuses = new Set(['active', 'paused', 'onboarding']);
 const allMembers = customer?.members ?? [];
 const liveMembers = allMembers.filter((m) => liveStatuses.has(m.status));
+
+// Flex-share members get the weekly "extras" ordering entry point. Traditional
+// CSA members never see it (Phase 1: no extras/swaps for them).
+const isFlexMember = liveMembers.some((m) => m.share_type === 'flex');
+
+// Flex order-window close label for the entry-point teaser. Week 1
+// ('2026-06-08') closes Tue 6 PM; standing weeks close Tue 7 AM. Mirrors
+// the close-time cadence in lib/flex-order.ts (Todd 2026-06-08).
+const flexCloseLabel = isFlexMember ? closeLabel(upcomingMonday()) : '';
 
 // Pickup forcing-nudge (FIX 1, 2026-05-24, gap P0). Same rule as the
 // dashboard / shared memberNeedsPickupChoice helper: an ACTIVE member who
@@ -175,12 +223,56 @@ const pickupSummary: string = (() => {
   return 'No pickup location set';
 })();
 
+// ─── Delivery cadence (weekly vs bi-weekly) ──────────────────────────
+// CANONICAL RULE (matches lib/schedule.ts + the dashboard ScheduleCard):
+// a member with biweekly_week === null is WEEKLY (a box every week), UNLESS
+// they were sold a reduced-week biweekly plan but haven't picked A/B yet
+// (memberIsBiweekly resolves that ambiguity via total_weeks). A true weekly
+// member must NEVER see "biweekly" / "Week A/B" framing — that was the bug
+// (Jason Smith, weekly, was shown "Not yet assigned"). The bi-weekly card is
+// only rendered for members who are ACTUALLY on a bi-weekly share.
+const primarySchedule = primary ? getSchedule(primary.share_type) : null;
+const primaryIsBiweekly = primary
+  ? memberIsBiweekly({
+      biweeklyWeek: primary.biweekly_week,
+      totalWeeks: primary.total_weeks,
+      schedule: primarySchedule,
+    })
+  : false;
+
 const biweeklySummary: string = (() => {
-  if (!primary) return '';
-  if (primary.biweekly_week === 'A') return 'Week A — 1st & 3rd Wednesdays';
-  if (primary.biweekly_week === 'B') return 'Week B — 2nd & 4th Wednesdays';
+  if (!primary || !primaryIsBiweekly) return '';
+  if (primary.biweekly_week === 'A') return 'Week A — every other Wednesday';
+  if (primary.biweekly_week === 'B') return 'Week B — every other Wednesday';
   return 'Not yet assigned — pick a week or let the farm decide';
 })();
+
+// ─── Next-box one-liner (A2, 2026-06-12) ─────────────────────────────
+// Members didn't know WHEN their next box arrives (Week A/B confusion caused
+// wasted trips). Surface the same "Your next box: <date> at <stop>" line the
+// dashboard pins at the top, here near the top of the account hub. Computed
+// from the primary share's season schedule + biweekly_week so weekly and
+// Week A / Week B land on the right Wednesday. Empty (hidden) when there's no
+// configured schedule, the season is complete, or there's no upcoming date.
+let nextBoxDateLong = '';
+let nextBoxWhere = '';
+if (primary && primarySchedule && seasonPhase(primarySchedule) !== 'complete') {
+  const resolved = resolveMemberSchedule({
+    schedule: primarySchedule,
+    biweeklyWeek: primary.biweekly_week,
+  });
+  const nextDate = upcomingDeliveries(resolved, 1)[0] ?? null;
+  if (nextDate) {
+    nextBoxDateLong = prettyDeliveryLong(nextDate);
+    // Where: home delivery, a named stop, or nothing (omit the "at ___").
+    if (!primary.pickup_location_id && primary.delivery_address) {
+      nextBoxWhere = 'home delivery';
+    } else if (primary.pickup_location?.name) {
+      nextBoxWhere = primary.pickup_location.name;
+    }
+  }
+}
+const showNextBox = nextBoxDateLong !== '';
 ---
 
 <MemberShell
@@ -189,6 +281,7 @@ const biweeklySummary: string = (() => {
   canonical="https://csa.tinyseedfarm.com/account"
   userEmail={user.email}
   active="account"
+  isFlexMember={isFlexMember}
   back={{ href: '/dashboard', label: 'Dashboard' }}
 >
       <section aria-labelledby="account-heading">
@@ -200,10 +293,73 @@ const biweeklySummary: string = (() => {
         </p>
       </section>
 
+      {/* NEXT-BOX ONE-LINER (A2, 2026-06-12) — mirrors the dashboard's
+          next-delivery banner so a member who lands on /account still sees
+          WHEN their next box arrives (Week A/B confusion caused wasted trips).
+          Hidden when there's no configured schedule / upcoming date. */}
+      {showNextBox && (
+        <p
+          class="flex items-center gap-2 rounded-ts-xl border border-ts-primary/30 bg-ts-primary/5 px-4 py-3 text-sm text-ts-text-secondary sm:text-base"
+          data-next-box-line
+        >
+          <span class="text-lg" aria-hidden="true">📦</span>
+          <span>
+            Your next box:{' '}
+            <span class="font-semibold text-ts-text">{nextBoxDateLong}</span>
+            {nextBoxWhere && (
+              <>
+                {' '}at <span class="font-semibold text-ts-text">{nextBoxWhere}</span>
+              </>
+            )}.
+          </span>
+        </p>
+      )}
+
       {/* PICKUP FORCING-NUDGE (FIX 1, 2026-05-24) — active members who never
           chose a pickup at checkout must pick one before June 10. Shown at
           the top of the hub until set (data-driven, not dismissible). */}
       {needsPickup && <PickupNudgeBanner />}
+
+      {/* ════ THIS WEEK'S ORDER — flex members, PROMOTED to top (FIX 1, 2026-06-08)
+          Flex members order their weekly extras here. This is the ORDERING
+          entry (/account/flex-order) — distinct from the Farm Flex wallet
+          below, which is the BALANCE (/account/flex). Promoted from a buried
+          low card to a prominent primary CTA so a flex member can't miss it. */}
+      {isFlexMember && (
+        <section
+          aria-labelledby="order-cta-heading"
+          class="overflow-hidden rounded-ts-xl border border-ts-primary/40 bg-ts-primary/5 p-5 shadow-ts-sm sm:p-6"
+        >
+          <div class="flex items-center gap-3">
+            <span
+              class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-ts-primary/15 text-2xl"
+              aria-hidden="true"
+            >
+              🧺
+            </span>
+            <div class="min-w-0 flex-1">
+              <h2
+                id="order-cta-heading"
+                class="font-display text-xl font-bold tracking-tight text-ts-text sm:text-2xl"
+              >
+                This week's order
+              </h2>
+              <p class="mt-0.5 text-sm leading-snug text-ts-text-secondary">
+                Browse the weekly list and build your box with your Farm Flex balance.
+              </p>
+            </div>
+          </div>
+          <p class="mt-3 text-sm font-medium text-ts-warning">
+            Order by {flexCloseLabel} — your balance carries forward.
+          </p>
+          <a
+            href="/account/flex-order"
+            class="mt-4 inline-flex h-12 w-full items-center justify-center gap-2 rounded-ts-md bg-ts-primary px-5 text-base font-semibold tracking-tight text-white shadow-ts-sm transition-all duration-150 ease-[var(--ease-ts)] hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary [touch-action:manipulation] sm:w-auto"
+          >
+            Order your items <span aria-hidden="true">→</span>
+          </a>
+        </section>
+      )}
 
       {/* PROFILE — self-service editing via /account/profile */}
       <Card padding="md" elevation="sm" class="text-sm">
@@ -246,9 +402,11 @@ const biweeklySummary: string = (() => {
         </p>
       </Card>
 
-      {/* FARM FLEX (always available — independent of an active veg share).
-          Non-blocking island (2026-05-24): the card renders + links
-          immediately; the balance number fills in after first paint. */}
+      {/* FARM FLEX WALLET (always available — independent of an active veg
+          share). This is the BALANCE card (→ /account/flex), deliberately
+          distinct from the "This week's order" CTA above (→ /account/flex-order):
+          wallet = money, order = items. Non-blocking island (2026-05-24): the
+          card renders + links immediately; the balance fills in after paint. */}
       <FlexWallet variant="hub" />
 
       {/* SHARED ACCESS (account-level — independent of an active veg share) */}
@@ -302,19 +460,34 @@ const biweeklySummary: string = (() => {
             <span class="self-center text-ts-text-muted transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden="true">→</span>
           </a>
 
-          {/* BI-WEEKLY SCHEDULE */}
-          <a
-            href="/account/biweekly-schedule"
-            class="group flex items-start gap-4 rounded-ts-xl border border-ts-border bg-ts-bg-surface p-5 shadow-ts-sm transition-all duration-200 hover:border-ts-primary/40 hover:shadow-ts-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
-          >
-            <span class="text-3xl" aria-hidden="true">🗓</span>
-            <div class="min-w-0 flex-1">
-              <h3 class="text-base font-semibold text-ts-text">Bi-weekly schedule</h3>
-              <p class="mt-1 text-sm leading-snug text-ts-text-secondary">{biweeklySummary}</p>
-              <p class="mt-1 text-xs text-ts-text-muted">Week A or Week B — change any time</p>
+          {/* DELIVERY SCHEDULE — cadence-aware (FIX 2026-06-08).
+              BI-WEEKLY members get a link to pick/change Week A vs Week B.
+              WEEKLY members (biweekly_week null, full season weeks) must NEVER
+              see "biweekly" / "Week A/B" framing — they get a calm, link-less
+              "Every week" confirmation card instead. */}
+          {primaryIsBiweekly ? (
+            <a
+              href="/account/biweekly-schedule"
+              class="group flex items-start gap-4 rounded-ts-xl border border-ts-border bg-ts-bg-surface p-5 shadow-ts-sm transition-all duration-200 hover:border-ts-primary/40 hover:shadow-ts-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+            >
+              <span class="text-3xl" aria-hidden="true">🗓</span>
+              <div class="min-w-0 flex-1">
+                <h3 class="text-base font-semibold text-ts-text">Bi-weekly schedule</h3>
+                <p class="mt-1 text-sm leading-snug text-ts-text-secondary">{biweeklySummary}</p>
+                <p class="mt-1 text-xs text-ts-text-muted">Week A or Week B — change any time</p>
+              </div>
+              <span class="self-center text-ts-text-muted transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden="true">→</span>
+            </a>
+          ) : (
+            <div class="flex items-start gap-4 rounded-ts-xl border border-ts-border bg-ts-bg-surface p-5 shadow-ts-sm">
+              <span class="text-3xl" aria-hidden="true">📦</span>
+              <div class="min-w-0 flex-1">
+                <h3 class="text-base font-semibold text-ts-text">Delivery schedule</h3>
+                <p class="mt-1 text-sm leading-snug text-ts-text-secondary">You get a box <span class="font-medium text-ts-text">every week</span>.</p>
+                <p class="mt-1 text-xs text-ts-text-muted">Your dashboard shows your upcoming box dates</p>
+              </div>
             </div>
-            <span class="self-center text-ts-text-muted transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden="true">→</span>
-          </a>
+          )}
 
           {/* PREFERENCES */}
           <a

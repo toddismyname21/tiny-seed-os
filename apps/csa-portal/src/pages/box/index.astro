@@ -40,7 +40,7 @@ import EmptyState from '../../components/EmptyState.astro';
 import ItemCard from '../../components/ItemCard.astro';
 import BottomSheet from '../../components/BottomSheet.astro';
 import PickupNudgeBanner from '../../components/PickupNudgeBanner.astro';
-import { memberNeedsPickupChoice } from '../../lib/account';
+import { memberNeedsPickupChoice, resolveAccountCustomer } from '../../lib/account';
 import {
   isCutoffPassed,
   upcomingWednesdayET,
@@ -81,31 +81,37 @@ type CustomerWithMembers = {
   members: ActiveMember[];
 };
 
-const { data: customerRows, error: customerError } = await supabase
-  .from('customers')
-  .select(
-    `
-    id,
-    contact_name,
-    email,
-    members (
-      id,
-      share_type,
-      share_size,
-      status,
-      swap_credits
-    )
-  `
-  )
-  .limit(1)
-  .overrideTypes<CustomerWithMembers[], { merge: false }>();
+// HOUSEHOLD-SHARING FIX (2026-06-12): resolve "which customer am I?" via
+// household_owner() so an INVITED household member (no customers row of their
+// own — migration 0023) resolves to the OWNER's account. A direct
+// `from('customers')` query relies on customers_self_read (keyed on the auth
+// email), which returns ZERO rows for an invited member → they saw no box.
+// members_self_read (keyed on current_customer_id()) grants them the owner's
+// member rows, so fetching members directly by the resolved customer_id works
+// for both a primary and an invited member.
+const account = await resolveAccountCustomer(supabase);
 
-if (customerError) {
-  console.error('[/box] customer fetch failed:', customerError.message);
+let allMembers: ActiveMember[] = [];
+if (account) {
+  const { data: memberRows, error: customerError } = await supabase
+    .from('members')
+    .select('id, share_type, share_size, status, swap_credits')
+    .eq('customer_id', account.id)
+    .overrideTypes<ActiveMember[], { merge: false }>();
+  if (customerError) {
+    console.error('[/box] members fetch failed:', customerError.message);
+  }
+  allMembers = memberRows ?? [];
 }
 
-const customer = customerRows?.[0] ?? null;
-const allMembers = customer?.members ?? [];
+const customer: CustomerWithMembers | null = account
+  ? {
+      id: account.id,
+      contact_name: account.contactName,
+      email: account.email,
+      members: allMembers,
+    }
+  : null;
 const liveStatuses = new Set(['active', 'paused', 'onboarding']);
 const activeMembers = allMembers.filter((m) => liveStatuses.has(m.status));
 
@@ -250,6 +256,21 @@ const boxNotPosted = !noShare && boxItems.length === 0;
         <p class="mt-2 text-base text-ts-text-secondary">
           Hi {firstName} — review what's coming and make swaps before the cutoff.
         </p>
+
+        {/* Pickup-change discoverability (2026-06-12). Members couldn't find
+            where to change their stop. A small, clear link to /account/pickup —
+            shown whenever the member has an active share and isn't already in
+            the "choose a pickup" forcing-nudge state above. */}
+        {!noShare && !needsPickup && (
+          <a
+            href="/account/pickup"
+            class="mt-3 inline-flex items-center gap-1.5 rounded-ts-md text-sm font-medium text-ts-primary underline-offset-2 transition-colors duration-150 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+          >
+            <span aria-hidden="true">📍</span>
+            Change pickup location
+            <span aria-hidden="true">→</span>
+          </a>
+        )}
       </section>
 
       {/* ═════════════════════════════════════════════════════════════
@@ -280,8 +301,9 @@ const boxNotPosted = !noShare && boxItems.length === 0;
           icon="📋"
           tone="default"
         >
-          We post box contents the day before pickup. Check back Tuesday morning,
-          or watch your inbox for the preview email.
+          Box contents are posted by Tuesday each week. You'll get a text when
+          your box arrives Wednesday — check back here Tuesday evening to see
+          what's coming and make any swaps before the cutoff.
         </EmptyState>
       )}
 

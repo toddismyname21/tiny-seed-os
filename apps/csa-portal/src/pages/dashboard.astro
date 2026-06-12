@@ -54,6 +54,9 @@ import {
 import FlexWallet from '../components/FlexWallet.astro';
 import PickupNudgeBanner from '../components/PickupNudgeBanner.astro';
 import PickupCard from '../components/PickupCard.astro';
+import { resolveAccountCustomer } from '../lib/account';
+import { closeLabel } from '../lib/flex-order';
+import { upcomingMonday } from '../lib/cycle';
 import ScheduleCard from '../components/ScheduleCard.astro';
 import NextDeliveryBanner from '../components/NextDeliveryBanner.astro';
 
@@ -96,11 +99,18 @@ function upcomingWednesday(now: Date = new Date()): string {
 const targetWeek = upcomingWednesday();
 
 // ─────────────────────────────────────────────────────────────────────
-// 1. Customer + active members in one round-trip via embedded select.
-//    RLS on `customers` filters to the row matching auth.jwt() email,
-//    and `members` is filtered by customer_id = current_customer_id().
-//    The join below pulls the user's customer plus every member row
-//    they have plus the pickup_location for each.
+// 1. Resolve the account customer, then fetch its members.
+//
+//    HOUSEHOLD-SHARING FIX (2026-06-12): we resolve "which customer am I?"
+//    via household_owner() (lib/account.resolveAccountCustomer) rather than
+//    a `from('customers')` query that relies on customers_self_read. That
+//    policy is keyed on the AUTH email, so an INVITED household member (no
+//    customers row of their own — migration 0023) got ZERO customer rows and
+//    therefore saw NO shares ("can't see our share"). household_owner()
+//    resolves to the OWNER's customer for both a primary AND an invited
+//    member, and members_self_read (keyed on current_customer_id()) already
+//    grants the invited member the owner's member rows — so fetching members
+//    directly by the resolved customer_id Just Works for everyone.
 // ─────────────────────────────────────────────────────────────────────
 type ActiveShare = {
   id: string;
@@ -127,28 +137,34 @@ type ActiveShare = {
     time_start: string | null;
     time_end: string | null;
     is_delivery_zone: boolean;
+    pickup_instructions: string | null;
+    host_name: string | null;
+    host_phone: string | null;
   } | null;
 };
 
 type CustomerWithShares = {
   id: string;
-  legacy_id: string | null;
   contact_name: string;
   email: string;
   phone: string | null;
   members: ActiveShare[];
 };
 
-const { data: customerRows, error: customerError } = await supabase
-  .from('customers')
-  .select(
-    `
-    id,
-    legacy_id,
-    contact_name,
-    email,
-    phone,
-    members (
+// Resolve the account owner (works for a primary AND an invited household
+// member). Returns null when the caller has no account at all.
+const account = await resolveAccountCustomer(supabase);
+
+// Fetch the resolved account's shares directly. members_self_read RLS is
+// keyed on current_customer_id(), so this returns the owner's member rows for
+// both a primary and an invited member. We filter by the resolved customer_id
+// as belt-and-suspenders (RLS already scopes it to exactly that account).
+let shareRows: ActiveShare[] = [];
+if (account) {
+  const { data: memberRows, error: membersError } = await supabase
+    .from('members')
+    .select(
+      `
       id,
       share_type,
       share_size,
@@ -172,19 +188,48 @@ const { data: customerRows, error: customerError } = await supabase
         day_of_week,
         time_start,
         time_end,
-        is_delivery_zone
+        is_delivery_zone,
+        pickup_instructions,
+        host_name,
+        host_phone
       )
+    `
     )
-  `
-  )
-  .limit(1)
-  .overrideTypes<CustomerWithShares[], { merge: false }>();
+    .eq('customer_id', account.id)
+    .overrideTypes<ActiveShare[], { merge: false }>();
 
-if (customerError) {
-  console.error('[dashboard] customer fetch failed:', customerError);
+  if (membersError) {
+    console.error('[dashboard] members fetch failed:', membersError.message);
+  }
+  shareRows = memberRows ?? [];
 }
 
-const customer = customerRows?.[0] ?? null;
+// The caller's OWN phone (for the next-delivery banner's phone prompt). RLS
+// (customers_self_read) scopes this to the caller's own row: a primary gets
+// their phone; an invited member has no own customers row → null (their phone
+// prompt is handled by their own onboarding, not the shared owner's number).
+let callerPhone: string | null = null;
+if (account && user.email) {
+  const { data: ownRow } = await supabase
+    .from('customers')
+    .select('phone')
+    .eq('email', user.email)
+    .maybeSingle()
+    .overrideTypes<{ phone: string | null }, { merge: false }>();
+  callerPhone = ownRow?.phone ?? null;
+}
+
+// Synthesize the `customer` shape the rest of the page expects. `phone` is the
+// CALLER's own phone (see above); identity fields come from the resolved owner.
+const customer: CustomerWithShares | null = account
+  ? {
+      id: account.id,
+      contact_name: account.contactName,
+      email: account.email,
+      phone: callerPhone,
+      members: shareRows,
+    }
+  : null;
 const allShares = customer?.members ?? [];
 
 // Show only "live" shares — status in {'active','paused','onboarding'}.
@@ -192,6 +237,15 @@ const allShares = customer?.members ?? [];
 // and is hidden on the dashboard.
 const liveStatuses = new Set(['active', 'paused', 'onboarding']);
 const activeShares = allShares.filter((s) => liveStatuses.has(s.status));
+
+// Flex-share members get a prominent "This week's order" CTA (FIX 1,
+// 2026-06-08) + the bottom-nav "Order" tab. Same signal the /account hub
+// uses: a live (active/paused/onboarding) member row with share_type='flex'.
+// This is the ORDERING entry (/account/flex-order), distinct from the
+// FlexWallet balance card (/account/flex). flexCloseLabel mirrors the
+// order-window cadence in lib/flex-order.ts.
+const isFlexMember = activeShares.some((s) => s.share_type === 'flex');
+const flexCloseLabel = isFlexMember ? closeLabel(upcomingMonday()) : '';
 
 // ─────────────────────────────────────────────────────────────────────
 // Pickup forcing-nudge (FIX 1, 2026-05-24, gap P0). The ~191 migrated CSA
@@ -428,6 +482,13 @@ let pickupDayLong: string | null = null;
 let pickupTimeRange: string | null = null;
 let pickupCity: string | null = null;
 let pickupDeliveryAddress: string | null = null;
+// Member-facing per-site instructions for the primary stop (DISTINCT from the
+// admin-only `notes`). Null/blank → PickupCard shows no instructions block.
+let pickupInstructions: string | null = null;
+// Member-facing host name/phone for the primary stop (DISTINCT from the
+// admin-only `notes`). Null → PickupCard shows no "Your host" block.
+let pickupHostName: string | null = null;
+let pickupHostPhone: string | null = null;
 
 if (primaryShare) {
   const isHomeDelivery =
@@ -440,6 +501,21 @@ if (primaryShare) {
   } else if (primaryShare.pickup_location) {
     pickupCardMode = 'pickup';
     pickupLocationName = primaryShare.pickup_location.name;
+    pickupInstructions =
+      typeof primaryShare.pickup_location.pickup_instructions === 'string' &&
+      primaryShare.pickup_location.pickup_instructions.trim().length > 0
+        ? primaryShare.pickup_location.pickup_instructions.trim()
+        : null;
+    pickupHostName =
+      typeof primaryShare.pickup_location.host_name === 'string' &&
+      primaryShare.pickup_location.host_name.trim().length > 0
+        ? primaryShare.pickup_location.host_name.trim()
+        : null;
+    pickupHostPhone =
+      typeof primaryShare.pickup_location.host_phone === 'string' &&
+      primaryShare.pickup_location.host_phone.trim().length > 0
+        ? primaryShare.pickup_location.host_phone.trim()
+        : null;
     pickupDayLong = primaryShare.pickup_location.day_of_week
       ? dayLong[primaryShare.pickup_location.day_of_week] ?? primaryShare.pickup_location.day_of_week
       : null;
@@ -573,6 +649,7 @@ const title = `Welcome back, ${firstName} — Tiny Seed Farm CSA`;
   canonical="https://csa.tinyseedfarm.com/dashboard"
   userEmail={user.email}
   active="home"
+  isFlexMember={isFlexMember}
   mainClass="mx-auto flex w-full max-w-3xl flex-col gap-8 px-5 py-8 sm:gap-10 sm:px-6 sm:py-12"
 >
       {/* ═════════════════════════════════════════════════════════════
@@ -747,6 +824,49 @@ const title = `Welcome back, ${firstName} — Tiny Seed Farm CSA`;
       </section>
 
       {/* ═════════════════════════════════════════════════════════════
+          THIS WEEK'S ORDER — flex members (FIX 1, 2026-06-08)
+          A flex member's #1 weekly action: order their extras. Prominent
+          primary CTA → /account/flex-order (the ORDERING page), distinct
+          from the FlexWallet balance card below (→ /account/flex). Hidden
+          for non-flex members.
+          ═════════════════════════════════════════════════════════════ */}
+      {isFlexMember && (
+        <section
+          aria-labelledby="dash-order-cta-heading"
+          class="overflow-hidden rounded-ts-xl border border-ts-primary/40 bg-ts-primary/5 p-5 shadow-ts-sm sm:p-6"
+        >
+          <div class="flex items-center gap-3">
+            <span
+              class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-ts-primary/15 text-2xl"
+              aria-hidden="true"
+            >
+              🧺
+            </span>
+            <div class="min-w-0 flex-1">
+              <h2
+                id="dash-order-cta-heading"
+                class="font-display text-xl font-bold tracking-tight text-ts-text sm:text-2xl"
+              >
+                This week's order
+              </h2>
+              <p class="mt-0.5 text-sm leading-snug text-ts-text-secondary">
+                Build your box from the weekly list with your Farm Flex balance.
+              </p>
+            </div>
+          </div>
+          <p class="mt-3 text-sm font-medium text-ts-warning">
+            Order by {flexCloseLabel} — your balance carries forward.
+          </p>
+          <a
+            href="/account/flex-order"
+            class="mt-4 inline-flex h-12 w-full items-center justify-center gap-2 rounded-ts-md bg-ts-primary px-5 text-base font-semibold tracking-tight text-white shadow-ts-sm transition-all duration-150 ease-[var(--ease-ts)] hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary [touch-action:manipulation] sm:w-auto"
+          >
+            Order your items <span aria-hidden="true">→</span>
+          </a>
+        </section>
+      )}
+
+      {/* ═════════════════════════════════════════════════════════════
           PICKUP CARD (2026-06-05)
           Surfaces the member's CURRENT pickup stop / home delivery with an
           obvious "Change pickup location" action (≤2 taps from landing).
@@ -761,6 +881,9 @@ const title = `Welcome back, ${firstName} — Tiny Seed Farm CSA`;
           timeRange={pickupTimeRange}
           city={pickupCity}
           deliveryAddress={pickupDeliveryAddress}
+          pickupInstructions={pickupInstructions}
+          hostName={pickupHostName}
+          hostPhone={pickupHostPhone}
         />
       )}
 

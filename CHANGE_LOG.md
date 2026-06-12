@@ -6,6 +6,35 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-06-12] CSA — Household shared-access fix: invited members can now see the owner's share (fullstack-builder)
+
+NOT committed/deployed — PM verifies & deploys. App: `apps/csa-portal`. `npm run build` passes; build artifacts removed. No migration required (app-side fix using existing migration-0023 RPC).
+
+### Bug report
+Josh Fontaine (joshua.fontaine.2019@gmail.com), invited via household sharing by his wife Kelsea LaSorda (customer 287e6ed0-…). `account_members` row active, auth user exists, signed in — but "can't see our share."
+
+### Root cause
+The member-facing share pages fetched data with `supabase.from('customers').select('…members(…)')`, relying on the `customers_self_read` RLS policy (migration 0011: `USING (email = auth.jwt()->>'email')`). Migration 0023 added household resolution to `current_customer_id()` (and thus `members_self_read`), but did NOT change `customers_self_read` — it's still keyed on the auth email. An invited member has NO own `customers` row, so `customers_self_read` returns ZERO rows → the embedded `members` join never executes → the page renders the "no active share" empty state. `/account/household` worked for Josh only because it uses the `household_owner()` SECURITY DEFINER RPC + queries `account_members` directly.
+
+Root-cause sites (all the same pattern):
+- `src/pages/dashboard.astro` ~line 147 (was `.from('customers').select('…members…').limit(1)`)
+- `src/pages/box/index.astro` ~line 84
+- `src/pages/account/index.astro` ~line 77
+
+### Fix (app-side, no DB change — RLS already grants access)
+- NEW `resolveAccountCustomer(supabase)` in `src/lib/account.ts` — calls the existing `household_owner()` RPC (migration 0023, SECURITY DEFINER, keyed on `current_customer_id()`) → `{ id, contactName, email }` for the resolved account OWNER. Works identically for a primary (own row) and an invited member (owner's row); returns null when the caller resolves to no account.
+- All three pages now: resolve the customer via the helper, then fetch `members` DIRECTLY with `.eq('customer_id', account.id)`. `members_self_read` (keyed on `current_customer_id()`) already grants the invited member the owner's member rows + nested prefs/pickup. No RLS policy widened; the primary's behavior is unchanged.
+- Phone: dashboard + account hub now read the CALLER's OWN `customers.phone` via a small RLS-scoped lookup (primary → their phone; invited member → null = "Not set", correct since self-service profile edits target their own row). Identity (name/email) comes from the resolved owner; the profile card's email is already `user.email` (the caller's).
+
+### Not changed (verified correct as-is)
+- Middleware onboarding gate + phone/pickup nags key on `.eq('email', user.email).maybeSingle()` → null for an invited member → they pass through, no false trap.
+- Mutation endpoints (profile, confirm-pickup, add-phone) intentionally target the caller's own `customers` row — invited members are read-only per the household spec ("read-only is fine").
+
+### Verify live as Josh
+Mint a session for joshua.fontaine.2019@gmail.com and GET `/dashboard` — it should now show Kelsea's summer_veg share (cards, pickup, schedule), NOT the "no active share" empty state. Same for `/box` (this week's box) and `/account`.
+
+---
+
 ## [2026-06-12] CSA — Flex clarity pass: member-aware heading, real Skip, order confirmation email (fullstack-builder)
 
 NOT committed/deployed — PM verifies & deploys. App: `apps/csa-portal`. `npm run build` passes; build artifacts removed. No migration-0041 dependency.
