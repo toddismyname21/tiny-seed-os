@@ -42,7 +42,8 @@
 import type { APIRoute } from 'astro';
 import { requireAdmin } from '../../../../lib/admin';
 import { isSameOriginPost, PORTAL_ORIGIN } from '../../../../lib/onboarding';
-import { todayET, todayWeekdayET } from '../../../../lib/delivery';
+import { todayET, todayWeekdayET, isFarmPickup } from '../../../../lib/delivery';
+import { routeRank, extractZip } from '../../../../lib/route-order';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../../../../lib/database.types';
 
@@ -91,22 +92,46 @@ export const GET: APIRoute = async ({ locals }) => {
  * POST — create today's route + seed stops
  * ────────────────────────────────────────────────────────────────── */
 
+/**
+ * One ordered stop in the seed plan. Either a host pickup stop
+ * (pickup_location_id set) XOR a home-delivery member stop (member_id set) —
+ * never both. `zip` is the farm-loop sort key (extracted from the location or
+ * member address); `tiebreak` is a deterministic final sort label.
+ */
+interface SeedStop {
+  pickup_location_id: string | null;
+  member_id: string | null;
+  scheduled_time: string | null;
+  zip: string;
+  tiebreak: string;
+}
+
 interface SeedPlan {
-  hostStops: Array<{ pickup_location_id: string; scheduled_time: string | null }>;
-  homeDeliveryStops: Array<{ member_id: string }>;
+  /** Host + home-delivery stops, ALREADY ordered in farm-loop sequence. */
+  stops: SeedStop[];
+  /** Counts for the response payload (host vs. home delivery). */
+  hostCount: number;
+  homeCount: number;
 }
 
 /**
- * Build the seed plan from active pickup_locations + active members
- * for the current weekday. Pure-ish — runs DB SELECTs but no writes.
+ * Build the seed plan from active pickup_locations + active members for the
+ * current weekday. Pure-ish — runs DB SELECTs but no writes.
+ *
+ * ORDER: host stops and home-delivery member stops are merged into ONE list
+ * and sorted by the CURATED FARM-LOOP sequence (lib/route-order.routeRank) —
+ * the SAME order the printable route sheet (/admin/route-sheet) uses — so the
+ * driver app and the printed sheet agree on stop order. We sort the COMBINED
+ * list (not hosts-then-homes) so a home stop in New Brighton precedes a host
+ * stop in Squirrel Hill, matching the actual drive.
  */
 async function buildSeedPlan(
   supabase: SupabaseClient<Database>,
   weekday: string
 ): Promise<SeedPlan | { error: string }> {
-  // 1. Host stops: active, delivery-zone pickup_locations on this
-  //    weekday with a host_name. Sort by time_start so the seed
-  //    stop_order matches the driver's natural route flow.
+  // 1. Host stops: active, delivery-zone pickup_locations on this weekday with
+  //    a host_name. We pull address/city/zip so we can rank each by its
+  //    farm-loop position; keep time_start as the stop's scheduled_time.
   type LocRow = {
     id: string;
     name: string;
@@ -115,6 +140,9 @@ async function buildSeedPlan(
     host_name: string | null;
     time_start: string | null;
     is_active: boolean;
+    address: string | null;
+    city: string | null;
+    zip: string | null;
   };
   // The enum in TS is narrowed to ('Sun'|'Mon'|...|'Sat'); todayWeekdayET
   // returns a string. Cast — runtime safety is guaranteed by the
@@ -122,7 +150,7 @@ async function buildSeedPlan(
   type Weekday = NonNullable<Database['public']['Tables']['pickup_locations']['Row']['day_of_week']>;
   const { data: locs, error: locErr } = await supabase
     .from('pickup_locations')
-    .select('id, name, day_of_week, is_delivery_zone, host_name, time_start, is_active')
+    .select('id, name, day_of_week, is_delivery_zone, host_name, time_start, is_active, address, city, zip')
     .eq('day_of_week', weekday as Weekday)
     .eq('is_delivery_zone', true)
     .eq('is_active', true)
@@ -133,30 +161,36 @@ async function buildSeedPlan(
     return { error: 'fetch_failed' };
   }
 
-  const hostLocs = (locs ?? []).filter((l) => l.host_name && l.host_name.trim().length > 0);
-  hostLocs.sort((a, b) => {
-    // Sort by time_start ASC, NULL-last, then by name as a tiebreaker.
-    if (a.time_start && b.time_start) return a.time_start.localeCompare(b.time_start);
-    if (a.time_start && !b.time_start) return -1;
-    if (!a.time_start && b.time_start) return 1;
-    return a.name.localeCompare(b.name);
-  });
-  const hostStops = hostLocs.map((l) => ({
-    pickup_location_id: l.id,
-    scheduled_time: l.time_start,
-  }));
+  const hostStops: SeedStop[] = (locs ?? [])
+    // Must have a host_name (drop home-delivery placeholder zones) AND must
+    // NOT be the farm itself — Rochester farm pickup is the ORIGIN, not a
+    // truck stop (its members come TO the farm). Mirrors the route sheet.
+    .filter((l) => l.host_name && l.host_name.trim().length > 0 && !isFarmPickup(l.name))
+    .map((l) => {
+      // Prefer the location's explicit zip column; fall back to a zip parsed
+      // out of the street address (route-order's routeRank also accepts a raw
+      // address, but resolving the zip here keeps the tiebreak deterministic).
+      const zip = (l.zip ?? '').trim() || extractZip(l.address);
+      return {
+        pickup_location_id: l.id,
+        member_id: null,
+        scheduled_time: l.time_start,
+        zip,
+        tiebreak: l.name,
+      } satisfies SeedStop;
+    });
 
-  // 2. Home-delivery stops: active members with NO pickup_location_id
-  //    AND a delivery_address. We don't filter by weekday for these —
-  //    home deliveries happen on the canonical CSA delivery day (Wed)
-  //    regardless of member.pickup_day. If you're a home-delivery
-  //    member, you're on Wednesday's route.
+  // 2. Home-delivery stops: active members with NO pickup_location_id AND a
+  //    delivery_address. We don't filter by weekday for these — home
+  //    deliveries happen on the canonical CSA delivery day (Wed) regardless of
+  //    member.pickup_day. If you're a home-delivery member, you're on
+  //    Wednesday's route.
   //
-  //    We do, however, only seed on Wednesday (the canonical day) so
-  //    a Saturday admin-tap doesn't accidentally create a delivery
-  //    route for home-delivery members. Driver app supports other
-  //    days too but only via explicit Mon/Thu wholesale flows.
-  let homeDeliveryStops: Array<{ member_id: string }> = [];
+  //    We only seed these on Wednesday (the canonical day) so a Saturday
+  //    admin-tap doesn't accidentally create a home-delivery route. The driver
+  //    app supports other days too but only via explicit Mon/Thu wholesale
+  //    flows.
+  let homeStops: SeedStop[] = [];
   if (weekday === 'Wed') {
     type MemberRow = {
       id: string;
@@ -177,14 +211,40 @@ async function buildSeedPlan(
       console.error('[api/admin/route] home-delivery member fetch failed:', hdErr.message);
       return { error: 'fetch_failed' };
     }
-    // Defensive: require delivery_address to actually have content.
-    homeDeliveryStops = (hd ?? [])
+    // Defensive: require delivery_address to actually have content. Rank each
+    // home stop by the zip parsed from its delivery_address so it interleaves
+    // with host stops in farm-loop order. legacy_id is the final tiebreak so
+    // two members with the same zip stay in a stable, deterministic order.
+    homeStops = (hd ?? [])
       .filter((m) => m.delivery_address && m.delivery_address.trim().length > 0)
-      .sort((a, b) => (a.legacy_id ?? a.id).localeCompare(b.legacy_id ?? b.id))
-      .map((m) => ({ member_id: m.id }));
+      .map((m) => ({
+        pickup_location_id: null,
+        member_id: m.id,
+        scheduled_time: null,
+        zip: extractZip(m.delivery_address),
+        tiebreak: m.legacy_id ?? m.id,
+      } satisfies SeedStop));
   }
 
-  return { hostStops, homeDeliveryStops };
+  // 3. Merge BOTH kinds into one list and sort by the farm-loop sequence.
+  //    routeRank maps a zip to its loop position; unknown / missing zips rank
+  //    after every known zip (they land at the end of the loop, never first).
+  //    Ties (same rank) fall back to zip-ascending then the tiebreak label so
+  //    the order is deterministic run-to-run.
+  const stops = [...hostStops, ...homeStops];
+  stops.sort((a, b) => {
+    const ra = routeRank(a.zip);
+    const rb = routeRank(b.zip);
+    if (ra !== rb) return ra - rb;
+    if (a.zip !== b.zip) {
+      if (!a.zip) return 1;
+      if (!b.zip) return -1;
+      return a.zip < b.zip ? -1 : 1;
+    }
+    return a.tiebreak.localeCompare(b.tiebreak);
+  });
+
+  return { stops, hostCount: hostStops.length, homeCount: homeStops.length };
 }
 
 export const POST: APIRoute = async ({ request, locals }) => {
@@ -225,7 +285,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if ('error' in plan) {
     return jsonResponse({ ok: false, error: plan.error }, 500);
   }
-  const totalStops = plan.hostStops.length + plan.homeDeliveryStops.length;
+  const totalStops = plan.stops.length;
 
   if (totalStops === 0) {
     return jsonResponse(
@@ -265,23 +325,18 @@ export const POST: APIRoute = async ({ request, locals }) => {
   //
   //    We pre-validate the XOR invariant client-side so a malformed
   //    plan can't waste a DB round trip.
+  //    plan.stops is ALREADY ordered in farm-loop sequence (hosts + home
+  //    deliveries interleaved by zip), so stop_order is just the index + 1.
   type StopInsert = Database['public']['Tables']['delivery_stops']['Insert'];
   const rows: StopInsert[] = [];
   let order = 1;
-  for (const h of plan.hostStops) {
+  for (const s of plan.stops) {
     rows.push({
       route_id: route.id,
-      pickup_location_id: h.pickup_location_id,
+      pickup_location_id: s.pickup_location_id,
+      member_id: s.member_id,
       stop_order: order++,
-      scheduled_time: h.scheduled_time,
-      status: 'pending',
-    });
-  }
-  for (const hd of plan.homeDeliveryStops) {
-    rows.push({
-      route_id: route.id,
-      member_id: hd.member_id,
-      stop_order: order++,
+      scheduled_time: s.scheduled_time,
       status: 'pending',
     });
   }
@@ -311,7 +366,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     ok: true,
     route,
     stops_created: rows.length,
-    host_stops: plan.hostStops.length,
-    home_delivery_stops: plan.homeDeliveryStops.length,
+    host_stops: plan.hostCount,
+    home_delivery_stops: plan.homeCount,
   });
 };

@@ -1,0 +1,114 @@
+---
+/**
+ * /admin/share-contents — week picker for the printable SHARE CONTENTS sheet.
+ *
+ * The pack floor needs a big, checkable list of WHAT GOES IN each box this
+ * week, by share size (Small / Family / Large). This landing page lets the
+ * pack lead pick a week, then opens the printable list at
+ * /admin/share-contents/[week].
+ *
+ * The week key is `box_contents.week_date` — the MONDAY week_starting
+ * (e.g. 2026-06-08), the SAME key the labels + manifest + box editor use.
+ * We default to the most-recent week that actually has box_contents rows so
+ * the picker lands on real data (querying DISTINCT week_date DESC), falling
+ * back to the upcoming Monday when the table is empty.
+ */
+import AdminShell from '../../../components/AdminShell.astro';
+import Card from '../../../components/Card.astro';
+import { upcomingMonday, mondayOfWeek, prettyWeekHeader } from '../../../lib/cycle';
+
+const supabase = Astro.locals.supabase;
+
+// ─── Distinct week_date values present in box_contents (newest first) ──
+// We only care about the three printable share sizes; a week with only
+// flower/flex rows shouldn't appear as a "share contents" week.
+const { data: weekRows, error: weeksErr } = await supabase
+  .from('box_contents')
+  .select('week_date')
+  .in('share_type', ['small', 'family', 'large'])
+  .order('week_date', { ascending: false });
+
+if (weeksErr) {
+  console.error('[admin/share-contents] week list fetch failed:', weeksErr.message);
+}
+
+const weeksPresent: string[] = Array.from(
+  new Set(((weekRows ?? []) as { week_date: string }[]).map((r) => r.week_date)),
+);
+
+// Default = most-recent week with rows; else the upcoming Monday.
+const defaultWeek = weeksPresent[0] ?? mondayOfWeek(upcomingMonday());
+
+// If a ?week= was passed (e.g. from a back link), preselect it.
+const wkParam = Astro.url.searchParams.get('week') ?? '';
+const selectedWeek = wkParam && /^\d{4}-\d{2}-\d{2}$/.test(wkParam)
+  ? mondayOfWeek(wkParam)
+  : defaultWeek;
+
+// Build the dropdown from weeks that actually have rows. Always include the
+// selected week (in case it isn't in the table yet) so the form is coherent.
+const weekValues = weeksPresent.includes(selectedWeek)
+  ? weeksPresent
+  : [selectedWeek, ...weeksPresent];
+---
+
+<AdminShell
+  title="Share contents"
+  subtitle="Printable pack-floor list — what goes in each box this week"
+  pageTitle="Share contents — Tiny Seed Admin"
+>
+  {/* ── Week picker ───────────────────────────────────────────────── */}
+  <section aria-label="Week selector">
+    <form method="GET" action="/admin/share-contents" class="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-4">
+      <label class="flex flex-col gap-1">
+        <span class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Week (Monday)</span>
+        <select
+          name="week"
+          class="h-10 min-w-[260px] rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+        >
+          {weekValues.map((wk) => (
+            <option value={wk} selected={wk === selectedWeek}>
+              {prettyWeekHeader(wk)}
+            </option>
+          ))}
+        </select>
+      </label>
+      <button
+        type="submit"
+        class="inline-flex h-10 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-semibold text-ts-text transition-colors duration-150 hover:border-ts-primary/40 hover:text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+      >
+        Change week
+      </button>
+      <a
+        href={`/admin/share-contents/${selectedWeek}`}
+        class="inline-flex h-10 items-center justify-center rounded-ts-md bg-ts-primary px-5 text-sm font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+      >
+        Open share list →
+      </a>
+    </form>
+  </section>
+
+  {/* ── Context / empty state ─────────────────────────────────────── */}
+  {weeksPresent.length === 0 ? (
+    <Card tone="muted" padding="lg" elevation="sm">
+      <div class="text-center text-sm text-ts-text-secondary">
+        <p class="font-semibold text-ts-text">No share contents published yet.</p>
+        <p class="mt-1">
+          Add items under <a href="/admin/box-contents" class="text-ts-primary underline-offset-2 hover:underline">Box (legacy)</a> for the Small, Family, or Large shares, then come back here to print.
+        </p>
+      </div>
+    </Card>
+  ) : (
+    <Card padding="md" elevation="sm">
+      <h2 class="font-display text-lg font-bold text-ts-text">What this prints</h2>
+      <ul class="mt-3 space-y-1.5 text-sm text-ts-text-secondary">
+        <li>• One big, checkable list per share size — Small, Family, and Large (only sizes that have items).</li>
+        <li>• Each item is a real empty checkbox the packer ticks: <span class="font-semibold text-ts-text">☐ 2 head — Lettuce</span>.</li>
+        <li>• Letter portrait. Print options: Letter, Portrait, default margins, scale 100%.</li>
+        <li>• The week is the Monday week-starting — the same key as the labels and manifest.</li>
+      </ul>
+    </Card>
+  )}
+</AdminShell>
+</content>
+</invoke>

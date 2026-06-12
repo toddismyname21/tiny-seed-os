@@ -15,7 +15,10 @@ import EmptyState from '../../../components/EmptyState.astro';
 import DateRangePicker from '../../../components/DateRangePicker.astro';
 import FormRow from '../../../components/FormRow.astro';
 import ContactFarm from '../../../components/ContactFarm.astro';
+import Select from '../../../components/Select.astro';
 import { todayET, VACATION_ERROR_COPY } from '../../../lib/account';
+import { validMoveTargetWeeksForShare } from '../../../lib/cycle';
+import { prettyDeliveryLong } from '../../../lib/schedule';
 
 const user = Astro.locals.user;
 if (!user || !user.email) {
@@ -54,6 +57,25 @@ const errorParam = Astro.url.searchParams.get('error');
 const presetStart = Astro.url.searchParams.get('start_date') ?? '';
 const presetEnd = Astro.url.searchParams.get('end_date') ?? '';
 const presetReason = Astro.url.searchParams.get('reason') ?? '';
+const presetDisposition = (() => {
+  const d = Astro.url.searchParams.get('disposition');
+  return d === 'move' || d === 'donate' ? d : 'skip';
+})();
+const presetMoveToWeek = Astro.url.searchParams.get('move_to_week') ?? '';
+
+// ─── Valid move-target weeks (migration 0041) ────────────────────────
+// Future in-season delivery weeks the member may MOVE a held box onto.
+// Server-resolved by share_type so a hand-crafted POST can't smuggle a
+// bogus week. The dropdown SUBMITS the Monday (week_starting) but LABELS
+// the Wednesday delivery date the member recognises.
+const moveTargets = primary
+  ? validMoveTargetWeeksForShare(primary.share_type)
+  : [];
+const moveTargetOptions = moveTargets.map((t) => ({
+  value: t.week_starting,
+  label: `Week ${t.week_number} — ${prettyDeliveryLong(t.delivery_date)}`,
+}));
+const canMove = moveTargetOptions.length > 0;
 
 // Surface server error inline. The DateRangePicker lights up red on the
 // relevant field if the error is about dates; otherwise we show a
@@ -194,6 +216,99 @@ const SHARE_TYPE_LABELS: Record<string, string> = {
               </div>
             </Card>
 
+            {/* DISPOSITION PICKER (migration 0041) ─────────────────── */}
+            <Card padding="md" elevation="sm">
+              <fieldset class="m-0 border-0 p-0" data-disposition-group>
+                <legend class="mb-1 text-sm font-semibold text-ts-text">What should happen to those boxes?</legend>
+                <p class="mb-3 text-xs text-ts-text-muted">
+                  Choose one. You can always change it before the hold starts.
+                </p>
+
+                <div class="flex flex-col gap-2.5">
+                  {/* SKIP */}
+                  <label class="flex cursor-pointer items-start gap-3 rounded-ts-md border border-ts-border bg-ts-bg-base p-4 transition-colors duration-150 hover:border-ts-primary/40 has-[:checked]:border-ts-primary has-[:checked]:bg-ts-primary/5 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ts-primary/30">
+                    <input
+                      type="radio"
+                      name="disposition"
+                      value="skip"
+                      checked={presetDisposition === 'skip'}
+                      class="mt-0.5 h-4 w-4 shrink-0 accent-ts-primary"
+                      data-disposition-radio
+                    />
+                    <span class="min-w-0">
+                      <span class="block text-sm font-semibold text-ts-text">Skip these weeks</span>
+                      <span class="mt-0.5 block text-xs leading-relaxed text-ts-text-secondary">
+                        We just won't pack a box. Your unused weeks roll over to extend your season.
+                      </span>
+                    </span>
+                  </label>
+
+                  {/* MOVE */}
+                  <label class={[
+                    'flex items-start gap-3 rounded-ts-md border border-ts-border bg-ts-bg-base p-4 transition-colors duration-150',
+                    canMove
+                      ? 'cursor-pointer hover:border-ts-primary/40 has-[:checked]:border-ts-primary has-[:checked]:bg-ts-primary/5 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ts-primary/30'
+                      : 'cursor-not-allowed opacity-60',
+                  ].join(' ')}>
+                    <input
+                      type="radio"
+                      name="disposition"
+                      value="move"
+                      checked={canMove && presetDisposition === 'move'}
+                      disabled={!canMove}
+                      class="mt-0.5 h-4 w-4 shrink-0 accent-ts-primary"
+                      data-disposition-radio
+                    />
+                    <span class="min-w-0 flex-1">
+                      <span class="block text-sm font-semibold text-ts-text">Move to another week</span>
+                      <span class="mt-0.5 block text-xs leading-relaxed text-ts-text-secondary">
+                        {canMove
+                          ? "Get that box on a different week instead — pick the week below."
+                          : "No upcoming delivery weeks are available to move to right now."}
+                      </span>
+
+                      {canMove && (
+                        <div class="mt-3" data-move-week-wrap hidden={presetDisposition !== 'move'}>
+                          <label for="move_to_week" class="mb-1.5 block text-xs font-medium text-ts-text">
+                            Deliver my box on:
+                          </label>
+                          <Select
+                            id="move_to_week"
+                            name="move_to_week"
+                            value={presetDisposition === 'move' ? (presetMoveToWeek || null) : null}
+                            placeholder="Choose a week…"
+                            options={moveTargetOptions}
+                            ariaDescribedBy="move-week-help"
+                          />
+                          <p id="move-week-help" class="mt-1.5 text-xs text-ts-text-muted">
+                            Only upcoming in-season weeks are listed.
+                          </p>
+                        </div>
+                      )}
+                    </span>
+                  </label>
+
+                  {/* DONATE */}
+                  <label class="flex cursor-pointer items-start gap-3 rounded-ts-md border border-ts-border bg-ts-bg-base p-4 transition-colors duration-150 hover:border-ts-primary/40 has-[:checked]:border-ts-primary has-[:checked]:bg-ts-primary/5 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ts-primary/30">
+                    <input
+                      type="radio"
+                      name="disposition"
+                      value="donate"
+                      checked={presetDisposition === 'donate'}
+                      class="mt-0.5 h-4 w-4 shrink-0 accent-ts-primary"
+                      data-disposition-radio
+                    />
+                    <span class="min-w-0">
+                      <span class="block text-sm font-semibold text-ts-text">Donate these boxes 💚</span>
+                      <span class="mt-0.5 block text-xs leading-relaxed text-ts-text-secondary">
+                        We'll pack your box and give it to a family in need. Your weeks are still used.
+                      </span>
+                    </span>
+                  </label>
+                </div>
+              </fieldset>
+            </Card>
+
             <Card padding="md" elevation="sm">
               <FormRow
                 label="Reason"
@@ -289,11 +404,42 @@ const SHARE_TYPE_LABELS: Record<string, string> = {
       update();
     }
 
-    // Submit feedback.
+    // ─── Disposition picker: reveal the move-week dropdown only when
+    //     "Move to another week" is selected; require it then; clear +
+    //     disable it otherwise so a stale value is never submitted. ──────
+    const dispositionRadios = document.querySelectorAll('[data-disposition-radio]');
+    const moveWrap = document.querySelector('[data-move-week-wrap]');
+    const moveSelect = document.getElementById('move_to_week');
+
+    function syncDisposition() {
+      const checked = document.querySelector('[data-disposition-radio]:checked');
+      const value = checked ? checked.value : 'skip';
+      const isMove = value === 'move';
+      if (moveWrap) moveWrap.hidden = !isMove;
+      if (moveSelect) {
+        moveSelect.required = isMove;
+        moveSelect.disabled = !isMove;
+        if (!isMove) moveSelect.value = '';
+      }
+    }
+
+    if (dispositionRadios.length > 0) {
+      dispositionRadios.forEach((r) => r.addEventListener('change', syncDisposition));
+      syncDisposition();
+    }
+
+    // Submit feedback. Guard: if "move" is selected but no week chosen,
+    // block submit and surface the native required message.
     const form = document.querySelector('[data-vacation-form]');
     const submitLabel = document.querySelector('[data-submit-label]');
     if (form && submitBtn && submitLabel) {
-      form.addEventListener('submit', () => {
+      form.addEventListener('submit', (ev) => {
+        const checked = document.querySelector('[data-disposition-radio]:checked');
+        if (checked && checked.value === 'move' && moveSelect && !moveSelect.value) {
+          ev.preventDefault();
+          moveSelect.reportValidity?.();
+          return;
+        }
         submitBtn.disabled = true;
         submitLabel.textContent = 'Scheduling…';
       });

@@ -1,0 +1,544 @@
+---
+/**
+ * /admin/route-sheet/[week] — the printable DELIVERY ROUTE SHEET.
+ *
+ * ONE printable page (Letter portrait) for the day's WEDNESDAY run: every
+ * delivery point the truck visits, in one numbered, zip-sorted list, so the
+ * team loads the truck and the driver follows it.
+ *
+ * Two kinds of stop, merged into one list:
+ *   • HOME DELIVERY (🏠) — one row per home-delivery member (no pickup_location,
+ *     a delivery_address). Shows the member name, full street address, and a
+ *     formatted phone (customers.phone).
+ *   • PICKUP-STOP DROP (📦) — one row per Wednesday pickup location with ≥1 box
+ *     this cycle. Shows the stop name, the stop's street address, and the BOX
+ *     COUNT (distinct customers receiving a box at that stop). The truck drops
+ *     that many boxes at the location.
+ *
+ * ORDER: both kinds are combined and ordered by a CURATED ROUTE SEQUENCE
+ * (ZIP_ROUTE_ORDER) — the actual drive order the truck leaves THE FARM in and
+ * loops back: NW Butler loop (New Brighton → Zelienople → Harmony → Cranberry
+ * → Seven Fields) → North Hills (North Park / Allison Park / Fox Chapel /
+ * 15237) → city (North Side / Oakland / Highland Park / Oakmont / Squirrel
+ * Hill) → south (South Side / Mt. Lebanon / 15243) → return to the farm. We
+ * still extract the 5-digit ZIP from each address (regex \b\d{5}\b) to map the
+ * row to its place in that sequence. Unknown zips append at the end (before the
+ * RETURN row), sorted ascending as a fallback. Numbered 1..N. The driver can
+ * re-sequence on the road (noted on the page).
+ *
+ * THE FARM IS THE ORIGIN, NOT A STOP: "Rochester (Farm Pickup)" members come TO
+ * the farm — their boxes stay at the farm and are NEVER routed. We drop that
+ * stop entirely (matched via isFarmPickup() from lib/delivery, the canonical
+ * keyword test). A START row (load the truck) and a RETURN row (back to the
+ * farm) bracket the numbered list but are NOT numbered stops and carry no
+ * checkbox.
+ *
+ * DATA: resolveCycle(week) is the single source of truth (biweekly + holds +
+ * season already applied). We read its `byStop` map for the home-delivery
+ * bucket + each Wednesday pickup stop, then fetch two small extras the cycle
+ * row doesn't carry: pickup_locations.address (the stop's street address) and
+ * customers.phone (home-delivery member phone). Test accounts (TEST_EXCLUDES)
+ * are dropped. No migration-0041 dependency — resolveCycle already degrades
+ * gracefully on a pre-0041 DB.
+ *
+ * PRINT: AdminShell strips its own chrome via `print:hidden`; we add the
+ * Letter-portrait @page rule + hide on-screen-only UI (the Print button +
+ * instructions live in the `actions` slot / a `.screen-only` block). The
+ * numbered list prints in normal flow from the top of page 1. Mirrors the
+ * debugged print pattern in /admin/pack-check/[...slug].astro.
+ */
+import AdminShell from '../../../components/AdminShell.astro';
+import Card from '../../../components/Card.astro';
+import {
+  resolveCycle, prettyShortDate,
+  HOME_DELIVERY_BUCKET_ID,
+  mondayOfWeek, isMonday,
+  type CycleMember,
+} from '../../../lib/cycle';
+import { TEST_EXCLUDES } from '../../../lib/campaign';
+import { formatUSPhone } from '../../../lib/phone';
+import { isFarmPickup } from '../../../lib/delivery';
+import { extractZip, sortByRouteOrder } from '../../../lib/route-order';
+import {
+  buildStopBandMap, bandForStop, HOME_DELIVERY_BAND,
+  type BandColor,
+} from '../../../lib/stop-colors';
+import type { Database } from '../../../lib/database.types';
+
+const supabase = Astro.locals.supabase;
+const slugParam = (Astro.params.slug ?? '') as string;
+const segments = slugParam.split('/').filter(Boolean);
+
+if (segments.length === 0) {
+  return Astro.redirect('/admin/route-sheet', 303);
+}
+
+const week_starting_input = segments[0];
+if (!/^\d{4}-\d{2}-\d{2}$/.test(week_starting_input)) {
+  return Astro.redirect('/admin/route-sheet?error=bad_week', 303);
+}
+const week_starting = isMonday(week_starting_input)
+  ? week_starting_input
+  : mondayOfWeek(week_starting_input);
+
+const cycle = await resolveCycle(supabase, week_starting);
+
+// The Wednesday distribution date — this sheet is the Wednesday run.
+const wedDate = cycle.distribution_dates.Wed;
+
+/* ── COLOR CODING — identical to /admin/labels + /admin/stop-manifest ──
+ * Each PICKUP-STOP row gets a colored band in the stop's EXACT label color so
+ * the driver pairs this sheet with the colored box-label stickers. The mapping
+ * is shared (lib/stop-colors) and keyed by the SAME input the labels use: ALL
+ * active stops of the cycle, sorted by stop_name → idx % 15. We build it from
+ * the FULL cycle.activeStops (NOT the routed Wednesday subset) so a stop like
+ * "Highland Park" gets the same color here as on its labels. Home-delivery rows
+ * use the distinct warm HOME_DELIVERY_BAND. Colors print via
+ * print-color-adjust:exact (see <style> below). */
+const stopBandById = buildStopBandMap(cycle.activeStops);
+
+// ─── Flex members WITH an order this week (the "ordered set") ────────
+// THE RULE (Todd 2026-06-10): a flex member is a real box for the week ONLY
+// if they have a flex_orders row for the week with status pending / locked /
+// fulfilled. A flex member with no order ordered nothing → no box to route. So
+// a flex home member with NO order is NOT a delivery stop, and a flex pickup
+// member with no order is NOT counted in the stop's box drop. summer_veg
+// boxes are unaffected — they always get a box regardless of any flex order.
+// Status set MATCHES the labels / pack-check / flex-orders admin pages.
+const flexOrderedMemberIds = new Set<string>();
+{
+  const memberIds = Array.from(new Set(cycle.members.map((m) => m.id)));
+  if (memberIds.length > 0) {
+    type OrderedRow = { member_id: string };
+    const { data, error } = await supabase
+      .from('flex_orders')
+      .select('member_id')
+      .eq('cycle_code', 'WEEKLY')
+      .eq('week_starting', week_starting)
+      .in('status', ['pending', 'locked', 'fulfilled'])
+      .in('member_id', memberIds)
+      .overrideTypes<OrderedRow[], { merge: false }>();
+    if (!error) {
+      for (const r of (data ?? []) as OrderedRow[]) flexOrderedMemberIds.add(r.member_id);
+    }
+  }
+}
+
+/** A row counts as a physical box on the truck. summer_veg always does; a flex
+ *  row only when the member ordered (id in flexOrderedMemberIds). Used by BOTH
+ *  the home-delivery grouping and the pickup-stop box count so the route sheet
+ *  agrees with the manifest / pack-check totals. */
+function isRoutableBox(m: CycleMember): boolean {
+  if (m.share_type === 'summer_veg') return true;
+  if (m.share_type === 'flex') return flexOrderedMemberIds.has(m.id);
+  return false;
+}
+
+const isExcluded = (email: string): boolean =>
+  TEST_EXCLUDES.has((email ?? '').toLowerCase());
+
+/* ── Pickup-location street addresses ────────────────────────────────
+ * resolveCycle's joined pickup_location carries city + zip but NOT the
+ * street `address` field. We fetch it for the active Wednesday stops so
+ * each pickup-stop row can print a full, drivable address. Indexed by id. */
+type LocAddrRow = {
+  id: string;
+  address: string | null;
+  city: string | null;
+  state: string;
+  zip: string | null;
+};
+const wedStopIds = cycle.activeStops
+  .filter((s) => s.stop_id !== HOME_DELIVERY_BUCKET_ID
+    && s.stop_id !== 'no_pickup_set'
+    && s.day_of_week === 'Wed'
+    // The farm itself is the ORIGIN, not a truck stop — its members come TO
+    // the farm. Don't even fetch its address; it's never routed.
+    && !isFarmPickup(s.stop_name))
+  .map((s) => s.stop_id);
+
+const locAddrById = new Map<string, LocAddrRow>();
+if (wedStopIds.length > 0) {
+  const { data, error } = await supabase
+    .from('pickup_locations')
+    .select('id, address, city, state, zip')
+    .in('id', wedStopIds)
+    .overrideTypes<LocAddrRow[], { merge: false }>();
+  if (!error) {
+    for (const r of (data ?? []) as LocAddrRow[]) locAddrById.set(r.id, r);
+  }
+}
+
+/* ── Home-delivery detection (delivery_address, not the cycle bucket) ──
+ * THE RULE (Todd 2026-06-10): a customer is a HOME DELIVERY stop whenever
+ * ANY of their box-bearing member rows this cycle carries a non-empty
+ * `delivery_address` — REGARDLESS of share_type (summer_veg OR flex) and
+ * REGARDLESS of whether that row ALSO has a pickup_location_id set.
+ *
+ * Why not reuse resolveCycle's HOME_DELIVERY_BUCKET_ID? That bucket keys on
+ * `delivery_address && !pickup_location_id`, so a member who has BOTH a
+ * delivery_address AND a pickup_location_id (e.g. Jean VonHofen, summer_veg,
+ * "759 Spring Street, Harmony" with a stale pickup id) falls into their
+ * PICKUP stop instead of the home bucket — under-counting home deliveries
+ * (read 8 when 9 distinct customers get a home box). We branch on
+ * delivery_address directly off cycle.members (CycleMember already carries
+ * delivery_address), so the count is the true number of home-delivery boxes.
+ *
+ * "Box-bearing" = share_type summer_veg or flex (each is one physical box).
+ * add_on rows ride inside another box and never make a stop of their own, so
+ * they alone can't turn a customer into a home-delivery stop. cycle.members is
+ * already biweekly + hold + season filtered, so this is exactly the customers
+ * receiving a home box THIS week. Test accounts are dropped. */
+type BoxMember = CycleMember;
+// "Box-bearing" for routing = a row that is an actual box on the truck this
+// week. summer_veg always is; flex ONLY when the member ordered (flex with no
+// order has nothing to deliver). This is the gate that keeps a flex-no-order
+// home member from becoming a phantom delivery stop.
+const isBoxBearing = (m: CycleMember): boolean => isRoutableBox(m);
+const hasDeliveryAddress = (m: CycleMember): boolean =>
+  !!(m.delivery_address && m.delivery_address.trim());
+
+// customer_id → all of that customer's box-bearing rows that are home
+// deliveries (i.e. the customer has ≥1 box-bearing row with a delivery_address).
+const homeMembersByCustomer = new Map<string, BoxMember[]>();
+for (const m of cycle.members) {
+  if (isExcluded(m.email)) continue;
+  if (!isBoxBearing(m)) continue;
+  if (!hasDeliveryAddress(m)) continue;
+  const arr = homeMembersByCustomer.get(m.customer_id);
+  if (arr) arr.push(m);
+  else homeMembersByCustomer.set(m.customer_id, [m]);
+}
+// The set of customer_ids that are home-delivery this week — used both to
+// build the 🏠 rows AND to SUPPRESS those customers from the pickup-stop
+// drops below (a home customer has no pickup stop; their box is delivered).
+const homeCustomerIdSet = new Set(homeMembersByCustomer.keys());
+
+/* ── Home-delivery member phones ─────────────────────────────────────
+ * CycleMember carries email but not phone. We fetch customers.phone for
+ * the home-delivery customers in one round trip and index by customer_id. */
+const homeCustomerIds = Array.from(homeCustomerIdSet);
+
+type CustPhoneRow = { id: string; phone: string | null };
+const phoneByCustomer = new Map<string, string | null>();
+if (homeCustomerIds.length > 0) {
+  const { data, error } = await supabase
+    .from('customers')
+    .select('id, phone')
+    .in('id', homeCustomerIds)
+    .overrideTypes<CustPhoneRow[], { merge: false }>();
+  if (!error) {
+    for (const r of (data ?? []) as CustPhoneRow[]) phoneByCustomer.set(r.id, r.phone);
+  }
+}
+
+/* ── Build the combined route rows ──────────────────────────────────── */
+type RouteKind = 'home' | 'pickup';
+interface RouteRow {
+  kind: RouteKind;
+  /** Display title — member name (home) or stop name (pickup). */
+  title: string;
+  /** Full, drivable address string. */
+  address: string;
+  /** Formatted phone (home only; '' for pickup stops). */
+  phone: string;
+  /** Box count to drop (pickup); 1 for a home delivery. */
+  boxes: number;
+  /** The 5-digit zip extracted from the address, or '' when none found. */
+  zip: string;
+  /** The stop's colored band — identical to its box-label band. Home rows use
+   *  the distinct warm HOME_DELIVERY_BAND; pickup rows use their palette color
+   *  keyed by stop_id from the shared name-sorted mapping. */
+  band: BandColor;
+}
+
+/** Compose a pickup-location address line from its parts (skip blanks). */
+function composeLocAddress(loc: LocAddrRow | undefined): string {
+  if (!loc) return '';
+  const street = (loc.address ?? '').trim();
+  const cityState = [loc.city?.trim(), loc.state?.trim()].filter(Boolean).join(', ');
+  const tail = [cityState, (loc.zip ?? '').trim()].filter(Boolean).join(' ');
+  return [street, tail].filter(Boolean).join(', ');
+}
+
+const rows: RouteRow[] = [];
+
+// 1. HOME DELIVERIES — one row per distinct home-delivery customer.
+//    A customer can hold multiple box-bearing rows (e.g. summer_veg + flex)
+//    but is a SINGLE stop on the truck, so we collapse to one row per
+//    customer. `homeMembersByCustomer` already holds only that customer's
+//    box-bearing rows that carry a delivery_address (built above).
+for (const [customerId, members] of homeMembersByCustomer) {
+  // Use the first member that actually has a delivery_address.
+  const withAddr = members.find((m) => m.delivery_address && m.delivery_address.trim());
+  const primary = withAddr ?? members[0];
+  const address = (primary.delivery_address ?? '').trim();
+  if (!address) continue; // no address → can't route a home delivery
+  // ONE truck stop per home-delivery customer (one address visited), but the
+  // box count = their physical boxes = summer_veg box rows + flex box rows,
+  // counted PER ROW to match the driver manifest / pack-check totals. A flex
+  // home-delivery member receives a box too. Floor of 1 so a box-bearing home
+  // stop never reads "0 boxes" if share_type were unexpected.
+  const homeBoxes = members.filter((m) => isRoutableBox(m)).length;
+  rows.push({
+    kind: 'home',
+    title: primary.contact_name,
+    address,
+    phone: formatUSPhone(phoneByCustomer.get(customerId) ?? null),
+    boxes: Math.max(homeBoxes, 1),
+    zip: extractZip(address),
+    // Every home-delivery row carries the single distinct warm band — same as
+    // the home-delivery box labels.
+    band: HOME_DELIVERY_BAND,
+  });
+}
+
+// 2. PICKUP-STOP DROPS — one row per Wednesday stop with ≥1 box this cycle.
+//    Box count = physical boxes dropped at the stop = summer_veg box rows +
+//    flex box rows (a flex member receives their own flex box). Counted PER
+//    ROW — identical to the driver manifest / pack-check cover total
+//    (boxes_small + boxes_large + flexCount) — so all three pages agree.
+//    add_on rows ride INSIDE a member's box → never a box of their own.
+for (const stop of cycle.activeStops) {
+  if (stop.stop_id === HOME_DELIVERY_BUCKET_ID) continue;
+  if (stop.stop_id === 'no_pickup_set') continue;
+  if (stop.day_of_week !== 'Wed') continue; // Wednesday run only (skip Tue/Sat)
+  // EXCLUDE the farm itself: "Rochester (Farm Pickup)" members come TO the
+  // farm, so their boxes stay at the farm and are never a truck stop. This is
+  // the origin/return point, rendered as the START/RETURN brackets instead.
+  if (isFarmPickup(stop.stop_name)) continue;
+
+  const boxes = (cycle.byStop.get(stop.stop_id) ?? [])
+    .filter((m) => !isExcluded(m.email)
+      // A real box on the truck: summer_veg always; flex ONLY when the member
+      // ordered this week (flex-no-order has nothing to drop, so it does not
+      // count toward this stop's box drop and won't render a phantom box).
+      && isRoutableBox(m)
+      // A customer routed as a HOME DELIVERY (≥1 box-bearing row with a
+      // delivery_address) gets their box at home, NOT this stop — even if a
+      // stale pickup_location_id put them in this stop's byStop bucket. Drop
+      // them here so the box is counted once, as the 🏠 row above.
+      && !homeCustomerIdSet.has(m.customer_id))
+    .length;
+  if (boxes === 0) continue;
+
+  const address = composeLocAddress(locAddrById.get(stop.stop_id));
+  rows.push({
+    kind: 'pickup',
+    title: stop.stop_name,
+    address,
+    phone: '',
+    boxes,
+    zip: extractZip(address),
+    // The stop's EXACT label band color, keyed by stop_id from the shared
+    // name-sorted mapping over the full cycle.activeStops — so e.g. "Highland
+    // Park" matches its box-label color.
+    band: bandForStop(stop.stop_id, stopBandById, HOME_DELIVERY_BUCKET_ID),
+  });
+}
+
+/* ── Order by the CURATED ROUTE SEQUENCE ────────────────────────────
+ * The truck leaves THE FARM (257 Zeigler Rd, Rochester PA 15074) and loops
+ * out, returning to the farm. Raw zip-ascending is WRONG (it put North Park
+ * 15044 first); the real drive order is a hand-built loop keyed by zip:
+ *
+ *   NW Butler loop  — New Brighton (15066) → Zelienople (16063) →
+ *                     Harmony (16037) → Cranberry (16066) → Seven Fields (16046)
+ *   North Hills     — North Park/Gibsonia (15044) → Allison Park (15101) →
+ *                     Fox Chapel (15215) → 15237 North Hills
+ *   City            — North Side (15212) → Melwood/Oakland (15213) →
+ *                     Highland Park (15206) → Oakmont (15139) →
+ *                     Squirrel Hill (15217)
+ *   South           — South Side / Jane St (15203) → Mt. Lebanon (15216) →
+ *                     15243
+ *
+ * sequence = index of the row's zip in ZIP_ROUTE_ORDER. A zip not in the list
+ * (or a row with no zip) sorts AFTER all known zips, ascending by zip then
+ * title, so it lands at the end of the loop just before the RETURN row — never
+ * silently first. ZIP_ROUTE_ORDER + the rank/sort logic live in the shared
+ * lib/route-order helper so the auto-seeder (POST /api/admin/route) seeds
+ * stop_order in the SAME farm-loop order this sheet prints in. */
+rows.sort(sortByRouteOrder((r) => r.zip, (r) => r.title));
+
+// ── Totals ─────────────────────────────────────────────────────────
+const homeCount = rows.filter((r) => r.kind === 'home').length;
+const stopCount = rows.length;
+const boxCount = rows.reduce((a, r) => a + r.boxes, 0);
+
+// Pretty header date — "Wednesday, June 10".
+const prettyDate = new Intl.DateTimeFormat('en-US', {
+  weekday: 'long', month: 'long', day: 'numeric',
+  timeZone: 'UTC',
+}).format(new Date(`${wedDate}T12:00:00Z`));
+---
+
+<AdminShell
+  title="Delivery route"
+  subtitle={`${prettyShortDate(wedDate)} run`}
+  pageTitle={`Delivery route — ${prettyDate} — Tiny Seed Admin`}
+>
+  <Fragment slot="actions">
+    <button
+      type="button"
+      onclick="window.print()"
+      class="inline-flex h-10 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+    >
+      🖨 Print route sheet
+    </button>
+    <a
+      href="/admin/route-sheet"
+      class="inline-flex h-10 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-semibold text-ts-text transition-colors duration-150 hover:border-ts-primary/40 hover:text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+    >
+      ← Pick another week
+    </a>
+  </Fragment>
+
+  <div class="print-doc">
+    {/* ── Sheet header ──────────────────────────────────────────────── */}
+    <header class="route-header rounded-ts-lg bg-ts-text px-5 py-4 text-white">
+      <p class="text-xs font-semibold uppercase tracking-wider text-white/80">
+        Delivery route
+      </p>
+      <h2 class="mt-1 font-display text-3xl font-extrabold leading-tight sm:text-4xl">
+        {prettyDate}
+      </h2>
+      <p class="mt-1 text-sm font-semibold text-white/90 tabular-nums">
+        {stopCount} stop{stopCount === 1 ? '' : 's'} ·
+        {' '}{boxCount} box{boxCount === 1 ? '' : 'es'} ·
+        {' '}{homeCount} home deliver{homeCount === 1 ? 'y' : 'ies'}
+      </p>
+    </header>
+
+    {/* ── Reverse-load banner ───────────────────────────────────────── */}
+    <div class="reverse-banner mt-4 flex items-start gap-3 rounded-ts-lg border-2 border-ts-accent bg-ts-accent/15 px-4 py-3">
+      <span class="text-2xl leading-none" aria-hidden="true">🔁</span>
+      <p class="text-sm font-bold text-ts-text sm:text-base">
+        LOAD THE TRUCK IN REVERSE — last stop loads first (bottom),
+        stop #1 loads last (top → first out).
+      </p>
+    </div>
+
+    {/* ── Route-order note (screen + print) ─────────────────────────── */}
+    <p class="mt-2 text-xs text-ts-text-secondary">
+      Order is the farm loop — leave the farm, run the NW Butler loop → North
+      Hills → city → south, then return to the farm. It's a starting sequence;
+      the driver can re-sequence on the road.
+    </p>
+
+    {/* ── The numbered route list ───────────────────────────────────── */}
+    {rows.length === 0 ? (
+      <Card tone="muted" padding="lg" elevation="sm">
+        <div class="flex flex-col items-center gap-2 py-6 text-center">
+          <span class="text-3xl" aria-hidden="true">🗺️</span>
+          <p class="text-sm font-semibold text-ts-text">No deliveries on this run.</p>
+          <p class="max-w-md text-sm text-ts-text-secondary">
+            There are no home deliveries or Wednesday pickup-stop drops in this
+            cycle. Pick another week.
+          </p>
+        </div>
+      </Card>
+    ) : (
+      <div class="route-stack mt-4">
+        {/* ── START — the farm is the origin, load here ───────────────── */}
+        <div class="route-terminus route-terminus-start flex items-center gap-3 rounded-ts-lg border-2 border-ts-text bg-ts-text px-4 py-3 text-white">
+          <span class="text-2xl leading-none" aria-hidden="true">🏁</span>
+          <p class="text-sm font-extrabold leading-snug sm:text-base">
+            START — Tiny Seed Farm, 257 Zeigler Rd, Rochester PA 15074
+            <span class="block font-semibold text-white/85">(load the truck here)</span>
+          </p>
+        </div>
+
+      <ol class="route-list divide-y-2 divide-ts-border">
+        {rows.map((row, i) => (
+          <li class="route-row flex items-start gap-4 py-3">
+            {/* Sequence number. */}
+            <span class="route-num mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ts-text text-base font-extrabold tabular-nums text-white">
+              {i + 1}
+            </span>
+
+            {/* Real empty checkbox — tick as loaded / delivered. */}
+            <span
+              class="route-check mt-0.5 inline-block h-8 w-8 shrink-0 rounded border-2 border-ts-text bg-white print:border-black"
+              aria-hidden="true"
+            ></span>
+
+            {/* Stop details. */}
+            <div class="min-w-0 flex-1">
+              <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+                {/* COLOR-CODED NAME BAND — the stop's EXACT box-label color so
+                    the driver pairs this row with the colored stickers. Pickup
+                    rows get their palette band; home rows the warm orange band.
+                    Prints via print-color-adjust:exact (.route-name-band). */}
+                <span
+                  class="route-name-band inline-flex items-center gap-1.5 rounded-ts-md px-2.5 py-1 text-base font-extrabold sm:text-lg"
+                  style={`background:${row.band.bg};color:${row.band.text};`}
+                >
+                  <span aria-hidden="true">{row.kind === 'home' ? '🏠' : '📦'}</span>
+                  {row.title}
+                </span>
+                {row.kind === 'pickup' && (
+                  <span class="inline-flex items-center rounded-full bg-ts-primary/15 px-2.5 py-0.5 text-sm font-bold tabular-nums text-ts-primary">
+                    {row.boxes} box{row.boxes === 1 ? '' : 'es'}
+                  </span>
+                )}
+                {row.kind === 'home' && (
+                  <span class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">
+                    Home delivery
+                  </span>
+                )}
+              </div>
+
+              <p class="mt-0.5 text-sm font-semibold text-ts-text sm:text-base">
+                {row.address || '(no address on file)'}
+              </p>
+
+              {row.kind === 'home' && row.phone && (
+                <p class="mt-0.5 text-sm font-medium text-ts-text-secondary tabular-nums">
+                  📞 {row.phone}
+                </p>
+              )}
+            </div>
+          </li>
+        ))}
+      </ol>
+
+        {/* ── RETURN — loop back to the farm ──────────────────────────── */}
+        <div class="route-terminus route-terminus-return mt-3 flex items-center gap-3 rounded-ts-lg border-2 border-ts-text bg-ts-text px-4 py-3 text-white">
+          <span class="text-2xl leading-none" aria-hidden="true">🏁</span>
+          <p class="text-sm font-extrabold leading-snug sm:text-base">
+            RETURN — back to the farm
+          </p>
+        </div>
+      </div>
+    )}
+  </div>
+</AdminShell>
+
+<style is:global>
+  /* Keep banner / header / number-chip backgrounds through the print
+     pipeline (browsers strip backgrounds when printing). */
+  .route-header, .reverse-banner, .route-num, .route-terminus,
+  .route-name-band {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* ── Print: one Letter-portrait page, no chrome ─────────────────────
+   *  AdminShell removes its own chrome (sticky header, nav, page-heading +
+   *  the actions slot that holds the Print button & back link) at print
+   *  time via `print:hidden`, and resets <main> to full-bleed. So
+   *  `.print-doc` prints in NORMAL FLOW from the top of page 1. We never
+   *  hide `main > div:first-child` (it's `.print-doc` itself). Any
+   *  screen-only UI added later must carry `.screen-only`. */
+  @media print {
+    @page { size: Letter portrait; margin: 0.5in; }
+
+    body, html { background: white !important; }
+
+    .screen-only { display: none !important; }
+
+    /* Keep a stop's whole row together on one page. */
+    .route-row { break-inside: avoid; page-break-inside: avoid; }
+    .route-terminus { break-inside: avoid; page-break-inside: avoid; }
+  }
+</style>

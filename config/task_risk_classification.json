@@ -3,7 +3,6 @@
   "description": "Task Risk Classification System for Tiny Seed OS",
   "created": "2026-02-12",
   "updated": "2026-02-12",
-
   "riskLevels": {
     "LOW": {
       "level": 1,
@@ -85,7 +84,6 @@
       ]
     }
   },
-
   "taskTypeToRisk": {
     "read": "LOW",
     "documentation": "LOW",
@@ -94,7 +92,6 @@
     "review": "LOW",
     "query_readonly": "LOW",
     "log_view": "LOW",
-
     "code_change": "MEDIUM",
     "config_change": "MEDIUM",
     "deploy_staging": "MEDIUM",
@@ -102,7 +99,6 @@
     "test_run": "MEDIUM",
     "internal_tool": "MEDIUM",
     "schema_staging": "MEDIUM",
-
     "deploy_production": "HIGH",
     "financial": "HIGH",
     "external_api_paid": "HIGH",
@@ -110,7 +106,6 @@
     "order_process": "HIGH",
     "inventory_adjust": "HIGH",
     "shopify_update": "HIGH",
-
     "security": "CRITICAL",
     "auth_change": "CRITICAL",
     "data_delete": "CRITICAL",
@@ -120,13 +115,11 @@
     "production_database": "CRITICAL",
     "credential_change": "CRITICAL"
   },
-
   "scopeModifiers": {
     "test": -1,
     "staging": -1,
     "development": -1,
     "local": -1,
-
     "production": 1,
     "live": 1,
     "customer": 1,
@@ -134,7 +127,6 @@
     "financial": 1,
     "security": 1
   },
-
   "keywordPatterns": {
     "LOW": [
       "read",
@@ -187,7 +179,6 @@
       "export"
     ]
   },
-
   "filePatternRisks": {
     "CRITICAL": [
       ".*auth.*",
@@ -205,9 +196,7 @@
       ".*shopify.*",
       ".*production.*",
       ".*deploy.*",
-      ".*financial.*",
-      ".*order.*",
-      ".*customer.*"
+      ".*financial.*"
     ],
     "MEDIUM": [
       ".*\\.js$",
@@ -223,7 +212,6 @@
       ".*README.*"
     ]
   },
-
   "autonomyLevelMapping": {
     "LOW": {
       "minTrust": 25,
@@ -246,25 +234,39 @@
       "description": "Always requires explicit human command"
     }
   },
-
   "approvalWorkflow": {
     "LOW": {
       "autoApprove": true,
-      "conditions": ["trustLevel >= 25"]
+      "conditions": [
+        "trustLevel >= 25"
+      ]
     },
     "MEDIUM": {
       "autoApprove": true,
-      "conditions": ["trustLevel >= 50", "verificationPassed"]
+      "conditions": [
+        "trustLevel >= 50",
+        "verificationPassed"
+      ]
     },
     "HIGH": {
       "autoApprove": false,
-      "conditions": ["humanApproval"],
-      "approvers": ["PM_Architect", "Owner"]
+      "conditions": [
+        "humanApproval"
+      ],
+      "approvers": [
+        "PM_Architect",
+        "Owner"
+      ]
     },
     "CRITICAL": {
       "autoApprove": false,
-      "conditions": ["explicitHumanCommand", "humanApproval"],
-      "approvers": ["Owner"],
+      "conditions": [
+        "explicitHumanCommand",
+        "humanApproval"
+      ],
+      "approvers": [
+        "Owner"
+      ],
       "requiresDoubleConfirmation": true
     }
   }

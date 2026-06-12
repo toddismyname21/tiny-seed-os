@@ -59,15 +59,22 @@ const navItems: NavItem[] = [
   { href: '/admin/pack-sheet',        label: 'Pack sheet',    match: '/admin/pack-sheet',       icon: '📋' },
   { href: '/admin/labels',            label: 'Labels',        match: '/admin/labels',           icon: '🏷️' },
   { href: '/admin/stop-manifest',     label: 'Manifests',     match: '/admin/stop-manifest',    icon: '🚚' },
+  { href: '/admin/pack-check',        label: 'Pack check',    match: '/admin/pack-check',       icon: '✅' },
+  { href: '/admin/host-sheets',       label: 'Host sheets',   match: '/admin/host-sheets',      icon: '📇' },
+  { href: '/admin/text-stop',         label: 'Text a stop',   match: '/admin/text-stop',        icon: '📱' },
   { href: '/admin/vendor-orders',     label: 'Vendors',       match: '/admin/vendor-orders',    icon: '🤝' },
+  { href: '/admin/flex-inventory',    label: 'Flex items',    match: '/admin/flex-inventory',   icon: '🌿' },
+  { href: '/admin/flex-orders',       label: 'Flex orders',   match: '/admin/flex-orders',      icon: '🧺' },
   { href: '/admin/pickup-locations',  label: 'Pickups',       match: '/admin/pickup-locations', icon: '📍' },
   { href: '/admin/route',             label: 'Route',         match: '/admin/route',            icon: '🛣️' },
+  { href: '/admin/route-sheet',       label: 'Route sheet',   match: '/admin/route-sheet',      icon: '🗺️' },
   { href: '/admin/recipes',           label: 'Recipes',       match: '/admin/recipes',          icon: '🥬' },
   { href: '/admin/weekly-email',      label: 'Email',         match: '/admin/weekly-email',     icon: '✉️' },
   { href: '/admin/campaigns',         label: 'Campaigns',     match: '/admin/campaigns',        icon: '📣' },
   { href: '/admin/health',            label: 'Health',        match: '/admin/health',           icon: '🩺' },
   { href: '/admin/stop-notes',        label: 'Notes',         match: '/admin/stop-notes',       icon: '📝' },
   { href: '/admin/box-contents',      label: 'Box (legacy)',  match: '/admin/box-contents',     icon: '📦' },
+  { href: '/admin/share-contents',    label: 'Share list',    match: '/admin/share-contents',   icon: '🥬' },
   { href: '/admin/reports',           label: 'Reports',       match: '/admin/reports',          icon: '📊' },
   { href: '/admin/sync',              label: 'Sync',          match: '/admin/sync',             icon: '🔄' },
 ];
@@ -96,7 +103,7 @@ const hasActions = Astro.slots.has('actions');
   <div class="min-h-screen bg-ts-bg-base">
     {/* ════ TOP BAR ════ */}
     <header
-      class="sticky top-0 z-10 border-b border-ts-border bg-ts-bg-surface/95 backdrop-blur-sm"
+      class="sticky top-0 z-10 border-b border-ts-border bg-ts-bg-surface/95 backdrop-blur-sm print:hidden"
     >
       <div class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
         <a
@@ -135,7 +142,7 @@ const hasActions = Astro.slots.has('actions');
       {/* ════ NAV STRIP ════ */}
       <nav
         aria-label="Admin sections"
-        class="border-t border-ts-border bg-ts-bg-surface"
+        class="border-t border-ts-border bg-ts-bg-surface print:hidden"
       >
         <div class="mx-auto max-w-7xl overflow-x-auto px-4 sm:px-6">
           <ul class="flex gap-1">
@@ -165,7 +172,7 @@ const hasActions = Astro.slots.has('actions');
     </header>
 
     {/* ════ PAGE HEADING ════ */}
-    <div class="mx-auto max-w-7xl px-4 pt-6 sm:px-6 sm:pt-8">
+    <div class="mx-auto max-w-7xl px-4 pt-6 sm:px-6 sm:pt-8 print:hidden">
       <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
         <div class="min-w-0">
           <h1 class="font-display text-2xl font-bold tracking-tight text-ts-text sm:text-3xl">
@@ -186,7 +193,7 @@ const hasActions = Astro.slots.has('actions');
     {/* ════ MAIN ════ */}
     <main
       id="admin-main"
-      class="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 pb-12 pt-6 sm:px-6 sm:pb-16 sm:pt-8"
+      class="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 pb-12 pt-6 sm:px-6 sm:pb-16 sm:pt-8 print:mx-0 print:max-w-none print:gap-0 print:p-0 print:pt-0"
     >
       <slot />
     </main>

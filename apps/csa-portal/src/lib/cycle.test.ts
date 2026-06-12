@@ -33,15 +33,20 @@ import {
   isAddonOnThisWeek,
   isMemberOnThisWeek,
   isMonday,
+  isShareInSeasonForWeek,
+  isValidMoveTarget,
   mondayOfWeek,
   prettyShortDate,
   prettyWeekHeader,
+  resolveCycle,
   resolveStopBySlug,
   slugStop,
   upcomingMonday,
+  validMoveTargetWeeks,
   weekParity,
   type StopTotals,
 } from './cycle.ts';
+import { SEASON_SCHEDULE } from './season.ts';
 
 let passed = 0;
 let failed = 0;
@@ -166,6 +171,63 @@ test('isAddonOnThisWeek: BIWEEKLY add-on follows the member\'s biweekly_week', (
   const a = { biweekly_week: 'A' as const };
   assertTrue(isAddonOnThisWeek(a, 'biweekly', '2026-06-08'),  'A biweekly ships A');
   assertTrue(!isAddonOnThisWeek(a, 'biweekly', '2026-06-15'), 'A biweekly skips B');
+});
+
+// ═══ isShareInSeasonForWeek — THE SEASON-WINDOW RULE (Todd 2026-06-09) ═
+//
+// A share is only part of a week's fulfillment when that week is inside the
+// share's season. Windows (Monday week_starting basis):
+//   spring_veg : Wed May 6 → Wed May 27   → weeks Mon 2026-05-04 .. 2026-05-25
+//   summer_veg : Wed Jun 10 → Wed Oct 7   → weeks Mon 2026-06-08 .. 2026-10-05
+//   flower     : Wed Jun 24 → Wed Oct 7   → weeks Mon 2026-06-22 .. 2026-10-05
+
+test('isShareInSeasonForWeek: spring_veg EXCLUDED from a June week (season ended May 27)', () => {
+  // The exact bug Todd caught: a June label run must NOT include spring_veg.
+  assertTrue(!isShareInSeasonForWeek('spring_veg', '2026-06-08'),
+             'spring_veg out-of-season the week of June 8');
+  assertTrue(!isShareInSeasonForWeek('spring_veg', '2026-06-01'),
+             'spring_veg out-of-season the week after its last delivery');
+  // …but spring_veg IS in-season during its actual run.
+  assertTrue(isShareInSeasonForWeek('spring_veg', '2026-05-04'),
+             'spring_veg in-season its first delivery week (Wed May 6)');
+  assertTrue(isShareInSeasonForWeek('spring_veg', '2026-05-25'),
+             'spring_veg in-season its LAST delivery week (Wed May 27) — inclusive');
+});
+
+test('isShareInSeasonForWeek: flower EXCLUDED before Jun 24, INCLUDED on/after', () => {
+  // flower opens Wed 2026-06-24 → first week Mon 2026-06-22.
+  assertTrue(!isShareInSeasonForWeek('flower', '2026-06-08'),
+             'flower out-of-season week of June 8 (before opener)');
+  assertTrue(!isShareInSeasonForWeek('flower', '2026-06-15'),
+             'flower out-of-season week of June 15 (still before opener)');
+  assertTrue(isShareInSeasonForWeek('flower', '2026-06-22'),
+             'flower IN-season its first delivery week (Wed Jun 24)');
+  assertTrue(isShareInSeasonForWeek('flower', '2026-10-05'),
+             'flower IN-season its last delivery week (Wed Oct 7) — inclusive');
+  assertTrue(!isShareInSeasonForWeek('flower', '2026-10-12'),
+             'flower out-of-season the week after its last delivery');
+});
+
+test('isShareInSeasonForWeek: summer_veg IN-season Jun 10 → Oct 7, OUT before/after', () => {
+  assertTrue(isShareInSeasonForWeek('summer_veg', '2026-06-08'),
+             'summer in-season first week (Wed Jun 10)');
+  assertTrue(isShareInSeasonForWeek('summer_veg', '2026-06-22'),
+             'summer in-season mid-season');
+  assertTrue(isShareInSeasonForWeek('summer_veg', '2026-10-05'),
+             'summer in-season last week (Wed Oct 7) — inclusive');
+  assertTrue(!isShareInSeasonForWeek('summer_veg', '2026-06-01'),
+             'summer out-of-season the week before it opens');
+  assertTrue(!isShareInSeasonForWeek('summer_veg', '2026-10-12'),
+             'summer out-of-season the week after its last delivery');
+});
+
+test('isShareInSeasonForWeek: flex/add_on/unconfigured have NO window → always in-season', () => {
+  // No SEASON_SCHEDULE entry → getSchedule null → always true, preserving
+  // the prior include-if-active behavior. add_ons ride with their box.
+  assertTrue(isShareInSeasonForWeek('flex', '2026-06-08'), 'flex always in-season');
+  assertTrue(isShareInSeasonForWeek('flex', '2027-01-01'), 'flex in-season even off-calendar');
+  assertTrue(isShareInSeasonForWeek('add_on', '2026-06-08'), 'add_on always in-season');
+  assertTrue(isShareInSeasonForWeek('fall_veg', '2026-06-08'), 'unconfigured share always in-season');
 });
 
 // ═══ deriveAddon: parses Shopify product titles in members.notes ═════
@@ -351,11 +413,421 @@ test('vacation hold overlap logic (mirrors resolveCycle\'s exclusion)', () => {
              'single-day hold on Wed overlaps');
 });
 
+// ═══ MOVE-TARGET week helper (migration 0041) ════════════════════════
+
+test('validMoveTargetWeeks: lists only FUTURE in-season delivery weeks (Mondays)', () => {
+  const summer = SEASON_SCHEDULE.summer_veg; // Wed 2026-06-10, 18 wks
+  // From a date mid-season, only later weeks should appear, and each
+  // target's week_starting must be the Monday of that delivery Wednesday.
+  const targets = validMoveTargetWeeks(summer, '2026-06-10');
+  // 2026-06-10 is Week 1 (Mon 2026-06-08). Future weeks start Mon 2026-06-15.
+  assertTrue(targets.length > 0, 'has future targets');
+  assertEqual(targets[0].week_starting, '2026-06-15', 'first future target is week 2 Monday');
+  assertEqual(targets[0].delivery_date, '2026-06-17', 'week 2 delivery Wednesday');
+  assertEqual(targets[0].week_number, 2);
+  // Every target is a Monday and strictly after the current week's Monday.
+  for (const t of targets) {
+    assertTrue(isMonday(t.week_starting), `${t.week_starting} is a Monday`);
+    assertTrue(t.week_starting > '2026-06-08', 'after the current week Monday');
+  }
+});
+
+test('validMoveTargetWeeks: empty once the season is fully past', () => {
+  const summer = SEASON_SCHEDULE.summer_veg;
+  assertEqual(validMoveTargetWeeks(summer, '2027-01-01').length, 0);
+});
+
+test('isValidMoveTarget: accepts a real future week, rejects bogus/past', () => {
+  // Week 3 = Wed 2026-06-24 → Monday 2026-06-22.
+  assertTrue(isValidMoveTarget('summer_veg', '2026-06-22', '2026-06-10'),
+             'week-3 Monday is a valid move target');
+  assertTrue(!isValidMoveTarget('summer_veg', '2026-06-08', '2026-06-10'),
+             'current week is NOT a valid target (cutoff passed)');
+  assertTrue(!isValidMoveTarget('summer_veg', '2026-06-23', '2026-06-10'),
+             'a Tuesday (non-Monday) is not in the target set');
+  assertTrue(!isValidMoveTarget('unknown_share', '2026-06-22', '2026-06-10'),
+             'unconfigured share → no valid targets');
+});
+
+// ═══ resolveCycle — DISPOSITION (move / donate) ══════════════════════
+//
+// These exercise the FULL resolver against an in-memory Supabase mock that
+// reproduces the exact PostgREST query-builder chain cycle.ts uses, and the
+// DB-side pre-filters the resolver relies on (holds overlap; move-in
+// holds keyed on move_to_week). Each builder is a thenable that resolves to
+// { data, error } and ignores filters it doesn't need (the resolver
+// re-asserts overlap locally), EXCEPT the two filters that are load-bearing:
+//   - vacation_holds OVERLAP fetch (start_date <= week_end, end_date >= week)
+//   - vacation_holds MOVE-IN fetch (disposition='move', move_to_week=week)
+
+type Row = Record<string, unknown>;
+
+/** A chainable, awaitable query stub. Filters are applied for the two
+ *  vacation_holds fetches the resolver depends on; everything else passes
+ *  the full dataset through (cycle.ts re-derives the rest locally). */
+function makeBuilder(rows: Row[]) {
+  let data = rows.slice();
+  const builder: Record<string, unknown> = {};
+  const ret = () => builder;
+  builder.select = ret;
+  builder.order = ret;
+  builder.overrideTypes = ret;
+  builder.eq = (col: string, val: unknown) => {
+    data = data.filter((r) => r[col] === val);
+    return builder;
+  };
+  builder.in = (col: string, vals: unknown[]) => {
+    data = data.filter((r) => vals.includes(r[col]));
+    return builder;
+  };
+  builder.lte = (col: string, val: string) => {
+    data = data.filter((r) => String(r[col]) <= val);
+    return builder;
+  };
+  builder.gte = (col: string, val: string) => {
+    data = data.filter((r) => String(r[col]) >= val);
+    return builder;
+  };
+  // Thenable: await resolves to { data, error }.
+  builder.then = (resolve: (v: { data: Row[]; error: null }) => unknown) =>
+    resolve({ data, error: null });
+  return builder;
+}
+
+interface MockTables {
+  members: Row[];
+  vacation_holds: Row[];
+  box_swap_events?: Row[];
+  weekly_box_plan?: Row[];
+  flex_orders?: Row[];
+  member_preferences?: Row[];
+}
+
+function makeSupabase(tables: MockTables) {
+  return {
+    from(table: string) {
+      const rows = (tables as unknown as Record<string, Row[] | undefined>)[table] ?? [];
+      return makeBuilder(rows.map((r) => ({ ...r })));
+    },
+  } as unknown as Parameters<typeof resolveCycle>[0];
+}
+
+/** Minimal active member row matching the resolver's MemberJoinRow shape. */
+function memberRow(over: Partial<Row> = {}): Row {
+  return {
+    id: 'm1',
+    customer_id: 'c1',
+    share_type: 'summer_veg',
+    share_size: 'small',
+    biweekly_week: null,
+    payment_status: 'Paid',
+    pickup_location_id: 'stop1',
+    delivery_address: null,
+    notes: null,
+    customization_allowed: false,
+    swap_credits: 0,
+    status: 'active',
+    customer: { contact_name: 'Test Member', email: 'm1@example.com' },
+    pickup_location: {
+      id: 'stop1', name: 'Highland Park', city: 'Pittsburgh', zip: '15206',
+      day_of_week: 'Wed', time_start: null, time_end: null,
+      host_name: null, host_phone: null,
+    },
+    ...over,
+  };
+}
+
+function holdRow(over: Partial<Row> = {}): Row {
+  return {
+    id: 'h1', member_id: 'm1',
+    start_date: '2026-06-08', end_date: '2026-06-14',
+    status: 'scheduled', disposition: 'skip', move_to_week: null,
+    ...over,
+  };
+}
+
+const asyncTests: Array<{ name: string; fn: () => Promise<void> }> = [];
+function asyncTest(name: string, fn: () => Promise<void>): void {
+  asyncTests.push({ name, fn });
+}
+
+asyncTest('resolveCycle MOVE: member excluded from ORIGINAL week, ADDED to target week', async () => {
+  // m1 is biweekly Week A (parity-0 weeks: 06-08, 06-22, …). They hold their
+  // 06-08 box with disposition=move, move_to_week = 06-22 (a Week-A week they
+  // would NOT normally receive only because they gave up 06-08 — here we use
+  // a future Week-A week so the move genuinely ADDS a box they'd otherwise
+  // miss after giving up 06-08). The key assertions: excluded on the
+  // original week, present + tagged moved_in on the target.
+  const member = memberRow({ id: 'm1', biweekly_week: 'A' });
+  const hold = holdRow({
+    id: 'h1', member_id: 'm1',
+    start_date: '2026-06-08', end_date: '2026-06-14',
+    disposition: 'move', move_to_week: '2026-06-15',
+  });
+  const sb = makeSupabase({ members: [member], vacation_holds: [hold] });
+
+  // ORIGINAL week (2026-06-08): member is held → NOT receiving.
+  const orig = await resolveCycle(sb, '2026-06-08');
+  assertTrue(!orig.members.some((m) => m.id === 'm1'), 'm1 not receiving on original week');
+  assertTrue(orig.excluded_on_hold.some((m) => m.id === 'm1'), 'm1 in excluded_on_hold on original week');
+
+  // TARGET week (2026-06-15, a Week-B/off-parity week for this A member):
+  // member ADDED, tagged moved_in + moved_from. Without the move they'd be
+  // excluded_biweekly here, proving the move truly ADDS a box.
+  const target = await resolveCycle(sb, '2026-06-15');
+  const moved = target.members.find((m) => m.id === 'm1');
+  assertTrue(!!moved, 'm1 receiving on target week');
+  assertTrue(moved!.moved_in === true, 'm1 tagged moved_in');
+  assertEqual(moved!.moved_from, '2026-06-08', 'moved_from = original week Monday');
+});
+
+asyncTest('resolveCycle MOVE: biweekly member can move onto an OFF-PARITY week', async () => {
+  // m1 is biweekly Week A (ships parity-0 weeks: 06-08, 06-22, ...). They
+  // move their 06-08 box to 06-15 — a Week B (off-parity) week they would
+  // NOT normally receive. The move must still land.
+  const member = memberRow({ id: 'm1', biweekly_week: 'A' });
+  const hold = holdRow({
+    id: 'h1', member_id: 'm1',
+    start_date: '2026-06-08', end_date: '2026-06-14',
+    disposition: 'move', move_to_week: '2026-06-15',
+  });
+  const sb = makeSupabase({ members: [member], vacation_holds: [hold] });
+
+  // Sanity: without the move, a Week-A member is excluded_biweekly on 06-15.
+  // (We prove the move overrides that.)
+  const target = await resolveCycle(sb, '2026-06-15');
+  const moved = target.members.find((m) => m.id === 'm1');
+  assertTrue(!!moved, 'Week-A member receives on off-parity target week via move');
+  assertTrue(moved!.moved_in === true, 'tagged moved_in');
+  // And they must NOT also appear in excluded_biweekly for that week.
+  assertTrue(!target.excluded_biweekly.some((m) => m.id === 'm1'),
+             'moved-in member not double-listed as biweekly-excluded');
+});
+
+asyncTest('resolveCycle DONATE: member excluded from receiving AND surfaced in donated[]', async () => {
+  const member = memberRow({ id: 'm1' });
+  const hold = holdRow({
+    id: 'h1', member_id: 'm1',
+    start_date: '2026-06-08', end_date: '2026-06-14',
+    disposition: 'donate', move_to_week: null,
+  });
+  const sb = makeSupabase({ members: [member], vacation_holds: [hold] });
+
+  const c = await resolveCycle(sb, '2026-06-08');
+  assertTrue(!c.members.some((m) => m.id === 'm1'), 'donate member NOT receiving');
+  assertTrue(c.excluded_on_hold.some((m) => m.id === 'm1'), 'donate member in excluded_on_hold');
+  assertEqual(c.donated.length, 1, 'one donated box');
+  assertEqual(c.donated[0].id, 'm1', 'donated[] holds the right member');
+  // A skip member, by contrast, must NOT appear in donated[].
+});
+
+asyncTest('resolveCycle SKIP: held member excluded, NOT in donated[], NOT moved_in anywhere', async () => {
+  const member = memberRow({ id: 'm1' });
+  const hold = holdRow({ disposition: 'skip', move_to_week: null });
+  const sb = makeSupabase({ members: [member], vacation_holds: [hold] });
+
+  const c = await resolveCycle(sb, '2026-06-08');
+  assertTrue(!c.members.some((m) => m.id === 'm1'), 'skip member excluded');
+  assertEqual(c.donated.length, 0, 'skip does NOT create a donation');
+
+  // A later week with no move target → member not moved-in anywhere.
+  const later = await resolveCycle(sb, '2026-06-15');
+  assertTrue(!later.members.some((m) => m.id === 'm1' && m.moved_in),
+             'skip member never moved_in');
+});
+
+asyncTest('resolveCycle MOVE: no double-count when target week is also a normal receiving week', async () => {
+  // m1 is WEEKLY (receives every week). They have a hold on 06-08 with
+  // disposition=move, move_to_week=06-15. On 06-15 they ALREADY receive
+  // normally (weekly). The move-in pass must NOT add a duplicate row.
+  const member = memberRow({ id: 'm1', biweekly_week: null });
+  const hold = holdRow({
+    id: 'h1', member_id: 'm1',
+    start_date: '2026-06-08', end_date: '2026-06-14',
+    disposition: 'move', move_to_week: '2026-06-15',
+  });
+  const sb = makeSupabase({ members: [member], vacation_holds: [hold] });
+
+  const target = await resolveCycle(sb, '2026-06-15');
+  const matches = target.members.filter((m) => m.id === 'm1');
+  assertEqual(matches.length, 1, 'm1 appears exactly once on target week (no double-count)');
+  // Since they were already receiving normally, the existing row wins
+  // (moved_in stays false — they didn't NEED the move to get this box).
+  assertTrue(matches[0].moved_in === false, 'normal receiving row preserved (not moved_in)');
+});
+
+asyncTest('resolveCycle MOVE: respects the member\'s OTHER holds on the target week', async () => {
+  // m1 moves their 06-08 box to 06-15, but ALSO has a separate skip hold
+  // covering 06-15. They must NOT be moved-in onto a week they're held for.
+  const member = memberRow({ id: 'm1', biweekly_week: 'A' });
+  const moveHold = holdRow({
+    id: 'h1', member_id: 'm1',
+    start_date: '2026-06-08', end_date: '2026-06-14',
+    disposition: 'move', move_to_week: '2026-06-15',
+  });
+  const otherHold = holdRow({
+    id: 'h2', member_id: 'm1',
+    start_date: '2026-06-15', end_date: '2026-06-21',
+    disposition: 'skip', move_to_week: null,
+  });
+  const sb = makeSupabase({ members: [member], vacation_holds: [moveHold, otherHold] });
+
+  const target = await resolveCycle(sb, '2026-06-15');
+  assertTrue(!target.members.some((m) => m.id === 'm1'),
+             'm1 NOT moved-in onto a week they are separately on hold for');
+  assertTrue(target.excluded_on_hold.some((m) => m.id === 'm1'),
+             'm1 excluded_on_hold on that week (the other hold wins)');
+});
+
+// ═══ resolveCycle — SEASON WINDOW (Todd 2026-06-09) ══════════════════
+//
+// These prove the bug fix end-to-end: out-of-season shares are dropped from
+// `members` (and therefore from byStop, byDistributionDay, labels, pack
+// sheets, harvest) at the resolver, while in-window shares and shares with
+// no season (flex/add_on) are untouched. A moved-in summer member must
+// still land on an in-season target week.
+
+asyncTest('resolveCycle SEASON: spring_veg EXCLUDED from a June week, summer INCLUDED', async () => {
+  // The exact bug: on the June 8 week, a spring_veg member (season ended
+  // May 27) must NOT receive a box; a summer_veg member must.
+  const spring = memberRow({ id: 'spring1', share_type: 'spring_veg', customer_id: 'cs' });
+  const summer = memberRow({ id: 'summer1', share_type: 'summer_veg', customer_id: 'cu' });
+  const sb = makeSupabase({ members: [spring, summer], vacation_holds: [] });
+
+  const c = await resolveCycle(sb, '2026-06-08');
+  assertTrue(!c.members.some((m) => m.id === 'spring1'), 'spring_veg NOT receiving in June');
+  assertTrue(c.excluded_out_of_season.some((m) => m.id === 'spring1'),
+             'spring_veg surfaced in excluded_out_of_season');
+  assertTrue(c.members.some((m) => m.id === 'summer1'), 'summer_veg receiving in June');
+  // And it must NOT leak into the other exclusion buckets.
+  assertTrue(!c.excluded_biweekly.some((m) => m.id === 'spring1'),
+             'out-of-season spring not double-listed as biweekly-excluded');
+  assertTrue(!c.excluded_on_hold.some((m) => m.id === 'spring1'),
+             'out-of-season spring not double-listed as on-hold');
+});
+
+asyncTest('resolveCycle SEASON: flower EXCLUDED before Jun 24, INCLUDED on/after', async () => {
+  const flower = memberRow({ id: 'flower1', share_type: 'flower', customer_id: 'cf' });
+  const sb = makeSupabase({ members: [flower], vacation_holds: [] });
+
+  // Week of June 8 — flower hasn't started (opener Wed Jun 24).
+  const before = await resolveCycle(sb, '2026-06-08');
+  assertTrue(!before.members.some((m) => m.id === 'flower1'), 'flower NOT receiving before Jun 24');
+  assertTrue(before.excluded_out_of_season.some((m) => m.id === 'flower1'),
+             'flower in excluded_out_of_season before its opener');
+
+  // Week of June 22 — flower's first delivery week (Wed Jun 24).
+  const opening = await resolveCycle(sb, '2026-06-22');
+  assertTrue(opening.members.some((m) => m.id === 'flower1'),
+             'flower receiving its opening week (Jun 24)');
+  assertTrue(!opening.excluded_out_of_season.some((m) => m.id === 'flower1'),
+             'flower not excluded on its opening week');
+});
+
+asyncTest('resolveCycle SEASON: flex + add_on unaffected by the season window', async () => {
+  // Neither has a configured season → both ship on any active week, even one
+  // (2027) far outside every veg/flower season.
+  const flex = memberRow({ id: 'flex1', share_type: 'flex', customer_id: 'cflex' });
+  const addon = memberRow({
+    id: 'addon1', share_type: 'add_on', customer_id: 'caddon',
+    notes: '2026 Mushroom CSA Add-On - Weekly',
+  });
+  const sb = makeSupabase({ members: [flex, addon], vacation_holds: [] });
+
+  const off = await resolveCycle(sb, '2027-01-04'); // a Monday, no season
+  assertTrue(off.members.some((m) => m.id === 'flex1'), 'flex unaffected by season window');
+  assertTrue(off.members.some((m) => m.id === 'addon1'), 'add_on unaffected by season window');
+  assertEqual(off.excluded_out_of_season.length, 0, 'no season exclusions for unscheduled shares');
+});
+
+asyncTest('resolveCycle SEASON: a moved-in summer member is still INCLUDED on the in-season target', async () => {
+  // A summer_veg member (biweekly Week A) moves their held 06-08 box onto
+  // 06-15. The target is in-season (summer runs Jun 8 .. Oct 5 by week), so
+  // the season filter must NOT drop the moved-in member.
+  const member = memberRow({ id: 'm1', share_type: 'summer_veg', biweekly_week: 'A' });
+  const hold = holdRow({
+    id: 'h1', member_id: 'm1',
+    start_date: '2026-06-08', end_date: '2026-06-14',
+    disposition: 'move', move_to_week: '2026-06-15',
+  });
+  const sb = makeSupabase({ members: [member], vacation_holds: [hold] });
+
+  const target = await resolveCycle(sb, '2026-06-15');
+  const moved = target.members.find((m) => m.id === 'm1');
+  assertTrue(!!moved, 'moved-in summer member present on in-season target week');
+  assertTrue(moved!.moved_in === true, 'tagged moved_in');
+  assertTrue(!target.excluded_out_of_season.some((m) => m.id === 'm1'),
+             'moved-in member NOT dropped by the season filter');
+});
+
+// ═══ resolveCycle — FLEX bypasses biweekly parity (incident 2026-06-10) ═
+//
+// PRODUCTION INCIDENT: a data sync stamped every flex member's biweekly_week
+// with a junk A/B tag. The resolver applied isMemberOnThisWeek (A/B parity)
+// to flex members, so 'B'-tagged flex members were dropped from a Week-A run
+// even though they HAD flex orders — 7 members' orders missed the truck.
+// Flex receipt is governed SOLELY by having a flex order (which downstream
+// pages gate on); the resolver must never exclude flex for parity. These
+// tests are the defense-in-depth guard that this can never recur.
+
+asyncTest('resolveCycle FLEX: a flex member tagged week B is INCLUDED on a week-A cycle', async () => {
+  // 2026-06-08 is a Week-A (parity 0) cycle. A 'B'-tagged flex member would
+  // be excluded_biweekly under naive parity — the bypass keeps them IN.
+  const flexB = memberRow({ id: 'flexB', share_type: 'flex', biweekly_week: 'B', customer_id: 'cfb' });
+  const sb = makeSupabase({ members: [flexB], vacation_holds: [] });
+
+  const c = await resolveCycle(sb, '2026-06-08'); // Week A
+  assertTrue(c.members.some((m) => m.id === 'flexB'),
+             'B-tagged flex member INCLUDED on a Week-A cycle');
+  assertTrue(!c.excluded_biweekly.some((m) => m.id === 'flexB'),
+             'flex member NOT in excluded_biweekly (parity bypassed)');
+  const row = c.members.find((m) => m.id === 'flexB');
+  assertTrue(row!.on_this_week === true, 'flex member marked on_this_week regardless of A/B tag');
+});
+
+asyncTest('resolveCycle FLEX: a flex member tagged week A is INCLUDED on a week-B cycle (inverse)', async () => {
+  // 2026-06-15 is a Week-B (parity 1) cycle. An 'A'-tagged flex member would
+  // be excluded_biweekly under naive parity — the bypass keeps them IN.
+  const flexA = memberRow({ id: 'flexA', share_type: 'flex', biweekly_week: 'A', customer_id: 'cfa' });
+  const sb = makeSupabase({ members: [flexA], vacation_holds: [] });
+
+  const c = await resolveCycle(sb, '2026-06-15'); // Week B
+  assertTrue(c.members.some((m) => m.id === 'flexA'),
+             'A-tagged flex member INCLUDED on a Week-B cycle');
+  assertTrue(!c.excluded_biweekly.some((m) => m.id === 'flexA'),
+             'flex member NOT in excluded_biweekly (parity bypassed)');
+
+  // Control: a summer_veg member with the SAME A tag on this same Week-B
+  // cycle MUST still be excluded_biweekly — proving parity behavior is
+  // preserved for non-flex shares.
+  const vegA = memberRow({ id: 'vegA', share_type: 'summer_veg', biweekly_week: 'A', customer_id: 'cva' });
+  const sb2 = makeSupabase({ members: [vegA], vacation_holds: [] });
+  const c2 = await resolveCycle(sb2, '2026-06-15'); // Week B
+  assertTrue(!c2.members.some((m) => m.id === 'vegA'),
+             'summer_veg A member NOT receiving on Week B (parity preserved)');
+  assertTrue(c2.excluded_biweekly.some((m) => m.id === 'vegA'),
+             'summer_veg A member IS excluded_biweekly on Week B (control)');
+});
+
 // ═══ Done ════════════════════════════════════════════════════════════
 
-console.log('');
-console.log(`${passed} passed, ${failed} failed`);
-if (failed > 0) {
-  const p = (globalThis as { process?: { exit: (n: number) => never } }).process;
-  if (p) p.exit(1);
-}
+(async () => {
+  for (const t of asyncTests) {
+    try {
+      await t.fn();
+      passed += 1;
+      console.log(`  ok  ${t.name}`);
+    } catch (err) {
+      failed += 1;
+      console.log(`  FAIL ${t.name}`);
+      console.log(`       ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+
+  console.log('');
+  console.log(`${passed} passed, ${failed} failed`);
+  if (failed > 0) {
+    const p = (globalThis as { process?: { exit: (n: number) => never } }).process;
+    if (p) p.exit(1);
+  }
+})();

@@ -4,11 +4,16 @@
  *
  * Table of every row in `pickup_locations`, with inline edit (via a
  * per-row POST form) for the fields most likely to need tuning:
- * max_capacity, host_name, host_phone, is_active. Day-of-week and time
- * are also editable inline. The location name + address are NOT shown
- * for inline edit (those are stable; changing them would require Todd
- * to coordinate with members directly, so we keep them read-only in
- * this UI).
+ * max_capacity, host_name, host_phone, notes (internal), pickup_instructions
+ * (MEMBER-FACING), is_active. Day-of-week and time are also editable inline.
+ * The location name + address are NOT shown for inline edit (those are
+ * stable; changing them would require Todd to coordinate with members
+ * directly, so we keep them read-only in this UI).
+ *
+ * `notes` vs `pickup_instructions`: `notes` is internal/staff-only (host
+ * secrets, "not confirmed", etc.) and is NEVER shown to members.
+ * `pickup_instructions` is the member-facing per-site copy rendered on
+ * /account/confirm-pickup, /account/pickup, and the dashboard pickup card.
  *
  * Each row also shows the current member count so Todd can see at a
  * glance whether a location is full.
@@ -47,6 +52,7 @@ type LocRow = {
   host_name: string | null;
   host_phone: string | null;
   notes: string | null;
+  pickup_instructions: string | null;
   is_active: boolean;
 };
 
@@ -225,6 +231,24 @@ const errorCopy: Record<string, string> = {
           class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30"
         />
       </FormRow>
+      <FormRow
+        label="Pickup instructions (members see this)"
+        htmlFor="new-instructions"
+        class="sm:col-span-2"
+      >
+        <textarea
+          id="new-instructions"
+          name="pickup_instructions"
+          rows="4"
+          maxlength="2000"
+          placeholder="e.g. Boxes are on the covered side porch, in the green cooler. Please re-close the lid so the cats stay out!"
+          class="block w-full resize-y rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text placeholder:text-ts-text-muted focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30"
+        ></textarea>
+        <p class="mt-1 text-xs text-ts-text-muted">
+          Shown to members on their pickup-confirmation screen and account pages.
+          Different from the internal “Notes” field — keep host secrets out of here.
+        </p>
+      </FormRow>
       <label class="flex items-center gap-3 sm:col-span-2">
         <input
           type="checkbox"
@@ -364,16 +388,33 @@ const errorCopy: Record<string, string> = {
                 class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-3 py-2 text-sm text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30 min-h-11"
               />
             </FormRow>
-            <FormRow label="Notes" htmlFor={`notes-${loc.id}`} class="sm:col-span-2 lg:col-span-2">
+            <FormRow label="Notes (internal — members don't see)" htmlFor={`notes-${loc.id}`} class="sm:col-span-2 lg:col-span-2">
               <input
                 id={`notes-${loc.id}`}
                 type="text"
                 name="notes"
                 value={loc.notes ?? ''}
                 maxlength="500"
-                placeholder="(optional)"
+                placeholder="(optional, staff-only)"
                 class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-3 py-2 text-sm text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30 min-h-11"
               />
+            </FormRow>
+            <FormRow
+              label="Pickup instructions (members see this)"
+              htmlFor={`instructions-${loc.id}`}
+              class="sm:col-span-2 lg:col-span-4"
+            >
+              <textarea
+                id={`instructions-${loc.id}`}
+                name="pickup_instructions"
+                rows="3"
+                maxlength="2000"
+                placeholder="e.g. Boxes are on the covered side porch in the green cooler — please re-close the lid."
+                class="block w-full resize-y rounded-ts-md border border-ts-border bg-ts-bg-base px-3 py-2 text-sm text-ts-text placeholder:text-ts-text-muted focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30"
+              >{loc.pickup_instructions ?? ''}</textarea>
+              <p class="mt-1 text-xs text-ts-text-muted">
+                Shown to members on their pickup-confirmation screen, account pickup page, and dashboard. Leave blank to use the default copy.
+              </p>
             </FormRow>
             <label class="flex items-center gap-2 sm:col-span-2 lg:col-span-4">
               <input

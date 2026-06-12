@@ -1,0 +1,939 @@
+---
+/**
+ * /admin/flex-orders — admin pack view of the week's flex (extras) orders.
+ *
+ * Todd / staff open this to SEE and PACK what flex members ordered for a
+ * given delivery week. It's a read-only pack list — no mutations.
+ *
+ * Sections:
+ *   1. Week selector — defaults to the most recent week_starting that
+ *      actually has flex_orders rows (the live "current" week). A plain
+ *      <form method="GET"> dropdown of every distinct order week, plus a
+ *      ?week=YYYY-MM-DD escape hatch, switches weeks with no client JS.
+ *   2. Summary cards for the selected week — distinct members who ordered,
+ *      total line items, total revenue ($), and a pending/locked/fulfilled
+ *      status breakdown.
+ *   3. Pack list — grouped by pickup stop (pickup_locations.name; members
+ *      with no pickup fall under "No pickup / home delivery"), then by
+ *      member (customers.contact_name). Each member lists their items as
+ *      "{qty} × {item name}" with line price and an order total. Built to
+ *      print cleanly.
+ *
+ * ── PICK & PACK printable views (Todd, 2026-06) ──────────────────────
+ * A ?view= query param (no client JS — same pattern as the week picker)
+ * switches the body between three views for the SAME selected week:
+ *   • view=summary (default) — the screen pack list above (with $ + status).
+ *   • view=pick    — the HARVEST CREW aggregate: one checkbox row per flex
+ *                    item with the TOTAL qty summed across ALL members that
+ *                    week, sorted by qty desc. "☐ 10 × Bok Choy".
+ *   • view=pack    — the PACK LINE list: each member under their pickup STOP
+ *                    with a single checkbox + their items
+ *                    "☐ Jane Doe: 2× Swiss Chard, 1× Dill". Stops sorted
+ *                    (home-delivery + no-stop handled), members alphabetical
+ *                    within a stop.
+ * The pick/pack views are designed to PRINT cleanly: only the list prints —
+ * the AdminShell chrome is removed by its `print:hidden` utilities, and the
+ * on-screen-only UI (tabs, week picker, instructions, Print button) is
+ * wrapped in `.screen-only`, which a `@media print` rule hides. See the
+ * <style> block at the bottom.
+ *
+ * Stop label (pick/pack): unlike the screen summary's two-bucket split, the
+ * pack view resolves the precise stop per the brief —
+ *   • members.delivery_address set            → "🏠 HOME DELIVERY"
+ *   • else members.pickup_location_id → name   → the pickup stop name
+ *   • else (neither)                           → "No stop"
+ * sorted with HOME DELIVERY and "No stop" pinned last.
+ *
+ * Item names: we build a Map from the selected week's flex_inventory
+ * (id → { name, price_cents }). An order referencing an item not in that
+ * week's inventory falls back to the embedded-join name, then "(item)" —
+ * it never crashes.
+ *
+ * Auth: the /admin/* gate in src/middleware.ts enforces role in
+ * ('admin','staff') for every page under /admin — see the guard block in
+ * middleware.ts (`isAdminRoute` → resolveAdminRole → redirect /dashboard
+ * for non-admins, /login for unauth). This page does not re-implement it;
+ * it relies on the same shared middleware every other admin page uses.
+ *
+ * Data: read via the cookie-aware Astro.locals.supabase client. The same
+ * RLS admin-bypass that lets resolveCycle() and /admin/stop-manifest read
+ * EVERY member's flex_orders applies here (no member-id filter).
+ */
+import AdminShell from '../../components/AdminShell.astro';
+import Card from '../../components/Card.astro';
+import Badge from '../../components/Badge.astro';
+import { formatCents, prettyWeek, isYMD } from '../../lib/flex-order';
+
+const supabase = Astro.locals.supabase;
+const url = Astro.url;
+
+// ─────────────────────────────────────────────────────────────────────
+// Week resolution
+//
+// Default to the most recent week_starting that actually has flex_orders
+// (the live data uses Monday dates like '2026-06-08'). This is more
+// robust than computing a calendar Monday, which can drift from whatever
+// week the orders were actually placed for.
+// ─────────────────────────────────────────────────────────────────────
+type WeekRow = { week_starting: string };
+const { data: weekRows, error: weeksErr } = await supabase
+  .from('flex_orders')
+  .select('week_starting')
+  .eq('cycle_code', 'WEEKLY')
+  .order('week_starting', { ascending: false })
+  .overrideTypes<WeekRow[], { merge: false }>();
+
+if (weeksErr) {
+  console.error('[admin/flex-orders] week list fetch failed:', weeksErr.message);
+}
+
+// Distinct weeks, newest first.
+const distinctWeeks: string[] = [];
+for (const r of weekRows ?? []) {
+  if (r.week_starting && !distinctWeeks.includes(r.week_starting)) {
+    distinctWeeks.push(r.week_starting);
+  }
+}
+
+const weekParam = url.searchParams.get('week');
+const requestedWeek = weekParam && isYMD(weekParam) ? weekParam : null;
+// Selected week: an explicit ?week wins; else the newest week with orders;
+// else null (no orders exist at all → empty state).
+const week = requestedWeek ?? distinctWeeks[0] ?? null;
+
+// Build the dropdown options. Always include the selected week even if it
+// has no orders (so the picker reflects what the admin asked for).
+const weekOptions: string[] = [...distinctWeeks];
+if (week && !weekOptions.includes(week)) weekOptions.unshift(week);
+
+// ─────────────────────────────────────────────────────────────────────
+// Orders + inventory for the selected week
+// ─────────────────────────────────────────────────────────────────────
+type OrderRow = {
+  id: string;
+  member_id: string;
+  flex_item_id: string;
+  qty: number;
+  unit_price_cents: number;
+  total_cents: number;
+  status: 'pending' | 'locked' | 'fulfilled' | 'cancelled' | 'refunded';
+  ordered_at: string;
+  flex_inventory: { name: string | null } | null;
+};
+
+type InventoryRow = {
+  id: string;
+  name: string;
+  price_cents: number;
+};
+
+type MemberRow = {
+  id: string;
+  pickup_location_id: string | null;
+  delivery_address: string | null;
+  customer: { contact_name: string | null; email: string | null } | null;
+  pickup_location: { name: string | null; day_of_week: string | null } | null;
+};
+
+let orders: OrderRow[] = [];
+let inventory: InventoryRow[] = [];
+let members: MemberRow[] = [];
+let fetchError: string | null = null;
+
+if (week) {
+  const [ordersRes, inventoryRes] = await Promise.all([
+    supabase
+      .from('flex_orders')
+      .select(
+        'id, member_id, flex_item_id, qty, unit_price_cents, total_cents, status, ordered_at, flex_inventory:flex_inventory ( name )'
+      )
+      .eq('cycle_code', 'WEEKLY')
+      .eq('week_starting', week)
+      .order('ordered_at', { ascending: true })
+      .overrideTypes<OrderRow[], { merge: false }>(),
+    supabase
+      .from('flex_inventory')
+      .select('id, name, price_cents')
+      .eq('cycle_code', 'WEEKLY')
+      .eq('week_starting', week)
+      .overrideTypes<InventoryRow[], { merge: false }>(),
+  ]);
+
+  if (ordersRes.error) {
+    fetchError = ordersRes.error.message;
+    console.error('[admin/flex-orders] orders fetch failed:', ordersRes.error.message);
+  }
+  if (inventoryRes.error) {
+    console.error('[admin/flex-orders] inventory fetch failed:', inventoryRes.error.message);
+  }
+
+  orders = ordersRes.data ?? [];
+  inventory = inventoryRes.data ?? [];
+
+  // Fetch the members referenced by these orders (with their customer +
+  // pickup location). Only the member_ids we actually need — never the
+  // whole table. Empty `.in([])` is invalid in PostgREST, so guard it.
+  const memberIds = Array.from(new Set(orders.map((o) => o.member_id)));
+  if (memberIds.length > 0) {
+    const membersRes = await supabase
+      .from('members')
+      .select(
+        'id, pickup_location_id, delivery_address, customer:customers ( contact_name, email ), pickup_location:pickup_locations ( name, day_of_week )'
+      )
+      .in('id', memberIds)
+      .overrideTypes<MemberRow[], { merge: false }>();
+    if (membersRes.error) {
+      console.error('[admin/flex-orders] members fetch failed:', membersRes.error.message);
+    }
+    members = membersRes.data ?? [];
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Item-name resolution Map (id → { name, price_cents }) from this week's
+// inventory. Falls back to the embedded-join name, then "(item)".
+// ─────────────────────────────────────────────────────────────────────
+const itemById = new Map<string, { name: string; price_cents: number }>();
+for (const it of inventory) {
+  itemById.set(it.id, { name: it.name, price_cents: it.price_cents });
+}
+function itemName(o: OrderRow): string {
+  const fromWeek = itemById.get(o.flex_item_id)?.name;
+  if (fromWeek) return fromWeek;
+  const fromJoin = o.flex_inventory?.name;
+  if (fromJoin) return fromJoin;
+  return '(item)';
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Member lookup (id → display name + pickup stop)
+// ─────────────────────────────────────────────────────────────────────
+const NO_PICKUP_KEY = '__no_pickup__';
+const NO_PICKUP_LABEL = 'No pickup / home delivery';
+
+// ── Pick/Pack precise stop sentinels (brief) ────────────────────────
+// HOME DELIVERY (delivery_address set) and "No stop" (neither pickup nor
+// delivery) get DISTINCT buckets, unlike the screen summary which lumps
+// both under NO_PICKUP_LABEL. Sentinel keys sort last via STOP_SORT_RANK.
+const HOME_DELIVERY_KEY = '__home_delivery__';
+const HOME_DELIVERY_LABEL = '🏠 HOME DELIVERY';
+const NO_STOP_KEY = '__no_stop__';
+const NO_STOP_LABEL = 'No stop';
+
+type MemberMeta = {
+  name: string;
+  // Screen-summary stop (unchanged): pickup name, else NO_PICKUP_LABEL.
+  stopName: string;
+  stopKey: string;
+  stopDay: string | null;
+  // Pick/Pack precise stop (brief): delivery → pickup → no-stop.
+  packStopName: string;
+  packStopKey: string;
+  packStopDay: string | null;
+};
+const memberById = new Map<string, MemberMeta>();
+for (const m of members) {
+  const name = m.customer?.contact_name?.trim()
+    || m.customer?.email?.trim()
+    || '(unknown member)';
+  const pickupName = m.pickup_location?.name?.trim() ?? '';
+  const hasPickup = pickupName.length > 0;
+  const hasDelivery = !!(m.delivery_address && m.delivery_address.trim());
+
+  // Precise pack stop: delivery_address wins (home delivery), else the
+  // pickup stop name, else "No stop". We key delivery/no-stop on stable
+  // sentinels (NOT the address text) so every home-delivery member groups
+  // into ONE "HOME DELIVERY" bucket on the pack sheet.
+  let packStopName: string;
+  let packStopKey: string;
+  let packStopDay: string | null = null;
+  if (hasDelivery) {
+    packStopName = HOME_DELIVERY_LABEL;
+    packStopKey = HOME_DELIVERY_KEY;
+  } else if (hasPickup) {
+    packStopName = pickupName;
+    packStopKey = pickupName;
+    packStopDay = m.pickup_location?.day_of_week ?? null;
+  } else {
+    packStopName = NO_STOP_LABEL;
+    packStopKey = NO_STOP_KEY;
+  }
+
+  memberById.set(m.id, {
+    name,
+    stopName: hasPickup ? pickupName : NO_PICKUP_LABEL,
+    stopKey: hasPickup ? pickupName : NO_PICKUP_KEY,
+    stopDay: m.pickup_location?.day_of_week ?? null,
+    packStopName,
+    packStopKey,
+    packStopDay,
+  });
+}
+function memberMeta(memberId: string): MemberMeta {
+  return memberById.get(memberId) ?? {
+    name: '(unknown member)',
+    stopName: NO_PICKUP_LABEL,
+    stopKey: NO_PICKUP_KEY,
+    stopDay: null,
+    packStopName: NO_STOP_LABEL,
+    packStopKey: NO_STOP_KEY,
+    packStopDay: null,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Summary stats for the selected week
+//
+// We count ACTIVE orders (everything except cancelled/refunded) for the
+// pack list + revenue. The status breakdown reports the three live
+// statuses Todd cares about (pending/locked/fulfilled); cancelled/refunded
+// are excluded from the pack list entirely (you don't pack a cancelled
+// order).
+// ─────────────────────────────────────────────────────────────────────
+const PACKABLE_STATUSES = new Set(['pending', 'locked', 'fulfilled']);
+const packableOrders = orders.filter((o) => PACKABLE_STATUSES.has(o.status));
+
+const distinctMembers = new Set(packableOrders.map((o) => o.member_id)).size;
+const totalLineItems = packableOrders.length;
+const totalRevenueCents = packableOrders.reduce((a, o) => a + (o.total_cents ?? 0), 0);
+const statusCounts = { pending: 0, locked: 0, fulfilled: 0 };
+for (const o of packableOrders) {
+  if (o.status === 'pending') statusCounts.pending += 1;
+  else if (o.status === 'locked') statusCounts.locked += 1;
+  else if (o.status === 'fulfilled') statusCounts.fulfilled += 1;
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Build the pack-list tree: stop → member → items.
+// ─────────────────────────────────────────────────────────────────────
+type PackItem = { name: string; qty: number; lineCents: number; status: string };
+type PackMember = { memberId: string; name: string; items: PackItem[]; totalCents: number };
+type PackStop = {
+  key: string;
+  name: string;
+  day: string | null;
+  members: Map<string, PackMember>;
+  totalCents: number;
+  lineItems: number;
+};
+
+const stops = new Map<string, PackStop>();
+for (const o of packableOrders) {
+  const meta = memberMeta(o.member_id);
+  let stop = stops.get(meta.stopKey);
+  if (!stop) {
+    stop = {
+      key: meta.stopKey,
+      name: meta.stopName,
+      day: meta.stopDay,
+      members: new Map(),
+      totalCents: 0,
+      lineItems: 0,
+    };
+    stops.set(meta.stopKey, stop);
+  }
+  let pm = stop.members.get(o.member_id);
+  if (!pm) {
+    pm = { memberId: o.member_id, name: meta.name, items: [], totalCents: 0 };
+    stop.members.set(o.member_id, pm);
+  }
+  pm.items.push({
+    name: itemName(o),
+    qty: o.qty,
+    lineCents: o.total_cents ?? 0,
+    status: o.status,
+  });
+  pm.totalCents += o.total_cents ?? 0;
+  stop.totalCents += o.total_cents ?? 0;
+  stop.lineItems += 1;
+}
+
+// Sort: real stops alphabetically, "No pickup" last. Members alphabetical
+// within a stop. Items alphabetical within a member.
+const sortedStops = Array.from(stops.values()).sort((a, b) => {
+  if (a.key === NO_PICKUP_KEY) return 1;
+  if (b.key === NO_PICKUP_KEY) return -1;
+  return a.name.localeCompare(b.name);
+});
+const stopsForRender = sortedStops.map((s) => {
+  const sortedMembers = Array.from(s.members.values()).sort((a, b) =>
+    a.name.localeCompare(b.name)
+  );
+  for (const m of sortedMembers) {
+    m.items.sort((a, b) => a.name.localeCompare(b.name));
+  }
+  return { stop: s, members: sortedMembers };
+});
+
+const DAY_LONG: Record<string, string> = {
+  Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday',
+  Thu: 'Thursday', Fri: 'Friday', Sat: 'Saturday', Sun: 'Sunday',
+};
+
+const hasOrders = packableOrders.length > 0;
+const subtitle = week ? prettyWeek(week) : 'No flex orders yet';
+
+function statusBadgeVariant(status: string): 'gray' | 'amber' | 'green' {
+  if (status === 'fulfilled') return 'green';
+  if (status === 'locked') return 'amber';
+  return 'gray'; // pending
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// View selection (?view=summary|pick|pack) — JS-free tab, mirrors the
+// week picker's GET pattern. Unknown/absent → 'summary' (the screen pack
+// list with $ + status). The week param rides along on each tab link so
+// switching views keeps the selected week.
+// ─────────────────────────────────────────────────────────────────────
+type View = 'summary' | 'pick' | 'pack';
+const viewParam = (url.searchParams.get('view') ?? '').trim().toLowerCase();
+const view: View = viewParam === 'pick' || viewParam === 'pack' ? viewParam : 'summary';
+
+/** Build a same-page href that sets ?view and preserves the selected week. */
+function viewHref(v: View): string {
+  const p = new URLSearchParams();
+  if (week) p.set('week', week);
+  if (v !== 'summary') p.set('view', v);
+  const qs = p.toString();
+  return qs ? `/admin/flex-orders?${qs}` : '/admin/flex-orders';
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// PICK LIST (aggregate) — for the harvest crew.
+//
+// Sum qty for each flex item across ALL members' packable orders this
+// week, keyed by flex_item_id (so two members ordering the same item add
+// up), sorted by total qty desc, then name asc as a stable tiebreak.
+// Item name resolves the same way the pack list does (week inventory →
+// embedded join → "(item)").
+// ─────────────────────────────────────────────────────────────────────
+type PickAgg = { itemId: string; name: string; totalQty: number };
+const pickById = new Map<string, PickAgg>();
+for (const o of packableOrders) {
+  const existing = pickById.get(o.flex_item_id);
+  if (existing) {
+    existing.totalQty += o.qty;
+  } else {
+    pickById.set(o.flex_item_id, {
+      itemId: o.flex_item_id,
+      name: itemName(o),
+      totalQty: o.qty,
+    });
+  }
+}
+const pickList = Array.from(pickById.values()).sort((a, b) => {
+  if (b.totalQty !== a.totalQty) return b.totalQty - a.totalQty;
+  return a.name.localeCompare(b.name);
+});
+const pickTotalUnits = pickList.reduce((a, p) => a + p.totalQty, 0);
+
+// ─────────────────────────────────────────────────────────────────────
+// PACK LIST (per member, grouped by precise stop) — for the pack line.
+//
+// stop (HOME DELIVERY / pickup name / No stop) → member → items. Each
+// member is ONE checkbox row; their items render inline as
+// "{qty}× {name}, …". Built from packableOrders so it agrees with the
+// summary pack list and the box labels (same PACKABLE_STATUSES set).
+// ─────────────────────────────────────────────────────────────────────
+type PackLineItem = { name: string; qty: number };
+type PackLineMember = { memberId: string; name: string; items: PackLineItem[] };
+type PackLineStop = {
+  key: string;
+  name: string;
+  day: string | null;
+  members: Map<string, PackLineMember>;
+};
+const packStops = new Map<string, PackLineStop>();
+for (const o of packableOrders) {
+  const meta = memberMeta(o.member_id);
+  let stop = packStops.get(meta.packStopKey);
+  if (!stop) {
+    stop = { key: meta.packStopKey, name: meta.packStopName, day: meta.packStopDay, members: new Map() };
+    packStops.set(meta.packStopKey, stop);
+  }
+  let pm = stop.members.get(o.member_id);
+  if (!pm) {
+    pm = { memberId: o.member_id, name: meta.name, items: [] };
+    stop.members.set(o.member_id, pm);
+  }
+  pm.items.push({ name: itemName(o), qty: o.qty });
+}
+
+// Sort: real pickup stops alphabetically first, then HOME DELIVERY, then
+// "No stop" — the two sentinels always sort last so the crew packs known
+// stops first. Members alphabetical within a stop; items alphabetical
+// within a member (deterministic, scannable line).
+function packStopRank(key: string): number {
+  if (key === HOME_DELIVERY_KEY) return 1;
+  if (key === NO_STOP_KEY) return 2;
+  return 0; // real pickup stop
+}
+const packListStops = Array.from(packStops.values())
+  .sort((a, b) => {
+    const ra = packStopRank(a.key);
+    const rb = packStopRank(b.key);
+    if (ra !== rb) return ra - rb;
+    return a.name.localeCompare(b.name);
+  })
+  .map((s) => {
+    const sortedMembers = Array.from(s.members.values()).sort((a, b) =>
+      a.name.localeCompare(b.name)
+    );
+    for (const m of sortedMembers) m.items.sort((a, b) => a.name.localeCompare(b.name));
+    return { stop: s, members: sortedMembers, memberCount: sortedMembers.length };
+  });
+---
+
+<AdminShell
+  title="Flex orders"
+  subtitle={subtitle}
+  pageTitle="Flex orders — Tiny Seed Admin"
+  canonical="https://csa.tinyseedfarm.com/admin/flex-orders"
+>
+  <Fragment slot="actions">
+    {(view === 'pick' || view === 'pack') && hasOrders && (
+      <button
+        type="button"
+        onclick="window.print()"
+        class="inline-flex h-10 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+      >
+        🖨 Print {view === 'pick' ? 'pick list' : 'pack list'}
+      </button>
+    )}
+    <a
+      href="/admin/flex-inventory"
+      class="inline-flex h-10 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-semibold text-ts-text transition-colors duration-150 hover:border-ts-primary/40 hover:text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+    >
+      Edit flex items →
+    </a>
+  </Fragment>
+
+  {fetchError && (
+    <div
+      role="alert"
+      class="rounded-ts-md border border-ts-danger/30 bg-ts-danger/5 px-4 py-3 text-sm text-ts-text"
+    >
+      <span class="font-semibold text-ts-danger">Couldn't load orders.</span>
+      {' '}Please refresh — if it keeps happening, the database may be unreachable.
+    </div>
+  )}
+
+  {/* ════ View tabs (screen-only, JS-free GET links) ════ */}
+  <nav aria-label="Flex order views" class="screen-only flex flex-wrap gap-2">
+    {([
+      { v: 'summary' as View, label: 'Pack list', icon: '📋' },
+      { v: 'pick' as View,    label: 'Pick list (crew)', icon: '🌾' },
+      { v: 'pack' as View,    label: 'Pack list (line)', icon: '✅' },
+    ]).map((t) => {
+      const active = view === t.v;
+      return (
+        <a
+          href={viewHref(t.v)}
+          aria-current={active ? 'page' : undefined}
+          class={[
+            'inline-flex h-11 items-center gap-2 rounded-ts-md border px-4 text-sm font-semibold transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary',
+            active
+              ? 'border-ts-primary bg-ts-primary/10 text-ts-primary'
+              : 'border-ts-border bg-ts-bg-surface text-ts-text-secondary hover:border-ts-primary/40 hover:text-ts-text',
+          ].join(' ')}
+        >
+          <span aria-hidden="true">{t.icon}</span>
+          <span>{t.label}</span>
+        </a>
+      );
+    })}
+  </nav>
+
+  {/* ════ Week selector (screen-only — must not print) ════ */}
+  <Card padding="md" elevation="sm" class="screen-only">
+    {weekOptions.length === 0 ? (
+      <p class="text-sm text-ts-text-secondary">
+        No flex orders have been placed yet. Once members start ordering, their
+        weeks will appear here.
+      </p>
+    ) : (
+      <form
+        method="GET"
+        action="/admin/flex-orders"
+        class="flex flex-col gap-4 sm:flex-row sm:items-end"
+      >
+        {view !== 'summary' && <input type="hidden" name="view" value={view} />}
+        <div class="flex-1">
+          <label
+            for="week-select"
+            class="mb-1.5 block text-sm font-medium text-ts-text"
+          >
+            Order week (Monday)
+          </label>
+          <select
+            id="week-select"
+            name="week"
+            class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30 min-h-11"
+          >
+            {weekOptions.map((w) => (
+              <option value={w} selected={w === week}>
+                {prettyWeek(w)}
+              </option>
+            ))}
+          </select>
+        </div>
+        <button
+          type="submit"
+          class="inline-flex h-11 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+        >
+          View week
+        </button>
+      </form>
+    )}
+  </Card>
+
+  {/* ════ Summary cards (summary view only) ════ */}
+  {week && view === 'summary' && (
+    <section aria-labelledby="summary-heading" class="flex flex-col gap-3">
+      <h2 id="summary-heading" class="sr-only">Summary for {prettyWeek(week)}</h2>
+      <div class="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+        <Card padding="md" elevation="sm">
+          <div class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">
+            Members ordering
+          </div>
+          <div class="mt-1 font-display text-3xl font-bold text-ts-text tabular-nums sm:text-4xl">
+            {distinctMembers}
+          </div>
+          <div class="mt-1 text-xs text-ts-text-secondary">placed an order</div>
+        </Card>
+
+        <Card padding="md" elevation="sm">
+          <div class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">
+            Line items
+          </div>
+          <div class="mt-1 font-display text-3xl font-bold text-ts-text tabular-nums sm:text-4xl">
+            {totalLineItems}
+          </div>
+          <div class="mt-1 text-xs text-ts-text-secondary">to pack</div>
+        </Card>
+
+        <Card padding="md" elevation="sm">
+          <div class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">
+            Revenue
+          </div>
+          <div class="mt-1 font-display text-3xl font-bold text-ts-primary tabular-nums sm:text-4xl">
+            {formatCents(totalRevenueCents)}
+          </div>
+          <div class="mt-1 text-xs text-ts-text-secondary">this week</div>
+        </Card>
+
+        <Card padding="md" elevation="sm">
+          <div class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">
+            By status
+          </div>
+          <div class="mt-2 flex flex-col gap-1 text-sm">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-ts-text-secondary">Pending</span>
+              <span class="font-semibold text-ts-text tabular-nums">{statusCounts.pending}</span>
+            </div>
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-ts-text-secondary">Locked</span>
+              <span class="font-semibold text-ts-text tabular-nums">{statusCounts.locked}</span>
+            </div>
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-ts-text-secondary">Fulfilled</span>
+              <span class="font-semibold text-ts-text tabular-nums">{statusCounts.fulfilled}</span>
+            </div>
+          </div>
+        </Card>
+      </div>
+    </section>
+  )}
+
+  {/* ════ Pack list (summary view — screen pack view with $ + status) ════ */}
+  {view === 'summary' && (
+  <section aria-labelledby="packlist-heading" class="flex flex-col gap-4">
+    <div class="flex items-baseline justify-between gap-3">
+      <h2 id="packlist-heading" class="font-display text-xl font-bold text-ts-text sm:text-2xl">
+        Pack list by stop
+      </h2>
+      {hasOrders && (
+        <span class="text-xs text-ts-text-muted tabular-nums">
+          {sortedStops.length} {sortedStops.length === 1 ? 'stop' : 'stops'}
+        </span>
+      )}
+    </div>
+
+    {!hasOrders ? (
+      <Card padding="lg" elevation="sm">
+        <div class="py-6 text-center">
+          <p class="text-4xl" aria-hidden="true">🧺</p>
+          <p class="mt-3 font-semibold text-ts-text">
+            {week ? 'No flex orders yet for this week.' : 'No flex orders yet.'}
+          </p>
+          <p class="mt-1 text-sm text-ts-text-secondary">
+            {week
+              ? 'When flex members order extras for this week, their pack list shows up here.'
+              : 'Pick a week above once members have started ordering.'}
+          </p>
+          <a
+            href="/admin/flex-inventory"
+            class="mt-4 inline-flex h-10 items-center justify-center rounded-ts-md bg-ts-primary px-5 text-sm font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+          >
+            Manage flex items →
+          </a>
+        </div>
+      </Card>
+    ) : (
+      <div class="flex flex-col gap-6">
+        {stopsForRender.map(({ stop, members: stopMembers }) => (
+          <Card padding="none" elevation="sm" class="break-inside-avoid">
+            {/* Stop header */}
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-ts-border bg-ts-bg-muted/30 px-5 py-3 sm:px-6">
+              <div class="min-w-0">
+                <h3 class="font-display text-lg font-bold text-ts-text">
+                  {stop.name}
+                </h3>
+                {stop.day && (
+                  <p class="text-xs text-ts-text-muted">
+                    {DAY_LONG[stop.day] ?? stop.day}
+                  </p>
+                )}
+              </div>
+              <div class="text-right text-xs text-ts-text-secondary tabular-nums">
+                <div>
+                  {stopMembers.length} {stopMembers.length === 1 ? 'member' : 'members'}
+                  {' · '}
+                  {stop.lineItems} {stop.lineItems === 1 ? 'item' : 'items'}
+                </div>
+                <div class="font-semibold text-ts-text">{formatCents(stop.totalCents)}</div>
+              </div>
+            </div>
+
+            {/* Members within the stop */}
+            <ul role="list" class="divide-y divide-ts-border/60">
+              {stopMembers.map((m) => (
+                <li class="px-5 py-4 sm:px-6">
+                  <div class="flex flex-wrap items-baseline justify-between gap-2">
+                    <p class="font-semibold text-ts-text">{m.name}</p>
+                    <p class="text-sm font-semibold text-ts-text tabular-nums">
+                      {formatCents(m.totalCents)}
+                    </p>
+                  </div>
+                  <ul role="list" class="mt-2 flex flex-col gap-1.5">
+                    {m.items.map((it) => (
+                      <li class="flex items-center justify-between gap-3 text-sm">
+                        <span class="flex min-w-0 items-center gap-2">
+                          <span class="font-semibold tabular-nums text-ts-text">
+                            {it.qty} ×
+                          </span>
+                          <span class="truncate text-ts-text">{it.name}</span>
+                          {it.status !== 'locked' && (
+                            <Badge variant={statusBadgeVariant(it.status)} size="xs" uppercase>
+                              {it.status}
+                            </Badge>
+                          )}
+                        </span>
+                        <span class="shrink-0 text-ts-text-secondary tabular-nums">
+                          {formatCents(it.lineCents)}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        ))}
+      </div>
+    )}
+  </section>
+  )}
+
+  {/* ════════════════════════════════════════════════════════════════
+       PICK LIST (aggregate) — harvest crew. Printable.
+       ════════════════════════════════════════════════════════════════ */}
+  {view === 'pick' && (
+    <section aria-labelledby="picklist-heading" class="flex flex-col gap-4">
+      {/* Screen-only instructions */}
+      <Card padding="md" elevation="sm" class="screen-only" tone="primary">
+        <p class="text-sm text-ts-text">
+          <strong class="font-semibold">Pick list for the harvest crew.</strong>
+          {' '}Total quantity of each flex item across <em>all</em> members this week,
+          biggest first. Check off each item as it's harvested.
+        </p>
+      </Card>
+
+      {/* Printable header: identifies the week + week on paper */}
+      <header class="print-doc-head">
+        <h2 id="picklist-heading" class="font-display text-2xl font-bold text-ts-text">
+          Flex pick list — harvest crew
+        </h2>
+        <p class="mt-0.5 text-sm text-ts-text-secondary">
+          {week ? prettyWeek(week) : 'No week selected'}
+          {hasOrders && (
+            <span class="text-ts-text-muted">
+              {' · '}{pickList.length} {pickList.length === 1 ? 'item' : 'items'}
+              {' · '}{pickTotalUnits} {pickTotalUnits === 1 ? 'unit' : 'units'} total
+            </span>
+          )}
+        </p>
+      </header>
+
+      {!hasOrders ? (
+        <Card padding="lg" elevation="sm" class="screen-only">
+          <div class="py-6 text-center">
+            <p class="text-4xl" aria-hidden="true">🌾</p>
+            <p class="mt-3 font-semibold text-ts-text">
+              {week ? 'No flex orders to pick for this week.' : 'No flex orders yet.'}
+            </p>
+            <p class="mt-1 text-sm text-ts-text-secondary">
+              The pick list fills in once members order extras for this week.
+            </p>
+          </div>
+        </Card>
+      ) : (
+        <ul role="list" class="pick-list flex flex-col">
+          {pickList.map((p) => (
+            <li class="pick-row flex items-center gap-3 border-b border-ts-border py-2.5">
+              <span class="pp-checkbox" aria-hidden="true"></span>
+              <span class="w-12 shrink-0 text-right font-display text-lg font-bold tabular-nums text-ts-text">
+                {p.totalQty}
+              </span>
+              <span class="text-ts-text-muted" aria-hidden="true">×</span>
+              <span class="min-w-0 flex-1 text-base font-semibold text-ts-text">{p.name}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  )}
+
+  {/* ════════════════════════════════════════════════════════════════
+       PACK LIST (per member, grouped by stop) — pack line. Printable.
+       ════════════════════════════════════════════════════════════════ */}
+  {view === 'pack' && (
+    <section aria-labelledby="packline-heading" class="flex flex-col gap-4">
+      {/* Screen-only instructions */}
+      <Card padding="md" elevation="sm" class="screen-only" tone="primary">
+        <p class="text-sm text-ts-text">
+          <strong class="font-semibold">Pack list for the pack line.</strong>
+          {' '}Each member under their pickup stop with the flex items to put in their box.
+          Check off each member as their flex is packed.
+        </p>
+      </Card>
+
+      {/* Printable header */}
+      <header class="print-doc-head">
+        <h2 id="packline-heading" class="font-display text-2xl font-bold text-ts-text">
+          Flex pack list — by stop &amp; member
+        </h2>
+        <p class="mt-0.5 text-sm text-ts-text-secondary">
+          {week ? prettyWeek(week) : 'No week selected'}
+          {hasOrders && (
+            <span class="text-ts-text-muted">
+              {' · '}{packListStops.length} {packListStops.length === 1 ? 'stop' : 'stops'}
+              {' · '}{distinctMembers} {distinctMembers === 1 ? 'member' : 'members'}
+            </span>
+          )}
+        </p>
+      </header>
+
+      {!hasOrders ? (
+        <Card padding="lg" elevation="sm" class="screen-only">
+          <div class="py-6 text-center">
+            <p class="text-4xl" aria-hidden="true">✅</p>
+            <p class="mt-3 font-semibold text-ts-text">
+              {week ? 'No flex orders to pack for this week.' : 'No flex orders yet.'}
+            </p>
+            <p class="mt-1 text-sm text-ts-text-secondary">
+              The pack list fills in once members order extras for this week.
+            </p>
+          </div>
+        </Card>
+      ) : (
+        <div class="pack-doc flex flex-col gap-5">
+          {packListStops.map(({ stop, members: stopMembers, memberCount }) => (
+            <section class="pack-stop break-inside-avoid">
+              <h3 class="pack-stop-head flex items-baseline justify-between gap-3 border-b-2 border-ts-text/80 pb-1 font-display text-lg font-bold text-ts-text">
+                <span>
+                  {stop.name}
+                  {stop.day && (
+                    <span class="ml-2 text-xs font-semibold uppercase tracking-wide text-ts-text-muted">
+                      {DAY_LONG[stop.day] ?? stop.day}
+                    </span>
+                  )}
+                </span>
+                <span class="text-xs font-medium text-ts-text-muted tabular-nums">
+                  {memberCount} {memberCount === 1 ? 'member' : 'members'}
+                </span>
+              </h3>
+              <ul role="list" class="flex flex-col">
+                {stopMembers.map((m) => (
+                  <li class="pack-row flex items-start gap-3 border-b border-ts-border py-2.5">
+                    <span class="pp-checkbox" aria-hidden="true"></span>
+                    <span class="min-w-0 flex-1 text-sm leading-relaxed text-ts-text">
+                      <span class="font-bold">{m.name}:</span>
+                      {' '}
+                      {m.items.map((it, i) => (
+                        <span class="whitespace-nowrap">
+                          <span class="font-semibold tabular-nums">{it.qty}×</span>
+                          {' '}{it.name}{i < m.items.length - 1 ? ',' : ''}
+                          {' '}
+                        </span>
+                      ))}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
+        </div>
+      )}
+    </section>
+  )}
+</AdminShell>
+
+<style>
+  /* ── Real printed empty checkbox for the pick & pack lists ──────────
+   *    A genuine empty square the harvest crew / pack line tick by hand.
+   *    Defined here (not a Tailwind utility) so the exact print geometry
+   *    + border survive the print pipeline. print-color-adjust:exact keeps
+   *    the border crisp on B&W laser/inkjet. */
+  .pp-checkbox {
+    flex-shrink: 0;
+    display: inline-block;
+    width: 1.05rem;
+    height: 1.05rem;
+    margin-top: 0.1rem;
+    border: 2px solid #0f172a;
+    border-radius: 3px;
+    background: #fff;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Printable doc header (week + counts) — shown on screen AND in print so
+     the printed sheet identifies its week. Tightened margins for print. */
+  .print-doc-head { break-inside: avoid; }
+
+  /* ── Print: ONLY the pick/pack list prints ──────────────────────────
+   *    AdminShell removes its sticky header, nav strip, and page-heading
+   *    block at print time via `print:hidden` utilities, and resets <main>
+   *    to full-bleed (print:mx-0 print:max-w-none print:p-0 print:gap-0).
+   *    On TOP of that, `.screen-only` (tabs, week picker, instruction
+   *    cards, Print button, empty-state cards) is hidden here so the ONLY
+   *    thing left on paper is the list section + its doc header. Mirrors
+   *    the labels route's print rule exactly. */
+  @media print {
+    @page { size: Letter portrait; margin: 0.5in; }
+    html, body { background: #fff !important; }
+    :global(.screen-only) { display: none !important; }
+
+    /* Black ink on white for max contrast / toner economy. */
+    .pick-list, .pack-doc, .print-doc-head { color: #000 !important; }
+    .pp-checkbox { border-color: #000 !important; }
+
+    /* Keep a stop's header with at least its first rows; avoid orphaning a
+       stop title at the bottom of a page. Rows themselves may break across
+       pages (long stops), which is fine for a working pack sheet. */
+    .pack-stop { break-inside: auto; }
+    .pack-stop-head { break-after: avoid; }
+    .pick-row, .pack-row { break-inside: avoid; }
+  }
+</style>

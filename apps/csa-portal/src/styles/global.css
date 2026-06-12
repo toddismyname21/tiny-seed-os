@@ -287,6 +287,31 @@ body {
    belt-and-suspenders for any element animating purely via @keyframes.
    `scroll-behavior: auto` stops smooth-scroll jumps.
    ═══════════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════════
+   Flex order confirmation modal (celebratory pop-up)
+   ───────────────────────────────────────────────────────────────────
+   The "Order confirmed!" moment on /account/flex-order. A gentle spring
+   pop for the dialog panel + a small overshoot pop for the badge emoji.
+   Both elements carry .motion-transform, so the prefers-reduced-motion
+   block below neutralizes the transform (and clamps animation-duration)
+   — under reduced motion the modal simply appears with no movement.
+   ═══════════════════════════════════════════════════════════════════ */
+@keyframes tsConfirmPop {
+  from { opacity: 0; transform: translateY(8px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes tsConfirmEmoji {
+  0%   { transform: scale(0.4); }
+  60%  { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+.ts-confirm-panel {
+  animation: tsConfirmPop 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.ts-confirm-emoji {
+  animation: tsConfirmEmoji 500ms ease-out both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

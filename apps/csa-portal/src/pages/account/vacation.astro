@@ -64,20 +64,73 @@ type HoldRow = {
   status: 'scheduled' | 'active' | 'completed' | 'cancelled';
   created_at: string;
   cancelled_at: string | null;
+  // Migration 0041 — disposition + optional move target. OPTIONAL on the
+  // type because these columns only exist AFTER migration 0041 is applied.
+  // In the pre-migration fallback path below they're absent and we coerce
+  // disposition → 'skip' / move_to_week → null.
+  disposition?: 'skip' | 'move' | 'donate' | null;
+  move_to_week?: string | null;
 };
 
+// Resilient hold fetch. The `disposition` / `move_to_week` columns only
+// exist AFTER migration 0041. On a pre-migration production DB selecting
+// them 400s and would break this whole page, so we degrade gracefully:
+//   1. TRY the full select (incl. disposition + move_to_week). Succeeds
+//      post-migration → full Skipped/Moved/Donated labels.
+//   2. If it ERRORS (columns missing pre-migration), FALL BACK to the
+//      pre-existing column list. Every hold is then treated as
+//      disposition='skip' (move_to_week null) → shows "Skipped" only.
+// AUTO-RECOVERS: once 0041 is applied the full select succeeds again with
+// no code change.
 let holds: HoldRow[] = [];
 if (members.length > 0) {
-  const { data: holdRows, error: holdErr } = await supabase
+  const memberIds = members.map((m) => m.id);
+
+  let holdRes = await supabase
     .from('vacation_holds')
-    .select('id, member_id, start_date, end_date, reason, status, created_at, cancelled_at')
-    .in('member_id', members.map((m) => m.id))
+    .select('id, member_id, start_date, end_date, reason, status, created_at, cancelled_at, disposition, move_to_week')
+    .in('member_id', memberIds)
     .order('start_date', { ascending: false })
     .overrideTypes<HoldRow[], { merge: false }>();
-  if (holdErr) {
-    console.error('[account/vacation] hold fetch failed:', holdErr.message);
+
+  if (holdRes.error) {
+    // Pre-migration: disposition/move_to_week don't exist. Re-query with the
+    // pre-0041 column set so the page renders normally (all holds = skip).
+    console.warn(
+      '[account/vacation] disposition columns unavailable, falling back to pre-0041 select:',
+      holdRes.error.message
+    );
+    holdRes = await supabase
+      .from('vacation_holds')
+      .select('id, member_id, start_date, end_date, reason, status, created_at, cancelled_at')
+      .in('member_id', memberIds)
+      .order('start_date', { ascending: false })
+      .overrideTypes<HoldRow[], { merge: false }>();
   }
-  holds = holdRows ?? [];
+
+  if (holdRes.error) {
+    console.error('[account/vacation] hold fetch failed:', holdRes.error.message);
+  }
+  holds = holdRes.data ?? [];
+}
+
+// ─── Disposition label (migration 0041) ──────────────────────────────
+// "Moved to Jun 24" / "Donated" / "Skipped". The move target is a Monday
+// (week_starting); we show the delivery Wednesday (Monday + 2) the member
+// recognises.
+function dispositionLabel(h: HoldRow): string {
+  // Pre-migration fallback: disposition absent/null → treat as 'skip'.
+  if (h.disposition === 'move' && h.move_to_week) {
+    // Monday → Wednesday delivery date for the label.
+    const wed = new Date(`${h.move_to_week}T12:00:00Z`);
+    wed.setUTCDate(wed.getUTCDate() + 2);
+    const wedStr = new Intl.DateTimeFormat('en-US', {
+      month: 'short', day: 'numeric', timeZone: 'UTC',
+    }).format(wed);
+    return `Moved to ${wedStr}`;
+  }
+  if (h.disposition === 'donate') return 'Donated';
+  return 'Skipped';
 }
 
 const today = todayET();
@@ -222,8 +275,20 @@ const totalAvailable = primary != null
                         <p class="text-base font-semibold text-ts-text">
                           {prettyDate(h.start_date)} <span class="text-ts-text-muted">→</span> {prettyDate(h.end_date)}
                         </p>
-                        <p class="mt-1 text-sm text-ts-text-muted tabular-nums">
-                          {weeks} {weeks === 1 ? 'week' : 'weeks'}
+                        <p class="mt-1 flex flex-wrap items-center gap-2 text-sm text-ts-text-muted">
+                          <span class="tabular-nums">{weeks} {weeks === 1 ? 'week' : 'weeks'}</span>
+                          <span aria-hidden="true" class="text-ts-border">·</span>
+                          <span class={[
+                            'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold',
+                            h.disposition === 'move'
+                              ? 'bg-ts-primary/10 text-ts-primary'
+                              : h.disposition === 'donate'
+                                ? 'bg-ts-primary/10 text-ts-primary'
+                                : 'bg-ts-bg-muted text-ts-text-secondary',
+                          ].join(' ')}>
+                            {h.disposition === 'move' ? '↪' : h.disposition === 'donate' ? '💚' : '⏸'}
+                            {' '}{dispositionLabel(h)}
+                          </span>
                         </p>
                         {h.reason && (
                           <p class="mt-2 text-sm leading-snug text-ts-text-secondary">
@@ -278,6 +343,7 @@ const totalAvailable = primary != null
                       <p class="font-medium text-ts-text">
                         {prettyDate(h.start_date)} → {prettyDate(h.end_date)}
                       </p>
+                      <p class="mt-0.5 text-xs text-ts-text-muted">{dispositionLabel(h)}</p>
                       {h.reason && (
                         <p class="mt-0.5 truncate text-xs text-ts-text-muted">{h.reason}</p>
                       )}

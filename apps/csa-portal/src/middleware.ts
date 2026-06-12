@@ -38,6 +38,8 @@ import {
   type OnboardingStep,
 } from './lib/onboarding';
 import { resolveAdminRole } from './lib/admin';
+import { phoneSatisfiesGate } from './lib/phone';
+import { memberHasFlexShare } from './lib/account';
 
 // Routes that require an authenticated session. Glob matching by
 // path-prefix. A request to `/dashboard/anything` matches `/dashboard`.
@@ -78,6 +80,74 @@ const ONBOARDING_ALLOWED_PREFIXES = [
   '/admin',
   '/api/admin',
 ];
+
+// ───────────────────────────────────────────────────────────────────────
+// PHONE nag (Todd directive 2026-06-08; SOFTENED 2026-06-12 after member
+// complaints). Every member SHOULD have a valid US cell on file — we text them
+// when their share arrives. ORIGINALLY this hard-redirected every member page
+// to /account/add-phone until a number was saved; members complained they were
+// hard-locked out of viewing their own share. NEW behavior: members may VIEW
+// every member page; we instead surface an unmissable, non-dismissible NAG
+// BANNER (MemberShell, fed via locals.memberNags) linking to /account/add-phone.
+// The interstitial pages remain fully reachable so the save still works and the
+// member is never trapped. Onboarding members are still funnelled through their
+// OWN flow (which collects the phone) by the onboarding gate below.
+// ───────────────────────────────────────────────────────────────────────
+
+// Paths where we DON'T compute / surface the phone nag (the interstitial
+// itself, its API, the onboarding funnel, sign-out + auth callbacks). On every
+// OTHER protected member page the nag banner shows but never blocks viewing.
+const PHONE_NAG_SUPPRESS_PREFIXES = [
+  '/account/add-phone',     // the interstitial page itself (no self-nag)
+  '/api/account/add-phone', // its save endpoint
+  '/logout',                // sign-out escape hatch
+  '/auth',                  // auth callbacks (login completion)
+  // Onboarding members are funnelled through their OWN flow (the onboarding
+  // gate runs after this one) which has a dedicated contact step that collects
+  // + writes customers.phone. Suppressing the nag here avoids a double ask.
+  '/onboarding',
+  '/api/onboarding',
+];
+
+function isPhoneNagSuppressed(pathname: string): boolean {
+  return PHONE_NAG_SUPPRESS_PREFIXES.some(
+    (p) => pathname === p || pathname.startsWith(`${p}/`)
+  );
+}
+
+// ───────────────────────────────────────────────────────────────────────
+// PICKUP-ACK nag (Todd directive 2026-06-08; SOFTENED 2026-06-12). Members
+// SHOULD confirm they understand WHERE/WHEN they pick up (missed pickups =
+// wasted boxes). ORIGINALLY this hard-redirected every member page to
+// /account/confirm-pickup until pickup_acknowledged_at was set. NEW behavior:
+// members may VIEW every member page; we surface a non-dismissible NAG BANNER
+// linking to /account/confirm-pickup instead. The confirm-pickup + pickup pages
+// remain reachable so the acknowledgment (and the choose-a-stop escape hatch)
+// still work.
+// ───────────────────────────────────────────────────────────────────────
+
+// Paths where we DON'T surface the pickup-ack nag (the interstitial itself, the
+// choose-a-location escape hatch + its APIs, the add-phone interstitial, the
+// onboarding funnel, sign-out + auth callbacks).
+const PICKUP_ACK_NAG_SUPPRESS_PREFIXES = [
+  '/account/confirm-pickup',     // the interstitial page itself (no self-nag)
+  '/api/account/confirm-pickup', // its save endpoint
+  '/account/pickup',             // choose-a-location escape hatch (page)
+  '/api/account/pickup-location',// its save endpoint
+  '/api/account/request-delivery', // home-delivery request from the pickup page
+  '/account/add-phone',          // the phone interstitial renders outside the shell
+  '/api/account/add-phone',
+  '/logout',                     // sign-out escape hatch
+  '/auth',                       // auth callbacks (login completion)
+  '/onboarding',
+  '/api/onboarding',
+];
+
+function isPickupAckNagSuppressed(pathname: string): boolean {
+  return PICKUP_ACK_NAG_SUPPRESS_PREFIXES.some(
+    (p) => pathname === p || pathname.startsWith(`${p}/`)
+  );
+}
 
 function isProtected(pathname: string): boolean {
   return PROTECTED_PREFIXES.some(
@@ -173,6 +243,69 @@ export const onRequest = defineMiddleware(async (context, next) => {
   }
 
   // ───────────────────────────────────────────────────────────────────
+  // PHONE + PICKUP-ACK NAGS (Todd directive 2026-06-08; SOFTENED 2026-06-12).
+  // Runs for an authenticated user on a protected member HTML route. We read
+  // role + phone + pickup_acknowledged_at in ONE round-trip and COMPUTE two
+  // flags — we no longer redirect. The flags are stashed on
+  // `locals.memberNags` so MemberShell can render unmissable, non-dismissible
+  // top-of-page banners that link to the add-phone / confirm-pickup pages
+  // (those pages remain reachable so the member can satisfy the nag and is
+  // never trapped). Members can now VIEW their share regardless.
+  //
+  //   - role in ('admin','staff') → NEVER nagged (Todd is the owner, staff do
+  //     farm work; they aren't CSA members who get texts).
+  //   - needsPhone     = phone empty/invalid  (suppressed on the interstitial
+  //                       + onboarding funnel + auth/logout paths).
+  //   - needsPickupAck = pickup_acknowledged_at IS NULL (same suppressions +
+  //                       the choose-a-location escape hatch).
+  //
+  // Scoped to protected member HTML routes only: skip /api/* (no MemberShell,
+  // a wasted round-trip) and /admin/* (admins don't get member nags).
+  //
+  // FAIL-SOFT: any query error leaves both flags false (never surface a false
+  // alarm on a transient DB hiccup; never block the page).
+  // ───────────────────────────────────────────────────────────────────
+  if (
+    user &&
+    user.email &&
+    isProtected(pathname) &&
+    !pathname.startsWith('/api/') &&
+    !isAdminRoute(pathname)
+  ) {
+    const { data: gateRow, error: gateErr } = await supabase
+      .from('customers')
+      .select('role, phone, pickup_acknowledged_at')
+      .eq('email', user.email)
+      .maybeSingle()
+      .overrideTypes<
+        { role: 'member' | 'admin' | 'staff'; phone: string | null; pickup_acknowledged_at: string | null },
+        { merge: false }
+      >();
+
+    if (gateErr) {
+      console.error('[middleware] member-nag lookup failed (skipping nags):', gateErr.message);
+    } else if (gateRow) {
+      const isStaff = gateRow.role === 'admin' || gateRow.role === 'staff';
+
+      const needsPhone =
+        !isStaff &&
+        !isPhoneNagSuppressed(pathname) &&
+        !phoneSatisfiesGate(gateRow.phone);
+
+      const needsPickupAck =
+        !isStaff &&
+        !isPickupAckNagSuppressed(pathname) &&
+        !gateRow.pickup_acknowledged_at;
+
+      if (needsPhone || needsPickupAck) {
+        locals.memberNags = { needsPhone, needsPickupAck };
+      }
+    }
+    // No customers row → not a member with nags (the dashboard shows its own
+    // "no share on file" state). Pass through with no nags.
+  }
+
+  // ───────────────────────────────────────────────────────────────────
   // Onboarding gate. If this authenticated user has at least one
   // members row whose status is 'onboarding' AND they're trying to
   // reach a non-onboarding-allowed path, redirect them into the flow.
@@ -226,6 +359,26 @@ export const onRequest = defineMiddleware(async (context, next) => {
     if (!ctx) {
       return redirect('/dashboard', 303);
     }
+  }
+
+  // ───────────────────────────────────────────────────────────────────
+  // Flex-membership signal for the bottom-nav "Order" tab (FIX 1,
+  // 2026-06-08). Computed ONCE here and stashed on locals so MemberShell
+  // renders the tab on EVERY member page (box, pickup, vacation…) without
+  // each page re-querying. Scoped to protected member HTML routes only:
+  //   - skip /api/* (no MemberShell, would be a wasted round-trip)
+  //   - skip /admin/* (admins don't get the member order tab)
+  //   - skip the add-phone interstitial (it renders outside MemberShell)
+  // FAIL-SOFT inside the helper (errors → false → tab hidden).
+  // ───────────────────────────────────────────────────────────────────
+  if (
+    user &&
+    user.email &&
+    isProtected(pathname) &&
+    !pathname.startsWith('/api/') &&
+    !isAdminRoute(pathname)
+  ) {
+    locals.isFlexMember = await memberHasFlexShare(supabase);
   }
 
   const response = await next();

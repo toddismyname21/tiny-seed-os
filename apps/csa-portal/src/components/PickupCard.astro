@@ -22,6 +22,7 @@
  * Pure presentation. Mobile-first, design-token only.
  */
 import Button from './Button.astro';
+import HostNote from './HostNote.astro';
 
 type Mode = 'pickup' | 'delivery' | 'unset';
 
@@ -37,6 +38,20 @@ interface Props {
   city?: string | null;
   /** Delivery address (delivery mode). */
   deliveryAddress?: string | null;
+  /**
+   * Member-facing per-site pickup instructions (pickup mode). Rendered only
+   * when present. DISTINCT from the admin-only `notes` column — this is the
+   * member-safe field.
+   */
+  pickupInstructions?: string | null;
+  /**
+   * Member-facing host name for a host'd stop (pickup mode). Renders a
+   * "Your host" line + respect-your-host note when present. From
+   * pickup_locations.host_name — DISTINCT from the admin-only `notes`.
+   */
+  hostName?: string | null;
+  /** Member-facing host phone (pickup mode) — rendered as a tel: link. */
+  hostPhone?: string | null;
 }
 
 const {
@@ -46,6 +61,9 @@ const {
   timeRange = null,
   city = null,
   deliveryAddress = null,
+  pickupInstructions = null,
+  hostName = null,
+  hostPhone = null,
 } = Astro.props as Props;
 ---
 
@@ -129,4 +147,24 @@ const {
       </Button>
     </div>
   </div>
+
+  {/* Member-facing per-site pickup instructions (pickup mode only, when set).
+      Full width below the summary row. */}
+  {mode === 'pickup' && pickupInstructions && (
+    <div class="mt-4 rounded-ts-lg border border-ts-primary/30 bg-ts-primary/5 px-4 py-3">
+      <p class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-ts-primary">
+        <span aria-hidden="true">📋</span>
+        Pickup instructions
+      </p>
+      <p class="mt-1.5 whitespace-pre-line text-sm leading-relaxed text-ts-text">
+        {pickupInstructions}
+      </p>
+    </div>
+  )}
+
+  {/* Your host + respect-your-host note (host'd pickup stops only — renders
+      nothing when there's no host_name). */}
+  {mode === 'pickup' && (
+    <HostNote hostName={hostName} hostPhone={hostPhone} class="mt-4" />
+  )}
 </section>

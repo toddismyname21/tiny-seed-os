@@ -173,10 +173,27 @@ export const GET: APIRoute = async ({ url, locals, params }) => {
     if (pickupFilter === 'home_delivery') query = query.is('pickup_location_id', null);
     else if (pickupFilter !== 'all') query = query.eq('pickup_location_id', pickupFilter);
     if (q.length > 0) {
+      // SEARCH (FIX 2026-06-08) — mirrors /admin/members/index.astro. The old
+      // top-level `.or()` mixing embedded `customer.*` columns with the base
+      // `legacy_id` column made PostgREST fail to parse the logic tree, so a
+      // CSV export with an active search erred out / returned nothing. Resolve
+      // matching customer IDs first, then OR `customer_id IN (…)` with the
+      // member's own legacy_id — both plain base columns.
       const safe = q.replace(/[%,]/g, '\\$&');
-      query = query.or(
-        `customer.contact_name.ilike.%${safe}%,customer.email.ilike.%${safe}%,legacy_id.ilike.%${safe}%`
-      );
+      const { data: matchedCustomers, error: custSearchError } = await locals.supabase
+        .from('customers')
+        .select('id')
+        .or(`contact_name.ilike.%${safe}%,email.ilike.%${safe}%,legacy_id.ilike.%${safe}%`)
+        .limit(5000);
+      if (custSearchError) {
+        console.error('[reports/members.csv] customer search failed:', custSearchError.message);
+      }
+      const matchedCustomerIds = (matchedCustomers ?? []).map((c) => c.id);
+      const orClauses: string[] = [`legacy_id.ilike.%${safe}%`];
+      if (matchedCustomerIds.length > 0) {
+        orClauses.push(`customer_id.in.(${matchedCustomerIds.join(',')})`);
+      }
+      query = query.or(orClauses.join(','));
     }
     query = query.order('created_at', { ascending: false }).limit(5000);
 

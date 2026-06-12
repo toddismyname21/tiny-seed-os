@@ -1,0 +1,467 @@
+---
+/**
+ * /admin/flex-inventory — weekly flex (extras) catalog editor.
+ *
+ * Todd loads the à-la-carte items flex members can buy with Farm Flex each
+ * week: name, category, unit, price, available qty, description, photo, and
+ * the is_active / coming_soon / is_featured toggles. CRUD over
+ * `flex_inventory` for a selected `week_starting` (the cycle Monday).
+ *
+ * Ships FIRST so Todd can add photos before the member page launches.
+ *
+ * Layout:
+ *   1. Week selector (this week + next 4 Mondays + custom date).
+ *   2. Add / edit form (single column) — the form doubles as the editor:
+ *      `?edit=<id>` pre-fills it; otherwise it's a blank "Add item" form.
+ *      Photo upload posts to /api/admin/flex-inventory/image and fills a
+ *      hidden photo_url field + live preview.
+ *   3. Item list for the week — photo thumb, name, price, unit, category,
+ *      remaining/available (with already-ordered count), status badges,
+ *      Edit + Delete.
+ *
+ * Reads the catalog with the cookie-aware admin RLS client
+ * (flex_inventory_admin_all). Ordered count is derived from the columns
+ * (available − remaining), which the member insert path keeps current.
+ *
+ * Auth: middleware gates /admin/* to role admin/staff; the save/delete/image
+ * APIs re-check via requireAdmin.
+ */
+import AdminShell from '../../components/AdminShell.astro';
+import Card from '../../components/Card.astro';
+import FormRow from '../../components/FormRow.astro';
+import Badge from '../../components/Badge.astro';
+import {
+  FLEX_UNITS, FLEX_CATEGORIES,
+  centsToDollars, formatCents,
+  upcomingMondayET, addWeeksYMD, prettyWeek, isYMD, categoryEmoji,
+} from '../../lib/flex-order';
+
+const supabase = Astro.locals.supabase;
+const url = Astro.url;
+
+// ─── Week resolution ────────────────────────────────────────────────
+const defaultWeek = upcomingMondayET();
+const weekParam = url.searchParams.get('week');
+const week = weekParam && isYMD(weekParam) ? weekParam : defaultWeek;
+
+// Week dropdown: this Monday + next 4. Include selected if out of band.
+const weekOptions = [
+  { value: defaultWeek, label: `${prettyWeek(defaultWeek)} (this week)` },
+  { value: addWeeksYMD(defaultWeek, 1), label: prettyWeek(addWeeksYMD(defaultWeek, 1)) },
+  { value: addWeeksYMD(defaultWeek, 2), label: prettyWeek(addWeeksYMD(defaultWeek, 2)) },
+  { value: addWeeksYMD(defaultWeek, 3), label: prettyWeek(addWeeksYMD(defaultWeek, 3)) },
+  { value: addWeeksYMD(defaultWeek, 4), label: prettyWeek(addWeeksYMD(defaultWeek, 4)) },
+];
+if (!weekOptions.some((o) => o.value === week)) {
+  weekOptions.unshift({ value: week, label: `${prettyWeek(week)} (selected)` });
+}
+
+// ─── Catalog for the week ───────────────────────────────────────────
+type ItemRow = {
+  id: string;
+  name: string;
+  category: string | null;
+  unit: string;
+  price_cents: number;
+  available_qty: number;
+  remaining_qty: number;
+  photo_url: string | null;
+  description: string | null;
+  is_active: boolean;
+  coming_soon: boolean;
+  is_featured: boolean;
+};
+
+const { data: itemRows, error: fetchErr } = await supabase
+  .from('flex_inventory')
+  .select(
+    'id, name, category, unit, price_cents, available_qty, remaining_qty, photo_url, description, is_active, coming_soon, is_featured'
+  )
+  .eq('cycle_code', 'WEEKLY')
+  .eq('week_starting', week)
+  .order('is_active', { ascending: false })
+  .order('price_cents', { ascending: true })
+  .overrideTypes<ItemRow[], { merge: false }>();
+
+if (fetchErr) {
+  console.error('[admin/flex-inventory] fetch failed:', fetchErr.message);
+}
+const items: ItemRow[] = itemRows ?? [];
+
+// ─── Edit target (pre-fill form) ────────────────────────────────────
+const editId = url.searchParams.get('edit');
+const editItem = editId ? items.find((i) => i.id === editId) ?? null : null;
+
+// ─── Flash ──────────────────────────────────────────────────────────
+const okFlag = url.searchParams.get('ok');
+const errorFlag = url.searchParams.get('error');
+const OK_COPY: Record<string, string> = {
+  created: 'Item added.',
+  saved: 'Item updated.',
+  deleted: 'Item deleted.',
+};
+const ERROR_COPY: Record<string, string> = {
+  invalid_input: 'Some fields were invalid — please check and try again.',
+  invalid_price: 'Enter a valid price in dollars (e.g. 4.50).',
+  save_failed: "Couldn't save that item. Please try again.",
+  delete_failed: "Couldn't delete that item.",
+  not_found: 'That item no longer exists.',
+  has_orders: 'That item already has orders — deactivate it instead of deleting (toggle it off below).',
+};
+
+function orderedCount(it: ItemRow): number {
+  return Math.max(0, it.available_qty - it.remaining_qty);
+}
+---
+
+<AdminShell
+  title="Flex items"
+  subtitle={prettyWeek(week)}
+  pageTitle="Flex items — Tiny Seed Admin"
+  canonical="https://csa.tinyseedfarm.com/admin/flex-inventory"
+>
+  {okFlag && OK_COPY[okFlag] && (
+    <div
+      role="status"
+      aria-live="polite"
+      class="rounded-ts-md border border-ts-primary/30 bg-ts-primary/5 px-4 py-3 text-sm text-ts-text"
+    >
+      <span class="font-semibold text-ts-primary">Done.</span> {OK_COPY[okFlag]}
+    </div>
+  )}
+  {errorFlag && (
+    <div
+      role="alert"
+      class="rounded-ts-md border border-ts-danger/30 bg-ts-danger/5 px-4 py-3 text-sm text-ts-text"
+    >
+      <span class="font-semibold text-ts-danger">Heads up.</span> {ERROR_COPY[errorFlag] ?? errorFlag}
+    </div>
+  )}
+
+  {/* ════ Week selector ════ */}
+  <Card padding="md" elevation="sm">
+    <form method="GET" action="/admin/flex-inventory" class="flex flex-col gap-4 sm:flex-row sm:items-end">
+      <div class="flex-1">
+        <FormRow label="Order week (Monday)" htmlFor="week-select">
+          <select
+            id="week-select"
+            name="week"
+            class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30 min-h-11"
+          >
+            {weekOptions.map((o) => (
+              <option value={o.value} selected={o.value === week}>{o.label}</option>
+            ))}
+          </select>
+        </FormRow>
+      </div>
+      <div class="flex-1">
+        <FormRow label="Custom Monday" htmlFor="week-custom">
+          <input
+            id="week-custom"
+            type="date"
+            name="week"
+            value={week}
+            class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30 min-h-11"
+          />
+        </FormRow>
+      </div>
+      <button
+        type="submit"
+        class="inline-flex h-11 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+      >
+        Switch week
+      </button>
+    </form>
+    <script>
+      // Custom date wins by disabling the dropdown when used (it appears
+      // last in the form serialization, but disabling makes intent explicit).
+      const custom = document.querySelector<HTMLInputElement>('#week-custom');
+      const dropdown = document.querySelector<HTMLSelectElement>('#week-select');
+      if (custom && dropdown) {
+        custom.addEventListener('change', () => { dropdown.disabled = true; });
+      }
+    </script>
+  </Card>
+
+  {/* ════ Add / edit form ════ */}
+  <Card padding="md" elevation="sm">
+    <div class="mb-4 flex items-center justify-between gap-3">
+      <h2 class="font-display text-lg font-bold text-ts-text">
+        {editItem ? `Edit: ${editItem.name}` : 'Add a flex item'}
+      </h2>
+      {editItem && (
+        <a
+          href={`/admin/flex-inventory?week=${week}`}
+          class="text-sm font-medium text-ts-text-secondary underline-offset-2 hover:text-ts-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+        >
+          + New item instead
+        </a>
+      )}
+    </div>
+
+    <form
+      method="POST"
+      action="/api/admin/flex-inventory/save"
+      class="grid grid-cols-1 gap-4 sm:grid-cols-2"
+      data-flex-form
+    >
+      <input type="hidden" name="week_starting" value={week} />
+      {editItem && <input type="hidden" name="id" value={editItem.id} />}
+      <input type="hidden" name="photo_url" value={editItem?.photo_url ?? ''} data-photo-url />
+
+      <div class="sm:col-span-2">
+        <FormRow label="Item name" htmlFor="f-name">
+          <input
+            id="f-name" type="text" name="name" required maxlength="120"
+            value={editItem?.name ?? ''}
+            placeholder="e.g. Salad Turnips"
+            class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text placeholder:text-ts-text-muted focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30"
+          />
+        </FormRow>
+      </div>
+
+      <FormRow label="Category" htmlFor="f-category">
+        <input
+          id="f-category" type="text" name="category" list="flex-categories" maxlength="60"
+          value={editItem?.category ?? ''}
+          placeholder="e.g. Roots"
+          class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text placeholder:text-ts-text-muted focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30"
+        />
+        <datalist id="flex-categories">
+          {FLEX_CATEGORIES.map((c) => <option value={c}></option>)}
+        </datalist>
+      </FormRow>
+
+      <FormRow label="Unit" htmlFor="f-unit">
+        <input
+          id="f-unit" type="text" name="unit" required list="flex-units" maxlength="30"
+          value={editItem?.unit ?? 'each'}
+          class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30"
+        />
+        <datalist id="flex-units">
+          {FLEX_UNITS.map((u) => <option value={u}></option>)}
+        </datalist>
+      </FormRow>
+
+      <FormRow label="Price (dollars)" htmlFor="f-price" help="e.g. 4.50">
+        <div class="relative">
+          <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ts-text-muted">$</span>
+          <input
+            id="f-price" type="text" inputmode="decimal" name="price_dollars" required
+            value={editItem ? centsToDollars(editItem.price_cents) : ''}
+            placeholder="0.00"
+            class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base pl-7 pr-4 py-3 text-base text-ts-text tabular-nums placeholder:text-ts-text-muted focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30"
+          />
+        </div>
+      </FormRow>
+
+      <FormRow
+        label="Available quantity" htmlFor="f-qty"
+        help={editItem && orderedCount(editItem) > 0
+          ? `${orderedCount(editItem)} already ordered — editing won't undo those.`
+          : 'How many units are for sale this week.'}
+      >
+        <input
+          id="f-qty" type="number" name="available_qty" required min="0" step="1"
+          value={editItem?.available_qty ?? 0}
+          class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text tabular-nums focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30"
+        />
+      </FormRow>
+
+      <div class="sm:col-span-2">
+        <FormRow label="Description" htmlFor="f-desc" help="Optional. A short 'from the field' note members see.">
+          <textarea
+            id="f-desc" name="description" rows="2" maxlength="1000"
+            placeholder="e.g. Sweet, crisp Hakurei turnips — great raw or roasted."
+            class="block w-full resize-y rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text placeholder:text-ts-text-muted focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30"
+          >{editItem?.description ?? ''}</textarea>
+        </FormRow>
+      </div>
+
+      {/* Photo upload */}
+      <div class="sm:col-span-2">
+        <FormRow label="Photo" htmlFor="f-photo" help="Optional. JPG/PNG/WebP, up to 5 MB. Shown to members.">
+          <div class="flex flex-wrap items-center gap-4">
+            <div
+              class="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-ts-md border border-ts-border bg-ts-bg-surface text-3xl"
+              data-photo-preview
+            >
+              {editItem?.photo_url
+                ? <img src={editItem.photo_url} alt="" width="80" height="80" class="h-full w-full object-cover" data-photo-img />
+                : <span aria-hidden="true">{categoryEmoji(editItem?.category)}</span>}
+            </div>
+            <div class="flex flex-col gap-2">
+              <input
+                id="f-photo" type="file" accept="image/png,image/jpeg,image/webp,image/gif"
+                data-photo-input
+                class="block text-sm text-ts-text file:mr-3 file:rounded-ts-md file:border-0 file:bg-ts-primary file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-ts-primary-dark"
+              />
+              <p class="text-xs text-ts-text-muted" data-photo-status role="status" aria-live="polite"></p>
+            </div>
+          </div>
+        </FormRow>
+      </div>
+
+      {/* Toggles */}
+      <div class="sm:col-span-2 flex flex-col gap-3 rounded-ts-md border border-ts-border bg-ts-bg-surface p-4">
+        <label class="flex items-start gap-3 text-sm text-ts-text">
+          <input type="checkbox" name="is_active" value="true" checked={editItem ? editItem.is_active : true} class="mt-0.5 h-4 w-4 rounded border-ts-border text-ts-primary" />
+          <span><span class="font-semibold">Active</span> — visible and orderable by flex members this week.</span>
+        </label>
+        <label class="flex items-start gap-3 text-sm text-ts-text">
+          <input type="checkbox" name="coming_soon" value="true" checked={editItem?.coming_soon ?? false} class="mt-0.5 h-4 w-4 rounded border-ts-border text-ts-primary" />
+          <span><span class="font-semibold">Coming soon</span> — shown as a greyed teaser, not orderable. (Usually paired with Active off.)</span>
+        </label>
+        <label class="flex items-start gap-3 text-sm text-ts-text">
+          <input type="checkbox" name="is_featured" value="true" checked={editItem?.is_featured ?? false} class="mt-0.5 h-4 w-4 rounded border-ts-border text-ts-primary" />
+          <span><span class="font-semibold">Featured</span> — highlight as the week's featured extra.</span>
+        </label>
+      </div>
+
+      <div class="sm:col-span-2 flex flex-wrap items-center gap-3 border-t border-ts-border pt-4">
+        <button
+          type="submit"
+          class="inline-flex h-11 items-center justify-center rounded-ts-md bg-ts-primary px-5 text-base font-semibold text-white shadow-ts-sm transition-all duration-150 hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+          data-save-btn
+        >
+          {editItem ? 'Save changes' : 'Add item'}
+        </button>
+        {editItem && (
+          <a
+            href={`/admin/flex-inventory?week=${week}`}
+            class="inline-flex h-11 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-5 text-base font-medium text-ts-text transition-colors duration-150 hover:border-ts-primary/40 hover:text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+          >
+            Cancel
+          </a>
+        )}
+      </div>
+    </form>
+
+    <script>
+      // Photo upload → /api/admin/flex-inventory/image → fill hidden
+      // photo_url + live preview. Progressive: the form still saves text
+      // fields if upload fails (photo_url just stays as-is).
+      (function () {
+        const input = document.querySelector<HTMLInputElement>('[data-photo-input]');
+        const hidden = document.querySelector<HTMLInputElement>('[data-photo-url]');
+        const preview = document.querySelector<HTMLElement>('[data-photo-preview]');
+        const status = document.querySelector<HTMLElement>('[data-photo-status]');
+        const saveBtn = document.querySelector<HTMLButtonElement>('[data-save-btn]');
+        if (!input || !hidden || !preview || !status) return;
+
+        input.addEventListener('change', async () => {
+          const file = input.files && input.files[0];
+          if (!file) return;
+          if (file.size > 5 * 1024 * 1024) {
+            status.textContent = 'That image is over 5 MB — pick a smaller one.';
+            input.value = '';
+            return;
+          }
+          status.textContent = 'Uploading…';
+          if (saveBtn) saveBtn.disabled = true;
+          try {
+            const fd = new FormData();
+            fd.append('image', file);
+            const res = await fetch('/api/admin/flex-inventory/image', {
+              method: 'POST', body: fd, credentials: 'same-origin',
+            });
+            const data = await res.json();
+            if (!res.ok || !data.ok || !data.url) {
+              throw new Error(data.error || 'upload_failed');
+            }
+            hidden.value = data.url;
+            preview.innerHTML =
+              '<img src="' + data.url + '" alt="" width="80" height="80" class="h-full w-full object-cover" />';
+            status.textContent = 'Photo ready — it saves when you save the item.';
+          } catch (err) {
+            console.error('flex photo upload failed:', err);
+            status.textContent = "Couldn't upload that image. Try again or save without a photo.";
+          } finally {
+            if (saveBtn) saveBtn.disabled = false;
+          }
+        });
+      })();
+    </script>
+  </Card>
+
+  {/* ════ Item list ════ */}
+  <Card padding="none" elevation="sm">
+    <div class="flex items-center justify-between gap-3 border-b border-ts-border px-5 py-4">
+      <h2 class="font-display text-lg font-bold text-ts-text">
+        {items.length === 0 ? 'No items yet' : `${items.length} ${items.length === 1 ? 'item' : 'items'} this week`}
+      </h2>
+    </div>
+
+    {items.length === 0 ? (
+      <div class="px-5 py-10 text-center">
+        <p class="text-3xl" aria-hidden="true">🌿</p>
+        <p class="mt-2 text-sm font-medium text-ts-text">No flex items for this week yet.</p>
+        <p class="mt-1 text-xs text-ts-text-muted">Add one above — members will see it on their flex ordering page.</p>
+      </div>
+    ) : (
+      <ul role="list" class="divide-y divide-ts-border">
+        {items.map((it) => {
+          const ordered = orderedCount(it);
+          return (
+            <li class={`flex items-start gap-4 px-5 py-4 ${it.is_active ? '' : 'opacity-70'}`}>
+              <div class="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-ts-md border border-ts-border bg-ts-bg-surface text-2xl">
+                {it.photo_url
+                  ? <img src={it.photo_url} alt="" width="56" height="56" loading="lazy" class="h-full w-full object-cover" />
+                  : <span aria-hidden="true">{categoryEmoji(it.category)}</span>}
+              </div>
+              <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-center gap-2">
+                  <p class="font-semibold text-ts-text">{it.name}</p>
+                  {it.is_featured && <Badge variant="green" size="xs" uppercase>Featured</Badge>}
+                  {it.coming_soon && <Badge variant="amber" size="xs" uppercase>Coming soon</Badge>}
+                  {!it.is_active && !it.coming_soon && <Badge variant="gray" size="xs" uppercase>Off</Badge>}
+                </div>
+                <p class="mt-0.5 text-sm text-ts-text-secondary tabular-nums">
+                  {formatCents(it.price_cents)} · {it.unit}
+                  {it.category && <span class="text-ts-text-muted"> · {it.category}</span>}
+                </p>
+                <p class="mt-0.5 text-xs text-ts-text-muted tabular-nums">
+                  {it.remaining_qty} of {it.available_qty} left
+                  {ordered > 0 && <span> · {ordered} ordered</span>}
+                </p>
+                {it.description && (
+                  <p class="mt-1 line-clamp-2 text-xs text-ts-text-muted">{it.description}</p>
+                )}
+              </div>
+              <div class="flex shrink-0 flex-col items-end gap-2">
+                <a
+                  href={`/admin/flex-inventory?week=${week}&edit=${it.id}#`}
+                  class="inline-flex h-9 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm font-medium text-ts-text transition-colors duration-150 hover:border-ts-primary/40 hover:text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+                >
+                  Edit
+                </a>
+                <form method="POST" action="/api/admin/flex-inventory/delete" data-delete-form>
+                  <input type="hidden" name="id" value={it.id} />
+                  <input type="hidden" name="week_starting" value={week} />
+                  <button
+                    type="submit"
+                    class="inline-flex h-9 items-center justify-center rounded-ts-md border border-ts-danger/30 bg-ts-danger/5 px-3 text-sm font-medium text-ts-danger transition-colors duration-150 hover:bg-ts-danger/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-danger"
+                    aria-label={`Delete ${it.name}`}
+                  >
+                    Delete
+                  </button>
+                </form>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    )}
+  </Card>
+
+  <script>
+    // Confirm before deleting an item.
+    document.querySelectorAll<HTMLFormElement>('[data-delete-form]').forEach((form) => {
+      form.addEventListener('submit', (e) => {
+        if (!window.confirm('Delete this item? This cannot be undone. (Items with orders can only be deactivated.)')) {
+          e.preventDefault();
+        }
+      });
+    });
+  </script>
+</AdminShell>

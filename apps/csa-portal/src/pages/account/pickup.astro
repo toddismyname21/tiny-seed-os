@@ -26,6 +26,7 @@ import Card from '../../components/Card.astro';
 import EmptyState from '../../components/EmptyState.astro';
 import Select from '../../components/Select.astro';
 import FormRow from '../../components/FormRow.astro';
+import HostNote from '../../components/HostNote.astro';
 import { PICKUP_ERROR_COPY } from '../../lib/account';
 import { contactMailto } from '../../lib/contact';
 
@@ -52,6 +53,9 @@ type MemberRow = {
     time_start: string | null;
     time_end: string | null;
     is_delivery_zone: boolean;
+    pickup_instructions: string | null;
+    host_name: string | null;
+    host_phone: string | null;
   } | null;
 };
 
@@ -67,7 +71,7 @@ const { data: memberRows, error: memberErr } = await supabase
     home_delivery_requested_at,
     home_delivery_requested_address,
     pickup_location:pickup_locations (
-      id, name, city, day_of_week, time_start, time_end, is_delivery_zone
+      id, name, city, day_of_week, time_start, time_end, is_delivery_zone, pickup_instructions, host_name, host_phone
     )
   `
   )
@@ -80,6 +84,30 @@ if (memberErr) {
 }
 
 const primary = (memberRows ?? [])[0] ?? null;
+
+// Member-facing per-site pickup instructions for the member's CURRENT stop
+// (pickup_locations.pickup_instructions — DISTINCT from the admin-only
+// `notes`). Null/blank → no instructions block (falls back to the day/time
+// summary already shown). Never shown for home delivery.
+const currentInstructions =
+  primary?.pickup_location?.pickup_instructions != null &&
+  primary.pickup_location.pickup_instructions.trim().length > 0
+    ? primary.pickup_location.pickup_instructions.trim()
+    : null;
+
+// Member-facing host name/phone for the member's CURRENT stop
+// (pickup_locations.host_name / host_phone — DISTINCT from the admin-only
+// `notes`). Null → no "Your host" block. Never shown for home delivery.
+const currentHostName =
+  primary?.pickup_location?.host_name != null &&
+  primary.pickup_location.host_name.trim().length > 0
+    ? primary.pickup_location.host_name.trim()
+    : null;
+const currentHostPhone =
+  primary?.pickup_location?.host_phone != null &&
+  primary.pickup_location.host_phone.trim().length > 0
+    ? primary.pickup_location.host_phone.trim()
+    : null;
 
 // ─── All available pickup locations (excluding the delivery zones) ──
 type LocationRow = {
@@ -283,6 +311,28 @@ const contactChangeHref = contactMailto(
               </div>
             ) : (
               <p class="mt-2 text-sm text-ts-text-muted">No pickup set yet — pick one below.</p>
+            )}
+
+            {/* Member-facing per-site pickup instructions for the current
+                stop. Rendered only when present (else the day/time above is
+                enough) and never for home delivery. */}
+            {primary.pickup_location && currentInstructions && (
+              <div class="mt-4 rounded-ts-lg border border-ts-primary/30 bg-ts-primary/5 px-4 py-3">
+                <p class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-ts-primary">
+                  <span aria-hidden="true">📋</span>
+                  Pickup instructions
+                </p>
+                <p class="mt-1.5 whitespace-pre-line text-sm leading-relaxed text-ts-text">
+                  {currentInstructions}
+                </p>
+              </div>
+            )}
+
+            {/* Your host + respect-your-host note (host'd pickup stops only —
+                renders nothing when there's no host_name). Never for delivery
+                (this branch is the non-delivery card). */}
+            {primary.pickup_location && (
+              <HostNote hostName={currentHostName} hostPhone={currentHostPhone} class="mt-4" />
             )}
           </Card>
 

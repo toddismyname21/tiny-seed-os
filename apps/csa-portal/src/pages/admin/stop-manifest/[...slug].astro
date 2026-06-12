@@ -5,7 +5,9 @@
  * /admin/stop-manifest/[week]?all=1         — print every stop, page-broken.
  *
  * Spec §4.8. The host/driver's checklist at each stop. Bold cover totals
- * + per-member rows with add-ons, flex summary, flex balance, ⚠ owes flag.
+ * + per-member rows with add-ons, flex summary (items), ⚠ owes flag.
+ * NOTE: the flex DOLLAR balance is intentionally NOT shown — the driver
+ * doesn't need it (Todd 2026-06-10).
  *
  * Layout decision: this slug page is INTENTIONALLY printable. It uses
  * the AdminShell only for the header + week selector; the manifest body
@@ -19,9 +21,8 @@ import {
   resolveCycle, slugStop, prettyWeekHeader, prettyShortDate,
   HOME_DELIVERY_BUCKET_ID,
   mondayOfWeek, isMonday,
-  type StopTotals, type CycleMember,
+  type StopTotals, type CycleMember, type AddOnType,
 } from '../../../lib/cycle';
-import { getFlexBalance, formatFlexMoney } from '../../../lib/flex';
 
 const supabase = Astro.locals.supabase;
 const slugParam = (Astro.params.slug ?? '') as string;
@@ -63,36 +64,43 @@ if (printAll) {
   return Astro.redirect(`/admin/stop-manifest?week=${week_starting}`, 303);
 }
 
-// ─── Fetch flex balances for the members at the rendered stop(s).
-//     Bounded concurrency (8 parallel Shopify GraphQL calls) so we don't
-//     hammer Shopify on a big "print all stops" page. fail-soft per
-//     member → null balance just renders "—".
-type BalanceLookup = Map<string, { total: number; principal: number; currency: string } | null>;
-async function fetchBalancesForMembers(members: CycleMember[]): Promise<BalanceLookup> {
-  const out: BalanceLookup = new Map();
-  const uniqueEmails = Array.from(new Set(members.map((m) => m.email).filter((e) => !!e)));
-  const MAX_PARALLEL = 8;
-  for (let i = 0; i < uniqueEmails.length; i += MAX_PARALLEL) {
-    const slice = uniqueEmails.slice(i, i + MAX_PARALLEL);
-    const results = await Promise.all(slice.map((email) => getFlexBalance(email).catch(() => null)));
-    slice.forEach((email, idx) => out.set(email, results[idx]));
-  }
-  return out;
-}
-
 // Collect ALL members across rendered stops in one batch (de-duped by email).
 const allRenderedMembers: CycleMember[] = stopsToRender.flatMap(
   (s) => cycle.byStop.get(s.stop_id) ?? [],
 );
-const balances = await fetchBalancesForMembers(allRenderedMembers);
 
-// Pickup flex orders per member (sum qty by member from cycle).
-const flexQtyByMember = new Map<string, number>();
+// ─── Flex members WITH an order this week (the "ordered set") ────────
+// THE RULE (Todd 2026-06-10): a flex member is a real box for the week ONLY
+// if they have a flex_orders row for the week whose status is pending /
+// locked / fulfilled. A flex member with no order this week ordered NOTHING
+// (flex = order by Tuesday) → they are NOT a box, NOT a packable row, and
+// (home delivery) NOT a route stop. Status set MATCHES the labels + pack-check
+// + flex-orders admin pages (PACKABLE_STATUSES). We fetch the member_ids once
+// for the rendered stops' members and gate the flex box count / row render on
+// membership in this set. summer_veg boxes are unaffected (always a box).
+const flexOrderedMemberIds = new Set<string>();
+{
+  const memberIds = allRenderedMembers.map((m) => m.id);
+  if (memberIds.length > 0) {
+    type OrderedRow = { member_id: string };
+    const { data, error } = await supabase
+      .from('flex_orders')
+      .select('member_id')
+      .eq('cycle_code', 'WEEKLY')
+      .eq('week_starting', week_starting)
+      .in('status', ['pending', 'locked', 'fulfilled'])
+      .in('member_id', memberIds)
+      .overrideTypes<OrderedRow[], { merge: false }>();
+    if (!error) {
+      for (const r of (data ?? []) as OrderedRow[]) flexOrderedMemberIds.add(r.member_id);
+    }
+  }
+}
+
+// Per-member flex order lines for the rendered stops (cycle aggregates flex by
+// item, not by member, so we do one more query to get per-member lines).
 const flexLinesByMember = new Map<string, Array<{ name: string | null; qty: number }>>();
 {
-  // Re-derive per-member flex lines from cycle's aggregated set won't work
-  // (cycle aggregates by item, not by member). We do one more query to get
-  // per-member flex order lines for the rendered stops.
   const memberIds = allRenderedMembers.map((m) => m.id);
   if (memberIds.length > 0) {
     type FlexLineRow = {
@@ -110,7 +118,6 @@ const flexLinesByMember = new Map<string, Array<{ name: string | null; qty: numb
       .overrideTypes<FlexLineRow[], { merge: false }>();
     if (!error) {
       for (const r of (data ?? []) as FlexLineRow[]) {
-        flexQtyByMember.set(r.member_id, (flexQtyByMember.get(r.member_id) ?? 0) + r.qty);
         const arr = flexLinesByMember.get(r.member_id) ?? [];
         arr.push({ name: r.flex_item?.name ?? null, qty: r.qty });
         flexLinesByMember.set(r.member_id, arr);
@@ -119,10 +126,239 @@ const flexLinesByMember = new Map<string, Array<{ name: string | null; qty: numb
   }
 }
 
+// ─── Per-customer add-on index (across the whole cycle) ──────────────
+// Mirrors /admin/pack-check: an add-on ships INSIDE the customer's box and must
+// ride on that customer's box ROW here — regardless of the add-on row's own
+// pickup (often null/stale). We build a customer_id → add-on rows index once,
+// then attach to the box row when we walk each stop. A customer with ONLY
+// add-on rows (no box this cycle) → their add-on drops (no box ⇒ no add-on).
+const addonRowsByCustomer = new Map<string, CycleMember[]>();
+for (const m of cycle.members) {
+  if (m.share_type === 'add_on') {
+    const arr = addonRowsByCustomer.get(m.customer_id);
+    if (arr) arr.push(m);
+    else addonRowsByCustomer.set(m.customer_id, [m]);
+  }
+}
+
 const DAY_LONG: Record<string, string> = {
   Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday',
   Thu: 'Thursday', Fri: 'Friday', Sat: 'Saturday', Sun: 'Sunday',
 };
+
+/* ── COLOR CODING — mirrors /admin/labels/[...slug].astro (Todd) ─────
+ * Same curated 15-band palette + home-delivery band + 4 size-badge colors,
+ * mapped DETERMINISTICALLY so a stop / size reads the SAME color here as on
+ * the box labels. The driver scans the colored band per stop; the size badge
+ * per member matches the label badge. Fixed hex (NOT theme tokens) on purpose:
+ * this is a color-print document and the colors must reproduce identically on
+ * paper — print-color-adjust:exact forces the browser to keep them. */
+interface BandColor { bg: string; text: string; }
+const STOP_BANDS: BandColor[] = [
+  { bg: '#1f6f54', text: '#ffffff' }, // pine green
+  { bg: '#2563a8', text: '#ffffff' }, // ocean blue
+  { bg: '#9c3d8f', text: '#ffffff' }, // plum
+  { bg: '#b8431f', text: '#ffffff' }, // burnt orange
+  { bg: '#6b4fbb', text: '#ffffff' }, // violet
+  { bg: '#0f7d8c', text: '#ffffff' }, // teal
+  { bg: '#a8901c', text: '#1a1400' }, // mustard (dark text)
+  { bg: '#c43c64', text: '#ffffff' }, // raspberry
+  { bg: '#3f7d27', text: '#ffffff' }, // leaf green
+  { bg: '#4d5fa8', text: '#ffffff' }, // indigo
+  { bg: '#b5602a', text: '#ffffff' }, // copper
+  { bg: '#117a63', text: '#ffffff' }, // emerald
+  { bg: '#8a4b9c', text: '#ffffff' }, // grape
+  { bg: '#9e7b15', text: '#1a1400' }, // ochre (dark text)
+  { bg: '#5b6770', text: '#ffffff' }, // slate
+];
+const NO_STOP_BAND: BandColor = { bg: '#475569', text: '#ffffff' };
+// Distinct, never-reused home-delivery band (matches labels exactly).
+const HOME_DELIVERY_BAND: BandColor = { bg: '#c2410c', text: '#ffffff' };
+
+// Stable stop_id → band color, sorted by stop NAME so the mapping matches the
+// labels page (which sorts the SAME way). Built once for the whole doc.
+const stopBandById = new Map<string, BandColor>();
+{
+  const sortedStops = cycle.activeStops
+    .slice()
+    .sort((a, b) => a.stop_name.localeCompare(b.stop_name));
+  sortedStops.forEach((s, idx) => {
+    stopBandById.set(s.stop_id, STOP_BANDS[idx % STOP_BANDS.length]);
+  });
+}
+/** Band for a stop. Home-delivery sentinel gets the distinct warm band. */
+function bandForStop(stop: StopTotals): BandColor {
+  if (stop.stop_id === HOME_DELIVERY_BUCKET_ID) return HOME_DELIVERY_BAND;
+  return stopBandById.get(stop.stop_id) ?? NO_STOP_BAND;
+}
+
+/* Size badge colors — match the labels page's SIZE_BADGES exactly. Keyed on
+ * the raw share_size (lowercased); summer_veg members get a colored badge,
+ * everyone else a neutral badge carrying the share descriptor. */
+interface SizeBadge { label: string; bg: string; text: string; border: string; }
+const SIZE_BADGES: Record<string, SizeBadge> = {
+  small:   { label: 'SMALL',   bg: '#dceef0', text: '#0c4a52', border: '#7fc3cb' },
+  large:   { label: 'LARGE',   bg: '#fde2c4', text: '#7c3a06', border: '#eaa563' },
+  family:  { label: 'FAMILY',  bg: '#e7dcf7', text: '#4c2785', border: '#b79ae0' },
+  regular: { label: 'REGULAR', bg: '#d8eccf', text: '#27551a', border: '#8cc474' },
+};
+const SIZE_BADGE_NEUTRAL: SizeBadge = {
+  label: '', bg: '#e6eaef', text: '#334155', border: '#a9b4c2',
+};
+/** Size badge for a member — colored for summer_veg sizes, neutral (carrying
+ *  the share descriptor) for flower/flex/spring/add-on rows. */
+function sizeBadgeFor(m: CycleMember): SizeBadge {
+  if (m.share_type === 'summer_veg') {
+    const raw = (m.share_size ?? '').trim().toLowerCase();
+    const direct = SIZE_BADGES[raw];
+    if (direct) return direct;
+    return m.size_bucket === 'large' ? SIZE_BADGES.large : SIZE_BADGES.small;
+  }
+  let label = 'SHARE';
+  if (m.share_type === 'flower') label = 'FLOWER';
+  else if (m.share_type === 'flex') label = 'FLEX';
+  else if (m.share_type === 'spring_veg') label = 'SPRING';
+  else if (m.share_type === 'add_on') label = 'ADD-ON';
+  return { ...SIZE_BADGE_NEUTRAL, label };
+}
+
+/* ── Per-size box counts (cover checkboxes) ──────────────────────────
+ * StopTotals.boxes_small/boxes_large fold family + regular into "large"
+ * (the resolver only distinguishes small vs large via size_bucket). For an
+ * ACCURATE per-size breakdown the team can tick as they pack, we classify
+ * each summer_veg member at the stop from their RAW share_size into one of
+ * four display sizes. Anything unrecognised falls back to its size_bucket
+ * (large → Large, else Small) so no box is ever dropped from the totals. */
+type DisplaySize = 'small' | 'large' | 'family' | 'regular';
+const DISPLAY_SIZE_ORDER: DisplaySize[] = ['small', 'large', 'family', 'regular'];
+const DISPLAY_SIZE_LABEL: Record<DisplaySize, string> = {
+  small: 'Small', large: 'Large', family: 'Family', regular: 'Regular',
+};
+function displaySizeFor(m: CycleMember): DisplaySize {
+  const raw = (m.share_size ?? '').trim().toLowerCase();
+  if (raw === 'family') return 'family';
+  if (raw === 'regular') return 'regular';
+  if (raw === 'small' || raw === 'petite' || raw === 'light'
+    || raw === 'half' || raw === 'quarter' || raw === 'single') return 'small';
+  if (raw === 'large' || raw === 'full' || raw === 'double') return 'large';
+  // Unknown / null share_size → fall back to the resolver's bucket.
+  return m.size_bucket === 'large' ? 'large' : 'small';
+}
+/** Count summer_veg box members at a stop by display size (only sizes > 0). */
+function sizeCountsForStop(stop: StopTotals): { size: DisplaySize; n: number }[] {
+  const counts: Record<DisplaySize, number> = { small: 0, large: 0, family: 0, regular: 0 };
+  for (const m of (cycle.byStop.get(stop.stop_id) ?? [])) {
+    if (m.share_type !== 'summer_veg') continue;
+    counts[displaySizeFor(m)] += 1;
+  }
+  return DISPLAY_SIZE_ORDER
+    .filter((s) => counts[s] > 0)
+    .map((s) => ({ size: s, n: counts[s] }));
+}
+/** Count FLEX boxes at a stop = members at the stop with share_type 'flex'
+ *  WHO HAVE AN ORDER this week (id in flexOrderedMemberIds). A flex member with
+ *  no order ordered nothing → not a box, so they are NOT counted here (the chip
+ *  drops to 0 / doesn't render). Same per-stop member set as the size counts
+ *  (cycle.byStop). Flex boxes are a separate box type the team counts/packs. */
+function flexCountForStop(stop: StopTotals): number {
+  let n = 0;
+  for (const m of (cycle.byStop.get(stop.stop_id) ?? [])) {
+    if (m.share_type === 'flex' && flexOrderedMemberIds.has(m.id)) n += 1;
+  }
+  return n;
+}
+/* FLEX count chip color = the per-member FLEX size-badge color (neutral badge
+ * carrying the FLEX label) so the count chip matches the FLEX badges/labels. */
+const FLEX_CHIP = SIZE_BADGE_NEUTRAL;
+
+/* ── Add-on chips — same color code as /admin/labels + /admin/pack-check ─ */
+const ADDON_STYLE: Record<AddOnType, { bg: string; text: string; border: string; emoji: string; label: string }> = {
+  mushroom: { bg: '#efe9e1', text: '#5b4636', border: '#b89b80', emoji: '🍄', label: 'Mushroom' },
+  bread:    { bg: '#f6e7c9', text: '#7a4f12', border: '#d8b170', emoji: '🍞', label: 'Bread' },
+  cheese:   { bg: '#fdf3c4', text: '#7a5c00', border: '#e3c84e', emoji: '🧀', label: 'Cheese' },
+  coffee:   { bg: '#e3d5c8', text: '#4a2f1c', border: '#b08c6e', emoji: '☕', label: 'Coffee' },
+  eggs:     { bg: '#fde8ec', text: '#8a2f43', border: '#eab0bd', emoji: '🥚', label: 'Eggs' },
+  unknown:  { bg: '#e6eaef', text: '#334155', border: '#a9b4c2', emoji: '➕', label: 'Add-on' },
+};
+/** Per-stop add-on counts (only types > 0). resolveCycle already counts each
+ *  stop's add_on members into stop.addons[type] — accurate, so we use it. */
+const ADDON_ORDER: AddOnType[] = ['mushroom', 'bread', 'cheese', 'coffee', 'eggs', 'unknown'];
+function addonCountsForStop(stop: StopTotals): { type: AddOnType; n: number }[] {
+  return ADDON_ORDER
+    .filter((t) => stop.addons[t] > 0)
+    .map((t) => ({ type: t, n: stop.addons[t] }));
+}
+function addonChipLabel(m: CycleMember): string {
+  if (m.addon_type !== 'unknown') return ADDON_STYLE[m.addon_type].label;
+  return 'Add-on';
+}
+
+/* ── Collapse a stop's member rows into ONE manifest ROW per customer ─
+ * Mirrors /admin/pack-check exactly: BOX shares define a row; add-on rows
+ * attach as inline chips (never their own row, never separate people). A
+ * customer with a Small box + a Bread add-on becomes ONE row whose primary is
+ * the box share and whose add-on chip is "Bread". So "Jane Doe — Small CSA +
+ * Bread" prints on a single line. */
+const SHARE_PRIORITY: Record<string, number> = {
+  summer_veg: 0, spring_veg: 1, flower: 2, flex: 3, add_on: 9,
+};
+function sharePriority(m: CycleMember): number {
+  return SHARE_PRIORITY[m.share_type] ?? 5;
+}
+
+interface ManifestRow {
+  primary: CycleMember;
+  addonChips: Array<{ type: AddOnType; label: string }>;
+  flexLines: Array<{ name: string | null; qty: number }>;
+}
+
+/** Build the ordered manifest rows for a single stop (alphabetical by name).
+ *  Box shares are grouped by customer_id; add-on rows attach as inline chips.
+ *  A flex row with NO order this week is NOT a box (nothing to deliver) → it is
+ *  skipped here, so an unordered-flex-only customer drops out entirely. If the
+ *  same customer ALSO holds a summer_veg box, that box row still carries them
+ *  (they show once, as their box). */
+function manifestRowsForStop(stop: StopTotals): ManifestRow[] {
+  const members = cycle.byStop.get(stop.stop_id) ?? [];
+
+  const byCustomer = new Map<string, CycleMember[]>();
+  for (const m of members) {
+    if (m.share_type === 'add_on') continue;
+    if (m.share_type === 'flex' && !flexOrderedMemberIds.has(m.id)) continue;
+    const arr = byCustomer.get(m.customer_id);
+    if (arr) arr.push(m);
+    else byCustomer.set(m.customer_id, [m]);
+  }
+
+  const rows: ManifestRow[] = [];
+  for (const [customerId, boxRows] of byCustomer) {
+    const sorted = boxRows.slice().sort((a, b) => sharePriority(a) - sharePriority(b));
+    const primary = sorted[0];
+    const addons = addonRowsByCustomer.get(customerId) ?? [];
+
+    // Dedup add-on chips by type, stable order by label.
+    const seen = new Set<AddOnType>();
+    const addonChips: Array<{ type: AddOnType; label: string }> = [];
+    for (const a of addons) {
+      if (seen.has(a.addon_type)) continue;
+      seen.add(a.addon_type);
+      addonChips.push({ type: a.addon_type, label: addonChipLabel(a) });
+    }
+    addonChips.sort((x, y) => x.label.localeCompare(y.label));
+
+    // Flex lines: union across all of this customer's box + add-on member rows.
+    const flexLines: Array<{ name: string | null; qty: number }> = [];
+    for (const m of [primary, ...addons]) {
+      const lines = flexLinesByMember.get(m.id);
+      if (lines) flexLines.push(...lines);
+    }
+
+    rows.push({ primary, addonChips, flexLines });
+  }
+
+  rows.sort((a, b) => a.primary.contact_name.localeCompare(b.primary.contact_name));
+  return rows;
+}
 
 function distDateForStop(stop: StopTotals): string {
   if (stop.day_of_week === 'Tue') return cycle.distribution_dates.Tue;
@@ -147,6 +383,33 @@ function owesFlag(m: CycleMember): string | null {
   const p = (m.payment_status ?? '').trim().toLowerCase();
   if (!p || p === 'paid') return null;
   return p;
+}
+
+// ─── Donations per stop (migration 0041) ────────────────────────────
+// Donated members are EXCLUDED from byStop (they don't receive a box), but
+// the farm still PACKS a donation box. We bucket cycle.donated by the same
+// stop key logic resolveCycle uses so each stop's cover shows how many extra
+// donation boxes to pack for that stop.
+function stopKeyFor(m: CycleMember): string {
+  if (m.delivery_address && !m.pickup_location_id) return HOME_DELIVERY_BUCKET_ID;
+  if (m.pickup_location_id) return m.pickup_location_id;
+  return 'no_pickup_set';
+}
+const donatedByStop = new Map<string, number>();
+for (const m of cycle.donated) {
+  const k = stopKeyFor(m);
+  donatedByStop.set(k, (donatedByStop.get(k) ?? 0) + 1);
+}
+
+/** "moved from Jun 22" tag for a moved-in member. m.moved_from is a Monday;
+ *  show the delivery Wednesday (Monday + 2) the pack team recognises. */
+function movedFromLabel(m: CycleMember): string | null {
+  if (!m.moved_in || !m.moved_from) return null;
+  const wed = new Date(`${m.moved_from}T12:00:00Z`);
+  wed.setUTCDate(wed.getUTCDate() + 2);
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short', day: 'numeric', timeZone: 'UTC',
+  }).format(wed);
 }
 ---
 
@@ -173,30 +436,45 @@ function owesFlag(m: CycleMember): string | null {
 
   <div class="print-doc flex flex-col gap-8">
     {stopsToRender.map((stop, stopIdx) => {
-      const members = (cycle.byStop.get(stop.stop_id) ?? [])
-        .slice()
-        .sort((a, b) => a.contact_name.localeCompare(b.contact_name));
+      // ONE row per CUSTOMER: box shares grouped by customer_id, add-ons ride
+      // inline on the box row. A flex member with NO order this week is NOT a
+      // box (nothing to deliver) and is dropped from the grouping entirely —
+      // no row, no awareness note (Todd: "the flex that are not getting shares
+      // need removed too"). A customer who ALSO holds a real box still shows
+      // once, as that box.
+      const rows = manifestRowsForStop(stop);
       const distDate = distDateForStop(stop);
-      const totalBoxes = stop.boxes_small + stop.boxes_large;
-      const addonsList: { type: string; n: number }[] = [];
-      (['mushroom', 'bread', 'cheese', 'coffee', 'eggs', 'unknown'] as const).forEach((t) => {
-        if (stop.addons[t] > 0) addonsList.push({ type: t, n: stop.addons[t] });
-      });
+      const sizeCounts = sizeCountsForStop(stop);
+      const flexCount = flexCountForStop(stop);
+      // A flex member receives a physical box (their flex order) just like a
+      // summer box member, so the big cover total = summer boxes + flex boxes.
+      // This sums the same per-member rows the size chips count (chips already
+      // separate summer sizes from flex), so no customer is double-counted.
+      const totalBoxes = stop.boxes_small + stop.boxes_large + flexCount;
+      const addonCounts = addonCountsForStop(stop);
+      const totalAddons = addonCounts.reduce((a, x) => a + x.n, 0);
       const isLast = stopIdx === stopsToRender.length - 1;
+      const donationBoxes = donatedByStop.get(stop.stop_id) ?? 0;
+      const band = bandForStop(stop);
+      const isHomeDelivery = stop.stop_id === HOME_DELIVERY_BUCKET_ID;
       return (
         <section class="page-break" aria-labelledby={`stop-${stop.stop_id}`}>
-          {/* COVER HEADER ─────────────────────────────────────────── */}
-          <header class="border-b-2 border-ts-text pb-4">
-            <p class="text-xs font-semibold uppercase tracking-wider text-ts-text-muted">
+          {/* COLOR-CODED STOP BAND — matches the box labels' band color so the
+              driver pairs this sheet with the colored stickers at a glance. */}
+          <header
+            class="stop-band rounded-ts-lg px-5 py-4"
+            style={`background:${band.bg};color:${band.text};`}
+          >
+            <p class="text-xs font-semibold uppercase tracking-wider opacity-90">
               TINY SEED FARM CSA · {prettyWeekHeader(week_starting)}
             </p>
             <h2
               id={`stop-${stop.stop_id}`}
-              class="mt-1 font-display text-3xl font-bold text-ts-text sm:text-4xl"
+              class="mt-1 font-display text-3xl font-bold sm:text-4xl"
             >
-              {stop.stop_name}
+              {isHomeDelivery ? '🏠 ' : ''}{stop.stop_name}
             </h2>
-            <p class="mt-1 text-sm text-ts-text-secondary">
+            <p class="mt-1 text-sm font-semibold opacity-95">
               {stop.day_of_week ? DAY_LONG[stop.day_of_week] : ''} · {prettyShortDate(distDate)}
             </p>
           </header>
@@ -206,16 +484,87 @@ function owesFlag(m: CycleMember): string | null {
             <p class="font-display text-5xl font-extrabold text-ts-primary tabular-nums sm:text-6xl">
               ★ {totalBoxes} BOX{totalBoxes === 1 ? '' : 'ES'} ★
             </p>
-            <p class="mt-3 text-base font-semibold text-ts-text">
-              {stop.boxes_small} Small · {stop.boxes_large} Large
-              {addonsList.length > 0 && (
-                <> · {addonsList.reduce((a, x) => a + x.n, 0)} add-ons</>
-              )}
-              {stop.flex_orders > 0 && <> · {stop.flex_orders} flex orders</>}
-            </p>
-            {addonsList.length > 0 && (
-              <p class="mt-2 text-sm text-ts-text-secondary">
-                {addonsList.map((a) => `${a.n} ${a.type}`).join(' · ')}
+
+            {/* Per-size box counts as tickable chips — the team checks each
+                size off as they count/pack it. Counts come from the actual
+                summer_veg members (raw share_size), so Family / Regular are
+                distinguished (boxes_small/large folds them into "large"). */}
+            {(sizeCounts.length > 0 || flexCount > 0) && (
+              <div class="mt-4 flex flex-wrap items-center justify-center gap-2">
+                {sizeCounts.map((sc) => {
+                  const badge = SIZE_BADGES[sc.size];
+                  return (
+                    <span
+                      class="count-chip inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-extrabold"
+                      style={`background:${badge.bg};color:${badge.text};border:2px solid ${badge.border};`}
+                    >
+                      <span
+                        class="inline-block h-4 w-4 shrink-0 rounded-sm border-2 bg-white print:border-black"
+                        style={`border-color:${badge.text};`}
+                        aria-hidden="true"
+                      ></span>
+                      <span class="tabular-nums">{sc.n}</span>
+                      {DISPLAY_SIZE_LABEL[sc.size]}
+                    </span>
+                  );
+                })}
+                {/* FLEX boxes — same chip style + the per-member FLEX badge
+                    color. Flex is a box type the team counts/packs too. */}
+                {flexCount > 0 && (
+                  <span
+                    class="count-chip inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-extrabold"
+                    style={`background:${FLEX_CHIP.bg};color:${FLEX_CHIP.text};border:2px solid ${FLEX_CHIP.border};`}
+                  >
+                    <span
+                      class="inline-block h-4 w-4 shrink-0 rounded-sm border-2 bg-white print:border-black"
+                      style={`border-color:${FLEX_CHIP.text};`}
+                      aria-hidden="true"
+                    ></span>
+                    <span class="tabular-nums">{flexCount}</span>
+                    Flex
+                  </span>
+                )}
+              </div>
+            )}
+
+            {flexCount > 0 && (
+              <p class="mt-3 text-sm font-semibold text-ts-text-secondary">
+                {flexCount} flex order{flexCount === 1 ? '' : 's'}
+              </p>
+            )}
+
+            {/* Per-stop ADD-ON counts as tickable color chips (only types > 0). */}
+            {addonCounts.length > 0 && (
+              <div class="mt-4">
+                <p class="text-xs font-bold uppercase tracking-wide text-ts-text-secondary">
+                  Add-ons ({totalAddons})
+                </p>
+                <div class="mt-2 flex flex-wrap items-center justify-center gap-2">
+                  {addonCounts.map((a) => {
+                    const style = ADDON_STYLE[a.type];
+                    return (
+                      <span
+                        class="count-chip addon-chip inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-extrabold"
+                        style={`background:${style.bg};color:${style.text};border:2px solid ${style.border};`}
+                      >
+                        <span
+                          class="inline-block h-4 w-4 shrink-0 rounded-sm border-2 bg-white print:border-black"
+                          style={`border-color:${style.text};`}
+                          aria-hidden="true"
+                        ></span>
+                        <span class="tabular-nums">{a.n}</span>
+                        <span aria-hidden="true">{style.emoji}</span>
+                        {style.label}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {donationBoxes > 0 && (
+              <p class="mt-3 text-sm font-bold text-ts-primary">
+                💚 + {donationBoxes} donation box{donationBoxes === 1 ? '' : 'es'} to pack (held member donated)
               </p>
             )}
             {stop.owes_count > 0 && (
@@ -225,8 +574,8 @@ function owesFlag(m: CycleMember): string | null {
             )}
           </div>
 
-          {/* MEMBERS LIST ──────────────────────────────────────────── */}
-          {members.length === 0 ? (
+          {/* MEMBERS LIST — ONE row per CUSTOMER, add-ons inline ───────── */}
+          {rows.length === 0 ? (
             <Card tone="muted" padding="md" elevation="sm">
               <p class="text-center text-sm text-ts-text-secondary">
                 No members at this stop this cycle.
@@ -234,13 +583,12 @@ function owesFlag(m: CycleMember): string | null {
             </Card>
           ) : (
             <ol class="divide-y divide-ts-border/60">
-              {members.map((m) => {
+              {rows.map((row) => {
+                const m = row.primary;
                 const owes = owesFlag(m);
-                const flexQty = flexQtyByMember.get(m.id) ?? 0;
-                const flexLines = flexLinesByMember.get(m.id) ?? [];
-                const bal = balances.get(m.email) ?? null;
+                const badge = sizeBadgeFor(m);
                 return (
-                  <li class="grid grid-cols-12 gap-3 px-1 py-3 sm:px-2">
+                  <li class="manifest-row grid grid-cols-12 gap-3 px-1 py-3 sm:px-2">
                     <div class="col-span-1 flex items-start pt-0.5">
                       <span
                         class="inline-block h-5 w-5 rounded border-2 border-ts-text print:border-black"
@@ -248,10 +596,46 @@ function owesFlag(m: CycleMember): string | null {
                       ></span>
                     </div>
                     <div class="col-span-6 sm:col-span-5">
-                      <p class="font-semibold text-ts-text">{m.contact_name}</p>
-                      <p class="mt-0.5 text-xs text-ts-text-secondary">
-                        {memberShareLabel(m)}
+                      <p class="font-semibold text-ts-text">
+                        {m.contact_name}
+                        {m.moved_in && (
+                          <span class="ml-2 inline-flex items-center gap-1 rounded-full bg-ts-primary/10 px-2 py-0.5 align-middle text-[11px] font-semibold text-ts-primary print:border print:border-ts-primary">
+                            ↪ moved from {movedFromLabel(m)}
+                          </span>
+                        )}
                       </p>
+                      {/* Box share badge + descriptor, plus add-ons INLINE on the
+                          same line (e.g. "Small CSA  + Bread, Cheese"). */}
+                      <p class="mt-1 flex flex-wrap items-center gap-2">
+                        {badge.label && (
+                          <span
+                            class="size-badge inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-extrabold uppercase tracking-wide"
+                            style={`background:${badge.bg};color:${badge.text};border:1px solid ${badge.border};`}
+                          >{badge.label}</span>
+                        )}
+                        <span class="text-xs text-ts-text-secondary">
+                          {memberShareLabel(m)}
+                        </span>
+                        {row.addonChips.length > 0 && (
+                          <Fragment>
+                            <span class="text-xs font-semibold text-ts-text-secondary">+</span>
+                            {row.addonChips.map((chip) => (
+                              <span
+                                class="addon-chip inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold"
+                                style={`background:${ADDON_STYLE[chip.type].bg};color:${ADDON_STYLE[chip.type].text};border:1px solid ${ADDON_STYLE[chip.type].border};`}
+                              >
+                                <span aria-hidden="true">{ADDON_STYLE[chip.type].emoji}</span>
+                                {chip.label}
+                              </span>
+                            ))}
+                          </Fragment>
+                        )}
+                      </p>
+                      {m.delivery_address && !m.pickup_location_id && (
+                        <p class="mt-0.5 text-xs font-semibold text-ts-text">
+                          🏠 {m.delivery_address}
+                        </p>
+                      )}
                       {m.allergies.length > 0 && (
                         <p class="mt-0.5 text-xs font-medium text-ts-warning">
                           ⚠ allergy: {m.allergies.join(', ')}
@@ -264,10 +648,10 @@ function owesFlag(m: CycleMember): string | null {
                       )}
                     </div>
                     <div class="col-span-3">
-                      {flexLines.length > 0 && (
+                      {row.flexLines.length > 0 && (
                         <p class="text-xs text-ts-text">
                           <strong class="font-semibold">🎯 FLEX:</strong>{' '}
-                          {flexLines.map((l, i) => (
+                          {row.flexLines.map((l, i) => (
                             <span>
                               {i > 0 ? ', ' : ''}
                               {l.qty}× {l.name ?? 'item'}
@@ -277,11 +661,6 @@ function owesFlag(m: CycleMember): string | null {
                       )}
                     </div>
                     <div class="col-span-2 text-right text-xs text-ts-text-secondary">
-                      {bal && bal.total > 0 && (
-                        <p class="tabular-nums">
-                          flex bal: <strong class="font-semibold text-ts-text">{formatFlexMoney(bal.total, bal.currency)}</strong>
-                        </p>
-                      )}
                       {owes && (
                         <p class="mt-1 font-bold text-ts-warning">
                           ⚠ owes
@@ -304,21 +683,36 @@ function owesFlag(m: CycleMember): string | null {
 </AdminShell>
 
 <style is:global>
-  /* ── Print-friendly: hide the AdminShell chrome, page-break between stops */
+  /* Colored stop bands + size badges must keep their color through the print
+     pipeline (browsers strip backgrounds in print by default). */
+  .stop-band, .size-badge, .count-chip, .addon-chip {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* ── Print-friendly: page-break between stops ─────────────────────────
+   *  The AdminShell chrome (sticky header, nav, page-heading + the actions
+   *  slot that holds the Print button & "Back to all stops" link) is removed
+   *  at print time by AdminShell's own `print:hidden` utilities, and <main> is
+   *  reset to full-bleed. So the `.print-doc` is the only thing left and it
+   *  begins at the very top of page 1 in NORMAL FLOW.
+   *
+   *  We intentionally do NOT hide `main > div:first-child` here — in <main> the
+   *  first child IS the `.print-doc` content (the AdminShell heading lives in a
+   *  sibling block outside <main>), so that rule blanked the WHOLE print. It is
+   *  removed. Any future on-screen-only UI added to this page must carry the
+   *  `.screen-only` class, which the rule below hides. */
   @media print {
     @page { size: Letter portrait; margin: 0.5in; }
 
     body, html { background: white !important; }
-    /* AdminShell header + nav + h1 row + page actions: hide. */
-    header[class*="sticky"], nav[aria-label="Admin sections"],
-    .ts-admin-actions, button[onclick*="print"], a[href="/admin/stop-manifest"]:not(.print-doc a) {
-      display: none !important;
-    }
-    /* Hide the AdminShell page heading and subtitle so the cover header is the first thing. */
-    main > div:first-child { display: none !important; }
-    main { padding: 0 !important; }
+
+    .screen-only { display: none !important; }
 
     .page-break { break-after: page; page-break-after: always; }
     .page-break:last-child { break-after: auto; page-break-after: auto; }
+
+    /* Keep a customer's whole row (name + inline add-ons + flex) on one page. */
+    .manifest-row { break-inside: avoid; page-break-inside: avoid; }
   }
 </style>

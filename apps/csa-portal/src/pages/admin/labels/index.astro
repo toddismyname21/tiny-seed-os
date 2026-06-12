@@ -1,17 +1,71 @@
 ---
 /**
- * /admin/labels — week picker landing for the Avery 5164 label sheet.
+ * /admin/labels — week picker + per-stop / per-member filter launcher for
+ * the Avery 5164 label sheet.
  *
- * The actual printable view lives at /admin/labels/[week]. This page
- * just lets Todd pick which week's labels to print.
+ * The actual printable view lives at /admin/labels/[week]. This page lets
+ * Todd (1) pick which week's labels to print and (2) jump straight to a
+ * SINGLE stop's labels or a SINGLE member's label(s) (Todd req 1) without
+ * printing the whole week.
+ *
+ * Week selection is a GET param (?week=YYYY-MM-DD) so the stop/member
+ * controls below can resolve THAT week's cycle server-side and offer the
+ * real active stops + member names. Changing the week reloads this page
+ * with the new week's stops/members; the green "Open labels" button opens
+ * the full printable sheet for the chosen week.
  */
 import AdminShell from '../../../components/AdminShell.astro';
 import Card from '../../../components/Card.astro';
-import { mondayOfWeek, upcomingMonday, prettyWeekHeader } from '../../../lib/cycle';
+import {
+  mondayOfWeek, upcomingMonday, prettyWeekHeader, isMonday, resolveCycle,
+} from '../../../lib/cycle';
 import { weekOptions } from '../../../lib/cycle-ui';
+
+const supabase = Astro.locals.supabase;
 
 const options = weekOptions();
 const defaultWeek = mondayOfWeek(upcomingMonday());
+
+// Resolve the chosen week from the query (snap to Monday); default to the
+// upcoming Monday. Validated against the YYYY-MM-DD shape before use.
+const url = new URL(Astro.request.url);
+const weekParam = (url.searchParams.get('week') ?? '').trim();
+const week_starting = /^\d{4}-\d{2}-\d{2}$/.test(weekParam)
+  ? (isMonday(weekParam) ? weekParam : mondayOfWeek(weekParam))
+  : defaultWeek;
+
+// Resolve the cycle for the chosen week so we can list real active stops +
+// members for the filter controls. One read; same resolver the printable
+// page uses, so the controls match exactly what will print.
+let activeStops: { stop_id: string; stop_name: string }[] = [];
+type MemberOpt = { id: string; customer_id: string; name: string; stopName: string };
+let memberOpts: MemberOpt[] = [];
+let resolveError: string | null = null;
+try {
+  const cycle = await resolveCycle(supabase, week_starting);
+  activeStops = cycle.activeStops.map((s) => ({ stop_id: s.stop_id, stop_name: s.stop_name }));
+
+  // One option per CUSTOMER (matches the one-label-per-customer printout).
+  // Dedup by customer_id within stop; carry the member id for the link.
+  const stopNameById = new Map(activeStops.map((s) => [s.stop_id, s.stop_name]));
+  const seen = new Set<string>(); // `${stopId}:${customerId}`
+  for (const [stopId, members] of cycle.byStop) {
+    for (const m of members) {
+      const key = `${stopId}:${m.customer_id}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      memberOpts.push({
+        id: m.id,
+        customer_id: m.customer_id,
+        name: m.contact_name,
+        stopName: stopNameById.get(stopId) ?? 'Unassigned',
+      });
+    }
+  }
+  memberOpts.sort((a, b) => a.name.localeCompare(b.name));
+} catch (err) {
+  resolveError = err instanceof Error ? err.message : 'Could not load this week.';
+}
 ---
 
 <AdminShell
@@ -19,28 +73,101 @@ const defaultWeek = mondayOfWeek(upcomingMonday());
   subtitle="One sticker per box, in pack order, ready to print."
   pageTitle="Box labels — Tiny Seed Admin"
 >
+  <!-- Step 1: pick the week (GET reload so the filter controls below
+       refresh to that week's stops + members). -->
   <section aria-label="Week selector">
-    <form method="GET" action="/admin/labels/" id="goto-form" class="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-4">
+    <form method="GET" action="/admin/labels/" class="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-4">
       <label class="flex flex-col gap-1">
         <span class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Cycle week</span>
         <select
           name="week"
           id="week-select"
+          onchange="this.form.submit()"
           class="h-10 min-w-[260px] rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
         >
           {options.map((opt) => (
-            <option value={opt.value} selected={opt.value === defaultWeek}>{opt.label}</option>
+            <option value={opt.value} selected={opt.value === week_starting}>{opt.label}</option>
           ))}
         </select>
       </label>
-      <button
-        type="submit"
+      <a
+        href={`/admin/labels/${week_starting}`}
         class="inline-flex h-10 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm transition-colors hover:bg-ts-primary-dark"
       >
-        Open labels →
-      </button>
+        Open all labels →
+      </a>
     </form>
   </section>
+
+  {resolveError && (
+    <Card tone="muted" padding="md" elevation="sm">
+      <p class="text-sm text-ts-danger">Could not load this week's stops: {resolveError}</p>
+    </Card>
+  )}
+
+  <!-- Step 2: print JUST one stop, or JUST one member (Todd req 1). -->
+  <Card padding="md" elevation="sm">
+    <h2 class="font-display text-lg font-bold text-ts-text">Print just one stop or one member</h2>
+    <p class="mt-1 text-sm text-ts-text-secondary">
+      For {prettyWeekHeader(week_starting)}. Skips the full sheet — opens a filtered
+      printable view for the selection you choose.
+    </p>
+
+    {activeStops.length === 0 && !resolveError ? (
+      <p class="mt-4 text-sm text-ts-text-secondary">
+        No active members for this week. Pick a different cycle week above.
+      </p>
+    ) : (
+      <div class="mt-4 grid gap-6 sm:grid-cols-2">
+        <!-- One stop -->
+        <form method="GET" id="stop-form" class="flex flex-col gap-2">
+          <label class="flex flex-col gap-1">
+            <span class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">One stop</span>
+            <select
+              id="stop-select"
+              class="h-10 rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+            >
+              <option value="">All stops (whole week)</option>
+              {activeStops.map((s) => (
+                <option value={s.stop_id}>{s.stop_name}</option>
+              ))}
+            </select>
+          </label>
+          <button
+            type="submit"
+            class="inline-flex h-10 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-semibold text-ts-text transition-colors hover:border-ts-primary/40 hover:text-ts-primary"
+          >
+            Open stop labels →
+          </button>
+        </form>
+
+        <!-- One member -->
+        <form method="GET" id="member-form" class="flex flex-col gap-2">
+          <label class="flex flex-col gap-1">
+            <span class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">One member</span>
+            <input
+              list="member-datalist"
+              id="member-input"
+              autocomplete="off"
+              placeholder="Type a member name…"
+              class="h-10 rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+            />
+            <datalist id="member-datalist">
+              {memberOpts.map((m) => (
+                <option value={`${m.name} — ${m.stopName}`} data-id={m.id}></option>
+              ))}
+            </datalist>
+          </label>
+          <button
+            type="submit"
+            class="inline-flex h-10 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-semibold text-ts-text transition-colors hover:border-ts-primary/40 hover:text-ts-primary"
+          >
+            Open member label →
+          </button>
+        </form>
+      </div>
+    )}
+  </Card>
 
   <Card padding="md" elevation="sm">
     <h2 class="font-display text-lg font-bold text-ts-text">Avery 5164 — what to load in your printer</h2>
@@ -49,17 +176,50 @@ const defaultWeek = mondayOfWeek(upcomingMonday());
       <li>• Set print options: <strong class="font-medium text-ts-text">Letter portrait, scale 100%, margins None or Default</strong>.</li>
       <li>• Always print one test sheet first and check alignment on a real Avery 5164 page.</li>
       <li>• Labels print in pack order: Tue → Wed → Sat stops, alphabetical within each stop.</li>
+      <li>• One label per member: add-ons appear as color chips, flex orders as a tick-as-you-pack checklist.</li>
     </ul>
   </Card>
 </AdminShell>
 
-<script is:inline>
-  // On submit, rewrite the form's action to include the chosen week in
-  // the URL path (so the slug page is /admin/labels/<week>, not a
-  // querystring).
-  document.getElementById('goto-form')?.addEventListener('submit', (e) => {
+<script
+  is:inline
+  define:vars={{ week_starting, memberOpts }}
+>
+  // Stop filter → /admin/labels/<week>?stop=<id>  (or whole week when blank).
+  document.getElementById('stop-form')?.addEventListener('submit', (e) => {
     e.preventDefault();
-    const wk = (document.getElementById('week-select')).value;
-    if (wk) window.location.href = `/admin/labels/${wk}`;
+    const stopId = document.getElementById('stop-select').value;
+    const base = `/admin/labels/${week_starting}`;
+    window.location.href = stopId ? `${base}?stop=${encodeURIComponent(stopId)}` : base;
+  });
+
+  // Member filter → /admin/labels/<week>?member=<member_id>. We match the
+  // typed datalist value back to its member id; if the text doesn't match a
+  // known option exactly, we fall back to a case-insensitive name match, and
+  // if still nothing, do nothing (avoid opening an empty filtered view).
+  document.getElementById('member-form')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const raw = (document.getElementById('member-input').value || '').trim();
+    if (!raw) return;
+    const exact = memberOpts.find((m) => `${m.name} — ${m.stopName}` === raw);
+    const loose = exact || memberOpts.find(
+      (m) => m.name.toLowerCase() === raw.toLowerCase()
+        || `${m.name} — ${m.stopName}`.toLowerCase() === raw.toLowerCase(),
+    );
+    const partial = loose || memberOpts.find(
+      (m) => m.name.toLowerCase().includes(raw.toLowerCase()),
+    );
+    if (!partial) {
+      alert('No member matched “' + raw + '”. Pick a name from the list.');
+      return;
+    }
+    // Link by customer_id — it is stable across ALL of the customer's share
+    // rows and is exactly what the printable page groups labels by. (A member
+    // ROW id could be an add-on row that isn't the label's "primary" row, so
+    // it wouldn't match; customer_id always does.)
+    window.location.href =
+      `/admin/labels/${week_starting}?member=${encodeURIComponent(partial.customer_id)}`;
   });
 </script>
+</content>
+</invoke>

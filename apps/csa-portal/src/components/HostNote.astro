@@ -1,0 +1,82 @@
+---
+/**
+ * HostNote — member-facing "Your host" line + a warm "respect your host" note.
+ *
+ * Owner directive (2026-06-08): members picking up at a HOST'd stop (a
+ * neighbor's porch) should see who their host is, how to reach them when
+ * something unexpected comes up, and a gentle reminder to pick up within the
+ * window. Hosts are volunteers — the note keeps the relationship warm.
+ *
+ * Shared across all three member pickup surfaces so the copy + markup never
+ * drift: the dashboard `PickupCard`, `/account/pickup` (current stop), and the
+ * `/account/confirm-pickup` ack gate.
+ *
+ * RENDER RULES (the caller is responsible for only rendering this for
+ * kind='pickup' stops — NOT home delivery, NOT 'none'):
+ *   - This component renders NOTHING unless `hostName` is a non-empty string.
+ *     A non-empty `hostName` is what makes a stop "host'd"; a market or farm
+ *     stop with no host has no host_name, so the note is correctly suppressed
+ *     there (and for the "both null" case the directive calls out).
+ *   - When a host IS present:
+ *       · "Your host" line shows the host name and, when present, the phone as
+ *         a `tel:` link (digits stripped to a clean tel: target).
+ *       · The standard respect-your-host note always shows beneath it.
+ *
+ * Data source: pickup_locations.host_name / host_phone (member-safe). This is
+ * DISTINCT from the admin-only `notes` column, which must never reach members.
+ *
+ * Pure presentation. Mobile-first, design-token only.
+ */
+import { formatUSPhone, normalizeUSPhone } from '../lib/phone';
+
+interface Props {
+  /** pickup_locations.host_name — the volunteer host's name. */
+  hostName?: string | null;
+  /** pickup_locations.host_phone — optional contact number. */
+  hostPhone?: string | null;
+  /** Extra classes for the outer wrapper (e.g. top margin in context). */
+  class?: string;
+}
+
+const { hostName = null, hostPhone = null, class: className = '' } = Astro.props as Props;
+
+const name =
+  typeof hostName === 'string' && hostName.trim().length > 0 ? hostName.trim() : null;
+
+// Only render for an actual host'd stop.
+const show = name !== null;
+
+// Display + tel: target for the phone, when present. `tel:` wants bare digits;
+// the visible label is the friendly "(570) 971-4108" form.
+const rawPhone =
+  typeof hostPhone === 'string' && hostPhone.trim().length > 0 ? hostPhone.trim() : null;
+const telDigits = rawPhone ? normalizeUSPhone(rawPhone) : null;
+const phoneLabel = rawPhone ? formatUSPhone(rawPhone) : null;
+---
+
+{show && (
+  <div
+    class:list={[
+      'rounded-ts-lg border border-ts-border bg-ts-bg-muted/40 px-4 py-3',
+      className,
+    ]}
+    data-host-note
+  >
+    <p class="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm text-ts-text">
+      <span class="font-semibold text-ts-text">Your host:</span>
+      <span class="text-ts-text-secondary">{name}</span>
+      {phoneLabel && telDigits && (
+        <a
+          href={`tel:${telDigits}`}
+          class="font-medium text-ts-primary underline decoration-ts-primary/40 underline-offset-2 transition-colors duration-150 hover:decoration-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+        >
+          {phoneLabel}
+        </a>
+      )}
+    </p>
+    <p class="mt-1.5 text-xs leading-relaxed text-ts-text-muted">
+      Please respect your host — pick up during your pickup window unless
+      something unexpected comes up. If you'll be late, reach out.
+    </p>
+  </div>
+)}

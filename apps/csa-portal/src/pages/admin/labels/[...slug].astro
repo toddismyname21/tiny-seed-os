@@ -25,27 +25,49 @@
  *   This is the order the boxes are PHYSICALLY assembled, so the printed
  *   stack reads top-down as you pack.
  *
- * Content per label (matches spec §4.7 mock):
- *   TINY SEED FARM CSA · Week of <date>
- *   <STOP> · <Day> pickup
- *   ────────────────────────────────────
- *   <Member name>          <Size>
- *   ✅ <add-on(s)>
- *   🎯 Flex: <items>
- *   ⚠ ALLERGY: <list>
- *   ⚠ PAYMENT: balance due
- *   This box: <contents>
- *    (swap: <out> → <in>)
+ * Label ZONES, top→bottom (2026-06 pack-line redesign — Todd):
+ *   1) HEADER  — Tiny Seed LOGO (public/tiny-seed-logo-bw.png, ~0.32in tall)
+ *      top-left + "CSA · Week of <date>" beside it. Compact.
+ *   2) STOP BAND — full-width COLOR-CODED bar: stop name + pickup day. Each
+ *      stop gets a STABLE color (curated 15-color palette, mapped by the
+ *      sorted stop-name index). Stop NAME always printed (color is redundant).
+ *   3) RECIPIENT — member NAME, BIG (18–20pt bold; the most-scanned field) +
+ *      a COLOR-CODED SIZE BADGE (small/large/family/regular → 4 colors).
+ *   4) ADD-ONS — the existing food-colored chips.
+ *   5) FLEX — "check as packed" tickable checklist (stays on the customer's
+ *      consolidated label).
+ *   6) FLAGS (allergy red / payment-due) + box-contents footer. The footer is
+ *      the first thing to shrink/clip under vertical pressure (it also lives
+ *      on the pack sheet); the flex checkboxes must stay tickable and the name
+ *      must never clip mid-word.
  *
- * Re-print one member: not in the URL (the spec mentions individual
- * re-print) — the whole sheet renders; admin can manually re-print one
- * page from the browser's print dialog (Pages: 1-of-N).
+ * ── 2026-06 LABEL UPGRADE (Todd's 4 reqs) ────────────────────────────
+ *   1. FILTERS: ?stop=<pickup_location_id> renders only that stop;
+ *      ?member=<member_id OR customer_id> renders only that person.
+ *      No param = the whole week (unchanged default).
+ *   2. ONE LABEL PER CUSTOMER (per stop). The primary box share
+ *      (summer_veg / flower / flex / spring_veg) is the label; that
+ *      customer's add_on rows render ON it as chips — no separate
+ *      add-on labels, and the add-on attaches to the box wherever it
+ *      prints even if the add-on row's own pickup is null/mismatched. A
+ *      customer with ONLY add-ons and NO box this cycle → the add-on
+ *      DROPS (it ships inside a box; no box ⇒ no add-on this week), and is
+ *      listed in a screen-only notice for admin. A flex member → their
+ *      flex checklist is the box.
+ *   3. FLEX CHECKLIST: each flex line is `☐ <qty>× <name>` with a real
+ *      printed empty checkbox the packer ticks by hand.
+ *   4. COLOR-CODED ADD-ONS: each addon_type → a print-friendly chip
+ *      color (mushroom/bread/cheese/coffee/eggs + neutral fallback),
+ *      with an on-screen legend (screen-only) for staff.
+ *
+ * Re-print one member: use ?member=<id> (req 1) OR the browser's print
+ * dialog page range (Pages: N-of-M).
  */
 import AdminShell from '../../../components/AdminShell.astro';
 import Card from '../../../components/Card.astro';
 import {
-  resolveCycle, prettyWeekHeader, prettyShortDate, mondayOfWeek, isMonday,
-  type CycleMember, type StopTotals,
+  resolveCycle, prettyWeekHeader, mondayOfWeek, isMonday,
+  type CycleMember, type StopTotals, type AddOnType,
 } from '../../../lib/cycle';
 
 const supabase = Astro.locals.supabase;
@@ -57,6 +79,16 @@ if (!/^\d{4}-\d{2}-\d{2}$/.test(week_input)) {
   return Astro.redirect('/admin/labels', 303);
 }
 const week_starting = isMonday(week_input) ? week_input : mondayOfWeek(week_input);
+
+// ─── Optional filters (Todd req 1) ──────────────────────────────────
+// ?stop=<pickup_location_id>  → render only that stop's labels.
+// ?member=<member_id OR customer_id> → render only that person's label(s).
+// No param → the whole week (default). Filters are applied AFTER the cycle
+// resolves so the underlying data (and the customer grouping) is identical
+// to the full-week view — we just drop the rows that don't match.
+const url = new URL(Astro.request.url);
+const stopFilter = (url.searchParams.get('stop') ?? '').trim() || null;
+const memberFilter = (url.searchParams.get('member') ?? '').trim() || null;
 
 const cycle = await resolveCycle(supabase, week_starting);
 
@@ -76,18 +108,150 @@ const stopsOrdered = cycle.activeStops.slice().sort((a, b) => {
   return a.stop_name.localeCompare(b.stop_name);
 });
 
+/** A color-coded add-on chip rendered on the owning customer's label. */
+interface AddonChip {
+  /** addon_type key, drives the color map + emoji. */
+  type: AddOnType;
+  /** Display label, e.g. "Bread". */
+  label: string;
+}
+
 interface LabelData {
+  /** The PRIMARY share whose box this label is for (box share, or — when the
+   *  customer has only add-ons — their first add-on row). */
   member: CycleMember;
   stop: StopTotals;
   distDate: string;
   composition: ReturnType<typeof getComposition>;
-  addonNames: string[];
+  /** Color-coded add-on chips for THIS customer at THIS stop (req 2 + 4). */
+  addonChips: AddonChip[];
+  /** Flex checklist lines for THIS customer (all their member rows), req 3. */
   flexLines: Array<{ name: string | null; qty: number }>;
   owes: boolean;
 }
 
 function getComposition(member: CycleMember) {
   return cycle.boxCompositionByMember.get(member.id) ?? null;
+}
+
+/* ── Add-on color map (req 4) — print-friendly, high-contrast chips ──
+ * Fixed colors (NOT theme tokens) on purpose: this is a print document and
+ * the packer learns a fixed code that must reproduce identically in color
+ * print. Each chip is light-bg + dark-text for contrast on white labels and
+ * legible color laser/inkjet output. The on-screen legend uses these exact
+ * values so staff learn what they'll see on paper. */
+const ADDON_STYLE: Record<AddOnType, { bg: string; text: string; border: string; emoji: string; label: string }> = {
+  mushroom: { bg: '#efe9e1', text: '#5b4636', border: '#b89b80', emoji: '🍄', label: 'Mushroom' },
+  bread:    { bg: '#f6e7c9', text: '#7a4f12', border: '#d8b170', emoji: '🍞', label: 'Bread' },
+  cheese:   { bg: '#fdf3c4', text: '#7a5c00', border: '#e3c84e', emoji: '🧀', label: 'Cheese' },
+  coffee:   { bg: '#e3d5c8', text: '#4a2f1c', border: '#b08c6e', emoji: '☕', label: 'Coffee' },
+  eggs:     { bg: '#fde8ec', text: '#8a2f43', border: '#eab0bd', emoji: '🥚', label: 'Eggs' },
+  unknown:  { bg: '#e6eaef', text: '#334155', border: '#a9b4c2', emoji: '➕', label: 'Add-on' },
+};
+
+/** Human label for an add-on row → its chip label (falls back to the map). */
+function addonChipLabel(m: CycleMember): string {
+  if (m.addon_type !== 'unknown') return ADDON_STYLE[m.addon_type].label;
+  return 'Add-on';
+}
+
+/* ── STOP color band (label zone 2) ─────────────────────────────────
+ * A curated palette of 15 well-separated, print-friendly band colors. Each
+ * stop is mapped DETERMINISTICALLY by its index in the alphabetically-sorted
+ * list of this cycle's active stop names — so a given stop is ALWAYS the same
+ * color across runs/weeks (as long as the stop roster is stable), and two
+ * adjacent stops in the sorted list get visually distinct hues. The stop NAME
+ * is always printed too: color is a redundant, learnable cue, never the only
+ * signal. `text` is chosen for >=4.5:1 contrast on its band `bg`. */
+interface BandColor { bg: string; text: string; }
+const STOP_BANDS: BandColor[] = [
+  { bg: '#1f6f54', text: '#ffffff' }, // pine green
+  { bg: '#2563a8', text: '#ffffff' }, // ocean blue
+  { bg: '#9c3d8f', text: '#ffffff' }, // plum
+  { bg: '#b8431f', text: '#ffffff' }, // burnt orange
+  { bg: '#6b4fbb', text: '#ffffff' }, // violet
+  { bg: '#0f7d8c', text: '#ffffff' }, // teal
+  { bg: '#a8901c', text: '#1a1400' }, // mustard (dark text)
+  { bg: '#c43c64', text: '#ffffff' }, // raspberry
+  { bg: '#3f7d27', text: '#ffffff' }, // leaf green
+  { bg: '#4d5fa8', text: '#ffffff' }, // indigo
+  { bg: '#b5602a', text: '#ffffff' }, // copper
+  { bg: '#117a63', text: '#ffffff' }, // emerald
+  { bg: '#8a4b9c', text: '#ffffff' }, // grape
+  { bg: '#9e7b15', text: '#1a1400' }, // ochre (dark text)
+  { bg: '#5b6770', text: '#ffffff' }, // slate (neutral fallback band)
+];
+const NO_STOP_BAND: BandColor = { bg: '#475569', text: '#ffffff' }; // sentinel stops
+
+/* HOME-DELIVERY band — a DISTINCT, never-reused color (warm red-orange) so a
+ * driver spots a home-delivery box instantly in the printed stack. Not part of
+ * the STOP_BANDS rotation, so it can't collide with a pickup stop's color.
+ * Members with a delivery_address are driven to the door, NOT to a stop, so
+ * the "stop" line reads "🏠 HOME DELIVERY" and the street address prints big
+ * right under it (zone replaces the stop-day text). White text on #c2410c is
+ * ~5.9:1 — well past 4.5:1. */
+const HOME_DELIVERY_BAND: BandColor = { bg: '#c2410c', text: '#ffffff' };
+
+/** A label is a HOME DELIVERY label when its primary box member has a
+ *  delivery_address and no pickup stop (the resolver buckets those into the
+ *  'home_delivery' sentinel stop). We read the member directly so this is
+ *  robust even if the bucket id ever changes. */
+function isHomeDeliveryLabel(label: LabelData): boolean {
+  return !label.member.pickup_location_id
+    && !!(label.member.delivery_address && label.member.delivery_address.trim());
+}
+
+// Stable stop_id → band color (sorted by stop NAME so a stop's color is
+// deterministic). Built once for the whole sheet.
+const stopBandById = new Map<string, BandColor>();
+{
+  const sortedStops = cycle.activeStops
+    .slice()
+    .sort((a, b) => a.stop_name.localeCompare(b.stop_name));
+  sortedStops.forEach((s, idx) => {
+    stopBandById.set(s.stop_id, STOP_BANDS[idx % STOP_BANDS.length]);
+  });
+}
+function bandForStop(stopId: string): BandColor {
+  return stopBandById.get(stopId) ?? NO_STOP_BAND;
+}
+
+/* ── SIZE badge (label zone 3) ──────────────────────────────────────
+ * small / large / family / regular → 4 distinct, print-friendly badge
+ * colors with the size NAME on the badge. Falls back to a neutral badge for
+ * add-on-only / flex / flower / spring primaries (which have no veg size).
+ * Keyed on the RAW share_size string (lowercased) so "regular" and "large"
+ * read as their own colors even though both bucket to 'large' for box-plan
+ * lookup. */
+interface SizeBadge { key: string; label: string; bg: string; text: string; border: string; }
+const SIZE_BADGES: Record<string, SizeBadge> = {
+  small:   { key: 'small',   label: 'SMALL',   bg: '#dceef0', text: '#0c4a52', border: '#7fc3cb' },
+  large:   { key: 'large',   label: 'LARGE',   bg: '#fde2c4', text: '#7c3a06', border: '#eaa563' },
+  family:  { key: 'family',  label: 'FAMILY',  bg: '#e7dcf7', text: '#4c2785', border: '#b79ae0' },
+  regular: { key: 'regular', label: 'REGULAR', bg: '#d8eccf', text: '#27551a', border: '#8cc474' },
+};
+const SIZE_BADGE_NEUTRAL: SizeBadge = {
+  key: 'other', label: '', bg: '#e6eaef', text: '#334155', border: '#a9b4c2',
+};
+
+/** The size badge for a label's primary share. summer_veg uses its raw size
+ *  (small/large/family/regular); non-veg primaries get a neutral badge whose
+ *  label is the share descriptor (Flower / Flex / Spring / Add-on). */
+function sizeBadgeFor(m: CycleMember): SizeBadge {
+  if (m.share_type === 'summer_veg') {
+    const raw = (m.share_size ?? '').trim().toLowerCase();
+    const direct = SIZE_BADGES[raw];
+    if (direct) return direct;
+    // Unknown raw size → fall back to the bucket so it still color-codes.
+    return m.size_bucket === 'large' ? SIZE_BADGES.large : SIZE_BADGES.small;
+  }
+  // Non-veg primary: neutral badge carrying the share descriptor.
+  let label = 'SHARE';
+  if (m.share_type === 'flower') label = 'FLOWER';
+  else if (m.share_type === 'flex') label = 'FLEX';
+  else if (m.share_type === 'spring_veg') label = 'SPRING';
+  else if (m.share_type === 'add_on') label = 'ADD-ON';
+  return { ...SIZE_BADGE_NEUTRAL, label };
 }
 
 function distDateForStop(stop: StopTotals): string {
@@ -106,12 +270,17 @@ const flexByMember = new Map<string, Array<{ name: string | null; qty: number }>
 {
   const memberIds = Array.from(new Set(cycle.members.map((m) => m.id)));
   if (memberIds.length > 0) {
+    // Status set MATCHES the admin pack list (flex-orders.astro
+    // PACKABLE_STATUSES = pending | locked | fulfilled). Including 'pending'
+    // is required so this week's not-yet-locked orders still print — the
+    // label must agree with what the packer is told to pack. cancelled /
+    // refunded are excluded (you don't pack those).
     const { data, error } = await supabase
       .from('flex_orders')
       .select('member_id, qty, flex_item:flex_inventory ( name )')
       .eq('cycle_code', 'WEEKLY')
       .eq('week_starting', week_starting)
-      .in('status', ['locked', 'fulfilled'])
+      .in('status', ['pending', 'locked', 'fulfilled'])
       .in('member_id', memberIds)
       .overrideTypes<FlexLineRow[], { merge: false }>();
     if (!error) {
@@ -124,66 +293,220 @@ const flexByMember = new Map<string, Array<{ name: string | null; qty: number }>
   }
 }
 
-// Group add-on members onto their main share's label when same customer
-// — but for Phase 1 simplicity, each share row gets its own label. (One
-// member with summer + cheese + bread = 3 labels.) Pack-floor advice
-// in the brief calls for separating add-ons clearly, and a dedicated
-// label per item is the clearest version of that.
+// ─── Build ONE label per CUSTOMER per stop (Todd req 2) ─────────────
+//
+// Each `CycleMember` row is a single SHARE (a customer with a Summer box +
+// Cheese + Bread add-ons is 3 rows that share one `customer_id`). We collapse
+// those rows into a single label per customer at a stop:
+//
+//   • PRIMARY share = the box share (summer_veg / flower / flex / spring_veg).
+//     Preference order below picks it when a customer somehow has more than
+//     one box-type row. Its size/box-contents/swap/allergy/owe lines drive
+//     the label.
+//   • Add-on rows for that customer become color-coded chips ON the label —
+//     attached from the GLOBAL add-on index (built below), so an add-on whose
+//     own pickup is null/mismatched still rides on the customer's box.
+//   • A customer with ONLY add-ons and NO box share this cycle → the add-on
+//     DROPS (it ships inside a box; no box ⇒ no add-on). No standalone label.
+//   • A flex member's flex checklist (built below) is effectively their box.
+//
+// BOX grouping is by customer_id WITHIN a stop (the same customer at two stops —
+// rare, but possible with split home/pickup shares — gets one label per stop,
+// which is correct: each stop hands over its own boxes). Add-ons are NOT
+// grouped per-stop; they attach to the box label regardless of stop.
+const SHARE_PRIORITY: Record<string, number> = {
+  summer_veg: 0, spring_veg: 1, flower: 2, flex: 3, add_on: 9,
+};
+function sharePriority(m: CycleMember): number {
+  return SHARE_PRIORITY[m.share_type] ?? 5; // any unknown box-type beats add_on
+}
+
+interface CustomerGroup {
+  primary: CycleMember;
+  addons: CycleMember[];
+}
+
+/* ── Add-ons ride on the customer's BOX label (Todd, 2026-06) ─────────
+ * An add-on (cheese/bread/mushroom/…) is NOT its own box — it ships
+ * INSIDE the customer's box. So an add_on row must NEVER print a standalone
+ * label; it becomes a color chip on that customer's PRIMARY box label
+ * (summer_veg / spring_veg / flower / flex) for THIS week's cycle —
+ * regardless of the add-on row's own pickup_location_id (which is often
+ * null or stale on Shopify-migrated add-on rows).
+ *
+ * Build a global customer_id → box-rows index FIRST (across all stops), so
+ * that when we walk each stop we can attach a customer's add-ons to their
+ * box wherever it prints, and DROP add-ons whose customer has no box in this
+ * cycle (box excluded this week ⇒ add-on doesn't ship this week either).
+ *
+ * "Box row" = any non-add_on share. A customer with ONLY add-on rows (no box
+ * share of any kind in this cycle) is a data edge: per Todd we DROP their
+ * add-ons for now (an add-on with no box can't ship) and report the orphan,
+ * rather than printing a confusing standalone add-on label. */
+const boxRowsByCustomer = new Map<string, CycleMember[]>();
+const addonRowsByCustomer = new Map<string, CycleMember[]>();
+for (const m of cycle.members) {
+  if (m.share_type === 'add_on') {
+    const arr = addonRowsByCustomer.get(m.customer_id);
+    if (arr) arr.push(m);
+    else addonRowsByCustomer.set(m.customer_id, [m]);
+  } else {
+    const arr = boxRowsByCustomer.get(m.customer_id);
+    if (arr) arr.push(m);
+    else boxRowsByCustomer.set(m.customer_id, [m]);
+  }
+}
+
+// Orphan add-ons: a customer with add-on rows but NO box share this cycle.
+// These DROP (no box this week ⇒ no add-on this week). Collected for the
+// audit report — they never become a label.
+const droppedOrphanAddons: CycleMember[] = [];
+for (const [customerId, addonRows] of addonRowsByCustomer) {
+  if (!boxRowsByCustomer.has(customerId)) {
+    droppedOrphanAddons.push(...addonRows);
+  }
+}
+// One screen-only line per orphaned customer (e.g. "Jane Doe — Cheese, Bread")
+// so admin can see exactly whose add-on was dropped this week (their box is
+// excluded this cycle by season/biweekly, or they have no box at all).
+const droppedOrphanSummary = Array.from(
+  droppedOrphanAddons.reduce((acc, m) => {
+    const arr = acc.get(m.contact_name) ?? [];
+    arr.push(addonChipLabel(m));
+    acc.set(m.contact_name, arr);
+    return acc;
+  }, new Map<string, string[]>()),
+)
+  .map(([name, types]) => ({ name, types: Array.from(new Set(types)).sort() }))
+  .sort((a, b) => a.name.localeCompare(b.name));
 
 const labels: LabelData[] = [];
 for (const stop of stopsOrdered) {
-  const members = (cycle.byStop.get(stop.stop_id) ?? [])
-    .slice()
-    .sort((a, b) => a.contact_name.localeCompare(b.contact_name));
+  const members = cycle.byStop.get(stop.stop_id) ?? [];
+
+  // Group this stop's member rows by customer_id — BOX SHARES ONLY. Add-on
+  // rows are intentionally skipped here; they attach to their customer's box
+  // (resolved from the global index below), never to the stop where the
+  // add-on row itself happens to sit (it may be a different/empty stop).
+  const byCustomer = new Map<string, CycleMember[]>();
   for (const m of members) {
-    const owes = !!(m.payment_status && m.payment_status.trim().toLowerCase() !== 'paid');
-    let addonName: string | null = null;
-    if (m.share_type === 'add_on') {
-      addonName = m.addon_type === 'unknown' ? 'Add-on' :
-                  m.addon_type.charAt(0).toUpperCase() + m.addon_type.slice(1);
+    if (m.share_type === 'add_on') continue;
+    const arr = byCustomer.get(m.customer_id);
+    if (arr) arr.push(m);
+    else byCustomer.set(m.customer_id, [m]);
+  }
+
+  // Collapse each customer's BOX rows into { primary, addons }. The add-ons
+  // come from the GLOBAL index (so a customer whose add-on row had a null or
+  // mismatched pickup still gets the chip on the box that prints here).
+  const groups: CustomerGroup[] = [];
+  for (const [customerId, rows] of byCustomer) {
+    const sorted = rows.slice().sort((a, b) => sharePriority(a) - sharePriority(b));
+    // The lowest-priority box row is the primary box for this customer.
+    const primary = sorted[0];
+    const addons = addonRowsByCustomer.get(customerId) ?? [];
+    groups.push({ primary, addons });
+  }
+
+  // Existing pack order: alphabetical by member (contact) name within stop.
+  groups.sort((a, b) => a.primary.contact_name.localeCompare(b.primary.contact_name));
+
+  for (const g of groups) {
+    const { primary, addons } = g;
+
+    // Owe flag: a customer owes if ANY of their share rows is unpaid.
+    const owes = [primary, ...addons].some(
+      (m) => !!(m.payment_status && m.payment_status.trim().toLowerCase() !== 'paid'),
+    );
+
+    // Add-on chips (dedup by type so two "cheese" rows show one chip but we
+    // never drop a distinct type). Stable order by chip label.
+    const seenTypes = new Set<AddOnType>();
+    const addonChips: AddonChip[] = [];
+    for (const a of addons) {
+      if (seenTypes.has(a.addon_type)) continue;
+      seenTypes.add(a.addon_type);
+      addonChips.push({ type: a.addon_type, label: addonChipLabel(a) });
     }
+    addonChips.sort((x, y) => x.label.localeCompare(y.label));
+
+    // Flex lines: union across ALL of this customer's member rows (flex is
+    // keyed by member_id; a customer's flex order sits on one of their rows).
+    const flexLines: Array<{ name: string | null; qty: number }> = [];
+    for (const m of [primary, ...addons]) {
+      const lines = flexByMember.get(m.id);
+      if (lines) flexLines.push(...lines);
+    }
+
     labels.push({
-      member: m,
+      member: primary,
       stop,
       distDate: distDateForStop(stop),
-      composition: getComposition(m),
-      addonNames: addonName ? [addonName] : [],
-      flexLines: flexByMember.get(m.id) ?? [],
+      // Box composition only exists for the box share — look it up by the
+      // primary's id (null for add-on-only / flower / flex primaries).
+      composition: getComposition(primary),
+      addonChips,
+      flexLines,
       owes,
     });
   }
 }
 
-const totalLabels = labels.length;
+// ─── Apply optional filters (req 1) ──────────────────────────────────
+// Done AFTER grouping so the label set is identical to the full week, minus
+// the rows that don't match. `member` matches the primary's member id OR the
+// customer_id (so a link built from either resolves the same person).
+let visibleLabels = labels;
+if (stopFilter) {
+  visibleLabels = visibleLabels.filter((l) => l.stop.stop_id === stopFilter);
+}
+if (memberFilter) {
+  visibleLabels = visibleLabels.filter(
+    (l) => l.member.id === memberFilter || l.member.customer_id === memberFilter,
+  );
+}
+
+const filterActive = !!(stopFilter || memberFilter);
+const filterStopName = stopFilter
+  ? (cycle.activeStops.find((s) => s.stop_id === stopFilter)?.stop_name ?? stopFilter)
+  : null;
+const filterMemberName = memberFilter
+  ? (visibleLabels[0]?.member.contact_name ?? null)
+  : null;
+
+const totalLabels = visibleLabels.length;
 const totalSheets = Math.ceil(totalLabels / 6);
+
+// REVERSE delivery order for printing (Todd 2026-06-10): the list above is in
+// forward delivery order (stops Tue→Wed→Sat, alphabetical within stop). We
+// print it REVERSED so that as boxes are labeled top-to-bottom and stacked,
+// the FIRST delivery ends up ON TOP of the stack — load the van in this order
+// and the first stop is the first box out. Blanks stay on the final sheet.
+const orderedForPrint = visibleLabels.slice().reverse();
 
 // Pad to a multiple of 6 with blank slots so each sheet stays whole.
 const PADDED_LENGTH = totalSheets * 6;
-const padded: Array<LabelData | null> = [...labels, ...Array(PADDED_LENGTH - totalLabels).fill(null)];
-
-function shareSizeLabel(m: CycleMember): string {
-  if (m.share_type === 'summer_veg') {
-    return m.size_bucket === 'large' ? 'Summer Large' : 'Summer Small';
-  }
-  if (m.share_type === 'add_on') {
-    return m.addon_type === 'unknown' ? 'Add-on' :
-           `${m.addon_type.charAt(0).toUpperCase() + m.addon_type.slice(1)} add-on`;
-  }
-  if (m.share_type === 'flex') return 'Flex share';
-  if (m.share_type === 'flower') return 'Flower share';
-  if (m.share_type === 'spring_veg') return 'Spring veg';
-  return m.share_type;
-}
+const padded: Array<LabelData | null> = [...orderedForPrint, ...Array(PADDED_LENGTH - totalLabels).fill(null)];
 
 const DAY_LONG: Record<string, string> = {
   Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday',
   Thu: 'Thursday', Fri: 'Friday', Sat: 'Saturday', Sun: 'Sunday',
 };
+
+// Compact week label for the logo header: "Week of Jun 8" (no weekday/year —
+// the label is tight and the Monday date alone identifies the cycle).
+const weekShort = 'Week of ' + new Intl.DateTimeFormat('en-US', {
+  month: 'short', day: 'numeric', timeZone: 'UTC',
+}).format(new Date(`${week_starting}T12:00:00Z`));
+
+// Static logo asset (public/). Referenced by absolute site path — NOT an API
+// URL, so no api-config indirection is needed.
+const LOGO_SRC = '/tiny-seed-logo-bw.png';
 ---
 
 <AdminShell
   title="Box labels"
-  subtitle={`Avery 5164 · ${prettyWeekHeader(week_starting)} · ${totalLabels} labels (${totalSheets} sheet${totalSheets === 1 ? '' : 's'})`}
+  subtitle={`Avery 5164 · ${prettyWeekHeader(week_starting)} · ${totalLabels} label${totalLabels === 1 ? '' : 's'} (${totalSheets} sheet${totalSheets === 1 ? '' : 's'})${filterActive ? ' · filtered' : ''}`}
   pageTitle="Box labels — Tiny Seed Admin"
 >
   <Fragment slot="actions">
@@ -202,6 +525,51 @@ const DAY_LONG: Record<string, string> = {
     </a>
   </Fragment>
 
+  {filterActive && (
+    <Card padding="md" elevation="sm" class="screen-only">
+      <div class="flex flex-wrap items-center gap-2 text-sm text-ts-text">
+        <span class="font-semibold">Filtered view:</span>
+        {filterStopName && (
+          <span class="inline-flex items-center rounded-ts-md bg-ts-primary/10 px-2 py-0.5 text-ts-primary">
+            Stop: {filterStopName}
+          </span>
+        )}
+        {memberFilter && (
+          <span class="inline-flex items-center rounded-ts-md bg-ts-primary/10 px-2 py-0.5 text-ts-primary">
+            Member: {filterMemberName ?? memberFilter}
+          </span>
+        )}
+        <a
+          href={`/admin/labels/${week_starting}`}
+          class="text-ts-text-secondary underline hover:text-ts-primary"
+        >
+          Clear filter — show whole week
+        </a>
+      </div>
+    </Card>
+  )}
+
+  {droppedOrphanSummary.length > 0 && (
+    <Card padding="md" elevation="sm" class="screen-only" tone="warning">
+      <div class="text-sm text-ts-text">
+        <p class="font-semibold">
+          ⚠ {droppedOrphanSummary.length} add-on{droppedOrphanSummary.length === 1 ? '' : 's'} dropped — no box this week
+        </p>
+        <p class="mt-1 text-xs text-ts-text-secondary">
+          An add-on ships <em>inside</em> the member's box, so a member with no box this
+          cycle (box excluded by season window or biweekly off-week, or no box share at
+          all) gets no add-on label. Verify these are expected; if a member should have a
+          box this week, fix their share on the member page.
+        </p>
+        <ul class="mt-2 list-disc space-y-0.5 pl-5 text-xs text-ts-text">
+          {droppedOrphanSummary.map((o) => (
+            <li><strong>{o.name}</strong> — {o.types.join(', ')}</li>
+          ))}
+        </ul>
+      </div>
+    </Card>
+  )}
+
   <Card padding="md" elevation="sm" class="screen-only">
     <p class="text-sm text-ts-text">
       <strong class="font-semibold">Print preview:</strong> set your browser's Print options
@@ -210,15 +578,79 @@ const DAY_LONG: Record<string, string> = {
       committing to a full run.
     </p>
     <p class="mt-2 text-xs text-ts-text-secondary">
-      Pack order: stops in distribution-day order (Tue → Wed → Sat), then alphabetical within stop.
-      One label per share — a member with a Summer + Cheese add-on gets 2 labels.
+      Print order: REVERSE delivery order (last stop first) — so as you label + stack boxes, the FIRST delivery ends up on top and loads into the van first-out.
+      One label per <strong>member</strong> — a member's add-ons appear as color chips on their box
+      label (never as standalone labels), and flex orders print as a tick-as-you-pack checklist.
+      Home-delivery members print a <strong>🏠 HOME DELIVERY</strong> band with their street address.
     </p>
+
+    <!-- Color legends (screen-only; staff learn the printed code). -->
+    <!-- Stop color code: the EXACT band color each active stop prints. -->
+    <div class="mt-3 border-t border-ts-border pt-3">
+      <div class="mb-1.5 text-xs font-semibold uppercase tracking-wide text-ts-text-muted">
+        Stop color code
+      </div>
+      {cycle.activeStops.length === 0 ? (
+        <p class="text-xs text-ts-text-secondary">No active stops for this week.</p>
+      ) : (
+        <div class="flex flex-wrap gap-2">
+          {cycle.activeStops
+            .slice()
+            .sort((a, b) => a.stop_name.localeCompare(b.stop_name))
+            .map((s) => (
+              <span
+                class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold"
+                style={`background:${bandForStop(s.stop_id).bg};color:${bandForStop(s.stop_id).text};`}
+              >
+                {s.stop_name}
+              </span>
+            ))}
+        </div>
+      )}
+    </div>
+
+    <!-- Size color code: the 4 box-size badge colors. -->
+    <div class="mt-3 border-t border-ts-border pt-3">
+      <div class="mb-1.5 text-xs font-semibold uppercase tracking-wide text-ts-text-muted">
+        Box size color code
+      </div>
+      <div class="flex flex-wrap gap-2">
+        {(['small', 'large', 'family', 'regular'] as const).map((k) => (
+          <span
+            class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold"
+            style={`background:${SIZE_BADGES[k].bg};color:${SIZE_BADGES[k].text};border:1px solid ${SIZE_BADGES[k].border};`}
+          >
+            {SIZE_BADGES[k].label}
+          </span>
+        ))}
+      </div>
+    </div>
+
+    <!-- Add-on color legend. -->
+    <div class="mt-3 border-t border-ts-border pt-3">
+      <div class="mb-1.5 text-xs font-semibold uppercase tracking-wide text-ts-text-muted">
+        Add-on color code
+      </div>
+      <div class="flex flex-wrap gap-2">
+        {(['mushroom', 'bread', 'cheese', 'coffee', 'eggs', 'unknown'] as AddOnType[]).map((t) => (
+          <span
+            class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold"
+            style={`background:${ADDON_STYLE[t].bg};color:${ADDON_STYLE[t].text};border:1px solid ${ADDON_STYLE[t].border};`}
+          >
+            <span aria-hidden="true">{ADDON_STYLE[t].emoji}</span>
+            {t === 'unknown' ? 'Other add-on' : ADDON_STYLE[t].label}
+          </span>
+        ))}
+      </div>
+    </div>
   </Card>
 
-  {labels.length === 0 ? (
+  {visibleLabels.length === 0 ? (
     <Card tone="muted" padding="lg" elevation="sm">
       <p class="text-center text-sm text-ts-text-secondary">
-        No active members in this cycle. Pick a different week.
+        {filterActive
+          ? 'No labels match this filter for this week. Try clearing the filter or picking another week.'
+          : 'No active members in this cycle. Pick a different week.'}
       </p>
     </Card>
   ) : (
@@ -231,29 +663,78 @@ const DAY_LONG: Record<string, string> = {
               <div class="label">
                 {label ? (
                   <div class="label-body">
+                    <!-- Zone 1: logo header (bigger logo + small CSA mark;
+                         the week line now lives in the footer at the bottom) -->
                     <div class="label-hdr">
-                      <div class="label-hdr-farm">TINY SEED FARM CSA</div>
-                      <div class="label-hdr-week">{prettyWeekHeader(week_starting)}</div>
+                      <img class="label-logo" src={LOGO_SRC} alt="" aria-hidden="true" width="630" height="840" />
+                      <div class="label-hdr-csa">CSA</div>
                     </div>
-                    <div class="label-stop">
-                      <strong>{label.stop.stop_name}</strong>
-                      {label.stop.day_of_week && (
-                        <span> · {DAY_LONG[label.stop.day_of_week]} pickup</span>
-                      )}
-                    </div>
-                    <hr class="label-divider" />
+                    <!-- Zone 2: stop band. Home-delivery labels get the
+                         distinct HOME DELIVERY band + the full street address
+                         printed big right beneath it (driver reads it at a
+                         glance); pickup labels keep the color-coded stop band
+                         with the pickup day. -->
+                    {isHomeDeliveryLabel(label) ? (
+                      <Fragment>
+                        <div
+                          class="label-stop-band label-delivery-band"
+                          style={`background:${HOME_DELIVERY_BAND.bg};color:${HOME_DELIVERY_BAND.text};`}
+                        >
+                          <span class="label-stop-name">🏠 HOME DELIVERY</span>
+                          {label.stop.day_of_week && (
+                            <span class="label-stop-day">{DAY_LONG[label.stop.day_of_week]}</span>
+                          )}
+                        </div>
+                        <div class="label-delivery-addr">{label.member.delivery_address}</div>
+                      </Fragment>
+                    ) : (
+                      <div
+                        class="label-stop-band"
+                        style={`background:${bandForStop(label.stop.stop_id).bg};color:${bandForStop(label.stop.stop_id).text};`}
+                      >
+                        <span class="label-stop-name">{label.stop.stop_name}</span>
+                        {label.stop.day_of_week && (
+                          <span class="label-stop-day">{DAY_LONG[label.stop.day_of_week]}</span>
+                        )}
+                      </div>
+                    )}
+                    <!-- Zone 3: recipient name (big) + size badge -->
                     <div class="label-member">
                       <div class="label-name">{label.member.contact_name}</div>
-                      <div class="label-size">{shareSizeLabel(label.member)}</div>
+                      {(() => {
+                        const badge = sizeBadgeFor(label.member);
+                        return badge.label ? (
+                          <span
+                            class="label-size-badge"
+                            style={`background:${badge.bg};color:${badge.text};border-color:${badge.border};`}
+                          >{badge.label}</span>
+                        ) : null;
+                      })()}
                     </div>
-                    {label.addonNames.length > 0 && (
-                      <div class="label-line">
-                        ✅ {label.addonNames.join(' · ')}
+                    {label.addonChips.length > 0 && (
+                      <div class="label-chips">
+                        {label.addonChips.map((chip) => (
+                          <span
+                            class="addon-chip"
+                            style={`background:${ADDON_STYLE[chip.type].bg};color:${ADDON_STYLE[chip.type].text};border-color:${ADDON_STYLE[chip.type].border};`}
+                          >
+                            <span aria-hidden="true">{ADDON_STYLE[chip.type].emoji}</span>
+                            <span class="addon-chip-label">{chip.label}</span>
+                          </span>
+                        ))}
                       </div>
                     )}
                     {label.flexLines.length > 0 && (
-                      <div class="label-line">
-                        🎯 Flex: {label.flexLines.map((l) => `${l.qty}× ${l.name ?? 'item'}`).join(' · ')}
+                      <div class="label-flex">
+                        <div class="label-flex-hdr">FLEX — check as packed</div>
+                        <ul class={`label-flex-list${label.flexLines.length >= 4 ? ' is-two-col' : ''}`}>
+                          {label.flexLines.map((l) => (
+                            <li class="label-flex-item">
+                              <span class="flex-checkbox" aria-hidden="true"></span>
+                              <span class="flex-flex-text">{l.qty}× {l.name ?? 'item'}</span>
+                            </li>
+                          ))}
+                        </ul>
                       </div>
                     )}
                     {label.member.allergies.length > 0 && (
@@ -277,6 +758,8 @@ const DAY_LONG: Record<string, string> = {
                         )}
                       </div>
                     )}
+                    <!-- Zone 7: centered week footer, pinned to the bottom -->
+                    <div class="label-week-footer">CSA · {weekShort}</div>
                   </div>
                 ) : (
                   <div class="label-blank" aria-hidden="true"></div>
@@ -323,70 +806,141 @@ const DAY_LONG: Record<string, string> = {
     width: var(--label-w);
     height: var(--label-h);
     overflow: hidden;
-    padding: 0.15in;
+    /* Tightened from 0.15in to free vertical room for the bigger name + the
+       stop band while keeping a safe Avery print margin. */
+    padding: 0.12in;
     font-family: var(--font-system, system-ui, -apple-system, Segoe UI, Roboto, sans-serif);
     color: #0f172a;
     display: flex;
     flex-direction: column;
-    gap: 0.04in;
+    gap: 0.03in;
     border: 1px dashed rgba(0,0,0,0.08); /* screen guide only */
   }
 
   @media print { .label { border: none; } }
 
   .label-blank { width: 100%; height: 100%; }
-  .label-body { display: flex; flex-direction: column; gap: 0.05in; height: 100%; overflow: hidden; }
+  .label-body { display: flex; flex-direction: column; gap: 0.035in; height: 100%; overflow: hidden; }
 
+  /* ── Zone 1: logo header ─────────────────────────────────────────── */
   .label-hdr {
     display: flex;
-    justify-content: space-between;
-    font-size: 8pt;
-    color: #475569;
-    font-weight: 600;
+    align-items: center;
+    gap: 0.06in;
+    flex-shrink: 0;
+  }
+
+  /* Logo ~0.64in tall (2× the prior 0.32in — Todd: make the brand mark
+     prominent), aspect preserved (630×840 → width auto). B&W PNG;
+     print-color-adjust keeps it crisp. */
+  .label-logo {
+    height: 0.64in;
+    width: auto;
+    display: block;
+    flex-shrink: 0;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .label-hdr-csa {
+    font-size: 10pt;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    color: #166534;
     text-transform: uppercase;
-    letter-spacing: 0.02em;
   }
 
-  .label-stop {
-    font-size: 11pt;
-    line-height: 1.2;
-  }
-
-  .label-divider {
-    margin: 0.05in 0;
-    border: 0;
-    border-top: 1px solid #94a3b8;
-  }
-
-  .label-member {
+  /* ── Zone 2: color-coded stop band ───────────────────────────────── */
+  .label-stop-band {
     display: flex;
-    justify-content: space-between;
     align-items: baseline;
-    gap: 0.1in;
+    justify-content: space-between;
+    gap: 0.08in;
+    border-radius: 0.04in;
+    padding: 0.035in 0.08in;
+    flex-shrink: 0;
+    overflow: hidden;
+    /* Force the band color to survive the print pipeline. */
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
-  .label-name {
-    font-size: 14pt;
-    font-weight: 700;
+  .label-stop-name {
+    font-size: 11pt;
+    font-weight: 800;
     line-height: 1.1;
-    max-width: 65%;
+    letter-spacing: 0.01em;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
-  .label-size {
-    font-size: 10pt;
-    font-weight: 500;
-    color: #1f2937;
+  .label-stop-day {
+    font-size: 8.5pt;
+    font-weight: 700;
+    line-height: 1.1;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    flex-shrink: 0;
+    opacity: 0.92;
+  }
+
+  /* ── Home-delivery address (zone 2b) ─────────────────────────────────
+   * Prints directly under the HOME DELIVERY band. Big enough (10.5pt bold)
+   * for a driver/packer to read the street address at a glance. Wraps to a
+   * 2nd line (multi-line addresses are common) and clamps at 2 so it can
+   * never blow the 3.33in budget; the box-contents footer below stays the
+   * shrinkable element. */
+  .label-delivery-addr {
+    font-size: 10.5pt;
+    font-weight: 700;
+    line-height: 1.15;
+    color: #0f172a;
+    flex-shrink: 0;
+    overflow: hidden;
+    overflow-wrap: break-word;
+    white-space: pre-line;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  /* ── Zone 3: recipient name (big) + size badge ───────────────────── */
+  .label-member {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.08in;
     flex-shrink: 0;
   }
 
-  .label-line {
-    font-size: 9.5pt;
-    line-height: 1.25;
-    color: #166534;
-    font-weight: 500;
+  /* Bumped to 19pt (Todd: make the most-scanned field bigger). Never clip
+     mid-word — wraps to a 2nd line if needed; a 2-line cap keeps the budget. */
+  .label-name {
+    font-size: 19pt;
+    font-weight: 800;
+    line-height: 1.05;
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    overflow-wrap: break-word;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  .label-size-badge {
+    flex-shrink: 0;
+    border: 1px solid;
+    border-radius: 999px;
+    padding: 0.02in 0.09in;
+    font-size: 8.5pt;
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
   .label-flag {
@@ -396,13 +950,140 @@ const DAY_LONG: Record<string, string> = {
     font-weight: 700;
   }
 
-  .label-contents {
-    margin-top: auto;
-    border-top: 1px dotted #94a3b8;
-    padding-top: 0.05in;
-    font-size: 8.5pt;
-    line-height: 1.3;
+  /* ── Add-on chips (req 4): color-coded badges; print in color ───── */
+  .label-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.04in;
+    /* never let a long chip row blow the label height */
+    max-height: 0.62in;
     overflow: hidden;
+  }
+
+  .addon-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.04in;
+    border: 1px solid;
+    border-radius: 999px;
+    /* Bumped from 0.01in/0.07in so the larger 10.5pt type still reads as a
+       tidy pill (Todd: bigger so the packer can read add-ons easily). */
+    padding: 0.022in 0.085in;
+    font-size: 10.5pt;
+    font-weight: 700;
+    line-height: 1.15;
+    white-space: nowrap;
+    /* Force chip colors to survive the print pipeline (browsers strip
+       backgrounds in print by default). */
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .addon-chip-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 1.3in;
+  }
+
+  /* ── Flex checklist (req 3): tickable empty checkbox per line ───── */
+  /* flex-shrink:0 — the checklist MUST keep its full height (each row stays
+     tickable). Under vertical pressure the box-contents footer below is the
+     piece that shrinks/clips, never these checkboxes. */
+  .label-flex {
+    font-size: 11pt;
+    line-height: 1.2;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  .label-flex-hdr {
+    font-weight: 700;
+    color: #166534;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    /* Bumped 7.5pt → 8.5pt to match the bigger checklist rows below. */
+    font-size: 8.5pt;
+    margin-bottom: 0.02in;
+  }
+
+  /* 2-COLUMN grid so the bigger 11pt rows still all fit on a 3.33" label even
+     for many-flex-item members (real cases this week: 6, 7, 7, 8 items). Items
+     flow left→right, top→bottom (item 1 top-left, item 2 top-right, …). 8 items
+     => 4 rows × 2 cols, halving the block height vs the old single column.
+     ≤3 items stay single column (a 2-col grid looks sparse and a long name in a
+     narrow column wraps needlessly); 4+ items switch to 2 columns. */
+  .label-flex-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: 1fr;
+    column-gap: 0.09in;
+    row-gap: 0.015in;
+  }
+
+  .label-flex-list.is-two-col {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .label-flex-item {
+    display: flex;
+    /* flex-start (not center): when a long name wraps to a 2nd line within a
+       narrow column, the checkbox + qty stay top-aligned and always visible. */
+    align-items: flex-start;
+    gap: 0.055in;
+    /* Bumped 8.5pt → 11pt (Todd: easy to read while packing). */
+    font-size: 11pt;
+    color: #0f172a;
+    font-weight: 600;
+    overflow: hidden;
+    min-width: 0;
+  }
+
+  /* A REAL printed empty square the packer ticks by hand — scaled up with the
+     bigger row text (0.13in → 0.16in ≈ 11.5pt) so it stays tickable and
+     vertically aligned with the larger item text. Survives print. */
+  .flex-checkbox {
+    flex-shrink: 0;
+    display: inline-block;
+    width: 0.16in;
+    height: 0.16in;
+    /* tiny top offset so the square aligns to the first text line now that the
+       row is top-aligned (flex-start) for wrapping names. */
+    margin-top: 0.01in;
+    border: 1.25pt solid #166534;
+    border-radius: 1.5pt;
+    background: #fff;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Prefer WRAPPING a long name (e.g. "King Spring Mix (Big Bag, 12+ oz)") to a
+     2nd line so the packer can read it in full, rather than ellipsis-clipping.
+     Capped at 2 lines so a single freakishly long name can't blow the vertical
+     budget; the checkbox + qty are in the sibling flow and always stay visible. */
+  .flex-flex-text {
+    min-width: 0;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  .label-contents {
+    border-top: 1px dotted #94a3b8;
+    padding-top: 0.04in;
+    font-size: 8pt;
+    line-height: 1.25;
+    overflow: hidden;
+    /* Cap the box-contents footer so a long crop list can never crowd the
+       flex checkboxes (which must stay tickable) off the label. The full
+       contents also live on the pack sheet, so a graceful clip here is
+       acceptable. Tightened to 0.7in (from 0.95in) to absorb the bigger name
+       + stop band: under pressure THIS footer is the first thing to clip
+       (flex-shrink:1, default), the zones above hold their space. */
+    max-height: 0.7in;
   }
 
   .label-contents-hdr {
@@ -423,30 +1104,49 @@ const DAY_LONG: Record<string, string> = {
     font-style: italic;
   }
 
+  /* ── Zone 7: centered week footer, pinned to the bottom of the label ──
+   *    `margin-top: auto` consumes the remaining vertical slack so this line
+   *    always sits at the very bottom (below box-contents when present, or
+   *    flush to the bottom on flex/flower/add-on labels that have no contents).
+   *    flex-shrink:0 keeps it from being squeezed out; it's tiny (~7.5pt) so it
+   *    fits even in the worst-case label. padding-top gives a hair of breathing
+   *    room from the box-contents block above. */
+  .label-week-footer {
+    margin-top: auto;
+    flex-shrink: 0;
+    padding-top: 0.02in;
+    text-align: center;
+    font-size: 7.5pt;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    line-height: 1.1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
   .screen-only { display: block; }
 
-  /* ── Print: kill the AdminShell chrome, hit Avery 5164 dimensions exactly */
+  /* ── Print: labels render in NORMAL FLOW, hit Avery 5164 dims exactly ──
+   *    The admin chrome (sticky header, nav, page-heading block) is removed at
+   *    print time by AdminShell's `print:hidden` utilities, and <main> is reset
+   *    to full-bleed (print:mx-0 print:max-w-none print:p-0 print:gap-0). So the
+   *    .label-doc is the only thing left and it begins at the very top of page 1
+   *    in normal flow — no absolute positioning, no visibility hacks, no stray
+   *    horizontal scrollbar. The @page rule + .label-sheet/.label/.label-doc
+   *    sizing vars are untouched, so Avery 5164 geometry is preserved. */
   @media print {
     @page { size: Letter portrait; margin: 0; }
-
-    body, html { background: white !important; }
-
-    header[class*="sticky"], nav[aria-label="Admin sections"],
-    .screen-only, button[onclick*="print"], a[href="/admin/labels"] {
-      display: none !important;
-    }
-    main > div:first-child { display: none !important; }
-    main { padding: 0 !important; max-width: none !important; }
-
-    .label-sheet {
-      box-shadow: none !important;
-      page-break-after: always;
-      break-after: page;
-      margin: 0 !important;
-    }
-    .label-sheet:last-child {
-      page-break-after: auto;
-      break-after: auto;
-    }
+    html, body { background: #fff !important; }
+    /* Screen-only UI (preview card, color legends, dropped-add-on notice)
+     * MUST NOT print — otherwise it fills page 1 and pushes the labels off
+     * the Avery 5164 grid. This is the rule that was lost in an earlier
+     * print-CSS rewrite; without it the legends printed above the labels. */
+    .screen-only { display: none !important; }
+    /* Per-sheet page breaks: one Avery sheet per printed page. */
+    .label-sheet { box-shadow: none !important; page-break-after: always; break-after: page; margin: 0 !important; }
+    .label-sheet:last-child { page-break-after: auto; break-after: auto; }
   }
 </style>

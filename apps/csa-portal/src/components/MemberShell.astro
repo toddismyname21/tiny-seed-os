@@ -48,7 +48,7 @@
  */
 import BaseLayout from '../layouts/BaseLayout.astro';
 
-type Tab = 'home' | 'box' | 'account' | 'help';
+type Tab = 'home' | 'order' | 'box' | 'account' | 'help';
 
 interface Props {
   title?: string;
@@ -58,6 +58,30 @@ interface Props {
   active?: Tab;
   back?: { href: string; label: string };
   mainClass?: string;
+  /**
+   * Whether this member has an active FLEX share. When true the bottom nav
+   * shows a dedicated "Order" tab → /account/flex-order so a flex member can
+   * always reach the weekly ordering page in one tap (FIX 1, 2026-06-08).
+   * Non-flex members never see it. Threaded from each page's existing
+   * flex-membership signal (account/dashboard already compute it).
+   */
+  isFlexMember?: boolean;
+  /**
+   * Extra bottom padding reserved for a page-supplied FIXED action bar that
+   * sits ABOVE the bottom nav (e.g. the flex-order "Submit my order" bar).
+   *
+   * FIX (2026-06-08): a fixed bottom action bar passed via `slot="overlays"`
+   * must NOT be hidden behind the persistent bottom nav. The convention is:
+   *   - position the bar at  bottom: var(--member-bottombar-h)  (i.e. ABOVE
+   *     the nav) with a z-index BELOW the nav (z-30 < nav z-40) so BOTH the
+   *     bar and the nav are visible and tappable, never overlapping;
+   *   - pass this prop with the bar's max height so <main>'s bottom padding
+   *     reserves room for BOTH the nav AND the action bar — the last content
+   *     row is never hidden under either.
+   * Any CSS length ("11rem", "8rem"). Omit (default) when the page has no
+   * fixed action bar. The nav height itself is always reserved regardless.
+   */
+  actionBarSpace?: string;
 }
 
 const {
@@ -68,6 +92,12 @@ const {
   active,
   back,
   mainClass = 'mx-auto flex w-full max-w-3xl flex-col gap-6 px-5 py-8 sm:gap-8 sm:px-6 sm:py-12',
+  actionBarSpace,
+  // Default to the request-scoped flex signal middleware stashed on locals
+  // (set on every protected member route) so the "Order" tab appears on
+  // EVERY member page without each page threading the prop. A page may still
+  // override explicitly (e.g. if it already has the membership rows in hand).
+  isFlexMember = Astro.locals.isFlexMember ?? false,
 } = Astro.props as Props;
 
 const pathname = Astro.url.pathname;
@@ -76,6 +106,9 @@ const pathname = Astro.url.pathname;
 // mailto: link (no route), so it is never "active" — only set via prop.
 function deriveActive(): Tab {
   if (pathname === '/dashboard') return 'home';
+  // Flex ordering is its own tab — highlight it on the order page (and its
+  // sub-paths) even though the URL lives under /account.
+  if (pathname === '/account/flex-order' || pathname.startsWith('/account/flex-order/')) return 'order';
   if (pathname === '/box' || pathname.startsWith('/box/')) return 'box';
   if (pathname === '/account' || pathname.startsWith('/account/')) return 'account';
   return 'home';
@@ -95,13 +128,23 @@ interface NavItem {
 // there is no icon-font dependency and they inherit `currentColor`.
 const ICONS: Record<Tab, string> = {
   home: 'M2.25 12l8.954-8.955a1.126 1.126 0 011.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25',
+  // Shopping-bag (order) — distinct from the box (delivery) icon so the
+  // "Order" and "Box" tabs read as clearly different actions.
+  order: 'M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007z',
   box: 'M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9',
   account: 'M17.982 18.725A7.488 7.488 0 0012 15.75a7.488 7.488 0 00-5.982 2.975m11.963 0a9 9 0 10-11.963 0m11.963 0A8.966 8.966 0 0112 21a8.966 8.966 0 01-5.982-2.275M15 9.75a3 3 0 11-6 0 3 3 0 016 0z',
   help: 'M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z',
 };
 
+// Base tabs (Hick's Law: keep it tight). The "Order" tab is inserted
+// directly after Home ONLY for flex-share members (FIX 1, 2026-06-08) — it
+// links to the weekly ordering page, NOT the wallet (/account/flex). Help
+// stays last so the action tabs cluster on the left.
 const navItems: NavItem[] = [
-  { key: 'home',    href: '/dashboard', label: 'Home',    icon: ICONS.home },
+  { key: 'home', href: '/dashboard', label: 'Home', icon: ICONS.home },
+  ...(isFlexMember
+    ? [{ key: 'order' as const, href: '/account/flex-order', label: 'Order', icon: ICONS.order }]
+    : []),
   { key: 'box',     href: '/box',       label: 'Box',     icon: ICONS.box },
   { key: 'account', href: '/account',   label: 'Account', icon: ICONS.account },
   {
@@ -116,6 +159,27 @@ const navItems: NavItem[] = [
 ];
 
 const hasOverlays = Astro.slots.has('overlays');
+
+// ── Persistent member nags (SOFTENED gates, 2026-06-12) ──────────────────
+// Middleware stashes locals.memberNags = { needsPhone, needsPickupAck } on
+// protected member HTML routes for non-admin members who still owe us a cell
+// number and/or a pickup confirmation. We replaced the old hard redirects with
+// unmissable, NON-DISMISSIBLE warning banners pinned to the top of <main> so a
+// member can still VIEW their share while we keep collecting the data. Each
+// banner is a big tap target linking to the page that satisfies it. When BOTH
+// apply we show BOTH (phone first — it's the prerequisite for the SMS the
+// pickup confirmation references).
+const memberNags = Astro.locals.memberNags;
+const needsPhone = memberNags?.needsPhone ?? false;
+const needsPickupAck = memberNags?.needsPickupAck ?? false;
+const hasNags = needsPhone || needsPickupAck;
+
+// <main> always reserves the nav height (+ 1.5rem breathing room). When the
+// page supplies a fixed action bar above the nav (actionBarSpace), reserve
+// its height too so the last content row clears BOTH the bar and the nav.
+const mainPaddingBottom = actionBarSpace
+  ? `calc(var(--member-bottombar-h) + 1.5rem + ${actionBarSpace})`
+  : 'calc(var(--member-bottombar-h) + 1.5rem)';
 ---
 
 <BaseLayout title={title} description={description} canonical={canonical}>
@@ -162,8 +226,70 @@ const hasOverlays = Astro.slots.has('overlays');
     <main
       id="main"
       class={mainClass}
-      style="padding-bottom: calc(var(--member-bottombar-h) + 1.5rem); scroll-padding-bottom: var(--member-bottombar-h);"
+      style={`padding-bottom: ${mainPaddingBottom}; scroll-padding-bottom: var(--member-bottombar-h);`}
     >
+      {/* ════ PERSISTENT MEMBER NAGS (SOFTENED gates, 2026-06-12) ════
+          Unmissable, NON-DISMISSIBLE warm warning bands pinned to the top of
+          every member page for members who still owe us a cell number and/or a
+          pickup confirmation. They never block content (the old hard redirects
+          did); they just persist until the member acts. Big tap targets (full
+          row is a link, min-h-[52px]) so they work gloved / one-handed. */}
+      {hasNags && (
+        <div class="flex flex-col gap-3" role="region" aria-label="Action needed">
+          {needsPhone && (
+            <a
+              href="/account/add-phone"
+              class="group flex items-center gap-4 rounded-ts-xl border-2 border-ts-warning/50 bg-ts-warning/10 p-4 shadow-ts-sm transition-all duration-200 ease-[var(--ease-ts)] hover:border-ts-warning/70 hover:bg-ts-warning/15 hover:shadow-ts-md active:scale-[0.995] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-warning [touch-action:manipulation] sm:p-5"
+              data-nag="phone"
+            >
+              <span
+                class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-ts-warning/20 text-2xl"
+                aria-hidden="true"
+              >
+                📱
+              </span>
+              <span class="min-w-0 flex-1">
+                <span class="block font-display text-base font-bold leading-tight text-ts-warning sm:text-lg">
+                  We need your cell number
+                </span>
+                <span class="mt-0.5 block text-sm leading-snug text-ts-text-secondary">
+                  We'll text you when your share arrives so you never miss a pickup.
+                </span>
+                <span class="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-ts-warning">
+                  Add it now <span aria-hidden="true" class="transition-transform duration-200 group-hover:translate-x-0.5">→</span>
+                </span>
+              </span>
+            </a>
+          )}
+
+          {needsPickupAck && (
+            <a
+              href="/account/confirm-pickup"
+              class="group flex items-center gap-4 rounded-ts-xl border-2 border-ts-warning/50 bg-ts-warning/10 p-4 shadow-ts-sm transition-all duration-200 ease-[var(--ease-ts)] hover:border-ts-warning/70 hover:bg-ts-warning/15 hover:shadow-ts-md active:scale-[0.995] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-warning [touch-action:manipulation] sm:p-5"
+              data-nag="pickup-ack"
+            >
+              <span
+                class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-ts-warning/20 text-2xl"
+                aria-hidden="true"
+              >
+                ✅
+              </span>
+              <span class="min-w-0 flex-1">
+                <span class="block font-display text-base font-bold leading-tight text-ts-warning sm:text-lg">
+                  Please confirm your pickup details
+                </span>
+                <span class="mt-0.5 block text-sm leading-snug text-ts-text-secondary">
+                  Take a few seconds to confirm where and when you'll get your box.
+                </span>
+                <span class="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-ts-warning">
+                  Confirm <span aria-hidden="true" class="transition-transform duration-200 group-hover:translate-x-0.5">→</span>
+                </span>
+              </span>
+            </a>
+          )}
+        </div>
+      )}
+
       {back && (
         <nav aria-label="Breadcrumb" class="text-sm">
           <a

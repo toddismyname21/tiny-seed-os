@@ -1,0 +1,173 @@
+---
+/**
+ * /account/add-phone — REQUIRED sign-in phone interstitial.
+ *
+ * Todd directive (2026-06-08): every member MUST have a valid US cell on
+ * file because we text them when their share arrives. middleware.ts gates
+ * the whole member portal: a signed-in member whose `customers.phone` is
+ * empty or not a valid US mobile is redirected HERE and can't reach the
+ * dashboard / flex / pickup until they save one.
+ *
+ * This page deliberately renders OUTSIDE MemberShell (no bottom nav, no
+ * top-bar links): the only ways off it are (a) saving a valid number or
+ * (b) signing out. Both are exempted in the middleware gate so the member
+ * is never trapped. A single required field — the lowest-friction ask.
+ *
+ * The form posts to /api/account/add-phone (normalizes + stores to
+ * customers.phone via the RLS-scoped, email-filtered update), then returns
+ * the member to `?next=` (the path the gate captured) or /dashboard.
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Button from '../../components/Button.astro';
+import { phoneSatisfiesGate } from '../../lib/phone';
+
+const user = Astro.locals.user;
+if (!user || !user.email) {
+  return Astro.redirect('/login', 303);
+}
+const supabase = Astro.locals.supabase;
+
+// If the member ALREADY has a valid phone (e.g. they typed the URL directly,
+// or just saved and hit back), don't keep them here — send them on. This
+// mirrors the gate's own predicate via the shared helper so the two never
+// disagree.
+const { data: customer } = await supabase
+  .from('customers')
+  .select('phone')
+  .maybeSingle()
+  .overrideTypes<{ phone: string | null }, { merge: false }>();
+
+// Sanitize the same-site `next` for the post-save redirect + back-link.
+const rawNext = Astro.url.searchParams.get('next');
+const next =
+  rawNext && rawNext.startsWith('/') && !rawNext.startsWith('//') &&
+  !rawNext.startsWith('/account/add-phone')
+    ? rawNext
+    : '/dashboard';
+
+if (phoneSatisfiesGate(customer?.phone)) {
+  return Astro.redirect(next, 303);
+}
+
+// ─── Flash (validation bounce) ───────────────────────────────────────
+const errorParam = Astro.url.searchParams.get('error');
+const ERROR_COPY: Record<string, string> = {
+  invalid_phone:
+    "That doesn't look like a valid US cell number — please enter 10 digits, like (412) 407-3884.",
+  save_failed: "We couldn't save that just now. Please try again.",
+};
+const errorMsg = errorParam ? ERROR_COPY[errorParam] ?? ERROR_COPY.invalid_phone : null;
+
+const inputClass =
+  'w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3.5 text-lg text-ts-text placeholder:text-ts-text-muted shadow-inner transition-colors duration-150 focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30';
+---
+
+<BaseLayout
+  title="Add your cell number — Tiny Seed Farm CSA"
+  description="Add a cell number so we can text you when your CSA share arrives."
+  canonical="https://csa.tinyseedfarm.com/account/add-phone"
+>
+  <div class="flex min-h-screen flex-col bg-ts-bg-base">
+    {/* Minimal top bar — brand only + a sign-out escape hatch. No nav links:
+        this is a required gate. */}
+    <header class="border-b border-ts-border bg-ts-bg-surface/80 backdrop-blur-sm">
+      <div class="mx-auto flex max-w-xl items-center justify-between px-5 py-4 sm:px-6">
+        <div class="flex items-center gap-2">
+          <span class="inline-block h-2.5 w-2.5 rounded-full bg-ts-primary" aria-hidden="true"></span>
+          <span class="font-display text-lg font-bold tracking-tight text-ts-text">
+            Tiny Seed Farm
+          </span>
+        </div>
+        <form method="POST" action="/logout" class="m-0">
+          <button
+            type="submit"
+            class="rounded-ts-md px-3 py-2 text-sm font-medium text-ts-text-secondary transition-colors duration-150 hover:bg-ts-bg-muted hover:text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+          >
+            Sign out
+          </button>
+        </form>
+      </div>
+    </header>
+
+    <main id="main" class="mx-auto flex w-full max-w-xl flex-1 flex-col justify-center gap-6 px-5 py-10 sm:px-6 sm:py-16">
+      <section aria-labelledby="add-phone-heading">
+        <span class="text-4xl" aria-hidden="true">📱</span>
+        <h1
+          id="add-phone-heading"
+          class="mt-3 font-display text-3xl font-bold tracking-tight text-ts-text sm:text-4xl"
+        >
+          One quick thing
+        </h1>
+        <p class="mt-3 text-base leading-relaxed text-ts-text-secondary">
+          Add your cell number so we can text you when your share arrives —
+          pickup reminders, delivery-day updates, and the occasional
+          time-sensitive note. We'll never share it or spam you.
+        </p>
+      </section>
+
+      {errorMsg && (
+        <div
+          role="alert"
+          aria-live="polite"
+          class="rounded-ts-lg border border-ts-danger/30 bg-ts-danger/5 px-4 py-3 text-sm leading-relaxed text-ts-danger"
+        >
+          {errorMsg}
+        </div>
+      )}
+
+      <form
+        method="POST"
+        action="/api/account/add-phone"
+        class="flex flex-col gap-5"
+        novalidate
+        data-add-phone-form
+      >
+        <input type="hidden" name="next" value={next} />
+
+        <div class="flex flex-col gap-2">
+          <label for="phone" class="text-sm font-semibold text-ts-text">
+            Cell phone number <span class="text-ts-danger" aria-hidden="true">*</span>
+          </label>
+          <input
+            id="phone"
+            name="phone"
+            type="tel"
+            inputmode="tel"
+            autocomplete="tel"
+            autofocus
+            required
+            maxlength="20"
+            class={inputClass}
+            placeholder="(412) 407-3884"
+            aria-describedby="phone-help"
+          />
+          <p id="phone-help" class="text-xs text-ts-text-muted">
+            US mobile number. We'll only text about your share.
+          </p>
+        </div>
+
+        <Button type="submit" variant="primary" size="lg" fullWidth data-submit-btn>
+          <span data-submit-label>Save and continue</span>
+        </Button>
+      </form>
+
+      <footer class="mt-2 text-center text-xs text-ts-text-muted">
+        <p>Signed in as <span class="font-medium text-ts-text-secondary">{user.email}</span></p>
+      </footer>
+    </main>
+  </div>
+
+  <script>
+    // Disable the button + swap the label on submit so a member doesn't
+    // double-submit on a slow connection (mirrors the profile page).
+    const form = document.querySelector<HTMLFormElement>('[data-add-phone-form]');
+    const submitBtn = document.querySelector<HTMLButtonElement>('[data-submit-btn]');
+    const submitLabel = document.querySelector<HTMLElement>('[data-submit-label]');
+    if (form && submitBtn && submitLabel) {
+      form.addEventListener('submit', () => {
+        submitBtn.disabled = true;
+        submitLabel.textContent = 'Saving…';
+      });
+    }
+  </script>
+</BaseLayout>

@@ -44,6 +44,13 @@ export interface Database {
           notes: string | null;
           /** Authorization role (migration 0017). 'admin'/'staff' bypass member-self RLS. */
           role: 'member' | 'admin' | 'staff';
+          /**
+           * When the member confirmed they understand their pickup location +
+           * day/time via /account/confirm-pickup (migration 0039, Todd
+           * directive 2026-06-08). NULL = not yet acknowledged → middleware
+           * forces the confirm-pickup interstitial.
+           */
+          pickup_acknowledged_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -119,6 +126,7 @@ export interface Database {
           host_name: string | null;
           host_phone: string | null;
           notes: string | null;
+          pickup_instructions: string | null;
           is_active: boolean;
           created_at: string;
         };
@@ -153,6 +161,14 @@ export interface Database {
           status: 'scheduled' | 'active' | 'completed' | 'cancelled';
           created_at: string;
           cancelled_at: string | null;
+          // Migration 0041: member self-serve disposition for the held week.
+          //   skip   — box simply not packed (default, legacy behaviour)
+          //   move   — box delivered on `move_to_week` instead
+          //   donate — box donated; farm reallocates it
+          disposition: 'skip' | 'move' | 'donate';
+          // The MONDAY (week_starting) of the target delivery week when
+          // disposition='move'; NULL otherwise.
+          move_to_week: string | null;
         };
         Insert: { member_id: string; start_date: string; end_date: string } & Partial<
           Database['public']['Tables']['vacation_holds']['Row']
@@ -581,6 +597,11 @@ export interface Database {
           photo_url: string | null;
           description: string | null;
           is_active: boolean;
+          /** Greyed "Coming Soon" teaser — shown to flex members but NOT
+           *  orderable. Paired with is_active=false (migration 0036). */
+          coming_soon: boolean;
+          /** Week's featured extra (hero treatment on the ordering page). */
+          is_featured: boolean;
           restock_alert_threshold: number;
           created_at: string;
           updated_at: string;
@@ -860,6 +881,11 @@ export interface Database {
           p_start_date: string;  // YYYY-MM-DD
           p_end_date: string;    // YYYY-MM-DD
           p_reason: string | null;
+          // Migration 0041: disposition + optional move target (Monday/
+          // week_starting of the target delivery week). Defaulted in SQL so
+          // the args remain optional for older callers.
+          p_disposition?: 'skip' | 'move' | 'donate';
+          p_move_to_week?: string | null; // YYYY-MM-DD (Monday)
         };
         Returns: Json;
       };
@@ -875,6 +901,28 @@ export interface Database {
           p_member_id: string;
           p_new_location_id: string | null;
           p_new_delivery_address: string | null;
+        };
+        Returns: Json;
+      };
+      // Atomic member flex-order submit (migration 0037). p_lines is a JSON
+      // array of { flex_item_id: uuid, qty: int }. Returns { ok:true,... } or
+      // { error:... }. See place_flex_order for the full contract.
+      place_flex_order: {
+        Args: {
+          p_member_id: string;
+          p_week_starting: string;
+          p_lines: Json;
+          p_balance_cents: number;
+        };
+        Returns: Json;
+      };
+      // Atomic member flex-order cancel (migration 0038). Restocks the
+      // member's pending lines for the week and flips them pending→cancelled.
+      // Returns { ok:true, cancelled, restocked_cents } or { error:... }.
+      cancel_flex_order: {
+        Args: {
+          p_member_id: string;
+          p_week_starting: string;
         };
         Returns: Json;
       };

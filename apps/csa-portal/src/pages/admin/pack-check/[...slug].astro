@@ -1,0 +1,646 @@
+---
+/**
+ * /admin/pack-check/[week]/[stop-slug] — printable PACK CHECKLIST for the
+ *                                        pack line, one sheet per stop.
+ * /admin/pack-check/[week]               → list of stops for the week.
+ * /admin/pack-check/[week]?all=1         → print every stop, page-broken.
+ *
+ * Built for the pack FLOOR (not the driver). Each stop prints on its OWN page:
+ *   • a COLOR-CODED stop band (same band color as the box labels + the driver
+ *     manifest) with the stop name, day, and total box count;
+ *   • one CHECKBOX ROW per member — a real empty square the packer ticks —
+ *     showing what to pack: the member name, a color-coded box-size badge,
+ *     their add-ons as chips ("+ Cheese, Mushroom"), and any flex items as a
+ *     nested tickable list. Home-delivery members show their street address.
+ *
+ * Add-ons ride ON the member's own row (they ship inside that member's box) —
+ * they are NEVER listed as separate people.
+ *
+ * Data source is identical to the labels + driver manifest: resolveCycle(week)
+ * → byStop / activeStops / boxCompositionByMember, plus per-member flex lines
+ * from flex_orders (joined to flex_inventory) — mirroring how
+ * /admin/labels/[...slug].astro builds flexByMember.
+ */
+import AdminShell from '../../../components/AdminShell.astro';
+import Card from '../../../components/Card.astro';
+import {
+  resolveCycle, slugStop, prettyWeekHeader, prettyShortDate,
+  HOME_DELIVERY_BUCKET_ID,
+  mondayOfWeek, isMonday,
+  type StopTotals, type CycleMember, type AddOnType,
+} from '../../../lib/cycle';
+
+const supabase = Astro.locals.supabase;
+const slugParam = (Astro.params.slug ?? '') as string;
+const segments = slugParam.split('/').filter(Boolean);
+
+if (segments.length === 0) {
+  return Astro.redirect('/admin/pack-check', 303);
+}
+
+const week_starting_input = segments[0];
+if (!/^\d{4}-\d{2}-\d{2}$/.test(week_starting_input)) {
+  return Astro.redirect('/admin/pack-check?error=bad_week', 303);
+}
+const week_starting = isMonday(week_starting_input)
+  ? week_starting_input
+  : mondayOfWeek(week_starting_input);
+
+const stopSlugRaw = segments[1] ?? '';
+const printAll = Astro.url.searchParams.get('all') === '1';
+
+const cycle = await resolveCycle(supabase, week_starting);
+
+// ─── Decide which stop(s) to render ──────────────────────────────────
+let stopsToRender: StopTotals[] = [];
+let title = '';
+if (printAll) {
+  stopsToRender = cycle.activeStops;
+  title = `All stops · ${prettyWeekHeader(week_starting)}`;
+} else if (stopSlugRaw) {
+  const found = cycle.activeStops.find((s) => slugStop(s.stop_name) === stopSlugRaw);
+  if (!found) {
+    return Astro.redirect(`/admin/pack-check?week=${week_starting}&error=stop_not_found`, 303);
+  }
+  stopsToRender = [found];
+  title = `${found.stop_name} · ${prettyWeekHeader(week_starting)}`;
+} else {
+  return Astro.redirect(`/admin/pack-check?week=${week_starting}`, 303);
+}
+
+const DAY_LONG: Record<string, string> = {
+  Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday',
+  Thu: 'Thursday', Fri: 'Friday', Sat: 'Saturday', Sun: 'Sunday',
+};
+
+function distDateForStop(stop: StopTotals): string {
+  if (stop.day_of_week === 'Tue') return cycle.distribution_dates.Tue;
+  if (stop.day_of_week === 'Sat') return cycle.distribution_dates.Sat;
+  return cycle.distribution_dates.Wed;
+}
+
+/* ── COLOR CODING — mirrors /admin/labels + /admin/stop-manifest (Todd) ──
+ * Same 15-band palette + home-delivery band + 4 size-badge colors mapped the
+ * SAME way (stops sorted by name) so a stop / size reads the identical color
+ * on the labels, the driver manifest, and this pack checklist. Fixed hex on
+ * purpose — this is a color-print document; print-color-adjust:exact forces
+ * the browser to keep the colors. */
+interface BandColor { bg: string; text: string; }
+const STOP_BANDS: BandColor[] = [
+  { bg: '#1f6f54', text: '#ffffff' }, // pine green
+  { bg: '#2563a8', text: '#ffffff' }, // ocean blue
+  { bg: '#9c3d8f', text: '#ffffff' }, // plum
+  { bg: '#b8431f', text: '#ffffff' }, // burnt orange
+  { bg: '#6b4fbb', text: '#ffffff' }, // violet
+  { bg: '#0f7d8c', text: '#ffffff' }, // teal
+  { bg: '#a8901c', text: '#1a1400' }, // mustard (dark text)
+  { bg: '#c43c64', text: '#ffffff' }, // raspberry
+  { bg: '#3f7d27', text: '#ffffff' }, // leaf green
+  { bg: '#4d5fa8', text: '#ffffff' }, // indigo
+  { bg: '#b5602a', text: '#ffffff' }, // copper
+  { bg: '#117a63', text: '#ffffff' }, // emerald
+  { bg: '#8a4b9c', text: '#ffffff' }, // grape
+  { bg: '#9e7b15', text: '#1a1400' }, // ochre (dark text)
+  { bg: '#5b6770', text: '#ffffff' }, // slate
+];
+const NO_STOP_BAND: BandColor = { bg: '#475569', text: '#ffffff' };
+const HOME_DELIVERY_BAND: BandColor = { bg: '#c2410c', text: '#ffffff' };
+
+const stopBandById = new Map<string, BandColor>();
+{
+  const sortedStops = cycle.activeStops
+    .slice()
+    .sort((a, b) => a.stop_name.localeCompare(b.stop_name));
+  sortedStops.forEach((s, idx) => {
+    stopBandById.set(s.stop_id, STOP_BANDS[idx % STOP_BANDS.length]);
+  });
+}
+function bandForStop(stop: StopTotals): BandColor {
+  if (stop.stop_id === HOME_DELIVERY_BUCKET_ID) return HOME_DELIVERY_BAND;
+  return stopBandById.get(stop.stop_id) ?? NO_STOP_BAND;
+}
+
+interface SizeBadge { label: string; bg: string; text: string; border: string; }
+const SIZE_BADGES: Record<string, SizeBadge> = {
+  small:   { label: 'SMALL',   bg: '#dceef0', text: '#0c4a52', border: '#7fc3cb' },
+  large:   { label: 'LARGE',   bg: '#fde2c4', text: '#7c3a06', border: '#eaa563' },
+  family:  { label: 'FAMILY',  bg: '#e7dcf7', text: '#4c2785', border: '#b79ae0' },
+  regular: { label: 'REGULAR', bg: '#d8eccf', text: '#27551a', border: '#8cc474' },
+};
+const SIZE_BADGE_NEUTRAL: SizeBadge = {
+  label: '', bg: '#e6eaef', text: '#334155', border: '#a9b4c2',
+};
+function sizeBadgeFor(m: CycleMember): SizeBadge {
+  if (m.share_type === 'summer_veg') {
+    const raw = (m.share_size ?? '').trim().toLowerCase();
+    const direct = SIZE_BADGES[raw];
+    if (direct) return direct;
+    return m.size_bucket === 'large' ? SIZE_BADGES.large : SIZE_BADGES.small;
+  }
+  let label = 'SHARE';
+  if (m.share_type === 'flower') label = 'FLOWER';
+  else if (m.share_type === 'flex') label = 'FLEX';
+  else if (m.share_type === 'spring_veg') label = 'SPRING';
+  else if (m.share_type === 'add_on') label = 'ADD-ON';
+  return { ...SIZE_BADGE_NEUTRAL, label };
+}
+
+/* ── Per-size box counts (cover checkboxes) ──────────────────────────
+ * StopTotals.boxes_small/boxes_large fold family + regular into "large"
+ * (the resolver only distinguishes small vs large via size_bucket). For an
+ * ACCURATE per-size breakdown the pack line ticks as they count/pack, we
+ * classify each summer_veg member at the stop from their RAW share_size into
+ * one of four display sizes; unrecognised → size_bucket fallback so no box
+ * is ever dropped. Mirrors the driver manifest's logic exactly. */
+type DisplaySize = 'small' | 'large' | 'family' | 'regular';
+const DISPLAY_SIZE_ORDER: DisplaySize[] = ['small', 'large', 'family', 'regular'];
+const DISPLAY_SIZE_LABEL: Record<DisplaySize, string> = {
+  small: 'Small', large: 'Large', family: 'Family', regular: 'Regular',
+};
+function displaySizeFor(m: CycleMember): DisplaySize {
+  const raw = (m.share_size ?? '').trim().toLowerCase();
+  if (raw === 'family') return 'family';
+  if (raw === 'regular') return 'regular';
+  if (raw === 'small' || raw === 'petite' || raw === 'light'
+    || raw === 'half' || raw === 'quarter' || raw === 'single') return 'small';
+  if (raw === 'large' || raw === 'full' || raw === 'double') return 'large';
+  return m.size_bucket === 'large' ? 'large' : 'small';
+}
+/** Count summer_veg box members at a stop by display size (only sizes > 0). */
+function sizeCountsForStop(stop: StopTotals): { size: DisplaySize; n: number }[] {
+  const counts: Record<DisplaySize, number> = { small: 0, large: 0, family: 0, regular: 0 };
+  for (const m of (cycle.byStop.get(stop.stop_id) ?? [])) {
+    if (m.share_type !== 'summer_veg') continue;
+    counts[displaySizeFor(m)] += 1;
+  }
+  return DISPLAY_SIZE_ORDER
+    .filter((s) => counts[s] > 0)
+    .map((s) => ({ size: s, n: counts[s] }));
+}
+/** Count FLEX boxes at a stop = members at the stop with share_type 'flex'
+ *  WHO HAVE AN ORDER this week (id in flexOrderedMemberIds, built below from
+ *  flexByMember). A flex member with no order ordered nothing → not a box, so
+ *  not counted here. Same per-stop member set as the size counts (cycle.byStop).
+ *  Flex boxes are a separate box type the pack line ticks. */
+function flexCountForStop(stop: StopTotals): number {
+  let n = 0;
+  for (const m of (cycle.byStop.get(stop.stop_id) ?? [])) {
+    if (m.share_type === 'flex' && flexOrderedMemberIds.has(m.id)) n += 1;
+  }
+  return n;
+}
+/** Flex members at a stop with NO order this week — nothing to pack. Surfaced
+ *  in a small screen-only note; never a pack row, never counted as a box. */
+function flexNoOrderForStop(stop: StopTotals): CycleMember[] {
+  return (cycle.byStop.get(stop.stop_id) ?? [])
+    .filter((m) => m.share_type === 'flex' && !flexOrderedMemberIds.has(m.id));
+}
+/* FLEX count chip color = the per-member FLEX size-badge color (neutral badge
+ * carrying the FLEX label) so the count chip matches the FLEX badges/labels. */
+const FLEX_CHIP = SIZE_BADGE_NEUTRAL;
+/** Per-stop add-on counts (only types > 0). resolveCycle already counts each
+ *  stop's add_on members into stop.addons[type] — accurate, so we use it. */
+const ADDON_ORDER: AddOnType[] = ['mushroom', 'bread', 'cheese', 'coffee', 'eggs', 'unknown'];
+function addonCountsForStop(stop: StopTotals): { type: AddOnType; n: number }[] {
+  return ADDON_ORDER
+    .filter((t) => stop.addons[t] > 0)
+    .map((t) => ({ type: t, n: stop.addons[t] }));
+}
+
+/* ── Add-on chips — same color code as the labels page ──────────────── */
+const ADDON_STYLE: Record<AddOnType, { bg: string; text: string; border: string; emoji: string; label: string }> = {
+  mushroom: { bg: '#efe9e1', text: '#5b4636', border: '#b89b80', emoji: '🍄', label: 'Mushroom' },
+  bread:    { bg: '#f6e7c9', text: '#7a4f12', border: '#d8b170', emoji: '🍞', label: 'Bread' },
+  cheese:   { bg: '#fdf3c4', text: '#7a5c00', border: '#e3c84e', emoji: '🧀', label: 'Cheese' },
+  coffee:   { bg: '#e3d5c8', text: '#4a2f1c', border: '#b08c6e', emoji: '☕', label: 'Coffee' },
+  eggs:     { bg: '#fde8ec', text: '#8a2f43', border: '#eab0bd', emoji: '🥚', label: 'Eggs' },
+  unknown:  { bg: '#e6eaef', text: '#334155', border: '#a9b4c2', emoji: '➕', label: 'Add-on' },
+};
+function addonChipLabel(m: CycleMember): string {
+  if (m.addon_type !== 'unknown') return ADDON_STYLE[m.addon_type].label;
+  return 'Add-on';
+}
+
+// ─── Per-customer add-on index (across the whole cycle) ──────────────
+// An add-on ships INSIDE the customer's box and must ride on that customer's
+// box ROW here — regardless of the add-on row's own pickup (often null/stale).
+// We build a customer_id → add-on rows index once, then attach to the box row
+// when we walk each stop. A customer with ONLY add-on rows (no box this cycle)
+// → their add-on drops (no box ⇒ no add-on this week); same rule as the labels.
+const addonRowsByCustomer = new Map<string, CycleMember[]>();
+for (const m of cycle.members) {
+  if (m.share_type === 'add_on') {
+    const arr = addonRowsByCustomer.get(m.customer_id);
+    if (arr) arr.push(m);
+    else addonRowsByCustomer.set(m.customer_id, [m]);
+  }
+}
+
+// ─── Flex lines per member (one round trip for the whole cycle) ──────
+// Status set MATCHES the labels page (pending | locked | fulfilled) so the
+// checklist agrees with what gets packed. cancelled / refunded are excluded.
+type FlexLineRow = {
+  member_id: string;
+  qty: number;
+  flex_item: { name: string | null } | null;
+};
+const flexByMember = new Map<string, Array<{ name: string | null; qty: number }>>();
+{
+  const memberIds = Array.from(new Set(cycle.members.map((m) => m.id)));
+  if (memberIds.length > 0) {
+    const { data, error } = await supabase
+      .from('flex_orders')
+      .select('member_id, qty, flex_item:flex_inventory ( name )')
+      .eq('cycle_code', 'WEEKLY')
+      .eq('week_starting', week_starting)
+      .in('status', ['pending', 'locked', 'fulfilled'])
+      .in('member_id', memberIds)
+      .overrideTypes<FlexLineRow[], { merge: false }>();
+    if (!error) {
+      for (const r of (data ?? []) as FlexLineRow[]) {
+        const arr = flexByMember.get(r.member_id) ?? [];
+        arr.push({ name: r.flex_item?.name ?? null, qty: r.qty });
+        flexByMember.set(r.member_id, arr);
+      }
+    }
+  }
+}
+
+// ─── Flex members WITH an order this week (the "ordered set") ────────
+// THE RULE (Todd 2026-06-10): a flex member is a real box for the week ONLY
+// if they have a flex_orders row for the week with status pending / locked /
+// fulfilled. flexByMember (built above with that exact status set) holds one
+// entry per flex member who has ≥1 order line this week — so its key set IS
+// the ordered set. A flex member NOT in this set ordered nothing → not a box,
+// not a packable row, not counted. summer_veg boxes are unaffected.
+const flexOrderedMemberIds = new Set<string>(flexByMember.keys());
+
+/* ── Collapse a stop's member rows into ONE pack ROW per customer ────
+ * BOX SHARES define a row; add-on rows attach as chips (never their own row).
+ * Mirrors the labels page so the checklist and the stickers line up 1:1. */
+const SHARE_PRIORITY: Record<string, number> = {
+  summer_veg: 0, spring_veg: 1, flower: 2, flex: 3, add_on: 9,
+};
+function sharePriority(m: CycleMember): number {
+  return SHARE_PRIORITY[m.share_type] ?? 5;
+}
+
+interface PackRow {
+  primary: CycleMember;
+  addonChips: Array<{ type: AddOnType; label: string }>;
+  flexLines: Array<{ name: string | null; qty: number }>;
+}
+
+/** Build the ordered pack rows for a single stop (alphabetical by name). */
+function packRowsForStop(stop: StopTotals): PackRow[] {
+  const members = cycle.byStop.get(stop.stop_id) ?? [];
+
+  // Group BOX shares by customer; add-on rows skipped (attach below).
+  // A flex row with NO order this week is NOT a box (nothing to pack) → skip it
+  // so it never becomes a pack row. If that flex row was the customer's only
+  // box this week, the customer drops out entirely (correct — nothing to pack);
+  // if they also hold a summer_veg box, that row still carries them.
+  const byCustomer = new Map<string, CycleMember[]>();
+  for (const m of members) {
+    if (m.share_type === 'add_on') continue;
+    if (m.share_type === 'flex' && !flexOrderedMemberIds.has(m.id)) continue;
+    const arr = byCustomer.get(m.customer_id);
+    if (arr) arr.push(m);
+    else byCustomer.set(m.customer_id, [m]);
+  }
+
+  const rows: PackRow[] = [];
+  for (const [customerId, boxRows] of byCustomer) {
+    const sorted = boxRows.slice().sort((a, b) => sharePriority(a) - sharePriority(b));
+    const primary = sorted[0];
+    const addons = addonRowsByCustomer.get(customerId) ?? [];
+
+    // Dedup add-on chips by type, stable order by label.
+    const seen = new Set<AddOnType>();
+    const addonChips: Array<{ type: AddOnType; label: string }> = [];
+    for (const a of addons) {
+      if (seen.has(a.addon_type)) continue;
+      seen.add(a.addon_type);
+      addonChips.push({ type: a.addon_type, label: addonChipLabel(a) });
+    }
+    addonChips.sort((x, y) => x.label.localeCompare(y.label));
+
+    // Flex: union across all of this customer's member rows.
+    const flexLines: Array<{ name: string | null; qty: number }> = [];
+    for (const m of [primary, ...addons]) {
+      const lines = flexByMember.get(m.id);
+      if (lines) flexLines.push(...lines);
+    }
+
+    rows.push({ primary, addonChips, flexLines });
+  }
+
+  rows.sort((a, b) => a.primary.contact_name.localeCompare(b.primary.contact_name));
+  return rows;
+}
+
+function memberShareLabel(m: CycleMember): string {
+  if (m.share_type === 'summer_veg') {
+    const sz = m.size_bucket === 'large' ? 'Large' : 'Small';
+    return `${sz} summer veg box`;
+  }
+  if (m.share_type === 'flower') return 'Flower share';
+  if (m.share_type === 'flex') return 'Flex box';
+  if (m.share_type === 'spring_veg') return 'Spring veg box';
+  return m.share_type;
+}
+---
+
+<AdminShell
+  title="Pack checklist"
+  subtitle={title}
+  pageTitle={`Pack checklist — ${title} — Tiny Seed Admin`}
+>
+  <Fragment slot="actions">
+    <button
+      type="button"
+      onclick="window.print()"
+      class="inline-flex h-10 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm transition-colors hover:bg-ts-primary-dark"
+    >
+      🖨 Print checklist
+    </button>
+    <a
+      href="/admin/pack-check"
+      class="inline-flex h-10 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-semibold text-ts-text hover:border-ts-primary/40 hover:text-ts-primary"
+    >
+      ← Back to all stops
+    </a>
+  </Fragment>
+
+  <div class="print-doc flex flex-col gap-8">
+    {stopsToRender.map((stop) => {
+      const rows = packRowsForStop(stop);
+      const flexNoOrder = flexNoOrderForStop(stop)
+        .slice()
+        .sort((a, b) => a.contact_name.localeCompare(b.contact_name));
+      const distDate = distDateForStop(stop);
+      const sizeCounts = sizeCountsForStop(stop);
+      const flexCount = flexCountForStop(stop);
+      // A flex member gets a physical box (their flex order) to pack, so the
+      // band's box total = summer boxes + flex boxes. Matches the cover chips
+      // (which separate summer sizes from flex) and the driver manifest total.
+      const totalBoxes = stop.boxes_small + stop.boxes_large + flexCount;
+      const addonCounts = addonCountsForStop(stop);
+      const totalAddons = addonCounts.reduce((a, x) => a + x.n, 0);
+      const band = bandForStop(stop);
+      const isHomeDelivery = stop.stop_id === HOME_DELIVERY_BUCKET_ID;
+      return (
+        <section class="page-break" aria-labelledby={`pc-stop-${stop.stop_id}`}>
+          {/* COLOR-CODED STOP BAND — matches labels + driver manifest. */}
+          <header
+            class="stop-band flex flex-wrap items-end justify-between gap-3 rounded-ts-lg px-5 py-4"
+            style={`background:${band.bg};color:${band.text};`}
+          >
+            <div class="min-w-0">
+              <p class="text-xs font-semibold uppercase tracking-wider opacity-90">
+                Pack checklist · {prettyWeekHeader(week_starting)}
+              </p>
+              <h2
+                id={`pc-stop-${stop.stop_id}`}
+                class="mt-1 font-display text-3xl font-bold sm:text-4xl"
+              >
+                {isHomeDelivery ? '🏠 ' : ''}{stop.stop_name}
+              </h2>
+              <p class="mt-1 text-sm font-semibold opacity-95">
+                {stop.day_of_week ? DAY_LONG[stop.day_of_week] : ''} · {prettyShortDate(distDate)}
+              </p>
+            </div>
+            <div class="shrink-0 text-right">
+              <div class="font-display text-4xl font-extrabold tabular-nums leading-none">
+                {totalBoxes}
+              </div>
+              <div class="text-xs font-bold uppercase tracking-wide opacity-95">
+                box{totalBoxes === 1 ? '' : 'es'}
+              </div>
+            </div>
+          </header>
+
+          {/* COVER COUNTS — tickable per-size + per-add-on chips ─────────
+              Per-size counts come from the actual summer_veg members (raw
+              share_size) so Family / Regular are distinct (boxes_small/large
+              folds them into "large"). Each chip carries a real empty square
+              the pack line ticks as it counts/packs that size. */}
+          {(sizeCounts.length > 0 || flexCount > 0 || addonCounts.length > 0) && (
+            <div class="mt-4 flex flex-col gap-3 rounded-ts-lg border-2 border-ts-border bg-ts-bg-muted/60 p-4">
+              {(sizeCounts.length > 0 || flexCount > 0) && (
+                <div>
+                  <p class="text-[11px] font-bold uppercase tracking-wide text-ts-text-secondary">
+                    Box sizes — tick each as counted
+                  </p>
+                  <div class="mt-2 flex flex-wrap items-center gap-2">
+                    {sizeCounts.map((sc) => {
+                      const badge = SIZE_BADGES[sc.size];
+                      return (
+                        <span
+                          class="count-chip inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-extrabold"
+                          style={`background:${badge.bg};color:${badge.text};border:2px solid ${badge.border};`}
+                        >
+                          <span
+                            class="inline-block h-4 w-4 shrink-0 rounded-sm border-2 bg-white print:border-black"
+                            style={`border-color:${badge.text};`}
+                            aria-hidden="true"
+                          ></span>
+                          <span class="tabular-nums">{sc.n}</span>
+                          {DISPLAY_SIZE_LABEL[sc.size]}
+                        </span>
+                      );
+                    })}
+                    {/* FLEX boxes — same chip style + the per-member FLEX badge
+                        color. Flex is a box type the packer counts/packs too. */}
+                    {flexCount > 0 && (
+                      <span
+                        class="count-chip inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-extrabold"
+                        style={`background:${FLEX_CHIP.bg};color:${FLEX_CHIP.text};border:2px solid ${FLEX_CHIP.border};`}
+                      >
+                        <span
+                          class="inline-block h-4 w-4 shrink-0 rounded-sm border-2 bg-white print:border-black"
+                          style={`border-color:${FLEX_CHIP.text};`}
+                          aria-hidden="true"
+                        ></span>
+                        <span class="tabular-nums">{flexCount}</span>
+                        Flex
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {addonCounts.length > 0 && (
+                <div>
+                  <p class="text-[11px] font-bold uppercase tracking-wide text-ts-text-secondary">
+                    Add-ons ({totalAddons}) — tick each as packed
+                  </p>
+                  <div class="mt-2 flex flex-wrap items-center gap-2">
+                    {addonCounts.map((a) => {
+                      const style = ADDON_STYLE[a.type];
+                      return (
+                        <span
+                          class="count-chip addon-chip inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-extrabold"
+                          style={`background:${style.bg};color:${style.text};border:2px solid ${style.border};`}
+                        >
+                          <span
+                            class="inline-block h-4 w-4 shrink-0 rounded-sm border-2 bg-white print:border-black"
+                            style={`border-color:${style.text};`}
+                            aria-hidden="true"
+                          ></span>
+                          <span class="tabular-nums">{a.n}</span>
+                          <span aria-hidden="true">{style.emoji}</span>
+                          {style.label}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* CHECKBOX ROWS — one per member ─────────────────────────── */}
+          {rows.length === 0 ? (
+            <Card tone="muted" padding="md" elevation="sm">
+              <p class="text-center text-sm text-ts-text-secondary">
+                No members at this stop this cycle.
+              </p>
+            </Card>
+          ) : (
+            <ol class="mt-4 divide-y divide-ts-border/60">
+              {rows.map((row) => {
+                const m = row.primary;
+                const badge = sizeBadgeFor(m);
+                const isHomeMember = !m.pickup_location_id
+                  && !!(m.delivery_address && m.delivery_address.trim());
+                return (
+                  <li class="pack-row flex items-start gap-4 px-1 py-3 sm:px-2">
+                    {/* Real empty checkbox the packer ticks per member. */}
+                    <span
+                      class="pack-check mt-0.5 inline-block h-6 w-6 shrink-0 rounded border-2 border-ts-text bg-white print:border-black"
+                      aria-hidden="true"
+                    ></span>
+                    <div class="min-w-0 flex-1">
+                      {/* Name + size badge + share type. */}
+                      <div class="flex flex-wrap items-center gap-2">
+                        <span class="text-base font-bold text-ts-text">
+                          {m.contact_name}
+                        </span>
+                        {badge.label && (
+                          <span
+                            class="size-badge inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-extrabold uppercase tracking-wide"
+                            style={`background:${badge.bg};color:${badge.text};border:1px solid ${badge.border};`}
+                          >{badge.label}</span>
+                        )}
+                        <span class="text-xs text-ts-text-secondary">
+                          {memberShareLabel(m)}
+                        </span>
+                      </div>
+
+                      {/* Home-delivery street address (driver/packer reads it). */}
+                      {isHomeMember && (
+                        <p class="mt-1 text-xs font-semibold text-ts-text">
+                          🏠 {m.delivery_address}
+                        </p>
+                      )}
+
+                      {/* Add-ons ride ON this member's row as color chips. */}
+                      {row.addonChips.length > 0 && (
+                        <div class="mt-1.5 flex flex-wrap items-center gap-1.5">
+                          <span class="text-xs font-semibold text-ts-text-secondary">+ Add:</span>
+                          {row.addonChips.map((chip) => (
+                            <span
+                              class="addon-chip inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-bold"
+                              style={`background:${ADDON_STYLE[chip.type].bg};color:${ADDON_STYLE[chip.type].text};border:1px solid ${ADDON_STYLE[chip.type].border};`}
+                            >
+                              <span aria-hidden="true">{ADDON_STYLE[chip.type].emoji}</span>
+                              {chip.label}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Flex items — nested tickable checklist. */}
+                      {row.flexLines.length > 0 && (
+                        <div class="mt-1.5">
+                          <div class="text-[11px] font-bold uppercase tracking-wide text-ts-primary">
+                            Flex — check each as packed
+                          </div>
+                          <ul class="mt-1 grid grid-cols-1 gap-x-6 gap-y-1 sm:grid-cols-2">
+                            {row.flexLines.map((l) => (
+                              <li class="flex items-start gap-2 text-xs text-ts-text">
+                                <span
+                                  class="flex-check mt-0.5 inline-block h-3.5 w-3.5 shrink-0 rounded-sm border border-ts-primary bg-white"
+                                  aria-hidden="true"
+                                ></span>
+                                <span class="font-medium tabular-nums">
+                                  {l.qty}× {l.name ?? 'item'}
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* Allergy flag (packer must honor substitutions). */}
+                      {m.allergies.length > 0 && (
+                        <p class="mt-1 text-xs font-bold text-ts-warning">
+                          ⚠ ALLERGY: {m.allergies.join(', ')}
+                        </p>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
+          )}
+
+          {/* Flex members with NO order this week — nothing to pack. Screen-only
+              awareness note (never prints, never a pack row, never counted). */}
+          {flexNoOrder.length > 0 && (
+            <p class="screen-only mt-4 rounded-ts-md border border-ts-border bg-ts-bg-muted/50 px-3 py-2 text-xs text-ts-text-secondary">
+              <strong class="font-semibold">Flex — no order this week (nothing to pack):</strong>{' '}
+              {flexNoOrder.map((m, i) => (
+                <span>{i > 0 ? ', ' : ''}{m.contact_name}</span>
+              ))}
+            </p>
+          )}
+        </section>
+      );
+    })}
+  </div>
+</AdminShell>
+
+<style is:global>
+  /* Colored stop bands, size badges, and add-on chips must keep their color
+     through the print pipeline (browsers strip backgrounds in print). */
+  .stop-band, .size-badge, .addon-chip, .count-chip {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* ── Print-friendly: page-break between stops ─────────────────────────
+   *  AdminShell removes its own chrome (sticky header, nav, page-heading +
+   *  the actions slot that holds the Print button & back link) at print time
+   *  via `print:hidden`, and resets <main> to full-bleed. So `.print-doc`
+   *  prints in NORMAL FLOW from the top of page 1. We never hide
+   *  `main > div:first-child` (the first child of <main> is `.print-doc`
+   *  itself — hiding it would blank the whole sheet). On-screen-only UI added
+   *  later must carry `.screen-only`, which the rule below hides. */
+  @media print {
+    @page { size: Letter portrait; margin: 0.5in; }
+
+    body, html { background: white !important; }
+
+    .screen-only { display: none !important; }
+
+    .page-break { break-after: page; page-break-after: always; }
+    .page-break:last-child { break-after: auto; page-break-after: auto; }
+
+    /* Keep a member's whole row (name + add-ons + flex) together on one page. */
+    .pack-row { break-inside: avoid; page-break-inside: avoid; }
+  }
+</style>
+</content>
+</invoke>

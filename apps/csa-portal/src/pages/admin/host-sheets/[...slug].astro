@@ -1,0 +1,322 @@
+---
+/**
+ * /admin/host-sheets/[week]/[stop-slug] — printable HOST CONTACT SHEET, one
+ *                                         page per stop.
+ * /admin/host-sheets/[week]               → list of stops for the week.
+ * /admin/host-sheets/[week]?all=1         → print every host stop, page-broken.
+ *
+ * Handed to each pickup-stop HOST: a big, readable list of everyone picking up
+ * a box at THEIR stop this week, with NAME and PHONE, so the host knows who to
+ * expect and can reach them. The host scans it, so it's set large.
+ *
+ * WHO APPEARS (one row per CUSTOMER — mirrors /admin/pack-check):
+ *   • summer_veg members receiving a box this week (biweekly null/'A',
+ *     resolved by the cycle), AND
+ *   • flex members WHO HAVE AN ORDER this week (flex_orders status in
+ *     pending/locked/fulfilled — the "ordered set").
+ *   A flex member with NO order ordered nothing → not a box → NOT listed.
+ *   Grouping by customer_id collapses a customer who holds both a summer box
+ *   and a flex order into a single row (one person to expect at the stop).
+ *
+ * WHO IS NOT A HOST STOP: home delivery + "no pickup set" buckets have no
+ * host, so this view only renders REAL pickup stops (those with a
+ * pickup_location_id). The slug page redirects if asked for a non-host bucket.
+ *
+ * Data source is the same cycle resolver the labels / manifest / pack-check
+ * use: resolveCycle(week) → byStop / activeStops. Phones are NOT on
+ * CycleMember (the resolver only joins contact_name + email), so we fetch them
+ * once by customer_id — exactly like /admin/text-stop does — and format them
+ * with lib/phone.formatUSPhone ("(412) 407-3884"); missing/invalid numbers
+ * show "no phone on file".
+ *
+ * Print pattern is IDENTICAL to /admin/pack-check + /admin/stop-manifest:
+ * AdminShell hides its chrome via `print:hidden`; the @media print block
+ * below sets Letter portrait, hides `.screen-only` UI, and page-breaks each
+ * stop. Admin-guarded by middleware (covers /admin/*). No hardcoded URLs.
+ */
+import AdminShell from '../../../components/AdminShell.astro';
+import Card from '../../../components/Card.astro';
+import {
+  resolveCycle, slugStop, prettyWeekHeader, prettyShortDate,
+  HOME_DELIVERY_BUCKET_ID,
+  mondayOfWeek, isMonday,
+  type StopTotals, type CycleMember,
+} from '../../../lib/cycle';
+import { formatUSPhone, isValidUSPhone } from '../../../lib/phone';
+
+const supabase = Astro.locals.supabase;
+const slugParam = (Astro.params.slug ?? '') as string;
+const segments = slugParam.split('/').filter(Boolean);
+
+if (segments.length === 0) {
+  return Astro.redirect('/admin/host-sheets', 303);
+}
+
+const week_starting_input = segments[0];
+if (!/^\d{4}-\d{2}-\d{2}$/.test(week_starting_input)) {
+  return Astro.redirect('/admin/host-sheets?error=bad_week', 303);
+}
+const week_starting = isMonday(week_starting_input)
+  ? week_starting_input
+  : mondayOfWeek(week_starting_input);
+
+const stopSlugRaw = segments[1] ?? '';
+const printAll = Astro.url.searchParams.get('all') === '1';
+
+const cycle = await resolveCycle(supabase, week_starting);
+
+// Host stops = real pickup stops only (no home delivery, no no-pickup-set).
+const hostStops: StopTotals[] = cycle.activeStops.filter(
+  (s) => s.stop_id !== HOME_DELIVERY_BUCKET_ID && s.stop_id !== 'no_pickup_set',
+);
+
+// ─── Decide which stop(s) to render ──────────────────────────────────
+let stopsToRender: StopTotals[] = [];
+let title = '';
+if (printAll) {
+  stopsToRender = hostStops;
+  title = `All host stops · ${prettyWeekHeader(week_starting)}`;
+} else if (stopSlugRaw) {
+  const found = hostStops.find((s) => slugStop(s.stop_name) === stopSlugRaw);
+  if (!found) {
+    return Astro.redirect(`/admin/host-sheets?week=${week_starting}&error=stop_not_found`, 303);
+  }
+  stopsToRender = [found];
+  title = `${found.stop_name} · ${prettyWeekHeader(week_starting)}`;
+} else {
+  return Astro.redirect(`/admin/host-sheets?week=${week_starting}`, 303);
+}
+
+const DAY_LONG: Record<string, string> = {
+  Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday',
+  Thu: 'Thursday', Fri: 'Friday', Sat: 'Saturday', Sun: 'Sunday',
+};
+
+function distDateForStop(stop: StopTotals): string {
+  if (stop.day_of_week === 'Tue') return cycle.distribution_dates.Tue;
+  if (stop.day_of_week === 'Sat') return cycle.distribution_dates.Sat;
+  return cycle.distribution_dates.Wed;
+}
+
+// ─── Flex members WITH an order this week (the "ordered set") ────────
+// THE RULE (mirrors /admin/pack-check): a flex member is a real box for the
+// week ONLY if they have a flex_orders row for the week with status pending /
+// locked / fulfilled. We fetch the member_ids in that set once (bounded to
+// this cycle's member ids) and key the inclusion test off it. A flex member
+// NOT in this set ordered nothing → not a box → not listed on the host sheet.
+const flexOrderedMemberIds = new Set<string>();
+{
+  const memberIds = Array.from(new Set(cycle.members.map((m) => m.id)));
+  if (memberIds.length > 0) {
+    type FlexOrderRow = { member_id: string };
+    const { data, error } = await supabase
+      .from('flex_orders')
+      .select('member_id')
+      .eq('cycle_code', 'WEEKLY')
+      .eq('week_starting', week_starting)
+      .in('status', ['pending', 'locked', 'fulfilled'])
+      .in('member_id', memberIds)
+      .overrideTypes<FlexOrderRow[], { merge: false }>();
+    if (!error) {
+      for (const r of (data ?? []) as FlexOrderRow[]) {
+        flexOrderedMemberIds.add(r.member_id);
+      }
+    }
+  }
+}
+
+/**
+ * Does this member count as someone PICKING UP a box this week?
+ *   - summer_veg: always (already biweekly/season/hold-resolved by the cycle).
+ *   - flex: only when they have an order this week (ordered set).
+ *   - everything else (add_on, flower, spring_veg, …): NOT a separate
+ *     person to expect at a host stop — they're either riding inside another
+ *     box (add_on) or out of season for this view. We deliberately list only
+ *     box-getters the host should expect.
+ */
+function isBoxGetter(m: CycleMember): boolean {
+  if (m.share_type === 'summer_veg') return true;
+  if (m.share_type === 'flex') return flexOrderedMemberIds.has(m.id);
+  return false;
+}
+
+/** One ROW per CUSTOMER at a stop — the people the host should expect.
+ *  Group box-getters by customer_id (a customer holding both a summer box and
+ *  a flex order is ONE person at the stop), pick a stable display member for
+ *  name, sorted alphabetically by name. */
+interface HostRow {
+  customer_id: string;
+  contact_name: string;
+}
+function hostRowsForStop(stop: StopTotals): HostRow[] {
+  const members = cycle.byStop.get(stop.stop_id) ?? [];
+  const byCustomer = new Map<string, CycleMember[]>();
+  for (const m of members) {
+    if (!isBoxGetter(m)) continue;
+    const arr = byCustomer.get(m.customer_id);
+    if (arr) arr.push(m);
+    else byCustomer.set(m.customer_id, [m]);
+  }
+  const rows: HostRow[] = [];
+  for (const [customer_id, list] of byCustomer) {
+    // Prefer a summer_veg row's name; otherwise the first row. Names match
+    // across a customer's rows (same joined customer), so any row works — the
+    // priority is just for determinism.
+    const primary = list.find((m) => m.share_type === 'summer_veg') ?? list[0];
+    rows.push({ customer_id, contact_name: primary.contact_name });
+  }
+  rows.sort((a, b) => a.contact_name.localeCompare(b.contact_name));
+  return rows;
+}
+
+// ─── Phone numbers for every customer we'll display ──────────────────
+// CycleMember carries customer_id but NOT phone (the resolver only selects
+// contact_name + email). One bounded query by customer_id gets the phones —
+// exactly the pattern /admin/text-stop uses. RLS: admin client bypasses
+// member-self RLS. We scope the fetch to the customers actually shown.
+const shownCustomerIds = new Set<string>();
+for (const stop of stopsToRender) {
+  for (const row of hostRowsForStop(stop)) shownCustomerIds.add(row.customer_id);
+}
+const phoneByCustomer = new Map<string, string | null>();
+{
+  const ids = Array.from(shownCustomerIds).filter(Boolean);
+  if (ids.length > 0) {
+    type PhoneRow = { id: string; phone: string | null };
+    const { data, error } = await supabase
+      .from('customers')
+      .select('id, phone')
+      .in('id', ids)
+      .overrideTypes<PhoneRow[], { merge: false }>();
+    if (!error) {
+      for (const r of (data ?? []) as PhoneRow[]) {
+        phoneByCustomer.set(r.id, r.phone);
+      }
+    }
+  }
+}
+
+/** Display phone for a customer: pretty US format when valid, else the
+ *  "no phone on file" sentinel (handled in the template for styling). */
+function phoneDisplay(customer_id: string): { text: string; missing: boolean } {
+  const raw = phoneByCustomer.get(customer_id) ?? null;
+  if (raw && isValidUSPhone(raw)) return { text: formatUSPhone(raw), missing: false };
+  // A legacy value that doesn't normalize is still useless to a host — show
+  // the "no phone on file" sentinel so they know to chase the number.
+  return { text: 'no phone on file', missing: true };
+}
+---
+
+<AdminShell
+  title="Host contact sheet"
+  subtitle={title}
+  pageTitle={`Host contact sheet — ${title} — Tiny Seed Admin`}
+>
+  <Fragment slot="actions">
+    <button
+      type="button"
+      onclick="window.print()"
+      class="inline-flex h-10 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm transition-colors hover:bg-ts-primary-dark"
+    >
+      🖨 Print host sheet
+    </button>
+    <a
+      href="/admin/host-sheets"
+      class="inline-flex h-10 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-semibold text-ts-text hover:border-ts-primary/40 hover:text-ts-primary"
+    >
+      ← Back to all stops
+    </a>
+  </Fragment>
+
+  {/* Screen-only instructions — never printed. */}
+  <p class="screen-only rounded-ts-md border border-ts-border bg-ts-bg-muted/50 px-4 py-3 text-sm text-ts-text-secondary">
+    Hand each host the sheet for their stop. It lists everyone picking up a box
+    there this week with their name and phone — so the host knows who to expect
+    and can reach them. One page per stop.
+  </p>
+
+  <div class="print-doc flex flex-col gap-8">
+    {stopsToRender.map((stop) => {
+      const rows = hostRowsForStop(stop);
+      const distDate = distDateForStop(stop);
+      const dayLabel = stop.day_of_week ? DAY_LONG[stop.day_of_week] : '';
+      return (
+        <section class="page-break" aria-labelledby={`hs-stop-${stop.stop_id}`}>
+          {/* Header — stop name + day + date, large for the host to scan. */}
+          <header class="rounded-ts-lg border-2 border-ts-border bg-ts-bg-muted/60 px-5 py-4">
+            <p class="text-xs font-semibold uppercase tracking-wider text-ts-text-secondary">
+              Pickup host sheet · {prettyWeekHeader(week_starting)}
+            </p>
+            <h2
+              id={`hs-stop-${stop.stop_id}`}
+              class="mt-1 font-display text-3xl font-bold text-ts-text sm:text-4xl"
+            >
+              {stop.stop_name}
+            </h2>
+            <p class="mt-1 text-base font-semibold text-ts-text">
+              {dayLabel}{dayLabel ? ' · ' : ''}{prettyShortDate(distDate)}
+            </p>
+            <p class="mt-2 text-sm font-semibold text-ts-text-secondary tabular-nums">
+              {rows.length} {rows.length === 1 ? 'person' : 'people'} picking up this week
+            </p>
+          </header>
+
+          {/* People + phones — big, readable rows. */}
+          {rows.length === 0 ? (
+            <Card tone="muted" padding="md" elevation="sm">
+              <p class="text-center text-sm text-ts-text-secondary">
+                No one is picking up a box at this stop this week.
+              </p>
+            </Card>
+          ) : (
+            <ol class="mt-4 divide-y-2 divide-ts-border/70">
+              {rows.map((row) => {
+                const phone = phoneDisplay(row.customer_id);
+                return (
+                  <li class="host-row flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 px-1 py-4 sm:px-2">
+                    <span class="text-2xl font-bold text-ts-text sm:text-3xl">
+                      {row.contact_name}
+                    </span>
+                    {phone.missing ? (
+                      <span class="text-lg font-semibold italic text-ts-text-muted sm:text-xl">
+                        {phone.text}
+                      </span>
+                    ) : (
+                      <span class="text-2xl font-bold tabular-nums text-ts-text sm:text-3xl">
+                        {phone.text}
+                      </span>
+                    )}
+                  </li>
+                );
+              })}
+            </ol>
+          )}
+        </section>
+      );
+    })}
+  </div>
+</AdminShell>
+
+<style is:global>
+  /* ── Print-friendly: page-break between stops ─────────────────────────
+   *  AdminShell removes its own chrome (sticky header, nav, page-heading +
+   *  the actions slot that holds the Print button & back link) at print time
+   *  via `print:hidden`, and resets <main> to full-bleed. So `.print-doc`
+   *  prints in NORMAL FLOW from the top of page 1. On-screen-only UI carries
+   *  `.screen-only`, which the rule below hides. */
+  @media print {
+    @page { size: Letter portrait; margin: 0.5in; }
+
+    body, html { background: white !important; }
+
+    .screen-only { display: none !important; }
+
+    .page-break { break-after: page; page-break-after: always; }
+    .page-break:last-child { break-after: auto; page-break-after: auto; }
+
+    /* Keep a person's name + phone together on one page. */
+    .host-row { break-inside: avoid; page-break-inside: avoid; }
+  }
+</style>
+</content>
+</invoke>

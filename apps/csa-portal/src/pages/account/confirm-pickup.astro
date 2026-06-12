@@ -1,0 +1,273 @@
+---
+/**
+ * /account/confirm-pickup — REQUIRED pickup-acknowledgment interstitial.
+ *
+ * Todd directive (2026-06-08): every member MUST confirm they understand
+ * WHERE and WHEN they pick up their share — missed pickups waste boxes and
+ * frustrate members. Same forcing pattern as the phone gate: middleware
+ * (src/middleware.ts) redirects a non-admin member whose
+ * customers.pickup_acknowledged_at IS NULL here, and they can't reach the
+ * dashboard / box / flex until they confirm (or sign out).
+ *
+ * This page renders OUTSIDE MemberShell (no bottom nav): the only ways off it
+ * are (a) confirming, (b) choosing a pickup location first (when none set), or
+ * (c) signing out. All exempted in the middleware gate so the member is never
+ * trapped.
+ *
+ * The view adapts to the member's RESOLVED pickup (resolveMemberPickup):
+ *   - 'pickup' WITH a time window  → "you pick up at <name> on <day>, <time>"
+ *   - 'pickup' WITHOUT a window    → text-on-arrival: "you'll get a text when
+ *                                     your box arrives at <name> on <day>"
+ *   - 'delivery'                   → "your box is delivered to <address>"
+ *   - 'none' (live share, no choice)→ route to /account/pickup to choose first
+ *   - noActiveShare                → friendly "we'll set this up when your
+ *                                     share starts" + a confirm that clears the
+ *                                     flag (so the member isn't re-prompted).
+ *
+ * The form posts to /api/account/confirm-pickup which stamps
+ * customers.pickup_acknowledged_at = now(), then returns the member to
+ * `?next=` (the path the gate captured) or /dashboard.
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Button from '../../components/Button.astro';
+import HostNote from '../../components/HostNote.astro';
+import { resolveMemberPickup } from '../../lib/account';
+
+const user = Astro.locals.user;
+if (!user || !user.email) {
+  return Astro.redirect('/login', 303);
+}
+const supabase = Astro.locals.supabase;
+
+// If the member has ALREADY acknowledged (typed the URL directly, or just
+// confirmed and hit back), don't keep them here — send them on. Mirrors the
+// gate's predicate so the two never disagree.
+const { data: ackRow } = await supabase
+  .from('customers')
+  .select('pickup_acknowledged_at')
+  .eq('email', user.email)
+  .maybeSingle()
+  .overrideTypes<{ pickup_acknowledged_at: string | null }, { merge: false }>();
+
+// Sanitize the same-site `next` for the post-save redirect + back-link.
+const rawNext = Astro.url.searchParams.get('next');
+const next =
+  rawNext && rawNext.startsWith('/') && !rawNext.startsWith('//') &&
+  !rawNext.startsWith('/account/confirm-pickup')
+    ? rawNext
+    : '/dashboard';
+
+if (ackRow?.pickup_acknowledged_at) {
+  return Astro.redirect(next, 303);
+}
+
+const pickup = await resolveMemberPickup(supabase);
+
+// ─── Flash (validation/save bounce) ──────────────────────────────────
+const errorParam = Astro.url.searchParams.get('error');
+const errorMsg =
+  errorParam === 'save_failed'
+    ? "We couldn't save that just now. Please try again."
+    : null;
+
+// Build the human-readable acknowledgment sentence shown on the checkbox +
+// the headline detail. Keep it warm, clear, and specific.
+let detailHeadline = '';
+let detailBody = '';
+let ackLabel = '';
+let icon = '📍';
+
+if (pickup.kind === 'delivery') {
+  icon = '🏡';
+  detailHeadline = 'Your box comes to your door';
+  detailBody = `We deliver to ${pickup.deliveryAddress} on delivery day. We'll text you a heads-up when it's on the way.`;
+  ackLabel = 'I understand my box is delivered to my home address.';
+} else if (pickup.kind === 'pickup' && pickup.textOnArrival) {
+  icon = '📍';
+  const dayPart = pickup.dayLong ? ` on ${pickup.dayLong}` : '';
+  detailHeadline = `You pick up at ${pickup.locationName}`;
+  detailBody = `Your box is dropped at ${pickup.locationName}${pickup.locationCity ? `, ${pickup.locationCity}` : ''}${dayPart}. You'll get a text the moment it arrives so you know it's ready — then grab it whenever works for you that day.`;
+  ackLabel = `I understand I pick up at ${pickup.locationName}${dayPart}, and I'll get a text when my box arrives.`;
+} else if (pickup.kind === 'pickup') {
+  icon = '📍';
+  const dayPart = pickup.dayLong ? ` on ${pickup.dayLong}` : '';
+  const timePart = pickup.timeRange ? `, ${pickup.timeRange}` : '';
+  detailHeadline = `You pick up at ${pickup.locationName}`;
+  detailBody = `Your box is ready at ${pickup.locationName}${pickup.locationCity ? `, ${pickup.locationCity}` : ''}${dayPart}${timePart}. Please pick it up during those hours — boxes left behind can't always be held.`;
+  ackLabel = `I understand I pick up at ${pickup.locationName}${dayPart}${timePart}.`;
+} else if (pickup.noActiveShare) {
+  icon = '🌱';
+  detailHeadline = "We'll set this up when your share starts";
+  detailBody =
+    "You don't have an active share just yet. When your CSA season begins, we'll confirm exactly where and when you pick up — and text you when your first box is ready.";
+  ackLabel = "Got it — I'll confirm my pickup details once my share is active.";
+} else {
+  // kind === 'none' — live share but no pickup chosen. Route them to choose.
+  icon = '🗺️';
+  detailHeadline = 'First, choose where you pick up';
+  detailBody =
+    "You haven't picked a pickup location yet. Choose your stop (or request home delivery) and then we'll confirm the details with you.";
+}
+
+const needsLocation = pickup.kind === 'none' && !pickup.noActiveShare;
+---
+
+<BaseLayout
+  title="Confirm your pickup — Tiny Seed Farm CSA"
+  description="Confirm where and when you pick up your CSA share."
+  canonical="https://csa.tinyseedfarm.com/account/confirm-pickup"
+>
+  <div class="flex min-h-screen flex-col bg-ts-bg-base">
+    {/* Minimal top bar — brand only + a sign-out escape hatch. No nav links:
+        this is a required gate. */}
+    <header class="border-b border-ts-border bg-ts-bg-surface/80 backdrop-blur-sm">
+      <div class="mx-auto flex max-w-xl items-center justify-between px-5 py-4 sm:px-6">
+        <div class="flex items-center gap-2">
+          <span class="inline-block h-2.5 w-2.5 rounded-full bg-ts-primary" aria-hidden="true"></span>
+          <span class="font-display text-lg font-bold tracking-tight text-ts-text">
+            Tiny Seed Farm
+          </span>
+        </div>
+        <form method="POST" action="/logout" class="m-0">
+          <button
+            type="submit"
+            class="rounded-ts-md px-3 py-2 text-sm font-medium text-ts-text-secondary transition-colors duration-150 hover:bg-ts-bg-muted hover:text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+          >
+            Sign out
+          </button>
+        </form>
+      </div>
+    </header>
+
+    <main id="main" class="mx-auto flex w-full max-w-xl flex-1 flex-col justify-center gap-6 px-5 py-10 sm:px-6 sm:py-16">
+      <section aria-labelledby="confirm-pickup-heading">
+        <span class="text-4xl" aria-hidden="true">{icon}</span>
+        <h1
+          id="confirm-pickup-heading"
+          class="mt-3 font-display text-3xl font-bold tracking-tight text-ts-text sm:text-4xl"
+        >
+          {needsLocation ? 'One quick step' : "Let's confirm your pickup"}
+        </h1>
+        <p class="mt-3 text-base leading-relaxed text-ts-text-secondary">
+          {needsLocation
+            ? "So your box never goes to waste, let's make sure you know exactly where it'll be each week."
+            : 'A box of food is a lot of care — yours and ours. Take a moment to confirm where it lands so nothing gets missed.'}
+        </p>
+      </section>
+
+      {errorMsg && (
+        <div
+          role="alert"
+          aria-live="polite"
+          class="rounded-ts-lg border border-ts-danger/30 bg-ts-danger/5 px-4 py-3 text-sm leading-relaxed text-ts-danger"
+        >
+          {errorMsg}
+        </div>
+      )}
+
+      {/* Resolved pickup detail card */}
+      <div class="rounded-ts-xl border border-ts-border bg-ts-bg-surface p-5 shadow-ts-sm">
+        <p class="font-display text-lg font-bold tracking-tight text-ts-text">
+          {detailHeadline}
+        </p>
+        <p class="mt-2 text-sm leading-relaxed text-ts-text-secondary">
+          {detailBody}
+        </p>
+      </div>
+
+      {/* Per-site pickup instructions (member-facing). Shown ONLY when the
+          resolved stop has custom instructions — falls back to the generic
+          detail copy above otherwise. Warm accent so it reads as important. */}
+      {pickup.kind === 'pickup' && pickup.pickupInstructions && (
+        <div class="rounded-ts-xl border border-ts-primary/30 bg-ts-primary/5 p-5 shadow-ts-sm">
+          <p class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-ts-primary">
+            <span aria-hidden="true">📋</span>
+            Pickup instructions for {pickup.locationName}
+          </p>
+          <p class="mt-2 whitespace-pre-line text-sm leading-relaxed text-ts-text">
+            {pickup.pickupInstructions}
+          </p>
+        </div>
+      )}
+
+      {/* Your host + respect-your-host note (host'd pickup stops only — the
+          component renders nothing when there's no host_name). */}
+      {pickup.kind === 'pickup' && (
+        <HostNote hostName={pickup.hostName} hostPhone={pickup.hostPhone} />
+      )}
+
+      {needsLocation ? (
+        /* No pickup chosen yet → send them to choose one first. The gate
+           exempts /account/pickup so they can get there. */
+        <div class="flex flex-col gap-3">
+          <Button href="/account/pickup" variant="primary" size="lg" fullWidth>
+            Choose my pickup location
+          </Button>
+          <p class="text-center text-xs text-ts-text-muted">
+            We'll bring you right back here to confirm once you've picked a stop.
+          </p>
+        </div>
+      ) : (
+        /* Pickup is resolvable → require an explicit checkbox acknowledgment. */
+        <form
+          method="POST"
+          action="/api/account/confirm-pickup"
+          class="flex flex-col gap-5"
+          data-confirm-pickup-form
+        >
+          <input type="hidden" name="next" value={next} />
+
+          <label class="flex cursor-pointer items-start gap-3 rounded-ts-lg border border-ts-border bg-ts-bg-surface px-4 py-4 transition-colors duration-150 hover:border-ts-primary/50 has-[:checked]:border-ts-primary has-[:checked]:bg-ts-primary/5">
+            <input
+              id="ack"
+              name="ack"
+              type="checkbox"
+              required
+              value="yes"
+              class="mt-0.5 h-5 w-5 shrink-0 rounded border-ts-border text-ts-primary focus:ring-2 focus:ring-ts-primary/30"
+              data-ack-checkbox
+            />
+            <span class="text-sm font-medium leading-relaxed text-ts-text">
+              {ackLabel}
+            </span>
+          </label>
+
+          <Button type="submit" variant="primary" size="lg" fullWidth data-submit-btn>
+            <span data-submit-label>Confirm — take me in</span>
+          </Button>
+
+          {/* Quiet escape hatch to change the stop before confirming. The
+              pickup page is gate-exempt. */}
+          {!pickup.noActiveShare && (
+            <a
+              href="/account/pickup"
+              class="text-center text-sm font-medium text-ts-text-secondary underline-offset-2 transition-colors duration-150 hover:text-ts-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+            >
+              That's not right — change my pickup
+            </a>
+          )}
+        </form>
+      )}
+
+      <footer class="mt-2 text-center text-xs text-ts-text-muted">
+        <p>Signed in as <span class="font-medium text-ts-text-secondary">{user.email}</span></p>
+      </footer>
+    </main>
+  </div>
+
+  <script>
+    // Disable the button + swap the label on submit so a member doesn't
+    // double-submit on a slow connection (mirrors add-phone). Native checkbox
+    // validation runs first — only show the busy state on a valid form.
+    const form = document.querySelector<HTMLFormElement>('[data-confirm-pickup-form]');
+    const submitBtn = document.querySelector<HTMLButtonElement>('[data-submit-btn]');
+    const submitLabel = document.querySelector<HTMLElement>('[data-submit-label]');
+    if (form && submitBtn && submitLabel) {
+      form.addEventListener('submit', () => {
+        if (typeof form.checkValidity === 'function' && !form.checkValidity()) return;
+        submitBtn.disabled = true;
+        submitLabel.textContent = 'Confirming…';
+      });
+    }
+  </script>
+</BaseLayout>

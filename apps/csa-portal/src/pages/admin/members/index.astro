@@ -237,14 +237,35 @@ if (pickupFilter === 'home_delivery') {
   query = query.eq('pickup_location_id', pickupFilter);
 }
 if (q.length > 0) {
-  // OR across name/email/member legacy_id/customer legacy_id. PostgREST
-  // `.or()` accepts a comma-separated list of filter expressions; the
-  // embedded customer table is reachable via the `customer.column` dotted
-  // path. We escape % and , in the input.
+  // SEARCH (FIX 2026-06-08). The previous one-shot query OR-ed customer
+  // columns into the top-level members `.or()` via the dotted embedded path
+  // (`customer.contact_name.ilike…`). PostgREST CANNOT parse a base-table
+  // column and an embedded-resource column in the SAME logic tree — it
+  // returned `"failed to parse logic tree"`, the query errored, and the page
+  // fell back to an EMPTY result set, so EVERY search showed nothing. (A
+  // `referencedTable` `.or()` filters only the customer side and can't be
+  // OR-combined with the member's own legacy_id in one request, and chaining
+  // two `.or()`s ANDs them.)
+  //
+  // Correct fix: resolve matching customer IDs FIRST (name / email / customer
+  // legacy_id, searched directly on the customers table), then filter members
+  // by `customer_id IN (…)` OR the member's own `legacy_id` — both now plain
+  // members base columns, so a single top-level `.or()` parses cleanly.
   const safe = q.replace(/[%,]/g, '\\$&');
-  query = query.or(
-    `customer.contact_name.ilike.%${safe}%,customer.email.ilike.%${safe}%,customer.legacy_id.ilike.%${safe}%,legacy_id.ilike.%${safe}%`
-  );
+  const { data: matchedCustomers, error: custSearchError } = await supabase
+    .from('customers')
+    .select('id')
+    .or(`contact_name.ilike.%${safe}%,email.ilike.%${safe}%,legacy_id.ilike.%${safe}%`)
+    .limit(MAX_FETCH_ROWS);
+  if (custSearchError) {
+    console.error('[admin/members] customer search failed:', custSearchError.message);
+  }
+  const matchedCustomerIds = (matchedCustomers ?? []).map((c) => c.id);
+  const orClauses: string[] = [`legacy_id.ilike.%${safe}%`];
+  if (matchedCustomerIds.length > 0) {
+    orClauses.push(`customer_id.in.(${matchedCustomerIds.join(',')})`);
+  }
+  query = query.or(orClauses.join(','));
 }
 
 // Order: stable + recency-first so the freshest customers float to the

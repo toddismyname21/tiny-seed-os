@@ -1,0 +1,1125 @@
+---
+/**
+ * /account/flex-order — weekly flex (extras) ordering for flex-share members.
+ *
+ * Gated to members.share_type='flex'. Traditional CSA members are redirected
+ * to /account (they see NOTHING — no extras, no swaps in Phase 1).
+ *
+ * Ports the legacy web_app/csa.html interaction contract (pre-filled cart,
+ * inline deadline, live balance, "balance carries forward", multi-state
+ * submit, onboarding modal) and modernizes per FLEX_ORDERING_GAP_RESEARCH:
+ *   M1 live countdown to the week's CLOSE · M2 sold-out/low-stock from
+ *   remaining_qty + server-side oversell guard · M3 item photos w/ emoji
+ *   fallback · M4 over-balance copy · M5 onboarding modal · M6 a11y ·
+ *   M7 post-cutoff lock.
+ *
+ * ORDER WINDOW (Todd 2026-06-08): Week 1 ('2026-06-08') is already open and
+ * CLOSES Tue Jun 9 6 PM ET. Standing weeks OPEN the prior Thursday 00:00 ET
+ * and CLOSE that week's Tuesday 7 AM ET. The page renders three states:
+ * BEFORE-OPEN (read-only "opens Thursday"), OPEN (orderable), AFTER-CLOSE
+ * (existing locked state). All window math lives in lib/flex-order.ts.
+ *
+ * EXPLICIT SUBMIT (Todd 2026-06-08): the cart PRE-FILLS with the Small CSA
+ * Share by default; the member customizes and MUST tap Submit. Non-submitters
+ * skip the week (balance carries forward). If the member already has a pending
+ * order for the week, the cart restores THAT instead of the default.
+ *
+ * Catalog read uses the SERVICE-ROLE client so we can also surface the
+ * coming-soon teasers (is_active=false), which the member RLS path
+ * (flex_inventory_member_read: is_active=true) intentionally hides. This is
+ * safe: the page is already gated to flex members and renders teasers as
+ * non-orderable. The member's identity + order writes still go through the
+ * RLS-scoped path (the submit API + the place_flex_order RPC).
+ *
+ * The live BALANCE is the <FlexWallet variant="detail"> island (non-blocking,
+ * fetches /api/account/flex-balance after paint) — but the ORDERING math
+ * (cap, "after this order") needs the number client-side, so we listen for
+ * the island's `flex:resolved` event.
+ */
+import MemberShell from '../../components/MemberShell.astro';
+import Card from '../../components/Card.astro';
+import Badge from '../../components/Badge.astro';
+import Disclosure from '../../components/Disclosure.astro';
+import EmptyState from '../../components/EmptyState.astro';
+import FlexWallet from '../../components/FlexWallet.astro';
+import { supabaseAdmin } from '../../lib/supabase';
+import {
+  formatCents, categoryEmoji, cutoffEpochMs, opensEpochMs,
+  isPastCutoff, isBeforeOpen, closeLabel, stockTier, prettyWeek,
+  currentOrderWeek, windowLabels,
+} from '../../lib/flex-order';
+
+const user = Astro.locals.user;
+if (!user || !user.email) {
+  return Astro.redirect('/login', 303);
+}
+const supabase = Astro.locals.supabase;
+
+// ─── Resolve the caller's flex member (RLS-scoped). ──────────────────
+type FlexMemberRow = { id: string; share_type: string; status: string; share_size: string | null };
+const { data: memberRows, error: memberErr } = await supabase
+  .from('members')
+  .select('id, share_type, status, share_size')
+  .eq('share_type', 'flex')
+  .in('status', ['active', 'paused', 'onboarding'])
+  .order('status', { ascending: true })
+  .overrideTypes<FlexMemberRow[], { merge: false }>();
+
+if (memberErr) {
+  console.error('[account/flex-order] member fetch failed:', memberErr.message);
+}
+const flexMember = (memberRows ?? [])[0] ?? null;
+
+// Traditional members (no active flex share) see nothing — bounce to /account.
+if (!flexMember) {
+  return Astro.redirect('/account', 303);
+}
+
+// ─── Week + order window (open Thu / close Tue; Week-1 override). ─────
+// BUG B FIX (2026-06-08): select the delivery week by the CURRENT ORDER
+// WINDOW, not `upcomingMonday()`. On Tuesday (deadline day) the window for
+// THIS week is still open, but upcomingMonday() returned next week —
+// dropping members into a future, before-open, no-inventory week and
+// blocking last-hour orders. `currentOrderWeek` returns the week whose
+// window is open now, or the next upcoming week (before-open) between
+// windows. See lib/flex-order.ts + flex-order.test.ts.
+// DEV-ONLY clock seam (no-op in production): `?__now=<epochMs>` lets the
+// proof harness render the open / before-open / closed states deterministically
+// without faking the system clock. Guarded by import.meta.env.DEV so it can
+// never affect the deployed site.
+const NOW: number = (() => {
+  if (import.meta.env.DEV) {
+    const raw = Astro.url.searchParams.get('__now');
+    const n = raw ? Number(raw) : NaN;
+    if (Number.isFinite(n)) return n;
+  }
+  return Date.now();
+})();
+
+const week = currentOrderWeek(NOW);
+const cutoffMs = cutoffEpochMs(week);
+const opensMs = opensEpochMs(week);
+const pastCutoff = isPastCutoff(week, NOW);
+const beforeOpen = isBeforeOpen(week, NOW);
+// The window is "live" (orderable) only between open and close.
+const windowOpen = !beforeOpen && !pastCutoff;
+// Human label for this week's close time ("Tuesday 6 PM" wk1 · "Tuesday 7 AM").
+const closeCopy = closeLabel(week);
+
+// Concrete ET open/close labels for the closed + before-open brand-moment
+// copy (Todd 2026-06-08). For the BEFORE-OPEN state, the resolved `week`
+// IS the next window. For the (defensive) CLOSED state, advance to the
+// next orderable window so we always show a real, future open+close. In
+// both cases `opensLabel` is null only for the already-open Week-1.
+const nextWindowWeek = pastCutoff ? currentOrderWeek(Math.max(cutoffMs, NOW)) : week;
+const { opensLabel: nextOpensLabel, closesLabel: nextClosesLabel } = windowLabels(nextWindowWeek);
+// "Opens Thursday" short date for the before-open headline + preview copy.
+const opensLabel = beforeOpen
+  ? new Intl.DateTimeFormat('en-US', {
+      weekday: 'long', month: 'long', day: 'numeric',
+      timeZone: 'America/New_York',
+    }).format(new Date(opensMs))
+  : '';
+
+// ─── Catalog for the week (service-role: includes coming-soon teasers). ─
+type CatalogRow = {
+  id: string;
+  name: string;
+  category: string | null;
+  unit: string;
+  price_cents: number;
+  remaining_qty: number;
+  photo_url: string | null;
+  description: string | null;
+  is_active: boolean;
+  coming_soon: boolean;
+  is_featured: boolean;
+};
+const { data: catalogRows, error: catErr } = await supabaseAdmin
+  .from('flex_inventory')
+  .select('id, name, category, unit, price_cents, remaining_qty, photo_url, description, is_active, coming_soon, is_featured')
+  .eq('cycle_code', 'WEEKLY')
+  .eq('week_starting', week)
+  .order('price_cents', { ascending: true })
+  .overrideTypes<CatalogRow[], { merge: false }>();
+
+if (catErr) {
+  console.error('[account/flex-order] catalog fetch failed:', catErr.message);
+}
+const allItems = catalogRows ?? [];
+// Orderable = active and NOT a coming-soon teaser.
+const orderable = allItems.filter((i) => i.is_active && !i.coming_soon);
+const comingSoon = allItems.filter((i) => i.coming_soon);
+
+// The Small CSA Share is the default cart line (Todd's decision). Match by name.
+const defaultShare =
+  orderable.find((i) => i.name.toLowerCase() === 'small csa share') ?? null;
+
+// ─── This week's box contents for the CSA-share items (small/family). ─
+type BoxContentRow = { share_type: string; product_name: string; quantity: number; unit: string };
+const { data: boxRows } = await supabaseAdmin
+  .from('box_contents')
+  .select('share_type, product_name, quantity, unit')
+  .eq('week_date', week)
+  .in('share_type', ['small', 'family'])
+  .overrideTypes<BoxContentRow[], { merge: false }>();
+
+const boxBySize = new Map<string, BoxContentRow[]>();
+for (const r of boxRows ?? []) {
+  const arr = boxBySize.get(r.share_type) ?? [];
+  arr.push(r);
+  boxBySize.set(r.share_type, arr);
+}
+function shareContents(name: string): string[] {
+  const n = name.toLowerCase();
+  let size: string | null = null;
+  if (n.includes('small')) size = 'small';
+  else if (n.includes('family')) size = 'family';
+  if (!size) return [];
+  return (boxBySize.get(size) ?? []).map((r) => {
+    const qty = Number(r.quantity);
+    // Render a clean integer when whole (e.g. "2 Lettuce"), drop "1".
+    const q = Number.isInteger(qty) ? qty : Math.round(qty * 100) / 100;
+    return q > 1 ? `${q} ${r.product_name}` : r.product_name;
+  });
+}
+
+// ─── The member's existing PENDING order (to restore the cart). ──────
+type ExistingOrderRow = { flex_item_id: string; qty: number; status: string };
+const { data: existingRows } = await supabase
+  .from('flex_orders')
+  .select('flex_item_id, qty, status')
+  .eq('member_id', flexMember.id)
+  .eq('cycle_code', 'WEEKLY')
+  .eq('week_starting', week)
+  .overrideTypes<ExistingOrderRow[], { merge: false }>();
+
+const pendingOrder = (existingRows ?? []).filter((r) => r.status === 'pending');
+const lockedOrder = (existingRows ?? []).filter((r) => r.status === 'locked' || r.status === 'fulfilled');
+const hasPending = pendingOrder.length > 0;
+const hasLocked = lockedOrder.length > 0;
+
+// Initial cart: restore pending order if present; else pre-fill the default
+// Small CSA Share (qty 1) if it exists. { [itemId]: qty }.
+const initialCart: Record<string, number> = {};
+if (hasPending) {
+  for (const r of pendingOrder) initialCart[r.flex_item_id] = r.qty;
+} else if (windowOpen && defaultShare) {
+  initialCart[defaultShare.id] = 1;
+}
+
+// Client payload — items + initial cart + cutoff. Only fields the client needs.
+const clientItems = orderable.map((i) => ({
+  id: i.id,
+  name: i.name,
+  category: i.category,
+  unit: i.unit,
+  priceCents: i.price_cents,
+  remaining: i.remaining_qty,
+  emoji: categoryEmoji(i.category),
+}));
+
+// ─── Flash. ──────────────────────────────────────────────────────────
+const okParam = Astro.url.searchParams.get('ok');
+const errorParam = Astro.url.searchParams.get('error');
+const ERROR_COPY: Record<string, string> = {
+  invalid_input: "Something looked off with your order — please try again.",
+  forbidden: "We couldn't verify your flex membership.",
+  not_flex: "Flex ordering is only for flex-share members.",
+  empty: "Add at least one item before submitting.",
+  item_unavailable: "One of your items just sold out or was removed — please review your cart.",
+  oversold: "Someone grabbed the last of an item while you were ordering — lower the quantity and try again.",
+  over_balance: "Your cart is more than your Flex balance. Remove an item or add Flex.",
+  window_closed: "Ordering for this week isn't open right now. Your balance carries forward.",
+  submit_failed: "We couldn't submit your order. Please try again.",
+  cancel_failed: "We couldn't cancel your order. Please try again.",
+};
+const errorMsg = errorParam ? ERROR_COPY[errorParam] ?? ERROR_COPY.submit_failed : null;
+
+// ─── Confirmation modal (celebratory "Order confirmed!" moment). ──────
+// A success pop-up replaces the inline green flash for the ok states. The
+// `submitted`/`updated` variants list what's now in the member's PENDING
+// order for the week (name × qty + line total) and the grand total, read
+// from the SAME `pendingOrder` query that restores the cart — joined to the
+// catalog (`allItems`) for names + prices. The `cancelled` variant is a
+// gentle reassurance with no item list (there's nothing left to show). The
+// remaining Flex balance line is filled client-side from the FlexWallet
+// island's `flex:resolved` event (the page never has the number server-side).
+// The submit API emits ONLY `?ok=submitted` today; `updated` is handled
+// defensively so a future "updated" redirect renders the same warm moment.
+type ConfirmKind = 'submitted' | 'updated' | 'cancelled' | 'skipped';
+const confirmKind: ConfirmKind | null =
+  okParam === 'submitted' ? 'submitted'
+    : okParam === 'updated' ? 'updated'
+      : okParam === 'cancelled' ? 'cancelled'
+        : okParam === 'skipped' ? 'skipped'
+          : null;
+
+const catalogById = new Map(allItems.map((i) => [i.id, i]));
+type ConfirmLine = { name: string; qty: number; emoji: string; lineCents: number };
+const confirmLines: ConfirmLine[] = (confirmKind === 'submitted' || confirmKind === 'updated')
+  ? pendingOrder
+      .map((r) => {
+        const it = catalogById.get(r.flex_item_id);
+        return it
+          ? { name: it.name, qty: r.qty, emoji: categoryEmoji(it.category), lineCents: it.price_cents * r.qty }
+          : null;
+      })
+      .filter((l): l is ConfirmLine => l !== null)
+  : [];
+const confirmTotalCents = confirmLines.reduce((sum, l) => sum + l.lineCents, 0);
+
+const CONFIRM_COPY: Record<ConfirmKind, { emoji: string; title: string; line: string }> = {
+  submitted: { emoji: '🌿', title: 'Order confirmed!', line: "We'll have it fresh and ready for your pickup this week." },
+  updated:   { emoji: '🌿', title: 'Order updated!',   line: "Your changes are in — we'll have it ready for your pickup this week." },
+  cancelled: { emoji: '💚', title: 'Order cancelled',  line: 'No worries — your Flex balance carries forward and never expires. Order again anytime before the deadline.' },
+  skipped:   { emoji: '🌙', title: "You're skipped for this week", line: 'Nothing will be packed for you this week. Your Flex balance is untouched and carries forward — order again anytime before the deadline.' },
+};
+const confirm = confirmKind ? CONFIRM_COPY[confirmKind] : null;
+
+// ─── PERSISTENT order-saved banner (Todd 2026-06-09). ────────────────
+// Unlike the post-submit MODAL (which only appears once, right after a
+// submit via ?ok=…), this banner renders on EVERY page load whenever the
+// member has a saved order for the week — pending OR locked. It makes it
+// unmissable that the order went through and itemizes exactly what they
+// ordered. Reuses the SAME `catalogById` lookup the modal uses (id ->
+// catalog row) so names + prices resolve identically; an id missing from
+// the catalog falls back to a generic "Item" label rather than crashing.
+// `hasLocked` wins when both exist (a locked order is the final state).
+const savedSource = hasLocked ? lockedOrder : pendingOrder;
+const showSavedBanner = hasPending || hasLocked;
+type SavedLine = { name: string; qty: number; emoji: string; lineCents: number };
+const savedLines: SavedLine[] = savedSource.map((r) => {
+  const it = catalogById.get(r.flex_item_id);
+  return it
+    ? { name: it.name, qty: r.qty, emoji: categoryEmoji(it.category), lineCents: it.price_cents * r.qty }
+    : { name: 'Item', qty: r.qty, emoji: categoryEmoji(null), lineCents: 0 };
+});
+const savedTotalCents = savedLines.reduce((sum, l) => sum + l.lineCents, 0);
+const savedHeading = hasLocked
+  ? '✅ Your order is locked in for this week'
+  : '✅ Your order is in for this week';
+const savedReassurance = hasLocked
+  ? "It's locked for packing — contact us if you need a change."
+  : 'You can update it until the Tuesday cutoff — just change your cart below and tap Update my order.';
+---
+
+<MemberShell
+  title="Flex ordering — Tiny Seed Farm CSA"
+  description="Order this week's extras with your Farm Flex balance."
+  canonical="https://csa.tinyseedfarm.com/account/flex-order"
+  userEmail={user.email}
+  active="order"
+  isFlexMember={true}
+  back={{ href: '/account', label: 'Account' }}
+  mainClass="mx-auto flex w-full max-w-3xl flex-col gap-5 px-4 py-6 sm:px-6 sm:py-10"
+  actionBarSpace="11rem"
+>
+  {/* HEADER — this page is gated to FLEX members (non-flex are redirected to
+      /account above), so the framing is unambiguous: for a flex member THIS
+      page IS their box. Member complaint (2026-06-12): "This week's extras"
+      read like an optional add-on, not their actual weekly order. Heading +
+      explainer now make it clear the member builds their box here. */}
+  <section aria-labelledby="flex-order-heading">
+    <div class="flex items-center gap-3">
+      <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-ts-primary/15 text-2xl" aria-hidden="true">🧺</span>
+      <h1 id="flex-order-heading" class="font-display text-3xl font-bold tracking-tight text-ts-text sm:text-4xl">
+        Your weekly order
+      </h1>
+    </div>
+    <p class="mt-2 text-sm leading-relaxed text-ts-text-secondary">
+      You're on our Farm Flex plan — you choose what's in your box each week.
+      Order by Tuesday; pick up Wednesday.
+    </p>
+    <p class="mt-1 text-sm text-ts-text-muted">{prettyWeek(week)}</p>
+  </section>
+
+  {/* HOW FLEX WORKS — compact, collapsed-by-default disclosure right under the
+      header. Three plain bullets so a confused member can self-serve the
+      mental model without cluttering the page (member complaint 2026-06-12:
+      "didn't understand the order page IS my box"). */}
+  <Disclosure tone="muted">
+    <span slot="summary">How Farm Flex works</span>
+    <ul class="flex flex-col gap-2 text-sm leading-relaxed text-ts-text-secondary">
+      <li class="flex gap-2">
+        <span aria-hidden="true">💳</span>
+        <span>Your <span class="font-medium text-ts-text">Flex balance pays</span> for whatever you add to your box — no card needed at checkout.</span>
+      </li>
+      <li class="flex gap-2">
+        <span aria-hidden="true">⏰</span>
+        <span><span class="font-medium text-ts-text">Order by {closeCopy}.</span> Pick up your box on Wednesday at your stop.</span>
+      </li>
+      <li class="flex gap-2">
+        <span aria-hidden="true">🌿</span>
+        <span><span class="font-medium text-ts-text">Skip anytime</span> — tap "Skip this week" below and nothing is packed. Your balance carries forward and never expires.</span>
+      </li>
+    </ul>
+  </Disclosure>
+
+  {/* PERSISTENT ORDER-SAVED BANNER (Todd 2026-06-09) — unmissable proof the
+      order went through, with an itemized recap. Renders on every load while
+      a saved order exists (pending OR locked), not just right after submit.
+      Pure SSR (no client JS). State is conveyed by the ✅ + text, not color
+      alone. Mirrors the modal's visual language (bordered list + total). */}
+  {showSavedBanner && (
+    <section
+      aria-labelledby="order-saved-heading"
+      class="overflow-hidden rounded-ts-2xl border border-ts-primary/25 bg-ts-primary/5 shadow-ts-sm"
+    >
+      <div class="px-5 py-4 sm:px-6 sm:py-5">
+        <h2
+          id="order-saved-heading"
+          class="font-display text-lg font-bold leading-tight text-ts-text sm:text-xl"
+        >
+          {savedHeading}
+        </h2>
+        {savedLines.length > 0 && (
+          <div class="mt-4 overflow-hidden rounded-ts-xl border border-ts-border bg-ts-bg-surface">
+            <p class="bg-ts-bg-muted/50 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-ts-text-muted">
+              What you ordered
+            </p>
+            <ul role="list" class="divide-y divide-ts-border">
+              {savedLines.map((l) => (
+                <li class="flex items-center gap-3 px-4 py-2.5 text-sm">
+                  <span class="text-lg" aria-hidden="true">{l.emoji}</span>
+                  <span class="min-w-0 flex-1 text-ts-text">
+                    <span class="tabular-nums">{l.qty}</span> ×{' '}
+                    <span class="break-words">{l.name}</span>
+                  </span>
+                  <span class="shrink-0 font-medium text-ts-text-secondary tabular-nums">{formatCents(l.lineCents)}</span>
+                </li>
+              ))}
+            </ul>
+            <div class="flex items-center justify-between border-t border-ts-border bg-ts-bg-muted/30 px-4 py-2.5 text-sm">
+              <span class="font-semibold text-ts-text">Total</span>
+              <span class="font-display font-bold text-ts-text tabular-nums">{formatCents(savedTotalCents)}</span>
+            </div>
+          </div>
+        )}
+        <p class="mt-3 text-sm leading-relaxed text-ts-text-secondary">{savedReassurance}</p>
+      </div>
+    </section>
+  )}
+
+  {/* Flash — success is now a celebratory modal (see overlays); only
+      errors render inline here. */}
+  {errorMsg && (
+    <div role="alert" aria-live="polite" class="rounded-ts-lg border border-ts-danger/30 bg-ts-danger/5 px-4 py-3 text-sm leading-relaxed text-ts-danger">
+      {errorMsg}
+    </div>
+  )}
+
+  {/* BALANCE — non-blocking island; the ordering math listens for flex:resolved */}
+  <section aria-label="Your Farm Flex balance">
+    <FlexWallet variant="detail" />
+  </section>
+
+  {/* WINDOW STATE — closed / before-open brand moment (Todd 2026-06-08) ·
+      countdown (M1) when open. The closed + before-open states share one
+      warm, empowering panel: big bold RED headline, the concrete NEXT
+      window (opens AND closes, in ET), a real mailto, and the
+      "balance never expires" reassurance — a brand moment, not an error. */}
+  {!windowOpen ? (
+    <section
+      aria-labelledby="window-state-heading"
+      class="overflow-hidden rounded-ts-2xl border border-ts-border bg-ts-bg-surface shadow-ts-sm"
+    >
+      {/* Warm header band — joyful, not alarming. */}
+      <div class="bg-ts-primary/5 px-5 py-6 sm:px-7 sm:py-7">
+        <span class="text-3xl" aria-hidden="true">{pastCutoff ? '🌙' : '🌱'}</span>
+        <h2
+          id="window-state-heading"
+          class="mt-3 font-display text-2xl font-extrabold leading-tight tracking-tight text-ts-danger sm:text-3xl"
+        >
+          {pastCutoff ? 'Order period is closed' : "Ordering isn't open yet"}
+        </h2>
+        <p class="mt-2 max-w-prose text-sm leading-relaxed text-ts-text-secondary sm:text-base">
+          {pastCutoff
+            ? "This week's window has wrapped up — but you've lost nothing. Here's exactly when you can build your next box."
+            : "We're getting this week's harvest ready. Here's exactly when ordering opens so you can plan ahead."}
+        </p>
+      </div>
+
+      {/* The concrete next window — opens AND closes, in farm (ET) time. */}
+      <div class="grid gap-px bg-ts-border sm:grid-cols-2">
+        <div class="bg-ts-bg-surface px-5 py-4 sm:px-7">
+          <p class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Ordering opens</p>
+          <p class="mt-1 font-display text-lg font-bold text-ts-text">
+            {nextOpensLabel ?? 'Open now'}
+          </p>
+        </div>
+        <div class="bg-ts-bg-surface px-5 py-4 sm:px-7">
+          <p class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Ordering closes</p>
+          <p class="mt-1 font-display text-lg font-bold text-ts-text">{nextClosesLabel}</p>
+        </div>
+      </div>
+
+      {/* Reassurance + a real way to reach us. */}
+      <div class="space-y-3 px-5 py-5 sm:px-7">
+        <div class="flex items-start gap-2 rounded-ts-md border border-ts-primary/25 bg-ts-primary/5 px-4 py-3 text-sm leading-relaxed text-ts-text">
+          <span class="mt-0.5" aria-hidden="true">💚</span>
+          <p>
+            <span class="font-semibold">Your Flex balance carries forward — it never expires.</span>
+            Nothing is lost by sitting a week out.
+          </p>
+        </div>
+        {hasLocked && (
+          <p class="text-sm text-ts-text-secondary">Your order for this week is locked in. 🌿</p>
+        )}
+        <p class="text-sm text-ts-text-secondary">
+          Questions?{' '}
+          <a
+            href="mailto:tinyseedcsa@gmail.com?subject=Flex%20ordering%20question"
+            class="font-semibold text-ts-primary underline underline-offset-2 transition-colors duration-150 hover:text-ts-primary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+          >
+            Email us
+          </a>{' '}
+          — we're happy to help.
+        </p>
+      </div>
+    </section>
+  ) : (
+    <Card padding="md" elevation="sm" tone="primary">
+      <div class="flex items-center justify-between gap-3">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Order by {closeCopy}</p>
+          <p class="mt-1 font-display text-lg font-bold tabular-nums text-ts-text" data-countdown aria-live="polite">
+            Calculating…
+          </p>
+        </div>
+        <span class="text-2xl" aria-hidden="true">⏳</span>
+      </div>
+    </Card>
+  )}
+
+  {/* BEFORE-OPEN: read-only preview of what's coming, no steppers/cart. */}
+  {beforeOpen && allItems.length > 0 && (
+    <section aria-labelledby="preview-heading" class="flex flex-col gap-3">
+      <h2 id="preview-heading" class="font-display text-lg font-bold text-ts-text">A peek at this week</h2>
+      <p class="text-sm text-ts-text-secondary">
+        Here's what we're planning to offer. You'll be able to add these to your box when ordering opens {opensLabel}.
+      </p>
+      <ul role="list" class="grid grid-cols-2 gap-3">
+        {allItems.map((i) => (
+          <li class="flex items-center gap-3 rounded-ts-xl border border-dashed border-ts-border bg-ts-bg-muted/40 p-3 opacity-90">
+            <span class="text-2xl" aria-hidden="true">{categoryEmoji(i.category)}</span>
+            <div class="min-w-0">
+              <p class="truncate text-sm font-medium text-ts-text">{i.name}</p>
+              <p class="text-xs text-ts-text-muted tabular-nums">{formatCents(i.price_cents)} · {i.unit}</p>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )}
+
+  {windowOpen && (
+    <>
+      {/* FEATURED extra (P2) — only when one is flagged + orderable. */}
+      {orderable.some((i) => i.is_featured) && (
+        <section aria-label="Featured this week" class="flex flex-col gap-2">
+          {orderable.filter((i) => i.is_featured).slice(0, 1).map((i) => (
+            <article class="rounded-ts-xl border border-ts-primary/40 bg-ts-primary/5 p-4">
+              <div class="flex items-center gap-2">
+                <Badge variant="green" size="xs" uppercase>Featured this week</Badge>
+              </div>
+              <div class="mt-3 flex items-start gap-4">
+                <div class="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-ts-md border border-ts-border bg-ts-bg-surface text-3xl">
+                  {i.photo_url
+                    ? <img src={i.photo_url} alt="" width="80" height="80" class="h-full w-full object-cover" />
+                    : <span aria-hidden="true">{categoryEmoji(i.category)}</span>}
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="font-semibold text-ts-text">{i.name}</p>
+                  <p class="mt-0.5 text-sm text-ts-text-secondary tabular-nums">{formatCents(i.price_cents)} · {i.unit}</p>
+                  {i.description && <p class="mt-1 text-sm text-ts-text-muted">{i.description}</p>}
+                </div>
+              </div>
+            </article>
+          ))}
+        </section>
+      )}
+
+      {/* ITEM GRID (M2/M3/M5/M6) — one card per orderable item. */}
+      {orderable.length === 0 ? (
+        <EmptyState title="This week's items aren't up yet" icon="🌱" tone="default" dashed={true}>
+          Each week's box choices open Thursday and close Tuesday 7&nbsp;AM — check
+          back to build your box. Nothing is packed until you order, and your Flex
+          balance always carries forward.
+        </EmptyState>
+      ) : (
+        <section aria-labelledby="items-heading" class="flex flex-col gap-3">
+          <h2 id="items-heading" class="font-display text-lg font-bold text-ts-text">Add to your box</h2>
+          <ul role="list" class="flex flex-col gap-3">
+            {orderable.map((i) => {
+              const tier = stockTier(i.remaining_qty);
+              const contents = shareContents(i.name);
+              return (
+                <li
+                  class="rounded-ts-xl border border-ts-border bg-ts-bg-surface p-4 shadow-ts-sm"
+                  data-item
+                  data-item-id={i.id}
+                  data-price={i.price_cents}
+                  data-remaining={i.remaining_qty}
+                  data-name={i.name}
+                >
+                  <div class="flex items-start gap-4">
+                    <div class="flex h-[72px] w-[72px] shrink-0 items-center justify-center overflow-hidden rounded-ts-md border border-ts-border bg-ts-bg-base text-3xl">
+                      {i.photo_url
+                        ? <img src={i.photo_url} alt="" width="72" height="72" loading="lazy" class="h-full w-full object-cover" />
+                        : <span aria-hidden="true">{categoryEmoji(i.category)}</span>}
+                    </div>
+                    <div class="min-w-0 flex-1">
+                      <div class="flex flex-wrap items-center gap-2">
+                        <p class="font-semibold text-ts-text">{i.name}</p>
+                        {i.is_featured && <Badge variant="green" size="xs" uppercase>Featured</Badge>}
+                        {tier === 'low' && <Badge variant="amber" size="xs">{i.remaining_qty} left</Badge>}
+                        {tier === 'critical' && <Badge variant="red" size="xs">Only {i.remaining_qty} left</Badge>}
+                        {tier === 'sold_out' && <Badge variant="gray" size="xs" uppercase>Sold out</Badge>}
+                      </div>
+                      <p class="mt-0.5 text-sm text-ts-text-secondary tabular-nums">{formatCents(i.price_cents)} · {i.unit}</p>
+                      {contents.length > 0 && (
+                        <p class="mt-1 text-xs leading-snug text-ts-text-muted">
+                          <span class="font-medium text-ts-text-secondary">This week:</span> {contents.join(', ')}
+                        </p>
+                      )}
+                      {i.description && contents.length === 0 && (
+                        <p class="mt-1 text-xs leading-snug text-ts-text-muted">{i.description}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Qty stepper (M6: aria-labels; M2: disabled at sold-out) */}
+                  <div class="mt-3 flex items-center justify-end gap-3">
+                    {tier === 'sold_out' ? (
+                      <span class="text-sm font-medium text-ts-text-muted" aria-disabled="true">Sold out this week</span>
+                    ) : (
+                      <div class="inline-flex items-center gap-2" data-stepper>
+                        <button
+                          type="button"
+                          class="flex h-11 w-11 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface text-xl font-bold text-ts-text transition-colors duration-150 hover:border-ts-primary/40 hover:text-ts-primary active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+                          data-dec
+                          aria-label={`Decrease ${i.name} quantity`}
+                        >−</button>
+                        <output
+                          class="min-w-[2.5rem] text-center font-display text-lg font-bold tabular-nums text-ts-text"
+                          data-qty
+                          aria-live="polite"
+                          aria-label={`${i.name} quantity`}
+                        >0</output>
+                        <button
+                          type="button"
+                          class="flex h-11 w-11 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface text-xl font-bold text-ts-text transition-colors duration-150 hover:border-ts-primary/40 hover:text-ts-primary active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+                          data-inc
+                          aria-label={`Increase ${i.name} quantity`}
+                        >+</button>
+                      </div>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+
+      {/* COMING SOON teasers (greyed, not orderable). */}
+      {comingSoon.length > 0 && (
+        <section aria-labelledby="coming-soon-heading" class="flex flex-col gap-3">
+          <h2 id="coming-soon-heading" class="font-display text-lg font-bold text-ts-text">Coming soon</h2>
+          <ul role="list" class="grid grid-cols-2 gap-3">
+            {comingSoon.map((i) => (
+              <li class="flex items-center gap-3 rounded-ts-xl border border-dashed border-ts-border bg-ts-bg-muted/40 p-3 opacity-75">
+                <span class="text-2xl" aria-hidden="true">{categoryEmoji(i.category)}</span>
+                <div class="min-w-0">
+                  <p class="truncate text-sm font-medium text-ts-text">{i.name}</p>
+                  <p class="text-xs text-ts-text-muted tabular-nums">{formatCents(i.price_cents)} · soon</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </>
+  )}
+
+  {/* ════ DOCUMENT-LEVEL OVERLAYS ════
+      BUG A FIX (2026-06-08): pass the `overlays` slot UNCONDITIONALLY. The
+      slot used to be wrapped in `{windowOpen && orderable.length>0 && (…)}`
+      — but `MemberShell` gates rendering on `Astro.slots.has('overlays')`,
+      which returns FALSE for a slot passed inside a `{cond && (...)}`
+      expression. The sticky cart + SUBMIT BUTTON were silently dropped from
+      the DOM ("there is no way to submit an order"). Every other member page
+      passes this slot unconditionally; we now match that. The window/empty
+      conditions move INSIDE the Fragment. */}
+  <Fragment slot="overlays">
+    {windowOpen && orderable.length > 0 && (
+      <div
+        class="fixed inset-x-0 z-30 border-t border-ts-border bg-ts-bg-surface/98 backdrop-blur-sm shadow-[0_-4px_16px_rgba(0,0,0,0.06)]"
+        style="bottom: var(--member-bottombar-h, 0px);"
+      >
+        <div class="mx-auto flex max-w-3xl flex-col gap-2 px-4 py-3 sm:px-6">
+          <div class="flex items-center justify-between gap-3 text-sm">
+            <div>
+              <p class="font-semibold text-ts-text tabular-nums" data-cart-total>Cart: $0.00</p>
+              {/* Subtle "checking your balance…" until flex:resolved fires,
+                  then this is swapped for the "after this order" projection. */}
+              <p class="text-xs text-ts-text-muted tabular-nums" data-cart-after aria-live="polite">
+                <span class="inline-flex items-center gap-1" data-checking-balance>
+                  <span class="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-ts-text-muted" aria-hidden="true"></span>
+                  Checking your balance…
+                </span>
+              </p>
+            </div>
+            <p class="text-xs text-ts-text-muted" data-cart-count>0 items</p>
+          </div>
+          {/* Over-balance / $0-balance guided prompt (M4) — hidden until the
+              cart exceeds the resolved balance. Doubles as the graceful
+              $0-balance state: a member with no Flex sees a clear path to
+              add funds rather than a dead-end disabled button. */}
+          <div class="hidden rounded-ts-md border border-ts-danger/30 bg-ts-danger/5 px-3 py-2 text-xs leading-snug text-ts-danger" data-over-balance role="alert">
+            That's more than your Flex balance. Remove an item — or
+            <a href="/account/flex#add-funds" class="font-semibold underline underline-offset-2">add Flex</a>.
+            <span class="block text-ts-text-muted">(Card payment for the extra is coming soon.)</span>
+          </div>
+          {/* SUBMIT — its own form (sibling of cancel; never nested). */}
+          <form method="POST" action="/api/account/flex-order/submit" class="m-0" data-cart-form>
+            <input type="hidden" name="member_id" value={flexMember.id} />
+            <input type="hidden" name="week_starting" value={week} />
+            <input type="hidden" name="lines" value="[]" data-lines />
+            <button
+              type="submit"
+              class="inline-flex h-12 w-full items-center justify-center rounded-ts-md bg-ts-primary px-5 text-base font-semibold text-white shadow-ts-sm transition-all duration-150 hover:bg-ts-primary-dark active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+              data-submit
+            >
+              <span data-submit-label>{hasPending ? 'Update my order' : 'Submit my order'}</span>
+            </button>
+          </form>
+          {/* Cancel an existing pending order (only shown when one exists) —
+              a SEPARATE sibling form. Removing all items disables submit, so
+              this is the only way to UNDO a submitted order. */}
+          {hasPending && (
+            <form method="POST" action="/api/account/flex-order/cancel" class="m-0" data-cancel-form>
+              <input type="hidden" name="member_id" value={flexMember.id} />
+              <input type="hidden" name="week_starting" value={week} />
+              <button
+                type="submit"
+                class="inline-flex h-9 w-full items-center justify-center rounded-ts-md px-3 text-sm font-medium text-ts-text-secondary transition-colors duration-150 hover:bg-ts-bg-muted hover:text-ts-danger focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+                data-cancel-order
+              >
+                Cancel my order this week
+              </button>
+            </form>
+          )}
+          {/* SKIP THIS WEEK (Amy H. 2026-06-12 — was forced to fake a 1-item
+              order to skip). A SEPARATE sibling form that needs NO items in
+              the cart: one tap clears any pending order (idempotent server
+              no-op when there's none) and confirms the member is skipped.
+              Only shown when there's no pending order — when one DOES exist,
+              the "Cancel my order this week" link above is the equivalent
+              destructive path (with restock), so we don't double up. */}
+          {!hasPending && (
+            <form method="POST" action="/api/account/flex-order/skip" class="m-0" data-skip-form>
+              <input type="hidden" name="member_id" value={flexMember.id} />
+              <input type="hidden" name="week_starting" value={week} />
+              <button
+                type="submit"
+                class="inline-flex h-9 w-full items-center justify-center rounded-ts-md px-3 text-sm font-medium text-ts-text-secondary transition-colors duration-150 hover:bg-ts-bg-muted hover:text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+                data-skip-order
+              >
+                Skip this week
+              </button>
+            </form>
+          )}
+        </div>
+      </div>
+    )}
+
+    {/* ONBOARDING MODAL (M5) — shown once (localStorage-gated). Only when
+        the window is open and there's something orderable. */}
+    {windowOpen && orderable.length > 0 && (
+      <div
+        class="fixed inset-0 z-40 hidden items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4"
+        data-onboarding
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="onboarding-title"
+      >
+        <div class="w-full max-w-md rounded-t-ts-2xl bg-ts-bg-surface p-6 shadow-ts-lg sm:rounded-ts-2xl">
+          <h2 id="onboarding-title" class="font-display text-2xl font-bold text-ts-text">Welcome to Flex ordering 🌿</h2>
+          <ul class="mt-4 flex flex-col gap-3 text-sm text-ts-text-secondary">
+            <li class="flex gap-3"><span aria-hidden="true">🛒</span><span><span class="font-semibold text-ts-text">Your cart is pre-filled</span> with the Small CSA Share — our default for the week.</span></li>
+            <li class="flex gap-3"><span aria-hidden="true">✏️</span><span><span class="font-semibold text-ts-text">Customize freely</span> — remove the share, add individual items, or build a whole new box.</span></li>
+            <li class="flex gap-3"><span aria-hidden="true">⏰</span><span><span class="font-semibold text-ts-text">Submit by {closeCopy}.</span> If you don't submit, you simply skip the week.</span></li>
+            <li class="flex gap-3"><span aria-hidden="true">💳</span><span>Your order is paid from your <span class="font-semibold text-ts-text">Farm Flex balance</span>, applied automatically.</span></li>
+          </ul>
+          <div class="mt-5 rounded-ts-md border border-ts-accent/30 bg-ts-accent/5 px-4 py-3 text-xs leading-relaxed text-ts-text-secondary">
+            <span class="font-semibold text-ts-text">Balance carries forward.</span> Anything you don't spend stays in your Farm Flex for next week — it never expires.
+          </div>
+          <label class="mt-5 flex items-center gap-2 text-sm text-ts-text">
+            <input type="checkbox" data-onboarding-ack class="h-4 w-4 rounded border-ts-border text-ts-primary" />
+            I understand how Flex ordering works
+          </label>
+          <button
+            type="button"
+            class="mt-4 inline-flex h-12 w-full items-center justify-center rounded-ts-md bg-ts-primary px-5 text-base font-semibold text-white transition-all duration-150 hover:bg-ts-primary-dark disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+            data-onboarding-start
+            disabled
+          >
+            Start ordering
+          </button>
+        </div>
+      </div>
+    )}
+
+    {/* ════ CONFIRMATION MODAL — celebratory "Order confirmed!" moment ════
+        Shown on load when the page was reached via ?ok=submitted|updated|
+        cancelled (the success redirect from the submit/cancel APIs). Reuses
+        the onboarding-modal shell + the M5/M6 dialog a11y pattern: role,
+        aria-modal, labelledby/describedby, focus trapped to the Done button,
+        Escape + backdrop dismiss. On dismiss the client strips ?ok from the
+        URL (history.replaceState) so a refresh never re-pops it. The remaining
+        Flex balance line is hydrated from the FlexWallet `flex:resolved`
+        event. Passed unconditionally inside this already-rendered slot. */}
+    {confirm && (
+      <div
+        class="fixed inset-0 z-50 hidden items-end justify-center bg-black/40 p-0 transition-opacity duration-200 sm:items-center sm:p-4"
+        data-confirm-modal
+        data-confirm-kind={confirmKind}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="confirm-title"
+        aria-describedby="confirm-desc"
+      >
+        <div
+          class="ts-confirm-panel motion-transform w-full max-w-md rounded-t-ts-2xl bg-ts-bg-surface p-6 shadow-ts-lg sm:rounded-ts-2xl"
+          data-confirm-panel
+        >
+          <div class="flex flex-col items-center text-center">
+            <span class="ts-confirm-emoji motion-transform flex h-16 w-16 items-center justify-center rounded-full bg-ts-primary/10 text-4xl" aria-hidden="true">{confirm.emoji}</span>
+            <h2 id="confirm-title" class="mt-4 font-display text-2xl font-bold text-ts-text sm:text-3xl">
+              {confirm.title}
+            </h2>
+            <p id="confirm-desc" class="mt-2 max-w-prose text-sm leading-relaxed text-ts-text-secondary">
+              {confirm.line}
+            </p>
+          </div>
+
+          {/* What they ordered (submitted/updated only). */}
+          {confirmLines.length > 0 && (
+            <div class="mt-5 overflow-hidden rounded-ts-xl border border-ts-border">
+              <p class="bg-ts-bg-muted/50 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Your box this week</p>
+              <ul role="list" class="divide-y divide-ts-border">
+                {confirmLines.map((l) => (
+                  <li class="flex items-center gap-3 px-4 py-2.5 text-sm">
+                    <span class="text-lg" aria-hidden="true">{l.emoji}</span>
+                    <span class="min-w-0 flex-1 truncate text-ts-text">
+                      {l.name}
+                      {l.qty > 1 && <span class="text-ts-text-muted tabular-nums"> × {l.qty}</span>}
+                    </span>
+                    <span class="shrink-0 font-medium text-ts-text-secondary tabular-nums">{formatCents(l.lineCents)}</span>
+                  </li>
+                ))}
+              </ul>
+              <div class="flex items-center justify-between border-t border-ts-border bg-ts-bg-muted/30 px-4 py-2.5 text-sm">
+                <span class="font-semibold text-ts-text">Total</span>
+                <span class="font-display font-bold text-ts-text tabular-nums">{formatCents(confirmTotalCents)}</span>
+              </div>
+            </div>
+          )}
+
+          {/* Remaining Flex balance — hydrated client-side from flex:resolved.
+              Hidden until the island reports a number (the page has no balance
+              server-side). */}
+          <div class="mt-4 hidden items-center justify-between rounded-ts-md border border-ts-primary/25 bg-ts-primary/5 px-4 py-3 text-sm" data-confirm-balance>
+            <span class="flex items-center gap-2 text-ts-text">
+              <span aria-hidden="true">💳</span>
+              <span class="font-medium">Flex balance remaining</span>
+            </span>
+            <span class="font-display font-bold text-ts-primary tabular-nums" data-confirm-balance-amount aria-live="polite">—</span>
+          </div>
+
+          <button
+            type="button"
+            class="mt-5 inline-flex h-12 w-full items-center justify-center rounded-ts-md bg-ts-primary px-5 text-base font-semibold text-white shadow-ts-sm transition-all duration-150 hover:bg-ts-primary-dark active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+            data-confirm-done
+          >
+            Done
+          </button>
+        </div>
+      </div>
+    )}
+  </Fragment>
+
+  {/* Inline data for the cart engine (read by the module script below). */}
+  <script is:inline define:vars={{ clientItems, initialCart, cutoffMs, windowOpen }}>
+    window.__FLEX_ORDER__ = { items: clientItems, initialCart, cutoffMs, windowOpen };
+  </script>
+</MemberShell>
+
+<script>
+  /**
+   * Flex ordering client engine. Pure progressive enhancement layered on
+   * the SSR cart: steppers, running total, over-balance cap (M4), live
+   * countdown (M1), and the onboarding modal (M5). The actual order is a
+   * normal form POST — JS only assembles the `lines` payload + UX.
+   */
+  type ClientItem = { id: string; name: string; priceCents: number; remaining: number };
+  interface FlexOrderData {
+    items: ClientItem[];
+    initialCart: Record<string, number>;
+    cutoffMs: number;
+    windowOpen: boolean;
+  }
+  const DATA = (window as unknown as { __FLEX_ORDER__?: FlexOrderData }).__FLEX_ORDER__;
+  if (DATA && DATA.windowOpen) {
+    const itemsById = new Map<string, ClientItem>(DATA.items.map((i) => [i.id, i]));
+    const cart = new Map<string, number>();
+    for (const [id, qty] of Object.entries(DATA.initialCart)) {
+      if (itemsById.has(id)) cart.set(id, Number(qty));
+    }
+
+    // Live balance (cents). Unknown until the FlexWallet island resolves.
+    let balanceCents: number | null = null;
+
+    const fmt = (cents: number): string =>
+      new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(cents / 100);
+
+    const linesInput = document.querySelector<HTMLInputElement>('[data-lines]');
+    const totalEl = document.querySelector<HTMLElement>('[data-cart-total]');
+    const afterEl = document.querySelector<HTMLElement>('[data-cart-after]');
+    const countEl = document.querySelector<HTMLElement>('[data-cart-count]');
+    const overEl = document.querySelector<HTMLElement>('[data-over-balance]');
+    const submitBtn = document.querySelector<HTMLButtonElement>('[data-submit]');
+
+    function cartTotalCents(): number {
+      let t = 0;
+      for (const [id, qty] of cart) {
+        const it = itemsById.get(id);
+        if (it) t += it.priceCents * qty;
+      }
+      return t;
+    }
+
+    function render(): void {
+      const total = cartTotalCents();
+      let count = 0;
+      for (const qty of cart.values()) count += qty;
+
+      // Sync each item's stepper display.
+      document.querySelectorAll<HTMLElement>('[data-item]').forEach((li) => {
+        const id = li.getAttribute('data-item-id') ?? '';
+        const qtyEl = li.querySelector<HTMLElement>('[data-qty]');
+        const dec = li.querySelector<HTMLButtonElement>('[data-dec]');
+        const inc = li.querySelector<HTMLButtonElement>('[data-inc]');
+        const qty = cart.get(id) ?? 0;
+        if (qtyEl) qtyEl.textContent = String(qty);
+        if (dec) dec.disabled = qty <= 0;
+        const it = itemsById.get(id);
+        if (inc && it) inc.disabled = qty >= it.remaining;
+      });
+
+      if (totalEl) totalEl.textContent = `Cart: ${fmt(total)}`;
+      if (countEl) countEl.textContent = `${count} ${count === 1 ? 'item' : 'items'}`;
+
+      // After-this-order projection + over-balance cap (M4). While the
+      // balance is still resolving we LEAVE the SSR "checking your balance…"
+      // indicator in place (don't clobber it with a placeholder "—").
+      const over = balanceCents !== null && total > balanceCents;
+      if (afterEl && balanceCents !== null) {
+        const left = balanceCents - total;
+        afterEl.textContent = over
+          ? `Over by ${fmt(total - balanceCents)}`
+          : `After this order: ${fmt(left)} left`;
+      }
+      if (overEl) overEl.classList.toggle('hidden', !over);
+      if (submitBtn) submitBtn.disabled = count === 0 || over;
+
+      // Assemble the POST payload.
+      if (linesInput) {
+        const lines = Array.from(cart.entries())
+          .filter(([, qty]) => qty > 0)
+          .map(([flex_item_id, qty]) => ({ flex_item_id, qty }));
+        linesInput.value = JSON.stringify(lines);
+      }
+    }
+
+    // Stepper handlers.
+    document.querySelectorAll<HTMLElement>('[data-item]').forEach((li) => {
+      const id = li.getAttribute('data-item-id') ?? '';
+      const it = itemsById.get(id);
+      if (!it) return;
+      li.querySelector<HTMLButtonElement>('[data-inc]')?.addEventListener('click', () => {
+        const cur = cart.get(id) ?? 0;
+        if (cur < it.remaining) cart.set(id, cur + 1);
+        render();
+      });
+      li.querySelector<HTMLButtonElement>('[data-dec]')?.addEventListener('click', () => {
+        const cur = cart.get(id) ?? 0;
+        if (cur > 0) cart.set(id, cur - 1);
+        if ((cart.get(id) ?? 0) === 0) cart.delete(id);
+        render();
+      });
+    });
+
+    // Listen for the FlexWallet island's resolved balance (dollars → cents).
+    document.addEventListener('flex:resolved', (e: Event) => {
+      const detail = (e as CustomEvent<{ total?: number }>).detail;
+      const total = detail && typeof detail.total === 'number' ? detail.total : 0;
+      balanceCents = Math.round(total * 100);
+      render();
+    }, { once: true });
+
+    // Live countdown (M1). Honor reduced motion by still updating (text only).
+    const countdownEl = document.querySelector<HTMLElement>('[data-countdown]');
+    function tick(): void {
+      if (!countdownEl) return;
+      const ms = DATA!.cutoffMs - Date.now();
+      if (ms <= 0) {
+        countdownEl.textContent = 'Window closed — balance carries forward';
+        return;
+      }
+      const totalSec = Math.floor(ms / 1000);
+      const d = Math.floor(totalSec / 86400);
+      const h = Math.floor((totalSec % 86400) / 3600);
+      const m = Math.floor((totalSec % 3600) / 60);
+      const s = totalSec % 60;
+      if (totalSec > 86400) countdownEl.textContent = `${d} ${d === 1 ? 'day' : 'days'} ${h} hr left`;
+      else if (totalSec > 1800) countdownEl.textContent = `${h} hr ${m} min left`;
+      else {
+        countdownEl.textContent = `${m} min ${String(s).padStart(2, '0')} sec left`;
+        countdownEl.classList.add('text-ts-danger');
+      }
+    }
+    tick();
+    setInterval(tick, 1000);
+
+    // Onboarding modal (M5) — show once per browser.
+    const SEEN_KEY = 'tsf_flex_onboarded_v1';
+    const modal = document.querySelector<HTMLElement>('[data-onboarding]');
+    const ack = document.querySelector<HTMLInputElement>('[data-onboarding-ack]');
+    const startBtn = document.querySelector<HTMLButtonElement>('[data-onboarding-start]');
+    let seen = false;
+    try { seen = window.localStorage.getItem(SEEN_KEY) === '1'; } catch { seen = false; }
+    if (modal && !seen) {
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      ack?.addEventListener('change', () => { if (startBtn) startBtn.disabled = !ack.checked; });
+      startBtn?.addEventListener('click', () => {
+        try { window.localStorage.setItem(SEEN_KEY, '1'); } catch { /* ignore */ }
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      });
+    }
+
+    // Confirm submit only when there's something to submit. The submit and
+    // cancel forms are SEPARATE sibling forms (never nested), so this
+    // listener only ever fires for the submit form.
+    document.querySelector<HTMLFormElement>('[data-cart-form]')?.addEventListener('submit', (e) => {
+      let count = 0;
+      for (const qty of cart.values()) count += qty;
+      if (count === 0) { e.preventDefault(); return; }
+      const label = document.querySelector<HTMLElement>('[data-submit-label]');
+      if (submitBtn) submitBtn.disabled = true;
+      if (label) label.textContent = 'Submitting…';
+    });
+
+    // Cancel an existing pending order — confirm, then let the form POST to
+    // /api/account/flex-order/cancel. A plain confirm() keeps this a single
+    // deliberate action (no accidental cancels).
+    const cancelForm = document.querySelector<HTMLFormElement>('[data-cancel-form]');
+    cancelForm?.addEventListener('submit', (e) => {
+      const ok = window.confirm(
+        "Cancel your order for this week? Your Flex balance is refunded and carries forward.",
+      );
+      if (!ok) { e.preventDefault(); return; }
+      const btn = cancelForm.querySelector<HTMLButtonElement>('[data-cancel-order]');
+      if (btn) { btn.disabled = true; btn.textContent = 'Cancelling…'; }
+    });
+
+    // Skip this week — no items required. A light confirm() guards against an
+    // accidental skip mid-build; on confirm the form POSTs to .../skip and the
+    // member lands on ?ok=skipped. (Shown only when there's no pending order.)
+    const skipForm = document.querySelector<HTMLFormElement>('[data-skip-form]');
+    skipForm?.addEventListener('submit', (e) => {
+      const ok = window.confirm(
+        "Skip this week? Nothing will be packed for you and your Flex balance is untouched.",
+      );
+      if (!ok) { e.preventDefault(); return; }
+      const btn = skipForm.querySelector<HTMLButtonElement>('[data-skip-order]');
+      if (btn) { btn.disabled = true; btn.textContent = 'Skipping…'; }
+    });
+
+    render();
+  }
+</script>
+
+<script>
+  /**
+   * Confirmation modal controller. Independent of the cart engine (which is
+   * gated on windowOpen) — the success modal must also show after the window
+   * closes (e.g. a submit landing right at cutoff, or ?ok=cancelled). Handles:
+   * show-on-load, focus trap to the Done button, Escape + backdrop dismiss,
+   * the remaining-balance line (from the FlexWallet `flex:resolved` event),
+   * and stripping ?ok from the URL on dismiss so a refresh never re-pops it.
+   */
+  const confirmModal = document.querySelector<HTMLElement>('[data-confirm-modal]');
+  if (confirmModal) {
+    const doneBtn = confirmModal.querySelector<HTMLButtonElement>('[data-confirm-done]');
+    const balanceRow = confirmModal.querySelector<HTMLElement>('[data-confirm-balance]');
+    const balanceAmt = confirmModal.querySelector<HTMLElement>('[data-confirm-balance-amount]');
+    const lastFocused = document.activeElement as HTMLElement | null;
+
+    const money = (cents: number): string =>
+      new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(cents / 100);
+
+    function openModal(): void {
+      confirmModal!.classList.remove('hidden');
+      confirmModal!.classList.add('flex');
+      // Focus the primary action so keyboard + screen-reader users land inside
+      // the dialog. requestAnimationFrame lets the panel paint first.
+      requestAnimationFrame(() => doneBtn?.focus());
+    }
+
+    function closeModal(): void {
+      confirmModal!.classList.add('hidden');
+      confirmModal!.classList.remove('flex');
+      document.removeEventListener('keydown', onKeydown);
+      // Strip ?ok (and any stale ?error) so a refresh won't re-trigger the modal.
+      try {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('ok');
+        url.searchParams.delete('error');
+        window.history.replaceState({}, '', url.pathname + url.search + url.hash);
+      } catch { /* history API unavailable — non-fatal */ }
+      // Restore focus to wherever it was (or body) for a clean a11y handoff.
+      if (lastFocused && typeof lastFocused.focus === 'function' && document.contains(lastFocused)) {
+        lastFocused.focus();
+      }
+    }
+
+    function onKeydown(e: KeyboardEvent): void {
+      if (e.key === 'Escape') { e.preventDefault(); closeModal(); return; }
+      // Simple focus trap: only one focusable control (Done), so keep Tab on it.
+      if (e.key === 'Tab') { e.preventDefault(); doneBtn?.focus(); }
+    }
+
+    // Backdrop click (but not clicks inside the panel) dismisses.
+    confirmModal.addEventListener('click', (e) => {
+      if (e.target === confirmModal) closeModal();
+    });
+    doneBtn?.addEventListener('click', closeModal);
+    document.addEventListener('keydown', onKeydown);
+
+    // Remaining Flex balance — reveal once the FlexWallet island resolves.
+    document.addEventListener('flex:resolved', (e: Event) => {
+      const detail = (e as CustomEvent<{ total?: number }>).detail;
+      if (!detail || typeof detail.total !== 'number') return;
+      if (balanceAmt) balanceAmt.textContent = money(Math.round(detail.total * 100));
+      balanceRow?.classList.remove('hidden');
+      balanceRow?.classList.add('flex');
+    }, { once: true });
+
+    openModal();
+  }
+</script>

@@ -1,0 +1,208 @@
+---
+/**
+ * /admin/text-stop — "Text a stop" landing (week + stop picker).
+ *
+ * Mobile-FIRST tool used by the Tiny Seed team ON A PHONE at each pickup
+ * stop. They pick the WEEK (defaults to the upcoming cycle, same as the
+ * stop-manifest landing) then tap a stop to open the per-stop texting
+ * screen, where each member gets a one-tap `sms:` deep link that opens
+ * Messages pre-filled with "your share has arrived".
+ *
+ * WHY `sms:` deep links (not Twilio): server-side SMS does NOT work in this
+ * environment. A deep link opens the team member's own Messages app with the
+ * number + body pre-filled — they just hit Send. No SMS API, no cost, works
+ * on iOS + Android.
+ *
+ * This page mirrors /admin/stop-manifest/index.astro:
+ *   - week resolved from ?week= (default upcomingMonday), snapped to Monday
+ *   - resolveCycle(week) → cycle.activeStops for the stop list
+ *   - admin-guarded by middleware (covers /admin/*)
+ *
+ * The stop list includes a synthetic "Home delivery" entry that links to
+ * /admin/text-stop/<week>/home (handled by the slug page's HOME_DELIVERY
+ * bucket). Stops are linked by stop_id (not slug) so the slug page can look
+ * them up directly in cycle.byStop without re-deriving a name slug.
+ */
+import AdminShell from '../../../components/AdminShell.astro';
+import Card from '../../../components/Card.astro';
+import {
+  resolveCycle, mondayOfWeek, upcomingMonday, prettyWeekHeader,
+  HOME_DELIVERY_BUCKET_ID,
+} from '../../../lib/cycle';
+import { weekOptions } from '../../../lib/cycle-ui';
+
+const supabase = Astro.locals.supabase;
+
+const wkParam = Astro.url.searchParams.get('week') ?? '';
+const week_starting = wkParam && /^\d{4}-\d{2}-\d{2}$/.test(wkParam)
+  ? mondayOfWeek(wkParam)
+  : mondayOfWeek(upcomingMonday());
+
+const cycle = await resolveCycle(supabase, week_starting);
+const options = weekOptions();
+if (!options.some((o) => o.value === week_starting)) {
+  options.unshift({ value: week_starting, label: `Week of ${week_starting} (selected)` });
+}
+
+const DAY_LONG: Record<string, string> = {
+  Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday',
+  Thu: 'Thursday', Fri: 'Friday', Sat: 'Saturday', Sun: 'Sunday',
+};
+
+/** Recipient count at a stop = members who actually RECEIVE a box (the same
+ *  set the labels/manifest text). Add-on-only members count too — they get a
+ *  bag at the stop. We text everyone in cycle.byStop for that stop. */
+function recipientCount(stopId: string): number {
+  return cycle.byStop.get(stopId)?.length ?? 0;
+}
+
+const homeCount = recipientCount(HOME_DELIVERY_BUCKET_ID);
+
+// activeStops already EXCLUDES nothing relevant — but it lists EVERY bucket
+// with ≥1 member, including 'home_delivery' and 'no_pickup_set'. For the
+// picker we surface real pickup stops here and render Home delivery as its
+// own labelled entry below, so we filter the synthetic buckets out of the
+// "stops" grid to avoid duplicating Home delivery.
+const pickupStops = cycle.activeStops.filter(
+  (s) => s.stop_id !== HOME_DELIVERY_BUCKET_ID && s.stop_id !== 'no_pickup_set',
+);
+const noPickupStop = cycle.activeStops.find((s) => s.stop_id === 'no_pickup_set') ?? null;
+---
+
+<AdminShell
+  title="Text a stop"
+  subtitle={`📱 Tell members their share arrived · ${prettyWeekHeader(week_starting)}`}
+  pageTitle="Text a stop — Tiny Seed Admin"
+>
+  {/* ── Week selector ─────────────────────────────────────────────── */}
+  <section aria-label="Week selector">
+    <form method="GET" action="/admin/text-stop" class="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-4">
+      <label class="flex flex-col gap-1">
+        <span class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Week</span>
+        <select
+          name="week"
+          class="h-12 min-w-[220px] rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-base text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+        >
+          {options.map((opt) => (
+            <option value={opt.value} selected={opt.value === week_starting}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+      </label>
+      <button
+        type="submit"
+        class="inline-flex h-12 items-center justify-center rounded-ts-md bg-ts-primary px-5 text-base font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+      >
+        Load week
+      </button>
+    </form>
+  </section>
+
+  {/* ── How it works ──────────────────────────────────────────────── */}
+  <Card tone="muted" padding="md" elevation="sm">
+    <p class="text-sm text-ts-text-secondary">
+      Pick a stop below. On the next screen, tap <strong class="font-semibold text-ts-text">📱 Text arrived</strong>
+      {' '}next to a member — your phone's Messages app opens with their number and the
+      arrival message pre-filled. Just hit <strong class="font-semibold text-ts-text">Send</strong>.
+    </p>
+  </Card>
+
+  {/* ── Stops list ────────────────────────────────────────────────── */}
+  <section aria-labelledby="stops-heading" class="flex flex-col gap-4">
+    <h2 id="stops-heading" class="font-display text-xl font-bold text-ts-text">Pick a stop</h2>
+
+    {pickupStops.length === 0 && homeCount === 0 ? (
+      <Card tone="muted" padding="lg" elevation="sm">
+        <div class="flex flex-col items-center gap-3 py-6 text-center">
+          <span class="text-4xl" aria-hidden="true">🤷</span>
+          <p class="text-sm text-ts-text-secondary">
+            No active members in this cycle, so there's no one to text. Try a different week.
+          </p>
+          <a
+            href="/admin/stop-manifest"
+            class="inline-flex h-11 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-semibold text-ts-text hover:border-ts-primary/40 hover:text-ts-primary"
+          >
+            Open manifests instead →
+          </a>
+        </div>
+      </Card>
+    ) : (
+      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {pickupStops.map((stop) => {
+          const n = recipientCount(stop.stop_id);
+          const stopUrl = `/admin/text-stop/${week_starting}/${encodeURIComponent(stop.stop_id)}`;
+          return (
+            <a
+              href={stopUrl}
+              class="group block rounded-ts-lg border border-ts-border bg-ts-bg-surface p-5 shadow-ts-sm transition-all duration-150 hover:border-ts-primary/40 hover:shadow-ts-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary active:scale-[0.99]"
+            >
+              <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                  <p class="font-display text-lg font-bold text-ts-text group-hover:text-ts-primary">
+                    {stop.stop_name}
+                  </p>
+                  <p class="mt-0.5 text-xs text-ts-text-muted">
+                    {stop.day_of_week ? DAY_LONG[stop.day_of_week] : 'Day TBD'}
+                  </p>
+                </div>
+                <span class="shrink-0 rounded-full bg-ts-primary/10 px-3 py-1 text-sm font-bold tabular-nums text-ts-primary">
+                  {n} 📱
+                </span>
+              </div>
+              <p class="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-ts-primary">
+                Text this stop →
+              </p>
+            </a>
+          );
+        })}
+
+        {/* Home delivery entry */}
+        {homeCount > 0 && (
+          <a
+            href={`/admin/text-stop/${week_starting}/${HOME_DELIVERY_BUCKET_ID}`}
+            class="group block rounded-ts-lg border border-ts-border bg-ts-bg-surface p-5 shadow-ts-sm transition-all duration-150 hover:border-ts-primary/40 hover:shadow-ts-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary active:scale-[0.99]"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <p class="font-display text-lg font-bold text-ts-text group-hover:text-ts-primary">
+                  🏠 Home delivery
+                </p>
+                <p class="mt-0.5 text-xs text-ts-text-muted">Wednesday route</p>
+              </div>
+              <span class="shrink-0 rounded-full bg-ts-primary/10 px-3 py-1 text-sm font-bold tabular-nums text-ts-primary">
+                {homeCount} 📱
+              </span>
+            </div>
+            <p class="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-ts-primary">
+              Text home deliveries →
+            </p>
+          </a>
+        )}
+
+        {/* No-pickup-set bucket — surfaced so admin can still text them. */}
+        {noPickupStop && (
+          <a
+            href={`/admin/text-stop/${week_starting}/${encodeURIComponent(noPickupStop.stop_id)}`}
+            class="group block rounded-ts-lg border border-dashed border-ts-warning/50 bg-ts-bg-surface p-5 shadow-ts-sm transition-all duration-150 hover:border-ts-warning hover:shadow-ts-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary active:scale-[0.99]"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <p class="font-display text-lg font-bold text-ts-text group-hover:text-ts-warning">
+                  ⚠ No pickup set
+                </p>
+                <p class="mt-0.5 text-xs text-ts-text-muted">Members with no stop assigned</p>
+              </div>
+              <span class="shrink-0 rounded-full bg-ts-warning/10 px-3 py-1 text-sm font-bold tabular-nums text-ts-warning">
+                {recipientCount(noPickupStop.stop_id)} 📱
+              </span>
+            </div>
+            <p class="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-ts-warning">
+              Review &amp; text →
+            </p>
+          </a>
+        )}
+      </div>
+    )}
+  </section>
+</AdminShell>

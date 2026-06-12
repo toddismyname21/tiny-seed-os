@@ -1,0 +1,237 @@
+---
+/**
+ * /admin/share-contents/[week] — printable SHARE CONTENTS sheet for the pack
+ * floor. ONE big, checkable list of WHAT GOES IN each box this week, read from
+ * a few feet away:
+ *   • EVERY BOX — the base list (the SMALL share items; this is what every box
+ *     gets, regardless of size).
+ *   • FAMILY ALSO GETS — the EXTRA items a Family box adds on top of Small,
+ *     computed as family_items MINUS small_items by product_name
+ *     (case-insensitive, trimmed). Omitted entirely when there are no extras.
+ * Large mirrors Family upstream, so it is NOT rendered as its own section.
+ *
+ * Data: table `box_contents`, columns
+ *   { share_type, product_name, quantity, unit, variety, week_date }.
+ * We query the chosen week for the two share sizes we need:
+ *   box_contents?week_date=eq.<week>&share_type=in.(small,family)
+ * ordered by product_name, then split Small (= base) from Family-extras.
+ *
+ * The week key is `box_contents.week_date` — the MONDAY week_starting
+ * (e.g. 2026-06-08), the SAME key the labels + manifest + box editor use.
+ * `[...slug]` takes the week as its first segment; a missing/invalid week
+ * redirects back to the picker (which defaults to the most-recent week with
+ * rows).
+ *
+ * ── PRINT PATTERN (debugged — follow exactly) ───────────────────────────
+ * AdminShell removes its own chrome (sticky header, nav, page-heading + the
+ * actions slot) at print time via `print:hidden`, and resets <main> to
+ * full-bleed. So the document content prints in NORMAL FLOW from the top of
+ * page 1. Every on-screen-only element (the Print button) carries
+ * `.screen-only`, which the @media print rule below hides. The result on
+ * paper: just the SHARE CONTENTS header + the EVERY BOX list and (if any)
+ * the FAMILY ALSO GETS list, with real empty (B&W-friendly) checkboxes.
+ */
+import AdminShell from '../../../components/AdminShell.astro';
+import Card from '../../../components/Card.astro';
+import { mondayOfWeek, isMonday, prettyWeekHeader } from '../../../lib/cycle';
+
+const supabase = Astro.locals.supabase;
+const slugParam = (Astro.params.slug ?? '') as string;
+const segments = slugParam.split('/').filter(Boolean);
+
+if (segments.length === 0) {
+  return Astro.redirect('/admin/share-contents', 303);
+}
+
+const week_input = segments[0];
+if (!/^\d{4}-\d{2}-\d{2}$/.test(week_input)) {
+  return Astro.redirect('/admin/share-contents?error=bad_week', 303);
+}
+// week_date is the Monday week_starting — normalize any in-week date to Monday.
+const week_date = isMonday(week_input) ? week_input : mondayOfWeek(week_input);
+
+// ─── Fetch the two share sizes we need (small = base, family = extras) ──
+// Large mirrors Family upstream, so we never query/render it separately.
+type ContentRow = {
+  share_type: string;
+  product_name: string;
+  quantity: number | null;
+  unit: string | null;
+  variety: string | null;
+};
+
+const { data: rows, error: fetchErr } = await supabase
+  .from('box_contents')
+  .select('share_type, product_name, quantity, unit, variety')
+  .eq('week_date', week_date)
+  .in('share_type', ['small', 'family'])
+  .order('product_name', { ascending: true })
+  .overrideTypes<ContentRow[], { merge: false }>();
+
+if (fetchErr) {
+  console.error('[admin/share-contents] fetch failed:', fetchErr.message);
+}
+
+const allRows: ContentRow[] = (rows ?? []) as ContentRow[];
+
+// ─── Split into base (Small) + family-only extras ──────────────────────
+//   baseItems        = SMALL share rows   → "EVERY BOX" (what every box gets)
+//   familyExtraItems = FAMILY rows whose product_name is NOT in Small
+//                      → "FAMILY ALSO GETS" (what a Family box adds on top)
+// Difference is computed by product_name, case-insensitive + trimmed.
+const baseItems: ContentRow[] = [];
+const familyItems: ContentRow[] = [];
+for (const r of allRows) {
+  if (r.share_type === 'small') baseItems.push(r);
+  else if (r.share_type === 'family') familyItems.push(r);
+}
+
+const nameKey = (name: string) => name.trim().toLowerCase();
+const smallNameSet = new Set(baseItems.map((r) => nameKey(r.product_name)));
+const familyExtraItems = familyItems.filter(
+  (r) => !smallNameSet.has(nameKey(r.product_name)),
+);
+
+/** "2 head — Lettuce (Romaine)". Quantity omitted only when null/blank. */
+function itemLabel(r: ContentRow): string {
+  const qty = r.quantity == null ? '' : String(r.quantity);
+  const unit = (r.unit ?? '').trim();
+  const lead = [qty, unit].filter(Boolean).join(' ').trim();
+  const name = r.variety && r.variety.trim()
+    ? `${r.product_name} (${r.variety.trim()})`
+    : r.product_name;
+  return lead ? `${lead} — ${name}` : name;
+}
+---
+
+<AdminShell
+  title="Share contents"
+  subtitle={prettyWeekHeader(week_date)}
+  pageTitle={`Share contents — ${prettyWeekHeader(week_date)} — Tiny Seed Admin`}
+>
+  <Fragment slot="actions">
+    <button
+      type="button"
+      onclick="window.print()"
+      class="screen-only inline-flex h-10 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+    >
+      🖨 Print
+    </button>
+    <a
+      href={`/admin/share-contents?week=${week_date}`}
+      class="screen-only inline-flex h-10 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-semibold text-ts-text transition-colors duration-150 hover:border-ts-primary/40 hover:text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+    >
+      ← Pick a week
+    </a>
+  </Fragment>
+
+  <div class="share-doc flex flex-col gap-8">
+    {/* ── PRINT HEADER ── prints at the top of page 1 (normal flow). ── */}
+    <header class="share-header border-b-2 border-ts-text pb-3">
+      <h2 class="font-display text-2xl font-extrabold uppercase tracking-tight text-ts-text sm:text-3xl">
+        Share contents
+      </h2>
+      <p class="mt-1 text-base font-bold text-ts-text sm:text-lg">
+        {prettyWeekHeader(week_date)}
+      </p>
+    </header>
+
+    {baseItems.length === 0 && familyExtraItems.length === 0 ? (
+      <Card tone="muted" padding="lg" elevation="sm" class="screen-only">
+        <div class="text-center text-sm text-ts-text-secondary">
+          <p class="font-semibold text-ts-text">No share contents for this week.</p>
+          <p class="mt-1">
+            Add items under <a href="/admin/box-contents" class="text-ts-primary underline-offset-2 hover:underline">Box (legacy)</a> for the Small and Family shares, then reload.
+          </p>
+        </div>
+      </Card>
+    ) : (
+      <div class="flex flex-col gap-10">
+        {/* ── EVERY BOX — base list = SMALL share items ── */}
+        <section class="share-section" aria-labelledby="sc-every-box">
+          <h3
+            id="sc-every-box"
+            class="font-display text-3xl font-extrabold uppercase tracking-wide text-ts-text sm:text-4xl"
+          >
+            Every box
+            <span class="ml-3 align-middle text-lg font-bold text-ts-text-secondary tabular-nums">
+              ({baseItems.length} item{baseItems.length === 1 ? '' : 's'})
+            </span>
+          </h3>
+          <ul class="mt-4 flex flex-col">
+            {baseItems.map((r) => (
+              <li class="share-item flex items-center gap-4 border-b border-ts-border/60 py-4">
+                {/* Real empty checkbox — B&W-friendly square the packer ticks. */}
+                <span
+                  class="share-check inline-block h-10 w-10 shrink-0 rounded-md border-[3px] border-ts-text bg-white print:border-black"
+                  aria-hidden="true"
+                ></span>
+                <span class="text-2xl font-bold leading-snug text-ts-text sm:text-3xl">
+                  {itemLabel(r)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        {/* ── FAMILY ALSO GETS — family-minus-small extras (omit if none) ── */}
+        {familyExtraItems.length > 0 && (
+          <section
+            class="share-section border-t-4 border-ts-text pt-6"
+            aria-labelledby="sc-family-extra"
+          >
+            <h3
+              id="sc-family-extra"
+              class="font-display text-3xl font-extrabold uppercase tracking-wide text-ts-text sm:text-4xl"
+            >
+              Family also gets
+              <span class="ml-3 align-middle text-lg font-bold text-ts-text-secondary tabular-nums">
+                ({familyExtraItems.length} item{familyExtraItems.length === 1 ? '' : 's'})
+              </span>
+            </h3>
+            <ul class="mt-4 flex flex-col">
+              {familyExtraItems.map((r) => (
+                <li class="share-item flex items-center gap-4 border-b border-ts-border/60 py-4">
+                  <span
+                    class="share-check inline-block h-10 w-10 shrink-0 rounded-md border-[3px] border-ts-text bg-white print:border-black"
+                    aria-hidden="true"
+                  ></span>
+                  <span class="text-2xl font-bold leading-snug text-ts-text sm:text-3xl">
+                    {itemLabel(r)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+      </div>
+    )}
+  </div>
+</AdminShell>
+
+<style is:global>
+  /* ── Print: just the SHARE CONTENTS header + the two big lists ───────
+   *  AdminShell removes its own chrome (sticky header, nav, page-heading +
+   *  the actions slot that holds the Print button & back link) at print time
+   *  via `print:hidden`, and resets <main> to full-bleed. So `.share-doc`
+   *  prints in NORMAL FLOW from the top of page 1. We NEVER hide
+   *  `main > div:first-child` (the first child of <main> IS `.share-doc`
+   *  itself — hiding it would blank the whole sheet). On-screen-only UI
+   *  (the Print button, the back link, the empty-state card) carries
+   *  `.screen-only`, which the rule below hides. The two sections — EVERY
+   *  BOX and FAMILY ALSO GETS — print full-width, stacked, big and bold. */
+  @media print {
+    @page { size: Letter portrait; margin: 0.5in; }
+
+    body, html { background: white !important; }
+
+    .screen-only { display: none !important; }
+
+    /* Keep each line on one page; let long lists flow across pages. */
+    .share-item { break-inside: avoid; page-break-inside: avoid; }
+
+    /* Don't orphan a section heading from its first rows. */
+    .share-section { break-inside: auto; }
+    .share-section h3 { break-after: avoid; page-break-after: avoid; }
+  }
+</style>

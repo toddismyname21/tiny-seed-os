@@ -1,0 +1,315 @@
+---
+/**
+ * /admin/text-stop/<week>/<stop_id> — the per-stop texting screen.
+ *
+ * Mobile-FIRST. The team member stands at a pickup stop, opens this page on
+ * their phone, and for each member taps a big "📱 Text arrived" button. That
+ * button is an `<a href="sms:...">` deep link: tapping it opens the team
+ * member's OWN Messages app with the recipient's number AND the arrival
+ * message pre-filled. They just hit Send. No Twilio, no SMS API (server-side
+ * SMS does NOT work in this environment — deep links are the whole mechanism).
+ *
+ * Recipient set = cycle.byStop.get(stop_id) — EXACTLY the accurate, already
+ * biweekly + season + hold-resolved set that the labels and the per-stop
+ * manifest use. We do not re-derive who's at the stop; we read the resolver.
+ *
+ * 'home' (HOME_DELIVERY_BUCKET_ID = 'home_delivery') → the home-delivery
+ * bucket (members with a delivery_address and no pickup_location_id).
+ *
+ * Phone handling (src/lib/phone.ts is the single source of truth):
+ *   - normalizeUSPhone(customers.phone) → bare 10 digits or null.
+ *   - Valid → render the E.164 (+1XXXXXXXXXX) sms: link + Text button.
+ *   - Null/invalid → NO button; a red "⚠ no valid phone — can't text" tag so
+ *     the team knows to chase the number (the portal already gates members
+ *     onto adding a valid phone at sign-in, but legacy/unconfirmed members
+ *     can still slip through).
+ *
+ * sms: link format used (works iOS + Android):
+ *   per-member:  sms:+1XXXXXXXXXX?&body=<URL-encoded body>
+ *   group (iOS): sms:/open?addresses=+1NUM,+1NUM&body=<URL-encoded body>
+ * The leading `?&` before body is the well-known iOS quirk fix; Android
+ * tolerates it. Each member <a> also carries data-phone with the raw E.164
+ * number so the team can long-press/copy if they prefer.
+ *
+ * Admin-guarded by middleware (covers /admin/*). No hardcoded URLs.
+ * Reads the cycle only — does not mutate labels/manifest/cycle logic.
+ */
+import AdminShell from '../../../components/AdminShell.astro';
+import Card from '../../../components/Card.astro';
+import {
+  resolveCycle, prettyWeekHeader, prettyShortDate,
+  HOME_DELIVERY_BUCKET_ID,
+  mondayOfWeek, isMonday,
+  type CycleMember,
+} from '../../../lib/cycle';
+import { normalizeUSPhone, formatUSPhone } from '../../../lib/phone';
+
+const supabase = Astro.locals.supabase;
+const slugParam = (Astro.params.slug ?? '') as string;
+const segments = slugParam.split('/').filter(Boolean).map((s) => decodeURIComponent(s));
+
+if (segments.length === 0) {
+  return Astro.redirect('/admin/text-stop', 303);
+}
+
+const week_starting_input = segments[0];
+if (!/^\d{4}-\d{2}-\d{2}$/.test(week_starting_input)) {
+  return Astro.redirect('/admin/text-stop?error=bad_week', 303);
+}
+const week_starting = isMonday(week_starting_input)
+  ? week_starting_input
+  : mondayOfWeek(week_starting_input);
+
+const stopId = segments[1] ?? '';
+if (!stopId) {
+  return Astro.redirect(`/admin/text-stop?week=${week_starting}`, 303);
+}
+
+const cycle = await resolveCycle(supabase, week_starting);
+
+// Resolve the stop's display name + day from totalsByStop (covers
+// 'home_delivery' and 'no_pickup_set' sentinels too).
+const stopTotals = cycle.totalsByStop.get(stopId) ?? null;
+if (!stopTotals) {
+  return Astro.redirect(`/admin/text-stop?week=${week_starting}&error=stop_not_found`, 303);
+}
+const stopName = stopTotals.stop_name;
+
+// THIS week's recipients at THIS stop — the resolver's set (biweekly + season
+// + holds already applied). Sort by name for a stable, scannable list.
+const recipients: CycleMember[] = (cycle.byStop.get(stopId) ?? [])
+  .slice()
+  .sort((a, b) => a.contact_name.localeCompare(b.contact_name));
+
+// ─── Fetch phone numbers for these recipients ───────────────────────
+// CycleMember carries customer_id but NOT phone (the cycle resolver only
+// selects contact_name + email from customers). One bounded query by
+// customer_id gets the phones. RLS: admin client bypasses member-self RLS.
+const customerIds = Array.from(new Set(recipients.map((m) => m.customer_id))).filter(Boolean);
+const phoneByCustomer = new Map<string, string | null>();
+if (customerIds.length > 0) {
+  type PhoneRow = { id: string; phone: string | null };
+  const { data, error } = await supabase
+    .from('customers')
+    .select('id, phone')
+    .in('id', customerIds)
+    .overrideTypes<PhoneRow[], { merge: false }>();
+  if (!error) {
+    for (const r of (data ?? []) as PhoneRow[]) {
+      phoneByCustomer.set(r.id, r.phone);
+    }
+  }
+}
+
+/** First name for the message greeting — first whitespace-delimited token of
+ *  the contact name, falling back to the whole name then "there". */
+function firstNameOf(contactName: string): string {
+  const t = (contactName ?? '').trim().split(/\s+/)[0];
+  return t && t !== '(unknown)' ? t : 'there';
+}
+
+/** E.164 (+1XXXXXXXXXX) from any stored phone, or null when it doesn't
+ *  normalize to a valid US number (uses the same rules as the sign-in gate). */
+function e164(stored: string | null | undefined): string | null {
+  const digits = normalizeUSPhone(stored);
+  return digits ? `+1${digits}` : null;
+}
+
+/** Build a per-member sms: deep link. Format: sms:+1XXXXXXXXXX?&body=ENCODED
+ *  — the leading `?&` is the iOS body-prefill quirk fix; Android tolerates
+ *  it. Body is URL-encoded. */
+function smsLink(toE164: string, body: string): string {
+  return `sms:${toE164}?&body=${encodeURIComponent(body)}`;
+}
+
+/** Per-member arrival message. */
+function arrivalBody(firstName: string): string {
+  return `Hi ${firstName}! Your Tiny Seed Farm CSA share has arrived at ${stopName} 🌱 Come grab it whenever you're ready. — Tiny Seed`;
+}
+
+// ─── Build the recipient rows + tallies ─────────────────────────────
+interface Row {
+  member: CycleMember;
+  firstName: string;
+  e164: string | null;   // null → no valid phone, show the red flag.
+  display: string;        // pretty phone (or "" when missing)
+  href: string | null;    // sms: deep link (null when no valid phone)
+}
+
+const rows: Row[] = recipients.map((m) => {
+  const stored = phoneByCustomer.get(m.customer_id) ?? null;
+  const num = e164(stored);
+  const firstName = firstNameOf(m.contact_name);
+  return {
+    member: m,
+    firstName,
+    e164: num,
+    display: num ? formatUSPhone(stored) : (stored ?? '').trim(),
+    href: num ? smsLink(num, arrivalBody(firstName)) : null,
+  };
+});
+
+const total = rows.length;
+const textable = rows.filter((r) => r.e164 !== null);
+const missing = total - textable.length;
+
+// ─── Group-compose link (iOS) ───────────────────────────────────────
+// sms:/open?addresses=+1NUM,+1NUM&body=ENCODED opens a single group message
+// on iPhone with everyone who has a valid number. Body has no name (group).
+const groupBody = `Your Tiny Seed Farm CSA share has arrived at ${stopName} 🌱`;
+const groupAddresses = textable.map((r) => r.e164).join(',');
+const groupHref = textable.length > 0
+  ? `sms:/open?addresses=${encodeURIComponent(groupAddresses)}&body=${encodeURIComponent(groupBody)}`
+  : null;
+
+// Distribution day label for the sticky header.
+const DAY_LONG: Record<string, string> = {
+  Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday',
+  Thu: 'Thursday', Fri: 'Friday', Sat: 'Saturday', Sun: 'Sunday',
+};
+function distDateForDay(): string | null {
+  if (stopTotals!.day_of_week === 'Tue') return cycle.distribution_dates.Tue;
+  if (stopTotals!.day_of_week === 'Sat') return cycle.distribution_dates.Sat;
+  if (stopTotals!.day_of_week === 'Wed') return cycle.distribution_dates.Wed;
+  return null;
+}
+const distDate = distDateForDay();
+
+function shareLabel(m: CycleMember): string {
+  if (m.share_type === 'summer_veg') {
+    return m.size_bucket === 'large' ? 'Large share' : 'Small share';
+  }
+  if (m.share_type === 'add_on') {
+    const t = m.addon_type === 'unknown' ? 'add-on' : m.addon_type;
+    return `${t.charAt(0).toUpperCase()}${t.slice(1)} add-on`;
+  }
+  return m.share_type.replace(/_/g, ' ');
+}
+---
+
+<AdminShell
+  title={`📱 ${stopName}`}
+  subtitle={prettyWeekHeader(week_starting)}
+  pageTitle={`Text ${stopName} — Tiny Seed Admin`}
+>
+  <Fragment slot="actions">
+    <a
+      href={`/admin/text-stop?week=${week_starting}`}
+      class="inline-flex h-11 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-semibold text-ts-text hover:border-ts-primary/40 hover:text-ts-primary"
+    >
+      ← All stops
+    </a>
+  </Fragment>
+
+  {/* ── Sticky stop header (count + group text) ─────────────────────── */}
+  <div class="sticky top-[var(--ts-admin-stuck-top,0px)] z-[5] -mx-4 border-b border-ts-border bg-ts-bg-base/95 px-4 py-3 backdrop-blur-sm sm:-mx-6 sm:px-6">
+    <div class="flex flex-col gap-2">
+      <div class="flex items-center justify-between gap-3">
+        <div class="min-w-0">
+          <p class="font-display text-lg font-bold text-ts-text">{stopName}</p>
+          {distDate && stopTotals.day_of_week && (
+            <p class="text-xs text-ts-text-muted">
+              {DAY_LONG[stopTotals.day_of_week]} · {prettyShortDate(distDate)}
+            </p>
+          )}
+        </div>
+        <span class="shrink-0 rounded-full bg-ts-primary/10 px-3 py-1 text-sm font-bold tabular-nums text-ts-primary">
+          {total} 👥
+        </span>
+      </div>
+      <p class="text-xs text-ts-text-secondary tabular-nums">
+        <strong class="font-semibold text-ts-text">{total}</strong> member{total === 1 ? '' : 's'}
+        {' · '}
+        <strong class="font-semibold text-ts-primary">{textable.length}</strong> textable
+        {' · '}
+        <strong class={missing > 0 ? 'font-semibold text-ts-danger' : 'font-semibold text-ts-text'}>{missing}</strong>
+        {' '}missing a phone
+      </p>
+
+      {groupHref && (
+        <a
+          href={groupHref}
+          class="mt-1 inline-flex h-12 items-center justify-center gap-2 rounded-ts-md bg-ts-primary px-4 text-base font-bold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+        >
+          📣 Text everyone here ({textable.length})
+        </a>
+      )}
+      {groupHref && (
+        <p class="text-[11px] text-ts-text-muted">
+          Opens one group message on iPhone. On Android, text members one at a time below.
+        </p>
+      )}
+    </div>
+  </div>
+
+  {/* ── Recipient list ──────────────────────────────────────────────── */}
+  {total === 0 ? (
+    <Card tone="muted" padding="lg" elevation="sm">
+      <div class="flex flex-col items-center gap-3 py-6 text-center">
+        <span class="text-4xl" aria-hidden="true">📭</span>
+        <p class="text-sm text-ts-text-secondary">
+          No members receiving a box at this stop this week.
+        </p>
+        <a
+          href={`/admin/text-stop?week=${week_starting}`}
+          class="inline-flex h-11 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-semibold text-ts-text hover:border-ts-primary/40 hover:text-ts-primary"
+        >
+          ← Pick another stop
+        </a>
+      </div>
+    </Card>
+  ) : (
+    <ul class="flex flex-col gap-3">
+      {rows.map((row) => (
+        <li class="rounded-ts-lg border border-ts-border bg-ts-bg-surface p-4 shadow-ts-sm">
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div class="min-w-0">
+              <p class="font-display text-lg font-bold text-ts-text">
+                {row.member.contact_name}
+                {row.member.moved_in && (
+                  <span class="ml-2 align-middle rounded-full bg-ts-primary/10 px-2 py-0.5 text-[11px] font-semibold text-ts-primary">
+                    ↪ moved in
+                  </span>
+                )}
+              </p>
+              <p class="mt-0.5 text-xs text-ts-text-secondary">
+                {shareLabel(row.member)}
+                {row.e164 && row.display && (
+                  <span class="text-ts-text-muted"> · {row.display}</span>
+                )}
+              </p>
+            </div>
+
+            {row.href ? (
+              <a
+                href={row.href}
+                data-phone={row.e164}
+                class="inline-flex h-12 min-h-[44px] shrink-0 items-center justify-center gap-2 rounded-ts-md bg-ts-primary px-5 text-base font-bold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+                aria-label={`Text ${row.member.contact_name} that their share arrived`}
+              >
+                📱 Text arrived
+              </a>
+            ) : (
+              <span
+                class="inline-flex h-12 min-h-[44px] shrink-0 items-center justify-center gap-2 rounded-ts-md border border-ts-danger/40 bg-ts-danger/10 px-4 text-sm font-bold text-ts-danger"
+                role="status"
+              >
+                ⚠ no valid phone — can't text
+              </span>
+            )}
+          </div>
+        </li>
+      ))}
+    </ul>
+  )}
+
+  {missing > 0 && (
+    <Card tone="warning" padding="md" elevation="sm">
+      <p class="text-sm text-ts-text">
+        <strong class="font-semibold">{missing}</strong> member{missing === 1 ? ' is' : 's are'} missing a
+        valid cell number, so {missing === 1 ? 'they' : 'they'} can't be texted. Ask them to add one in
+        their account, or update it on the <a href="/admin/members" class="font-semibold text-ts-primary underline-offset-2 hover:underline">Members</a> page.
+      </p>
+    </Card>
+  )}
+</AdminShell>

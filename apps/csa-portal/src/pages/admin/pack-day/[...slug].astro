@@ -73,6 +73,14 @@ const owesMembers: CycleMember[] = cycle.members.filter((m) => {
   return !!p && p !== 'paid';
 });
 owesMembers.sort((a, b) => a.contact_name.localeCompare(b.contact_name));
+
+// ─── Disposition rollups (migration 0041) ──────────────────────────
+// Donations: boxes packed for donation this week (member held + donate).
+const donatedCount = cycle.donated.length;
+// Moved-in: members receiving THIS week because they moved a held box here.
+const movedInMembers: CycleMember[] = cycle.members
+  .filter((m) => m.moved_in)
+  .sort((a, b) => a.contact_name.localeCompare(b.contact_name));
 ---
 
 <AdminShell
@@ -111,17 +119,81 @@ owesMembers.sort((a, b) => a.contact_name.localeCompare(b.contact_name));
           <div class="mt-1 text-xs text-ts-text-secondary">Tue / Wed / Sat</div>
         </div>
       </div>
-      {(cycle.excluded_biweekly.length > 0 || cycle.excluded_on_hold.length > 0) && (
+      {(cycle.excluded_biweekly.length > 0 || cycle.excluded_on_hold.length > 0 || donatedCount > 0 || movedInMembers.length > 0) && (
         <p class="mt-4 text-xs text-ts-text-muted">
           Excluded from this cycle:
           <strong class="font-semibold"> {cycle.excluded_biweekly.length}</strong> biweekly off-week
           {cycle.excluded_on_hold.length > 0 && (
             <>, <strong class="font-semibold">{cycle.excluded_on_hold.length}</strong> on vacation hold</>
           )}.
+          {(donatedCount > 0 || movedInMembers.length > 0) && (
+            <>
+              {' '}Disposition:
+              {donatedCount > 0 && (
+                <> <strong class="font-semibold">{donatedCount}</strong> donated</>
+              )}
+              {donatedCount > 0 && movedInMembers.length > 0 && <>,</>}
+              {movedInMembers.length > 0 && (
+                <> <strong class="font-semibold">{movedInMembers.length}</strong> moved in</>
+              )}.
+            </>
+          )}
         </p>
       )}
     </Card>
   </section>
+
+  {/* ── Donations + moved-in boxes (migration 0041) ──────────────────── */}
+  {(donatedCount > 0 || movedInMembers.length > 0) && (
+    <section aria-labelledby="disposition-heading" class="flex flex-col gap-3">
+      <h2 id="disposition-heading" class="font-display text-xl font-bold text-ts-text">
+        Box dispositions
+      </h2>
+      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {/* DONATIONS tally */}
+        <Card padding="md" elevation="sm" tone={donatedCount > 0 ? 'primary' : 'muted'}>
+          <div class="flex items-baseline justify-between gap-3">
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Donations</p>
+              <p class="mt-1 font-display text-4xl font-extrabold tabular-nums text-ts-primary">
+                {donatedCount}
+              </p>
+            </div>
+            <p class="text-right text-xs text-ts-text-secondary">
+              {donatedCount === 1 ? 'box' : 'boxes'} to pack<br />for donation
+            </p>
+          </div>
+          <p class="mt-2 text-xs text-ts-text-muted">
+            These members are on a vacation hold and chose to DONATE their box. Pack the box, then reallocate it.
+          </p>
+        </Card>
+
+        {/* MOVED-IN list */}
+        <Card padding="md" elevation="sm" tone={movedInMembers.length > 0 ? 'primary' : 'muted'}>
+          <p class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Moved in</p>
+          <p class="mt-1 font-display text-4xl font-extrabold tabular-nums text-ts-text">
+            {movedInMembers.length}
+          </p>
+          {movedInMembers.length === 0 ? (
+            <p class="mt-2 text-xs text-ts-text-muted">No members moved a box into this week.</p>
+          ) : (
+            <ul class="mt-2 flex flex-col gap-1 text-xs text-ts-text-secondary">
+              {movedInMembers.map((m) => (
+                <li class="flex items-center justify-between gap-2">
+                  <span class="font-medium text-ts-text">{m.contact_name}</span>
+                  {m.moved_from && (
+                    <span class="shrink-0 tabular-nums text-ts-text-muted">
+                      moved from {prettyWeekHeader(m.moved_from).replace('Week of ', '')}
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+      </div>
+    </section>
+  )}
 
   {/* ── Vendor order status ──────────────────────────────────────── */}
   <section aria-labelledby="vendor-status" class="flex flex-col gap-3">

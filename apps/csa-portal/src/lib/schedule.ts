@@ -40,6 +40,43 @@ export const DEFAULT_PICKUP_TIME = '2 PM';
 /** A member's delivery cadence, derived from their biweekly_week. */
 export type DeliveryCadence = 'weekly' | 'biweekly';
 
+/**
+ * Robustly decide whether a member is on a BI-WEEKLY share.
+ *
+ * `members.biweekly_week` alone is ambiguous: it is null for a true WEEKLY
+ * member AND for a biweekly member who signed up biweekly but hasn't yet
+ * picked Week A/B (the Shopify sync sets a reduced `total_weeks` for biweekly
+ * orders — e.g. summer_veg 9 vs 18 — but leaves biweekly_week null until the
+ * member chooses). So a member is biweekly when EITHER:
+ *   - biweekly_week is set ('A' | 'B'), OR
+ *   - their total_weeks is less than the season's full weekly count
+ *     (i.e. they were sold a "ceil(totalWeeks/2)" biweekly plan).
+ *
+ * When the controlling season schedule is unknown (e.g. a flower-only share
+ * while flower dates are still TBD), we fall back to biweekly_week alone —
+ * never guess "biweekly" without evidence, so a null member reads as weekly.
+ *
+ * Use this for any MEMBER-FACING "every week vs every other week" copy so the
+ * account hub and the dashboard never disagree (a true weekly member must
+ * NEVER be shown biweekly framing).
+ */
+export function memberIsBiweekly(input: {
+  biweeklyWeek: 'A' | 'B' | null;
+  totalWeeks: number | null | undefined;
+  schedule: SeasonSchedule | null;
+}): boolean {
+  if (input.biweeklyWeek === 'A' || input.biweeklyWeek === 'B') return true;
+  if (
+    input.schedule &&
+    typeof input.totalWeeks === 'number' &&
+    input.totalWeeks > 0 &&
+    input.totalWeeks < input.schedule.totalWeeks
+  ) {
+    return true;
+  }
+  return false;
+}
+
 export interface MemberScheduleInput {
   /** The controlling season schedule (firstDelivery + totalWeeks). */
   schedule: SeasonSchedule;

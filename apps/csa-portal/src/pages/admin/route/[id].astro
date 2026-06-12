@@ -20,6 +20,7 @@ import AdminShell from '../../../components/AdminShell.astro';
 import Card from '../../../components/Card.astro';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { signProofUrl } from '../../../lib/delivery-proof';
+import { mondayOfWeek } from '../../../lib/cycle';
 
 const supabase = Astro.locals.supabase;
 const routeId = String(Astro.params.id ?? '').trim();
@@ -86,6 +87,14 @@ if (stopsErr) {
 }
 
 const stopList = stops ?? [];
+
+// ─── Cycle week for the "Text this stop" deep links ─────────────────
+// The driver texts a pickup stop's members ("your share has arrived") while
+// delivering. /admin/text-stop/<week>/<stop_id> resolves recipients from the
+// cycle keyed by the Monday week_starting. delivery_routes.route_date is the
+// distribution day (usually Wednesday), so snap it back to that week's Monday
+// — mondayOfWeek returns the date unchanged when it's already a Monday.
+const routeWeekStarting = mondayOfWeek(route.route_date);
 
 // ─── Sign proof-photo paths → short-lived signed URLs ───────────────
 // The delivery-proofs bucket is PRIVATE (migration 0025); proof_photo_url
@@ -176,8 +185,59 @@ function stopSubtitle(stop: StopRow): string {
   return '';
 }
 
+/**
+ * Drivable address for a stop, used to build the Google Maps deep link.
+ *   - Pickup stops → pickup_location address + city (street, City).
+ *   - Home stops   → member.delivery_address (already a full street line).
+ * Returns '' when no usable address exists → caller hides the Navigate button.
+ */
+function stopAddress(stop: StopRow): string {
+  if (stop.pickup_location) {
+    const parts = [stop.pickup_location.address, stop.pickup_location.city]
+      .map((p) => (p ?? '').trim())
+      .filter(Boolean);
+    return parts.join(', ');
+  }
+  if (stop.member) {
+    return (stop.member.delivery_address ?? '').trim();
+  }
+  return '';
+}
+
+/**
+ * Universal Google Maps directions link → opens the maps app on iOS +
+ * Android, or maps.google.com in a desktop browser. We pass only the
+ * destination (no origin) so the device uses the driver's current location.
+ * Returns '' when there's no address (caller hides the button).
+ */
+function mapsDirUrl(address: string): string {
+  if (!address) return '';
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}`;
+}
+
 const routeReady = stopList.length > 0;
 const allDone = route.total_stops > 0 && route.completed_stops === route.total_stops;
+
+// ─── NEXT STOP — first stop not yet completed/exception ─────────────
+// The driver's primary target. stopList is already ordered by stop_order,
+// so the first non-terminal stop is the next one on the route. When every
+// stop is completed/exception, nextStop is undefined → "route complete" card.
+const nextStop = stopList.find((s) => s.status !== 'completed' && s.status !== 'exception');
+const nextStopAddress = nextStop ? stopAddress(nextStop) : '';
+const nextStopMapsUrl = mapsDirUrl(nextStopAddress);
+// SMS deep link for the next stop when it's a home-delivery member with a
+// phone. Pickup stops use the /admin/text-stop tool (linked from the card).
+const nextStopIsHost = nextStop ? !!nextStop.pickup_location_id : false;
+const nextStopMemberPhone = (!nextStopIsHost && nextStop?.member?.customer?.phone)
+  ? nextStop.member.customer.phone.replace(/[^\d+]/g, '')
+  : '';
+const nextStopTextHref = nextStop
+  ? (nextStopIsHost && nextStop.pickup_location_id
+      ? `/admin/text-stop/${routeWeekStarting}/${encodeURIComponent(nextStop.pickup_location_id)}`
+      : nextStopMemberPhone
+        ? `sms:${nextStopMemberPhone}`
+        : '')
+  : '';
 ---
 
 <AdminShell
@@ -240,6 +300,100 @@ const allDone = route.total_stops > 0 && route.completed_stops === route.total_s
     </Card>
   </section>
 
+  {/* ════ NEXT STOP card ════
+       The driver's primary target — the first stop that isn't done yet.
+       Sticks near the top of the viewport on scroll so Navigate + Text +
+       "Jump to stop" stay one thumb away. Navigate + Text are REAL links
+       (deep-link out to maps / messages); the third button anchor-scrolls to
+       the full stop card where the existing Arrived/Delivered actions live —
+       we deliberately don't duplicate the mutation logic here. */}
+  {routeReady && (
+    <section aria-labelledby="next-stop-heading" class="sticky top-2 z-30">
+      <h2 id="next-stop-heading" class="sr-only">Next stop</h2>
+      {nextStop ? (
+        <div class="rounded-ts-xl border-2 border-ts-primary bg-ts-primary/5 p-5 shadow-ts-md">
+          <div class="flex items-center gap-2">
+            <span aria-hidden="true" class="text-lg">▶</span>
+            <span class="text-xs font-bold uppercase tracking-wider text-ts-primary">
+              Next stop
+            </span>
+            <span class="ml-auto inline-flex h-7 min-w-7 items-center justify-center rounded-full bg-ts-primary px-2 text-sm font-bold tabular-nums text-white">
+              {nextStop.stop_order}
+            </span>
+          </div>
+
+          <p class="mt-2 font-display text-xl font-extrabold leading-tight text-ts-text">
+            {nextStopIsHost ? '📦 ' : '🏠 '}{stopHeading(nextStop)}
+          </p>
+          {nextStopAddress && (
+            <p class="mt-0.5 text-sm font-medium text-ts-text-secondary">
+              {nextStopAddress}
+            </p>
+          )}
+          {!nextStopIsHost && (
+            <p class="mt-0.5 text-xs font-semibold uppercase tracking-wide text-ts-text-muted">
+              Home delivery
+            </p>
+          )}
+
+          <div class="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
+            {/* Navigate — universal Google Maps directions deep link. */}
+            {nextStopMapsUrl ? (
+              <a
+                href={nextStopMapsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inline-flex h-14 items-center justify-center gap-2 rounded-ts-md bg-ts-primary px-4 text-base font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary active:scale-[0.99]"
+              >
+                <span aria-hidden="true">🧭</span>
+                Navigate
+              </a>
+            ) : (
+              <span class="inline-flex h-14 items-center justify-center gap-2 rounded-ts-md border-2 border-dashed border-ts-border px-4 text-base font-medium text-ts-text-muted">
+                No address
+              </span>
+            )}
+
+            {/* Text — pickup stop tool OR member SMS deep link. */}
+            {nextStopTextHref ? (
+              <a
+                href={nextStopTextHref}
+                {...(nextStopIsHost ? {} : { target: '_blank', rel: 'noopener noreferrer' })}
+                class="inline-flex h-14 items-center justify-center gap-2 rounded-ts-md border-2 border-ts-primary/40 bg-ts-bg-surface px-4 text-base font-semibold text-ts-primary transition-colors duration-150 hover:bg-ts-primary/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary active:scale-[0.99]"
+              >
+                <span aria-hidden="true">📱</span>
+                Text
+              </a>
+            ) : (
+              <span class="inline-flex h-14 items-center justify-center gap-2 rounded-ts-md border-2 border-dashed border-ts-border px-4 text-base font-medium text-ts-text-muted">
+                No number
+              </span>
+            )}
+
+            {/* Jump to this stop's full card (where Arrived/Delivered live). */}
+            <a
+              href={`#stop-${nextStop.id}`}
+              data-jump-to-stop={nextStop.id}
+              class="inline-flex h-14 items-center justify-center gap-2 rounded-ts-md border-2 border-ts-border bg-ts-bg-surface px-4 text-base font-semibold text-ts-text transition-colors duration-150 hover:border-ts-primary/40 hover:text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary active:scale-[0.99]"
+            >
+              Jump to stop
+              <span aria-hidden="true">↓</span>
+            </a>
+          </div>
+        </div>
+      ) : (
+        <div class="rounded-ts-xl border-2 border-ts-primary bg-ts-primary/10 p-5 text-center shadow-ts-md">
+          <p class="font-display text-xl font-extrabold text-ts-text">
+            🎉 Route complete
+          </p>
+          <p class="mt-1 text-sm font-medium text-ts-text-secondary">
+            Head back to the farm.
+          </p>
+        </div>
+      )}
+    </section>
+  )}
+
   {/* ════ Stop list ════ */}
   <section aria-labelledby="stops-heading" class="flex flex-col gap-4">
     <h2 id="stops-heading" class="font-display text-xl font-bold text-ts-text sm:text-2xl">
@@ -258,16 +412,20 @@ const allDone = route.total_stops > 0 && route.completed_stops === route.total_s
           const isHost = !!stop.pickup_location_id;
           const heading = stopHeading(stop);
           const subtitle = stopSubtitle(stop);
+          const cardAddress = stopAddress(stop);
+          const cardMapsUrl = mapsDirUrl(cardAddress);
           const scheduled = stop.scheduled_time ? prettyTime(stop.scheduled_time) : '';
           const arrived = stop.arrived_at ? prettyTime(stop.arrived_at) : '';
           const completed = stop.completed_at ? prettyTime(stop.completed_at) : '';
 
           return (
             <li
+              id={`stop-${stop.id}`}
               data-stop-card
               data-stop-id={stop.id}
               data-route-id={route.id}
               data-stop-status={stop.status}
+              style="scroll-margin-top: 6rem;"
               class:list={[
                 'rounded-ts-xl border bg-ts-bg-surface p-5 shadow-ts-sm transition-colors duration-200',
                 stop.status === 'completed' ? 'border-ts-primary/30 bg-ts-primary/5' :
@@ -337,6 +495,52 @@ const allDone = route.total_stops > 0 && route.completed_stops === route.total_s
                     class="h-30 w-30 rounded-ts-md border border-ts-border object-cover"
                   />
                 </div>
+              )}
+
+              {/* Navigate — universal Google Maps directions deep link.
+                  Opens the maps app on iOS + Android (or maps.google.com on
+                  desktop) routing from the driver's current location to this
+                  stop's address. Pickup stops use the location address + city;
+                  home stops use the member's delivery_address. Hidden when no
+                  address is on file. Same visual weight as the Text link. */}
+              {cardMapsUrl && (
+                <a
+                  href={cardMapsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="mb-2 inline-flex h-14 w-full items-center justify-center gap-2 rounded-ts-md border-2 border-ts-primary/40 bg-ts-primary/5 px-4 text-base font-semibold text-ts-primary transition-colors duration-150 hover:bg-ts-primary/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary active:scale-[0.99]"
+                >
+                  <span aria-hidden="true">🧭</span>
+                  Navigate
+                </a>
+              )}
+
+              {/* Text-a-stop deep link — pickup-location stops only.
+                  Opens the existing per-stop texting tool for THIS stop +
+                  THIS cycle week so the driver can text "your share arrived"
+                  to everyone at the stop while delivering. Home-delivery stops
+                  (no pickup_location_id) get the direct member text below. */}
+              {isHost && stop.pickup_location_id && (
+                <a
+                  href={`/admin/text-stop/${routeWeekStarting}/${encodeURIComponent(stop.pickup_location_id)}`}
+                  class="mb-2 inline-flex h-14 w-full items-center justify-center gap-2 rounded-ts-md border-2 border-ts-primary/40 bg-ts-primary/5 px-4 text-base font-semibold text-ts-primary transition-colors duration-150 hover:bg-ts-primary/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary active:scale-[0.99]"
+                >
+                  <span aria-hidden="true">📱</span>
+                  Text this stop
+                </a>
+              )}
+
+              {/* Home-delivery stop — text the single member directly (sms:
+                  deep link opens Messages pre-addressed; no body, the driver
+                  types it). Only shown when we have a valid-looking number. */}
+              {!isHost && stop.member?.customer?.phone && (
+                <a
+                  href={`sms:${stop.member.customer.phone.replace(/[^\d+]/g, '')}`}
+                  class="mb-2 inline-flex h-14 w-full items-center justify-center gap-2 rounded-ts-md border-2 border-ts-primary/40 bg-ts-primary/5 px-4 text-base font-semibold text-ts-primary transition-colors duration-150 hover:bg-ts-primary/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary active:scale-[0.99]"
+                >
+                  <span aria-hidden="true">📱</span>
+                  Text this member
+                </a>
               )}
 
               {/* Actions */}
@@ -502,6 +706,22 @@ const allDone = route.total_stops > 0 && route.completed_stops === route.total_s
   // matches what the member's Realtime subscription is going to do
   // anyway. If we ever need optimistic UI, the constants for status
   // labels/dots/card classes live above in the SSR section.
+
+  // ─── "Jump to stop" — smooth-scroll the Next Stop card to the full
+  //     stop card (scroll-margin-top on the <li> clears the sticky header). ──
+  const jumpLink = document.querySelector<HTMLAnchorElement>('[data-jump-to-stop]');
+  if (jumpLink) {
+    jumpLink.addEventListener('click', (e) => {
+      const id = jumpLink.getAttribute('data-jump-to-stop') || '';
+      const target = document.getElementById(`stop-${id}`);
+      if (target) {
+        e.preventDefault();
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      // If the target somehow isn't found, fall through to the native
+      // href="#stop-<id>" jump — no preventDefault, browser handles it.
+    });
+  }
 
   // ─── Start route ────────────────────────────────────────────────────
   const startBtn = document.querySelector<HTMLButtonElement>('[data-start-route]');

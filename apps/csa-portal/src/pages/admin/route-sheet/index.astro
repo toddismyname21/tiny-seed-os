@@ -1,0 +1,175 @@
+---
+/**
+ * /admin/route-sheet — week picker for the printable DELIVERY ROUTE SHEET.
+ *
+ * The actual one-page printable run lives at /admin/route-sheet/[week].
+ * This page lets the team pick the cycle week (default = current cycle's
+ * Monday) and open the route sheet. The route sheet is the Wednesday run:
+ * every home delivery (individual address) + every pickup-stop drop, in
+ * one numbered, zip-sorted list the team loads + the driver follows.
+ *
+ * Mirrors /admin/pack-check/index.astro (same week-picker pattern + the
+ * shared weekOptions list) so the two pack/route landing pages behave
+ * identically for Todd.
+ */
+import AdminShell from '../../../components/AdminShell.astro';
+import Card from '../../../components/Card.astro';
+import {
+  resolveCycle, mondayOfWeek, upcomingMonday, prettyWeekHeader,
+  HOME_DELIVERY_BUCKET_ID,
+} from '../../../lib/cycle';
+import { weekOptions } from '../../../lib/cycle-ui';
+import { TEST_EXCLUDES } from '../../../lib/campaign';
+
+const supabase = Astro.locals.supabase;
+
+const wkParam = Astro.url.searchParams.get('week') ?? '';
+const week_starting = wkParam && /^\d{4}-\d{2}-\d{2}$/.test(wkParam)
+  ? mondayOfWeek(wkParam)
+  : mondayOfWeek(upcomingMonday());
+
+const cycle = await resolveCycle(supabase, week_starting);
+
+const options = weekOptions();
+if (!options.some((o) => o.value === week_starting)) {
+  options.unshift({ value: week_starting, label: `Week of ${week_starting} (selected)` });
+}
+
+/* ── Quick counts for the picker preview (the slug page is authoritative) ──
+ * The Wednesday run = home-delivery members + members at Wed pickup stops.
+ * We count just enough here for the "N stops · M boxes · K home deliveries"
+ * teaser; the printable page recomputes everything from the same cycle. */
+const isExcluded = (email: string): boolean =>
+  TEST_EXCLUDES.has((email ?? '').toLowerCase());
+
+// Home deliveries — distinct customers in the home-delivery bucket.
+const homeBucket = (cycle.byStop.get(HOME_DELIVERY_BUCKET_ID) ?? [])
+  .filter((m) => !isExcluded(m.email));
+const homeCustomers = new Set(homeBucket.map((m) => m.customer_id));
+const homeDeliveryCount = homeCustomers.size;
+
+// Wednesday pickup stops with ≥1 non-add-on box this week.
+let wedStopCount = 0;
+let wedBoxCount = 0;
+for (const stop of cycle.activeStops) {
+  if (stop.stop_id === HOME_DELIVERY_BUCKET_ID) continue;
+  if (stop.stop_id === 'no_pickup_set') continue;
+  if (stop.day_of_week !== 'Wed') continue;
+  const boxCustomers = new Set(
+    (cycle.byStop.get(stop.stop_id) ?? [])
+      .filter((m) => m.share_type !== 'add_on' && !isExcluded(m.email))
+      .map((m) => m.customer_id)
+  );
+  if (boxCustomers.size === 0) continue;
+  wedStopCount += 1;
+  wedBoxCount += boxCustomers.size;
+}
+
+const totalStops = wedStopCount + homeDeliveryCount;
+const totalBoxes = wedBoxCount + homeDeliveryCount;
+const hasRun = totalStops > 0;
+---
+
+<AdminShell
+  title="Delivery route sheet"
+  subtitle={prettyWeekHeader(week_starting)}
+  pageTitle="Delivery route sheet — Tiny Seed Admin"
+  canonical="https://csa.tinyseedfarm.com/admin/route-sheet"
+>
+  <Fragment slot="actions">
+    {hasRun && (
+      <a
+        href={`/admin/route-sheet/${week_starting}`}
+        class="inline-flex h-10 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+      >
+        Open route sheet →
+      </a>
+    )}
+  </Fragment>
+
+  {/* ── Week selector ─────────────────────────────────────────────── */}
+  <section aria-label="Week selector">
+    <form method="GET" action="/admin/route-sheet" class="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-4">
+      <label class="flex flex-col gap-1">
+        <span class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Delivery week</span>
+        <select
+          name="week"
+          class="h-10 min-w-[220px] rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+        >
+          {options.map((opt) => (
+            <option value={opt.value} selected={opt.value === week_starting}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+      </label>
+      <button
+        type="submit"
+        class="inline-flex h-10 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-semibold text-ts-text transition-colors duration-150 hover:border-ts-primary/40 hover:text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+      >
+        Load week
+      </button>
+    </form>
+  </section>
+
+  {/* ── Run summary + open button ─────────────────────────────────── */}
+  <section aria-labelledby="run-heading" class="flex flex-col gap-4">
+    <h2 id="run-heading" class="font-display text-xl font-bold text-ts-text">
+      Wednesday delivery run
+    </h2>
+
+    {!hasRun ? (
+      <Card tone="muted" padding="lg" elevation="sm">
+        <div class="flex flex-col items-center gap-2 py-4 text-center">
+          <span class="text-3xl" aria-hidden="true">🗺️</span>
+          <p class="text-sm font-semibold text-ts-text">
+            No Wednesday deliveries this week.
+          </p>
+          <p class="max-w-md text-sm text-ts-text-secondary">
+            There are no home deliveries or Wednesday pickup-stop drops in this
+            cycle. Try a different week — the route sheet covers the Wednesday
+            run only.
+          </p>
+        </div>
+      </Card>
+    ) : (
+      <Card padding="md" elevation="md">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div class="grid grid-cols-3 gap-4 text-center sm:max-w-md sm:flex-1">
+            <div>
+              <div class="font-display text-3xl font-extrabold tabular-nums text-ts-text">{totalStops}</div>
+              <div class="text-xs font-semibold uppercase tracking-wide text-ts-text-secondary">Stops</div>
+            </div>
+            <div>
+              <div class="font-display text-3xl font-extrabold tabular-nums text-ts-text">{totalBoxes}</div>
+              <div class="text-xs font-semibold uppercase tracking-wide text-ts-text-secondary">Boxes</div>
+            </div>
+            <div>
+              <div class="font-display text-3xl font-extrabold tabular-nums text-ts-text">{homeDeliveryCount}</div>
+              <div class="text-xs font-semibold uppercase tracking-wide text-ts-text-secondary">Home</div>
+            </div>
+          </div>
+          <a
+            href={`/admin/route-sheet/${week_starting}`}
+            class="inline-flex h-12 items-center justify-center rounded-ts-md bg-ts-primary px-6 text-base font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary sm:h-11 sm:text-sm"
+          >
+            Open route sheet →
+          </a>
+        </div>
+      </Card>
+    )}
+  </section>
+
+  <Card padding="md" elevation="sm">
+    <h2 class="font-display text-lg font-bold text-ts-text">How the route sheet works</h2>
+    <ul class="mt-3 space-y-1.5 text-sm text-ts-text-secondary">
+      <li>• ONE printable page (Letter portrait): every delivery point for the Wednesday run.</li>
+      <li>• Home deliveries (🏠 address + phone) and pickup-stop drops (📦 box count + address) in one numbered list.</li>
+      <li>• Sorted by ZIP code so Butler-county (16xxx) and Pittsburgh (15xxx) stops cluster — a starting sequence the driver can re-order.</li>
+      <li>• A reverse-load banner: load the truck so stop #1 comes out first.</li>
+      <li>• Every row has a checkbox to tick as loaded / delivered. Test accounts excluded.</li>
+    </ul>
+  </Card>
+</AdminShell>
+</content>
+</invoke>

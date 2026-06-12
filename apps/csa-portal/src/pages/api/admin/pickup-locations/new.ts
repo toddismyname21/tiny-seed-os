@@ -8,6 +8,7 @@
  *   - address/city/zip  optional
  *   - max_capacity      optional
  *   - host_name/phone   optional
+ *   - pickup_instructions optional, MEMBER-FACING ≤ 2000
  *   - is_delivery_zone  'true' | absent
  *
  * INSERTs into pickup_locations. Defaults is_active=true so a freshly
@@ -36,6 +37,7 @@ const Body = z.object({
   max_capacity: z.number().int().nonnegative().max(1000).nullable(),
   host_name: z.string().max(80).nullable(),
   host_phone: z.string().max(30).nullable(),
+  pickup_instructions: z.string().max(2000).nullable(),
   is_delivery_zone: z.boolean(),
 });
 
@@ -77,6 +79,7 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
     max_capacity: capacityStr === null ? null : Number.parseInt(capacityStr, 10),
     host_name: strOrNull(formData.get('host_name')),
     host_phone: strOrNull(formData.get('host_phone')),
+    pickup_instructions: strOrNull(formData.get('pickup_instructions')),
     is_delivery_zone: formData.get('is_delivery_zone') === 'true',
   });
 
@@ -98,6 +101,7 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
       max_capacity: parsed.data.max_capacity,
       host_name: parsed.data.host_name,
       host_phone: parsed.data.host_phone,
+      pickup_instructions: parsed.data.pickup_instructions,
       is_delivery_zone: parsed.data.is_delivery_zone,
       is_active: true,
     });

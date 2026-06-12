@@ -41,3 +41,4 @@ blob-report/
 # jetbrains setting folder
 .idea/
 .vercel
+scripts/out/

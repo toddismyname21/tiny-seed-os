@@ -26,6 +26,29 @@ declare global {
       adminRole?: 'admin' | 'staff';
       /** The admin user's own customers.id, set on /admin/* routes. */
       adminCustomerId?: string;
+      /**
+       * Whether the current member has an active FLEX share. Set by
+       * middleware on protected member routes (FIX 1, 2026-06-08) so
+       * MemberShell can render the bottom-nav "Order" tab on every member
+       * page without each page re-querying. `false` for non-flex members,
+       * admins, and anonymous requests.
+       */
+      isFlexMember?: boolean;
+      /**
+       * Persistent member nags, computed ONCE per request in middleware
+       * (SOFTENED gates, 2026-06-12) and consumed by MemberShell, which
+       * renders unmissable non-dismissible top-of-page banners instead of
+       * the old hard redirects. Only set (truthy) when at least one nag
+       * applies, on protected member HTML routes for non-admin members:
+       *   - needsPhone     → customers.phone empty/invalid (collect a cell
+       *                       so we can text on arrival) → /account/add-phone
+       *   - needsPickupAck → customers.pickup_acknowledged_at IS NULL
+       *                       (confirm where/when they pick up) →
+       *                       /account/confirm-pickup
+       * Undefined when no nag applies (admins, satisfied members, the
+       * interstitial pages themselves, onboarding funnel, anonymous).
+       */
+      memberNags?: { needsPhone: boolean; needsPickupAck: boolean };
     }
   }
 }

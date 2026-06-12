@@ -20,6 +20,7 @@ import {
   deliveryParity,
   prettyPickupTime,
   DEFAULT_PICKUP_TIME,
+  memberIsBiweekly,
 } from './schedule.ts';
 import { SEASON_SCHEDULE, type SeasonSchedule } from './season.ts';
 
@@ -190,6 +191,38 @@ test('banner next-delivery: biweekly B before the season → June 17', () => {
 test('banner next-delivery: mid-season skips past dates (A on Jun 25 → Jul 8)', () => {
   const r = resolveMemberSchedule({ schedule: summer, biweeklyWeek: 'A' });
   assertEqual(upcomingDeliveries(r, 1, '2026-06-25')[0], '2026-07-08');
+});
+
+// ─── memberIsBiweekly: weekly vs biweekly resolution ────────────────
+// Regression guard for the account-hub bug where a WEEKLY member (Jason
+// Smith, biweekly_week null, full 18-week summer plan) was shown "biweekly".
+
+test('weekly member (null week, full 18 weeks) is NOT biweekly', () => {
+  assertEqual(memberIsBiweekly({ biweeklyWeek: null, totalWeeks: 18, schedule: summer }), false);
+});
+
+test('biweekly member with assigned Week A is biweekly', () => {
+  assertEqual(memberIsBiweekly({ biweeklyWeek: 'A', totalWeeks: 9, schedule: summer }), true);
+});
+
+test('biweekly member with assigned Week B is biweekly', () => {
+  assertEqual(memberIsBiweekly({ biweeklyWeek: 'B', totalWeeks: 9, schedule: summer }), true);
+});
+
+test('biweekly member who has NOT yet picked A/B (null week, reduced 9 weeks) is biweekly', () => {
+  // The Shopify sync sets total_weeks = ceil(18/2) = 9 for a biweekly order
+  // but leaves biweekly_week null until the member chooses. total_weeks < the
+  // season's full count disambiguates it as biweekly.
+  assertEqual(memberIsBiweekly({ biweeklyWeek: null, totalWeeks: 9, schedule: summer }), true);
+});
+
+test('null week + no known schedule falls back to weekly (never guess biweekly)', () => {
+  assertEqual(memberIsBiweekly({ biweeklyWeek: null, totalWeeks: 9, schedule: null }), false);
+});
+
+test('null week + nonsensical totalWeeks (0/undefined) is weekly', () => {
+  assertEqual(memberIsBiweekly({ biweeklyWeek: null, totalWeeks: 0, schedule: summer }), false);
+  assertEqual(memberIsBiweekly({ biweeklyWeek: null, totalWeeks: undefined, schedule: summer }), false);
 });
 
 // ─── Summary ────────────────────────────────────────────────────────

@@ -6,6 +6,492 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-06-12] CSA — Flex clarity pass: member-aware heading, real Skip, order confirmation email (fullstack-builder)
+
+NOT committed/deployed — PM verifies & deploys. App: `apps/csa-portal`. `npm run build` passes; build artifacts removed. No migration-0041 dependency.
+
+### B1 — page clarity (`src/pages/account/flex-order.astro`)
+- This page is already gated to flex members (non-flex redirect to `/account`), so every viewer IS a flex member. Heading changed `This week's extras` → **`Your weekly order`** + explainer line: "You're on our Farm Flex plan — you choose what's in your box each week. Order by Tuesday; pick up Wednesday." Existing Small-CSA-Share prefill + saved-order banner untouched.
+- Added a collapsed-by-default `<Disclosure tone="muted">` "How Farm Flex works" with 3 bullets (balance pays · order by {closeCopy} · skip anytime) right under the header.
+- Empty-catalog `EmptyState` re-worded: title `This week's items aren't up yet` + body explaining the window ("open Thursday and close Tuesday 7 AM — check back").
+
+### B2 — real "Skip this week" (Amy H. was forced to fake a 1-item order)
+- NEW endpoint `src/pages/api/account/flex-order/skip.ts` — mirrors cancel.ts (CSRF + auth + window-guard + ownership), calls the SAME idempotent `cancel_flex_order` RPC: pending order → cancel + restock; none → ok with cancelled=0 (the natural "skipped" state). No new table/status invented. Redirects `?ok=skipped`.
+- Added a "Skip this week" secondary form in the action bar (sibling form, NO items required), shown only when there's no pending order (a pending order already has the "Cancel my order this week" path). Light `confirm()` guard + "Skipping…" state.
+- `flex-order.astro` confirm modal: added `skipped` ConfirmKind + copy ("You're skipped for this week / balance is untouched / carries forward"). No item list for skipped (confirmLines stays empty).
+
+### B3 — order confirmation email (Tony: "I didn't get a confirmation email")
+- NEW helper `src/lib/flex-order-email.ts` — `sendFlexOrderConfirmation(...)`: Resend REST (key/from passed in from astro:env/server), fail-soft try/catch that NEVER throws, plain-text + minimal HTML, `reply_to` = `CSA_CONTACT_EMAILS` (Frankie + Todd). Subject "Your Tiny Seed order is in ✅", itemized lines + total + pickup line + "change until {cutoff}".
+- `submit.ts`: after a successful `place_flex_order`, re-queries the now-pending order (`flex_orders` joined to `flex_inventory` for name; uses the row's stored `unit_price_cents`/`total_cents` for money), resolves the member's pickup via `resolveMemberPickup`, and sends. Wrapped in its own try/catch so the email step can NEVER turn a placed order into an error redirect.
+
+---
+
+## [2026-06-12] CSA — Soften phone/pickup gates → persistent nags + next-box surfacing (fullstack-builder)
+
+NOT committed/deployed — PM verifies & deploys. App: `apps/csa-portal`. `npm run build` passes; build artifacts removed. Stayed OUT of `src/pages/account/flex-order.astro` + `src/pages/api/account/flex-order/*` (another builder owns them).
+
+### A1 — Softened the hard gates (`src/middleware.ts`, `src/lib/app-locals.d.ts`, `src/components/MemberShell.astro`)
+Members were hard-redirected off every member page to `/account/add-phone` then `/account/confirm-pickup` until satisfied — they couldn't even SEE their share. Removed both forced redirects. Middleware now reads `role, phone, pickup_acknowledged_at` in ONE round-trip on protected member HTML routes (skips `/api/*`, `/admin/*`) and COMPUTES `needsPhone` / `needsPickupAck`, stashing `locals.memberNags = { needsPhone, needsPickupAck }` (only when a nag applies). Same suppression rules the old gate-exempt lists used (interstitials, their APIs, onboarding funnel, auth/logout, pickup escape hatch). Staff/admin never nagged. FAIL-SOFT: query error → no nags. Renamed `*_GATE_EXEMPT_PREFIXES`/`isXGateExempt` → `*_NAG_SUPPRESS_PREFIXES`/`isXNagSuppressed`. Removed the stale `isPhoneGateExempt` call from the flex-membership block. Added `memberNags` to the `App.Locals` augmentation. MemberShell reads `Astro.locals.memberNags` and renders unmissable, NON-dismissible warm-amber warning bands at the top of `<main>` (full-row tap-target links, `border-2 border-ts-warning/50 bg-ts-warning/10`, 📱 → `/account/add-phone`, ✅ → `/account/confirm-pickup`). Never blocks content; persists until acted on. Login still required; onboarding-signup gate untouched.
+
+### A2 — Next-box surfacing (`src/pages/account/index.astro`)
+Dashboard's `NextDeliveryBanner` already renders FIRST/most-prominent (verified — handles weekly + biweekly A/B via `resolveMemberSchedule` + `primaryShare.biweekly_week`; flex ordering cadence covered by the existing "This week's order" CTA). Added the same "Your next box: <date> at <stop>" one-liner near the top of `/account` (after the greeting, before the pickup nudge), computed from the primary share's season schedule + `biweekly_week`; hidden when no configured schedule / season complete / no upcoming date.
+
+### A3 — Pickup-change discoverability (`src/pages/box/index.astro`)
+Dashboard's PickupCard already has "Change pickup location" (verified). Added a small clear "📍 Change pickup location →" link to `/box` under the heading (shown when the member has a share and isn't already in the choose-a-pickup nudge state).
+
+### A4 — Helpful empty state (`src/pages/box/index.astro`)
+Rewrote the "box hasn't been published yet" empty-state copy: "Box contents are posted by Tuesday each week. You'll get a text when your box arrives Wednesday — check back here Tuesday evening…" (warm tone).
+
+## [2026-06-10] CSA — Driver Navigate + Next Stop card + farm-loop seed order (fullstack-builder)
+
+NOT committed/deployed — PM verifies & deploys. App: `apps/csa-portal`. `npm run build` passes; build artifacts removed.
+
+### NEW shared helper — `src/lib/route-order.ts`
+Extracted the curated farm-loop sequence (previously inline in route-sheet) into one module: `ZIP_ROUTE_ORDER` (readonly), `extractZip(addr)` (`\b\d{5}\b`), `routeRank(zipOrAddress)` (accepts a bare 5-digit zip OR a free-form address; unknown/missing → `UNKNOWN_RANK = MAX_SAFE_INTEGER`), and `sortByRouteOrder(zipOf, titleOf?)` (rank ASC, then zip-ascending with empty-last, then title — deterministic). Single source of truth so the printable sheet and the driver app agree on order.
+
+### TASK 1 + 2 — driver screen `src/pages/admin/route/[id].astro`
+- Added `stopAddress(stop)` (pickup → location address+city; home → member.delivery_address) and `mapsDirUrl(addr)` → `https://www.google.com/maps/dir/?api=1&destination=<enc>` (universal iOS/Android maps deep link, destination-only so device uses current location).
+- Every stop card now has a full-width 48px+ "🧭 Navigate" link (same visual weight as the Text link), hidden when no address. Each `<li>` got `id="stop-<id>"` + `scroll-margin-top` for anchoring.
+- NEW sticky "▶ NEXT STOP" card under the route header = first stop whose status isn't completed/exception (stopList is stop_order-ordered). Shows stop number, name, address, home-delivery flag, and 3 big buttons: Navigate (real maps link), Text (pickup → `/admin/text-stop/<week>/<loc>`; home → `sms:` deep link), and "Jump to stop ↓" (anchor + smooth-scroll handler) to the full card where the existing Arrived/Delivered/Issue actions live — NO mutation logic duplicated. All stops done → "🎉 Route complete — head back to the farm." Box count omitted: not stored on `delivery_stops` (would need cycle resolution / migration-0041).
+
+### TASK 3 — seed order = farm loop — `src/pages/api/admin/route/index.ts`
+`buildSeedPlan` now selects `address, city, zip` for host locations, excludes the Rochester farm-pickup origin via `isFarmPickup(l.name)`, MERGES host + home-delivery member stops into ONE list, and sorts the combined list by `routeRank` (host zip from `zip` col or parsed from address; home zip parsed from `delivery_address`) before assigning `stop_order`. `SeedPlan` now carries one ordered `stops[]` + `hostCount`/`homeCount`. The 409-route-exists check, INSERT-only auto-seed, XOR invariant guard, and rollback-on-failure are all unchanged. Imports `isFarmPickup` (lib/delivery) + `routeRank`, `extractZip` (lib/route-order).
+
+### route-sheet `src/pages/admin/route-sheet/[...slug].astro`
+Now imports `extractZip` + `sortByRouteOrder` from the shared helper; removed its local `extractZip`, `ZIP_ROUTE_ORDER`, `routeRank`, and the inline `rows.sort(...)` (replaced by `rows.sort(sortByRouteOrder(r => r.zip, r => r.title))`). Behavior identical.
+
+No auth changes (route pages stay admin/staff-gated by middleware). No migration-0041 dependency.
+
+---
+
+## [2026-06-10] CSA — Host contact sheets (new printable) + driver "Text this stop" link (fullstack-builder)
+
+NOT committed/deployed — PM verifies & deploys.
+
+TWO additions to the CSA portal (`apps/csa-portal`).
+
+### TASK 1 — Host contact sheet (new printable)
+A sheet handed to each pickup-stop HOST listing everyone who picks up a box at THEIR stop this week, with NAME + PHONE, so the host knows who to expect.
+- New `src/pages/admin/host-sheets/index.astro` (week + stop picker, mirrors text-stop/pack-check landing) and `src/pages/admin/host-sheets/[...slug].astro` (the printable; `/[week]/[stop-slug]` one stop, `/[week]?all=1` all host stops page-broken).
+- ONE row per CUSTOMER (group by `customer_id`, mirrors pack-check). Included = box-getters only: summer_veg receiving this week (cycle-resolved) OR flex WITH an order (ordered-flex set = `flex_orders` member_ids status in pending/locked/fulfilled for the week, fetched here exactly like pack-check). Flex-no-order people are NOT listed. add_on/flower/spring rows are not separate people.
+- Host stops = REAL pickup stops only; `home_delivery` + `no_pickup_set` buckets are filtered out (no host).
+- Phones are NOT on `CycleMember` (resolver only joins name+email), so fetched once by `customer_id` from `customers` (same pattern as text-stop) and formatted via `lib/phone.formatUSPhone`; invalid/missing → "no phone on file".
+- Big, readable rows (name + phone at text-2xl/3xl). Print pattern EXACTLY matches pack-check/manifest: AdminShell hides chrome via `print:hidden`; `@media print { @page { size: Letter portrait; margin: 0.5in } .screen-only { display:none !important } .page-break { break-after: page; page-break-after: always } .page-break:last-child { break-after:auto } .host-row { break-inside: avoid } }`; picker/instructions/print-button wrapped in `.screen-only`; 🖨 Print button (screen-only).
+- Nav: added `{ href: '/admin/host-sheets', label: 'Host sheets', icon: '📇' }` to `AdminShell.astro` between Pack check and Text a stop.
+
+### TASK 2 — Driver "Text this stop" access
+In the mobile driver screen `src/pages/admin/route/[id].astro`, for each PICKUP-LOCATION stop (`pickup_location_id` set) added a full-width 44px+ tap target "📱 Text this stop" → `/admin/text-stop/<week>/<pickup_location_id>` (the existing per-stop texting tool). Week = `mondayOfWeek(route.route_date)` (`routeWeekStarting`, computed once; `mondayOfWeek` returns Monday unchanged). For HOME-DELIVERY stops (member, no pickup_location) added a "📱 Text this member" `sms:` link to the member's phone (only when present). Links placed BEFORE the `data-stop-actions` div so they never collide with the Arrived/Delivered/Issue JS (which queries `[data-action]` inside that div). Imported `mondayOfWeek` from `lib/cycle`.
+
+CONSTRAINTS met: existing tokens; admin-guarded (middleware covers /admin/*); no migration-0041 dep; no hardcoded URLs (relative hrefs + `encodeURIComponent` on stop id). VERIFY: `npm run build` passed; both routes registered in `.vercel/output/config.json` (`host-sheets/?$` + `host-sheets(?:/(.*?))?/?$`); no new `astro check` errors in the touched files (the one pre-existing `cycle.ts:673` 0041-fallback error is unrelated and untouched); `.vercel/output` + `dist` removed.
+
+---
+
+## [2026-06-10] CSA — Driver manifest: ONE row per customer + drop flex-no-order entirely (fullstack-builder)
+
+NOT committed/deployed — PM verifies & deploys.
+
+TWO fixes to the driver manifest (`apps/csa-portal/src/pages/admin/stop-manifest/[...slug].astro`), mirroring the per-customer grouping the pack-check page already does.
+
+1) ONE LINE PER CUSTOMER (Todd): the manifest showed a separate row per member share, so a customer with a Small box + a Bread add-on printed as two lines. Now grouped by `customer_id` into ONE row per CUSTOMER: the primary box share (summer_veg > spring_veg > flower > flex by `SHARE_PRIORITY`) is the row; the customer's add-on rows render as INLINE color chips on that same line ("Jane Doe — Small (summer)  + Bread, Cheese"). Add-ons are NEVER separate rows/people. Home-delivery members keep their address; allergy / owes / payment flags + flex lines stay on the row.
+
+2) REMOVE FLEX-WITH-NO-ORDER ENTIRELY (Todd: "the flex that are not getting shares need removed too"): a flex member without a `flex_orders` row this week (status in pending/locked/fulfilled — the existing `flexOrderedMemberIds` set) is now dropped from the customer grouping → no row anywhere, AND the screen-only "Flex — no order" awareness note was removed (Todd wants them gone, not listed). A customer who holds BOTH a real box (e.g. summer_veg) AND an unordered flex share still shows ONCE as their box (the unordered flex share is skipped, the box share carries them).
+
+### Changes (all in the one manifest file)
+- Added `addonRowsByCustomer` index (customer_id → add_on member rows, across `cycle.members`), `addonChipLabel`, `SHARE_PRIORITY`/`sharePriority`, `ManifestRow` interface, and `manifestRowsForStop(stop)` — grouping logic copied from pack-check (`add_on` rows skipped; unordered-flex rows skipped; box shares grouped by customer; add-ons + flex unioned onto the primary). Render loop now iterates `rows` (was raw `members`); add-on chips render inline in the share-descriptor line; home-delivery address line added (`delivery_address && !pickup_location_id`).
+- Removed `flexNoOrderForStop` + the `.screen-only` flex-no-order `<p>` note + the `flexNoOrder` per-stop var.
+- Removed the now-unused `flexQtyByMember` map (the row reads `flexLinesByMember` only).
+- Added `.manifest-row { break-inside: avoid }` print rule so a customer's row stays whole.
+
+KEPT intact: per-stop page-break, top count checkboxes (sizes + add-ons + flex), color stop bands, cover box total (`boxes_small + boxes_large + flexCount`, unchanged), order-gated Flex count chip, print pattern (`.screen-only` hide + AdminShell `print:hidden`). No migration-0041 dep; admin-guarded; existing tokens.
+
+VERIFY: `npm run build` passed; `.vercel/output` + `dist` removed. Box totals unchanged (Lawrenceville still 6 — `flexCountForStop`/`totalBoxes` math untouched). A box+bread customer prints one row "name — <box> + Bread"; a flex-no-order member has NO row anywhere on the manifest.
+
+---
+
+## [2026-06-10] CSA — Flex box counting gated on having an order (manifest / pack-check / route-sheet) (fullstack-builder)
+
+NOT committed/deployed — PM verifies & deploys.
+
+BUG (Todd, verified): a flex member with NO flex order this week was counted as a box, shown on the pack list, and (for home delivery) added to the truck route — but they get NOTHING (flex = order by Tuesday; no order = no box). 13 flex members had no order this week.
+
+THE RULE: a flex member is a real box for the week ONLY if they have a `flex_orders` row for the week with status in `(pending, locked, fulfilled)`. summer_veg boxes are unaffected (always a box).
+
+### Files changed (all in `apps/csa-portal/`)
+- `src/pages/admin/stop-manifest/[...slug].astro` — new `flexOrderedMemberIds` set (one query: `flex_orders?select=member_id&cycle_code=WEEKLY&week_starting=eq.<week>&status=in.(pending,locked,fulfilled)&member_id=in.(rendered members)`). `flexCountForStop` now counts only flex members in the set, so the "★ N BOXES ★" total (`boxes_small + boxes_large + flexCount`) and the Flex chip drop a flex-no-order member. Flex-no-order members are filtered out of the printed member rows; surfaced in a small `.screen-only` "Flex — no order this week (nothing to pack)" note. The flex-orders count line now reads `flexCount` (was `stop.flex_orders`).
+- `src/pages/admin/pack-check/[...slug].astro` — derives `flexOrderedMemberIds` from the existing `flexByMember` keys (already queried with the same status set). `flexCountForStop` gated; `packRowsForStop` skips flex-no-order rows (customer drops out if flex was their only box, kept if they also hold a summer_veg box); `.screen-only` awareness note added. Band box total `boxes_small + boxes_large + flexCount` now correct.
+- `src/pages/admin/route-sheet/[...slug].astro` — new `flexOrderedMemberIds` set (same query) + `isRoutableBox()` (summer_veg always; flex only when ordered). Home-delivery grouping (`isBoxBearing`) and the `homeBoxes` count use `isRoutableBox`, so a flex home member with no order is NOT a route stop and not in the home count. Pickup-stop box count uses `isRoutableBox`, so flex-no-order pickup members don't count toward a stop's drop. summer_veg home deliveries unaffected. Preserves the home-delivery-by-`delivery_address` fix.
+
+Consistency: manifest, pack-check, and route-sheet now agree (e.g. Lawrenceville stays 6 when its flex member ordered; a stop whose only flex member didn't order drops back to its summer count). No migration-0041 dependency. `npm run build` passes; artifacts removed.
+
+---
+
+## [2026-06-10] CSA — NEW Delivery route sheet (one-page truck-load / driver route) (fullstack-builder)
+
+NOT committed/deployed — PM verifies & deploys.
+
+New printable for the WEDNESDAY delivery run in `apps/csa-portal/`: ONE page (Letter portrait) listing every delivery point — home deliveries (individual addresses) AND pickup-stop drops (truck drops N boxes per stop) — in one numbered, zip-sorted list so the team loads the truck and the driver follows it.
+
+### New files
+- `src/pages/admin/route-sheet/[...slug].astro` — the printable route sheet. `/admin/route-sheet/<week>` renders the run; bad/empty slug → redirect to the picker. DATA from `resolveCycle(week)` (biweekly + holds + season already applied): the `HOME_DELIVERY_BUCKET_ID` bucket → one row per distinct home-delivery customer (🏠 name + full `delivery_address` + formatted `customers.phone` via `lib/phone.formatUSPhone`); each Wednesday pickup stop with ≥1 box → one row (📦 stop name + composed street address + BOX COUNT = distinct customers receiving a box, add-ons excluded since they ride inside a member box). Tue/Sat/Sun stops + `no_pickup_set` skipped (Wednesday run only). Test accounts dropped via `lib/campaign.TEST_EXCLUDES`. Two small extra fetches the cycle row doesn't carry: `pickup_locations.address` (indexed by stop id) + `customers.phone` (indexed by customer id). ORDER: home + pickup merged into ONE list, sorted by the 5-digit ZIP extracted from the address (`\b(\d{5})\b`; rows with no zip sort LAST), ascending, title as stable tiebreak → Butler 16xxx + Pittsburgh 15xxx cluster. Numbered 1..N. Header "DELIVERY ROUTE — <pretty Wed date>" + totals (N stops · M boxes · K home deliveries); prominent 🔁 reverse-load banner; a note that the driver can re-sequence. Each row has a real empty checkbox to tick as loaded/delivered. No migration-0041 dependency (resolveCycle already degrades gracefully). Print pattern mirrors the debugged `pack-check`: AdminShell `print:hidden` strips chrome, `@page { size: Letter portrait; margin: 0.5in }`, `.screen-only { display:none }`, `.route-row { break-inside: avoid }`, `print-color-adjust:exact` on the colored header/banner/number chips; content prints in normal flow.
+- `src/pages/admin/route-sheet/index.astro` — week picker (default current cycle Monday via `upcomingMonday`/`mondayOfWeek`, shared `weekOptions`) with a stops/boxes/home preview and an "Open route sheet →" button. Empty state when no Wednesday run.
+
+### Modified
+- `src/components/AdminShell.astro` — nav link "🗺️ Route sheet" (`/admin/route-sheet`) added right after "🛣️ Route". No `isActive` collision (`/admin/route` matches only `/admin/route` or `/admin/route/...`, not `/admin/route-sheet`).
+
+### Verify
+- `npm run build` passes; the pre-existing `cycle.ts:673` astro-check type error (0041 fallback re-assignment) is unrelated and untouched. Build artifacts removed.
+
+---
+
+## [2026-06-10] CSA — Pack-team + driver printables: fix blank driver manifest + new pack checklist (fullstack-builder)
+
+Two printables for the pack line + driver in `apps/csa-portal/`, each with a page break PER STOP. NOT committed/deployed — PM verifies & deploys.
+
+### TASK 1 — FIXED the driver manifest (was printing BLANK)
+`src/pages/admin/stop-manifest/[...slug].astro`:
+- ROOT CAUSE removed: deleted the `@media print { main > div:first-child { display: none !important; } }` rule. In `<main>` the first child IS `.print-doc` (the actual manifest content) — the AdminShell page-heading lives in a sibling block OUTSIDE `<main>` and is already hidden via AdminShell's own `print:hidden`. So that rule blanked the entire print. Also removed the now-redundant manual `header[class*="sticky"]` / `nav[aria-label]` / print-button / back-link hide rules (AdminShell `print:hidden` handles them).
+- Added the correct print pattern: `@media print { .screen-only { display:none !important; } .page-break { break-after:page; page-break-after:always; } .page-break:last-child { break-after:auto; } @page { size:Letter portrait; margin:0.5in; } }`. Content prints in NORMAL FLOW; each stop is a `.page-break` section → one sheet per stop (stop 2 starts on a new page).
+- COLOR CODING (Todd): replaced the plain cover header with a color-coded `.stop-band` whose bg/text reuse the EXACT 15-band palette + home-delivery band from `labels/[...slug].astro`, mapped deterministically (stops sorted by name) so a stop reads the SAME color on the labels AND the manifest. Each member row now carries a color-coded SIZE badge (same `SIZE_BADGES` colors as the labels). `print-color-adjust:exact` on `.stop-band`/`.size-badge` so colors survive print.
+
+### TASK 2 — NEW pack checklist (page break per stop, checkboxes)
+New files:
+- `src/pages/admin/pack-check/[...slug].astro` — printable PACK CHECKLIST. `/admin/pack-check/<week>/<stop-slug>` (one stop), `/admin/pack-check/<week>?all=1` (every stop, page-broken), `/admin/pack-check/<week>` → redirect to picker. Each stop on its OWN page (`.page-break`): color-coded stop band (same color as labels/manifest) with stop name + day + total box count (+ S/L split), then ONE checkbox row per member — a real empty square the packer ticks — with name, color-coded box-size badge, share label, add-ons as color chips ("+ Add: 🧀 Cheese, 🍄 Mushroom") riding ON the member's row (never separate people), and flex items as a nested tickable checklist. Home-delivery members show their 🏠 street address. Allergy flag surfaced. Same data source as labels/manifest: `resolveCycle(week).byStop` / `activeStops`, per-customer add-on index + per-member flex lines from `flex_orders ⨝ flex_inventory` (status pending|locked|fulfilled — matches the labels page). `.pack-row { break-inside: avoid }` keeps a member's full row on one page. Same print pattern (no blanking rule, `.screen-only` hide, page break per stop).
+- `src/pages/admin/pack-check/index.astro` — week picker (default upcoming Monday, snapped to Monday; mirrors stop-manifest) + stop list (boxes/add-ons/flex per stop) linking to each stop's checklist, plus "Print all stops for this week →". Empty state for weeks with no members.
+
+### Modified
+- `src/components/AdminShell.astro` — nav link "✅ Pack check" (`/admin/pack-check`) added after "Manifests".
+
+### Verify
+`npm run build` passes clean (only the unrelated Node 25→24 Vercel warning). Artifacts cleaned (`.vercel/output`, `dist`). Both new routes admin-guarded by existing middleware (`ADMIN_PREFIXES = ['/admin']`, prefix match). No hardcoded URLs; no migration-0041 dependency (resolveCycle untouched). Print reasoning for BOTH: AdminShell chrome (header/nav/page-heading + Print button & back link in the actions slot) hidden via `print:hidden`; `.screen-only` hidden; `.print-doc` content prints in normal flow from top of page 1; each stop `.page-break` forces a new page (stop 2 onward starts fresh); colored bands/badges/chips keep color via `print-color-adjust:exact`.
+
+---
+
+## [2026-06-09] CSA — "Text a stop" arrival-text tool (fullstack-builder)
+
+New mobile-first admin tool in `apps/csa-portal/`. NOT committed/deployed — PM verifies & deploys. Lets the team text members "your share has arrived" at each pickup stop with one tap, using `sms:` deep links (Twilio/server SMS does NOT work here — tapping opens the team member's own Messages app pre-filled; they hit Send). No SMS API.
+
+### New files
+- `src/pages/admin/text-stop/index.astro` — week picker (default upcoming Monday, snapped to Monday; mirrors stop-manifest) + stop list from `cycle.activeStops`, each with recipient count, linking to `/admin/text-stop/<week>/<stop_id>`. Synthetic "🏠 Home delivery" entry → `home_delivery` bucket; "⚠ No pickup set" surfaced too. Empty state with icon + action.
+- `src/pages/admin/text-stop/[...slug].astro` — per-stop texting screen. SSR catch-all; resolves `<week>/<stop_id>` from the slug, `resolveCycle(week)`, recipients = `cycle.byStop.get(stop_id)` (the SAME biweekly + season + hold-resolved set labels/manifest use — not re-derived). One extra bounded query fetches `customers.phone` by `customer_id` (CycleMember doesn't carry phone). Per member: big 📱 "Text arrived" `<a href="sms:+1XXXXXXXXXX?&body=ENCODED">` (data-phone = raw E.164). Phone normalized via `lib/phone.ts` `normalizeUSPhone` → `+1` + 10 digits; if it doesn't normalize, NO button + red "⚠ no valid phone — can't text" tag. Sticky header with "N members · M textable · K missing a phone" + "📣 Text everyone here" group-compose `<a href="sms:/open?addresses=+1NUM,...&body=ENCODED">` (iOS; noted on screen). Mobile-first: 44px+ tap targets, one member per row, design tokens only.
+
+### Modified
+- `src/components/AdminShell.astro` — nav link "📱 Text a stop" (`/admin/text-stop`) added after "Manifests".
+
+### Verify
+`npm run build` passes; both routes (`text-stop/index`, `text-stop/[...slug]` regex `text-stop(?:\/(.*?))?\/?$`) registered. Artifacts cleaned (`.vercel/output`, `dist`). Admin-guarded by existing middleware (`/admin/*`). No hardcoded URLs; no dependency on un-applied migration 0041 (resolveCycle already resilient — untouched).
+
+---
+
+## [2026-06-09] CSA — Season-window cycle fix + label zoned redesign (fullstack-builder)
+
+Two changes in `apps/csa-portal/`. NOT committed/deployed — PM verifies & deploys.
+
+### A) BUG FIX — season-window filtering in `src/lib/cycle.ts`
+`resolveCycle()` included EVERY active member regardless of their share's season. On a June label run this wrongly included spring_veg members (season ended Wed 2026-05-27) AND flower members (season opens Wed 2026-06-24). Todd caught both.
+- New pure helper `isShareInSeasonForWeek(shareType, weekStarting)`: uses `season.ts` `getSchedule` + `lastDelivery`; in-season ⟺ `mondayOfWeek(firstDelivery) <= weekStarting <= mondayOfWeek(lastDelivery)` (inclusive of first & last delivery weeks). Shares with NO schedule (flex / add_on / unconfigured) → always in-season (preserves prior include-if-active behavior; add_ons still ride with their box).
+- Applied as the FIRST gate in the resolver's member partition loop (before hold/biweekly), so EVERY downstream view (labels, pack sheet, stop manifest, harvest, box plan) is corrected at the single source of truth. Out-of-season members go to a new `excluded_out_of_season[]` bucket on `ResolvedCycle` (additive; existing consumers unaffected).
+- Defensive season guard added in the move-in pass: a valid move target is in-season by construction, so a legitimately moved-in member is never dropped; the guard only blocks a hand-written/legacy `move_to_week` outside the season.
+- Preserved: vacation move/donate logic, biweekly parity, hold exclusion.
+- Tests (`src/lib/cycle.test.ts`): +8 cases (4 pure `isShareInSeasonForWeek`, 4 resolver-level: spring excluded in June / flower excluded before Jun 24 & included on/after / flex+add_on unaffected / moved-in summer still included). `npx tsx src/lib/cycle.test.ts` → 42 passed, 0 failed.
+
+### B) LABEL DESIGN — `src/pages/admin/labels/[...slug].astro`
+Pack-line zoned layout. Avery 5164 dims (4"×3.33", 2×3 grid) + all `@page`/print CSS UNCHANGED (verified by grep).
+- Zone 1 HEADER: Tiny Seed logo (`/tiny-seed-logo-bw.png`, 0.32in tall, aspect kept) top-left + "CSA · Week of <date>".
+- Zone 2 STOP BAND: full-width color bar, stop name + day. Stable color via curated 15-color palette mapped by sorted stop-name index; stop NAME always printed (color is redundant). On-screen Stop color legend added.
+- Zone 3 RECIPIENT: member name bumped to 19pt/800 (2-line clamp, never clips mid-word) + color-coded SIZE BADGE (small/large/family/regular → 4 colors; neutral badge w/ share descriptor for flower/flex/spring/add-on primaries). On-screen Size color legend added.
+- Zones 4–6 (add-on chips / flex checklist / flags + contents) kept. Flex checklist is now `flex-shrink:0` (stays tickable); box-contents footer is the only shrinkable zone (cap tightened 0.95in→0.7in, font 8.5→8pt) — it clips first under pressure, as it also lives on the pack sheet.
+- All bands/badges/chips use `print-color-adjust: exact`. No hardcoded URLs (logo is a `public/` asset path).
+- `npm run build` passes.
+
+---
+
+## [2026-06-09] CSA — Box label upgrade: filters, add-on chips, flex checklist (fullstack-builder)
+
+Upgraded the Avery 5164 box-label generator per Todd's 4 requirements. Avery 5164 physical dimensions, the 2×3 / 6-per-sheet grid, and all `@page`/print CSS are UNCHANGED.
+
+Files (all in `apps/csa-portal/`):
+- **`src/pages/admin/labels/[...slug].astro`**:
+  - **Req 1 — filters**: new `?stop=<pickup_location_id>` and `?member=<member_id OR customer_id>` query params. Applied AFTER the per-customer grouping so the filtered set is identical to the full week minus non-matching rows. `member` matches the label's primary `member.id` OR `member.customer_id`.
+  - **Req 2 — one label per customer**: replaced one-label-per-share with grouping by `customer_id` within a stop. A box share (summer_veg/spring_veg/flower/flex by `SHARE_PRIORITY`) is the label; that customer's `add_on` rows become chips on it. Customer with ONLY add-ons → their add-ons carry their own label (no one dropped, no double-print). Owe flag = ANY of the customer's rows unpaid. Existing pack order (stops Tue→Wed→Sat, alphabetical within stop) preserved.
+  - **Req 3 — flex checklist**: replaced the "🎯 Flex: a · b · c" text line with a real checklist — each line `☐ <qty>× <name>` with a printed empty square (`.flex-checkbox`, ~0.13in, green border, print-color-adjust:exact) the packer ticks by hand. Header "FLEX — check as packed". Flex fetch now includes `'pending'` (was locked/fulfilled only) to MATCH the admin pack list (`flex-orders.astro` PACKABLE_STATUSES) so this week's not-yet-locked orders print.
+  - **Req 4 — color-coded add-ons**: `ADDON_STYLE` map (mushroom/bread/cheese/coffee/eggs + neutral `unknown` fallback) → print-friendly light-bg/dark-text chips with emoji; on-screen legend (screen-only) added to the preview card so staff learn the printed code. Chips dedup by type.
+  - Overflow: `.label-chips` capped (max-height, clip), flex list/text ellipsis-clip, `.label-contents` footer capped (max-height 0.95in) so a long crop list never crowds the tickable checkboxes off the label.
+- **`src/pages/admin/labels/index.astro`**: week picker is now GET `?week=` and resolves that week's cycle to offer (a) a **stop dropdown** ("All stops" + each active stop) and (b) a **member datalist search** (name → stop). Both submit to the filtered slug view; member links by `customer_id` (stable across the customer's rows). Progressive-enhancement JS only.
+- **Verify**: `npm run build` clean (only pre-existing Node-25 Vercel warning); `.vercel/output` + `dist` removed. NOT committed/deployed — PM verifies & deploys.
+
+---
+
+## [2026-06-09] CSA — Vacation-hold dispositions: MOVE + DONATE (fullstack-builder)
+
+Members can now self-serve two new vacation-hold dispositions instead of emailing Todd (Todd: "go go go, make it easy"). Previously a hold could only SKIP a week.
+
+- **MOVE** — give up this week's box, receive it on a different in-season delivery week.
+- **DONATE** — the held box is donated; the farm reallocates it.
+
+Files (all in `apps/csa-portal/`):
+- **`migrations/0041_vacation_disposition.sql`** (NEW) — adds `vacation_holds.disposition` (text, default 'skip', CHECK skip/move/donate) + `move_to_week` (date, Monday/week_starting of target). Reconciled `schedule_vacation_hold(...)` VERBATIM from the actual body in `supabase/migrations/0016_vacation_hold_functions.sql`, adding `p_disposition`/`p_move_to_week` params + validation + the two INSERT columns; DROPs the old 4-arg fn first (avoids defaulted-overload ambiguity) and re-issues REVOKE/GRANT. Idempotent. ⚠️ Flagged: file is in app dir per brief but repo convention is repo-root `supabase/migrations/` — move before applying. NOT applied (no DDL access).
+- **`src/lib/cycle.ts`** — `resolveCycle()` now fetches `disposition, move_to_week`; MOVE adds the member to the TARGET week (tagged `moved_in`/`moved_from`, de-duped, respects other holds, even on a biweekly off-parity week and pulled out of `excluded_biweekly` when so); DONATE surfaces members in new `CycleResult.donated[]`. Added `validMoveTargetWeeks`/`validMoveTargetWeeksForShare`/`isValidMoveTarget` (future in-season delivery weeks before pack cutoff). Existing fields/consumers unchanged.
+- **`src/pages/api/account/vacation/schedule.ts`** — Zod-validates `disposition` + `move_to_week`; cross-field + season-calendar server validation; passes new args to the RPC.
+- **`src/pages/account/vacation/new.astro`** — disposition radio picker (Skip default / Move-to-week dropdown / Donate) with plain-language copy + progressive-enhancement JS toggling the week select.
+- **`src/pages/account/vacation.astro`** — each hold shows its disposition ("Moved to Jun 24" / "Donated" / "Skipped").
+- **`src/pages/admin/pack-day/[...slug].astro`** + **`stop-manifest/[...slug].astro`** — pack team sees "Donations: N boxes" tally (per-stop on manifests) and moved-in members tagged "moved from <date>".
+- **`src/lib/account.ts`** (error copy), **`src/lib/database.types.ts`** (column + RPC types), **`src/lib/cycle.test.ts`** (+9 tests, see below).
+- **Verify**: `npm run build` clean; `npx astro check` → 0 errors; `npx tsx src/lib/cycle.test.ts` → 34 passed, 0 failed (vitest is NOT installed in this repo — unit tests run as tsx scripts via `npm run test:unit`); artifacts removed. NOT committed/applied/deployed — PM verifies & deploys.
+
+---
+
+## [2026-06-09] CSA — Admin Flex Orders pack view (fullstack-builder)
+
+New admin page `apps/csa-portal/src/pages/admin/flex-orders.astro` — Todd/staff can see and pack what flex members ordered each week (Todd: "I want an admin view of the flex orders").
+
+- **Read-only pack list**, no mutations. Admin-gated by the existing `/admin/*` middleware (`src/middleware.ts`: `isAdminRoute` → `resolveAdminRole` → redirect; no per-page guard re-implemented).
+- **Week selector**: defaults to the most recent `week_starting` present in `flex_orders` (distinct-week query, newest first); plain `<form method="GET">` dropdown + `?week=YYYY-MM-DD` escape hatch. No client JS.
+- **Summary cards**: distinct members ordering, total line items, total revenue ($ from `sum(total_cents)`), and pending/locked/fulfilled status breakdown. Counts only packable statuses (excludes cancelled/refunded).
+- **Pack list** grouped by pickup stop (`pickup_locations.name`; null pickup → "No pickup / home delivery", sorted last) → member (`customers.contact_name`) → items as "{qty} × {name}" with line price + member total + stop totals. Item names resolved via a per-week `flex_inventory` Map (id→name/price) with embedded-join + "(item)" fallbacks (never crashes).
+- **Nav**: added "Flex orders" (🧺) next to "Flex items" in `src/components/AdminShell.astro`.
+- **Verify**: `npm run build` succeeds, no new errors; build artifacts (`.vercel/output`, `dist`) removed. NOT committed/deployed — PM verifies & deploys.
+
+---
+
+## [2026-06-09] CSA — Flex order confirmation banner + member ops (PM_Architect + fullstack-builder)
+
+Deployed to prod `tiny-seed-csa` (csa.tinyseedfarm.com) via Vercel local upload (the project's `.vercel/project.json` is now correctly linked to `prj_79Qsl`; the old two-project gotcha is fixed). Live HTTP 200 verified.
+
+- **Flex order confirmation banner** (`src/pages/account/flex-order.astro`): persistent "✅ Your order is in for this week" banner with itemized list + total, shown whenever a member has a saved/locked order — so order success is unmissable (Todd directive after Melissa Maxwell reported uncertainty). Default Small CSA Share pre-fill confirmed working (item active this week).
+- **Member ops (no code):** 69 sign-in/phone nudge emails sent (55 summer/flex this-week + 14 flower-only, audience audited & segmented, spring-only excluded); Loren created as `staff` + Frankie/Loren admin login links + terminal link emailed; Melissa Maxwell diagnosed (no auth account → order never saved) + emailed login link; Betsy Cwenar confirmed (weekly small share, Bloomfield Sat, Squirrel Hill still available); Jeanie Von Hofen switched home-delivery → Zelienople pickup (verified) + emailed.
+- **Audit findings (to fix):** admin "315 active members" counts share-ROWS not people (real = ~185 w/ upcoming share); "36 home deliveries" card counts add-ons + unassigned-pickup (real home-delivery ≈ 11); "unassigned Week A/B" counts weekly members (real needing assignment = 0). Logged in `docs/CSA_TODO.md`.
+
+## [2026-06-08] CSA — Bug fixes: weekly members shown "biweekly" + admin members search dead (fullstack-builder)
+
+Two production bugs in `apps/csa-portal`, deployed to prod `tiny-seed-csa` (csa.tinyseedfarm.com). Additive/surgical — no gate, flex-ordering, pickup, nav, or working-filter regressions. No hardcoded URLs.
+
+- **BUG 1 — a WEEKLY member was told they're "biweekly" (member-facing display bug).** Reported by Jason Smith (Shopify-confirmed weekly: `summer_veg`, `biweekly_week=null`, `total_weeks=18`). ROOT CAUSE: `src/pages/account/index.astro` rendered the "Bi-weekly schedule" card for EVERY member with a primary share, and `biweeklySummary`'s null-case copy read "Not yet assigned — pick a week…" — framing a true weekly member as a biweekly-pending one. The dashboard's `ScheduleCard` already handled this correctly (`null → "every week"`); the account hub was the lone diverging surface.
+  - FIX (account hub now cadence-aware): a weekly member sees a calm, link-less **"Delivery schedule — You get a box every week"** card and NEVER any "biweekly"/"Week A/B" framing. The bi-weekly picker card + summary render ONLY for members who are actually on a biweekly share.
+  - **NEW `memberIsBiweekly()` in `src/lib/schedule.ts`** — the canonical weekly-vs-biweekly resolver. `members.biweekly_week` alone is ambiguous (null = a true weekly member OR a biweekly member who hasn't picked A/B — the Shopify sync sets a reduced `total_weeks` e.g. 9-vs-18 but leaves `biweekly_week` null). The helper returns biweekly when `biweekly_week` is A/B OR `total_weeks < schedule.totalWeeks`; falls back to weekly (never guesses biweekly) when the schedule is unknown. Also corrected the A/B summary copy from the wrong "1st & 3rd Wednesdays" month-position model to "every other Wednesday" (matches the already-corrected biweekly-schedule page).
+  - TESTS: 6 new `memberIsBiweekly` cases in `src/lib/schedule.test.ts` (25/25 pass), incl. the Jason-Smith shape → `false`.
+  - EVIDENCE: live data confirms Jason = `summer_veg / active / biweekly_week null / total_weeks 18` → `memberIsBiweekly=false` → he now sees "You get a box every week", no biweekly card.
+
+- **BUG 2 — admin `/admin/members` search bar didn't filter (it emptied the list).** ROOT CAUSE was SERVER-SIDE, not the SearchInput: the Supabase query OR-ed embedded-resource columns into the top-level members `.or()` via the dotted path (`customer.contact_name.ilike…`). PostgREST CANNOT parse a base-table column and an embedded-resource column in one logic tree — it returned `"failed to parse logic tree"`, the query errored, and the page fell back to `[]`, so EVERY search showed nothing. (Verified against live DB.)
+  - FIX (`src/pages/admin/members/index.astro` + the same broken pattern in `src/pages/api/admin/reports/[name].csv.ts`): resolve matching customer IDs FIRST (name / email / customer legacy_id, searched directly on the `customers` table), then filter members by `customer_id IN (…)` OR the member's own `legacy_id` — both plain members base columns, so the top-level `.or()` parses cleanly.
+  - EVIDENCE (live DB, page query replicated): no search → 249 rows/199 customers; "smith" → 4 rows/3 customers (Geri, Jason, Catherine Smith); "jason" → 3 rows/2 customers (name+email match); "zzznope" → 0. Member-legacy-id search ("CSA-1769…") → 1 row.
+
+- VERIFICATION: `astro check` 0 errors (198 files); `npm run build` clean; `schedule.test.ts` 25/25 pass.
+
+---
+
+## [2026-06-08] CSA — Member-facing host info + "respect your host" note on pickup surfaces (fullstack-builder)
+
+- WHY (Todd): members picking up at a host'd stop (a neighbor's porch) should see WHO their host is and how to reach them, plus a warm reminder to pick up within the window. Hosts are volunteers — surfacing the contact + a "respect your host" note keeps the relationship healthy and cuts missed/late pickups. Deployed to prod `tiny-seed-csa` (csa.tinyseedfarm.com). Additive only — `host_name`/`host_phone` columns already existed on `pickup_locations` (admin-editable via /admin/pickup-locations); no migration needed.
+- **NEW `src/components/HostNote.astro`:** single shared presentational component so the copy + markup never drift across the three surfaces. Renders NOTHING unless `hostName` is a non-empty string (a non-empty host_name is what makes a stop "host'd" — markets/farm stops with no host are correctly suppressed, and the "both null" case shows nothing). When a host is present: a "Your host:" line with the name + (when present) the phone as a `tel:` link (digits via `normalizeUSPhone`, label via `formatUSPhone` → "(570) 971-4108"), and the always-shown note "Please respect your host — pick up during your pickup window unless something unexpected comes up. If you'll be late, reach out." Design-token only; never reads the admin-only `notes` column.
+- **`src/lib/account.ts`:** `ResolvedPickup` gains `hostName: string | null` + `hostPhone: string | null`; `resolveMemberPickup` selects `host_name, host_phone` and populates them for `kind='pickup'` (trim → null when blank), `null` for delivery/none/empty.
+- **MEMBER surfaces now rendering the host line + note (kind='pickup' only — NOT home delivery, NOT 'none'):**
+  - **`src/pages/account/confirm-pickup.astro`** (ack gate) — `<HostNote>` placed directly below the `pickup_instructions` block.
+  - **`src/pages/account/pickup.astro`** — `<HostNote>` inside the "Where you pick up now" card (non-delivery branch), below the instructions block. Added `host_name, host_phone` to the member→pickup_location select + `currentHostName`/`currentHostPhone` derivations.
+  - **`src/pages/dashboard.astro` + `src/components/PickupCard.astro`** — dashboard pickup card. Added `host_name, host_phone` to the dashboard share select + `ActiveShare.pickup_location` type, `pickupHostName`/`pickupHostPhone` computations, two new `PickupCard` props, and a `<HostNote>` render below the instructions block (pickup mode only).
+- NO REGRESSION: pickup-ack gate predicate, phone gate, `pickup_instructions` display, flex ordering, nav, and the cleared time-window / text-on-arrival behavior all untouched — purely additive (two new optional fields + new optional render block, gated on a non-empty host_name). The admin-only `notes` column is never surfaced. `astro check` 0 errors in all touched files; `npm run build` clean. No hardcoded URLs.
+
+---
+
+## [2026-06-08] CSA — Member-facing per-site pickup instructions (fullstack-builder)
+
+- WHY (Todd): each pickup site needs its own custom instructions the member MUST see (e.g. "boxes on the covered porch, in the green cooler — re-close the lid"). These vary site to site and are the difference between a smooth pickup and a confused member texting the host. Deployed to prod `tiny-seed-csa` (csa.tinyseedfarm.com). Migration 0040 applied live.
+- **Migration `supabase/migrations/0040_pickup_instructions.sql`:** `ALTER TABLE public.pickup_locations ADD COLUMN IF NOT EXISTS pickup_instructions text` (nullable, no default) + a `COMMENT` documenting it as MEMBER-FACING and DISTINCT from the admin-only `notes` column (notes carries internal content like "host not confirmed" and must NEVER reach members). Applied via the Supabase Management API (HTTP 201); confirmed the column exists (`information_schema.columns`) with the comment; round-trip write/read test preserved newlines and left `notes` untouched, then reverted to NULL.
+- **`src/lib/database.types.ts`:** added `pickup_instructions: string | null` to the `pickup_locations` Row.
+- **`src/lib/account.ts`:** `ResolvedPickup` gains `pickupInstructions: string | null`; `resolveMemberPickup` selects `pickup_instructions` and populates it for `kind='pickup'` (trim → null when blank), `null` for delivery/none/empty. Single source of truth for the confirm-pickup gate.
+- **MEMBER pages now rendering `pickup_instructions`** (whitespace-pre-line, warm `ts-primary` accent block, shown ONLY when set → falls back to the existing text-on-arrival / time-window copy otherwise, never an empty block):
+  - **`src/pages/account/confirm-pickup.astro`** (the required ack gate) — instructions block sits directly under the resolved-pickup detail card, above the acknowledgment checkbox.
+  - **`src/pages/account/pickup.astro`** — instructions for the member's CURRENT stop, inside the "Where you pick up now" card. Added `pickup_instructions` to the member→pickup_location select + a trimmed `currentInstructions` derivation.
+  - **`src/pages/dashboard.astro` + `src/components/PickupCard.astro`** — dashboard pickup card. Added `pickup_instructions` to the dashboard share select + `ActiveShare` type, a `pickupInstructions` computation, a new `PickupCard` prop, and a full-width instructions block (pickup mode only).
+- **ADMIN editing** (`pickup_instructions` textarea, member-facing, ≤2000 chars, clearly labeled "members see this" and disambiguated from internal Notes):
+  - **`src/pages/admin/pickup-locations.astro`** — textarea added to BOTH the create form and the per-row edit form; existing Notes field relabeled "(internal — members don't see)".
+  - **`src/pages/api/admin/pickup-locations/new.ts`** + **`[id].ts`** — `pickup_instructions` added to the Zod schema (`.max(2000).nullable()`), parsed via `strOrNull`, and written on insert/update.
+- NO REGRESSION: pickup-ack gate predicate, phone gate, flex ordering, nav, and the cleared time-windows / text-on-arrival behavior all untouched — purely additive (new nullable column + new optional render blocks + new admin field). `astro check` 0 errors in all touched files; `npm run build` clean. No hardcoded URLs.
+
+---
+
+## [2026-06-08] CSA — Flex-order success: celebratory "Order confirmed!" confirmation modal (fullstack-builder)
+
+- WHY (Todd): the flex-order success redirect (`?ok=submitted`) only showed a small inline green flash banner — not a clear, joyful "your order is in" moment. Replaced the banner with a centered celebratory pop-up confirmation modal. Deployed to prod `tiny-seed-csa` (csa.tinyseedfarm.com).
+- **`src/pages/account/flex-order.astro`:**
+  - Removed the inline success flash (`okMsg`) banner in favor of the modal (errors still render inline). No double-up.
+  - Frontmatter computes a `confirmKind` (`submitted` | `updated` | `cancelled`) from `?ok`, and for submitted/updated builds `confirmLines` (name × qty + line total, emoji) + `confirmTotalCents` by joining the existing `pendingOrder` query to the `allItems` catalog (no new query). The submit API emits ONLY `?ok=submitted` today; `updated` is handled defensively for a future redirect. `cancelled` shows a gentle reassurance with no item list.
+  - New confirmation modal lives in the (already-unconditional) `overlays` Fragment, hidden by default. Reuses the onboarding-modal shell + M5/M6 dialog a11y pattern: `role="dialog"`, `aria-modal`, `aria-labelledby`/`aria-describedby`, focus trapped to the Done button, Escape + backdrop dismiss. Warm headline ("Order confirmed! 🌿"), short line, the ordered items + total, and a remaining Flex balance line hydrated client-side from the FlexWallet `flex:resolved` event.
+  - New module `<script>` (index=1) drives it: show-on-load, focus management (focus Done, restore prior focus on close), Escape/backdrop close, balance hydration, and strips `?ok`/`?error` from the URL via `history.replaceState` on dismiss so a refresh never re-pops it. Runs INDEPENDENTLY of the cart engine (which is gated on `windowOpen`) so the modal also shows after the window closes.
+- **`src/styles/global.css`:** added `@keyframes tsConfirmPop` (panel spring) + `tsConfirmEmoji` (badge pop) and `.ts-confirm-panel` / `.ts-confirm-emoji` classes. Panel + emoji carry `.motion-transform`, so the existing `prefers-reduced-motion` block neutralizes the movement (modal simply appears).
+- NO REGRESSION: submit/cancel/closed-state/before-open/gates/nav/M1–M7 untouched — only the success-flash markup changed and a new hidden overlay + its controller were added. `astro check` 0 errors; `npm run build` clean; both module scripts wired via `renderScript` (index=0 cart engine, index=1 confirm controller). No hardcoded URLs.
+
+---
+
+## [2026-06-08] CSA — FIX 1: bottom action bars hidden behind bottom nav (P0) + FIX 2: forced pickup-acknowledgment gate (fullstack-builder)
+
+- WHY (Todd, live-testing, hit both): (1) the persistent bottom nav added to `MemberShell` (`fixed … bottom-0 z-40`) was painting ON TOP of the flex-order "Submit my order" bar (`fixed … bottom-0 z-20`) — owner reported "THERE IS NO CHECKOUT". (2) Owner directive: members MUST confirm WHERE/WHEN they pick up (missed pickups waste boxes) — same forcing pattern as the phone gate, never built. Deployed to prod `tiny-seed-csa` (csa.tinyseedfarm.com), dpl `tiny-seed-3dh4mkjsi`. Migration 0039 applied live.
+
+- **FIX 1 — fixed bottom action bars now sit ABOVE the nav (`src/components/MemberShell.astro`, `src/pages/account/flex-order.astro`):**
+  - The nav owns `--member-bottombar-h = calc(4rem + env(safe-area-inset-bottom,0px))` on the page wrapper `<div>` (which also contains the `overlays` slot), so overlay bars can reference it.
+  - Convention (documented in MemberShell): a fixed overlay action bar positions at `bottom: var(--member-bottombar-h)` with `z-30` (BELOW the nav's `z-40`) → bar sits directly atop the nav, both visible + tappable, never overlapping.
+  - The flex submit bar changed from `bottom-0 z-20` → `style="bottom: var(--member-bottombar-h, 0px)" z-30` (dropped its now-redundant safe-area padding — the nav consumes the inset).
+  - New optional `actionBarSpace` prop on MemberShell adds the bar's height to `<main>`'s `padding-bottom` (`calc(--member-bottombar-h + 1.5rem + <space>)`) so the last content row clears BOTH bar and nav. flex-order passes `actionBarSpace="11rem"` (its prior `pb-32` class was being overridden by MemberShell's inline `<main>` padding anyway — this fixes the real control). Backward-compatible: omitting the prop = prior behavior.
+  - AUDIT of all 10 `slot="overlays"` pages: flex-order is the ONLY one with a persistent fixed bottom action bar. box/index uses `BottomSheet` (modal `z-50`, inset-0) + a floating toast region (`z-[60]`, `bottom-4`) — both correctly above the nav; pickup/profile/preferences/household/refer/biweekly/vacation/dashboard pass only scripts or in-flow buttons. No other page touched.
+  - PROVEN: prod render of `/account/flex-order` → 303 (auth route live). Computed offsets: nav `bottom:0 / z-40`, submit bar `bottom:calc(4rem+safe-area) / z-30`, main `padding-bottom: calc((4rem+safe-area)+1.5rem+11rem)`. No overlap; nav tappable. Flex M1–M7, submit, cancel, currentOrderWeek, closed-state, onboarding modal (`inset-0 z-40`) untouched — only CSS position/z/padding changed.
+
+- **FIX 2 — forced pickup-acknowledgment gate (new):**
+  - **Migration `supabase/migrations/0039_pickup_acknowledgment.sql` (APPLIED LIVE, HTTP 201, verified):** `ALTER TABLE customers ADD COLUMN IF NOT EXISTS pickup_acknowledged_at timestamptz`. NULL = not yet acknowledged. `src/lib/database.types.ts` updated.
+  - **Gate (`src/middleware.ts`):** runs AFTER the phone gate so the required-onboarding sequence is phone → pickup-ack → portal. Reuses ONE `customers` round-trip (now selects `role, phone, pickup_acknowledged_at`). Non-admin member with `pickup_acknowledged_at IS NULL` → `/account/confirm-pickup?next=…`. Admins/staff exempt (checked via the row's `role`). EXEMPT prefixes: confirm-pickup + its API, `/account/pickup` + `/api/account/pickup-location` + `/api/account/request-delivery` (choose-a-location escape hatch), add-phone + its API, `/logout`, `/auth`, `/onboarding` + `/api/onboarding`. FAIL-SOFT: query error skips both gates.
+  - **Interstitial `src/pages/account/confirm-pickup.astro`** (renders OUTSIDE MemberShell, like add-phone): resolves the member's pickup via the new `resolveMemberPickup()` (`src/lib/account.ts`) and adapts copy — scheduled stop/market shows day + time window; a stop with NO time window is "text-on-arrival" ("you'll get a text when your box arrives"); home-delivery shows the address; a live share with NO location set routes to `/account/pickup` first ("Choose my pickup location") then back; no active share → friendly "we'll set this up when your share starts". Requires an explicit checkbox "I understand I pick up at [Location] on [day]" (server also enforces `ack`). Warm, empowering brand voice.
+  - **Save `src/pages/api/account/confirm-pickup.ts`** (POST-only, sibling of add-phone): same-origin CSRF check, auth check, requires `ack`, stamps `pickup_acknowledged_at = now()` via the RLS-scoped email-filtered self-update (policy `customers_self_update`), 303 → sanitized `next` (never back to the gate).
+  - **No-phone-AND-no-ack flow:** /add-phone is exempt from both gates → member saves phone → returns to intended page → phone now valid (phone gate passes) → ack still null → forced to /confirm-pickup → confirms → portal. A `kind='none'` member: confirm-pickup → /account/pickup → save → navigate → confirm-pickup (now resolvable) → confirm → in. No traps.
+  - New shared helpers in `src/lib/account.ts`: `resolveMemberPickup()` + `ResolvedPickup` type + `formatPickupTimeRange()`. FAIL-SOFT to `noActiveShare`.
+  - PROVEN: `/account/confirm-pickup` → 303 (route live); `/api/account/confirm-pickup` POST (no same-origin) → 403 (CSRF gate live); column verified `timestamp with time zone, nullable`. `astro check`: 0 errors (pre-existing campaign/onboarding warnings only). Phone gate, flex ordering, Order nav tab all preserved. No hardcoded URLs (`PORTAL_ORIGIN` from lib/onboarding).
+
+---
+
+## [2026-06-08] CSA — Flex ordering P0 fix: missing SUBMIT button + Tuesday window + empowering closed-state UX (fullstack-builder)
+
+- WHY (Todd, P0 production blocker — "THERE IS NO WAY TO SUBMIT AN ORDER"): the submit button was silently dropped from the rendered page; members also couldn't order on the deadline day; and the closed/before-open states needed to become a warm brand moment. Spec: `docs/specs/FLEX_ORDERING_AUDIT_FIX_2026-06-08.md`. Deployed to prod `tiny-seed-csa` (csa.tinyseedfarm.com).
+
+- **BUG A (root cause of no-submit) — `src/pages/account/flex-order.astro`:** the sticky cart + submit `<Fragment slot="overlays">` was wrapped in `{windowOpen && orderable.length>0 && (…)}`. `MemberShell` gates the slot on `hasOverlays = Astro.slots.has('overlays')`, which returns FALSE for a slot passed inside a conditional expression → the whole overlays slot (submit form, over-balance prompt, onboarding modal) was dropped from the DOM. FIX: pass `<Fragment slot="overlays">` UNCONDITIONALLY (matching every other member page) and move the `windowOpen && orderable.length>0` checks INSIDE it. PROVEN: authenticated render of `/account/flex-order` for the flex member (freetodd21, member `5f493595…`) now contains `data-submit` + "Submit my order" + `data-cart-form` posting to `/api/account/flex-order/submit` with the correct member_id + week.
+
+- **BUG B (can't order Tuesday/deadline day) — `src/lib/flex-order.ts` + the page:** the page used `upcomingMonday()` (cycle.ts), which flips to NEXT Monday on Tue–Sun → on Tuesday (window still open) it showed next week (before-open, no inventory, no submit). FIX: added `currentOrderWeek(now)` — returns the week W whose window is open now (`opensEpochMs(W) ≤ now < cutoffEpochMs(W)`), else the soonest upcoming week (before-open). Page now resolves the week via `currentOrderWeek(NOW)`. Unit tests (`flex-order.test.ts`, all green): Mon 6/8→6/8 open; Tue 6/9 10:00 ET→6/8 still-open; Wed 6/10→6/15 before-open; Thu 6/11→6/15 open; Tue 6/16 06:00 ET→6/15 still-open; Wed 6/17→6/22. PROVEN live: simulated Tue 6/9 10:00 ET renders week 6/8 + the submit button.
+
+- **NEW closed / before-open brand moment (Todd directive) — the page + `windowLabels`/`formatWindowInstant` in `flex-order.ts`:** both states now render one warm panel — large bold **RED** headline ("Order period is closed" / "Ordering isn't open yet"), the concrete NEXT window OPENS *and* CLOSES in ET ("Thursday, June 11 at 12:00 AM" / "Tuesday, June 16 at 7:00 AM"), a real `mailto:tinyseedcsa@gmail.com` "Email us" link, and "Your Flex balance carries forward — it never expires." Calm, joyful, never a dead end. PROVEN live via the dev `?__now=` clock seam.
+
+- **Polish (spec):**
+  - **Cancel order:** new "Cancel my order this week" action (shown only when a pending order exists) → new `src/pages/api/account/flex-order/cancel.ts` → new SECURITY DEFINER RPC `cancel_flex_order` (migration `supabase/migrations/0038_cancel_flex_order.sql`, applied to prod): re-checks caller ownership, restocks each pending line into `flex_inventory.remaining_qty`, flips rows pending→`cancelled` (audit trail), atomically. PROVEN: order(2 Dill) → cancel → stock restored 98→100, row `cancelled`, `{ok:true,cancelled:1,restocked_cents:600}`; foreign member_id → `{error:forbidden}`; idempotent re-call → `cancelled:0`.
+  - **Balance race:** the cart shows a subtle "Checking your balance…" pulse until the `flex:resolved` event fires (no more bare "—"); server still re-checks balance (safe).
+  - **$0-balance:** the over-balance prompt doubles as the guided "add Flex" path (→ `/account/flex#add-funds`) — never a dead-end.
+  - Submit + cancel are SEPARATE sibling `<form>`s inside a fixed `<div>` (no nested forms).
+
+- **DEV-ONLY test seam:** `?__now=<epochMs>` overrides the clock on `/account/flex-order` ONLY when `import.meta.env.DEV` — no-op in production. Used to render the before-open/closed/Tuesday states deterministically for the proof.
+
+- Other: `src/pages/account/flex-order.astro` now passes `active="order"` + `isFlexMember={true}` to MemberShell; flash copy adds `ok=cancelled` + `error=cancel_failed`; `src/lib/database.types.ts` adds the `cancel_flex_order` RPC signature. `astro check`: 0 errors/0 warnings. M1–M7, default-Small-Share pre-fill, explicit submit, oversell/over-balance guards, a11y all preserved.
+
+---
+
+## [2026-06-08] CSA — FIX 1 flex-order discoverability + FIX 2 required sign-in phone gate (fullstack-builder)
+
+- WHY (Todd directives): (1) A flex member signing in couldn't FIND the ordering page — the only entry was a card buried low on `/account` and there was NO nav link. (2) Customers MUST add a valid cell phone — the farm texts members when their share arrives — so the portal now FORCES a valid US mobile at sign-in. Both deployed to prod `tiny-seed-csa` (csa.tinyseedfarm.com).
+
+- **FIX 1 — make flex ordering obvious:**
+  - `src/lib/account.ts`: added `memberHasFlexShare(supabase)` — the single canonical "active flex share?" signal (member row `share_type='flex'` in a live status active/paused/onboarding; RLS-scoped; fail-soft → false). Mirrors what `/account` already used to gate its extras card.
+  - `src/middleware.ts`: computes `locals.isFlexMember` ONCE per request on protected member HTML routes (skips `/api/*`, `/admin/*`, the add-phone interstitial) so the nav tab shows on EVERY member page without each page re-querying.
+  - `src/components/MemberShell.astro`: new bottom-nav **"Order"** tab → `/account/flex-order`, inserted after Home ONLY for flex members (defaults from `Astro.locals.isFlexMember`; a page may override via the new `isFlexMember` prop). Distinct shopping-bag icon (vs. the box/delivery icon). `deriveActive()` highlights it on the order page.
+  - `src/pages/account/index.astro` + `src/pages/dashboard.astro`: PROMOTED the flex entry from a buried low card to a prominent **primary CTA at the top** — heading "This week's order", the order-window close label via `closeLabel(upcomingMonday())` (amber `text-ts-warning` urgency line), and a full-width "Order your items →" button to `/account/flex-order`. Removed the old buried `/account` "Order this week's extras" card. Both pages pass `isFlexMember` to MemberShell explicitly (they compute the signal in hand).
+  - Wallet vs ordering disambiguated: `src/components/FlexWallet.astro` hub heading is now **"Farm Flex balance"** (→ `/account/flex`, the BALANCE); the new top CTA is **"This week's order"** (→ `/account/flex-order`, the ITEMS). Non-flex members see neither.
+
+- **FIX 2 — required cell phone at sign-in (all members):**
+  - `src/lib/phone.ts` (NEW): `normalizeUSPhone` (strips non-digits, drops leading US "1", NANP-validates area+exchange first digit 2–9 → canonical 10 digits), `isValidUSPhone`, `phoneSatisfiesGate`, `formatUSPhone`. Pure/dependency-free; import-safe from middleware, API, SSR. Logic unit-verified (10 cases incl. `(412) 407-3884`, `412-407-3884`, `4124073884`, `+1…`, reject empty/`123`/area-code-0).
+  - `src/middleware.ts`: phone GATE — an authenticated NON-ADMIN member whose `customers.phone` is empty/invalid is redirected to `/account/add-phone?next=<intended-path>` and cannot reach any member page until they save a valid cell. Reads role+phone in ONE round-trip; fail-soft (query error → skip gate, never lock out a paying member). EXEMPT: the interstitial page + its save API, `/logout`, `/auth/*`, and **admins/staff (never gated)**.
+  - `src/pages/account/add-phone.astro` (NEW): single-field required interstitial, rendered OUTSIDE MemberShell (no nav escape — only "save a valid number" or "sign out" leave it). Re-checks `phoneSatisfiesGate` on load (already-valid → bounce to `?next=`). Sanitized same-site `next`.
+  - `src/pages/api/account/add-phone.ts` (NEW): minimal POST save (the full `/api/account/profile` requires `contact_name`, so posting there would trap a one-field member). Same CSRF (`isSameOriginPost`) + auth contract; RLS-scoped, email-filtered `customers` update storing the NORMALIZED 10-digit phone; 303 → sanitized `next` (rejects protocol-relative + the gate page itself).
+  - `src/lib/app-locals.d.ts`: added `isFlexMember?: boolean` to `App.Locals`.
+
+- GATE: `astro check` 0 errors (warnings are pre-existing zod deprecations in unrelated campaign files); `npm run build` complete. Deployed prebuilt to prod `tiny-seed-csa` (`prj_79Qsl…`, owns `csa.tinyseedfarm.com` — verified before deploy; `rootDirectory` null), `dpl_7f9bUQ621bUbdEbfUJJ3bVS3jt5f` READY. Live (after alias propagation): `/account/add-phone` → 303 (auth-gated, exists), `/account/flex-order` → 303, `/dashboard` → 303, `/api/account/add-phone` POST → 403 cross-origin (CSRF guard) / 303 same-origin-unauth (→ login). No `clasp`/Apps Script involved — this is the Astro/Supabase CSA portal.
+
+---
+
+## [2026-06-08] CSA — Flex ordering: order-window cadence change (Todd) — Week-1 Tue 6 PM close, standing Thu-open/Tue-7 AM-close (fullstack-builder)
+
+- WHY: Todd changed the flex order cutoff AFTER the Phase-1 build shipped. The build hardcoded a single **Tuesday 08:00 ET** close (`flex-order.ts → cutoffEpochMs`). New cadence (America/New_York, DST-aware): **Week 1 only (`week_starting === '2026-06-08'`)** is treated as already open and CLOSES **Tue Jun 9 2026 18:00 ET**; **all standing weeks** OPEN the prior **Thursday 00:00 ET** (`week_starting − 4 days`) and CLOSE that week's **Tuesday 07:00 ET** (`week_starting + 1 day`). SURGICAL fix — only cutoff/window logic + the copy/countdown that depend on it; no other Phase-1 behavior touched.
+- `src/lib/flex-order.ts`: parameterized close — `cutoffEpochMs(weekStarting)` returns Tue 18:00 ET for `2026-06-08`, else Tue 07:00 ET. Added `opensEpochMs(weekStarting)` (Week 1 → epoch 0 / already open; else prior-Thursday 00:00 ET), plus `isBeforeOpen`, `isWindowOpen`, and `closeLabel` ("Tuesday 6 PM" wk1 · "Tuesday 7 AM" standing). Refactored the ET wall-clock→epoch math into a shared DST-aware `etWallClockEpochMs(weekStarting, dayOffset, hour, minute)` helper (resolves the true UTC offset via Intl — never hardcodes −04:00). Computed instants (verified by tests): **Week 1 close = `2026-06-09T22:00:00Z`**; **`2026-06-15` open = `2026-06-11T04:00:00Z`, close = `2026-06-16T11:00:00Z`**.
+- `src/lib/flex-order.test.ts`: rewrote the cutoff block — asserts Week-1 close (Tue Jun 9 18:00 EDT), a standing week (`2026-06-15`) open (Thu Jun 11 00:00 EDT) + close (Tue Jun 16 07:00 EDT), before-open/open/closed transitions, and DST correctness on a winter standing week (`2026-01-05`: open Thu 00:00 EST = `2026-01-01T05:00Z`, close Tue 07:00 EST = `2026-01-06T12:00Z`). All `*.test.ts` green.
+- `src/pages/account/flex-order.astro`: gated the page on the window — THREE states: **before-open** (read-only "Ordering opens <day>" card + greyed preview of the week's items, no steppers/cart, no default pre-fill), **open** (orderable; default Small-Share pre-fill + countdown), **after-close** (existing locked state). Live countdown (M1) counts to the correct CLOSE. Fixed all "Tuesday 8 AM" copy (header chip, locked-state, onboarding modal) to the dynamic `closeLabel`. Client engine now activates on `windowOpen` (was `!pastCutoff`).
+- `src/pages/api/account/flex-order/submit.ts` (M7): window guard now rejects **before-open** (`isBeforeOpen`) AND after-close (`isPastCutoff`) → `window_closed`. Close time flows automatically from the single-source `cutoffEpochMs`.
+- `src/pages/account/index.astro`: the "Order this week's extras" hub teaser now renders the dynamic close label (`closeLabel(upcomingMonday())`) instead of hardcoded "Tuesday 8 AM".
+- UNCHANGED (scoped out): the veg-share **box swap** Tue-8 AM cutoff (`box.ts`, `box/index.astro`, `swap.ts`, `swap-undo.ts`) is a separate feature Todd did NOT change. Default-Small-Share pre-fill, explicit submit, sold-out/oversell guards, over-balance copy, coming-soon teasers, and a11y all preserved.
+- GATE: `npx tsx` flex-order tests green; full `npm run test:unit` (all suites) green; `astro check` 0 errors / 0 warnings; `npm run build` complete. Deployed prebuilt to prod `tiny-seed-csa` (`prj_79Qsl…`, owns `csa.tinyseedfarm.com` — verified before deploy; `rootDirectory` null). Live: `/account/flex-order` → 303 (auth-gated, exists), `/` → 200.
+
+---
+
+## [2026-06-08] CSA — Flex ordering Phase 1: admin item form + member ordering page + South Side pickup (fullstack-builder)
+
+- WHY: Flex-share CSA members (`members.share_type='flex'`, 29 active) need to order weekly extras debited from their Farm Flex (Shopify store-credit) balance; traditional members see nothing. Spec: `docs/specs/FLEX_ORDERING_BUILD_SPEC.md` + `docs/research/FLEX_ORDERING_GAP_RESEARCH.md`. Ports the legacy `web_app/csa.html` flow (pre-filled cart, inline deadline, live balance, "balance carries forward", multi-state submit, onboarding modal) into Astro, modernized per the gap research. Add Funds already lives in `flex.astro`/`flex.ts` — NOT rebuilt; linked. Deployed to prod (`tiny-seed-csa`, csa.tinyseedfarm.com).
+- MIGRATION `supabase/migrations/0036_flex_ordering.sql` (APPLIED to melizsvabemhaqeaqtyw, statement-by-statement per the storage-policy "must be owner" quirk): adds `flex_inventory.coming_soon` + `is_featured` (BOOL default false); loads 5 coming-soon teasers for week 2026-06-08 (`is_active=false, coming_soon=true` → hidden from member RLS, surfaced only by the SSR page); loads `box_contents` for 2026-06-08 share_type 'small' (6 items) + 'family' (9 items) — drives the CSA-share flex item's displayed contents; inserts the South Side Market pickup (2120 Jane St, Pittsburgh PA 15203, Sun 10–2, seasonal May–Sept, `is_active=true`); creates the PUBLIC `flex-images` storage bucket (public read + admin-only write, mirrors `campaign-images`/0035).
+- MIGRATION `supabase/migrations/0037_place_flex_order.sql` (APPLIED): `place_flex_order(member, week, lines jsonb, balance_cents)` SECURITY DEFINER RPC — the atomic member-submit. Re-asserts caller owns the flex member via `current_customer_id()` (rejects no-JWT/foreign caller with `{error:forbidden}` and touches nothing — proven); restocks+replaces any prior PENDING order for the week; validates each line `FOR UPDATE` (server-side OVERSELL guard, gap M2); enforces the Phase-1 OVER-BALANCE cap; decrements `remaining_qty` + inserts `flex_orders` (status pending). Returns `{ok:true,...}` or `{error:...}`.
+- DELIVERABLE 1 — Admin form `/admin/flex-inventory` (`requireAdmin`-gated, shipped FIRST so Todd can add photos): week selector; add/edit form (price dollars→`price_cents`, qty, category/unit datalists, description, is_active/coming_soon/is_featured toggles); photo upload → `flex-images` bucket; item list with ordered count + status badges + edit/delete. Editing `available_qty` recomputes `remaining_qty = available − ordered` so already-ordered units aren't clobbered. Delete blocks items with orders (steers to deactivate). APIs: `src/pages/api/admin/flex-inventory/{save,delete,image}.ts`. Added "Flex items" to AdminShell nav.
+- DELIVERABLE 2 — Member page `/account/flex-order` (gated to `share_type='flex'`; traditional → redirect /account). iPhone-first. Service-role catalog read (so coming-soon teasers show). Implements gap-research M1–M7: live countdown to Tue 8am ET; sold-out/low-stock from `remaining_qty` + server-side oversell guard; item photos w/ explicit dims + lazy + emoji fallback; over-balance copy + "+Add Flex" link (never silently blocks); onboarding modal (localStorage-gated, Tue-8am copy); a11y (aria-label steppers, aria-live balance, aria-disabled sold-out); post-cutoff lock state. EXPLICIT SUBMIT — cart PRE-FILLS Small CSA Share (or restores the member's pending order); sticky safe-area cart bar with "after this order: $Y left". CSA-share items show that week's `box_contents`. Submit API `src/pages/api/account/flex-order/submit.ts` (cutoff re-check + live-balance→cents + RPC). Entry point: "Order this week's extras" card on `/account` (flex members only).
+- DELIVERABLE 3 — South Side pickup: data-layer only (no code change needed). The row is active → appears in the existing `/account/pickup` picker (lists all active locations) and `change_pickup_location` accepts active locations.
+- SHARED LIB `src/lib/flex-order.ts` (+`.test.ts`, 50+ assertions green): DST-aware Tue-8am cutoff math, dollars↔cents, low-stock tiers, week helpers, category-emoji fallback. `database.types.ts` updated for the 2 new columns + the RPC.
+- VERIFICATION (live, csa.tinyseedfarm.com): `astro check` 0 errors; `npm run build` clean; unit tests green. Migrations confirmed via Mgmt API. RPC guards proven against prod logic (oversell rejected, over-balance rejected, restock-replace correct, auth gate returns forbidden + no side effects). FULL E2E: minted a real flex member session, POSTed to the live submit endpoint → `303 ?ok=submitted`, order landed in `flex_orders` (pending, $35), stock 100→99 — then cleaned up (restored to 100, 0 orders). Fulfillment reads unaffected (the cycle resolver's `flex_orders`+`flex_inventory(name)` join returns clean). All new routes live (pages 303 auth-gated; POST APIs 404 on GET).
+
+## [2026-06-05] CSA — Dashboard "Next delivery" banner + corrected bi-weekly schedule dates (fullstack-builder)
+
+- WHY: Two owner-directed changes on the CSA portal (csa.tinyseedfarm.com). (1) Todd's 2026-06-05 directive: the #1 thing a member sees on the dashboard must be a warm "Your next delivery is ___" banner with their stop/address + a phone-number prompt (we collect/verify numbers NOW, ahead of Twilio A2P/SMS going live). Spec: `docs/CSA_DASHBOARD_NEXT_DELIVERY_BANNER.md`. (2) `/account/biweekly-schedule` described Week A as "1st & 3rd Wednesdays of each month" — WRONG. The real model is a 14-day PARITY cadence anchored to Wed 2026-06-10 (cycle.ts `weekParity`), which drifts from month-position on 5-Wednesday months. Members rely on this page to know when their box comes. Branch: csa-migration. NO production deploy — PM verifies + deploys.
+- TASK 1 — Next-delivery banner:
+  - `apps/csa-portal/src/components/NextDeliveryBanner.astro` (NEW): warm, mobile-first, design-token-only banner. Two shapes — pickup ("📦 … Pick up at <stop> after <time>") and home delivery ("🚚 … to <address>"). Phone prompt: blank `customers.phone` → prominent "Update your phone number" button → /account/profile; present → subtle inline "Update" link. Pure presentation; the caller resolves everything server-side. `data-next-delivery-banner` + `data-mode` hooks for tests.
+  - `apps/csa-portal/src/lib/schedule.ts`: added `DEFAULT_PICKUP_TIME = '2 PM'` (Todd's placeholder — single one-line-changeable source of truth) + `prettyPickupTime(timeStart)` (formats `pickup_locations.time_start` like "3 PM"/"2:30 PM"; falls back to DEFAULT_PICKUP_TIME on null/blank/invalid).
+  - `apps/csa-portal/src/pages/dashboard.astro`: added `phone` to the customers select + `CustomerWithShares` type; computes the banner's next delivery via `upcomingDeliveries(resolved, 1)[0]` (reuses the SAME schedule resolution the ScheduleCard already runs — weekly = next week, biweekly A/B = next parity week, flex carries an A/B too); renders `<NextDeliveryBanner>` at the VERY top, above all cards. Shows only when a real upcoming date exists, the season is configured + not complete, the member is NOT in the hard "choose your pickup" forcing-nudge state (mutually exclusive with PickupNudgeBanner), and a pickup OR delivery is set. The separate PickupCard (the "Change pickup location" action) is intentionally KEPT below — the banner is read-only awareness, the card is the action.
+- TASK 2 — Corrected bi-weekly schedule dates:
+  - `apps/csa-portal/src/pages/account/biweekly-schedule.astro`: replaced ALL "1st & 3rd / 2nd & 4th Wednesday of each month" copy with the member's REAL upcoming dates, computed with the SAME `resolveMemberSchedule`/`upcomingDeliveries` (schedule.ts) + cycle.ts parity the dashboard ScheduleCard + ops resolver use. Resolves the controlling season schedule from the live members' share_types (earliest firstDelivery), projects the next 3 Week-A and Week-B dates, and shows them in the radio cards (date chips), the "Current" panel, the meta description, and the "What does this mean?" explainer. Falls back to a generic "every other Wednesday" rhythm (no false month-position claim) when no live share has a configured schedule yet (e.g. flower-only while flower is TBD).
+- TESTS:
+  - `apps/csa-portal/src/lib/schedule.test.ts` (EXTEND): +9 assertions for `prettyPickupTime` (PM/AM/noon/midnight/minutes/invalid fallback), the `DEFAULT_PICKUP_TIME` placeholder contract, and the banner's next-delivery date for weekly / biweekly-A / biweekly-B / mid-season. 20/20 green.
+  - `apps/csa-portal/tests/e2e/dashboard-cards.spec.ts` (EXTEND): banner assertions for WEEKLY (pickup mode + prominent phone CTA, no subtle link), BIWEEKLY-A (subtle inline phone link, no prominent CTA), and a NEW HOME-DELIVERY describe (🚚 mode, address shown, no "pick up at", prominent phone CTA + delivery-mode PickupCard).
+  - `apps/csa-portal/tests/e2e/supabase-fixtures.ts` (EXTEND): `seedDashboardCardsFixture` now takes an options object (back-compat with the legacy `'A'|'B'|null` arg) — `homeDelivery` + `phone: 'clear'|'set'`. Home-delivery seeding RESPECTS migration 0030's home-delivery gate: it temporarily promotes the test member's customer to role='admin', mints that member's JWT (so `is_admin_caller()` is TRUE), sets `delivery_address` via the `change_pickup_location` RPC (the ONLY legitimate path — same as /api/admin/members/[id]/pickup), then demotes. Cleanup restores via an admin-JWT direct update (can restore the null prior value, which the RPC's one-of contract rejects). Added `mintMemberJwtClient` helper.
+- VERIFICATION GATES PASSED:
+  - `npx astro check` → 0 errors (warnings/hints all pre-existing, none in touched files).
+  - `npm run build` → clean (Vercel adapter).
+  - `npm run test:unit` → all suites green incl. schedule.test.ts 20/20.
+  - `npm run test:e2e` → 100 passed, 1 skipped (the @unauth project runs separately). dashboard-cards 11/11; the prior "1 failing dashboard-cards" WIP (home-delivery fixture vs. delivery_admin_only trigger) is now RESOLVED.
+  - a11y (axe) → dashboard 0 violations with the banner present; biweekly-schedule unaffected.
+- WHAT EACH MEMBER TYPE SEES IN THE BANNER:
+  - WEEKLY pickup: "📦 Your next delivery is Wednesday, June 10. Pick up at <stop> after <time>." + text-message line. Phone blank → "Update your phone number" button; phone set → subtle "Update" link.
+  - BIWEEKLY Week-A pickup: same shape, date = next Week-A parity Wednesday (e.g. June 10, then June 24…).
+  - BIWEEKLY Week-B pickup: same shape, date = next Week-B parity Wednesday (e.g. June 17, then July 1…).
+  - HOME DELIVERY: "🚚 Your next delivery is <date> to <address>." + "text when it's on the way" line + the same phone prompt logic.
+  - FLEX members: carry a biweekly_week (A/B) now, so they get the banner like everyone else, dated from their A/B parity.
+- READY FOR PM REVIEW + DEPLOY.
+
+## [2026-06-05] CSA — Campaign tool upgrade: open/click tracking + email archive + team-copy + rich-text editor & template library (fullstack-builder)
+
+- WHY: Four owner-requested upgrades to the admin campaign tool (csa.tinyseedfarm.com/admin/campaigns). (1) Resend open/click/bounce tracking was a Phase-1 stub — Todd had no visibility into engagement. (2) No way to look back at exactly what an email looked like once sent. (3) The team (Frankie/Loren) had no copy of what went out. (4) The composer was a raw HTML textarea — error-prone, no images, no formatting. Branch: csa-migration. NO production deploy — PM verifies + deploys. Migrations 0034/0035 WERE applied LIVE via Management API (schema additions are idempotent + additive; receipts below).
+- FEATURE 1 — Resend webhook (open/click/bounce/complaint tracking):
+  - `apps/csa-portal/src/pages/api/admin/campaigns/webhook.ts` (REWRITE): was a no-op stub. Now reads the RAW body, verifies the svix-style signature (`svix-id`/`svix-timestamp`/`svix-signature`) against `RESEND_WEBHOOK_SECRET` via the `svix` npm Webhook verifier (returns 401 on bad sig), parses the Resend event, and applies it. PUBLIC route (no admin cookie — Resend calls server-to-server; the signature is the auth). When the secret is UNSET it gracefully no-op-ACCEPTS (200) with a loud warning so Resend's delivery attempts don't hard-fail before Todd configures the secret. Malformed JSON → 400; valid event → 200.
+  - `apps/csa-portal/src/lib/campaign.ts` (ADD `applyResendEvent`): looks up `campaign_recipients` by `resend_email_id`, advances status MONOTONICALLY via a status-rank gate (delivered→opened→clicked; bounced/complained outrank positives), stamps `last_event_at` on every event (even ignored/duplicate), and bumps the parent campaign's matching aggregate counter (`total_delivered`/`opened`/`clicked`/`bounced`/`complained`) EXACTLY ONCE per advance — duplicate/out-of-order events never double-count. Also added `RESEND_EVENT_TYPES`, `ResendWebhookEvent` types.
+  - `apps/csa-portal/astro.config.mjs`: added `RESEND_WEBHOOK_SECRET` to the typed env schema (server/secret/optional).
+  - `apps/csa-portal/src/pages/admin/campaigns/[id].astro`: removed the Phase-1 "tracking not wired" note; the Delivered/Opened/Clicked/Bounced stat cards + per-recipient status table now reflect the live webhook counters. Added a softer "engagement arrives over minutes/hours" note for finished sends with no events yet.
+- FEATURE 2 — Email archive ("view email as sent"): `[id].astro` adds an expandable "View email as sent" panel that re-renders the campaign's actual `body_html` through the SAME `renderCampaignHtml` pipeline (branded header + footer) inside a phone-framed, sandboxed iframe (srcdoc) — so the team can look back at exactly what members received on any date. The list page (index.astro) remains the searchable archive.
+- FEATURE 3 — Auto-copy each send to the team: `campaign.ts` adds `CAMPAIGN_TEAM_COPY = [todd@tinyseedfarmpgh.com, tinyseedcsa@gmail.com, tinyseedfleurs@gmail.com]` + `sendTeamCopies()`. `sendCampaign` calls it AFTER the member send fully completes (status='sent' only — not per-batch on 'partial') and only if ≥1 member was mailed. Subject prefixed `[Sent ✓]`, body prepends a banner "📬 This went to N members on <date>." ONE copy each (3 total/campaign), fail-soft (wrapped in try/catch — a copy failure can NEVER break the member send).
+- FEATURE 4 — Rich-text editor + template library:
+  - Editor: `apps/csa-portal/src/scripts/campaign-editor.ts` (NEW) — TipTap WYSIWYG (StarterKit + Underline, Link, Image, TextStyle/Color/FontFamily). Toolbar: bold/italic/underline, H2/H3, bullet + ordered lists, text color, link, image insert, and a CURATED email-safe font dropdown (Arial, Georgia, Verdana, Times, Trebuchet + brand Barlow w/ web-safe fallback) with the note "email apps only support these fonts reliably." Outputs clean HTML mirrored into the existing hidden `body_html` field, so the save/preview/send contract is unchanged. Drag-drop + file-pick image upload. Added `@tiptap/*` deps.
+  - `apps/csa-portal/src/pages/admin/campaigns/new.astro`: replaced the plain HTML textarea with the editor (toolbar + mount + hidden mirror field). Reads the template library from the DB (falls back to hard-coded `CAMPAIGN_TEMPLATES` if the table read fails); default form values pinned to the Summer/Flex template explicitly (not sort-order dependent). Added "Save as template" button + modal, and a "Manage templates" link.
+  - Image upload: `apps/csa-portal/src/pages/api/admin/campaigns/image.ts` (NEW) — admin-gated (isSameOriginPost + requireAdmin), uploads to the public `campaign-images` bucket at `{yyyy}/{mm}/{uuid}.{ext}`, returns the absolute public URL (email clients can't follow signed URLs). 5 MB + image-MIME enforced.
+  - Templates table: migration `supabase/migrations/0034_campaign_templates.sql` (NEW) — `campaign_templates` (id, name UNIQUE, category CHECK in announcement/weekly/reminder/wholesale/welcome, subject, preview_text, body_html, recipient_filter, timestamps) + set_updated_at + audit triggers + admin-only RLS. Seeds the 2 existing portal-launch templates (ON CONFLICT DO NOTHING).
+  - Templates CRUD: `apps/csa-portal/src/pages/api/admin/campaigns/templates.ts` (NEW, save/delete) + `apps/csa-portal/src/pages/admin/campaigns/templates.astro` (NEW, grouped-by-category list + inline editor modal + delete-confirm).
+  - Image bucket: migration `supabase/migrations/0035_campaign_images_bucket.sql` (NEW) — PUBLIC `campaign-images` bucket (5 MB, png/jpeg/gif/webp), public-read + admin-write storage policies.
+- Files (MODIFIED): `apps/csa-portal/src/lib/database.types.ts` (+ `campaign_templates` table types); (NEW test) `apps/csa-portal/src/lib/campaign.test.ts` (9 tests for applyResendEvent + CAMPAIGN_TEAM_COPY); `apps/csa-portal/tests/e2e/admin-campaigns.spec.ts` (+ archive panel, WYSIWYG editor mount + email-safe font, templates page, and 2 PUBLIC webhook-route tests); `apps/csa-portal/src/styles/global.css` (+ `.prose-campaign` editor surface styles).
+- MIGRATION RECEIPTS (Management API, project melizsvabemhaqeaqtyw, 2026-06-05):
+  - 0034 campaign_templates → HTTP 201, verification SELECT returned both seeded templates.
+  - 0035 campaign-images bucket → HTTP 201 (bucket: public=true, 5 MB, image MIME list). Storage policies applied as SEPARATE statements (bundled-in-one-txn trips "42501 must be owner" — same as migration 0025): `campaign_images_public_read` (SELECT) + `campaign_images_admin_write` (ALL) → 201 each, verified live.
+- RESEND WEBHOOK URL TO REGISTER (PM/Todd action): add `https://csa.tinyseedfarm.com/api/admin/campaigns/webhook` as an endpoint in the Resend dashboard, subscribe to email.delivered/opened/clicked/bounced/complained, copy the signing secret (whsec_…) into Vercel as `RESEND_WEBHOOK_SECRET`. Until the secret is set, the route no-op-accepts unsigned events (counts still update; loud warning logged).
+- VERIFICATION GATES PASSED:
+  - `npx astro check` → 0 errors, 0 warnings (33 hints, pre-existing).
+  - `npm run build` → clean (Vercel adapter, TipTap bundled).
+  - `npm run test:unit` → all suites green incl. `campaign.test.ts` 9/9.
+  - `npm run test:e2e` → 98 passed (the single failure is in `dashboard-cards.spec.ts`, a SEPARATE pre-existing WIP on this branch — home-delivery fixture vs. the delivery_admin_only trigger — touches no campaign code).
+  - `npm run test:unauth` → 39/39 green.
+  - Webhook end-to-end against LIVE DB: created a temp sent campaign + recipient (resend_email_id), POSTed `email.opened` → recipient flipped to 'opened' + `total_opened`→1; `email.clicked` → 'clicked' + `total_clicked`→1; duplicate `email.opened` → no-op (no double-count). Temp rows cleaned up. ✓
+- READY FOR PM REVIEW + DEPLOY.
+
+## [2026-06-05] CSA — Dashboard pickup card + delivery-schedule (weekly vs. Week A/B) explainer (fullstack-builder)
+
+- WHY: Members were emailing two complaints. (1) They couldn't see or change their pickup stop — the chooser lived at /account/pickup but nothing on the dashboard surfaced their current pickup, so they didn't know where to look. (2) After the recent weekly vs. biweekly Week A / Week B assignment, members didn't understand their delivery cadence ("do I get a box this week or not?"). This change surfaces both on the member dashboard: a prominent PickupCard (current stop / home delivery + an obvious "Change pickup location" action, ≤2 taps from landing) and a plain-language ScheduleCard (weekly → "a box every week"; biweekly → "every other week" + the member's actual upcoming delivery dates computed from the real season calendar). Branch: csa-migration. NO production deploy — PM verifies + deploys.
+- Files (NEW): `apps/csa-portal/src/lib/schedule.ts` — pure member delivery-schedule resolver. Projects a member's whole-season delivery calendar by combining `season.ts` (firstDelivery Wed + totalWeeks) with `cycle.ts` week-parity (`weekParity`, `mondayOfWeek`, `addDays`) — the SAME primitives the ops-side `isMemberOnThisWeek` uses, so member-facing dates can never drift from the pack floor. Weekly members keep every season week; biweekly A keeps parity-0 weeks (starts Jun 10: Jun 10/24, Jul 8…), biweekly B keeps parity-1 weeks (starts Jun 17: Jun 17, Jul 1, Jul 15…). Exposes `resolveMemberSchedule`, `upcomingDeliveries(n, fromDate=todayET)`, `firstMemberDelivery`, `lastMemberDelivery`, `seasonEndDate`, `deliveryParity`, + `prettyDeliveryLong/Short` formatters. DST-safe (noon-UTC anchors), no DB, no UI dependency.
+- Files (NEW): `apps/csa-portal/src/lib/schedule.test.ts` — 11 unit tests (run via `npx tsx`): anchor alignment (Jun 10 = Week A parity 0; Jun 17 = Week B parity 1), weekly = 18 deliveries, biweekly A/B first-3 dates match the spec, A∪B partition the season with no overlap, `upcomingDeliveries` inclusive-on/after filtering + empty after season end, flower season (Jun 24, 16 weeks), `seasonEndDate` per-member last delivery. All pass.
+- Files (NEW): `apps/csa-portal/src/components/PickupCard.astro` — prominent dashboard card. Three modes (pickup stop → "📍 <name> · <day>s" + "Change pickup location"; home delivery → "🚚 Home delivery to <address>" + "Manage delivery"; unset → "Choose pickup location" primary CTA). Primary action always links to /account/pickup. Design-token only, mobile-first (stacks button below on mobile). `data-pickup-card` + `data-mode` hooks for tests.
+- Files (NEW): `apps/csa-portal/src/components/ScheduleCard.astro` — plain-language "when do I get a box?" card. Weekly: "You get a box every week" + first/season-end dates. Biweekly: "You get a box every other week" + an upcoming-dates chip list (the next ≤4 actual deliveries) + a friendly "Why every other week?" note linking to /account/biweekly-schedule. No jargon (never says "biweekly_week"/"parity"). `data-schedule-card` + `data-cadence` + `data-upcoming-dates` test hooks.
+- Files (MODIFIED): `apps/csa-portal/src/pages/dashboard.astro` — added `biweekly_week` to the ActiveShare type + the members select; compute a `primaryShare` (first active non-flex/non-add_on share, falling back to first non-flex) that drives both cards; flex-only members get neither card (their FlexWallet covers them). PickupCard hidden when the FIX-1 forcing-nudge banner is already showing (avoids a duplicate "choose your pickup" ask). ScheduleCard hidden once the season is `complete` (the "that's a wrap" card covers that). Both cards placed directly under the greeting so they're the first thing a member sees.
+- Files (MODIFIED): `apps/csa-portal/src/pages/account/pickup.astro` — clarity pass: H1 "Pickup location" → "Your pickup location" with reassuring sub-copy; the current-stop card is now a prominent primary-tone card titled "Where you pick up now" with the stop name at display size; the change form gets an explicit "Change your pickup stop" / "Choose your pickup stop" heading so the change action is unmistakable.
+- Files (MODIFIED): `apps/csa-portal/tests/e2e/supabase-fixtures.ts` — added `seedDashboardCardsFixture(env, biweeklyWeek)` / `cleanupDashboardCardsFixture` (creates an ephemeral Wed pickup stop, snapshots + re-points the test member's active share onto it with share_type=summer_veg + the chosen biweekly_week, restores exactly on teardown — same controlled-mutation pattern as the stop-notes fixture).
+- Files (NEW test): `apps/csa-portal/tests/e2e/dashboard-cards.spec.ts` — 6 authenticated tests across a WEEKLY and a BIWEEKLY fixture member: pickup card shows the stop + a working "Change pickup location" link to /account/pickup; weekly card says "every week" with no chip list; biweekly card says "every other week" with upcoming-date chips + a "Change your schedule" link to /account/biweekly-schedule; CTA navigation lands on the (newly titled) "Your pickup location" page. Asserts STRUCTURE not hard-coded dates (dates proven by the pure unit tests).
+- Files (MODIFIED): `apps/csa-portal/src/lib/season.test.ts` — fixed a STALE assertion unrelated to this work: the test claimed `getSchedule('flower')` returns null, but flower was configured in a recent commit (Jun 24, 16 weeks). Swapped to genuinely-unconfigured types (`fall_veg`, `flex`). Pre-existing failure, now green.
+- VERIFICATION GATES PASSED:
+  - `npx tsx src/lib/schedule.test.ts` → 11/11 pass. `season.test.ts` → 30/30. `cycle.test.ts` → 25/25.
+  - `npx astro check` → 0 errors in my files (the single repo-wide error is in `src/lib/campaign.ts`, a file I did not touch — pre-existing on the branch).
+  - `npm run build` → clean (Vercel adapter built fine).
+  - `npx playwright test dashboard-cards` → 7/7 pass (incl. setup/teardown). `npx playwright test member-journeys a11y` → 25/25 pass (no regression from the dashboard layout change; FIX-1 nudge banner still works because the pickup card is suppressed while the banner shows).
+  - Manual (local dev, test member): weekly member saw "📦 You get a box every week" + "Your first box arrives Wednesday, June 10 … through October 7" and a "📍 E2E Dashboard Stop (Squirrel Hill) · Wednesdays" pickup card with a "Change pickup location" button; biweekly-A member saw "every other week" with June 10 / June 24 / July 8 / July 22 chips + "Why every other week?" → /account/biweekly-schedule.
+
+---
+
 ## [2026-06-04] CSA — /admin/members redesign + /admin/health trust dashboard (fullstack-builder)
 
 - WHY: Two launch-blocking trust gaps. (1) /admin/members defaulted to "All statuses · All share types · All locations" and rendered every raw `members` row (~396 today, incl. 83 inactive + many add-on duplicates), so a customer with summer veg + flower + a mushroom add-on appeared three times. Todd couldn't see at a glance that the farm has ~198 distinct active customers. (2) No single page answered "is the portal healthy?" — sync state lived at /admin/sync, NULL-pickup counts had to be computed by SQL, tag drift was invisible. This change rebuilds the members table around CUSTOMERS (one row per customer, shares as inline badges, sensible defaults) and ships a new /admin/health trust dashboard so Todd + Frankie can see system state at a glance before sending the launch email. Branch: csa-migration. NO production deploy — PM verifies + deploys.

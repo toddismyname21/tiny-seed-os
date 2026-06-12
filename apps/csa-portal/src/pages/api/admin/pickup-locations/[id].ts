@@ -9,7 +9,8 @@
  *   - max_capacity   integer ≥ 0 or empty
  *   - host_name      string ≤ 80
  *   - host_phone     string ≤ 30
- *   - notes          string ≤ 500
+ *   - notes          string ≤ 500   (ADMIN-ONLY internal — never shown to members)
+ *   - pickup_instructions string ≤ 2000 (MEMBER-FACING — shown on /account/*)
  *   - is_active      'true' | (absent → false)
  *
  * Saves the location row. RLS admin_all_pickup_locations policy lets
@@ -37,6 +38,7 @@ const Body = z.object({
   host_name: z.string().max(80).nullable(),
   host_phone: z.string().max(30).nullable(),
   notes: z.string().max(500).nullable(),
+  pickup_instructions: z.string().max(2000).nullable(),
   is_active: z.boolean(),
 });
 
@@ -82,6 +84,7 @@ export const POST: APIRoute = async ({ request, locals, params, redirect }) => {
     host_name: strOrNull(formData.get('host_name')),
     host_phone: strOrNull(formData.get('host_phone')),
     notes: strOrNull(formData.get('notes')),
+    pickup_instructions: strOrNull(formData.get('pickup_instructions')),
     is_active: formData.get('is_active') === 'true',
   });
 
@@ -99,6 +102,7 @@ export const POST: APIRoute = async ({ request, locals, params, redirect }) => {
       host_name: parsed.data.host_name,
       host_phone: parsed.data.host_phone,
       notes: parsed.data.notes,
+      pickup_instructions: parsed.data.pickup_instructions,
       is_active: parsed.data.is_active,
     })
     .eq('id', id);

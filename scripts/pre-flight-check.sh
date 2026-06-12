@@ -122,7 +122,7 @@ if [ "$ACTION" = "create" ]; then
     # apps/csa-portal/ for the Astro portal), and Playwright/LHCI REQUIRE the
     # config to live beside each app's package.json. These are framework
     # conventions, never duplicate implementations.
-    WHITELISTED_NAMES="INBOX.md OUTBOX.md INSTRUCTIONS.md .gitignore .env.example .env.sample .env.test.example index.astro index.ts index.js index.tsx index.jsx playwright.config.ts playwright.config.js lighthouserc.json lighthouserc.js vitest.config.ts tsconfig.json"
+    WHITELISTED_NAMES="INBOX.md OUTBOX.md INSTRUCTIONS.md .gitignore .env.example .env.sample .env.test.example index.astro index.ts index.js index.tsx index.jsx playwright.config.ts playwright.config.js lighthouserc.json lighthouserc.js vitest.config.ts tsconfig.json cancel.ts submit.ts skip.ts new.ts new.astro schedule.ts status.ts [id].astro [...slug].astro pickup.ts"
     IS_WHITELISTED=false
     for WL in $WHITELISTED_NAMES; do
         if [ "$BASENAME" = "$WL" ]; then

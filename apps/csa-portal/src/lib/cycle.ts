@@ -44,6 +44,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database, Json } from './database.types';
 import { LARGE_SIZES, SMALL_SIZES } from './share-buckets';
+import { getSchedule, lastDelivery, type SeasonSchedule } from './season';
 
 /* ──────────────────────────────────────────────────────────────────
  * Public types
@@ -118,6 +119,20 @@ export interface CycleMember {
   allergies: string[];
   dislikes: string[];
   delivery_notes: string | null;
+  /**
+   * Migration 0041 — vacation-hold disposition. TRUE when this member is
+   * receiving THIS week's box only because they MOVED a held week onto it
+   * (their hold has disposition='move' AND move_to_week === this cycle's
+   * week_starting). Lets the pack floor flag "moved in" boxes. For a member
+   * on their normal schedule this is false.
+   */
+  moved_in: boolean;
+  /**
+   * When `moved_in` is true, the ORIGINAL week the member moved AWAY from —
+   * the week_starting (Monday) of their hold's overlapping week — for a
+   * "moved from <date>" admin tag. Null when `moved_in` is false.
+   */
+  moved_from: string | null;
 }
 
 export interface ResolvedPickupLocation {
@@ -183,6 +198,22 @@ export interface ResolvedCycle {
   excluded_biweekly: CycleMember[];
   /** Members EXCLUDED for vacation_holds overlapping the week. */
   excluded_on_hold: CycleMember[];
+  /**
+   * Members EXCLUDED because their share's SEASON does not cover this week
+   * (e.g. spring_veg on a June week, or flower before its Jun 24 opener).
+   * Surfaced for transparency/audits; share types with no configured season
+   * (flex / add_on) never appear here. See `isShareInSeasonForWeek`.
+   */
+  excluded_out_of_season: CycleMember[];
+  /**
+   * Migration 0041 — members whose overlapping hold has disposition='donate'.
+   * They are EXCLUDED from `members` (they don't receive a box) but the farm
+   * still PACKS their box as a donation and reallocates it. The pack team
+   * uses `donated.length` for the "Donations: N boxes" tally. A subset of
+   * `excluded_on_hold` — donate members appear in BOTH (excluded AND here)
+   * so existing exclusion consumers are unaffected.
+   */
+  donated: CycleMember[];
   /** Grouped by pickup_location_id (or 'home_delivery'). */
   byStop: Map<string, CycleMember[]>;
   /** Grouped by Tue/Wed/Sat (home delivery → Wed). */
@@ -295,6 +326,48 @@ export function isMemberOnThisWeek(
 }
 
 /**
+ * Is `shareType`'s season "live" for the cycle that starts `weekStarting`
+ * (a Monday)?
+ *
+ * THE SEASON-WINDOW RULE (Todd 2026-06-09): a member's share is only part
+ * of a given week's fulfillment when that week falls INSIDE the share's
+ * configured season. Before this gate, a June label/pack run wrongly
+ * included BOTH spring_veg members (whose season ended Wed 2026-05-27) and
+ * flower members (whose season doesn't start until Wed 2026-06-24). Both
+ * were caught packing/printing boxes they shouldn't.
+ *
+ * Window math (all on the Monday week_starting basis the resolver uses):
+ *   firstWeek = mondayOfWeek(schedule.firstDelivery)         // season opens
+ *   lastWeek  = mondayOfWeek(lastDelivery(schedule))          // season closes
+ *   in-season ⟺ firstWeek <= weekStarting <= lastWeek
+ *
+ * The bounds are INCLUSIVE of the first and last delivery weeks: a member
+ * receives a box on the week of the first delivery Wednesday and on the week
+ * of the final delivery Wednesday, and on every (parity-permitting) week
+ * between. This mirrors season.ts `seasonPhase`, which treats the whole
+ * final delivery week as still-active.
+ *
+ * Share types WITHOUT a configured schedule (flex, add_on, fall_veg, or any
+ * share `getSchedule` returns null for) have NO season window — this returns
+ * `true` for every week so their existing behavior (include-if-active) is
+ * fully preserved. add_ons ride with their parent box exactly as before.
+ *
+ * Pure — no DB calls. Used by the resolver's member partitioning so EVERY
+ * downstream view (labels, pack sheet, stop manifest, harvest list, box
+ * plan) is corrected at the single source of truth.
+ */
+export function isShareInSeasonForWeek(
+  shareType: string,
+  weekStarting: string
+): boolean {
+  const schedule = getSchedule(shareType);
+  if (!schedule) return true; // no window configured → always in (preserve)
+  const firstWeek = mondayOfWeek(schedule.firstDelivery);
+  const lastWeek = mondayOfWeek(lastDelivery(schedule));
+  return weekStarting >= firstWeek && weekStarting <= lastWeek;
+}
+
+/**
  * Parity of a Monday-anchored week, as 0 (Week A) or 1 (Week B).
  * Deterministic: count whole weeks since a fixed anchor Monday and take
  * mod 2. The anchor is the first Monday of the 2026 CSA season (Mon
@@ -326,6 +399,94 @@ function holdOverlapsWeek(
   const weekEnd = addDays(weekStarting, 6);
   // Overlap iff hold.start <= weekEnd AND hold.end >= weekStarting.
   return hold.start_date <= weekEnd && hold.end_date >= weekStarting;
+}
+
+/* ──────────────────────────────────────────────────────────────────
+ * Migration 0041 — MOVE-disposition: valid target delivery weeks.
+ * ────────────────────────────────────────────────────────────────── */
+
+/** A selectable move target: the week_starting (Monday) value to submit
+ *  plus the delivery Wednesday for the human-readable label. */
+export interface MoveTargetWeek {
+  /** week_starting (Monday, YYYY-MM-DD) — the value stored in move_to_week. */
+  week_starting: string;
+  /** The delivery Wednesday (YYYY-MM-DD) for that week — for display. */
+  delivery_date: string;
+  /** 1-based season week index, for "Week 5" style labels. */
+  week_number: number;
+}
+
+/**
+ * Valid future in-season delivery weeks a member may MOVE a held box onto.
+ *
+ * A move target is valid when:
+ *   1. It is a delivery week of the controlling season (firstDelivery + 7n,
+ *      n in [0, totalWeeks)).
+ *   2. Its pack cutoff has NOT passed — i.e. the week is strictly in the
+ *      FUTURE relative to `fromDate`. We compare on the Monday
+ *      (week_starting): a target is allowed only when its Monday is AFTER
+ *      the Monday of the `fromDate` week. This guarantees the move lands on
+ *      a week whose Monday-6AM pack cutoff is still ahead, and never on the
+ *      current (already-cutoff-imminent) week.
+ *
+ * IMPORTANT (per spec): we use the FULL weekly delivery calendar, NOT the
+ * member's biweekly parity. A biweekly member is explicitly allowed to move
+ * a box onto an OFF-parity week — the whole point of "move" is flexibility.
+ *
+ * Returns the list sorted ascending by week. Empty when the season is
+ * unknown (e.g. a share_type with no SEASON_SCHEDULE entry) or fully past.
+ *
+ * Pure given `schedule` + `fromDate`; the convenience overload resolves the
+ * schedule by share_type and defaults `fromDate` to today (ET).
+ */
+export function validMoveTargetWeeks(
+  schedule: SeasonSchedule,
+  fromDate: string = todayET()
+): MoveTargetWeek[] {
+  const fromMonday = mondayOfWeek(fromDate);
+  const out: MoveTargetWeek[] = [];
+  for (let n = 0; n < schedule.totalWeeks; n += 1) {
+    const delivery_date = addDays(schedule.firstDelivery, n * 7); // a Wednesday
+    const week_starting = mondayOfWeek(delivery_date);
+    // Strictly future week (target Monday after the current week's Monday).
+    if (week_starting <= fromMonday) continue;
+    out.push({ week_starting, delivery_date, week_number: n + 1 });
+  }
+  return out;
+}
+
+/**
+ * Resolve the season schedule by share_type, then list valid move-target
+ * weeks. Returns [] for an unconfigured share_type (no SEASON_SCHEDULE).
+ */
+export function validMoveTargetWeeksForShare(
+  shareType: string,
+  fromDate: string = todayET()
+): MoveTargetWeek[] {
+  const schedule = getSchedule(shareType);
+  if (!schedule) return [];
+  return validMoveTargetWeeks(schedule, fromDate);
+}
+
+/** Is `weekStartingMonday` a valid move target for `shareType` as of
+ *  `fromDate`? Used by the API route to server-validate the submitted week.
+ *  `weekStartingMonday` must already be a Monday (YYYY-MM-DD). */
+export function isValidMoveTarget(
+  shareType: string,
+  weekStartingMonday: string,
+  fromDate: string = todayET()
+): boolean {
+  return validMoveTargetWeeksForShare(shareType, fromDate)
+    .some((t) => t.week_starting === weekStartingMonday);
+}
+
+/** Today as 'YYYY-MM-DD' in America/New_York (the farm's calendar). Kept
+ *  local so this module stays free of cross-imports from account.ts. */
+function todayET(now: Date = new Date()): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/New_York',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(now);
 }
 
 /**
@@ -454,16 +615,80 @@ export async function resolveCycle(
     .overrideTypes<MemberJoinRow[], { merge: false }>();
 
   // ─── 2. Fetch holds that could affect this week ────────────────
-  // We pre-filter at the DB to (status in active/scheduled AND end_date
-  // >= week_starting AND start_date <= week_end). The overlap check is
-  // re-asserted locally because Postgres date arithmetic + RLS is fiddly.
+  // Two ways a hold affects THIS cycle:
+  //   (a) OVERLAP — the hold's [start,end] range overlaps this week →
+  //       the member is EXCLUDED (skip), or excluded + donated, or
+  //       excluded + moved-away.
+  //   (b) MOVE-IN — a hold with disposition='move' whose move_to_week ==
+  //       this week_starting → the member is ADDED to THIS week even if
+  //       their range doesn't overlap and even if it's their biweekly
+  //       off-week.
+  // We can't express "(overlap) OR (move_to_week = week)" cleanly across
+  // base columns in one PostgREST .or() without parse pitfalls, so we run
+  // TWO small bounded fetches and merge. Both are tiny (≤ a few rows).
+  // ── Migration 0041 resilience ────────────────────────────────────
+  // The `disposition` + `move_to_week` columns only exist AFTER migration
+  // 0041 is applied. On a pre-migration production DB, selecting them 400s,
+  // which would break the OVERLAP fetch and, in turn, EVERY ops page that
+  // calls resolveCycle. To stay live before the migration lands we:
+  //   1. TRY the full select (incl. disposition + move_to_week). When it
+  //      succeeds (post-migration, AND in the unit-test mock whose select
+  //      never errors) we get full move/donate behavior.
+  //   2. If it ERRORS (columns missing pre-migration), FALL BACK to selecting
+  //      only the pre-existing columns and treat every hold as
+  //      disposition='skip' (moved_in always false, donated always empty —
+  //      exactly today's pre-0041 behavior).
+  // This AUTO-RECOVERS: once 0041 is applied the full select succeeds again
+  // with NO code change, restoring move/donate.
   const week_end = addDays(week_starting, 6);
-  const holdFetch = supabase
+
+  // Hold-row shape used by both the full-select and fallback paths.
+  // disposition/move_to_week are OPTIONAL: present post-0041, absent in the
+  // pre-migration fallback (treated as 'skip' / null below).
+  type Row41 = {
+    id: string;
+    member_id: string | null;
+    start_date: string;
+    end_date: string;
+    status: string;
+    disposition?: string | null;
+    move_to_week?: string | null;
+  };
+
+  // (1) Try the full OVERLAP fetch with the 0041 columns.
+  let holdRes = await supabase
     .from('vacation_holds')
-    .select('id, member_id, start_date, end_date, status')
+    .select('id, member_id, start_date, end_date, status, disposition, move_to_week')
     .in('status', ['active', 'scheduled'])
     .lte('start_date', week_end)
     .gte('end_date', week_starting);
+
+  // True once we've confirmed the 0041 columns are queryable. Drives whether
+  // the separate move-in fetch runs (it filters on disposition/move_to_week,
+  // which would 400 in fallback mode).
+  let dispositionColumnsAvailable = !holdRes.error;
+
+  if (holdRes.error) {
+    // (2) FALLBACK: re-run the OVERLAP fetch with ONLY pre-0041 columns.
+    holdRes = await supabase
+      .from('vacation_holds')
+      .select('id, member_id, start_date, end_date, status')
+      .in('status', ['active', 'scheduled'])
+      .lte('start_date', week_end)
+      .gte('end_date', week_starting);
+  }
+
+  // Move-in holds: target THIS week, regardless of their own date range.
+  // Only meaningful (and only queryable) when the 0041 columns exist — guard
+  // it so fallback mode never issues a disposition/move_to_week filter.
+  const moveInRes = dispositionColumnsAvailable
+    ? await supabase
+        .from('vacation_holds')
+        .select('id, member_id, start_date, end_date, status, disposition, move_to_week')
+        .in('status', ['active', 'scheduled'])
+        .eq('disposition', 'move')
+        .eq('move_to_week', week_starting)
+    : { data: [] as Row41[], error: null };
 
   // ─── 3. Fetch locked swaps for the cycle ───────────────────────
   const swapFetch = supabase
@@ -504,13 +729,20 @@ export async function resolveCycle(
     .from('member_preferences')
     .select('member_id, allergies, dislikes, delivery_notes');
 
-  const [memberRes, holdRes, swapRes, planRes, flexRes, prefsRes] = await Promise.all([
-    memberFetch, holdFetch, swapFetch, planFetch, flexFetch, prefsFetch,
+  // NOTE: the holds fetches (holdRes / moveInRes) were already awaited above
+  // because the move-in fetch depends on whether the 0041 columns exist. The
+  // remaining five run in parallel.
+  const [memberRes, swapRes, planRes, flexRes, prefsRes] = await Promise.all([
+    memberFetch, swapFetch, planFetch, flexFetch, prefsFetch,
   ]);
 
-  // Defensive: every query gets its own error surface.
+  // Defensive: every query gets its own error surface. The OVERLAP holds
+  // fetch already fell back (never throws on the 0041-column 400). The move-in
+  // fetch only ran when the 0041 columns are present, so any error it carries
+  // is a genuine failure worth surfacing.
   for (const [label, res] of [
-    ['members', memberRes], ['vacation_holds', holdRes], ['box_swap_events', swapRes],
+    ['members', memberRes],
+    ['vacation_holds (move-in)', moveInRes], ['box_swap_events', swapRes],
     ['weekly_box_plan', planRes], ['flex_orders', flexRes],
     ['member_preferences', prefsRes],
   ] as const) {
@@ -518,9 +750,16 @@ export async function resolveCycle(
       throw new Error(`resolveCycle: ${label} fetch failed: ${res.error.message}`);
     }
   }
+  // The OVERLAP holds fetch is special: a 0041-column 400 was already handled
+  // by the fallback re-query above. Only throw if the FALLBACK also errored
+  // (a real connectivity/permission failure, not the expected missing-column).
+  if (holdRes.error) {
+    throw new Error(`resolveCycle: vacation_holds fetch failed: ${holdRes.error.message}`);
+  }
 
   const memberRows = (memberRes.data ?? []) as unknown as MemberJoinRow[];
-  const holds = holdRes.data ?? [];
+  const holds = (holdRes.data ?? []) as Row41[];
+  const moveInHolds = (moveInRes.data ?? []) as Row41[];
   const swaps = swapRes.data ?? [];
   const plans = planRes.data ?? [];
   const flexOrders = (flexRes.data ?? []) as unknown as FlexOrderRow[];
@@ -569,15 +808,16 @@ export async function resolveCycle(
     });
   }
 
-  // ─── 7. Build CycleMember rows, partitioned by inclusion ───────
-  const included: CycleMember[] = [];
-  const excludedBiweekly: CycleMember[] = [];
-  const excludedOnHold: CycleMember[] = [];
+  // member_id → row, for resolving moved-in members (their full join data
+  // is already in memberRows since they're active).
+  const memberRowById = new Map<string, MemberJoinRow>();
+  for (const m of memberRows) memberRowById.set(m.id, m);
 
-  for (const m of memberRows) {
+  /** Build a base CycleMember (moved_in defaults false) from a join row. */
+  function buildCycleMember(m: MemberJoinRow): CycleMember {
     const { type: addon_type, frequency: addon_frequency } = deriveAddon(m.notes);
     const pref = prefsByMember.get(m.id);
-    const cycle_member: CycleMember = {
+    return {
       id: m.id,
       customer_id: m.customer_id,
       share_type: m.share_type,
@@ -599,29 +839,134 @@ export async function resolveCycle(
       allergies: pref?.allergies ?? [],
       dislikes: pref?.dislikes ?? [],
       delivery_notes: pref?.delivery_notes ?? null,
+      moved_in: false,
+      moved_from: null,
     };
+  }
+
+  // ─── 7. Build CycleMember rows, partitioned by inclusion ───────
+  const included: CycleMember[] = [];
+  const excludedBiweekly: CycleMember[] = [];
+  const excludedOnHold: CycleMember[] = [];
+  const excludedOutOfSeason: CycleMember[] = [];
+  const donated: CycleMember[] = [];
+  // member_ids ALREADY placed in `included` — guards the move-in de-dupe.
+  const includedIds = new Set<string>();
+
+  for (const m of memberRows) {
+    const cycle_member = buildCycleMember(m);
+
+    // ── SEASON WINDOW (Todd 2026-06-09) ──────────────────────────
+    // First gate: if this share's season does NOT cover this week, the
+    // member is not part of THIS cycle at all — they don't receive a box,
+    // aren't on hold, aren't biweekly-excluded. This drops spring_veg from
+    // June weeks and flower from pre-Jun-24 weeks. Shares with no configured
+    // season (flex / add_on) pass through unchanged. A move-disposition box
+    // moved ONTO an in-season week is handled in the move-in pass below
+    // (which reads the member row directly), so this filter can never drop a
+    // legitimately moved-in member — move targets are validated in-season.
+    if (!isShareInSeasonForWeek(m.share_type, week_starting)) {
+      excludedOutOfSeason.push(cycle_member);
+      continue;
+    }
 
     const memberHolds = holdsByMember.get(m.id) ?? [];
-    const onHold = memberHolds.some((h) => holdOverlapsWeek(h, week_starting));
+    const overlappingHold = memberHolds.find((h) => holdOverlapsWeek(h, week_starting));
 
-    if (onHold) {
+    if (overlappingHold) {
+      // The member's box for THIS week is held. Regardless of disposition
+      // they do NOT receive a box on their original/overlapping week.
       excludedOnHold.push(cycle_member);
+      // DONATE: the box is still packed + donated → tally it.
+      if (overlappingHold.disposition === 'donate') {
+        donated.push(cycle_member);
+      }
+      // MOVE/SKIP need no extra work here — a MOVE member's add-into-target
+      // happens in the dedicated move-in pass below (keyed on move_to_week).
+      continue;
+    }
+    // ── FLEX bypasses biweekly parity ENTIRELY (incident 2026-06-10) ──
+    // Flex membership is NOT a biweekly box subscription — a flex member
+    // receives produce ONLY by placing a flex_order for the week, and the
+    // consuming pages (labels / pack-check / manifest) already gate flex
+    // receipt on having that order. The biweekly A/B parity column is
+    // meaningless for flex, and on 2026-06-10 a data sync stamped every
+    // flex row with a junk A/B tag. With the parity gate applied, 'B'-tagged
+    // flex members were dropped from a Week-A run even though they HAD flex
+    // orders — 7 members' orders missed the truck. The resolver must NEVER
+    // exclude a flex member for parity, regardless of biweekly_week's value.
+    // (summer_veg / flower / spring parity behavior below is unchanged.)
+    if (m.share_type === 'flex') {
+      included.push({ ...cycle_member, on_this_week: true });
+      includedIds.add(m.id);
       continue;
     }
     if (!cycle_member.on_this_week) {
       // Add-on members default to weekly delivery in many cases — only
       // exclude them from the biweekly bucket if their resolved frequency
       // also says biweekly (or unknown — conservative).
-      if (m.share_type === 'add_on' && addon_frequency === 'weekly') {
+      if (m.share_type === 'add_on' && cycle_member.addon_frequency === 'weekly') {
         // Weekly add-on ships even on biweekly off-weeks (their own
         // schedule overrides their A/B). Include.
         included.push({ ...cycle_member, on_this_week: true });
+        includedIds.add(m.id);
         continue;
       }
       excludedBiweekly.push(cycle_member);
       continue;
     }
     included.push(cycle_member);
+    includedIds.add(m.id);
+  }
+
+  // ─── 7b. MOVE-IN pass (migration 0041) ─────────────────────────
+  // A member with a hold disposition='move' whose move_to_week === this
+  // cycle's week_starting RECEIVES a box THIS week — even on their biweekly
+  // off-week. They were excluded from their ORIGINAL week above. We add them
+  // here, tagged moved_in + moved_from (the Monday of the week they moved
+  // away from). De-duped: never double-count a member already receiving.
+  for (const mh of moveInHolds) {
+    if (!mh.member_id) continue;
+    if (mh.disposition !== 'move') continue;       // defensive (query already filters)
+    if (mh.move_to_week !== week_starting) continue; // defensive (query already filters)
+    if (includedIds.has(mh.member_id)) continue;   // already receiving — de-dupe
+
+    const row = memberRowById.get(mh.member_id);
+    if (!row) continue; // not an active member (cancelled/paused) → skip
+
+    // Defensive season guard: a valid move target is in-season by
+    // construction (validMoveTargetWeeks only emits weeks inside
+    // [firstDelivery … lastDelivery]). But never move a box onto a week the
+    // share's season doesn't cover — guards against a hand-written/legacy
+    // move_to_week that predates this rule. For shares with no season this
+    // is always true, so flex/unscheduled moves are unaffected.
+    if (!isShareInSeasonForWeek(row.share_type, week_starting)) continue;
+
+    // Respect the member's OTHER holds: if a DIFFERENT hold overlaps THIS
+    // target week, the move is moot (they're held this week anyway). Don't
+    // add a moved-in box on a week they're already on hold for.
+    const otherHolds = holdsByMember.get(mh.member_id) ?? [];
+    const otherOverlaps = otherHolds.some(
+      (h) => h.id !== mh.id && holdOverlapsWeek(h, week_starting),
+    );
+    if (otherOverlaps) continue;
+
+    const moved = buildCycleMember(row);
+    moved.on_this_week = true;
+    moved.moved_in = true;
+    // moved_from = the Monday of the week the hold overlapped (the week they
+    // gave up). Use the hold's start_date's Monday — for a single-week move
+    // this is exactly the original delivery week.
+    moved.moved_from = mondayOfWeek(mh.start_date);
+    included.push(moved);
+    includedIds.add(mh.member_id);
+
+    // If the main loop placed this member in excluded_biweekly for THIS week
+    // (a biweekly member moving onto an off-parity week), they are now
+    // RECEIVING — pull them out of that bucket so the two views agree and
+    // they're not double-listed as both excluded AND included.
+    const exIdx = excludedBiweekly.findIndex((x) => x.id === mh.member_id);
+    if (exIdx >= 0) excludedBiweekly.splice(exIdx, 1);
   }
 
   // ─── 8. byStop + byDistributionDay buckets ─────────────────────
@@ -795,6 +1140,8 @@ export async function resolveCycle(
     members: included,
     excluded_biweekly: excludedBiweekly,
     excluded_on_hold: excludedOnHold,
+    excluded_out_of_season: excludedOutOfSeason,
+    donated,
     byStop,
     byDistributionDay,
     boxCompositionByMember,
