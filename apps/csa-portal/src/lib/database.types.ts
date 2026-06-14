@@ -672,6 +672,49 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['flex_orders']['Row']>;
         Relationships: [];
       };
+      // Wholesale (chef portal) catalog. Flex-style on/off board: Todd
+      // turns a product on (is_active) when it's harvested + available.
+      // available_qty: 0 = out of stock, null = unlimited (migration 0044).
+      wholesale_products: {
+        Row: {
+          id: string;
+          name: string;
+          category: string | null;
+          unit: string;
+          price_cents: number;
+          description: string | null;
+          photo_url: string | null;
+          available_qty: number | null;
+          is_active: boolean;
+          sort_order: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          name: string;
+        } & Partial<Database['public']['Tables']['wholesale_products']['Row']>;
+        Update: Partial<Database['public']['Tables']['wholesale_products']['Row']>;
+        Relationships: [];
+      };
+      // Todd's differentiator: a real-time quality photo + note per
+      // product per week ("Arugula's a touch small this week but great
+      // flavor"). week_starting = cycle Monday (migration 0044).
+      wholesale_product_updates: {
+        Row: {
+          id: string;
+          product_id: string | null;
+          photo_url: string | null;
+          note: string | null;
+          week_starting: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          product_id: string;
+        } & Partial<Database['public']['Tables']['wholesale_product_updates']['Row']>;
+        Update: Partial<Database['public']['Tables']['wholesale_product_updates']['Row']>;
+        Relationships: [];
+      };
       // One row per (cycle, week, member). Host or admin marks status=
       // picked_up at the stop. UNIQUE (cycle_code, week_starting,
       // member_id) — at most one check-in per member per cycle.

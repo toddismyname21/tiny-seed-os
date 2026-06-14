@@ -1,0 +1,542 @@
+---
+/**
+ * /admin/wholesale/products — Wholesale (chef) product board.
+ *
+ * A flex-style ON/OFF availability board for Todd's wholesale catalog,
+ * built mobile-first because he runs this from his phone in the field.
+ * The whole point: SPEED. Queries Supabase DIRECTLY (no Apps Script) so
+ * the board loads instantly, and every action (toggle, edit, photo) is a
+ * one-screen tap.
+ *
+ * For each `wholesale_products` row the board shows:
+ *   - photo thumbnail (or category emoji fallback)
+ *   - name, category, unit, price, available qty (0 = out, ∞ = unlimited)
+ *   - a prominent ON/OFF toggle (is_active) — "once an item's in, flip it
+ *     on/off as it's available" (mirrors flex-inventory's on/off UX)
+ *   - inline editable price / qty / description / category / unit / sort
+ *   - 📷 Set product photo  → wholesale_products.photo_url
+ *   - 📸 Today's quality update → a real-time photo + note, inserted into
+ *     wholesale_product_updates with week_starting = this cycle's Monday.
+ *     This is the differentiator chefs actually want.
+ *   - the LATEST quality update for this week (photo + note), if any.
+ *
+ * Reads with the cookie-aware admin RLS client (wholesale_products_staff
+ * policy). The save / toggle / photo / quality-update APIs re-check via
+ * requireAdmin + isSameOriginPost CSRF.
+ */
+import AdminShell from '../../../../components/AdminShell.astro';
+import Card from '../../../../components/Card.astro';
+import FormRow from '../../../../components/FormRow.astro';
+import Badge from '../../../../components/Badge.astro';
+import {
+  FLEX_UNITS, centsToDollars, formatCents, categoryEmoji,
+} from '../../../../lib/flex-order';
+import { mondayOfWeek, prettyWeekHeader, upcomingMonday } from '../../../../lib/cycle';
+
+const supabase = Astro.locals.supabase;
+const url = Astro.url;
+
+// ─── This cycle's Monday (ET) — keys the "today's quality" updates ───
+// upcomingMonday() returns the NEXT Monday (or today if Monday); the
+// current cycle Monday is mondayOfWeek(today). We want the week we're
+// IN, so derive it from today's date the same ET-anchored way.
+const todayET = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'America/New_York',
+  year: 'numeric', month: '2-digit', day: '2-digit',
+}).format(new Date());
+const weekMonday = mondayOfWeek(todayET);
+void upcomingMonday; // (kept import parity with sibling admin pages)
+
+// ─── Products ───────────────────────────────────────────────────────
+type ProductRow = {
+  id: string;
+  name: string;
+  category: string | null;
+  unit: string;
+  price_cents: number;
+  description: string | null;
+  photo_url: string | null;
+  available_qty: number | null;
+  is_active: boolean;
+  sort_order: number;
+};
+
+const { data: productRows, error: fetchErr } = await supabase
+  .from('wholesale_products')
+  .select(
+    'id, name, category, unit, price_cents, description, photo_url, available_qty, is_active, sort_order'
+  )
+  .order('is_active', { ascending: false })
+  .order('sort_order', { ascending: true })
+  .order('name', { ascending: true })
+  .overrideTypes<ProductRow[], { merge: false }>();
+
+if (fetchErr) {
+  console.error('[admin/wholesale/products] fetch failed:', fetchErr.message);
+}
+const products: ProductRow[] = productRows ?? [];
+
+// ─── Latest "today's quality" update per product (this week) ────────
+type UpdateRow = {
+  id: string;
+  product_id: string | null;
+  photo_url: string | null;
+  note: string | null;
+  week_starting: string | null;
+  created_at: string;
+};
+
+const latestUpdate = new Map<string, UpdateRow>();
+if (products.length > 0) {
+  const { data: updRows, error: updErr } = await supabase
+    .from('wholesale_product_updates')
+    .select('id, product_id, photo_url, note, week_starting, created_at')
+    .eq('week_starting', weekMonday)
+    .order('created_at', { ascending: false })
+    .overrideTypes<UpdateRow[], { merge: false }>();
+
+  if (updErr) {
+    console.error('[admin/wholesale/products] updates fetch failed:', updErr.message);
+  }
+  // Rows are newest-first; keep the FIRST seen per product (= latest).
+  for (const u of updRows ?? []) {
+    if (u.product_id && !latestUpdate.has(u.product_id)) {
+      latestUpdate.set(u.product_id, u);
+    }
+  }
+}
+
+const activeCount = products.filter((p) => p.is_active).length;
+
+// ─── Flash messages ─────────────────────────────────────────────────
+const okFlag = url.searchParams.get('ok');
+const errorFlag = url.searchParams.get('error');
+const OK_COPY: Record<string, string> = {
+  created: 'Product added.',
+  saved: 'Product updated.',
+  turned_on: 'Turned ON — available to chefs.',
+  turned_off: 'Turned OFF — hidden from chefs.',
+  photo_set: 'Product photo updated.',
+  update_posted: "Today's quality update posted.",
+};
+const ERROR_COPY: Record<string, string> = {
+  invalid_input: 'Some fields were invalid — please check and try again.',
+  invalid_price: 'Enter a valid price in dollars (e.g. 4.50).',
+  invalid_qty: 'Enter a whole number for quantity, or leave it blank for unlimited.',
+  empty_update: 'Add a photo or a note before posting an update.',
+  save_failed: "Couldn't save. Please try again.",
+  not_found: 'That product no longer exists.',
+};
+
+function qtyLabel(q: number | null): string {
+  if (q === null) return 'Unlimited';
+  if (q === 0) return 'Out of stock';
+  return String(q);
+}
+
+// Shared input class — matches the flex-inventory editor inputs.
+const INPUT =
+  'block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text placeholder:text-ts-text-muted focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30 min-h-11';
+---
+
+<AdminShell
+  title="🍽️ Wholesale products"
+  subtitle={`${activeCount} of ${products.length} on · this week ${prettyWeekHeader(weekMonday)}`}
+  pageTitle="Wholesale products — Tiny Seed Admin"
+  canonical="https://csa.tinyseedfarm.com/admin/wholesale/products"
+>
+  {okFlag && OK_COPY[okFlag] && (
+    <div
+      role="status"
+      aria-live="polite"
+      class="rounded-ts-md border border-ts-primary/30 bg-ts-primary/5 px-4 py-3 text-sm text-ts-text"
+    >
+      <span class="font-semibold text-ts-primary">Done.</span> {OK_COPY[okFlag]}
+    </div>
+  )}
+  {errorFlag && (
+    <div
+      role="alert"
+      class="rounded-ts-md border border-ts-danger/30 bg-ts-danger/5 px-4 py-3 text-sm text-ts-text"
+    >
+      <span class="font-semibold text-ts-danger">Heads up.</span> {ERROR_COPY[errorFlag] ?? errorFlag}
+    </div>
+  )}
+
+  {/* ════ Add product ════ */}
+  <Card padding="none" elevation="sm" as="section">
+    <details id="add" class="group">
+      <summary
+        class="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 [&::-webkit-details-marker]:hidden"
+      >
+        <span class="flex items-center gap-2 font-display text-lg font-bold text-ts-text">
+          <span aria-hidden="true">➕</span> Add a product
+        </span>
+        <span
+          class="text-ts-text-muted transition-transform duration-150 group-open:rotate-180"
+          aria-hidden="true"
+        >▾</span>
+      </summary>
+
+      <form
+        method="POST"
+        action="/api/admin/wholesale/save"
+        class="grid grid-cols-1 gap-4 border-t border-ts-border p-5 sm:grid-cols-2"
+        data-add-form
+      >
+        <input type="hidden" name="op" value="create" />
+        <input type="hidden" name="photo_url" value="" data-add-photo-url />
+
+        <div class="sm:col-span-2">
+          <FormRow label="Product name" htmlFor="add-name">
+            <input id="add-name" type="text" name="name" required maxlength="160"
+              placeholder="e.g. Arugula" class={INPUT} />
+          </FormRow>
+        </div>
+
+        <FormRow label="Category" htmlFor="add-category">
+          <input id="add-category" type="text" name="category" maxlength="80"
+            placeholder="e.g. Greens" class={INPUT} />
+        </FormRow>
+
+        <FormRow label="Unit" htmlFor="add-unit">
+          <input id="add-unit" type="text" name="unit" list="wholesale-units" maxlength="40"
+            value="lb" class={INPUT} />
+          <datalist id="wholesale-units">
+            {FLEX_UNITS.map((u) => <option value={u}></option>)}
+            <option value="case"></option>
+            <option value="flat"></option>
+            <option value="unit"></option>
+          </datalist>
+        </FormRow>
+
+        <FormRow label="Price (dollars)" htmlFor="add-price" help="Per unit, e.g. 8.00">
+          <div class="relative">
+            <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ts-text-muted">$</span>
+            <input id="add-price" type="text" inputmode="decimal" name="price_dollars" required
+              placeholder="0.00"
+              class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base pl-7 pr-4 py-3 text-base text-ts-text tabular-nums placeholder:text-ts-text-muted focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30 min-h-11" />
+          </div>
+        </FormRow>
+
+        <FormRow label="Available qty" htmlFor="add-qty" help="Blank = unlimited · 0 = out of stock">
+          <input id="add-qty" type="number" name="available_qty" min="0" step="1"
+            placeholder="Unlimited"
+            class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text tabular-nums focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30 min-h-11" />
+        </FormRow>
+
+        <div class="sm:col-span-2">
+          <FormRow label="Description" htmlFor="add-desc" help="Optional — what chefs see.">
+            <textarea id="add-desc" name="description" rows="2" maxlength="2000"
+              placeholder="e.g. Peppery, tender baby arugula — cut this morning."
+              class="block w-full resize-y rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text placeholder:text-ts-text-muted focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30"></textarea>
+          </FormRow>
+        </div>
+
+        <div class="sm:col-span-2 flex flex-col gap-3 rounded-ts-md border border-ts-border bg-ts-bg-surface p-4">
+          <label class="flex items-start gap-3 text-sm text-ts-text">
+            <input type="checkbox" name="is_active" value="true" class="mt-0.5 h-4 w-4 rounded border-ts-border text-ts-primary" />
+            <span><span class="font-semibold">Turn on now</span> — make it available to chefs immediately. Leave off to add it dark and flip it on later.</span>
+          </label>
+        </div>
+
+        <div class="sm:col-span-2 border-t border-ts-border pt-4">
+          <button type="submit"
+            class="inline-flex h-12 w-full items-center justify-center rounded-ts-md bg-ts-primary px-5 text-base font-semibold text-white shadow-ts-sm transition-all duration-150 hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary sm:w-auto">
+            Add product
+          </button>
+        </div>
+      </form>
+    </details>
+  </Card>
+
+  {/* ════ Product board ════ */}
+  {products.length === 0 ? (
+    <Card padding="lg" elevation="sm">
+      <div class="py-8 text-center">
+        <p class="text-4xl" aria-hidden="true">🍽️</p>
+        <p class="mt-3 text-base font-semibold text-ts-text">No wholesale products yet.</p>
+        <p class="mt-1 text-sm text-ts-text-muted">Add your first product above — then flip it ON when it's harvested and ready for chefs.</p>
+        <a href="#add"
+          class="mt-4 inline-flex h-11 items-center justify-center rounded-ts-md bg-ts-primary px-5 text-sm font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary">
+          Add a product
+        </a>
+      </div>
+    </Card>
+  ) : (
+    <ul role="list" class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      {products.map((p) => {
+        const upd = latestUpdate.get(p.id);
+        const outOfStock = p.available_qty === 0;
+        return (
+          <li id={`p-${p.id}`}>
+            <Card padding="none" elevation="sm" as="article" class={p.is_active ? '' : 'opacity-80'}>
+              {/* ── Top row: thumb + identity + ON/OFF toggle ── */}
+              <div class="flex items-start gap-4 p-4">
+                <div class="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-ts-md border border-ts-border bg-ts-bg-surface text-3xl">
+                  {p.photo_url
+                    ? <img src={p.photo_url} alt={`${p.name} photo`} width="64" height="64" loading="lazy" class="h-full w-full object-cover" />
+                    : <span aria-hidden="true">{categoryEmoji(p.category)}</span>}
+                </div>
+
+                <div class="min-w-0 flex-1">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <p class="font-semibold text-ts-text">{p.name}</p>
+                    {p.is_active
+                      ? <Badge variant="green" size="xs" uppercase>On</Badge>
+                      : <Badge variant="gray" size="xs" uppercase>Off</Badge>}
+                    {outOfStock && <Badge variant="red" size="xs" uppercase>Out</Badge>}
+                  </div>
+                  <p class="mt-0.5 text-sm text-ts-text-secondary tabular-nums">
+                    {formatCents(p.price_cents)} / {p.unit}
+                    {p.category && <span class="text-ts-text-muted"> · {p.category}</span>}
+                  </p>
+                  <p class="mt-0.5 text-xs text-ts-text-muted tabular-nums">
+                    Qty: {qtyLabel(p.available_qty)}
+                  </p>
+                </div>
+
+                {/* ON/OFF toggle — the prominent flex-style switch */}
+                <form method="POST" action="/api/admin/wholesale/save" class="shrink-0">
+                  <input type="hidden" name="op" value="toggle" />
+                  <input type="hidden" name="id" value={p.id} />
+                  <input type="hidden" name="is_active" value={(!p.is_active).toString()} />
+                  <button type="submit"
+                    aria-pressed={p.is_active}
+                    aria-label={p.is_active ? `Turn ${p.name} off` : `Turn ${p.name} on`}
+                    class={[
+                      'relative inline-flex h-9 w-16 items-center rounded-full transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary',
+                      p.is_active ? 'bg-ts-primary' : 'bg-ts-bg-muted ring-1 ring-inset ring-ts-border',
+                    ].join(' ')}>
+                    <span class={[
+                      'inline-block h-7 w-7 transform rounded-full bg-white shadow-ts-sm transition-transform duration-150',
+                      p.is_active ? 'translate-x-8' : 'translate-x-1',
+                    ].join(' ')} aria-hidden="true"></span>
+                  </button>
+                  <p class="mt-1 text-center text-[10px] font-semibold uppercase tracking-wide text-ts-text-muted">
+                    {p.is_active ? 'On' : 'Off'}
+                  </p>
+                </form>
+              </div>
+
+              {p.description && (
+                <p class="border-t border-ts-border px-4 py-3 text-sm text-ts-text-secondary">{p.description}</p>
+              )}
+
+              {/* ── This week's quality update (if any) ── */}
+              {upd && (upd.note || upd.photo_url) && (
+                <div class="flex items-start gap-3 border-t border-ts-border bg-ts-primary/5 px-4 py-3">
+                  {upd.photo_url && (
+                    <img src={upd.photo_url} alt={`${p.name} today's quality`} width="48" height="48" loading="lazy"
+                      class="h-12 w-12 shrink-0 rounded-ts-md border border-ts-border object-cover" />
+                  )}
+                  <div class="min-w-0">
+                    <p class="text-[11px] font-semibold uppercase tracking-wide text-ts-primary">📸 This week</p>
+                    {upd.note && <p class="mt-0.5 text-sm text-ts-text">{upd.note}</p>}
+                  </div>
+                </div>
+              )}
+
+              {/* ── Actions ── */}
+              <div class="grid grid-cols-1 gap-3 border-t border-ts-border p-4 sm:grid-cols-3">
+                {/* Edit (inline) */}
+                <details class="sm:col-span-3">
+                  <summary
+                    class="flex cursor-pointer list-none items-center gap-2 text-sm font-semibold text-ts-text-secondary hover:text-ts-primary [&::-webkit-details-marker]:hidden">
+                    <span aria-hidden="true">✏️</span> Edit details
+                  </summary>
+                  <form method="POST" action="/api/admin/wholesale/save"
+                    class="mt-3 grid grid-cols-1 gap-3 rounded-ts-md border border-ts-border bg-ts-bg-base p-4 sm:grid-cols-2">
+                    <input type="hidden" name="op" value="update" />
+                    <input type="hidden" name="id" value={p.id} />
+
+                    <div class="sm:col-span-2">
+                      <FormRow label="Name" htmlFor={`e-name-${p.id}`}>
+                        <input id={`e-name-${p.id}`} type="text" name="name" required maxlength="160"
+                          value={p.name} class={INPUT} />
+                      </FormRow>
+                    </div>
+                    <FormRow label="Category" htmlFor={`e-cat-${p.id}`}>
+                      <input id={`e-cat-${p.id}`} type="text" name="category" maxlength="80"
+                        value={p.category ?? ''} class={INPUT} />
+                    </FormRow>
+                    <FormRow label="Unit" htmlFor={`e-unit-${p.id}`}>
+                      <input id={`e-unit-${p.id}`} type="text" name="unit" list="wholesale-units" maxlength="40"
+                        value={p.unit} class={INPUT} />
+                    </FormRow>
+                    <FormRow label="Price (dollars)" htmlFor={`e-price-${p.id}`}>
+                      <div class="relative">
+                        <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ts-text-muted">$</span>
+                        <input id={`e-price-${p.id}`} type="text" inputmode="decimal" name="price_dollars" required
+                          value={centsToDollars(p.price_cents)}
+                          class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base pl-7 pr-4 py-3 text-base text-ts-text tabular-nums focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30 min-h-11" />
+                      </div>
+                    </FormRow>
+                    <FormRow label="Available qty" htmlFor={`e-qty-${p.id}`} help="Blank = unlimited · 0 = out">
+                      <input id={`e-qty-${p.id}`} type="number" name="available_qty" min="0" step="1"
+                        value={p.available_qty ?? ''} placeholder="Unlimited"
+                        class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text tabular-nums focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30 min-h-11" />
+                    </FormRow>
+                    <FormRow label="Sort order" htmlFor={`e-sort-${p.id}`} help="Lower shows first.">
+                      <input id={`e-sort-${p.id}`} type="number" name="sort_order" step="1"
+                        value={p.sort_order}
+                        class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text tabular-nums focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30 min-h-11" />
+                    </FormRow>
+                    <div class="sm:col-span-2">
+                      <FormRow label="Description" htmlFor={`e-desc-${p.id}`}>
+                        <textarea id={`e-desc-${p.id}`} name="description" rows="2" maxlength="2000"
+                          class="block w-full resize-y rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30">{p.description ?? ''}</textarea>
+                      </FormRow>
+                    </div>
+                    <div class="sm:col-span-2">
+                      <button type="submit"
+                        class="inline-flex h-11 w-full items-center justify-center rounded-ts-md bg-ts-primary px-5 text-sm font-semibold text-white shadow-ts-sm transition-all duration-150 hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary sm:w-auto">
+                        Save changes
+                      </button>
+                    </div>
+                  </form>
+                </details>
+
+                {/* Set product photo */}
+                <form method="POST" action="/api/admin/wholesale/save"
+                  class="sm:col-span-3 flex flex-col gap-2 rounded-ts-md border border-ts-border bg-ts-bg-base p-3"
+                  data-photo-form data-product-id={p.id}>
+                  <input type="hidden" name="op" value="photo" />
+                  <input type="hidden" name="id" value={p.id} />
+                  <input type="hidden" name="photo_url" value="" data-photo-url-field />
+                  <label class="text-sm font-semibold text-ts-text" for={`set-photo-${p.id}`}>
+                    📷 Set product photo
+                  </label>
+                  <input id={`set-photo-${p.id}`} type="file" accept="image/*" capture="environment"
+                    data-photo-input
+                    class="block w-full text-sm text-ts-text file:mr-3 file:min-h-11 file:rounded-ts-md file:border-0 file:bg-ts-primary file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-ts-primary-dark" />
+                  <p class="text-xs text-ts-text-muted" data-photo-status role="status" aria-live="polite"></p>
+                </form>
+
+                {/* Today's quality update */}
+                <form method="POST" action="/api/admin/wholesale/update"
+                  class="sm:col-span-3 flex flex-col gap-2 rounded-ts-md border border-ts-primary/30 bg-ts-primary/5 p-3"
+                  data-quality-form data-product-id={p.id}>
+                  <input type="hidden" name="product_id" value={p.id} />
+                  <input type="hidden" name="photo_url" value="" data-quality-url-field />
+                  <label class="text-sm font-semibold text-ts-text" for={`quality-photo-${p.id}`}>
+                    📸 Today's quality update
+                  </label>
+                  <p class="text-xs text-ts-text-muted">Snap a real-time photo and tell chefs how it looks this week.</p>
+                  <input id={`quality-photo-${p.id}`} type="file" accept="image/*" capture="environment"
+                    data-quality-input
+                    class="block w-full text-sm text-ts-text file:mr-3 file:min-h-11 file:rounded-ts-md file:border-0 file:bg-ts-primary file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-ts-primary-dark" />
+                  <p class="text-xs text-ts-text-muted" data-quality-status role="status" aria-live="polite"></p>
+                  <textarea name="note" rows="2" maxlength="1000"
+                    placeholder="Arugula's a touch small this week but great flavor."
+                    class="block w-full resize-y rounded-ts-md border border-ts-border bg-ts-bg-base px-3 py-2 text-sm text-ts-text placeholder:text-ts-text-muted focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30"></textarea>
+                  <button type="submit"
+                    class="inline-flex h-11 w-full items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm transition-all duration-150 hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary disabled:opacity-60"
+                    data-quality-submit>
+                    Post this week's update
+                  </button>
+                </form>
+              </div>
+            </Card>
+          </li>
+        );
+      })}
+    </ul>
+  )}
+
+  <script>
+    // ── Set-product-photo: upload to wholesale-photos, then auto-submit
+    //    the small form so the photo_url lands on the product immediately
+    //    (one-tap on mobile — pick photo, it saves). ──────────────────
+    document.querySelectorAll<HTMLFormElement>('[data-photo-form]').forEach((form) => {
+      const input = form.querySelector<HTMLInputElement>('[data-photo-input]');
+      const hidden = form.querySelector<HTMLInputElement>('[data-photo-url-field]');
+      const status = form.querySelector<HTMLElement>('[data-photo-status]');
+      const productId = form.getAttribute('data-product-id') ?? '';
+      if (!input || !hidden || !status) return;
+
+      input.addEventListener('change', async () => {
+        const file = input.files && input.files[0];
+        if (!file) return;
+        if (file.size > 5 * 1024 * 1024) {
+          status.textContent = 'That image is over 5 MB — pick a smaller one.';
+          input.value = '';
+          return;
+        }
+        status.textContent = 'Uploading…';
+        input.disabled = true;
+        try {
+          const fd = new FormData();
+          fd.append('image', file);
+          fd.append('productId', productId);
+          const res = await fetch('/api/admin/wholesale/photo', {
+            method: 'POST', body: fd, credentials: 'same-origin',
+          });
+          const data = await res.json();
+          if (!res.ok || !data.ok || !data.url) throw new Error(data.error || 'upload_failed');
+          hidden.value = data.url;
+          status.textContent = 'Saving…';
+          form.submit();
+        } catch (err) {
+          console.error('wholesale product photo upload failed:', err);
+          status.textContent = "Couldn't upload that photo. Try again.";
+          input.disabled = false;
+        }
+      });
+    });
+
+    // ── Today's quality update: upload the photo first (if any), set the
+    //    hidden photo_url, THEN the form submits with the note. The note
+    //    is optional once a photo exists; a photo is optional once a note
+    //    exists — the server enforces "at least one". ──────────────────
+    document.querySelectorAll<HTMLFormElement>('[data-quality-form]').forEach((form) => {
+      const input = form.querySelector<HTMLInputElement>('[data-quality-input]');
+      const hidden = form.querySelector<HTMLInputElement>('[data-quality-url-field]');
+      const status = form.querySelector<HTMLElement>('[data-quality-status]');
+      const submit = form.querySelector<HTMLButtonElement>('[data-quality-submit]');
+      const note = form.querySelector<HTMLTextAreaElement>('textarea[name="note"]');
+      const productId = form.getAttribute('data-product-id') ?? '';
+      if (!input || !hidden || !status || !submit || !note) return;
+
+      // Upload the chosen photo immediately on selection; stash the URL.
+      input.addEventListener('change', async () => {
+        const file = input.files && input.files[0];
+        if (!file) { hidden.value = ''; return; }
+        if (file.size > 5 * 1024 * 1024) {
+          status.textContent = 'That image is over 5 MB — pick a smaller one.';
+          input.value = '';
+          hidden.value = '';
+          return;
+        }
+        status.textContent = 'Uploading photo…';
+        submit.disabled = true;
+        try {
+          const fd = new FormData();
+          fd.append('image', file);
+          fd.append('productId', productId);
+          const res = await fetch('/api/admin/wholesale/photo', {
+            method: 'POST', body: fd, credentials: 'same-origin',
+          });
+          const data = await res.json();
+          if (!res.ok || !data.ok || !data.url) throw new Error(data.error || 'upload_failed');
+          hidden.value = data.url;
+          status.textContent = 'Photo ready — add a note and post.';
+        } catch (err) {
+          console.error('wholesale quality photo upload failed:', err);
+          status.textContent = "Couldn't upload that photo. You can still post a note.";
+          hidden.value = '';
+        } finally {
+          submit.disabled = false;
+        }
+      });
+
+      // Guard the submit: require a photo OR a note (matches the server).
+      form.addEventListener('submit', (e) => {
+        if (!hidden.value && note.value.trim() === '') {
+          e.preventDefault();
+          status.textContent = 'Add a photo or a note first.';
+        }
+      });
+    });
+  </script>
+</AdminShell>
