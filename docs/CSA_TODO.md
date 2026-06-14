@@ -2,6 +2,16 @@
 
 _Started 2026-06-08. PM-maintained. Newest deferrals at top of each section._
 
+## 💰 FARM BOOKKEEPING / SCHEDULE F — accountant reporting (Todd 2026-06-14, PARKED)
+**Vision:** monthly Schedule-F-categorized expense reports auto-sent to the accountant, + an app feature to snap receipt PHOTOS with explanations (for cash/check buys not in email), + each report ends with a PDF of actual receipt copies.
+- ✅ STARTED: email receipt extractor built — `apps/csa-portal/scripts/csa_inbox_triage.py` (inbox triage) + a 2026 Schedule-F extraction script; draft CSV at `apps/csa-portal/scripts/out/schedule_f_2026.csv` (by SF line, with Income/Personal/Review tabs). Year scope: **2026 onward**.
+- EXISTING DATA TO BUILD ON (do NOT rebuild): `legal/grants/farm_vitality_2026/SCHEDULE_F_CATEGORY_MAP.html`, `tinypm/SCHEDULE_F_PRO_FORMA_2026_FINAL.md` + `TINY_SEED_FARM_2026_PRO_FORMA_SCHEDULE_F.md`, `business_docs/lease/EXPENSE_ANALYSIS_2026.md`, `web_app/quickbooks-dashboard.html`, `PHOTO_UPLOAD_RESEARCH.md`, FSA projected income/expense docs.
+- [ ] Build: monthly report generator (SF lines + subtotals) → email to accountant, signed/scheduled.
+- [ ] Build: receipt-photo upload in the app (mobile: snap + category + note) for non-email purchases.
+- [ ] Build: PDF appendix = actual receipt copies (email receipts rendered + uploaded photos).
+- [ ] Vendor→SF map confirmed with Todd; accountant's email; cadence (monthly).
+**Status: PARKED — revisit after CSA ops are stable. Accountant email + cadence needed to resume.**
+
 ## 🚨 WEEK-1 INCIDENT RECOVERY (2026-06-10) — missed flex + add-on matching
 **Incident:** stray A/B tags on flex rows + resolver parity bug dropped 7 ordered flex members from labels/pack/manifest; truck left without their items. Root causes FIXED (data cleared, resolver flex-bypass deployed, 44/44 tests). Remaining ops:
 - [ ] **THURSDAY (Jun 11) catch-up delivery run:** ① Kathleen Ganster + ② Andrea Szolna → Simon's Farm Stand (4312 Middle Rd) · ③ Melissa Maxwell → 1928 Lake Marshall Dr, Gibsonia (confirm if she corrects address) · ④ Jackie Weaver-Agostoni → 9840 Covered Wagon Ct, Wexford 15090 **+ her mushroom add-on**. Item lists on 🧺 Flex orders → Pack tab.
