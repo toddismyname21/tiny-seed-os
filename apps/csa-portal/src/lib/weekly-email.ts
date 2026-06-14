@@ -24,6 +24,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from './database.types';
 import { prettyDateET } from './box';
+import { mondayOfWeek } from './cycle';
 import {
   boxCropTokenSet,
   recipeMatchesCrops,
@@ -60,10 +61,16 @@ export interface ComposedEmail {
 // ─────────────────────────────────────────────────────────────────────
 
 /**
- * Read the upcoming Wednesday's box items, collapse to a DISTINCT set of
+ * Read the upcoming week's box items, collapse to a DISTINCT set of
  * product names (across every share_type — a recipe for "kale" is
  * relevant to anyone whose box has kale), and return both the de-duped
  * display items and the raw product-name list used for matching.
+ *
+ * `weekDate` is the delivery WEDNESDAY (the display/idempotency key). We
+ * derive the cycle MONDAY (mondayOfWeek) for the box_contents query because
+ * EVERY box_contents row in prod is keyed to the cycle Monday — querying by
+ * the Wednesday matches nothing, so the email would list zero items even when
+ * the box is published. Same root cause + fix as the /box member page.
  *
  * Uses whichever supabase client is passed:
  *   - the cookie-aware admin client for /admin previews (RLS admin-bypass)
@@ -73,10 +80,11 @@ export async function readUpcomingBoxItems(
   supabase: SupabaseClient<Database>,
   weekDate: string
 ): Promise<BoxItem[]> {
+  const boxContentsWeek = mondayOfWeek(weekDate);
   const { data, error } = await supabase
     .from('box_contents')
     .select('product_name, variety, quantity, unit, share_type')
-    .eq('week_date', weekDate);
+    .eq('week_date', boxContentsWeek);
 
   if (error) {
     console.error('[weekly-email] box_contents read failed:', error.message);

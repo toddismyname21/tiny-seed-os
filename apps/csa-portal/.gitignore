@@ -42,3 +42,4 @@ blob-report/
 .idea/
 .vercel
 scripts/out/
+.csa_inbox_state.json

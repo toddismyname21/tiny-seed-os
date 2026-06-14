@@ -27,6 +27,7 @@ import type { APIRoute } from 'astro';
 import { z } from 'zod';
 import { isSameOriginPost, PORTAL_ORIGIN } from '../../../../lib/onboarding';
 import { isValidMoveTarget, isMonday } from '../../../../lib/cycle';
+import { cascadeVacationHoldToAddOns } from '../../../../lib/vacation-cascade';
 
 export const prerender = false;
 
@@ -259,6 +260,45 @@ export const POST: APIRoute = async ({ request, redirect, locals }) => {
   const result = rpcData as unknown as ScheduleResult;
   if ('error' in result) {
     return redirect(preserveOnError(result.error, start_date, end_date, reason, disposition, move_to_week), 303);
+  }
+
+  // ── Cascade the hold to the member's ADD-ONS (bread/cheese/etc.) ──────
+  // A vacation hold on a BOX share must also pause that customer's add-on
+  // subscriptions, which are separate add_on `members` rows — otherwise the
+  // add-on tries to pack with no box to ride along in (real incident). The
+  // box hold is created via the SECURITY DEFINER RPC above and stamped
+  // status='scheduled' (migration 0041), so the rider holds mirror that.
+  //
+  // BEST-EFFORT: a cascade failure must NEVER undo the box hold that already
+  // succeeded. We log and continue to the success redirect either way. The
+  // helper is idempotent (skips add-ons already held for an overlapping
+  // range) and no-ops when the held share is itself an add_on / flex.
+  try {
+    const cascade = await cascadeVacationHoldToAddOns(locals.supabase, {
+      boxMemberId: member_id,
+      boxShareType: memberData.share_type,
+      start_date,
+      end_date,
+      status: 'scheduled',
+      disposition,
+      move_to_week,
+      reason,
+    });
+    if (cascade.error) {
+      console.error(
+        '[api/account/vacation/schedule] add-on cascade failed (box hold kept):',
+        cascade.error
+      );
+    } else if (cascade.created.length > 0 || cascade.skippedExisting.length > 0) {
+      console.info(
+        `[api/account/vacation/schedule] add-on cascade: created ${cascade.created.length}, skipped ${cascade.skippedExisting.length} (already held)`
+      );
+    }
+  } catch (e) {
+    console.error(
+      '[api/account/vacation/schedule] add-on cascade threw (box hold kept):',
+      e
+    );
   }
 
   return redirect('/account/vacation?ok=scheduled', 303);

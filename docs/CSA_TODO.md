@@ -21,7 +21,17 @@ _Started 2026-06-08. PM-maintained. Newest deferrals at top of each section._
 - [ ] **Maggie Debski upgrade:** small→Family biweekly — NEEDS TODD: price difference to quote (then I invoice + flip her share_size)
 - [ ] **Edgewood/Swissvale stop:** Kelly Corrigan moving late July; Todd promised a switch; NO such stop exists in portal — create stop (host?) or offer nearest alternative before Aug 1
 
-## 🕓 Later (Todd-requested, not urgent)
+## 🔬 AUDIT 2026-06-14 (full add-on/box/vacation reconciliation) — findings
+**NEXT WEEK (distribution Jun 17 Wed / 20 Sat / 21 Sun = WEEK B):**
+- VEG BOXES: **66 Small + 24 Family/Large = 90** (+ flex boxes as orders come in)
+- ADD-ONS riding with a box: **mushroom 17 · bread 8 · cheese 6 · coffee 2 = 33**
+- Add-on freq reconciled vs Shopify: **65/67 correct**; fixed Carly Lagoda 2 dup rows + Meghan Simek bread B→A.
+**FIXED in data:** Meghan Simek bread→A · Carly dup add-ons inactivated · 4 add-on holds cascaded (Cory Cope etc.).
+**SYSTEMIC FIXES STILL NEEDED IN CODE (need Todd OK to build):**
+- [ ] **Vacation hold must auto-cascade to add-ons.** Today a hold on the box does NOT pause the member's add-ons — I patched it manually for current holds, but the hold-creation flow (`/api/account/vacation`, schedule_vacation_hold RPC) must hold ALL the customer's rows, not just the box. Until built, every new hold needs manual cascade.
+- [ ] **Orphan add-ons (owner has no box) get dropped from pack sheets.** Members with an add-on but no active veg box — flex-only (Jackie Weaver), spring-ended (Leah Rubenstein), flower-only (Diane Reiche) — never appear on a pack sheet, so their paid add-on is missed (this is the "Rubenstein came for mushrooms" bug). Short-term: notices created. Real fix: resolver must surface add-on-only members for standalone packing on their weeks.
+- [ ] **Diane Reiche bread (Week B) vs flower (starts Jun 24):** decide when her bread starts + align to flower pickup weeks.
+- [ ] **Member /box page share_type mismatch:** queries box_contents by member.share_type ('summer_veg') but box_contents uses 'small/family/large' → member box page may show "not published" even when packers' Share list is populated. ~30-min fix.
 
 ## 🕓 Later (Todd-requested, not urgent)
 - [ ] **Collaborative Inbox for team email replies** (Todd 2026-06-08). Set up a Google Collaborative Inbox (Workspace, free) so Todd / Frankie / Loren don't double-reply to customer emails. Steps: admin.google.com → Groups → create group (address TBD: `csa-replies@` or `hello@`) → add the 3 → Settings → enable **Collaborative Inbox** (assign/take/resolve). Then PM switches `Reply-To` on all sends (`send_email.py`, `send_member_campaign.py`) to that single address. _Awaiting: Todd creates the group + picks the address._

@@ -47,8 +47,10 @@ import {
   prettyDateET,
   SHARE_TYPE_LABELS,
   OWNER_EMAIL,
+  resolveBoxContentsBuckets,
 } from '../../lib/box';
 import { pickupDateForWeek, type PickupDay } from '../../lib/schedule';
+import { mondayOfWeek } from '../../lib/cycle';
 
 const user = Astro.locals.user;
 if (!user || !user.email) {
@@ -58,10 +60,20 @@ if (!user || !user.email) {
 const supabase = Astro.locals.supabase;
 
 // ─── Resolve target week ─────────────────────────────────────────────
-// The cycle delivery WEDNESDAY — used as the box_contents query key + the swap
-// API's week_date (ops cutoff anchors on Wednesday). The member-facing display
-// date (shifted to their pickup day) is computed below as `titleDisplayPretty`.
+// The cycle delivery WEDNESDAY — kept ONLY for member-facing display-date
+// math (pickupDateForWeek/titleDisplayPretty) and the swap cutoff
+// (isCutoffPassed), both of which intentionally anchor on Wednesday.
 const targetWeek = upcomingWednesdayET();
+
+// The cycle MONDAY — the ACTUAL key every box_contents / box_swaps row is
+// stored under in prod (the admin "Share contents" editor + the share-contents
+// pack sheet all write the cycle Monday, e.g. 2026-06-15 for the Jun 17
+// delivery). Querying box_contents / box_swaps by the Wednesday (`targetWeek`)
+// never matched → the page showed "box hasn't been published yet" even when
+// rows existed. We DERIVE the Monday from the delivery Wednesday via
+// mondayOfWeek (Wed → that week's Monday; DST-safe, noon-UTC anchored) so reads
+// AND the swap write both land on the same key.
+const boxContentsWeek = mondayOfWeek(targetWeek);
 
 // ─── Cutoff state ────────────────────────────────────────────────────
 // Owner can override for QA via ?override_cutoff=true.
@@ -128,8 +140,9 @@ const liveStatuses = new Set(['active', 'paused', 'onboarding']);
 const activeMembers = allMembers.filter((m) => liveStatuses.has(m.status));
 
 // ─── Member-facing pickup date for the title ─────────────────────────
-// `targetWeek` is the cycle's delivery WEDNESDAY — it stays the box_contents
-// query key + the swap API's week_date (the ops cutoff anchors on Wednesday).
+// `targetWeek` is the cycle's delivery WEDNESDAY — used only for the display
+// title's pickup-day math and the swap cutoff (isCutoffPassed); the
+// box_contents/box_swaps DB key is `boxContentsWeek` (the cycle Monday).
 // But the TITLE should read the member's ACTUAL pickup day: a Saturday-market
 // member's box for the Jun 17 cycle is picked up Jun 20, so the title must say
 // "Your box for Saturday, June 20", not "Wednesday, June 17" (the page-
@@ -168,15 +181,23 @@ type BoxItem = {
   swap_options: string[] | null;
 };
 
-const userShareTypes = Array.from(new Set(activeMembers.map((m) => m.share_type)));
+// box_contents is published by SIZE bucket for veg ('small'/'family'/'large'),
+// NOT by the member's enum share_type. Map each active member to the bucket(s)
+// it should read (see resolveBoxContentsBuckets in lib/box). We fetch the UNION
+// of buckets, then attribute the fetched rows back per-member below by their
+// resolved winning bucket. This is the fix for "summer_veg member sees nothing"
+// — their enum 'summer_veg' never matched the 'small'/'family' rows the admin
+// editor writes.
+const { queryShareTypes, preferenceByMemberShareType } =
+  resolveBoxContentsBuckets(activeMembers);
 
 let boxItems: BoxItem[] = [];
-if (userShareTypes.length > 0) {
+if (queryShareTypes.length > 0) {
   const { data: rows, error: boxErr } = await supabase
     .from('box_contents')
     .select('share_type, product_name, variety, quantity, unit, is_swappable, swap_options')
-    .eq('week_date', targetWeek)
-    .in('share_type', userShareTypes)
+    .eq('week_date', boxContentsWeek)
+    .in('share_type', queryShareTypes)
     .order('share_type', { ascending: true })
     .order('product_name', { ascending: true })
     .overrideTypes<BoxItem[], { merge: false }>();
@@ -184,6 +205,21 @@ if (userShareTypes.length > 0) {
     console.error('[/box] box contents fetch failed:', boxErr.message);
   }
   boxItems = rows ?? [];
+}
+
+// Which box_contents buckets actually have rows this week. Used to resolve,
+// per member, the WINNING bucket (first of their preference list that has rows).
+const bucketsWithRows = new Set(boxItems.map((i) => i.share_type));
+
+/**
+ * The single box_contents bucket a member's section should render.
+ * Picks the first of the member's preference list that has published rows;
+ * falls back to the first preference (so the section still groups correctly
+ * even when empty — e.g. flower not posted yet).
+ */
+function bucketForMemberShareType(shareType: string): string {
+  const prefs = preferenceByMemberShareType.get(shareType) ?? [shareType];
+  return prefs.find((p) => bucketsWithRows.has(p)) ?? prefs[0];
 }
 
 // ─── Existing swaps for this member × this week ──────────────────────
@@ -199,7 +235,7 @@ if (activeMembers.length > 0) {
   const { data: swapRows, error: swapErr } = await supabase
     .from('box_swaps')
     .select('id, member_id, original_item, swapped_for')
-    .eq('week_date', targetWeek)
+    .eq('week_date', boxContentsWeek)
     .in('member_id', memberIds)
     .overrideTypes<SwapRow[], { merge: false }>();
   if (swapErr) {
@@ -224,7 +260,10 @@ type ShareSection = {
 };
 const sections: ShareSection[] = [];
 for (const member of activeMembers) {
-  const items = boxItems.filter((i) => i.share_type === member.share_type);
+  // Attribute rows by the member's RESOLVED box_contents bucket (e.g. a
+  // summer_veg/small member reads the 'small' rows), not their enum share_type.
+  const bucket = bucketForMemberShareType(member.share_type);
+  const items = boxItems.filter((i) => i.share_type === bucket);
   if (items.length === 0 && boxItems.length > 0) continue; // skip empties only if other shares have data
   sections.push({ member, items });
 }
@@ -237,12 +276,22 @@ const totalCredits = activeMembers.reduce((sum, m) => sum + m.swap_credits, 0);
 // We bake a small JSON object into the page (NOT all server data —
 // just what the swap UI needs). Includes per-item swap_options for the
 // bottom sheet to render.
+// NOTE: the client uses `share_type` ONLY as the join key between a member
+// and its items (to find swap_options for the bottom sheet). It is NOT sent to
+// the swap API (that takes member_id + product_name). So we emit each member's
+// RESOLVED box_contents bucket here so it matches the bucket carried on each
+// item — keeping the client-side member↔item lookup correct after the veg
+// size-bucket mapping fix.
 const clientPayload = {
-  week_date: targetWeek,
+  // The swap API writes box_swaps.week_date with THIS value, and the read
+  // above (box_swaps `.eq('week_date', boxContentsWeek)`) uses the same Monday
+  // key — so a swap saved on one page load is found on the next. MUST stay the
+  // Monday, not targetWeek, or writes land on a key the reads never match.
+  week_date: boxContentsWeek,
   cutoff_passed: cutoffPassed,
   members: activeMembers.map((m) => ({
     id: m.id,
-    share_type: m.share_type,
+    share_type: bucketForMemberShareType(m.share_type),
     swap_credits: m.swap_credits,
   })),
   items: boxItems.map((i) => ({

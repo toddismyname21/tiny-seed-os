@@ -4,7 +4,14 @@
  * Body (application/json):
  *   {
  *     member_id:     string,  // UUID of the active member row
- *     week_date:     string,  // YYYY-MM-DD (the upcoming Wednesday)
+ *     week_date:     string,  // YYYY-MM-DD — the cycle MONDAY (the key
+ *                             //   box_contents/box_swaps are stored under).
+ *                             //   The /box page derives it via mondayOfWeek
+ *                             //   of the delivery Wednesday and sends it here
+ *                             //   so swap reads + writes share one key. The
+ *                             //   Tuesday-8AM-ET cutoff is anchored on the
+ *                             //   cycle week inside isCutoffPassed, so passing
+ *                             //   the Monday does NOT shift the cutoff.
  *     original_item: string,  // product_name on box_contents
  *     swapped_for:   string,  // product_name from the original's swap_options
  *   }
@@ -126,8 +133,10 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
   }
 
   // ─── Cutoff enforcement ────────────────────────────────────────────
-  // Cutoff is 8 AM Eastern on (week_date - 1 day). After cutoff, swaps
-  // are frozen. The owner can bypass with ?override_cutoff=true for QA.
+  // Cutoff is Tuesday 8 AM Eastern of the cycle week. isCutoffPassed
+  // normalizes whatever cycle date it's given (here: the cycle Monday) to
+  // that week's Tuesday, so the cutoff is unchanged by the Wed→Mon key move.
+  // After cutoff, swaps are frozen. Owner bypass via ?override_cutoff=true.
   const overrideCutoff =
     url.searchParams.get('override_cutoff') === 'true' &&
     user.email === OWNER_EMAIL;
