@@ -1,0 +1,490 @@
+---
+/**
+ * /order/[token] — PUBLIC chef wholesale ordering page (ZERO barrier).
+ *
+ * No login, no password, no magic link. Each restaurant has a permanent secret
+ * `wholesale_accounts.order_token`; this page is keyed by it (the chef bookmarks
+ * the URL). The token IS the access — middleware leaves /order/* public, and we
+ * resolve the account by token here (server-side, service-role) so RLS never
+ * blocks the read. We scope EVERYTHING strictly to this token's account; no
+ * other account's data is ever exposed.
+ *
+ * North star (Todd): chefs must "order order order". Speed + simplicity beat
+ * Sysco. So: a hero "Reorder last week" button, a category-grouped catalog with
+ * +/− steppers, a sticky cart bar, one "Place order" tap. Direct Supabase, no
+ * Apps Script.
+ *
+ * SERVER-SIDE PRICE: the page shows the effective (tier-discounted) unit price,
+ * but the SUBMIT re-prices everything from the DB inside place_wholesale_order
+ * — the page total is a courtesy, never trusted for the charge.
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { supabaseAdmin } from '../../lib/supabase';
+import { groupByCategory } from '../../lib/wholesale-categories';
+import { categoryEmoji } from '../../lib/flex-order';
+import {
+  formatCents, effectiveUnitCents, nextDeliveryWednesday,
+  prettyDeliveryDate, CUTOFF_LABEL,
+} from '../../lib/wholesale-order';
+
+export const prerender = false;
+
+const token = Astro.params.token ?? '';
+
+// ─── Resolve the account by its permanent secret token ──────────────
+type AccountRow = {
+  id: string;
+  restaurant_name: string;
+  contact_name: string | null;
+  email: string | null;
+  min_order_cents: number;
+  pricing_tier_id: string | null;
+  status: 'draft' | 'invited' | 'active' | 'paused';
+};
+
+let account: AccountRow | null = null;
+if (token && token.trim() !== '') {
+  const { data, error } = await supabaseAdmin
+    .from('wholesale_accounts')
+    .select('id, restaurant_name, contact_name, email, min_order_cents, pricing_tier_id, status')
+    .eq('order_token', token)
+    .maybeSingle()
+    .overrideTypes<AccountRow, { merge: false }>();
+  if (error) {
+    console.error('[order/[token]] account lookup failed:', error.message);
+  }
+  account = data ?? null;
+}
+
+// Friendly 404 when the token doesn't resolve (or is paused/draft → no link).
+const notFound = !account || account.status === 'paused';
+
+// Pretty flash codes (post-submit can also land here on a soft error).
+const url = Astro.url;
+const errorFlag = url.searchParams.get('error');
+const ERROR_COPY: Record<string, string> = {
+  empty: 'Your cart was empty — add a few items and try again.',
+  no_available_items: 'Those items just went off the board. Pull up the catalog and try again.',
+  submit_failed: "Something hiccupped placing that order. Give it another tap.",
+  invalid_token: 'This ordering link is no longer valid. Reach out to the farm.',
+  invalid_input: 'Something looked off with that order — please try again.',
+};
+
+// Everything below only renders when the account resolved.
+const deliveryDate = nextDeliveryWednesday();
+const deliveryLabel = prettyDeliveryDate(deliveryDate);
+
+// ─── Discount for this account's pricing tier (server-side; 0 = list) ───
+let discountPct = 0;
+if (account && account.pricing_tier_id) {
+  const { data: tier } = await supabaseAdmin
+    .from('wholesale_pricing_tiers')
+    .select('discount_pct')
+    .eq('id', account.pricing_tier_id)
+    .maybeSingle()
+    .overrideTypes<{ discount_pct: number }, { merge: false }>();
+  discountPct = tier?.discount_pct ?? 0;
+}
+
+// ─── Active catalog + shared product_library (photo + quality note) ─────
+type ProductRow = {
+  id: string;
+  name: string;
+  category: string | null;
+  unit: string;
+  price_cents: number;
+  description: string | null;
+  photo_url: string | null;
+  is_active: boolean;
+  sort_order: number;
+  library_id: string | null;
+  library: { photo_url: string | null; quality_note: string | null } | null;
+};
+
+let products: ProductRow[] = [];
+if (account) {
+  const { data, error } = await supabaseAdmin
+    .from('wholesale_products')
+    .select(
+      'id, name, category, unit, price_cents, description, photo_url, is_active, sort_order, library_id, ' +
+      'library:product_library ( photo_url, quality_note )'
+    )
+    .eq('is_active', true)
+    .order('sort_order', { ascending: true })
+    .order('name', { ascending: true })
+    .overrideTypes<ProductRow[], { merge: false }>();
+  if (error) {
+    console.error('[order/[token]] catalog fetch failed:', error.message);
+  }
+  products = data ?? [];
+}
+
+// A view model with the effective (tier-discounted) unit price + resolved photo.
+interface CatalogItem {
+  id: string;
+  name: string;
+  category: string | null;
+  unit: string;
+  sort_order: number;
+  unitCents: number;          // effective price the chef pays
+  photoUrl: string | null;    // library photo first, then product photo
+  qualityNote: string | null; // "today's quality" from the library
+  description: string | null;
+}
+
+const catalog: CatalogItem[] = products.map((p) => ({
+  id: p.id,
+  name: p.name,
+  category: p.category,
+  unit: p.unit,
+  sort_order: p.sort_order,
+  unitCents: effectiveUnitCents(p.price_cents, discountPct),
+  photoUrl: p.library?.photo_url ?? p.photo_url ?? null,
+  qualityNote: p.library?.quality_note ?? null,
+  description: p.description,
+}));
+
+const groups = groupByCategory(catalog);
+
+// ─── Most recent order for THIS account → "Reorder last week" prefill ───
+// We pull the latest order + its items, then keep only items whose product is
+// still ACTIVE in the catalog above (skip now-inactive items), at TODAY's
+// prices. The button pre-fills the cart with { id: qty } client-side.
+const activeIds = new Set(catalog.map((c) => c.id));
+let reorderPrefill: Record<string, number> = {};
+let reorderItemCount = 0;
+if (account) {
+  type LastOrderRow = { id: string; delivery_date: string; created_at: string };
+  const { data: lastOrder } = await supabaseAdmin
+    .from('wholesale_orders')
+    .select('id, delivery_date, created_at')
+    .eq('account_id', account.id)
+    .neq('status', 'cancelled')
+    .order('delivery_date', { ascending: false })
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+    .overrideTypes<LastOrderRow, { merge: false }>();
+
+  if (lastOrder) {
+    type LastItemRow = { product_id: string | null; qty: number };
+    const { data: items } = await supabaseAdmin
+      .from('wholesale_order_items')
+      .select('product_id, qty')
+      .eq('order_id', lastOrder.id)
+      .overrideTypes<LastItemRow[], { merge: false }>();
+
+    for (const it of items ?? []) {
+      if (it.product_id && activeIds.has(it.product_id) && it.qty > 0) {
+        reorderPrefill[it.product_id] = (reorderPrefill[it.product_id] ?? 0) + it.qty;
+        reorderItemCount += 1;
+      }
+    }
+  }
+}
+const hasReorder = reorderItemCount > 0;
+
+const minOrderCents = account?.min_order_cents ?? 0;
+---
+
+<BaseLayout
+  title={notFound ? 'Tiny Seed Farm — Wholesale' : `Order — ${account!.restaurant_name} · Tiny Seed Farm`}
+  description="Order fresh, certified-organic produce from Tiny Seed Farm."
+  canonical={`https://csa.tinyseedfarm.com/order/${token}`}
+>
+  {notFound ? (
+    <main class="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center gap-4 px-6 py-16 text-center">
+      <p class="text-5xl" aria-hidden="true">🌱</p>
+      <h1 class="font-display text-2xl font-bold text-ts-text">We couldn't find that order page</h1>
+      <p class="text-ts-text-secondary">
+        This ordering link looks expired or incorrect. If you're a wholesale partner,
+        reach out and we'll send you a fresh link.
+      </p>
+      <a
+        href="mailto:tinyseedcsa@gmail.com,todd@tinyseedfarmpgh.com?subject=Wholesale%20ordering%20link"
+        class="mt-2 inline-flex h-12 items-center justify-center rounded-ts-md bg-ts-primary px-6 text-base font-semibold text-white shadow-ts-sm transition-all duration-150 hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+      >
+        Email the farm
+      </a>
+    </main>
+  ) : (
+    <div data-min-cents={minOrderCents}>
+      {/* ════ Warm header ════ */}
+      <header class="border-b border-ts-border bg-gradient-to-b from-ts-primary/10 to-transparent">
+        <div class="mx-auto max-w-2xl px-5 pb-5 pt-6">
+          <p class="font-display text-sm font-bold uppercase tracking-wide text-ts-primary">
+            🌱 Tiny Seed Farm — Wholesale
+          </p>
+          <h1 class="mt-1 font-display text-2xl font-bold text-ts-text sm:text-3xl">
+            Ordering for {account!.restaurant_name}
+          </h1>
+          <p class="mt-1 flex flex-wrap items-center gap-x-2 text-sm text-ts-text-secondary">
+            <span>🚚 Delivery <strong class="text-ts-text">{deliveryLabel}</strong></span>
+            <span aria-hidden="true" class="text-ts-text-muted">·</span>
+            <span>Edit until {CUTOFF_LABEL}</span>
+          </p>
+          <a
+            href={`/order/${token}/account`}
+            class="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-ts-primary transition-colors duration-150 hover:text-ts-primary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+          >
+            <span aria-hidden="true">⚙️</span> Account settings
+          </a>
+        </div>
+      </header>
+
+      <main class="mx-auto max-w-2xl px-4 pb-40 pt-4">
+        {errorFlag && ERROR_COPY[errorFlag] && (
+          <div
+            role="alert"
+            class="mb-4 rounded-ts-md border border-ts-danger/30 bg-ts-danger/5 px-4 py-3 text-sm text-ts-text"
+          >
+            <span class="font-semibold text-ts-danger">Heads up.</span> {ERROR_COPY[errorFlag]}
+          </div>
+        )}
+
+        {/* ════ HERO: Reorder last week ════ */}
+        {hasReorder && (
+          <button
+            type="button"
+            data-reorder
+            class="mb-5 flex w-full items-center justify-between gap-3 rounded-ts-lg border border-ts-primary/30 bg-ts-primary/5 px-5 py-4 text-left shadow-ts-sm transition-all duration-150 hover:border-ts-primary hover:bg-ts-primary/10 active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+          >
+            <span class="flex items-center gap-3">
+              <span class="text-2xl" aria-hidden="true">🔁</span>
+              <span>
+                <span class="block font-display text-lg font-bold text-ts-text">Reorder last week</span>
+                <span class="block text-sm text-ts-text-secondary">
+                  Fill your cart with last week's order ({reorderItemCount} {reorderItemCount === 1 ? 'item' : 'items'}), at today's prices.
+                </span>
+              </span>
+            </span>
+            <span class="shrink-0 rounded-full bg-ts-primary px-4 py-2 text-sm font-semibold text-white" aria-hidden="true">Fill cart</span>
+          </button>
+        )}
+
+        {catalog.length === 0 ? (
+          <div class="rounded-ts-lg border border-ts-border bg-ts-bg-surface px-6 py-12 text-center">
+            <p class="text-4xl" aria-hidden="true">🧺</p>
+            <p class="mt-3 font-display text-lg font-bold text-ts-text">Nothing's on the board right now</p>
+            <p class="mt-1 text-sm text-ts-text-secondary">
+              We update availability through the week. Check back soon — or reply to your usual
+              email and we'll let you know what's coming in.
+            </p>
+          </div>
+        ) : (
+          <>
+            {groups.map((group) => (
+              <section class="mb-7">
+                <h2 class="mb-3 flex items-center gap-2 font-display text-base font-bold uppercase tracking-wide text-ts-text">
+                  <span class="text-xl" aria-hidden="true">{categoryEmoji(group.category)}</span>
+                  <span>{group.category}</span>
+                </h2>
+                <ul role="list" class="grid grid-cols-1 gap-3">
+                  {group.items.map((item) => (
+                    <li
+                      class="flex items-center gap-4 rounded-ts-lg border border-ts-border bg-ts-bg-surface p-3 shadow-ts-sm"
+                      data-product
+                      data-id={item.id}
+                      data-name={item.name}
+                      data-unit={item.unit}
+                      data-cents={item.unitCents}
+                    >
+                      {/* Photo (library first, then product) — emoji fallback, never a broken img */}
+                      <div class="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-ts-md border border-ts-border bg-ts-bg-base text-3xl">
+                        {item.photoUrl ? (
+                          <img src={item.photoUrl} alt={`${item.name}`} width="64" height="64" loading="lazy" class="h-full w-full object-cover" />
+                        ) : (
+                          <span aria-hidden="true">{categoryEmoji(item.category)}</span>
+                        )}
+                      </div>
+
+                      {/* Identity + price + today's quality */}
+                      <div class="min-w-0 flex-1">
+                        <p class="font-semibold text-ts-text">{item.name}</p>
+                        <p class="mt-0.5 text-sm tabular-nums text-ts-text-secondary">
+                          {formatCents(item.unitCents)} <span class="text-ts-text-muted">/ {item.unit}</span>
+                        </p>
+                        {item.qualityNote && (
+                          <p class="mt-1 inline-flex items-start gap-1 rounded-ts-md bg-ts-primary/5 px-2 py-1 text-xs text-ts-primary">
+                            <span aria-hidden="true">📸</span><span>{item.qualityNote}</span>
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Quantity stepper */}
+                      <div class="flex shrink-0 items-center gap-2" data-stepper>
+                        <button
+                          type="button"
+                          data-dec
+                          aria-label={`Remove one ${item.name}`}
+                          class="flex h-11 w-11 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-base text-xl font-bold text-ts-text transition-colors duration-150 hover:border-ts-primary hover:text-ts-primary active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary disabled:opacity-40"
+                        >−</button>
+                        <output
+                          data-qty
+                          aria-live="polite"
+                          aria-label={`${item.name} quantity`}
+                          class="w-8 text-center text-lg font-bold tabular-nums text-ts-text"
+                        >0</output>
+                        <button
+                          type="button"
+                          data-inc
+                          aria-label={`Add one ${item.name}`}
+                          class="flex h-11 w-11 items-center justify-center rounded-ts-md border border-ts-primary bg-ts-primary text-xl font-bold text-white transition-all duration-150 hover:bg-ts-primary-dark active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+                        >+</button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ))}
+          </>
+        )}
+      </main>
+
+      {/* ════ Sticky cart bar ════ */}
+      <form
+        id="order-form"
+        method="POST"
+        action="/api/order/submit"
+        class="fixed inset-x-0 bottom-0 z-20 border-t border-ts-border bg-ts-bg-base/95 backdrop-blur supports-[backdrop-filter]:bg-ts-bg-base/85"
+        hidden
+        data-cart-bar
+      >
+        <input type="hidden" name="token" value={token} />
+        <input type="hidden" name="lines" value="" data-lines-field />
+        <div class="mx-auto flex max-w-2xl items-center gap-4 px-4 py-3" style="padding-bottom:max(0.75rem,env(safe-area-inset-bottom));">
+          <div class="min-w-0 flex-1">
+            <p class="text-sm font-semibold text-ts-text">
+              <span data-cart-count>0</span> <span data-cart-items-label>items</span>
+              · <span class="tabular-nums" data-cart-total>$0.00</span>
+            </p>
+            <p class="text-xs text-ts-text-muted" data-min-note hidden></p>
+          </div>
+          <button
+            type="submit"
+            data-place
+            class="inline-flex h-12 shrink-0 items-center justify-center rounded-ts-md bg-ts-primary px-6 text-base font-semibold text-white shadow-ts-sm transition-all duration-150 hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary disabled:opacity-60"
+          >
+            Place order
+          </button>
+        </div>
+      </form>
+
+      {/* Reorder prefill payload (product_id → qty), read by the cart script. */}
+      <script type="application/json" id="reorder-prefill" set:html={JSON.stringify(reorderPrefill)}></script>
+    </div>
+  )}
+
+  <script>
+    // ── Chef cart: stepper qty, live total, sticky bar, reorder prefill,
+    //    serialize lines on submit. All math is client-side for instant feel;
+    //    the SERVER re-prices everything in place_wholesale_order (the page
+    //    total is a courtesy, never trusted). ──────────────────────────────
+    (() => {
+      const root = document.querySelector<HTMLElement>('[data-min-cents]');
+      if (!root) return; // not-found state — nothing to wire up.
+
+      const minCents = Number(root.getAttribute('data-min-cents') ?? '0') || 0;
+      const cartBar = document.querySelector<HTMLFormElement>('[data-cart-bar]');
+      const linesField = document.querySelector<HTMLInputElement>('[data-lines-field]');
+      const countEl = document.querySelector<HTMLElement>('[data-cart-count]');
+      const itemsLabel = document.querySelector<HTMLElement>('[data-cart-items-label]');
+      const totalEl = document.querySelector<HTMLElement>('[data-cart-total]');
+      const minNote = document.querySelector<HTMLElement>('[data-min-note]');
+      const placeBtn = document.querySelector<HTMLButtonElement>('[data-place]');
+      const form = document.querySelector<HTMLFormElement>('#order-form');
+
+      // qty state keyed by product id.
+      const qty = new Map<string, number>();
+
+      const money = (cents: number) =>
+        new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(cents / 100);
+
+      function rowEls(id: string) {
+        return document.querySelector<HTMLElement>(`[data-product][data-id="${CSS.escape(id)}"]`);
+      }
+
+      function setQty(id: string, n: number) {
+        const next = Math.max(0, Math.min(100000, Math.floor(n)));
+        if (next === 0) qty.delete(id);
+        else qty.set(id, next);
+        const row = rowEls(id);
+        if (row) {
+          const out = row.querySelector<HTMLElement>('[data-qty]');
+          if (out) out.textContent = String(next);
+          const dec = row.querySelector<HTMLButtonElement>('[data-dec]');
+          if (dec) dec.disabled = next === 0;
+          row.classList.toggle('ring-2', next > 0);
+          row.classList.toggle('ring-ts-primary', next > 0);
+          row.classList.toggle('border-ts-primary', next > 0);
+        }
+        render();
+      }
+
+      function render() {
+        let count = 0;
+        let totalCents = 0;
+        for (const row of document.querySelectorAll<HTMLElement>('[data-product]')) {
+          const id = row.getAttribute('data-id') ?? '';
+          const n = qty.get(id) ?? 0;
+          if (n <= 0) continue;
+          const cents = Number(row.getAttribute('data-cents') ?? '0') || 0;
+          count += n;
+          totalCents += cents * n;
+        }
+        const hasItems = count > 0;
+        if (cartBar) cartBar.hidden = !hasItems;
+        if (countEl) countEl.textContent = String(count);
+        if (itemsLabel) itemsLabel.textContent = count === 1 ? 'item' : 'items';
+        if (totalEl) totalEl.textContent = money(totalCents);
+
+        // Soft minimum note — warn under min, never hard-block (Todd's call).
+        if (minNote) {
+          if (minCents > 0 && hasItems && totalCents < minCents) {
+            minNote.hidden = false;
+            minNote.textContent = `${money(minCents)} minimum — you're a little under, but you can still order.`;
+          } else {
+            minNote.hidden = true;
+            minNote.textContent = '';
+          }
+        }
+      }
+
+      // Wire steppers.
+      for (const row of document.querySelectorAll<HTMLElement>('[data-product]')) {
+        const id = row.getAttribute('data-id') ?? '';
+        row.querySelector('[data-inc]')?.addEventListener('click', () => setQty(id, (qty.get(id) ?? 0) + 1));
+        row.querySelector('[data-dec]')?.addEventListener('click', () => setQty(id, (qty.get(id) ?? 0) - 1));
+      }
+
+      // Hero reorder: fill cart from last week's prefill payload.
+      const reorderBtn = document.querySelector<HTMLButtonElement>('[data-reorder]');
+      const prefillEl = document.querySelector<HTMLScriptElement>('#reorder-prefill');
+      reorderBtn?.addEventListener('click', () => {
+        let prefill: Record<string, number> = {};
+        try { prefill = JSON.parse(prefillEl?.textContent || '{}'); } catch { prefill = {}; }
+        for (const [id, n] of Object.entries(prefill)) setQty(id, Number(n) || 0);
+        // Jump the chef to the cart so they see it filled.
+        cartBar?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      });
+
+      // Serialize lines on submit; guard empty.
+      form?.addEventListener('submit', (e) => {
+        const lines = Array.from(qty.entries())
+          .filter(([, n]) => n > 0)
+          .map(([product_id, q]) => ({ product_id, qty: q }));
+        if (lines.length === 0) {
+          e.preventDefault();
+          return;
+        }
+        if (linesField) linesField.value = JSON.stringify(lines);
+        if (placeBtn) {
+          placeBtn.disabled = true;
+          placeBtn.textContent = 'Placing…';
+        }
+      });
+
+      render();
+    })();
+  </script>
+</BaseLayout>

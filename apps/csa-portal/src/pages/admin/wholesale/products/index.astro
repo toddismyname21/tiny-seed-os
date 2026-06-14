@@ -2,6 +2,19 @@
 /**
  * /admin/wholesale/products — Wholesale (chef) product board.
  *
+ * TODO (chef accounts + contact routing — Todd 2026-06-14): there is currently
+ * NO admin page for wholesale ACCOUNTS (restaurants) or their CONTACT EMAILS.
+ * Chefs now self-manage both from the no-login /order/<token>/account page
+ * (wholesale_accounts basic fields + wholesale_account_contacts routing, where
+ * receives_orders = availability/order emails and receives_invoices = billing).
+ * When an admin "accounts" view is built (likely a sibling /admin/wholesale/
+ * accounts/index.astro), give it the SAME per-contact receives_orders /
+ * receives_invoices editor so staff can fix routing on a chef's behalf. The
+ * server contract already exists — admin/staff have RLS on both tables (policy
+ * wac_staff), and the chef-side logic lives in src/lib/wholesale-contacts.ts +
+ * src/pages/api/order/account.ts. Deliberately NOT building that admin page now
+ * (chef self-edit is the priority, per the task scope).
+ *
  * A flex-style ON/OFF availability board for Todd's wholesale catalog,
  * built mobile-first because he runs this from his phone in the field.
  * The whole point: SPEED. Queries Supabase DIRECTLY (no Apps Script) so
@@ -32,6 +45,7 @@ import {
   FLEX_UNITS, centsToDollars, formatCents, categoryEmoji,
 } from '../../../../lib/flex-order';
 import { mondayOfWeek, prettyWeekHeader, upcomingMonday } from '../../../../lib/cycle';
+import { WHOLESALE_CATEGORIES, groupByCategory } from '../../../../lib/wholesale-categories';
 
 const supabase = Astro.locals.supabase;
 const url = Astro.url;
@@ -108,6 +122,13 @@ if (products.length > 0) {
 
 const activeCount = products.filter((p) => p.is_active).length;
 
+// ─── Group products by canonical category, in chef-catalog order ────
+// Known categories render Salad Mixes → … → Specialty; unknown/legacy
+// categories fall to the end alphabetically. Empty categories produce no
+// group (so no empty sections render), but ALL canonical categories stay
+// available in the assign dropdown via WHOLESALE_CATEGORIES.
+const productGroups = groupByCategory(products);
+
 // ─── Flash messages ─────────────────────────────────────────────────
 const okFlag = url.searchParams.get('ok');
 const errorFlag = url.searchParams.get('error');
@@ -132,6 +153,11 @@ function qtyLabel(q: number | null): string {
   if (q === null) return 'Unlimited';
   if (q === 0) return 'Out of stock';
   return String(q);
+}
+
+// Stable DOM id for a category section (for the jump-to filter anchors).
+function catSlug(cat: string): string {
+  return 'cat-' + cat.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 }
 
 // Shared input class — matches the flex-inventory editor inputs.
@@ -194,9 +220,11 @@ const INPUT =
           </FormRow>
         </div>
 
-        <FormRow label="Category" htmlFor="add-category">
-          <input id="add-category" type="text" name="category" maxlength="80"
-            placeholder="e.g. Greens" class={INPUT} />
+        <FormRow label="Category" htmlFor="add-category" help="Keeps the chef catalog grouped consistently.">
+          <select id="add-category" name="category" class={INPUT}>
+            <option value="">Choose a category…</option>
+            {WHOLESALE_CATEGORIES.map((c) => <option value={c}>{c}</option>)}
+          </select>
         </FormRow>
 
         <FormRow label="Unit" htmlFor="add-unit">
@@ -264,10 +292,45 @@ const INPUT =
       </div>
     </Card>
   ) : (
-    <ul role="list" class="grid grid-cols-1 gap-4 lg:grid-cols-2">
-      {products.map((p) => {
-        const upd = latestUpdate.get(p.id);
-        const outOfStock = p.available_qty === 0;
+    <>
+      {/* ── Sticky jump-to filter (mobile-friendly category pills) ── */}
+      {productGroups.length > 1 && (
+        <nav
+          aria-label="Jump to category"
+          class="sticky top-0 z-10 -mx-4 border-b border-ts-border bg-ts-bg-base/95 px-4 py-2 backdrop-blur supports-[backdrop-filter]:bg-ts-bg-base/80 sm:mx-0 sm:rounded-ts-md sm:border"
+        >
+          <ul role="list" class="flex snap-x gap-2 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {productGroups.map((g) => (
+              <li class="snap-start">
+                <a
+                  href={`#${catSlug(g.category)}`}
+                  class="inline-flex min-h-9 items-center whitespace-nowrap rounded-full border border-ts-border bg-ts-bg-surface px-3 text-xs font-semibold text-ts-text-secondary transition-colors duration-150 hover:border-ts-primary hover:text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+                >
+                  {g.category}
+                  <span class="ml-1.5 tabular-nums text-ts-text-muted">{g.items.length}</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      )}
+
+      {productGroups.map((group) => (
+        <section id={catSlug(group.category)} aria-labelledby={`${catSlug(group.category)}-h`} class="scroll-mt-16">
+          <h2
+            id={`${catSlug(group.category)}-h`}
+            class="mb-3 mt-2 flex items-baseline gap-2 font-display text-base font-bold uppercase tracking-wide text-ts-text"
+          >
+            <span class="text-2xl" aria-hidden="true">{categoryEmoji(group.category)}</span>
+            <span>{group.category}</span>
+            <span class="text-sm font-medium tabular-nums text-ts-text-muted">
+              {group.items.filter((i) => i.is_active).length}/{group.items.length} on
+            </span>
+          </h2>
+          <ul role="list" class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            {group.items.map((p) => {
+              const upd = latestUpdate.get(p.id);
+              const outOfStock = p.available_qty === 0;
         return (
           <li id={`p-${p.id}`}>
             <Card padding="none" elevation="sm" as="article" class={p.is_active ? '' : 'opacity-80'}>
@@ -357,8 +420,16 @@ const INPUT =
                       </FormRow>
                     </div>
                     <FormRow label="Category" htmlFor={`e-cat-${p.id}`}>
-                      <input id={`e-cat-${p.id}`} type="text" name="category" maxlength="80"
-                        value={p.category ?? ''} class={INPUT} />
+                      <select id={`e-cat-${p.id}`} name="category" class={INPUT}>
+                        <option value="" selected={!p.category}>Choose a category…</option>
+                        {/* Preserve a legacy/custom value that isn't canonical. */}
+                        {p.category && !(WHOLESALE_CATEGORIES as readonly string[]).includes(p.category) && (
+                          <option value={p.category} selected>{p.category} (legacy)</option>
+                        )}
+                        {WHOLESALE_CATEGORIES.map((c) => (
+                          <option value={c} selected={p.category === c}>{c}</option>
+                        ))}
+                      </select>
                     </FormRow>
                     <FormRow label="Unit" htmlFor={`e-unit-${p.id}`}>
                       <input id={`e-unit-${p.id}`} type="text" name="unit" list="wholesale-units" maxlength="40"
@@ -439,9 +510,12 @@ const INPUT =
               </div>
             </Card>
           </li>
-        );
-      })}
-    </ul>
+              );
+            })}
+          </ul>
+        </section>
+      ))}
+    </>
   )}
 
   <script>

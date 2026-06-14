@@ -687,6 +687,8 @@ export interface Database {
           available_qty: number | null;
           is_active: boolean;
           sort_order: number;
+          // FK → product_library.id — the shared product (photo + quality note).
+          library_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -694,6 +696,134 @@ export interface Database {
           name: string;
         } & Partial<Database['public']['Tables']['wholesale_products']['Row']>;
         Update: Partial<Database['public']['Tables']['wholesale_products']['Row']>;
+        Relationships: [];
+      };
+      // Shared product master (photo + "today's quality" note) referenced by
+      // wholesale_products.library_id. Public-readable (lib_read policy).
+      product_library: {
+        Row: {
+          id: string;
+          name: string;
+          slug: string | null;
+          category: string | null;
+          photo_url: string | null;
+          description: string | null;
+          quality_note: string | null;
+          quality_week: string | null;
+          created_at: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          name: string;
+        } & Partial<Database['public']['Tables']['product_library']['Row']>;
+        Update: Partial<Database['public']['Tables']['product_library']['Row']>;
+        Relationships: [];
+      };
+      // Chef/restaurant wholesale accounts. order_token is the PERMANENT secret
+      // that keys the public /order/<token> ordering page (no login).
+      wholesale_accounts: {
+        Row: {
+          id: string;
+          customer_id: string | null;
+          restaurant_name: string;
+          contact_name: string | null;
+          email: string | null;
+          phone: string | null;
+          address: string | null;
+          cluster: string | null;
+          status: 'draft' | 'invited' | 'active' | 'paused';
+          pricing_tier_id: string | null;
+          min_order_cents: number;
+          delivery_day: string | null;
+          notes: string | null;
+          order_token: string | null;
+          created_at: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          restaurant_name: string;
+        } & Partial<Database['public']['Tables']['wholesale_accounts']['Row']>;
+        Update: Partial<Database['public']['Tables']['wholesale_accounts']['Row']>;
+        Relationships: [];
+      };
+      // Per-account contact emails with routing flags. A wholesale account can
+      // have MULTIPLE contacts, each flagged for what it receives:
+      //   - receives_orders   → availability lists + order confirmations
+      //   - receives_invoices → billing / invoices
+      // (Todd 2026-06-14: e.g. Fet Fisk routes orders→nik@, invoices→accounts@.)
+      // RLS is admin/staff-only; chef-facing self-edit goes through a token-
+      // authenticated server endpoint using supabaseAdmin scoped to account_id.
+      wholesale_account_contacts: {
+        Row: {
+          id: string;
+          account_id: string | null;
+          email: string;
+          name: string | null;
+          receives_orders: boolean;
+          receives_invoices: boolean;
+          created_at: string | null;
+        };
+        Insert: {
+          email: string;
+        } & Partial<Database['public']['Tables']['wholesale_account_contacts']['Row']>;
+        Update: Partial<Database['public']['Tables']['wholesale_account_contacts']['Row']>;
+        Relationships: [];
+      };
+      // Per-chef pricing tier (discount_pct off the list price_cents).
+      wholesale_pricing_tiers: {
+        Row: {
+          id: string;
+          name: string;
+          discount_pct: number;
+          created_at: string | null;
+        };
+        Insert: {
+          name: string;
+        } & Partial<Database['public']['Tables']['wholesale_pricing_tiers']['Row']>;
+        Update: Partial<Database['public']['Tables']['wholesale_pricing_tiers']['Row']>;
+        Relationships: [];
+      };
+      // A placed wholesale order. Token (chef-portal) orders link via account_id
+      // and have customer_id NULL + status='submitted'. total_amount is DOLLARS
+      // (legacy numeric); per-item exact cents live in wholesale_order_items.
+      wholesale_orders: {
+        Row: {
+          id: string;
+          account_id: string | null;
+          customer_id: string | null;
+          delivery_date: string;
+          status: 'draft' | 'submitted' | 'confirmed' | 'packed' | 'delivered' | 'cancelled';
+          total_lbs: number | null;
+          total_amount: number | null;
+          invoice_number: string | null;
+          source: string | null;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          delivery_date: string;
+          status: string;
+        } & Partial<Database['public']['Tables']['wholesale_orders']['Row']>;
+        Update: Partial<Database['public']['Tables']['wholesale_orders']['Row']>;
+        Relationships: [];
+      };
+      // Line items on a wholesale order. unit_price_cents/line_total_cents are
+      // the EXACT server-side-priced integers (the source of truth for money).
+      wholesale_order_items: {
+        Row: {
+          id: string;
+          order_id: string | null;
+          product_id: string | null;
+          product_name: string | null;
+          qty: number;
+          unit_price_cents: number;
+          line_total_cents: number;
+        };
+        Insert: {
+          order_id: string;
+        } & Partial<Database['public']['Tables']['wholesale_order_items']['Row']>;
+        Update: Partial<Database['public']['Tables']['wholesale_order_items']['Row']>;
         Relationships: [];
       };
       // Todd's differentiator: a real-time quality photo + note per
@@ -1029,6 +1159,21 @@ export interface Database {
       current_member_location_ids: {
         Args: Record<string, never>;
         Returns: string[];
+      };
+      // Zero-barrier CHEF wholesale order (migration 0050). SECURITY DEFINER —
+      // callable as anon; the order_token inside p_token is the gate. Resolves
+      // the account, SERVER-SIDE-prices each line from wholesale_products
+      // (active only), applies the account's pricing-tier discount, writes the
+      // order + items. p_lines = [{ product_id: uuid, qty: int }, ...]. Returns
+      // { ok:true, order_id, total_cents, item_count, delivery_date,
+      // restaurant_name } or { error:<code> }.
+      place_wholesale_order: {
+        Args: {
+          p_token: string;
+          p_lines: Json;
+          p_delivery_date: string; // YYYY-MM-DD
+        };
+        Returns: Json;
       };
     };
     Enums: { [_: string]: never };

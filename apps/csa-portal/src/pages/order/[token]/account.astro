@@ -1,0 +1,519 @@
+---
+/**
+ * /order/[token]/account — PUBLIC chef ACCOUNT SELF-MANAGEMENT page.
+ *
+ * No login. The permanent secret `wholesale_accounts.order_token` IS the gate
+ * (exactly like /order/<token>). A chef opens this from their bookmarked order
+ * link and edits THEIR OWN account:
+ *   - contact_name, phone, delivery address (wholesale_accounts basic fields)
+ *   - the CONTACTS list (wholesale_account_contacts): MULTIPLE emails, each
+ *     flagged "Gets availability & order emails" (receives_orders) and/or
+ *     "Gets invoices" (receives_invoices). This is the routing Todd needs:
+ *     Fet Fisk sends orders→nik@, invoices→accounts@; Mediterra wants to add
+ *     another email. At least one contact must keep receives_orders so SOMEONE
+ *     gets the availability lists.
+ *
+ * SCOPING: `wholesale_accounts` + `wholesale_account_contacts` are admin-RLS-
+ * only, so we read with supabaseAdmin (service role) but resolve the account
+ * STRICTLY by token and only ever select that account's contacts — no other
+ * account's data is exposed. The matching POST (/api/order/account) re-resolves
+ * the account from the token and forces every write to that account_id.
+ *
+ * Friendly 404 when the token doesn't resolve (or the account is paused).
+ */
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { supabaseAdmin } from '../../../lib/supabase';
+
+export const prerender = false;
+
+const token = Astro.params.token ?? '';
+
+// ─── Resolve the account by its permanent secret token (the gate) ────────
+type AccountRow = {
+  id: string;
+  restaurant_name: string;
+  contact_name: string | null;
+  email: string | null;
+  phone: string | null;
+  address: string | null;
+  status: 'draft' | 'invited' | 'active' | 'paused';
+};
+
+let account: AccountRow | null = null;
+if (token && token.trim() !== '') {
+  const { data, error } = await supabaseAdmin
+    .from('wholesale_accounts')
+    .select('id, restaurant_name, contact_name, email, phone, address, status')
+    .eq('order_token', token)
+    .maybeSingle()
+    .overrideTypes<AccountRow, { merge: false }>();
+  if (error) {
+    console.error('[order/[token]/account] account lookup failed:', error.message);
+  }
+  account = data ?? null;
+}
+
+const notFound = !account || account.status === 'paused';
+
+// ─── This account's contacts (scoped strictly to account.id) ─────────────
+type ContactRow = {
+  id: string;
+  email: string;
+  name: string | null;
+  receives_orders: boolean;
+  receives_invoices: boolean;
+};
+
+let contacts: ContactRow[] = [];
+if (account) {
+  const { data, error } = await supabaseAdmin
+    .from('wholesale_account_contacts')
+    .select('id, email, name, receives_orders, receives_invoices')
+    .eq('account_id', account.id)
+    .order('created_at', { ascending: true })
+    .overrideTypes<ContactRow[], { merge: false }>();
+  if (error) {
+    console.error('[order/[token]/account] contacts fetch failed:', error.message);
+  }
+  contacts = data ?? [];
+}
+
+// If an account has no contacts yet, seed the form with one empty row that
+// defaults to receiving orders (so the "at least one" rule is satisfiable and
+// the chef sees the shape immediately). Pre-fill its email from the legacy
+// account email when present.
+const initialContacts: ContactRow[] =
+  contacts.length > 0
+    ? contacts
+    : [
+        {
+          id: '',
+          email: account?.email ?? '',
+          name: account?.contact_name ?? '',
+          receives_orders: true,
+          receives_invoices: true,
+        } as unknown as ContactRow,
+      ];
+
+// ─── Flash codes (post-save redirect lands back here) ────────────────────
+const url = Astro.url;
+const okFlag = url.searchParams.get('ok');
+const errorFlag = url.searchParams.get('error');
+const ERROR_COPY: Record<string, string> = {
+  invalid_token: 'This account link is no longer valid. Reach out to the farm.',
+  invalid_input: 'Something looked off with that — please check the fields and try again.',
+  email_required: 'Every email row needs an address (or remove the empty one).',
+  email_invalid: "One of those emails doesn't look right — double-check and try again.",
+  email_too_long: 'One of those emails is too long.',
+  no_contacts: 'Keep at least one email so we know where to send availability.',
+  too_many_contacts: "That's a lot of emails — keep it to 20 or fewer.",
+  need_orders_contact: 'At least one email must get availability & order emails.',
+  dup_email: 'Looks like the same email is listed twice — remove the duplicate.',
+  save_failed: "Something hiccupped saving that. Give it another tap.",
+};
+---
+
+<BaseLayout
+  title={notFound ? 'Account — Tiny Seed Farm' : `Account — ${account!.restaurant_name} · Tiny Seed Farm`}
+  description="Manage your Tiny Seed Farm wholesale account."
+  canonical={`https://csa.tinyseedfarm.com/order/${token}/account`}
+>
+  {notFound ? (
+    <main class="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center gap-4 px-6 py-16 text-center">
+      <p class="text-5xl" aria-hidden="true">🌱</p>
+      <h1 class="font-display text-2xl font-bold text-ts-text">We couldn't find that account</h1>
+      <p class="text-ts-text-secondary">
+        This link looks expired or incorrect. If you're a wholesale partner,
+        reach out and we'll send you a fresh link.
+      </p>
+      <a
+        href="mailto:tinyseedcsa@gmail.com,todd@tinyseedfarmpgh.com?subject=Wholesale%20account%20link"
+        class="mt-2 inline-flex h-12 items-center justify-center rounded-ts-md bg-ts-primary px-6 text-base font-semibold text-white shadow-ts-sm transition-all duration-150 hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+      >
+        Email the farm
+      </a>
+    </main>
+  ) : (
+    <>
+      {/* ════ Warm header ════ */}
+      <header class="border-b border-ts-border bg-gradient-to-b from-ts-primary/10 to-transparent">
+        <div class="mx-auto max-w-2xl px-5 pb-5 pt-6">
+          <a
+            href={`/order/${token}`}
+            class="inline-flex items-center gap-1 text-sm font-semibold text-ts-primary transition-colors duration-150 hover:text-ts-primary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+          >
+            <span aria-hidden="true">←</span> Back to ordering
+          </a>
+          <h1 class="mt-2 font-display text-2xl font-bold text-ts-text sm:text-3xl">
+            Account settings
+          </h1>
+          <p class="mt-1 text-sm text-ts-text-secondary">
+            {account!.restaurant_name} — update your contact details and choose
+            where different emails go.
+          </p>
+        </div>
+      </header>
+
+      <main class="mx-auto max-w-2xl px-4 pb-16 pt-4">
+        {okFlag === 'saved' && (
+          <div
+            role="status"
+            class="mb-4 rounded-ts-md border border-ts-primary/30 bg-ts-primary/5 px-4 py-3 text-sm text-ts-text"
+          >
+            <span class="font-semibold text-ts-primary">Saved.</span> Your account
+            details are updated.
+          </div>
+        )}
+        {errorFlag && ERROR_COPY[errorFlag] && (
+          <div
+            role="alert"
+            class="mb-4 rounded-ts-md border border-ts-danger/30 bg-ts-danger/5 px-4 py-3 text-sm text-ts-text"
+          >
+            <span class="font-semibold text-ts-danger">Heads up.</span> {ERROR_COPY[errorFlag]}
+          </div>
+        )}
+
+        <form
+          id="account-form"
+          method="POST"
+          action="/api/order/account"
+          class="space-y-7"
+        >
+          <input type="hidden" name="token" value={token} />
+          {/* Serialized contacts payload, filled on submit by the script. */}
+          <input type="hidden" name="contacts" value="" data-contacts-field />
+
+          {/* ════ Basic contact details ════ */}
+          <section class="rounded-ts-lg border border-ts-border bg-ts-bg-surface p-5 shadow-ts-sm">
+            <h2 class="font-display text-base font-bold uppercase tracking-wide text-ts-text">
+              Contact details
+            </h2>
+
+            <div class="mt-4 space-y-4">
+              <div>
+                <label for="contact_name" class="block text-sm font-semibold text-ts-text">
+                  Main contact name
+                </label>
+                <input
+                  type="text"
+                  id="contact_name"
+                  name="contact_name"
+                  maxlength="120"
+                  value={account!.contact_name ?? ''}
+                  autocomplete="name"
+                  class="mt-1 block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-3 py-2.5 text-base text-ts-text shadow-ts-sm transition-colors duration-150 placeholder:text-ts-text-muted focus:border-ts-primary focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-ts-primary"
+                  placeholder="e.g. Kate Romane"
+                />
+              </div>
+
+              <div>
+                <label for="phone" class="block text-sm font-semibold text-ts-text">
+                  Phone
+                </label>
+                <input
+                  type="tel"
+                  id="phone"
+                  name="phone"
+                  maxlength="40"
+                  value={account!.phone ?? ''}
+                  autocomplete="tel"
+                  inputmode="tel"
+                  class="mt-1 block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-3 py-2.5 text-base text-ts-text shadow-ts-sm transition-colors duration-150 placeholder:text-ts-text-muted focus:border-ts-primary focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-ts-primary"
+                  placeholder="(412) 555-1212"
+                />
+              </div>
+
+              <div>
+                <label for="address" class="block text-sm font-semibold text-ts-text">
+                  Delivery address
+                </label>
+                <textarea
+                  id="address"
+                  name="address"
+                  maxlength="300"
+                  rows="2"
+                  autocomplete="street-address"
+                  class="mt-1 block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-3 py-2.5 text-base text-ts-text shadow-ts-sm transition-colors duration-150 placeholder:text-ts-text-muted focus:border-ts-primary focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-ts-primary"
+                  placeholder="Street, city, ZIP — where we drop the delivery"
+                >{account!.address ?? ''}</textarea>
+              </div>
+            </div>
+          </section>
+
+          {/* ════ Contacts list (routing) ════ */}
+          <section class="rounded-ts-lg border border-ts-border bg-ts-bg-surface p-5 shadow-ts-sm">
+            <h2 class="font-display text-base font-bold uppercase tracking-wide text-ts-text">
+              Email contacts
+            </h2>
+            <p class="mt-1 text-sm text-ts-text-secondary">
+              Add as many emails as you need and choose what each one gets.
+              <strong class="text-ts-text"> At least one</strong> must get
+              availability &amp; order emails.
+            </p>
+
+            <ul role="list" class="mt-4 space-y-3" data-contacts-list>
+              {initialContacts.map((c) => (
+                <li
+                  class="rounded-ts-md border border-ts-border bg-ts-bg-base p-3"
+                  data-contact-row
+                  data-id={c.id ?? ''}
+                >
+                  <div class="flex items-start gap-2">
+                    <div class="min-w-0 flex-1 space-y-2">
+                      <input
+                        type="email"
+                        inputmode="email"
+                        autocomplete="off"
+                        data-contact-email
+                        value={c.email ?? ''}
+                        aria-label="Email address"
+                        class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 py-2.5 text-base text-ts-text shadow-ts-sm transition-colors duration-150 placeholder:text-ts-text-muted focus:border-ts-primary focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-ts-primary"
+                        placeholder="name@restaurant.com"
+                      />
+                      <input
+                        type="text"
+                        maxlength="120"
+                        data-contact-name
+                        value={c.name ?? ''}
+                        aria-label="Contact name (optional)"
+                        class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 py-2 text-sm text-ts-text shadow-ts-sm transition-colors duration-150 placeholder:text-ts-text-muted focus:border-ts-primary focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-ts-primary"
+                        placeholder="Who is this? (optional)"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      data-remove-contact
+                      aria-label="Remove this email"
+                      class="flex h-10 w-10 shrink-0 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface text-lg text-ts-text-muted transition-colors duration-150 hover:border-ts-danger hover:text-ts-danger active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-danger"
+                    >✕</button>
+                  </div>
+
+                  <div class="mt-3 flex flex-col gap-2 sm:flex-row sm:gap-4">
+                    <label class="flex min-h-[44px] flex-1 cursor-pointer items-center gap-2 rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 py-2 text-sm font-medium text-ts-text transition-colors duration-150 hover:border-ts-primary has-[:checked]:border-ts-primary has-[:checked]:bg-ts-primary/5">
+                      <input
+                        type="checkbox"
+                        data-contact-orders
+                        checked={c.receives_orders}
+                        class="h-4 w-4 shrink-0 accent-ts-primary"
+                      />
+                      <span>📋 Gets availability &amp; order emails</span>
+                    </label>
+                    <label class="flex min-h-[44px] flex-1 cursor-pointer items-center gap-2 rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 py-2 text-sm font-medium text-ts-text transition-colors duration-150 hover:border-ts-primary has-[:checked]:border-ts-primary has-[:checked]:bg-ts-primary/5">
+                      <input
+                        type="checkbox"
+                        data-contact-invoices
+                        checked={c.receives_invoices}
+                        class="h-4 w-4 shrink-0 accent-ts-primary"
+                      />
+                      <span>🧾 Gets invoices</span>
+                    </label>
+                  </div>
+                </li>
+              ))}
+            </ul>
+
+            <button
+              type="button"
+              data-add-contact
+              class="mt-4 inline-flex h-11 items-center justify-center gap-1.5 rounded-ts-md border border-dashed border-ts-primary/50 bg-ts-primary/5 px-4 text-sm font-semibold text-ts-primary transition-all duration-150 hover:border-ts-primary hover:bg-ts-primary/10 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+            >
+              <span aria-hidden="true">➕</span> Add another email
+            </button>
+
+            <p
+              data-contacts-error
+              role="alert"
+              class="mt-3 text-sm font-medium text-ts-danger"
+              hidden
+            ></p>
+          </section>
+
+          <div class="flex items-center justify-end gap-3">
+            <a
+              href={`/order/${token}`}
+              class="inline-flex h-12 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-5 text-base font-semibold text-ts-text transition-all duration-150 hover:border-ts-primary hover:text-ts-primary active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+            >
+              Cancel
+            </a>
+            <button
+              type="submit"
+              data-save
+              class="inline-flex h-12 items-center justify-center rounded-ts-md bg-ts-primary px-6 text-base font-semibold text-white shadow-ts-sm transition-all duration-150 hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary disabled:opacity-60"
+            >
+              Save changes
+            </button>
+          </div>
+        </form>
+      </main>
+
+      {/* Hidden template for a fresh contact row, cloned by "Add another email". */}
+      <template id="contact-row-template">
+        <li class="rounded-ts-md border border-ts-border bg-ts-bg-base p-3" data-contact-row data-id="">
+          <div class="flex items-start gap-2">
+            <div class="min-w-0 flex-1 space-y-2">
+              <input
+                type="email"
+                inputmode="email"
+                autocomplete="off"
+                data-contact-email
+                aria-label="Email address"
+                class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 py-2.5 text-base text-ts-text shadow-ts-sm transition-colors duration-150 placeholder:text-ts-text-muted focus:border-ts-primary focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-ts-primary"
+                placeholder="name@restaurant.com"
+              />
+              <input
+                type="text"
+                maxlength="120"
+                data-contact-name
+                aria-label="Contact name (optional)"
+                class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 py-2 text-sm text-ts-text shadow-ts-sm transition-colors duration-150 placeholder:text-ts-text-muted focus:border-ts-primary focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-ts-primary"
+                placeholder="Who is this? (optional)"
+              />
+            </div>
+            <button
+              type="button"
+              data-remove-contact
+              aria-label="Remove this email"
+              class="flex h-10 w-10 shrink-0 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface text-lg text-ts-text-muted transition-colors duration-150 hover:border-ts-danger hover:text-ts-danger active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-danger"
+            >✕</button>
+          </div>
+          <div class="mt-3 flex flex-col gap-2 sm:flex-row sm:gap-4">
+            <label class="flex min-h-[44px] flex-1 cursor-pointer items-center gap-2 rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 py-2 text-sm font-medium text-ts-text transition-colors duration-150 hover:border-ts-primary has-[:checked]:border-ts-primary has-[:checked]:bg-ts-primary/5">
+              <input type="checkbox" data-contact-orders checked class="h-4 w-4 shrink-0 accent-ts-primary" />
+              <span>📋 Gets availability &amp; order emails</span>
+            </label>
+            <label class="flex min-h-[44px] flex-1 cursor-pointer items-center gap-2 rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 py-2 text-sm font-medium text-ts-text transition-colors duration-150 hover:border-ts-primary has-[:checked]:border-ts-primary has-[:checked]:bg-ts-primary/5">
+              <input type="checkbox" data-contact-invoices class="h-4 w-4 shrink-0 accent-ts-primary" />
+              <span>🧾 Gets invoices</span>
+            </label>
+          </div>
+        </li>
+      </template>
+    </>
+  )}
+
+  <script>
+    // ── Chef account editor: add/remove contact rows, validate (≥1 email +
+    //    ≥1 receives_orders), serialize the contacts list to JSON on submit.
+    //    The SERVER (/api/order/account) re-validates everything and forces
+    //    every write to the token's account_id — this script is convenience. ──
+    (() => {
+      const form = document.querySelector<HTMLFormElement>('#account-form');
+      if (!form) return; // not-found state.
+
+      const list = document.querySelector<HTMLUListElement>('[data-contacts-list]');
+      const addBtn = document.querySelector<HTMLButtonElement>('[data-add-contact]');
+      const template = document.querySelector<HTMLTemplateElement>('#contact-row-template');
+      const contactsField = document.querySelector<HTMLInputElement>('[data-contacts-field]');
+      const errorEl = document.querySelector<HTMLElement>('[data-contacts-error]');
+      const saveBtn = document.querySelector<HTMLButtonElement>('[data-save]');
+      if (!list || !addBtn || !template || !contactsField) return;
+
+      const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+      function showError(msg: string) {
+        if (!errorEl) return;
+        errorEl.textContent = msg;
+        errorEl.hidden = false;
+      }
+      function clearError() {
+        if (!errorEl) return;
+        errorEl.textContent = '';
+        errorEl.hidden = true;
+      }
+
+      function wireRow(row: HTMLElement) {
+        row.querySelector<HTMLButtonElement>('[data-remove-contact]')?.addEventListener('click', () => {
+          // Never let the chef delete the LAST row — they'd have no contacts.
+          const rows = list!.querySelectorAll('[data-contact-row]');
+          if (rows.length <= 1) {
+            showError('Keep at least one email so we know where to reach you.');
+            return;
+          }
+          row.remove();
+          clearError();
+        });
+      }
+
+      // Wire the server-rendered rows.
+      for (const row of list.querySelectorAll<HTMLElement>('[data-contact-row]')) wireRow(row);
+
+      addBtn.addEventListener('click', () => {
+        const frag = template.content.cloneNode(true) as DocumentFragment;
+        const row = frag.querySelector<HTMLElement>('[data-contact-row]');
+        if (!row) return;
+        list.appendChild(frag);
+        wireRow(row);
+        clearError();
+        row.querySelector<HTMLInputElement>('[data-contact-email]')?.focus();
+      });
+
+      form.addEventListener('submit', (e) => {
+        const rows = Array.from(list.querySelectorAll<HTMLElement>('[data-contact-row]'));
+        const contacts: Array<{
+          id?: string;
+          email: string;
+          name: string | null;
+          receives_orders: boolean;
+          receives_invoices: boolean;
+        }> = [];
+
+        const seen = new Set<string>();
+        let hasOrders = false;
+
+        for (const row of rows) {
+          const email = (row.querySelector<HTMLInputElement>('[data-contact-email]')?.value ?? '').trim();
+          const name = (row.querySelector<HTMLInputElement>('[data-contact-name]')?.value ?? '').trim();
+          const orders = !!row.querySelector<HTMLInputElement>('[data-contact-orders]')?.checked;
+          const invoices = !!row.querySelector<HTMLInputElement>('[data-contact-invoices]')?.checked;
+          const id = (row.getAttribute('data-id') ?? '').trim();
+
+          if (!email) {
+            e.preventDefault();
+            showError('Every email row needs an address (or remove the empty one).');
+            row.querySelector<HTMLInputElement>('[data-contact-email]')?.focus();
+            return;
+          }
+          if (!EMAIL_RE.test(email)) {
+            e.preventDefault();
+            showError(`"${email}" doesn't look like a valid email.`);
+            row.querySelector<HTMLInputElement>('[data-contact-email]')?.focus();
+            return;
+          }
+          const key = email.toLowerCase();
+          if (seen.has(key)) {
+            e.preventDefault();
+            showError(`"${email}" is listed twice — remove the duplicate.`);
+            return;
+          }
+          seen.add(key);
+          if (orders) hasOrders = true;
+
+          contacts.push({
+            id: id || undefined,
+            email,
+            name: name || null,
+            receives_orders: orders,
+            receives_invoices: invoices,
+          });
+        }
+
+        if (contacts.length === 0) {
+          e.preventDefault();
+          showError('Keep at least one email so we know where to send availability.');
+          return;
+        }
+        if (!hasOrders) {
+          e.preventDefault();
+          showError('At least one email must get availability & order emails.');
+          return;
+        }
+
+        contactsField.value = JSON.stringify(contacts);
+        if (saveBtn) {
+          saveBtn.disabled = true;
+          saveBtn.textContent = 'Saving…';
+        }
+      });
+    })();
+  </script>
+</BaseLayout>

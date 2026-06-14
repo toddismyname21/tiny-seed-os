@@ -54,6 +54,25 @@ const PROTECTED_PREFIXES = [
   '/admin',
 ];
 
+// ───────────────────────────────────────────────────────────────────────
+// PUBLIC, TOKEN-AUTHENTICATED prefixes (Todd 2026-06-14 — zero-barrier chef
+// ordering). The chef wholesale ordering page lives at /order/<token> and its
+// submit endpoint at /api/order/submit. There is NO login: the permanent
+// secret `wholesale_accounts.order_token` IS the access (chefs bookmark the URL
+// and order anytime). These paths must NEVER be redirected to /login, and the
+// member onboarding / phone / pickup-ack gates must never apply to them. They
+// are deliberately NOT in PROTECTED_PREFIXES (so the auth gate skips them) and
+// are listed here only for documentation + a fast pass-through. The actual
+// access control is the token check inside the page + the place_wholesale_order
+// RPC (the token is validated server-side on every read AND submit).
+const PUBLIC_TOKEN_PREFIXES = ['/order', '/api/order'];
+
+function isPublicTokenRoute(pathname: string): boolean {
+  return PUBLIC_TOKEN_PREFIXES.some(
+    (p) => pathname === p || pathname.startsWith(`${p}/`)
+  );
+}
+
 // Admin-only prefixes. Authenticated users without role='admin'/'staff'
 // are bounced back to /dashboard with an explanatory banner. The
 // /api/admin/* endpoints are excluded from THIS middleware redirect
@@ -196,6 +215,25 @@ export const onRequest = defineMiddleware(async (context, next) => {
   locals.supabase = supabase;
 
   const pathname = url.pathname;
+
+  // ───────────────────────────────────────────────────────────────────
+  // PUBLIC token routes (chef ordering at /order/<token> + /api/order/*).
+  // No auth, no gates — the order_token is the sole gate (validated in the
+  // page + the place_wholesale_order RPC). Pass straight through so a chef
+  // is never bounced to /login. We still run the response-header step below
+  // by falling through `next()` at the end, so we early-return here AFTER
+  // letting the rest of the request complete. (We short-circuit before any
+  // protected/onboarding/admin gate can match.)
+  // ───────────────────────────────────────────────────────────────────
+  if (isPublicTokenRoute(pathname)) {
+    const response = await next();
+    response.headers.set(
+      'Cache-Control',
+      'private, no-cache, no-store, must-revalidate, max-age=0'
+    );
+    response.headers.set('Pragma', 'no-cache');
+    return response;
+  }
 
   // Enforce auth on protected routes. Preserve the original intended
   // path as `?next=` so we can bounce the user back after login.

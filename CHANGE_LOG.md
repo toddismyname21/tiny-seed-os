@@ -6,6 +6,52 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-06-14] CSA — Chef Account Self-Management on the wholesale order portal (fullstack-builder)
+
+NOT committed/deployed — PM verifies & deploys. App: `apps/csa-portal`. `npm run build` passes; `astro check` adds NO new errors in any new/edited file (the one remaining error is the pre-existing `src/lib/cycle.ts:673`, untouched here); build artifacts removed. PM to render `/order/<real token>/account` live + save a change.
+
+**Why (Todd, real inbox requests):** chefs route comms to different addresses. Fet Fisk: availability/orders → nik@fetfisk.net, ALL invoices → accounts@fetfisk.net. Mediterra wants to add another email. So each account has MULTIPLE contact emails, each flagged for what it receives. `wholesale_account_contacts` (id, account_id, email, name, receives_orders, receives_invoices, created_at) is live + seeded for Fet Fisk/APTEKA/Mediterra; RLS is admin/staff-only (policy `wac_staff`), so chef-facing reads/writes go through a TOKEN-authenticated server path using `supabaseAdmin` scoped strictly to the token's account.
+
+**Files added:**
+- `src/pages/order/[token]/account.astro` — PUBLIC, token-resolved (friendly 404 if invalid/paused, same contract as the order page). Mobile-first form: edit contact_name / phone / delivery address, plus a CONTACTS list where each email row has two checkboxes — "📋 Gets availability & order emails" (receives_orders) and "🧾 Gets invoices" (receives_invoices) — a name field, a remove button, and an "➕ Add another email" control (the Mediterra ask). Client-side guard: ≥1 email, no dup emails, ≥1 must keep receives_orders; never delete the last row. "← Back to ordering" / "Cancel" links. Reads with supabaseAdmin scoped to the token's account_id only.
+- `src/pages/api/order/account.ts` — PUBLIC, token-authenticated POST (isSameOriginPost CSRF, NOT requireAdmin). Resolves the account BY TOKEN (the only source of account_id — never trusts a client account_id), Zod-validates basic fields + the contacts JSON (email format, ≥1 contact, ≥1 receives_orders, ≤20, no dup emails), upserts `wholesale_accounts` basic fields, then SYNCS contacts for THAT account only: reads existing rows → DELETE rows not resubmitted, UPDATE existing (id must belong to this account), INSERT new (account_id forced server-side). Every write filtered by `.eq('account_id', account.id)`. Redirects back with `?ok=saved` / `?error=<code>`.
+- `src/lib/wholesale-contacts.ts` — pure `resolveOrderRecipients()` / `resolveInvoiceRecipients()`: every contact flagged receives_orders (or receives_invoices) → fall back to legacy `wholesale_accounts.email` → [] (owner copy). De-duped case-insensitively.
+
+**Files changed:**
+- `src/pages/api/order/submit.ts` — order-confirmation email now resolves recipients via `resolveOrderRecipients(contacts, account.email)` (contacts read with supabaseAdmin STRICTLY scoped to the token's account_id), so confirmations go to every contact with receives_orders=true, falling back to the account email then owner. Still BCCs Todd.
+- `src/lib/wholesale-order-email.ts` — `to` now accepts `string | string[]`; normalizes + de-dupes into the Resend `to` array; empty → owner-only send. BCC Todd unchanged.
+- `src/lib/database.types.ts` — hand-added Row/Insert/Update/Relationships for `wholesale_account_contacts` (the table was live but not yet in the hand-maintained types file).
+- `src/pages/order/[token].astro` — added an "⚙️ Account settings" link in the header to `/order/<token>/account`.
+- `src/pages/admin/wholesale/products/index.astro` — added a TODO note (no behavior change): no chef-accounts admin page exists; chefs self-manage via /order/<token>/account; when an admin accounts view is built, reuse the same per-contact receives_orders/receives_invoices editor. Deliberately NOT building that admin page now (chef self-edit is the priority, per scope).
+
+**Middleware:** no change needed — `/order` + `/api/order` are already in `PUBLIC_TOKEN_PREFIXES` (prefix match covers `/order/<token>/account` and `/api/order/account`).
+
+**Strict token-scoping (verified by reading):** the page and API both resolve account_id ONLY from `wholesale_accounts.eq('order_token', token)`; the client never supplies an account_id, and every contact INSERT/UPDATE/DELETE is filtered by that resolved account_id (a forged/foreign contact id is inert). No other account's contacts are ever read or written.
+
+---
+
+## [2026-06-14] CSA — Chef Wholesale Ordering: zero-barrier public token-keyed ordering page (fullstack-builder)
+
+NOT committed/deployed — PM verifies & deploys. App: `apps/csa-portal`. `npm run build` passes; `astro check` adds NO new errors (the one remaining error is pre-existing in `src/lib/cycle.ts:673`, untouched here); build artifacts removed. PM to render `/order/<real token>` live + place a test order.
+
+**What:** A PUBLIC chef wholesale ordering page at `/order/<token>` — NO login/password/magic-link (Todd's call). Each restaurant's permanent secret `wholesale_accounts.order_token` IS the access; the chef bookmarks the URL and orders anytime. Speed-first so chefs "order order order" instead of going back to Sysco.
+
+**Files added:**
+- `supabase/migrations/0050_wholesale_token_orders.sql` (APPLIED live, HTTP 201, persisted) — adds `wholesale_orders.account_id` (FK → wholesale_accounts) + `source`; relaxes `customer_id` to nullable (chef orders have no customer row); adds `'submitted'` to the status check; adds SECURITY DEFINER RPC `place_wholesale_order(p_token, p_lines, p_delivery_date)` granted to anon/authenticated. The RPC resolves the account by token, does SERVER-SIDE price lookup from `wholesale_products` (active only) + applies the account's pricing-tier discount, writes order + items atomically, returns `{ok, order_id, total_cents, item_count, delivery_date, restaurant_name}` or `{error}`.
+- `src/pages/order/[token].astro` — warm header (Restaurant + next-Wednesday delivery + edit-until), HERO 🔁 Reorder-last-week (prefills cart from this account's most recent order, skipping now-inactive items, at today's prices), category-grouped catalog (WHOLESALE_CATEGORIES order, active only) with library photo → product photo fallback, today's-quality note, +/− steppers, sticky cart bar w/ live total + soft min-order warning, Place order.
+- `src/pages/api/order/submit.ts` — PUBLIC token-authenticated POST (isSameOriginPost CSRF, Zod-validated lines, server-computed next-Wed delivery date, calls the RPC for server-side pricing, fail-soft Resend confirmation to chef + BCC Todd + reply_to team).
+- `src/pages/order/[token]/confirmed.astro` — post-submit "✅ Order in!" screen (itemized + total + delivery date + edit-until note), order strictly scoped to (token's account AND order id).
+- `src/lib/wholesale-order.ts` — pure helpers (effective tier-discounted price, next-Wed delivery date, Sunday-8PM cutoff label, formatters).
+- `src/lib/wholesale-order-email.ts` — fail-soft Resend confirmation (mirrors market-checkout-email.ts).
+
+**Files changed:**
+- `src/middleware.ts` — `/order` + `/api/order` added as PUBLIC_TOKEN_PREFIXES with an early fast pass-through; never redirected to /login, never hit member/onboarding/admin gates. Token is the sole gate.
+- `src/lib/database.types.ts` — hand-added Row/Insert/Update for `wholesale_accounts`, `wholesale_pricing_tiers`, `wholesale_orders` (+ account_id/source), `wholesale_order_items`, `product_library`, `wholesale_products.library_id`, and the `place_wholesale_order` function signature.
+
+**Server-side price proof (live RPC test, then cleaned up):** APTEKA token, 3×Basil ($11.00) + 3×Cilantro ($26.50) → `total_cents=11250` ($112.50), `status='submitted'`, `total_amount=112.50`, `source='chef_portal'`, `customer_id=NULL`. Error paths: bad token → `invalid_token`, empty → `empty`, all-inactive → `no_available_items` (order shell unwound, no orphan). Test order + items deleted; 0 chef_portal orders remain.
+
+---
+
 ## [2026-06-12] Hooks — Fix false-positive CHANGE_LOG reminder loop in Stop hook (PM_Architect)
 
 **Bug:** `scripts/hooks/post-response-check.sh` warned "modified implementation files but haven't updated CHANGE_LOG" after EVERY response whenever ANY `.html/.js/.css` was dirty in `git status` — including the ~43 pre-existing dirty files (tinypm/, OUTBOX, etc.) the session never touched. Result: an unkillable reminder loop on a dirty tree.

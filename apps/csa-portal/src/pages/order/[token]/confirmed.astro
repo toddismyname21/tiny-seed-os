@@ -1,0 +1,136 @@
+---
+/**
+ * /order/[token]/confirmed — PUBLIC chef order CONFIRMATION screen.
+ *
+ * Shown right after a successful submit (the API redirects here with ?o=<order
+ * id>). Big "Order in!", the itemized order, the total, the delivery date, and
+ * the edit-until note. No login — the order_token gates the read, and we scope
+ * the order STRICTLY to (this token's account AND this order id) so a chef can
+ * only ever see their own order.
+ */
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { supabaseAdmin } from '../../../lib/supabase';
+import { formatCents, prettyDeliveryDate, CUTOFF_LABEL } from '../../../lib/wholesale-order';
+
+export const prerender = false;
+
+const token = Astro.params.token ?? '';
+const orderId = Astro.url.searchParams.get('o') ?? '';
+
+// ─── Resolve the account by token (the gate) ────────────────────────
+type AccountRow = { id: string; restaurant_name: string };
+let account: AccountRow | null = null;
+if (token.trim() !== '') {
+  const { data } = await supabaseAdmin
+    .from('wholesale_accounts')
+    .select('id, restaurant_name')
+    .eq('order_token', token)
+    .maybeSingle()
+    .overrideTypes<AccountRow, { merge: false }>();
+  account = data ?? null;
+}
+
+// ─── Resolve the order — STRICTLY scoped to this account AND this id ──
+type OrderRow = { id: string; delivery_date: string; total_amount: number | null; status: string };
+let order: OrderRow | null = null;
+const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+if (account && orderId && uuidRe.test(orderId)) {
+  const { data } = await supabaseAdmin
+    .from('wholesale_orders')
+    .select('id, delivery_date, total_amount, status')
+    .eq('id', orderId)
+    .eq('account_id', account.id) // scope: never another account's order
+    .maybeSingle()
+    .overrideTypes<OrderRow, { merge: false }>();
+  order = data ?? null;
+}
+
+type ItemRow = { product_name: string | null; qty: number; unit_price_cents: number; line_total_cents: number };
+let items: ItemRow[] = [];
+let totalCents = 0;
+if (order) {
+  const { data } = await supabaseAdmin
+    .from('wholesale_order_items')
+    .select('product_name, qty, unit_price_cents, line_total_cents')
+    .eq('order_id', order.id)
+    .order('product_name', { ascending: true })
+    .overrideTypes<ItemRow[], { merge: false }>();
+  items = data ?? [];
+  totalCents = items.reduce((sum, i) => sum + (i.line_total_cents ?? 0), 0);
+}
+
+const ok = !!(account && order);
+const deliveryLabel = order ? prettyDeliveryDate(order.delivery_date) : '';
+---
+
+<BaseLayout
+  title={ok ? `Order confirmed — ${account!.restaurant_name} · Tiny Seed Farm` : 'Order — Tiny Seed Farm'}
+  canonical={`https://csa.tinyseedfarm.com/order/${token}/confirmed`}
+>
+  <main class="mx-auto max-w-2xl px-4 py-10">
+    {ok ? (
+      <>
+        <div class="rounded-ts-lg border border-ts-primary/30 bg-ts-primary/5 px-6 py-8 text-center shadow-ts-sm">
+          <p class="text-5xl" aria-hidden="true">✅</p>
+          <h1 class="mt-3 font-display text-3xl font-bold text-ts-text">Order in!</h1>
+          <p class="mt-1 text-ts-text-secondary">
+            Thanks — we've got your order for <strong class="text-ts-text">{account!.restaurant_name}</strong>.
+          </p>
+          <p class="mt-3 inline-flex items-center gap-2 rounded-ts-md bg-ts-bg-surface px-4 py-2 text-sm font-semibold text-ts-text">
+            🚚 Delivery {deliveryLabel}
+          </p>
+        </div>
+
+        {/* Itemized order */}
+        <section class="mt-6 overflow-hidden rounded-ts-lg border border-ts-border bg-ts-bg-surface shadow-ts-sm">
+          <h2 class="border-b border-ts-border px-5 py-3 font-display text-base font-bold uppercase tracking-wide text-ts-text">
+            Your order
+          </h2>
+          <ul role="list" class="divide-y divide-ts-border">
+            {items.map((it) => (
+              <li class="flex items-center justify-between gap-4 px-5 py-3">
+                <span class="min-w-0">
+                  <span class="font-semibold text-ts-text">{it.product_name ?? 'Item'}</span>
+                  <span class="block text-xs tabular-nums text-ts-text-muted">
+                    {it.qty} × {formatCents(it.unit_price_cents)}
+                  </span>
+                </span>
+                <span class="shrink-0 tabular-nums font-semibold text-ts-text">{formatCents(it.line_total_cents)}</span>
+              </li>
+            ))}
+          </ul>
+          <div class="flex items-center justify-between border-t border-ts-border px-5 py-4">
+            <span class="font-display text-lg font-bold text-ts-text">Total</span>
+            <span class="tabular-nums font-display text-lg font-bold text-ts-text">{formatCents(totalCents)}</span>
+          </div>
+        </section>
+
+        <p class="mt-5 rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 py-3 text-sm text-ts-text-secondary">
+          Need to change something? Reply to your confirmation email — you can <strong class="text-ts-text">edit until {CUTOFF_LABEL}</strong>.
+          We'll text when it's on the way. 🌱
+        </p>
+
+        <div class="mt-6 text-center">
+          <a
+            href={`/order/${token}`}
+            class="inline-flex h-12 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-6 text-base font-semibold text-ts-text transition-all duration-150 hover:border-ts-primary hover:text-ts-primary active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+          >
+            Back to ordering
+          </a>
+        </div>
+      </>
+    ) : (
+      <div class="flex min-h-[60vh] flex-col items-center justify-center gap-4 text-center">
+        <p class="text-5xl" aria-hidden="true">🌱</p>
+        <h1 class="font-display text-2xl font-bold text-ts-text">We couldn't find that order</h1>
+        <p class="text-ts-text-secondary">The link may be incomplete. Head back and place your order again.</p>
+        <a
+          href={`/order/${token}`}
+          class="mt-2 inline-flex h-12 items-center justify-center rounded-ts-md bg-ts-primary px-6 text-base font-semibold text-white shadow-ts-sm transition-all duration-150 hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+        >
+          Back to ordering
+        </a>
+      </div>
+    )}
+  </main>
+</BaseLayout>
