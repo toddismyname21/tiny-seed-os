@@ -117,7 +117,8 @@ def main():
         seen = set(json.loads(STATE.read_text()).get("seen", []))
     since_dt = datetime.now(timezone.utc) - timedelta(days=args.days)
     accounts = [("Todd inbox", ENV.get("IMAP_TODD_USER"), ENV.get("IMAP_TODD_APP_PASSWORD")),
-                ("CSA inbox", ENV.get("IMAP_CSA_USER"), ENV.get("IMAP_CSA_APP_PASSWORD"))]
+                ("CSA inbox", ENV.get("IMAP_CSA_USER"), ENV.get("IMAP_CSA_APP_PASSWORD")),
+                ("Wholesale inbox", ENV.get("IMAP_WHOLESALE_USER"), ENV.get("IMAP_WHOLESALE_APP_PASSWORD"))]
     all_found = []
     for label, user, pw in accounts:
         if not user or not pw:
