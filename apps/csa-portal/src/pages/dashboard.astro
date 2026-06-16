@@ -58,7 +58,8 @@ import PickupNudgeBanner from '../components/PickupNudgeBanner.astro';
 import PickupCard from '../components/PickupCard.astro';
 import { resolveAccountCustomer } from '../lib/account';
 import { closeLabel } from '../lib/flex-order';
-import { upcomingMonday } from '../lib/cycle';
+import { upcomingMonday, mondayOfWeek, isShareInSeasonForWeek } from '../lib/cycle';
+import { shareDisplayLabel } from '../lib/addon';
 import ScheduleCard from '../components/ScheduleCard.astro';
 import NextDeliveryBanner from '../components/NextDeliveryBanner.astro';
 
@@ -130,6 +131,7 @@ type ActiveShare = {
   swap_credits: number;
   vacation_weeks_used: number;
   biweekly_week: 'A' | 'B' | null;
+  notes: string | null;
   pickup_location: {
     name: string;
     address: string | null;
@@ -182,6 +184,7 @@ if (account) {
       swap_credits,
       vacation_weeks_used,
       biweekly_week,
+      notes,
       pickup_location:pickup_locations (
         name,
         address,
@@ -238,7 +241,28 @@ const allShares = customer?.members ?? [];
 // Anything else (cancelled, lapsed, expired, inactive) is historical
 // and is hidden on the dashboard.
 const liveStatuses = new Set(['active', 'paused', 'onboarding']);
-const activeShares = allShares.filter((s) => liveStatuses.has(s.status));
+
+// SEASON-AWARENESS (2026-06-16, BUG 3). A share is only the member's
+// CURRENT share when this week falls inside its configured season window.
+// The spring_veg season ended Wed 2026-05-27, but a member's spring_veg row
+// can still read status='active' — so a status-only filter wrongly presented
+// the out-of-season Spring share as the member's active share. We additionally
+// gate on isShareInSeasonForWeek (the same season-window rule the admin pack
+// logic uses): summer_veg (in season now) shows; an ended spring_veg is
+// hidden as "active". Share types WITHOUT a configured schedule (flex,
+// add_on, fall_veg) have NO window → isShareInSeasonForWeek returns true, so
+// add-ons + flex are always preserved exactly as before.
+//
+// `cycleMonday` is the Monday-anchored key the season-window math expects
+// (derived from the upcoming-Wednesday targetWeek).
+const cycleMonday = mondayOfWeek(targetWeek);
+const isLiveShare = (s: ActiveShare): boolean =>
+  liveStatuses.has(s.status) && isShareInSeasonForWeek(s.share_type, cycleMonday);
+
+// The member's CURRENT (in-season) live shares — what the dashboard presents.
+// (The pickup-forcing nudge below keys off raw 'active' status via
+// dashboardActiveShares, so it's unaffected by this season gate.)
+const activeShares = allShares.filter(isLiveShare);
 
 // Flex-share members get a prominent "This week's order" CTA (FIX 1,
 // 2026-06-08) + the bottom-nav "Order" tab. Same signal the /account hub
@@ -997,7 +1021,16 @@ const title = `Welcome back, ${firstName} — Tiny Seed Farm CSA`;
 
           <div class="flex flex-col gap-4">
             {activeShares.map((share) => {
-              const shareLabel = SHARE_TYPE_LABELS[share.share_type] ?? share.share_type;
+              // BUG 2 (2026-06-16): add-on shares carry their specific type
+              // (Cheese / Mushroom / Bread / Coffee / Egg) only in notes —
+              // shareDisplayLabel derives a clean name so two add-ons no
+              // longer both read just "Add-On". Non-add-on shares fall back to
+              // the SHARE_TYPE_LABELS lookup.
+              const shareLabel = shareDisplayLabel(
+                share.share_type,
+                share.notes,
+                SHARE_TYPE_LABELS[share.share_type] ?? share.share_type,
+              );
               const sizeLabel = share.share_size ? SHARE_SIZE_LABELS[share.share_size] ?? share.share_size : null;
               const pill = STATUS_PILL[share.status] ?? STATUS_PILL.active;
               const weeksUsed = Math.max(0, share.total_weeks - share.weeks_remaining);
@@ -1006,6 +1039,46 @@ const title = `Welcome back, ${firstName} — Tiny Seed Farm CSA`;
                 : 0;
               const isHomeDelivery =
                 !share.pickup_location_id && Boolean(share.delivery_address);
+
+              // ── BUG 1 (2026-06-16): "Week 0 of N" ──────────────────────
+              // weeksUsed = total_weeks - weeks_remaining is 0 for the many
+              // migrated members whose weeks_remaining still equals total_weeks
+              // (no consumption tracked) — producing a meaningless "Week 0 of N".
+              // Prefer the SEASON week number (current week of the share's
+              // season), which is reliably knowable from season.ts:
+              //   • configured + active season → "Week {n} of {total}".
+              //   • configured but before/after season, or no schedule
+              //     (add_on/flex/fall_veg), where we can't name a running week:
+              //     show the member's NEXT delivery date instead of "Week 0".
+              //   • If even that can't be derived, omit the week line entirely
+              //     (the "N weeks remaining" line still conveys progress).
+              const cardSchedule = getSchedule(share.share_type);
+              const cardPhase = cardSchedule ? seasonPhase(cardSchedule) : null;
+              let cardWeekLabel: string | null = null;
+              let cardNextDeliveryShort: string | null = null;
+              if (cardSchedule && cardPhase === 'active') {
+                cardWeekLabel = `Week ${currentWeekNumber(cardSchedule)} of ${cardSchedule.totalWeeks}`;
+              } else if (weeksUsed > 0) {
+                // Real consumption data → trust the per-share counter.
+                cardWeekLabel = `Week ${weeksUsed} of ${share.total_weeks}`;
+              } else {
+                // Can't name a running week → surface the next delivery date so
+                // the member sees something meaningful, not "Week 0".
+                const sched = cardSchedule;
+                if (sched && cardPhase !== 'complete') {
+                  const resolved = resolveMemberSchedule({
+                    schedule: sched,
+                    biweeklyWeek: share.biweekly_week,
+                  });
+                  const nextDate = upcomingDeliveries(resolved, 1)[0] ?? null;
+                  const pickupDay = (share.pickup_location?.day_of_week ?? null) as
+                    | PickupDay
+                    | null;
+                  cardNextDeliveryShort = nextDate
+                    ? prettyDeliveryShort(pickupDateForWeek(nextDate, pickupDay))
+                    : null;
+                }
+              }
 
               return (
                 <article
@@ -1032,7 +1105,11 @@ const title = `Welcome back, ${firstName} — Tiny Seed Farm CSA`;
                   <div class="mt-5">
                     <div class="flex items-baseline justify-between text-sm">
                       <span class="font-medium text-ts-text">
-                        Week {weeksUsed} of {share.total_weeks}
+                        {cardWeekLabel
+                          ? cardWeekLabel
+                          : cardNextDeliveryShort
+                            ? <>Next delivery {cardNextDeliveryShort}</>
+                            : <>&nbsp;</>}
                       </span>
                       <span class="text-ts-text-muted tabular-nums">
                         {share.weeks_remaining} {share.weeks_remaining === 1 ? 'week' : 'weeks'} remaining

@@ -34,9 +34,12 @@
  *      RLS returns zero rows if the user doesn't own this member.
  *   2. The member's status must be 'active' or 'paused' or 'onboarding'.
  *      A 'cancelled' / 'lapsed' member cannot swap.
- *   3. The (week_date, share_type, original_item) must exist in
+ *   3. The (week_date, box_contents bucket, original_item) must exist in
  *      box_contents AND have is_swappable=true AND swapped_for must
- *      appear in its swap_options array.
+ *      appear in its swap_options array. The "bucket" is resolved from the
+ *      member's share_type + share_size via boxContentsShareTypesFor()
+ *      because veg box_contents rows are keyed by SIZE ('small'/'family'/
+ *      'large'), NOT the member's enum share_type ('summer_veg').
  *   4. The 8 AM Eastern cutoff (Tuesday 8 AM, since boxes deliver Wed)
  *      must not have passed. Override allowed only for the owner email
  *      (todd@tinyseedfarmpgh.com) when ?override_cutoff=true is set —
@@ -53,7 +56,7 @@
 import type { APIRoute } from 'astro';
 import { z } from 'zod';
 import { isSameOriginPost, PORTAL_ORIGIN } from '../../../lib/onboarding';
-import { isCutoffPassed, OWNER_EMAIL } from '../../../lib/box';
+import { isCutoffPassed, OWNER_EMAIL, boxContentsShareTypesFor } from '../../../lib/box';
 
 export const prerender = false;
 
@@ -107,13 +110,14 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
   type MemberRow = {
     id: string;
     share_type: string;
+    share_size: string | null;
     status: string;
     swap_credits: number;
   };
 
   const { data: memberData, error: memberErr } = await locals.supabase
     .from('members')
-    .select('id, share_type, status, swap_credits')
+    .select('id, share_type, share_size, status, swap_credits')
     .eq('id', member_id)
     .maybeSingle()
     .overrideTypes<MemberRow, { merge: false }>();
@@ -145,34 +149,56 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
   }
 
   // ─── Validate the box-contents row + swap option ───────────────────
-  // Look up the original item for the user's share_type on this week.
-  // box_contents has RLS allowing all authenticated reads.
+  // Look up the original item on this week for the member's box_contents
+  // BUCKET(s). box_contents has RLS allowing all authenticated reads.
+  //
+  // BUG FIX (2026-06-16): veg box_contents rows are published by SIZE bucket
+  // ('small' / 'family' / 'large'), NOT the member's ENUM share_type
+  // ('summer_veg'). The old `.eq('share_type', memberData.share_type)` lookup
+  // therefore matched NOTHING for any veg member, so every real veg swap
+  // returned `invalid_item`. boxContentsShareTypesFor() maps the member onto
+  // their bucket(s) — small→['small'], family/large→['family','large'], etc.
+  // (See lib/box.ts; this is the SAME mapping the /box display page uses.)
+  // For flower/flex/add_on it's a passthrough of the enum, preserving prior
+  // behavior for those share types.
+  const boxBuckets = boxContentsShareTypesFor({
+    share_type: memberData.share_type,
+    share_size: memberData.share_size,
+  });
+
   type BoxRow = {
     is_swappable: boolean;
     swap_options: string[] | null;
   };
 
-  const { data: boxRow, error: boxErr } = await locals.supabase
+  // The same item may appear under multiple buckets in the union (e.g. a
+  // Family member whose box was published under both 'family' and 'large').
+  // Fetch all matches for this (week, item) across the member's buckets and
+  // accept the item if ANY matched row is swappable and offers swapped_for.
+  const { data: boxRows, error: boxErr } = await locals.supabase
     .from('box_contents')
     .select('is_swappable, swap_options')
     .eq('week_date', week_date)
-    .eq('share_type', memberData.share_type)
+    .in('share_type', boxBuckets)
     .eq('product_name', original_item)
-    .maybeSingle()
-    .overrideTypes<BoxRow, { merge: false }>();
+    .overrideTypes<BoxRow[], { merge: false }>();
 
   if (boxErr) {
     console.error('[api/box/swap] box lookup failed:', boxErr.message);
     return jsonResponse(500, { ok: false, error: 'internal' });
   }
-  if (!boxRow) {
+  if (!boxRows || boxRows.length === 0) {
     return jsonResponse(400, { ok: false, error: 'invalid_item' });
   }
-  if (!boxRow.is_swappable) {
-    return jsonResponse(400, { ok: false, error: 'invalid_swap' });
-  }
-  const options = boxRow.swap_options ?? [];
-  if (!options.includes(swapped_for)) {
+  // The item exists in the member's box. It's a valid swap iff at least one
+  // matching row is swappable AND lists swapped_for in its swap_options.
+  const swappableMatch = boxRows.some(
+    (r) => r.is_swappable && (r.swap_options ?? []).includes(swapped_for),
+  );
+  if (!swappableMatch) {
+    // Distinguish "item isn't swappable / option not offered" (invalid_swap)
+    // from "item not in box" (invalid_item, handled above). If no row is even
+    // swappable, it's an invalid swap attempt.
     return jsonResponse(400, { ok: false, error: 'invalid_swap' });
   }
 

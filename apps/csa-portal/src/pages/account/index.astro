@@ -20,7 +20,8 @@ import Card from '../../components/Card.astro';
 import FlexWallet from '../../components/FlexWallet.astro';
 import PickupNudgeBanner from '../../components/PickupNudgeBanner.astro';
 import { closeLabel } from '../../lib/flex-order';
-import { upcomingMonday } from '../../lib/cycle';
+import { upcomingMonday, isShareInSeasonForWeek } from '../../lib/cycle';
+import { shareDisplayLabel } from '../../lib/addon';
 import { getSchedule, seasonPhase } from '../../lib/season';
 import {
   memberIsBiweekly,
@@ -56,6 +57,7 @@ type AccountMember = {
   pickup_location_id: string | null;
   delivery_address: string | null;
   biweekly_week: 'A' | 'B' | null;
+  notes: string | null;
   pickup_location: {
     name: string;
     city: string | null;
@@ -103,6 +105,7 @@ if (account) {
       pickup_location_id,
       delivery_address,
       biweekly_week,
+      notes,
       pickup_location:pickup_locations (
         name,
         city,
@@ -150,7 +153,19 @@ const customer: CustomerWithAccount | null = account
   : null;
 const liveStatuses = new Set(['active', 'paused', 'onboarding']);
 const allMembers = customer?.members ?? [];
-const liveMembers = allMembers.filter((m) => liveStatuses.has(m.status));
+
+// SEASON-AWARENESS (2026-06-16, BUG 3). A status='active' share can be
+// OUT of season (the spring_veg season ended Wed 2026-05-27 but those rows
+// can still read 'active'). The account hub's "Active share" + summary copy
+// must reflect the member's CURRENT (in-season) share — summer_veg now — not
+// a stale spring one. isShareInSeasonForWeek gates on the same season-window
+// rule the admin pack logic uses: summer_veg (in season) passes; an ended
+// spring_veg is excluded. Share types with NO configured window (flex,
+// add_on, fall_veg) always pass → preserved exactly as before.
+const cycleMonday = upcomingMonday();
+const liveMembers = allMembers.filter(
+  (m) => liveStatuses.has(m.status) && isShareInSeasonForWeek(m.share_type, cycleMonday),
+);
 
 // Flex-share members get the weekly "extras" ordering entry point. Traditional
 // CSA members never see it (Phase 1: no extras/swaps for them).
@@ -175,10 +190,18 @@ const needsPickup =
       (typeof m.delivery_address === 'string' && m.delivery_address.trim().length > 0)
   );
 
-// Pick a "primary" member for summary copy. If a member has multiple
-// shares (e.g. Spring Veg + Flower), the most-budgeted one is shown
-// in the Pickup card; the page itself handles per-member detail.
-const primary = liveMembers[0] ?? null;
+// Pick a "primary" member for summary copy. Prefer a box-bearing share
+// (a veg/flower share over a flex or add-on) so the "Active share" line and
+// the pickup/schedule summary describe the member's actual produce share,
+// not an Add-On, when they have both (BUG 2/3, 2026-06-16). liveMembers is
+// already season-filtered above, so an ended spring share can never be
+// primary. Falls back to the first live share when there's no veg/flower one
+// (e.g. a flex-only or add-on-only member).
+const primary =
+  liveMembers.find((m) => m.share_type !== 'flex' && m.share_type !== 'add_on') ??
+  liveMembers.find((m) => m.share_type !== 'flex') ??
+  liveMembers[0] ??
+  null;
 
 const SHARE_TYPE_LABELS: Record<string, string> = {
   spring_veg: 'Spring Vegetable Share',
@@ -399,7 +422,11 @@ const showNextBox = nextBoxDateLong !== '';
             <div>
               <dt class="text-xs font-medium uppercase tracking-wide text-ts-text-muted">Active share</dt>
               <dd class="mt-1 text-ts-text">
-                {SHARE_TYPE_LABELS[primary.share_type] ?? primary.share_type}
+                {shareDisplayLabel(
+                  primary.share_type,
+                  primary.notes,
+                  SHARE_TYPE_LABELS[primary.share_type] ?? primary.share_type,
+                )}
                 <span class="text-ts-text-muted"> · {primary.season}</span>
               </dd>
             </div>
