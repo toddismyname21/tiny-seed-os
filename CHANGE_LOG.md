@@ -6,6 +6,30 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-06-16] CSA — Vacation WEEKS-USED over-count fix (fullstack-builder)
+
+NOT committed/deployed — PM verifies & deploys. App: `apps/csa-portal`. `npm run build` passes; `npm run test:unit` passes (23 new vacation tests incl. the Naomi regression + all existing suites green); `astro check` adds NO new errors (the one remaining error is the pre-existing `src/lib/cycle.ts:673`, untouched here); build artifacts removed.
+
+**Root cause:** Naomi (weekly summer_veg) scheduled ONE 3-day hold 2026-06-15→2026-06-19 covering a single Wednesday delivery (6/17) and her `members.vacation_weeks_used` became 2; the portal said "2 weeks." Every layer computed weeks as `CEIL((end - start) / 7) + 1` — a calendar-SPAN heuristic that inflates by one for any hold not starting on a delivery-week boundary and ignores biweekly off-weeks. For Naomi: `CEIL(4/7)+1 = 2`. The cancel RPC refunded with the same broken math, so cancels drifted the counter too.
+
+**Correct logic:** `weeks_used` = number of the MEMBER'S delivery weeks whose Monday→Sunday window overlaps `[start, end]` — the exact mirror of the ops resolver's exclusion test (`holdOverlapsWeek` in cycle.ts). Weekly member counts every season Wednesday touched (Naomi → 1); biweekly member counts only their ON-parity (A/B) weeks (a hold over an off-week → 0). Season + parity come from the existing `resolveMemberSchedule` / `getSchedule` / `weekParity` helpers; DST-safe via cycle.ts's noon-UTC anchored date math.
+
+**Files added:**
+- `src/lib/vacation.ts` — pure `vacationWeeksUsed(member, start, end)` + `deliveryWeekOverlapsHold()`. Member = {share_type, biweekly_week, total_weeks?}. Returns 0 for inverted/malformed ranges, no-season shares (flex/add_on), biweekly off-weeks, and out-of-season holds.
+- `src/lib/vacation.test.ts` — 23 tsx assertions (Naomi regression, biweekly A/B parity, season boundaries, edge cases).
+- `supabase/migrations/0051_vacation_week_count_fix.sql` — **PM TO APPLY.** Factors the count into a shared SECURITY DEFINER helper `_vacation_member_weeks_in_range(member, start, end)` (season CASE mirrors season.ts; parity anchor Mon 2026-06-08 mirrors cycle.ts) and rewrites BOTH `schedule_vacation_hold` (increment) and `cancel_vacation_hold` (refund) to use it — symmetric, so the counter never drifts. CREATE OR REPLACE only; no schema/grant changes; contract + error codes unchanged.
+
+**Files changed:**
+- `src/pages/account/vacation.astro` — per-hold "N weeks" display now uses `vacationWeeksUsed` against each hold's OWN member (added `biweekly_week` to the select + a `memberById` map).
+- `src/pages/account/vacation/new.astro` — live-preview "this hold will use N weeks" replaced the buggy `ceil/7+1` with a count of the member's projected delivery weeks (computed server-side via `resolveMemberSchedule`, shipped to the script as Mon→Sun windows; server still re-validates and the RPC re-counts authoritatively).
+- `src/lib/account.ts` — `weeksInRange` deprecated (still compiles): no longer `+1`; now counts distinct Mon→Sun weeks touched (member-free approximation) so any straggling importer never over-counts.
+
+**Confirmed:** `src/lib/vacation-cascade.ts` only READS `members` (no `.update`, no `vacation_weeks_used` write) — add-on rider holds remain budget-free; Naomi's add_on counter stays 0.
+
+**Cross-system note:** the SQL season CASE + parity anchor in migration 0051 MUST stay in sync with `src/lib/season.ts` (`SEASON_SCHEDULE`) and `src/lib/cycle.ts` (`weekParity` anchor 2026-06-08). If either changes, update the migration's `_vacation_member_weeks_in_range`.
+
+---
+
 ## [2026-06-14] CSA — Chef Account Self-Management on the wholesale order portal (fullstack-builder)
 
 NOT committed/deployed — PM verifies & deploys. App: `apps/csa-portal`. `npm run build` passes; `astro check` adds NO new errors in any new/edited file (the one remaining error is the pre-existing `src/lib/cycle.ts:673`, untouched here); build artifacts removed. PM to render `/order/<real token>/account` live + save a change.

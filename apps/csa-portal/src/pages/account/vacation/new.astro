@@ -17,8 +17,9 @@ import FormRow from '../../../components/FormRow.astro';
 import ContactFarm from '../../../components/ContactFarm.astro';
 import Select from '../../../components/Select.astro';
 import { todayET, VACATION_ERROR_COPY } from '../../../lib/account';
-import { validMoveTargetWeeksForShare } from '../../../lib/cycle';
-import { prettyDeliveryLong } from '../../../lib/schedule';
+import { validMoveTargetWeeksForShare, mondayOfWeek, addDays } from '../../../lib/cycle';
+import { prettyDeliveryLong, resolveMemberSchedule, memberIsBiweekly } from '../../../lib/schedule';
+import { getSchedule } from '../../../lib/season';
 
 const user = Astro.locals.user;
 if (!user || !user.email) {
@@ -32,12 +33,13 @@ type MemberRow = {
   share_type: string;
   total_weeks: number;
   vacation_weeks_used: number;
+  biweekly_week: 'A' | 'B' | null;
   status: string;
 };
 
 const { data: memberRows, error: memberErr } = await supabase
   .from('members')
-  .select('id, share_type, total_weeks, vacation_weeks_used, status')
+  .select('id, share_type, total_weeks, vacation_weeks_used, biweekly_week, status')
   .in('status', ['active', 'paused', 'onboarding'])
   .order('start_date', { ascending: false })
   .overrideTypes<MemberRow[], { merge: false }>();
@@ -76,6 +78,33 @@ const moveTargetOptions = moveTargets.map((t) => ({
   label: `Week ${t.week_number} — ${prettyDeliveryLong(t.delivery_date)}`,
 }));
 const canMove = moveTargetOptions.length > 0;
+
+// ─── Delivery weeks for the live preview (matches the RPC accounting) ────
+// The live "this hold will use N weeks" preview must count the member's
+// ACTUAL delivery weeks the range overlaps — season + biweekly-parity aware —
+// identical to vacationWeeksUsed / the schedule_vacation_hold RPC. We project
+// the member's delivery dates server-side (so a hand-crafted client can't
+// inflate the budget; the server re-validates regardless) and ship each
+// delivery's Monday→Sunday window to the script. The browser then counts
+// windows the picked range overlaps. Empty for shares with no season (flex /
+// add_on) → the preview shows 0 weeks, matching the RPC.
+const previewSchedule = primary ? getSchedule(primary.share_type) : null;
+const deliveryWeeks: Array<{ monday: string; sunday: string }> = (() => {
+  if (!primary || !previewSchedule) return [];
+  const biweekly = memberIsBiweekly({
+    biweeklyWeek: primary.biweekly_week,
+    totalWeeks: primary.total_weeks,
+    schedule: previewSchedule,
+  });
+  const resolved = resolveMemberSchedule({
+    schedule: previewSchedule,
+    biweeklyWeek: biweekly ? (primary.biweekly_week ?? 'A') : null,
+  });
+  return resolved.allDeliveries.map((d) => {
+    const monday = mondayOfWeek(d);
+    return { monday, sunday: addDays(monday, 6) };
+  });
+})();
 
 // Surface server error inline. The DateRangePicker lights up red on the
 // relevant field if the error is about dates; otherwise we show a
@@ -339,11 +368,11 @@ const SHARE_TYPE_LABELS: Record<string, string> = {
         </>
       )}
   <Fragment slot="overlays">
-  <script define:vars={{ totalAvailable, today }}>
+  <script define:vars={{ totalAvailable, today, deliveryWeeks }}>
     /**
      * Live preview: as the user picks dates, show "This hold will use
      * N of your X weeks". Falls back gracefully on no-JS — server
-     * still validates.
+     * still validates (and re-counts authoritatively in the RPC).
      */
     const startEl = document.getElementById('start_date');
     const endEl = document.getElementById('end_date');
@@ -351,13 +380,17 @@ const SHARE_TYPE_LABELS: Record<string, string> = {
     const submitBtn = document.querySelector('[data-submit-btn]');
 
     function weeksInRange(start, end) {
-      // Mirror server logic: ceil((end - start) / 7) + 1, days-based.
-      const a = new Date(start + 'T00:00:00Z');
-      const b = new Date(end + 'T00:00:00Z');
-      if (isNaN(a.getTime()) || isNaN(b.getTime())) return 0;
-      const days = Math.round((b - a) / 86400000);
-      if (days < 0) return 0;
-      return Math.ceil(days / 7) + 1;
+      // Count the member's ACTUAL delivery weeks the inclusive range overlaps
+      // — season + biweekly-parity aware — mirroring vacationWeeksUsed and the
+      // schedule_vacation_hold RPC. `deliveryWeeks` is the member's projected
+      // delivery weeks (each a Monday→Sunday window); a delivery week counts
+      // when its window overlaps [start, end]. Lexicographic ISO-date compare.
+      if (end < start) return 0;
+      let n = 0;
+      for (const w of deliveryWeeks) {
+        if (w.monday <= end && w.sunday >= start) n += 1;
+      }
+      return n;
     }
 
     function update() {

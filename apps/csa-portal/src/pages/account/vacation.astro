@@ -20,9 +20,9 @@ import {
   todayET,
   displayHoldStatus,
   holdBadge,
-  weeksInRange,
   VACATION_ERROR_COPY,
 } from '../../lib/account';
+import { vacationWeeksUsed } from '../../lib/vacation';
 
 const user = Astro.locals.user;
 if (!user || !user.email) {
@@ -36,12 +36,13 @@ type MemberRow = {
   share_type: string;
   total_weeks: number;
   vacation_weeks_used: number;
+  biweekly_week: 'A' | 'B' | null;
   status: string;
 };
 
 const { data: memberRows, error: memberErr } = await supabase
   .from('members')
-  .select('id, share_type, total_weeks, vacation_weeks_used, status')
+  .select('id, share_type, total_weeks, vacation_weeks_used, biweekly_week, status')
   .in('status', ['active', 'paused', 'onboarding'])
   .order('start_date', { ascending: false })
   .overrideTypes<MemberRow[], { merge: false }>();
@@ -54,6 +55,10 @@ const members = memberRows ?? [];
 // We support multiple shares but for the schedule UX we operate on the
 // "primary" share — the first active one. Most members have only one.
 const primary = members[0] ?? null;
+
+// member_id → row, so a hold's week count is computed against ITS OWN share's
+// season + parity (not always the primary share).
+const memberById = new Map<string, MemberRow>(members.map((m) => [m.id, m]));
 
 type HoldRow = {
   id: string;
@@ -266,7 +271,20 @@ const totalAvailable = primary != null
             {upcomingOrActive.map((h) => {
               const display = displayHoldStatus(h.status, h.start_date, h.end_date, today);
               const pill = holdBadge(display);
-              const weeks = weeksInRange(h.start_date, h.end_date);
+              // Count the member's ACTUAL delivery weeks the hold suppresses
+              // (season + biweekly parity aware) — matches the RPC increment.
+              const holdMember = memberById.get(h.member_id);
+              const weeks = holdMember
+                ? vacationWeeksUsed(
+                    {
+                      share_type: holdMember.share_type,
+                      biweekly_week: holdMember.biweekly_week,
+                      total_weeks: holdMember.total_weeks,
+                    },
+                    h.start_date,
+                    h.end_date,
+                  )
+                : 0;
               return (
                 <li>
                   <article class="rounded-ts-xl border border-ts-border bg-ts-bg-surface p-5 shadow-ts-sm sm:p-6">

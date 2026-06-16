@@ -432,22 +432,40 @@ export async function resolveFlexMemberPickupDay(
 }
 
 /**
- * Compute the integer number of weeks covered by an inclusive date
- * range, matching the SQL function logic exactly:
+ * @deprecated Use `vacationWeeksUsed` from `lib/vacation.ts` instead.
  *
- *   weeks = ceil((end - start) / 7) + 1
+ * This computed `ceil((end - start) / 7) + 1`, a calendar-SPAN heuristic
+ * that OVER-COUNTED any hold not starting on a delivery-week boundary (real
+ * incident 2026-06-16: a member's single Mon–Fri hold over ONE Wednesday
+ * delivery was charged 2 weeks instead of 1) and ignored biweekly off-weeks
+ * entirely. The correct accounting counts the member's actual DELIVERY
+ * occurrences in the range — which requires the member's share/parity, so it
+ * lives in `vacationWeeksUsed(member, start, end)`.
  *
- * Same-day → 1 week, 7-day (Mon-Sun) → 1 week, 8-day → 2 weeks.
- *
- * Inputs are 'YYYY-MM-DD' strings.
+ * Retained only so any straggling importer keeps compiling; it now delegates
+ * to a season-AGNOSTIC weekly count (every Mon–Sun week the range touches),
+ * which is the closest member-free approximation and never over-counts the
+ * way the old `+ 1` did. Prefer the member-aware helper everywhere.
  */
 export function weeksInRange(startDate: string, endDate: string): number {
   const start = parseISODate(startDate);
   const end = parseISODate(endDate);
   if (!start || !end) return 0;
-  const days = Math.round((end.getTime() - start.getTime()) / 86_400_000);
-  if (days < 0) return 0;
-  return Math.ceil(days / 7) + 1;
+  if (end.getTime() < start.getTime()) return 0;
+  // Count distinct Monday→Sunday weeks the inclusive range touches. This is
+  // the member-free analogue of "delivery weeks overlapped": snap both ends
+  // to their Monday and count the whole weeks between (inclusive).
+  const startMonday = mondayUTC(start);
+  const endMonday = mondayUTC(end);
+  const weeks = Math.round((endMonday - startMonday) / (7 * 86_400_000)) + 1;
+  return Math.max(1, weeks);
+}
+
+/** Monday (00:00 UTC ms) of the week containing a UTC-midnight Date. */
+function mondayUTC(d: Date): number {
+  const dow = d.getUTCDay(); // 0=Sun..6=Sat
+  const back = dow === 0 ? 6 : dow - 1;
+  return d.getTime() - back * 86_400_000;
 }
 
 /**
