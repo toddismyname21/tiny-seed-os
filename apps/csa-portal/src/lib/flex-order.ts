@@ -8,7 +8,7 @@
  * and the low-stock thresholds.
  *
  * Source of truth for:
- *   - The order WINDOW (opens prior Friday 00:00 ET, closes Tuesday
+ *   - The order WINDOW (opens prior Thursday 00:00 ET, closes Tuesday
  *     08:00 ET that delivery week — aligned with the box-swap cutoff,
  *     EVERY week including the Week-1 launch) — gap research M1/M7.
  *   - Low-stock tiers from remaining_qty — gap research M2.
@@ -82,10 +82,11 @@ export function formatCents(cents: number): string {
 }
 
 /* ──────────────────────────────────────────────────────────────────
- * Order window (opens prior Friday 00:00 ET, closes Tuesday 08:00 ET) — M1 / M7
+ * Order window (opens prior Thursday 00:00 ET, closes Tuesday 08:00 ET) — M1 / M7
  *
  * Cadence (America/New_York, DST-aware), set by Todd 2026-06-08, corrected
- * 2026-06-16 to align the flex window with the box-swap cutoff:
+ * 2026-06-16 to align the flex window with the box-swap cutoff, and the OPEN
+ * day moved Friday → Thursday on 2026-06-17:
  *
  *   • Week 1 (week_starting === '2026-06-08'): treated as ALREADY OPEN (the
  *     season just launched). Its CLOSE now matches every other week —
@@ -94,8 +95,8 @@ export function formatCents(cents: number): string {
  *   • All weeks (Week 1 + standing): the window CLOSES that week's Tuesday
  *     at 08:00 ET — i.e. (week_starting + 1 day) 08:00 ET, matching the
  *     box-swap cutoff so members have one deadline to remember. Standing
- *     weeks additionally OPEN the prior Friday at 00:00 ET — i.e.
- *     (week_starting − 3 days); Week 1 is already open.
+ *     weeks additionally OPEN the prior Thursday at 00:00 ET — i.e.
+ *     (week_starting − 4 days); Week 1 is already open.
  *
  * `week_starting` is the MONDAY of the delivery week. ET is UTC−4 in June
  * (EDT) and UTC−5 in winter (EST); we never hardcode the offset — we
@@ -141,7 +142,7 @@ export function isWeekendMarket(pickupDay: PickupDay): boolean {
  * at `hour:minute` ET) to an absolute epoch-ms instant — DST-aware.
  *
  * @param weekStarting 'YYYY-MM-DD' Monday of the delivery week.
- * @param dayOffset    days from that Monday (e.g. +1 = Tuesday, −3 = prior Friday).
+ * @param dayOffset    days from that Monday (e.g. +1 = Tuesday, −4 = prior Thursday).
  * @param hour         wall-clock hour in ET (0–23).
  * @param minute       wall-clock minute in ET (default 0).
  * @param second       wall-clock second in ET (default 0).
@@ -199,14 +200,15 @@ export function cutoffEpochMs(weekStarting: string, pickupDay: PickupDay = null)
  *
  *   • Week 1 ('2026-06-08'): already open — returns a far-past instant
  *     (the season-launch week is live the moment members land on it).
- *   • Standing weeks: the prior Friday (week_starting − 3 days) 00:00 ET.
+ *   • Standing weeks: the prior Thursday (week_starting − 4 days) 00:00 ET.
  *
  * @param weekStarting 'YYYY-MM-DD' Monday of the delivery week.
  */
 export function opensEpochMs(weekStarting: string): number {
   if (weekStarting === WEEK_ONE) return 0; // already open (epoch 0 = far past).
-  // Prior Friday = Monday − 3 days, at 00:00 ET (Todd 2026-06-16).
-  return etWallClockEpochMs(weekStarting, -3, 0, 0);
+  // Prior Thursday = Monday − 4 days, at 00:00 ET (Todd 2026-06-17; moved one
+  // day earlier from Friday so the flex list opens Thursday).
+  return etWallClockEpochMs(weekStarting, -4, 0, 0);
 }
 
 /** America/New_York UTC offset in minutes for a given instant (e.g. -240 for EDT). */
@@ -232,7 +234,7 @@ export function isPastCutoff(weekStarting: string, now: number = Date.now(), pic
 }
 
 /** Has the order window for this week NOT yet opened, relative to `now`?
- *  The OPEN instant is the same for everyone (prior Friday 00:00 ET) — only
+ *  The OPEN instant is the same for everyone (prior Thursday 00:00 ET) — only
  *  the CLOSE shifts by pickup day — so this takes no `pickupDay`. */
 export function isBeforeOpen(weekStarting: string, now: number = Date.now()): boolean {
   return now < opensEpochMs(weekStarting);
@@ -315,16 +317,16 @@ export function upcomingMondayET(now: Date = new Date()): string {
  *      future (`now < opensEpochMs(W)`); the page renders its before-open
  *      state for it.
  *
- * Worked examples (Week-1 closes Tue 6/9 08:00 ET; 6/15 opens Fri 6/12):
+ * Worked examples (Week-1 closes Tue 6/9 08:00 ET; 6/15 opens Thu 6/11):
  *   • Mon 6/8           → 6/8  (Week-1 open)
  *   • Tue 6/9 07:00 ET  → 6/8  (Week-1 still open, closes 08:00)
- *   • Tue 6/9 09:00 ET  → 6/15 (Week-1 closed; 6/15 not open till Fri — before-open)
- *   • Wed 6/10          → 6/15 (Week-1 closed; 6/15 not open till Fri — before-open)
- *   • Fri 6/12          → 6/15 (6/15 window opens Fri 00:00 ET)
+ *   • Tue 6/9 09:00 ET  → 6/15 (Week-1 closed; 6/15 not open till Thu — before-open)
+ *   • Wed 6/10          → 6/15 (Week-1 closed; 6/15 not open till Thu — before-open)
+ *   • Thu 6/11          → 6/15 (6/15 window opens Thu 00:00 ET)
  *
  * Implementation: enumerate candidate Mondays in a window around `now`
  * (−2 … +3 weeks covers every transition, since a window spans at most
- * Fri→Tue of the following week). Among them pick the OPEN week if any,
+ * Thu→Tue of the following week). Among them pick the OPEN week if any,
  * else the soonest week that opens in the future. Falls back to the
  * upcoming Monday if nothing matches (defensive — shouldn't happen).
  */
@@ -333,7 +335,7 @@ export function currentOrderWeek(now: number = Date.now(), pickupDay: PickupDay 
   const anchorMonday = upcomingMondayET_mondayOfWeek(new Date(now));
 
   // Candidate delivery weeks around the anchor. A standing week's window
-  // runs prior-Friday → that-week's-Tuesday (or Wednesday for a weekend-
+  // runs prior-Thursday → that-week's-Tuesday (or Wednesday for a weekend-
   // market member), so the open week for any instant is at most one week
   // away from the calendar week; we scan a generous range to be safe and
   // deterministic. The member's `pickupDay` selects which cutoff applies so

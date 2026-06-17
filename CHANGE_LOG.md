@@ -6,6 +6,26 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-06-17] CSA — Flex open day Friday→Thursday + weekly flex-list reminder cron (fullstack-builder)
+
+NOT committed/deployed — PM verifies + deploys. App: `apps/csa-portal`. Built on top of the prior uncommitted passes (nothing reverted), including the just-deployed Friday-open/Tuesday-8AM-close flex window.
+
+Validation: `npx tsx src/lib/flex-order.test.ts` all assertions pass; `npx astro check` reports exactly ONE error — the pre-existing `src/lib/cycle.ts:673` (untouched) — and NO new errors in any edited/new file.
+
+**Task 1 — flex order window OPEN moved Friday → Thursday (close unchanged):**
+- `src/lib/flex-order.ts` `opensEpochMs` standing-week offset `-3` (prior Friday) → `-4` (prior Thursday); Week-1 still already-open (epoch 0); all weeks still CLOSE Tuesday 08:00 ET (weekend-market members still Wed 23:59:59 ET). Net window now Thursday 00:00 ET → Tuesday 08:00 ET. Updated all "prior Friday" doc/JSDoc comments + `currentOrderWeek` worked-example comments to Thursday.
+- Member copy "goes live Friday" → "goes live Thursday": `src/pages/dashboard.astro` flex CTA; `src/pages/account/flex-order.astro` disclosure list item + empty-state copy + module doc-comment + the two computed-label comments. (Day-name lookup maps `Fri:'Friday'` left intact — they map raw weekday codes, not flex window copy.)
+- `src/lib/flex-order.test.ts` — open-window assertions retargeted to Thursday: standing open `2026-06-12T04:00Z`→`2026-06-11T04:00Z`; winter open `2026-01-02T05:00Z`→`2026-01-01T05:00Z`; `windowLabels` opensLabel "Friday, June 12"→"Thursday, June 11"; the Thu 6/11 `currentOrderWeek`/`isWindowOpen` case flipped from before-open to OPEN. Close + cutoff + weekend-market assertions unchanged.
+
+**Task 2 — weekly reminder email to Todd to update the flex list:**
+- New cron endpoint `src/pages/api/cron/flex-list-reminder.ts` modeled on `src/pages/api/cron/nightly-health.ts`: same `Authorization: Bearer <CRON_SECRET>` auth (Vercel crons send this header automatically when CRON_SECRET is set), same Resend fetch shape via `RESEND_API_KEY`/`RESEND_FROM_EMAIL` (astro:env/server). Sends ONE short plain email to `todd@tinyseedfarmpgh.com` reminding him to update this week's flex list, with a direct button/link to the catalog editor `https://csa.tinyseedfarm.com/admin/flex-inventory`. Fail-soft (missing key / Resend error → logs + returns 200). Best-effort `notification_log` row (notification_type `flex_list_reminder`, template `flex-list-reminder`) mirroring nightly-health's audit insert. GET + POST.
+- `apps/csa-portal/vercel.json` — added `crons` array: `{ "path": "/api/cron/flex-list-reminder", "schedule": "0 11 * * 4" }` = every Thursday 11:00 UTC = 7:00 AM EDT (in-season; the day the list opens). Vercel crons are UTC and fixed; in winter EST this lands at 6:00 AM. (No `comment` field — Vercel's cron schema only accepts `path` + `schedule`.)
+
+Admin URL linked: `https://csa.tinyseedfarm.com/admin/flex-inventory` (the `/admin/flex-inventory` "weekly flex (extras) catalog editor" — distinct from `/admin/flex-orders`, which is the read-only pack view).
+Cron expression: `0 11 * * 4` → Thursday 11:00 UTC = 7:00 AM EDT.
+
+---
+
 ## [2026-06-17] CSA — Vacation rider ↦ parent FK: exact cancel-cascade matching (fullstack-builder)
 
 NOT committed/deployed and the migration was NOT applied to the live DB — the PM applies the migration and deploys. App: `apps/csa-portal`; migration at the repo-root sequence `supabase/migrations/`. Built on top of the prior uncommitted passes (none reverted). Closes the "EDGE CASE LEFT FOR PM" from the 2026-06-16 entry below: the cancel-cascade matched riders by customer + date OVERLAP + reason marker, which mis-fires when a member holds TWO OVERLAPPING box holds (cancelling one would cancel the other's riders too). Riders now carry a real `parent_hold_id` FK and the cancel path matches on it.
